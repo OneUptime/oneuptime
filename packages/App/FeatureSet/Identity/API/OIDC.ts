@@ -1,4 +1,3 @@
-import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
@@ -9,14 +8,11 @@ import SsoTeamMembership, {
   SsoTeamMembershipOutcome,
 } from "../Utils/SsoTeamMembership";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
-import ProjectSsoSignInConfirmation, {
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-  PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
-  PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
-  ProjectSsoKind,
-} from "../Utils/ProjectSsoSignInConfirmation";
+import { ProjectSsoKind } from "../Utils/ProjectSsoSignInConfirmation";
+import ProjectSsoSignInGate, {
+  ProjectSsoGateDecision,
+  ProjectSsoGateOutcome,
+} from "../Utils/ProjectSsoSignInGate";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -26,7 +22,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
-import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -486,181 +481,53 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
       );
     }
 
-    // Find or create user.
-    let alreadySavedUser: User | null = await UserService.findOneBy({
-      query: { email: result.email },
-      select: {
-        _id: true,
-        name: true,
-        email: true,
-        isMasterAdmin: true,
-        isEmailVerified: true,
-        isBlocked: true,
-        profilePictureId: true,
-        timezone: true,
-      },
-      props: { isRoot: true },
+    /*
+     * Whom this project's provider may sign in, and what everyone else is
+     * told: one answer, in the same time, whether the address has no
+     * account, one that has not confirmed this project's sign-in, a blocked
+     * one or an administrator's (#9824). See ../Utils/ProjectSsoSignInGate.ts.
+     */
+    const decision: ProjectSsoGateDecision = await ProjectSsoSignInGate.decide({
+      email: result.email,
+      name: result.name || null,
+      projectId: new ObjectID(req.params["projectId"] as string),
+      kind: ProjectSsoKind.OIDC,
+      providerId: projectOidcId,
+      origin: RequestOriginUtil.fromRequest(req),
     });
 
-    let isNewUser: boolean = false;
+    if (decision.outcome !== ProjectSsoGateOutcome.SignIn) {
+      const failureReason: SignInFailureReason | null =
+        ProjectSsoSignInGate.getFailureReason(decision.reason);
 
-    if (!alreadySavedUser) {
-      alreadySavedUser = await UserService.createByEmail({
-        email: result.email,
-        name: result.name || undefined,
-        /*
-         * On the hosted service this project's IdP is a customer's word for
-         * the address, not proof of it: the account stays unverified until
-         * its owner confirms from the mailbox (below). Self-hosted installs
-         * trust it, as before.
-         */
-        isEmailVerified: !ProjectSsoSignInConfirmation.isRequired(),
-        generateRandomPassword: true,
-        props: { isRoot: true },
-      });
-      isNewUser = true;
-    }
-
-    const account: User = alreadySavedUser;
-
-    /*
-     * A sign-in the provider vouched for that OneUptime refuses, for the
-     * audit log of every project the account's person is a member of
-     * (issue #6788), after the answer (FailedSignInAuditLog). The provider
-     * is this project's: only this project's entry names it.
-     */
-    const recordRefusedSignIn: (reason: SignInFailureReason) => void = (
-      reason: SignInFailureReason,
-    ): void => {
-      FailedSignInAuditLog.record({
-        req: req,
-        userId: account.id!,
-        reason: reason,
-        signIn: {
-          method: SignInMethod.OpenIdConnect,
-          ssoProviderName: projectOidc.name,
-          ssoProjectId: new ObjectID(req.params["projectId"] as string),
-        },
-      });
-    };
-
-    /*
-     * Blocked by a master admin. The identity provider vouching for the user
-     * does not lift that, so nothing is provisioned and no session is issued.
-     */
-    if (alreadySavedUser.isBlocked) {
-      recordRefusedSignIn(SignInFailureReason.AccountBlocked);
-
-      return Response.render(
-        req,
-        res,
-        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-        {
-          title: "Account blocked.",
-          message: ExceptionMessages.UserBlocked,
-        },
-      );
-    }
-
-    /*
-     * A project's own identity provider is configured by that project's
-     * admins, so it must never sign in a OneUptime administrator: the
-     * master-admin capability is instance-wide, and a tenant that controls a
-     * provider could otherwise assert an administrator's address and take the
-     * instance over. Refused on every edition, before anything is emailed,
-     * provisioned, or signed. See ../Utils/ProjectSsoSignInConfirmation.ts.
-     */
-    if (
-      ProjectSsoSignInConfirmation.mustNotSignInThroughProjectProvider(
-        alreadySavedUser,
-      )
-    ) {
-      recordRefusedSignIn(SignInFailureReason.SingleSignOnRefused);
-
-      if (
-        respondToMobileSsoFailure({
-          res,
-          isMobileRequest,
-          error: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
-          errorDescription: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-        })
-      ) {
-        return;
-      }
-
-      return Response.render(
-        req,
-        res,
-        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-        {
-          title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-          message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-        },
-      );
-    }
-
-    if (ProjectSsoSignInConfirmation.isRequired()) {
       /*
-       * Hosted service: this project's IdP may sign an account in only once
-       * the account's own mailbox has agreed to it. Until then, no session and
-       * no project membership -- just an email to the address. See
-       * ../Utils/ProjectSsoSignInConfirmation.ts.
+       * A sign-in the provider vouched for that OneUptime refuses, for the
+       * audit log of every project the account's person is a member of
+       * (issue #6788), after the answer (FailedSignInAuditLog). The
+       * provider is this project's: only this project's entry names it.
        */
-      const projectIdForConfirmation: ObjectID = new ObjectID(
-        req.params["projectId"] as string,
-      );
-
-      if (
-        !(await ProjectSsoSignInConfirmation.isSignInConfirmed({
-          user: alreadySavedUser,
-          projectId: projectIdForConfirmation,
-        }))
-      ) {
-        await ProjectSsoSignInConfirmation.requestConfirmation({
-          user: alreadySavedUser,
-          projectId: projectIdForConfirmation,
-          kind: ProjectSsoKind.OIDC,
-          providerId: projectOidcId,
-          origin: RequestOriginUtil.fromRequest(req),
-        });
-
-        if (
-          respondToMobileSsoFailure({
-            res,
-            isMobileRequest,
-            error: PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
-            errorDescription: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
-          })
-        ) {
-          return;
-        }
-
-        return Response.render(
-          req,
-          res,
-          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-          {
-            title: "Check your email.",
-            message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+      if (failureReason && decision.user?.id) {
+        FailedSignInAuditLog.record({
+          req: req,
+          userId: decision.user.id,
+          reason: failureReason,
+          signIn: {
+            method: SignInMethod.OpenIdConnect,
+            ssoProviderName: projectOidc.name,
+            ssoProjectId: new ObjectID(req.params["projectId"] as string),
           },
-        );
+        });
       }
-    } else if (!alreadySavedUser.isEmailVerified && !isNewUser) {
-      recordRefusedSignIn(SignInFailureReason.EmailNotVerified);
 
-      await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
-
-      return Response.render(
+      return ProjectSsoSignInGate.respondNotSignedIn({
         req,
         res,
-        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-        {
-          title: "Email not verified.",
-          message:
-            "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
-        },
-      );
+        isMobileRequest,
+        outcome: decision.outcome,
+      });
     }
+
+    let alreadySavedUser: User = decision.user!;
 
     // Add to default teams if user is not already in the project.
     const teamMemberCount: PositiveNumber = await TeamMemberService.countBy({
@@ -720,6 +587,17 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
     }
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
+
+    /*
+     * Signing in through this project's own single sign-on is the person
+     * joining it: an invitation into it still pending is accepted (#9819),
+     * and an address the provider vouched for is verified, as for an
+     * account it makes - after the memberships, so their defaults are made.
+     */
+    alreadySavedUser = await ProjectSsoSignInGate.joinOnSignIn({
+      user: alreadySavedUser,
+      projectId: projectId,
+    });
 
     alreadySavedUser.email = result.email;
 

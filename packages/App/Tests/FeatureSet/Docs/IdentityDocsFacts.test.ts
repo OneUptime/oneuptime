@@ -80,6 +80,7 @@ const SOURCES: Record<string, string> = {
   statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
+  ssoGate: `${IDENTITY}/Utils/ProjectSsoSignInGate.ts`,
   ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
@@ -497,6 +498,11 @@ describe("the SSO guide", () => {
       /public static isRequired\(\): boolean \{\s*return IsBillingEnabled;\s*\}/,
     );
 
+    // Both callbacks ask the gate (#9824), which asks whether to confirm.
+    expect(readSource("ssoGate")).toContain(
+      "ProjectSsoSignInConfirmation.isRequired()",
+    );
+
     for (const [key, kind] of [
       ["ssoApi", "ProjectSsoKind.SAML"],
       ["oidcApi", "ProjectSsoKind.OIDC"],
@@ -505,7 +511,7 @@ describe("the SSO guide", () => {
 
       expect({
         key,
-        asks: source.includes("ProjectSsoSignInConfirmation.isRequired()"),
+        asks: source.includes("ProjectSsoSignInGate.decide("),
       }).toEqual({
         key,
         asks: true,
