@@ -1,4 +1,5 @@
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -24,6 +25,7 @@ import logger from "../Logger";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "./SecurityCaseIngest";
+import { getMatchedEventsOfStoredRow } from "./SecurityDetectionMatchedEventsReader";
 
 // OCSF Detection Finding and Incident Finding: what a product calls an alert.
 export const IMPORTED_ALERT_CLASS_UIDS: ReadonlyArray<number> = [2004, 2005];
@@ -124,6 +126,27 @@ export function importedAlertMarkdown(data: {
 }
 
 /*
+ * The rows events were stored as, by their eventUid: what a detection about
+ * one of them keeps of it (#9619) - the event as it was stored, with the
+ * source it was stored under and when it leaves the table.
+ */
+export function getStoredRowsByEventUid(
+  rows: ReadonlyArray<JSONObject> | undefined,
+): Map<string, JSONObject> {
+  const byUid: Map<string, JSONObject> = new Map();
+
+  for (const row of rows || []) {
+    const uid: unknown = row["eventUid"];
+
+    if (typeof uid === "string" && uid && !byUid.has(uid)) {
+      byUid.set(uid, row);
+    }
+  }
+
+  return byUid;
+}
+
+/*
  * Turns a poll's newly imported alerts into case detections: every finding
  * at or above the connection's "Open Cases From Severity" becomes a
  * detection, which opens a case or joins the open case about the same host,
@@ -139,6 +162,8 @@ export default class SecurityConnectionCases {
     // The connector's catalog entry: the product the alerts came from.
     definition: { productName: string };
     events: Array<NormalizedSecurityEvent>;
+    // The rows the events were stored as: each alert's detection keeps its own.
+    rows?: Array<JSONObject> | undefined;
   }): Promise<number> {
     try {
       const alerts: Array<NormalizedSecurityEvent> = data.events.filter(
@@ -177,6 +202,9 @@ export default class SecurityConnectionCases {
 
       const projectId: ObjectID = data.connection.projectId;
       const connectionId: ObjectID = data.connection.id;
+      const storedRows: Map<string, JSONObject> = getStoredRowsByEventUid(
+        data.rows,
+      );
 
       const signals: Array<SecurityDetectionSignal> = alerts
         .filter((event: NormalizedSecurityEvent): boolean => {
@@ -215,6 +243,11 @@ export default class SecurityConnectionCases {
             securityEventConnectionId: connectionId,
             sampleMessage: event.message || undefined,
             eventUid: event.eventUid,
+            // The alert itself, as it was stored: what the detection matched.
+            matchedEvents: storedRows.has(event.eventUid)
+              ? getMatchedEventsOfStoredRow(storedRows.get(event.eventUid)!) ||
+                undefined
+              : undefined,
             seenAt: event.time,
           };
         });

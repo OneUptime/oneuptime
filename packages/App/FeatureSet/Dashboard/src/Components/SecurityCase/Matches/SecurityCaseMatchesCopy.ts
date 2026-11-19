@@ -144,6 +144,32 @@ export const EVENT_PANEL_NOTE: string = translationKey(
   "Matched by {{detection}}.",
 );
 
+/*
+ * The events a detection kept when it fired (#9619), past the events
+ * table's retention: shown as they were kept.
+ */
+export const KEPT_PAST_RETENTION: PluralTemplate = {
+  one: "{{count}} event here is past its retention, and is shown as kept when the detection fired.",
+  other:
+    "{{count}} events here are past their retention, and are shown as kept when the detection fired.",
+};
+
+// The events it kept of sources the reader's role cannot read.
+export const HIDDEN_EVENTS: PluralTemplate = {
+  one: "Your role cannot read {{count}} more event this detection matched.",
+  other: "Your role cannot read {{count}} more events this detection matched.",
+};
+
+// Keeping a matched event on the case as evidence (#9622).
+export const KEEP_ON_CASE: string = translationKey("Keep on This Case");
+export const KEPT_ON_CASE: string = translationKey("Kept on this case");
+export const KEPT_ON_CASE_TITLE: string = translationKey(
+  "Open it on the case's Evidence page",
+);
+export const KEPT_ON_CASE_DONE: string = translationKey(
+  "The event is kept on this case's Evidence page.",
+);
+
 // When a detection has no events to show.
 export const NO_EVENTS_LEFT: string = translationKey(
   "No events are left to show. They may be past the project's retention for security events, or in sources your role cannot read.",
@@ -243,6 +269,10 @@ export const SECURITY_CASE_MATCHES_TEST_IDS: {
   openedByHand: string;
   detectionsUnread: string;
   error: string;
+  keptNote: string;
+  hiddenNote: string;
+  keep: string;
+  kept: string;
 } = {
   card: "security-case-why-opened",
   detection: "security-case-why-opened-detection",
@@ -267,4 +297,8 @@ export const SECURITY_CASE_MATCHES_TEST_IDS: {
   openedByHand: "security-case-why-opened-by-hand",
   detectionsUnread: "security-case-why-opened-detections-unread",
   error: "security-case-why-opened-error",
+  keptNote: "security-case-why-opened-kept-note",
+  hiddenNote: "security-case-why-opened-hidden-note",
+  keep: "security-case-why-opened-keep",
+  kept: "security-case-why-opened-kept",
 };
