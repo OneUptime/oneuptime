@@ -65,9 +65,10 @@ export default class WorkflowRunAccess {
       WORKFLOW_RUN_REFUSED_MESSAGE,
     );
 
-    await WorkflowRunAccess.assertInProject(data);
-
-    await WorkflowRunAccess.assertHoldsWhatItRunsAs(data);
+    await WorkflowRunAccess.assertHoldsWhatItRunsAs(
+      data,
+      await WorkflowRunAccess.assertInProject(data),
+    );
 
     if (data.databaseProps.isMasterAdmin) {
       return;
@@ -102,9 +103,10 @@ export default class WorkflowRunAccess {
       WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
     );
 
-    await WorkflowRunAccess.assertInProject(data);
-
-    await WorkflowRunAccess.assertHoldsWhatItRunsAs(data);
+    await WorkflowRunAccess.assertHoldsWhatItRunsAs(
+      data,
+      await WorkflowRunAccess.assertInProject(data),
+    );
 
     if (data.databaseProps.isMasterAdmin) {
       return;
@@ -121,27 +123,14 @@ export default class WorkflowRunAccess {
    * it runs as (WorkflowRunAsAuthority.assertMayAct): a run by hand decides
    * what the workflow starts with, and its steps act with the workflow's
    * permissions, so a Workflow Member, an editor, or a master admin who
-   * holds less in the project may not. Asked once the workflow is known to
-   * be the project's, so nothing is said of another project's.
+   * holds less in the project may not. Asked of the workflow once it is
+   * known to be the project's (assertInProject), so nothing is said of
+   * another project's.
    */
   private static async assertHoldsWhatItRunsAs(
     data: WorkflowRunRequest,
+    workflow: Workflow,
   ): Promise<void> {
-    const workflow: Workflow | null = await WorkflowService.findOneById({
-      id: data.workflowId,
-      select: {
-        runAs: true,
-        runAsCustomRoleId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!workflow) {
-      return;
-    }
-
     await WorkflowRunAsAuthority.assertMayAct({
       setting: {
         runAs: workflow.runAs,
@@ -155,17 +144,20 @@ export default class WorkflowRunAccess {
 
   /*
    * The workflow's own project must be the one the caller named. Read as
-   * OneUptime, and only its project: the reads below are the caller's, and
-   * the update check names a row's labels when it refuses, so they only
-   * ever see a row of the caller's own project.
+   * OneUptime, and only its project and what it runs as: the reads below
+   * are the caller's, and the update check names a row's labels when it
+   * refuses, so they only ever see a row of the caller's own project.
+   * Answers the workflow read.
    */
   private static async assertInProject(
     data: WorkflowRunRequest,
-  ): Promise<void> {
+  ): Promise<Workflow> {
     const owner: Workflow | null = await WorkflowService.findOneById({
       id: data.workflowId,
       select: {
         projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
       },
       props: {
         isRoot: true,
@@ -176,6 +168,8 @@ export default class WorkflowRunAccess {
       resourceProjectId: owner?.projectId,
       projectId: data.projectId,
     });
+
+    return owner!;
   }
 
   /*

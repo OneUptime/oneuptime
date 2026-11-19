@@ -499,7 +499,22 @@ describe("once the save may be made, before it is written", () => {
       expect(hook("getRowWriteSql")(updateBy.data)).toEqual({});
     }
 
-    expect(WorkflowService.findRowsAndHoldUpdateToThem).not.toHaveBeenCalled();
+    /*
+     * The only reads are of what each workflow runs as, which decides who
+     * may change it (#9695): never its revision.
+     */
+    for (const read of (
+      WorkflowService.findRowsAndHoldUpdateToThem as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
+    ).mock.calls) {
+      expect(read[1]).toEqual({
+        _id: true,
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      });
+    }
   });
 
   test("a graph written without the hooks (OneUptime's own writes) is not counted by them", () => {

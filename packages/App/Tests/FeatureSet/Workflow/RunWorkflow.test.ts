@@ -671,11 +671,15 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
         "log",
         "onError",
         "projectId",
+        // What the run acts as (#9695): the default permissions, here.
+        "runAs",
         "workflowId",
         "workflowLogId",
         "workflowName",
       ].sort(),
     );
+    // A workflow that runs as Default names nobody it runs for.
+    expect(received!.runAs).toEqual({ runAs: "Default" });
   });
 
   /*

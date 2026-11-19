@@ -157,6 +157,17 @@ export const getWorkflowRunAsVariableRefusedMessage: (
 export const WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE: string =
   "Only a person can choose what a workflow runs as, or change a workflow that runs with more than the default permissions, because the workflow runs with that person's permissions. API keys can't.";
 
+/*
+ * A raised workflow acted on by something that is no person, which may do
+ * nothing a person who holds its permissions alone may: the refusal for
+ * the act, and why.
+ */
+export const getWorkflowRunAsPersonOnlyRefusedMessage: (
+  refusal: string,
+) => string = (refusal: string): string => {
+  return `${refusal} ${WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE}`;
+};
+
 // Run As Project Owner chosen by someone who is not one.
 export const WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE: string =
   "Only a Project Owner can let a workflow run as Project Owner. Ask a Project Owner to choose it.";

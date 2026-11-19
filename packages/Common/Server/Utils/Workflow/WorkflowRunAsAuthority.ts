@@ -35,6 +35,7 @@ import {
   getWorkflowRunAsGiverGoneMessage,
   getWorkflowRunAsGiverLeftMessage,
   getWorkflowRunAsGiverLostMessage,
+  getWorkflowRunAsPersonOnlyRefusedMessage,
   getWorkflowRunAsRoleRefusedMessage,
   getWorkflowRunAsRunRefusedMessage,
   getWorkflowRunAsVariableRefusedMessage,
@@ -400,7 +401,7 @@ export default class WorkflowRunAsAuthority {
 
     if (!WorkflowRunAsAuthority.isPerson(data.props)) {
       throw new NotAuthorizedException(
-        `${refusal} ${WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE}`,
+        getWorkflowRunAsPersonOnlyRefusedMessage(refusal),
       );
     }
 
