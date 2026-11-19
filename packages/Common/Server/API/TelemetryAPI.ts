@@ -3562,6 +3562,11 @@ router.post(
         aggregation,
         aggregationField,
         ...serviceFilter,
+        /*
+         * A host's, a pod's or a container's own Logs tab charts only its
+         * own logs, as its list and its volume histogram show them.
+         */
+        entityKeys: readStringListField(body, "entityKeys"),
         resourceScopes,
         severityTexts,
         excludedSeverityTexts: readStringListField(

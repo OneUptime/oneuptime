@@ -97,6 +97,10 @@ const search: ObjectID = new ObjectID("77000000-0000-4000-8000-00000000000d");
 const legacy: ObjectID = new ObjectID("77000000-0000-4000-8000-00000000000e");
 // The logs that say which values count as numbers.
 const probe: ObjectID = new ObjectID("77000000-0000-4000-8000-00000000000f");
+// A Kubernetes workload whose pods log a queue_ms, each with its entity key.
+const workload: ObjectID = new ObjectID("77000000-0000-4000-8000-000000000010");
+const POD_A: string = "k8s.pod:checkout-7f9";
+const POD_B: string = "k8s.pod:checkout-2c4";
 
 const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
   OneUptimeDate.addRemoveDays(new Date(), 30),
@@ -150,6 +154,7 @@ interface LogFixture {
   attributes: Record<string, string>;
   projectId?: ObjectID;
   isExpired?: boolean;
+  entityKeys?: Array<string>;
 }
 
 function checkoutLog(
@@ -264,6 +269,28 @@ const LOGS: Array<LogFixture> = [
     serviceId: search,
     attributes: { "http.server/duration:ms-p": "7" },
   },
+  // Pod A queues for 10 and 30, pod B for 500.
+  {
+    at: FIRST_BUCKET,
+    secondsIn: 50,
+    serviceId: workload,
+    entityKeys: [POD_A],
+    attributes: { queue_ms: "10" },
+  },
+  {
+    at: FIRST_BUCKET,
+    secondsIn: 51,
+    serviceId: workload,
+    entityKeys: [POD_A],
+    attributes: { queue_ms: "30" },
+  },
+  {
+    at: FIRST_BUCKET,
+    secondsIn: 52,
+    serviceId: workload,
+    entityKeys: [POD_B],
+    attributes: { queue_ms: "500" },
+  },
   // What counts as a number: each value as `v`, and as written in `raw`.
   ...[...NUMBERS, ...NOT_NUMBERS].map(
     (value: string, index: number): LogFixture => {
@@ -292,7 +319,7 @@ function logRow(fixture: LogFixture, index: number): JSONObject {
     severityNumber: 9,
     attributes: fixture.attributes,
     attributeKeys: Object.keys(fixture.attributes).sort(),
-    entityKeys: [],
+    entityKeys: fixture.entityKeys || [],
     traceId: "",
     spanId: "",
     body: "request served",
@@ -681,6 +708,32 @@ integration(
 
       // And the table is as it was.
       expect(await seriesByService({ aggregation: "avg" })).toHaveLength(3);
+    });
+
+    test("a pod's own Logs tab averages only its pod's logs", async () => {
+      const average: (
+        entityKeys?: Array<string>,
+      ) => Promise<Array<number>> = async (
+        entityKeys?: Array<string>,
+      ): Promise<Array<number>> => {
+        const rows: Array<AnalyticsTimeseriesRow> =
+          await LogAggregationService.getAnalyticsTimeseries(
+            request({
+              aggregation: "avg",
+              aggregationField: "queue_ms",
+              serviceIds: [workload],
+              ...(entityKeys ? { entityKeys } : {}),
+            }),
+          );
+
+        return rows.map((row: AnalyticsTimeseriesRow): number => {
+          return row.count;
+        });
+      };
+
+      expect(await average([POD_A])).toEqual([20]);
+      expect(await average([POD_B])).toEqual([500]);
+      expect(await average()).toEqual([180]);
     });
 
     test("a unique count of user.id counts only the logs that carry one", async () => {

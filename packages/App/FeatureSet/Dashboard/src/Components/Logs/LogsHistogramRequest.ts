@@ -81,10 +81,33 @@ export function buildLogsHistogramRequest(
   const dateRange: InBetween<Date> =
     RangeStartAndEndDateTimeUtil.getStartAndEndDate(params.timeRange);
 
-  const requestData: JSONObject = {
+  return {
     startTime: dateRange.startValue.toISOString(),
     endTime: dateRange.endValue.toISOString(),
+    ...buildLogsAggregateScope(params),
   };
+}
+
+// What narrows an aggregate read but its window: see buildLogsAggregateScope.
+export type LogsAggregateScopeParams = Omit<
+  LogsHistogramRequestParams,
+  "timeRange"
+>;
+
+/**
+ * Everything the list is narrowed by but its time window, as the aggregate
+ * endpoints read it: the page's own scope (its services, trace, span,
+ * attributes and entity keys), the chips kept and left out, and what the
+ * search bar typed. The volume histogram reads it with its window
+ * (buildLogsHistogramRequest), and so does the Analytics chart (#7716),
+ * which resolves its own window and bucket size: a p95 of duration_ms
+ * filtered by `@http.route:/checkout` charts the checkout's, as the list
+ * and the histogram show them, not every route's.
+ */
+export function buildLogsAggregateScope(
+  params: LogsAggregateScopeParams,
+): JSONObject {
+  const requestData: JSONObject = {};
 
   if (params.serviceIds) {
     requestData["serviceIds"] = params.serviceIds;

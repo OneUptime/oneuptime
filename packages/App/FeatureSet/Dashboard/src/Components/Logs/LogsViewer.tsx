@@ -32,6 +32,7 @@ import TelemetryLoadErrorUtil, {
 import {
   ATTRIBUTE_FACET_PREFIX,
   applyTypedLogFilterToRequest,
+  buildLogsAggregateScope,
   buildLogsHistogramRequest,
   getLogsChosenFacetKeys,
   parseLogsHistogramResponse,
@@ -1614,6 +1615,42 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     fetchHistogramBuckets,
     { isEnabled: !awaitsInitialSavedView && isListQueryOnScope },
   );
+
+  /*
+   * The rows the Analytics chart reads (#7716): every filter the histogram
+   * above it reads but the window, which the chart resolves with its own
+   * bucket size. It used to compile only some chips itself, so a typed
+   * search, an attribute or message chip, and a host's or a pod's own scope
+   * narrowed the list and the histogram while the chart under them averaged
+   * every log.
+   */
+  const analyticsScope: JSONObject = useMemo((): JSONObject => {
+    const scope: JSONObject = buildLogsAggregateScope({
+      serviceIds: serviceIdStrings,
+      traceIds: traceIdStrings,
+      spanIds: spanIdStrings,
+      attributes: logQueryAttributes,
+      entityKeys: logQueryEntityKeys,
+      appliedFacetFilters: appliedFacetFilters,
+      typedFilter: typedAggregateFilter,
+    });
+
+    // The page's own session scope, as the histogram's.
+    if (sessionIdStrings) {
+      scope["sessionIds"] = sessionIdStrings;
+    }
+
+    return scope;
+  }, [
+    serviceIdStrings,
+    traceIdStrings,
+    spanIdStrings,
+    sessionIdStrings,
+    appliedFacetFilters,
+    logQueryAttributes,
+    logQueryEntityKeys,
+    typedAggregateFilter,
+  ]);
 
   // --- Fetch facets ---
 
@@ -3328,6 +3365,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           analyticsSessionIds={sessionIdStrings}
           projectId={ProjectUtil.getCurrentProjectId() || undefined}
           analyticsAppliedFacetFilters={appliedFacetFilters}
+          analyticsScope={analyticsScope}
           onUpdateCurrentSavedView={async () => {
             if (!selectedSavedView?.id) {
               return;

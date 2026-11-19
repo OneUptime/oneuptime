@@ -118,6 +118,16 @@ export interface LogsAnalyticsViewProps {
    */
   sessionIds?: Array<string> | undefined;
   appliedFacetFilters: Map<string, Set<string>>;
+  /*
+   * Everything the viewer's list is narrowed by but its window - the page's
+   * own scope (services, trace, span, session, attributes, entity keys),
+   * the chips kept and left out, and what the search bar typed - as the
+   * aggregate endpoints read it (the Dashboard's buildLogsAggregateScope,
+   * which the volume histogram above reads too). Given, the chart reads
+   * exactly these rows, in its own window; without it, it compiles the
+   * services, the session and the chips it knows itself.
+   */
+  requestScope?: JSONObject | undefined;
   logAttributes: Array<string>;
   /*
    * Drag-to-zoom for the timeseries chart. Without these the chart zooms
@@ -505,6 +515,112 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
   );
 };
 
+/*
+ * The fields of the chart's own request a scope never sets: what it
+ * charts, and the window and buckets it charts them in.
+ */
+const CHART_OWN_FIELDS: ReadonlySet<string> = new Set<string>([
+  "chartType",
+  "aggregation",
+  "aggregationField",
+  "groupBy",
+  "limit",
+  "startTime",
+  "endTime",
+  "bucketSizeInMinutes",
+]);
+
+// The viewer's scope (requestScope) onto the chart's request.
+function applyRequestScope(
+  requestData: JSONObject,
+  requestScope: JSONObject,
+): void {
+  for (const [key, value] of Object.entries(requestScope)) {
+    if (CHART_OWN_FIELDS.has(key) || value === undefined || value === null) {
+      continue;
+    }
+
+    requestData[key] = value;
+  }
+}
+
+/*
+ * The scope the view compiles itself, without a requestScope: the host's
+ * services and session, and the severity, service, resource, trace and
+ * span chips, kept and left out.
+ */
+function applyOwnScope(
+  requestData: JSONObject,
+  scope: {
+    serviceIds?: Array<string> | undefined;
+    sessionIds?: Array<string> | undefined;
+    appliedFacetFilters: Map<string, Set<string>>;
+  },
+): void {
+  if (scope.serviceIds) {
+    (requestData as Record<string, unknown>)["serviceIds"] = scope.serviceIds;
+  }
+
+  if (scope.sessionIds) {
+    (requestData as Record<string, unknown>)["sessionIds"] = scope.sessionIds;
+  }
+
+  // Apply facet filters
+  const severityValues: Set<string> | undefined =
+    scope.appliedFacetFilters.get("severityText");
+
+  if (severityValues && severityValues.size > 0) {
+    (requestData as Record<string, unknown>)["severityTexts"] =
+      Array.from(severityValues);
+  }
+
+  const serviceFilterValues: Array<string> = collectServiceFacetSelections(
+    scope.appliedFacetFilters.entries(),
+  );
+
+  if (serviceFilterValues.length > 0) {
+    (requestData as Record<string, unknown>)["serviceIds"] =
+      serviceFilterValues;
+  }
+
+  /*
+   * Host / docker / podman / Kubernetes chips ride their own field —
+   * their ids are not `primaryEntityId` values for telemetry that
+   * carries a service.name, so the server resolves them to the
+   * resource's entity key. Without this the analytics tab silently
+   * ignored a cluster the sidebar was filtering by.
+   */
+  const resourceFilters: ResourceEntityFacetSelections =
+    collectResourceEntityFacetSelections(scope.appliedFacetFilters.entries());
+
+  if (Object.keys(resourceFilters).length > 0) {
+    (requestData as Record<string, unknown>)["resourceFilters"] =
+      resourceFilters;
+  }
+
+  const traceFilterValues: Set<string> | undefined =
+    scope.appliedFacetFilters.get("traceId");
+
+  if (traceFilterValues && traceFilterValues.size > 0) {
+    (requestData as Record<string, unknown>)["traceIds"] =
+      Array.from(traceFilterValues);
+  }
+
+  const spanFilterValues: Set<string> | undefined =
+    scope.appliedFacetFilters.get("spanId");
+
+  if (spanFilterValues && spanFilterValues.size > 0) {
+    (requestData as Record<string, unknown>)["spanIds"] =
+      Array.from(spanFilterValues);
+  }
+
+  /*
+   * And what the chips leave out ("Severity is not debug"), so the
+   * analytics count the rows the list shows.
+   */
+  applyLogsFacetExclusionsToRequest(requestData, scope.appliedFacetFilters);
+}
+
 const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   props: LogsAnalyticsViewProps,
 ): ReactElement => {
@@ -662,12 +778,25 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     }
   };
 
+  /*
+   * The viewer's scope, keyed by value: the viewer builds it afresh as its
+   * filters change, and an equal scope must not read the chart again. It is
+   * read back from the key, in the shape it goes out in.
+   */
+  const requestScopeKey: string = useMemo((): string => {
+    return props.requestScope ? JSON.stringify(props.requestScope) : "";
+  }, [props.requestScope]);
+
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       const requestSequence: number = ++requestSequenceRef.current;
       const isStale: () => boolean = (): boolean => {
         return requestSequence !== requestSequenceRef.current;
       };
+
+      const requestScope: JSONObject | null = requestScopeKey
+        ? (JSON.parse(requestScopeKey) as JSONObject)
+        : null;
 
       /*
        * Nothing to read until the measure has its field: what is on screen
@@ -728,74 +857,21 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           (requestData as Record<string, unknown>)["limit"] = topListLimit;
         }
 
-        if (props.serviceIds) {
-          (requestData as Record<string, unknown>)["serviceIds"] =
-            props.serviceIds;
-        }
-
-        if (props.sessionIds) {
-          (requestData as Record<string, unknown>)["sessionIds"] =
-            props.sessionIds;
-        }
-
-        // Apply facet filters
-        const severityValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("severityText");
-
-        if (severityValues && severityValues.size > 0) {
-          (requestData as Record<string, unknown>)["severityTexts"] =
-            Array.from(severityValues);
-        }
-
-        const serviceFilterValues: Array<string> =
-          collectServiceFacetSelections(props.appliedFacetFilters.entries());
-
-        if (serviceFilterValues.length > 0) {
-          (requestData as Record<string, unknown>)["serviceIds"] =
-            serviceFilterValues;
-        }
-
         /*
-         * Host / docker / podman / Kubernetes chips ride their own field —
-         * their ids are not `primaryEntityId` values for telemetry that
-         * carries a service.name, so the server resolves them to the
-         * resource's entity key. Without this the analytics tab silently
-         * ignored a cluster the sidebar was filtering by.
+         * The rows to read: the viewer's whole scope when it hands one over
+         * (the typed search, every chip, the page's own attributes and
+         * entity keys), else the services, the session and the chips this
+         * view compiles itself.
          */
-        const resourceFilters: ResourceEntityFacetSelections =
-          collectResourceEntityFacetSelections(
-            props.appliedFacetFilters.entries(),
-          );
-
-        if (Object.keys(resourceFilters).length > 0) {
-          (requestData as Record<string, unknown>)["resourceFilters"] =
-            resourceFilters;
+        if (requestScope) {
+          applyRequestScope(requestData, requestScope);
+        } else {
+          applyOwnScope(requestData, {
+            serviceIds: props.serviceIds,
+            sessionIds: props.sessionIds,
+            appliedFacetFilters: props.appliedFacetFilters,
+          });
         }
-
-        const traceFilterValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("traceId");
-
-        if (traceFilterValues && traceFilterValues.size > 0) {
-          (requestData as Record<string, unknown>)["traceIds"] =
-            Array.from(traceFilterValues);
-        }
-
-        const spanFilterValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("spanId");
-
-        if (spanFilterValues && spanFilterValues.size > 0) {
-          (requestData as Record<string, unknown>)["spanIds"] =
-            Array.from(spanFilterValues);
-        }
-
-        /*
-         * And what the chips leave out ("Severity is not debug"), so the
-         * analytics count the rows the list shows.
-         */
-        applyLogsFacetExclusionsToRequest(
-          requestData,
-          props.appliedFacetFilters,
-        );
 
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
@@ -865,6 +941,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       props.serviceIds,
       props.sessionIds,
       props.appliedFacetFilters,
+      requestScopeKey,
     ]);
 
   useEffect(() => {

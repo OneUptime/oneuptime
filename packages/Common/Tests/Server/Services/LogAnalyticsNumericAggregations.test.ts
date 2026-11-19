@@ -332,6 +332,27 @@ describe("an aggregation of a numeric attribute", () => {
     }
   });
 
+  test("keeps a page's entity keys: a pod's own tab averages only the pod's logs", () => {
+    for (const [builder, chartType] of BUILDERS) {
+      const statement: Statement = build(
+        builder,
+        request({
+          chartType,
+          aggregation: "avg",
+          aggregationField: "duration_ms",
+          groupBy: ["http.route"],
+          entityKeys: ["k8s.pod:checkout-7f9"],
+        }),
+      );
+      const match: RegExpMatchArray | null = sqlOf(statement).match(
+        /AND hasAny\(entityKeys, \{(p\d+):Array\(String\)\}\)/,
+      );
+
+      expect(match).not.toBeNull();
+      expect(param(statement, match![1]!)).toEqual(["k8s.pod:checkout-7f9"]);
+    }
+  });
+
   test("keeps the retention filter: a log past its retention is not averaged in", () => {
     for (const [builder, chartType] of BUILDERS) {
       expect(

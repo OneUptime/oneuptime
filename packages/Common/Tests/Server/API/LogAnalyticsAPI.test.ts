@@ -430,6 +430,33 @@ describe("POST /telemetry/logs/analytics", () => {
     });
   });
 
+  /*
+   * A host's, a pod's or a container's own Logs tab charts only its own
+   * logs, as its list and its volume histogram show them: the entity keys
+   * reach the read, text only.
+   */
+  test("hands the page's entity keys to the read", async () => {
+    await callAnalytics({
+      request: viewer,
+      body: {
+        ...HOUR,
+        aggregation: "p95",
+        aggregationField: "duration_ms",
+        entityKeys: ["k8s.pod:checkout-7f9", 42, "", "k8s.pod:checkout-7f9"],
+      },
+    });
+
+    expect(readRequest(timeseries).entityKeys).toEqual([
+      "k8s.pod:checkout-7f9",
+    ]);
+
+    jest.clearAllMocks();
+
+    await callAnalytics({ request: viewer, body: { ...HOUR } });
+
+    expect(readRequest(timeseries).entityKeys).toBeUndefined();
+  });
+
   describe("the bucket size", () => {
     test.each([
       [15, 15],

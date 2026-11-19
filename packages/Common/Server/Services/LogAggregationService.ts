@@ -155,6 +155,11 @@ export interface AnalyticsRequest {
   // Resources whose rows are left out whatever else matches.
   excludedServiceIds?: Array<ObjectID> | undefined;
   /*
+   * Entity keys a row must carry one of, as the histogram's: a host's, a
+   * pod's or a container's own Logs tab charts only that resource's logs.
+   */
+  entityKeys?: Array<string> | undefined;
+  /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
    * cluster / ... — any ResourceFacetCatalog type) already resolved to
    * their entity keys and resource attributes. One scope per
