@@ -149,6 +149,12 @@ export interface ComponentProps {
   ariaDescribedby?: string | undefined;
   // The team the invitation is for, when the form knows it.
   teamId?: string | null | undefined;
+  /*
+   * A suggestion picked, after its address is filled in: someone with an
+   * account the reader may see, so the form has no name to ask for
+   * (Common/UI/Utils/InviteeName).
+   */
+  onPick?: ((suggestion: InviteSuggestion) => void) | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -244,6 +250,7 @@ const InviteeEmailField: FunctionComponent<ComponentProps> = (
     setIsOpen(false);
     setHighlightedIndex(-1);
     props.onChange(suggestion.email);
+    props.onPick?.(suggestion);
   };
 
   const updateMenuPosition: () => void = useCallback((): void => {

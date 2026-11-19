@@ -27,7 +27,11 @@ import {
   drawInviteeEmailField,
   getInviteeEmailError,
 } from "../../../Components/Team/InviteeEmailFormField";
-import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import {
+  INVITEE_NAME_DESCRIPTION,
+  shouldAskForInviteeName,
+} from "Common/UI/Utils/InviteeName";
+import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
   DeleteConfirmation,
@@ -105,11 +109,13 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
   const invitationEmailsNotSent: InvitationEmailsNotSent =
     useInvitationEmailsNotSent(canReadInvitationEmailsNotSent(serverEmail));
 
-  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
-    getRequestHeaders: () => {
-      return ModelAPI.getCommonHeaders();
-    },
-  });
+  /*
+   * The address of the person last picked from the email box's
+   * suggestions: someone with an account the reader may see, so Invite New
+   * Team Member asks no name for them (Common/UI/Utils/InviteeName).
+   */
+  const [pickedInviteeEmail, setPickedInviteeEmail] =
+    React.useState<string>("");
 
   React.useEffect(() => {
     const checkScim: () => Promise<void> = async () => {
@@ -251,9 +257,6 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             required: true,
             placeholder: "member@company.com",
             overrideFieldKey: "email",
-            onChange: (value: string) => {
-              checkEmail(value);
-            },
             customValidation: getInviteeEmailError,
             getCustomElement: (
               _values: FormValues<TeamMember>,
@@ -262,6 +265,9 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
               return drawInviteeEmailField({
                 customProps: customProps,
                 teamId: modelId.toString(),
+                onPick: (suggestion: InviteSuggestion) => {
+                  setPickedInviteeEmail(suggestion.email);
+                },
               });
             },
           },
@@ -269,18 +275,23 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             field: {
               user: true,
             },
+            /*
+             * Asked for every address typed, never only for one with no
+             * account: whether an address has one is nobody's to learn here
+             * (#9745). The server uses it only for an account nobody has
+             * signed up to yet.
+             */
             title: "Name",
-            description:
-              "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+            description: INVITEE_NAME_DESCRIPTION,
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "John Smith",
             overrideFieldKey: "name",
             showIf: (values: FormValues<TeamMember>): boolean => {
-              return (
-                Boolean((values as JSONObject)["email"]) &&
-                isEmailRegistered === false
-              );
+              return shouldAskForInviteeName({
+                email: (values as JSONObject)["email"],
+                pickedEmail: pickedInviteeEmail,
+              });
             },
           },
         ]}
