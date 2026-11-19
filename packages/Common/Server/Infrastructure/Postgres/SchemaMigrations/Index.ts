@@ -1083,6 +1083,7 @@ import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./18091849001
 import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 import { AddDataBiConnectionReadState1809184920000 } from "./1809184920000-AddDataBiConnectionReadState";
 import { MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000 } from "./1809184930000-MarkDataOwnersAddedBeforeNotificationsAsTold";
+import { AddSessionReplayPageRulesAndReadableEventProperties1809184961000 } from "./1809184961000-AddSessionReplayPageRulesAndReadableEventProperties";
 
 export default [
   InitialMigration,
@@ -2170,4 +2171,5 @@ export default [
   AddTableHealthSkippedTables1809184919541,
   AddDataBiConnectionReadState1809184920000,
   MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000,
+  AddSessionReplayPageRulesAndReadableEventProperties1809184961000,
 ];
