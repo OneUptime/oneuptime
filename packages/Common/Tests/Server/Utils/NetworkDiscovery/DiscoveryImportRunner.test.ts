@@ -5,9 +5,11 @@ import DiscoveryImportRunner, {
   DISCOVERY_IMPORT_VIEW_SELECT,
   MAX_CONSECUTIVE_IDENTICAL_MONITOR_FAILURES,
   MAX_DISCOVERY_IMPORT_RESUMES,
+  MONITOR_SKIPPED_AMBIGUOUS_DEVICE,
   MONITOR_SKIPPED_DEVICE_NOT_IMPORTED,
   MONITOR_SKIPPED_MONITOR_BACKED,
 } from "../../../../Server/Utils/NetworkDiscovery/DiscoveryImportRunner";
+import { WhenReachUnknown } from "../../../../Utils/NetworkDevice/DeviceAddressScope";
 import Queue from "../../../../Server/Infrastructure/Queue";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import MonitorService from "../../../../Server/Services/MonitorService";
@@ -30,6 +32,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import {
+  DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON,
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
@@ -2988,5 +2991,195 @@ describe("names: the device a row becomes is called what the row said", () => {
     await runAll();
 
     expect(createdAt("10.0.0.1").name).toBe("10.0.0.1");
+  });
+});
+
+/*
+ * TWO SITES' DEVICES AT ONE ADDRESS (OneUptime issue #9677).
+ *
+ * Every branch can have a 10.0.0.5. A scan's host is the device the scan's
+ * probe sees at its address: another branch's device there is not this host,
+ * so the host is imported as the new device it is - even when the two
+ * branches' routers share a name - and an address whose devices the probe
+ * cannot tell apart is left as a device, given no monitor.
+ */
+describe("a scan's host at an address another site's device has (issue #9677)", () => {
+  const BRANCH_A_PROBE_ID: ObjectID = new ObjectID(
+    "a2000000-0000-4000-8000-000000000001",
+  );
+
+  // The lookup answers only the devices the asking probe polls.
+  function lookupSeesOnlyItsOwnProbe(): void {
+    (
+      NetworkDeviceService.getDevicesByHostnames as jest.Mock
+    ).mockImplementation(
+      async (data: {
+        hostnames: Array<string>;
+        seenFrom?: { probeIds: Array<{ toString(): string }> };
+      }) => {
+        const probeIds: Array<string> = (data.seenFrom?.probeIds || []).map(
+          (probeId: { toString(): string }): string => {
+            return probeId.toString();
+          },
+        );
+        const found: Map<string, NetworkDevice> = new Map();
+
+        for (const hostname of data.hostnames) {
+          const device: NetworkDevice | undefined =
+            db.devicesByHostname.get(hostname);
+
+          if (device && probeIds.includes(device.probeId?.toString() || "")) {
+            found.set(hostname, device);
+          }
+        }
+
+        return found;
+      },
+    );
+  }
+
+  test("asks for the device at the address as the scan's probe sees it", async () => {
+    const row: NetworkDeviceDiscoveryImport = await start({
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")?.device).toBe(
+      DiscoveryImportDeviceOutcome.Created,
+    );
+
+    const lookup: {
+      hostnames: Array<string>;
+      seenFrom: { probeIds: Array<{ toString(): string }> };
+      ambiguousHostnames: Set<string>;
+    } = (NetworkDeviceService.getDevicesByHostnames as jest.Mock).mock
+      .calls[0]![0];
+
+    expect(lookup.hostnames).toEqual(["10.0.0.1"]);
+    expect(
+      lookup.seenFrom.probeIds.map((probeId: { toString(): string }) => {
+        return probeId.toString();
+      }),
+    ).toEqual([PROBE_ID.toString()]);
+    expect(lookup.seenFrom).toEqual(
+      expect.objectContaining({
+        whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+      }),
+    );
+    expect(lookup.ambiguousHostnames).toBeInstanceOf(Set);
+  });
+
+  test("is imported as a new device, not mistaken for branch A's router", async () => {
+    lookupSeesOnlyItsOwnProbe();
+    const branchARouter: NetworkDevice = deviceAt("10.0.0.1", {
+      probeId: BRANCH_A_PROBE_ID,
+    });
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    const result: DiscoveryImportHostResult = resultAt(row, "10.0.0.1");
+    expect(result.device).toBe(DiscoveryImportDeviceOutcome.Created);
+    expect(result.deviceId).not.toBe(branchARouter.id!.toString());
+    expect(result.monitor).toBe(DiscoveryImportMonitorOutcome.Created);
+    expect(db.createdDevices).toHaveLength(1);
+    // Branch A's router got no monitor from branch C's scan.
+    expect(
+      monitorCreates()[0]!.data.autoProvisionedNetworkDeviceId?.toString(),
+    ).not.toBe(branchARouter.id!.toString());
+  });
+
+  test("is imported under its address-suffixed name when branch A's router has its name", async () => {
+    lookupSeesOnlyItsOwnProbe();
+    deviceAt("10.0.0.1", { probeId: BRANCH_A_PROBE_ID, name: "core-sw-01" });
+    db.refuseDeviceNamed.set(
+      "core-sw-01",
+      new BadDataException("Network Device with the same name already exists."),
+    );
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.Created,
+        name: "core-sw-01 (10.0.0.1)",
+      }),
+    );
+  });
+
+  test("is left as a device, given no monitor, when the scan's probe cannot tell its devices apart", async () => {
+    (
+      NetworkDeviceService.getDevicesByHostnames as jest.Mock
+    ).mockImplementation(
+      async (data: {
+        hostnames: Array<string>;
+        ambiguousHostnames?: Set<string>;
+      }) => {
+        for (const hostname of data.hostnames) {
+          data.ambiguousHostnames?.add(hostname);
+        }
+
+        return new Map();
+      },
+    );
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    const result: DiscoveryImportHostResult = resultAt(row, "10.0.0.1");
+    expect(result).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        monitor: DiscoveryImportMonitorOutcome.Skipped,
+        monitorError: MONITOR_SKIPPED_AMBIGUOUS_DEVICE,
+      }),
+    );
+    expect(result.deviceId).toBeUndefined();
+    expect(db.createdDevices).toHaveLength(0);
+    expect(MonitorService.create).not.toHaveBeenCalled();
+    expect(MONITOR_SKIPPED_AMBIGUOUS_DEVICE).toBe(
+      DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON,
+    );
+  });
+
+  test("a host the import asks no monitor of is left as a device, its monitor not asked for", async () => {
+    (
+      NetworkDeviceService.getDevicesByHostnames as jest.Mock
+    ).mockImplementation(
+      async (data: {
+        hostnames: Array<string>;
+        ambiguousHostnames?: Set<string>;
+      }) => {
+        for (const hostname of data.hostnames) {
+          data.ambiguousHostnames?.add(hostname);
+        }
+
+        return new Map();
+      },
+    );
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        monitor: DiscoveryImportMonitorOutcome.NotRequested,
+      }),
+    );
+    expect(db.createdDevices).toHaveLength(0);
   });
 });

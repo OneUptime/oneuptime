@@ -262,9 +262,9 @@ describe("the monitors of a device", () => {
 
 /*
  * A MONITOR A PERSON TIED TO THE DEVICE (issue #9545): made by hand, from the
- * device's page or on an address only this device has, and tied by
- * Monitor.networkDeviceId. It is one of the device's monitors for the
- * duplicate check as a monitor made for it is - and a monitor that merely
+ * device's page or on an address its probes see as this device (#9677),
+ * and tied by Monitor.networkDeviceId. It is one of the device's monitors
+ * for the duplicate check as a monitor made for it is - and a monitor that merely
  * checks the same address, untied (another site's 10.0.0.5), never is.
  */
 describe("the monitors a person tied to a device", () => {

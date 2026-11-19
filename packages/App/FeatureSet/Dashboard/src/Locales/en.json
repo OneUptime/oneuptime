@@ -58683,5 +58683,20 @@
   "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.": "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
   "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them._one": "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
   "{{count}} Dataverse tables not matched yet": "{{count}} Dataverse tables not matched yet",
-  "{{count}} Dataverse tables not matched yet_one": "{{count}} Dataverse table not matched yet"
+  "{{count}} Dataverse tables not matched yet_one": "{{count}} Dataverse table not matched yet",
+  "Monitor removed from this device.": "Monitor removed from this device.",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "None of the selected devices can be added: each one already has a monitor or has no IP address yet.",
+  "Remove from Device": "Remove from Device",
+  "Remove {{monitorName}} from this device": "Remove {{monitorName}} from this device",
+  "The devices you picked are already added. Give them a monitor from a template.": "The devices you picked are already added. Give them a monitor from a template.",
+  "{{count}} devices already added get a monitor: {{names}}": "{{count}} devices already added get a monitor: {{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "{{count}} device already added gets a monitor: {{names}}",
+  "{{count}} devices already added: {{names}}": "{{count}} devices already added: {{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} device already added: {{names}}",
+  "{{count}} new devices: {{names}}": "{{count}} new devices: {{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} new device: {{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} selected devices already have a monitor, so they are left out.",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} selected device already has a monitor, so it is left out.",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged."
 }

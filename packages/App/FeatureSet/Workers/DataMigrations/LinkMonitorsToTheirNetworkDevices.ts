@@ -8,10 +8,12 @@ import logger from "Common/Server/Utils/Logger";
  * Ties the Ping, IP, Port, NTP, Website, API and SSL Certificate monitors
  * people made before issue #9545 to the network device they check
  * (Monitor.networkDeviceId), by the rule a monitor created today is tied by:
- * every step checks one host, and exactly one device in the project is at
- * that host. A host two devices share ties nothing, nor does a monitor an
- * import made for a device, or one already tied. See
- * MonitorDeviceLinkBackfill, which holds the rule and its reasons.
+ * every step checks one host, and the device at that host is the one the
+ * monitor's probes see there - two sites can each have a 10.0.0.5 (issue
+ * #9677). A monitor whose probes are no site's is tied only to a device in
+ * no site alone at its address; devices its probes cannot tell apart tie
+ * nothing, nor does a monitor an import made for a device, or one already
+ * tied. See MonitorDeviceLinkBackfill, which holds the rule and its reasons.
  *
  * Without it, the duplicate check imports and auto import rules run would
  * still not see those monitors, and the devices' pages would not list them,
@@ -32,7 +34,7 @@ export default class LinkMonitorsToTheirNetworkDevices extends DataMigrationBase
       await MonitorDeviceLinkBackfill.run();
 
     logger.info(
-      `LinkMonitorsToTheirNetworkDevices: read ${result.monitorsRead} monitor(s) in ${result.projects} project(s) with network devices, and tied ${result.monitorsTied} to the one device at the address each checks.`,
+      `LinkMonitorsToTheirNetworkDevices: read ${result.monitorsRead} monitor(s) in ${result.projects} project(s) with network devices, and tied ${result.monitorsTied} to the device its probes see at the address each checks.`,
     );
   }
 

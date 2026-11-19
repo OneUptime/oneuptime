@@ -100,6 +100,29 @@ import {
 } from "../../Utils/NetworkDevice/NetworkDeviceStoredManufacturer";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
+import {
+  DeviceSeenFrom,
+  NO_SITE_KEY,
+  ProbeReach,
+  WhenReachUnknown,
+  getProbeIdKeys,
+  getSiteKey,
+  isDecidedByPolledDevice,
+  pickDeviceSeenFrom,
+  toIdKey,
+  toProbeReach,
+} from "../../Utils/NetworkDevice/DeviceAddressScope";
+
+/*
+ * Where a scan or a monitor looks at addresses from (issue #9677): the
+ * probes it is seen through - a scan's probe, the probes a monitor runs on -
+ * and what an address is when where they look cannot be known. Two sites
+ * can each have a 10.0.0.5; see Utils/NetworkDevice/DeviceAddressScope.
+ */
+export interface DeviceAddressViewpoint {
+  probeIds: Array<ObjectID | string | null | undefined>;
+  whenReachUnknown: WhenReachUnknown;
+}
 
 /*
  * The fleet's numbers, defined beside the scan that counts them
@@ -1122,6 +1145,14 @@ export class Service extends ProjectReferencesService<Model> {
    * more than "does it exist" — the auto-import engine reads back the device's
    * id and monitoring method to decide whether it also needs a monitor
    * provisioned. Same chunked, indexed lookup; same reason for existing.
+   *
+   * Two sites can each have a 10.0.0.5 (issue #9677). Given `seenFrom` - a
+   * scan's probe, a monitor's probes - each address answers the device those
+   * probes see there (Utils/NetworkDevice/DeviceAddressScope), or nothing
+   * when the host they see is another site's; devices there they cannot
+   * tell apart answer nothing either, and their address is added to
+   * `ambiguousHostnames`, since a device is there all the same. Without
+   * `seenFrom`, any device at the address answers: the last one read.
    */
   @CaptureSpan()
   public async getDevicesByHostnames(data: {
@@ -1129,8 +1160,72 @@ export class Service extends ProjectReferencesService<Model> {
     hostnames: Array<string>;
     select: Select<Model>;
     props: DatabaseCommonInteractionProps;
+    seenFrom?: DeviceAddressViewpoint | undefined;
+    ambiguousHostnames?: Set<string> | undefined;
   }): Promise<Map<string, Model>> {
     const registered: Map<string, Model> = new Map<string, Model>();
+
+    const atHostnames: Map<
+      string,
+      Array<Model>
+    > = await this.getAllDevicesAtHostnames({
+      projectId: data.projectId,
+      hostnames: data.hostnames,
+      // What tells two sites' devices apart, when it is asked.
+      select: data.seenFrom
+        ? { ...data.select, _id: true, siteId: true, probeId: true }
+        : data.select,
+      props: data.props,
+    });
+
+    if (!data.seenFrom) {
+      for (const [hostname, devices] of atHostnames) {
+        const last: Model | undefined = devices[devices.length - 1];
+
+        if (last) {
+          registered.set(hostname, last);
+        }
+      }
+
+      return registered;
+    }
+
+    const seen: Map<
+      string,
+      DeviceSeenFrom<Model>
+    > = await this.resolveDevicesSeenFrom({
+      projectId: data.projectId,
+      devicesByAddress: atHostnames,
+      seenFrom: data.seenFrom,
+    });
+
+    for (const [hostname, match] of seen) {
+      if (match.kind === "device") {
+        registered.set(hostname, match.device);
+      } else if (match.kind === "ambiguous") {
+        data.ambiguousHostnames?.add(hostname);
+      }
+    }
+
+    return registered;
+  }
+
+  /**
+   * Every device at these addresses, by the address each is at as stored,
+   * in the order read: two sites can each have a 10.0.0.5 (issue #9677).
+   * The chunked, indexed read `getDevicesByHostnames` answers from.
+   */
+  @CaptureSpan()
+  public async getAllDevicesAtHostnames(data: {
+    projectId: ObjectID;
+    hostnames: Array<string>;
+    select: Select<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Array<Model>>> {
+    const atHostnames: Map<string, Array<Model>> = new Map<
+      string,
+      Array<Model>
+    >();
 
     const wanted: Array<string> = Array.from(
       new Set<string>(
@@ -1173,12 +1268,190 @@ export class Service extends ProjectReferencesService<Model> {
 
       for (const device of found) {
         if (device.hostname) {
-          registered.set(device.hostname, device);
+          const devices: Array<Model> = atHostnames.get(device.hostname) || [];
+          devices.push(device);
+          atHostnames.set(device.hostname, devices);
         }
       }
     }
 
-    return registered;
+    return atHostnames;
+  }
+
+  /**
+   * The device each address is, seen from a scan's or a monitor's probes
+   * (Utils/NetworkDevice/DeviceAddressScope), from every device at it. An
+   * address one of whose devices the probes poll is decided by that alone;
+   * for the rest, where the probes look is read once, for every site their
+   * devices are in.
+   */
+  @CaptureSpan()
+  public async resolveDevicesSeenFrom<T extends Model>(data: {
+    projectId: ObjectID;
+    devicesByAddress: Map<string, Array<T>>;
+    seenFrom: DeviceAddressViewpoint;
+  }): Promise<Map<string, DeviceSeenFrom<T>>> {
+    const siteKeys: Set<string> = new Set<string>();
+    let needsReach: boolean = false;
+
+    for (const devices of data.devicesByAddress.values()) {
+      if (
+        devices.length === 0 ||
+        isDecidedByPolledDevice({
+          candidates: devices,
+          probeIds: data.seenFrom.probeIds,
+        })
+      ) {
+        continue;
+      }
+
+      needsReach = true;
+
+      for (const device of devices) {
+        siteKeys.add(getSiteKey(device.siteId));
+      }
+    }
+
+    /*
+     * Read only when some address needs it; an address its probes' own
+     * device decides never looks past step 1.
+     */
+    const reach: ProbeReach = needsReach
+      ? await this.readProbeReach({
+          projectId: data.projectId,
+          probeIds: data.seenFrom.probeIds,
+          siteKeys: Array.from(siteKeys),
+        })
+      : {
+          probeIds: getProbeIdKeys(data.seenFrom.probeIds),
+          siteKeys: new Set<string>(),
+          isKnown: true,
+        };
+
+    const seen: Map<string, DeviceSeenFrom<T>> = new Map<
+      string,
+      DeviceSeenFrom<T>
+    >();
+
+    for (const [address, devices] of data.devicesByAddress) {
+      seen.set(
+        address,
+        pickDeviceSeenFrom<T>({
+          candidates: devices,
+          reach: reach,
+          whenReachUnknown: data.seenFrom.whenReachUnknown,
+        }),
+      );
+    }
+
+    return seen;
+  }
+
+  /**
+   * Where these probes look (issue #9677): the sites asked about that they
+   * poll a device in or that name one of them their default probe, and
+   * whether they are any site's at all - see DeviceAddressScope. Read as
+   * OneUptime and held to the project: a probe another project's devices
+   * use says nothing about this one's addresses. Each answer is one
+   * indexed "is there one" read.
+   */
+  @CaptureSpan()
+  public async readProbeReach(data: {
+    projectId: ObjectID;
+    probeIds: Array<ObjectID | string | null | undefined>;
+    siteKeys: Array<string>;
+  }): Promise<ProbeReach> {
+    const probeIds: Array<string> = Array.from(getProbeIdKeys(data.probeIds));
+
+    if (probeIds.length === 0) {
+      return toProbeReach({
+        probeIds: [],
+        sites: [],
+        pollsDeviceInASite: false,
+        pollsDeviceInNoSite: false,
+        isDefaultProbeOfASite: false,
+      });
+    }
+
+    const pollsDeviceWhere: (query: Query<Model>) => Promise<boolean> = async (
+      query: Query<Model>,
+    ): Promise<boolean> => {
+      const device: Model | null = await this.findOneBy({
+        query: {
+          ...query,
+          projectId: data.projectId,
+          probeId: QueryHelper.any(probeIds),
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      return Boolean(device);
+    };
+
+    const [pollsDeviceInASite, pollsDeviceInNoSite, siteWithProbeAsDefault]: [
+      boolean,
+      boolean,
+      unknown,
+    ] = await Promise.all([
+      pollsDeviceWhere({ siteId: QueryHelper.notNull() }),
+      pollsDeviceWhere({ siteId: QueryHelper.isNull() }),
+      NetworkSiteService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          probeId: QueryHelper.any(probeIds),
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      }),
+    ]);
+
+    const namedSiteKeys: Array<string> = Array.from(
+      new Set<string>(data.siteKeys.map(getSiteKey)),
+    ).filter((siteKey: string): boolean => {
+      return siteKey !== NO_SITE_KEY;
+    });
+
+    const sites: Array<{
+      siteKey: string;
+      hasDevicePolled: boolean;
+      hasProbeAsDefault: boolean;
+    }> = await Promise.all(
+      namedSiteKeys.map(
+        async (
+          siteKey: string,
+        ): Promise<{
+          siteKey: string;
+          hasDevicePolled: boolean;
+          hasProbeAsDefault: boolean;
+        }> => {
+          const siteId: ObjectID = new ObjectID(siteKey);
+          const [hasDevicePolled, defaultProbeId]: [boolean, ObjectID | null] =
+            await Promise.all([
+              pollsDeviceInASite
+                ? pollsDeviceWhere({ siteId: siteId })
+                : Promise.resolve(false),
+              NetworkSiteService.resolveDefaultProbeIdForSite(siteId),
+            ]);
+
+          return {
+            siteKey: siteKey,
+            hasDevicePolled: hasDevicePolled,
+            hasProbeAsDefault:
+              Boolean(defaultProbeId) &&
+              probeIds.includes(toIdKey(defaultProbeId)),
+          };
+        },
+      ),
+    );
+
+    return toProbeReach({
+      probeIds: probeIds,
+      sites: sites,
+      pollsDeviceInASite: pollsDeviceInASite,
+      pollsDeviceInNoSite: pollsDeviceInNoSite,
+      isDefaultProbeOfASite: Boolean(siteWithProbeAsDefault),
+    });
   }
 
   /**

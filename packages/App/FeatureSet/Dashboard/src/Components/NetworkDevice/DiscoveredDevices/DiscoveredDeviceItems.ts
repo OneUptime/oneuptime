@@ -55,6 +55,10 @@ export function toSelectedDiscoveredDeviceItem(
     isFromController: false,
     isHidden: false,
     isMonitored: Boolean(selected.isMonitored),
+    // The device it is: what Add to monitoring reads the monitors of.
+    ...(selected.isMonitored && selected.monitoredDeviceId
+      ? { monitoredDevice: { id: selected.monitoredDeviceId } }
+      : {}),
     isOnPage: false,
   };
 }
@@ -206,28 +210,69 @@ export function getDiscoveredDeviceSort(
 }
 
 /*
- * Which of a selection "Add to monitoring" adds: the ones with an address
- * the probe can check, and not monitored already. The rest are named, so
- * the dialog can say why they are left out.
+ * What "Add to monitoring" does with each row of a selection:
+ *
+ *   - toAdd: not a device yet, with an address the probe can check - added
+ *     as a device, and given the template's monitor when one is picked;
+ *   - toGiveMonitor: a device already with no monitor - given the template's
+ *     monitor, and nothing else about it changes (issue #9675, as Review
+ *     Results does for a scan's host, #9544). The import finds the device
+ *     and gives it the monitor under the same duplicate rule and per-device
+ *     lock as every other path;
+ *   - monitored: a device already that has a monitor - left out ("Already
+ *     monitored"), so it never gets a second like it;
+ *   - checking: a device already whose monitors are still being read -
+ *     offered once they are known;
+ *   - withoutAddress: no address yet, so nothing can check it.
+ *
+ * Which devices have a monitor is `monitoredDeviceIds` (by device id, lower
+ * case): unset while being read, empty when the read failed - then every
+ * device already added is offered, and the server's duplicate rule still
+ * keeps each to one monitor of a kind.
  */
 export interface AddToMonitoringPlan {
   toAdd: Array<DiscoveredDeviceItem>;
+  toGiveMonitor: Array<DiscoveredDeviceItem>;
   monitored: Array<DiscoveredDeviceItem>;
+  checking: Array<DiscoveredDeviceItem>;
   withoutAddress: Array<DiscoveredDeviceItem>;
+}
+
+// The device a row already is (lower case), or empty.
+export function getMonitoredDeviceIdOf(
+  item: Pick<DiscoveredDeviceItem, "isMonitored" | "monitoredDevice">,
+): string {
+  return item.isMonitored
+    ? (item.monitoredDevice?.id || "").trim().toLowerCase()
+    : "";
 }
 
 export function getAddToMonitoringPlan(
   items: ReadonlyArray<DiscoveredDeviceItem>,
+  monitoredDeviceIds?: ReadonlySet<string> | undefined,
 ): AddToMonitoringPlan {
   const plan: AddToMonitoringPlan = {
     toAdd: [],
+    toGiveMonitor: [],
     monitored: [],
+    checking: [],
     withoutAddress: [],
   };
 
   for (const item of items) {
     if (item.isMonitored) {
-      plan.monitored.push(item);
+      const deviceId: string = getMonitoredDeviceIdOf(item);
+
+      if (!deviceId || monitoredDeviceIds?.has(deviceId)) {
+        // A device whose monitors cannot be read is left out, as before.
+        plan.monitored.push(item);
+      } else if (!monitoredDeviceIds) {
+        plan.checking.push(item);
+      } else if (!item.ipAddress) {
+        plan.withoutAddress.push(item);
+      } else {
+        plan.toGiveMonitor.push(item);
+      }
     } else if (!item.ipAddress) {
       plan.withoutAddress.push(item);
     } else {
@@ -236,6 +281,23 @@ export function getAddToMonitoringPlan(
   }
 
   return plan;
+}
+
+// The devices of a selection that are already added, by id, each once.
+export function getAlreadyAddedDeviceIdsOf(
+  items: ReadonlyArray<DiscoveredDeviceItem>,
+): Array<string> {
+  const deviceIds: Set<string> = new Set<string>();
+
+  for (const item of items) {
+    const deviceId: string = getMonitoredDeviceIdOf(item);
+
+    if (deviceId) {
+      deviceIds.add(deviceId);
+    }
+  }
+
+  return Array.from(deviceIds).sort();
 }
 
 // Whether a row's own "Add to monitoring" can add it.
