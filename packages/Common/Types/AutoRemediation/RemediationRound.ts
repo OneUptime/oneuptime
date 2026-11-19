@@ -280,7 +280,7 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSALS: Readonly<
  * it: it waits the Retry-After the answer carries, then reads again.
  */
 export const REMEDIATION_ROUND_READ_TOO_OFTEN: string =
-  "The rounds of AI fixes were read too often in the last few minutes. Wait a few minutes, then read them again.";
+  "You have read AI fixes too often in the last few minutes. Wait a few minutes, then try again.";
 
 export function getRemediationRoundTryAgainRefusal(
   refusal: RemediationRoundTryAgainRefusal,
