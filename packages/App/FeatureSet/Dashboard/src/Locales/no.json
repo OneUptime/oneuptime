@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "Påloggingsinnstillingene til {{count}} person er fjernet.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Deres passord, passnøkler, sikkerhetsnøkler, autentiseringsapper og reservekoder slettes, og hver person får en e-post. Dette kan ikke angres.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personer der alle prosjektene er dine, har fortsatt et passord eller tofaktorautentisering lagret i OneUptime.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person der alle prosjektene er dine, har fortsatt et passord eller tofaktorautentisering lagret i OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person der alle prosjektene er dine, har fortsatt et passord eller tofaktorautentisering lagret i OneUptime.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne spørringen er i {{unit}} og diagrammet til forrige spørring i {{chartUnit}}, så verdiene kan ikke leses riktig på aksen til det diagrammet."
 }

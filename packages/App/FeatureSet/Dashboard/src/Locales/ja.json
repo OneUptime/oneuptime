@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "{{count}} 人のサインイン設定を消去しました。",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードが削除され、各ユーザーにメールが送信されます。この操作は元に戻せません。",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。"
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。"
 }

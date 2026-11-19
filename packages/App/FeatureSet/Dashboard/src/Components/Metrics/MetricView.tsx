@@ -58,6 +58,7 @@ import { MetricChartThreshold } from "./Utils/MetricChartThresholds";
 import MetricViewChartQueries from "./Utils/MetricViewChartQueries";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import MetricQueryCloudAggregation from "Common/Utils/Metrics/MetricQueryCloudAggregation";
+import MetricQueryOverlay from "Common/Utils/Metrics/MetricQueryOverlay";
 import {
   getMetricResultsState,
   MetricResultsState,
@@ -1170,6 +1171,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                       data={queryConfig}
                       hideCard={props.hideCardInQueryElements}
                       canOverlayWithPreviousQuery={index > 0}
+                      overlayChartQuery={MetricQueryOverlay.getChartLead(
+                        props.data.queryConfigs,
+                        index,
+                      )}
                       telemetryAttributes={
                         telemetryAttributesByMetric[
                           queryConfig.metricQueryData?.filterData?.metricName?.toString() ||

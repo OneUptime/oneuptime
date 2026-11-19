@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "Cleared the sign-in settings of {{count}} person.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person whose projects are all yours still has a password or two-factor authentication saved in OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person whose projects are all yours still has a password or two-factor authentication saved in OneUptime.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis."
 }

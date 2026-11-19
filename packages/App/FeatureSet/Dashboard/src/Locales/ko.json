@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "{{count}}명의 로그인 설정을 지웠습니다.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "비밀번호, 패스키, 보안 키, 인증 앱, 백업 코드가 삭제되고 각 사용자에게 이메일이 발송됩니다. 이 작업은 되돌릴 수 없습니다.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "이 쿼리의 단위({{unit}})가 이전 쿼리 차트의 단위({{chartUnit}})와 달라, 그 차트의 축에서는 이 쿼리의 값을 제대로 읽을 수 없습니다."
 }

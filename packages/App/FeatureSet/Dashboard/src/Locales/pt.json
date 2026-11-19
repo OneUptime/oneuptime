@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "As configurações de login de {{count}} pessoa foram apagadas.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "As senhas, chaves de acesso, chaves de segurança, apps autenticadores e códigos de backup delas são excluídos, e cada pessoa recebe um e-mail. Isso não pode ser desfeito.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} pessoas cujos projetos pertencem todos a você ainda têm uma senha ou autenticação de dois fatores salva no OneUptime.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} pessoa cujos projetos pertencem todos a você ainda tem uma senha ou autenticação de dois fatores salva no OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} pessoa cujos projetos pertencem todos a você ainda tem uma senha ou autenticação de dois fatores salva no OneUptime.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico."
 }

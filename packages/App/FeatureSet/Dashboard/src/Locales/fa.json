@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "تنظیمات ورود {{count}} نفر پاک شد.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "رمزهای عبور، کلیدهای عبور، کلیدهای امنیتی، اپلیکیشن‌های احراز هویت و کدهای پشتیبان آن‌ها حذف می‌شوند و به هر نفر ایمیل زده می‌شود. این کار برگشت‌پذیر نیست.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} نفر که مالک همهٔ پروژه‌هایشان هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارند.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} نفر که مالک همهٔ پروژه‌هایش هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} نفر که مالک همهٔ پروژه‌هایش هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند."
 }

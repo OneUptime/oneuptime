@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "Die Anmeldeeinstellungen von {{count}} Person wurden gelöscht.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Ihre Passwörter, Passkeys, Sicherheitsschlüssel, Authenticator-Apps und Backup-Codes werden gelöscht, und jede Person erhält eine E-Mail. Das lässt sich nicht rückgängig machen.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} Personen, deren Projekte alle Ihnen gehören, haben noch ein Passwort oder eine Zwei-Faktor-Authentifizierung in OneUptime gespeichert.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} Person, deren Projekte alle Ihnen gehören, hat noch ein Passwort oder eine Zwei-Faktor-Authentifizierung in OneUptime gespeichert."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} Person, deren Projekte alle Ihnen gehören, hat noch ein Passwort oder eine Zwei-Faktor-Authentifizierung in OneUptime gespeichert.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Diese Abfrage ist in {{unit}} und das Diagramm der vorherigen Abfrage in {{chartUnit}}, daher lassen sich ihre Werte auf der Achse dieses Diagramms nicht richtig ablesen."
 }

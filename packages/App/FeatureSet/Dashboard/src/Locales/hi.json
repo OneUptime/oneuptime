@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "{{count}} व्यक्ति की साइन-इन सेटिंग्स हटा दी गईं।",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "उनके पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटा दिए जाते हैं, और हर व्यक्ति को ईमेल भेजा जाता है। इसे पहले जैसा नहीं किया जा सकता।",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "जिनके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} लोगों का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "जिसके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} व्यक्ति का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।"
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "जिसके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} व्यक्ति का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "यह क्वेरी {{unit}} में है और पिछली क्वेरी का चार्ट {{chartUnit}} में, इसलिए उस चार्ट के अक्ष पर इसके मान सही ढंग से नहीं पढ़े जा सकेंगे।"
 }

@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "Настройки входа удалены у {{count}} пользователя.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Их пароли, ключи доступа, ключи безопасности, приложения-аутентификаторы и резервные коды удаляются, и каждый получает письмо. Это нельзя отменить.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "Пользователей, все проекты которых принадлежат вам и у которых в OneUptime всё ещё сохранены пароль или двухфакторная аутентификация: {{count}}.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} пользователь, все проекты которого принадлежат вам, всё ещё хранит в OneUptime пароль или двухфакторную аутентификацию."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} пользователь, все проекты которого принадлежат вам, всё ещё хранит в OneUptime пароль или двухфакторную аутентификацию.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы."
 }

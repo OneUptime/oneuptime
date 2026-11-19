@@ -27,6 +27,7 @@ import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricQueryOverlay from "Common/Utils/Metrics/MetricQueryOverlay";
 import TableColumnsEditor from "./TableColumnsEditor";
 import TableThresholdStylePicker from "./TableThresholdStylePicker";
 import {
@@ -737,6 +738,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         return null;
       }
 
+      /*
+       * Every query the chart draws, in its order: Query 1, then the added
+       * ones. An added query's switch reads which chart it would join.
+       */
+      const chartQueryConfigs: Array<MetricQueryConfigData> = [
+        ...(primaryQueryConfig ? [primaryQueryConfig] : []),
+        ...multiQueryConfigs,
+      ];
+      const primaryOffset: number = primaryQueryConfig ? 1 : 0;
+
       return (
         <div className="mt-4">
           {multiQueryConfigs.map(
@@ -824,6 +835,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                      * was always its own chart, stacked in the widget.
                      */
                     canOverlayWithPreviousQuery={true}
+                    overlayChartQuery={MetricQueryOverlay.getChartLead(
+                      chartQueryConfigs,
+                      index + primaryOffset,
+                    )}
                     onChange={(data: MetricQueryConfigData) => {
                       const updated: Array<MetricQueryConfigData> = [
                         ...multiQueryConfigs,

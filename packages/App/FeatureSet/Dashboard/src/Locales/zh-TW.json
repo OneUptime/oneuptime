@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登入設定。",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "他們的密碼、通行密鑰、安全金鑰、驗證器應用程式和備用代碼都將被刪除，每個人都會收到一封電子郵件。此操作無法復原。",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。"
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表單位為 {{chartUnit}}，因此無法在該圖表的座標軸上正確讀出此查詢的數值。"
 }

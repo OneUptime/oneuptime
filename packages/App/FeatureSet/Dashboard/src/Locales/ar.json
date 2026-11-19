@@ -58974,5 +58974,6 @@
   "Cleared the sign-in settings of {{count}} people._one": "مُسحت إعدادات تسجيل الدخول لدى {{count}} شخص.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "تُحذف كلمات المرور ومفاتيح المرور ومفاتيح الأمان وتطبيقات المصادقة والرموز الاحتياطية الخاصة بهم، ويُرسل بريد إلكتروني إلى كل منهم. لا يمكن التراجع عن ذلك.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "عدد من تملك كل مشاريعهم ولا يزال لديهم كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime: {{count}}.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} شخص تملك كل مشاريعه ولا يزال لديه كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} شخص تملك كل مشاريعه ولا يزال لديه كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط."
 }
