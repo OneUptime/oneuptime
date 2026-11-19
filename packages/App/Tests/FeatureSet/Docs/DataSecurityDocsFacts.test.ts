@@ -1517,8 +1517,18 @@ describe("Sensitive Data in Telemetry", () => {
     // A metric's sample: its series, few metrics a scan (#9604).
     const metrics: string = section(page, "### Metrics");
 
+    // A service's share, and the reads others leave unused given out in turn (#9947).
+    const total: number = constant(
+      scanner,
+      "TELEMETRY_SCAN_MAX_METRICS_PER_READ",
+    );
+    const share: number = constant(
+      scanner,
+      "TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER",
+    );
+
     expect(value("Metrics read in one scan")).toBe(
-      `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its new and other metrics in turn`,
+      `${total} shared between the services, at least one of each; ${share} of each service, half its busiest and half its new and other metrics in turn, and the reads a service leaves unused go to the others, in turn`,
     );
     // New metrics first, the rest in turn within a stated time (#9755).
     expect(value("A new metric")).toBe(
@@ -1527,17 +1537,36 @@ describe("Sensitive Data in Telemetry", () => {
     expect(metrics).toContain(
       `Then come the metrics it started writing in the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS")} hours`,
     );
-    // The bound, worked out from the share as the planner splits it.
-    const share: number = constant(
-      scanner,
-      "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER",
-    );
-    const inTurn: number = share - Math.floor(share / 2);
+    /*
+     * The bound, worked out from the share as the planner splits it: its
+     * busiest half, the rest in turn, and the reads others leave unused in
+     * turn too - three services of 300 metrics share what their three
+     * shares leave of the total, one read at a time.
+     */
+    const busiest: number = Math.floor(share / 2);
+    const inTurn: number = share - busiest;
+    const spare: number = total - 3 * share;
+    const sharedFewest: number = inTurn + Math.floor(spare / 3);
+    const sharedMost: number = inTurn + Math.ceil(spare / 3);
 
     expect(metrics).toContain(
-      `A service of M metrics, read ${share} a scan, has each of them read at least once every M ÷ ${inTurn} hours, rounded up: ${Math.ceil(300 / inTurn)} hours for a service of 300 metrics.`,
+      `A scan gives each service ${share} of its reads, fewer when the project has more than ${total / share} services.`,
+    );
+    expect(metrics).toContain(
+      "The reads a service leaves unused, because it has fewer metrics, go to the services that still have metrics waiting their turn, one at a time, so none is wasted and no service gets less than its share.",
+    );
+    expect(metrics).toContain(
+      `A service's busiest ${busiest} take ${busiest} of its reads, and the rest read its other metrics in turn: a service of M metrics that gets r reads in turn has each of them read at least once every M ÷ r hours, rounded up.`,
+    );
+    expect(metrics).toContain(
+      `That is ${Math.ceil(300 / inTurn)} hours for a service of 300 metrics that gets only its own ${inTurn}, and ${Math.ceil(300 / sharedFewest)} hours when two other services of 300 metrics share its project, as each then gets ${sharedFewest} or ${sharedMost}.`,
     );
     expect(metrics).toContain("it is at most twice that.");
+    // One read at a time, round the services still waiting (getMetricReadsByOwner).
+    expect(source(scanner)).toContain("reads.set(owner, read + 1);");
+    expect(source(scanner)).toContain(
+      "const inTurn: number = reads - busiest.length;",
+    );
     expect(source(scanner)).toContain(
       "return Math.floor(((hour + 1) * reads) / 2) - Math.floor((hour * reads) / 2);",
     );

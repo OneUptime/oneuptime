@@ -100,7 +100,13 @@ import {
   MaintenanceReachQuestion,
   MaintenanceReachRecord,
   getMaintenanceReachQuestion,
+  getStatusPagesListedReason,
 } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import {
+  MaintenanceRemindersReason,
+  MaintenanceStatusPagesReason,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
+import { ScopeNotice } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
 import useScheduledMaintenanceReach, {
   ScheduledMaintenanceReachState,
 } from "../../../Components/ScheduledMaintenance/useScheduledMaintenanceReach";
@@ -134,6 +140,10 @@ import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 // How many status page names the header lists before summarising the rest.
 export const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
+
+// The details card's note when none of the event's status pages shows it.
+export const STATUS_PAGES_NOT_SHOWN_NOTE_TEST_ID: string =
+  "scheduled-maintenance-status-pages-not-shown-note";
 
 // The details card's Edit: labels folded under Advanced on Event, as on the create form.
 const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
@@ -552,14 +562,16 @@ const ScheduledMaintenanceView: FunctionComponent<
   });
 
   /*
-   * Kept to the team until its publish time, the header's band says its
-   * subscribers are told it is scheduled then only when one of the status
-   * pages it is on shows maintenance events and notifies them (#9920): the
-   * server answers for the pages, asked only while the band is shown, as
-   * the event's Edit would save them.
+   * What the status pages the event is on do with it (#9920, #9974), which
+   * the server answers for, as the event's Edit would save them: the
+   * header's band says it shows on them from its publish time, and that
+   * their subscribers are told it is scheduled then, only once one of them
+   * shows maintenance events (and notifies them); and the details card
+   * says when none of them shows it. Asked once for every place, for an
+   * event on at least one page.
    */
-  const publishingReachQuestion: MaintenanceReachQuestion | null =
-    isCurrentEventLoaded && getWaitingPublishAt(loadedEvent?.item)
+  const statusPagesReachQuestion: MaintenanceReachQuestion | null =
+    isCurrentEventLoaded
       ? getMaintenanceReachQuestion({
           values: {
             statusPages: loadedEvent?.item?.statusPages,
@@ -568,8 +580,8 @@ const ScheduledMaintenanceView: FunctionComponent<
           record: MaintenanceReachRecord.Event,
         })
       : null;
-  const publishingReach: ScheduledMaintenanceReachState =
-    useScheduledMaintenanceReach(publishingReachQuestion);
+  const statusPagesReach: ScheduledMaintenanceReachState =
+    useScheduledMaintenanceReach(statusPagesReachQuestion);
 
   if (!isCurrentEventLoaded) {
     if (loadedModelId === modelIdString && loadError) {
@@ -590,6 +602,29 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   const scheduledMaintenance: ScheduledMaintenance | undefined =
     loadedEvent?.item;
+
+  /*
+   * The Edit's values with what the event says of its subscribers but the
+   * Edit does not hold - whether it is shown on its status pages, and its
+   * three switches, set when it was created - for the notes that say what
+   * its pages will do (#9974). What the Edit holds wins.
+   */
+  const withEventSubscriberSettings: (values: unknown) => unknown = (
+    values: unknown,
+  ): unknown => {
+    return {
+      isVisibleOnStatusPage: scheduledMaintenance?.isVisibleOnStatusPage,
+      shouldStatusPageSubscribersBeNotifiedOnEventCreated:
+        scheduledMaintenance?.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
+      shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+        scheduledMaintenance?.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing,
+      shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+        scheduledMaintenance?.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded,
+      ...(values && typeof values === "object"
+        ? (values as Record<string, unknown>)
+        : {}),
+    };
+  };
   /*
    * Whether the event has started: its Change Monitor Status to can be
    * changed until then, and is read-only after (Affected Resources).
@@ -706,10 +741,15 @@ const ScheduledMaintenanceView: FunctionComponent<
               publishAt={waitingPublishAt}
               areSubscribersTold={areSubscribersToldWhenPublished(
                 scheduledMaintenance,
-                publishingReach.reach
-                  ? publishingReach.reach.nothingSentReason
+                statusPagesReach.reach
+                  ? statusPagesReach.reach.nothingSentReason
                   : undefined,
               )}
+              statusPagesReason={
+                statusPagesReach.reach
+                  ? statusPagesReach.reach.nothingSentReason
+                  : undefined
+              }
               onPublished={() => {
                 // Its details, and the subscriber notification it now sends.
                 refreshPage();
@@ -856,6 +896,20 @@ const ScheduledMaintenanceView: FunctionComponent<
                   modelType: ScheduledMaintenance,
                   modelId: modelId,
                 },
+                /*
+                 * What the pages picked will do with the event, when that
+                 * is nothing (#9974): this Edit has no Subscriber
+                 * Notifications section to say it, and its switches - set
+                 * when it was created - come from the event itself.
+                 */
+                getReachNote: (values: unknown): ReactElement => {
+                  return (
+                    <MaintenanceStatusPagesReason
+                      values={withEventSubscriberSettings(values)}
+                      record={MaintenanceReachRecord.Event}
+                    />
+                  );
+                },
               }),
               /*
                * When it shows on them - Right away, or At a date and time -
@@ -892,6 +946,19 @@ const ScheduledMaintenanceView: FunctionComponent<
                       initialValue={
                         value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
                       }
+                    />
+                  );
+                },
+                /*
+                 * Which reminders are not sent: due before it is published,
+                 * or whose time has passed (#9974).
+                 */
+                getFooterElement: (
+                  values: FormValues<ScheduledMaintenance>,
+                ): ReactElement => {
+                  return (
+                    <MaintenanceRemindersReason
+                      values={withEventSubscriberSettings(values)}
                     />
                   );
                 },
@@ -949,11 +1016,36 @@ const ScheduledMaintenanceView: FunctionComponent<
                   title: "Shown on Status Pages",
                   fieldType: FieldType.Element,
                   getElement: (item: ScheduledMaintenance): ReactElement => {
+                    /*
+                     * The pages it was put on, and - once the server has
+                     * said none of them shows maintenance events - that it
+                     * shows on none of them (#9974).
+                     */
+                    const notShownReason: string | null =
+                      (item.statusPages || []).length > 0
+                        ? getStatusPagesListedReason(statusPagesReach.reach)
+                        : null;
+
                     return (
-                      <StatusPagesElement
-                        statusPages={item.statusPages || []}
-                        noItemsMessage={MaintenanceStatusPagesCopy.notShownFact}
-                      />
+                      <>
+                        <StatusPagesElement
+                          statusPages={item.statusPages || []}
+                          noItemsMessage={
+                            MaintenanceStatusPagesCopy.notShownFact
+                          }
+                        />
+                        {notShownReason ? (
+                          <ScopeNotice
+                            text={
+                              translator.translateText(notShownReason) ||
+                              notShownReason
+                            }
+                            dataTestId={STATUS_PAGES_NOT_SHOWN_NOTE_TEST_ID}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </>
                     );
                   },
                 },

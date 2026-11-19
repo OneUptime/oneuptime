@@ -2703,6 +2703,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/ClearNextEventOfTemplatesThatDoNotRecurPostgres.test.ts
           --forceExit
 
+      # Clones the migrated ScheduledMaintenanceTemplate table into an
+      # isolated schema, as it was before AddScheduledMaintenanceTemplateTimezone,
+      # and runs the migration on seeded templates (#10037): every one reads
+      # UTC and keeps everything else; read back on UTC, an hourly, daily or
+      # weekly template's schedule works out the next event it holds, and a
+      # monthly one goes back to its first event's day; a template saved
+      # afterwards without a time zone reads UTC; down() drops the column.
+      - name: Test the template time zone migration on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TEMPLATE_TIMEZONE_TESTS: "true"
+          TEMPLATE_TIMEZONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEMPLATE_TIMEZONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEMPLATE_TIMEZONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddScheduledMaintenanceTemplateTimezonePostgres.test.ts
+          --forceExit
+
       # Clones the migrated LogSavedView table into an isolated schema, as it
       # was before AddScopeToLogSavedView, and runs the migration on seeded
       # views: every view keeps no scope (the Logs page's, so none goes

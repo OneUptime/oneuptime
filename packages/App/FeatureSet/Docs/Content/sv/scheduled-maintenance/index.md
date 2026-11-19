@@ -106,7 +106,7 @@ Bara de monitorer som händelsen nämner under **Monitorer** slutar kontrolleras
 :::
 
 :::details Händelsen visas inte på min statussida
-Kontrollera att händelsen nämner sidan under **Visa händelse på dessa statussidor** och att **Synlig på statussidan** är påslagen i händelsens **Inställningar**. Visar dess sidhuvud **Inte på statussidor än**, visas den från dess **Publicera den**: se [Publicera den senare](/docs/scheduled-maintenance/creating-events#publicera-den-senare). Kontrollera sedan själva statussidan: den måste visa underhållshändelser, och en händelse som började längre tillbaka än sidans historikfönster, 14 dagar om du inte har ändrat det, visas inte längre.
+Kontrollera att händelsen nämner sidan under **Visa händelse på dessa statussidor** och att **Synlig på statussidan** är påslagen i händelsens **Inställningar**. Visar dess sidhuvud **Inte på statussidor än**, visas den från dess **Publicera den**: se [Publicera den senare](/docs/scheduled-maintenance/creating-events#publicera-den-senare). Kontrollera sedan själva statussidan: den måste visa underhållshändelser (händelsens kort **Underhållsdetaljer** säger det när ingen av dess statussidor gör det), och en händelse som började längre tillbaka än sidans historikfönster, 14 dagar om du inte har ändrat det, visas inte längre.
 :::
 
 ## Nästa steg

@@ -106,7 +106,7 @@ Only the monitors the event names under **Monitors** stop being checked, and onl
 :::
 
 :::details The event is not on my status page
-Check that the event names the page under **Show event on these status pages**, and that **Visible on Status Page** is on in the event's **Settings**. If its header says **Not on status pages yet**, it shows from its **Publish At**: see [Publish it later](/docs/scheduled-maintenance/creating-events#publish-it-later). Then check the status page itself: it must show maintenance events, and an event that started longer ago than the page's history window, 14 days unless you changed it, is no longer listed.
+Check that the event names the page under **Show event on these status pages**, and that **Visible on Status Page** is on in the event's **Settings**. If its header says **Not on status pages yet**, it shows from its **Publish At**: see [Publish it later](/docs/scheduled-maintenance/creating-events#publish-it-later). Then check the status page itself: it must show maintenance events (the event's **Maintenance Details** card says so when none of its status pages does), and an event that started longer ago than the page's history window, 14 days unless you changed it, is no longer listed.
 :::
 
 ## Next steps

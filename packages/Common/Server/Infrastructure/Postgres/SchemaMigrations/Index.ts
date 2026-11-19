@@ -1117,6 +1117,7 @@ import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-A
 import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
 import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
 import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
 
 export default [
   InitialMigration,
@@ -2238,4 +2239,5 @@ export default [
   BackfillSsoProviderDomains1809186620000,
   AddMonitorNetworkDeviceTieSource1809186700000,
   AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
+  AddScheduledMaintenanceTemplateTimezone1809186800000,
 ];
