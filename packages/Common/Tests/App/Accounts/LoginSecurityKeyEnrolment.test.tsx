@@ -16,6 +16,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import fs from "fs";
+import type { SpyInstance } from "jest-mock";
 import path from "path";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
@@ -125,7 +126,7 @@ let posted: Array<PostedRequest> = [];
 let loginCalls: Array<JSONObject> = [];
 let verifyAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse;
 let optionsAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse;
-let registerSpy: jest.SpiedFunction<typeof WebAuthn.register>;
+let registerSpy: SpyInstance<typeof WebAuthn.register>;
 
 const setupUser: () => UserEvent = (): UserEvent => {
   return userEvent.setup({ delay: null });

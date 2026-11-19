@@ -589,6 +589,8 @@ describe("what the defaults leave out, redact and roll up", () => {
         "auditLogsRetentionInDays",
         "storeSystemEventsInAuditLogs",
         "requireSsoForLogin",
+        // Whether the project manages its people's sign-in with SSO (#9763).
+        "manageSignInWithSso",
       ],
     ],
   ])(
