@@ -236,6 +236,11 @@ const MAX_HISTORY_MESSAGES: number = 20;
 const MAX_SHARED_THREAD_HISTORY_MESSAGES: number = 40;
 const MAX_OUTPUT_TOKENS: number = 4096;
 const TEMPERATURE: number = 0.2;
+/*
+ * How much of a failed model call's error its LlmCallFailed event keeps:
+ * the investigation engine's cut (ObservabilityAssistant's llm_failed).
+ */
+export const MAX_LLM_CALL_ERROR_LENGTH: number = 400;
 
 /*
  * Replayed history is bounded twice: by row count (MAX_HISTORY_MESSAGES,
@@ -1147,6 +1152,24 @@ export default class ChatAgentRunner {
          * previews into LlmLog, which is readable by all project members.
          */
         storeContentPreviews: false,
+      }).catch(async (error: unknown): Promise<never> => {
+        /*
+         * The call failed for good (LLMService already retried it): its
+         * Thinking ends, failed, with the provider's words - as an
+         * investigation's does - rather than spinning until the turn's
+         * error notice replaces it (issue #6488). The turn fails as before.
+         */
+        await this.emitEvent(request, state, {
+          eventType: AIRunEventType.LlmCallFailed,
+          resultSummary: {
+            errorMessage: (error instanceof Error
+              ? error.message
+              : String(error)
+            ).substring(0, MAX_LLM_CALL_ERROR_LENGTH),
+          },
+        });
+
+        throw error;
       });
 
       state.llmCallCount++;
