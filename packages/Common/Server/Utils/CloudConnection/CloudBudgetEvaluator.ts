@@ -852,7 +852,11 @@ export default class CloudBudgetEvaluator {
       {
         query: { projectId: budget.projectId! },
         select: { _id: true },
-        sort: { order: SortOrder.Descending },
+        /*
+         * The last of the list: the highest number, and of severities that
+         * share it the last by id, as the list reads them.
+         */
+        sort: { order: SortOrder.Descending, _id: SortOrder.Descending },
         props: { isRoot: true },
       },
     );

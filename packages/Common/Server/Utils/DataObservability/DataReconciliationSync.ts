@@ -308,9 +308,8 @@ export default class DataReconciliationSync {
   }
 
   private static async readSeed(projectId: ObjectID): Promise<ProjectSeed> {
-    const byPriority: { priority: SortOrder; createdAt: SortOrder } = {
+    const byPriority: { priority: SortOrder } = {
       priority: SortOrder.Ascending,
-      createdAt: SortOrder.Ascending,
     };
     const online: MonitorStatus | null = await MonitorStatusService.findOneBy({
       query: { projectId, isOperationalState: true },

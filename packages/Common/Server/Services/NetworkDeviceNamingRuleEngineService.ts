@@ -251,9 +251,9 @@ class NetworkDeviceNamingRuleEngineServiceClass {
           isEnabled: true,
         },
         select: this.ruleSelect,
+        // Rules that share a priority by id, as the rules page lists them.
         sort: {
           priority: SortOrder.Descending,
-          createdAt: SortOrder.Ascending,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,

@@ -229,9 +229,8 @@ export default class DataProductSync {
   }
 
   private static async readSeed(projectId: ObjectID): Promise<ProjectSeed> {
-    const byPriority: { priority: SortOrder; createdAt: SortOrder } = {
+    const byPriority: { priority: SortOrder } = {
       priority: SortOrder.Ascending,
-      createdAt: SortOrder.Ascending,
     };
     const online: MonitorStatus | null = await MonitorStatusService.findOneBy({
       query: { projectId, isOperationalState: true },
@@ -258,14 +257,22 @@ export default class DataProductSync {
       await IncidentSeverityService.findOneBy({
         query: { projectId },
         select: { _id: true },
-        sort: { order: SortOrder.Descending },
+        /*
+         * The last of the list: the highest number, and of severities that
+         * share it the last by id, as the list reads them.
+         */
+        sort: { order: SortOrder.Descending, _id: SortOrder.Descending },
         props: { isRoot: true },
       });
     const alertSeverity: AlertSeverity | null =
       await AlertSeverityService.findOneBy({
         query: { projectId },
         select: { _id: true },
-        sort: { order: SortOrder.Descending },
+        /*
+         * The last of the list: the highest number, and of severities that
+         * share it the last by id, as the list reads them.
+         */
+        sort: { order: SortOrder.Descending, _id: SortOrder.Descending },
         props: { isRoot: true },
       });
 

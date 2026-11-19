@@ -170,9 +170,8 @@ export default class DataBiRefreshAlerts {
   }
 
   private static async readSeed(projectId: ObjectID): Promise<ProjectSeed> {
-    const sort: { priority: SortOrder; createdAt: SortOrder } = {
+    const sort: { priority: SortOrder } = {
       priority: SortOrder.Ascending,
-      createdAt: SortOrder.Ascending,
     };
     const online: MonitorStatus | null = await MonitorStatusService.findOneBy({
       query: { projectId, isOperationalState: true },

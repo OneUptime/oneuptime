@@ -120,10 +120,12 @@ const RULE_SELECT: Select<AlertIncidentRule> = {
   showIncidentOnStatusPage: true,
 };
 
-// The list as people put it in order; the older first on a tie.
+/*
+ * The list as people put it in order; rules that share a number by id, as
+ * the rules page lists them (the database adds the id to every sort).
+ */
 const RULE_SORT: Sort<AlertIncidentRule> = {
   order: SortOrder.Ascending,
-  createdAt: SortOrder.Ascending,
 };
 
 /*
@@ -851,6 +853,13 @@ class AlertIncidentRuleEngineServiceClass {
           order: true,
           isArchived: true,
         },
+        /*
+         * In the list's order, twins by id, so severities that share a
+         * number rank as the severities page lists them.
+         */
+        sort: {
+          order: SortOrder.Ascending,
+        },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         props: {
@@ -894,6 +903,10 @@ class AlertIncidentRuleEngineServiceClass {
             _id: true,
             name: true,
             order: true,
+          },
+          // In the list's order, twins by id, as above.
+          sort: {
+            order: SortOrder.Ascending,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

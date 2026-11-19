@@ -34,12 +34,29 @@ const LOWERED_CHARACTERS_PER_UNIT: number = 4;
 
 // The shape NetworkSiteAssignmentRule rows are matched with.
 export interface AssignmentRuleCandidate {
+  _id?: unknown;
+  id?: unknown;
   criteria?: unknown;
   subnetCidr?: string | null | undefined;
   hostnamePattern?: string | null | undefined;
   priority?: number | null | undefined;
   createdAt?: Date | null | undefined;
 }
+
+// A rule's id as text, lower-cased as Postgres renders a uuid; "" for none.
+const ruleIdOf: (rule: AssignmentRuleCandidate) => string = (
+  rule: AssignmentRuleCandidate,
+): string => {
+  const id: unknown = rule._id ?? rule.id;
+
+  if (id === null || id === undefined) {
+    return "";
+  }
+
+  const text: string = String(id);
+
+  return text === "[object Object]" ? "" : text.trim().toLowerCase();
+};
 
 /*
  * The device attributes a rule is evaluated against. A hostname pattern is
@@ -453,8 +470,10 @@ export class CidrMatchUtil {
 
   /*
    * Picks the winning rule for a target: among matching rules the highest
-   * priority number wins; ties go to the earlier createdAt when both rows
-   * carry one, otherwise the earlier rule in the input order (stable).
+   * priority number wins - the rule highest in the list; ties go to the rule
+   * first by id, the order the rules page lists rules that share a priority
+   * in (a write of a priority moves no other rule, so two may share one:
+   * issue #9609), otherwise the earlier rule in the input order (stable).
    * Returns null when nothing matches.
    */
   public static pickRule<T extends AssignmentRuleCandidate>(
@@ -481,11 +500,14 @@ export class CidrMatchUtil {
         continue;
       }
 
+      const ruleId: string = ruleIdOf(rule);
+      const bestId: string = ruleIdOf(best);
+
       if (
         rulePriority === bestPriority &&
-        rule.createdAt &&
-        best.createdAt &&
-        rule.createdAt.getTime() < best.createdAt.getTime()
+        ruleId &&
+        bestId &&
+        ruleId < bestId
       ) {
         best = rule;
       }

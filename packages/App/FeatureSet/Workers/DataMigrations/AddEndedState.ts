@@ -28,8 +28,9 @@ export default class AddEndedState extends DataMigrationBase {
 
     for (const project of projects) {
       /*
-       * add ended scheduled maintenance state for each of these projects.
-       * first fetch resolved state. Ended state order is -1 of resolved state.
+       * add ended scheduled maintenance state for each of these projects,
+       * just above the completed (resolved) state - only for a project that
+       * has one.
        */
 
       const resolvedState: ScheduledMaintenanceState | null =
@@ -90,7 +91,12 @@ export default class AddEndedState extends DataMigrationBase {
       endedState.name = "Ended";
       endedState.description =
         "Maintenance events switch to this state when they end.";
-      endedState.order = resolvedState.order!;
+      /*
+       * No number: a state created without one goes just above the
+       * completed state (StateOrderGuard), which steps down. Its number
+       * would only share the completed state's place: a write of a number
+       * moves no other state (issue #9609).
+       */
       endedState.isEndedState = true;
       endedState.color = new Color("#4A4A4A");
 

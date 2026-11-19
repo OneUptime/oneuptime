@@ -99,24 +99,12 @@ function readId(value: unknown): string {
   return "";
 }
 
-function toTime(value: unknown): number {
-  if (value instanceof Date) {
-    const time: number = value.getTime();
-    return Number.isNaN(time) ? 0 : time;
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const time: number = new Date(value).getTime();
-    return Number.isNaN(time) ? 0 : time;
-  }
-
-  return 0;
-}
-
 /*
  * The order rules are tried in, as the rules page lists them: the highest
- * priority first, then the oldest, then by id - so two rules with the same
- * place never swap between runs.
+ * priority first, then rules that share a priority by id, as the database
+ * reads them - so two rules with the same place never swap between runs,
+ * and the rule tried first is the one shown first (a write of a priority
+ * moves no other rule, so two may share one: issue #9609).
  */
 export function compareNamingRules(
   left: NamingRuleCandidate,
@@ -131,15 +119,8 @@ export function compareNamingRules(
     return rightPriority - leftPriority;
   }
 
-  const leftTime: number = toTime(left.createdAt);
-  const rightTime: number = toTime(right.createdAt);
-
-  if (leftTime !== rightTime) {
-    return leftTime - rightTime;
-  }
-
-  const leftId: string = readId(left._id ?? left.id);
-  const rightId: string = readId(right._id ?? right.id);
+  const leftId: string = readId(left._id ?? left.id).toLowerCase();
+  const rightId: string = readId(right._id ?? right.id).toLowerCase();
 
   return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
 }

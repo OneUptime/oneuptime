@@ -159,8 +159,11 @@ export default class OpenStackLogDefaults {
       return;
     }
 
-    let sortOrder: number = existing.length;
-
+    /*
+     * No number: each goes after the last filter of the project, its own
+     * first (@ListOrderColumn). A number counted from the rows there would
+     * share one with a row numbered past the count, and move no row aside.
+     */
     for (const filter of OPENSTACK_DEFAULT_DROP_FILTERS) {
       const row: LogDropFilter = new LogDropFilter();
       row.projectId = projectId;
@@ -169,7 +172,6 @@ export default class OpenStackLogDefaults {
       row.filterQuery = filter.filterQuery;
       row.action = LogDropFilterAction.Drop;
       row.isEnabled = true;
-      row.sortOrder = sortOrder++;
 
       await LogDropFilterService.create({
         data: row,
@@ -195,8 +197,7 @@ export default class OpenStackLogDefaults {
       return;
     }
 
-    let sortOrder: number = existing.length;
-
+    // No number: each goes after the last rule of the project, as above.
     for (const rule of OPENSTACK_DEFAULT_SCRUB_RULES) {
       const row: LogScrubRule = new LogScrubRule();
       row.projectId = projectId;
@@ -207,7 +208,6 @@ export default class OpenStackLogDefaults {
       row.scrubAction = LogScrubAction.Redact;
       row.fieldsToScrub = LogScrubField.Both;
       row.isEnabled = true;
-      row.sortOrder = sortOrder++;
 
       await LogScrubRuleService.create({
         data: row,

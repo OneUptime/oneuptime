@@ -222,10 +222,13 @@ export default class PostmortemRules {
             isEnabled: true,
           },
           select: RULE_SELECT,
-          // The list as people put it in order; the older first on a tie.
+          /*
+           * The list as people put it in order; rules that share a number by
+           * id, as the rules page lists them (the database adds the id to
+           * every sort).
+           */
           sort: {
             order: SortOrder.Ascending,
-            createdAt: SortOrder.Ascending,
           },
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,

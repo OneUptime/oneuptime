@@ -2500,7 +2500,6 @@ export class Service extends ProjectReferencesService<Model> {
         },
         sort: {
           priority: SortOrder.Ascending,
-          createdAt: SortOrder.Ascending,
         },
         props: {
           isRoot: true,

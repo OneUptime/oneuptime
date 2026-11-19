@@ -287,7 +287,7 @@ describe("PostmortemRules.getIncidentDraftPlan - no rule", () => {
         postmortemTemplates: { _id: true },
         llmProviderId: true,
       },
-      sort: { order: SortOrder.Ascending, createdAt: SortOrder.Ascending },
+      sort: { order: SortOrder.Ascending },
       limit: MAX_RULES_EVALUATED_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },

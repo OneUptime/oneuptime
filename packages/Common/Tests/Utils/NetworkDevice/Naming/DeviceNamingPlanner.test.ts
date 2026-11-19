@@ -247,7 +247,7 @@ describe("which rule names a device", () => {
     discoveredName: "dmb-1",
   });
 
-  test("the highest priority wins, then the oldest, then the id", () => {
+  test("the highest priority wins, then the id - as the rules page lists them, whatever their age", () => {
     const results: Map<string, DeviceNamingResult> = plan({
       rules: [
         rule({ _id: "low", priority: 1, namePattern: "LOW-{ip.4}" }),
@@ -261,20 +261,20 @@ describe("which rule names a device", () => {
     const tied: Map<string, DeviceNamingResult> = plan({
       rules: [
         rule({
-          _id: "newer",
-          createdAt: new Date("2026-11-02T00:00:00.000Z"),
-          namePattern: "NEWER",
-        }),
-        rule({
-          _id: "older",
+          _id: "b-older",
           createdAt: new Date("2026-11-01T00:00:00.000Z"),
           namePattern: "OLDER",
+        }),
+        rule({
+          _id: "a-newer",
+          createdAt: new Date("2026-11-02T00:00:00.000Z"),
+          namePattern: "NEWER",
         }),
       ],
       subjects: [{ key: "d", facts: facts }],
     });
 
-    expect(nameOf(tied, "d")).toBe("OLDER");
+    expect(nameOf(tied, "d")).toBe("NEWER");
 
     expect(
       compareNamingRules(

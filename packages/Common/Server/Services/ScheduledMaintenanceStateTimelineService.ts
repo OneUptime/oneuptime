@@ -1373,9 +1373,10 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
        * findOneBy falls back to `createdAt DESC` and would resolve monitors
        * into whichever operational status was created most recently rather
        * than the seeded default. Order by priority ascending (seeded default
-       * operational status is priority 0), tie-broken by the oldest row,
-       * matching MonitorService.onBeforeCreate so a monitor's operational
-       * status stays the same canonical one across its lifecycle.
+       * operational status is priority 0), tie-broken by id as every list
+       * of statuses is read, matching MonitorService.onBeforeCreate so a
+       * monitor's operational status stays the same canonical one across
+       * its lifecycle.
        */
       const resolvedMonitorState: MonitorStatus | null =
         await MonitorStatusService.findOneBy({
@@ -1385,7 +1386,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           },
           sort: {
             priority: SortOrder.Ascending,
-            createdAt: SortOrder.Ascending,
           },
           props: {
             isRoot: true,

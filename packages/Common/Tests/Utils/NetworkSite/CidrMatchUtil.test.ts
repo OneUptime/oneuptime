@@ -602,28 +602,30 @@ describe("CidrMatchUtil.pickRule", () => {
     expect(winner?.name).toBe("matching");
   });
 
-  it("priority ties go to the earlier createdAt", () => {
+  it("priority ties go to the rule first by id, as the rules page lists them, whatever their age", () => {
     const winner: TestRule | null = CidrMatchUtil.pickRule<TestRule>(
       [
         {
-          name: "newer",
-          subnetCidr: "10.0.0.0/8",
-          priority: 5,
-          createdAt: new Date("2026-02-01T00:00:00Z"),
-        },
-        {
-          name: "older",
+          _id: "B2000000-0000-4000-8000-000000000000",
+          name: "older, later by id",
           subnetCidr: "10.0.0.0/8",
           priority: 5,
           createdAt: new Date("2026-01-01T00:00:00Z"),
         },
+        {
+          _id: "a1000000-0000-4000-8000-000000000000",
+          name: "newer, first by id",
+          subnetCidr: "10.0.0.0/8",
+          priority: 5,
+          createdAt: new Date("2026-02-01T00:00:00Z"),
+        },
       ],
       target,
     );
-    expect(winner?.name).toBe("older");
+    expect(winner?.name).toBe("newer, first by id");
   });
 
-  it("priority ties without createdAt keep the first rule (stable)", () => {
+  it("priority ties without ids keep the first rule (stable)", () => {
     const winner: TestRule | null = CidrMatchUtil.pickRule<TestRule>(
       [
         { name: "first", subnetCidr: "10.0.0.0/8", priority: 5 },

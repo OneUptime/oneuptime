@@ -6945,9 +6945,10 @@ ${incidentSeverity.name}
        * `createdAt DESC` and would resolve monitors into whichever operational
        * status was created most recently (e.g. a user- or fixture-added one)
        * rather than the seeded default. Order by priority ascending (the
-       * seeded default operational status is priority 0), tie-broken by the
-       * oldest row, matching MonitorService.onBeforeCreate so a monitor's
-       * operational status is the same canonical one throughout its lifecycle.
+       * seeded default operational status is priority 0), tie-broken by id
+       * as every list of statuses is read, matching
+       * MonitorService.onBeforeCreate so a monitor's operational status is
+       * the same canonical one throughout its lifecycle.
        */
       const resolvedMonitorState: MonitorStatus | null =
         await MonitorStatusService.findOneBy({
@@ -6957,7 +6958,6 @@ ${incidentSeverity.name}
           },
           sort: {
             priority: SortOrder.Ascending,
-            createdAt: SortOrder.Ascending,
           },
           props: {
             isRoot: true,

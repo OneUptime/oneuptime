@@ -218,7 +218,6 @@ export class Service extends DatabaseService<Model> {
       },
       sort: {
         priority: SortOrder.Ascending,
-        createdAt: SortOrder.Ascending,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -259,9 +258,10 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * The project's default operational status: the operational status with
-   * the lowest priority, the oldest one on a tie - the status a new monitor
-   * starts in, and the one the dashboard preselects as a monitor's default
-   * status. Null when the project has no operational status.
+   * the lowest priority, the first by id on a tie, as every list of statuses
+   * is read - the status a new monitor starts in, and the one the dashboard
+   * preselects as a monitor's default status. Null when the project has no
+   * operational status.
    */
   @CaptureSpan()
   public async findDefaultOperationalStatusId(
@@ -277,7 +277,6 @@ export class Service extends DatabaseService<Model> {
       },
       sort: {
         priority: SortOrder.Ascending,
-        createdAt: SortOrder.Ascending,
       },
       props: {
         isRoot: true,

@@ -308,6 +308,64 @@ describe("sortCustomFieldDefinitions", () => {
     ).toEqual(["B", "A", "D", "C"]);
   });
 
+  test("puts fields that share an order in the order of their ids, whatever order they were read in (issue #9609)", () => {
+    const fields: Array<{ _id: string; name: string; sortOrder: number }> = [
+      { _id: "c3000000-0000-4000-8000-000000000000", name: "C", sortOrder: 1 },
+      { _id: "A1000000-0000-4000-8000-000000000000", name: "A", sortOrder: 1 },
+      { _id: "b2000000-0000-4000-8000-000000000000", name: "B", sortOrder: 1 },
+      {
+        _id: "00000000-0000-4000-8000-000000000000",
+        name: "Last",
+        sortOrder: 2,
+      },
+    ];
+
+    const names: (
+      list: Array<{ _id: string; name: string; sortOrder: number }>,
+    ) => Array<string> = (
+      list: Array<{ _id: string; name: string; sortOrder: number }>,
+    ): Array<string> => {
+      return list.map((item: { name: string }) => {
+        return item.name;
+      });
+    };
+
+    // The settings page's order, read oldest first or newest first alike.
+    expect(names(sortCustomFieldDefinitions(fields))).toEqual([
+      "A",
+      "B",
+      "C",
+      "Last",
+    ]);
+    expect(names(sortCustomFieldDefinitions([...fields].reverse()))).toEqual([
+      "A",
+      "B",
+      "C",
+      "Last",
+    ]);
+  });
+
+  test("puts twins without an id after the ones with one, in the order they came", () => {
+    expect(
+      sortCustomFieldDefinitions([
+        { name: "No id B", sortOrder: 1 },
+        {
+          _id: "b2000000-0000-4000-8000-000000000000",
+          name: "B",
+          sortOrder: 1,
+        },
+        { name: "No id A", sortOrder: 1 },
+        {
+          _id: "a1000000-0000-4000-8000-000000000000",
+          name: "A",
+          sortOrder: 1,
+        },
+      ]).map((item: { name: string }) => {
+        return item.name;
+      }),
+    ).toEqual(["A", "B", "No id B", "No id A"]);
+  });
+
   test("does not reorder the list it was given", () => {
     const list: Array<CustomFieldFormDefinition> = [
       definition({ name: "B", sortOrder: 2 }),

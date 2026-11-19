@@ -461,9 +461,9 @@ describe("a new alert and the project's alert incident rules", () => {
     } = stubs.findRules.mock.calls[0]![0] as never;
 
     expect(findBy.query).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+    // Rules that share a number by id: the database adds it to every sort.
     expect(findBy.sort).toEqual({
       order: SortOrder.Ascending,
-      createdAt: SortOrder.Ascending,
     });
     expect(findBy.limit).toBe(MAX_RULES_EVALUATED_PER_PROJECT);
     expect(findBy.props).toEqual({ isRoot: true });
