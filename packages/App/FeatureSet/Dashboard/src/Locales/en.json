@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} of {{total}} used ({{percent}})",
   "Inode Usage": "Inode Usage",
   "Total Inodes": "Total Inodes",
-  "Watched by OneUptime": "Watched by OneUptime"
+  "Watched by OneUptime": "Watched by OneUptime",
+  "AI Credits Used Up": "AI Credits Used Up",
+  "Daily Limit Reached": "Daily Limit Reached",
+  "Only the latest {{count}} steps of this run are shown.": "Only the latest {{count}} steps of this run are shown.",
+  "Only the latest {{count}} steps of this run are shown._one": "Only the latest {{count}} step of this run is shown.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers."
 }

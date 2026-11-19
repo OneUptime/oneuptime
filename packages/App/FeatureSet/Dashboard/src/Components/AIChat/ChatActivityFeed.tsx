@@ -30,11 +30,13 @@ import {
   createTranslator,
   DEFAULT_LANGUAGE,
   getGlobalTranslator,
+  PluralTemplate,
   TemplateValue,
   translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import useClockTick from "Common/UI/Utils/UseClockTick";
 import { formatDurationInUnit } from "../../Utils/Milliseconds";
 import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
 import {
@@ -280,6 +282,13 @@ export interface ComponentProps {
    * reader's language and time zone. Defaults to false.
    */
   showStepTimes?: boolean | undefined;
+  /*
+   * Whether the run had events before the ones given (issue #6489): the
+   * reads behind a run's activity keep its newest 500, so a longer run's
+   * first steps are left out. A quiet line says so, and the run's summary
+   * leaves out a count of steps that would count only the ones shown.
+   */
+  hasEarlierEvents?: boolean | undefined;
 }
 
 type ActivityStepStatus = "running" | "done" | "failed" | "stopped";
@@ -1450,7 +1459,32 @@ function groupAttempts(steps: Array<ActivityStep>): Array<ActivityAttempt> {
   return attempts;
 }
 
-// How long something took, in the reader's language: "40 seconds", "6 minutes".
+const SECONDS: PluralTemplate = {
+  one: "{{count}} second",
+  other: "{{count}} seconds",
+};
+const MINUTES: PluralTemplate = {
+  one: "{{count}} minute",
+  other: "{{count}} minutes",
+};
+const HOURS: PluralTemplate = {
+  one: "{{count}} hour",
+  other: "{{count}} hours",
+};
+const DAYS: PluralTemplate = { one: "{{count}} day", other: "{{count}} days" };
+
+const MINUTES_IN_AN_HOUR: number = 60;
+const MINUTES_IN_A_DAY: number = 24 * MINUTES_IN_AN_HOUR;
+
+/*
+ * How long something took, in the reader's language: "40 seconds", "6
+ * minutes", and past an hour its two largest units - "1 hour and 29
+ * minutes", "2 days and 3 hours" (issue #6493). It rounded to whole hours
+ * before - 89 minutes read "1 hour", two days "48 hours". Each unit is a
+ * plural of the reader's language (Arabic's short units among them,
+ * ARABIC.md), joined as the language joins two things; a smaller unit
+ * past the two is left out, never rounded up into them.
+ */
 export function describeElapsedTime(
   milliseconds: number,
   translator: Translator,
@@ -1458,25 +1492,65 @@ export function describeElapsedTime(
   const seconds: number = Math.max(0, Math.round(milliseconds / 1000));
 
   if (seconds < 60) {
-    return translator.translatePlural(
-      { one: "{{count}} second", other: "{{count}} seconds" },
-      seconds,
-    );
+    return translator.translatePlural(SECONDS, seconds);
   }
 
   const minutes: number = Math.round(seconds / 60);
 
-  if (minutes < 60) {
-    return translator.translatePlural(
-      { one: "{{count}} minute", other: "{{count}} minutes" },
-      minutes,
-    );
+  if (minutes < MINUTES_IN_AN_HOUR) {
+    return translator.translatePlural(MINUTES, minutes);
   }
 
-  return translator.translatePlural(
-    { one: "{{count}} hour", other: "{{count}} hours" },
-    Math.round(minutes / 60),
+  const days: number = Math.floor(minutes / MINUTES_IN_A_DAY);
+  const hours: number = Math.floor(
+    (minutes % MINUTES_IN_A_DAY) / MINUTES_IN_AN_HOUR,
   );
+  const remainingMinutes: number = minutes % MINUTES_IN_AN_HOUR;
+
+  const larger: string =
+    days > 0
+      ? translator.translatePlural(DAYS, days)
+      : translator.translatePlural(HOURS, hours);
+  const smallerCount: number = days > 0 ? hours : remainingMinutes;
+
+  if (smallerCount === 0) {
+    return larger;
+  }
+
+  return translator.translateTemplate("{{first}} and {{second}}", {
+    first: larger,
+    second: translator.translatePlural(
+      days > 0 ? HOURS : MINUTES,
+      smallerCount,
+    ),
+  });
+}
+
+/*
+ * While a run runs, how long it has been running moves on by itself: read
+ * again each second in its first minute, then each minute (issue #6493).
+ * Between two reads of the run nothing else draws the list again, and a
+ * run waiting on one long model call said "running for 3 minutes" for as
+ * long as the call took. The shared clock (useClockTick), as Code's live
+ * task turns use: its timer stops once the run does.
+ */
+export function useRunningForClock(data: {
+  startedAt: Date | undefined;
+  isRunning: boolean;
+}): Date {
+  const isInItsFirstMinute: boolean = Boolean(
+    data.startedAt &&
+      OneUptimeDate.getCurrentDate().getTime() - data.startedAt.getTime() <
+        60 * 1000,
+  );
+  /*
+   * The tick only draws the list again: what it says is read from the
+   * product's clock as it draws, so a read of the run between two ticks
+   * says how long it has run then too.
+   */
+  useClockTick(isInItsFirstMinute, { isEnabled: data.isRunning });
+
+  return OneUptimeDate.getCurrentDate();
 }
 
 // A step's time of day, and its full date and time for the hover.
@@ -1542,6 +1616,17 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   const maxVisibleSteps: number = Math.max(props.maxVisibleSteps ?? 7, 1);
   const showLiveIndicator: boolean = props.showLiveIndicator ?? true;
   const attempts: Array<ActivityAttempt> = groupAttempts(steps);
+  // When the run started, for its summary: the run's own time, else its first step's.
+  const runStartedAt: Date | undefined = props.run
+    ? toDate(props.run.startedAt) || steps[0]?.at || toDate(props.run.createdAt)
+    : undefined;
+  // What "running for" counts to: it moves on by itself while the run runs.
+  const runningForNow: Date = useRunningForClock({
+    startedAt: runStartedAt,
+    isRunning: Boolean(
+      props.showStepTimes && props.run?.status === AIRunStatus.Running,
+    ),
+  });
   /*
    * How many attempts the run gets, as its attempts' ends say ("Attempt 2
    * of 3"). An older run's events do not say, and its attempts have no
@@ -2096,18 +2181,11 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
    * line that answers "when did this happen?" before any step does.
    */
   const renderRunSummary: () => ReactElement = (): ReactElement => {
-    if (!props.run || !props.showStepTimes) {
+    if (!props.run || !props.showStepTimes || !runStartedAt) {
       return <></>;
     }
 
-    const startedAt: Date | undefined =
-      toDate(props.run.startedAt) ||
-      steps[0]?.at ||
-      toDate(props.run.createdAt);
-
-    if (!startedAt) {
-      return <></>;
-    }
+    const startedAt: Date = runStartedAt;
 
     const isToday: boolean = OneUptimeDate.areOnTheSameLocalDay(
       startedAt,
@@ -2142,19 +2220,23 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     } else if (props.run.status === AIRunStatus.Running) {
       parts.push(
         translator.translateTemplate("running for {{duration}}", {
-          duration: elapsed(
-            OneUptimeDate.getCurrentDate().getTime() - startedAt.getTime(),
-          ),
+          duration: elapsed(runningForNow.getTime() - startedAt.getTime()),
         }),
       );
     }
 
-    parts.push(
-      translator.translatePlural(
-        { one: "{{count}} step", other: "{{count}} steps" },
-        countWorkSteps(steps),
-      ),
-    );
+    /*
+     * A run whose first steps were left out is not counted from the ones
+     * shown: the line under this one says how many those are.
+     */
+    if (!props.hasEarlierEvents) {
+      parts.push(
+        translator.translatePlural(
+          { one: "{{count}} step", other: "{{count}} steps" },
+          countWorkSteps(steps),
+        ),
+      );
+    }
 
     /*
      * In the steps' own size, and a shade darker than their details: it is
@@ -2188,6 +2270,32 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A long run's first steps, left out by the read behind the list (issue
+   * #6489): one quiet line says so, and how many of its latest steps are
+   * shown, so the list is never taken for all of the run.
+   */
+  const renderEarlierStepsNote: () => ReactElement = (): ReactElement => {
+    if (!props.hasEarlierEvents) {
+      return <></>;
+    }
+
+    return (
+      <p
+        data-testid="activity-earlier-steps-left-out"
+        className="text-xs leading-5 text-gray-500"
+      >
+        {translator.translatePlural(
+          {
+            one: "Only the latest {{count}} step of this run is shown.",
+            other: "Only the latest {{count}} steps of this run are shown.",
+          },
+          countWorkSteps(steps),
+        )}
+      </p>
+    );
+  };
+
   const latestAttempt: ActivityAttempt | undefined =
     attempts[attempts.length - 1];
 
@@ -2195,6 +2303,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     steps.length > 0 && latestAttempt ? (
       <div className="space-y-2">
         {renderRunSummary()}
+        {renderEarlierStepsNote()}
         {attempts.length > 1 ? (
           <>
             {attempts

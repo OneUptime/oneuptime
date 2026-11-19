@@ -180,6 +180,8 @@ function payload(data: {
   evidence?: Array<JSONObject> | undefined;
   clusterAccess?: Array<JSONObject> | undefined;
   toolCallCount?: number | undefined;
+  // The run's first steps were left out of `events` (issue #6489).
+  hasEarlierEvents?: boolean | undefined;
 }): { data: JSONObject } {
   const status: AIRunStatus = data.status || AIRunStatus.Completed;
   const isCompleted: boolean = status === AIRunStatus.Completed;
@@ -205,6 +207,9 @@ function payload(data: {
       evidence: (isCompleted ? data.evidence || [] : []) as JSONArray,
       references: [],
       clusterAccess: (data.clusterAccess || [clusterRow()]) as JSONArray,
+      ...(data.hasEarlierEvents !== undefined
+        ? { hasEarlierEvents: data.hasEarlierEvents }
+        : {}),
     },
   };
 }
@@ -395,9 +400,16 @@ describe("InvestigationPanel commits a poll only when the notice would change", 
   }
 
   test("a poll that only moves the evaluation time and the Runner heartbeat re-commits nothing", async () => {
+    /*
+     * The same run, read again: the same events - a poll that brings a
+     * newer one is a change (issue #6489).
+     */
+    const events: Array<JSONObject> = [event(AIRunEventType.RunStarted)];
+
     await loadThenPoll(
-      payload({}),
+      payload({ events }),
       payload({
+        events,
         clusterAccess: [
           clusterRow({
             evaluatedAt: "2026-09-22T12:00:30.123Z",
@@ -415,6 +427,50 @@ describe("InvestigationPanel commits a poll only when the notice would change", 
 
     expect(fromJSONArray).toHaveBeenCalledTimes(1);
     expect(noticeText()).toContain("(fixes ask for your approval)");
+  });
+
+  /*
+   * Issue #6489: past the read's cap a run's newest events are always as
+   * many, so their count no longer says a new one came in: the panel tells
+   * by the newest event. A long run's list moved on no more once it passed
+   * 500 events.
+   */
+  test("a poll of a run past the cap whose newest event is new is applied, though the count stands", async () => {
+    const first: Array<JSONObject> = [
+      event(AIRunEventType.RunStarted),
+      ...toolCall(RUN_KUBECTL_TOOL_NAME, "completed", 1),
+    ];
+    // One more event came in, and the oldest one was left out of the read.
+    const second: Array<JSONObject> = [
+      ...first.slice(1),
+      event(AIRunEventType.RunCompleted),
+    ];
+    expect(second).toHaveLength(first.length);
+
+    await loadThenPoll(
+      payload({ events: first, hasEarlierEvents: true }),
+      payload({ events: second, hasEarlierEvents: true }),
+    );
+
+    expect(fromJSONArray).toHaveBeenCalledTimes(2);
+  });
+
+  test("a run whose first steps were left out says so under its summary", async () => {
+    // Running: its steps are the card's content until its report exists.
+    postMock.mockResolvedValue(
+      payload({
+        status: AIRunStatus.Running,
+        events: [...toolCall(RUN_KUBECTL_TOOL_NAME, "completed", 1)],
+        hasEarlierEvents: true,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(
+      screen.getByTestId("activity-earlier-steps-left-out"),
+    ).toHaveTextContent("Only the latest 1 step of this run is shown.");
   });
 
   test("a poll that changes the remediation mode is applied", async () => {

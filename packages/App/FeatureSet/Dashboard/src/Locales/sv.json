@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} av {{total}} används ({{percent}})",
   "Inode Usage": "Inodeanvändning",
   "Total Inodes": "Totalt antal inoder",
-  "Watched by OneUptime": "Bevakad av OneUptime"
+  "Watched by OneUptime": "Bevakad av OneUptime",
+  "AI Credits Used Up": "AI-krediter slut",
+  "Daily Limit Reached": "Daglig gräns nådd",
+  "Only the latest {{count}} steps of this run are shown.": "Bara de senaste {{count}} stegen i den här körningen visas.",
+  "Only the latest {{count}} steps of this run are shown._one": "Bara det senaste {{count}} steget i den här körningen visas.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Be administratören kontrollera dess API-nyckel och modell, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Försök igen om några minuter. Om den fortsätter att överskrida tidsgränsen, be administratören höja dess svarstidsgräns, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Försök igen om några minuter. Om den fortfarande inte går att nå, be administratören kontrollera den, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer."
 }

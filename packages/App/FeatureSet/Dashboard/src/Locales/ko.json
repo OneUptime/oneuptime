@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "{{total}} 중 {{used}} 사용({{percent}})",
   "Inode Usage": "inode 사용량",
   "Total Inodes": "전체 inode",
-  "Watched by OneUptime": "OneUptime이 감시 중"
+  "Watched by OneUptime": "OneUptime이 감시 중",
+  "AI Credits Used Up": "AI 크레딧 소진",
+  "Daily Limit Reached": "일일 한도 도달",
+  "Only the latest {{count}} steps of this run are shown.": "이 실행의 최근 {{count}}단계만 표시됩니다.",
+  "Only the latest {{count}} steps of this run are shown._one": "이 실행의 최근 {{count}}단계만 표시됩니다.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 관리자에게 API 키와 모델을 확인해 달라고 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 몇 분 후에 다시 시도하세요. 계속 시간 초과되면 관리자에게 응답 시간 제한을 늘려 달라고 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 몇 분 후에 다시 시도하세요. 계속 연결할 수 없으면 관리자에게 확인을 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요."
 }

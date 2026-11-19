@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} sur {{total}} utilisés ({{percent}})",
   "Inode Usage": "Utilisation des inodes",
   "Total Inodes": "Inodes au total",
-  "Watched by OneUptime": "Surveillé par OneUptime"
+  "Watched by OneUptime": "Surveillé par OneUptime",
+  "AI Credits Used Up": "Crédits IA épuisés",
+  "Daily Limit Reached": "Limite quotidienne atteinte",
+  "Only the latest {{count}} steps of this run are shown.": "Seules les {{count}} dernières étapes de cette exécution sont affichées.",
+  "Only the latest {{count}} steps of this run are shown._one": "Seule {{count}} étape de cette exécution, la plus récente, est affichée.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Ce projet utilise le fournisseur LLM global, configuré par l'administrateur de votre serveur OneUptime. Demandez-lui de vérifier sa clé API et son modèle, ou ajoutez votre propre fournisseur LLM dans Paramètres du projet > IA > Fournisseurs LLM.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Ce projet utilise le fournisseur LLM global, configuré par l'administrateur de votre serveur OneUptime. Réessayez dans quelques minutes. Si le délai continue d'expirer, demandez-lui d'augmenter son délai de réponse, ou ajoutez votre propre fournisseur LLM dans Paramètres du projet > IA > Fournisseurs LLM.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Ce projet utilise le fournisseur LLM global, configuré par l'administrateur de votre serveur OneUptime. Réessayez dans quelques minutes. S'il reste injoignable, demandez-lui de le vérifier, ou ajoutez votre propre fournisseur LLM dans Paramètres du projet > IA > Fournisseurs LLM."
 }

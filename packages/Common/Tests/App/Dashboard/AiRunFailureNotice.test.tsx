@@ -1619,3 +1619,193 @@ describe("an investigation whose context could not be built", () => {
     ).toEqual({ failureKind: AIRunFailureKind.Other });
   });
 });
+
+/*
+ * Issue #6494: a run that failed on the global LLM provider - the one the
+ * server's admin sets up, which a project's members cannot change - told
+ * them to raise its Response Timeout in Project Settings > AI > LLM
+ * Providers, where it cannot be edited. The fix is worded for them now:
+ * try again, ask the admin, or add a provider of their own - and the page
+ * is offered to whoever may add one.
+ */
+describe("a run that failed on the global LLM provider", () => {
+  function onGlobalProvider(
+    failureKind: AIRunFailureKind,
+    timeoutInSeconds?: number,
+  ): Array<AIRunEvent> {
+    return [
+      ...started(3),
+      runFailed({
+        outcome: AIRunAttemptOutcome.GaveUp,
+        failureKind,
+        attempt: 3,
+        maxAttempts: 3,
+        ...(timeoutInSeconds ? { timeoutInSeconds } : {}),
+        providerIsGlobal: true,
+      }),
+    ];
+  }
+
+  test("reads that the provider was the global one", () => {
+    expect(
+      readAiRunFailure({
+        events: onGlobalProvider(AIRunFailureKind.ProviderTimeout, 120),
+        errorMessage: PROVIDER_ERROR,
+      }),
+    ).toEqual({
+      failureKind: AIRunFailureKind.ProviderTimeout,
+      timeoutInSeconds: 120,
+      attempts: 3,
+      providerIsGlobal: true,
+    });
+  });
+
+  test.each([
+    [
+      AIRunFailureKind.ProviderTimeout,
+      "Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout",
+    ],
+    [
+      AIRunFailureKind.ProviderUnavailable,
+      "Try again in a few minutes. If it stays unreachable, ask them to check it",
+    ],
+    [
+      AIRunFailureKind.ProviderRejected,
+      "Ask them to check its API key and model",
+    ],
+  ])(
+    "a %s says the admin sets it up, and what the reader can do",
+    (failureKind: AIRunFailureKind, words: string) => {
+      const fix: string = describeAiRunFailureFix(
+        { failureKind, providerIsGlobal: true },
+        getGlobalTranslator(),
+      );
+
+      expect(fix).toMatch(
+        /^This project uses the global LLM provider, which your OneUptime server's admin sets up\. /,
+      );
+      expect(fix).toContain(words);
+      expect(fix).toContain(
+        "or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+      );
+      // Never sent to raise or check a provider it cannot change.
+      expect(fix).not.toContain("raise the provider's Response Timeout");
+      expect(fix).not.toContain("Check the provider's API key");
+    },
+  );
+
+  test("the cause is the same sentence, whoever's provider it was", () => {
+    expect(
+      describeAiRunFailureCause(
+        {
+          failureKind: AIRunFailureKind.ProviderTimeout,
+          timeoutInSeconds: 120,
+          providerIsGlobal: true,
+        },
+        getGlobalTranslator(),
+      ),
+    ).toBe(
+      describeAiRunFailureCause(
+        {
+          failureKind: AIRunFailureKind.ProviderTimeout,
+          timeoutInSeconds: 120,
+        },
+        getGlobalTranslator(),
+      ),
+    );
+  });
+
+  test("a project's own provider keeps today's words", () => {
+    expect(
+      describeAiRunFailureFix(
+        { failureKind: AIRunFailureKind.ProviderTimeout },
+        getGlobalTranslator(),
+      ),
+    ).toBe(
+      "If it is a slow or self-hosted model, give it more time: raise the provider's Response Timeout in Project Settings > AI > LLM Providers. Then try again.",
+    );
+  });
+
+  test("a failure that is not the provider's own keeps its words, global or not", () => {
+    expect(
+      describeAiRunFailureFix(
+        { failureKind: AIRunFailureKind.ContextWindow, providerIsGlobal: true },
+        getGlobalTranslator(),
+      ),
+    ).toBe(
+      describeAiRunFailureFix(
+        { failureKind: AIRunFailureKind.ContextWindow },
+        getGlobalTranslator(),
+      ),
+    );
+  });
+
+  test("an end whose kind the error overrode does not say whose provider it was", () => {
+    expect(
+      readAiRunFailure({
+        events: [
+          runFailed({
+            outcome: AIRunAttemptOutcome.GaveUp,
+            failureKind: AIRunFailureKind.Other,
+            providerIsGlobal: true,
+          }),
+        ],
+        errorMessage: PROVIDER_ERROR,
+      }).providerIsGlobal,
+    ).toBeUndefined();
+  });
+
+  test("the notice says it, and keeps Open LLM Providers for whoever may add a provider", () => {
+    const check: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(PermissionGate, "check")
+      .mockReturnValue({ isAllowed: true });
+
+    render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={onGlobalProvider(AIRunFailureKind.ProviderTimeout, 120)}
+        errorMessage={PROVIDER_ERROR}
+        testId="triage-failure"
+      />,
+    );
+
+    expect(screen.getByTestId("triage-failure-cause")).toHaveTextContent(
+      /^The LLM provider did not answer within 120 seconds\.$/,
+    );
+    expect(screen.getByTestId("triage-failure-fix")).toHaveTextContent(
+      "ask them to raise its Response Timeout",
+    );
+    expect(screen.getByTestId("triage-failure-settings")).toHaveTextContent(
+      "Open LLM Providers",
+    );
+    // The page is where a provider of the project's own is added.
+    expect(check).toHaveBeenLastCalledWith(
+      expect.any(LlmProvider),
+      ModelAction.Create,
+    );
+  });
+
+  test("the link to a global provider's page asks who may add one; a project's own, who may change it", () => {
+    const check: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(PermissionGate, "check")
+      .mockReturnValue({ isAllowed: true });
+
+    for (const failureKind of [
+      AIRunFailureKind.ProviderTimeout,
+      AIRunFailureKind.ProviderUnavailable,
+      AIRunFailureKind.ProviderRejected,
+    ]) {
+      getAiRunFailureSettingsLink(failureKind, { providerIsGlobal: true });
+      expect(check).toHaveBeenLastCalledWith(
+        expect.any(LlmProvider),
+        ModelAction.Create,
+      );
+
+      getAiRunFailureSettingsLink(failureKind);
+      expect(check).toHaveBeenLastCalledWith(
+        expect.any(LlmProvider),
+        ModelAction.Update,
+      );
+    }
+  });
+});

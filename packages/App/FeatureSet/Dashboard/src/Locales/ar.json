@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "المستخدَم {{used}} من {{total}} ({{percent}})",
   "Inode Usage": "استخدام inode",
   "Total Inodes": "إجمالي inode",
-  "Watched by OneUptime": "يراقبه OneUptime"
+  "Watched by OneUptime": "يراقبه OneUptime",
+  "AI Credits Used Up": "نفدت أرصدة الذكاء الاصطناعي",
+  "Daily Limit Reached": "بلغ الحد اليومي",
+  "Only the latest {{count}} steps of this run are shown.": "لا تُعرض إلا أحدث خطوات هذا التشغيل (العدد: {{count}}).",
+  "Only the latest {{count}} steps of this run are shown._one": "لا تُعرض إلا أحدث {{count}} خطوة من هذا التشغيل.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. اطلب منه التحقّق من مفتاح API والنموذج الخاصين به، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا استمرت مهلة الاستجابة في الانتهاء، فاطلب منه رفع «مهلة الاستجابة» الخاصة به، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا ظل الوصول إليه متعذرًا، فاطلب منه التحقّق منه، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM."
 }

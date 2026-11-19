@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "{{total}} 中 {{used}} 使用 ({{percent}})",
   "Inode Usage": "inode 使用量",
   "Total Inodes": "inode 総数",
-  "Watched by OneUptime": "OneUptime が監視中"
+  "Watched by OneUptime": "OneUptime が監視中",
+  "AI Credits Used Up": "AI クレジット切れ",
+  "Daily Limit Reached": "1 日の上限に到達",
+  "Only the latest {{count}} steps of this run are shown.": "この実行の最新 {{count}} ステップのみを表示しています。",
+  "Only the latest {{count}} steps of this run are shown._one": "この実行の最新 {{count}} ステップのみを表示しています。",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。管理者に API キーとモデルの確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。タイムアウトが続く場合は、管理者に応答タイムアウトを大きくするよう依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。接続できない状態が続く場合は、管理者に確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。"
 }

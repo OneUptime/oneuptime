@@ -57419,5 +57419,12 @@
   "{{used}} of {{total}} used ({{percent}})": "Занято {{used}} из {{total}} ({{percent}})",
   "Inode Usage": "Использование инодов",
   "Total Inodes": "Всего инодов",
-  "Watched by OneUptime": "Отслеживается OneUptime"
+  "Watched by OneUptime": "Отслеживается OneUptime",
+  "AI Credits Used Up": "Кредиты ИИ израсходованы",
+  "Daily Limit Reached": "Дневной лимит исчерпан",
+  "Only the latest {{count}} steps of this run are shown.": "Показаны только последние шаги этого запуска: {{count}}.",
+  "Only the latest {{count}} steps of this run are shown._one": "Показан только последний {{count}} шаг этого запуска.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Этот проект использует глобальный провайдер LLM, который настраивает администратор вашего сервера OneUptime. Попросите администратора проверить его ключ API и модель или добавьте собственный провайдер LLM в разделе «Настройки проекта > ИИ > Провайдеры LLM».",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Этот проект использует глобальный провайдер LLM, который настраивает администратор вашего сервера OneUptime. Повторите попытку через несколько минут. Если тайм-ауты продолжатся, попросите администратора увеличить его тайм-аут ответа или добавьте собственный провайдер LLM в разделе «Настройки проекта > ИИ > Провайдеры LLM».",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Этот проект использует глобальный провайдер LLM, который настраивает администратор вашего сервера OneUptime. Повторите попытку через несколько минут. Если он по-прежнему недоступен, попросите администратора проверить его или добавьте собственный провайдер LLM в разделе «Настройки проекта > ИИ > Провайдеры LLM»."
 }
