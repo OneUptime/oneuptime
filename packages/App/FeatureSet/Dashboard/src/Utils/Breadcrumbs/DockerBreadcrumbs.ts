@@ -76,6 +76,18 @@ export function getDockerBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Docker", "View Host", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_DATA_SECURITY, [
+      "Project",
+      "Docker",
+      "View Host",
+      "Data Security",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_COMPLIANCE, [
+      "Project",
+      "Docker",
+      "View Host",
+      "Compliance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_SETTINGS, [
       "Project",
       "Docker",

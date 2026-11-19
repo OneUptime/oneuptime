@@ -1,6 +1,4 @@
 import {
-  RESOURCE_DATA_SECURITY_PAGES,
-  ResourceDataSecurityPageKeys,
   getResourceComplianceRoute,
   getResourceDataSecurityRoute,
 } from "./ResourceDataSecurityPages";
@@ -45,8 +43,8 @@ export interface ResourceDataSecurityMenu {
 
 /*
  * The resource's Security section's two pages, or null while the section
- * is not drawn: Data Security not shown in its pages, a kind with no such
- * pages, or a resource with no data store.
+ * is not drawn: Data Security not shown in its pages, or a resource with
+ * no data store.
  */
 export function useResourceDataSecurityMenu(data: {
   kind: DataStoreResourceKind;
@@ -55,12 +53,10 @@ export function useResourceDataSecurityMenu(data: {
   const isShown: boolean = useIsProductShownInResources(
     ProductKey.DataSecurity,
   );
-  const pages: ResourceDataSecurityPageKeys | undefined =
-    RESOURCE_DATA_SECURITY_PAGES[data.kind];
   const { scope }: ResourceDataScopeState = useResourceDataScope({
     kind: data.kind,
     modelId: data.modelId,
-    isEnabled: isShown && Boolean(pages),
+    isEnabled: isShown,
   });
   const dataSecurityRoute: Route | null = getResourceDataSecurityRoute(
     data.kind,

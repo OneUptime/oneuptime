@@ -57,7 +57,7 @@ afterEach(() => {
 });
 
 describe("the resource pages that show another product", () => {
-  test("a device's, a host's and a cluster's Security Events need Security Events; a cluster's data pages Data Security", () => {
+  test("a device's, a host's and a cluster's Security Events need Security Events; every data page Data Security", () => {
     expect(RESOURCE_PAGE_PRODUCTS).toEqual({
       [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
@@ -65,8 +65,47 @@ describe("the resource pages that show another product", () => {
         ProductKey.SecurityEvents,
       [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
       [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+      [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+      [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+      [PageMap.SERVICE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+      [PageMap.SERVICE_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+      [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+      [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+      [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+      [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+      [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+      [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
     });
   });
+
+  test.each([
+    [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE, ProductKey.Databases],
+    [PageMap.SERVICE_VIEW_DATA_SECURITY, ProductKey.Services],
+    [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE, ProductKey.Cloud],
+    [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY, ProductKey.Docker],
+    [PageMap.PODMAN_HOST_VIEW_COMPLIANCE, ProductKey.Podman],
+  ])(
+    "%s stays a page of %s, and needs Data Security too",
+    (page: PageMap, product: ProductKey) => {
+      expect(getProductOfPath(addressOf(page))).toBe(product);
+      expect(getProductsOfPath(addressOf(page))).toEqual([
+        product,
+        ProductKey.DataSecurity,
+      ]);
+      expect(
+        getOffProductOfPath({
+          pathname: addressOf(page),
+          offOnServer: {
+            [ProductKey.DataSecurity]: ServerProductOffReason.SwitchedOff,
+          },
+        }),
+      ).toEqual({
+        product: ProductKey.DataSecurity,
+        reason: ServerProductOffReason.SwitchedOff,
+        pageProduct: product,
+      });
+    },
+  );
 
   test.each(Object.keys(RESOURCE_PAGE_PRODUCTS) as Array<PageMap>)(
     "%s is found by its address, with any record's id",

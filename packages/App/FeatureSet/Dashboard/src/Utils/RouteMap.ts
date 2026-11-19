@@ -74,6 +74,8 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.SERVICE_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.SERVICE_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.SERVICE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
@@ -289,6 +291,8 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.DOCKER_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.DOCKER_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DOCKER_HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
@@ -319,6 +323,8 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.PODMAN_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.PODMAN_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.PODMAN_HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
@@ -732,6 +738,8 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
   [PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.CLOUD_ACCOUNTS]: `accounts`,
   [PageMap.CLOUD_ACCOUNT_VIEW]: `accounts/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES]: `accounts/${RouteParams.ModelID}/resources`,
@@ -755,6 +763,8 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.DATABASE_SERVER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.DATABASE_SERVER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DATABASE_SERVER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
@@ -3366,6 +3376,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_COMPLIANCE]
+    }`,
+  ),
+
   [PageMap.SERVICE_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_AUDIT_LOGS]
@@ -4445,6 +4467,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_COMPLIANCE]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_OWNERS]
@@ -4613,6 +4647,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -6915,6 +6961,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]
+    }`,
+  ),
+
   [PageMap.CLOUD_ACCOUNTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNTS]
@@ -7041,6 +7099,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]
     }`,
   ),
 

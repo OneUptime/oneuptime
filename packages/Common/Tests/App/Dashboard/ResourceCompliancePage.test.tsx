@@ -81,6 +81,7 @@ const DATABASE_ID: ObjectID = new ObjectID(
 const SETTING_ID: ObjectID = new ObjectID(
   "66666666-0000-4000-8000-000000000006",
 );
+const HOST_ID: ObjectID = new ObjectID("77777777-0000-4000-8000-000000000007");
 
 // One evaluated store holding card numbers, with a public bucket's issue.
 function frameworksOf(data: {
@@ -528,5 +529,124 @@ describe("a database on a cluster", () => {
     );
 
     expect(createSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe.each([
+  [
+    "a Docker host",
+    DataStoreResourceKind.DockerHost,
+    PageMap.DOCKER_HOST_VIEW_COMPLIANCE,
+    "This database runs on the Docker host build-01, whose Compliance page turns frameworks on and off for every database on it.",
+  ],
+  [
+    "a Podman host",
+    DataStoreResourceKind.PodmanHost,
+    PageMap.PODMAN_HOST_VIEW_COMPLIANCE,
+    "This database runs on the Podman host build-01, whose Compliance page turns frameworks on and off for every database on it.",
+  ],
+])(
+  "a database on %s",
+  (
+    _label: string,
+    hostKind: DataStoreResourceKind,
+    hostCompliance: PageMap,
+    sentence: string,
+  ) => {
+    beforeEach(() => {
+      goTo(`/dashboard/${PROJECT_ID}/databases`);
+      goTo(
+        compliancePageOf(DATABASE_ID, PageMap.DATABASE_SERVER_VIEW_COMPLIANCE),
+      );
+      complianceSpy.mockResolvedValue(
+        answerOf({
+          kind: DataStoreResourceKind.DatabaseServer,
+          id: DATABASE_ID.toString(),
+          name: "orders",
+          complianceOwner: {
+            kind: hostKind,
+            id: HOST_ID.toString(),
+            name: "build-01",
+          },
+        }),
+      );
+    });
+
+    test("names the host whose page turns its frameworks on and off, and links there", async () => {
+      await drawPage(DataStoreResourceKind.DatabaseServer);
+
+      const notice: HTMLElement = screen.getByTestId(
+        `${RESOURCE_COMPLIANCE_TEST_ID}-owner`,
+      );
+
+      expect(notice).toHaveTextContent(sentence);
+      // The host has its own Compliance page, so a database never points nowhere.
+      expect(
+        within(notice).getByRole("link", { name: "build-01" }),
+      ).toHaveAttribute("href", compliancePageOf(HOST_ID, hostCompliance));
+      expect(rowsSpy).not.toHaveBeenCalled();
+    });
+  },
+);
+
+describe("a database that runs on no cluster or host", () => {
+  beforeEach(() => {
+    goTo(`/dashboard/${PROJECT_ID}/databases`);
+    goTo(
+      compliancePageOf(DATABASE_ID, PageMap.DATABASE_SERVER_VIEW_COMPLIANCE),
+    );
+    complianceSpy.mockResolvedValue(
+      answerOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_ID.toString(),
+        name: "orders",
+      }),
+    );
+  });
+
+  test("has switches of its own: a requirement turned off is this database's setting", async () => {
+    await drawPage(DataStoreResourceKind.DatabaseServer);
+
+    expect(
+      screen.queryByTestId(`${RESOURCE_COMPLIANCE_TEST_ID}-owner`),
+    ).not.toBeInTheDocument();
+    expect(rowsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: DataSecurityComplianceSetting,
+        query: expect.objectContaining({
+          resourceType: DataStoreResourceKind.DatabaseServer,
+          resourceId: DATABASE_ID,
+        }),
+      }),
+    );
+
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-applies-${ComplianceFramework.PCIDSS}-7.2`,
+    );
+
+    const made: DataSecurityComplianceSetting = (
+      createSpy.mock.calls[0]![0] as { model: DataSecurityComplianceSetting }
+    ).model;
+
+    expect(made.resourceType).toBe(DataStoreResourceKind.DatabaseServer);
+    expect(made.resourceId?.toString()).toBe(DATABASE_ID.toString());
+    expect(made.requirement).toBe("7.2");
+    expect(made.isEnabled).toBe(false);
+  });
+
+  test("its open issues open the database's own Data Security page", async () => {
+    await drawPage(DataStoreResourceKind.DatabaseServer);
+    await pick(ComplianceFramework.PCIDSS);
+
+    const href: globalThis.URL = new globalThis.URL(
+      screen.getByRole("link", { name: "1 open issue" }).getAttribute("href") ||
+        "",
+      "https://oneuptime.example",
+    );
+
+    expect(href.pathname).toBe(
+      compliancePageOf(DATABASE_ID, PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY),
+    );
   });
 });

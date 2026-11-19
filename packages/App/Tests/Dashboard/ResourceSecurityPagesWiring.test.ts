@@ -38,11 +38,12 @@ import {
 /*
  * SECURITY EVENTS AND DATA SECURITY INSIDE RESOURCES (#9547, #9555).
  *
- * A host's and a cluster's Security Events pages, a cluster's Data
- * Security and Compliance pages: pinned here without rendering - the
- * words their chip and switches work out, and their wiring into routes,
- * layouts, breadcrumbs, menus and Search (App's node environment cannot
- * render the pages; Common/Tests/App/Dashboard renders them).
+ * A host's and a cluster's Security Events pages, and the Data Security
+ * and Compliance pages of every resource a data store belongs to: pinned
+ * here without rendering - the words their chip and switches work out, and
+ * their wiring into routes, layouts, breadcrumbs, menus and Search (App's
+ * node environment cannot render the pages; Common/Tests/App/Dashboard
+ * renders them).
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -545,6 +546,227 @@ describe("the pages' wiring", () => {
         pages.split(`[DataStoreResourceKind.${kind}]:`).length - 1,
       ).toBeGreaterThanOrEqual(4);
     }
+  });
+});
+
+/*
+ * Every kind of resource a data store belongs to (DataStoreResource) has
+ * the two pages, wired the same way: a cluster, the Docker or Podman host a
+ * database runs on, a database, a service and a cloud resource. A
+ * database's notice links to its cluster's or host's Compliance page, so
+ * none of them may be left without one.
+ */
+describe("Data Security and Compliance on every resource a store belongs to", () => {
+  interface DataStoreResourceWiring {
+    kind: DataStoreResourceKind;
+    prefix: string;
+    root: string;
+    pathDictionary: string;
+    folder: string;
+    routes: string;
+    crumbs: string;
+    trail: [string, string];
+    components: [string, string];
+  }
+
+  const RESOURCES: Array<DataStoreResourceWiring> = [
+    {
+      kind: DataStoreResourceKind.KubernetesCluster,
+      prefix: "KUBERNETES_CLUSTER_VIEW",
+      root: "kubernetes",
+      pathDictionary: "KubernetesRoutePath",
+      folder: "Kubernetes",
+      routes: "KubernetesRoutes.tsx",
+      crumbs: "KubernetesBreadcrumbs.ts",
+      trail: ["Kubernetes", "View Cluster"],
+      components: [
+        "KubernetesClusterViewDataSecurity",
+        "KubernetesClusterViewCompliance",
+      ],
+    },
+    {
+      kind: DataStoreResourceKind.DockerHost,
+      prefix: "DOCKER_HOST_VIEW",
+      root: "docker",
+      pathDictionary: "DockerRoutePath",
+      folder: "Docker",
+      routes: "DockerRoutes.tsx",
+      crumbs: "DockerBreadcrumbs.ts",
+      trail: ["Docker", "View Host"],
+      components: ["DockerHostDataSecurity", "DockerHostCompliance"],
+    },
+    {
+      kind: DataStoreResourceKind.PodmanHost,
+      prefix: "PODMAN_HOST_VIEW",
+      root: "podman",
+      pathDictionary: "PodmanRoutePath",
+      folder: "Podman",
+      routes: "PodmanRoutes.tsx",
+      crumbs: "PodmanBreadcrumbs.ts",
+      trail: ["Podman", "View Host"],
+      components: ["PodmanHostDataSecurity", "PodmanHostCompliance"],
+    },
+    {
+      kind: DataStoreResourceKind.DatabaseServer,
+      prefix: "DATABASE_SERVER_VIEW",
+      root: "databases",
+      pathDictionary: "DatabaseRoutePath",
+      folder: "Database",
+      routes: "DatabaseRoutes.tsx",
+      crumbs: "DatabaseBreadcrumbs.ts",
+      trail: ["Databases", "View Database"],
+      components: ["DatabaseServerDataSecurity", "DatabaseServerCompliance"],
+    },
+    {
+      kind: DataStoreResourceKind.Service,
+      prefix: "SERVICE_VIEW",
+      root: "service",
+      pathDictionary: "ServiceRoutePath",
+      folder: "Service",
+      routes: "ServiceRoutes.tsx",
+      crumbs: "ServiceBreadcrumbs.ts",
+      trail: ["Services", "View Service"],
+      components: ["ServiceViewDataSecurity", "ServiceViewCompliance"],
+    },
+    {
+      kind: DataStoreResourceKind.CloudResource,
+      prefix: "CLOUD_RESOURCE_VIEW",
+      root: "cloud",
+      pathDictionary: "CloudRoutePath",
+      folder: "Cloud",
+      routes: "CloudResourceRoutes.tsx",
+      crumbs: "CloudBreadcrumbs.ts",
+      trail: ["Cloud", "View Resource"],
+      components: ["CloudResourceDataSecurity", "CloudResourceCompliance"],
+    },
+  ];
+
+  // Each page of a resource: its key's end, its path, its file, its title, its shared page.
+  const PAGES: Array<[string, string, string, string, string]> = [
+    [
+      "DATA_SECURITY",
+      "data-security",
+      "DataSecurity",
+      "Data Security",
+      "ResourceDataSecurityPage",
+    ],
+    [
+      "COMPLIANCE",
+      "compliance",
+      "Compliance",
+      "Compliance",
+      "ResourceCompliancePage",
+    ],
+  ];
+
+  test("every kind a store belongs to is one of these, once", () => {
+    expect(
+      RESOURCES.map((resource: DataStoreResourceWiring): string => {
+        return resource.kind;
+      }).sort(),
+    ).toEqual([...ALL_DATA_STORE_RESOURCE_KINDS].sort());
+  });
+
+  describe.each(RESOURCES)("$kind", (resource: DataStoreResourceWiring) => {
+    test("its two pages are pages of the record, at :id/data-security and :id/compliance", () => {
+      for (const [end, pagePath] of PAGES) {
+        const page: string = `${resource.prefix}_${end}`;
+
+        expect(readCode("Utils/PageMap.ts")).toContain(`${page} = "${page}",`);
+        expect(readCode("Utils/RouteMap.ts")).toContain(
+          `[PageMap.${page}]: \`\${RouteParams.ModelID}/${pagePath}\`,`,
+        );
+        expect(readWhole("Utils/RouteMap.ts")).toContain(
+          `[PageMap.${page}]: new Route( \`/dashboard/\${RouteParams.ProjectID}/${resource.root}/\${ ${resource.pathDictionary}[PageMap.${page}] }\`, ),`,
+        );
+      }
+    });
+
+    test("each is routed to its page, which hands the shared page this kind", () => {
+      const routes: string = readCode(`Routes/${resource.routes}`);
+
+      PAGES.forEach(
+        (
+          [end, , file, , shared]: [string, string, string, string, string],
+          index: number,
+        ) => {
+          const component: string = resource.components[index]!;
+
+          expect(routes).toContain(
+            `import ${component} from "../Pages/${resource.folder}/View/${file}";`,
+          );
+          expect(routes).toContain(`<${component}`);
+          expect(routes).toContain(`PageMap.${resource.prefix}_${end}`);
+          expect(
+            readCode(`Pages/${resource.folder}/View/${file}.tsx`),
+          ).toContain(
+            `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} />`,
+          );
+        },
+      );
+    });
+
+    test("their breadcrumbs end in their names, under the record", () => {
+      const crumbs: string = readCode(`Utils/Breadcrumbs/${resource.crumbs}`);
+
+      for (const [end, , , title] of PAGES) {
+        expect(crumbs).toMatch(
+          new RegExp(
+            `PageMap\\.${resource.prefix}_${end},?\\s*\\[\\s*"Project",\\s*"${resource.trail[0]}",\\s*"${resource.trail[1]}",\\s*"${title}",?\\s*\\]`,
+          ),
+        );
+      }
+    });
+
+    test("its menu draws a Security section with both, after Activity, behind Data Security's gate", () => {
+      const menu: string = readCode(
+        `Pages/${resource.folder}/View/SideMenu.tsx`,
+      );
+
+      expect(menu).toContain(
+        `useResourceDataSecurityMenu({ kind: DataStoreResourceKind.${resource.kind}, modelId: props.modelId, })`,
+      );
+      expect(menu).toContain(
+        '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+      );
+      expect(menu).toContain(
+        'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
+      );
+      expect(
+        menu.indexOf('<SideMenuSection title="Security">'),
+      ).toBeGreaterThan(menu.indexOf('<SideMenuSection title="Activity">'));
+      expect(menu.indexOf('<SideMenuSection title="Security">')).toBeLessThan(
+        menu.indexOf('<SideMenuSection title="Advanced">'),
+      );
+    });
+
+    test("Search finds both under Security, and offers them only where Data Security is", () => {
+      const index: string = readCode(
+        "Components/CommandPalette/RecordPageSearchIndex.ts",
+      );
+      const products: string = readCode(
+        "Utils/ProjectProducts/ProductOfRoute.ts",
+      );
+
+      for (const [end, , , title] of PAGES) {
+        expect(index).toContain(
+          `page: PageMap.${resource.prefix}_${end}, section: "Security", title: "${title}",`,
+        );
+        expect(products).toContain(
+          `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
+        );
+      }
+    });
+
+    test("the kind's pages are the ones its menu and notices open", () => {
+      expect(
+        readCode(
+          "Components/ResourceDataSecurity/ResourceDataSecurityPages.ts",
+        ),
+      ).toContain(
+        `[DataStoreResourceKind.${resource.kind}]: { dataSecurity: PageMap.${resource.prefix}_DATA_SECURITY, compliance: PageMap.${resource.prefix}_COMPLIANCE, },`,
+      );
+    });
   });
 });
 

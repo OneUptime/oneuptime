@@ -19,8 +19,17 @@ import {
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import KubernetesClusterDataSecurity from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/DataSecurity";
+import ServiceDataSecurity from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/DataSecurity";
+import CloudResourceDataSecurity from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/DataSecurity";
+import DatabaseServerDataSecurity from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/DataSecurity";
+import DockerHostDataSecurity from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/DataSecurity";
+import PodmanHostDataSecurity from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/DataSecurity";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
-import { RESOURCE_NO_DATA_STORES_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ResourceDataSecurityPages";
+import {
+  RESOURCE_DATA_STORES_DESCRIPTIONS,
+  RESOURCE_NO_DATA_STORES_DESCRIPTIONS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ResourceDataSecurityPages";
 import { forgetResourceScopes } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/UseResourceDataScope";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -243,3 +252,90 @@ describe("a cluster's Data Security page", () => {
     expect(queryOf(DataStore)).toBeUndefined();
   });
 });
+
+/*
+ * The same page on every other resource a data store belongs to: each asks
+ * for its own kind's stores, and says in its own words what they are and
+ * how one arrives.
+ */
+describe.each([
+  [
+    "a service",
+    DataStoreResourceKind.Service,
+    PageMap.SERVICE_VIEW_DATA_SECURITY,
+    ServiceDataSecurity,
+  ],
+  [
+    "a cloud resource",
+    DataStoreResourceKind.CloudResource,
+    PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+    CloudResourceDataSecurity,
+  ],
+  [
+    "a database",
+    DataStoreResourceKind.DatabaseServer,
+    PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+    DatabaseServerDataSecurity,
+  ],
+  [
+    "a Docker host",
+    DataStoreResourceKind.DockerHost,
+    PageMap.DOCKER_HOST_VIEW_DATA_SECURITY,
+    DockerHostDataSecurity,
+  ],
+  [
+    "a Podman host",
+    DataStoreResourceKind.PodmanHost,
+    PageMap.PODMAN_HOST_VIEW_DATA_SECURITY,
+    PodmanHostDataSecurity,
+  ],
+])(
+  "%s's Data Security page",
+  (
+    _label: string,
+    kind: DataStoreResourceKind,
+    page: PageMap,
+    Page: React.FunctionComponent<PageComponentProps>,
+  ) => {
+    async function renderKindPage(): Promise<void> {
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <Page
+              pageRoute={RouteMap[page] as Route}
+              currentProject={project()}
+              hasPaymentMethod={true}
+            />
+          </MemoryRouter>,
+        );
+      });
+    }
+
+    test("asks for its own kind's stores and lists exactly those, in its own words", async () => {
+      await renderKindPage();
+
+      await waitFor(() => {
+        expect(queryOf(DataStore)).toBeDefined();
+      });
+
+      expect(scopeSpy).toHaveBeenCalledWith({ kind, id: CLUSTER_ID });
+      expect(idsOf(queryOf(DataStore)!["_id"]).sort()).toEqual(
+        [ORDERS_STORE, CACHE_STORE].sort(),
+      );
+      expect(
+        screen.getByText(RESOURCE_DATA_STORES_DESCRIPTIONS[kind]),
+      ).toBeInTheDocument();
+    });
+
+    test("with no store yet, says how one arrives", async () => {
+      scopeSpy.mockResolvedValue(scopeWith([]));
+
+      await renderKindPage();
+
+      expect(
+        await screen.findByText(RESOURCE_NO_DATA_STORES_DESCRIPTIONS[kind]),
+      ).toBeInTheDocument();
+      expect(queryOf(DataStore)).toBeUndefined();
+    });
+  },
+);

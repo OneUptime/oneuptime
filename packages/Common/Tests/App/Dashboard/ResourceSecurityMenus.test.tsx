@@ -12,6 +12,11 @@ import * as React from "react";
 import { ReactElement } from "react";
 import KubernetesClusterSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/SideMenu";
 import HostViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/SideMenu";
+import DatabaseServerSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/SideMenu";
+import ServiceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/SideMenu";
+import CloudResourceViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/SideMenu";
+import DockerHostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/SideMenu";
+import PodmanHostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/SideMenu";
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import { forgetResourceScopes } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/UseResourceDataScope";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -154,9 +159,12 @@ function givenProducts(extra: Partial<ProjectProductsAnswer> = {}): void {
   });
 }
 
-function scopeWith(dataStoreIds: Array<string>): DataSecurityResourceScope {
+function scopeWith(
+  dataStoreIds: Array<string>,
+  kind: DataStoreResourceKind = DataStoreResourceKind.KubernetesCluster,
+): DataSecurityResourceScope {
   return {
-    kind: DataStoreResourceKind.KubernetesCluster,
+    kind,
     id: CLUSTER_ID.toString(),
     name: "prod-eu",
     dataStoreIds,
@@ -413,3 +421,159 @@ describe("a host's menu", () => {
     expect(titles(linksIn("Observability"))).toContain("Logs");
   });
 });
+
+/*
+ * Every other resource a data store belongs to (DataStoreResource): a
+ * database, a service's telemetry, a cloud bucket or database, and the
+ * Docker or Podman host a database runs on. Each has the same Security
+ * section after its Activity, for the same reasons, and none without a store.
+ */
+interface DataStoreResourceMenu {
+  kind: DataStoreResourceKind;
+  overview: PageMap;
+  dataSecurity: PageMap;
+  compliance: PageMap;
+  draw: (modelId: ObjectID) => ReactElement;
+}
+
+const RESOURCE_ID: ObjectID = new ObjectID(
+  "88888888-0000-4000-8000-000000000008",
+);
+
+const DATA_STORE_RESOURCE_MENUS: Array<[string, DataStoreResourceMenu]> = [
+  [
+    "a database",
+    {
+      kind: DataStoreResourceKind.DatabaseServer,
+      overview: PageMap.DATABASE_SERVER_VIEW,
+      dataSecurity: PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+      compliance: PageMap.DATABASE_SERVER_VIEW_COMPLIANCE,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <DatabaseServerSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "a service",
+    {
+      kind: DataStoreResourceKind.Service,
+      overview: PageMap.SERVICE_VIEW,
+      dataSecurity: PageMap.SERVICE_VIEW_DATA_SECURITY,
+      compliance: PageMap.SERVICE_VIEW_COMPLIANCE,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <ServiceSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "a cloud resource",
+    {
+      kind: DataStoreResourceKind.CloudResource,
+      overview: PageMap.CLOUD_RESOURCE_VIEW,
+      dataSecurity: PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+      compliance: PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <CloudResourceViewSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "a Docker host",
+    {
+      kind: DataStoreResourceKind.DockerHost,
+      overview: PageMap.DOCKER_HOST_VIEW,
+      dataSecurity: PageMap.DOCKER_HOST_VIEW_DATA_SECURITY,
+      compliance: PageMap.DOCKER_HOST_VIEW_COMPLIANCE,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <DockerHostSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "a Podman host",
+    {
+      kind: DataStoreResourceKind.PodmanHost,
+      overview: PageMap.PODMAN_HOST_VIEW,
+      dataSecurity: PageMap.PODMAN_HOST_VIEW_DATA_SECURITY,
+      compliance: PageMap.PODMAN_HOST_VIEW_COMPLIANCE,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <PodmanHostSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+];
+
+describe.each(DATA_STORE_RESOURCE_MENUS)(
+  "%s's menu",
+  (_label: string, menu: DataStoreResourceMenu) => {
+    beforeEach(() => {
+      scopeSpy.mockResolvedValue(scopeWith([STORE_ID], menu.kind));
+      goTo(pageOf(menu.overview, RESOURCE_ID));
+    });
+
+    async function renderResourceMenu(): Promise<void> {
+      await renderMenu(menu.draw(RESOURCE_ID));
+    }
+
+    test("adds a Security section after Activity, with Data Security and Compliance, folded", async () => {
+      await renderResourceMenu();
+
+      const sections: Array<string> = sectionTitlesInOrder();
+
+      expect(sections.indexOf("Security")).toBe(
+        sections.indexOf("Activity") + 1,
+      );
+      expect(linksIn("Security")).toEqual([
+        {
+          title: "Data Security",
+          href: pageOf(menu.dataSecurity, RESOURCE_ID),
+        },
+        {
+          title: "Compliance",
+          href: pageOf(menu.compliance, RESOURCE_ID),
+        },
+      ]);
+      expect(isExpanded("Security")).toBe(false);
+      expect(scopeSpy).toHaveBeenCalledWith({
+        kind: menu.kind,
+        id: RESOURCE_ID,
+      });
+    });
+
+    test("its Compliance page opens the Security section by itself and lights Compliance", async () => {
+      goTo(pageOf(menu.compliance, RESOURCE_ID));
+
+      await renderResourceMenu();
+
+      expect(isExpanded("Security")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Compliance"]);
+    });
+
+    test("has no Security section without a data store: it would always be empty", async () => {
+      scopeSpy.mockResolvedValue(scopeWith([], menu.kind));
+
+      await renderResourceMenu();
+
+      expect(sectionTitlesInOrder()).not.toContain("Security");
+      expect(sectionTitlesInOrder()).toContain("Activity");
+    });
+
+    test("has none, and asks nothing, in a project that does not use Data Security", async () => {
+      givenProducts({ usage: {} });
+
+      await renderResourceMenu();
+
+      expect(sectionTitlesInOrder()).not.toContain("Security");
+      expect(scopeSpy).not.toHaveBeenCalled();
+    });
+
+    test("has none for someone who may not read data stores", async () => {
+      isAllowed = false;
+
+      await renderResourceMenu();
+
+      expect(sectionTitlesInOrder()).not.toContain("Security");
+      expect(scopeSpy).not.toHaveBeenCalled();
+    });
+  },
+);

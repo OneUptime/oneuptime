@@ -125,8 +125,9 @@ export const GUIDED_SETUP_PRODUCTS: Readonly<
 
 /*
  * The pages of a resource that show another product's records (#9547): a
- * host's or a cluster's Security Events, a cluster's Data Security and
- * Compliance. They live under the resource's own product, and need the
+ * device's, a host's or a cluster's Security Events, and the Data Security
+ * and Compliance of a cluster, a container host, a database, a service or a
+ * cloud resource. They live under the resource's own product, and need the
  * other product on too: while it is switched off on the server, the page
  * says so, as a guided setup's does, and the resource's menu leaves its
  * entry out (ProductsInResources).
@@ -139,6 +140,16 @@ export const RESOURCE_PAGE_PRODUCTS: Readonly<
   [PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
   [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.SERVICE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.SERVICE_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
 };
 
 /*

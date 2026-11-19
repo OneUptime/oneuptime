@@ -28,21 +28,42 @@ export interface ResourceDataSecurityPageKeys {
   compliance: PageMap;
 }
 
-// The resources wired to the two pages, and the pages of each.
+/*
+ * Each kind of resource a data store can belong to, and its two pages:
+ * every kind has them, so a database's notice can always link to the
+ * cluster or container host whose switches it follows.
+ */
 export const RESOURCE_DATA_SECURITY_PAGES: Readonly<
-  Partial<Record<DataStoreResourceKind, ResourceDataSecurityPageKeys>>
+  Record<DataStoreResourceKind, ResourceDataSecurityPageKeys>
 > = {
   [DataStoreResourceKind.KubernetesCluster]: {
     dataSecurity: PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
     compliance: PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
   },
+  [DataStoreResourceKind.DockerHost]: {
+    dataSecurity: PageMap.DOCKER_HOST_VIEW_DATA_SECURITY,
+    compliance: PageMap.DOCKER_HOST_VIEW_COMPLIANCE,
+  },
+  [DataStoreResourceKind.PodmanHost]: {
+    dataSecurity: PageMap.PODMAN_HOST_VIEW_DATA_SECURITY,
+    compliance: PageMap.PODMAN_HOST_VIEW_COMPLIANCE,
+  },
+  [DataStoreResourceKind.DatabaseServer]: {
+    dataSecurity: PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+    compliance: PageMap.DATABASE_SERVER_VIEW_COMPLIANCE,
+  },
+  [DataStoreResourceKind.CloudResource]: {
+    dataSecurity: PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+    compliance: PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
+  },
+  [DataStoreResourceKind.Service]: {
+    dataSecurity: PageMap.SERVICE_VIEW_DATA_SECURITY,
+    compliance: PageMap.SERVICE_VIEW_COMPLIANCE,
+  },
 };
 
-function routeOf(
-  page: PageMap | undefined,
-  id: ObjectID | string,
-): Route | null {
-  const route: Route | undefined = page ? RouteMap[page] : undefined;
+function routeOf(page: PageMap, id: ObjectID | string): Route | null {
+  const route: Route | undefined = RouteMap[page];
 
   if (!route || !ObjectID.isValidUUID(id.toString())) {
     return null;
@@ -53,20 +74,26 @@ function routeOf(
   });
 }
 
-// A resource's Data Security page, or null for a kind with none.
+// A resource's Data Security page, or null for an id that is not one.
 export function getResourceDataSecurityRoute(
   kind: DataStoreResourceKind,
   id: ObjectID | string,
 ): Route | null {
-  return routeOf(RESOURCE_DATA_SECURITY_PAGES[kind]?.dataSecurity, id);
+  const pages: ResourceDataSecurityPageKeys | undefined =
+    RESOURCE_DATA_SECURITY_PAGES[kind];
+
+  return pages ? routeOf(pages.dataSecurity, id) : null;
 }
 
-// A resource's Compliance page, or null for a kind with none.
+// A resource's Compliance page, or null for an id that is not one.
 export function getResourceComplianceRoute(
   kind: DataStoreResourceKind,
   id: ObjectID | string,
 ): Route | null {
-  return routeOf(RESOURCE_DATA_SECURITY_PAGES[kind]?.compliance, id);
+  const pages: ResourceDataSecurityPageKeys | undefined =
+    RESOURCE_DATA_SECURITY_PAGES[kind];
+
+  return pages ? routeOf(pages.compliance, id) : null;
 }
 
 // What each page says the resource's stores are.
