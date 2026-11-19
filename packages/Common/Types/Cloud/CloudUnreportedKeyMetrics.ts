@@ -458,7 +458,7 @@ export const CLOUD_UNREPORTED_ONCE_A_DAY: string = translationKey(
 export const CLOUD_UNREPORTED_FIX_LABELS: Readonly<
   Record<CloudUnreportedFix, string>
 > = {
-  "cloud-connect": translationKey("Open Cloud Connect"),
+  "cloud-connect": translationKey("Open Cloud > Connect"),
   "ops-agent": translationKey("Install the Ops Agent"),
 };
 

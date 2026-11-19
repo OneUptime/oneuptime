@@ -1,5 +1,4 @@
 import BadDataException from "../Exception/BadDataException";
-import { translationKey } from "../Translator";
 import { CloudProvider } from "./CloudPlatform";
 import {
   getAwsStoredMetricName,
@@ -387,23 +386,16 @@ export function toStoredCloudAddedMetrics(
 }
 
 /*
- * What refuses an addition, in words a person can act on. Each is a key
- * of the Dashboard's locale files: the server says it in English, and the
- * Dashboard looks it up.
+ * What refuses an addition, in words a person can act on: the server's
+ * answer to Add, which the dialog shows as its error.
  */
 export const CLOUD_ADDED_METRIC_REFUSALS: Readonly<Record<string, string>> = {
-  resourceFull: translationKey(
-    "This resource already has 10 added metrics read for it. Remove one to add another.",
-  ),
-  connectionFull: translationKey(
-    "This cloud connection already reads 50 added metrics. Remove one to add another.",
-  ),
-  alreadyRead: translationKey(
+  resourceFull: `This resource already has ${CLOUD_MAX_ADDED_METRICS_PER_RESOURCE} added metrics read for it. Remove one to add another.`,
+  connectionFull: `This cloud connection already reads ${CLOUD_MAX_ADDED_METRICS_PER_CONNECTION} added metrics. Remove one to add another.`,
+  alreadyRead:
     "Its cloud connection already reads this metric for this resource.",
-  ),
-  invalid: translationKey(
+  invalid:
     "This metric cannot be added: its cloud did not list it for this resource.",
-  ),
 };
 
 /*

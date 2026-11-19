@@ -10,6 +10,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -35,13 +36,20 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
-import { GetMetricRowGroup } from "../../../Components/Metrics/Utils/MetricRowScope";
+import {
+  GetMetricRowGroup,
+  GetMetricRowGroupGaps,
+  MetricRowGroupGap,
+} from "../../../Components/Metrics/Utils/MetricRowScope";
+import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
   getCloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceRowGroup,
+  getCloudMonitoredResourceRowGroupGaps,
+  getCloudResourceAddedStoredNames,
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -175,6 +183,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           cloudConnectionId: true,
           cloudConnection: {
             name: true,
+            // What it reads for this resource besides its key metrics.
+            addedMetrics: true,
           },
           labels: {
             name: true,
@@ -219,13 +229,46 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       return getCloudMonitoredResourceRowAggregation(cloudResource);
     }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
 
+  // What someone added for it, by the names they are stored under.
+  const addedStoredNames: Array<string> = useMemo(() => {
+    return getCloudResourceAddedStoredNames(cloudResource);
+  }, [cloudResource]);
+  const addedNamesKey: string = addedStoredNames.join("\n");
+
   /*
    * Its key metrics in sections - Availability, Traffic, Errors, Latency
-   * and the rest, most telling first - and its other metrics after them.
+   * and the rest, most telling first - then what someone added for it,
+   * and its other metrics after them.
    */
   const getRowGroup: GetMetricRowGroup | undefined = useMemo(() => {
-    return getCloudMonitoredResourceRowGroup(cloudResource);
-  }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
+    return getCloudMonitoredResourceRowGroup(cloudResource, addedStoredNames);
+  }, [
+    cloudResource?.cloudProvider,
+    cloudResource?.cloudResourceType,
+    addedNamesKey,
+  ]);
+
+  // The key metrics each section did not get in the range, and why (#9569).
+  const getRowGroupGaps: GetMetricRowGroupGaps | undefined = useMemo(() => {
+    return getCloudMonitoredResourceRowGroupGaps(cloudResource);
+  }, [
+    cloudResource?.cloudProvider,
+    cloudResource?.cloudResourceType,
+    cloudResource?.telemetryAttributes,
+  ]);
+
+  const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =
+    useCallback(
+      (gap: MetricRowGroupGap): ReactElement => {
+        return (
+          <CloudUnreportedKeyMetricsList
+            cloudResourceId={modelId}
+            keys={gap.keys}
+          />
+        );
+      },
+      [modelId.toString()],
+    );
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -488,6 +531,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
                 eventScope={eventScope}
                 getRowAggregation={rowAggregation?.getRowAggregation}
                 getRowGroup={getRowGroup}
+                getRowGroupGaps={getRowGroupGaps}
+                renderRowGroupGap={renderRowGroupGap}
                 defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
                 disableUrlSync={true}
               />
