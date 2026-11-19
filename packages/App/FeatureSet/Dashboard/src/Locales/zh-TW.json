@@ -59021,5 +59021,7 @@
   "Page me for every new incident and alert.": "在每個新事件和每個新警示時呼叫我。",
   "Publish a status page that shows my monitors.": "發布一個顯示我的監測器的狀態頁面。",
   "Publish a status page called {{name}} that shows my monitors.": "發布一個名為 {{name}} 並顯示我的監測器的狀態頁面。",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "幫我把服務的日誌、指標和追蹤傳送到 OneUptime，並在它出現錯誤時提醒我。"
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "幫我把服務的日誌、指標和追蹤傳送到 OneUptime，並在它出現錯誤時提醒我。",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "已略過建立新警示，因為此條件和此序列（{{series}}）已有進行中的警示。",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "已略過建立新事件，因為此條件和此序列（{{series}}）已有進行中的事件。"
 }

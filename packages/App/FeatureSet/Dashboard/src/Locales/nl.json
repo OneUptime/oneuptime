@@ -59021,5 +59021,7 @@
   "Page me for every new incident and alert.": "Roep mij op bij elk nieuw incident en elke nieuwe waarschuwing.",
   "Publish a status page that shows my monitors.": "Publiceer een statuspagina die mijn monitoren toont.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiceer een statuspagina met de naam {{name}} die mijn monitoren toont.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Er is geen nieuwe waarschuwing aangemaakt omdat er voor dit criterium en deze reeks ({{series}}) al een actieve waarschuwing is.",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Er is geen nieuw incident aangemaakt omdat er voor dit criterium en deze reeks ({{series}}) al een actief incident is."
 }

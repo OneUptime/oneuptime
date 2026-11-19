@@ -59021,5 +59021,7 @@
   "Page me for every new incident and alert.": "استدعني عند كل حادثة جديدة وكل تنبيه جديد.",
   "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
   "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "تم تخطي إنشاء تنبيه جديد لوجود تنبيه نشط لهذا المعيار وهذه السلسلة ({{series}}).",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "تم تخطي إنشاء حادثة جديدة لوجود حادثة نشطة لهذا المعيار وهذه السلسلة ({{series}})."
 }

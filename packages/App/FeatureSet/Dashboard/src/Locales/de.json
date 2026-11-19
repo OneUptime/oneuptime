@@ -59021,5 +59021,7 @@
   "Page me for every new incident and alert.": "Alarmiere mich bei jedem neuen Vorfall und jeder neuen Warnung.",
   "Publish a status page that shows my monitors.": "Veröffentliche eine Statusseite, die meine Monitore zeigt.",
   "Publish a status page called {{name}} that shows my monitors.": "Veröffentliche eine Statusseite namens {{name}}, die meine Monitore zeigt.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hilf mir, die Logs, Metriken und Traces meines Dienstes an OneUptime zu senden, und warne mich, wenn er Fehler hat."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hilf mir, die Logs, Metriken und Traces meines Dienstes an OneUptime zu senden, und warne mich, wenn er Fehler hat.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Es wurde keine neue Warnung erstellt, weil für dieses Kriterium und diese Serie ({{series}}) bereits eine aktive Warnung besteht.",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Es wurde kein neuer Vorfall erstellt, weil für dieses Kriterium und diese Serie ({{series}}) bereits ein aktiver Vorfall besteht."
 }
