@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Esper（註冊此裝置的裝置管理服務）所掌握的此裝置資訊。",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "密鑰中儲存的內容。之後可在「更新密鑰值」中連同新值一起變更。",
   "What to do in step {{number}}": "步驟 {{number}} 要做什麼",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "此規則開啟案例時要做的事。每個步驟都會顯示在案例回應計畫中你所選的部分下，位於一般步驟之前，並像其他步驟一樣勾選完成。",
   "Workflow Permissions Given By": "工作流程權限授予者",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "過去一天寫入的指標中，有 {{count}} 個具有這樣的名稱。",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "只有指標名稱中的發現才能被捨棄。指標中的其他發現可以用「清除」隱藏。",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "指標管道規則 {{name}} 現在會捨棄這些指標的新資料點。刪除該規則即可重新儲存它們。",
-  "To store them again, delete the rule from the {{rules}}.": "若要重新儲存它們，請從{{rules}}中刪除該規則。"
+  "To store them again, delete the rule from the {{rules}}.": "若要重新儲存它們，請從{{rules}}中刪除該規則。",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "此規則開啟案例時要做的事：每個步驟都會顯示在案例回應計畫中你所選的部分下，位於一般步驟之前。",
+  "Move step {{number}} down": "下移步驟 {{number}}",
+  "Move step {{number}} up": "上移步驟 {{number}}",
+  "Step {{from}} is now step {{to}}.": "步驟 {{from}} 現在是步驟 {{to}}。",
+  "step {{number}}": "步驟 {{number}}"
 }

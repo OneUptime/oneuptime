@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "ما يعرفه Esper عن هذا الجهاز، وهو خدمة إدارة الأجهزة التي تسجّله.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "ما يحويه السر. يمكن تغييره لاحقًا من «تحديث قيمة السر» مع قيمة جديدة.",
   "What to do in step {{number}}": "ما يجب فعله في الخطوة {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "ما يجب فعله عندما تفتح هذه القاعدة حالة. تظهر كل خطوة في خطة الاستجابة للحالة تحت الجزء الذي تختاره، قبل الخطوات العامة، وتُعلَّم كمنجزة مثل أي خطوة أخرى.",
   "Workflow Permissions Given By": "مانح أذونات سير العمل",
   "Workflow Permissions Given by API Key ID": "معرّف مفتاح API الذي منح أذونات سير العمل",
   "Workflow Permissions Given by User ID": "معرّف المستخدم الذي منح أذونات سير العمل",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} مقياس كُتب في اليوم الأخير يحمل اسمًا كهذا.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "لا يمكن إسقاط إلا النتائج الموجودة في اسم مقياس. تُخفي التنقية النتائج الأخرى في المقاييس.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "تُسقِط قاعدة مسار معالجة المقاييس {{name}} الآن نقاط البيانات الجديدة لهذه المقاييس. احذف القاعدة لتخزينها مرة أخرى.",
-  "To store them again, delete the rule from the {{rules}}.": "لتخزينها مرة أخرى، احذف القاعدة من {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "لتخزينها مرة أخرى، احذف القاعدة من {{rules}}.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "ما يجب فعله عندما تفتح هذه القاعدة حالة: تظهر كل خطوة في خطة الاستجابة للحالة تحت الجزء الذي تختاره، قبل الخطوات العامة.",
+  "Move step {{number}} down": "نقل الخطوة {{number}} لأسفل",
+  "Move step {{number}} up": "نقل الخطوة {{number}} لأعلى",
+  "Step {{from}} is now step {{to}}.": "أصبحت الخطوة {{from}} الآن الخطوة {{to}}.",
+  "step {{number}}": "الخطوة {{number}}"
 }

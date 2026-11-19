@@ -982,6 +982,349 @@ describe("what the nightly run does with the issues", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].slice(0, 2)).toEqual(["issue", "list"]);
   });
+
+  /*
+   * A release branch cut before a fix merged ships the vulnerability after
+   * its issue closed (17.0.0 and #9828): what decides is whether the release
+   * has the commit that closed it, not when it was published.
+   */
+  describe("a closed issue whose group a release still ships", () => {
+    const closedBefore = {
+      number: 11,
+      state: "CLOSED",
+      stateReason: "COMPLETED",
+      closedAt: "2026-11-10T00:00:00Z",
+      body: marked("apk:nginx"),
+    };
+    const closedAfter = { ...closedBefore, closedAt: "2026-11-19T09:00:00Z" };
+
+    function planWith(issue, fixShipped) {
+      return V.planIssues({
+        groups: groups.slice(0, 1),
+        issues: [issue],
+        publishedAt: PUBLISHED,
+        fixShipped,
+      })[0];
+    }
+
+    test("is left alone while the release lacks the commit that closed it, whenever it closed", () => {
+      for (const issue of [closedBefore, closedAfter]) {
+        expect(
+          planWith(issue, () => {
+            return false;
+          }),
+        ).toMatchObject({
+          type: "skip",
+          reason: expect.stringMatching(/a fix this release does not have/),
+        });
+      }
+    });
+
+    test("is opened again once the release has that commit and still ships it, whenever it closed", () => {
+      for (const issue of [closedBefore, closedAfter]) {
+        expect(
+          planWith(issue, () => {
+            return true;
+          }),
+        ).toMatchObject({ type: "create", previous: { number: 11 } });
+      }
+    });
+
+    test("falls back to when it closed when the commit cannot be told", () => {
+      const unknown = () => {
+        return null;
+      };
+      expect(planWith(closedBefore, unknown).type).toBe("create");
+      expect(planWith(closedAfter, unknown).type).toBe("skip");
+    });
+
+    test("is asked of a closed issue alone, never of an open one or one closed as not planned", () => {
+      const asked = [];
+      V.planIssues({
+        groups,
+        issues: [
+          { number: 5, state: "OPEN", body: marked("apk:nginx") },
+          {
+            ...closedBefore,
+            number: 6,
+            stateReason: "NOT_PLANNED",
+            body: marked("binary:/usr/local/bin/kubectl"),
+          },
+        ],
+        publishedAt: PUBLISHED,
+        fixShipped: (issue) => {
+          asked.push(issue.number);
+          return null;
+        },
+      });
+      expect(asked).toEqual([]);
+    });
+  });
+
+  describe("closingCommitShipped", () => {
+    const COMMIT = "dec4880325b07ebf06156c17b471cd8e8a25eaf2";
+    const MERGE = "f231af2d5e653f0149111cc9aba5ffd5bba6f737";
+    const EARLIER = "74a1970bb8068706cf7bad2883820703704f17b6";
+
+    function ghAnswering({ items, status = "diverged", throws = false }) {
+      const calls = [];
+      const gh = (args) => {
+        calls.push(args);
+        if (throws) {
+          throw new Error("HTTP 502");
+        }
+        if (args[1] === "graphql") {
+          return JSON.stringify({
+            data: {
+              repository: { issue: { timelineItems: { nodes: items } } },
+            },
+          });
+        }
+        return `${status}\n`;
+      };
+      return { gh, calls };
+    }
+
+    function shipped(answers) {
+      const { gh, calls } = ghAnswering(answers);
+      return {
+        result: V.closingCommitShipped(gh, {
+          repository: "OneUptime/oneuptime",
+          release: "17.0.0",
+          issue: { number: 9828 },
+        }),
+        calls,
+        compared: calls
+          .filter((args) => {
+            return args[1] !== "graphql";
+          })
+          .map((args) => {
+            return args[1];
+          }),
+      };
+    }
+
+    function closedBy(closer, createdAt = "2026-11-19T13:54:17Z") {
+      return { __typename: "ClosedEvent", createdAt, closer };
+    }
+
+    function mentionedBy({
+      mergedAt = null,
+      oid = null,
+      repository = "OneUptime/oneuptime",
+    }) {
+      return {
+        __typename: "CrossReferencedEvent",
+        source: {
+          __typename: "PullRequest",
+          mergedAt,
+          mergeCommit: oid ? { oid } : null,
+          repository: { nameWithOwner: repository },
+        },
+      };
+    }
+
+    const byCommit = closedBy({ __typename: "Commit", oid: COMMIT });
+
+    test("asks GitHub what closed the issue, then whether the release has it", () => {
+      const { result, calls } = shipped({ items: [byCommit] });
+      expect(result).toBe(false);
+      expect(calls[0].slice(0, 2)).toEqual(["api", "graphql"]);
+      expect(calls[0]).toEqual(
+        expect.arrayContaining([
+          "owner=OneUptime",
+          "name=oneuptime",
+          "number=9828",
+        ]),
+      );
+      expect(
+        calls[0].find((arg) => {
+          return arg.startsWith("query=");
+        }),
+      ).toMatch(/closer/);
+      expect(calls.slice(1)).toEqual([
+        [
+          "api",
+          `repos/OneUptime/oneuptime/compare/${COMMIT}...17.0.0`,
+          "--jq",
+          ".status",
+        ],
+      ]);
+    });
+
+    test("for an issue a pull request closed, the release must have its merge, as 17.0.0 lacks #9902's", () => {
+      expect(
+        shipped({
+          items: [
+            mentionedBy({ mergedAt: "2026-11-19T13:54:14Z", oid: MERGE }),
+            closedBy({
+              __typename: "PullRequest",
+              mergeCommit: { oid: MERGE },
+            }),
+          ],
+        }).compared,
+      ).toEqual([`repos/OneUptime/oneuptime/compare/${MERGE}...17.0.0`]);
+    });
+
+    test("for one closed by hand, the last pull request of this repository that mentions it and merged before it closed", () => {
+      expect(
+        shipped({
+          items: [
+            mentionedBy({ mergedAt: "2026-11-18T09:00:00Z", oid: EARLIER }),
+            mentionedBy({ mergedAt: "2026-11-19T13:54:14Z", oid: MERGE }),
+            mentionedBy({
+              mergedAt: "2026-11-19T13:50:00Z",
+              oid: "1".repeat(40),
+              repository: "someone/elsewhere",
+            }),
+            mentionedBy({}),
+            {
+              __typename: "CrossReferencedEvent",
+              source: { __typename: "Issue" },
+            },
+            closedBy(null),
+            mentionedBy({
+              mergedAt: "2026-11-19T15:00:00Z",
+              oid: "2".repeat(40),
+            }),
+          ],
+        }).compared,
+      ).toEqual([`repos/OneUptime/oneuptime/compare/${MERGE}...17.0.0`]);
+    });
+
+    test("goes by the last time it closed", () => {
+      expect(
+        shipped({
+          items: [
+            closedBy(
+              { __typename: "Commit", oid: EARLIER },
+              "2026-11-10T00:00:00Z",
+            ),
+            byCommit,
+          ],
+        }).compared,
+      ).toEqual([`repos/OneUptime/oneuptime/compare/${COMMIT}...17.0.0`]);
+    });
+
+    test.each([
+      ["ahead", true],
+      ["identical", true],
+      ["behind", false],
+      ["diverged", false],
+      ["something new", null],
+    ])("reads %s as %s", (status, expected) => {
+      expect(shipped({ items: [byCommit], status }).result).toBe(expected);
+    });
+
+    test("cannot tell with no fix to find, or when GitHub does not answer", () => {
+      for (const items of [
+        [],
+        [closedBy(null)],
+        [closedBy({ __typename: "ProjectV2" })],
+        [closedBy({ __typename: "PullRequest", mergeCommit: null })],
+      ]) {
+        const { result, compared } = shipped({ items });
+        expect(result).toBeNull();
+        expect(compared).toEqual([]);
+      }
+      expect(
+        shipped({ items: [closedBy({ __typename: "Commit", oid: "HEAD" })] })
+          .compared,
+      ).toEqual([]);
+      expect(shipped({ items: [byCommit], throws: true }).result).toBeNull();
+    });
+  });
+
+  describe("which accepted findings keep an issue", () => {
+    const failing = V.actionableFindings([
+      report("nginx-16.0.0-linux-amd64.grype.json", [match()]),
+    ]);
+    const kubectl = V.actionableFindings([
+      report("runner-16.0.0-linux-amd64.grype.json", [
+        match({
+          id: "GO-2026-6612",
+          name: "golang.org/x/net",
+          version: "v0.56.0",
+          type: "go-module",
+          location: "/usr/local/bin/kubectl",
+        }),
+      ]),
+    ]);
+    const acceptedBy = (issue) => {
+      return kubectl.map((finding) => {
+        return { ...finding, exception: { issue } };
+      });
+    };
+    const issues = [
+      {
+        number: 9829,
+        state: "OPEN",
+        body: marked("binary:/usr/local/bin/kubectl"),
+      },
+      { number: 9709, state: "OPEN", body: "Upgrade nginx" },
+    ];
+    const keys = (findings) => {
+      return [
+        ...new Set(
+          findings.map((finding) => {
+            return V.groupKey(finding);
+          }),
+        ),
+      ].sort();
+    };
+
+    test("one accepted with no issue named, and every failing one", () => {
+      expect(
+        keys(V.issueFindings({ failing, accepted: acceptedBy(null), issues })),
+      ).toEqual(["apk:nginx", "binary:/usr/local/bin/kubectl"]);
+    });
+
+    test("one accepted by an entry that names the group's own issue, which stays open", () => {
+      expect(
+        keys(
+          V.issueFindings({
+            failing: [],
+            accepted: acceptedBy(
+              "https://github.com/OneUptime/oneuptime/issues/9829",
+            ),
+            issues,
+          }),
+        ),
+      ).toEqual(["binary:/usr/local/bin/kubectl"]);
+    });
+
+    test("not one accepted by an entry that names another issue tracking it", () => {
+      expect(
+        V.issueFindings({
+          failing: [],
+          accepted: acceptedBy(
+            "https://github.com/OneUptime/oneuptime/issues/9709",
+          ),
+          issues,
+        }),
+      ).toEqual([]);
+    });
+
+    test("syncIssues groups them itself, and so rewrites the issue its own exception names", () => {
+      const { gh } = fakeGh(issues);
+      const actions = V.syncIssues({
+        failing: [],
+        accepted: acceptedBy(
+          "https://github.com/OneUptime/oneuptime/issues/9829",
+        ),
+        release: "16.0.0",
+        publishedAt: PUBLISHED,
+        today: TODAY,
+        gh,
+        dryRun: true,
+      });
+      expect(
+        actions.map((action) => {
+          return [action.type, action.issue && action.issue.number];
+        }),
+      ).toEqual([["update", 9829]]);
+    });
+  });
 });
 
 // ─── Command line ──────────────────────────────────────────────────────────
@@ -1251,7 +1594,11 @@ describe("the nightly Vulnerability Re-scan", () => {
 
   test("writes issues and nothing else", () => {
     expect(workflow.permissions).toEqual({ contents: "read" });
-    expect(job.permissions).toEqual({ contents: "read", issues: "write" });
+    expect(job.permissions).toEqual({
+      contents: "read",
+      issues: "write",
+      "pull-requests": "read",
+    });
   });
 
   test("scans the release's own SBOMs and keeps the issues", () => {

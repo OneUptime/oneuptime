@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "What Esper, the device management service that enrolls this device, knows about it.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "What the secret holds. Update Secret Value can change it later, together with a new value.",
   "What to do in step {{number}}": "What to do in step {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.",
   "Workflow Permissions Given By": "Workflow Permissions Given By",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} metric written in the last day has such a name.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.",
-  "To store them again, delete the rule from the {{rules}}.": "To store them again, delete the rule from the {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "To store them again, delete the rule from the {{rules}}.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.",
+  "Move step {{number}} down": "Move step {{number}} down",
+  "Move step {{number}} up": "Move step {{number}} up",
+  "Step {{from}} is now step {{to}}.": "Step {{from}} is now step {{to}}.",
+  "step {{number}}": "step {{number}}"
 }

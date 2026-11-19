@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Vad Esper, tjänsten för enhetshantering som registrerar den här enheten, vet om den.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Vad hemligheten innehåller. ”Uppdatera hemligt värde” kan ändra den senare, tillsammans med ett nytt värde.",
   "What to do in step {{number}}": "Vad som ska göras i steg {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Vad som ska göras när den här regeln öppnar ett ärende. Varje steg visas i ärendets responsplan under den del du väljer, före de allmänna stegen, och bockas av som alla andra.",
   "Workflow Permissions Given By": "Arbetsflödets behörigheter givna av",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} mätvärde som skrevs det senaste dygnet har ett sådant namn.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Bara fynd i ett mätvärdes namn kan kasseras. Rensa döljer de andra fynden i mätvärden.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "Pipelineregeln {{name}} kasserar nu de här mätvärdenas nya datapunkter. Ta bort regeln för att lagra dem igen.",
-  "To store them again, delete the rule from the {{rules}}.": "Ta bort regeln från {{rules}} för att lagra dem igen."
+  "To store them again, delete the rule from the {{rules}}.": "Ta bort regeln från {{rules}} för att lagra dem igen.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Vad som ska göras när den här regeln öppnar ett ärende: varje steg visas i ärendets responsplan under den del du väljer, före de allmänna stegen.",
+  "Move step {{number}} down": "Flytta ned steg {{number}}",
+  "Move step {{number}} up": "Flytta upp steg {{number}}",
+  "Step {{from}} is now step {{to}}.": "Steg {{from}} är nu steg {{to}}.",
+  "step {{number}}": "steg {{number}}"
 }

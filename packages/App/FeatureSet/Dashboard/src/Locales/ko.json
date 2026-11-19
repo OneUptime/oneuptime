@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "이 디바이스를 등록한 디바이스 관리 서비스인 Esper가 이 디바이스에 대해 알고 있는 정보입니다.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "시크릿에 담기는 내용입니다. 나중에 '시크릿 값 업데이트'에서 새 값과 함께 바꿀 수 있습니다.",
   "What to do in step {{number}}": "단계 {{number}}에서 할 일",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "이 규칙이 케이스를 열 때 할 일입니다. 각 단계는 선택한 구분 아래, 케이스 대응 계획의 일반 단계보다 앞에 표시되며 다른 단계처럼 완료로 표시할 수 있습니다.",
   "Workflow Permissions Given By": "워크플로 권한 부여자",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "지난 하루 동안 기록된 메트릭 중 {{count}}개가 이런 이름을 가지고 있습니다.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "메트릭 이름에 있는 발견 사항만 삭제할 수 있습니다. 메트릭의 다른 발견 사항은 정리로 가릴 수 있습니다.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "이제 메트릭 파이프라인 규칙 {{name}}이(가) 이 메트릭들의 새 데이터 포인트를 삭제합니다. 다시 저장하려면 이 규칙을 삭제하세요.",
-  "To store them again, delete the rule from the {{rules}}.": "다시 저장하려면 {{rules}}에서 규칙을 삭제하세요."
+  "To store them again, delete the rule from the {{rules}}.": "다시 저장하려면 {{rules}}에서 규칙을 삭제하세요.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "이 규칙이 케이스를 열 때 할 일입니다. 각 단계는 선택한 구분 아래, 케이스 대응 계획의 일반 단계보다 앞에 표시됩니다.",
+  "Move step {{number}} down": "단계 {{number}} 아래로 이동",
+  "Move step {{number}} up": "단계 {{number}} 위로 이동",
+  "Step {{from}} is now step {{to}}.": "단계 {{from}}이(가) 단계 {{to}}(으)로 이동했습니다.",
+  "step {{number}}": "단계 {{number}}"
 }

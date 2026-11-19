@@ -10,6 +10,7 @@ import SecurityDetectionMatchedEventsReader, {
   buildMatchedEventsStatement,
   buildMatchedOutcomesStatement,
   getMatchedEventsOfStoredRow,
+  getMatchedEventsReadGroupCount,
   readMatchedEventsRows,
 } from "../../../../Server/Utils/SecurityCase/SecurityDetectionMatchedEventsReader";
 import { buildSigmaFieldExpression } from "../../../../Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
@@ -17,9 +18,14 @@ import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS,
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
   SECURITY_DETECTION_MATCHED_EVENTS_MAX,
   SecurityDetectionMatchedEvents,
+  SecurityDetectionMatchedEventsShare,
+  getSecurityDetectionMatchedEventsShare,
 } from "../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
+import { DETECTION_MAX_GROUPS_PER_EVALUATION } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
 import {
   afterEach,
   beforeEach,
@@ -278,6 +284,151 @@ describe("reading for a firing", () => {
 
     expect(kept.size).toBe(0);
     expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+/*
+ * What one firing keeps across every group it fires for (#9795): each
+ * group an equal share of 1,000 events and 2.5 MB, so a firing for a run's
+ * 100 groups reads at most 1,000 rows and every group keeps 10.
+ */
+describe("a firing's budget, shared by its groups", () => {
+  function addresses(count: number): Array<string> {
+    return Array.from({ length: count }, (_: unknown, index: number) => {
+      return `203.0.${Math.floor(index / 250)}.${index % 250}`;
+    });
+  }
+
+  // The two LIMITs of the events' read: per group, then for the firing.
+  function limitsOf(statement: Statement): Array<number> {
+    return Object.values(statement.query_params).filter(
+      (value: unknown): value is number => {
+        return typeof value === "number";
+      },
+    );
+  }
+
+  test("each group is one, once each, or one group for a source that does not group", () => {
+    expect(getMatchedEventsReadGroupCount(read())).toBe(2);
+    expect(
+      getMatchedEventsReadGroupCount(
+        read({ groupValues: ["203.0.113.7", "203.0.113.7", "198.51.100.9"] }),
+      ),
+    ).toBe(2);
+    expect(
+      getMatchedEventsReadGroupCount(
+        read({ groupExpression: null, groupValues: [] }),
+      ),
+    ).toBe(1);
+    expect(
+      getMatchedEventsReadGroupCount(
+        read({
+          groupExpression: null,
+          groupByObservable: true,
+          groupValues: ["evil.example.com", "bad.example.net"],
+        }),
+      ),
+    ).toBe(2);
+  });
+
+  test("a firing for a few groups reads a whole detection's 25 of each", async () => {
+    await SecurityDetectionMatchedEventsReader.readForGroups(
+      read({
+        groupValues: addresses(
+          SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS,
+        ),
+      }),
+    );
+
+    const events: Statement = statements.find((statement: Statement) => {
+      return statement.query.includes("BY keptGroup");
+    })!;
+
+    expect(limitsOf(events)).toEqual([
+      SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+      SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
+    ]);
+  });
+
+  test("a firing for a run's 100 groups reads 10 of each, and 1,000 at most in all", async () => {
+    await SecurityDetectionMatchedEventsReader.readForGroups(
+      read({ groupValues: addresses(DETECTION_MAX_GROUPS_PER_EVALUATION) }),
+    );
+
+    const events: Statement = statements.find((statement: Statement) => {
+      return statement.query.includes("BY keptGroup");
+    })!;
+
+    expect(limitsOf(events)).toEqual([10, 1000]);
+    // Still two reads, however many groups.
+    expect(executeQuery).toHaveBeenCalledTimes(2);
+  });
+
+  test("however many rows come back, a group keeps no more than its share", async () => {
+    const groups: Array<string> = addresses(
+      DETECTION_MAX_GROUPS_PER_EVALUATION,
+    );
+
+    eventRows = groups.flatMap((group: string): Array<JSONObject> => {
+      return Array.from({ length: 30 }, (_: unknown, index: number) => {
+        return eventRow({
+          eventUid: `${group}:${index}`,
+          keptGroup: group,
+          time: `2026-11-17 19:2${index % 10}:00.000000000`,
+        });
+      });
+    });
+    outcomeRows = groups.map((group: string): JSONObject => {
+      return { keptGroup: group, requestOutcome: "Rejected", matched: 30 };
+    });
+
+    const kept: Map<string, SecurityDetectionMatchedEvents> =
+      await SecurityDetectionMatchedEventsReader.readForGroups(
+        read({ groupValues: groups }),
+      );
+
+    // Every group keeps events, and every one keeps its share.
+    expect(kept.size).toBe(DETECTION_MAX_GROUPS_PER_EVALUATION);
+
+    let total: number = 0;
+
+    for (const group of groups) {
+      expect(kept.get(group)!.events).toHaveLength(10);
+      // How far its requests got counts all of them, not only the kept.
+      expect(kept.get(group)!.outcomes).toEqual({ Rejected: 30 });
+      total += kept.get(group)!.events.length;
+    }
+
+    expect(total).toBeLessThanOrEqual(
+      SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
+    );
+  });
+
+  test("a group keeps its share of the firing's size too, and always its first event", () => {
+    const share: SecurityDetectionMatchedEventsShare =
+      getSecurityDetectionMatchedEventsShare(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      );
+    const attributes: JSONObject = {};
+
+    for (let key: number = 0; key < 40; key++) {
+      attributes[`a.${key}`] = "x".repeat(450);
+    }
+
+    const kept: Map<string, SecurityDetectionMatchedEvents> =
+      readMatchedEventsRows({
+        eventRows: Array.from({ length: 10 }, (_: unknown, index: number) => {
+          return eventRow({ eventUid: `big-${index}`, attributes });
+        }),
+        outcomeRows: [],
+        share,
+      });
+    const events: SecurityDetectionMatchedEvents["events"] =
+      kept.get("203.0.113.7")!.events;
+
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.length).toBeLessThan(10);
+    expect(JSON.stringify(events).length).toBeLessThanOrEqual(share.maxBytes);
   });
 });
 

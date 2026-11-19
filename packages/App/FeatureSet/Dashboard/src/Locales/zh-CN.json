@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Esper（注册此设备的设备管理服务）所掌握的此设备信息。",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "密钥中保存的内容。之后可在“更新密钥值”中连同新值一起更改。",
   "What to do in step {{number}}": "步骤 {{number}} 要做什么",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "此规则打开案例时要做的事。每个步骤都会显示在案例响应计划中你所选的部分下，位于通用步骤之前，并像其他步骤一样勾选完成。",
   "Workflow Permissions Given By": "工作流权限授予者",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "过去一天写入的指标中，有 {{count}} 个具有这样的名称。",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "只有指标名称中的发现才能被丢弃。指标中的其他发现可以用“清除”隐藏。",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "指标管道规则 {{name}} 现在会丢弃这些指标的新数据点。删除该规则即可重新存储它们。",
-  "To store them again, delete the rule from the {{rules}}.": "要重新存储它们，请从{{rules}}中删除该规则。"
+  "To store them again, delete the rule from the {{rules}}.": "要重新存储它们，请从{{rules}}中删除该规则。",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "此规则打开案例时要做的事：每个步骤都会显示在案例响应计划中你所选的部分下，位于通用步骤之前。",
+  "Move step {{number}} down": "下移步骤 {{number}}",
+  "Move step {{number}} up": "上移步骤 {{number}}",
+  "Step {{from}} is now step {{to}}.": "步骤 {{from}} 现在是步骤 {{to}}。",
+  "step {{number}}": "步骤 {{number}}"
 }

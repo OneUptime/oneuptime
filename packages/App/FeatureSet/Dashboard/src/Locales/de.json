@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Was Esper, der Geräteverwaltungsdienst, bei dem dieses Gerät registriert ist, darüber weiß.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Was das Geheimnis enthält. Mit „Geheimwert aktualisieren“ lässt es sich später ändern, zusammen mit einem neuen Wert.",
   "What to do in step {{number}}": "Was in Schritt {{number}} zu tun ist",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Was zu tun ist, wenn diese Regel einen Fall eröffnet. Jeder Schritt erscheint im Reaktionsplan des Falls unter dem Teil, den Sie wählen, vor den allgemeinen Schritten, und wird wie jeder andere abgehakt.",
   "Workflow Permissions Given By": "Berechtigungen des Arbeitsablaufs gegeben von",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} Metrik, die am letzten Tag geschrieben wurde, hat einen solchen Namen.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Nur Funde im Namen einer Metrik lassen sich verwerfen. Bereinigen verbirgt die anderen Funde in Metriken.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "Die Metrik-Pipeline-Regel {{name}} verwirft jetzt die neuen Datenpunkte dieser Metriken. Löschen Sie die Regel, um sie wieder zu speichern.",
-  "To store them again, delete the rule from the {{rules}}.": "Um sie wieder zu speichern, löschen Sie die Regel aus den {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "Um sie wieder zu speichern, löschen Sie die Regel aus den {{rules}}.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Was zu tun ist, wenn diese Regel einen Fall eröffnet: Jeder Schritt erscheint im Reaktionsplan des Falls unter dem Teil, den Sie wählen, vor den allgemeinen Schritten.",
+  "Move step {{number}} down": "Schritt {{number}} nach unten verschieben",
+  "Move step {{number}} up": "Schritt {{number}} nach oben verschieben",
+  "Step {{from}} is now step {{to}}.": "Schritt {{from}} ist jetzt Schritt {{to}}.",
+  "step {{number}}": "Schritt {{number}}"
 }

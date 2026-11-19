@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Hvad Esper, den tjeneste til enhedsadministration, der tilmelder denne enhed, ved om den.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Hvad hemmeligheden indeholder. »Opdater hemmelig værdi« kan ændre den senere sammen med en ny værdi.",
   "What to do in step {{number}}": "Hvad der skal gøres i trin {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Hvad der skal gøres, når denne regel åbner en sag. Hvert trin vises i sagens responsplan under den del, du vælger, før de generelle trin, og krydses af som alle andre.",
   "Workflow Permissions Given By": "Arbejdsgangens tilladelser givet af",
   "Workflow Permissions Given by API Key ID": "ID for API-nøglen, der gav arbejdsgangens tilladelser",
   "Workflow Permissions Given by User ID": "Bruger-ID for den, der gav arbejdsgangens tilladelser",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} metrik, der er skrevet det seneste døgn, har sådan et navn.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Kun fund i en metriks navn kan kasseres. Rens skjuler de andre fund i metrikker.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "Metrik-pipelinereglen {{name}} kasserer nu disse metrikkers nye datapunkter. Slet reglen for at gemme dem igen.",
-  "To store them again, delete the rule from the {{rules}}.": "Slet reglen fra {{rules}} for at gemme dem igen."
+  "To store them again, delete the rule from the {{rules}}.": "Slet reglen fra {{rules}} for at gemme dem igen.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Hvad der skal gøres, når denne regel åbner en sag: hvert trin vises i sagens responsplan under den del, du vælger, før de generelle trin.",
+  "Move step {{number}} down": "Flyt trin {{number}} ned",
+  "Move step {{number}} up": "Flyt trin {{number}} op",
+  "Step {{from}} is now step {{to}}.": "Trin {{from}} er nu trin {{to}}.",
+  "step {{number}}": "trin {{number}}"
 }

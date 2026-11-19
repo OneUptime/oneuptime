@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Ce qu'Esper, le service de gestion des appareils qui enrôle cet appareil, sait de lui.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Ce que contient le secret. « Mettre à jour la valeur secrète » permet de le modifier plus tard, avec une nouvelle valeur.",
   "What to do in step {{number}}": "Que faire à l'étape {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Ce qu'il faut faire quand cette règle ouvre un dossier. Chaque étape apparaît dans le plan de réponse du dossier, dans la partie que vous choisissez, avant les étapes générales, et se coche comme les autres.",
   "Workflow Permissions Given By": "Autorisations du flux de travail données par",
   "Workflow Permissions Given by API Key ID": "ID de la clé API ayant donné les autorisations du flux de travail",
   "Workflow Permissions Given by User ID": "ID de l'utilisateur ayant donné les autorisations du flux de travail",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} métrique écrite au cours du dernier jour porte un tel nom.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Seules les détections dans le nom d'une métrique peuvent être abandonnées. Nettoyer masque les autres détections dans les métriques.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "La règle de pipeline de métriques {{name}} abandonne désormais les nouveaux points de données de ces métriques. Supprimez-la pour les stocker à nouveau.",
-  "To store them again, delete the rule from the {{rules}}.": "Pour les stocker à nouveau, supprimez la règle dans les {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "Pour les stocker à nouveau, supprimez la règle dans les {{rules}}.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Ce qu'il faut faire quand cette règle ouvre un dossier : chaque étape apparaît dans le plan de réponse du dossier, dans la partie que vous choisissez, avant les étapes générales.",
+  "Move step {{number}} down": "Descendre l'étape {{number}}",
+  "Move step {{number}} up": "Monter l'étape {{number}}",
+  "Step {{from}} is now step {{to}}.": "L'étape {{from}} est maintenant l'étape {{to}}.",
+  "step {{number}}": "l'étape {{number}}"
 }

@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Esper, यानी इस डिवाइस को नामांकित करने वाली डिवाइस प्रबंधन सेवा, इसके बारे में क्या जानती है।",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "सीक्रेट में क्या रखा जाता है। बाद में \"सीक्रेट मान अपडेट करें\" से इसे नए मान के साथ बदला जा सकता है।",
   "What to do in step {{number}}": "चरण {{number}} में क्या करना है",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "जब यह नियम कोई केस खोले, तब क्या करना है। हर चरण केस की प्रतिक्रिया योजना में आपके चुने हिस्से के नीचे, सामान्य चरणों से पहले दिखता है, और दूसरे चरणों की तरह ही टिक किया जाता है।",
   "Workflow Permissions Given By": "वर्कफ़्लो की अनुमतियाँ देने वाला",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "पिछले एक दिन में लिखे गए {{count}} मेट्रिक का नाम ऐसा है।",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "केवल किसी मेट्रिक के नाम में मिले निष्कर्ष ही ड्रॉप किए जा सकते हैं। मेट्रिक्स के दूसरे निष्कर्षों को साफ़ करें छिपाता है।",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "मेट्रिक पाइपलाइन नियम {{name}} अब इन मेट्रिक्स के नए डेटा पॉइंट ड्रॉप करता है। इन्हें फिर से संग्रहीत करने के लिए नियम हटाएं।",
-  "To store them again, delete the rule from the {{rules}}.": "इन्हें फिर से संग्रहीत करने के लिए, {{rules}} से नियम हटाएं।"
+  "To store them again, delete the rule from the {{rules}}.": "इन्हें फिर से संग्रहीत करने के लिए, {{rules}} से नियम हटाएं।",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "जब यह नियम कोई केस खोले, तब क्या करना है: हर चरण केस की प्रतिक्रिया योजना में आपके चुने हिस्से के नीचे, सामान्य चरणों से पहले दिखता है।",
+  "Move step {{number}} down": "चरण {{number}} को नीचे ले जाएँ",
+  "Move step {{number}} up": "चरण {{number}} को ऊपर ले जाएँ",
+  "Step {{from}} is now step {{to}}.": "चरण {{from}} अब चरण {{to}} है।",
+  "step {{number}}": "चरण {{number}}"
 }

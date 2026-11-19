@@ -58193,7 +58193,6 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Lo que Esper, el servicio de gestión de dispositivos que inscribe este dispositivo, sabe de él.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Lo que contiene el secreto. «Actualizar valor del secreto» puede cambiarlo más adelante, junto con un valor nuevo.",
   "What to do in step {{number}}": "Qué hacer en el paso {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Qué hacer cuando esta regla abre un caso. Cada paso se muestra en el plan de respuesta del caso, en la parte que elijas, antes de los pasos generales, y se marca como cualquier otro.",
   "Workflow Permissions Given By": "Permisos del flujo de trabajo dados por",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",
@@ -58787,5 +58786,10 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} métrica escrita en el último día tiene un nombre así.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Solo se pueden descartar los hallazgos en el nombre de una métrica. Depurar oculta los demás hallazgos en métricas.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "La regla de canalización de métricas {{name}} descarta ahora los nuevos puntos de datos de estas métricas. Elimínala para volver a almacenarlos.",
-  "To store them again, delete the rule from the {{rules}}.": "Para volver a almacenarlos, elimina la regla de las {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "Para volver a almacenarlos, elimina la regla de las {{rules}}.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Qué hacer cuando esta regla abre un caso: cada paso se muestra en el plan de respuesta del caso, en la parte que elijas, antes de los pasos generales.",
+  "Move step {{number}} down": "Bajar el paso {{number}}",
+  "Move step {{number}} up": "Subir el paso {{number}}",
+  "Step {{from}} is now step {{to}}.": "El paso {{from}} ahora es el paso {{to}}.",
+  "step {{number}}": "el paso {{number}}"
 }
