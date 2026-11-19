@@ -122,3 +122,13 @@ export const RUNBOOK_LAST_RUN_LINK_TEST_ID: string = "runbook-last-run-link";
 export const RUNBOOK_TOTAL_RUNS_TILE_TEST_ID: string = "runbook-total-runs";
 export const RUNBOOK_TOTAL_RUNS_LINK_TEST_ID: string =
   "runbook-total-runs-link";
+
+/*
+ * The Outcomes tile's "N failed", and the runs it opens: the runbook's
+ * Executions, its Status filter set to Failed in the table's own address
+ * (#9597), so the filter shows as applied and clearing it shows every run.
+ */
+export const RUNBOOK_FAILED_RUNS_LINK_TEST_ID: string =
+  "runbook-failed-runs-link";
+export const RUNBOOK_EXECUTIONS_TABLE_ID: string =
+  "runbook-view-executions-table";
