@@ -38,8 +38,12 @@ import {
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import CorrelationRuleMatcher, {
   CorrelationMatchResult,
+  getCorrelationMatchedEventsStart,
 } from "./Correlation/CorrelationRuleMatcher";
-import { CORRELATION_TEMPORAL_CANDIDATE_LIMIT } from "./Correlation/CorrelationQueries";
+import {
+  CORRELATION_TEMPORAL_CANDIDATE_LIMIT,
+  buildCorrelationEventsRead,
+} from "./Correlation/CorrelationQueries";
 import ProjectSigmaRules from "./Correlation/ProjectSigmaRules";
 import DetectionRuleService from "../../Services/DetectionRuleService";
 import OTelIngestService, {
@@ -57,7 +61,6 @@ import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { SecurityDetectionMatchedEvents } from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import SecurityDetectionMatchedEventsReader from "../SecurityCase/SecurityDetectionMatchedEventsReader";
-import { buildRuleCondition } from "../SecurityCase/Context/SecurityCaseMatches";
 import ConnectorErrorMessage from "./ConnectorErrorMessage";
 import {
   AlertableMatch,
@@ -234,13 +237,6 @@ export const DETECTION_RULE_REAL_TIME_SELECT: Select<DetectionRule> = {
 
 // Detection Finding rows written per insert.
 const DETECTION_FINDING_INSERT_BATCH_SIZE: number = 1000;
-
-/*
- * The most of a correlation run's groups whose events are kept: each is a
- * read of its own (readMatchedEvents). A run opens few; the rest are read
- * again when their case is viewed, as before.
- */
-export const CORRELATION_MATCHED_EVENTS_MAX_GROUPS: number = 10;
 
 // Room around the events' own times, for the read of the groups they name.
 const COUNT_WINDOW_CANDIDATE_PADDING_MS: number = 1000;
@@ -1277,12 +1273,13 @@ export default class DetectionRuleEvaluator {
 
   /*
    * The events behind each group a run opens (#9619), read as the run read
-   * them: a single rule's condition - with the run's watchlists, its
-   * exceptions and the events it was handed, up to where a write's events
-   * came in - for every group at once, by its Group By Field; a
-   * correlation's, the events of the rules it reads naming the group, from
-   * as far back as it looks, for its first groups. A read that fails keeps
-   * nothing (SecurityDetectionMatchedEventsReader).
+   * them, for every group at once - one read, whatever the number of
+   * groups, each group keeping its share of what one firing keeps
+   * (SecurityDetectionMatchedEventsReader): a single rule's condition -
+   * with the run's watchlists, its exceptions and the events it was handed,
+   * up to where a write's events came in - by its Group By Field; a
+   * correlation's steps, by its own group-by, from where the events it
+   * matched start (#9795). A read that fails keeps nothing.
    */
   public static async readMatchedEvents(data: {
     rule: DetectionRule;
@@ -1341,44 +1338,43 @@ export default class DetectionRuleEvaluator {
       });
     }
 
-    const kept: Map<string, SecurityDetectionMatchedEvents> = new Map();
-    // The timespan before the run's first step, as the correlation reads it.
-    const readFrom: Date = new Date(
-      data.startTime.getTime() -
-        data.definition.correlation.timespanInSeconds * 1000,
-    );
+    /*
+     * Every group the correlation fired for, in one read - grouped as its
+     * own reads group them (buildCorrelationEventsRead) - where it used to
+     * read its first ten one by one, and the rest kept nothing.
+     */
+    let correlationRead: ReturnType<typeof buildCorrelationEventsRead>;
 
-    for (const matchGroup of data.matchedGroups.slice(
-      0,
-      CORRELATION_MATCHED_EVENTS_MAX_GROUPS,
-    )) {
-      const built: ReturnType<typeof buildRuleCondition> = buildRuleCondition({
-        rule,
-        definition: data.definition,
-        groupValue: matchGroup.groupValue,
+    try {
+      correlationRead = buildCorrelationEventsRead({
+        correlation: data.definition.correlation,
+        steps: data.definition.steps,
       });
+    } catch (error) {
+      // A step it cannot read: nothing to keep, and the run goes on.
+      logger.warn(
+        `DetectionRuleEvaluator: rule ${rule.id?.toString()} keeps no matched events: ${error}`,
+      );
 
-      if (!built) {
-        continue;
-      }
-
-      const read: Map<string, SecurityDetectionMatchedEvents> =
-        await SecurityDetectionMatchedEventsReader.readForGroups({
-          projectId: rule.projectId,
-          start: readFrom,
-          end: data.endTime,
-          condition: restrict(built.condition),
-          groupExpression: null,
-          groupValues: [],
-        });
-      const events: SecurityDetectionMatchedEvents | undefined = read.get("");
-
-      if (events) {
-        kept.set(matchGroup.groupValue, events);
-      }
+      return new Map();
     }
 
-    return kept;
+    return SecurityDetectionMatchedEventsReader.readForGroups({
+      projectId: rule.projectId,
+      start: getCorrelationMatchedEventsStart({
+        correlation: data.definition.correlation,
+        steps: data.definition.steps,
+        startTime: data.startTime,
+      }),
+      end: data.endTime,
+      condition: restrict(correlationRead.condition),
+      groupExpression: correlationRead.groupExpression,
+      groupValues: data.matchedGroups.map(
+        (matchGroup: DetectionMatchGroup): string => {
+          return matchGroup.groupValue;
+        },
+      ),
+    });
   }
 
   private static async openAlertsForMatches(data: {
