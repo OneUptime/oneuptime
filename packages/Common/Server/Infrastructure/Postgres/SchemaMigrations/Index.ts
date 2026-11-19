@@ -1092,6 +1092,7 @@ import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRu
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
 import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
 import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddKubernetesDiskReadings1809185300000 } from "./1809185300000-AddKubernetesDiskReadings";
 
 export default [
   InitialMigration,
@@ -2188,4 +2189,5 @@ export default [
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
   MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
   DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddKubernetesDiskReadings1809185300000,
 ];
