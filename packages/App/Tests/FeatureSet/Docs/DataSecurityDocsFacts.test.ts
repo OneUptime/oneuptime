@@ -1514,6 +1514,28 @@ describe("Sensitive Data in Telemetry", () => {
     expect(count(value("Locations of one store"))).toBe(
       constant(scanner, "TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE"),
     );
+    // A metric's sample: its series, few metrics a scan (#9604).
+    const metrics: string = section(page, "### Metrics");
+
+    expect(value("Metrics read in one scan")).toBe(
+      `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its others in turn`,
+    );
+    expect(value("Data points of one metric")).toBe(
+      `Its newest minute's, at most ${constant(scanner, "TELEMETRY_SCAN_MAX_POINTS_PER_METRIC")}`,
+    );
+    expect(metrics).toContain(
+      `up to ${constant(scanner, "TELEMETRY_SCAN_MAX_POINTS_PER_METRIC")} of that minute's data points`,
+    );
+    expect(metrics).toContain(
+      `more than ${constant(scanner, "TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS").toLocaleString("en-US")} points`,
+    );
+    // The busiest half, and the others in turn, as the planner picks them.
+    expect(source(scanner)).toContain(
+      "const busiest: number = Math.floor(perOwner / 2);",
+    );
+    expect(source(scanner)).toContain(
+      "Math.min(whole(data.perOwner, 1), Math.floor(data.total / byOwner.size)),",
+    );
     expect(constant(scanner, "TELEMETRY_SCAN_READ_TIME_LIMIT_IN_SECONDS")).toBe(
       30,
     );
@@ -1524,8 +1546,9 @@ describe("Sensitive Data in Telemetry", () => {
     const what: Array<Array<string>> = rows(
       tables(section(page, "## What is read"))[0],
     );
+    // Which rule reaches which location is decided beside the store kinds.
     const scrub: string = source(
-      `${SERVER}/Telemetry/TelemetryScrubCoverage.ts`,
+      "Common/Types/DataSecurity/TelemetryScrubTarget.ts",
     );
 
     expect(
@@ -1538,7 +1561,24 @@ describe("Sensitive Data in Telemetry", () => {
       DataStoreKind.TelemetryExceptions,
       DataStoreKind.TelemetryAiConversations,
       DataStoreKind.TelemetrySessionReplays,
+      DataStoreKind.TelemetryMetrics,
     ]);
+    /*
+     * A metric's attribute, its resource's - which ingest stores under
+     * "resource." - and its name (#9604), which no rule reaches.
+     */
+    expect(what[5]?.[2]).toBe(
+      "`attributes.<key>`, `attributes.resource.<key>`, `name`",
+    );
+    expect(
+      source("App/FeatureSet/Telemetry/Services/OtelMetricsIngestService.ts"),
+    ).toContain('prefixKeysWithString: "resource",');
+    expect(scrub).toContain(
+      'export const METRIC_NAME_LOCATION: string = "name";',
+    );
+    expect(scrub).toContain(
+      'case DataStoreKind.TelemetryMetrics:\n      // A data point\'s or its resource\'s attribute: redacted by its key.\n      return attributeTarget(\n        location,\n        ATTRIBUTES_PREFIX,\n        "metric",',
+    );
 
     for (const prefix of [
       '"attributes."',
