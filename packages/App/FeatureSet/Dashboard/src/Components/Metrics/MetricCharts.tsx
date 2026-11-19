@@ -61,6 +61,10 @@ import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
 import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
 import { BarChartPalette } from "Common/UI/Components/Charts/Bar/BarChart";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
+import MetricQueryOverlay, {
+  OverlayUnitFit,
+  OverlayUnitReading,
+} from "Common/Utils/Metrics/MetricQueryOverlay";
 import MetricUtil, {
   DEFAULT_TOP_N_SERIES,
   SHOW_ALL_SERIES_TOP_N,
@@ -131,6 +135,8 @@ import {
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  composedValue,
+  formatList,
   translatableTerm,
   translateTemplate,
   translationKey,
@@ -320,6 +326,13 @@ const TOP_N_CHOICES: Array<number> = [5, 10, 25, 50];
 export const SERIES_CHIP_NAME_CLASS_NAME: string =
   "min-w-[4ch] max-w-[240px] shrink-[1000] truncate";
 export const SERIES_CHIP_VALUE_CLASS_NAME: string = "min-w-0 truncate";
+
+/*
+ * A chart's warning that an overlaid query's unit cannot be read on its
+ * axis, which is in its first query's unit (MetricQueryOverlay).
+ */
+export const OVERLAY_UNIT_MISMATCH_TEST_ID: string =
+  "metric-chart-overlay-unit-mismatch";
 
 type SeriesValueStat = "peak" | "avg" | "latest";
 
@@ -1000,6 +1013,63 @@ function applyPanelSeriesNaming(members: Array<PanelMember>): void {
           ? `${series.seriesName} (${memberDiscriminator})`
           : `${uniqueLabel}: ${series.seriesName}`;
     }
+  });
+}
+
+/*
+ * How each overlaid member of a panel reads on the panel's axis, which is in
+ * its first member's unit (MetricQueryOverlay.readUnit). The first member is
+ * the axis's own, so it has no reading.
+ */
+function getPanelUnitReadings(
+  members: Array<PanelMember>,
+): Map<PanelMember, OverlayUnitReading> {
+  const readings: Map<PanelMember, OverlayUnitReading> = new Map<
+    PanelMember,
+    OverlayUnitReading
+  >();
+  const firstMember: PanelMember | undefined = members[0];
+
+  if (!firstMember) {
+    return readings;
+  }
+
+  members.forEach((member: PanelMember, memberIndex: number): void => {
+    if (memberIndex === 0) {
+      return;
+    }
+
+    readings.set(
+      member,
+      MetricQueryOverlay.readUnit({
+        chartUnit: firstMember.unit,
+        chartMetricName: firstMember.metricName,
+        queryUnit: member.unit,
+        queryMetricName: member.metricName,
+      }),
+    );
+  });
+
+  return readings;
+}
+
+// A member's series with every value read in the chart's unit.
+function toChartUnitSeries(
+  series: Array<SeriesPoint>,
+  reading: OverlayUnitReading,
+): Array<SeriesPoint> {
+  return series.map((oneSeries: SeriesPoint): SeriesPoint => {
+    return {
+      ...oneSeries,
+      data: oneSeries.data.map(
+        (point: SeriesPoint["data"][number]): SeriesPoint["data"][number] => {
+          return {
+            ...point,
+            y: MetricQueryOverlay.toChartUnit(point.y, reading),
+          };
+        },
+      ),
+    };
   });
 }
 
@@ -2744,6 +2814,26 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       applyPanelSeriesNaming(members);
 
       /*
+       * Each overlaid query is read in the chart's unit, its first query's
+       * (MetricQueryOverlay, issue #9961): one in another unit of the same
+       * kind - megabytes on a chart in gigabytes - is converted into it, so
+       * its line, its values and its warning and critical lines read right
+       * on the shared axis. One in a unit of another kind keeps its values,
+       * and the chart says the units differ (unitMismatchWarning).
+       */
+      const unitReadingByMember: Map<PanelMember, OverlayUnitReading> =
+        getPanelUnitReadings(members);
+
+      for (const member of members) {
+        const reading: OverlayUnitReading | undefined =
+          unitReadingByMember.get(member);
+
+        if (reading?.fit === OverlayUnitFit.Converted) {
+          member.series = toChartUnitSeries(member.series, reading);
+        }
+      }
+
+      /*
        * The panel's group-by keys (union across overlaid queries) — what
        * the investigate menu parses series names against.
        */
@@ -2813,60 +2903,115 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
 
       /*
        * Thresholds concatenate across the panel: every overlaid query's
-       * warning/critical lines render, each formatted in its own unit.
+       * warning/critical lines render, each formatted in the unit its
+       * values are drawn in - the chart's, for a query converted into it.
        */
       const referenceLines: Array<ChartReferenceLineProps> = [];
       for (const member of members) {
+        const reading: OverlayUnitReading | undefined =
+          unitReadingByMember.get(member);
+        const isConverted: boolean = reading?.fit === OverlayUnitFit.Converted;
+        const drawnUnit: string = isConverted ? unit : member.unit;
+        const drawnFormatterOptions: ValueFormatterOptions = {
+          metricName: isConverted ? queryMetricName : member.metricName,
+          language: translator.language,
+        };
+        const inDrawnUnit: (value: number | undefined) => number | undefined = (
+          value: number | undefined,
+        ): number | undefined => {
+          return reading && typeof value === "number"
+            ? MetricQueryOverlay.toChartUnit(value, reading)
+            : value;
+        };
+        const warningThreshold: number | undefined = inDrawnUnit(
+          member.queryConfig.warningThreshold,
+        );
+        const criticalThreshold: number | undefined = inDrawnUnit(
+          member.queryConfig.criticalThreshold,
+        );
+
         referenceLines.push(
           ...buildThresholdReferenceLines({
-            warningThreshold: member.queryConfig.warningThreshold,
-            criticalThreshold: member.queryConfig.criticalThreshold,
-            unit: member.unit,
-            formatterOptions: {
-              metricName: member.metricName,
-              language: translator.language,
-            },
+            warningThreshold: warningThreshold,
+            criticalThreshold: criticalThreshold,
+            unit: drawnUnit,
+            formatterOptions: drawnFormatterOptions,
             extendsDomain: props.thresholdLinesExtendAxis,
           }),
           ...buildMetricChartThresholdLines({
-            thresholds: props.thresholds,
+            /*
+             * A line with no unit of its own is in its query's unit: named
+             * so, a converted query's lines are drawn in the chart's too.
+             */
+            thresholds: isConverted
+              ? (props.thresholds || []).map(
+                  (threshold: MetricChartThreshold): MetricChartThreshold => {
+                    return threshold.unit
+                      ? threshold
+                      : { ...threshold, unit: member.unit };
+                  },
+                )
+              : props.thresholds,
             metricVariable: member.queryConfig.metricAliasData?.metricVariable,
-            unit: member.unit,
-            formatterOptions: {
-              metricName: member.metricName,
-              language: translator.language,
-            },
-            drawnValues: [
-              member.queryConfig.warningThreshold,
-              member.queryConfig.criticalThreshold,
-            ],
+            unit: drawnUnit,
+            formatterOptions: drawnFormatterOptions,
+            drawnValues: [warningThreshold, criticalThreshold],
           }),
         );
       }
 
       /*
-       * Unit safety for overlay panels: data arrives converted to each
-       * query's display unit, so two members with different display units
-       * share one axis but not one scale. Warn (don't block).
+       * Unit safety for overlay panels: the axis is in the first query's
+       * unit, and a query in a unit of another kind cannot be converted
+       * into it, so the two share one axis but not one scale. Warn (don't
+       * block): the query is drawn where its switch asked. A query in a
+       * unit of the same kind was converted above and needs no warning.
        */
-      const distinctUnits: Array<string> = Array.from(
-        new Set<string>(
-          members
-            .map((member: PanelMember) => {
-              return member.unit;
-            })
-            .filter((memberUnit: string) => {
-              return memberUnit !== "";
-            }),
-        ),
+      const membersThatCannotShareTheAxis: Array<PanelMember> = members.filter(
+        (member: PanelMember): boolean => {
+          return (
+            unitReadingByMember.get(member)?.fit === OverlayUnitFit.Different
+          );
+        },
       );
+      /*
+       * The axis's unit, then each one that cannot be read on it, by the
+       * names the unit badge gives them, in the sentence's language.
+       */
+      const getMismatchedUnitNames: (sentence: Translator) => Array<string> = (
+        sentence: Translator,
+      ): Array<string> => {
+        const names: Array<string> = [];
+
+        for (const member of [firstMember, ...membersThatCannotShareTheAxis]) {
+          const unitName: string =
+            getUnitNameInLanguage(member.unit, sentence, {
+              metricName: member.metricName,
+            }) || member.unit;
+
+          if (unitName && !names.includes(unitName)) {
+            names.push(unitName);
+          }
+        }
+
+        return names;
+      };
       const unitMismatchWarning: ReactElement | undefined =
-        distinctUnits.length > 1 ? (
+        membersThatCannotShareTheAxis.length > 0 ? (
           <HintChip variant="amber">
-            {translator.translateTemplate(
-              "Overlaid queries use different units ({{units}}) — they share one axis, so values may not be directly comparable.",
-              { units: distinctUnits.join(", ") },
-            )}
+            <span data-testid={OVERLAY_UNIT_MISMATCH_TEST_ID}>
+              {translator.translateTemplate(
+                "Overlaid queries use different units ({{units}}) — they share one axis, so values may not be directly comparable.",
+                {
+                  units: composedValue((sentence: Translator): string => {
+                    return formatList(
+                      getMismatchedUnitNames(sentence),
+                      sentence,
+                    );
+                  }),
+                },
+              )}
+            </span>
           </HintChip>
         ) : undefined;
 
@@ -3154,10 +3299,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           if (!previousResult) {
             continue;
           }
-          for (const series of buildQuerySeries(
+          // In the chart's unit, as the member's live series is.
+          const reading: OverlayUnitReading | undefined =
+            unitReadingByMember.get(member);
+          const previousSeries: Array<SeriesPoint> = buildQuerySeries(
             member.queryConfig,
             previousResult,
-          )) {
+          );
+          for (const series of reading?.fit === OverlayUnitFit.Converted
+            ? toChartUnitSeries(previousSeries, reading)
+            : previousSeries) {
             previousSeriesByName.set(series.seriesName, series);
           }
         }
