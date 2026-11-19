@@ -24042,6 +24042,53 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
     });
   }
 
+  /*
+   * #6526: a read names its server and its tool on one line, which wraps
+   * inside the step on a phone rather than pushing the page sideways.
+   */
+  for (const [width, theme] of [
+    [390, "light"],
+    [1280, "dark"],
+  ] as const) {
+    test(`a fix through MCP servers that found no safe fix, opened, at ${width}px (${theme}): its reads stay inside the step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      const fix: Locator = await openRound(
+        page,
+        theme === "dark" ? "fixes=mcp-no-fix&theme=dark" : "fixes=mcp-no-fix",
+      );
+      await expect(
+        fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+      ).toHaveText(MCP_NO_FIX_REASON, { timeout: 30000 });
+      const details: Locator = await openRoundPlan(fix);
+      const body: Box = await documentBox(
+        page.getByTestId("ai-card-step-remediation-body"),
+      );
+      const lines: Array<Locator> = await details
+        .locator(
+          "[data-testid='remediation-round-check-mcp'], [data-testid='remediation-round-check-why'], [data-testid='remediation-round-check-error']",
+        )
+        .all();
+
+      expect(lines.length).toBe(7);
+
+      for (const line of lines) {
+        const box: Box = await documentBox(line);
+        expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
+      }
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediationStep(page),
+        `remediation-round-mcp-no-safe-fix-${width}-${theme}`,
+      );
+    });
+  }
+
   test("in Persian at 390px: the words read right to left, the commands left to right", async ({
     page,
   }: {
