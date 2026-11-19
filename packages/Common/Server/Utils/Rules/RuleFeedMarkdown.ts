@@ -8,6 +8,7 @@ import FeedMarkdown, {
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
+import type { OwnerNotAdded } from "./OwnerRuleAssignment";
 
 /*
  * The words a rule engine writes into a feed when its rules did something.
@@ -108,6 +109,81 @@ export default class RuleFeedMarkdown {
         }),
       ],
       { whenEmpty: "(no named owners)" },
+    );
+  }
+
+  /*
+   * The owners a rule named that were not added (#9933), one bullet each,
+   * with why:
+   *
+   *   - 👤 Ada Lovelace, who is not a member of this project
+   *   - 👤 ada@example.com, who has not accepted the invitation to this project yet
+   *   - 👥 A team that is not one of this project's teams (`<id>`)
+   *
+   * `users` are the skipped people, read as OneUptime; `withheld` who of
+   * them is only invited to the project (readWithheldProfilesInProject). A
+   * person is named as ownersList names an owner: someone only invited by
+   * the name typed for them, else their address, never their account's own
+   * name. Someone who left the project keeps the name the project knew.
+   * A team that is not the project's is never named - its name is another
+   * project's - but its id is: the rule holds it, and it says which of the
+   * rule's teams to take out.
+   */
+  public static ownersNotAddedList(data: {
+    notAdded: Array<OwnerNotAdded>;
+    users: Array<User>;
+    withheld?: Map<string, WithheldProfile> | undefined;
+  }): MarkdownText {
+    const withheld: Map<string, WithheldProfile> =
+      data.withheld || new Map<string, WithheldProfile>();
+
+    const usersById: Map<string, User> = new Map<string, User>();
+
+    for (const user of data.users) {
+      const userId: string = user.id?.toString().toLowerCase() || "";
+
+      if (userId) {
+        usersById.set(userId, user);
+      }
+    }
+
+    // People first, then teams, as ownersList lists the owners added.
+    const ordered: Array<OwnerNotAdded> = [
+      ...data.notAdded.filter((owner: OwnerNotAdded): boolean => {
+        return owner.ownerColumn === "userId";
+      }),
+      ...data.notAdded.filter((owner: OwnerNotAdded): boolean => {
+        return owner.ownerColumn === "teamId";
+      }),
+    ];
+
+    return FeedMarkdown.bulletList(
+      ordered.map((owner: OwnerNotAdded): MarkdownText => {
+        if (owner.ownerColumn === "teamId") {
+          return mdText`👥 A team that is not one of this project's teams (${FeedMarkdown.code(
+            owner.id.toString(),
+          )})`;
+        }
+
+        const user: User | undefined = usersById.get(
+          owner.id.toString().toLowerCase(),
+        );
+
+        const name: string =
+          PendingInviteeProfiles.getNameInProject({
+            userId: owner.id,
+            name: user?.name,
+            email: user?.email,
+            withheld: withheld,
+          }) || "Unknown User";
+
+        return PendingInviteeProfiles.getWithheldProfile({
+          userId: owner.id,
+          withheld: withheld,
+        })
+          ? mdText`👤 ${name}, who has not accepted the invitation to this project yet`
+          : mdText`👤 ${name}, who is not a member of this project`;
+      }),
     );
   }
 

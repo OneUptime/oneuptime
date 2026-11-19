@@ -48,6 +48,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * End-to-end cover for the reported bug, driven through the real alert
@@ -301,8 +302,12 @@ describe("Alerts link the resources their series identifies", () => {
         return incident;
       });
 
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   });
 
   afterEach(() => {

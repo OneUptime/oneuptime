@@ -141,6 +141,11 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/OnCallDutyPolicy/OnCallObserverPage.ts",
   // A test page (OnCallTestPage), in the language of the person it pages.
   "packages/Common/Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
+  /*
+   * The email that tells a person their sign-in settings were cleared
+   * (#9818, #9820), in the language on their account.
+   */
+  "packages/Common/Types/SSO/SignInSettingsClearedEmail.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

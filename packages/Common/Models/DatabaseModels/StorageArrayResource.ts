@@ -304,7 +304,8 @@ export default class StorageArrayResource extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Model",
+    // Named "Model" in the API, and as a machine's model on screen (MeaningKeys).
+    title: "Model (hardware model)",
     description: "Hardware model, for controllers.",
   })
   @Column({

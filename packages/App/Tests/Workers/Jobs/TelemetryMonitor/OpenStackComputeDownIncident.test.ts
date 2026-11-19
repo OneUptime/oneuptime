@@ -126,6 +126,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import { monitorOpenStack } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
+import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
@@ -538,10 +539,10 @@ describe("a stopped nova-compute, replayed from what real clouds' exporters said
     jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM_OF_THE_PROJECT]);
     addIncidentOwners = jest
       .spyOn(IncidentService, "addOwners")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
     addAlertOwners = jest
       .spyOn(AlertService, "addOwners")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
     jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);

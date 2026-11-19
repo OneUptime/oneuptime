@@ -469,6 +469,8 @@ describe("A password step from an account being forced to enrol", () => {
 
     expect(pending().enrolment).toEqual({
       twoFactorAuthId: "pending-enrolment-1",
+      // This server offers no passkey (#9817): the authenticator app alone.
+      canEnrolPasskey: false,
       twoFactorOtpUrl:
         "otpauth://totp/OneUptime:on-call%40example.com?secret=JBSWY3DPEHPK3PXP&issuer=OneUptime",
     });

@@ -128,6 +128,12 @@ En enhet som ikke har sjekket inn på 30 minutter, er **Offline** og viser hvor 
 
 En enhet som fjernes fra Esper, merkes **Fjernet**, og elementet arkiveres: det forsvinner fra listen og venter under **Avansert → Arkivert**. En enhet som kommer tilbake til Esper, kommer tilbake i listen. 30 dager etter at den forsvant, slettes enheten, og det samme gjør elementet, med mindre telemetri eller du har lagt til noe på det.
 
+### Få et varsel når en enhet slutter å sjekke inn
+
+Under **Administrerte enheter** klikker du **Sett opp varsler** på raden til tilkoblingen og oppretter **Esper Device Stopped Checking In**. Den åpner ett varsel for hver enhet som ikke har sjekket inn hos Esper på over en time, oppkalt etter enheten, og løser det så snart enheten sjekker inn igjen.
+
+Hver lesing av tilkoblingen registrerer som målingen `oneuptime.managed_device.check_in.age` hvor mange minutter siden hver enhet sist sjekket inn, og monitoren sjekker den nyeste verdien for hver enhet hvert 5. minutt. En enhet som også kjører Android Agent, overlates til **Host Stopped Reporting**, så den aldri varsler to ganger, og en enhet som er fjernet fra Esper, løser varselet sitt. En lesing som feiler, registrerer ingenting, så ingen varsler åpnes eller løses før den neste. For en flåte som slås av om natten, øk terskelen til monitoren.
+
 ## Legg til noe manuelt
 
 Legg til et element for noe OneUptime aldri vil se på egen hånd, slik at en avhengighet ender et virkelig sted og tingen kan bære de egendefinerte feltene dine.

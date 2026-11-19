@@ -59,7 +59,9 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import {
   MessageBlocksByWorkspaceType,
   WorkspaceChannelsCreated,
@@ -2044,11 +2046,14 @@ export class Service extends ProjectReferencesService<Model> {
      * behalf of whoever ran it (RuleRunWriteProps).
      */
     props?: DatabaseCommonInteractionProps | undefined;
-  }): Promise<void> {
+  }): Promise<OwnersAdded> {
     const { episodeId, projectId, userIds, teamIds, createdByUserId } = data;
 
-    // Owners already on the episode are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+    /*
+     * Owners already on the episode are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: IncidentEpisodeOwnerUserService,
       ownerTeamService: IncidentEpisodeOwnerTeamService,
       resourceIdColumn: "incidentEpisodeId",

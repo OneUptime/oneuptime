@@ -133,6 +133,24 @@ export class Poller {
         const allocations: Array<EngineAllocation> =
           await this.engine.fetchAllocations({ windowStart, windowEnd });
 
+        /*
+         * A Kubecost answers from what its aggregator has collected, in
+         * batches behind the clock: on kind, two minutes after 17:00, the
+         * hour that had just closed was there up to 16:15 or 16:20, and an
+         * hour is shipped once. Read it again at a later tick until it is
+         * whole, without counting a failure (EngineCollection).
+         */
+        if (
+          typeof this.engine.isWindowComplete === "function" &&
+          !(await this.engine.isWindowComplete({
+            windowStart,
+            windowEnd,
+            allocations,
+          }))
+        ) {
+          break;
+        }
+
         if (allocations.length > 0) {
           const rows: Array<KubernetesCostAllocationIngestRow> =
             allocations.map(

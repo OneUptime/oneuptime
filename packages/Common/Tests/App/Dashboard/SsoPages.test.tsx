@@ -105,6 +105,9 @@ jest.mock("../../../UI/Config", () => {
   mocked["DASHBOARD_URL"] = urlModule.default.fromString(
     "https://oneuptime.example.com/dashboard",
   );
+  mocked["ACCOUNTS_URL"] = urlModule.default.fromString(
+    "https://oneuptime.example.com/accounts",
+  );
   mocked["STATUS_PAGE_URL"] = urlModule.default.fromString(
     "https://oneuptime.example.com/status-page",
   );
@@ -606,7 +609,10 @@ interface PageCase {
   // The list's columns, and those a phone leaves out.
   columns: Array<string>;
   columnsHiddenOnMobile: Array<string>;
-  // The card with the test link: drawn once there is a provider to try.
+  /*
+   * The card with the link to test with: drawn once there is a provider to
+   * try. A project's is its SSO sign-in link, to share as well (#9918).
+   */
   testTitle: string;
   upsellTitle: string;
   featureName: string;
@@ -651,7 +657,7 @@ const PAGE_CASES: Array<PageCase> = [
     ],
     turnOnNote: SAML_TURN_ON_NOTE,
     startsOnMembersTeam: true,
-    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
+    testLink: `https://oneuptime.example.com/accounts/sso/${PROJECT_ID}`,
     requireSsoSwitch: {
       testId: REQUIRE_SSO_SWITCH_CARD,
       model: "Project",
@@ -683,9 +689,10 @@ const PAGE_CASES: Array<PageCase> = [
       plural: "SAML Providers",
       createVerb: "Add",
     },
-    columns: ["Name", "Description", "Teams", "Enabled"],
+    // The verified domains "Sign in with SSO" finds it by (#9918).
+    columns: ["Name", "Description", "Teams", "Domains", "Enabled"],
     columnsHiddenOnMobile: ["Description"],
-    testTitle: "Test Single Sign On (SSO)",
+    testTitle: "SSO Sign-in Link",
     ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsSSO",
     leftover: {
@@ -714,7 +721,7 @@ const PAGE_CASES: Array<PageCase> = [
     ],
     turnOnNote: OIDC_TURN_ON_NOTE,
     startsOnMembersTeam: true,
-    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
+    testLink: `https://oneuptime.example.com/accounts/sso/${PROJECT_ID}`,
     // The page's one switch: an OIDC sign-in meets it as a SAML one does.
     requireSsoSwitch: {
       testId: REQUIRE_SSO_SWITCH_CARD,
@@ -747,9 +754,10 @@ const PAGE_CASES: Array<PageCase> = [
       plural: "OIDC Providers",
       createVerb: "Add",
     },
-    columns: ["Name", "Description", "Teams", "Enabled"],
+    // The verified domains "Sign in with SSO" finds it by (#9918).
+    columns: ["Name", "Description", "Teams", "Domains", "Enabled"],
     columnsHiddenOnMobile: ["Description"],
-    testTitle: "Test Single Sign On (SSO)",
+    testTitle: "SSO Sign-in Link",
     ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsOIDC",
     leftover: {
@@ -1964,7 +1972,7 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
     await settle();
 
     const testLinkCard: () => HTMLElement | null = (): HTMLElement | null => {
-      return screen.queryByTestId("project-sign-in-test");
+      return screen.queryByTestId("project-sso-sign-in-link");
     };
 
     expect(testLinkCard()).toBeNull();
@@ -1976,7 +1984,7 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
 
     expect(testLinkCard()).not.toBeNull();
     expect(testLinkCard()).toHaveTextContent(
-      `Sign in through one of these providers before you require SSO: ${settingsSso.testLink}`,
+      `Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.${settingsSso.testLink}`,
     );
 
     // Then a SAML one too; the OIDC one goes: still one to test.
@@ -1998,7 +2006,7 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
     });
 
     expect(testLinkCard()).toBeNull();
-    expect(screen.queryByText("Test Single Sign On (SSO)")).toBeNull();
+    expect(screen.queryByText("SSO Sign-in Link")).toBeNull();
     expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
       "data-card-description",
       "",

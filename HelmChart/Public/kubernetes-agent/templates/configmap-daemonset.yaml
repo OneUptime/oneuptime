@@ -51,8 +51,9 @@ data:
         # each claim's PersistentVolume, then names an in-tree AWS, GCE or
         # local disk's k8s.volume.type for the disk instead of
         # persistentVolumeClaim, and drops the volume's metrics whenever that
-        # lookup fails. OneUptime finds a claim by its name and type, which the
-        # pod list already gives, and reads nothing else that lookup adds.
+        # read fails. OneUptime finds a claim by its name and type, which the
+        # pod list already gives, and reads nothing else the PersistentVolume
+        # adds.
         # One `metrics:` map for every optional metric this receiver turns
         # on. Keep it that way: a second `metrics:` key under kubeletstats
         # is a duplicate mapping key, and the collector refuses the config.

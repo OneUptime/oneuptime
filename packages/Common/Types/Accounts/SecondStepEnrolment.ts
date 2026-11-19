@@ -45,6 +45,45 @@ export const VERIFY_SECURITY_KEY_ENROLMENT_ROUTE: string =
  */
 export const SIGN_IN_AUTHENTICATOR_APP_NAME: string = "Authenticator App";
 export const SIGN_IN_SECURITY_KEY_NAME: string = "Security Key";
+// A passkey set up from the mobile app (#9817), listed on the Passkeys page.
+export const SIGN_IN_PASSKEY_NAME: string = "Passkey";
+
+/*
+ * THE SAME SETUP, FROM THE MOBILE APP (issue #9817,
+ * Server/Services/MobilePasskeyEnrolmentService says how and why).
+ *
+ * A native app has no browser prompt, so the app offers a passkey - this
+ * phone's face, fingerprint or screen lock, or a security key with a PIN -
+ * through the phone's own browser, on the server's address, and keeps the
+ * two requests above for itself: it asks for the options with
+ * `mobileHandOff` and is answered an id for the browser page (a passkey's
+ * options, kept for minutes, read once), and sends the passkey's answer to
+ * /verify-security-key-enrolment with the email and password, as the web
+ * does. A passkey rather than a security key, so it is discoverable and
+ * checks who holds it: the app's Sign in with a passkey signs its owner in
+ * with it from then on, which a key the app could not use would not.
+ *
+ * /login's answer to a required setup says whether this server offers it
+ * (MOBILE_PASSKEY_ENROLMENT_FIELD): only one reached over HTTPS can. An app
+ * that is not told so, an old server, offers the authenticator app alone.
+ */
+
+// The flag on /login's answer, and the one on the options request.
+export const MOBILE_PASSKEY_ENROLMENT_FIELD: string = "mobilePasskeyEnrolment";
+export const MOBILE_HAND_OFF_FIELD: string = "mobileHandOff";
+
+// The browser page reads the options with the hand-off's id here.
+export const MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE: string =
+  "/mobile-passkey-enrolment-options";
+
+// The page, under the accounts address, and where it hands the passkey back.
+export const MOBILE_PASSKEY_ENROLMENT_PAGE_PATH: string =
+  "/accounts/mobile-passkey-enrolment";
+export const MOBILE_PASSKEY_ENROLMENT_CALLBACK_URL: string =
+  "oneuptime://passkey-enrolment";
+
+export const MOBILE_PASSKEY_ENROLMENT_EXPIRED_MESSAGE: string =
+  "This passkey setup has expired or was already used. Return to the app and start again.";
 
 // The second steps the sign-in page offers to set up.
 export enum SecondStepEnrolmentChoice {

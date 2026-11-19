@@ -30,8 +30,9 @@ import VersionUtil from "Common/Utils/VersionUtil";
  *     AgentFilesVersion.test.ts holds every pinned-collector agent's files
  *     to the version they report.
  *   - None: OneUptime does not release it - the customer's own SDK in their
- *     app, function or devices. Its version is shown as it always was and is
- *     never called outdated.
+ *     app, function or devices, or the agent a device management service
+ *     such as Esper puts on the devices it manages. Its version is shown as
+ *     it always was and is never called outdated.
  *
  * An agent installed before its files reported a version sends none, so its
  * version reads "Not reported" (or nothing) - unknown, never outdated -
@@ -76,6 +77,11 @@ export enum AgentKind {
   ServerlessSdk = "serverless-sdk",
   // The OpenTelemetry browser or mobile SDK in the customer's app: RUM.
   RumSdk = "rum-sdk",
+  /*
+   * Esper's own agent on a device Esper manages, as Esper last reported it:
+   * the device's Esper card on its Inventory page.
+   */
+  EsperAgent = "esper-agent",
   /*
    * agents/ResourceAIAgent, run as oneuptime/resource-ai-agent beside a
    * resource's collector: the AI agent of a Docker or Podman host, a Swarm,
@@ -311,6 +317,14 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   // telemetry.sdk.version: the OpenTelemetry SDK's own release line.
   [AgentKind.RumSdk]: {
     name: "OpenTelemetry SDK",
+    latestVersionSource: AgentLatestVersionSource.None,
+  },
+  /*
+   * Esper releases its agent and updates it on the devices it manages:
+   * OneUptime does not know its newest version, so never calls it outdated.
+   */
+  [AgentKind.EsperAgent]: {
+    name: "Esper Agent",
     latestVersionSource: AgentLatestVersionSource.None,
   },
   /*

@@ -135,7 +135,9 @@ import AutoRemediationRuleEngineService, {
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import CreatedNotificationHold, {
   CreatedNotificationsDue,
   OwnersAddedBy,
@@ -2422,9 +2424,12 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the alert are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the alert are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: AlertOwnerUserService,
       ownerTeamService: AlertOwnerTeamService,
       resourceIdColumn: "alertId",

@@ -118,11 +118,16 @@ import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import {
+  MOBILE_HAND_OFF_FIELD,
+  MOBILE_PASSKEY_ENROLMENT_FIELD,
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
   SIGN_IN_AUTHENTICATOR_APP_NAME,
+  SIGN_IN_PASSKEY_NAME,
   SIGN_IN_SECURITY_KEY_NAME,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
+import MobilePasskeyEnrolmentService from "Common/Server/Services/MobilePasskeyEnrolmentService";
 import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
@@ -3731,6 +3736,45 @@ router.post(
   },
 );
 
+/*
+ * POST /mobile-passkey-enrolment-options - the browser page a mobile app
+ * opened (Accounts' /accounts/mobile-passkey-enrolment, #9817) reading the
+ * options for the phone's prompt, by the id the app was answered above
+ * (Server/Services/MobilePasskeyEnrolmentService). Nobody is signed in to
+ * ask: the id, random and read once within minutes, is all it takes, and
+ * all it gives is the options - the challenge and the name the prompt
+ * shows. No key is saved and nobody is signed in here: the passkey's answer
+ * goes back to the app, which sends it to /verify-security-key-enrolment
+ * with the password. Same-origin only, as the passkey sign-in page's
+ * requests are, on the passkeys' limiter; never cached.
+ */
+router.post(
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    Response.setNoCacheHeaders(res);
+
+    try {
+      assertPasskeyOrigin(req);
+
+      const options: JSONObject =
+        await MobilePasskeyEnrolmentService.takeOptions(
+          req.body?.["handOffId"],
+        );
+
+      return Response.sendJsonObjectResponse(req, res, {
+        options: options,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.post(
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
   twoFactorRateLimit,
@@ -3858,6 +3902,12 @@ const fetchTotpAuthList: FetchTotpAuthListFunction = async (
       _id: true,
       userId: true,
       name: true,
+      /*
+       * Which of them are passkeys: the mobile app, which cannot answer a
+       * security key's challenge, offers its own passkey sign-in for one
+       * instead (#9817). Said only to whoever proved the password.
+       */
+      isPasskey: true,
     },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
@@ -4782,6 +4832,16 @@ const login: LoginFunction = async (options: {
                  * for no additional capability.
                  */
                 twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+                /*
+                 * Whether the mobile app may offer a passkey here (#9817,
+                 * Types/Accounts/SecondStepEnrolment): only a server reached
+                 * over HTTPS can run the phone's prompt. Left out otherwise,
+                 * as an older server leaves it out, and the app offers the
+                 * authenticator app alone. The web page ignores it.
+                 */
+                ...(MobilePasskeyEnrolmentService.isAvailable()
+                  ? { [MOBILE_PASSKEY_ENROLMENT_FIELD]: true }
+                  : {}),
               },
             },
           );
@@ -5323,12 +5383,47 @@ const login: LoginFunction = async (options: {
              * face or screen lock answers just as well. Nothing more
              * happens here: no session, and nothing saved but the
              * challenge.
+             *
+             * The mobile app asks for a passkey, to run in the phone's own
+             * browser (#9817, Server/Services/
+             * MobilePasskeyEnrolmentService): discoverable and checked for
+             * who holds it, so the app's Sign in with a passkey can use it
+             * afterwards. Its options are kept for that browser's page,
+             * under an id that is all the app is answered; the key's
+             * answer still comes back here, with the password, to the
+             * request below. Refused where no browser could run it.
              */
+            const isMobileHandOff: boolean =
+              req.body?.[MOBILE_HAND_OFF_FIELD] === true;
+
+            if (
+              isMobileHandOff &&
+              !MobilePasskeyEnrolmentService.isAvailable()
+            ) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This server is not reached over HTTPS, so a passkey cannot be set up for it. Set up an authenticator app instead.",
+                ),
+              );
+            }
+
             const registration: { options: any; challenge: string } =
               await UserWebAuthnService.generateRegistrationOptions({
                 userId: alreadySavedUser.id!,
-                isPasskey: false,
+                isPasskey: isMobileHandOff,
               });
+
+            if (isMobileHandOff) {
+              Response.setNoCacheHeaders(res);
+
+              return Response.sendJsonObjectResponse(req, res, {
+                handOffId: await MobilePasskeyEnrolmentService.storeOptions(
+                  registration.options as JSONObject,
+                ),
+              });
+            }
 
             return Response.sendJsonObjectResponse(req, res, {
               options: registration.options,
@@ -5367,6 +5462,8 @@ const login: LoginFunction = async (options: {
             await UserWebAuthnService.verifyRegistration({
               credential: credential,
               name: SIGN_IN_SECURITY_KEY_NAME,
+              // A passkey from the mobile app is filed as one (#9817).
+              passkeyName: SIGN_IN_PASSKEY_NAME,
               props: {
                 userId: alreadySavedUser.id!,
                 isRoot: true,

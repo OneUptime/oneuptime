@@ -150,8 +150,8 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
     expect(page).toContain(
       "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} isTestLinkShown={hasProviderToTest} />",
     );
-    expect(page.indexOf("<ProjectSignInTestCard")).toBeGreaterThan(0);
-    expect(page.indexOf("<ProjectSignInTestCard")).toBeLessThan(
+    expect(page.indexOf("<ProjectSsoSignInLinkCard")).toBeGreaterThan(0);
+    expect(page.indexOf("<ProjectSsoSignInLinkCard")).toBeLessThan(
       page.indexOf("<RequireSsoForLoginCard"),
     );
     expect(page).not.toContain("CardModelDetail");
