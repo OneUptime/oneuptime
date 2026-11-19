@@ -1,31 +1,27 @@
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorOwnerRule from "../../Models/DatabaseModels/MonitorOwnerRule";
-import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import MonitorFeedService from "./MonitorFeedService";
 import MonitorOwnerRuleService from "./MonitorOwnerRuleService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorService from "./MonitorService";
-import TeamService from "./TeamService";
-import UserService from "./UserService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -239,8 +235,13 @@ class MonitorOwnerRuleEngineServiceClass
       }),
     );
 
-    const addedUserIds: Array<string> = [];
-    const addedTeamIds: Array<string> = [];
+    /*
+     * What addOwners actually did: the owners it wrote, and the ones it
+     * skipped and why - a user who has left the project, a team that is not
+     * one of its teams (#9933). The feed item, the log lines and the count
+     * are made from these, never from the ids the rules asked for.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -262,90 +263,63 @@ class MonitorOwnerRuleEngineServiceClass
         continue;
       }
 
-      await MonitorService.addOwners(
-        monitor.projectId,
-        monitor.id,
-        userIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        teamIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        notify,
-        RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.addUp(
+        outcome,
+        await MonitorService.addOwners(
+          monitor.projectId,
+          monitor.id,
+          userIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          teamIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          notify,
+          RuleRunWriteProps.get(data.props),
+        ),
       );
-
-      addedUserIds.push(...userIds);
-      addedTeamIds.push(...teamIds);
     }
 
-    const ownersAdded: number = addedUserIds.length + addedTeamIds.length;
-
-    if (ownersAdded === 0) {
+    if (OwnerRuleFeed.isEmpty(outcome)) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    logger.debug(
-      `MonitorOwnerRuleEngine added owners to monitor ${monitor.id}`,
-      { projectId: monitor.projectId.toString() } as LogAttributes,
-    );
+    OwnerRuleFeed.log({
+      engine: "MonitorOwnerRuleEngine",
+      record: `monitor ${monitor.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: monitor.projectId.toString(),
+      } as LogAttributes,
+    });
 
     await this.createRuleExecutedFeedItem({
       monitor,
       matchedRules,
-      userIds: addedUserIds,
-      teamIds: addedTeamIds,
+      outcome: outcome,
     });
 
-    return RuleApplicationResultUtil.updated(ownersAdded);
+    return OwnerRuleFeed.getResult(outcome);
   }
 
   @CaptureSpan()
   private async createRuleExecutedFeedItem(data: {
     monitor: Monitor;
     matchedRules: Array<MonitorOwnerRule>;
-    userIds: Array<string>;
-    teamIds: Array<string>;
+    // The owners added, and the ones skipped with why.
+    outcome: OwnersAdded;
   }): Promise<void> {
-    const { monitor, matchedRules, userIds, teamIds } = data;
+    const { monitor, matchedRules, outcome } = data;
     if (
       !monitor.id ||
       !monitor.projectId ||
       matchedRules.length === 0 ||
-      (userIds.length === 0 && teamIds.length === 0)
+      OwnerRuleFeed.isEmpty(outcome)
     ) {
       return;
     }
 
     try {
-      const userObjectIds: Array<ObjectID> = userIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-      const teamObjectIds: Array<ObjectID> = teamIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-
-      const [users, teams]: [Array<User>, Array<Team>] = await Promise.all([
-        userObjectIds.length > 0
-          ? UserService.findBy({
-              query: { _id: QueryHelper.any(userObjectIds) },
-              select: { name: true, email: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<User>),
-        teamObjectIds.length > 0
-          ? TeamService.findBy({
-              query: { _id: QueryHelper.any(teamObjectIds) },
-              select: { name: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<Team>),
-      ]);
-
       const ruleNames: Array<string> = matchedRules
         .map((r: MonitorOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -360,9 +334,11 @@ class MonitorOwnerRuleEngineServiceClass
           ruleKind: "Monitor Owner Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAssigned the following owner${
-        users.length + teams.length === 1 ? "" : "s"
-      } to the monitor:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: monitor.projectId })}`;
+      )}\n\n${await OwnerRuleFeed.readOutcome({
+        projectId: monitor.projectId,
+        recordNoun: "monitor",
+        outcome: outcome,
+      })}`;
 
       await MonitorFeedService.createMonitorFeedItem({
         monitorId: monitor.id,

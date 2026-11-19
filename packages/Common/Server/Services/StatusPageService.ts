@@ -84,7 +84,9 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
 import { STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
 import { resolveClientIp } from "../Utils/ClientIp";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -1131,9 +1133,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the status page are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the status page are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: StatusPageOwnerUserService,
       ownerTeamService: StatusPageOwnerTeamService,
       resourceIdColumn: "statusPageId",
