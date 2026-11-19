@@ -4318,5 +4318,14 @@
   "Already in this team": "Already in this team",
   "Already invited to this team": "Already invited to this team",
   "Not in this project yet": "Not in this project yet",
-  "People you can invite": "People you can invite"
+  "People you can invite": "People you can invite",
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
+  "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
+  "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "There is already an on-call policy called {{name}} in this project. Pick another name.",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "Several on-call policies cannot be given one name. Rename one policy at a time.",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "There is already an on-call schedule called {{name}} in this project. Pick another name.",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Several on-call schedules cannot be given one name. Rename one schedule at a time."
 }

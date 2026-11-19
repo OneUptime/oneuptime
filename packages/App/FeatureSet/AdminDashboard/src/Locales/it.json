@@ -4318,5 +4318,14 @@
   "Already in this team": "Già in questo team",
   "Already invited to this team": "Già invitato a questo team",
   "Not in this project yet": "Non ancora in questo progetto",
-  "People you can invite": "Persone che puoi invitare"
+  "People you can invite": "Persone che puoi invitare",
+  "There is already a team called {{name}} in this project. Pick another name.": "In questo progetto esiste già un team chiamato {{name}}. Scegli un altro nome.",
+  "Several teams cannot be given one name. Rename one team at a time.": "Non è possibile dare lo stesso nome a più team. Rinomina un team alla volta.",
+  "There is already a label called {{name}} in this project. Pick another name.": "In questo progetto esiste già un'etichetta chiamata {{name}}. Scegli un altro nome.",
+  "Several labels cannot be given one name. Rename one label at a time.": "Non è possibile dare lo stesso nome a più etichette. Rinomina un'etichetta alla volta.",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "In questo progetto esiste già una policy di reperibilità chiamata {{name}}. Scegli un altro nome.",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "In questo progetto esiste già una policy di reperibilità archiviata chiamata {{name}}. Annullane l'archiviazione da Reperibilità > Avanzato > Policy archiviate, oppure scegli un altro nome.",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "Non è possibile dare lo stesso nome a più policy di reperibilità. Rinomina una policy alla volta.",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "In questo progetto esiste già una pianificazione di reperibilità chiamata {{name}}. Scegli un altro nome.",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Non è possibile dare lo stesso nome a più pianificazioni di reperibilità. Rinomina una pianificazione alla volta."
 }

@@ -4318,5 +4318,14 @@
   "Already in this team": "このチームに参加済み",
   "Already invited to this team": "このチームに招待済み",
   "Not in this project yet": "このプロジェクトに未参加",
-  "People you can invite": "招待できる人"
+  "People you can invite": "招待できる人",
+  "There is already a team called {{name}} in this project. Pick another name.": "このプロジェクトには {{name}} という名前のチームがすでにあります。別の名前を付けてください。",
+  "Several teams cannot be given one name. Rename one team at a time.": "複数のチームに同じ名前を付けることはできません。チーム名は 1 つずつ変更してください。",
+  "There is already a label called {{name}} in this project. Pick another name.": "このプロジェクトには {{name}} という名前のラベルがすでにあります。別の名前を付けてください。",
+  "Several labels cannot be given one name. Rename one label at a time.": "複数のラベルに同じ名前を付けることはできません。ラベル名は 1 つずつ変更してください。",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "このプロジェクトには {{name}} という名前のオンコールポリシーがすでにあります。別の名前を付けてください。",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "このプロジェクトには {{name}} という名前のアーカイブ済みオンコールポリシーがすでにあります。「オンコール > 詳細 > アーカイブ済みポリシー」でアーカイブを解除するか、別の名前を付けてください。",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "複数のオンコールポリシーに同じ名前を付けることはできません。ポリシー名は 1 つずつ変更してください。",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "このプロジェクトには {{name}} という名前のオンコールスケジュールがすでにあります。別の名前を付けてください。",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "複数のオンコールスケジュールに同じ名前を付けることはできません。スケジュール名は 1 つずつ変更してください。"
 }

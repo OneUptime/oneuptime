@@ -4318,5 +4318,14 @@
   "Already in this team": "از قبل در این تیم",
   "Already invited to this team": "از قبل به این تیم دعوت‌شده",
   "Not in this project yet": "هنوز در این پروژه نیست",
-  "People you can invite": "افرادی که می‌توانید دعوت کنید"
+  "People you can invite": "افرادی که می‌توانید دعوت کنید",
+  "There is already a team called {{name}} in this project. Pick another name.": "در این پروژه از قبل تیمی به نام {{name}} وجود دارد. نام دیگری انتخاب کنید.",
+  "Several teams cannot be given one name. Rename one team at a time.": "نمی‌توان به چند تیم نام یکسانی داد. نام تیم‌ها را یکی‌یکی تغییر دهید.",
+  "There is already a label called {{name}} in this project. Pick another name.": "در این پروژه از قبل برچسبی به نام {{name}} وجود دارد. نام دیگری انتخاب کنید.",
+  "Several labels cannot be given one name. Rename one label at a time.": "نمی‌توان به چند برچسب نام یکسانی داد. نام برچسب‌ها را یکی‌یکی تغییر دهید.",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "در این پروژه از قبل سیاست آنکالی به نام {{name}} وجود دارد. نام دیگری انتخاب کنید.",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "در این پروژه از قبل سیاست آنکال بایگانی‌شده‌ای به نام {{name}} وجود دارد. آن را در آنکال > پیشرفته > سیاست‌های بایگانی‌شده از بایگانی خارج کنید، یا نام دیگری انتخاب کنید.",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "نمی‌توان به چند سیاست آنکال نام یکسانی داد. نام سیاست‌ها را یکی‌یکی تغییر دهید.",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "در این پروژه از قبل زمان‌بندی آنکالی به نام {{name}} وجود دارد. نام دیگری انتخاب کنید.",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "نمی‌توان به چند زمان‌بندی آنکال نام یکسانی داد. نام زمان‌بندی‌ها را یکی‌یکی تغییر دهید."
 }

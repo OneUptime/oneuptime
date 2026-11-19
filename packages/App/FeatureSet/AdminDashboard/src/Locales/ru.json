@@ -4318,5 +4318,14 @@
   "Already in this team": "Уже в этой команде",
   "Already invited to this team": "Уже приглашён в эту команду",
   "Not in this project yet": "Ещё не в этом проекте",
-  "People you can invite": "Люди, которых вы можете пригласить"
+  "People you can invite": "Люди, которых вы можете пригласить",
+  "There is already a team called {{name}} in this project. Pick another name.": "В этом проекте уже есть команда с названием {{name}}. Выберите другое название.",
+  "Several teams cannot be given one name. Rename one team at a time.": "Нескольким командам нельзя дать одно и то же название. Переименовывайте команды по одной.",
+  "There is already a label called {{name}} in this project. Pick another name.": "В этом проекте уже есть метка с названием {{name}}. Выберите другое название.",
+  "Several labels cannot be given one name. Rename one label at a time.": "Нескольким меткам нельзя дать одно и то же название. Переименовывайте метки по одной.",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "В этом проекте уже есть политика дежурства с названием {{name}}. Выберите другое название.",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "В этом проекте уже есть архивированная политика дежурства с названием {{name}}. Извлеките её из архива в разделе Дежурство > Расширенный > Архивированные политики или выберите другое название.",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "Нескольким политикам дежурств нельзя дать одно и то же название. Переименовывайте политики по одной.",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "В этом проекте уже есть расписание дежурства с названием {{name}}. Выберите другое название.",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Нескольким расписаниям дежурств нельзя дать одно и то же название. Переименовывайте расписания по одному."
 }

@@ -4318,5 +4318,14 @@
   "Already in this team": "已在此團隊中",
   "Already invited to this team": "已受邀加入此團隊",
   "Not in this project yet": "尚未加入此專案",
-  "People you can invite": "可邀請的人員"
+  "People you can invite": "可邀請的人員",
+  "There is already a team called {{name}} in this project. Pick another name.": "此專案中已有名為 {{name}} 的團隊。請換一個名稱。",
+  "Several teams cannot be given one name. Rename one team at a time.": "無法為多個團隊設定同一個名稱。請一次只重新命名一個團隊。",
+  "There is already a label called {{name}} in this project. Pick another name.": "此專案中已有名為 {{name}} 的標籤。請換一個名稱。",
+  "Several labels cannot be given one name. Rename one label at a time.": "無法為多個標籤設定同一個名稱。請一次只重新命名一個標籤。",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "此專案中已有名為 {{name}} 的待命策略。請換一個名稱。",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "此專案中已有名為 {{name}} 的已封存待命策略。請在「待命 > 進階 > 已封存策略」中取消封存，或換一個名稱。",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "無法為多個待命策略設定同一個名稱。請一次只重新命名一個策略。",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "此專案中已有名為 {{name}} 的待命排程。請換一個名稱。",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "無法為多個待命排程設定同一個名稱。請一次只重新命名一個排程。"
 }

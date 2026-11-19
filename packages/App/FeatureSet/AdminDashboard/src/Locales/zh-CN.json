@@ -4318,5 +4318,14 @@
   "Already in this team": "已在此团队中",
   "Already invited to this team": "已受邀加入此团队",
   "Not in this project yet": "尚未加入此项目",
-  "People you can invite": "可邀请的人员"
+  "People you can invite": "可邀请的人员",
+  "There is already a team called {{name}} in this project. Pick another name.": "此项目中已有名为 {{name}} 的团队。请换一个名称。",
+  "Several teams cannot be given one name. Rename one team at a time.": "无法为多个团队设置同一个名称。请一次只重命名一个团队。",
+  "There is already a label called {{name}} in this project. Pick another name.": "此项目中已有名为 {{name}} 的标签。请换一个名称。",
+  "Several labels cannot be given one name. Rename one label at a time.": "无法为多个标签设置同一个名称。请一次只重命名一个标签。",
+  "There is already an on-call policy called {{name}} in this project. Pick another name.": "此项目中已有名为 {{name}} 的值班策略。请换一个名称。",
+  "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "此项目中已有名为 {{name}} 的已归档值班策略。请在“值班 > 高级 > 已归档策略”中取消归档，或换一个名称。",
+  "Several on-call policies cannot be given one name. Rename one policy at a time.": "无法为多个值班策略设置同一个名称。请一次只重命名一个策略。",
+  "There is already an on-call schedule called {{name}} in this project. Pick another name.": "此项目中已有名为 {{name}} 的值班排班。请换一个名称。",
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "无法为多个值班排班设置同一个名称。请一次只重命名一个排班。"
 }
