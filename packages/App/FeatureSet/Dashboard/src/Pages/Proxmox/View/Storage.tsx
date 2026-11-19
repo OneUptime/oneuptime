@@ -10,6 +10,7 @@ import {
   routeParamFromExternalId,
 } from "../Utils/ProxmoxResourceUtils";
 import {
+  PROXMOX_STORAGE_USAGE_COLUMNS,
   getProxmoxStorageColumns,
   toProxmoxListResource,
 } from "../../../Components/Proxmox/ProxmoxResourceColumns";
@@ -94,6 +95,7 @@ const ProxmoxClusterStorage: FunctionComponent<
       }}
       tableIdPrefix="proxmox"
       emptyMessage="No storage volumes reported yet. Make sure the Proxmox agent is sending metrics."
+      storageUsageColumns={PROXMOX_STORAGE_USAGE_COLUMNS}
       columns={getProxmoxStorageColumns({
         resources: resources,
         translator: translator,

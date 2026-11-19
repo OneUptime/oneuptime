@@ -131,9 +131,13 @@ Dat gebeurt wanneer de sleutel die een resource beheert, hem niet meer kan lezen
 
 ### Een prioriteit of volgorde die verschuift
 
-Monitorstatussen, statussen en ernstniveaus van incidenten en waarschuwingen, en de andere lijsten die je in het dashboard op volgorde zet, bevatten elk nummer één keer. Een nummer dat niemand anders heeft, blijft zoals het geschreven is. Een nummer dat een ander al heeft, wordt overgenomen, en de items die in de weg staan, schuiven één plaats op, zoals slepen in het dashboard doet. Twee items die met hetzelfde nummer zijn geconfigureerd, wisselen dus bij elke apply van plaats.
+Elke lijst die je in het dashboard op volgorde zet, houdt het nummer dat elke resource krijgt: monitorstatussen (`priority`), statussen en ernstniveaus van incidenten en waarschuwingen, aangepaste velden, logpijplijnen en dropfilters (`sort_order`), groepen en resources van statuspagina's, escalatieregels, lagen van roosters en de rest. Een nummer instellen plaatst die resource en verplaatst geen andere, dus een configuratie die een hele lijst nummert, zoals `order = index(local.severities, each.key) + 1` over een `for_each` van `local.severities`, wordt precies zo toegepast als ze geschreven is, in welke volgorde de schrijfacties van de provider ook aankomen, en het volgende plan is leeg.
 
-Geef elk een eigen nummer met ruimte ertussen, zoals `101`, `102` en `103`, en orden de items die Terraform beheert opnieuw in Terraform, niet door ze in het dashboard te slepen.
+- Geef elke resource een eigen nummer: twee met hetzelfde nummer houden het allebei, naast elkaar, in een volgorde die je niet kiest.
+- Een resource die zonder nummer wordt aangemaakt, komt aan het eind van zijn lijst. Een nieuwe status van een incident of waarschuwing komt in plaats daarvan net boven de opgeloste status, en een nieuwe monitorstatus net boven de offline-status.
+- Een resource verwijderen laat een gat in de nummers achter, wat niets verandert: een lijst gaat uit van zijn nummers, niet van tellen.
+- Een resource slepen in het OneUptime-dashboard nummert zijn hele lijst opnieuw vanaf boven, en het volgende plan toont dat als wijzigingen. Zet de resources die Terraform beheert in Terraform op volgorde.
+- De ingebouwde statussen houden hun volgorde: een wijziging die er twee op hetzelfde nummer of uit hun volgorde zou zetten, wordt geweigerd, met de reden. Als een apply ingebouwde statussen voorbij elkaars oude nummers verplaatst, kan een van zijn schrijfacties als eerste aankomen en op die weigering stuiten; voer de apply opnieuw uit en hij wordt afgerond.
 
 ### Alleen-lezen attributen
 

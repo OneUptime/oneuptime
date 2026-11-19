@@ -44,7 +44,9 @@ Silence alone never fails the agent. A healthy cost agent is idle most of the ti
 
 ## Deployment
 
-The agent ships as part of the `oneuptime/kubernetes-agent` Helm chart — `--set cost.enabled=true` is a complete install: the chart bundles OpenCost (plus the minimal Prometheus it needs) and wires this poller to it automatically. Already running Kubecost or OpenCost? Set `cost.engine.url` to its Service instead and nothing is bundled. See the chart's `values.yaml` and the OneUptime docs page "Kubernetes Cost Observability".
+The agent ships as part of the `oneuptime/kubernetes-agent` Helm chart and runs by default (`cost.enabled: auto`), except with the `gke-autopilot` and `eks-fargate` presets: the chart bundles OpenCost (plus the minimal Prometheus it needs) and wires this poller to it automatically. Turn it on with those presets with `--set cost.enabled=true`, or off anywhere with `--set cost.enabled=false`. Already running Kubecost or OpenCost? Set `cost.engine.url` to its Service instead and nothing is bundled. See the chart's `values.yaml` and the OneUptime docs page "Kubernetes Cost Observability".
+
+Besides the allocation rows, the server derives four metrics from each hour this poller sends — `oneuptime.kubernetes.cost.total`, `.idle`, `.workload` and `.efficiency` — which the cluster's Metrics page shows and Kubernetes monitors alert on.
 
 ## Development
 

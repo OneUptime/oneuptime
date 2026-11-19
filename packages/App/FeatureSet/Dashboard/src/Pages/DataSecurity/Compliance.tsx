@@ -7,23 +7,20 @@ import {
 } from "../../Components/DataSecurity/ComplianceExport";
 import ComplianceFrameworkTile, {
   NOT_EVALUATED,
+  REQUIREMENT_STATUS_TONES,
+  STORES_TURNED_OFF,
   formatComplianceScore,
   getComplianceScoreClassName,
   getFailingRequirementCount,
 } from "../../Components/DataSecurity/ComplianceFrameworkTile";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import { getIssueListRoute } from "../../Components/DataSecurity/IssueListRoute";
-import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
 import { COMPLIANCE_FRAMEWORK_INFO } from "Common/Types/DataSecurity/ComplianceFramework";
 import {
   DataSecurityComplianceFramework,
   DataSecurityComplianceResponse,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import {
-  ComplianceRequirementResult,
-  ComplianceRequirementStatus,
-} from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
+import { ComplianceRequirementResult } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import {
   DataSecurityCheckInfo,
   getDataSecurityCheck,
@@ -33,6 +30,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -67,12 +65,6 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * the open issues behind it - a link to Issues, narrowed to its checks -
  * and exports the framework's report as CSV or JSON for an auditor.
  */
-
-const REQUIREMENT_STATUS_COLOR: Readonly<Record<string, Color>> = {
-  [ComplianceRequirementStatus.Passing]: Green500,
-  [ComplianceRequirementStatus.Failing]: Red500,
-  [ComplianceRequirementStatus.NotEvaluated]: Gray500,
-};
 
 const OPEN_ISSUES: PluralTemplate = {
   one: "{{count}} open issue",
@@ -136,7 +128,7 @@ const RequirementsTable: FunctionComponent<{
             return (
               <Pill
                 text={row.status}
-                color={REQUIREMENT_STATUS_COLOR[row.status] || Gray500}
+                tone={REQUIREMENT_STATUS_TONES[row.status] || PillTone.Neutral}
               />
             );
           },
@@ -404,6 +396,25 @@ const DataSecurityCompliancePage: FunctionComponent<
                   getFailingRequirementCount(framework),
                 )}
               </div>
+              {/*
+               * Stores the framework would cover, left out because the
+               * cluster, database or service they are on turned it off
+               * there (#9555): said, so an auditor knows the score's
+               * scope.
+               */}
+              {(framework.storesTurnedOff || 0) > 0 ? (
+                <div
+                  className="text-sm text-gray-600"
+                  data-testid="data-security-compliance-stores-turned-off"
+                >
+                  {translator.translatePlural(
+                    STORES_TURNED_OFF,
+                    framework.storesTurnedOff,
+                  )}
+                </div>
+              ) : (
+                <></>
+              )}
             </div>
             <RequirementsTable framework={framework} />
           </div>

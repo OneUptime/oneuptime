@@ -960,12 +960,26 @@ describe("the settings the image, its scripts, CI and the Probe image share", ()
     expect(unread).toEqual([]);
   });
 
+  const clickhouseSuites = TRACKED_FILES.filter((file) => {
+    return (
+      file.startsWith("packages/App/Tests/") &&
+      file.endsWith("Clickhouse.test.ts")
+    );
+  });
+
+  /*
+   * A suite named *KeeperClickhouse runs against a cluster of replicas
+   * coordinated by Keeper, which its fixture's compose file starts
+   * (packages/App/Tests/Workers/Fixtures/ClickhouseKeeperCluster). Neither
+   * CI nor this image runs one, so such a suite reads a variable of its own.
+   */
+  const isKeeperClusterSuite = (file) => {
+    return file.endsWith("KeeperClickhouse.test.ts");
+  };
+
   test("TEST_CLICKHOUSE_URL is the variable the ClickHouse suites read, on the port config.env names", () => {
-    const suites = TRACKED_FILES.filter((file) => {
-      return (
-        file.startsWith("packages/App/Tests/") &&
-        file.endsWith("Clickhouse.test.ts")
-      );
+    const suites = clickhouseSuites.filter((file) => {
+      return !isKeeperClusterSuite(file);
     });
 
     expect(suites.length).toBeGreaterThan(0);
@@ -978,6 +992,20 @@ describe("the settings the image, its scripts, CI and the Probe image share", ()
       `http://default:\${clickhouse_password}@localhost:${SETTINGS.get("CLICKHOUSE_PORT")}`,
     );
     expect(SETTINGS.get("CLICKHOUSE_PASSWORD")).toBe("${clickhouse_password}");
+  });
+
+  test("a suite against a Keeper cluster reads a variable of its own, which config.env leaves unset", () => {
+    for (const suite of clickhouseSuites.filter(isKeeperClusterSuite)) {
+      const text = read(suite);
+
+      expect(text).toContain(
+        'process.env["TEST_CLICKHOUSE_KEEPER_CLUSTER_URL"]',
+      );
+      expect(text).not.toContain('process.env["TEST_CLICKHOUSE_URL"]');
+    }
+
+    // The image runs one ClickHouse server, not a cluster.
+    expect(SETTINGS.has("TEST_CLICKHOUSE_KEEPER_CLUSTER_URL")).toBe(false);
   });
 
   test("no secret is a placeholder from config.example.env", () => {

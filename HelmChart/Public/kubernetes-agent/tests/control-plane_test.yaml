@@ -65,10 +65,13 @@ tests:
           pattern: "job_name: (etcd|kube-apiserver|kube-scheduler|kube-controller-manager)\\n"
 
   - it: adds no prometheus receiver when every component's list is empty, which would stop the collector
+    # Cost monitoring, on by default, scrapes its engine through the same
+    # receiver; off here, so the receiver has only the control plane's jobs.
     set:
       clusterName: prod-us
       controlPlane.enabled: true
       controlPlane.apiServer.endpoints: []
+      cost.enabled: false
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]

@@ -35,6 +35,7 @@ flowchart LR
 | 노드 컬렉터 | DaemonSet | `/var/log/pods` 의 파드 로그, kubelet 및 cAdvisor 메트릭, 노드의 OS 메트릭. | 예 |
 | eBPF 계측(OBI) | DaemonSet | 모든 파드의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 예 |
 | Kubernetes AI 에이전트 | Deployment | OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 읽기 전용 `kubectl` 을 실행할 수 있게 합니다. | 예 |
+| 비용 엔진과 폴러 | Deployments | 각 네임스페이스와 워크로드의 비용: OpenCost, 그에 필요한 작은 Prometheus, 그리고 이들이 계산한 결과를 보내는 비용 에이전트. | 예. 단, `gke-autopilot` 및 `eks-fargate` 프리셋에서는 제외 |
 | 로그 테일러 | Deployment | 노드 컬렉터가 읽을 수 없는 곳에서 Kubernetes API를 통해 파드 로그를 가져옵니다. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋에서 |
 | eBPF 프로파일러 | DaemonSet | 모든 프로세스의 지속적인 CPU 플레임 그래프. | 아니요 |
 | kube-state-metrics | Deployment | 파드 단계, 컨테이너 대기 사유, 리소스 쿼터. | 아니요 |
@@ -357,14 +358,14 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 | --- | --- | --- |
 | `hostMetrics.enabled` | 켜짐 | `/proc` 와 `/sys` 에서 가져오는 각 노드의 OS 메트릭: 디스크 I/O 큐, 파일 시스템 inode, 네트워크 인터페이스 오류, 페이징, 로드 평균. 노드 컬렉터 안에서 실행되며 추가 파드가 없습니다. |
 | `kubeletstats.utilizationMetrics.enabled` | 켜짐 | 컨테이너와 파드의 CPU 및 메모리를 request와 limit 대비 백분율로. Pod CPU Saturating Container Limit 및 Pod Memory Saturating Container Limit 템플릿이 이를 읽습니다. limit(또는 request)이 없는 컨테이너에는 이 시리즈가 없으며, 파드에는 모든 컨테이너에 있을 때만 있습니다. |
-| `kubeletstats.volumeMetrics.enabled` | 켜짐 | 각 PVC의 여유 공간과 전체 공간(`k8s.volume.available`, `k8s.volume.capacity`). 직접 만드는 차트와 메트릭 모니터용이며, 기본 제공 템플릿은 이를 읽지 않습니다. 파드당 PVC당 시리즈 하나입니다. |
+| `kubeletstats.volumeMetrics.enabled` | 켜짐 | 각 PVC의 여유 공간과 전체 공간(`k8s.volume.available`, `k8s.volume.capacity`)을 클레임 이름과 함께 보냅니다. 영구 볼륨 클레임 페이지의 사용량, 여유 공간, 용량과 PVC Almost Full 템플릿이 읽는 값입니다. 볼륨과 Pod마다 몇 개의 시리즈입니다. |
 | `cadvisor.enabled` | 켜짐 | 각 kubelet의 `/metrics/cadvisor` 에서 가져오는 CPU 스로틀링과 OOM 종료: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`, `container_oom_events_total` 만 수집합니다. |
 | `kubeStateMetrics.enabled` | 꺼짐 | kube-state-metrics에서 가져오는 파드 단계(Pending, Terminating), 스케줄할 수 없는 파드, 컨테이너 대기 사유(CrashLoopBackOff, ImagePullBackOff), 리소스 쿼터 사용량. `kubeStateMetrics.mode: bundled`(기본값)는 작은 kube-state-metrics를 대신 실행하고, `external` 은 이미 실행 중인 것을 `kubeStateMetrics.endpoint` 에서 읽습니다. |
 | `auditLogs.enabled` | 꺼짐 | Kubernetes 감사 로그 `/var/log/kubernetes/audit.log`: API에 대한 모든 요청과 누가 무엇에 요청했는지. 자체 관리형 클러스터만 해당합니다. 관리형 클러스터(EKS, GKE, AKS, DOKS)는 이를 클라우드 공급자에게 보냅니다. |
 | `csi.enabled` | 꺼짐 | `app=csi-driver` 또는 `app.kubernetes.io/component=csi-driver` 레이블이 붙은 파드에서 가져오는 CSI 스토리지 드라이버 메트릭: 볼륨 연결 및 분리 시간, 프로비저닝 실패, IOPS. |
 | `coreDns.enabled` | 꺼짐 | `:9153/metrics` 의 CoreDNS 메트릭: 쿼리 속도, 지연 시간, 캐시 적중, 오류. |
 | `controlPlane.enabled` | 꺼짐 | 클러스터 안의 주소에 있는 API 서버, 그리고 지정한 엔드포인트에 있는 etcd, 스케줄러, 컨트롤러 관리자([컨트롤 플레인 모니터링 활성화](/docs/telemetry/kubernetes-agent#컨트롤-플레인-모니터링-활성화)). 자체 관리형 클러스터만 해당하며, 관리형 클러스터는 이를 노출하지 않습니다. |
-| `cost.enabled` | 꺼짐 | 각 워크로드의 비용. [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)를 참고하세요. |
+| `cost.enabled` | `auto` | 각 네임스페이스와 워크로드의 비용. 유휴 용량과 효율을 포함하며, 경고를 설정할 수 있는 메트릭으로도 제공됩니다. `gke-autopilot` 및 `eks-fargate` 프리셋을 제외하면 켜지며, `false`로 끕니다. [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)를 참고하세요. |
 
 ## 주요 옵션
 

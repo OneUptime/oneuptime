@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "بله، روشن بود",
   "No, it was not clear": "نه، روشن نبود",
   "Thanks for telling us.": "از اینکه به ما گفتید سپاسگزاریم.",
+  "Thanks for your answer.": "از پاسخ شما سپاسگزاریم.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» از سقف {{size}} بزرگ‌تر است.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "«{{fileName}}» از نوع فایلی نیست که این فیلد می‌پذیرد.",

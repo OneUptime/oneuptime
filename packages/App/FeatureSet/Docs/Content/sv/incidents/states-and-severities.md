@@ -130,7 +130,7 @@ En flytt går uppåt i listan igen: en grupperingsregels återöppning. En regel
 
 För att rätta ett tillstånd som satts av misstag tar du bort dess rad på sidan med postens tillståndstidslinje (se [Tillståndstidslinjen](#tillståndstidslinjen)). Posten går tillbaka till tillståndet i dess senaste återstående rad; en episod där du tar bort raden som löste den är öppen igen, och dess lösningstid rensas.
 
-Via API:t och Terraform är ordningen kolumnen `order`: lägre tal kommer först. Ett tillstånd som skapas utan hamnar precis ovanför det lösta tillståndet; ett som skapas eller uppdateras med ett tal tar den platsen, och tillstånden i vägen flyttar ner ett steg. Tal som ingen annan har behålls som de skrevs, så ett tillstånd som hanteras av Terraform läser tillbaka talet det fick.
+Via API:t och Terraform är ordningen kolumnen `order`: lägre tal kommer först. Ett tillstånd som skapas utan hamnar precis ovanför det lösta tillståndet. Ett tal du skriver behålls som det skrevs och flyttar inget annat tillstånd, så ett tillstånd som hanteras av Terraform läser tillbaka talet det fick; av två tillstånd med samma tal visas det äldsta först. De inbyggda tillstånden behåller ändå sin ordning: en skrivning som skulle ge två av dem samma tal eller rubba deras ordning nekas.
 
 ## De förskapade allvarlighetsgraderna
 

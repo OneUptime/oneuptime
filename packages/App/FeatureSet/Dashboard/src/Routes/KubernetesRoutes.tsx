@@ -45,6 +45,9 @@ import KubernetesClusterViewServices from "../Pages/Kubernetes/View/Services";
 import KubernetesClusterViewServiceDetail from "../Pages/Kubernetes/View/ServiceDetail";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
+import KubernetesClusterViewSecurityEvents from "../Pages/Kubernetes/View/SecurityEvents";
+import KubernetesClusterViewDataSecurity from "../Pages/Kubernetes/View/DataSecurity";
+import KubernetesClusterViewCompliance from "../Pages/Kubernetes/View/Compliance";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewAiAgent, {
   KubernetesClusterViewAiRedirect,
@@ -717,6 +720,53 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Security Events: what the cluster's audit log, and any source, says about it */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <KubernetesClusterViewSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        {/* Data Security: the databases running on the cluster, and what to fix on them */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
+          )}
+          element={
+            <KubernetesClusterViewDataSecurity
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY] as Route
+              }
+            />
+          }
+        />
+
+        {/* Compliance: how those databases stand, and what is turned off for the cluster */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+          )}
+          element={
+            <KubernetesClusterViewCompliance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE] as Route
               }
             />
           }

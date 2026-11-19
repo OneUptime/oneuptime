@@ -225,8 +225,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** serve le sue metriche in HTTP semplice sulle `--listen-metrics-urls` di kubeadm (porta 2381, associata a `127.0.0.1` finché non aggiungi l'indirizzo del nodo), come sopra. Oppure interroga la sua porta client HTTPS, 2379, con il certificato client che richiede: metti `ca.crt`, `tls.crt` e `tls.key` in un Secret in `oneuptime-agent` e indicalo in `controlPlane.etcd.clientCertSecret`.",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "Solo per i cluster autogestiti: i servizi gestiti (EKS, GKE, AKS) non espongono le metriche del loro control plane.",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "Basta questo per un'installazione completa: il chart include il motore open source OpenCost (più il piccolo Prometheus di cui ha bisogno) e assegna un prezzo a nodi e volumi in base ai listini pubblici del tuo provider cloud, senza credenziali. Aggiunge due piccoli pod; i primi dati compaiono dopo la prima ora completa.",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "Il monitoraggio dei costi è attivo per impostazione predefinita: l'agente include il motore open source OpenCost (più il piccolo Prometheus di cui ha bisogno), assegna un prezzo a nodi e volumi in base ai listini pubblici del tuo provider cloud, senza credenziali, e invia quanto costa ogni namespace e ogni workload. I primi dati compaiono nella panoramica del cluster e nella sua pagina Costi dopo la prima ora completa.",
+  "On an agent installed before it was on by default, upgrade it:":
+    "Se il tuo agente è stato installato prima che fosse attivo per impostazione predefinita, aggiornalo:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **Per disattivarlo:** aggiungi `--set cost.enabled=false` allo stesso aggiornamento.",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **Usi già Kubecost o OpenCost?** Punta invece l'agente su di esso, e non viene incluso nulla: aggiungi `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (o il tuo servizio Kubecost).",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -284,8 +288,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **Metriche delle richieste e grafo dei servizi** *(eBPF)* | Frequenza delle richieste, errori e latenza per servizio, e archi chiamante → chiamato per la mappa dei servizi |",
   "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |":
     "| **Flussi di rete** *(eBPF)* | Contatori di byte e pacchetti TCP/UDP da pod a pod |",
-  "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
-    "| **Costi dei workload** *(facoltativo, `cost.enabled=true`)* | Spesa per namespace, workload e pod, con capacità inutilizzata ed efficienza |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **Costi dei workload** *(attivi per impostazione predefinita)* | Spesa per namespace, workload e pod, con capacità inutilizzata ed efficienza, anche come metriche su cui generare avvisi |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "Il tuo cluster blocca i volumi `hostPath` o i pod privilegiati. È normale su **GKE Autopilot** ed **EKS Fargate**: scegli quella piattaforma in cima a questa guida e segui i suoi passaggi. Su **OpenShift** invece l'installazione riesce, ma i pod di nodo dell'agente non si avviano mai: scegli **Red Hat OpenShift**.",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

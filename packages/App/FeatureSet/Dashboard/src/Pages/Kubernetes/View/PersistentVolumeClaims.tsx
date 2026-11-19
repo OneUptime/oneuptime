@@ -23,6 +23,14 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  KubernetesVolumeClaimUsage,
+  getKubernetesVolumeClaimStorageCell,
+  getKubernetesVolumeClaimUsage,
+  isVolumeUsageMissingFromCluster,
+} from "../Utils/KubernetesVolumeUsage";
+import KubernetesVolumeUsageMissingAlert from "../../../Components/Kubernetes/KubernetesVolumeUsageMissingAlert";
 
 const KubernetesClusterPVCs: FunctionComponent<
   PageComponentProps
@@ -30,6 +38,11 @@ const KubernetesClusterPVCs: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [resources, setResources] = useState<Array<KubernetesResource>>([]);
+  /*
+   * Not one claim reports its usage: the agent most likely predates it, so
+   * the page says how to get it, once, above the list.
+   */
+  const [isUsageMissing, setIsUsageMissing] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -50,11 +63,14 @@ const KubernetesClusterPVCs: FunctionComponent<
         return;
       }
 
+      const usages: Array<KubernetesVolumeClaimUsage> = [];
+
       const pvcResources: Array<KubernetesResource> =
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "PersistentVolumeClaim",
           selectFullSpec: true,
+          selectVolumeUsage: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,
@@ -81,10 +97,25 @@ const KubernetesClusterPVCs: FunctionComponent<
               (spec["volumeName"] as string) || "N/A";
             resource.additionalAttributes["accessModes"] =
               accessModes.join(", ") || "N/A";
+
+            // Used and free, as the kubelet last measured the claim's volume.
+            const usage: KubernetesVolumeClaimUsage =
+              getKubernetesVolumeClaimUsage({
+                latestVolumeCapacityBytes: row.latestVolumeCapacityBytes,
+                latestVolumeAvailableBytes: row.latestVolumeAvailableBytes,
+                latestVolumeInodes: row.latestVolumeInodes,
+                latestVolumeInodesFree: row.latestVolumeInodesFree,
+                metricsUpdatedAt: row.metricsUpdatedAt,
+                status: status as JSONObject,
+                spec: spec as JSONObject,
+              });
+            usages.push(usage);
+            resource.storageUsage = getKubernetesVolumeClaimStorageCell(usage);
           },
         });
 
       setResources(pvcResources);
+      setIsUsageMissing(isVolumeUsageMissingFromCluster(usages));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -107,26 +138,37 @@ const KubernetesClusterPVCs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      notice={
+        isUsageMissing ? <KubernetesVolumeUsageMissingAlert /> : undefined
+      }
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
       title="Persistent Volume Claims"
-      description="All PVCs in this cluster with their current status."
+      description="Every claim in this cluster: how much of it is used, how much is free, and its status."
       resources={resources}
       showResourceMetrics={false}
+      storageUsageColumns={{
+        usedDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcUsed,
+        freeDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcFree,
+      }}
       columns={[
+        {
+          title: "Capacity",
+          key: "capacity",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcCapacity,
+          // Under Used while the table runs out of room, as Free is.
+          foldInto: "storageUsage",
+          showTitleWhenFolded: true,
+        },
         {
           title: "Storage Class",
           key: "storageClass",
         },
         {
-          title: "Capacity",
-          key: "capacity",
-          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcCapacity,
-        },
-        {
           title: "Volume",
           key: "volumeName",
+          isName: true,
         },
         {
           title: "Access Modes",

@@ -6,6 +6,7 @@ import useDashboardNavigationItems, {
 import { getItemPlacement } from "../../Utils/ProjectProducts/ProductsMenu";
 import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
 import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { withResourcePagesShown } from "../../Utils/ProjectProducts/ProductsInResources";
 import { ProductPlacement } from "Common/Types/Product/ProjectProducts";
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
@@ -1270,8 +1271,8 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       const recordPageModels: Map<string, RecordPageSearchModel> =
         getRecordPageSearchModels();
       const recordPageKinds: Array<RecordPageSearchKind> =
-        getRecordPageSearchKinds().filter(
-          (kind: RecordPageSearchKind): boolean => {
+        getRecordPageSearchKinds()
+          .filter((kind: RecordPageSearchKind): boolean => {
             const model: RecordPageSearchModel | undefined =
               recordPageModels.get(kind.id);
             const product: ProductKey | null = kind.pages[0]
@@ -1287,8 +1288,11 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
                 isMasterAdmin,
               })
             );
-          },
-        );
+          })
+          // A host's Security Events only while its menu shows them (#9547).
+          .map((kind: RecordPageSearchKind): RecordPageSearchKind => {
+            return withResourcePagesShown(kind, products.answer);
+          });
 
       if (recordPageKinds.length > 0) {
         searchProviders = [
@@ -1432,7 +1436,10 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
     commands = [
       ...commands,
       ...buildOpenRecordPageCommands({
-        openRecord,
+        openRecord: {
+          ...openRecord,
+          kind: withResourcePagesShown(openRecord.kind, products.answer),
+        },
         recordTitle: openRecordTitles[openRecordKey],
         translate: (text: string): string => {
           return translator.translateText(text) || text;

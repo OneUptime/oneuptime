@@ -1,10 +1,11 @@
 # Data Security Compliance
 
-Data Security scores nine frameworks from what its scans found. Each framework covers the stores its rules are about - GDPR the stores holding personal data, PCI DSS the stores where card data was found, SOC 2 every store - and each of its requirements is met or failed by the checks that are evidence for it. **Data Security → Compliance** shows each framework's score, how many stores it covers, and every requirement with how many open issues fail it. A score is evidence for an audit, not a certificate: it says what OneUptime can see of the stores it reads.
+Data Security scores nine frameworks from what its scans found. Each framework covers the stores its rules are about - GDPR the stores holding personal data, PCI DSS the stores where card data was found, SOC 2 every store - and each of its requirements is met or failed by the checks that are evidence for it. **Data Security → Compliance** shows each framework's score, how many stores it covers, and every requirement with how many open issues fail it. Each resource that holds data stores - a Kubernetes cluster, a Docker or Podman host, a database, a service or a cloud resource - has the same page of its own, where what does not apply to it can be turned off. A score is evidence for an audit, not a certificate: it says what OneUptime can see of the stores it reads.
 
 :::cards
 - [The frameworks](#the-frameworks): The nine, and which stores each one covers.
 - [How a framework is scored](#how-a-framework-is-scored): Passing, failing and not evaluated requirements.
+- [On a resource's page](#on-a-resources-page): One cluster's, host's, database's, service's or cloud resource's compliance, and what is turned off for it.
 - [Requirements and their checks](#requirements-and-their-checks): Every requirement, and the checks that are evidence for it.
 - [Record of processing](#record-of-processing): GDPR Article 30, written from your stores.
 :::
@@ -47,9 +48,31 @@ flowchart TB
 - **A requirement passes** when no open issue of the checks mapped to it sits on a store in the framework's scope, and **fails** when one does.
 - **It is not evaluated** while no store in scope has had its configuration read or its content scanned.
 - **Two requirements are met by Data Security itself**: GDPR Article 30, records of processing activities, and ISO 27001 A.5.12, classification of information. They pass once every store in scope has been read or scanned, and fail while one has not.
-- **The score** is the share of a framework's evaluated requirements that pass, as a whole percentage. A framework with nothing evaluated has no score.
+- **It is turned off** when every store in scope belongs to a resource that turned the requirement off (see [On a resource's page](#on-a-resources-page)).
+- **The score** is the share of a framework's evaluated requirements that pass, as a whole percentage: one turned off counts neither way. A framework with nothing evaluated has no score.
 
 Only open issues count. An issue whose risk is accepted, or that is not an issue, does not fail its requirements, so an accepted risk is a decision your audit can see on the issue: who accepted it, why, and until when.
+
+## On a resource's page
+
+A resource's menu has a **Security** section, folded until you open it, once it holds a data store Data Security knows, in a project that uses Data Security and for someone who may read data stores:
+
+| Resource | Its data stores |
+| --- | --- |
+| Kubernetes cluster | The databases running on it |
+| Docker or Podman host | The databases running on it |
+| Database | The database itself |
+| Service | Its telemetry: the logs, traces and exceptions it sends |
+| Cloud resource | The bucket, database or warehouse it is |
+
+- **Data Security** lists those stores, the riskiest first, and the open issues on them. Each opens in Data Security, where it is worked.
+- **Compliance** scores the frameworks for those stores alone. The frameworks their data brings into scope come first; the ones turned off, and the ones none of the stores holds data for, are folded below.
+
+Each framework has a switch, **Applies Here**, and so does each of its requirements. Turning one off leaves the resource's stores out of that framework, or out of that requirement, on the resource's page and on **Data Security → Compliance**, which says how many stores were turned off on their resources. Turning it on again puts them back. Every switch is saved at once, and each change is kept in the project's [Audit Logs](/docs/configuration/audit-logs).
+
+A store follows one resource's switches. A database running on a Kubernetes cluster, or on a Docker or Podman host, follows that cluster's or host's: turn a framework off for the cluster, and it is off for every database on it. The database's own Compliance page says so and links there, its switches locked.
+
+Security Members, Security Admins, Project Admins and Project Owners can turn frameworks and requirements on and off, as they can tune a check. Security Viewers see what is turned off.
 
 ## Requirements and their checks
 
@@ -162,7 +185,7 @@ GDPR Article 30 asks you to keep a record of your processing activities. Data Se
 | Retention | What you write in the store's **Retention**: how long data is kept in it |
 | Frameworks | The frameworks its data types bring into scope |
 
-Fill in **Purpose** and **Retention** in each store's **Settings**: they are the two things no scan can know. The record and the scores are also answered by Data Security's API, at `/data-security/record-of-processing` and `/data-security/compliance`, for anyone who may read data stores (see [Data Security Integrations](/docs/data-security/integrations#api-terraform-and-mcp)).
+Fill in **Purpose** and **Retention** in each store's **Settings**: they are the two things no scan can know. The record and the scores are also answered by Data Security's API, at `/data-security/record-of-processing`, `/data-security/compliance` and, for one resource, `/data-security/resource-compliance`, for anyone who may read data stores (see [Data Security Integrations](/docs/data-security/integrations#api-terraform-and-mcp)).
 
 ## Next steps
 

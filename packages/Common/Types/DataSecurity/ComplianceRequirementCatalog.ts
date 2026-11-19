@@ -22,6 +22,11 @@ import { DataTypeInfo, getBuiltInDataType } from "./DataTypeCatalog";
  * Two requirements are met by Data Security itself - an inventory of data
  * and its classification - and pass once every in-scope store has been
  * scanned for content or its configuration read.
+ *
+ * A resource can turn a framework, or one of its requirements, off for its
+ * own stores (ComplianceScope.ts): those stores then leave the framework's
+ * scope, or that requirement's, wherever it is scored, and a requirement no
+ * store in scope covers any more reads "Turned off".
  */
 
 export interface ComplianceRequirementInfo {
@@ -174,6 +179,12 @@ export enum ComplianceRequirementStatus {
   Passing = "Passing",
   Failing = "Failing",
   NotEvaluated = "Not evaluated",
+  /*
+   * Every store in scope is on a resource that turned the requirement off
+   * (ComplianceScope.ts): someone decided it does not apply there. Left out
+   * of the score, as a requirement not evaluated is.
+   */
+  TurnedOff = "Turned off",
 }
 
 export interface ComplianceIssueInput {
@@ -194,27 +205,44 @@ export interface ComplianceFrameworkResult {
   // 0 to 100, or null when nothing could be evaluated.
   score: number | null;
   storesInScope: number;
+  /*
+   * Stores the framework covers by their data, left out because the
+   * resource they are on turned it off (ComplianceScope.ts).
+   */
+  storesTurnedOff: number;
   requirements: Array<ComplianceRequirementResult>;
+}
+
+/*
+ * What the resources a project's stores are on turned off, as one
+ * framework's scoring reads it (getComplianceScopeExclusions builds it):
+ * the stores it leaves out altogether, and for each of its requirements
+ * the stores that requirement leaves out. A store left out is neither
+ * evaluated nor failed for what was turned off; the rest of the framework
+ * still counts it.
+ */
+export interface ComplianceScopeExclusions {
+  storeIds?: ReadonlySet<string> | undefined;
+  // Requirement (as the catalog names it) -> the stores it leaves out.
+  requirementStoreIds?: ReadonlyMap<string, ReadonlySet<string>> | undefined;
 }
 
 export function scoreComplianceFramework(
   framework: ComplianceFramework,
   stores: ReadonlyArray<ComplianceStoreInput>,
   openIssues: ReadonlyArray<ComplianceIssueInput>,
+  exclusions?: ComplianceScopeExclusions | undefined,
 ): ComplianceFrameworkResult {
-  const inScope: Array<ComplianceStoreInput> = stores.filter(
+  const byData: Array<ComplianceStoreInput> = stores.filter(
     (store: ComplianceStoreInput) => {
       return isStoreInFrameworkScope(framework, store);
     },
   );
-  const inScopeIds: Set<string> = new Set(
-    inScope.map((store: ComplianceStoreInput) => {
-      return store.id;
-    }),
+  const inScope: Array<ComplianceStoreInput> = byData.filter(
+    (store: ComplianceStoreInput) => {
+      return !exclusions?.storeIds?.has(store.id);
+    },
   );
-  const evaluated: boolean = inScope.some((store: ComplianceStoreInput) => {
-    return store.isEvaluated;
-  });
 
   const requirements: Array<ComplianceRequirementResult> = getRequirementsOf(
     framework,
@@ -224,6 +252,28 @@ export function scoreComplianceFramework(
       info.requirement,
     ).map((check: DataSecurityCheckInfo) => {
       return check.id;
+    });
+    const turnedOffOn: ReadonlySet<string> | undefined =
+      exclusions?.requirementStoreIds?.get(info.requirement);
+    // The stores this requirement covers: in scope, and not turned off there.
+    const covered: Array<ComplianceStoreInput> = turnedOffOn
+      ? inScope.filter((store: ComplianceStoreInput) => {
+          return !turnedOffOn.has(store.id);
+        })
+      : inScope;
+
+    if (inScope.length > 0 && covered.length === 0) {
+      return {
+        requirement: info.requirement,
+        title: info.title,
+        status: ComplianceRequirementStatus.TurnedOff,
+        checkIds,
+        failingIssueCount: 0,
+      };
+    }
+
+    const evaluated: boolean = covered.some((store: ComplianceStoreInput) => {
+      return store.isEvaluated;
     });
 
     if (!evaluated) {
@@ -237,7 +287,7 @@ export function scoreComplianceFramework(
     }
 
     if (info.isMetByInventory) {
-      const allEvaluated: boolean = inScope.every(
+      const allEvaluated: boolean = covered.every(
         (store: ComplianceStoreInput) => {
           return store.isEvaluated;
         },
@@ -254,8 +304,13 @@ export function scoreComplianceFramework(
       };
     }
 
+    const coveredIds: Set<string> = new Set(
+      covered.map((store: ComplianceStoreInput) => {
+        return store.id;
+      }),
+    );
     const failing: number = openIssues.filter((issue: ComplianceIssueInput) => {
-      return inScopeIds.has(issue.storeId) && checkIds.includes(issue.checkId);
+      return coveredIds.has(issue.storeId) && checkIds.includes(issue.checkId);
     }).length;
 
     return {
@@ -274,7 +329,10 @@ export function scoreComplianceFramework(
 
   const scored: Array<ComplianceRequirementResult> = requirements.filter(
     (result: ComplianceRequirementResult) => {
-      return result.status !== ComplianceRequirementStatus.NotEvaluated;
+      return (
+        result.status === ComplianceRequirementStatus.Passing ||
+        result.status === ComplianceRequirementStatus.Failing
+      );
     },
   );
   const passing: number = scored.filter(
@@ -288,6 +346,17 @@ export function scoreComplianceFramework(
     score:
       scored.length === 0 ? null : Math.round((passing / scored.length) * 100),
     storesInScope: inScope.length,
+    storesTurnedOff: byData.length - inScope.length,
     requirements,
   };
+}
+
+// Whether a requirement is one the framework is scored on.
+export function isRequirementOf(
+  framework: ComplianceFramework,
+  requirement: string,
+): boolean {
+  return COMPLIANCE_REQUIREMENTS.some((info: ComplianceRequirementInfo) => {
+    return info.framework === framework && info.requirement === requirement;
+  });
 }

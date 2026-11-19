@@ -558,3 +558,31 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
 
   return table;
 }
+
+/*
+ * Answers `service`'s hook-free writes of one row by id
+ * (updateColumnsByIdWithoutHooks) from `table`, as the UPDATE it sends would
+ * write the row - for a suite whose service writes rows that way as part of
+ * a write under test (a drag-ordered list puts a row at the end of its list
+ * this way). The statement itself is built from TypeORM's metadata, which an
+ * in-memory table has none of. Each write is recorded in `updates`.
+ */
+export function useInMemoryHookFreeWrites<TBaseModel extends BaseModel>(
+  service: DatabaseService<TBaseModel>,
+  table: InMemoryTable,
+): void {
+  getJestSpyOn(service, "updateColumnsByIdWithoutHooks").mockImplementation(
+    async (input: { id: ObjectID; data: unknown }): Promise<void> => {
+      const row: StoredRow | undefined = table.get(input.id);
+
+      if (!row) {
+        return;
+      }
+
+      const written: StoredRow = { ...(input.data as StoredRow) };
+
+      Object.assign(row, written);
+      table.updates.push({ id: String(row["_id"]), set: written });
+    },
+  );
+}

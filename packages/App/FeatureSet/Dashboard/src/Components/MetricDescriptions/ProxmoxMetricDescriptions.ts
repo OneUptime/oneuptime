@@ -93,7 +93,6 @@ export type ProxmoxMetric =
   | "guestsTableBackup"
   // Storage list.
   | "storageTableStatus"
-  | "storageTableUsage"
   // Insights.
   | "insightsDiskThroughput";
 
@@ -294,9 +293,6 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   // Storage list.
   storageTableStatus: translationKey(
     "Available or Unavailable, as Proxmox last reported for each storage volume.",
-  ),
-  storageTableUsage: translationKey(
-    "Space used compared with the volume's total size, with the percentage used, at its latest report. Shows N/A when Proxmox has not reported both numbers.",
   ),
 
   // Insights.

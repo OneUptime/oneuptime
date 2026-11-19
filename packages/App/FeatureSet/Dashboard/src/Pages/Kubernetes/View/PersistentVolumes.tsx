@@ -19,6 +19,11 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import {
+  KubernetesVolumeClaimUsage,
+  getPersistentVolumeStorageCell,
+} from "../Utils/KubernetesVolumeUsage";
+import { fetchKubernetesVolumeClaimUsages } from "../Utils/KubernetesVolumeUsageFetcher";
 
 const KubernetesClusterPVs: FunctionComponent<
   PageComponentProps
@@ -46,6 +51,11 @@ const KubernetesClusterPVs: FunctionComponent<
         return;
       }
 
+      // Each volume's usage is its claim's, read beside the volumes.
+      const claimUsagesPromise: Promise<
+        Map<string, KubernetesVolumeClaimUsage>
+      > = fetchKubernetesVolumeClaimUsages({ kubernetesClusterId: modelId });
+
       const pvResources: Array<KubernetesResource> =
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
@@ -71,8 +81,28 @@ const KubernetesClusterPVs: FunctionComponent<
             resource.additionalAttributes["claimRef"] = claimRef["name"]
               ? `${claimRef["namespace"]}/${claimRef["name"]}`
               : "N/A";
+            resource.additionalAttributes["claimNamespace"] =
+              (claimRef["namespace"] as string) || "";
+            resource.additionalAttributes["claimName"] =
+              (claimRef["name"] as string) || "";
+            resource.additionalAttributes["phase"] =
+              ((row.status as unknown as Record<string, unknown>)?.[
+                "phase"
+              ] as string) || "";
           },
         });
+
+      const claimUsages: Map<string, KubernetesVolumeClaimUsage> =
+        await claimUsagesPromise;
+
+      for (const resource of pvResources) {
+        resource.storageUsage = getPersistentVolumeStorageCell({
+          phase: resource.additionalAttributes["phase"] || "",
+          claimNamespace: resource.additionalAttributes["claimNamespace"] || "",
+          claimName: resource.additionalAttributes["claimName"] || "",
+          claimUsages: claimUsages,
+        });
+      }
 
       setResources(pvResources);
     } catch (err) {
@@ -101,15 +131,21 @@ const KubernetesClusterPVs: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="Persistent Volumes"
-      description="All PVs in this cluster with their current status."
+      description="Every volume in this cluster: how much of it is used, how much is free, and its status."
       resources={resources}
       showNamespace={false}
       showResourceMetrics={false}
+      storageUsageColumns={{
+        usedDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvUsed,
+        freeDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvFree,
+      }}
       columns={[
         {
           title: "Capacity",
           key: "capacity",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvCapacity,
+          foldInto: "storageUsage",
+          showTitleWhenFolded: true,
         },
         {
           title: "Storage Class",

@@ -199,7 +199,8 @@ const DEFAULTS: Array<{ option: string; page: string; chart: unknown }> = [
   { option: "csi.enabled", page: "off", chart: false },
   { option: "coreDns.enabled", page: "off", chart: false },
   { option: "controlPlane.enabled", page: "off", chart: false },
-  { option: "cost.enabled", page: "off", chart: false },
+  // On by default, except with the gke-autopilot and eks-fargate presets (#9548).
+  { option: "cost.enabled", page: "`auto`", chart: "auto" },
   { option: "preset", page: "(empty: `standard`)", chart: "" },
   { option: "oneuptime.labels", page: "`{}`", chart: {} },
   { option: "filters.logs.minSeverity", page: '`""`', chart: "" },
@@ -330,9 +331,10 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
 
   /*
    * The rows used to promise a "PVC Low Disk Space" monitor and CPU and
-   * memory "saturation monitors" that read 0 for a pod without limits. No
-   * template reads the volume metrics, and kubeletstats emits no limit or
-   * request utilization at all where there is nothing to divide by.
+   * memory "saturation monitors" that read 0 for a pod without limits.
+   * kubeletstats emits no limit or request utilization at all where there is
+   * nothing to divide by. The volume metrics are read by the template that
+   * exists, PVC Almost Full, and by the claims pages (#9539).
    */
   it("promises only the templates that exist, and no series where kubeletstats emits none", () => {
     const names: Array<string> = getAllKubernetesAlertTemplates().map(
@@ -342,6 +344,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     );
 
     expect(names).not.toContain("PVC Low Disk Space");
+    expect(names).toContain("PVC Almost Full");
     expect(names).toEqual(
       expect.arrayContaining([
         "Pod CPU Saturating Container Limit",
@@ -352,7 +355,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       "which the Pod CPU and Pod Memory Saturating Container Limit templates read. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one.",
     );
     expect(rowsFor("kubeletstats.volumeMetrics.enabled")[0]![2]).toContain(
-      "for charts and metric monitors of your own: no built-in template reads them.",
+      "named by its claim: the used, free and capacity on the Persistent Volume Claims pages, and what the PVC Almost Full template reads.",
     );
     expect(english).not.toContain("PVC Low Disk Space monitor");
     expect(english).not.toContain("Always 0");
@@ -733,6 +736,8 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "Node collector": "Yes",
         "eBPF instrumentation (OBI)": "Yes",
         "Kubernetes AI agent": "Yes",
+        "Cost engine and poller":
+          "Yes, except with the `gke-autopilot` and `eks-fargate` presets",
         "Log tailer":
           "With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets",
         "eBPF profiler": "No",
@@ -740,6 +745,11 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       });
       expect(valueAt("ebpf.enabled")).toBe(true);
       expect(valueAt("aiAgent.enabled")).toBe(true);
+      // auto: on, except with the two presets (kubernetes-agent.costEnabled).
+      expect(valueAt("cost.enabled")).toBe("auto");
+      expect(chartFile("templates/_helpers.tpl")).toContain(
+        '{{- ternary "false" "true" (or (eq $preset "gke-autopilot") (eq $preset "eks-fargate")) -}}',
+      );
       expect(valueAt("profiling.enabled")).toBe(false);
       expect(valueAt("kubeStateMetrics.enabled")).toBe(false);
 
@@ -751,6 +761,9 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "deployment-logs-api.yaml",
         "daemonset-profiling.yaml",
         "kube-state-metrics.yaml",
+        "deployment-cost-agent.yaml",
+        "opencost.yaml",
+        "prometheus-cost.yaml",
       ]) {
         expect(fs.existsSync(path.join(CHART_DIR, "templates", template))).toBe(
           true,

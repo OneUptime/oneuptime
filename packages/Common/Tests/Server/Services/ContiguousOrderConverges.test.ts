@@ -25,6 +25,12 @@ import {
   rowInList,
 } from "./ContiguousOrderCases";
 import {
+  ListNumbering,
+  NUMBERINGS_OF_SIX,
+  WRITE_SEEDS,
+  shuffled,
+} from "./ListNumberings";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -73,56 +79,11 @@ const LIST_ROWS: Array<string> = [
   "1c000000-0000-4000-8000-0000000000d6",
 ];
 
-// A small, seeded random number generator (mulberry32): the same shuffles every run.
-function seededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let value: number = state;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffled<T>(items: Array<T>, seed: number): Array<T> {
-  const random: () => number = seededRandom(seed);
-  const result: Array<T> = [...items];
-
-  for (let index: number = result.length - 1; index > 0; index--) {
-    const other: number = Math.floor(random() * (index + 1));
-    const held: T = result[index]!;
-    result[index] = result[other]!;
-    result[other] = held;
-  }
-
-  return result;
-}
-
 /*
- * The numberings a configuration gives the six rows, each a number per row,
- * in LIST_ROWS's order: reversed, rotated each way, the ends swapped, the
- * one serialized moves end at [3, 2, 4, 1] for (written 2nd, 3rd, 1st,
- * 4th), and some seeded at random.
+ * The numberings a configuration gives the six rows (a number per row, in
+ * LIST_ROWS's order) and the orders their writes land in (ListNumberings).
  */
-const NUMBERINGS: Array<{ name: string; orders: Array<number> }> = [
-  { name: "reversed", orders: [6, 5, 4, 3, 2, 1] },
-  { name: "rotated down", orders: [2, 3, 4, 5, 6, 1] },
-  { name: "rotated up", orders: [6, 1, 2, 3, 4, 5] },
-  { name: "ends swapped", orders: [6, 2, 3, 4, 5, 1] },
-  { name: "neighbours swapped", orders: [2, 1, 4, 3, 6, 5] },
-  { name: "first four rotated", orders: [2, 3, 4, 1, 5, 6] },
-  ...[11, 23, 37, 41].map((seed: number) => {
-    return {
-      name: `seeded ${seed}`,
-      orders: shuffled([1, 2, 3, 4, 5, 6], seed),
-    };
-  }),
-];
-
-// The orders of the write: three shuffles of every changed row.
-const WRITE_SEEDS: Array<number> = [1, 2, 3];
+const NUMBERINGS: ReadonlyArray<ListNumbering> = NUMBERINGS_OF_SIX;
 
 function creatorFor(
   orderCase: OrderCase,
@@ -168,10 +129,10 @@ describe.each(ORDER_CASES)("$label", (orderCase: OrderCase) => {
     orderCase.stubCollaborators();
   });
 
-  describe.each(NUMBERINGS)(
+  describe.each([...NUMBERINGS])(
     "numbering the list $name",
-    (numbering: { name: string; orders: Array<number> }) => {
-      test.each(WRITE_SEEDS)(
+    (numbering: ListNumbering) => {
+      test.each([...WRITE_SEEDS])(
         "every changed row written at once, shuffled (seed %i), ends at its number",
         async (seed: number) => {
           const expected: Record<string, number> = {};
@@ -210,7 +171,7 @@ describe.each(ORDER_CASES)("$label", (orderCase: OrderCase) => {
    * Adding a row in the middle renumbers the rows after it: a create and
    * an update of each of them, all at once.
    */
-  test.each(WRITE_SEEDS)(
+  test.each([...WRITE_SEEDS])(
     "a row added in the middle, and the rows after it renumbered, all at once (seed %i)",
     async (seed: number) => {
       const added: BaseModel = nameApart(newRow(orderCase, 3), "added");
@@ -262,7 +223,7 @@ describe.each(ORDER_CASES)("$label", (orderCase: OrderCase) => {
    * Taking a row out of the middle renumbers the rows after it: a delete
    * and an update of each of them, all at once.
    */
-  test.each(WRITE_SEEDS)(
+  test.each([...WRITE_SEEDS])(
     "a row taken out of the middle, and the rows after it renumbered, all at once (seed %i)",
     async (seed: number) => {
       const writes: Array<() => Promise<void>> = [

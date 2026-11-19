@@ -42,6 +42,8 @@ import ServiceViewAlerts from "../Pages/Service/View/Alerts";
 import ServiceViewSlos from "../Pages/Service/View/Slos";
 
 import ServiceViewScheduledMaintenance from "../Pages/Service/View/ScheduledMaintenance";
+import ServiceViewDataSecurity from "../Pages/Service/View/DataSecurity";
+import ServiceViewCompliance from "../Pages/Service/View/Compliance";
 
 import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
 
@@ -320,6 +322,28 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route
               }
+            />
+          }
+        />
+
+        {/* Data Security: the sensitive data in this service's telemetry, and what to fix */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DATA_SECURITY)}
+          element={
+            <ServiceViewDataSecurity
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_DATA_SECURITY] as Route}
+            />
+          }
+        />
+
+        {/* Compliance: how this service's telemetry stands against each framework */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_COMPLIANCE)}
+          element={
+            <ServiceViewCompliance
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_COMPLIANCE] as Route}
             />
           }
         />

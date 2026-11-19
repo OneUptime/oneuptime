@@ -340,6 +340,18 @@ export function getKubernetesBreadcrumbs(
       "Events",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+      ["Project", "Kubernetes", "View Cluster", "Security Events"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
+      ["Project", "Kubernetes", "View Cluster", "Data Security"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+      ["Project", "Kubernetes", "View Cluster", "Compliance"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS,
       ["Project", "Kubernetes", "View Cluster", "Recommendations"],
     ),

@@ -1376,6 +1376,7 @@ describe(`${KUBERNETES}: the template table`, () => {
     ControlPlane: "Control Plane",
     Storage: "Storage",
     Scheduling: "Scheduling",
+    Cost: "Cost",
   };
 
   it("lists every template, in the picker's order, with its category and severity", () => {
@@ -1469,9 +1470,9 @@ describe(`${KUBERNETES}: the template table`, () => {
 
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Twenty-one ready-made alerts`,
+      `(#pre-built-alert-templates): Twenty-four ready-made alerts`,
     );
-    expect(templates).toHaveLength(21);
+    expect(templates).toHaveLength(24);
   });
 
   it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {
@@ -1790,6 +1791,7 @@ describe(`${KUBERNETES}: the metric catalog`, () => {
     Workload: "Workload",
     HPA: "HPA",
     ControlPlane: "Control Plane",
+    Cost: "Cost",
   };
 
   it("lists every metric the Custom Metric tab offers, under its category", () => {

@@ -1,6 +1,7 @@
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { KUBERNETES_COST_METRICS } from "../../../../Types/Kubernetes/KubernetesCostMetrics";
 
 /*
  * The metric names the kubernetes-agent chart's collectors actually send,
@@ -157,6 +158,18 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "k8s.pod.cpu_request_utilization",
   "k8s.pod.memory_limit_utilization",
   "k8s.pod.memory_request_utilization",
+  /*
+   * The `volume` group, on while kubeletstats.volumeMetrics.enabled, which
+   * values.yaml defaults to true: each mounted volume's, a persistent volume
+   * claim's named by k8s.persistentvolumeclaim.name (the chart's
+   * extra_metadata_labels k8s.volume.type; tests/volume-claim-usage_test.yaml).
+   * The PVC Almost Full template reads the first two.
+   */
+  "k8s.volume.available",
+  "k8s.volume.capacity",
+  "k8s.volume.inodes",
+  "k8s.volume.inodes.free",
+  "k8s.volume.inodes.used",
 ];
 
 /*
@@ -224,10 +237,22 @@ export const CHART_DERIVED_METRICS: ReadonlyArray<string> = [
   "k8s.job.failed_pods.increase",
 ];
 
+/*
+ * Not the agent's collector's either: OneUptime's cost ingest writes them
+ * from the allocation rows the agent's cost poller sends (#9548), under the
+ * cluster, with the cluster's, namespace's and workload's resource
+ * attributes - so for a Kubernetes monitor they arrive like any metric the
+ * agent sends, from an agent with cost monitoring on (its default).
+ */
+export const COST_INGEST_METRICS: ReadonlyArray<string> = [
+  ...KUBERNETES_COST_METRICS,
+];
+
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
   ...K8S_CLUSTER_RECEIVER_METRICS,
   ...KUBELETSTATS_RECEIVER_METRICS,
   ...CONTROL_PLANE_SCRAPE_METRICS,
   ...ALLOWLISTED_SCRAPE_METRICS,
   ...CHART_DERIVED_METRICS,
+  ...COST_INGEST_METRICS,
 ]);

@@ -15,6 +15,17 @@ import Probe, {
 } from "../../../Models/DatabaseModels/Probe";
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
+import DataSecurityComplianceSettingService from "../../../Server/Services/DataSecurityComplianceSettingService";
+import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
+import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
+import ServiceService from "../../../Server/Services/ServiceService";
+import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import ServiceModel from "../../../Models/DatabaseModels/Service";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
+import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import AiContextReader from "../../../Server/Utils/AI/AiContext/AiContextReader";
 import { AiContextSource } from "../../../Types/AI/AiContext";
@@ -97,6 +108,10 @@ import {
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
+  DataSecurityResourceComplianceFramework,
+  DataSecurityResourceComplianceResponse,
+  DataSecurityResourceScope,
+  MAX_RESOURCE_SCOPE_STORES,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { getDataSecurityCheck } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
@@ -199,7 +214,19 @@ interface RouteCase {
   path: string;
   allowed: Array<Permission>;
   refused: Array<Permission>;
+  // What the route is asked about, when it reads its body.
+  body?: JSONObject | undefined;
 }
+
+const CLUSTER_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+const DATABASE_SERVER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const OTHER_DATABASE_SERVER_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
 
 const ROUTES: Array<RouteCase> = [
   {
@@ -213,6 +240,26 @@ const ROUTES: Array<RouteCase> = [
     path: DATA_SECURITY_API_ROUTES.compliance,
     allowed: READ,
     refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+  },
+  {
+    name: "a resource's stores",
+    path: DATA_SECURITY_API_ROUTES.resourceScope,
+    allowed: READ,
+    refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+    body: {
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    },
+  },
+  {
+    name: "a resource's compliance",
+    path: DATA_SECURITY_API_ROUTES.resourceCompliance,
+    allowed: READ,
+    refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+    body: {
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    },
   },
   {
     name: "record of processing",
@@ -352,6 +399,14 @@ let codeTaskSpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
 let ownersSpy: jest.SpyInstance;
 let aiContextSpy: jest.SpyInstance;
+let complianceSettingFindSpy: jest.SpyInstance;
+let databaseServerFindSpy: jest.SpyInstance;
+let databaseServerFindOneSpy: jest.SpyInstance;
+let clusterFindOneSpy: jest.SpyInstance;
+let complianceSettings: Array<DataSecurityComplianceSetting>;
+let databaseServers: Array<DatabaseServer>;
+let databaseServerRow: DatabaseServer | null;
+let clusterRow: KubernetesCluster | null;
 
 let storeRow: DataStore | null;
 let issueRow: DataSecurityIssue | null;
@@ -400,6 +455,10 @@ function paramsFor(route: RouteCase): Record<string, string> {
   return route.path.includes(":id") ? { id: STORE_ID.toString() } : {};
 }
 
+function bodyFor(route: RouteCase): JSONObject {
+  return route.body || {};
+}
+
 function readsMade(): number {
   return [
     storeFindOneSpy,
@@ -410,6 +469,10 @@ function readsMade(): number {
     findingFindSpy,
     connectionsSpy,
     repositoriesSpy,
+    complianceSettingFindSpy,
+    databaseServerFindSpy,
+    databaseServerFindOneSpy,
+    clusterFindOneSpy,
   ].reduce((sum: number, spy: jest.SpyInstance) => {
     return sum + spy.mock.calls.length;
   }, 0);
@@ -549,6 +612,34 @@ beforeEach(() => {
     .mockResolvedValue([]);
   // A project with no AI context, unless a test writes one.
   aiContextSpy = jest.spyOn(AiContextReader, "read").mockResolvedValue(null);
+
+  // No resource turned anything off, unless a test turns it off.
+  complianceSettings = [];
+  complianceSettingFindSpy = jest
+    .spyOn(DataSecurityComplianceSettingService, "findBy")
+    .mockImplementation((async () => {
+      return complianceSettings;
+    }) as never);
+  databaseServers = [];
+  databaseServerFindSpy = jest
+    .spyOn(DatabaseServerService, "findBy")
+    .mockImplementation((async () => {
+      return databaseServers;
+    }) as never);
+  databaseServerRow = null;
+  databaseServerFindOneSpy = jest
+    .spyOn(DatabaseServerService, "findOneBy")
+    .mockImplementation((async () => {
+      return databaseServerRow;
+    }) as never);
+  // The cluster the resource routes are asked about, readable by the caller.
+  clusterRow = new KubernetesCluster(CLUSTER_ID);
+  clusterRow.name = "prod-eu";
+  clusterFindOneSpy = jest
+    .spyOn(KubernetesClusterService, "findOneBy")
+    .mockImplementation((async () => {
+      return clusterRow;
+    }) as never);
 });
 
 afterEach(() => {
@@ -560,6 +651,12 @@ describe("routes and who may call them", () => {
     expect(DATA_SECURITY_API_ROUTES.overview).toBe("/data-security/overview");
     expect(DATA_SECURITY_API_ROUTES.compliance).toBe(
       "/data-security/compliance",
+    );
+    expect(DATA_SECURITY_API_ROUTES.resourceScope).toBe(
+      "/data-security/resource-scope",
+    );
+    expect(DATA_SECURITY_API_ROUTES.resourceCompliance).toBe(
+      "/data-security/resource-compliance",
     );
     expect(DATA_SECURITY_API_ROUTES.recordOfProcessing).toBe(
       "/data-security/record-of-processing",
@@ -603,7 +700,11 @@ describe("routes and who may call them", () => {
       asCaller([permission]);
       repositories = [new CodeRepository(ObjectID.generate())];
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeUndefined();
       expect(result.answer).toBeDefined();
@@ -615,7 +716,11 @@ describe("routes and who may call them", () => {
     async (_name: string, permission: Permission, route: RouteCase) => {
       asCaller([permission]);
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
       expect((result.thrown as Exception).message).toBe(PERMISSION_MESSAGE);
@@ -632,7 +737,11 @@ describe("routes and who may call them", () => {
     async (route: RouteCase) => {
       propsSpy.mockResolvedValue({});
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeInstanceOf(NotAuthenticatedException);
       expect(readsMade()).toBe(0);
@@ -646,7 +755,11 @@ describe("routes and who may call them", () => {
         buildProps([Permission.ProjectOwner], ObjectID.generate()),
       );
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
       expect(readsMade()).toBe(0);
@@ -2721,6 +2834,524 @@ describe("Compliance", () => {
       });
       expect(framework.storesInScope).toBe(0);
     }
+  });
+});
+
+describe("Compliance, with what resources turned off", () => {
+  function cardStoreOnServer(serverId: ObjectID): DataStore {
+    const store: DataStore = new DataStore(ObjectID.generate());
+    store.dataTypeIds = ["credit-card-number"];
+    store.configurationReadAt = NOW;
+    store.databaseServerId = serverId;
+    stores.push(store);
+    return store;
+  }
+
+  function serverOnCluster(serverId: ObjectID): DatabaseServer {
+    const server: DatabaseServer = new DatabaseServer(serverId);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+    return server;
+  }
+
+  function turnedOff(data: {
+    framework: ComplianceFramework;
+    requirement?: string | undefined;
+  }): void {
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.KubernetesCluster;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = data.framework;
+
+    if (data.requirement) {
+      setting.requirement = data.requirement;
+    }
+
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+  }
+
+  function pciOf(
+    answer: DataSecurityComplianceResponse,
+  ): DataSecurityComplianceFramework {
+    return answer.frameworks.find(
+      (framework: DataSecurityComplianceFramework) => {
+        return framework.framework === ComplianceFramework.PCIDSS;
+      },
+    )!;
+  }
+
+  test("a framework a cluster turned off leaves its databases' stores out of the project's score", async () => {
+    serverOnCluster(DATABASE_SERVER_ID);
+    cardStoreOnServer(DATABASE_SERVER_ID);
+    // A database on no cluster still counts.
+    cardStoreOnServer(OTHER_DATABASE_SERVER_ID);
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+
+    const answer: DataSecurityComplianceResponse = (
+      await call(DATA_SECURITY_API_ROUTES.compliance)
+    ).answer as unknown as DataSecurityComplianceResponse;
+
+    expect(complianceSettingFindSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      props: { isRoot: true },
+    });
+    expect(pciOf(answer).storesInScope).toBe(1);
+    expect(pciOf(answer).storesTurnedOff).toBe(1);
+  });
+
+  test("a requirement a cluster turned off stops its stores' issues failing it, project-wide", async () => {
+    serverOnCluster(DATABASE_SERVER_ID);
+    const orders: DataStore = cardStoreOnServer(DATABASE_SERVER_ID);
+    const issue: DataSecurityIssue = new DataSecurityIssue(ObjectID.generate());
+    issue.dataStoreId = orders.id!;
+    issue.checkId = "public-read";
+    issues.push(issue);
+    turnedOff({ framework: ComplianceFramework.PCIDSS, requirement: "7.2" });
+
+    const answer: DataSecurityComplianceResponse = (
+      await call(DATA_SECURITY_API_ROUTES.compliance)
+    ).answer as unknown as DataSecurityComplianceResponse;
+
+    expect(
+      pciOf(answer).requirements.find(
+        (requirement: ComplianceRequirementResult) => {
+          return requirement.requirement === "7.2";
+        },
+      )?.status,
+    ).toBe(ComplianceRequirementStatus.TurnedOff);
+  });
+
+  test("with nothing turned off, no database's placement is read", async () => {
+    cardStoreOnServer(DATABASE_SERVER_ID);
+
+    const answer: DataSecurityComplianceResponse = (
+      await call(DATA_SECURITY_API_ROUTES.compliance)
+    ).answer as unknown as DataSecurityComplianceResponse;
+
+    expect(databaseServerFindSpy).not.toHaveBeenCalled();
+    expect(pciOf(answer).storesInScope).toBe(1);
+    expect(pciOf(answer).storesTurnedOff).toBe(0);
+  });
+});
+
+describe("a resource's stores", () => {
+  function storeOf(data: Partial<DataStore>): DataStore {
+    const store: DataStore = new DataStore(ObjectID.generate());
+    Object.assign(store, data);
+    stores.push(store);
+    return store;
+  }
+
+  async function scopeOf(body: JSONObject): Promise<RouteCall> {
+    return await call(DATA_SECURITY_API_ROUTES.resourceScope, {}, body);
+  }
+
+  test("a cluster's stores are the stores of the databases running on it, and its compliance is set on it", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+    const orders: DataStore = storeOf({
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+
+    const result: RouteCall = await scopeOf({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    });
+    const scope: DataSecurityResourceScope =
+      result.answer as unknown as DataSecurityResourceScope;
+
+    // The cluster is read as the caller may read it.
+    expect(clusterFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      query: { _id: CLUSTER_ID.toString(), projectId: PROJECT_ID },
+    });
+    expect(clusterFindOneSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
+    // Its databases, then their stores - not archived, the riskiest first.
+    expect(databaseServerFindSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, kubernetesClusterId: CLUSTER_ID },
+    });
+    const storeQuery: Record<string, unknown> = storeFindSpy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+    expect(storeQuery["projectId"]).toEqual(PROJECT_ID);
+    expect(storeQuery["isArchived"]).toBe(false);
+    expect(storeQuery["databaseServerId"]).toBeInstanceOf(Includes);
+    expect(storeFindSpy.mock.calls[0]![0].limit).toBe(
+      MAX_RESOURCE_SCOPE_STORES + 1,
+    );
+
+    expect(scope).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+      dataStoreIds: [orders.id!.toString()],
+      ownedDataStoreIds: [orders.id!.toString()],
+      complianceOwner: null,
+      isTruncated: false,
+    });
+  });
+
+  test("a cluster with no databases has no stores, and none are read", async () => {
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(storeFindSpy).not.toHaveBeenCalled();
+    expect(scope.dataStoreIds).toEqual([]);
+    expect(scope.ownedDataStoreIds).toEqual([]);
+  });
+
+  test("a database on a cluster shows its store, whose compliance is set on the cluster", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+    databaseServerRow = server;
+    const orders: DataStore = storeOf({
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(storeFindSpy.mock.calls[0]![0].query).toMatchObject({
+      projectId: PROJECT_ID,
+      isArchived: false,
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+    expect(scope.name).toBe("orders");
+    expect(scope.dataStoreIds).toEqual([orders.id!.toString()]);
+    expect(scope.ownedDataStoreIds).toEqual([]);
+    expect(scope.complianceOwner).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+    });
+  });
+
+  test("a database on a cluster with no store yet still says where its compliance is set", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(scope.dataStoreIds).toEqual([]);
+    expect(scope.complianceOwner?.kind).toBe(
+      DataStoreResourceKind.KubernetesCluster,
+    );
+  });
+
+  test("a database that runs on nothing monitored owns its store's compliance", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "billing";
+    databaseServers.push(server);
+    databaseServerRow = server;
+    const billing: DataStore = storeOf({
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(scope.ownedDataStoreIds).toEqual([billing.id!.toString()]);
+    expect(scope.complianceOwner).toBeNull();
+  });
+
+  test("a service's stores are its telemetry", async () => {
+    const service: ServiceModel = new ServiceModel(STORE_ID);
+    service.name = "checkout";
+    jest.spyOn(ServiceService, "findOneBy").mockResolvedValue(service);
+    const logs: DataStore = storeOf({ serviceId: STORE_ID });
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.Service,
+        id: STORE_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(storeFindSpy.mock.calls[0]![0].query).toMatchObject({
+      serviceId: STORE_ID,
+      isArchived: false,
+    });
+    expect(scope.name).toBe("checkout");
+    expect(scope.ownedDataStoreIds).toEqual([logs.id!.toString()]);
+  });
+
+  test("more stores than a scope lists are cut, and said to be", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+
+    for (let index: number = 0; index <= MAX_RESOURCE_SCOPE_STORES; index++) {
+      storeOf({ databaseServerId: DATABASE_SERVER_ID });
+    }
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(scope.dataStoreIds.length).toBe(MAX_RESOURCE_SCOPE_STORES);
+    expect(scope.isTruncated).toBe(true);
+  });
+
+  test("a resource the caller may not read is not found, and none of its stores are read", async () => {
+    clusterRow = null;
+
+    const result: RouteCall = await scopeOf({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    });
+
+    expect(result.thrown).toBeInstanceOf(NotFoundException);
+    expect(databaseServerFindSpy).not.toHaveBeenCalled();
+    expect(storeFindSpy).not.toHaveBeenCalled();
+  });
+
+  test("a kind that is not one, or an id that is not one, is refused before anything is read", async () => {
+    for (const body of [
+      { kind: "Host", id: CLUSTER_ID.toString() },
+      { id: CLUSTER_ID.toString() },
+      { kind: DataStoreResourceKind.KubernetesCluster, id: "prod-eu" },
+      { kind: DataStoreResourceKind.KubernetesCluster },
+    ]) {
+      const result: RouteCall = await scopeOf(body as JSONObject);
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+    }
+
+    expect(readsMade()).toBe(0);
+  });
+});
+
+describe("a resource's compliance", () => {
+  function clusterStore(data: { dataTypeIds: Array<string> }): DataStore {
+    const store: DataStore = new DataStore(ObjectID.generate());
+    store.dataTypeIds = data.dataTypeIds;
+    store.configurationReadAt = NOW;
+    store.databaseServerId = DATABASE_SERVER_ID;
+    stores.push(store);
+    return store;
+  }
+
+  function turnedOff(
+    framework: ComplianceFramework,
+    requirement?: string | undefined,
+  ): void {
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.KubernetesCluster;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = framework;
+
+    if (requirement) {
+      setting.requirement = requirement;
+    }
+
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+  }
+
+  function frameworkOf(
+    answer: DataSecurityResourceComplianceResponse,
+    framework: ComplianceFramework,
+  ): DataSecurityResourceComplianceFramework {
+    return answer.frameworks.find(
+      (each: DataSecurityResourceComplianceFramework) => {
+        return each.framework === framework;
+      },
+    )!;
+  }
+
+  async function complianceOf(): Promise<RouteCall> {
+    return await call(
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
+      {},
+      {
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+      },
+    );
+  }
+
+  beforeEach(() => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+  });
+
+  test("scores every framework over the cluster's own stores, with what it turned off", async () => {
+    const orders: DataStore = clusterStore({
+      dataTypeIds: ["credit-card-number"],
+    });
+    const issue: DataSecurityIssue = new DataSecurityIssue(ObjectID.generate());
+    issue.dataStoreId = orders.id!;
+    issue.checkId = "public-read";
+    issues.push(issue);
+    turnedOff(ComplianceFramework.HIPAA);
+    turnedOff(ComplianceFramework.SOC2, "CC6.1");
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.name).toBe("prod-eu");
+    expect(answer.storeCount).toBe(1);
+    expect(
+      answer.frameworks.map(
+        (framework: DataSecurityResourceComplianceFramework) => {
+          return framework.framework;
+        },
+      ),
+    ).toEqual([...ALL_COMPLIANCE_FRAMEWORKS]);
+
+    // Only the cluster's stores' open issues are read.
+    const issueQuery: Record<string, unknown> = issueFindSpy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+    expect(issueQuery["status"]).toBe(DataSecurityIssueStatus.Open);
+    expect(issueQuery["dataStoreId"]).toBeInstanceOf(Includes);
+
+    const soc2: DataSecurityResourceComplianceFramework = frameworkOf(
+      answer,
+      ComplianceFramework.SOC2,
+    );
+    expect(soc2.isTurnedOff).toBe(false);
+    expect(soc2.turnedOffRequirements).toEqual(["CC6.1"]);
+    expect(
+      soc2.requirements.find((requirement: ComplianceRequirementResult) => {
+        return requirement.requirement === "CC6.1";
+      })?.status,
+    ).toBe(ComplianceRequirementStatus.TurnedOff);
+
+    const hipaa: DataSecurityResourceComplianceFramework = frameworkOf(
+      answer,
+      ComplianceFramework.HIPAA,
+    );
+    expect(hipaa.isTurnedOff).toBe(true);
+
+    const pci: DataSecurityResourceComplianceFramework = frameworkOf(
+      answer,
+      ComplianceFramework.PCIDSS,
+    );
+    expect(pci.storesInScope).toBe(1);
+    expect(
+      pci.requirements.find((requirement: ComplianceRequirementResult) => {
+        return requirement.requirement === "7.2";
+      }),
+    ).toMatchObject({
+      status: ComplianceRequirementStatus.Failing,
+      failingIssueCount: 1,
+    });
+  });
+
+  test("another resource's setting does not change this cluster's page", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.Service;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = ComplianceFramework.PCIDSS;
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS)).toMatchObject({
+      isTurnedOff: false,
+      storesInScope: 1,
+      storesTurnedOff: 0,
+    });
+  });
+
+  test("a database on the cluster is scored with the cluster's settings, which only the cluster's page changes", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.PCIDSS);
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await call(
+        DATA_SECURITY_API_ROUTES.resourceCompliance,
+        {},
+        {
+          kind: DataStoreResourceKind.DatabaseServer,
+          id: DATABASE_SERVER_ID.toString(),
+        },
+      )
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.name).toBe("orders");
+    expect(answer.storeCount).toBe(1);
+    expect(answer.complianceOwner).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+    });
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS)).toMatchObject({
+      isTurnedOff: true,
+      storesInScope: 0,
+      storesTurnedOff: 1,
+    });
+  });
+
+  test("a cluster sets its own compliance", async () => {
+    clusterStore({ dataTypeIds: [] });
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.complianceOwner).toBeNull();
+  });
+
+  test("a cluster with no stores scores nothing and reads no issues", async () => {
+    databaseServers.length = 0;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.storeCount).toBe(0);
+    expect(issueFindSpy).not.toHaveBeenCalled();
+    for (const framework of answer.frameworks) {
+      expect(framework.score).toBeNull();
+    }
+  });
+
+  test("a resource the caller may not read is not found", async () => {
+    clusterRow = null;
+
+    const result: RouteCall = await complianceOf();
+
+    expect(result.thrown).toBeInstanceOf(NotFoundException);
+    expect(storeFindSpy).not.toHaveBeenCalled();
+    expect(complianceSettingFindSpy).not.toHaveBeenCalled();
   });
 });
 

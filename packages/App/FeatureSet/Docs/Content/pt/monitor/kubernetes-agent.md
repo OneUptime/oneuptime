@@ -35,6 +35,7 @@ flowchart LR
 | Coletor de nó | DaemonSet | Logs de pods de `/var/log/pods`, métricas do kubelet e do cAdvisor, e as métricas de sistema operacional do nó. | Sim |
 | Instrumentação eBPF (OBI) | DaemonSet | Traces HTTP, gRPC, SQL e Redis e métricas de requisições de cada pod, e o mapa de serviços. | Sim |
 | Agente de IA do Kubernetes | Deployment | Permite que o OneUptime AI execute `kubectl` somente leitura enquanto investiga um incidente ou alerta deste cluster. | Sim |
+| Motor de custos e coletor de custos | Deployments | Quanto custa cada namespace e carga de trabalho: o OpenCost, o pequeno Prometheus de que ele precisa e o agente de custos, que envia o que eles calculam. | Sim, exceto com os presets `gke-autopilot` e `eks-fargate` |
 | Leitor de logs | Deployment | Logs de pods pela API do Kubernetes, onde o coletor de nó não consegue lê-los. | Com os presets `gke-autopilot`, `eks-fargate` e `openshift-restricted` |
 | Profiler eBPF | DaemonSet | Flame graphs contínuos de CPU de cada processo. | Não |
 | kube-state-metrics | Deployment | Fases dos pods, motivos de espera dos contêineres e cotas de recursos. | Não |
@@ -357,14 +358,14 @@ O profiling precisa do **Linux 5.10** ou posterior, e de um pod privilegiado com
 | --- | --- | --- |
 | `hostMetrics.enabled` | ativado | As métricas de sistema operacional de cada nó a partir de `/proc` e `/sys`: filas de E/S de disco, inodes dos sistemas de arquivos, erros das interfaces de rede, paginação e carga média. Roda no coletor de nó, sem pods extras. |
 | `kubeletstats.utilizationMetrics.enabled` | ativado | CPU e memória de contêineres e pods como porcentagem da sua requisição e do seu limite, que os modelos Pod CPU Saturating Container Limit e Pod Memory Saturating Container Limit leem. Um contêiner sem limite (ou requisição) não tem nenhuma dessas séries, e um pod só quando todos os contêineres dele têm um. |
-| `kubeletstats.volumeMetrics.enabled` | ativado | O espaço livre e total de cada PVC (`k8s.volume.available`, `k8s.volume.capacity`), para gráficos e monitores de métricas próprios: nenhum modelo integrado os lê. Uma série por PVC e por pod. |
+| `kubeletstats.volumeMetrics.enabled` | ativado | O espaço livre e total de cada PVC (`k8s.volume.available`, `k8s.volume.capacity`), nomeado pela sua reivindicação: o uso, o espaço livre e a capacidade nas páginas de reivindicações de volume persistente, e o que o modelo PVC Almost Full lê. Algumas séries por volume e pod. |
 | `cadvisor.enabled` | ativado | Estrangulamento de CPU e encerramentos por OOM a partir do `/metrics/cadvisor` de cada kubelet: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` e `container_oom_events_total`, e nada mais. |
 | `kubeStateMetrics.enabled` | desativado | Fases dos pods (Pending, Terminating), pods que não podem ser agendados, motivos de espera dos contêineres (CrashLoopBackOff, ImagePullBackOff) e uso das cotas de recursos, a partir do kube-state-metrics. `kubeStateMetrics.mode: bundled` (o padrão) executa um pequeno kube-state-metrics para você; `external` lê um que você já executa, em `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | desativado | O log de auditoria do Kubernetes, `/var/log/kubernetes/audit.log`: cada requisição à API, de quem, sobre o quê. Só clusters autogerenciados: os gerenciados (EKS, GKE, AKS, DOKS) o enviam ao provedor de nuvem. |
 | `csi.enabled` | desativado | As métricas dos drivers de armazenamento CSI, de pods com o rótulo `app=csi-driver` ou `app.kubernetes.io/component=csi-driver`: tempos de anexar e desanexar volumes, falhas de provisionamento, IOPS. |
 | `coreDns.enabled` | desativado | As métricas do CoreDNS em `:9153/metrics`: taxa de consultas, latência, acertos de cache e erros. |
 | `controlPlane.enabled` | desativado | O servidor de API, no endereço dele dentro do cluster, e o etcd, o scheduler e o controller manager nos endpoints que você listar ([Ative o monitoramento do plano de controle](/docs/telemetry/kubernetes-agent#ative-o-monitoramento-do-plano-de-controle)). Só clusters autogerenciados: os gerenciados não os expõem. |
-| `cost.enabled` | desativado | Quanto custa cada carga de trabalho. Veja [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Quanto custa cada namespace e carga de trabalho, com a capacidade ociosa e a eficiência, também como métricas para alertas: ativado, exceto com os presets `gke-autopilot` e `eks-fargate`; `false` o desativa. Veja [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost). |
 
 ## Opções comuns
 
