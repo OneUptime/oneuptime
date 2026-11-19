@@ -124,14 +124,14 @@ describe("parseAiOutcomesRecords", () => {
       })!.records[0];
     };
 
-    expect(
-      record("https://github.com/acme/shop/pull/7")!.pullRequestUrl,
-    ).toBe("https://github.com/acme/shop/pull/7");
+    expect(record("https://github.com/acme/shop/pull/7")!.pullRequestUrl).toBe(
+      "https://github.com/acme/shop/pull/7",
+    );
     expect(record("javascript:alert(1)")!.pullRequestUrl).toBeUndefined();
     expect(record("//evil.example")!.pullRequestUrl).toBeUndefined();
-    expect(record("https://github.com/acme/shop/pull/7")!.pullRequestNumber).toBe(
-      7,
-    );
+    expect(
+      record("https://github.com/acme/shop/pull/7")!.pullRequestNumber,
+    ).toBe(7);
   });
 });
 
@@ -185,9 +185,12 @@ describe("the dialog's words", () => {
 
 describe("what a record says beyond its incident or alert", () => {
   test("an investigation: how your team judged it and how it was graded", () => {
-    expect(getRecordFacts(AiOutcomesPart.RootCauses, RECORDS.records[0]!)).toEqual(
-      ["Rejected by your team", "Did not match the recorded root cause"],
-    );
+    expect(
+      getRecordFacts(AiOutcomesPart.RootCauses, RECORDS.records[0]!),
+    ).toEqual([
+      "Rejected by your team",
+      "Did not match the recorded root cause",
+    ]);
     expect(
       getRecordFacts(AiOutcomesPart.RootCauses, {
         id: "1",

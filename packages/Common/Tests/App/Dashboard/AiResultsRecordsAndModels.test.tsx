@@ -144,7 +144,7 @@ async function findTestId(testId: string): Promise<HTMLElement> {
 
 function textOf(element: HTMLElement): string {
   return (element.textContent || "")
-    .replace(/ /g, " ")
+    .replace(/\u00A0/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -314,10 +314,16 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     }
 
     expect(
-      partButton("ai-results-card-pages-avoided", "Paged: the hold time ran out"),
+      partButton(
+        "ai-results-card-pages-avoided",
+        "Paged: the hold time ran out",
+      ),
     ).toHaveAttribute("title", "Show the incidents and alerts");
     expect(
-      partButton("ai-results-card-fixes-verified", "Still happening after the fix"),
+      partButton(
+        "ai-results-card-fixes-verified",
+        "Still happening after the fix",
+      ),
     ).toHaveAttribute("title", "Show the pull requests");
     expect(
       partButton(
@@ -332,7 +338,10 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     await openWith(makeOutcomes());
 
     fireEvent.click(
-      partButton("ai-results-card-pages-avoided", "Paged: the hold time ran out"),
+      partButton(
+        "ai-results-card-pages-avoided",
+        "Paged: the hold time ran out",
+      ),
     );
 
     const dialog: HTMLElement = await findTestId("ai-results-records");
@@ -379,9 +388,7 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     );
     // When each one's work started, in the reader's clock.
     expect(
-      within(list)
-        .getAllByRole("listitem")[0]!
-        .querySelector("time"),
+      within(list).getAllByRole("listitem")[0]!.querySelector("time"),
     ).toHaveAttribute("dateTime", "2026-11-10T09:00:00.000Z");
   });
 
@@ -425,9 +432,9 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
       part: "rootCauses",
       outcome: "wrong",
     });
-    expect(
-      textOf(within(list).getByTestId("ai-results-records-summary")),
-    ).toBe("The database ran out of connections.");
+    expect(textOf(within(list).getByTestId("ai-results-records-summary"))).toBe(
+      "The database ran out of connections.",
+    );
     expect(
       Array.from(
         within(list).getByTestId("ai-results-records-facts").children,
@@ -521,7 +528,10 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     await openWith(makeOutcomes());
 
     fireEvent.click(
-      partButton("ai-results-card-fixes-verified", "It did not fix the problem"),
+      partButton(
+        "ai-results-card-fixes-verified",
+        "It did not fix the problem",
+      ),
     );
 
     const list: HTMLElement = await findTestId("ai-results-records-list");
@@ -553,7 +563,10 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     await openWith(makeOutcomes());
 
     fireEvent.click(
-      partButton("ai-results-card-pages-avoided", "Paged: the hold time ran out"),
+      partButton(
+        "ai-results-card-pages-avoided",
+        "Paged: the hold time ran out",
+      ),
     );
 
     await findTestId("ai-results-records-list");
@@ -586,14 +599,14 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
   });
 
   test("a read that failed says why, and Try again reads again", async () => {
-    serveRecords(
-      httpError(500, "The records are asleep."),
-      ok(records()),
-    );
+    serveRecords(httpError(500, "The records are asleep."), ok(records()));
     await openWith(makeOutcomes());
 
     fireEvent.click(
-      partButton("ai-results-card-pages-avoided", "Paged: the hold time ran out"),
+      partButton(
+        "ai-results-card-pages-avoided",
+        "Paged: the hold time ran out",
+      ),
     );
 
     const error: HTMLElement = await findTestId("ai-results-records-error");
@@ -611,7 +624,10 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     await openWith(makeOutcomes());
 
     fireEvent.click(
-      partButton("ai-results-card-pages-avoided", "Paged: the hold time ran out"),
+      partButton(
+        "ai-results-card-pages-avoided",
+        "Paged: the hold time ran out",
+      ),
     );
 
     expect(textOf(await findTestId("ai-results-records-empty"))).toBe(
@@ -624,7 +640,10 @@ describe("each part of a breakdown opens what it counts (#7768)", () => {
     await openWith(makeOutcomes());
 
     fireEvent.click(
-      partButton("ai-results-card-pages-avoided", "Paged: the hold time ran out"),
+      partButton(
+        "ai-results-card-pages-avoided",
+        "Paged: the hold time ran out",
+      ),
     );
 
     await findTestId("ai-results-records-list");
@@ -668,9 +687,9 @@ describe("By model and changes of model (#7762)", () => {
       "Model not recorded1 of 3",
     ]);
     expect(rowsOf(fixes)).toEqual(["chat-large4 of 5", "chat-medium2 of 4"]);
-    expect(
-      textOf(within(fixes).getByTestId("ai-results-by-model-note")),
-    ).toBe("Each fix counts under the model of the investigation it came from.");
+    expect(textOf(within(fixes).getByTestId("ai-results-by-model-note"))).toBe(
+      "Each fix counts under the model of the investigation it came from.",
+    );
     expect(
       within(screen.getByTestId("ai-results-card-pages-avoided")).queryByTestId(
         "ai-results-by-model",

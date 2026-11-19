@@ -319,7 +319,8 @@ function ByModel(props: { byModel: AiResultsByModel }): ReactElement {
       )}
       <ul className="mt-2 space-y-2">
         {props.byModel.rows.map((row: AiResultsModelRow): ReactElement => {
-          const share: number = row.total > 0 ? (row.value / row.total) * 100 : 0;
+          const share: number =
+            row.total > 0 ? (row.value / row.total) * 100 : 0;
           const name: string =
             row.modelName === null
               ? translator.translateText(UNKNOWN_MODEL_LABEL) ||
@@ -333,13 +334,16 @@ function ByModel(props: { byModel: AiResultsByModel }): ReactElement {
               data-testid="ai-results-by-model-row"
               data-model={row.modelName === null ? "" : row.modelName}
             >
+              {/*
+                Whole, never cut off: a long model id breaks across lines
+                rather than ending in "..." that a phone cannot hover.
+              */}
               <span
-                className={`min-w-0 truncate ${
+                className={`min-w-0 break-all ${
                   row.modelName === null
                     ? "text-gray-500"
                     : "font-medium text-gray-800"
                 }`}
-                title={name}
                 dir={row.modelName === null ? undefined : "ltr"}
               >
                 {name}
