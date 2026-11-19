@@ -27,6 +27,8 @@ import { JSONObject } from "../../../../Types/JSON";
 
 const NOW: Date = new Date("2026-11-19T12:00:00.000Z");
 const HOUR: number = 60 * 60 * 1000;
+// How many reports and dashboards a read shows (MAX_BI_DASHBOARDS).
+const SHOWN: number = 2_000;
 
 function workspace(
   id: string,
@@ -90,6 +92,7 @@ function state(fields: Partial<PowerBiReadState> = {}): PowerBiReadState {
     pendingWorkspaceIds: [],
     pendingScans: [],
     workspaces: [workspace("a"), workspace("b"), workspace("c")],
+    hasEveryWorkspace: true,
     dataflows: new Map(),
     dataflowExports: [],
     ...fields,
@@ -106,7 +109,7 @@ describe("whether a read scans the whole tenant or only what changed", () => {
   test("the whole tenant with nothing kept", () => {
     expect(
       planPowerBiScan({ state: null, now: NOW, isScheduled: false }),
-    ).toEqual({ isFull: true, modifiedSince: null });
+    ).toEqual({ isFull: true, isDaily: false, modifiedSince: null });
   });
 
   test("what changed since a half hour before the last read began", () => {
@@ -114,6 +117,7 @@ describe("whether a read scans the whole tenant or only what changed", () => {
       planPowerBiScan({ state: state(), now: NOW, isScheduled: true }),
     ).toEqual({
       isFull: false,
+      isDaily: false,
       modifiedSince: new Date("2026-11-19T10:30:00.000Z"),
     });
   });
@@ -155,7 +159,7 @@ describe("whether a read scans the whole tenant or only what changed", () => {
         now: NOW,
         isScheduled: false,
       }),
-    ).toEqual({ isFull: true, modifiedSince: null });
+    ).toEqual({ isFull: true, isDaily: false, modifiedSince: null });
   });
 });
 
@@ -217,7 +221,12 @@ describe("the workspaces after a read that scanned only what changed", () => {
 });
 
 describe("the workspaces after a read that scanned the whole tenant", () => {
-  test("those listed, in Power BI's order; one no longer listed is gone; one unscanned keeps what it was", () => {
+  /*
+   * The kept workspaces keep their places and new ones come after them
+   * (#9901): the 2,000 reports shown stay the same whatever order Power BI
+   * lists the tenant in. Before, a whole read took Power BI's order.
+   */
+  test("those listed, each kept in its place and new ones after; one no longer listed is gone; one unscanned keeps what it was", () => {
     const merged: ReturnType<typeof mergePowerBiWorkspaces> =
       mergePowerBiWorkspaces({
         kept: state().workspaces,
@@ -233,8 +242,8 @@ describe("the workspaces after a read that scanned the whole tenant", () => {
       });
 
     expect(names(merged.workspaces)).toEqual([
-      "c: Fresh",
       "b: Report in b",
+      "c: Fresh",
       "f: Report in f",
     ]);
     expect(merged.pendingWorkspaceIds).toEqual(["b"]);
@@ -244,7 +253,7 @@ describe("the workspaces after a read that scanned the whole tenant", () => {
 describe("what a read keeps, written and read back", () => {
   test("round trips: dates as their ISO text, every table and source as read", () => {
     const kept: PowerBiReadState = state({ pendingWorkspaceIds: ["x"] });
-    const written: JSONObject | null = writePowerBiReadState(kept);
+    const written: JSONObject | null = writePowerBiReadState(kept, SHOWN);
 
     expect(written).not.toBeNull();
     expect(
@@ -282,7 +291,7 @@ describe("what a read keeps, written and read back", () => {
     });
 
     expect(
-      readPowerBiReadState(writePowerBiReadState(kept))!.workspaces[0]!
+      readPowerBiReadState(writePowerBiReadState(kept, SHOWN))!.workspaces[0]!
         .datasets[0]!.tables[0],
     ).toEqual({
       database: null,
@@ -295,9 +304,17 @@ describe("what a read keeps, written and read back", () => {
   });
 
   test("another version, or a state that does not fit, is none: the next read scans whole", () => {
-    const written: JSONObject = writePowerBiReadState(state())!;
+    const written: JSONObject = writePowerBiReadState(state(), SHOWN)!;
 
-    expect(readPowerBiReadState({ ...written, version: 2 })).toBeNull();
+    expect(readPowerBiReadState({ ...written, version: 3 })).toBeNull();
+    // A state kept before #9901 is read: it held every workspace whole.
+    expect(
+      readPowerBiReadState({
+        ...written,
+        version: 1,
+        hasEveryWorkspace: undefined,
+      }),
+    ).toEqual(state());
     expect(
       readPowerBiReadState({ ...written, scannedFrom: "never" }),
     ).toBeNull();
@@ -330,7 +347,11 @@ describe("what a read keeps, written and read back", () => {
     ]);
   });
 
-  test("a tenant too big to keep is not kept", () => {
+  /*
+   * Before #9901 such a tenant kept nothing, and was scanned whole at every
+   * read; PowerBiBigTenantState.test.ts holds each step it lets go by.
+   */
+  test("a tenant too big to keep whole is still kept, never past the length", () => {
     const many: Array<PowerBiWorkspaceRead> = [];
     let length: number = 0;
 
@@ -341,7 +362,26 @@ describe("what a read keeps, written and read back", () => {
       length += JSON.stringify(each).length;
     }
 
-    expect(writePowerBiReadState(state({ workspaces: many }))).toBeNull();
+    const written: JSONObject | null = writePowerBiReadState(
+      state({ workspaces: many }),
+      SHOWN,
+    );
+
+    expect(written).not.toBeNull();
+    expect(JSON.stringify(written).length).toBeLessThanOrEqual(
+      MAX_POWER_BI_READ_STATE_LENGTH,
+    );
+
+    // Every workspace is still known: those the 2,000 shown do not need are trimmed.
+    const read: PowerBiReadState = readPowerBiReadState(written)!;
+
+    expect(read.hasEveryWorkspace).toBe(true);
+    expect(read.workspaces).toHaveLength(many.length);
+    expect(
+      read.workspaces.filter((each: PowerBiWorkspaceRead): boolean => {
+        return !each.trimmed;
+      }),
+    ).toHaveLength(SHOWN);
   });
 });
 
@@ -467,7 +507,7 @@ describe("the scans a read stopped waiting for", () => {
     ]);
   });
 
-  test("a whole scan keeps only what Power BI lists, in its order, though a picked-up scan read more", () => {
+  test("a whole scan keeps only what Power BI lists, each in its place, though a picked-up scan read more", () => {
     const merged: ReturnType<typeof mergePowerBiWorkspaces> =
       mergePowerBiWorkspaces({
         kept: state().workspaces,
@@ -484,8 +524,8 @@ describe("the scans a read stopped waiting for", () => {
 
     // b is no longer the tenant's; a's whole scan failed, so the picked-up result stands.
     expect(names(merged.workspaces)).toEqual([
-      "c: Report in c",
       "a: Picked up",
+      "c: Report in c",
     ]);
     expect(merged.pendingWorkspaceIds).toEqual(["c", "a"]);
   });
@@ -541,9 +581,11 @@ describe("the scans a read stopped waiting for", () => {
       pendingScans: [pending("e7d03602-4873-4760-b37e-1563ef5358e3", ["a"])],
     });
 
-    expect(readPowerBiReadState(writePowerBiReadState(kept))).toEqual(kept);
+    expect(readPowerBiReadState(writePowerBiReadState(kept, SHOWN))).toEqual(
+      kept,
+    );
 
-    const before: JSONObject = writePowerBiReadState(state())!;
+    const before: JSONObject = writePowerBiReadState(state(), SHOWN)!;
 
     delete before["pendingScans"];
 
@@ -551,7 +593,7 @@ describe("the scans a read stopped waiting for", () => {
   });
 
   test("one that does not fit is left out: an id that is no scan's, no workspace, no start", () => {
-    const written: JSONObject = writePowerBiReadState(state())!;
+    const written: JSONObject = writePowerBiReadState(state(), SHOWN)!;
     const startedAt: string = new Date(NOW.getTime() - HOUR).toISOString();
 
     expect(

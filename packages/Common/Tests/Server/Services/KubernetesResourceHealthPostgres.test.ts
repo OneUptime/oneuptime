@@ -658,7 +658,13 @@ describePostgres("KubernetesResource health on Postgres", () => {
           name: "missing",
           namespace: "payments",
         }),
-      ).toEqual({ part: null, pods: [], jobs: [], isPodsTruncated: false });
+      ).toEqual({
+        part: null,
+        pods: [],
+        jobs: [],
+        objects: [],
+        isPodsTruncated: false,
+      });
     });
 
     test("the longer-named neighbour's page has its own pods, and only those", async () => {
@@ -672,25 +678,142 @@ describePostgres("KubernetesResource health on Postgres", () => {
 
     test("a kind that runs no pods reads only itself", async () => {
       const result: KubernetesPart = await part({
-        kind: "Namespace",
-        name: "payments",
+        kind: "PersistentVolumeClaim",
+        name: "data",
+        namespace: "payments",
       });
       expect(result).toEqual({
         part: null,
         pods: [],
         jobs: [],
+        objects: [],
         isPodsTruncated: false,
       });
 
       await upsert([
-        resource({ kind: "Namespace", name: "payments", namespaceKey: "" }),
+        resource({
+          kind: "PersistentVolumeClaim",
+          name: "data",
+          status: { phase: "Bound" } as unknown as JSONObject,
+        }),
       ]);
-      const namespace: KubernetesPart = await part({
+      const claim: KubernetesPart = await part({
+        kind: "PersistentVolumeClaim",
+        name: "data",
+        namespace: "payments",
+      });
+      expect(claim.part?.name).toBe("data");
+      expect(claim.pods).toEqual([]);
+      expect(claim.jobs).toEqual([]);
+      expect(claim.objects).toEqual([]);
+    });
+
+    /*
+     * A namespace's page counts what in it needs attention and lists it
+     * (#9595): its flagged pods, the worst first, and its other flagged
+     * objects - with every workload a pod's finding folds into when a pod
+     * is flagged, the kinds bound as an array.
+     */
+    test("a namespace reads its flagged pods, the worst first, and its flagged objects with the workloads a pod folds into", async () => {
+      await upsert([
+        resource({ kind: "Namespace", name: "payments", namespaceKey: "" }),
+        // Not ready for hours: a warning, seen last.
+        pod("checkout-7d9f8b6c5-notready", {
+          owner: ["ReplicaSet", "checkout-7d9f8b6c5"],
+          labels: { "pod-template-hash": "7d9f8b6c5" },
+          waitingReason: "ContainerCreating",
+        }),
+        // Cannot run: critical, so first though seen earlier.
+        pod("checkout-v2-5c8d7f9b4-crash", {
+          owner: ["ReplicaSet", "checkout-v2-5c8d7f9b4"],
+          labels: { "pod-template-hash": "5c8d7f9b4" },
+          waitingReason: "CrashLoopBackOff",
+          lastSeenAt: ago(30),
+        }),
+        // A claim flagged on its own, and a healthy one, which is not read.
+        resource({
+          kind: "PersistentVolumeClaim",
+          name: "ledger",
+          status: { phase: "Lost" } as unknown as JSONObject,
+        }),
+        resource({
+          kind: "PersistentVolumeClaim",
+          name: "data",
+          status: { phase: "Bound" } as unknown as JSONObject,
+        }),
+        // Another namespace's.
+        pod("checkout-7d9f8b6c5-shopcrash", {
+          namespace: "shop",
+          owner: ["ReplicaSet", "checkout-7d9f8b6c5"],
+          waitingReason: "CrashLoopBackOff",
+        }),
+      ]);
+      // Another cluster's, and a deleted row.
+      await upsert(
+        [
+          pod("checkout-7d9f8b6c5-theirs", {
+            waitingReason: "CrashLoopBackOff",
+          }),
+        ],
+        OTHER_CLUSTER_ID,
+      );
+      await upsert([
+        pod("checkout-7d9f8b6c5-gone", { waitingReason: "CrashLoopBackOff" }),
+      ]);
+      await database.query(
+        `UPDATE "${schema}"."${TABLE}" SET "deletedAt" = now() WHERE "name" = 'checkout-7d9f8b6c5-gone'`,
+      );
+
+      const result: KubernetesPart = await part({
         kind: "Namespace",
         name: "payments",
       });
-      expect(namespace.part?.name).toBe("payments");
-      expect(namespace.pods).toEqual([]);
+
+      expect(result.part?.kind).toBe("Namespace");
+      expect(
+        result.pods.map((row: KubernetesPartRow): string => {
+          return row.name || "";
+        }),
+      ).toEqual(["checkout-v2-5c8d7f9b4-crash", "checkout-7d9f8b6c5-notready"]);
+      expect(result.jobs).toEqual([]);
+      expect(result.isPodsTruncated).toBe(false);
+
+      // The flagged claim first, then the namespace's workloads; never shop's.
+      expect(result.objects[0]?.name).toBe("ledger");
+      expect(names(result.objects)).toEqual([
+        "checkout",
+        "checkout-v2",
+        "invoice-run",
+        "invoice-run-28845600",
+        "invoice-run-v2-28845600",
+        "ledger",
+        "postgres",
+      ]);
+      expect(
+        result.objects.filter((row: KubernetesPartRow): boolean => {
+          return row.namespaceKey !== "payments";
+        }),
+      ).toEqual([]);
+    });
+
+    test("a namespace with no pod that needs attention reads only its flagged objects, not its workloads", async () => {
+      await upsert([
+        resource({ kind: "Namespace", name: "payments", namespaceKey: "" }),
+        resource({
+          kind: "PersistentVolumeClaim",
+          name: "ledger",
+          status: { phase: "Lost" } as unknown as JSONObject,
+        }),
+      ]);
+
+      const result: KubernetesPart = await part({
+        kind: "Namespace",
+        name: "payments",
+      });
+
+      expect(result.part?.name).toBe("payments");
+      expect(result.pods).toEqual([]);
+      expect(names(result.objects)).toEqual(["ledger"]);
     });
   });
 

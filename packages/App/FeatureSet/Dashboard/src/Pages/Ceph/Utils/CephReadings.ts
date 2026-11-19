@@ -6,7 +6,12 @@ import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { CephHealthCheck, CephPoolPgStates } from "./CephHealth";
+import {
+  CEPH_PG_REASON_STATES,
+  CephHealthCheck,
+  CephPgReasonStates,
+  CephPoolPgStates,
+} from "./CephHealth";
 
 /*
  * What the Ceph pages read from the cluster's metrics beside its inventory:
@@ -224,4 +229,45 @@ export async function loadCephPgStates(
   }
 
   return { byPool: byPool, totals: anyRead ? totals : null };
+}
+
+/*
+ * Each pool's placement groups in the states that say what Ceph is doing
+ * about missing copies (CEPH_PG_REASON_STATES: recovering, backfill_wait,
+ * backfill_toofull...), by pool_id - Ceph's own reason for a pool's
+ * degraded or undersized placement groups (#9727). Read when the bar's
+ * Degraded or Undersized is pressed, not with the page: a count that is
+ * rarely pressed costs nothing. A state the mgr reported no reading of in
+ * the window is left out; a pool with none of them read has no entry.
+ */
+export async function loadCephPgReasonStates(
+  clusterName: string,
+): Promise<Map<string, CephPgReasonStates>> {
+  const perState: Array<{ state: string; perPool: CephLatestPerLabel }> =
+    await Promise.all(
+      CEPH_PG_REASON_STATES.map(
+        async (
+          state: string,
+        ): Promise<{ state: string; perPool: CephLatestPerLabel }> => {
+          return {
+            state: state,
+            perPool: await loadCephLatestPerLabel({
+              clusterName: clusterName,
+              metricName: `ceph_pg_${state}`,
+              labelAttribute: "pool_id",
+            }),
+          };
+        },
+      ),
+    );
+
+  const byPool: Map<string, CephPgReasonStates> = new Map();
+  for (const entry of perState) {
+    for (const [poolId, reading] of entry.perPool.entries()) {
+      const states: CephPgReasonStates = byPool.get(poolId) || {};
+      states[entry.state] = reading.value;
+      byPool.set(poolId, states);
+    }
+  }
+  return byPool;
 }

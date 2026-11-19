@@ -30,6 +30,11 @@ export interface ResourceHealthDialogWords {
   // Whole sentences in English, looked up where drawn.
   degradedTitle: string;
   unhealthyTitle: string;
+  /*
+   * What the titles name, as written: a pill in a list of several ("Why
+   * {{name}} is Degraded", a region's name) says whose health it is.
+   */
+  titleValues?: Record<string, string> | undefined;
 }
 
 export const RESOURCE_HEALTH_DEGRADED_DESCRIPTION: string = translationKey(
@@ -94,7 +99,11 @@ const ResourceHealthPill: FunctionComponent<ComponentProps> = (
         hint={RESOURCE_HEALTH_HINT}
         dataAttributes={{ "data-health": dataHealth }}
         dialog={{
-          title: translator.translateText(title) || title,
+          title: props.words.titleValues
+            ? translator.translateTemplate(title, props.words.titleValues, {
+                setsValuesApart: true,
+              })
+            : translator.translateText(title) || title,
           description: isUnhealthy
             ? RESOURCE_HEALTH_UNHEALTHY_DESCRIPTION
             : RESOURCE_HEALTH_DEGRADED_DESCRIPTION,

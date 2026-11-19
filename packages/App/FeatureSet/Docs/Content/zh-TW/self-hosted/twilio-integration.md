@@ -194,7 +194,10 @@ sequenceDiagram
 
 OneUptime 會自動產生簡訊、通話結果和確認的 URL。不要用固定的 webhook URL 取代其中的權杖。來電請依照[來電原則](/docs/on-call/incoming-call-policy)操作，連結號碼時會為該號碼設定 webhook。
 
-Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。請使用公開信任的 TLS 憑證，並在經過代理時保留原始的主機、通訊協定、路徑、查詢參數、本文和 `X-Twilio-Signature` 標頭。來電處理常式會驗證 Twilio 簽章；簡訊傳送和通話結果使用每則訊息或每通電話專屬的 URL 權杖，按鍵確認使用已簽署的查詢權杖。語音信箱回呼會同時驗證其 URL 權杖和 Twilio 簽章。不要在共用記錄或螢幕截圖中暴露權杖。請參閱 [Twilio webhook 安全性](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。請使用公開信任的 TLS 憑證，並在經過代理時保留原始的主機、通訊協定、路徑、查詢參數、本文和 `X-Twilio-Signature` 標頭。表中的每個回呼都會驗證 Twilio 簽章，簽章由傳送該簡訊或撥出該電話的 Twilio 帳戶的 Auth Token 產生，也就是專案的 Twilio 設定或整個安裝的帳戶。簡訊傳送、通話結果和語音信箱回呼還會驗證其 URL 中的權杖，按鍵確認還會驗證其查詢中已簽署的權杖：簽章表示請求來自 Twilio，權杖則說明請求與哪則簡訊或哪通電話有關。簽章不相符的回呼會以 403 遭到拒絕，不會變更任何內容。不要在共用記錄或螢幕截圖中暴露權杖。請參閱 [Twilio webhook 安全性](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+
+> [!IMPORTANT]
+> Twilio 會對它呼叫的確切 URL 及其傳送的每個參數簽章，因此 OneUptime 會拒絕途中遭代理修改過的回呼，簡訊傳送狀態、通話結果和按鍵確認也會隨之停止更新。請確認 Twilio 與 OneUptime 之間的每個代理都原封不動地轉送路徑、查詢字串、本文和 `X-Twilio-Signature` 標頭，且不進行重新導向。OneUptime 會用 `HOST` 和 `HTTP_PROTOCOL` 產生的 URL，以及請求的 `Host`、`X-Forwarded-Host` 和 `X-Forwarded-Proto` 標頭所指明的 URL 來驗證簽章，因此只要其中一個是 Twilio 呼叫的公開 URL 即可。對於每個遭拒絕的回呼，伺服器記錄中都有一行以 `Twilio callback refused` 開頭的記錄說明原因，其中不包含權杖或 Auth Token。
 
 ### 從私有部署發布回呼
 
@@ -231,7 +234,7 @@ Twilio 一般 webhook 的來源位址會變化，因此不要把 SIP 或媒體 I
 | 什麼都沒有送出 | 認證資訊、號碼的功能、帳戶限制和輸出連線。 |
 | Twilio 以錯誤 21606 拒絕簡訊 | 該號碼無法傳送簡訊。請在 **Twilio 簡訊電話號碼** 中新增一個可以傳送簡訊的號碼：請參閱 [為通話和簡訊使用不同號碼](#為通話和簡訊使用不同號碼)。 |
 | 通話或簡訊透過專案以外的帳戶送出 | 沒有設定是它們的專案預設：**專案預設值** 欄顯示每個設定是哪種內容的預設。請參閱 [僅用於簡訊或僅用於通話的帳戶](#僅用於簡訊或僅用於通話的帳戶)。 |
-| 簡訊或電話已送達，但狀態或確認沒有更新 | 回呼 URL 和公開 ingress 的記錄。Twilio 的 [HTTP 擷取失敗指南](https://www.twilio.com/docs/api/errors/11200)可以協助診斷無法存取的回呼、TLS 問題和 HTTP 錯誤。 |
+| 簡訊或電話已送達，但狀態或確認沒有更新 | 回呼 URL 和公開 ingress 的記錄。Twilio 的 [HTTP 擷取失敗指南](https://www.twilio.com/docs/api/errors/11200)可以協助診斷無法存取的回呼、TLS 問題和 HTTP 錯誤。403 表示 OneUptime 拒絕了該回呼：伺服器記錄會在以 `Twilio callback refused` 開頭的一行中說明原因。 |
 
 僅憑測試電話成功，並不能證明回呼可以存取。
 

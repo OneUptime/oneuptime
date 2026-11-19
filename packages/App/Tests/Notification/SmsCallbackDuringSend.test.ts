@@ -28,6 +28,11 @@ import {
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
 import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import {
+  serverTwilioRow,
+  signedTwilioRequest,
+} from "Common/Tests/Server/TestingUtils/TwilioSignedRequests";
 
 /*
  * TWILIO'S DELIVERY CALLBACK LANDING BEFORE THE SEND'S OWN WRITE (issues
@@ -49,7 +54,8 @@ import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineR
  * SmsService and the status callback route (API/SMS.ts) run as they are.
  * Twilio's client is stood in for: its messages.create calls the status
  * callback URL it was given - the route - before it answers, when a test
- * says so. The SMS log is a row in memory that both read and write the way
+ * says so, signed as Twilio signs it, with the auth token of the account the
+ * SMS went out on (#9979). The SMS log is a row in memory that both read and write the way
  * Postgres would (a write that expects a status lands only while the row
  * holds it), the page's notification likewise (OnCallTimelineRows). The
  * metrics SDK is stood in for, and keeps what it is given.
@@ -190,10 +196,17 @@ jest.mock("Common/Server/Middleware/ClusterKeyAuthorization", () => {
   };
 });
 
+// The project has no Twilio config of its own: its SMS go out on the server's account.
 jest.mock("Common/Server/Services/ProjectCallSMSConfigService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), toTwilioConfig: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      toTwilioConfig: jest.fn(),
+    },
   };
 });
 
@@ -270,6 +283,7 @@ const SERVER_TWILIO: TwilioConfig = {
 // The SMS log as the database holds it.
 interface StoredSmsLog {
   id: ObjectID;
+  projectId?: ObjectID | undefined;
   status: SmsStatus | null;
   statusMessage?: string | undefined;
   errorCode?: string | undefined;
@@ -317,6 +331,10 @@ function snapshot(row: StoredSmsLog | undefined): SmsLog | null {
   const log: SmsLog = new SmsLog();
   log.id = row.id;
 
+  if (row.projectId) {
+    log.projectId = row.projectId;
+  }
+
   if (row.status !== null) {
     log.status = row.status;
   }
@@ -341,8 +359,11 @@ const STATUS_CALLBACK_PATH: RegExp =
 /*
  * Twilio calling the status callback URL the SMS was handed to it with, as
  * the route receives it: the log's id and token in the path, the account
- * it went out on in the query. Not its fragment, which asks Twilio to send
- * the callback again (StatusCallbackRetry): a request never carries one.
+ * it went out on in the query, signed over that URL and every parameter with
+ * the server's auth token - the account the SMS went out on. Not its
+ * fragment, which asks Twilio to send the callback again
+ * (StatusCallbackRetry): a request never carries one, nor does Twilio sign
+ * it.
  */
 async function twilioCallsBack(
   messageStatus: string,
@@ -357,24 +378,23 @@ async function twilioCallsBack(
   );
   expect(match).not.toBeNull();
 
-  const query: JSONObject = {};
-  new URLSearchParams(match![3] || "").forEach(
-    (value: string, key: string): void => {
-      query[key] = value;
-    },
-  );
+  const body: Record<string, string> = {
+    AccountSid: SERVER_TWILIO.accountSid,
+    MessageSid: MESSAGE_SID,
+    MessageStatus: messageStatus,
+    To: TO.toString(),
+  };
 
-  const req: ExpressRequest = {
-    params: { smsLogId: match![1], token: match![2] },
-    query: query,
-    body: {
-      MessageSid: MESSAGE_SID,
-      MessageStatus: messageStatus,
-      To: TO.toString(),
-      ...more,
-    },
-    headers: {},
-  } as unknown as ExpressRequest;
+  for (const [key, value] of Object.entries(more)) {
+    body[key] = String(value);
+  }
+
+  const req: ExpressRequest = signedTwilioRequest({
+    publicUrl: url!,
+    body: body,
+    signedWith: SERVER_TWILIO.authToken,
+    params: { smsLogId: match![1]!, token: match![2]! },
+  }) as unknown as ExpressRequest;
 
   const status: Mock = jest.fn();
   const res: ExpressResponse = {
@@ -428,6 +448,11 @@ beforeEach(() => {
     SERVER_TWILIO as never,
   );
 
+  // The same account, as the server's settings hold it, which signs its callbacks.
+  jest
+    .spyOn(GlobalConfigService, "findOneBy")
+    .mockResolvedValue(serverTwilioRow(SERVER_TWILIO) as never);
+
   // Twilio: the callbacks a test asks for land before it answers the send.
   const createMessage: Mock = jest.fn(async (input: unknown) => {
     const statusCallback: string | undefined = (
@@ -455,6 +480,7 @@ beforeEach(() => {
   }) => {
     const row: StoredSmsLog = {
       id: ObjectID.generate(),
+      projectId: input.data.projectId,
       status: input.data.status || null,
       statusMessage: input.data.statusMessage,
       errorCode: input.data.errorCode,
