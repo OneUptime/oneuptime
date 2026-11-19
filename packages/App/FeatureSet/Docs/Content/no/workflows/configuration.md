@@ -219,7 +219,7 @@ Uansett hva arbeidsflyten kjører som, leser et trinn aldri innstillinger som in
 
 En arbeidsflyt som kjører med mer enn standardtillatelsene, kjører med tillatelsene til personen som ga den dem: den som sist valgte **Run As** for den, eller lagret trinnene eller variablene dens. Slik at ingen får mer gjennom den enn de selv har:
 
-- Bare personer som har de tillatelsene, kan endre den eller variablene dens, arkivere eller slette den, kjøre den eller ett av trinnene dens manuelt, eller se webhook-URL-en og den innkommende e-postadressen dens. Alle som kan redigere den, kan fortsatt slå den av.
+- Bare personer som har de tillatelsene, kan endre den eller variablene dens, arkivere eller slette den, kjøre den eller ett av trinnene dens manuelt, eller se webhook-URL-en og den innkommende e-postadressen dens. Alle som kan redigere den, kan fortsatt slå den av. Når den begynner å kjøre med mer enn standardtillatelsene, eller det endres hva den kjører som, får den en ny webhook-URL og en ny innkommende e-postadresse, så kopier av de gamle ikke lenger starter den.
 - Bare en person kan gi dem, aldri en API-nøkkel.
 - Hver kjøring sjekker først at personen som ga dem, fortsatt har dem. Hvis ikke, stopper kjøringen før det første trinnet, og loggen sier hvorfor og hvem som kan gi dem på nytt.
 - Den leser ikke prosjektets globale variabler, som alle som kan redigere arbeidsflytvariabler, kan endre.

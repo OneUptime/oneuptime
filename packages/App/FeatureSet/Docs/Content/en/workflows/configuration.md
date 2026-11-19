@@ -219,7 +219,7 @@ Whatever it runs as, a step never reads settings that hold credentials, never se
 
 A workflow that runs as more than the default runs with the permissions of the person who gave them: whoever last chose its **Run As**, or saved its steps or its variables. So that nobody gets more through it than they have themselves:
 
-- Only people who have those permissions can change it or its variables, archive or delete it, run it or one of its steps by hand, or see its webhook URL and incoming email address. Anyone who can edit it can still turn it off.
+- Only people who have those permissions can change it or its variables, archive or delete it, run it or one of its steps by hand, or see its webhook URL and incoming email address. Anyone who can edit it can still turn it off. When it's set to run as more than the default, or what it runs as changes, it gets a new webhook URL and incoming email address, so copies of the old ones no longer start it.
 - Only a person can give them, never an API key.
 - Each run first checks that the person who gave them still has them. If not, the run stops before its first step, and its log says why and who can give them again.
 - It doesn't read the project's global variables, which anyone who can edit workflow variables may change.

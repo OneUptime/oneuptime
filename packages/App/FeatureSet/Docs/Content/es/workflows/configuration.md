@@ -219,7 +219,7 @@ Se ejecute como se ejecute, un paso nunca lee configuraciones que contienen cred
 
 Un flujo de trabajo que se ejecuta con más que los permisos predeterminados se ejecuta con los permisos de la persona que se los dio: quien eligió por última vez su **Run As** o guardó sus pasos o sus variables. Para que nadie obtenga a través de él más de lo que tiene:
 
-- Solo las personas que tienen esos permisos pueden cambiarlo a él o sus variables, archivarlo o eliminarlo, ejecutarlo a él o uno de sus pasos manualmente, o ver su URL de webhook y su dirección de correo entrante. Cualquiera que pueda editarlo puede seguir desactivándolo.
+- Solo las personas que tienen esos permisos pueden cambiarlo a él o sus variables, archivarlo o eliminarlo, ejecutarlo a él o uno de sus pasos manualmente, o ver su URL de webhook y su dirección de correo entrante. Cualquiera que pueda editarlo puede seguir desactivándolo. Cuando pasa a ejecutarse con más que los permisos predeterminados, o cambia cómo se ejecuta, recibe una nueva URL de webhook y una nueva dirección de correo entrante, así que las copias de las anteriores ya no lo inician.
 - Solo una persona puede darlos, nunca una clave de API.
 - Cada ejecución comprueba primero que la persona que los dio todavía los tiene. Si no, la ejecución se detiene antes de su primer paso, y su registro dice por qué y quién puede volver a darlos.
 - No lee las variables globales del proyecto, que puede cambiar cualquiera que pueda editar variables de flujos de trabajo.

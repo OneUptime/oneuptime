@@ -219,7 +219,7 @@ Quelle que soit l'identité sous laquelle il s'exécute, une étape ne lit jamai
 
 Un flux de travail qui s'exécute avec plus que les autorisations par défaut s'exécute avec les autorisations de la personne qui les lui a données : celle qui a choisi en dernier son **Run As**, ou enregistré ses étapes ou ses variables. Pour que personne n'obtienne par lui plus que ce qu'il a lui-même :
 
-- Seules les personnes qui ont ces autorisations peuvent le modifier, lui ou ses variables, l'archiver ou le supprimer, l'exécuter à la main, lui ou l'une de ses étapes, ou voir son URL de webhook et son adresse e-mail entrante. Quiconque peut le modifier peut toujours le désactiver.
+- Seules les personnes qui ont ces autorisations peuvent le modifier, lui ou ses variables, l'archiver ou le supprimer, l'exécuter à la main, lui ou l'une de ses étapes, ou voir son URL de webhook et son adresse e-mail entrante. Quiconque peut le modifier peut toujours le désactiver. Lorsqu'il passe à plus que les autorisations par défaut, ou que change l'identité sous laquelle il s'exécute, il reçoit une nouvelle URL de webhook et une nouvelle adresse e-mail entrante, si bien que les copies des anciennes ne le démarrent plus.
 - Seule une personne peut les donner, jamais une clé d'API.
 - Chaque exécution vérifie d'abord que la personne qui les a données les a toujours. Sinon, l'exécution s'arrête avant sa première étape, et son journal dit pourquoi et qui peut les redonner.
 - Il ne lit pas les variables globales du projet, que peut modifier quiconque peut modifier les variables de flux de travail.

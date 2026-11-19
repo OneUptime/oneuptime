@@ -219,7 +219,7 @@ Seja como for executado, um passo nunca lê configurações que guardam credenci
 
 Um workflow executado com mais do que as permissões padrão é executado com as permissões da pessoa que as deu a ele: quem escolheu por último o seu **Run As** ou salvou os seus passos ou as suas variáveis. Para que ninguém consiga por meio dele mais do que tem:
 
-- Só as pessoas que têm essas permissões podem alterar o workflow ou as suas variáveis, arquivá-lo ou excluí-lo, executá-lo ou um dos seus passos manualmente, ou ver a sua URL de webhook e o seu endereço de e-mail de entrada. Qualquer pessoa que possa editá-lo ainda pode desativá-lo.
+- Só as pessoas que têm essas permissões podem alterar o workflow ou as suas variáveis, arquivá-lo ou excluí-lo, executá-lo ou um dos seus passos manualmente, ou ver a sua URL de webhook e o seu endereço de e-mail de entrada. Qualquer pessoa que possa editá-lo ainda pode desativá-lo. Quando passa a ser executado com mais do que as permissões padrão, ou muda a forma como é executado, ele recebe uma nova URL de webhook e um novo endereço de e-mail de entrada, então cópias dos antigos não o iniciam mais.
 - Só uma pessoa pode dá-las, nunca uma chave de API.
 - Cada execução verifica primeiro se a pessoa que as deu ainda as tem. Se não, a execução para antes do seu primeiro passo, e o seu log diz por quê e quem pode dá-las de novo.
 - Ele não lê as variáveis globais do projeto, que qualquer pessoa que possa editar variáveis de workflow pode alterar.

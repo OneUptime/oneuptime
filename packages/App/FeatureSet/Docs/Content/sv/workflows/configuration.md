@@ -219,7 +219,7 @@ Oavsett vad arbetsflödet körs som läser ett steg aldrig inställningar som in
 
 Ett arbetsflöde som körs med mer än standardbehörigheterna körs med behörigheterna hos den person som gav det dem: den som senast valde dess **Run As** eller sparade dess steg eller variabler. Så att ingen får mer genom det än de själva har:
 
-- Bara personer som har de behörigheterna kan ändra det eller dess variabler, arkivera eller ta bort det, köra det eller ett av dess steg manuellt, eller se dess webhook-URL och inkommande e-postadress. Alla som får redigera det kan fortfarande stänga av det.
+- Bara personer som har de behörigheterna kan ändra det eller dess variabler, arkivera eller ta bort det, köra det eller ett av dess steg manuellt, eller se dess webhook-URL och inkommande e-postadress. Alla som får redigera det kan fortfarande stänga av det. När det börjar köras med mer än standardbehörigheterna, eller det ändras vad det körs som, får det en ny webhook-URL och en ny inkommande e-postadress, så att kopior av de gamla inte längre startar det.
 - Bara en person kan ge dem, aldrig en API-nyckel.
 - Varje körning kontrollerar först att den person som gav dem fortfarande har dem. Om inte stannar körningen före sitt första steg, och dess logg säger varför och vem som kan ge dem igen.
 - Det läser inte projektets globala variabler, som alla som får redigera arbetsflödesvariabler kan ändra.

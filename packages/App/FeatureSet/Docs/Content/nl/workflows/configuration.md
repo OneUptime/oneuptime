@@ -219,7 +219,7 @@ Waarmee de workflow ook draait, een stap leest nooit instellingen met inloggegev
 
 Een workflow die met meer dan de standaardmachtigingen draait, draait met de machtigingen van de persoon die ze heeft gegeven: wie als laatste de **Run As** ervan koos, of de stappen of variabelen ervan opsloeg. Zodat niemand er meer mee krijgt dan hij zelf heeft:
 
-- Alleen mensen die die machtigingen hebben, kunnen de workflow of zijn variabelen wijzigen, hem archiveren of verwijderen, hem of een van zijn stappen met de hand uitvoeren, of zijn webhook-URL en inkomende e-mailadres zien. Iedereen die hem mag bewerken, kan hem nog steeds uitschakelen.
+- Alleen mensen die die machtigingen hebben, kunnen de workflow of zijn variabelen wijzigen, hem archiveren of verwijderen, hem of een van zijn stappen met de hand uitvoeren, of zijn webhook-URL en inkomende e-mailadres zien. Iedereen die hem mag bewerken, kan hem nog steeds uitschakelen. Gaat hij met meer dan de standaardmachtigingen draaien, of verandert waarmee hij draait, dan krijgt hij een nieuwe webhook-URL en een nieuw inkomend e-mailadres, zodat kopieën van de oude hem niet meer starten.
 - Alleen een persoon kan ze geven, nooit een API-sleutel.
 - Elke uitvoering controleert eerst of de persoon die ze gaf ze nog heeft. Zo niet, dan stopt de uitvoering vóór de eerste stap, en het logboek zegt waarom en wie ze opnieuw kan geven.
 - Hij leest de globale variabelen van het project niet, die iedereen kan wijzigen die workflowvariabelen mag bewerken.

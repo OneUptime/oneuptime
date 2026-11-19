@@ -219,7 +219,7 @@ Womit der Workflow auch läuft: Ein Schritt liest nie Einstellungen mit Zugangsd
 
 Ein Workflow, der mit mehr als den Standardberechtigungen läuft, läuft mit den Berechtigungen der Person, die sie ihm gegeben hat: wer zuletzt sein **Run As** gewählt oder seine Schritte oder Variablen gespeichert hat. Damit niemand über ihn mehr bekommt, als er selbst hat:
 
-- Nur Personen, die diese Berechtigungen haben, können ihn oder seine Variablen ändern, ihn archivieren oder löschen, ihn oder einen seiner Schritte von Hand ausführen oder seine Webhook-URL und eingehende E-Mail-Adresse sehen. Wer ihn bearbeiten darf, kann ihn trotzdem ausschalten.
+- Nur Personen, die diese Berechtigungen haben, können ihn oder seine Variablen ändern, ihn archivieren oder löschen, ihn oder einen seiner Schritte von Hand ausführen oder seine Webhook-URL und eingehende E-Mail-Adresse sehen. Wer ihn bearbeiten darf, kann ihn trotzdem ausschalten. Sobald er mit mehr als den Standardberechtigungen läuft oder sich ändert, womit er läuft, bekommt er eine neue Webhook-URL und eingehende E-Mail-Adresse, sodass Kopien der alten ihn nicht mehr starten.
 - Nur eine Person kann sie geben, nie ein API-Schlüssel.
 - Jede Ausführung prüft zuerst, ob die Person, die sie gegeben hat, sie noch hat. Wenn nicht, stoppt die Ausführung vor ihrem ersten Schritt, und ihr Protokoll sagt, warum und wer sie wieder geben kann.
 - Er liest die globalen Variablen des Projekts nicht, die jeder ändern kann, der Workflow-Variablen bearbeiten darf.

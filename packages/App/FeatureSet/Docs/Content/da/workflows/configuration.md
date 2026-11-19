@@ -219,7 +219,7 @@ Uanset hvad arbejdsgangen kører som, læser et trin aldrig indstillinger, der i
 
 En arbejdsgang, der kører med mere end standardtilladelserne, kører med tilladelserne fra den person, der gav den dem: den, der sidst valgte dens **Run As** eller gemte dens trin eller variabler. Så ingen får mere gennem den, end de selv har:
 
-- Kun personer, der har de tilladelser, kan ændre den eller dens variabler, arkivere eller slette den, køre den eller et af dens trin manuelt eller se dens webhook-URL og indgående e-mailadresse. Alle, der må redigere den, kan stadig slå den fra.
+- Kun personer, der har de tilladelser, kan ændre den eller dens variabler, arkivere eller slette den, køre den eller et af dens trin manuelt eller se dens webhook-URL og indgående e-mailadresse. Alle, der må redigere den, kan stadig slå den fra. Når den kommer til at køre med mere end standardtilladelserne, eller det ændres, hvad den kører som, får den en ny webhook-URL og en ny indgående e-mailadresse, så kopier af de gamle ikke længere starter den.
 - Kun en person kan give dem, aldrig en API-nøgle.
 - Hver kørsel tjekker først, at den person, der gav dem, stadig har dem. Hvis ikke, stopper kørslen før sit første trin, og dens log siger hvorfor, og hvem der kan give dem igen.
 - Den læser ikke projektets globale variabler, som alle, der må redigere arbejdsgangsvariabler, kan ændre.

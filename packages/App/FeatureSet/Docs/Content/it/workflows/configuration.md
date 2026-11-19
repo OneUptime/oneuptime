@@ -219,7 +219,7 @@ Con qualunque permesso venga eseguito, un passaggio non legge mai le impostazion
 
 Un flusso di lavoro che viene eseguito con più dei permessi predefiniti viene eseguito con i permessi della persona che glieli ha dati: chi ha scelto per ultimo il suo **Run As**, o ha salvato i suoi passaggi o le sue variabili. Perché nessuno ottenga attraverso di esso più di quello che ha:
 
-- Solo le persone che hanno quei permessi possono modificare il flusso di lavoro o le sue variabili, archiviarlo o eliminarlo, eseguire a mano il flusso di lavoro o uno dei suoi passaggi, o vedere il suo URL del webhook e il suo indirizzo email in entrata. Chiunque possa modificarlo può comunque disattivarlo.
+- Solo le persone che hanno quei permessi possono modificare il flusso di lavoro o le sue variabili, archiviarlo o eliminarlo, eseguire a mano il flusso di lavoro o uno dei suoi passaggi, o vedere il suo URL del webhook e il suo indirizzo email in entrata. Chiunque possa modificarlo può comunque disattivarlo. Quando passa a essere eseguito con più dei permessi predefiniti, o cambia come viene eseguito, riceve un nuovo URL del webhook e un nuovo indirizzo email in entrata, così le copie dei vecchi non lo avviano più.
 - Solo una persona può darli, mai una chiave API.
 - Ogni esecuzione controlla prima che la persona che li ha dati li abbia ancora. Se non è così, l'esecuzione si ferma prima del suo primo passaggio, e il suo log dice perché e chi può darli di nuovo.
 - Non legge le variabili globali del progetto, che chiunque possa modificare le variabili dei flussi di lavoro può cambiare.
