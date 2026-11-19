@@ -9,6 +9,9 @@ import OnCallDutyPolicyUserOverrideService, {
 } from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import UserService from "../../../Server/Services/UserService";
 import ProjectLimitLock from "../../../Server/Utils/Database/ProjectLimitLock";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
@@ -500,6 +503,41 @@ describe("through the service", () => {
       expect(refusal.message).toBe(
         `pat@example.com is already covered by Someone else on this policy from ${said("13:00")} to ${said("17:00")}. Change the times, or edit that override.`,
       );
+    });
+
+    /*
+     * Someone invited to the project who has not accepted can be away, or
+     * cover, in an override: the project sees only what it invited of them
+     * - the name typed for them, else their address (#9823).
+     */
+    test("someone only invited to the project as the project knows them: the name typed for them, else their address", async () => {
+      const withheldIn: jest.SpyInstance = jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockResolvedValue(
+          new Map<string, WithheldProfile>([
+            [JANE, { inviteeName: "Jane from Payments" }],
+            [BOB, { inviteeName: null }],
+          ]),
+        );
+
+      const refusal: Error = await refusalOf(
+        add({ from: "15:00", until: "16:00" }),
+      );
+
+      // Bob Lee has no address on file here: nothing to name him by.
+      expect(refusal.message).toBe(
+        `Jane from Payments is already covered by Someone else on this policy from ${said("13:00")} to ${said("17:00")}. Change the times, or edit that override.`,
+      );
+      expect(refusal.message).not.toContain("Jane Doe");
+      expect(refusal.message).not.toContain("Bob Lee");
+
+      // One read, for the overlapping override's people, in its project.
+      expect(withheldIn).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          withheldIn.mock.calls[0]![0] as { projectId: ObjectID }
+        ).projectId.toString(),
+      ).toBe(PROJECT);
     });
 
     test("where it overlaps two saved before the rule, it names the one that starts first", async () => {
