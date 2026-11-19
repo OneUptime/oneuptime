@@ -21,6 +21,9 @@ import DataTableLineageReader, {
   DataPipelineLineageReader,
 } from "../../../../Server/Utils/DataObservability/DataTableLineage";
 import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import OpenLineageIngest from "../../../../Server/Utils/DataObservability/OpenLineageIngest";
+import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
+import logger from "../../../../Server/Utils/Logger";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../../Models/DatabaseModels/DataCheck";
 import DataPipeline from "../../../../Models/DatabaseModels/DataPipeline";
@@ -41,6 +44,12 @@ import {
   DataCheckHealthAnswer,
 } from "../../../../Types/DataObservability/DataObservabilityAttention";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import {
+  DataPipelineAttribute,
+  DataPipelineMetricName,
+} from "../../../../Types/DataObservability/DataPipelineMetric";
+import { JSONObject } from "../../../../Types/JSON";
+import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts";
 
@@ -59,7 +68,9 @@ import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts
  * never taken as a table that passed; alerts that cannot be read throw; a
  * request that names a pipeline keeps its answer on it, a dry run keeps
  * nothing; and while Data Observability is switched off the answer is go,
- * having read and kept nothing.
+ * having read and kept nothing. A kept answer is written as the pipeline's
+ * oneuptime.data.pipeline.circuit_breaker_stopped metric too (#9683), for
+ * the recommended monitor that tells its owners it was stopped.
  */
 
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
@@ -192,6 +203,8 @@ let healthAsked: Array<{
 }>;
 let scopedReaderScopes: Array<DataObservabilityScope | undefined>;
 let offReason: ServerProductOffReason | null;
+// The metric rows written, by project.
+let metricRows: Array<{ projectId: string; row: JSONObject }>;
 
 // What a raw condition (findWithSameText, QueryHelper.any) was handed.
 function parameterOf(value: unknown): unknown {
@@ -282,6 +295,21 @@ function arrange(): void {
   healthAsked = [];
   scopedReaderScopes = [];
   offReason = null;
+  metricRows = [];
+
+  jest
+    .spyOn(OpenLineageIngest, "writeMetricRows")
+    .mockImplementation((async (
+      projectId: ObjectID,
+      rows: Array<JSONObject>,
+    ) => {
+      for (const row of rows) {
+        metricRows.push({ projectId: projectId.toString(), row });
+      }
+    }) as never);
+  jest
+    .spyOn(MonitorMetricUtil, "getRetentionDays")
+    .mockResolvedValue(15 as never);
 
   jest.spyOn(ServerProducts, "getOffReason").mockImplementation((async () => {
     return offReason;
@@ -712,6 +740,79 @@ describe("what is kept on the pipeline", () => {
     expect(answer.verdict).toBe(DataCircuitBreakerVerdict.Stop);
     expect(answer.isRecorded).toBe(false);
     expect(writes).toEqual([]);
+    expect(metricRows).toEqual([]);
+  });
+});
+
+/*
+ * #9683: the pipeline's owners hear of a stop through the recommended
+ * monitor "Pipeline Stopped by Circuit Breaker", which reads the metric the
+ * kept answer writes - 1 for a stop, 0 for a go - tagged like every other
+ * pipeline metric, so a monitor scoped by the pipeline watches it alone.
+ */
+describe("the kept answer, as the pipeline's metric", () => {
+  function written(): Array<{ name: unknown; value: unknown }> {
+    return metricRows.map((each: { row: JSONObject }) => {
+      return { name: each.row["name"], value: each.row["value"] };
+    });
+  }
+
+  test("a stop writes 1, for this pipeline, at the time it was asked", async () => {
+    await ask({ pipeline: "airflow://prod/orders_daily" });
+
+    expect(written()).toEqual([
+      { name: DataPipelineMetricName.CircuitBreakerStopped, value: 1 },
+    ]);
+
+    const row: JSONObject = metricRows[0]!.row;
+
+    expect(metricRows[0]!.projectId).toBe(PROJECT.toString());
+    expect(row["projectId"]).toBe(PROJECT.toString());
+    expect(row["primaryEntityId"]).toBe(ORDERS_DAILY);
+    expect(row["attributes"]).toEqual({
+      [DataPipelineAttribute.PipelineId]: ORDERS_DAILY,
+      [DataPipelineAttribute.PipelineName]: "orders_daily",
+      [DataPipelineAttribute.PipelineNamespace]: "airflow://prod",
+    });
+    expect(row["time"]).toBe(OneUptimeDate.toClickhouseDateTime(NOW));
+  });
+
+  test("a go writes 0, so the monitor clears", async () => {
+    pipelines[1]!.circuitBreakerStoppedAt = EARLIER;
+
+    const answer: DataCircuitBreakerAnswer = await ask({
+      pipeline: "airflow://prod/load",
+    });
+
+    expect(answer.verdict).toBe(DataCircuitBreakerVerdict.Go);
+    expect(written()).toEqual([
+      { name: DataPipelineMetricName.CircuitBreakerStopped, value: 0 },
+    ]);
+    expect(metricRows[0]!.row["primaryEntityId"]).toBe(LOAD_PROD);
+  });
+
+  test("tables alone write nothing: no pipeline was named", async () => {
+    await ask({ tables: ["public.orders"] });
+
+    expect(metricRows).toEqual([]);
+  });
+
+  test("a metric that cannot be written never fails the answer, nor what it keeps", async () => {
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
+    jest
+      .spyOn(OpenLineageIngest, "writeMetricRows")
+      .mockRejectedValue(new Error("ClickHouse is down") as never);
+
+    const answer: DataCircuitBreakerAnswer = await ask({
+      pipeline: "orders_daily",
+    });
+
+    expect(answer.verdict).toBe(DataCircuitBreakerVerdict.Stop);
+    expect(answer.isRecorded).toBe(true);
+    expect(writes).toHaveLength(1);
+    expect(logger.error).toHaveBeenCalled();
   });
 });
 
@@ -839,6 +940,8 @@ describe("switched off on the server", () => {
     expect(pipelineQueries).toEqual([]);
     expect(assetQueries).toEqual([]);
     expect(writes).toEqual([]);
+    // Nor is anything written for the pipeline's monitor.
+    expect(metricRows).toEqual([]);
   });
 });
 
