@@ -1,5 +1,6 @@
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { ProbeBehindWork } from "Common/Types/Probe/ProbeBehind";
 import ProbeStatusMonitorResponse, {
   ProbeStatusMonitorProbe,
@@ -130,7 +131,7 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   probe.behindSince,
                 )
-              : "—",
+              : EMPTY_VALUE_MARK,
           })}
         </div>
       );
