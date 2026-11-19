@@ -58885,5 +58885,13 @@
   "step {{number}}": "步骤 {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} 将从此设备移除：它触发的内容不再关联到此设备，导入可能会添加一个同类监视器。监视器会继续检查。",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Give the right device its monitor from its own page.": "请在正确设备的页面上为它提供监视器。",
+  "More than one device has this address in the sites the scan's probe looks into, so it cannot tell which it found.": "在扫描的探测器所查看的站点中，有多台设备使用此地址，因此无法判断它找到的是哪一台。",
+  "More than one device has this address, and the scan's probe polls more than one of them, so it cannot tell which it found.": "有多台设备使用此地址，而扫描的探测器轮询其中不止一台，因此无法判断它找到的是哪一台。",
+  "More than one device has this address, and the scan's probe polls none and is no site's default probe, so it cannot tell which it found.": "有多台设备使用此地址，而扫描的探测器没有轮询其中任何一台，也不是任何站点的默认探测器，因此无法判断它找到的是哪一台。",
+  "More than one device has this address. This host is the one the scan's probe polls.": "有多台设备使用此地址。此主机是扫描的探测器轮询的那台设备。",
+  "More than one device has this address. This host is the only one of them in the probe's sites.": "有多台设备使用此地址。此主机是其中唯一位于探测器所查看站点的设备。",
+  "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "有多台设备使用此地址。此主机是 {{device}}，即扫描的探测器轮询的那台设备。",
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "有多台设备使用此地址。此主机是 {{device}}，即探测器所查看站点中唯一的那台设备。"
 }

@@ -58885,5 +58885,13 @@
   "step {{number}}": "ステップ {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} はこのデバイスから外れます。今後発生するものはこのデバイスに関連付けられず、インポートで同様のモニターが追加されることがあります。モニターはチェックを続けます。",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Give the right device its monitor from its own page.": "正しいデバイスのページからモニターを付けてください。",
+  "More than one device has this address in the sites the scan's probe looks into, so it cannot tell which it found.": "スキャンのプローブが見るサイトに、このアドレスを持つデバイスが複数あるため、どれを見つけたのか判別できません。",
+  "More than one device has this address, and the scan's probe polls more than one of them, so it cannot tell which it found.": "このアドレスを持つデバイスは複数あり、スキャンのプローブはそのうち複数をポーリングしているため、どれを見つけたのか判別できません。",
+  "More than one device has this address, and the scan's probe polls none and is no site's default probe, so it cannot tell which it found.": "このアドレスを持つデバイスは複数あり、スキャンのプローブはどれもポーリングしておらず、どのサイトのデフォルトのプローブでもないため、どれを見つけたのか判別できません。",
+  "More than one device has this address. This host is the one the scan's probe polls.": "このアドレスを持つデバイスは複数あります。このホストは、スキャンのプローブがポーリングしているデバイスです。",
+  "More than one device has this address. This host is the only one of them in the probe's sites.": "このアドレスを持つデバイスは複数あります。このホストは、その中でプローブが見るサイトにある唯一のデバイスです。",
+  "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "このアドレスを持つデバイスは複数あります。このホストは {{device}} で、スキャンのプローブがポーリングしているデバイスです。",
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "このアドレスを持つデバイスは複数あります。このホストは {{device}} で、プローブが見るサイトにある唯一のデバイスです。"
 }

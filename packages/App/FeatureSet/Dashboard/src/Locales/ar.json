@@ -58885,5 +58885,13 @@
   "step {{number}}": "الخطوة {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "يُزال {{monitorName}} من هذا الجهاز: لم يعد ما تثيره مرتبطًا به، وقد تضيف عمليات الاستيراد مراقبة مثلها. وتواصل المراقبة الفحص.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "أعاد {{user}} المراقبة إلى العمل. يحتسب وقت التشغيل وصفحات الحالة وأهداف SLO وقت المراقبة مجددًا من هنا.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "أوقف {{user}} المراقبة. لا شيء يفحص المراقبة حتى تُعاد إلى العمل، لذا تبقى حالتها على آخر حالة مسجلة، ولا يحتسب وقت التشغيل وصفحات الحالة وأهداف SLO هذه المدة."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "أوقف {{user}} المراقبة. لا شيء يفحص المراقبة حتى تُعاد إلى العمل، لذا تبقى حالتها على آخر حالة مسجلة، ولا يحتسب وقت التشغيل وصفحات الحالة وأهداف SLO هذه المدة.",
+  "Give the right device its monitor from its own page.": "امنح الجهاز الصحيح مراقبته من صفحته.",
+  "More than one device has this address in the sites the scan's probe looks into, so it cannot tell which it found.": "لدى أكثر من جهاز هذا العنوان في المواقع التي ينظر فيها مسبار الفحص، لذا لا يستطيع أن يعرف أيها وجد.",
+  "More than one device has this address, and the scan's probe polls more than one of them, so it cannot tell which it found.": "لدى أكثر من جهاز هذا العنوان، ويستطلع مسبار الفحص أكثر من واحد منها، لذا لا يستطيع أن يعرف أيها وجد.",
+  "More than one device has this address, and the scan's probe polls none and is no site's default probe, so it cannot tell which it found.": "لدى أكثر من جهاز هذا العنوان، ولا يستطلع مسبار الفحص أيًّا منها وليس المسبار الافتراضي لأي موقع، لذا لا يستطيع أن يعرف أيها وجد.",
+  "More than one device has this address. This host is the one the scan's probe polls.": "لدى أكثر من جهاز هذا العنوان. هذا المضيف هو الجهاز الذي يستطلعه مسبار الفحص.",
+  "More than one device has this address. This host is the only one of them in the probe's sites.": "لدى أكثر من جهاز هذا العنوان. هذا المضيف هو الوحيد منها في مواقع المسبار.",
+  "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "لدى أكثر من جهاز هذا العنوان. هذا المضيف هو {{device}}، الجهاز الذي يستطلعه مسبار الفحص.",
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "لدى أكثر من جهاز هذا العنوان. هذا المضيف هو {{device}}، الجهاز الوحيد في مواقع المسبار."
 }

@@ -58885,5 +58885,13 @@
   "step {{number}}": "단계 {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}}은(는) 이 디바이스에서 빠집니다. 발생시키는 항목은 더 이상 이 디바이스에 연결되지 않으며, 가져오기가 같은 종류의 모니터를 추가할 수 있습니다. 모니터는 계속 확인합니다.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Give the right device its monitor from its own page.": "올바른 디바이스의 페이지에서 모니터를 추가하세요.",
+  "More than one device has this address in the sites the scan's probe looks into, so it cannot tell which it found.": "스캔의 프로브가 살펴보는 사이트에 이 주소를 가진 디바이스가 둘 이상이므로, 어느 디바이스를 찾았는지 알 수 없습니다.",
+  "More than one device has this address, and the scan's probe polls more than one of them, so it cannot tell which it found.": "이 주소를 가진 디바이스가 둘 이상이고 스캔의 프로브가 그중 둘 이상을 폴링하므로, 어느 디바이스를 찾았는지 알 수 없습니다.",
+  "More than one device has this address, and the scan's probe polls none and is no site's default probe, so it cannot tell which it found.": "이 주소를 가진 디바이스가 둘 이상이고 스캔의 프로브는 어느 디바이스도 폴링하지 않으며 어느 사이트의 기본 프로브도 아니므로, 어느 디바이스를 찾았는지 알 수 없습니다.",
+  "More than one device has this address. This host is the one the scan's probe polls.": "이 주소를 가진 디바이스가 둘 이상입니다. 이 호스트는 스캔의 프로브가 폴링하는 디바이스입니다.",
+  "More than one device has this address. This host is the only one of them in the probe's sites.": "이 주소를 가진 디바이스가 둘 이상입니다. 이 호스트는 그중 프로브의 사이트에 있는 유일한 디바이스입니다.",
+  "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "이 주소를 가진 디바이스가 둘 이상입니다. 이 호스트는 스캔의 프로브가 폴링하는 디바이스인 {{device}}입니다.",
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "이 주소를 가진 디바이스가 둘 이상입니다. 이 호스트는 프로브의 사이트에 있는 유일한 디바이스인 {{device}}입니다."
 }
