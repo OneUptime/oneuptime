@@ -111,6 +111,8 @@ const PINNED_LEFT_OUT = Object.freeze({
     "matches workspace notification rules, logging through the server's logger (Server/Utils/Logger)",
   "Types/Workspace/NotificationRules/PolicyNameConditionSwitch":
     "switches an on-call rule's policy-name condition to the policies it names, with the conditions NotificationRuleCondition declares; new in 16.0.0 and never published (UI/Utils/Dropdown)",
+  "Types/Workspace/NotificationRules/SloRuleChanges":
+    "which changes of an SLO a workspace rule posts - its error budget policy's, its status's, or both - by the conditions NotificationRuleCondition declares; new in 17.0.0 and never published (UI/Utils/Dropdown)",
   "Utils/Dashboard/Components/DashboardClockComponent":
     "the dashboard clock widget, in the viewer's time zone (UI/Utils/Timezone)",
   "Utils/Dashboard/Components/Index":
