@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
 import {
   MetricQueryRead,
+  MetricQueryThreshold,
   namedMetric,
   readDashboardMetricQueries,
   readMonitorStepsMetricQueries,
@@ -128,7 +129,7 @@ describe("a monitor's queries of a metric", () => {
     expect(reads[0]!.splitBy).toEqual(["Dimensions.Role"]);
     expect(reads[0]!.aggregation).toBe("Max");
     expect(
-      reads[0]!.thresholds.map((threshold: { holder: JSONObject }) => {
+      reads[0]!.thresholds.map((threshold: MetricQueryThreshold): unknown => {
         return threshold.holder["value"];
       }),
     ).toEqual(["1073741824"]);
