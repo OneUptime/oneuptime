@@ -1072,6 +1072,8 @@ import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./18091846
 import { AddDataStoreFindingSampleRecords1809184700000 } from "./1809184700000-AddDataStoreFindingSampleRecords";
 import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIdentityProviderSignOut";
 import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
+import { AddMonitorNetworkDevice1809184736000 } from "./1809184736000-AddMonitorNetworkDevice";
+import { AddMonitorNetworkDeviceIndexAndKey1809184736100 } from "./1809184736100-AddMonitorNetworkDeviceIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2148,4 +2150,6 @@ export default [
   AddDataStoreFindingSampleRecords1809184700000,
   AddIdentityProviderSignOut1809184710000,
   AddSecurityCaseTaskResponseStepKey1809184720000,
+  AddMonitorNetworkDevice1809184736000,
+  AddMonitorNetworkDeviceIndexAndKey1809184736100,
 ];
