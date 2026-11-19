@@ -77,6 +77,8 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
   const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
+    let loaded: SiteSummaryCounts | null = null;
+
     try {
       /*
        * One request, two grouped counts, no rows.
@@ -96,6 +98,21 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
 
       setCounts(summary);
       setHasError(false);
+      loaded = summary;
+    } catch {
+      // The summary row is supplementary — hide it instead of breaking the page.
+      setHasError(true);
+    }
+
+    setIsLoading(false);
+
+    /*
+     * Told outside the read's own failure: what the page does with the
+     * counts never hides the strip they are drawn in.
+     */
+    if (loaded) {
+      const summary: SiteSummaryCounts = loaded;
+
       props.onCountsLoaded?.(
         (tile: SiteSummaryTile): FacetTileSelection | null => {
           return getSiteFacetSelectionForTile(tile, {
@@ -103,12 +120,7 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
           });
         },
       );
-    } catch {
-      // The summary row is supplementary — hide it instead of breaking the page.
-      setHasError(true);
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
