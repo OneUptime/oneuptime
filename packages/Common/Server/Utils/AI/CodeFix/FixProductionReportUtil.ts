@@ -6,17 +6,13 @@ import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import FixProductionStatus, {
   FixProductionStatusHelper,
 } from "../../../../Types/AI/FixProductionStatus";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import ObjectID from "../../../../Types/ObjectID";
-import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
-import logger from "../../Logger";
 
 /*
  * What production showed about a merged AI fix, read from its pull
  * request's production columns into the report every page shows it with
  * (Types/AI/FixProductionReport): Code's tasks, the AI Logs of incidents
- * and alerts.
+ * and alerts - each from the pull request its task shows, whichever of its
+ * turns opened it (CodeTaskListRows).
  */
 
 // The columns a report is read from.
@@ -92,61 +88,5 @@ export default class FixProductionReportUtil {
     }
 
     return report;
-  }
-
-  /*
-   * Each run's report, by run id: the pull request whose status changed
-   * last, when a run opened more than one. Read as root - callers have
-   * decided who may see the runs - and never fatal: a failed read leaves
-   * the reports out, and the runs are shown without them.
-   */
-  public static async readForRuns(data: {
-    projectId: ObjectID;
-    runIds: Array<ObjectID>;
-  }): Promise<Map<string, FixProductionReport>> {
-    const byRunId: Map<string, FixProductionReport> = new Map<
-      string,
-      FixProductionReport
-    >();
-
-    if (data.runIds.length === 0) {
-      return byRunId;
-    }
-
-    try {
-      const pullRequests: Array<AIAgentTaskPullRequest> =
-        await AIAgentTaskPullRequestService.findBy({
-          query: {
-            projectId: data.projectId,
-            aiRunId: QueryHelper.any(data.runIds),
-            productionStatus: QueryHelper.notNull(),
-          } as never,
-          select: {
-            _id: true,
-            aiRunId: true,
-            ...FIX_PRODUCTION_REPORT_SELECT,
-          },
-          sort: { productionStatusAt: SortOrder.Descending } as never,
-          limit: data.runIds.length * 5,
-          skip: 0,
-          props: { isRoot: true },
-        });
-
-      for (const pullRequest of pullRequests) {
-        const runId: string = pullRequest.aiRunId?.toString() || "";
-        const report: FixProductionReport | undefined =
-          FixProductionReportUtil.fromPullRequest(pullRequest);
-
-        if (runId && report && !byRunId.has(runId)) {
-          byRunId.set(runId, report);
-        }
-      }
-    } catch (error) {
-      logger.error(
-        `Could not read the production verdicts of AI fix pull requests: ${error}`,
-      );
-    }
-
-    return byRunId;
   }
 }

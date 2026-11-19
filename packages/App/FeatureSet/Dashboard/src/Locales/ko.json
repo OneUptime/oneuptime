@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}}개 검증됨",
   "{{count}} waiting for approval": "{{count}}개 승인 대기 중",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: 조사 {{investigations}}건, 실패 {{failed}}건, 수정 {{fixes}}건",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}}개 실패, {{timedOut}}개 실행되지 않음",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} \"{{resourceName}}\"도 수정할 수 있지만 OneUptime AI는 {{signal}} 하나당 리소스 하나만 수정합니다.",
@@ -58624,5 +58623,15 @@
   "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.": "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.",
   "{{field}} is not set": "{{field}} is not set",
   "{{namespace}} applies here": "{{namespace}} applies here",
-  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's."
+  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.",
+  "Command not shown to your role": "내 역할에는 명령이 표시되지 않음",
+  "None of the commands OneUptime AI ran here failed.": "OneUptime AI가 여기서 실행한 명령 중 실패한 것이 없습니다.",
+  "Show which commands failed and why": "어떤 명령이 실패했는지와 그 이유 표시",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "OneUptime AI가 지난 30일 동안 여기서 실행했다가 실패한 명령과 그 이유입니다. 최신순입니다.",
+  "{{count}} commands failed": "명령 {{count}}개가 실패했습니다",
+  "{{count}} commands failed_one": "명령 {{count}}개가 실패했습니다",
+  "{{count}} never ran": "{{count}}개 실행되지 않음",
+  "{{count}} never ran_one": "{{count}}개 실행되지 않음",
+  "Showing the newest {{count}}.": "최신 {{count}}개를 표시하고 있습니다.",
+  "Showing the newest {{count}}._one": "최신 {{count}}개를 표시하고 있습니다."
 }

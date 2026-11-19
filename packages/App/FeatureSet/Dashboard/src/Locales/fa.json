@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}} راستی‌آزمایی‌شده",
   "{{count}} waiting for approval": "{{count}} در انتظار تأیید",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: {{investigations}} بررسی، {{failed}} ناموفق، {{fixes}} اصلاح",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}} ناموفق، {{timedOut}} هرگز اجرا نشد",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} در {{shown}} از {{count}} بررسی اینجا دیده می‌شود.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} در {{shown}} از {{count}} بررسی اینجا دیده می‌شود.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} «{{resourceName}}» هم قابل اصلاح بود، اما OneUptime AI برای هر {{signal}} فقط یک منبع را اصلاح می‌کند.",
@@ -58624,5 +58623,15 @@
   "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.": "{{engine}} روی این خوشه اجرا می‌شود: 5.2.1 آن را سازوکار کنترل سیاست خود به شمار می‌آورد.",
   "{{field}} is not set": "{{field}} تنظیم نشده است",
   "{{namespace}} applies here": "{{namespace}} در اینجا اعمال می‌شود",
-  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} صفحه کنترل این خوشه را اجرا می‌کند، پس کنترل‌های گره و صفحه کنترل آن به بنچمارک همان ارائه‌دهنده تعلق دارند."
+  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} صفحه کنترل این خوشه را اجرا می‌کند، پس کنترل‌های گره و صفحه کنترل آن به بنچمارک همان ارائه‌دهنده تعلق دارند.",
+  "Command not shown to your role": "دستور برای نقش شما نمایش داده نمی‌شود",
+  "None of the commands OneUptime AI ran here failed.": "هیچ‌یک از دستورهایی که OneUptime AI اینجا اجرا کرد ناموفق نبود.",
+  "Show which commands failed and why": "نمایش اینکه کدام دستورها ناموفق بودند و چرا",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "دستورهایی که OneUptime AI در ۳۰ روز گذشته اینجا اجرا کرد و ناموفق بودند، و علت آن‌ها، جدیدترین ابتدا.",
+  "{{count}} commands failed": "{{count}} دستور ناموفق بود",
+  "{{count}} commands failed_one": "{{count}} دستور ناموفق بود",
+  "{{count}} never ran": "{{count}} هرگز اجرا نشد",
+  "{{count}} never ran_one": "{{count}} هرگز اجرا نشد",
+  "Showing the newest {{count}}.": "نمایش {{count}} مورد از جدیدترین‌ها.",
+  "Showing the newest {{count}}._one": "نمایش {{count}} مورد از جدیدترین‌ها."
 }

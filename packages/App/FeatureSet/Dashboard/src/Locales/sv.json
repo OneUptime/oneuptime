@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}} verifierade",
   "{{count}} waiting for approval": "{{count}} väntar på godkännande",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: {{investigations}} utredningar, {{failed}} misslyckades, {{fixes}} åtgärder",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}} misslyckades, {{timedOut}} kördes aldrig",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "”{{resourceName}}” ({{resourceKind}}) kunde också åtgärdas, men OneUptime AI åtgärdar en resurs per {{signal}}.",
@@ -58624,5 +58623,15 @@
   "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.": "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.",
   "{{field}} is not set": "{{field}} is not set",
   "{{namespace}} applies here": "{{namespace}} applies here",
-  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's."
+  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.",
+  "Command not shown to your role": "Kommando visas inte för din roll",
+  "None of the commands OneUptime AI ran here failed.": "Inget av de kommandon som OneUptime AI körde här misslyckades.",
+  "Show which commands failed and why": "Visa vilka kommandon som misslyckades och varför",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "De kommandon som OneUptime AI körde här de senaste 30 dagarna och som misslyckades, och varför, de senaste först.",
+  "{{count}} commands failed": "{{count}} kommandon misslyckades",
+  "{{count}} commands failed_one": "{{count}} kommando misslyckades",
+  "{{count}} never ran": "{{count}} kördes aldrig",
+  "{{count}} never ran_one": "{{count}} kördes aldrig",
+  "Showing the newest {{count}}.": "Visar de {{count}} senaste.",
+  "Showing the newest {{count}}._one": "Visar den senaste ({{count}})."
 }

@@ -623,7 +623,7 @@ export default class AiOutcomesReader {
     };
   }
 
-  // The fix task a pull request was opened by, when it was read.
+  // The fix task a pull request was opened by (its first turn), when it was read.
   private static getFixTask(
     rows: Pick<AiOutcomesCountedRows, "fixTaskRuns">,
     pullRequest: AIAgentTaskPullRequest,
@@ -648,6 +648,12 @@ export default class AiOutcomesReader {
    * The fix tasks the pull requests were opened by, read as root (a run is
    * private to its author in the run table): only when each started and
    * what it was a fix of leave.
+   *
+   * A pull request a later turn of a Code task opened - the fix asked again
+   * with Try again, or a reply someone sent in Code - is its task's (#9812):
+   * what the task was a fix of and when it started are its first turn's. A
+   * reply carries no incident or alert, and a turn asked again started
+   * after the investigation its fix was written from.
    */
   private static async readFixTaskRuns(data: {
     projectId: ObjectID;
@@ -667,10 +673,54 @@ export default class AiOutcomesReader {
       return runs;
     }
 
-    const found: Array<AIRun> = await AIRunService.findBy({
+    const found: Array<AIRun> = await this.readFixTaskRunsById({
+      projectId: data.projectId,
+      ids: Array.from(runIds.values()),
+    });
+
+    // The first turns of the later turns found, read once.
+    const taskIds: Map<string, ObjectID> = new Map();
+
+    for (const run of found) {
+      if (run.codeTaskId) {
+        taskIds.set(run.codeTaskId.toString(), run.codeTaskId);
+      }
+    }
+
+    const firstTurns: Map<string, AIRun> = new Map();
+
+    if (taskIds.size > 0) {
+      for (const task of await this.readFixTaskRunsById({
+        projectId: data.projectId,
+        ids: Array.from(taskIds.values()),
+      })) {
+        if (task.id) {
+          firstTurns.set(task.id.toString(), task);
+        }
+      }
+    }
+
+    for (const run of found) {
+      if (run.id) {
+        runs.set(
+          run.id.toString(),
+          (run.codeTaskId && firstTurns.get(run.codeTaskId.toString())) || run,
+        );
+      }
+    }
+
+    return runs;
+  }
+
+  // Runs of this project by id, as root: what a fix task leaves, no more.
+  private static readFixTaskRunsById(data: {
+    projectId: ObjectID;
+    ids: Array<ObjectID>;
+  }): Promise<Array<AIRun>> {
+    return AIRunService.findBy({
       query: {
         projectId: data.projectId,
-        _id: QueryHelper.any(Array.from(runIds.values())),
+        _id: QueryHelper.any(data.ids),
       } as never,
       select: {
         _id: true,
@@ -678,19 +728,12 @@ export default class AiOutcomesReader {
         runType: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
+        codeTaskId: true,
       },
-      limit: runIds.size,
+      limit: data.ids.length,
       skip: 0,
       props: { isRoot: true },
     });
-
-    for (const run of found) {
-      if (run.id) {
-        runs.set(run.id.toString(), run);
-      }
-    }
-
-    return runs;
   }
 
   private static getSubjectIds(

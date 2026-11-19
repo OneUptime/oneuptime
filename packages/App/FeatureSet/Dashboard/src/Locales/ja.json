@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}} 件検証済み",
   "{{count}} waiting for approval": "{{count}} 件が承認待ち",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: 調査 {{investigations}} 件、失敗 {{failed}} 件、修正 {{fixes}} 件",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}} 件失敗、{{timedOut}} 件は未実行",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}}「{{resourceName}}」も修正できますが、OneUptime AI が修正するのは 1 件の{{signal}}につき 1 つのリソースです。",
@@ -58624,5 +58623,15 @@
   "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.": "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.",
   "{{field}} is not set": "{{field}} is not set",
   "{{namespace}} applies here": "{{namespace}} applies here",
-  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's."
+  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.",
+  "Command not shown to your role": "あなたのロールにはコマンドが表示されません",
+  "None of the commands OneUptime AI ran here failed.": "OneUptime AI がここで実行したコマンドで失敗したものはありません。",
+  "Show which commands failed and why": "失敗したコマンドとその理由を表示",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "OneUptime AI が過去 30 日間にここで実行して失敗したコマンドと、その理由を新しい順に表示します。",
+  "{{count}} commands failed": "{{count}} 件のコマンドが失敗しました",
+  "{{count}} commands failed_one": "{{count}} 件のコマンドが失敗しました",
+  "{{count}} never ran": "{{count}} 件は未実行",
+  "{{count}} never ran_one": "{{count}} 件は未実行",
+  "Showing the newest {{count}}.": "新しい順に {{count}} 件を表示しています。",
+  "Showing the newest {{count}}._one": "新しい順に {{count}} 件を表示しています。"
 }

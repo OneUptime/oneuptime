@@ -24226,7 +24226,6 @@
   "{{count}} verified": "تم التحقق: {{count}}",
   "{{count}} waiting for approval": "في انتظار الموافقة: {{count}}",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: {{investigations}} من التحقيقات، فشل منها {{failed}}، و{{fixes}} من الإصلاحات",
-  "{{failed}} failed, {{timedOut}} never ran": "فشل: {{failed}}، لم يعمل أبدًا: {{timedOut}}",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "يظهر {{object}} في {{shown}} من أصل {{count}} من التحقيقات هنا.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "يظهر {{object}} في {{shown}} من أصل {{count}} تحقيق هنا.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "يمكن إصلاح المورد ({{resourceKind}}) «{{resourceName}}» أيضًا، لكن OneUptime AI يصلح موردًا واحدًا لكل عنصر ({{signal}}).",
@@ -58624,5 +58623,15 @@
   "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.": "يعمل {{engine}} على هذا العنقود: يعدّه 5.2.1 آلية التحكم في السياسات الخاصة به.",
   "{{field}} is not set": "{{field}} غير مضبوط",
   "{{namespace}} applies here": "{{namespace}} ينطبق هنا",
-  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "يشغّل {{provider}} مستوى التحكم في هذا العنقود، لذا فضوابط العقد ومستوى التحكم فيه تخص معيار المزوّد."
+  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "يشغّل {{provider}} مستوى التحكم في هذا العنقود، لذا فضوابط العقد ومستوى التحكم فيه تخص معيار المزوّد.",
+  "Command not shown to your role": "الأمر غير معروض لدورك",
+  "None of the commands OneUptime AI ran here failed.": "لم يفشل أي من الأوامر التي شغّلها OneUptime AI هنا.",
+  "Show which commands failed and why": "إظهار أي الأوامر فشلت ولماذا",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "الأوامر التي شغّلها OneUptime AI هنا خلال آخر 30 يومًا وفشلت، ولماذا، الأحدث أولًا.",
+  "{{count}} commands failed": "الأوامر الفاشلة: {{count}}",
+  "{{count}} commands failed_one": "{{count}} أمر فاشل",
+  "{{count}} never ran": "لم يعمل أبدًا: {{count}}",
+  "{{count}} never ran_one": "لم يعمل أبدًا: {{count}}",
+  "Showing the newest {{count}}.": "عرض الأحدث (العدد: {{count}}).",
+  "Showing the newest {{count}}._one": "عرض الأحدث ({{count}})."
 }

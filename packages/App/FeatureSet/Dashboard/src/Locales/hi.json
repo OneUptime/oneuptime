@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}} सत्यापित",
   "{{count}} waiting for approval": "{{count}} अनुमोदन की प्रतीक्षा में",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: {{investigations}} जाँचें, {{failed}} विफल, {{fixes}} सुधार",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}} विफल, {{timedOut}} कभी नहीं चले",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} \"{{resourceName}}\" को भी ठीक किया जा सकता था, लेकिन OneUptime AI हर {{signal}} के लिए एक ही संसाधन ठीक करता है।",
@@ -58624,5 +58623,15 @@
   "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.": "{{engine}} runs on this cluster: 5.2.1 counts it as its policy control mechanism.",
   "{{field}} is not set": "{{field}} is not set",
   "{{namespace}} applies here": "{{namespace}} applies here",
-  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's."
+  "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.": "{{provider}} runs this cluster's control plane, so its node and control plane controls are the provider's benchmark's.",
+  "Command not shown to your role": "आपकी भूमिका के लिए कमांड नहीं दिखाया गया",
+  "None of the commands OneUptime AI ran here failed.": "OneUptime AI ने यहाँ जो कमांड चलाए, उनमें से कोई विफल नहीं हुआ।",
+  "Show which commands failed and why": "दिखाएँ कि कौन-से कमांड विफल रहे और क्यों",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "OneUptime AI ने पिछले 30 दिनों में यहाँ जो कमांड चलाए और जो विफल रहे, और क्यों, सबसे नए पहले।",
+  "{{count}} commands failed": "{{count}} कमांड विफल रहे",
+  "{{count}} commands failed_one": "{{count}} कमांड विफल रहा",
+  "{{count}} never ran": "{{count}} कभी नहीं चले",
+  "{{count}} never ran_one": "{{count}} कभी नहीं चला",
+  "Showing the newest {{count}}.": "सबसे नए {{count}} दिखाए जा रहे हैं।",
+  "Showing the newest {{count}}._one": "सबसे नया {{count}} दिखाया जा रहा है।"
 }
