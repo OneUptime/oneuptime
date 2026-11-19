@@ -829,6 +829,177 @@ describe("a fix whose round stopped before it found one", () => {
   });
 });
 
+/*
+ * A FIX THROUGH MCP SERVERS THAT FOUND NO SAFE FIX (#6526): What it checked
+ * lists each tool of the project's MCP servers it read with - the server
+ * and the tool, why, when and how it went - as the commands a round ran
+ * are listed, and never what it called them with.
+ */
+describe("a fix through MCP servers whose round found none", () => {
+  function mcpFix(): AutoRemediationSuggestion {
+    return Object.assign(new AutoRemediationSuggestion(), {
+      _id: FIX_ID,
+      status: AutoRemediationSuggestionStatus.NoneApplicable,
+      suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+      ruleNameSnapshot: "OneUptime AI",
+      aiRunId: new ObjectID(RUN_ID),
+      rationaleMarkdown:
+        "checkout-api already runs its most tasks, so scaling out would not help.",
+      createdAt: new Date(AT_STARTED),
+    });
+  }
+
+  function mcpRound(): JSONObject {
+    return roundJson({
+      runStatus: AIRunStatus.Completed,
+      events: [
+        eventJson(1, AIRunEventType.RunStarted),
+        eventJson(2, AIRunEventType.RunCompleted),
+      ],
+      explanation: {
+        reason:
+          "checkout-api already runs its most tasks, so scaling out would not help.",
+        ruledOutFixes: [
+          {
+            fix: "Scale the ECS service checkout-api out to 12 tasks",
+            commands: [],
+            whyNot: "Not allowed: the service's maximum is 8 tasks.",
+          },
+        ],
+      },
+      checks: [
+        {
+          command: "",
+          mcpTool: { server: "AWS", tool: "ecs_describe_services" },
+          why: "See how many tasks checkout-api runs.",
+          status: "ran",
+          at: AT_STARTED,
+          error: "",
+        },
+        {
+          command: "",
+          mcpTool: { server: "AWS", tool: "logs_filter_log_events" },
+          why: "",
+          status: "failed",
+          at: AT_STARTED,
+          error: "ThrottlingException: Rate exceeded",
+        },
+      ],
+      otherCheckCount: 2,
+    });
+  }
+
+  test("What it checked lists each read by its server and its tool, with why, when and how it went", async () => {
+    roundServed = mcpRound();
+    await renderStep([mcpFix()]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Found no safe fix");
+    });
+
+    const details: HTMLElement = openPlan();
+    const checks: Array<HTMLElement> = within(details).getAllByTestId(
+      "remediation-round-check",
+    );
+
+    expect(checks).toHaveLength(2);
+    expect(
+      checks.map((check: HTMLElement): Array<string | null> => {
+        return [
+          within(check).getByTestId("remediation-round-check-server")
+            .textContent,
+          within(check).getByTestId("remediation-round-check-tool").textContent,
+          check.getAttribute("data-status"),
+          within(check)
+            .getByTestId("remediation-round-check-mark")
+            .getAttribute("aria-label"),
+        ];
+      }),
+    ).toEqual([
+      ["AWS", "ecs_describe_services", "ran", "Ran"],
+      ["AWS", "logs_filter_log_events", "failed", "Failed"],
+    ]);
+    // As a call reads everywhere else: "AWS · ecs_describe_services".
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-mcp").textContent,
+    ).toBe("AWS · ecs_describe_services");
+    // The tool's name is code, read left to right; the server's its own way.
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-tool"),
+    ).toHaveAttribute("dir", "ltr");
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-server").tagName,
+    ).toBe("BDI");
+    // No command is drawn for a read.
+    expect(
+      within(details).queryByTestId("remediation-round-check-command"),
+    ).toBeNull();
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-why"),
+    ).toHaveTextContent("See how many tasks checkout-api runs.");
+    expect(
+      within(checks[1]!).getByTestId("remediation-round-check-error"),
+    ).toHaveTextContent("ThrottlingException: Rate exceeded");
+    // When, in its line, as a command's.
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-time"),
+    ).toHaveAttribute("dateTime", AT_STARTED);
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-time")
+        .previousElementSibling,
+    ).toBe(within(checks[0]!).getByTestId("remediation-round-check-mcp"));
+    // The project's telemetry is counted apart.
+    expect(
+      within(details).getByTestId("remediation-round-other-checks"),
+    ).toHaveTextContent("It also queried the project's telemetry 2 times.");
+    // It proposed nothing: nobody was asked.
+    expect(
+      within(details).getByTestId("remediation-round-approval"),
+    ).toHaveTextContent(
+      "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+    );
+  });
+
+  test("commands and reads are listed together, in the order the round made them", async () => {
+    roundServed = roundJson({
+      runStatus: AIRunStatus.Completed,
+      checks: [
+        {
+          command: "kubectl get pods -n web",
+          why: "",
+          status: "ran",
+          at: AT_STARTED,
+          error: "",
+        },
+        {
+          command: "",
+          mcpTool: { server: "AWS", tool: "ecs_describe_services" },
+          why: "",
+          status: "running",
+          at: AT_STARTED,
+          error: "",
+        },
+      ],
+    });
+    await renderStep([mcpFix()]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Found no safe fix");
+    });
+
+    const details: HTMLElement = openPlan();
+    const checks: Array<HTMLElement> = within(details).getAllByTestId(
+      "remediation-round-check",
+    );
+
+    expect(
+      within(checks[0]!).getByTestId("remediation-round-check-command"),
+    ).toHaveTextContent("kubectl get pods -n web");
+    expect(
+      within(checks[1]!).getByTestId("remediation-round-check-mcp"),
+    ).toHaveTextContent("AWS · ecs_describe_services");
+    expect(checks[1]!).toHaveAttribute("data-status", "running");
+  });
+});
+
 describe("a fix whose round found none", () => {
   function foundNoneRound(): JSONObject {
     return roundJson({

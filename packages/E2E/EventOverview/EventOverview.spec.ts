@@ -23493,6 +23493,9 @@ const ROUND_LIMIT_REFUSAL: string =
   "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.";
 const NO_FIX_REASON: string =
   "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe: that release also changed the database schema.";
+// Why the fix through MCP servers found none (?fixes=mcp-no-fix, #6526).
+const MCP_NO_FIX_REASON: string =
+  "checkout-api already runs the 8 tasks its service allows, and every task is healthy, so scaling out is not possible and would not help.";
 
 async function openRound(page: Page, query: string): Promise<Locator> {
   await open(page, INCIDENT_PATH, query);
@@ -23916,6 +23919,86 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
     await screenshotElement(
       remediationStep(page),
       "remediation-round-no-safe-fix",
+    );
+  });
+
+  /*
+   * #6526: a fix through MCP servers checks the systems behind the signal
+   * with the tools its servers mark as only reading. What it checked lists
+   * each one as a command is listed - the server and the tool, why, when
+   * and how it went - and never what it called it with.
+   */
+  test("a fix through MCP servers that found no safe fix lists what it read on them, and how each read went", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(page, "fixes=mcp-no-fix");
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveText(MCP_NO_FIX_REASON, { timeout: 30000 });
+    expect(await stepTitles(fix)).toEqual(["Found no safe fix"]);
+
+    const details: Locator = await openRoundPlan(fix);
+    const checks: Locator = details.getByTestId("remediation-round-check");
+
+    await expect(checks).toHaveCount(3);
+    expect(
+      await details
+        .getByTestId("remediation-round-check-mcp")
+        .allTextContents(),
+    ).toEqual([
+      "AWS · ecs_describe_services",
+      "AWS · cloudwatch_get_metric_data",
+      "AWS · logs_filter_log_events",
+    ]);
+    expect(
+      await checks.evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return `${element.getAttribute("data-status")}: ${
+            element
+              .querySelector("[data-testid='remediation-round-check-mark']")
+              ?.getAttribute("aria-label") || ""
+          }`;
+        });
+      }),
+    ).toEqual(["ran: Ran", "ran: Ran", "failed: Failed"]);
+    // A read names its server's tool, never a command.
+    await expect(
+      details.getByTestId("remediation-round-check-command"),
+    ).toHaveCount(0);
+    await expect(
+      checks.first().getByTestId("remediation-round-check-tool"),
+    ).toHaveAttribute("dir", "ltr");
+    await expect(
+      checks.first().getByTestId("remediation-round-check-why"),
+    ).toHaveText("See how many tasks checkout-api runs, and its most.");
+    await expect(
+      checks.first().getByTestId("remediation-round-check-time"),
+    ).toHaveAttribute("dateTime", "2026-09-14T18:04:38.000Z");
+    await expect(
+      checks.last().getByTestId("remediation-round-check-error"),
+    ).toHaveText("ThrottlingException: Rate exceeded");
+    await expect(
+      details.getByTestId("remediation-round-other-checks"),
+    ).toHaveText("It also queried the project's telemetry 2 times.");
+
+    // The change it considered and ruled out, with why not.
+    await expect(
+      details.getByTestId("remediation-round-ruled-out-what"),
+    ).toHaveText(["Scale the ECS service checkout-api out to 12 tasks"]);
+    await expect(
+      details.getByTestId("remediation-round-ruled-out-command"),
+    ).toHaveCount(0);
+    await expect(details.getByTestId("remediation-round-approval")).toHaveText(
+      "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+    );
+
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-mcp-no-safe-fix",
     );
   });
 

@@ -3,8 +3,10 @@ import RemediationRound, {
   getRoundAppliedSteps,
   getRoundChecks,
   getRoundExplanation,
+  getRoundMcpChanges,
   getRoundTryAgainRefusal,
   getTokenLimitRefusal,
+  RoundMcpChange,
   toLifecycleEventsJson,
   toRoundRunJson,
 } from "../../../../Server/Utils/AutoRemediation/RemediationRound";
@@ -33,6 +35,7 @@ import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/Aut
 import {
   EXPLAIN_NO_FIX_TOOL_NAME,
   MAX_ROUND_CHECKS,
+  MAX_ROUND_MCP_NAME_LENGTH,
   REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED,
   REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
   RemediationRoundAppliedSteps,
@@ -644,6 +647,370 @@ describe("getRoundChecks: the commands a round ran to check, and how each went",
   });
 });
 
+/*
+ * A FIX THROUGH MCP SERVERS: WHAT IT READ (issue #6526). Its reads - calls
+ * of tools its servers mark as only reading - are listed like a round's
+ * commands; its changes, which the fix's plan records, are not. The real
+ * toolkit's side of it is in RemediationRoundMcpChecks.test.ts.
+ */
+function mcpStarted(
+  server: string,
+  tool: string,
+  extra: JSONObject = {},
+): AIRunEvent {
+  return event({
+    eventType: AIRunEventType.ToolCallStarted,
+    toolName: "call_mcp_tool",
+    toolArguments: {
+      server,
+      tool,
+      arguments: { region: "eu-west-1" },
+      ...extra,
+    },
+  });
+}
+
+function mcpCompleted(
+  summary: AIRunEventResultSummary = {
+    rowCount: 1,
+    citationLabel: "AWS · describe_services",
+  },
+): AIRunEvent {
+  return completed("call_mcp_tool", summary);
+}
+
+const AWS_SERVER_ID: string = "3e000000-0000-4000-8000-0000000000a1";
+
+function mcpPlan(
+  calls: Array<{
+    server?: string;
+    serverId?: string;
+    tool: string;
+    status: string;
+  }>,
+): JSONObject {
+  return {
+    calls: calls.map(
+      (
+        call: {
+          server?: string;
+          serverId?: string;
+          tool: string;
+          status: string;
+        },
+        index: number,
+      ): JSONObject => {
+        return {
+          sequence: index + 1,
+          serverId: call.serverId || AWS_SERVER_ID,
+          serverNameSnapshot: call.server || "AWS",
+          toolName: call.tool,
+          arguments: { service: "checkout-api" },
+          status: call.status,
+        };
+      },
+    ),
+  };
+}
+
+describe("getRoundChecks: what a fix through MCP servers read", () => {
+  beforeEach(() => {
+    nextSequence = 1;
+  });
+
+  it("lists each read of a server's tool with why, when and how it went, between the commands", () => {
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        lifecycle(AIRunEventType.RunStarted),
+        started("list_mcp_tools", undefined),
+        completed("list_mcp_tools"),
+        mcpStarted("AWS", "describe_services", {
+          rationale: "See how many tasks checkout-api runs.",
+        }),
+        mcpCompleted(),
+        started("run_kubectl", "kubectl get pods -n shop"),
+        completed("run_kubectl"),
+        // The server answered with an error of its own: no rows.
+        mcpStarted("AWS", "get_metric_data"),
+        mcpCompleted({ rowCount: 0, citationLabel: "AWS · get_metric_data" }),
+        // The call failed at the server: its words, without the toolkit's.
+        mcpStarted("AWS", "filter_log_events"),
+        failed(
+          "call_mcp_tool",
+          "Error calling filter_log_events on AWS: ThrottlingException: Rate exceeded",
+        ),
+      ],
+      isRunOver: true,
+    });
+
+    expect(
+      checks.map((check: RemediationRoundCheck): Array<unknown> => {
+        return [
+          check.mcpTool || check.command,
+          check.status,
+          check.why,
+          check.error,
+        ];
+      }),
+    ).toEqual([
+      [
+        { server: "AWS", tool: "describe_services" },
+        "ran",
+        "See how many tasks checkout-api runs.",
+        "",
+      ],
+      ["kubectl get pods -n shop", "ran", "", ""],
+      [{ server: "AWS", tool: "get_metric_data" }, "failed", "", ""],
+      [
+        { server: "AWS", tool: "filter_log_events" },
+        "failed",
+        "",
+        "ThrottlingException: Rate exceeded",
+      ],
+    ]);
+    // A read names no command.
+    expect(checks[0]!.command).toBe("");
+    expect(checks[0]!.at).toBe(
+      new Date(Date.UTC(2026, 10, 9, 10, 0, 5)).toISOString(),
+    );
+  });
+
+  it("never lists the fix's changes: each tool its plan recorded, whatever became of it", () => {
+    const mcpChanges: Array<RoundMcpChange> = getRoundMcpChanges(
+      mcpPlan([
+        { tool: "update_service", status: "Proposed" },
+        { tool: "restart_task", status: "Succeeded" },
+        { tool: "stop_task", status: "Running" },
+        { tool: "drain_instance", status: "Skipped" },
+      ]),
+    );
+
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        mcpStarted("AWS", "update_service"),
+        mcpCompleted({
+          rowCount: 0,
+          citationLabel: "AWS · update_service (not run)",
+        }),
+        mcpStarted("AWS", "restart_task"),
+        mcpCompleted({ rowCount: 1, citationLabel: "AWS · restart_task" }),
+        mcpStarted("AWS", "drain_instance"),
+        mcpStarted("AWS", "describe_services"),
+        mcpCompleted(),
+        // On its way when the run ended: never a read at work.
+        mcpStarted("AWS", "stop_task"),
+      ],
+      isRunOver: false,
+      mcpChanges,
+    });
+
+    expect(
+      checks.map((check: RemediationRoundCheck): string => {
+        return `${check.mcpTool?.tool}: ${check.status}`;
+      }),
+    ).toEqual(["describe_services: ran"]);
+  });
+
+  it("knows a change by its server's name whatever its case, or by its id", () => {
+    const mcpChanges: Array<RoundMcpChange> = getRoundMcpChanges(
+      mcpPlan([
+        { server: "AWS Prod", tool: "update_service", status: "Proposed" },
+      ]),
+    );
+
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        mcpStarted("aws prod", "update_service"),
+        mcpCompleted({ rowCount: 1 }),
+        mcpStarted(AWS_SERVER_ID.toUpperCase(), "update_service"),
+        mcpCompleted({ rowCount: 1 }),
+        // The same tool of another server is not this fix's change.
+        mcpStarted("AWS Staging", "update_service"),
+        mcpCompleted({ rowCount: 1 }),
+      ],
+      isRunOver: true,
+      mcpChanges,
+    });
+
+    expect(
+      checks.map((check: RemediationRoundCheck): string => {
+        return `${check.mcpTool?.server} · ${check.mcpTool?.tool}`;
+      }),
+    ).toEqual(["AWS Staging · update_service"]);
+  });
+
+  it("a change the fix did not make (not run) is never a read, though its plan does not hold it", () => {
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        mcpStarted("AWS", "reboot_instance"),
+        mcpCompleted({
+          rowCount: 0,
+          citationLabel: "AWS · reboot_instance (not run)",
+        }),
+      ],
+      isRunOver: true,
+    });
+
+    expect(checks).toEqual([]);
+  });
+
+  it("a call refused before it reached a server read nothing: left out", () => {
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        mcpStarted("Azure", "describe_services"),
+        failed(
+          "call_mcp_tool",
+          'Error: there is no MCP server named "Azure" in this run. The servers are: AWS.',
+        ),
+        mcpStarted("AWS", "describe_everything"),
+        failed(
+          "call_mcp_tool",
+          'Error: AWS has no tool named "describe_everything". Call list_mcp_tools to see its tools.',
+        ),
+        mcpStarted("AWS", "describe_services"),
+        failed("call_mcp_tool", "Tool excluded for this run: call_mcp_tool"),
+      ],
+      isRunOver: true,
+    });
+
+    expect(checks).toEqual([]);
+  });
+
+  it("a call that names no server or no tool is no check", () => {
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        event({
+          eventType: AIRunEventType.ToolCallStarted,
+          toolName: "call_mcp_tool",
+          toolArguments: { tool: "describe_services" },
+        }),
+        mcpCompleted(),
+        event({
+          eventType: AIRunEventType.ToolCallStarted,
+          toolName: "call_mcp_tool",
+          toolArguments: { server: "AWS", tool: 42 },
+        }),
+        mcpCompleted(),
+        mcpStarted("   ", "describe_services"),
+        mcpCompleted(),
+      ],
+      isRunOver: true,
+    });
+
+    expect(checks).toEqual([]);
+  });
+
+  it("a read with no end is running while the run is, and stopped once its attempt or the run ended", () => {
+    const events: Array<AIRunEvent> = [mcpStarted("AWS", "describe_services")];
+
+    expect(getRoundChecks({ events, isRunOver: false })[0]!.status).toBe(
+      "running",
+    );
+    expect(getRoundChecks({ events, isRunOver: true })[0]!.status).toBe(
+      "stopped",
+    );
+    expect(
+      getRoundChecks({
+        events: [
+          mcpStarted("AWS", "describe_services"),
+          lifecycle(AIRunEventType.AttemptEnded),
+        ],
+        isRunOver: false,
+      })[0]!.status,
+    ).toBe("stopped");
+  });
+
+  it("never carries what a read was called with, or a server's answer", () => {
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        mcpStarted("AWS", "describe_services", {
+          arguments: { cluster: "acct-4242-secret" },
+        }),
+        completed("call_mcp_tool", {
+          rowCount: 1,
+          citationLabel: "AWS · describe_services",
+          message: "services of acct-4242-secret",
+        }),
+      ],
+      isRunOver: true,
+    });
+
+    expect(JSON.stringify(checks)).not.toContain("acct-4242-secret");
+  });
+
+  it("clips the server's and the tool's names, and the reason", () => {
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events: [
+        mcpStarted(`AWS ${"a".repeat(300)}`, `describe_${"b".repeat(300)}`, {
+          rationale: `Check ${"why ".repeat(100)}`,
+        }),
+        mcpCompleted(),
+      ],
+      isRunOver: true,
+    });
+
+    expect(checks[0]!.mcpTool!.server.length).toBeLessThanOrEqual(
+      MAX_ROUND_MCP_NAME_LENGTH,
+    );
+    expect(checks[0]!.mcpTool!.tool.length).toBeLessThanOrEqual(
+      MAX_ROUND_MCP_NAME_LENGTH,
+    );
+    expect(checks[0]!.mcpTool!.tool.endsWith("…")).toBe(true);
+    expect(checks[0]!.why.length).toBeLessThanOrEqual(200);
+  });
+
+  it(`lists the last ${MAX_ROUND_CHECKS} checks of a long round, commands and reads together`, () => {
+    const events: Array<AIRunEvent> = [];
+
+    for (let index: number = 1; index <= 30; index++) {
+      events.push(started("run_kubectl", `kubectl get pod web-${index}`));
+      events.push(completed("run_kubectl"));
+      events.push(mcpStarted("AWS", `describe_task_${index}`));
+      events.push(mcpCompleted());
+    }
+
+    const checks: Array<RemediationRoundCheck> = getRoundChecks({
+      events,
+      isRunOver: true,
+    });
+
+    expect(checks).toHaveLength(MAX_ROUND_CHECKS);
+    expect(checks[0]!.command).toBe("kubectl get pod web-6");
+    expect(checks[MAX_ROUND_CHECKS - 1]!.mcpTool?.tool).toBe(
+      "describe_task_30",
+    );
+  });
+});
+
+describe("getRoundMcpChanges: the changes a fix through MCP servers recorded", () => {
+  it("names each call of its plan by its server and tool", () => {
+    expect(
+      getRoundMcpChanges(
+        mcpPlan([
+          { tool: "update_service", status: "Proposed" },
+          {
+            server: "GitHub",
+            serverId: "gh",
+            tool: "merge_pr",
+            status: "Failed",
+          },
+        ]),
+      ),
+    ).toEqual([
+      { serverName: "AWS", serverId: AWS_SERVER_ID, tool: "update_service" },
+      { serverName: "GitHub", serverId: "gh", tool: "merge_pr" },
+    ]);
+  });
+
+  it.each([
+    ["no plan", null],
+    ["a plan this build cannot read", { calls: "nope" }],
+    ["an empty plan", { calls: [] }],
+  ])("%s records none", (_label: string, plan: JSONObject | null) => {
+    expect(getRoundMcpChanges(plan)).toEqual([]);
+  });
+});
+
 describe("countRoundOtherChecks: the telemetry a round queried", () => {
   it("counts each completed call of a tool that is not the round's own", () => {
     expect(
@@ -1102,6 +1469,63 @@ describe("RemediationRound.readForViewer: the round, for whoever may read the fi
     expect(mocks.findRun).toHaveBeenCalledWith(
       expect.objectContaining({ id: OLD_RUN_ID, props: { isRoot: true } }),
     );
+  });
+
+  /*
+   * A fix through MCP servers that found no safe fix (#6526): what it read
+   * is listed with its server and tool - never what it was called with -
+   * and the change it ruled out and recorded is not, nor counted as a
+   * telemetry query.
+   */
+  it("a fix through MCP servers lists what it read, and never its changes or their arguments", async () => {
+    mockRound({
+      suggestion: fakeSuggestion({
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        kubernetesClusterId: undefined,
+        ruleNameSnapshot: "OneUptime AI",
+        mcpToolCallPlan: mcpPlan([
+          { tool: "update_service", status: "Proposed" },
+        ]),
+      }),
+      events: [
+        lifecycle(AIRunEventType.RunStarted),
+        started("list_mcp_tools", undefined),
+        completed("list_mcp_tools"),
+        mcpStarted("AWS", "describe_services", {
+          rationale: "See how many tasks checkout-api runs.",
+          arguments: { cluster: "acct-4242-secret" },
+        }),
+        mcpCompleted(),
+        mcpStarted("AWS", "update_service", {
+          arguments: { service: "checkout-api", desiredCount: 8 },
+        }),
+        mcpCompleted({
+          rowCount: 0,
+          citationLabel: "AWS · update_service (not run)",
+        }),
+        started("query_logs", undefined),
+        completed("query_logs"),
+        lifecycle(AIRunEventType.RunCompleted),
+      ],
+      run: fakeRun({ status: AIRunStatus.Completed }),
+    });
+
+    const round: JSONObject = await read();
+
+    expect(round["checks"]).toEqual([
+      {
+        command: "",
+        mcpTool: { server: "AWS", tool: "describe_services" },
+        why: "See how many tasks checkout-api runs.",
+        status: "ran",
+        at: expect.any(String),
+        error: "",
+      },
+    ]);
+    // Only the project's telemetry is a query of it.
+    expect(round["otherCheckCount"]).toBe(1);
+    expect(JSON.stringify(round["checks"])).not.toContain("acct-4242-secret");
+    expect(JSON.stringify(round["checks"])).not.toContain("desiredCount");
   });
 
   it("a round's checks and explanation never carry a tool's raw arguments", async () => {

@@ -8,6 +8,7 @@ import {
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerLimits";
 import {
   CALL_MCP_TOOL_TOOL_NAME,
+  describeMcpToolCallFailure,
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { JSONObject } from "../../../../Types/JSON";
@@ -299,6 +300,15 @@ export default class McpRunToolkit {
                 description:
                   "The tool's arguments, as its input schema describes them. Use {} for a tool that takes none.",
               },
+              /*
+               * Never sent to the server: a fix's Remediation step lists the
+               * read with it, under What it checked (#6526).
+               */
+              rationale: {
+                type: "string",
+                description:
+                  "One sentence on what you expect this call to tell you or change - shown to people on the incident or alert. Never sent to the server.",
+              },
             },
             required: ["server", "tool"],
           },
@@ -584,8 +594,13 @@ export default class McpRunToolkit {
 
       await onFinished?.({ isError: true, text: message });
 
+      // A call that reached the server: a fix's round lists it (#6526).
       return this.failure(
-        `Error calling ${tool.name} on ${state.label}: ${message}`,
+        describeMcpToolCallFailure({
+          tool: tool.name,
+          server: state.label,
+          message,
+        }),
       );
     }
 
