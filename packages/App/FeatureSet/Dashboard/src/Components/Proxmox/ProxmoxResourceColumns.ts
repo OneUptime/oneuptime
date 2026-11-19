@@ -9,7 +9,17 @@ import {
   InfrastructureResource,
   ResourceColumn,
   ResourceColumnTone,
+  ResourceStorageUsageColumns,
 } from "../Infrastructure/ResourceTable";
+import {
+  StorageUsageThresholds,
+  formatStorageBytes,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
+  PROXMOX_STORAGE_FULL_PERCENT,
+  PROXMOX_STORAGE_NEAR_FULL_PERCENT,
+} from "../../Pages/Proxmox/Utils/ProxmoxHealth";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../MetricDescriptions/ProxmoxMetricDescriptions";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import {
@@ -20,10 +30,7 @@ import {
   summarizeProxmoxGuests,
   ProxmoxGuestSummary,
 } from "../../Pages/Proxmox/Utils/ProxmoxPartFacts";
-import {
-  formatBytes,
-  toInfrastructureResource,
-} from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
+import { toInfrastructureResource } from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
 
 /*
  * The columns of the Proxmox lists - a cluster's nodes, guests and storage,
@@ -44,6 +51,29 @@ const BACKUP_IN_JOB: string = translationKey("In a backup job");
 const BACKUP_NOT_IN_JOB: string = translationKey("In no backup job");
 const STORAGE_SHARED: string = translationKey("Shared");
 const STORAGE_LOCAL: string = translationKey("Local");
+const STORAGE_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * Where a storage's bar turns amber and red: the lines the cluster's rules
+ * call a storage Degraded and Unhealthy at (ProxmoxHealth), as its own
+ * page's Used tile does.
+ */
+export const PROXMOX_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: PROXMOX_STORAGE_NEAR_FULL_PERCENT,
+  criticalPercent: PROXMOX_STORAGE_FULL_PERCENT,
+  // "Above 85%", as the rules say: a storage at exactly the line has not crossed it.
+  isPastLineOnly: true,
+};
+
+/*
+ * The Used and Free columns of a storage list (ResourceTable): how full each
+ * storage is as a bar, and what is left, in place of the plain
+ * "Used / Total" text the list drew with English digits.
+ */
+export const PROXMOX_STORAGE_USAGE_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent,
+  freeDescription: PROXMOX_METRIC_DESCRIPTIONS.storageFree,
+};
 
 const NO_VALUE: string = EMPTY_VALUE_MARK;
 
@@ -129,6 +159,14 @@ export function toProxmoxListResource(
     if (row.isShared !== null && row.isShared !== undefined) {
       attributes["shared"] = row.isShared ? "true" : "false";
     }
+    // Used of its total, at its latest report: the Used and Free columns.
+    resource.storageUsage = {
+      usage: getStorageUsage(
+        { capacity: row.maxDiskBytes, used: row.latestDiskBytes },
+        PROXMOX_STORAGE_USAGE_THRESHOLDS,
+      ),
+      noUsageText: STORAGE_NOT_REPORTED,
+    };
   }
 
   return resource;
@@ -233,7 +271,27 @@ export function getProxmoxStorageColumns(data: {
     return data.translator.translateText(text) || text;
   };
 
-  const columns: Array<ResourceColumn> = [];
+  /*
+   * Its total size, after the Used and Free columns the table draws from
+   * each row's storageUsage (PROXMOX_STORAGE_USAGE_COLUMNS).
+   */
+  const columns: Array<ResourceColumn> = [
+    {
+      title: "Total",
+      key: "maxDiskBytes",
+      foldInto: "storageUsage",
+      showTitleWhenFolded: true,
+      getValue: (resource: InfrastructureResource): string => {
+        const total: number = Number(
+          resource.additionalAttributes["maxDiskBytes"] || "",
+        );
+        if (!Number.isFinite(total) || total <= 0) {
+          return NO_VALUE;
+        }
+        return formatStorageBytes(total, data.translator.language);
+      },
+    },
+  ];
 
   if (hasAttribute(data.resources, "storageType")) {
     columns.push({
@@ -260,27 +318,6 @@ export function getProxmoxStorageColumns(data: {
       },
     });
   }
-
-  columns.push({
-    title: "Used / Total",
-    key: "diskBytes",
-    description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,
-    getValue: (resource: InfrastructureResource): string => {
-      const usedRaw: string = resource.additionalAttributes["diskBytes"] || "";
-      const totalRaw: string =
-        resource.additionalAttributes["maxDiskBytes"] || "";
-      if (!usedRaw || !totalRaw) {
-        return "N/A";
-      }
-      const used: number = Number(usedRaw);
-      const total: number = Number(totalRaw);
-      if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
-        return "N/A";
-      }
-      const pct: number = (used / total) * 100;
-      return `${formatBytes(used)} / ${formatBytes(total)} (${pct.toFixed(1)}%)`;
-    },
-  });
 
   return columns;
 }

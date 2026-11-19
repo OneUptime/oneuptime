@@ -34,6 +34,7 @@ import {
 } from "../../../Components/Proxmox/Part/ProxmoxPartRoutes";
 import {
   getProxmoxGuestColumns,
+  PROXMOX_STORAGE_USAGE_COLUMNS,
   getProxmoxStorageColumns,
   toProxmoxListResource,
 } from "../../../Components/Proxmox/ProxmoxResourceColumns";
@@ -485,6 +486,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
           }}
           tableIdPrefix="proxmox-node-storage"
           emptyMessage="No storage reported for this node."
+          storageUsageColumns={PROXMOX_STORAGE_USAGE_COLUMNS}
           columns={getProxmoxStorageColumns({
             resources: storageResources,
             translator: translator,
