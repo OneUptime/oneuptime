@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "{{count}} usundt endepunkt",
   "{{count}} unhealthy endpoints": "{{count}} usunde endepunkter",
   "{{count}} unhealthy endpoints_one": "{{count}} usundt endepunkt",
-  "{{percent}} of requests blocked": "{{percent}} af anmodningerne blev blokeret"
+  "{{percent}} of requests blocked": "{{percent}} af anmodningerne blev blokeret",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Priser: listepriser fra {{provider}}, før Kubecost afstemmer dem med din regning",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost læser din cloudregning og afstemmer sine priser med det, du har betalt, omkring halvanden dag efter hver time. OneUptime registrerer hver time med den pris, den havde, da den sluttede: cloudens offentlige listepriser."
 }

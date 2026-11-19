@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints_one": "비정상 엔드포인트 {{count}}개",
-  "{{percent}} of requests blocked": "요청의 {{percent}} 차단"
+  "{{percent}} of requests blocked": "요청의 {{percent}} 차단",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "가격: Kubecost가 청구서와 대조하기 전의 {{provider}} 정가",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost는 클라우드 청구서를 읽고, 각 시간이 지나고 약 하루 반 뒤에 가격을 실제로 결제한 금액과 대조합니다. OneUptime은 각 시간을 그 시간이 끝난 시점의 가격, 즉 클라우드의 공개 정가로 기록합니다."
 }

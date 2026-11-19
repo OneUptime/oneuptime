@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "{{count}} endpoint con problemas",
   "{{count}} unhealthy endpoints": "{{count}} endpoints con problemas",
   "{{count}} unhealthy endpoints_one": "{{count}} endpoint con problemas",
-  "{{percent}} of requests blocked": "{{percent}} de las solicitudes bloqueadas"
+  "{{percent}} of requests blocked": "{{percent}} de las solicitudes bloqueadas",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Precios: precios de lista de {{provider}}, antes de que Kubecost los concilie con tu factura",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Tu Kubecost lee tu factura de la nube y concilia sus precios con lo que pagaste, aproximadamente un día y medio después de cada hora. OneUptime registra cada hora con el precio que tenía al cerrarse: los precios de lista públicos de la nube."
 }

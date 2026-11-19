@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "{{count}} 個不健康的端點",
   "{{count}} unhealthy endpoints": "{{count}} 個不健康的端點",
   "{{count}} unhealthy endpoints_one": "{{count}} 個不健康的端點",
-  "{{percent}} of requests blocked": "{{percent}} 的請求遭封鎖"
+  "{{percent}} of requests blocked": "{{percent}} 的請求遭封鎖",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "價格：Kubecost 依你的帳單核對之前的 {{provider}} 牌價",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約一天半後，依你實際支付的金額核對其價格。OneUptime 依每個小時結束時的價格記錄該小時：即雲端的公開牌價。"
 }

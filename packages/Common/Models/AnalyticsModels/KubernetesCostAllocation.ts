@@ -659,7 +659,7 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       isLowCardinality: true,
       title: "Pricing Source",
       description:
-        "Where the engine's prices for this row came from: list-prices (a cloud's public list prices), rate-card (rates someone set), default-rates (the engine's built-in default rates) or unknown. Empty on rows from an agent older than this column.",
+        "Where the engine's prices for this row came from: list-prices (a cloud's public list prices), billing-integration (the same list prices, from a Kubecost that reconciles them with the cloud's bill later), rate-card (rates someone set), default-rates (the engine's built-in default rates) or unknown. Empty on rows from an agent older than this column.",
       required: true,
       defaultValue: "",
       type: TableColumnType.Text,
@@ -676,7 +676,7 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         isLowCardinality: true,
         title: "Pricing Provider",
         description:
-          'The cloud whose list prices priced this row, as the engine names it ("AWS", "GCP", "Azure", ...). Empty unless pricingSource is list-prices.',
+          'The cloud whose list prices priced this row, as the engine names it ("AWS", "GCP", "Azure", ...). Empty unless pricingSource is list-prices or billing-integration.',
         required: true,
         defaultValue: "",
         type: TableColumnType.Text,

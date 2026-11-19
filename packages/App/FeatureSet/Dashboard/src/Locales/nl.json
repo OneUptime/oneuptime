@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "{{count}} ongezond endpoint",
   "{{count}} unhealthy endpoints": "{{count}} ongezonde endpoints",
   "{{count}} unhealthy endpoints_one": "{{count}} ongezond endpoint",
-  "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd"
+  "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Prijzen: lijstprijzen van {{provider}}, voordat Kubecost ze afstemt op uw factuur",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Uw Kubecost leest uw cloudfactuur en stemt zijn prijzen ongeveer anderhalve dag na elk uur af op wat u hebt betaald. OneUptime legt elk uur vast met de prijs die het had toen het afliep: de openbare lijstprijzen van de cloud."
 }

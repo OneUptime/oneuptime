@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطه پایانی ناسالم",
-  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده"
+  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "قیمت‌ها: قیمت‌های اعلام‌شدهٔ {{provider}}، پیش از آنکه Kubecost آن‌ها را با صورت‌حساب شما تطبیق دهد",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost شما صورت‌حساب ابری‌تان را می‌خواند و حدود یک روز و نیم پس از هر ساعت، قیمت‌هایش را با مبلغی که پرداخته‌اید تطبیق می‌دهد. OneUptime هر ساعت را با قیمتی ثبت می‌کند که هنگام پایانش داشت: قیمت‌های عمومی اعلام‌شدهٔ ابر."
 }

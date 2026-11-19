@@ -46,6 +46,10 @@ interface FakeEngine {
   kind: "Kubecost" | "OpenCost";
   clusterInfo: unknown;
   nodePricing?: unknown;
+  // Its other APIs' answers, by name (Kubecost 3's aggregator's).
+  api?: Record<string, unknown>;
+  // What it was asked besides allocations, with the query.
+  asked?: Array<{ name: string; params: Record<string, string> }>;
   fetches: number;
 }
 
@@ -144,10 +148,20 @@ class World {
         detected = true;
         return engine.answer;
       },
-      async fetchApiData(name: string): Promise<unknown> {
+      async fetchApiData(
+        name: string,
+        params?: Record<string, string>,
+      ): Promise<unknown> {
         const engine: FakeEngine | undefined = engines.get(url);
         if (!engine) {
           return null;
+        }
+        engine.asked = [
+          ...(engine.asked || []),
+          { name, params: params || {} },
+        ];
+        if (engine.api && name in engine.api) {
+          return engine.api[name];
         }
         return name === "clusterInfo" ? engine.clusterInfo : engine.nodePricing;
       },
@@ -465,6 +479,30 @@ test("the chart's rate card counts only for its bundled engine", async (): Promi
   assert.strictEqual(found.describe()?.pricingSource, "unknown");
 });
 
+test("prices the engine could not say are asked about again at the next window, known ones hourly", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [OPENCOST];
+  // A Kubecost 3 that has not collected the cluster yet says nothing.
+  const engine: FakeEngine = world.engine(OPENCOST_URL, { clusterInfo: null });
+
+  const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
+  assert.strictEqual(resolver.describe()?.pricingSource, "unknown");
+
+  // Minutes later it can say: the next window reads it.
+  engine.clusterInfo = { provider: "Azure" };
+  world.nowMs += 5 * 60 * 1000;
+  await resolver.fetchAllocations(WINDOW);
+  assert.strictEqual(resolver.describe()?.pricingSource, "list-prices");
+  assert.strictEqual(resolver.describe()?.pricingProvider, "Azure");
+
+  // Known: not asked again within the hour.
+  const asked: number = (engine.asked || []).length;
+  world.nowMs += 5 * 60 * 1000;
+  await resolver.fetchAllocations(WINDOW);
+  assert.strictEqual((engine.asked || []).length, asked);
+});
+
 // --- auto ------------------------------------------------------------------
 
 test("auto reads the cluster's own engine", async (): Promise<void> => {
@@ -612,6 +650,70 @@ test("auto has no price metrics to scrape until it has an engine, nor after losi
   }
 
   assert.strictEqual(resolver.metricsEngine(), null);
+});
+
+// --- where a Kubecost 3's prices come from (#9851) ---------------------------
+
+test("a Kubecost 3 the agent reads says where its prices come from, for the cluster its rows name", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [
+    {
+      metadata: {
+        name: "kubecost-frontend",
+        namespace: "kubecost3",
+        labels: { app: "kubecost", "app.kubernetes.io/name": "kubecost" },
+      },
+      spec: { ports: [{ name: "tcp-frontend", port: 9090 }] },
+    },
+  ];
+  const kubecost3: FakeEngine = world.engine(
+    "http://kubecost-frontend.kubecost3.svc:9090",
+    {
+      kind: "Kubecost",
+      // Kubecost 3 answers no /clusterInfo.
+      clusterInfo: null,
+      answer: [
+        { name: "a", properties: { cluster: "cost-metrics-3" }, totalCost: 1 },
+        { name: "__idle__", properties: { cluster: "cost-metrics-3" } },
+      ],
+      api: {
+        "pricing/status": { enabled: false, authorized: false, source: "" },
+        "clusters/status": [
+          { id: "cost-metrics-3", provider: "GCP" },
+          { id: "staging", provider: "AWS" },
+        ],
+        "cloudCost/status": null,
+        assets: [null],
+      },
+    },
+  );
+  world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+  await resolver.fetchAllocations(WINDOW);
+
+  // The cluster the rows name, among the two it answers for.
+  assert.deepStrictEqual(resolver.describe(), {
+    engine: "Kubecost",
+    service: "kubecost3/kubecost-frontend",
+    bundledEngineUnused: true,
+    pricingSource: "list-prices",
+    pricingProvider: "GCP",
+  });
+  assert.deepStrictEqual(
+    (kubecost3.asked || []).map(
+      (asked: { name: string; params: Record<string, string> }): string => {
+        return asked.name;
+      },
+    ),
+    [
+      "clusterInfo",
+      "pricing/status",
+      "clusters/status",
+      "cloudCost/status",
+      "assets",
+    ],
+  );
 });
 
 // --- whose Prometheus the memory peaks are read from (#9777) ----------------

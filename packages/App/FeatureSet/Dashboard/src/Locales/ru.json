@@ -58738,5 +58738,7 @@
   "{{count}} unhealthy endpoint": "{{count}} неисправная конечная точка",
   "{{count}} unhealthy endpoints": "Неисправных конечных точек: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} неисправная конечная точка",
-  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано"
+  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Цены: прейскурант {{provider}}, пока Kubecost не сверит их с вашим счётом",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Ваш Kubecost читает ваш счёт за облако и сверяет свои цены с тем, что вы заплатили, примерно через полтора дня после каждого часа. OneUptime записывает каждый час по ценам на момент его закрытия: по публичному прейскуранту облака."
 }

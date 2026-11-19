@@ -370,13 +370,30 @@ export class CostEngineResolver implements CostEngineSource {
   /*
    * Ask the engine where its prices come from, when they are not known yet
    * or an hour has passed. Best effort: the window's rows ship either way.
+   * The cluster its allocations name is the one a Kubecost 3 is asked about.
+   * An engine that could not say is asked again at the next window: a
+   * Kubecost 3 says nothing until its aggregator has collected the cluster,
+   * some twenty minutes after it is installed.
    */
-  private async refreshPricing(engine: SelectedEngine): Promise<void> {
+  private async refreshPricing(
+    engine: SelectedEngine,
+    allocations: Array<EngineAllocation>,
+  ): Promise<void> {
     if (
       engine.pricing &&
+      engine.pricing.source !== "unknown" &&
       this.now() - engine.pricingReadAtMs < PRICING_REFRESH_MS
     ) {
       return;
+    }
+
+    const clusters: Set<string> = new Set<string>();
+
+    for (const allocation of allocations) {
+      const cluster: string = (allocation.properties?.cluster || "").trim();
+      if (cluster && cluster !== "__idle__") {
+        clusters.add(cluster);
+      }
     }
 
     try {
@@ -384,6 +401,7 @@ export class CostEngineResolver implements CostEngineSource {
         client: engine.client,
         rateCardHint:
           engine.origin === "bundled" ? this.options.rateCardHint : "",
+        clusterId: clusters.size === 1 ? Array.from(clusters)[0] : "",
       });
       engine.pricingReadAtMs = this.now();
     } catch (err: unknown) {
@@ -404,7 +422,7 @@ export class CostEngineResolver implements CostEngineSource {
         await engine.client.fetchAllocations(data);
 
       this.consecutiveFailures = 0;
-      await this.refreshPricing(engine);
+      await this.refreshPricing(engine, allocations);
 
       return allocations;
     } catch (err: unknown) {
