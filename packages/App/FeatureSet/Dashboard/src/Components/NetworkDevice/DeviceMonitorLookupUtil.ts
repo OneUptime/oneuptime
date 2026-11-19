@@ -12,7 +12,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { DEVICE_ADDRESS_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import { DEVICE_TARGET_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import DeviceWebUiUtil from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
 import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
@@ -94,9 +94,12 @@ export const WATCHING_MONITORS_PER_READ: number = 500;
  *    (1) can never find it.
  *
  * 3. A monitor was MADE FOR the device (Monitor.autoProvisionedNetworkDeviceId)
- *    from a Ping, IP, Port or NTP template, by a discovery import
- *    (OneUptime issue #5145): it checks the device's address, so it too is
- *    not of type NetworkDevice. Its provenance is queryable and indexed.
+ *    from a Ping, IP, Port or NTP template - or, since issue #9546, a
+ *    Website, API or SSL Certificate one - by a discovery import (OneUptime
+ *    issue #5145): it checks the device's address, or a URL on it, so it too
+ *    is not of type NetworkDevice. Its provenance is queryable and indexed.
+ *    A monitor a person made and TIED to the device (Monitor.networkDeviceId,
+ *    issue #9545) is read by that tie the same way.
  *
  * Returning only (1) is what made a ping-only device that HAS a bound monitor
  * still render "No monitors are alerting on this device yet" next to a green
@@ -379,8 +382,9 @@ export default class DeviceMonitorLookupUtil {
       },
     };
 
-    const [watching, madeForDevice, webUiMonitors]: [
+    const [watching, madeForDevice, tiedToDevice, webUiMonitors]: [
       Array<Monitor>,
+      ListResult<Monitor>,
       ListResult<Monitor>,
       Array<Monitor>,
     ] = await Promise.all([
@@ -390,17 +394,36 @@ export default class DeviceMonitorLookupUtil {
         select: select,
       }),
       /*
-       * 3. A monitor made FOR the device from a Ping, IP, Port or NTP
-       *    template - a discovery import gives each device one (OneUptime
-       *    issue #5145) - checks the device's address. Its steps name an
-       *    address, not the device; its provenance names the device: the
-       *    column that finds it again and deletes it with the device.
+       * 3. A monitor made FOR the device from a Ping, IP, Port, NTP,
+       *    Website, API or SSL Certificate template - a discovery import
+       *    gives each device one (OneUptime issues #5145, #9546) - checks
+       *    the device's address, or a URL on it. Its steps name an address,
+       *    not the device; its provenance names the device: the column that
+       *    finds it again and deletes it with the device.
        */
       ModelAPI.getList<Monitor>({
         modelType: Monitor,
         query: {
           autoProvisionedNetworkDeviceId: networkDeviceId,
-          monitorType: new Includes([...DEVICE_ADDRESS_MONITOR_TYPES]),
+          monitorType: new Includes([...DEVICE_TARGET_MONITOR_TYPES]),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: select,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      }),
+      /*
+       * 5. A monitor a person TIED to the device (Monitor.networkDeviceId,
+       *    issue #9545): made by hand from Monitors > Create, from this
+       *    device's page, or on an address only this device has - of any
+       *    kind. Nothing in its steps names the device either.
+       */
+      ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          networkDeviceId: networkDeviceId,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -429,6 +452,7 @@ export default class DeviceMonitorLookupUtil {
       ...(boundMonitor ? [boundMonitor] : []),
       ...watching,
       ...madeForDevice.data,
+      ...tiedToDevice.data,
       ...webUiMonitors,
     ]) {
       const monitorId: string = monitor._id?.toString() || "";

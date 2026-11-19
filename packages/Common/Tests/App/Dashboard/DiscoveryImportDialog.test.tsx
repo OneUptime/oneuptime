@@ -16,13 +16,16 @@ import DiscoveryImportRowStatus from "../../../../App/FeatureSet/Dashboard/src/C
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../Types/JSON";
 import { ActiveMonitorLimitKind } from "../../../Types/Monitor/ActiveMonitorLimit";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -275,9 +278,41 @@ function walkOnlyTemplate(): MonitorTemplate {
 interface ProjectLists {
   templates: Array<MonitorTemplate>;
   policies: Array<NetworkAlertPolicy>;
+  /*
+   * The devices at the scan's already-added addresses, and the monitors an
+   * import made for them (issue #9544): what tells a device that can be
+   * picked to get a monitor from one that has one.
+   */
+  devices: Array<NetworkDevice>;
+  monitorsMadeForDevices: Array<Monitor>;
 }
 
-const lists: ProjectLists = { templates: [], policies: [] };
+const lists: ProjectLists = {
+  templates: [],
+  policies: [],
+  devices: [],
+  monitorsMadeForDevices: [],
+};
+
+// A device the project has at `ipAddress`, as the read of its monitors answers it.
+function deviceAt(ipAddress: string, id: string): NetworkDevice {
+  return Object.assign(new NetworkDevice(), {
+    _id: id,
+    id: new ObjectID(id),
+    hostname: ipAddress,
+  });
+}
+
+// A monitor an import made for the device with this id.
+function monitorMadeFor(deviceId: string, monitorId: string): Monitor {
+  return Object.assign(new Monitor(), {
+    _id: monitorId,
+    id: new ObjectID(monitorId),
+    name: `Ping ${deviceId.slice(-2)}`,
+    monitorType: MonitorType.Ping,
+    autoProvisionedNetworkDeviceId: new ObjectID(deviceId),
+  });
+}
 
 let server: DiscoveryImportFakeServer;
 let getItemSpy: jest.SpyInstance;
@@ -415,6 +450,8 @@ beforeEach(() => {
   monitorLimit = null;
   lists.templates = [];
   lists.policies = [];
+  lists.devices = [];
+  lists.monitorsMadeForDevices = [];
   onClose = jest.fn();
   onImportsChanged = jest.fn();
 
@@ -435,40 +472,55 @@ beforeEach(() => {
 
   jest.spyOn(ModelAPI, "getList").mockImplementation((async (request: {
     modelType: unknown;
+    query?: Record<string, unknown>;
   }) => {
     const data: Array<unknown> =
-      request.modelType === MonitorTemplate
-        ? lists.templates
-        : request.modelType === MonitorStatus
-          ? [
-              Object.assign(new MonitorStatus(), {
-                id: ONLINE_ID,
-                name: "Operational",
-                isOperationalState: true,
-              }),
-              Object.assign(new MonitorStatus(), {
-                id: OFFLINE_ID,
-                name: "Offline",
-                isOfflineState: true,
-              }),
-            ]
-          : request.modelType === IncidentSeverity
-            ? [
-                Object.assign(new IncidentSeverity(), {
-                  id: CRITICAL_ID,
-                  name: "Critical",
-                }),
-              ]
-            : request.modelType === AlertSeverity
+      request.modelType === NetworkDevice
+        ? // The devices at the addresses asked about, as the server answers.
+          lists.devices.filter((device: NetworkDevice): boolean => {
+            const asked: unknown = request.query?.["hostname"];
+
+            return (
+              !(asked instanceof Includes) ||
+              (asked.values as Array<string>).includes(device.hostname || "")
+            );
+          })
+        : request.modelType === Monitor
+          ? request.query && "autoProvisionedNetworkDeviceId" in request.query
+            ? lists.monitorsMadeForDevices
+            : []
+          : request.modelType === MonitorTemplate
+            ? lists.templates
+            : request.modelType === MonitorStatus
               ? [
-                  Object.assign(new AlertSeverity(), {
-                    id: WARNING_ID,
-                    name: "Warning",
+                  Object.assign(new MonitorStatus(), {
+                    id: ONLINE_ID,
+                    name: "Operational",
+                    isOperationalState: true,
+                  }),
+                  Object.assign(new MonitorStatus(), {
+                    id: OFFLINE_ID,
+                    name: "Offline",
+                    isOfflineState: true,
                   }),
                 ]
-              : request.modelType === NetworkAlertPolicy
-                ? lists.policies
-                : [];
+              : request.modelType === IncidentSeverity
+                ? [
+                    Object.assign(new IncidentSeverity(), {
+                      id: CRITICAL_ID,
+                      name: "Critical",
+                    }),
+                  ]
+                : request.modelType === AlertSeverity
+                  ? [
+                      Object.assign(new AlertSeverity(), {
+                        id: WARNING_ID,
+                        name: "Warning",
+                      }),
+                    ]
+                  : request.modelType === NetworkAlertPolicy
+                    ? lists.policies
+                    : [];
 
     return { data: data, count: data.length, skip: 0, limit: data.length };
   }) as never);
@@ -529,9 +581,12 @@ describe("opening the import", () => {
       expect(checkbox(address)).toBeChecked();
     }
 
-    // Already a device: listed, never ticked, and says so.
+    /*
+     * Already a device: listed, never ticked, and says so. It has no
+     * monitor, so it can be picked to get one (issue #9544).
+     */
     expect(checkbox("10.48.11.3")).not.toBeChecked();
-    expect(checkbox("10.48.11.3")).toBeDisabled();
+    expect(checkbox("10.48.11.3")).toBeEnabled();
     expect(
       within(screen.getByTestId("discovered-host-row-10.48.11.3")).getByText(
         "Already added",
@@ -887,6 +942,153 @@ describe("choosing the hosts", () => {
     );
     // Fifty rows at a time, however large the scan.
     expect(screen.getAllByTestId(/^discovered-host-row-/)).toHaveLength(50);
+  });
+});
+
+/*
+ * ISSUE #9544: a host that is a device already, with no monitor - imported
+ * with "Status only", say - can be picked again in Review Results, and the
+ * import gives the device the template's monitor and nothing else. One that
+ * has a monitor is never offered.
+ */
+describe("a device already added, picked to get a monitor (#9544)", () => {
+  const EXISTING: string = "10.48.11.3";
+
+  async function pickOnlyTheExistingDevice(): Promise<void> {
+    await search(EXISTING);
+    await act(async () => {
+      fireEvent.click(checkbox(EXISTING));
+    });
+    await flush();
+  }
+
+  test("one with a monitor is not offered, and says Already monitored", async () => {
+    const deviceId: string = "e1a2b3c4-0000-4000-8000-000000000003";
+    lists.devices = [deviceAt(EXISTING, deviceId)];
+    lists.monitorsMadeForDevices = [
+      monitorMadeFor(deviceId, "f1a2b3c4-0000-4000-8000-000000000003"),
+    ];
+
+    await openDialog();
+    await flush();
+
+    expect(checkbox(EXISTING)).toBeDisabled();
+    expect(checkbox(EXISTING)).not.toBeChecked();
+    expect(
+      within(screen.getByTestId(`discovered-host-row-${EXISTING}`)).getByText(
+        "Already monitored",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("one with no monitor is picked alone: the step asks for a template, and the import gives it the template's monitor", async () => {
+    await openDialog();
+    await pickOnlyTheExistingDevice();
+
+    expect(checkbox(EXISTING)).toBeChecked();
+    expect(
+      screen.getByTestId(`discovered-host-gets-monitor-${EXISTING}`),
+    ).toHaveTextContent("Gets a monitor");
+    expect(chooseSummary()).toBe("1 device already added gets a monitor");
+
+    await next();
+
+    // Nothing is imported, so nothing is polled anew: the polling choice is not asked.
+    expect(screen.getByTestId("discovery-import-polling")).toHaveClass(
+      "hidden",
+    );
+
+    // Status only gives an existing device nothing: Add waits for a template.
+    expect(outcomeLine("existing")).toHaveTextContent(
+      "The devices you picked are already added. Give them a monitor from a template, or go back and pick new hosts.",
+    );
+    expect(button("Add 1 monitor")).toBeDisabled();
+
+    await pickMonitorsForEachDevice();
+
+    expect(outcomeLine("existing")).toHaveTextContent(
+      `1 device already added gets a monitor from “${RECOMMENDED_TEMPLATE_NAME}”. Nothing else about it changes.`,
+    );
+    expect(
+      screen.getByTestId("discovery-import-outcome-count"),
+    ).toHaveTextContent("1 device already added");
+
+    await act(async () => {
+      fireEvent.click(button("Add 1 monitor"));
+    });
+    await flush();
+    await flush();
+    await flush();
+
+    expect(lastStart()["ipAddresses"]).toEqual([EXISTING]);
+    expect((lastStart()["settings"] as JSONObject)["alerting"]).toBe(
+      DiscoveryImportAlerting.MonitorTemplate,
+    );
+  });
+
+  test("picked with new hosts and Status only: the new hosts are imported, and the device already added is sent nothing", async () => {
+    await openDialog();
+
+    // Every new host starts ticked; the device already added is ticked too.
+    await act(async () => {
+      fireEvent.click(checkbox(EXISTING));
+    });
+    await flush();
+
+    expect(chooseSummary()).toBe(
+      "5 hosts will be imported · 1 device already added gets a monitor",
+    );
+
+    await next();
+
+    expect(outcomeLine("existing")).toHaveTextContent(
+      "1 device you picked is already added, and gets nothing without a monitor template.",
+    );
+
+    await submitImport();
+
+    expect(lastStart()["ipAddresses"]).toEqual(IMPORTABLE);
+  });
+
+  test("picked with new hosts and a template: all of them are sent, and the summary counts them apart", async () => {
+    await openDialog();
+    await act(async () => {
+      fireEvent.click(checkbox(EXISTING));
+    });
+    await flush();
+    await next();
+    await pickMonitorsForEachDevice();
+
+    expect(
+      screen.getByTestId("discovery-import-outcome-count"),
+    ).toHaveTextContent("5 new devices");
+    expect(outcomeLine("existing")).toHaveTextContent(
+      `1 device already added gets a monitor from “${RECOMMENDED_TEMPLATE_NAME}”. Nothing else about it changes.`,
+    );
+
+    await submitImport();
+
+    expect(lastStart()["ipAddresses"]).toEqual([...IMPORTABLE, EXISTING]);
+  });
+
+  test("a read of the devices' monitors that fails offers every device already added: the server's duplicate rule still keeps each to one", async () => {
+    const getList: jest.SpyInstance = jest.spyOn(ModelAPI, "getList");
+    const answer: (request: { modelType: unknown }) => unknown =
+      getList.getMockImplementation() as never;
+
+    getList.mockImplementation((async (request: { modelType: unknown }) => {
+      if (request.modelType === NetworkDevice) {
+        throw new Error("The devices could not be read.");
+      }
+
+      return answer(request);
+    }) as never);
+
+    await openDialog();
+    await flush();
+
+    expect(checkbox(EXISTING)).toBeEnabled();
+    expect(checkbox(EXISTING)).not.toBeChecked();
   });
 });
 
@@ -1468,6 +1670,63 @@ describe("the import as it runs", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("discovery-import-more"));
     });
+    await flush();
+    await flush();
+
+    /*
+     * Imported with Status only, they read as added and are not ticked
+     * again - but they have no monitor, so each can still be picked to get
+     * one (#9544).
+     */
+    for (const address of ["10.48.11.1", "10.48.11.2"]) {
+      expect(checkbox(address)).not.toBeChecked();
+      expect(checkbox(address)).toBeEnabled();
+      expect(
+        within(screen.getByTestId(`discovered-host-row-${address}`)).getByText(
+          "Already added",
+        ),
+      ).toBeInTheDocument();
+    }
+    expect(checkbox("10.48.12.31")).toBeChecked();
+    expect(chooseSummary()).toBe("3 hosts will be imported");
+  });
+
+  test("after an import that gave each device a monitor, the devices it brought in cannot be picked again", async () => {
+    getItemSpy.mockResolvedValue(scanRow() as never);
+
+    /*
+     * The devices the import makes, each with the monitor it makes, as the
+     * read the dialog makes when the import ends finds them (#9544).
+     */
+    lists.devices = [
+      deviceAt("10.48.11.1", "e1a2b3c4-0000-4000-8000-000000000001"),
+      deviceAt("10.48.11.2", "e1a2b3c4-0000-4000-8000-000000000002"),
+    ];
+    lists.monitorsMadeForDevices = [
+      monitorMadeFor(
+        "e1a2b3c4-0000-4000-8000-000000000001",
+        "f1a2b3c4-0000-4000-8000-000000000001",
+      ),
+      monitorMadeFor(
+        "e1a2b3c4-0000-4000-8000-000000000002",
+        "f1a2b3c4-0000-4000-8000-000000000002",
+      ),
+    ];
+
+    await openDialog();
+    await search("10.48.11.0/24");
+    await next();
+    await pickMonitorsForEachDevice();
+    await submitImport();
+
+    expect(
+      screen.getByTestId("discovery-import-progress-title"),
+    ).toHaveTextContent("Import finished");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovery-import-more"));
+    });
+    await flush();
     await flush();
 
     expect(checkbox("10.48.11.1")).toBeDisabled();

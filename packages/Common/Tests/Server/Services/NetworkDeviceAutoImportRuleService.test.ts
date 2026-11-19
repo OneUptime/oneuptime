@@ -38,6 +38,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import Port from "../../../Types/Port";
 import { DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
@@ -454,13 +455,78 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     },
   );
 
+  /*
+   * A web template (issue #9546): each device's monitor checks the
+   * template's URL with the device's address as its host.
+   */
+  it.each([
+    [MonitorType.Website, "https://printer:8443/hp/device/"],
+    [MonitorType.API, "https://ups/api/status?token={{monitorSecrets.Ups}}"],
+    [MonitorType.SSLCertificate, "https://camera/"],
+  ] as Array<[MonitorType, string]>)(
+    "accepts a %s template whose URL has a host each device's address can take",
+    async (monitorType: MonitorType, url: string) => {
+      const steps: MonitorSteps = addressSteps(monitorType, [undefined]);
+      steps.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+        URL.fromString(url),
+      );
+      mockMonitorTemplate({ monitorType: monitorType, monitorSteps: steps });
+
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each([
+    [
+      "https://{{monitorSecrets.host}}/status",
+      "names its host with a variable, which is read when the check runs",
+    ],
+    ["ws://printer/socket", "must start with http:// or https://"],
+  ] as Array<[string, string]>)(
+    "rejects a Website template whose URL is %s, saying what to change",
+    async (url: string, refusal: string) => {
+      const steps: MonitorSteps = addressSteps(MonitorType.Website, [
+        undefined,
+      ]);
+      steps.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+        URL.fromStringLenient(url),
+      );
+      mockMonitorTemplate({
+        monitorType: MonitorType.Website,
+        monitorSteps: steps,
+      });
+
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+        ),
+      ).rejects.toThrow(refusal);
+    },
+  );
+
+  it("rejects a Website template with a step that checks an address, not a URL", async () => {
+    mockMonitorTemplate({
+      monitorType: MonitorType.Website,
+      monitorSteps: addressSteps(MonitorType.Website, [undefined]),
+    });
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).rejects.toThrow(
+      "Every step of a Website, API or SSL Certificate template must check a URL.",
+    );
+  });
+
   it.each([
     MonitorType.Manual,
     MonitorType.IncomingRequest,
     MonitorType.IncomingEmail,
-    MonitorType.Website,
-    MonitorType.API,
-    MonitorType.SSLCertificate,
     MonitorType.DNS,
     MonitorType.Logs,
     MonitorType.Server,
@@ -942,7 +1008,7 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
 
   it("checks a Ping template picked on an edit too", async () => {
     mockExistingRule();
-    mockMonitorTemplate({ monitorType: MonitorType.Website });
+    mockMonitorTemplate({ monitorType: MonitorType.DNS });
 
     await expect(
       (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(

@@ -17,9 +17,13 @@ import DeviceMonitorTemplateUtil, {
   DEVICE_ADDRESS_MONITOR_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+  DEVICE_TARGET_MONITOR_TYPES,
+  DEVICE_URL_MONITOR_TYPES,
   IP_MONITOR_NEEDS_IP_ADDRESS,
   isDeviceAddressMonitorType,
   isDeviceMonitorTemplateType,
+  isDeviceTargetMonitorType,
+  isDeviceUrlMonitorType,
 } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import { describe, expect, it } from "@jest/globals";
@@ -209,12 +213,21 @@ function criteriaNamesOf(monitorSteps: MonitorSteps | undefined): string {
 }
 
 describe("the kinds of template a device's monitor can be made from", () => {
-  it("are a Network Device one, then the four that check an address", () => {
+  it("are a Network Device one, then the four that check an address, then the three that check a URL", () => {
     expect([...DEVICE_ADDRESS_MONITOR_TYPES]).toEqual([
       MonitorType.Ping,
       MonitorType.IP,
       MonitorType.Port,
       MonitorType.NTP,
+    ]);
+    expect([...DEVICE_URL_MONITOR_TYPES]).toEqual([
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
+    ]);
+    expect([...DEVICE_TARGET_MONITOR_TYPES]).toEqual([
+      ...DEVICE_ADDRESS_MONITOR_TYPES,
+      ...DEVICE_URL_MONITOR_TYPES,
     ]);
     expect([...DEVICE_MONITOR_TEMPLATE_TYPES]).toEqual([
       MonitorType.NetworkDevice,
@@ -222,6 +235,9 @@ describe("the kinds of template a device's monitor can be made from", () => {
       MonitorType.IP,
       MonitorType.Port,
       MonitorType.NTP,
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
     ]);
   });
 
@@ -232,13 +248,34 @@ describe("the kinds of template a device's monitor can be made from", () => {
       },
     );
 
-    // Website, API, SSL Certificate, DNS, telemetry and the rest.
+    // DNS, Domain, databases, telemetry, Manual and the rest.
     expect(others.length).toBeGreaterThan(20);
 
     for (const monitorType of others) {
       expect(isDeviceMonitorTemplateType(monitorType)).toBe(false);
       expect(isDeviceAddressMonitorType(monitorType)).toBe(false);
+      expect(isDeviceUrlMonitorType(monitorType)).toBe(false);
+      expect(isDeviceTargetMonitorType(monitorType)).toBe(false);
     }
+  });
+
+  it("a URL kind is a target kind, never an address kind", () => {
+    for (const monitorType of DEVICE_URL_MONITOR_TYPES) {
+      expect(isDeviceUrlMonitorType(monitorType)).toBe(true);
+      expect(isDeviceTargetMonitorType(monitorType)).toBe(true);
+      expect(isDeviceMonitorTemplateType(monitorType)).toBe(true);
+      expect(isDeviceAddressMonitorType(monitorType)).toBe(false);
+    }
+
+    for (const monitorType of DEVICE_ADDRESS_MONITOR_TYPES) {
+      expect(isDeviceTargetMonitorType(monitorType)).toBe(true);
+      expect(isDeviceUrlMonitorType(monitorType)).toBe(false);
+    }
+
+    expect(isDeviceTargetMonitorType(MonitorType.NetworkDevice)).toBe(false);
+    expect(isDeviceUrlMonitorType("SSL Certificate")).toBe(true);
+    expect(isDeviceUrlMonitorType("website")).toBe(false);
+    expect(isDeviceTargetMonitorType(null)).toBe(false);
   });
 
   it("a Network Device template reads polls, so it is not an address one", () => {
@@ -625,9 +662,9 @@ describe("DeviceMonitorTemplateUtil.assertProvenanceFits", () => {
 
   it("no other kind of monitor may carry a device's provenance", () => {
     for (const monitorType of [
-      MonitorType.Website,
-      MonitorType.API,
+      MonitorType.DNS,
       MonitorType.Manual,
+      MonitorType.IncomingRequest,
       undefined,
     ]) {
       expectBadData(() => {
@@ -638,7 +675,47 @@ describe("DeviceMonitorTemplateUtil.assertProvenanceFits", () => {
           ]),
           networkDeviceId: DEVICE_ID,
         });
-      }, "Only Network Device, Ping, IP, Port and NTP monitors can carry auto-provisioning provenance.");
+      }, "Only Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate monitors can carry auto-provisioning provenance.");
+    }
+  });
+
+  it("a Website, API or SSL Certificate monitor must check a URL with a host in every step", () => {
+    for (const monitorType of DEVICE_URL_MONITOR_TYPES) {
+      expect(() => {
+        DeviceMonitorTemplateUtil.assertProvenanceFits({
+          monitorType: monitorType,
+          monitorSteps: buildSteps(monitorType, [
+            { destination: URL.fromString("https://10.48.24.33:8443/status") },
+          ]).toJSON(),
+          networkDeviceId: DEVICE_ID,
+        });
+      }).not.toThrow();
+
+      // A step on an address, not a URL, checks nothing of a URL kind's.
+      expectBadData(() => {
+        DeviceMonitorTemplateUtil.assertProvenanceFits({
+          monitorType: monitorType,
+          monitorSteps: buildSteps(monitorType, [
+            { destination: URL.fromString("https://10.48.24.33/") },
+            { destination: IP.fromString("10.48.24.33") },
+          ]),
+          networkDeviceId: DEVICE_ID,
+        });
+      }, "A Website, API or SSL Certificate monitor made for a network device must check a URL on the device's address in every step.");
+
+      const empty: MonitorSteps = new MonitorSteps();
+      empty.data = {
+        monitorStepsInstanceArray: [],
+        defaultMonitorStatusId: ONLINE_ID,
+      };
+
+      expectBadData(() => {
+        DeviceMonitorTemplateUtil.assertProvenanceFits({
+          monitorType: monitorType,
+          monitorSteps: empty,
+          networkDeviceId: DEVICE_ID,
+        });
+      }, "must check a URL on the device's address in every step");
     }
   });
 });
@@ -820,9 +897,9 @@ describe("DeviceMonitorTemplateUtil.buildMonitor", () => {
     expectBadData(() => {
       DeviceMonitorTemplateUtil.buildMonitor({
         template: buildTemplate(
-          MonitorType.Website,
-          buildSteps(MonitorType.Website, [
-            { destination: URL.fromString("https://shop.example.com") },
+          MonitorType.DNS,
+          buildSteps(MonitorType.Ping, [
+            { destination: new Hostname("shop.example.com") },
           ]),
         ),
         networkDevice: buildDevice(),
@@ -922,11 +999,11 @@ describe("DeviceMonitorTemplateUtil.readPorts", () => {
  * every step of a Port template - said then, not by every monitor the rule
  * would fail to make.
  */
-describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
+describe("DeviceMonitorTemplateUtil.assertDeviceTemplateSteps", () => {
   it("accepts a Ping, IP or NTP template with a step, and a Port template whose steps name their ports", () => {
     for (const monitorType of [MonitorType.Ping, MonitorType.IP]) {
       expect(() => {
-        DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
           monitorType: monitorType,
           monitorSteps: buildSteps(monitorType),
         });
@@ -934,7 +1011,7 @@ describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
     }
 
     expect(() => {
-      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+      DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
         monitorType: MonitorType.NTP,
         // An NTP step that names no port asks on 123.
         monitorSteps: buildSteps(MonitorType.NTP),
@@ -942,7 +1019,7 @@ describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
     }).not.toThrow();
 
     expect(() => {
-      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+      DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
         monitorType: MonitorType.Port,
         monitorSteps: buildSteps(MonitorType.Port, [
           { destination: IP.fromString(TEMPLATE_ADDRESS), port: 22 },
@@ -961,7 +1038,7 @@ describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
 
     for (const monitorSteps of [empty, undefined, null]) {
       expectBadData(() => {
-        DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
           monitorType: MonitorType.Ping,
           monitorSteps: monitorSteps,
         });
@@ -971,7 +1048,7 @@ describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
 
   it("refuses a Port template with a step that names no port", () => {
     expectBadData(() => {
-      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+      DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
         monitorType: MonitorType.Port,
         monitorSteps: buildSteps(MonitorType.Port, [
           { destination: IP.fromString(TEMPLATE_ADDRESS), port: 22 },
@@ -981,15 +1058,15 @@ describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
     }, "Every step of a Port monitor template must name the port it checks. Add the port to the template, then pick it again.");
   });
 
-  it("refuses a template of a kind that does not check an address", () => {
+  it("refuses a template of a kind that checks nothing of a device's from a probe", () => {
     for (const monitorType of [
       MonitorType.NetworkDevice,
-      MonitorType.Website,
+      MonitorType.DNS,
       MonitorType.Manual,
       MonitorType.IncomingRequest,
     ]) {
       expectBadData(() => {
-        DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
           monitorType: monitorType,
           monitorSteps: buildSteps(MonitorType.Ping),
         });

@@ -44,7 +44,7 @@ import { DeviceNamingPreview } from "../../../Types/NetworkDevice/DeviceNaming";
 import ObjectID from "../../../Types/ObjectID";
 import DeviceMonitorTemplateUtil, {
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
-  isDeviceAddressMonitorType,
+  isDeviceTargetMonitorType,
   isDeviceMonitorTemplateType,
 } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import { DeviceMonitorFacts } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
@@ -107,7 +107,8 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  *            refused is refused here, at once and in one sentence - no
  *            right to create devices or monitors, a scan the person cannot
  *            read, a template no device's monitor can be made from (any but
- *            a Network Device, Ping, IP, Port or NTP one), a plan with no
+ *            a Network Device, Ping, IP, Port, NTP, Website, API or SSL
+ *            Certificate one), a plan with no
  *            room for another monitor - and the import is recorded and
  *            queued.
  *   (worker) creates each host's device, then its monitor, acting as the
@@ -279,9 +280,10 @@ export const DEVICE_NOT_REACHED_FAILED: string =
 /*
  * What the import reads of a device it created or found: its name and
  * address for its monitor, how its health is established, the probe that
- * polls it - the probe a Ping, IP, Port or NTP monitor made for it runs on -
- * and the monitor bound to it, which a second Ping or IP monitor would
- * duplicate (DeviceMonitorDuplicateCheck).
+ * polls it - the probe a Ping, IP, Port, NTP, Website, API or SSL
+ * Certificate monitor made for it runs on - and the monitor bound to it,
+ * which a second monitor checking the same thing would duplicate
+ * (DeviceMonitorDuplicateCheck).
  */
 const IMPORTED_DEVICE_SELECT: {
   _id: true;
@@ -1582,8 +1584,9 @@ export default class DiscoveryImportRunner {
     /*
      * A Network Device template's monitor reads each device's polls; a
      * Ping, IP, Port or NTP template's checks each device's address
-     * (#5145). No other kind of template has anything of a device's to
-     * check.
+     * (#5145), and a Website, API or SSL Certificate template's checks its
+     * URL with each device's address as the host (#9546). No other kind of
+     * template has anything of a device's to check.
      */
     if (!isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
@@ -1958,7 +1961,7 @@ export default class DiscoveryImportRunner {
 
     if (!template || !isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(
-        "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
+        "The monitor template this import uses was deleted, or is no longer a kind of template that can check a device. Start the import again with another template.",
       );
     }
 
@@ -2451,7 +2454,7 @@ export default class DiscoveryImportRunner {
             return {
               created: await MonitorService.create({
                 data: monitor,
-                ...(isDeviceAddressMonitorType(template.monitorType)
+                ...(isDeviceTargetMonitorType(template.monitorType)
                   ? {
                       miscDataProps: this.getAddressMonitorProbes({
                         device: device,

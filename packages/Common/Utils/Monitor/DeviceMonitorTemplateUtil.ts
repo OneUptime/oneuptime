@@ -10,7 +10,9 @@ import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
+import { translationKey } from "../../Types/Translator";
 import { buildPingMonitorDestination } from "../NetworkDiscovery/PingMonitorBuilder";
+import DeviceUrlTarget from "./DeviceUrlTarget";
 import MonitorTemplateCustomFieldUtil from "./MonitorTemplateCustomFieldUtil";
 import NetworkDeviceMonitorTemplateUtil from "./NetworkDeviceMonitorTemplateUtil";
 
@@ -19,8 +21,8 @@ import NetworkDeviceMonitorTemplateUtil from "./NetworkDeviceMonitorTemplateUtil
  *
  * A discovery import gives every device it brings in one monitor from a
  * template the person picks, and so does an auto import rule for every host
- * it imports (issue #9510). Two kinds of template can do that, because two
- * kinds of monitor can check a device:
+ * it imports (issue #9510). Three kinds of template can do that, because
+ * three kinds of monitor can check a device:
  *
  *   - A Network Device template: its monitor reads the device's own polls -
  *     the ping and SNMP walk the device's probe already does - and its steps
@@ -31,27 +33,35 @@ import NetworkDeviceMonitorTemplateUtil from "./NetworkDeviceMonitorTemplateUtil
  *     step of the device's monitor checks the device's address instead, and
  *     keeps the rest of the step as the template has it - the port a Port or
  *     NTP template asks on, timeouts, retries and every criterion.
+ *   - A Website, API or SSL Certificate template (issue #9546): its monitor
+ *     checks a URL on the device - its web UI, a status page, the
+ *     certificate a printer or a camera serves. Each step's URL is the
+ *     template's with the device's address as its host, and the scheme,
+ *     port, path and query as the template wrote them (DeviceUrlTarget), so
+ *     the template decides where on each device to look.
  *
- * Until #5145 the import offered Network Device templates only, so a
- * customer's own Ping template never showed, and an auto import rule did
- * the same until #9510. Templates of any other type stay out of both: a
- * Website, API or SSL Certificate template checks a URL, a DNS or Domain
- * template a name, a database template a connection with its own
- * credentials, a telemetry template a query, a Manual or Incoming Request
- * template checks nothing at all - none of them has an address the device's
- * can stand in for.
+ * The last two are the TARGET kinds (DEVICE_TARGET_MONITOR_TYPES): their
+ * monitors check the device from a probe, at its address, rather than read
+ * what its polls found. Until #5145 the import offered Network Device
+ * templates only, so a customer's own Ping template never showed, and an
+ * auto import rule did the same until #9510; Website, API and SSL
+ * Certificate templates followed with #9546. Templates of any other type
+ * stay out: a DNS or Domain template checks a name, a database template a
+ * connection with its own credentials, a telemetry template a query, a
+ * Manual or Incoming Request template checks nothing at all - none of them
+ * has an address the device's can stand in for.
  *
- * Both kinds of monitor carry the same provenance: the template they were
- * made from and the device they were made for (autoProvisionedNetworkDeviceId).
+ * Every kind of monitor carries the same provenance: the template it was
+ * made from and the device it was made for (autoProvisionedNetworkDeviceId).
  * That is what finds a device's monitor again instead of making a second one
  * (Monitor's unique (device, template) index), what deletes it with its
  * device, what lists it on the device's own page, and what tells a template
- * sync that an address monitor's address is the device's, not the
+ * sync that a target monitor's address is the device's, not the
  * template's (keepTargetAddress).
  *
  * Pure: no database and no permission work, like the Network Device util.
  * The caller persists what it builds through MonitorService and chooses the
- * probes that run an address monitor.
+ * probes that run a target monitor.
  */
 
 // Templates whose monitors check an address: a device's monitor checks its own.
@@ -63,19 +73,56 @@ export const DEVICE_ADDRESS_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
 ];
 
 /*
+ * Templates whose monitors check a URL (issue #9546): a device's monitor
+ * checks the template's URL with the device's address as its host.
+ */
+export const DEVICE_URL_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
+  MonitorType.Website,
+  MonitorType.API,
+  MonitorType.SSLCertificate,
+];
+
+/*
+ * Every kind whose monitor checks a device from a probe, at the device's
+ * address: the address kinds, then the URL kinds. A Network Device monitor
+ * reads the device's polls instead, and is the one kind not here.
+ */
+export const DEVICE_TARGET_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
+  ...DEVICE_ADDRESS_MONITOR_TYPES,
+  ...DEVICE_URL_MONITOR_TYPES,
+];
+
+/*
  * Every kind of template a device can be given a monitor from: the one that
- * reads the device's polls, then the ones that check its address. The order
- * is the order the import lists them in.
+ * reads the device's polls, then the ones that check its address, then the
+ * ones that check a URL on it. The order is the order the import lists
+ * them in.
  */
 export const DEVICE_MONITOR_TEMPLATE_TYPES: ReadonlyArray<MonitorType> = [
   MonitorType.NetworkDevice,
-  ...DEVICE_ADDRESS_MONITOR_TYPES,
+  ...DEVICE_TARGET_MONITOR_TYPES,
 ];
 
 export function isDeviceAddressMonitorType(
   monitorType: MonitorType | string | null | undefined,
 ): monitorType is MonitorType {
   return (DEVICE_ADDRESS_MONITOR_TYPES as ReadonlyArray<string>).includes(
+    String(monitorType || ""),
+  );
+}
+
+export function isDeviceUrlMonitorType(
+  monitorType: MonitorType | string | null | undefined,
+): monitorType is MonitorType {
+  return (DEVICE_URL_MONITOR_TYPES as ReadonlyArray<string>).includes(
+    String(monitorType || ""),
+  );
+}
+
+export function isDeviceTargetMonitorType(
+  monitorType: MonitorType | string | null | undefined,
+): monitorType is MonitorType {
+  return (DEVICE_TARGET_MONITOR_TYPES as ReadonlyArray<string>).includes(
     String(monitorType || ""),
   );
 }
@@ -93,7 +140,15 @@ export function isDeviceMonitorTemplateType(
  * same way wherever a template is picked for devices.
  */
 export const DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL: string =
-  "Pick a Network Device, Ping, IP, Port or NTP monitor template: a monitor made from any other kind cannot check a device.";
+  "Pick a Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate monitor template: a monitor made from any other kind cannot check a device.";
+
+/*
+ * The refusal for a template with no steps. Also shown before an import
+ * starts, in the reader's language (DiscoveryImportProjectFacts).
+ */
+export const DEVICE_TEMPLATE_HAS_NO_STEPS: string = translationKey(
+  "This monitor template has no steps, so a monitor made from it would check nothing. Add a step to the template, then pick it again.",
+);
 
 /*
  * Why a device whose address is a name gets no monitor from an IP template,
@@ -147,14 +202,20 @@ export default class DeviceMonitorTemplateUtil {
   }
 
   /*
-   * A copy of the steps with every step checking the address. The steps
-   * handed in are never changed: one template serves a whole estate.
+   * A copy of the steps with every step checking the device: a Ping, IP,
+   * Port or NTP step its address, a Website, API or SSL Certificate step the
+   * step's URL with the device's address as its host (DeviceUrlTarget). The
+   * steps handed in are never changed: one template serves a whole estate.
    */
   public static retargetMonitorSteps(data: {
     monitorSteps: MonitorSteps | undefined;
     address: string;
     monitorType: MonitorType;
   }): MonitorSteps {
+    if (isDeviceUrlMonitorType(data.monitorType)) {
+      return this.withUrlHost(data.monitorSteps, data.address);
+    }
+
     const destination: IP | Hostname = this.buildDestination({
       address: data.address,
       monitorType: data.monitorType,
@@ -166,14 +227,36 @@ export default class DeviceMonitorTemplateUtil {
   /*
    * The template's steps for a monitor a discovery import made for a
    * device, as a template sync writes them: the template's criteria and
-   * settings, still checking the address this monitor checks. Without it,
-   * one press of "Sync Criteria" would point every device's monitor at the
-   * template's own address.
+   * settings, still checking the device this monitor checks - its address,
+   * or, for a Website, API or SSL Certificate monitor, the host of its URL,
+   * on the template's scheme, port and path. Without it, one press of "Sync
+   * Criteria" would point every device's monitor at the template's own
+   * address.
+   *
+   * The kind is the template's. Left out, it is read from the steps: a
+   * template whose steps check URLs is synced the URL way.
    */
   public static keepTargetAddress(data: {
     templateMonitorSteps: MonitorSteps | undefined;
     currentMonitorSteps: MonitorSteps | JSONObject | undefined;
+    monitorType?: MonitorType | string | null | undefined;
   }): MonitorSteps {
+    const checksUrls: boolean = data.monitorType
+      ? isDeviceUrlMonitorType(data.monitorType)
+      : this.readTargetDestination(data.templateMonitorSteps) instanceof URL;
+
+    if (checksUrls) {
+      const host: string = this.readTargetUrlHost(data.currentMonitorSteps);
+
+      if (!host) {
+        throw new BadDataException(
+          "This monitor was made for a network device but its URL names no host, so a sync cannot tell which device to keep checking. Set its URL's host to the device's address, then sync again.",
+        );
+      }
+
+      return this.withUrlHost(data.templateMonitorSteps, host);
+    }
+
     const destination: MonitorDestination | null = this.readTargetDestination(
       data.currentMonitorSteps,
     );
@@ -189,10 +272,11 @@ export default class DeviceMonitorTemplateUtil {
 
   /*
    * What a monitor carrying a device's provenance must be: a Network Device
-   * monitor whose steps name that device, or an address monitor every step
-   * of which checks an address. Anything else is refused - provenance is
-   * what deletes a monitor with its device, and a monitor that checks
-   * nothing of the device's must not go with it.
+   * monitor whose steps name that device, an address monitor every step of
+   * which checks an address, or a URL monitor every step of which checks a
+   * URL with a host. Anything else is refused - provenance is what deletes a
+   * monitor with its device, and a monitor that checks nothing of the
+   * device's must not go with it.
    */
   public static assertProvenanceFits(data: {
     monitorType: MonitorType | string | null | undefined;
@@ -207,13 +291,28 @@ export default class DeviceMonitorTemplateUtil {
       return;
     }
 
-    if (!isDeviceAddressMonitorType(data.monitorType)) {
+    if (!isDeviceTargetMonitorType(data.monitorType)) {
       throw new BadDataException(
-        "Only Network Device, Ping, IP, Port and NTP monitors can carry auto-provisioning provenance.",
+        "Only Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate monitors can carry auto-provisioning provenance.",
       );
     }
 
     const steps: Array<MonitorStep> = this.readSteps(data.monitorSteps);
+
+    if (isDeviceUrlMonitorType(data.monitorType)) {
+      if (
+        steps.length === 0 ||
+        steps.some((step: MonitorStep): boolean => {
+          return !DeviceUrlTarget.readHost(this.readStepUrl(step));
+        })
+      ) {
+        throw new BadDataException(
+          "A Website, API or SSL Certificate monitor made for a network device must check a URL on the device's address in every step.",
+        );
+      }
+
+      return;
+    }
 
     if (
       steps.length === 0 ||
@@ -228,11 +327,12 @@ export default class DeviceMonitorTemplateUtil {
   }
 
   /*
-   * The one monitor a device gets from a template, of either kind - built,
-   * not persisted. A Network Device template is the Network Device util's
-   * to build; an address template is built here, the same way: named after
-   * the device, the template's description, interval, probe agreement,
-   * labels and custom fields, linked to the template and the device.
+   * The one monitor a device gets from a template, of any kind - built, not
+   * persisted. A Network Device template is the Network Device util's to
+   * build; a target template (Ping, IP, Port, NTP, Website, API, SSL
+   * Certificate) is built here, the same way: named after the device, the
+   * template's description, interval, probe agreement, labels and custom
+   * fields, linked to the template and the device.
    */
   public static buildMonitor(data: BuildDeviceMonitorData): Monitor {
     const template: MonitorTemplate = data.template;
@@ -241,7 +341,7 @@ export default class DeviceMonitorTemplateUtil {
       return NetworkDeviceMonitorTemplateUtil.buildMonitor(data);
     }
 
-    if (!isDeviceAddressMonitorType(template.monitorType)) {
+    if (!isDeviceTargetMonitorType(template.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
     }
 
@@ -323,26 +423,26 @@ export default class DeviceMonitorTemplateUtil {
   }
 
   /*
-   * What a Ping, IP, Port or NTP template must have before a rule may give
-   * devices monitors from it (issue #9510): a step to check each device's
-   * address with, and, in a Port template, the port each step asks on - a
-   * Port monitor with none checks nothing. Said when the rule is saved,
-   * rather than by every monitor the rule then fails to make.
+   * What a target template must have before a rule may give devices
+   * monitors from it (issues #9510, #9546): a step to check each device
+   * with; in a Port template, the port each step asks on - a Port monitor
+   * with none checks nothing; and in a Website, API or SSL Certificate
+   * template, a URL in every step whose host each device's address can take
+   * (DeviceUrlTarget.assertTemplateUrl). Said when the rule is saved, rather
+   * than by every monitor the rule then fails to make.
    */
-  public static assertAddressTemplateSteps(data: {
+  public static assertDeviceTemplateSteps(data: {
     monitorType: MonitorType | string | null | undefined;
     monitorSteps: MonitorSteps | JSONObject | null | undefined;
   }): void {
-    if (!isDeviceAddressMonitorType(data.monitorType)) {
+    if (!isDeviceTargetMonitorType(data.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
     }
 
     const steps: Array<MonitorStep> = this.readSteps(data.monitorSteps);
 
     if (steps.length === 0) {
-      throw new BadDataException(
-        "This monitor template has no steps, so a monitor made from it would check nothing. Add a step to the template, then pick it again.",
-      );
+      throw new BadDataException(DEVICE_TEMPLATE_HAS_NO_STEPS);
     }
 
     if (
@@ -359,6 +459,32 @@ export default class DeviceMonitorTemplateUtil {
         "Every step of a Port monitor template must name the port it checks. Add the port to the template, then pick it again.",
       );
     }
+
+    if (isDeviceUrlMonitorType(data.monitorType)) {
+      for (const step of steps) {
+        DeviceUrlTarget.assertTemplateUrl(this.readStepUrl(step));
+      }
+    }
+  }
+
+  /*
+   * The URL a Website, API or SSL Certificate template's first step checks,
+   * as written: what the import and the rule form show each device's
+   * monitor will check, with the device's address in the host's place
+   * (DeviceUrlTarget.describeTemplateUrl). Empty when it names none.
+   */
+  public static readTemplateUrl(
+    monitorSteps: MonitorSteps | JSONObject | null | undefined,
+  ): string {
+    for (const step of this.readSteps(monitorSteps)) {
+      const url: string = this.readStepUrl(step);
+
+      if (url) {
+        return url;
+      }
+    }
+
+    return "";
   }
 
   /*
@@ -401,6 +527,58 @@ export default class DeviceMonitorTemplateUtil {
     } catch {
       return [];
     }
+  }
+
+  // A step's URL as written, or empty when its destination is not a URL.
+  private static readStepUrl(step: MonitorStep): string {
+    const destination: MonitorDestination | undefined =
+      step.data?.monitorDestination;
+
+    return destination instanceof URL ? destination.toString().trim() : "";
+  }
+
+  // The host the first URL any step checks is on: the device's address.
+  private static readTargetUrlHost(
+    monitorSteps: MonitorSteps | JSONObject | null | undefined,
+  ): string {
+    for (const step of this.readSteps(monitorSteps)) {
+      const host: string = DeviceUrlTarget.readHost(this.readStepUrl(step));
+
+      if (host) {
+        return host;
+      }
+    }
+
+    return "";
+  }
+
+  /*
+   * A copy of the steps with every step's URL on the device's address
+   * (DeviceUrlTarget.buildDeviceUrl). A step that checks no URL is refused:
+   * there is nothing of the device's for it to check.
+   */
+  private static withUrlHost(
+    monitorSteps: MonitorSteps | undefined,
+    address: string,
+  ): MonitorSteps {
+    if (!monitorSteps || this.readSteps(monitorSteps).length === 0) {
+      throw new BadDataException(
+        "Monitor template monitor steps are required.",
+      );
+    }
+
+    const cloned: MonitorSteps = MonitorSteps.clone(monitorSteps);
+
+    for (const step of cloned.data!.monitorStepsInstanceArray) {
+      step.setMonitorDestination(
+        DeviceUrlTarget.buildDeviceUrl({
+          templateUrl: this.readStepUrl(step),
+          address: address,
+        }),
+      );
+    }
+
+    return cloned;
   }
 
   // The first destination any step names, as the monitor checks it.

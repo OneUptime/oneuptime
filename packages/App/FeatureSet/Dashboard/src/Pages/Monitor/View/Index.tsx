@@ -591,6 +591,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             monitorId={modelId}
             refresher={data.manualRefreshCount % 2 === 1}
             onSaveSuccess={onDetailsSaved}
+            monitorType={monitor?.monitorType}
+            isMadeForDevice={Boolean(monitor?.autoProvisionedNetworkDeviceId)}
           />
 
           <MonitorLinkedResourcesCard monitorId={modelId} />
