@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "In diesem Projekt gibt es bereits eine archivierte Bereitschaftsrichtlinie namens {{name}}. Holen Sie sie unter Bereitschaft > Erweitert > Archivierte Richtlinien aus dem Archiv oder wählen Sie einen anderen Namen.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "Mehrere Bereitschaftsrichtlinien können nicht denselben Namen erhalten. Benennen Sie jeweils nur eine Richtlinie um.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "In diesem Projekt gibt es bereits einen Bereitschaftszeitplan namens {{name}}. Wählen Sie einen anderen Namen.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Mehrere Bereitschaftspläne können nicht denselben Namen erhalten. Benennen Sie jeweils nur einen Zeitplan um."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Mehrere Bereitschaftspläne können nicht denselben Namen erhalten. Benennen Sie jeweils nur einen Zeitplan um.",
+  "Domains": "Domänen",
+  "Select Domains": "Domänen auswählen",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "„Mit SSO anmelden“ bietet diesen Anbieter allen an, deren E-Mail-Adresse auf einer dieser Domänen liegt, die Sie unter Projekteinstellungen > Erweitert > Domänen verifizieren.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Noch keine verifizierten Domänen. Verifizieren Sie eine unter Projekteinstellungen > Erweitert > Domänen."
 }

@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "Il existe déjà une politique d'astreinte archivée nommée {{name}} dans ce projet. Désarchivez-la depuis Astreinte > Avancé > Politiques archivées, ou choisissez un autre nom.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "Plusieurs politiques d'astreinte ne peuvent pas recevoir le même nom. Renommez une seule politique à la fois.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "Il existe déjà un planning d'astreinte nommé {{name}} dans ce projet. Choisissez un autre nom.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Plusieurs plannings d'astreinte ne peuvent pas recevoir le même nom. Renommez un seul planning à la fois."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Plusieurs plannings d'astreinte ne peuvent pas recevoir le même nom. Renommez un seul planning à la fois.",
+  "Domains": "Domaines",
+  "Select Domains": "Sélectionner les domaines",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "« Connexion avec SSO » propose ce fournisseur à toute personne dont l'e-mail est sur l'un de ces domaines, que vous vérifiez dans Paramètres du projet > Avancé > Domaines.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Aucun domaine vérifié pour le moment. Vérifiez-en un dans Paramètres du projet > Avancé > Domaines."
 }

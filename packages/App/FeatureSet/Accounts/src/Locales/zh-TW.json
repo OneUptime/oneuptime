@@ -230,7 +230,7 @@
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
     "selectProjectTitle": "選擇專案",
-    "noConfigForEmail": "找不到電子郵件的 SSO 設定：{{email}}",
+    "notSetUpForDomain": "{{domain}} 尚未設定單一登入。請聯絡管理員進行設定，或使用其他方式登入。",
     "emailRequired": "需要電子郵件才能執行此操作",
     "defaultProjectName": "專案",
     "globalProvidersTitle": "使用您的組織登入",

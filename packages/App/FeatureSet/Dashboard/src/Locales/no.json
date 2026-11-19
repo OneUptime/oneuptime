@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "Det OneUptime AI har lært, kunne ikke lastes inn. {{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "Det OneUptime AI bør vite, med enkle ord. Den leser det som et notat fra teamet ditt, aldri som en instruksjon.",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "Det en tjenestes team forteller OneUptime AI om den. Hver undersøkelse av en hendelse eller et varsel på tjenesten leser notatene.",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "Det teamet ditt vet om denne tjenesten. OneUptime AI leser disse notatene i hver undersøkelse av en hendelse eller et varsel på den."
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "Det teamet ditt vet om denne tjenesten. OneUptime AI leser disse notatene i hver undersøkelse av en hendelse eller et varsel på den.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ingen verifiserte domener ennå. Verifiser et under Prosjektinnstillinger > Avansert > Domener.",
+  "Select Domains": "Velg domener",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Logg inn med SSO» tilbyr denne leverandøren til alle med e-post på et av disse domenene, som du verifiserer under Prosjektinnstillinger > Avansert > Domener."
 }

@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "In questo progetto esiste già una policy di reperibilità archiviata chiamata {{name}}. Annullane l'archiviazione da Reperibilità > Avanzato > Policy archiviate, oppure scegli un altro nome.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "Non è possibile dare lo stesso nome a più policy di reperibilità. Rinomina una policy alla volta.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "In questo progetto esiste già una pianificazione di reperibilità chiamata {{name}}. Scegli un altro nome.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Non è possibile dare lo stesso nome a più pianificazioni di reperibilità. Rinomina una pianificazione alla volta."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Non è possibile dare lo stesso nome a più pianificazioni di reperibilità. Rinomina una pianificazione alla volta.",
+  "Domains": "Domini",
+  "Select Domains": "Seleziona domini",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Accedi con SSO» offre questo provider a chiunque abbia un'email su uno di questi domini, che verifichi in Impostazioni del progetto > Avanzato > Domini.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ancora nessun dominio verificato. Verificane uno in Impostazioni del progetto > Avanzato > Domini."
 }

@@ -230,7 +230,7 @@
     "noAccountPrompt": "حساب کاربری ندارید؟",
     "registerLink": "ثبت‌نام کنید.",
     "selectProjectTitle": "انتخاب پروژه",
-    "noConfigForEmail": "هیچ پیکربندی SSO برای این ایمیل یافت نشد: {{email}}",
+    "notSetUpForDomain": "ورود یکپارچه برای {{domain}} راه‌اندازی نشده است. از مدیرتان بخواهید آن را راه‌اندازی کند، یا به روش دیگری وارد شوید.",
     "emailRequired": "برای انجام این کار وارد کردن ایمیل الزامی است",
     "defaultProjectName": "پروژه",
     "globalProvidersTitle": "با سازمان خود وارد شوید",

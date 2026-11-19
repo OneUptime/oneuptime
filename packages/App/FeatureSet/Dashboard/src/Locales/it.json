@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "Non è stato possibile caricare ciò che ha imparato OneUptime AI. {{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "Ciò che OneUptime AI deve sapere, in parole semplici. La legge come una nota del tuo team, mai come un'istruzione.",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "Ciò che il team di un servizio dice a OneUptime AI su di esso. Ogni indagine su un incidente o un avviso del servizio legge le sue note.",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "Ciò che il tuo team sa di questo servizio. OneUptime AI legge queste note in ogni indagine su un incidente o un avviso che lo riguarda."
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "Ciò che il tuo team sa di questo servizio. OneUptime AI legge queste note in ogni indagine su un incidente o un avviso che lo riguarda.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ancora nessun dominio verificato. Verificane uno in Impostazioni del progetto > Avanzato > Domini.",
+  "Select Domains": "Seleziona domini",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Accedi con SSO» offre questo provider a chiunque abbia un'email su uno di questi domini, che verifichi in Impostazioni del progetto > Avanzato > Domini."
 }

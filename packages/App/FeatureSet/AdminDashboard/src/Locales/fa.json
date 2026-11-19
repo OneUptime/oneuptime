@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "در این پروژه از قبل سیاست آنکال بایگانی‌شده‌ای به نام {{name}} وجود دارد. آن را در آنکال > پیشرفته > سیاست‌های بایگانی‌شده از بایگانی خارج کنید، یا نام دیگری انتخاب کنید.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "نمی‌توان به چند سیاست آنکال نام یکسانی داد. نام سیاست‌ها را یکی‌یکی تغییر دهید.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "در این پروژه از قبل زمان‌بندی آنکالی به نام {{name}} وجود دارد. نام دیگری انتخاب کنید.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "نمی‌توان به چند زمان‌بندی آنکال نام یکسانی داد. نام زمان‌بندی‌ها را یکی‌یکی تغییر دهید."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "نمی‌توان به چند زمان‌بندی آنکال نام یکسانی داد. نام زمان‌بندی‌ها را یکی‌یکی تغییر دهید.",
+  "Domains": "دامنه‌ها",
+  "Select Domains": "انتخاب دامنه‌ها",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«ورود با SSO» این ارائه‌دهنده را به هر کسی که ایمیلش روی یکی از این دامنه‌ها باشد پیشنهاد می‌کند؛ دامنه‌ها را در تنظیمات پروژه ← پیشرفته ← دامنه‌ها تأیید می‌کنید.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "هنوز هیچ دامنهٔ تأییدشده‌ای نیست. یکی را در تنظیمات پروژه ← پیشرفته ← دامنه‌ها تأیید کنید."
 }

@@ -271,6 +271,15 @@ OneUptime overtager ikke roller eller grupper fra din identitetsudbyder. Hvad en
 
 En udbyders teams afgør, hvad de personer, der logger ind med den, kan gøre, så en udbyder gemmes kun med teams, som den, der gemmer den, kunne invitere nogen til. Hver gemning kontrollerer dem igen: en udbyder, hvis teams giver mere adgang, end du har, kan kun ændres af en person, hvis adgang dækker dem, for eksempel en Projektejer. Udbydere, der blev gemt før denne kontrol, bliver ved med at logge personer ind i deres teams. Alle, der må redigere en udbyder, kan stadig slå den fra, så den kan stoppes med det samme.
 
+## Domæner
+
+**Log ind med SSO** beder om en e-mailadresse og tilbyder de udbydere, der betjener adressens domæne. Den læser ingen konto: en adresse med en konto i dit projekt og en adresse helt uden konto får det samme svar, så siden siger intet om, hvem der har en konto. For at blive tilbudt der angiver en udbyder de domæner, den betjener:
+
+1. Tilføj dit domæne under **Projektindstillinger** > **Avanceret** > **Domæner**, klik på **Bekræft domæne** i dets række, og tilføj den viste TXT-post til domænets DNS. Så snart posten er fundet, er domænet bekræftet.
+2. Rediger udbyderen, og vælg domænet under **Domæner** i trinnet **Login**. Kun projektets bekræftede domæner vises.
+
+**Log ind med SSO** tilbyder derefter udbyderen til alle adresser på det domæne, uanset hvem der skriver dem. Domænet skal passe præcist: `acme.com` dækker ikke `eu.acme.com`, så tilføj hvert domæne, folk logger ind med. En udbyder uden domæner, for eksempel en, der blev sat op, før domæner fandtes, tilbydes ikke til nogen der, og logger stadig folk ind fra din identitetsudbyder og fra linket i kortet **Test Single Sign On (SSO)**.
+
 ## Kræv SSO for dit projekt
 
 En opsat udbyder forhindrer ikke nogen i at logge ind med en adgangskode. For at gøre SSO til den eneste vej ind i projektet skal du bruge kontakten **Kræv SSO for at logge ind** under **Projektindstillinger** > **Sikkerhed** > **SSO**, under dine udbydere:

@@ -271,6 +271,15 @@ O OneUptime não mapeia funções nem grupos do seu provedor de identidade. O qu
 
 As equipes de um provedor decidem o que as pessoas que fazem login com ele podem fazer, por isso um provedor só é salvo com equipes para as quais quem o salva poderia convidar alguém. Cada salvamento as verifica de novo: um provedor cujas equipes dão mais acesso do que você tem só pode ser alterado por alguém cujo acesso as cubra, como um Proprietário do projeto. Provedores salvos antes dessa verificação continuam fazendo o login das pessoas nas equipes deles. Quem pode editar um provedor sempre pode desativá-lo, para que ele possa ser interrompido na hora.
 
+## Domínios
+
+**Login com SSO** pede um endereço de e-mail e oferece os provedores que atendem ao domínio desse endereço. Ele não lê nenhuma conta: um endereço com conta no seu projeto e um sem conta nenhuma recebem a mesma resposta, então a página não diz nada sobre quem tem conta. Para ser oferecido ali, um provedor lista os domínios que atende:
+
+1. Adicione o seu domínio em **Configurações do projeto** > **Avançado** > **Domínios**, clique em **Verificar domínio** na linha dele e adicione o registro TXT exibido ao DNS do domínio. Assim que o registro é encontrado, o domínio está verificado.
+2. Edite o provedor e escolha o domínio em **Domínios**, na etapa **Login**. Só os domínios verificados do projeto são listados.
+
+**Login com SSO** passa então a oferecer o provedor a qualquer endereço desse domínio, seja quem for que o digite. O domínio precisa corresponder exatamente: `acme.com` não cobre `eu.acme.com`, então adicione cada domínio com que as pessoas fazem login. Um provedor sem domínios, como um configurado antes de os domínios existirem, não é oferecido a ninguém ali, e continua fazendo o login das pessoas pelo seu provedor de identidade e pelo link do cartão **Test Single Sign On (SSO)**.
+
 ## Exigir SSO no seu projeto
 
 Configurar um provedor não impede ninguém de fazer login com senha. Para que o SSO seja a única forma de entrar no projeto, use o interruptor **Exigir SSO para entrar** em **Configurações do projeto** > **Segurança** > **SSO**, abaixo dos seus provedores:

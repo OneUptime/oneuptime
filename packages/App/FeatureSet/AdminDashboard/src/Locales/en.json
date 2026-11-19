@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "Several on-call policies cannot be given one name. Rename one policy at a time.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "There is already an on-call schedule called {{name}} in this project. Pick another name.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Several on-call schedules cannot be given one name. Rename one schedule at a time."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Several on-call schedules cannot be given one name. Rename one schedule at a time.",
+  "Domains": "Domains",
+  "Select Domains": "Select Domains",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "No verified domains yet. Verify one in Project Settings > Advanced > Domains."
 }

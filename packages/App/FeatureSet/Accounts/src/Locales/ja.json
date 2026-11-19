@@ -230,7 +230,7 @@
     "noAccountPrompt": "アカウントをお持ちでない方は",
     "registerLink": "サインアップ。",
     "selectProjectTitle": "プロジェクトを選択",
-    "noConfigForEmail": "メールアドレスのSSO設定が見つかりません：{{email}}",
+    "notSetUpForDomain": "{{domain}} にはシングルサインオンが設定されていません。管理者に設定を依頼するか、別の方法でサインインしてください。",
     "emailRequired": "このアクションを実行するにはメールアドレスが必要です",
     "defaultProjectName": "プロジェクト",
     "globalProvidersTitle": "組織アカウントでサインイン",

@@ -109,7 +109,7 @@ De app kon `https://<your-oneuptime>/api/status` niet bereiken. Controleer het a
 :::
 
 :::details „No SSO configuration found for the email”
-Geen van de projecten waarvan dat e-mailadres lid is, heeft single sign-on ingesteld, of het e-mailadres heeft geen account op dit OneUptime. Controleer het e-mailadres, of meld u aan met uw wachtwoord. Providers die uw beheerder voor de hele installatie heeft ingesteld, staan vóór het e-mailveld.
+Geen enkel project op dit OneUptime biedt nog single sign-on voor het domein van dat e-mailadres: een beheerder van het project voegt het domein toe aan zijn SSO-provider, van wie het e-mailadres ook is. Controleer het e-mailadres, of meld u aan met uw wachtwoord. Providers die uw beheerder voor de hele installatie heeft ingesteld, staan vóór het e-mailveld.
 :::
 
 :::details Een beveiligingssleutel is uw enige tweede factor

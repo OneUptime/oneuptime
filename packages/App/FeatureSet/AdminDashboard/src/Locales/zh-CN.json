@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "此项目中已有名为 {{name}} 的已归档值班策略。请在“值班 > 高级 > 已归档策略”中取消归档，或换一个名称。",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "无法为多个值班策略设置同一个名称。请一次只重命名一个策略。",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "此项目中已有名为 {{name}} 的值班排班。请换一个名称。",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "无法为多个值班排班设置同一个名称。请一次只重命名一个排班。"
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "无法为多个值班排班设置同一个名称。请一次只重命名一个排班。",
+  "Domains": "域名",
+  "Select Domains": "选择域名",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "“使用 SSO 登录”会向邮箱属于这些域名之一的任何人提供此提供商。域名在“项目设置 > 高级 > 域名”中验证。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚无已验证的域名。请在“项目设置 > 高级 > 域名”中验证一个。"
 }

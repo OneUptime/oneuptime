@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "このプロジェクトには {{name}} という名前のアーカイブ済みオンコールポリシーがすでにあります。「オンコール > 詳細 > アーカイブ済みポリシー」でアーカイブを解除するか、別の名前を付けてください。",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "複数のオンコールポリシーに同じ名前を付けることはできません。ポリシー名は 1 つずつ変更してください。",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "このプロジェクトには {{name}} という名前のオンコールスケジュールがすでにあります。別の名前を付けてください。",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "複数のオンコールスケジュールに同じ名前を付けることはできません。スケジュール名は 1 つずつ変更してください。"
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "複数のオンコールスケジュールに同じ名前を付けることはできません。スケジュール名は 1 つずつ変更してください。",
+  "Domains": "ドメイン",
+  "Select Domains": "ドメインを選択",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「SSOでログイン」は、メールアドレスがこれらのドメインのいずれかにある人すべてにこのプロバイダーを表示します。ドメインは「プロジェクト設定 > 詳細 > ドメイン」で確認します。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "確認済みのドメインはまだありません。「プロジェクト設定 > 詳細 > ドメイン」で確認してください。"
 }

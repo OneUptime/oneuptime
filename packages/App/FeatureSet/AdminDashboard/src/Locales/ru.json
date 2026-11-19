@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "В этом проекте уже есть архивированная политика дежурства с названием {{name}}. Извлеките её из архива в разделе Дежурство > Расширенный > Архивированные политики или выберите другое название.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "Нескольким политикам дежурств нельзя дать одно и то же название. Переименовывайте политики по одной.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "В этом проекте уже есть расписание дежурства с названием {{name}}. Выберите другое название.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Нескольким расписаниям дежурств нельзя дать одно и то же название. Переименовывайте расписания по одному."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Нескольким расписаниям дежурств нельзя дать одно и то же название. Переименовывайте расписания по одному.",
+  "Domains": "Домены",
+  "Select Domains": "Выберите домены",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Вход через SSO» предлагает этого провайдера всем, чей адрес электронной почты на одном из этих доменов, которые вы подтверждаете в разделе Настройки проекта > Расширенный > Домены.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Подтверждённых доменов пока нет. Подтвердите домен в разделе Настройки проекта > Расширенный > Домены."
 }

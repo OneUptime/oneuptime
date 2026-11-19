@@ -1,3 +1,4 @@
+import Domain from "../../../Models/DatabaseModels/Domain";
 import Team from "../../../Models/DatabaseModels/Team";
 import {
   getDefaultSsoProviderDescription,
@@ -39,6 +40,11 @@ import type { ReactElement } from "react";
  *     say under it which picked teams the person could not invite someone
  *     to: the server saves a provider only with teams the person saving it
  *     could grant (Server/Utils/SsoProviderTeamGrant).
+ *   - Domains (project providers): the project's verified domains the
+ *     provider serves. "Sign in with SSO" offers it to anyone whose email
+ *     is on one of them, and finds it by nothing else - never by the
+ *     account an address has (#9824). Only verified domains are offered to
+ *     pick; with none picked, the provider is offered to nobody by email.
  *   - People without an account and Where this sign-in counts as SSO (the
  *     instance-wide providers of the Admin Dashboard): two plain choices
  *     written into the Disable Sign Up with SSO and Restrict to Attached
@@ -95,6 +101,19 @@ export const SSO_PROVIDER_ENABLED_DESCRIPTION: string = translationKey(
 
 export const SSO_PROVIDER_TEAMS_DESCRIPTION: string = translationKey(
   "Add users to these teams when they sign up.",
+);
+
+/*
+ * What the Domains field does, and where a domain is verified: one
+ * sentence, as a field's help is (ShortDescriptionsGuard).
+ */
+export const SSO_PROVIDER_DOMAINS_DESCRIPTION: string = translationKey(
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.",
+);
+
+// What the Domains list says while the project has verified none.
+export const SSO_PROVIDER_DOMAINS_EMPTY_LIST: string = translationKey(
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.",
 );
 
 /*
@@ -438,6 +457,39 @@ export const getSsoProviderTeamsField: GetSsoProviderTeamsFieldFunction = <
           },
         }
       : {}),
+  };
+};
+
+/*
+ * The project's verified domains a provider serves at "Sign in with SSO"
+ * (ProjectSSO.domains, ProjectOIDC.domains): picked from the domains the
+ * project has verified, under Project Settings > Advanced > Domains. Not
+ * required: a provider with none still signs people in from the identity
+ * provider and from the project's own sign-in page, and is offered to
+ * nobody by email. The server holds every domain to the provider's own
+ * project (ProjectSsoService's reference check).
+ */
+export const getSsoProviderDomainsField: GetSsoProviderFieldFunction = <
+  TEntity,
+>(
+  options: SsoProviderFieldOptions,
+): Field<TEntity> => {
+  return {
+    field: { domains: true } as unknown as SelectFormFields<TEntity>,
+    title: "Domains",
+    description: SSO_PROVIDER_DOMAINS_DESCRIPTION,
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownModal: {
+      type: Domain,
+      labelField: "domain",
+      valueField: "_id",
+      // An unverified domain serves nobody, so it is not offered.
+      query: { isVerified: true },
+      emptyListText: SSO_PROVIDER_DOMAINS_EMPTY_LIST,
+    },
+    required: false,
+    placeholder: "Select Domains",
+    stepId: options.stepId,
   };
 };
 

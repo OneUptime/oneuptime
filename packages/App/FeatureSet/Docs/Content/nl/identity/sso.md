@@ -271,6 +271,15 @@ OneUptime neemt geen rollen of groepen over van uw identiteitsprovider. Wat iema
 
 De teams van een provider bepalen wat mensen die zich ermee aanmelden mogen, daarom wordt een provider alleen opgeslagen met teams waarvoor degene die hem opslaat iemand zou kunnen uitnodigen. Elke keer opslaan controleert ze opnieuw: een provider waarvan de teams meer toegang geven dan u hebt, kan alleen worden gewijzigd door iemand wiens toegang ze dekt, zoals een Projecteigenaar. Providers die vóór deze controle zijn opgeslagen, blijven mensen in hun teams aanmelden. Wie een provider mag bewerken, kan hem altijd uitzetten, zodat hij meteen kan worden gestopt.
 
+## Domeinen
+
+**Inloggen met SSO** vraagt om een e-mailadres en biedt de providers aan die het domein van dat adres bedienen. Het leest geen account: een adres met een account in uw project en een adres zonder account krijgen hetzelfde antwoord, dus de pagina zegt niets over wie een account heeft. Om daar aangeboden te worden, noemt een provider de domeinen die hij bedient:
+
+1. Voeg uw domein toe onder **Projectinstellingen** > **Geavanceerd** > **Domeinen**, klik in de rij ervan op **Domein verifiëren** en voeg het getoonde TXT-record toe aan de DNS van het domein. Zodra het record is gevonden, is het domein geverifieerd.
+2. Bewerk de provider en kies het domein onder **Domeinen** bij de stap **Aanmelden**. Alleen de geverifieerde domeinen van het project worden vermeld.
+
+**Inloggen met SSO** biedt de provider daarna aan elk adres in dat domein aan, wie het ook typt. Het domein moet precies overeenkomen: `acme.com` dekt `eu.acme.com` niet, dus voeg elk domein toe waarmee mensen zich aanmelden. Een provider zonder domeinen, zoals een die is ingesteld voordat er domeinen waren, wordt daar aan niemand aangeboden en meldt mensen nog steeds aan via uw identiteitsprovider en via de link in de kaart **Test Single Sign On (SSO)**.
+
 ## SSO verplichten voor uw project
 
 Een ingestelde provider houdt niemand tegen om zich met een wachtwoord aan te melden. Om SSO de enige weg het project in te maken, gebruikt u de schakelaar **SSO vereisen om aan te melden** onder **Projectinstellingen** > **Beveiliging** > **SSO**, onder uw providers:

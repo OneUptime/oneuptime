@@ -1105,6 +1105,7 @@ import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelNam
 import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
 import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote";
 import { AddTeamMemberInviteeName1809186200000 } from "./1809186200000-AddTeamMemberInviteeName";
+import { AddSsoProviderDomains1809186400000 } from "./1809186400000-AddSsoProviderDomains";
 
 export default [
   InitialMigration,
@@ -2214,4 +2215,5 @@ export default [
   AddDeviceManagementConnection1809185900000,
   AddServiceAINote1809185918000,
   AddTeamMemberInviteeName1809186200000,
+  AddSsoProviderDomains1809186400000,
 ];

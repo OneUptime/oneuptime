@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "Der findes allerede en arkiveret vagtpolitik med navnet {{name}} i dette projekt. Fjern den fra arkivet under Vagt > Avanceret > Arkiverede politikker, eller vælg et andet navn.",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "Flere vagtpolitikker kan ikke få samme navn. Omdøb én politik ad gangen.",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "Der findes allerede en vagttidsplan med navnet {{name}} i dette projekt. Vælg et andet navn.",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Flere vagtplaner kan ikke få samme navn. Omdøb én tidsplan ad gangen."
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "Flere vagtplaner kan ikke få samme navn. Omdøb én tidsplan ad gangen.",
+  "Domains": "Domæner",
+  "Select Domains": "Vælg domæner",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "»Log ind med SSO« tilbyder denne udbyder til alle, hvis e-mail er på et af disse domæner, som du bekræfter under Projektindstillinger > Avanceret > Domæner.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ingen bekræftede domæner endnu. Bekræft et under Projektindstillinger > Avanceret > Domæner."
 }

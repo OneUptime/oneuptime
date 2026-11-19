@@ -230,7 +230,7 @@
     "noAccountPrompt": "ليس لديك حساب؟",
     "registerLink": "أنشئ حسابًا.",
     "selectProjectTitle": "اختر المشروع",
-    "noConfigForEmail": "لم يُعثر على إعداد SSO للبريد الإلكتروني: {{email}}",
+    "notSetUpForDomain": "لم يُعَدّ تسجيل الدخول الموحد للنطاق {{domain}}. اطلب من مسؤولك إعداده، أو سجّل الدخول بطريقة أخرى.",
     "emailRequired": "البريد الإلكتروني مطلوب لتنفيذ هذا الإجراء",
     "defaultProjectName": "المشروع",
     "globalProvidersTitle": "تسجيل الدخول عبر مؤسستك",

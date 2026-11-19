@@ -271,6 +271,15 @@ OneUptime no asigna roles ni grupos de tu proveedor de identidad. Lo que alguien
 
 Los equipos de un proveedor deciden lo que pueden hacer las personas que inician sesión con él, por eso un proveedor solo se guarda con equipos a los que la persona que lo guarda podría invitar a alguien. Cada guardado los vuelve a comprobar: un proveedor cuyos equipos dan más acceso del que tienes solo puede cambiarlo alguien cuyo acceso los cubra, como un Propietario del proyecto. Los proveedores guardados antes de esta comprobación siguen iniciando la sesión de las personas en sus equipos. Cualquiera que pueda editar un proveedor puede seguir desactivándolo, para poder detenerlo en el acto.
 
+## Dominios
+
+**Iniciar sesión con SSO** pide una dirección de correo y ofrece los proveedores que sirven al dominio de esa dirección. No lee ninguna cuenta: una dirección con cuenta en tu proyecto y una sin ninguna cuenta reciben la misma respuesta, así que la página no dice nada de quién tiene cuenta. Para que se ofrezca ahí, un proveedor indica los dominios a los que sirve:
+
+1. Añade tu dominio en **Ajustes del proyecto** > **Avanzado** > **Dominios**, haz clic en **Verificar dominio** en su fila y añade al DNS del dominio el registro TXT que muestra. En cuanto se encuentra el registro, el dominio queda verificado.
+2. Edita el proveedor y elige el dominio en **Dominios**, en el paso **Inicio de sesión**. Solo aparecen los dominios verificados del proyecto.
+
+**Iniciar sesión con SSO** ofrece entonces el proveedor a cualquier dirección de ese dominio, la escriba quien la escriba. El dominio debe coincidir exactamente: `acme.com` no cubre `eu.acme.com`, así que añade cada dominio con el que la gente inicia sesión. Un proveedor sin dominios, como uno configurado antes de que existieran los dominios, no se ofrece a nadie ahí, y sigue iniciando la sesión de las personas desde tu proveedor de identidad y desde el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+
 ## Exigir SSO en tu proyecto
 
 Configurar un proveedor no impide que nadie inicie sesión con contraseña. Para que el SSO sea la única forma de entrar en el proyecto, usa el interruptor **Requerir SSO para iniciar sesión** en **Ajustes del proyecto** > **Seguridad** > **SSO**, debajo de tus proveedores:

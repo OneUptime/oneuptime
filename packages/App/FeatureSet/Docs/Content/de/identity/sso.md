@@ -271,6 +271,15 @@ OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Wa
 
 Die Teams eines Anbieters bestimmen, was Personen tun dürfen, die sich mit ihm anmelden. Deshalb wird ein Anbieter nur mit Teams gespeichert, in die die speichernde Person jemanden einladen könnte. Jedes Speichern prüft sie erneut: Einen Anbieter, dessen Teams mehr Zugriff geben, als Sie haben, kann nur jemand ändern, dessen Zugriff sie abdeckt, etwa ein Projektinhaber. Anbieter, die vor dieser Prüfung gespeichert wurden, melden Personen weiter in ihren Teams an. Wer einen Anbieter bearbeiten darf, kann ihn weiterhin ausschalten, sodass er sich sofort stoppen lässt.
 
+## Domänen
+
+**Mit SSO anmelden** fragt nach einer E-Mail-Adresse und bietet die Anbieter an, die die Domain dieser Adresse bedienen. Es liest kein Konto: Eine Adresse mit einem Konto in Ihrem Projekt und eine ganz ohne Konto erhalten dieselbe Antwort, die Seite verrät also nicht, wer ein Konto hat. Damit ein Anbieter dort angeboten wird, nennt er die Domänen, die er bedient:
+
+1. Fügen Sie Ihre Domain unter **Projekteinstellungen** > **Erweitert** > **Domänen** hinzu, klicken Sie in ihrer Zeile auf **Domain verifizieren** und tragen Sie den angezeigten TXT-Eintrag in das DNS der Domain ein. Sobald der Eintrag gefunden wird, ist die Domain verifiziert.
+2. Bearbeiten Sie den Anbieter und wählen Sie die Domain im Schritt **Anmeldung** unter **Domänen** aus. Nur die verifizierten Domänen des Projekts werden aufgeführt.
+
+**Mit SSO anmelden** bietet den Anbieter dann jeder Adresse in dieser Domain an, egal wer sie eingibt. Die Domain muss genau übereinstimmen: `acme.com` umfasst nicht `eu.acme.com`, fügen Sie also jede Domain hinzu, mit der sich Personen anmelden. Ein Anbieter ohne Domänen, etwa einer, der eingerichtet wurde, bevor es Domänen gab, wird dort niemandem angeboten und meldet Personen weiterhin über Ihren Identitätsanbieter und über den Link in der Karte **Single Sign-On (SSO) testen** an.
+
 ## SSO für Ihr Projekt verlangen
 
 Ein eingerichteter Anbieter hält niemanden davon ab, sich mit einem Passwort anzumelden. Um SSO zum einzigen Weg ins Projekt zu machen, verwenden Sie den Schalter **SSO für die Anmeldung erzwingen** unter **Projekteinstellungen** > **Sicherheit** > **SSO**, unterhalb Ihrer Anbieter:

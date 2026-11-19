@@ -230,7 +230,7 @@
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Sign up.",
     "selectProjectTitle": "Select Project",
-    "noConfigForEmail": "No SSO configuration found for the email: {{email}}",
+    "notSetUpForDomain": "Single sign-on is not set up for {{domain}}. Ask your admin to set it up, or sign in another way.",
     "emailRequired": "Email is required to perform this action",
     "defaultProjectName": "Project",
     "globalProvidersTitle": "Sign in with your organization",

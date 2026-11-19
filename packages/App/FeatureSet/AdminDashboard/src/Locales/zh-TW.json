@@ -4327,5 +4327,9 @@
   "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.": "此專案中已有名為 {{name}} 的已封存待命策略。請在「待命 > 進階 > 已封存策略」中取消封存，或換一個名稱。",
   "Several on-call policies cannot be given one name. Rename one policy at a time.": "無法為多個待命策略設定同一個名稱。請一次只重新命名一個策略。",
   "There is already an on-call schedule called {{name}} in this project. Pick another name.": "此專案中已有名為 {{name}} 的待命排程。請換一個名稱。",
-  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "無法為多個待命排程設定同一個名稱。請一次只重新命名一個排程。"
+  "Several on-call schedules cannot be given one name. Rename one schedule at a time.": "無法為多個待命排程設定同一個名稱。請一次只重新命名一個排程。",
+  "Domains": "網域",
+  "Select Domains": "選擇網域",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「使用 SSO 登入」會向電子郵件屬於這些網域之一的任何人提供此提供者。網域在「專案設定 > 進階 > 網域」中驗證。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚無已驗證的網域。請在「專案設定 > 進階 > 網域」中驗證一個。"
 }

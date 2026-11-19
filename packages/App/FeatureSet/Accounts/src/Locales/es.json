@@ -230,7 +230,7 @@
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
     "selectProjectTitle": "Seleccionar proyecto",
-    "noConfigForEmail": "No se encontró configuración SSO para el correo electrónico: {{email}}",
+    "notSetUpForDomain": "El inicio de sesión único no está configurado para {{domain}}. Pida a su administrador que lo configure, o inicie sesión de otra forma.",
     "emailRequired": "Se requiere correo electrónico para realizar esta acción",
     "defaultProjectName": "Proyecto",
     "globalProvidersTitle": "Inicie sesión con su organización",

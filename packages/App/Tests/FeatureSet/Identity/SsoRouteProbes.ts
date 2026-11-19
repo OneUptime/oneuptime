@@ -2,6 +2,7 @@ import { expect } from "@jest/globals";
 import IdentityFeatureSet from "../../../FeatureSet/Identity/Index";
 import { SSO_SIGN_IN_CONFIRMATION_VIEW } from "../../../FeatureSet/Identity/API/ProjectSsoSignInConfirmation";
 import { MOBILE_SSO_CALLBACK_URL } from "../../../FeatureSet/Identity/Utils/MobileSso";
+import DomainService from "Common/Server/Services/DomainService";
 import GlobalOIDCService from "Common/Server/Services/GlobalOidcService";
 import GlobalSSOService from "Common/Server/Services/GlobalSsoService";
 import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
@@ -89,6 +90,9 @@ const badRequest: (message: string) => ExpectedSsoAnswer = (
   return { status: 400, body: { message } };
 };
 
+// What a value that is not one email address is refused with (Types/Email).
+const NOT_AN_ADDRESS: string = "Email nobody is not in valid format.";
+
 const EMPTY_PROVIDER_LIST: ExpectedSsoAnswer = {
   status: 200,
   body: { data: [], count: 0, skip: 0, limit: 10 },
@@ -125,16 +129,26 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
     expected: badRequest("Email is required"),
   },
   /*
-   * The answer an address with an account in no SSO project gets too: it
-   * says nothing about whether the address has an account (#9745).
+   * An address on a domain no project verified: the answer every address
+   * there gets, with an account or without one. Discovery reads the
+   * address's domain and never an account (#9745, #9824).
    */
   {
-    label: "project SAML discovery for an address with no account",
+    label: "project SAML discovery for an address on a domain nobody verified",
     router: "SSO",
     method: "GET",
     route: "/service-provider-login",
     path: "/service-provider-login?email=nobody%40example.com",
     expected: EMPTY_PROVIDER_LIST,
+  },
+  // A value that is not an address is refused, as it always was.
+  {
+    label: "project SAML discovery for a value that is not an address",
+    router: "SSO",
+    method: "GET",
+    route: "/service-provider-login",
+    path: "/service-provider-login?email=nobody",
+    expected: badRequest(NOT_AN_ADDRESS),
   },
   {
     label: "project SAML start for an unknown provider",
@@ -185,14 +199,22 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
     path: "/service-provider-login-oidc",
     expected: badRequest("Email is required"),
   },
-  // As SAML's, above (#9745).
+  // As SAML's, above (#9745, #9824).
   {
-    label: "project OIDC discovery for an address with no account",
+    label: "project OIDC discovery for an address on a domain nobody verified",
     router: "OIDC",
     method: "GET",
     route: "/service-provider-login-oidc",
     path: "/service-provider-login-oidc?email=nobody%40example.com",
     expected: EMPTY_PROVIDER_LIST,
+  },
+  {
+    label: "project OIDC discovery for a value that is not an address",
+    router: "OIDC",
+    method: "GET",
+    route: "/service-provider-login-oidc",
+    path: "/service-provider-login-oidc?email=nobody",
+    expected: badRequest(NOT_AN_ADDRESS),
   },
   {
     label: "project OIDC start from the mobile app for an unknown provider",
@@ -406,13 +428,16 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
 ];
 
 /*
- * Every provider and account lookup the probes can reach finds nothing, so no
- * probe needs a database. Returns the spies (restored by jest.restoreAllMocks).
+ * Every provider, domain and account lookup the probes can reach finds
+ * nothing, so no probe needs a database. Returns the spies (restored by
+ * jest.restoreAllMocks).
  */
 export const stubSsoDatabaseReads: () => Array<jest.SpyInstance> =
   (): Array<jest.SpyInstance> => {
     return [
       jest.spyOn(UserService, "findOneBy").mockResolvedValue(null),
+      // The verified domains "Sign in with SSO" finds providers by.
+      jest.spyOn(DomainService, "findBy").mockResolvedValue([]),
       jest.spyOn(ProjectSSOService, "findOneBy").mockResolvedValue(null),
       jest.spyOn(ProjectOidcService, "findOneBy").mockResolvedValue(null),
       jest.spyOn(GlobalSSOService, "findBy").mockResolvedValue([]),
