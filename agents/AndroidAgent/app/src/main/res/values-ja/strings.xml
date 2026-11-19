@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The agent's words in Japanese: every string of res/values/strings.xml, in the Dashboard's terms (Locales/ja.json). -->
+<resources>
+
+    <string name="notification_channel_name">エージェントのステータス</string>
+    <string name="notification_channel_description">このデバイスが OneUptime に報告しているかどうかを表示します。</string>
+
+    <string name="notification_requests_channel_name">OneUptime からのリクエスト</string>
+    <string name="notification_requests_channel_description">トラブルシューティングのために OneUptime がこのデバイスのログの読み取りを求めるときの通知です。</string>
+    <string name="notification_request_title">OneUptime がこのデバイスのログを求めています</string>
+
+    <string name="status_not_set_up">まだセットアップされていません</string>
+    <string name="status_not_set_up_detail">取り込みキーを入力するか、デバイス管理サービスから oneuptime_token として送信してください。</string>
+    <string name="status_unreachable">OneUptime に接続できません</string>
+    <string name="status_unreachable_detail">デバイスのネットワークを確認してください。エージェントは自動的に再試行します。</string>
+    <string name="status_key_refused">OneUptime が取り込みキーを拒否しました</string>
+    <string name="status_key_refused_detail">オンになっていて期限切れでないサーバー用の取り込みキーを使用してください（HTTP %1$d）。</string>
+    <string name="status_not_found">このアドレスに OneUptime が見つかりません</string>
+    <string name="status_not_found_detail">OneUptime の URL（%1$s）を確認してください。</string>
+    <string name="status_server_error">OneUptime は現在テレメトリを受け付けていません</string>
+    <string name="status_server_error_detail">OneUptime から %1$d が返されました。エージェントは自動的に再試行します。</string>
+    <string name="status_server_error_unknown_detail">OneUptime からエラーが返されました。エージェントは自動的に再試行します。</string>
+    <string name="status_sending_failed">送信に失敗しました</string>
+    <string name="status_retrying">エージェントは自動的に再試行します。</string>
+    <string name="status_kept">テレメトリは送信できるようになるまでデバイスに保持されます。</string>
+    <string name="status_detail_and_kept">%1$s%2$s</string>
+    <string name="status_reporting">OneUptime に報告中</string>
+    <string name="status_as_device">%1$s として</string>
+    <string name="status_starting">起動中</string>
+    <string name="status_starting_detail">%1$s として報告します。最初のレポートは 1 分以内に送信されます。</string>
+
+    <string name="address_empty">OneUptime の URL を入力してください。</string>
+    <string name="address_not_a_url">OneUptime の URL がウェブアドレスの形式ではありません。</string>
+    <string name="address_not_https">取り込みキーが暗号化されずに送信されることがないよう、OneUptime の URL は https:// で始まる必要があります。</string>
+    <string name="address_query_or_fragment">OneUptime の URL から ? または # で始まる部分を削除してください。</string>
+    <string name="address_credentials">OneUptime の URL からユーザー名とパスワードを削除してください。</string>
+
+    <string name="setup_subtitle">このデバイスの状態、再起動、アプリ、ログを OneUptime に報告します。</string>
+    <string name="setup_last_report">最終レポート送信: %1$s</string>
+    <string name="setup_no_report_yet">まだ何も送信されていません</string>
+    <string name="setup_waiting">%1$s が送信待ち</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: デバイス管理サービスが %2$s を値に置き換えずにそのまま送信しました。</string>
+    <string name="setup_problem_invalid">%1$s: %2$s は使用できないため、デフォルト値が適用されます。</string>
+    <string name="setup_connection">接続</string>
+    <string name="setup_managed_notice">ロックされている設定は、組織のデバイス管理サービスによって設定されています。</string>
+    <string name="setup_url_label">OneUptime の URL</string>
+    <string name="setup_url_help">OneUptime をセルフホストしている場合にのみ変更してください。</string>
+    <string name="setup_token_label">取り込みキー</string>
+    <string name="setup_token_hint">サーバー用の取り込みキーを貼り付け</string>
+    <string name="setup_token_stored_hint">保存済みです。置き換えるには新しいキーを貼り付けてください。</string>
+    <string name="setup_token_help">OneUptime の「プロジェクト設定 > テレメトリと APM > 取り込みキー」にあります。サーバーキーを使用してください。</string>
+    <string name="setup_token_unreadable">保存されているキーをこのデバイスで読み取れなくなりました。もう一度貼り付けてください。</string>
+    <string name="setup_device_name_label">デバイス名</string>
+    <string name="setup_device_name_help">ホストとインベントリでこのデバイスが表示される名前です。</string>
+    <string name="setup_set_by_organization">組織によって設定されています</string>
+    <string name="setup_save">保存して接続</string>
+    <string name="setup_saved">保存しました。エージェントが今すぐレポートを送信します。</string>
+    <string name="setup_token_required">取り込みキーを貼り付けてください。</string>
+    <string name="setup_save_failed">このデバイスではキーを安全に保存できませんでした: %1$s</string>
+    <string name="setup_readings">このデバイスでエージェントが読み取れる情報</string>
+    <string name="setup_reading_yes">はい</string>
+    <string name="setup_reading_cpu">CPU 使用率</string>
+    <string name="setup_reading_cpu_device_owner">はい（デバイスオーナーとして）</string>
+    <string name="setup_reading_cpu_not_device_owner">エージェントがデバイスオーナーの場合のみ</string>
+    <string name="setup_reading_cpu_not_supported">このデバイスでは利用不可: Android が CPU 使用率を報告しません</string>
+    <string name="setup_reading_memory">メモリ、ストレージ、ネットワーク</string>
+    <string name="setup_reading_battery">バッテリー</string>
+    <string name="setup_reading_no_battery">バッテリーなし</string>
+    <string name="setup_reading_thermal">温度とスロットリング</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 以降</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">クラッシュのスタックトレースと再起動の理由</string>
+    <string name="setup_reading_crash_details_yes">はい（すべてのアプリ）</string>
+    <string name="setup_reading_crash_details_not_granted">オフ: READ_LOGS が付与されていません</string>
+    <string name="setup_reading_crash_details_no_usage_access">オフ: 使用状況へのアクセスが許可されていません</string>
+    <string name="setup_reading_apps">インストール済みアプリ</string>
+    <string name="setup_reading_off_by_manager">オフ: デバイス管理サービスによってオフにされています</string>
+    <string name="setup_reading_unknown">最初のレポート後に表示</string>
+    <string name="setup_grants">他のアプリのログとクラッシュのスタックトレースを送信するには、adb またはデバイス管理サービスのリモート ADB で、以下の権限を一度付与してください:</string>
+    <string name="setup_usage_access">使用状況へのアクセスを許可</string>
+
+    <string name="logcat_not_started">未開始</string>
+    <string name="logcat_not_granted">オフ: READ_LOGS が付与されていません</string>
+    <string name="logcat_crashes_and_anrs">すべてのアプリのクラッシュと ANR</string>
+    <string name="logcat_full">すべてのアプリのログ、クラッシュ、ANR</string>
+
+    <string name="log_session_title">トラブルシューティング用のログ</string>
+    <string name="log_session_request_by">%1$s さんが OneUptime で、このデバイスのすべてのアプリの%3$sレベル以上のログを %2$s送信するよう求めています。</string>
+    <string name="log_session_request">OneUptime が、このデバイスのすべてのアプリの%2$sレベル以上のログを %1$s送信するよう求めています。</string>
+    <string name="log_session_android_prompt">続いて Android から、すべてのデバイスログへのアクセスを許可するかどうかを確認されます。そこでも許可してください。</string>
+    <string name="log_session_allow">許可</string>
+    <string name="log_session_decline">拒否</string>
+    <string name="log_session_stop">送信を停止</string>
+    <string name="log_session_starting">Android の確認画面で、すべてのデバイスログへのアクセスを許可してください。</string>
+    <string name="log_session_collecting_until">%1$s まで、すべてのアプリのログを送信しています。</string>
+    <string name="log_session_collecting">すべてのアプリのログを送信しています。</string>
+    <string name="log_session_declined_here">拒否しました。これ以上は送信されません。</string>
+    <string name="log_session_declined_by_android">すべてのデバイスログへのアクセスが許可されなかったため、これ以上は送信されません。</string>
+    <string name="log_session_no_answer">Android の確認画面に誰も応答しなかったため、これ以上は送信されません。</string>
+    <string name="log_session_time_up">完了: 求められた時間、すべてのアプリのログを送信しました。</string>
+    <string name="log_session_stopped">停止しました。これ以上は送信されません。</string>
+    <string name="log_session_agent_restarted">エージェントの再起動により終了しました。</string>
+    <string name="log_session_logcat_stopped">終了: Logcat の読み取りが停止しました。</string>
+    <string name="log_session_logcat_disabled">このデバイスからは送信できません: デバイス管理サービスによって Logcat がオフにされています。</string>
+    <string name="log_session_not_granted">このデバイスからは送信できません: READ_LOGS が付与されていません。</string>
+    <string name="log_session_expired">時間内に誰も許可しませんでした。</string>
+    <string name="log_session_cancelled">OneUptime でキャンセルされました。</string>
+    <string name="log_session_ended">終了しました。</string>
+    <plurals name="duration_minutes">
+        <item quantity="other">%d 分間</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="other">%d 時間</item>
+    </plurals>
+
+    <string name="device_admin_description">デバイスオーナーとして、このデバイスの CPU 使用率をエージェントが読み取れるようにします。デバイスのロック、データ消去、制限は一切行いません。</string>
+
+    <string name="restriction_url_title">OneUptime の URL</string>
+    <string name="restriction_url_description">テレメトリの送信先です。OneUptime をセルフホストしていない場合は、https://oneuptime.com のままにしてください。</string>
+    <string name="restriction_token_title">取り込みキー</string>
+    <string name="restriction_token_description">「プロジェクト設定 > テレメトリと APM > 取り込みキー」にあるサーバー用の取り込みキーです。</string>
+    <string name="restriction_device_name_title">デバイス名</string>
+    <string name="restriction_device_name_description">OneUptime でのデバイスの名前です（例: ${esper.deviceName}）。両方が 1 つのデバイスとして表示されるように、アプリの host.name にも同じ名前を使用してください。</string>
+    <string name="restriction_device_serial_title">シリアル番号</string>
+    <string name="restriction_device_serial_description">デバイスのシリアル番号です（例: ${esper.serialNumber}）。Android 自体はシリアル番号をアプリに提供しません。</string>
+    <string name="restriction_device_type_title">デバイスの種類</string>
+    <string name="restriction_device_type_description">デバイスの種類です（キオスク、POS 端末、ハンディ端末、サイネージなど）。</string>
+    <string name="restriction_device_location_title">場所</string>
+    <string name="restriction_device_location_description">デバイスの設置場所です（店舗番号など）。</string>
+    <string name="restriction_labels_title">ラベル</string>
+    <string name="restriction_labels_description">OneUptime でデバイスに付けるラベルです。「名前=値」の組をカンマ区切りで指定します（例: store=0412, region=emea）。</string>
+    <string name="restriction_interval_title">収集間隔 (秒)</string>
+    <string name="restriction_interval_description">エージェントが報告する間隔で、30～600 秒です。デフォルトは 60 秒です。</string>
+    <string name="restriction_logcat_enabled_title">Logcat を送信</string>
+    <string name="restriction_logcat_enabled_description">他のアプリのクラッシュ、ANR、ログを送信し、OneUptime から要求されたログセッションを許可します。adb で付与する READ_LOGS が必要です。</string>
+    <string name="restriction_logcat_level_title">Logcat の最低レベル</string>
+    <string name="restriction_logcat_level_description">送信する Logcat 行の最低重大度です（Android 12 以前）。デフォルトは「警告」です。</string>
+    <string name="restriction_apps_enabled_title">インストール済みアプリを送信</string>
+    <string name="restriction_apps_enabled_description">インストール済みのアプリとそのバージョンを 1 日 1 回送信し、インストール、更新、削除があるたびにも送信します。</string>
+    <string name="logcat_level_verbose">詳細</string>
+    <string name="logcat_level_debug">デバッグ</string>
+    <string name="logcat_level_info">情報</string>
+    <string name="logcat_level_warn">警告</string>
+    <string name="logcat_level_error">エラー</string>
+    <string name="logcat_level_fatal">致命的</string>
+</resources>

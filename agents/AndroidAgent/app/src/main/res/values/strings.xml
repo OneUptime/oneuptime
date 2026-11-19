@@ -7,7 +7,7 @@
     translated: device managers and adb read them as they are.
 -->
 <resources>
-    <string name="app_name">OneUptime Agent</string>
+    <string name="app_name" translatable="false">OneUptime Agent</string>
 
     <!-- The notification Android shows while the agent runs. -->
     <string name="notification_channel_name">Agent status</string>
@@ -93,7 +93,7 @@
     <string name="setup_reading_unknown">After the first report</string>
     <string name="setup_grants">To send other apps\' logs and crash stacks, grant these once, with adb or your device manager\'s remote ADB:</string>
     <string name="setup_usage_access">Allow usage access</string>
-    <string name="setup_version">OneUptime Agent %1$s</string>
+    <string name="setup_version" translatable="false">OneUptime Agent %1$s</string>
 
     <!-- What the agent reads of Logcat. -->
     <string name="logcat_not_started">Not started</string>
