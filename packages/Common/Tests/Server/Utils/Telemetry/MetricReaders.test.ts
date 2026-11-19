@@ -118,7 +118,7 @@ function chartOf(
 ): Record<string, unknown> {
   return {
     _type: "DashboardComponent",
-    componentType: "chart",
+    componentType: "Chart",
     componentId: { _type: "ObjectID", value: componentId },
     arguments: {
       chartTitle: title,
@@ -318,7 +318,7 @@ describe("what a record reads", () => {
       components: [
         chartOf("Signups", LEAKED, chartId),
         {
-          componentType: "value",
+          componentType: "Value",
           componentId: "0192F1A0-0000-7000-8000-0000000E9421",
           arguments: {
             title: "Signups today",
@@ -326,7 +326,7 @@ describe("what a record reads", () => {
           },
         },
         {
-          componentType: "gauge",
+          componentType: "Gauge",
           componentId: ObjectID.generate().toString(),
           arguments: {
             gaugeTitle: "Error budget",
@@ -334,7 +334,7 @@ describe("what a record reads", () => {
           },
         },
         {
-          componentType: "table",
+          componentType: "Table",
           componentId: ObjectID.generate().toString(),
           arguments: {
             tableTitle: "  ",
@@ -343,7 +343,7 @@ describe("what a record reads", () => {
         },
         // A text widget: no metric.
         {
-          componentType: "text",
+          componentType: "Text",
           componentId: ObjectID.generate().toString(),
           arguments: { text: "Hello" },
         },
@@ -358,16 +358,16 @@ describe("what a record reads", () => {
         return entry.widget;
       }),
     ).toEqual([
-      { id: chartId, title: "Signups", type: "chart" },
+      { id: chartId, title: "Signups", type: "Chart" },
       {
         id: "0192f1a0-0000-7000-8000-0000000e9421",
         title: "Signups today",
-        type: "value",
+        type: "Value",
       },
-      { id: expect.any(String), title: "Error budget", type: "gauge" },
+      { id: expect.any(String), title: "Error budget", type: "Gauge" },
       // A title of blanks is none: the widget is named by its kind.
-      { id: expect.any(String), title: "", type: "table" },
-      { id: expect.any(String), title: "", type: "text" },
+      { id: expect.any(String), title: "", type: "Table" },
+      { id: expect.any(String), title: "", type: "Text" },
     ]);
     expect(found.widgets[3]!.references).toEqual([
       { metricName: LEAKED, serviceIds: [CHECKOUT] },
@@ -484,7 +484,7 @@ describe("which records read it", () => {
           name: "Growth",
           // Only the widget that reads it.
           widgets: [
-            { id: expect.any(String), title: "Signups", type: "chart" },
+            { id: expect.any(String), title: "Signups", type: "Chart" },
           ],
         },
       ],

@@ -601,7 +601,7 @@ describe("what dropping would do, before it is asked for", () => {
     ).dashboardViewConfig = {
       components: [
         {
-          componentType: "chart",
+          componentType: "Chart",
           componentId: { _type: "ObjectID", value: CHART_ID },
           arguments: {
             chartTitle: widgetTitle,
@@ -748,7 +748,7 @@ describe("what dropping would do, before it is asked for", () => {
         {
           id: dashboards[0]!.id!.toString(),
           name: "Growth",
-          widgets: [{ id: CHART_ID, title: "Signups", type: "chart" }],
+          widgets: [{ id: CHART_ID, title: "Signups", type: "Chart" }],
         },
       ],
       slos: [{ id: slos[0]!.id!.toString(), name: "Signup success" }],
