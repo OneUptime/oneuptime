@@ -13,7 +13,7 @@ import AuditLogService from "../../../Server/Services/AuditLogService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import FindBy from "../../../Server/Types/Database/FindBy";
-import FindOneById from "../../../Server/Types/Database/FindOneById";
+import FindOneByID from "../../../Server/Types/Database/FindOneByID";
 import LocalSignInClearing, {
   CLEAR_BATCH_SIZE,
 } from "../../../Server/Utils/LocalSignInClearing";
@@ -185,7 +185,7 @@ beforeEach(() => {
   people.set(keyOf(OWNER_ID), { isMasterAdmin: false, hasSettings: true });
 
   getJestSpyOn(ProjectService, "findOneById").mockImplementation(
-    async (data: FindOneById<Project>): Promise<Project | null> => {
+    async (data: FindOneByID<Project>): Promise<Project | null> => {
       const found: WorldProject | undefined = projects.find(
         (worldProject: WorldProject): boolean => {
           return (
