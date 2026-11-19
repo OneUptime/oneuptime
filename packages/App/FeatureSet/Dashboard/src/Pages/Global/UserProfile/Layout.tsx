@@ -2,6 +2,11 @@ import PageMap from "../../../Utils/PageMap";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenu from "./SideMenu";
+import {
+  SignInManagementContext,
+  SignInManagementState,
+  useLoadSignInManagement,
+} from "../../../Components/UserProfile/SignInManagement";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
 import Page from "Common/UI/Components/Page/Page";
@@ -30,6 +35,11 @@ const normalizePath: (path: string) => string = (path: string): string => {
 
 const UserProfileLayout: FunctionComponent = (): ReactElement => {
   const location: ReturnType<typeof useLocation> = useLocation();
+  /*
+   * Who manages the person's sign-in (#9688), asked once for every profile
+   * page: their side menu and the Security pages read it.
+   */
+  const signInManagement: SignInManagementState = useLoadSignInManagement();
   const breadcrumbLinks: Array<Link> = [
     {
       title: "Home",
@@ -61,15 +71,17 @@ const UserProfileLayout: FunctionComponent = (): ReactElement => {
   }
 
   return (
-    <Page
-      title="User Profile"
-      breadcrumbLinks={breadcrumbLinks}
-      sideMenu={<SideMenu />}
-    >
-      <Suspense fallback={<PageSkeleton />}>
-        <Outlet />
-      </Suspense>
-    </Page>
+    <SignInManagementContext.Provider value={signInManagement}>
+      <Page
+        title="User Profile"
+        breadcrumbLinks={breadcrumbLinks}
+        sideMenu={<SideMenu signInManagement={signInManagement} />}
+      >
+        <Suspense fallback={<PageSkeleton />}>
+          <Outlet />
+        </Suspense>
+      </Page>
+    </SignInManagementContext.Provider>
   );
 };
 

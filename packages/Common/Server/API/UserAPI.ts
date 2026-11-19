@@ -25,11 +25,17 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  OneUptimeRequest,
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
+import UserMiddleware from "../Middleware/UserAuthorization";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import { SignInManagement } from "../../Types/SSO/SsoManagedSignIn";
+import { TwoFactorAuthSetup } from "../../Types/TwoFactorAuthSetup";
 
 const BLANK_PROFILE_PICTURE_PATH: string =
   "/usr/src/Common/UI/Images/users/blank-profile.svg";
@@ -37,6 +43,71 @@ const BLANK_PROFILE_PICTURE_PATH: string =
 export default class UserAPI extends BaseAPI<User, UserServiceType> {
   public constructor() {
     super(User, UserService);
+
+    /*
+     * Whether the signed-in person's organization manages how they sign in
+     * (Types/SSO/SsoManagedSignIn, #9688), for User Profile: while it does,
+     * the profile has no Security section and names the server's SSO
+     * providers instead. The caller's own answer only - there is no user id
+     * to name, so there is none to substitute - and nothing secret in it:
+     * the providers' names are what the sign-in page shows anyone.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sign-in-management`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getCurrentUserId(req);
+
+          const answer: SignInManagement =
+            await SsoManagedSignIn.getSignInManagement(userId);
+
+          // It changes the moment a master admin flips the requirement.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            isManagedBySso: answer.isManagedBySso,
+            ssoProviderNames: answer.ssoProviderNames,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Where the signed-in person stands on two factor authentication
+     * (Types/TwoFactorAuthSetup, #9666): whether it is on, and how many
+     * second steps are set up behind it, counted as the checks that refuse
+     * turning it on with none, or removing the last one, count them. The
+     * profile reads it to offer what those checks allow, and to say "Setup
+     * needed" rather than "Enabled" over nothing. The caller's own answer
+     * only, as above.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/two-factor-auth-status`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getCurrentUserId(req);
+
+          const setup: TwoFactorAuthSetup =
+            await UserService.getTwoFactorAuthSetup(userId);
+
+          // A stale "Not enabled" after turning it on reads as a button that did nothing.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            status: setup.status,
+            verifiedMethodCount: setup.verifiedMethodCount,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
 
     /*
      * Every project one user belongs to, one row per project, for the Admin
@@ -529,6 +600,23 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
    * the value flows into a query, and a malformed id should fail as bad input
    * rather than reach the database layer.
    */
+  /*
+   * The signed-in person, as the validated access token names them
+   * (UserMiddleware.getUserMiddleware): never an id from the request.
+   */
+  private static getCurrentUserId(req: ExpressRequest): ObjectID {
+    const userId: ObjectID | undefined = (req as OneUptimeRequest)
+      .userAuthorization?.userId;
+
+    if (!userId) {
+      throw new NotAuthenticatedException(
+        "Sign in to see how you sign in to OneUptime.",
+      );
+    }
+
+    return userId;
+  }
+
   private static getUserIdFromParams(req: ExpressRequest): ObjectID {
     const userIdParam: string = ((req.params["userId"] as string) || "").trim();
 

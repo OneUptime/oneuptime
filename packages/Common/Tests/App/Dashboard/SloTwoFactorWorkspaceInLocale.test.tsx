@@ -106,6 +106,27 @@ jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
+      /*
+       * The two-factor card reads where the person stands
+       * (GET /user/two-factor-auth-status, #9666): on with a second step set
+       * up, or off with none, by mockUser - and no answer when it is null.
+       */
+      get: (): Promise<unknown> => {
+        if (!mockUser) {
+          return Promise.resolve(new HTTPResponse<JSONObject>(200, {}, {}));
+        }
+        const isOn: boolean = mockUser["enableTwoFactorAuth"] === true;
+        return Promise.resolve(
+          new HTTPResponse<JSONObject>(
+            200,
+            {
+              status: isOn ? "EnabledConfigured" : "NotEnabled",
+              verifiedMethodCount: isOn ? 1 : 0,
+            },
+            {},
+          ),
+        );
+      },
       post: (): Promise<unknown> => {
         return mockPostResult instanceof Error
           ? Promise.reject(mockPostResult)

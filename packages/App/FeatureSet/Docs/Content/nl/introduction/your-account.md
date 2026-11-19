@@ -105,24 +105,30 @@ De link werkt één keer, gedurende 15 minuten, en een nieuwere link vervangt he
 
 ### Tweefactorauthenticatie inschakelen
 
-Tweefactorauthenticatie geldt wanneer u met uw wachtwoord of een gemailde link inlogt. Voeg eerst een tweede stap toe, en schakel haar dan in.
+Tweefactorauthenticatie geldt wanneer u zich aanmeldt met uw wachtwoord of met een gemailde link. Ze wordt pas ingeschakeld als uw tweede stap werkt, dus ze vraagt nooit om een stap die u niet hebt.
 
 :::steps
-### Een authenticator-app toevoegen
+### Uw tweede stap kiezen
 
-Open **Beveiliging → Tweefactorauthenticatie**. Voeg onder **Authenticator-apps** een app toe en geef die een naam. Scan de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voer de 6-cijferige code in die ze toont, en klik op **Verifiëren en afronden**. Wilt u liever een USB- of NFC-sleutel gebruiken, voeg die dan toe onder **Beveiligingssleutels**.
+Open **Beveiliging → Tweefactorauthenticatie** en klik op **Tweefactorauthenticatie inschakelen**. Kies **Authenticator-app** of **Beveiligingssleutel** en klik op **Doorgaan**.
+
+### Instellen
+
+Voor een authenticator-app scant u de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voert u de 6-cijferige code in die de app toont en klikt u op **Verifiëren en afronden**. Een USB- of NFC-sleutel geeft u een naam, waarna u de aanwijzingen van uw browser volgt. Tweefactorauthenticatie is daarna ingeschakeld en de kaart toont **Ingeschakeld**. Vanaf uw volgende aanmelding met een wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 
 ### Uw back-upcodes bewaren
 
 De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUptime **Uw back-upcodes**. Elke code laat u één keer inloggen als u uw app of sleutel kwijtraakt. Kopieer of download ze, vink het vakje aan dat u ze hebt bewaard, en klik op **Klaar**.
-
-### Haar inschakelen
-
-Klik bovenaan de pagina op **Tweefactorauthenticatie inschakelen** en bevestig. De kaart toont nu **Ingeschakeld**. Vanaf uw volgende aanmelding met wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 :::
+
+Hebt u al een app onder **Authenticator-apps** of een sleutel onder **Beveiligingssleutels**, dan vraagt **Tweefactorauthenticatie inschakelen** alleen om een bevestiging. Zolang ze is ingeschakeld, kunt u uw laatste app, sleutel of passkey niet verwijderen: voeg eerst een andere toe, of schakel tweefactorauthenticatie uit. Toont de kaart **Instellen vereist**, dan is tweefactorauthenticatie ingeschakeld zonder dat er iets is ingesteld, vaak omdat een beheerder het vereiste: klik op **Instellen afronden**, anders wordt u daar bij uw volgende aanmelding om gevraagd.
 
 > [!TIP]
 > Raken uw back-upcodes op? **Codes opnieuw genereren** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
+
+### Als uw organisatie uw aanmelding beheert
+
+Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
 
 ## Uw projecten
 

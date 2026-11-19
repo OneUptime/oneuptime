@@ -27,6 +27,29 @@ jest.mock("../../../Server/Services/UserService", () => {
   };
 });
 
+/*
+ * Whether a person's sign-in is managed by single sign-on (#9688): it reads
+ * the server's rule through services this file keeps out, and has a suite of
+ * its own (Tests/Server/Utils/SsoManagedSignIn.test.ts). Here it lets
+ * everyone through, unless a test says otherwise.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn", () => {
+  return {
+    __esModule: true,
+    default: {
+      assertMayChangeLocalSignIn: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }),
+      isManagedBySso: jest.fn(async (): Promise<boolean> => {
+        return false;
+      }),
+      isManagedBySsoFor: jest.fn(async (): Promise<boolean> => {
+        return false;
+      }),
+    },
+  };
+});
+
 jest.mock("../../../Server/Infrastructure/Redis", () => {
   return {
     __esModule: true,
