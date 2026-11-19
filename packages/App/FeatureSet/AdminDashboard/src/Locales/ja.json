@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "条件に一致するデータストアのみ",
   "All tables": "すべてのテーブル",
   "Only tables that match conditions": "条件に一致するテーブルのみ",
+  "All pipelines": "すべてのパイプライン",
+  "Only pipelines that match conditions": "条件に一致するパイプラインのみ",
   "All cloud environments": "すべてのクラウド環境",
   "Only cloud environments that match conditions": "条件に一致するクラウド環境のみ",
   "Only what matches conditions": "条件に一致するもののみ",

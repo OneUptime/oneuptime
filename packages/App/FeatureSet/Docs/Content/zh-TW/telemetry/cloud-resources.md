@@ -521,7 +521,7 @@ CloudWatch 指標會透過一個取決於命名空間的維度指出其資源。
 | `AWS/GlobalAccelerator` | `Accelerator` (without `Listener`, `EndpointGroup`) | Global Accelerator | `AWS::GlobalAccelerator::Accelerator` | IaaS |
 | `AWS/Route53` | `HealthCheckId` | Route 53 Health Check | `AWS::Route53::HealthCheck` | IaaS |
 | `AWS/NetworkFirewall` | `FirewallName` | Network Firewall | `AWS::NetworkFirewall::Firewall` | IaaS |
-| `AWS/WAFV2` | `WebACL` (without `Rule`, `RuleGroup`) | WAF Web ACL | `AWS::WAFv2::WebACL` | PaaS |
+| `AWS/WAFV2` | `WebACL` with `Rule` `ALL` (without `RuleGroup`) | WAF Web ACL | `AWS::WAFv2::WebACL` | PaaS |
 | `AWS/S3` | `BucketName` | S3 Bucket | `AWS::S3::Bucket` | IaaS |
 | `AWS/EFS` | `FileSystemId` | EFS File System | `AWS::EFS::FileSystem` | IaaS |
 | `AWS/FSx` | `FileSystemId` | FSx File System | `AWS::FSx::FileSystem` | IaaS |

@@ -106,11 +106,13 @@ export interface ComponentProps {
  * What Remove transcript asks before it removes (#9290): everything
  * OneUptime AI read in the transcript goes with it, from the call, the
  * feed and the incident's channels, and the root cause someone saved from
- * it stays. A message OneUptime cannot delete is said once the removal is
- * done (sayTranscriptRemoved), where it stays.
+ * it stays - in a dialog description's two short lines (ShortDescriptions
+ * Guard), as the Video Calls docs say it. A message OneUptime cannot
+ * delete is said once the removal is done (sayTranscriptRemoved), where it
+ * stays.
  */
 export const REMOVE_TRANSCRIPT_DESCRIPTION: string = translationKey(
-  "The transcript of the {{call}} and what OneUptime AI read in it are removed from this incident: from the call, from its feed and from the incident's Slack, Microsoft Teams and Mattermost channels. The incident's root cause is kept.",
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.",
 );
 
 // Said once the transcript is gone, and nothing about it stays.

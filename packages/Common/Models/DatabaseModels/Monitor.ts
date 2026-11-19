@@ -160,6 +160,16 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   where: '"autoProvisionedNetworkDeviceId" IS NOT NULL',
 })
 /*
+ * The monitors a person tied to a network device (networkDeviceId, issue
+ * #9545): the device's pages, the duplicate check an import runs for each
+ * device, and the device delete, whose foreign key unties them (SET NULL)
+ * and would otherwise read the whole table to find them. Partial, so it
+ * holds - and costs a write for - only the monitors that are tied.
+ */
+@Index("IDX_monitor_network_device", ["networkDeviceId"], {
+  where: '"networkDeviceId" IS NOT NULL',
+})
+/*
  * A type's monitors in id order: the heartbeat and server sweeps
  * (Workers/Utils/MonitorSweep) page through one type by id, and the
  * telemetry sweep reads its types.
@@ -1800,6 +1810,123 @@ export default class Monitor extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public autoProvisionedNetworkDeviceId?: ObjectID = undefined;
+
+  /*
+   * THE NETWORK DEVICE THIS MONITOR CHECKS (OneUptime issue #9545), when a
+   * person made it rather than an import, an auto import rule or an alert
+   * policy - those carry provenance instead (autoProvisionedNetworkDeviceId),
+   * which is OneUptime's alone to write and deletes the monitor with its
+   * device. This is a person's: set from the monitor's form or the device's
+   * Monitors card, or, when a Ping, IP, Port, NTP, Website, API or SSL
+   * Certificate monitor is created on an address exactly one device in the
+   * project has, to that device (MonitorService). Deleting the device only
+   * unties the monitor (SET NULL): somebody made it on purpose.
+   *
+   * It is what makes a hand-made monitor one of the device's own: listed on
+   * the device's pages, linked to the incidents and alerts it raises, and
+   * counted by the duplicate check that keeps an import or an auto import
+   * rule from giving the device a second monitor of the same kind
+   * (DeviceMonitorDuplicateCheck).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "networkDeviceId",
+    type: TableColumnType.Entity,
+    // Lazy: Monitor and NetworkDevice import each other (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return NetworkDevice;
+    },
+    title: "Network Device",
+    description:
+      "The network device this monitor checks. It is listed on the device's pages, and imports and auto import rules count it so the device never gets a second monitor of the same kind.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDevice;
+    },
+    {
+      eager: false,
+      nullable: true,
+      // A person made the monitor: the device going unties it, nothing more.
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({
+    name: "networkDeviceId",
+    foreignKeyConstraintName: "FK_monitor_network_device",
+  })
+  public networkDevice?: NetworkDevice = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Network Device ID",
+    description:
+      "ID of the network device this monitor checks, when a person made it for that device. Null for a monitor that checks no device, and for one an import made (see Auto-Provisioned Network Device ID).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public networkDeviceId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

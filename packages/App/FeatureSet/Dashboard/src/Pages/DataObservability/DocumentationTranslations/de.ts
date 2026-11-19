@@ -202,7 +202,7 @@ Ein Backfill oder eine Migration sollte niemanden alarmieren. Nennen Sie die Dat
 
 ## Eigentümer und Beschriftungen
 
-Der Tab **Eigentümer** einer Tabelle nennt die Personen und Teams, denen sie gehört, und eine Warnung der Tabelle geht an sie; ohne Eigentümer an die Eigentümer ihrer Datenbank. **Eigentümerregeln** und **Beschriftungsregeln** gelten für jede Tabelle, sobald sie erstmals erscheint, abgeglichen über ihre Beschriftungen oder über einen regulären Ausdruck auf ihren Namen, ihr Schema oder ihre Datenbank. Eine auf \`Owned\` beschränkte Berechtigung reicht nur bis zu den Tabellen, die ihr Inhaber oder seine Teams besitzen, samt deren Prüfungen, Aktivität und gemeldeten Problemen. Wer eine Datenbank besitzt, besitzt dadurch nicht ihre Tabellen: Verwenden Sie eine Eigentümerregel, um einem Team eine ganze Datenbank zu geben.
+Der Tab **Eigentümer** einer Tabelle nennt die Personen und Teams, denen sie gehört, und eine Warnung der Tabelle geht an sie; ohne Eigentümer an die Eigentümer ihrer Datenbank. **Eigentümerregeln** und **Beschriftungsregeln** gelten für jede Tabelle, sobald sie erstmals erscheint, abgeglichen über ihre Beschriftungen oder über einen regulären Ausdruck auf ihren Namen, ihr Schema oder ihre Datenbank. Eine auf \`Owned\` beschränkte Berechtigung reicht nur bis zu den Tabellen, die ihr Inhaber oder seine Teams besitzen, samt deren Prüfungen, Aktivität und gemeldeten Problemen. Wer eine Datenbank besitzt, besitzt dadurch nicht ihre Tabellen: Verwenden Sie eine Eigentümerregel, um einem Team eine ganze Datenbank zu geben. Auf ihrem Tab **Pipeline-Regeln** benennen Eigentümerregeln auch die Eigentümer einer Pipeline, abgeglichen per regulärem Ausdruck mit ihrem Namen oder ihrem Namespace, wenn OneUptime die Pipeline zum ersten Mal sieht.
 
 ## Wenn sich eine Warnung öffnet
 
@@ -322,6 +322,8 @@ Sie lesen diese Metriken, jede mit \`oneuptime.data.pipeline.id\` und \`oneuptim
 - \`oneuptime.data.pipeline.overdue_seconds\`: wie lange der nächste Lauf über seinem Zeitplan liegt, alle fünf Minuten; 0, solange er pünktlich ist.
 
 Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, und wie es um jede gerade steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird; eine Anzahl nicht gezeichneter Tabellen, auf der Karte der Pipeline oder einer Tabelle, zeichnet mehr von ihnen an Ort und Stelle. Dieselbe Datenherkunft steht unter \`POST /api/data-observability/pipelines/lineage\` bereit, für Ihre eigenen Werkzeuge. Wählen Sie eine der Spalten, die sie schreibt, um ihr über die Pipeline hinweg zu folgen: hinauf zur Spalte jeder gelesenen Tabelle, aus der sie erstellt wurde, und hinunter zu jeder Tabelle, in die sie sie schreibt. Senden Sie für Ihre eigenen Werkzeuge \`"withColumns": true\` für die Spalten, die ihre Läufe bewegt haben.
+
+Die Seite **Schutzschalter** einer Pipeline richtet einen Schritt ein, der vor dem Lauf der Pipeline fragt, ob die Tabellen, die sie liest, in Ordnung sind: Eine fehlschlagende Prüfung stoppt den Lauf, und eine verspätete Tabelle ebenfalls, solange **Stoppen, wenn eine gelesene Tabelle verspätet ist** eingeschaltet ist. Eine gestoppte Pipeline steht unter **Handlungsbedarf**, bis der Schutzschalter wieder go sagt oder ein Lauf beginnt.
 
 
 

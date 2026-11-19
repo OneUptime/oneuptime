@@ -218,7 +218,7 @@ A backfill or a migration should page nobody. Name the database under **Data Obs
 
 ## Owners and labels
 
-A table's **Owners** tab names the people and teams it belongs to, and a table's alert goes to them; with none, to the owners of its database. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database. A permission scoped to \`Owned\` reaches only the tables its holder or their teams own, with those tables' checks, activity and reported problems. Owning a database does not make someone an owner of its tables: use an owner rule to give a team a whole database.
+A table's **Owners** tab names the people and teams it belongs to, and a table's alert goes to them; with none, to the owners of its database. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database. A permission scoped to \`Owned\` reaches only the tables its holder or their teams own, with those tables' checks, activity and reported problems. Owning a database does not make someone an owner of its tables: use an owner rule to give a team a whole database. On their **Pipeline Rules** tab, owner rules name a pipeline's owners too, matched by a regular expression on its name or its namespace as OneUptime first sees the pipeline.
 
 ## When an alert opens
 
@@ -338,6 +338,8 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
 A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them; a count of tables not drawn, on the pipeline's card or a table's, draws more of them in place. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools. Pick one of the columns it writes to follow it across the pipeline: up to the column of each table it reads that it was built from, and down to each table it writes it to. For your own tools, send \`"withColumns": true\` for the columns its runs moved.
+
+A pipeline's **Circuit Breaker** page sets up a step that asks, before the pipeline runs, whether the tables it reads are healthy: a failing check stops the run, and a late table too while **Stop when a table it reads is late** is on. A stopped pipeline is listed in **Needs Attention** until the circuit breaker says go again or a run starts.
 
 
 

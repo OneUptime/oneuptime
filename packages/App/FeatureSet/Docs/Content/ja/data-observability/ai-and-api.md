@@ -37,6 +37,8 @@ AI エージェントは、データを使う前に、それが新しいこと�
 | `POST /api/data-observability/tables/lineage` | テーブルのリネージを各方向に数ステップ分、各テーブルの現在の状態とともに返します。**リネージ** タブが描くのと同じです。 `{ "dataAssetId": "<table ID>", "depth": 3 }` を送ります。`"withColumns": true` を加えると、各矢印が運ぶ列も返します | API キー |
 | `POST /api/data-observability/tables/lineage/answer` | MCP ツールが答えるのと同じ、文章で伝えるテーブルのリネージ。問題のあるテーブルが先です。 `{ "table": "public.orders", "depth": 3 }` を送ります | API キー |
 | `POST /api/data-observability/pipelines/lineage` | パイプラインが読み取るテーブルと書き込むテーブルを、各テーブルの現在の状態とともに返します。パイプラインのページが描くのと同じです。 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` を送ります、実行が移した列には `"withColumns": true` を加えます | API キー |
+| `POST /api/data-observability/circuit-breaker` | パイプラインが読み取るテーブルから見て、実行してよいかどうか: `go`、または失敗中の各チェックと遅延中の各テーブルを含む `stop`。`{ "pipeline": "airflow://prod/orders_daily" }` または `{ "tables": ["public.orders"] }` で指定し、停止を HTTP 412 で返すには `"failWithStatusCode": true` を付けます | API キー |
+| `POST /api/data-observability/pipelines/<pipeline ID>/circuit-breaker` | パイプラインのサーキットブレーカーの状態。**サーキットブレーカー** ページと同じく、最後に問い合わせた日時と、いつからなぜパイプラインを停止しているかを返します | API キー |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | データアラートのリネージを、そのアラートを引き起こしたアラートと、そのアラートが引き起こしたアラートへの経路とともに返します。アラートのページが描くのと同じです。1 つの列に対するチェックから上がったアラートでは、その `column` と各矢印が運ぶ列も返します | API キー |
 | `POST /api/data-observability/lineage/expand` | リネージ図のカードが描いていない次のテーブルを、その数を選んだときと同じように返します。カードを `nodeId` とその `side` で、描かれているものを `focusNodeId`、`tables`、`dataDashboardIds` で送ります | API キー |
 | `POST /api/data-observability/lineage/map` | **リネージマップ** ページが描画するとおりの、プロジェクトのリネージマップ。データを書き込み、読み取るサービス、テーブル、パイプライン、ダッシュボードと、それらの間の矢印を、最近確認されたものから順に返します。1 つのデータベースやプロジェクト全体の検索から始めるには `{ "dataStoreId": "<database ID>" }` または `{ "search": "orders" }` を送信します | API キー |

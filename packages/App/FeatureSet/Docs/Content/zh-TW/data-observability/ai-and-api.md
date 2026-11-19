@@ -37,6 +37,8 @@ AI 代理應該在使用資料之前，先檢查資料是否新鮮，並在變�
 | `POST /api/data-observability/tables/lineage` | 資料表在每個方向上幾步的血緣，以及每張資料表的目前狀態，與其 **血緣** 索引標籤所畫的相同，要求內容為 `{ "dataAssetId": "<table ID>", "depth": 3 }`，加上 `"withColumns": true` 還會傳回每個箭頭承載的欄位 | API 金鑰 |
 | `POST /api/data-observability/tables/lineage/answer` | 以文字講述的資料表血緣，有問題的資料表在前，與 MCP 工具的回答相同，要求內容為 `{ "table": "public.orders", "depth": 3 }` | API 金鑰 |
 | `POST /api/data-observability/pipelines/lineage` | 管線讀取和寫入的資料表，以及每張資料表的目前狀態，與其頁面所畫的相同，要求內容為 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }`，如需其執行移動的欄位，加上 `"withColumns": true` | API 金鑰 |
+| `POST /api/data-observability/circuit-breaker` | 依管道讀取的資料表，判斷它是否應該執行：`go`，或附帶每個失敗的檢查和每張延遲的資料表的 `stop`，使用 `{ "pipeline": "airflow://prod/orders_daily" }` 或 `{ "tables": ["public.orders"] }`，加上 `"failWithStatusCode": true` 可讓停止以 HTTP 412 回應 | API 金鑰 |
+| `POST /api/data-observability/pipelines/<pipeline ID>/circuit-breaker` | 管道斷路器的狀態，與其 **斷路器** 頁面顯示的一致：上次被詢問的時間，以及從何時起、為何停止了該管道 | API 金鑰 |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | 資料警示的血緣，以及通往造成它的警示和它造成的警示的路徑，與其頁面所畫的相同；對於來自針對單一欄位的檢查的警示，還有其 `column` 以及每個箭頭攜帶的欄位 | API 金鑰 |
 | `POST /api/data-observability/lineage/expand` | 血緣圖中某張卡片未繪製的下一批資料表，與選取其數字時畫出的相同：以 `nodeId` 及其 `side` 指明卡片，以 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已畫的內容 | API 金鑰 |
 | `POST /api/data-observability/lineage/map` | 專案的血緣地圖，與 **血緣地圖** 頁面繪製的內容一致：寫入和讀取你的資料的服務、資料表、管線和儀表板，以及它們之間的箭頭，最近發現的排在前面；傳送 `{ "dataStoreId": "<database ID>" }` 或 `{ "search": "orders" }` 可從一個資料庫或整個專案的搜尋開始 | API 金鑰 |

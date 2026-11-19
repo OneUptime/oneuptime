@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "Alleen gegevensopslagen die aan de voorwaarden voldoen",
   "All tables": "Alle tabellen",
   "Only tables that match conditions": "Alleen tabellen die aan voorwaarden voldoen",
+  "All pipelines": "Alle pipelines",
+  "Only pipelines that match conditions": "Alleen pipelines die aan voorwaarden voldoen",
   "All cloud environments": "Alle cloud-omgevingen",
   "Only cloud environments that match conditions": "Alleen cloud-omgevingen die aan de voorwaarden voldoen",
   "Only what matches conditions": "Alleen wat aan de voorwaarden voldoet",

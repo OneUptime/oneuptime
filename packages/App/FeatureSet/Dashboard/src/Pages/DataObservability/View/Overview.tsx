@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
 import { getLateTablesRoute } from "../../../Components/DataObservability/DataObservabilityListRoutes";
+import SkippedTablesCard from "../../../Components/DataObservability/SkippedTablesCard";
 import StoreCollectionMessage from "../../../Components/DataObservability/StoreCollectionMessage";
 import StoreStatusPill from "../../../Components/DataObservability/StoreStatusPill";
 import StoreAlertStatus, {
@@ -43,9 +44,10 @@ export const STORE_LATE_TABLES_TILE_LINK_TEST_ID: string =
 /*
  * One database at a glance: how many of its tables are watched and late,
  * who reads its catalog and how the last read went - with Collect Now, which
- * waits for the collection it asks for and then shows how it went - and the
- * way to its recommended monitors, saying whether any is on: with none,
- * nobody is told when its tables break.
+ * waits for the collection it asks for and then shows how it went - the
+ * tables the database keeps refusing, which collections skip for a while,
+ * and the way to its recommended monitors, saying whether any is on: with
+ * none, nobody is told when its tables break.
  */
 const StoreOverviewPage: FunctionComponent<
   PageComponentProps
@@ -214,6 +216,9 @@ const StoreOverviewPage: FunctionComponent<
           )}
         </div>
       </Card>
+
+      {/* The tables the database keeps refusing, skipped until each one's next try (#9541). */}
+      <SkippedTablesCard skippedTables={store.skippedTables || []} />
 
       <Card
         title="Alerts"

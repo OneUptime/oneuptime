@@ -804,6 +804,9 @@ import DataPipelineOwnerUserService, {
 import DataPipelineOwnerTeamService, {
   Service as DataPipelineOwnerTeamServiceType,
 } from "Common/Server/Services/DataPipelineOwnerTeamService";
+import DataPipelineOwnerRuleService, {
+  Service as DataPipelineOwnerRuleServiceType,
+} from "Common/Server/Services/DataPipelineOwnerRuleService";
 import DataAssetLabelRuleService, {
   Service as DataAssetLabelRuleServiceType,
 } from "Common/Server/Services/DataAssetLabelRuleService";
@@ -1961,6 +1964,7 @@ import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam"
 import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
 import DataPipelineOwnerUser from "Common/Models/DatabaseModels/DataPipelineOwnerUser";
 import DataPipelineOwnerTeam from "Common/Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerRule from "Common/Models/DatabaseModels/DataPipelineOwnerRule";
 import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
 import DataObservabilitySetting from "Common/Models/DatabaseModels/DataObservabilitySetting";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
@@ -5001,6 +5005,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataPipelineOwnerTeam, DataPipelineOwnerTeamServiceType>(
         DataPipelineOwnerTeam,
         DataPipelineOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // Owner rules that name a pipeline's owners (#9527).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataPipelineOwnerRule, DataPipelineOwnerRuleServiceType>(
+        DataPipelineOwnerRule,
+        DataPipelineOwnerRuleService,
       ).getRouter(),
     );
 

@@ -5,7 +5,7 @@ En Kubernetes-monitor advarer på de metrikker, som OneUptimes Kubernetes-agent 
 :::cards
 - [Installér agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando bringer klyngen ind i OneUptime.
 - [Opret monitoren](#opret-en-kubernetes-monitor): Vælg klyngen, og derefter en skabelon, en metrik eller en forespørgsel.
-- [Advarselsskabeloner](#færdige-advarselsskabeloner): Fireogtyve færdige advarsler, fra en tavs klynge til etcd.
+- [Advarselsskabeloner](#færdige-advarselsskabeloner): Femogtyve færdige advarsler, fra en tavs klynge til etcd.
 - [Kriterier](#overvågningskriterier): Statiske tærskler og anomalidetektion.
 :::
 

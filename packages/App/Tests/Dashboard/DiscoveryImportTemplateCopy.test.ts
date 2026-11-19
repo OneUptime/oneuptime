@@ -7,7 +7,16 @@ import {
   DEVICE_ADDRESS_MONITOR_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+  DEVICE_TEMPLATE_HAS_NO_STEPS,
+  DEVICE_URL_MONITOR_TYPES,
 } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import {
+  URL_TEMPLATE_HOST_IS_VARIABLE,
+  URL_TEMPLATE_NEEDS_HOST,
+  URL_TEMPLATE_NEEDS_URL,
+  URL_TEMPLATE_NEEDS_WEB_SCHEME,
+  URL_TEMPLATE_PORT_NOT_A_NUMBER,
+} from "Common/Utils/Monitor/DeviceUrlTarget";
 import fs from "fs";
 import path from "path";
 import {
@@ -17,6 +26,7 @@ import {
   NO_DEVICE_MONITOR_TEMPLATE_REASON,
   POLL_TEMPLATES_GROUP_TITLE,
   UNNAMED_TEMPLATE_NAME,
+  WEB_TEMPLATES_GROUP_TITLE,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportTemplateCopy";
 
 /*
@@ -64,10 +74,12 @@ describe("the line under Monitor template", () => {
     );
   });
 
-  test("says why the rest are not there", () => {
+  test("says how a web template's URL is made each device's (#9546)", () => {
     expect(LISTED_TEMPLATE_KINDS_RULE).toBe(
-      "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.",
+      "Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate templates are listed. A web one's URL takes each device's address as its host.",
     );
+    // A field's description: short enough for the line under it.
+    expect(LISTED_TEMPLATE_KINDS_RULE.length).toBeLessThanOrEqual(150);
   });
 
   test("sits beside a link to the templates, named as the product names it elsewhere", () => {
@@ -75,7 +87,7 @@ describe("the line under Monitor template", () => {
   });
 });
 
-describe("the list's two groups", () => {
+describe("the list's three groups", () => {
   test("Network Device templates first: they read each device's polls", () => {
     expect(POLL_TEMPLATES_GROUP_TITLE).toBe(
       `${titleOf(MonitorType.NetworkDevice)} templates`,
@@ -86,6 +98,16 @@ describe("the list's two groups", () => {
     expect(titlesNamedIn(ADDRESS_TEMPLATES_GROUP_TITLE)).toEqual(
       DEVICE_ADDRESS_MONITOR_TYPES.map(titleOf),
     );
+  });
+
+  test("then the ones that check a URL on each device, as Web templates (#9546)", () => {
+    expect(WEB_TEMPLATES_GROUP_TITLE).toBe("Web templates");
+    // The kinds it holds are the ones a web template's URL is made each device's for.
+    expect(DEVICE_URL_MONITOR_TYPES.map(titleOf)).toEqual([
+      "Website",
+      "API",
+      "SSL Certificate",
+    ]);
   });
 });
 
@@ -113,8 +135,19 @@ describe("every one of these is a Dashboard string, translated", () => {
     MANAGE_TEMPLATES_LINK_TITLE,
     POLL_TEMPLATES_GROUP_TITLE,
     ADDRESS_TEMPLATES_GROUP_TITLE,
+    WEB_TEMPLATES_GROUP_TITLE,
     UNNAMED_TEMPLATE_NAME,
     NO_DEVICE_MONITOR_TEMPLATE_REASON,
+    /*
+     * Why a web template cannot give each device a monitor, shown before
+     * an import starts (#9546): the server's own words, translated.
+     */
+    DEVICE_TEMPLATE_HAS_NO_STEPS,
+    URL_TEMPLATE_NEEDS_URL,
+    URL_TEMPLATE_NEEDS_WEB_SCHEME,
+    URL_TEMPLATE_NEEDS_HOST,
+    URL_TEMPLATE_HOST_IS_VARIABLE,
+    URL_TEMPLATE_PORT_NOT_A_NUMBER,
   ];
 
   test.each(strings)("%s is an en.json key", (text: string) => {

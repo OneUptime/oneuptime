@@ -3,6 +3,19 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
+import {
+  DataSourceUnreachedError,
+  failedAnswerError,
+  readBodyText,
+  readErrorCode,
+  readRequestIdHeader,
+  unreachedError,
+} from "../DataSource/HttpFailure";
+import DataSourceHttpRetry, {
+  HttpRetryExchange,
+  HttpRetryReason,
+  HttpRetryVerdict,
+} from "../DataSource/HttpRetry";
 
 /*
  * CLICKHOUSE, OVER ITS HTTP INTERFACE.
@@ -22,6 +35,15 @@ import DataSourceHttpFetch, {
  * JSON: { host, port, user, password, database, secure }. A database in it
  * limits the collection to that database; without one, every database
  * but the server's own (system, INFORMATION_SCHEMA) is read.
+ *
+ * An answer that may pass is asked again (DataSourceHttpRetry): a 503, the
+ * status the server gives a socket timeout or a task it could not schedule
+ * (exceptionCodeToHTTPStatus), and that ClickHouse's own clients retry;
+ * TOO_MANY_SIMULTANEOUS_QUERIES (202), which the server raises when the
+ * query is admitted, before it runs; NETWORK_ERROR (210); and a 429, 502
+ * or 504 of a proxy in front of the server, which carries no exception. A
+ * query past max_execution_time (TIMEOUT_EXCEEDED, a 408) is not: it would
+ * time out again. Every statement reads, so each is safe to send again.
  */
 
 export interface ClickHouseConnection {
@@ -52,6 +74,92 @@ const DATABASE_PATTERN: RegExp = /^[^\s/?#`"\\]{1,240}$/;
 
 // A login whose profile is readonly=1 may not set readonly=2, nor a timeout.
 const READONLY_REFUSAL: RegExp = /\(READONLY\)|in readonly mode/i;
+
+// ClickHouse's exception codes a collection asks again after.
+const TOO_MANY_SIMULTANEOUS_QUERIES: number = 202;
+const NETWORK_ERROR: number = 210;
+// How ClickHouse writes an exception: "Code: 202. DB::Exception: <message> (NAME) (version 24.3.1)".
+const EXCEPTION_HEAD: RegExp = /^Code:\s*(\d+)\.\s*(?:DB::Exception:\s*)?/;
+const EXCEPTION_VERSION: RegExp =
+  /\s*\(version [^()]*(?:\([^()]*\))?[^()]*\)\s*$/;
+const EXCEPTION_NAME: RegExp = /\s*\(([A-Z][A-Z0-9_]{2,80})\)\s*$/;
+
+export interface ClickHouseException {
+  // Its code (202); null when the answer is no ClickHouse exception.
+  code: number | null;
+  // Its name (TOO_MANY_SIMULTANEOUS_QUERIES); null when the answer gives none.
+  name: string | null;
+  // Its message's first line, without its code, name and the server's version.
+  message: string;
+}
+
+/*
+ * A ClickHouse exception, from the X-ClickHouse-Exception-Code header the
+ * server sends with it and its body's "Code: N. DB::Exception: ..." line.
+ */
+export function readClickHouseException(
+  response: DataSourceHttpResponse,
+): ClickHouseException {
+  const line: string = readBodyText(response.bodyText || "");
+  const head: RegExpMatchArray | null = line.match(EXCEPTION_HEAD);
+  const headerCode: number = Number(
+    response.headers?.["x-clickhouse-exception-code"],
+  );
+  const code: number | null =
+    Number.isInteger(headerCode) && headerCode > 0
+      ? headerCode
+      : head
+        ? Number(head[1])
+        : null;
+  let message: string = head ? line.slice(head[0].length) : line;
+
+  message = message.replace(EXCEPTION_VERSION, "");
+
+  const name: RegExpMatchArray | null = message.match(EXCEPTION_NAME);
+
+  if (name) {
+    message = message.slice(0, message.length - name[0].length);
+  }
+
+  return { code, name: name ? name[1]! : null, message: message.trim() };
+}
+
+/*
+ * The answers of ClickHouse's HTTP interface worth asking again: too many
+ * queries at once (202), turned away before the query ran; a network error
+ * (210) and any 503, both of which ClickHouse's own clients retry; and a
+ * 429, 502 or 504 that carries no exception, from a proxy in front of the
+ * server, such as ClickHouse Cloud's while a service wakes.
+ */
+export function classifyClickHouseAnswer(
+  response: DataSourceHttpResponse,
+): HttpRetryVerdict | null {
+  if (response.statusCode < 400) {
+    return null;
+  }
+
+  const exception: ClickHouseException = readClickHouseException(response);
+
+  if (exception.code === TOO_MANY_SIMULTANEOUS_QUERIES) {
+    return { reason: HttpRetryReason.Throttled };
+  }
+
+  if (exception.code === NETWORK_ERROR || response.statusCode === 503) {
+    return { reason: HttpRetryReason.Unavailable };
+  }
+
+  if (exception.code === null) {
+    if (response.statusCode === 429) {
+      return { reason: HttpRetryReason.Throttled };
+    }
+
+    if (response.statusCode === 502 || response.statusCode === 504) {
+      return { reason: HttpRetryReason.Unavailable };
+    }
+  }
+
+  return null;
+}
 
 function readText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -198,17 +306,32 @@ export function withJsonFormat(statement: string): string {
 
 export default class ClickHouseHttpApi {
   private readonly connection: ClickHouseConnection;
-  private readonly transport: ClickHouseTransport;
+  // Every request of the collection, asked again within one budget (DataSourceHttpRetry).
+  private readonly retry: DataSourceHttpRetry;
   // Whether statements may set readonly and a timeout: not for a readonly=1 login.
   private sendsSettings: boolean = true;
 
   public constructor(data: {
     connection: ClickHouseConnection;
     transport?: ClickHouseTransport | undefined;
+    sleep?: ((ms: number) => Promise<void>) | undefined;
   }) {
     this.connection = data.connection;
-    this.transport =
-      data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch);
+    this.retry = new DataSourceHttpRetry({
+      transport:
+        data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+      classify: classifyClickHouseAnswer,
+      provider: "ClickHouse",
+      ...(data.sleep ? { sleep: data.sleep } : {}),
+    });
+  }
+
+  // What an error may never repeat: the login with its password, as a URL writes them, then the password alone.
+  private secrets(): Array<string> {
+    return [
+      `${this.connection.user}:${this.connection.password}`,
+      this.connection.password,
+    ];
   }
 
   private origin(): string {
@@ -248,21 +371,48 @@ export default class ClickHouseHttpApi {
   public async query(data: {
     statement: string;
     params?: Array<string> | undefined;
+    // What the statement reads, as a failure says it: "listing the tables (system.tables)".
+    operation?: string | undefined;
   }): Promise<Array<Record<string, unknown>>> {
     const params: Array<string> = data.params || [];
-    const response: DataSourceHttpResponse = await this.transport({
-      method: "POST",
-      url: this.url(params),
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${this.connection.user}:${this.connection.password}`,
-        ).toString("base64")}`,
-        "Content-Type": "text/plain; charset=utf-8",
-      },
-      body: withJsonFormat(data.statement),
-      timeoutInMs: (CLICKHOUSE_STATEMENT_TIMEOUT_IN_SECONDS + 15) * 1000,
-      acceptAnyStatus: true,
-    } as DataSourceHttpRequest);
+    const operation: string = data.operation || "running a query";
+    let exchange: HttpRetryExchange;
+
+    try {
+      exchange = await this.retry.exchange({
+        build: (): DataSourceHttpRequest => {
+          return {
+            method: "POST",
+            url: this.url(params),
+            headers: {
+              Authorization: `Basic ${Buffer.from(
+                `${this.connection.user}:${this.connection.password}`,
+              ).toString("base64")}`,
+              "Content-Type": "text/plain; charset=utf-8",
+            },
+            body: withJsonFormat(data.statement),
+            timeoutInMs: (CLICKHOUSE_STATEMENT_TIMEOUT_IN_SECONDS + 15) * 1000,
+            acceptAnyStatus: true,
+          };
+        },
+        // Every statement reads: readonly=2, or a login that may only read.
+        isSafeToRepeat: true,
+      });
+    } catch (error) {
+      // A failure of the request's own making (a sign-in refused) says itself.
+      if (!(error instanceof DataSourceUnreachedError)) {
+        throw error;
+      }
+
+      throw unreachedError({
+        provider: "ClickHouse",
+        operation,
+        error,
+        secrets: this.secrets(),
+      });
+    }
+
+    const response: DataSourceHttpResponse = exchange.response;
 
     if (response.statusCode >= 400) {
       const message: string = (response.bodyText || "").trim();
@@ -273,9 +423,25 @@ export default class ClickHouseHttpApi {
         return await this.query(data);
       }
 
-      throw new Error(
-        `ClickHouse answered ${response.statusCode}: ${message.split("\n")[0]!.slice(0, 300)}`,
-      );
+      const exception: ClickHouseException = readClickHouseException(response);
+
+      throw failedAnswerError({
+        provider: "ClickHouse",
+        statusCode: response.statusCode,
+        errorCode: readErrorCode(
+          exception.name ||
+            (exception.code !== null ? String(exception.code) : ""),
+        ),
+        operation,
+        message: exception.message,
+        attempts: exchange.attempts,
+        requestId: readRequestIdHeader(response.headers, [
+          "x-clickhouse-query-id",
+        ]),
+        requestIdLabel: "Query ID",
+        refused: { who: "the login" },
+        secrets: this.secrets(),
+      });
     }
 
     return readClickHouseRows(response.bodyJson);

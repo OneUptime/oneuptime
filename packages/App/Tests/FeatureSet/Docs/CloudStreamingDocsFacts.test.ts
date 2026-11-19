@@ -179,17 +179,19 @@ describe("Stream CloudWatch Metrics and Logs", () => {
 
   /*
    * A stack's key-metric filters are made once, from the template of its
-   * day, so a key metric added after streams began is read whether the
-   * account streams or not (AwsKeyMetric.isStreamed false), as a daily one
-   * always was, and no stack's filters name it. The page says the reads
-   * still write them, with one of each kind.
+   * day (AwsKeyMetric.streamedSince): a stack made before a key metric was
+   * added does not carry it, and no stack carries a daily one. The page
+   * says the reads stop reading and writing what a stack carries, but read
+   * what a resource's health is judged from, and still write what a stream
+   * leaves to them, with one of each kind.
    */
-  it("says the reads still write the key metrics a stream leaves to them, as CloudKeyMetrics marks them", () => {
+  it("says what the reads leave to a stream and what they still read and write, as CloudKeyMetrics marks it", () => {
     const leftToTheReads: Array<string> = [];
 
     for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of entry.metrics as ReadonlyArray<AwsKeyMetric>) {
-        if (!metric.isStreamed) {
+        // What a stack made before stacks said their template does not carry.
+        if (metric.streamedSince !== 1) {
           leftToTheReads.push(`${entry.namespace}/${metric.metricName}`);
         }
       }
@@ -199,23 +201,57 @@ describe("Stream CloudWatch Metrics and Logs", () => {
     expect(leftToTheReads).toContain("AWS/S3/BucketSizeBytes");
     expect(leftToTheReads).toContain("AWS/EC2/CPUCreditBalance");
 
-    const filtered: Array<string> = getCloudStreamKeyMetricFilters().flatMap(
-      (filter: { Namespace: string; MetricNames: Array<string> }) => {
-        return filter.MetricNames.map((name: string): string => {
-          return `${filter.Namespace}/${name}`;
-        });
-      },
-    );
+    const filtered: (templateVersion: number) => Array<string> = (
+      templateVersion: number,
+    ): Array<string> => {
+      return getCloudStreamKeyMetricFilters(templateVersion).flatMap(
+        (filter: { Namespace: string; MetricNames: Array<string> }) => {
+          return filter.MetricNames.map((name: string): string => {
+            return `${filter.Namespace}/${name}`;
+          });
+        },
+      );
+    };
 
     for (const metric of leftToTheReads) {
-      expect({ metric, filtered: filtered.includes(metric) }).toEqual({
+      expect({ metric, filtered: filtered(1).includes(metric) }).toEqual({
         metric,
         filtered: false,
       });
     }
 
+    // The template written today carries the newer ones; no template the daily one.
+    expect(filtered(2)).toContain("AWS/EC2/CPUCreditBalance");
+    expect(filtered(2)).not.toContain("AWS/S3/BucketSizeBytes");
+
     expect(prose()).toContain(
-      "They still write the key metrics a stream leaves to them, such as an S3 bucket's daily size and the key metrics added after streams began, which an older stack does not carry.",
+      "the connection's reads stop reading and writing each key metric of it that the stream's stack carries, so CloudWatch no longer bills a read of what the stream sends, and no data point is counted twice.",
+    );
+    expect(prose()).toContain(
+      "They still read the few a resource's health is judged from, and still write the key metrics a stream leaves to them, such as an S3 bucket's daily size and those a stack made before them does not carry.",
+    );
+  });
+
+  /*
+   * A stack made before OneUptime streamed every key metric is updated by
+   * running the command again (CloudStreamStack): the page says how, what
+   * the row says meanwhile, and what happens until then, in the Dashboard's
+   * own words.
+   */
+  it("says how to update an older stack, and what happens until it is", () => {
+    expect(source("words")).toContain(
+      'STREAM_UPDATE_LABEL: string = translationKey("Update the stream")',
+    );
+    expect(source("table")).toContain("STREAM_UPDATE_LABEL");
+    expect(prose()).toContain(
+      "Do the same when the account's row says **Update the stream**: its stacks were made before OneUptime streamed every key metric, and until they are updated the connection reads the key metrics they do not carry from CloudWatch, so none goes missing.",
+    );
+    expect(prose()).toContain(
+      "AWS restarts a metric stream whose filters change, and sends only the data points that come after.",
+    );
+    // A stream set up another way says no template.
+    expect(prose()).toContain(
+      "OneUptime takes a metric stream set up this way to carry only the key metrics streams began with, and reads the others from CloudWatch.",
     );
   });
 

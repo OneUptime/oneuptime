@@ -110,7 +110,7 @@ jest.mock("Common/Server/Services/IncomingCallPolicyPhoneNumberService", () => {
 jest.mock(
   "Common/Server/Services/IncomingCallPolicyEscalationRuleService",
   () => {
-    return { __esModule: true, default: { findOneBy: jest.fn() } };
+    return { __esModule: true, default: { findBy: jest.fn() } };
   },
 );
 
@@ -270,9 +270,9 @@ const policyService: {
 };
 const numberService: { findOneBy: JestMock } =
   IncomingCallPolicyPhoneNumberService as unknown as { findOneBy: JestMock };
-const ruleService: { findOneBy: JestMock } =
+const ruleService: { findBy: JestMock } =
   IncomingCallPolicyEscalationRuleService as unknown as {
-    findOneBy: JestMock;
+    findBy: JestMock;
   };
 const logService: {
   create: JestMock;
@@ -326,17 +326,8 @@ function sameId(a: ObjectID | null | undefined, b: unknown): boolean {
   return Boolean(a) && a!.toString() === String(b);
 }
 
-// QueryHelper.greaterThan(order) is a TypeORM Raw operator.
-function greaterThanValue(operator: unknown): number {
-  const parameters: Record<string, unknown> | undefined = (
-    operator as { objectLiteralParameters?: Record<string, unknown> }
-  ).objectLiteralParameters;
-  const value: unknown = parameters ? Object.values(parameters)[0] : undefined;
-  if (typeof value !== "number") {
-    throw new Error("Expected a QueryHelper.greaterThan(order) operator");
-  }
-  return value;
-}
+// Each rule made is a minute newer than the one before it.
+let rulesMade: number = 0;
 
 function makeRule(
   order: number,
@@ -352,6 +343,8 @@ function makeRule(
   rule.order = order;
   rule.userId = engineer.userId;
   rule.escalateAfterSeconds = escalateAfterSeconds;
+  rule.createdAt = new Date(Date.UTC(2026, 0, 1, 9, rulesMade));
+  rulesMade++;
   return rule;
 }
 
@@ -403,24 +396,32 @@ function wireDatabase(): void {
     );
   });
 
-  ruleService.findOneBy.mockImplementation((args: any) => {
-    const afterOrder: number = greaterThanValue(args.query.order);
-    const next: IncomingCallPolicyEscalationRule | undefined = store.rules
-      .filter((rule: IncomingCallPolicyEscalationRule) => {
-        return (
-          sameId(rule.incomingCallPolicyId, args.query.incomingCallPolicyId) &&
-          (rule.order || 0) > afterOrder
-        );
-      })
-      .sort(
-        (
-          a: IncomingCallPolicyEscalationRule,
-          b: IncomingCallPolicyEscalationRule,
-        ) => {
-          return (a.order || 0) - (b.order || 0);
-        },
-      )[0];
-    return Promise.resolve(next ? selectColumns(next, args.select) : null);
+  // The policy's rules, as the database reads them: by number, age, then id.
+  ruleService.findBy.mockImplementation((args: any) => {
+    return Promise.resolve(
+      store.rules
+        .filter((rule: IncomingCallPolicyEscalationRule) => {
+          return sameId(
+            rule.incomingCallPolicyId,
+            args.query.incomingCallPolicyId,
+          );
+        })
+        .sort(
+          (
+            a: IncomingCallPolicyEscalationRule,
+            b: IncomingCallPolicyEscalationRule,
+          ) => {
+            return (
+              (a.order || 0) - (b.order || 0) ||
+              (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0) ||
+              a.id!.toString().localeCompare(b.id!.toString())
+            );
+          },
+        )
+        .map((rule: IncomingCallPolicyEscalationRule) => {
+          return selectColumns(rule, args.select);
+        }),
+    );
   });
 
   verifiedNumberService.findOneBy.mockImplementation((args: any) => {
@@ -1607,6 +1608,125 @@ describe("the policy's owners hear about every missed call (#4159)", () => {
       expect(sent).toHaveLength(2);
       expect(sent[0]!.vars["attempts"]).toHaveLength(hangUpOnAttempt);
     }
+  });
+});
+
+/*
+ * A policy's rules are a drag-ordered list: a write of a rule's number
+ * places that rule and moves no other (issue #9609), so a policy Terraform
+ * numbers can have two rules at one number, or a rule at 0. The hunt rings
+ * them all, in the order the policy's page lists them - by number, the older
+ * of two at one number first. It used to ask for "the first rule numbered
+ * higher" each time, which skipped the second of two rules at one number and
+ * never rang a rule numbered 0.
+ */
+describe("a policy whose rules share a number or start at 0", () => {
+  test("two rules at one number: both ring, the older first, then the rule after them", async () => {
+    givenPolicy({
+      rules: [
+        makeRule(1, ALICE, 20),
+        makeRule(1, BOB, 20),
+        makeRule(2, CAROL, 20),
+      ],
+    });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const first: TwimlReply = await call.arrive();
+    expect(first.dial).toMatchObject({ number: ALICE.phone });
+
+    clockAt(24);
+    const second: TwimlReply = await call.dialEnds(first.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expect(second.dial).toMatchObject({ number: BOB.phone });
+
+    clockAt(48);
+    const third: TwimlReply = await call.dialEnds(second.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expect(third.dial).toMatchObject({ number: CAROL.phone });
+
+    clockAt(72);
+    const goodbye: TwimlReply = await call.dialEnds(third.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expect(goodbye.dial).toBeNull();
+    expect(goodbye.says).toEqual([NO_ANSWER_MESSAGE]);
+
+    expect(
+      timeline().map((row: AttemptRow) => {
+        return row.engineer;
+      }),
+    ).toEqual(["Alice", "Bob", "Carol"]);
+    expectEveryCallClosed();
+  });
+
+  test("the policy's rules listed in any order still ring by number, then age", async () => {
+    const alice: IncomingCallPolicyEscalationRule = makeRule(1, ALICE, 20);
+    const bob: IncomingCallPolicyEscalationRule = makeRule(1, BOB, 20);
+    const carol: IncomingCallPolicyEscalationRule = makeRule(0, CAROL, 20);
+    givenPolicy({ rules: [bob, alice, carol] });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    let reply: TwimlReply = await call.arrive();
+    const rung: Array<string | undefined> = [reply.dial?.number];
+
+    for (let attempt: number = 1; attempt <= 2; attempt++) {
+      clockAt(attempt * 24);
+      reply = await call.dialEnds(reply.dial, {
+        dialCallStatus: "no-answer",
+        caller: "on the line",
+      });
+      rung.push(reply.dial?.number);
+    }
+
+    expect(rung).toEqual([CAROL.phone, ALICE.phone, BOB.phone]);
+  });
+
+  test("a rule numbered 0 rings: it is the policy's first rule", async () => {
+    givenPolicy({ rules: [makeRule(0, ALICE, 20), makeRule(1, BOB, 20)] });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const first: TwimlReply = await call.arrive();
+    expect(first.dial).toMatchObject({ number: ALICE.phone });
+    expect(onlyCallLog().currentEscalationRuleOrder).toBe(0);
+
+    clockAt(24);
+    const second: TwimlReply = await call.dialEnds(first.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expect(second.dial).toMatchObject({ number: BOB.phone });
+  });
+
+  test("a policy repeated after two rules at one number rings both again", async () => {
+    givenPolicy({
+      rules: [makeRule(5, ALICE, 20), makeRule(5, BOB, 20)],
+      repeatTimes: 1,
+    });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    let reply: TwimlReply = await call.arrive();
+    const rung: Array<string | undefined> = [reply.dial?.number];
+
+    for (let attempt: number = 1; attempt <= 3; attempt++) {
+      clockAt(attempt * 24);
+      reply = await call.dialEnds(reply.dial, {
+        dialCallStatus: "no-answer",
+        caller: "on the line",
+      });
+      rung.push(reply.dial?.number);
+    }
+
+    expect(rung).toEqual([ALICE.phone, BOB.phone, ALICE.phone, BOB.phone]);
+    expect(onlyCallLog().repeatCount).toBe(1);
   });
 });
 

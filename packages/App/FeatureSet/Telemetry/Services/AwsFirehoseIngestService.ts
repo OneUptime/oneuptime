@@ -26,8 +26,10 @@ import {
   CLOUD_STREAM_REQUESTS_PER_MINUTE,
   CloudStreamRefusalReason,
   FIREHOSE_ACCESS_KEY_HEADER,
+  FIREHOSE_COMMON_ATTRIBUTES_HEADER,
   FIREHOSE_SOURCE_ARN_HEADER,
 } from "Common/Types/CloudConnection/CloudStream";
+import { readAwsStreamStack } from "Common/Types/CloudConnection/CloudStreamStack";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -279,6 +281,10 @@ export default class AwsFirehoseIngestService {
           ),
           now,
           budget,
+          // What its stack streams, as its template says (CloudStreamStack).
+          stack: readAwsStreamStack(
+            req.headers[FIREHOSE_COMMON_ATTRIBUTES_HEADER],
+          ),
         });
       } catch (error) {
         if (error instanceof RangeError) {
@@ -342,6 +348,8 @@ export default class AwsFirehoseIngestService {
         accountId: metrics.accountId,
         region: metrics.region,
         namespaces: Array.from(metrics.namespaces),
+        templateVersion: metrics.stack.templateVersion,
+        everyMetric: metrics.stack.everyMetric,
       });
     }
 

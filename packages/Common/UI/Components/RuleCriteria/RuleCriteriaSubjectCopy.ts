@@ -164,6 +164,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All tables"),
     matching: translationKey("Only tables that match conditions"),
   },
+  [RuleCriteriaSubject.DataPipelines]: {
+    all: translationKey("All pipelines"),
+    matching: translationKey("Only pipelines that match conditions"),
+  },
   [RuleCriteriaSubject.CloudEnvironments]: {
     all: translationKey("All cloud environments"),
     matching: translationKey("Only cloud environments that match conditions"),

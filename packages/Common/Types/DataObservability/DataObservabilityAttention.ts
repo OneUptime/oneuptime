@@ -12,12 +12,16 @@ import { DataCheckRunStatus } from "./DataCheckType";
  *  1. a database that could not be read: none of its tables is watched
  *     until it is;
  *  2. a pipeline whose last run failed: what it writes is stale, or wrong;
- *  3. a check whose alert is open: the data says what it should not;
- *  4. a reconciliation whose two sides differ by more than their tolerance;
- *  5. a data product past what its consumers were promised;
- *  6. a table well past its usual rhythm without a change;
- *  7. a pipeline that has not started when it usually has;
- *  8. a check, or a reconciliation, that could not run: its query failed,
+ *  3. a pipeline its circuit breaker stopped (#6548): a table it reads
+ *     failed a check or is late, so what it writes waits until that is put
+ *     right - told of instead of its failed or late run, which the stop
+ *     explains;
+ *  4. a check whose alert is open: the data says what it should not;
+ *  5. a reconciliation whose two sides differ by more than their tolerance;
+ *  6. a data product past what its consumers were promised;
+ *  7. a table well past its usual rhythm without a change;
+ *  8. a pipeline that has not started when it usually has;
+ *  9. a check, or a reconciliation, that could not run: its query failed,
  *     so nothing is known of what it tests.
  *
  * Within a kind, what has been so for longest comes first. Kept free of the
@@ -27,6 +31,7 @@ import { DataCheckRunStatus } from "./DataCheckType";
 export enum DataAttentionKind {
   CollectionFailed = "Collection Failed",
   PipelineFailed = "Pipeline Failed",
+  PipelineStopped = "Pipeline Stopped",
   CheckFailing = "Check Failing",
   ReconciliationDrifted = "Reconciliation Drifted",
   DataProductLate = "Data Product Late",
@@ -39,6 +44,7 @@ export enum DataAttentionKind {
 export const DATA_ATTENTION_KIND_ORDER: ReadonlyArray<DataAttentionKind> = [
   DataAttentionKind.CollectionFailed,
   DataAttentionKind.PipelineFailed,
+  DataAttentionKind.PipelineStopped,
   DataAttentionKind.CheckFailing,
   DataAttentionKind.ReconciliationDrifted,
   DataAttentionKind.DataProductLate,

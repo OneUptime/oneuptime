@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "Только хранилища данных, соответствующие условиям",
   "All tables": "Все таблицы",
   "Only tables that match conditions": "Только таблицы, подходящие под условия",
+  "All pipelines": "Все пайплайны",
+  "Only pipelines that match conditions": "Только пайплайны, подходящие под условия",
   "All cloud environments": "Все облачные среды",
   "Only cloud environments that match conditions": "Только облачные среды, соответствующие условиям",
   "Only what matches conditions": "Только то, что соответствует условиям",

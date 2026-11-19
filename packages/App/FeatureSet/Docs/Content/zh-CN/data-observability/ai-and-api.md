@@ -37,6 +37,8 @@ AI 代理应该在使用数据之前先检查数据是否新鲜，并在更改�
 | `POST /api/data-observability/tables/lineage` | 表在每个方向上几步的血缘，以及每张表的当前状态，与其 **血缘** 标签页所画的相同，请求体为 `{ "dataAssetId": "<table ID>", "depth": 3 }`，加上 `"withColumns": true` 还会返回每个箭头承载的列 | API 密钥 |
 | `POST /api/data-observability/tables/lineage/answer` | 用文字讲述的表的血缘，有问题的表在前，与 MCP 工具的回答相同，请求体为 `{ "table": "public.orders", "depth": 3 }` | API 密钥 |
 | `POST /api/data-observability/pipelines/lineage` | 管道读取和写入的表，以及每张表的当前状态，与其页面所画的相同，请求体为 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }`，如需其运行移动的列，加上 `"withColumns": true` | API 密钥 |
+| `POST /api/data-observability/circuit-breaker` | 根据管道读取的表，判断它是否应该运行：`go`，或附带每个失败的检查和每张延迟的表的 `stop`，使用 `{ "pipeline": "airflow://prod/orders_daily" }` 或 `{ "tables": ["public.orders"] }`，加上 `"failWithStatusCode": true` 可让停止以 HTTP 412 应答 | API 密钥 |
+| `POST /api/data-observability/pipelines/<pipeline ID>/circuit-breaker` | 管道熔断器的状态，与其 **熔断器** 页面显示的一致：上次被询问的时间，以及从何时起、为何停止了该管道 | API 密钥 |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | 数据警报的血缘，以及通往导致它的警报和它导致的警报的路径，与其页面所画的相同；对于来自针对单个列的检查的警报，还有其 `column` 以及每个箭头携带的列 | API 密钥 |
 | `POST /api/data-observability/lineage/expand` | 血缘图中某张卡片未绘制的下一批表，与选择其数字时画出的相同：用 `nodeId` 及其 `side` 指明卡片，用 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已画的内容 | API 密钥 |
 | `POST /api/data-observability/lineage/map` | 项目的血缘地图，与 **血缘地图** 页面绘制的内容一致：写入和读取你的数据的服务、表、管道和仪表板，以及它们之间的箭头，最近发现的排在前面；发送 `{ "dataStoreId": "<database ID>" }` 或 `{ "search": "orders" }` 可从一个数据库或整个项目的搜索开始 | API 密钥 |

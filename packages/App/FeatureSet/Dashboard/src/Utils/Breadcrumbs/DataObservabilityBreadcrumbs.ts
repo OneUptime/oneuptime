@@ -136,6 +136,10 @@ export function getDataObservabilityBreadcrumbs(
       ["Project", "Data Observability", "Owner Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW,
+      ["Project", "Data Observability", "Owner Rules", "View Pipeline Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES,
       ["Project", "Data Observability", "Label Rules"],
     ),
@@ -225,6 +229,16 @@ export function getDataObservabilityBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS,
       ["Project", "Data Observability", "Pipelines", "Pipeline", "Owners"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
+      [
+        "Project",
+        "Data Observability",
+        "Pipelines",
+        "Pipeline",
+        "Circuit Breaker",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_ISSUES, [
       "Project",
