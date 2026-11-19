@@ -166,7 +166,7 @@ describe("the maintenance event's status page picker", () => {
     expect(overview).toContain(
       "translator.translateText(MaintenanceStatusPagesCopy.notShownFact)",
     );
-    expect(overview).toContain(
+    expect(overview.replace(/\s+/g, "")).toContain(
       "noItemsMessage={MaintenanceStatusPagesCopy.notShownFact}",
     );
   });

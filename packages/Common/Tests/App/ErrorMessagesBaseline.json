@@ -531,7 +531,7 @@
   "packages/Common/Server/Utils/StatusPage/StatusPagesListingMonitorsBuilder.ts": 4,
   "packages/Common/Server/Utils/StatusPage/SubscriberNotificationPreviewBuilder.ts": 2,
   "packages/Common/Server/Utils/Telemetry/ExceptionListStatsReader.ts": 6,
-  "packages/Common/Server/Utils/Telemetry/LogRecordingRuleQuery.ts": 2,
+  "packages/Common/Server/Utils/Telemetry/LogRecordingRuleQuery.ts": 1,
   "packages/Common/Server/Utils/Telemetry/MessageQueueTopology.ts": 5,
   "packages/Common/Server/Utils/Telemetry/SimilarExceptionsReader.ts": 1,
   "packages/Common/Server/Utils/Telemetry/TelemetryExceptionMerge.ts": 8,

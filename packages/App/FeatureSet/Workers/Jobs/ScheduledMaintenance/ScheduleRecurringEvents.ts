@@ -15,7 +15,10 @@ import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/Schedul
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import logger from "Common/Server/Utils/Logger";
 import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
-import Recurring from "Common/Types/Events/Recurring";
+import MaintenanceTemplateSchedule, {
+  MaintenanceTemplateDueEvent,
+  MaintenanceTemplateEventTimes,
+} from "Common/Types/ScheduledMaintenance/MaintenanceTemplateSchedule";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import DockerHostService from "Common/Server/Services/DockerHostService";
@@ -135,6 +138,8 @@ RunCron(
           labels: true,
           isRecurringEvent: true,
           recurringInterval: true,
+          // The clock the schedule is read on (MaintenanceTemplateSchedule).
+          timezone: true,
           sendSubscriberNotificationsOnBeforeTheEvent: true,
         },
       });
@@ -147,18 +152,32 @@ RunCron(
           `ScheduledMaintenance:ScheduleRecurringEvents: Updating event: ${recurringTemplate.id}`,
         );
 
-        if (recurringTemplate.recurringInterval === undefined) {
+        /*
+         * The event whose time has come, and when the template creates its
+         * next one: every event is the template's first one moved on whole
+         * intervals of the template's own clock - its creation, its start
+         * and its end alike - so a 02:00 window stays at 02:00 there when
+         * the clocks change, and a monthly one on the 1st stays on the 1st.
+         * Until #10037 the next time was the last one plus fixed
+         * milliseconds, and each event started and ended fixed minutes
+         * after it was created.
+         */
+        const dueEvent: MaintenanceTemplateDueEvent | undefined =
+          MaintenanceTemplateSchedule.getDueEvent({
+            columns: recurringTemplate,
+            dueAt: recurringTemplate.scheduleNextEventAt!,
+            now: OneUptimeDate.getCurrentDate(),
+          });
+
+        if (!dueEvent) {
+          logger.error(
+            `ScheduledMaintenance:ScheduleRecurringEvents: Template ${recurringTemplate.id?.toString()} recurs without a complete schedule (its first event's times and a recurring interval). No event is created from it.`,
+          );
           continue;
         }
 
         // update the next scheduled time for this event.
-        const recurringInterval: Recurring =
-          recurringTemplate.recurringInterval!;
-        const nextScheduledTime: Date =
-          ScheduledMaintenanceTemplateService.getNextEventTime({
-            dateAndTime: recurringTemplate.scheduleNextEventAt!,
-            recurringInterval,
-          });
+        const nextScheduledTime: Date = dueEvent.nextEventAt;
 
         await ScheduledMaintenanceTemplateService.updateOneById({
           id: recurringTemplate.id!,
@@ -169,6 +188,17 @@ RunCron(
             isRoot: true,
           },
         });
+
+        /*
+         * A time a template saved before it had a time zone still held,
+         * whose own event on the calendar is still to come: that event is
+         * created at its time instead.
+         */
+        if (!dueEvent.event) {
+          continue;
+        }
+
+        const eventTimes: MaintenanceTemplateEventTimes = dueEvent.event;
 
         // get owner users for this template.
         const ownerUsers: Array<ScheduledMaintenanceTemplateOwnerUser> =
@@ -267,34 +297,10 @@ RunCron(
         scheduledMaintenanceEvent.sendSubscriberNotificationsOnBeforeTheEvent =
           recurringTemplate.sendSubscriberNotificationsOnBeforeTheEvent!;
 
-        const eventscheduledTime: Date = recurringTemplate.scheduleNextEventAt!;
-
-        const firstScheduledTime: Date =
-          recurringTemplate.firstEventScheduledAt!;
-        const firstStartTime: Date = recurringTemplate.firstEventStartsAt!;
-        const firstEndTime: Date = recurringTemplate.firstEventEndsAt!;
-
-        const minutesBetwenScheduledAndStartTime: number =
-          OneUptimeDate.getMinutesBetweenTwoDates(
-            firstScheduledTime,
-            firstStartTime,
-          );
-        const minutesBetweenScheduledAndEndTime: number =
-          OneUptimeDate.getMinutesBetweenTwoDates(
-            firstScheduledTime,
-            firstEndTime,
-          );
-
         // set the scheduled time for this event.
-        scheduledMaintenanceEvent.createdAt = eventscheduledTime!;
-        scheduledMaintenanceEvent.startsAt = OneUptimeDate.addRemoveMinutes(
-          eventscheduledTime,
-          minutesBetwenScheduledAndStartTime,
-        );
-        scheduledMaintenanceEvent.endsAt = OneUptimeDate.addRemoveMinutes(
-          eventscheduledTime,
-          minutesBetweenScheduledAndEndTime,
-        );
+        scheduledMaintenanceEvent.createdAt = eventTimes.scheduledAt;
+        scheduledMaintenanceEvent.startsAt = eventTimes.startsAt;
+        scheduledMaintenanceEvent.endsAt = eventTimes.endsAt;
 
         // now create this event.
 

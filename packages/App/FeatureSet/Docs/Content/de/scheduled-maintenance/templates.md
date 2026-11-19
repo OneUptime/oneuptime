@@ -47,7 +47,7 @@ Wählen Sie unter **Betroffene Ressourcen** die **Monitore**, das **Monitor-Stat
 
 ### Entscheiden, ob sie wiederkehrt
 
-Lassen Sie unter **Wiederkehrend** den Schalter **Wiederkehrendes Ereignis** für eine Vorlage aus, die Sie von Hand nutzen, oder schalten Sie ihn ein und füllen Sie den Zeitplan aus. Klicken Sie auf **Weiter**, um die Überprüfung zu prüfen, und erstellen Sie dann die Vorlage.
+Lassen Sie unter **Wiederkehrend** den Schalter **Wiederkehrendes Ereignis** für eine Vorlage aus, die Sie von Hand nutzen, oder schalten Sie ihn ein, wählen Sie, wie oft sie wiederkehrt, und ihre **Zeitzone**, und legen Sie die Zeiten des ersten Ereignisses unter **Erstes Ereignis** fest. Klicken Sie auf **Weiter**, um die Überprüfung zu prüfen, und erstellen Sie dann die Vorlage.
 :::
 
 Eine Vorlage fragt nach **Monitor-Status ändern in**, auch wenn sie keine Monitore nennt: Der Status gilt auch für die Monitore, die Sie hinzufügen, wenn Sie ein Ereignis daraus planen. Unter **Andere betroffene Ressourcen** nimmt eine Vorlage Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste an.
@@ -83,15 +83,18 @@ Hat das Projekt noch keine Vorlage, sagt **Aus Vorlage erstellen** das und verli
 
 ## Wiederkehrende Ereignisse
 
-Eine wiederkehrende Vorlage erstellt das Ereignis nach einem Zeitplan. Sie legen fest, wann das erste Ereignis erstellt wird, wann es beginnt und wann es endet; jedes spätere Ereignis behält dieselben Abstände, ein Intervall später.
+Eine wiederkehrende Vorlage erstellt das Ereignis nach einem Zeitplan. Sie legen fest, wie oft es wiederkehrt, welche Zeitzone es einhält und wann das erste Ereignis erstellt wird, wann es beginnt und wann es endet; jedes spätere Ereignis ist das erste, um ganze Intervalle im Kalender dieser Zeitzone verschoben, zu denselben Uhrzeiten.
 
 | Feld                                     | Was es bedeutet                                                                                     |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Wiederkehrendes Ereignis**             | Schaltet den Zeitplan ein.                                                                          |
+| **Wie oft soll dieses Ereignis wiederkehren?** | Eine Zahl und eine Einheit: Stunden, Tage, Wochen, Monate oder Jahre.                         |
+| **Zeitzone**                             | Die Zeitzone, in der die Ereignisse ihre Uhrzeit behalten. Eine neue Vorlage beginnt mit Ihrer.     |
 | **Erstes Ereignis geplant für**          | Wann OneUptime das erste Ereignis erstellt, also wann seine Abonnenten erfahren, dass es geplant ist. |
 | **Erstes Ereignis beginnt am**           | Wann das erste Ereignis beginnt.                                                                    |
 | **Erstes Ereignis endet am**             | Wann das erste Ereignis endet.                                                                      |
-| **Wie oft soll dieses Ereignis wiederkehren?** | Eine Zahl und eine Einheit: Stunden, Tage, Wochen, Monate oder Jahre.                         |
+
+Die ersten drei stehen im Schritt **Wiederkehrend**. Die Zeiten des ersten Ereignisses stehen im Schritt **Erstes Ereignis**, der erscheint, sobald **Wiederkehrendes Ereignis** eingeschaltet ist.
 
 Zum Beispiel ein wöchentliches Zeitfenster, dessen erstes Ereignis an einem Montag für den Samstag danach erstellt wird:
 
@@ -100,15 +103,25 @@ Zum Beispiel ein wöchentliches Zeitfenster, dessen erstes Ereignis an einem Mon
 | Das erste    | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Das zweite   | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Jedes Ereignis behält die Uhrzeiten des ersten Ereignisses in der Zeitzone der Vorlage, auch wenn die Uhren auf Sommer- oder Winterzeit umgestellt werden: Ein Zeitfenster von 02:00 bis 04:00 in Berlin liegt dort im Sommer wie im Winter von 02:00 bis 04:00. Einige Tage gehen so aus:
+
+- **Ein Tag, den der Monat nicht hat.** Ein monatliches Ereignis am 29., 30. oder 31. liegt in einem kürzeren Monat auf dessen letztem Tag, etwa am 30. April oder am 28. Februar, und in den Monaten, die den Tag haben, wieder auf seinem eigenen Tag. Ein jährliches Ereignis am 29. Februar liegt in anderen Jahren auf dem 28. Februar.
+- **Die Nacht, in der die Uhren vorgestellt werden.** Eine Zeit, die es in dieser Nacht nicht gibt, etwa 02:30, wenn 02:00 auf 03:00 springt, rückt um den Sprung weiter, auf 03:30. Ein Ereignis, dessen Beginn dadurch hinter sein Ende rückt, behält die Länge des ersten Ereignisses.
+- **Die Nacht, in der die Uhren zurückgestellt werden.** Eine Zeit, die es in dieser Nacht zweimal gibt, etwa 01:30 in New York, ist die erste der beiden.
+- **Alle paar Stunden.** Stunden werden gezählt, wie sie vergehen, daher rückt eine Vorlage, die alle paar Stunden wiederkehrt, auf der Uhr um eine Stunde, wenn diese umgestellt wird.
+- **Eine Zeitzone ohne Sommerzeit.** Eine Zeitzone, die ihre Uhren nicht mehr umstellt, etwa die von British Columbia (America/Vancouver) seit November 2026, behält denselben Abstand zu UTC, daher verschiebt sich nichts.
+
+Eine Vorlage, die erstellt wurde, bevor Vorlagen eine Zeitzone hatten, zeigt **UTC**, die Zeitzone, in der ihre Ereignisse bis dahin berechnet wurden. Wählen Sie die Zeitzone, in der ihre Zeiten gemeint waren, und ab ihrem nächsten Ereignis behält jedes Ereignis dort die Uhrzeit des ersten Ereignisses.
+
 Setzen Sie **Erstes Ereignis geplant für** so weit vor den Beginn, wie Ihre Kunden im Voraus von der Arbeit erfahren sollen. Alle drei Zeiten müssen beim Erstellen der Vorlage in der Zukunft liegen, das Ereignis muss vor seinem Beginn und Ende erstellt werden, und es muss beginnen, bevor es endet; das Formular sagt, gegen welche Regel eine Zeit verstößt.
 
-Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit einer Vorlage kommt, schiebt er diese Zeit um ein Intervall weiter und erstellt das Ereignis. Die Vorlagenliste zeigt diese Zeit in ihrer Spalte **Wiederkehrendes Ereignis**, und **Nein** bei einer Vorlage, die nicht wiederkehrt. Ein nach Zeitplan erstelltes Ereignis ist wie jedes andere: Seine Regeln laufen, seine Eigentümer werden hinzugefügt, und seine Abonnenten erfahren, dass es geplant ist.
+Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit einer Vorlage kommt, erstellt er das Ereignis und schiebt diese Zeit auf das nächste Ereignis des Zeitplans weiter. Die Vorlagenliste zeigt diese Zeit in ihrer Spalte **Wiederkehrendes Ereignis**, und **Nein** bei einer Vorlage, die nicht wiederkehrt. Ein nach Zeitplan erstelltes Ereignis ist wie jedes andere: Seine Regeln laufen, seine Eigentümer werden hinzugefügt, und seine Abonnenten erfahren, dass es geplant ist.
 
 ## Eine Vorlage ändern oder stoppen
 
 Öffnen Sie eine Vorlage aus der Liste, um ihre Seite zu sehen:
 
-- **Vorlagendetails der geplanten Wartung** zeigt, womit neue Ereignisse beginnen. Ihr **Bearbeiten** führt durch **Vorlageninformationen**, **Wartungsdetails**, **Statusseiten** und **Wiederkehrend**.
+- **Vorlagendetails der geplanten Wartung** zeigt, womit neue Ereignisse beginnen. Ihr **Bearbeiten** führt durch **Vorlageninformationen**, **Wartungsdetails**, **Statusseiten** und **Wiederkehrend**, bei einer wiederkehrenden Vorlage dann **Erstes Ereignis**.
 - **Betroffene Ressourcen** enthält ihre **Monitore**, deren **Monitor-Status ändern in** und ihre **Andere betroffene Ressourcen**, mit einem eigenen **Bearbeiten**.
 - **Eigentümer** listet die Personen und Teams auf, denen jedes aus ihr geplante Ereignis gehört.
 
@@ -122,6 +135,10 @@ Alle drei ersten Zeiten müssen beim Erstellen nach dem jetzigen Zeitpunkt liege
 
 :::details Eine wiederkehrende Vorlage hat kein Ereignis erstellt
 Prüfen Sie, ob **Wiederkehrendes Ereignis** noch eingeschaltet ist, und sehen Sie sich die Zeit in der Spalte **Wiederkehrendes Ereignis** der Liste an: Das Ereignis wird dann erstellt, nicht zu seinem Beginn. Der Job läuft jede Minute, warten Sie also eine Minute.
+:::
+
+:::details Ereignisse aus einer wiederkehrenden Vorlage liegen nach der Zeitumstellung eine Stunde zu früh oder zu spät
+Öffnen Sie die Vorlage und prüfen Sie ihre **Zeitzone**: Ihre Ereignisse behalten in dieser Zeitzone die Uhrzeit des ersten Ereignisses. Eine Vorlage, die erstellt wurde, bevor Vorlagen eine Zeitzone hatten, zeigt **UTC**: Wählen Sie die Zeitzone, in der ihre Zeiten gemeint waren. Bereits erstellte Ereignisse behalten ihre Zeiten.
 :::
 
 :::details Einem Ereignis aus einer Vorlage fehlt eine Ressource, die ich gewählt habe

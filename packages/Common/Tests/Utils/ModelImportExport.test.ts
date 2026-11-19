@@ -9,11 +9,12 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import Timezone from "../../Types/Timezone";
 import ModelImportExport, {
   MODEL_EXPORT_FILE_TYPE,
   MODEL_EXPORT_SCHEMA_VERSION,
 } from "../../Utils/ModelImportExport";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 describe("ModelImportExport", () => {
   describe("getImportExportableColumnNames", () => {
@@ -490,6 +491,98 @@ describe("ModelImportExport", () => {
       expect(imported.firstEventScheduledAt!.getTime()).toBe(
         futureScheduledAt.getTime(),
       );
+    });
+
+    /*
+     * A template's first event moves on whole intervals of its own time
+     * zone's calendar (#10037): imported in November, a weekly Saturday
+     * 02:00 window typed in Berlin in July is still at 02:00 there, where
+     * the old fixed steps of 7 x 24 hours put it at 01:00 for the winter.
+     */
+    describe("a template imported after its first event, on its own clock", () => {
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      function importTemplate(
+        timezone: Timezone | undefined,
+      ): ScheduledMaintenanceTemplate {
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date("2026-11-19T12:00:00.000Z"));
+
+        const template: ScheduledMaintenanceTemplate =
+          new ScheduledMaintenanceTemplate();
+        template.templateName = "Saturday patching";
+        template.isRecurringEvent = true;
+
+        const recurring: Recurring = new Recurring();
+        recurring.intervalType = EventInterval.Week;
+        recurring.intervalCount = new PositiveNumber(1);
+        template.recurringInterval = recurring;
+
+        // Monday 6 July 2026 09:00, for Saturday 11 July 02:00 to 04:00, in Berlin (CEST).
+        template.firstEventScheduledAt = new Date("2026-07-06T07:00:00.000Z");
+        template.firstEventStartsAt = new Date("2026-07-11T00:00:00.000Z");
+        template.firstEventEndsAt = new Date("2026-07-11T02:00:00.000Z");
+
+        if (timezone) {
+          template.timezone = timezone;
+        }
+
+        const envelope: JSONObject = ModelImportExport.buildExportEnvelope({
+          modelType: ScheduledMaintenanceTemplate,
+          items: [template],
+          exportedAt: new Date(),
+        });
+
+        return ModelImportExport.fromImportJSON({
+          json: (envelope["items"] as Array<JSONObject>)[0]!,
+          modelType: ScheduledMaintenanceTemplate,
+        });
+      }
+
+      test("its time zone is exported and imported with it", () => {
+        expect(
+          ModelImportExport.getImportExportableColumnNames(
+            ScheduledMaintenanceTemplate,
+          ),
+        ).toContain("timezone");
+        expect(importTemplate(Timezone.EuropeBerlin).timezone).toBe(
+          Timezone.EuropeBerlin,
+        );
+      });
+
+      test("in Berlin, the first event becomes the next Monday's at 09:00 for Saturday 02:00 to 04:00, on winter time", () => {
+        const imported: ScheduledMaintenanceTemplate = importTemplate(
+          Timezone.EuropeBerlin,
+        );
+
+        // Monday 23 November 09:00 CET, for Saturday 28 November 02:00 to 04:00 CET.
+        expect(imported.firstEventScheduledAt!.toISOString()).toBe(
+          "2026-11-23T08:00:00.000Z",
+        );
+        expect(imported.firstEventStartsAt!.toISOString()).toBe(
+          "2026-11-28T01:00:00.000Z",
+        );
+        expect(imported.firstEventEndsAt!.toISOString()).toBe(
+          "2026-11-28T03:00:00.000Z",
+        );
+      });
+
+      test("exported before templates had a time zone, it moves on whole UTC weeks, as it did", () => {
+        const imported: ScheduledMaintenanceTemplate =
+          importTemplate(undefined);
+
+        expect(imported.firstEventScheduledAt!.toISOString()).toBe(
+          "2026-11-23T07:00:00.000Z",
+        );
+        expect(imported.firstEventStartsAt!.toISOString()).toBe(
+          "2026-11-28T00:00:00.000Z",
+        );
+        expect(imported.firstEventEndsAt!.toISOString()).toBe(
+          "2026-11-28T02:00:00.000Z",
+        );
+      });
     });
   });
 });

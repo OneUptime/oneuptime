@@ -592,6 +592,49 @@ const ROUTE_CASES: Array<RouteCase> = [
     [],
     true,
   ),
+  /*
+   * The sum, average, minimum, maximum and percentiles of a numeric
+   * attribute (#7716) read through the same route, under the same scope: an
+   * aggregate never takes in a log the caller may not read.
+   */
+  aggregationCase(
+    "/telemetry/logs/analytics",
+    LogAggregationService,
+    "getAnalyticsTimeseries",
+    {
+      aggregation: "p95",
+      aggregationField: "duration_ms",
+      groupBy: ["primaryEntityId"],
+    },
+    [],
+    true,
+  ),
+  aggregationCase(
+    "/telemetry/logs/analytics",
+    LogAggregationService,
+    "getAnalyticsTopList",
+    {
+      chartType: "toplist",
+      aggregation: "avg",
+      aggregationField: "duration_ms",
+      groupBy: ["http.route"],
+    },
+    [],
+    true,
+  ),
+  aggregationCase(
+    "/telemetry/logs/analytics",
+    LogAggregationService,
+    "getAnalyticsTable",
+    {
+      chartType: "table",
+      aggregation: "max",
+      aggregationField: "bytes",
+      groupBy: ["severityText"],
+    },
+    [],
+    true,
+  ),
   aggregationCase(
     "/telemetry/logs/error-patterns",
     LogAggregationService,
