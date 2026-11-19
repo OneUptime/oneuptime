@@ -473,10 +473,12 @@ describe("the grade on resolve uses the run's pick", () => {
     jest
       .spyOn(AIService, "getReachedProjectDailyLimit")
       .mockResolvedValue(null as never);
+    // Declared by a person, so the root cause it holds is theirs (#7765).
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(
       Object.assign(new Incident(), {
         _id: INCIDENT_ID.toString(),
         rootCause: "A bad deploy of shop-api.",
+        createdByUserId: ObjectID.generate(),
       }),
     );
     jest

@@ -22,7 +22,10 @@ import {
 import {
   KubernetesComplianceBinding,
   KubernetesComplianceRole,
+  OneUptimeAgentNodesProxyReason,
+  getNodesProxyReasons,
   isBuiltInRbacObject,
+  isOneUptimeAgentObject,
   ruleGrants,
 } from "../../../../Types/Kubernetes/Compliance/KubernetesRbac";
 import { KubernetesVersion } from "../../../../Types/Kubernetes/Compliance/KubernetesVersion";
@@ -243,6 +246,57 @@ describe("RBAC as the authorizer reads it", () => {
     expect(isBuiltInRbacObject({ name: "eks:node-manager" })).toBe(true);
     expect(isBuiltInRbacObject({ name: "gce:cloud-provider" })).toBe(true);
     expect(isBuiltInRbacObject({ name: "ci-deployer" })).toBe(false);
+  });
+
+  // kubeadm makes them again on every init and upgrade, kind's clusters included.
+  test("kubeadm's own bindings are built in, and a name merely containing kubeadm is not", () => {
+    expect(
+      isBuiltInRbacObject({ name: "kubeadm:apiserver-kubelet-client" }),
+    ).toBe(true);
+    expect(isBuiltInRbacObject({ name: "kubeadm:cluster-admins" })).toBe(true);
+    expect(isBuiltInRbacObject({ name: "kubeadm:get-nodes" })).toBe(true);
+    expect(isBuiltInRbacObject({ name: "my-kubeadm:admins" })).toBe(false);
+    expect(isBuiltInRbacObject({ name: "kubeadm-admins" })).toBe(false);
+  });
+});
+
+/*
+ * What kubeadm binds on every cluster it makes (kind's too), as `kubectl get
+ * clusterrolebindings` shows it: the API server's client for the kubelets,
+ * which reaches nodes/proxy, and admin.conf's group, bound to cluster-admin.
+ */
+const KUBEADM_BINDINGS: Array<KubernetesComplianceBinding> = [
+  clusterRoleBinding(
+    "kubeadm:apiserver-kubelet-client",
+    "system:kubelet-api-admin",
+    [{ kind: "User", name: "kube-apiserver-kubelet-client" }],
+  ),
+  clusterRoleBinding("kubeadm:cluster-admins", "cluster-admin", [
+    { kind: "Group", name: "kubeadm:cluster-admins" },
+  ]),
+];
+
+const KUBELET_API_ADMIN: KubernetesComplianceRole = clusterRole(
+  "system:kubelet-api-admin",
+  [
+    rule(
+      [""],
+      ["nodes/proxy", "nodes/log", "nodes/stats", "nodes/metrics"],
+      ["*"],
+    ),
+  ],
+  RBAC_DEFAULTS,
+);
+
+describe("kubeadm's own bindings", () => {
+  test("pass 5.1.1 and 5.1.10: kubeadm keeps them up, not the cluster's owner", () => {
+    const cluster: KubernetesComplianceSnapshot = snapshot({
+      roles: [...BUILT_IN_ROLES, KUBELET_API_ADMIN],
+      bindings: [...BUILT_IN_BINDINGS, ...KUBEADM_BINDINGS],
+    });
+
+    expect(evaluateCisClusterControl("5.1.1", cluster)).toEqual([]);
+    expect(evaluateCisClusterControl("5.1.10", cluster)).toEqual([]);
   });
 });
 
@@ -505,6 +559,215 @@ describe("5.1.2-5.1.13 least access", () => {
   test("the built-in controllers' own bindings are left out", () => {
     // system:controller:certificate-controller approves CSRs: Kubernetes' own.
     expect(evaluateCisClusterControl("5.1.11", snapshot())).toEqual([]);
+  });
+});
+
+/*
+ * The OneUptime agent's own binding (#9878). The kubernetes-agent chart labels
+ * what it makes with its chart and OneUptime, and labels its ClusterRole with
+ * why it still grants nodes/proxy: the page says the binding is the agent's,
+ * and why.
+ */
+const AGENT_LABELS: Record<string, string> = {
+  "helm.sh/chart": "kubernetes-agent-16.2.0",
+  "app.kubernetes.io/part-of": "oneuptime",
+  "app.kubernetes.io/name": "kubernetes-agent",
+  "app.kubernetes.io/instance": "oneuptime-agent",
+  "app.kubernetes.io/managed-by": "Helm",
+};
+
+function agentCluster(options: {
+  roleLabels?: Record<string, string>;
+  rules?: Array<KubernetesPolicyRule>;
+  bindingLabels?: Record<string, string>;
+}): KubernetesComplianceSnapshot {
+  return snapshot({
+    roles: [
+      ...BUILT_IN_ROLES,
+      clusterRole(
+        "oneuptime-agent-kubernetes-agent",
+        options.rules || [
+          rule([""], ["pods", "nodes"], ["get", "list", "watch"]),
+          rule([""], ["nodes/stats", "nodes/metrics", "nodes/pods"], ["get"]),
+          rule([""], ["nodes/proxy"], ["get"]),
+        ],
+        options.roleLabels || AGENT_LABELS,
+      ),
+    ],
+    bindings: [
+      ...BUILT_IN_BINDINGS,
+      clusterRoleBinding(
+        "oneuptime-agent-kubernetes-agent",
+        "oneuptime-agent-kubernetes-agent",
+        [
+          {
+            kind: "ServiceAccount",
+            name: "oneuptime-agent-kubernetes-agent",
+            namespace: "oneuptime-agent",
+          },
+        ],
+        options.bindingLabels || AGENT_LABELS,
+      ),
+    ],
+  });
+}
+
+describe("the OneUptime agent's own binding", () => {
+  test("is told by its chart's labels, whatever its release is called", () => {
+    expect(isOneUptimeAgentObject({ name: "x", labels: AGENT_LABELS })).toBe(
+      true,
+    );
+    expect(
+      isOneUptimeAgentObject({
+        name: "acme-agent",
+        labels: {
+          "helm.sh/chart": "kubernetes-agent-0.7.3",
+          "app.kubernetes.io/part-of": "oneuptime",
+        },
+      }),
+    ).toBe(true);
+    // The OneUptime server's own chart, another chart named like it, no labels.
+    expect(
+      isOneUptimeAgentObject({
+        name: "oneuptime",
+        labels: {
+          "helm.sh/chart": "oneuptime-16.2.0",
+          "app.kubernetes.io/part-of": "oneuptime",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isOneUptimeAgentObject({
+        name: "kubernetes-agent",
+        labels: { "helm.sh/chart": "kubernetes-agent-1.0.0" },
+      }),
+    ).toBe(false);
+    expect(isOneUptimeAgentObject({ name: "oneuptime-agent" })).toBe(false);
+  });
+
+  test("reads why its role grants nodes/proxy, in one order, leaving out a word it does not know", () => {
+    const reasons: (value: string) => Array<OneUptimeAgentNodesProxyReason> = (
+      value: string,
+    ): Array<OneUptimeAgentNodesProxyReason> => {
+      return getNodesProxyReasons({
+        name: "agent",
+        labels: { "oneuptime.com/nodes-proxy": value },
+      });
+    };
+
+    expect(reasons("kubelet-pods")).toEqual([
+      OneUptimeAgentNodesProxyReason.KubeletPods,
+    ]);
+    expect(reasons("cost-prometheus.kubelet-pods")).toEqual([
+      OneUptimeAgentNodesProxyReason.KubeletPods,
+      OneUptimeAgentNodesProxyReason.CostPrometheus,
+    ]);
+    expect(reasons("cost-prometheus.something-newer")).toEqual([
+      OneUptimeAgentNodesProxyReason.CostPrometheus,
+    ]);
+    expect(reasons("")).toEqual([]);
+    expect(getNodesProxyReasons({ name: "agent" })).toEqual([]);
+    expect(getNodesProxyReasons(null)).toEqual([]);
+  });
+
+  test("fails 5.1.10 while it grants nodes/proxy, saying it is the agent's and why", () => {
+    const findings: Array<KubernetesComplianceFinding> =
+      evaluateCisClusterControl(
+        "5.1.10",
+        agentCluster({
+          roleLabels: {
+            ...AGENT_LABELS,
+            "oneuptime.com/nodes-proxy": "kubelet-pods",
+          },
+        }),
+      );
+
+    expect(findings).toEqual([
+      {
+        object: {
+          kind: "ClusterRoleBinding",
+          namespace: "",
+          name: "oneuptime-agent-kubernetes-agent",
+        },
+        details: [
+          {
+            field: "roleRef",
+            value: "ClusterRole oneuptime-agent-kubernetes-agent",
+          },
+          {
+            field: "subjects",
+            value:
+              "ServiceAccount oneuptime-agent/oneuptime-agent-kubernetes-agent",
+          },
+          { field: "verbs", value: "get nodes/proxy" },
+        ],
+        oneUptimeAgent: {
+          nodesProxyReasons: [OneUptimeAgentNodesProxyReason.KubeletPods],
+        },
+      },
+    ]);
+  });
+
+  test("names both reasons when the cost Prometheus needs it too", () => {
+    expect(
+      evaluateCisClusterControl(
+        "5.1.10",
+        agentCluster({
+          roleLabels: {
+            ...AGENT_LABELS,
+            "oneuptime.com/nodes-proxy": "kubelet-pods.cost-prometheus",
+          },
+        }),
+      )[0]!.oneUptimeAgent,
+    ).toEqual({
+      nodesProxyReasons: [
+        OneUptimeAgentNodesProxyReason.KubeletPods,
+        OneUptimeAgentNodesProxyReason.CostPrometheus,
+      ],
+    });
+  });
+
+  test("from a chart before the label, it is still the agent's, with no reason given", () => {
+    const findings: Array<KubernetesComplianceFinding> =
+      evaluateCisClusterControl(
+        "5.1.10",
+        agentCluster({
+          // As charts before #9878 made it: nodes/proxy with get, list and watch.
+          rules: [
+            rule(
+              [""],
+              ["pods", "nodes", "nodes/proxy", "nodes/stats"],
+              ["get", "list", "watch"],
+            ),
+          ],
+        }),
+      );
+
+    expect(findings[0]!.oneUptimeAgent).toEqual({ nodesProxyReasons: [] });
+  });
+
+  test("passes 5.1.10 once its role grants no nodes/proxy, only the kubelet's own subresources", () => {
+    expect(
+      evaluateCisClusterControl(
+        "5.1.10",
+        agentCluster({
+          rules: [
+            rule([""], ["pods", "nodes"], ["get", "list", "watch"]),
+            rule([""], ["nodes/stats", "nodes/metrics", "nodes/pods"], ["get"]),
+          ],
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a binding someone else made that grants nodes/proxy is the cluster owner's, even named like the agent's", () => {
+    const findings: Array<KubernetesComplianceFinding> =
+      evaluateCisClusterControl("5.1.10", agentCluster({ bindingLabels: {} }));
+
+    expect(objectsOf(findings)).toEqual([
+      "ClusterRoleBinding oneuptime-agent-kubernetes-agent",
+    ]);
+    expect(findings[0]!.oneUptimeAgent).toBeUndefined();
   });
 });
 

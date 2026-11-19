@@ -838,6 +838,58 @@ describe("CloudWatch, OpenTelemetry 1.0 shape", () => {
     }
   });
 
+  /*
+   * #9691: AWS Glue publishes a job's metrics with JobRunId ALL for the
+   * whole job, and again with each run's id. The job is its ALL series
+   * alone: a run's would add the same tasks again.
+   */
+  test("a Glue job: its JobRunId ALL series alone, never a run's", () => {
+    const resource: CloudMonitoredResource = resolve(
+      cloudWatchDatapoint("Glue", "glue.driver.aggregate.numFailedTasks", {
+        JobName: "nightly-orders",
+        JobRunId: "ALL",
+        Type: "count",
+      }),
+    );
+
+    expect(resource.resourceType).toBe("AWS::Glue::Job");
+    expect(resource.name).toBe("nightly-orders");
+    expect(resource.providerResourceId).toBe(
+      "arn:aws:glue:us-east-1:123456789012:job/nightly-orders",
+    );
+    expect(resource.telemetryAttributes["Dimensions.JobRunId"]).toBe("ALL");
+    // A job is the same resource whatever its runs.
+    expect(resource.identityKey).not.toContain("jobrunid=");
+
+    expect(
+      resolveCloudMonitoredResource(
+        cloudWatchDatapoint("Glue", "glue.driver.aggregate.numFailedTasks", {
+          JobName: "nightly-orders",
+          JobRunId: "jr_4f7c0d0a7b8e",
+          Type: "count",
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  // #9691: an Athena workgroup's query times come per query state and type.
+  test("an Athena workgroup: every series of it, of each query state and type", () => {
+    for (const dimensions of [
+      { WorkGroup: "analytics" },
+      { WorkGroup: "analytics", QueryState: "FAILED", QueryType: "DML" },
+    ]) {
+      const resource: CloudMonitoredResource = resolve(
+        cloudWatchDatapoint("AWS/Athena", "TotalExecutionTime", dimensions),
+      );
+
+      expect(resource.resourceType).toBe("AWS::Athena::WorkGroup");
+      expect(resource.name).toBe("analytics");
+      expect(resource.providerResourceId).toBe(
+        "arn:aws:athena:us-east-1:123456789012:workgroup/analytics",
+      );
+    }
+  });
+
   test("an MSK cluster: a dimension name with a space", () => {
     const resource: CloudMonitoredResource = resolve(
       cloudWatchDatapoint("AWS/Kafka", "ActiveControllerCount", {

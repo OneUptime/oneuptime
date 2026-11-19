@@ -1,5 +1,7 @@
 import "../TestingUtils/WebAuthnServiceMocks";
-import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import UserWebAuthnService, {
+  NO_SECURITY_KEY_AVAILABLE,
+} from "../../../Server/Services/UserWebAuthnService";
 import UserService from "../../../Server/Services/UserService";
 import User from "../../../Models/DatabaseModels/User";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
@@ -235,7 +237,7 @@ describe("UserWebAuthnService user verification policy", () => {
   describe("authentication", () => {
     test("asks the authenticator for preferred user verification", async () => {
       await UserWebAuthnService.generateAuthenticationOptions({
-        email: USER_EMAIL.toString(),
+        userId: USER_ID,
       });
 
       const options: Record<string, unknown> = firstArgument(
@@ -319,7 +321,7 @@ describe("UserWebAuthnService user verification policy", () => {
 
     test("on the authentication flow", async () => {
       await UserWebAuthnService.generateAuthenticationOptions({
-        email: USER_EMAIL.toString(),
+        userId: USER_ID,
       });
 
       await UserWebAuthnService.verifyAuthentication({
@@ -352,7 +354,7 @@ describe("UserWebAuthnService user verification policy", () => {
       });
 
       await UserWebAuthnService.generateAuthenticationOptions({
-        email: USER_EMAIL.toString(),
+        userId: USER_ID,
       });
 
       const registrationSelection: Record<string, unknown> = firstArgument(
@@ -483,7 +485,7 @@ describe("UserWebAuthnService user verification policy", () => {
 
     test("signing in writes only the security key authentication challenge", async () => {
       await UserWebAuthnService.generateAuthenticationOptions({
-        email: USER_EMAIL.toString(),
+        userId: USER_ID,
       });
       expect(redisSet).toHaveBeenCalledWith(
         AUTHENTICATION_KEY,
@@ -528,58 +530,60 @@ describe("UserWebAuthnService user verification policy", () => {
     });
   });
 
-  describe("what an anonymous caller learns about an account", () => {
+  describe("the options are for the account a sign-in proved (#9822)", () => {
     /*
-     * generateAuthenticationOptions is reached by POSTing an email and nothing
-     * else, from anybody. Two distinguishable refusals made it an
-     * account-existence oracle plus a second one naming which accounts are
-     * protected by a security key -- on a surface whose other doors go out of
-     * their way not to say which half of a credential was wrong.
+     * They used to be made for an email address that anybody could POST,
+     * and two answers - a refusal for an address with no account or no
+     * key, the options for one with a key - told anyone which addresses
+     * had an account and which used a security key. They are now made by
+     * the account's id, once the sign-in has proved it with the password
+     * or a sign-in link (App/FeatureSet/Identity/API/Authentication.ts).
      */
 
-    type RefusalForFunction = (setUp: () => void) => Promise<Exception>;
+    test("no address is looked up: the account is named by its id", async () => {
+      const findOneBy: jest.Mock = jest.fn().mockResolvedValue(null);
+      UserService.findOneBy = findOneBy as never;
 
-    const refusalFor: RefusalForFunction = async (
-      setUp: () => void,
-    ): Promise<Exception> => {
-      setUp();
+      await UserWebAuthnService.generateAuthenticationOptions({
+        userId: USER_ID,
+      });
+
+      expect(findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("only that account's verified keys are named", async () => {
+      const findBy: jest.Mock = jest
+        .fn()
+        .mockResolvedValue([buildCredentialRow()]);
+      UserWebAuthnService.findBy = findBy as never;
+
+      await UserWebAuthnService.generateAuthenticationOptions({
+        userId: USER_ID,
+      });
+
+      expect(findBy).toHaveBeenCalledTimes(1);
+      expect(findBy.mock.calls[0]![0]).toMatchObject({
+        query: { userId: USER_ID, isVerified: true },
+      });
+    });
+
+    test("an account with no key is told so, with another way to sign in", async () => {
+      UserWebAuthnService.findBy = jest.fn().mockResolvedValue([]) as never;
+
+      let refusal: Exception | null = null;
 
       try {
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
       } catch (error) {
-        return error as Exception;
+        refusal = error as Exception;
       }
 
-      throw new Error("Expected this to reject, and it resolved");
-    };
-
-    test("an unknown address and a known one without a key get the same answer", async () => {
-      const unknownAccount: Exception = await refusalFor((): void => {
-        UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
-      });
-
-      const noSecurityKey: Exception = await refusalFor((): void => {
-        UserService.findOneBy = jest
-          .fn()
-          .mockResolvedValue(buildUser()) as never;
-        UserWebAuthnService.findBy = jest.fn().mockResolvedValue([]) as never;
-      });
-
-      expect(unknownAccount.message).toBe(noSecurityKey.message);
-      expect(unknownAccount).toBeInstanceOf(BadDataException);
-      expect(noSecurityKey).toBeInstanceOf(BadDataException);
-    });
-
-    test("neither answer describes what was actually missing", async () => {
-      const unknownAccount: Exception = await refusalFor((): void => {
-        UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
-      });
-
-      expect(unknownAccount.message).not.toMatch(/user not found/i);
-      expect(unknownAccount.message).not.toMatch(/no webauthn credentials/i);
-      expect(unknownAccount.message).not.toContain(USER_EMAIL.toString());
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect(refusal!.message).toBe(NO_SECURITY_KEY_AVAILABLE);
+      expect(refusal!.message).not.toContain(USER_EMAIL.toString());
+      expect(redisSet).not.toHaveBeenCalled();
     });
   });
 

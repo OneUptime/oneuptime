@@ -449,3 +449,124 @@ describe("only the answer of a key response is key evidence", () => {
     ).toBe(false);
   });
 });
+
+/*
+ * What a real tool writes around its rows (#7766): query_slos opens a
+ * result with its deploy-gate and compliance notes, so a scripted answer
+ * does too, and the redactions the serializer made are counted as a real
+ * result counts them.
+ */
+describe("an answer carries what the real tool writes around its rows", () => {
+  const NOTES: Array<string> = [
+    "Note: the first note the tool writes.\n",
+    "Note: the second.\n",
+  ];
+
+  test("the notes come first, in order, then the rows as the serializer writes them", () => {
+    const rows: Array<JSONObject> = [{ name: "Checkout availability" }];
+    const outcome: ToolCallOutcome = ScenarioTools.answer(
+      scenarioWith([{ toolName: "query_slos", notes: NOTES, rows }]),
+      "query_slos",
+      {},
+    );
+
+    expect(outcome.textForLlm).toBe(
+      `${NOTES.join("")}${Serializer.serializeRows(rows).text}`,
+    );
+    expect(outcome.result?.dataForLlm).toBe(outcome.textForLlm);
+    expect(outcome.result?.rowCount).toBe(1);
+  });
+
+  test("notes come before text too", () => {
+    const outcome: ToolCallOutcome = ScenarioTools.answer(
+      scenarioWith([
+        { toolName: "get_change_details", notes: NOTES, text: "Change chg-1." },
+      ]),
+      "get_change_details",
+      { changeId: "chg-1" },
+    );
+
+    expect(outcome.textForLlm).toBe(`${NOTES.join("")}Change chg-1.`);
+  });
+
+  test("the notes are handed over as the tool writes them, unredacted; the rows are redacted", () => {
+    const outcome: ToolCallOutcome = ScenarioTools.answer(
+      scenarioWith([
+        {
+          toolName: "search_logs",
+          notes: ["Note: client 203.0.113.77 is named here by the tool.\n"],
+          rows: [{ body: "login from 203.0.113.77" }],
+        },
+      ]),
+      "search_logs",
+      {},
+    );
+
+    expect(outcome.textForLlm).toBe(
+      "Note: client 203.0.113.77 is named here by the tool.\n- body=login from [redacted-ip]",
+    );
+    expect(outcome.result?.redactionCount).toBe(1);
+  });
+
+  test("an answer with no notes is its rows alone", () => {
+    const rows: Array<JSONObject> = [{ body: "matched" }];
+
+    expect(
+      ScenarioTools.answer(
+        scenarioWith([{ toolName: "search_logs", rows }]),
+        "search_logs",
+        {},
+      ).textForLlm,
+    ).toBe(Serializer.serializeRows(rows).text);
+  });
+});
+
+describe("an answer counts the redactions the serializer made, as a real result does", () => {
+  test("rows: one for each value hidden", () => {
+    const rows: Array<JSONObject> = [
+      { body: "POST /login 429 client=203.0.113.77" },
+      { body: "POST /login 429 client=203.0.113.78" },
+    ];
+    const outcome: ToolCallOutcome = ScenarioTools.answer(
+      scenarioWith([{ toolName: "search_logs", rows }]),
+      "search_logs",
+      {},
+    );
+
+    expect(outcome.result?.redactionCount).toBe(
+      Serializer.serializeRows(rows).redactionCount,
+    );
+    expect(outcome.result?.redactionCount).toBe(2);
+  });
+
+  test("text: the same", () => {
+    const text: string =
+      "Trace 1: GET /orders from 198.51.100.4 in 5.0 s, then 198.51.100.5";
+    const outcome: ToolCallOutcome = ScenarioTools.answer(
+      scenarioWith([{ toolName: "get_trace", text }]),
+      "get_trace",
+      { traceId: "1" },
+    );
+
+    expect(outcome.result?.redactionCount).toBe(
+      Serializer.serializeText(text, 1).redactionCount,
+    );
+    expect(outcome.result?.redactionCount).toBe(2);
+  });
+
+  test("nothing hidden, nothing counted", () => {
+    expect(
+      ScenarioTools.answer(
+        scenarioWith([
+          { toolName: "search_logs", rows: [{ body: "all fine" }] },
+        ]),
+        "search_logs",
+        {},
+      ).result?.redactionCount,
+    ).toBe(0);
+    expect(
+      ScenarioTools.answer(scenarioWith([]), "search_logs", {}).result
+        ?.redactionCount,
+    ).toBe(0);
+  });
+});

@@ -15,6 +15,8 @@ import ExceptionMonitorCriteria from "../../../../Server/Utils/Monitor/Criteria/
 import MonitorCriteriaObservationBuilder from "../../../../Server/Utils/Monitor/MonitorCriteriaObservationBuilder";
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
 import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
+import SpanService from "../../../../Server/Services/SpanService";
+import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import FindBy from "../../../../Server/Types/AnalyticsDatabase/FindBy";
 import logger from "../../../../Server/Utils/Logger";
 import ExceptionInstance from "../../../../Models/AnalyticsModels/ExceptionInstance";
@@ -195,6 +197,64 @@ describe("ExceptionMonitorMeasureReader.read", () => {
     );
   });
 
+  /*
+   * #9713: the groups new exceptions are counted among carry the monitor's
+   * new filters too, so App Crashes' New exceptions count only crashes.
+   */
+  test("unhandled only reads the groups an unhandled occurrence was filed under", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount], { unhandledOnly: true });
+
+    expect(groupCalls[0]!.query["unhandled"]).toBe(true);
+  });
+
+  test("without it, a group's unhandled flag is not asked about", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount]);
+
+    expect(groupCalls[0]!.query["unhandled"]).toBeUndefined();
+  });
+
+  test("types left out are kept out of the groups, and a group with no type stays in", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount], {
+      exceptionTypes: [],
+      excludedExceptionTypes: ["ANR", "Hang"],
+    });
+
+    // QueryHelper.notInOrNull: a Raw condition, NOT IN or IS NULL.
+    const exceptionType: unknown = groupCalls[0]!.query["exceptionType"];
+    expect(exceptionType).toBeDefined();
+    expect(exceptionType).not.toBeInstanceOf(Includes);
+    expect(JSON.stringify(exceptionType)).toContain("ANR");
+    expect(JSON.stringify(exceptionType)).toContain("Hang");
+  });
+
+  test("kept types less the ones left out are the groups' types", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount], {
+      exceptionTypes: ["TypeError", "ANR"],
+      excludedExceptionTypes: ["ANR"],
+    });
+
+    expect(groupCalls[0]!.query["exceptionType"]).toEqual(
+      new Includes(["TypeError"]),
+    );
+  });
+
+  test("a monitor that keeps no type counts no new or regressed group, and reads none", async () => {
+    const measures: ExceptionMonitorMeasures = await read(
+      [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+      { exceptionTypes: ["ANR"], excludedExceptionTypes: ["ANR"] },
+    );
+
+    expect(measures).toEqual({
+      newExceptionCount: 0,
+      regressedExceptionCount: 0,
+    });
+    expect(groupCalls).toHaveLength(0);
+  });
+
   test("regressed exceptions: groups that came back in the window and are still open", async () => {
     groupCounts = [1];
     const measures: ExceptionMonitorMeasures = await read(
@@ -271,6 +331,167 @@ describe("ExceptionMonitorMeasureReader.read", () => {
  * counted in Postgres. A monitor without the filter reads exactly what it
  * did before.
  */
+/*
+ * #9716: the share of the window's sessions a matching exception happened
+ * in - a mobile app's crash rate with a crash's filters - and the sessions:
+ * two grouped counts (count DISTINCT sessionId), the spans' of the
+ * monitor's services and the monitor's own occurrences'.
+ */
+describe("the sessions a share is taken of", () => {
+  interface SessionCountCall {
+    query: Record<string, unknown>;
+    groupBy: unknown;
+  }
+
+  let spanSessionReads: Array<SessionCountCall>;
+  let exceptionSessionReads: Array<SessionCountCall>;
+  let spanSessions: number;
+  let exceptionSessions: number;
+
+  beforeEach(() => {
+    spanSessionReads = [];
+    exceptionSessionReads = [];
+    spanSessions = 400;
+    exceptionSessions = 6;
+
+    jest.spyOn(SpanService, "countBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+      groupBy: unknown;
+    }) => {
+      spanSessionReads.push({ query: args.query, groupBy: args.groupBy });
+      return new PositiveNumber(spanSessions);
+    }) as never);
+
+    jest
+      .spyOn(ExceptionInstanceService, "countBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+        groupBy: unknown;
+      }) => {
+        if (args.groupBy) {
+          exceptionSessionReads.push({
+            query: args.query,
+            groupBy: args.groupBy,
+          });
+          return new PositiveNumber(exceptionSessions);
+        }
+
+        occurrenceCalls.push({ query: args.query });
+        return new PositiveNumber(previousOccurrences);
+      }) as never);
+  });
+
+  const windowOf: (query: Record<string, unknown>) => string = (
+    query: Record<string, unknown>,
+  ): string => {
+    return JSON.stringify(query["startTime"] || query["time"]);
+  };
+
+  test("a plain count reads no session", async () => {
+    await read([CheckOn.ExceptionCount, CheckOn.NewExceptionCount]);
+
+    expect(spanSessionReads).toHaveLength(0);
+    expect(exceptionSessionReads).toHaveLength(0);
+  });
+
+  test("the share: sessions with a matching exception over the window's sessions", async () => {
+    const measures: ExceptionMonitorMeasures = await read([
+      CheckOn.SessionsWithExceptionsPercent,
+    ]);
+
+    expect(measures).toEqual({
+      sessionCount: 400,
+      sessionsWithExceptionsCount: 6,
+      sessionsWithExceptionsPercent: 1.5,
+    });
+  });
+
+  test("the sessions alone read the same two counts", async () => {
+    expect(await read([CheckOn.SessionCount])).toEqual({
+      sessionCount: 400,
+      sessionsWithExceptionsCount: 6,
+      sessionsWithExceptionsPercent: 1.5,
+    });
+  });
+
+  test("the window's sessions are the distinct session ids of the services' spans in the monitor's window", async () => {
+    await read([CheckOn.SessionsWithExceptionsPercent]);
+
+    expect(spanSessionReads).toHaveLength(1);
+
+    const { query, groupBy } = spanSessionReads[0]!;
+
+    expect(groupBy).toEqual({ sessionId: true });
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["primaryEntityId"]).toEqual(new Includes([SERVICE_ID]));
+    // A span that names no session is none.
+    expect(query["sessionId"]).toEqual(new NotEqual(""));
+    expect(windowOf(query)).toContain("2026-10-30T11:55:00.000Z");
+    expect(windowOf(query)).toContain("2026-10-30T12:00:00.000Z");
+    // A span has no exception type, message or environment.
+    expect(query["exceptionType"]).toBeUndefined();
+    expect(query["message"]).toBeUndefined();
+    expect(query["environment"]).toBeUndefined();
+  });
+
+  test("the sessions with an exception are the monitor's own occurrences', every filter with them", async () => {
+    await read([CheckOn.SessionsWithExceptionsPercent], {
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR", "Hang"],
+      exceptionTypes: [],
+    });
+
+    expect(exceptionSessionReads).toHaveLength(1);
+
+    const { query, groupBy } = exceptionSessionReads[0]!;
+
+    expect(groupBy).toEqual({ sessionId: true });
+    expect(query["sessionId"]).toEqual(new NotEqual(""));
+    expect(windowOf(query)).toContain("2026-10-30T11:55:00.000Z");
+    expect(windowOf(query)).toContain("2026-10-30T12:00:00.000Z");
+  });
+
+  test("an entity filter scopes the spans' sessions as it does the exceptions", async () => {
+    await read([CheckOn.SessionsWithExceptionsPercent], {
+      entityKeys: ["k8s.pod:checkout-1"],
+    });
+
+    expect(spanSessionReads[0]!.query["entityKeys"]).toEqual(
+      new Includes(["k8s.pod:checkout-1"]),
+    );
+  });
+
+  test("a monitor of every service counts every span's session", async () => {
+    await read([CheckOn.SessionsWithExceptionsPercent], {
+      telemetryServiceIds: [],
+    });
+
+    expect(spanSessionReads[0]!.query["primaryEntityId"]).toBeUndefined();
+  });
+
+  test("no session in the window: the share is unknown, not 0%", async () => {
+    spanSessions = 0;
+    exceptionSessions = 3;
+
+    expect(await read([CheckOn.SessionsWithExceptionsPercent])).toEqual({
+      sessionCount: 0,
+      sessionsWithExceptionsCount: 0,
+      sessionsWithExceptionsPercent: null,
+    });
+  });
+
+  test("sessions only an exception named never take the share past 100%", async () => {
+    spanSessions = 4;
+    exceptionSessions = 9;
+
+    expect(await read([CheckOn.SessionsWithExceptionsPercent])).toEqual({
+      sessionCount: 4,
+      sessionsWithExceptionsCount: 4,
+      sessionsWithExceptionsPercent: 100,
+    });
+  });
+});
+
 describe("the infrastructure entity filter on new and regressed exceptions", () => {
   const HOST: string = "host:web-1";
 

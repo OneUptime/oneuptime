@@ -231,6 +231,15 @@ const FriendlyLabelNames: Record<string, string> = {
   "device.name": "Device",
 
   /*
+   * --- Mobile apps ---
+   *
+   * The install OpenTelemetry Android names on its resource (#9711): what a
+   * mobile app's Device Stopped Reporting groups by, one per phone or
+   * kiosk the app is installed on.
+   */
+  "app.installation.id": "Install",
+
+  /*
    * --- Network events ---
    *
    * What a device's syslog and its standard traps are read into
@@ -355,6 +364,7 @@ const LabelPriority: Record<string, number> = {
   host: 30,
   "device.id": 25,
   "device.name": 25,
+  "app.installation.id": 25,
   /*
    * Network events: what the event happened to (the interface, the
    * tunnel, the neighbour) first, then the device that reported it.

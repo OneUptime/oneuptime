@@ -114,7 +114,7 @@ Fai clic su **Configura l'email**. Apre **Impostazioni > Notifiche > Email**, do
 
 ### Scegliere chi può registrarsi
 
-Chiunque possa aprire il tuo indirizzo può registrarsi. Quando il tuo team ha i suoi account, disattiva **Consenti la registrazione** in **Impostazioni > Autenticazione**: chi inviti in un progetto può comunque entrare. Per lasciare aperte le registrazioni, fai clic su **Lascia aperte le registrazioni**.
+Chiunque possa aprire il tuo indirizzo può registrarsi. Quando il tuo server può inviare e-mail, un nuovo account apre il link che OneUptime gli invia prima di poter accedere, e a un indirizzo che ha già un account viene detto via e-mail. Quando il tuo team ha i suoi account, disattiva **Consenti la registrazione** in **Impostazioni > Autenticazione**: chi inviti in un progetto può comunque entrare. Per lasciare aperte le registrazioni, fai clic su **Lascia aperte le registrazioni**.
 
 **Ha funzionato quando** la checklist segna le registrazioni come fatte.
 

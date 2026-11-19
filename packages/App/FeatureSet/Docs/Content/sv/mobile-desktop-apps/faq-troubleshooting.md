@@ -42,7 +42,7 @@ Allt annat finns i instrumentpanelen.
 :::
 
 :::details Kan jag bekräfta ett larm från aviseringen?
-Nej. Tryck på aviseringen: appen öppnar incidenten, larmet, episoden eller säkerhetsärendet den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar det larmet så snart du är inne.
+Ja. Tryck länge på aviseringen på en iPhone, eller fäll ut den på Android: ett jourlarm erbjuder **Acknowledge** och **Escalate**, ett larm som bara håller dig informerad erbjuder **I've seen it**, och ett testlarm erbjuder **Acknowledge test page**. Varje åtgärd öppnar appen på posten så snart telefonen är upplåst och gör det postens egen knapp gör; innan den eskalerar frågar den först. Trycker du på själva aviseringen öppnar appen incidenten, larmet, episoden eller säkerhetsärendet den gäller, i rätt projekt. Är appen låst eller du utloggad öppnar det larmet så snart du är inne.
 :::
 
 :::details Är min inloggning säker på telefonen?

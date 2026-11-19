@@ -168,9 +168,9 @@ const resource = defaultResource().merge(
 | Группа | Рекомендации |
 | --- | --- |
 | Core Web Vitals | Для веб-приложения: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint и Slow Time to First Byte. См. [Core Web Vitals](/docs/rum/web-vitals). |
-| Ошибки | App Crashes и App Not Responding (ANR) для мобильного приложения, Failed User Operations для обоих и Unhandled Browser Exceptions для веб-приложения. |
+| Ошибки | App Crashes и App Not Responding (ANR) для мобильного приложения, а также их частоты, App Crash Rate и App ANR Rate, для приложения с сотнями сеансов в час; Failed User Operations для обоих и Unhandled Browser Exceptions для веб-приложения. |
 | Производительность | Для мобильного приложения: Slow Cold Start — когда холодный запуск длится 5 секунд или дольше, что Android vitals считает чрезмерным, и Frozen Frames — когда отрисовка кадра занимает больше 700 мс. |
-| Доступность | Для мобильного приложения: App Stopped Reporting — когда приложение не отправляет ни одного спана в течение 30 минут. |
+| Доступность | Для мобильного приложения: App Stopped Reporting — когда приложение не отправляет ни одного спана в течение 30 минут, и Device Stopped Reporting — когда одно из его устройств не отправляет ни одного спана в течение часа, хотя отправляло их за последнюю неделю. |
 | Session Replay | Четыре [оповещения о бюджете хранения](/docs/telemetry/session-replay#оповещения-о-бюджете-хранения), которые предупреждают до того, как будет исчерпан дневной лимит проекта или месячный бюджет приложения. Они предлагаются, как только приложение записало воспроизведение, а месячная пара — когда у него есть ещё и месячный бюджет. |
 
 Чтобы создать собственный монитор, выберите тот, который читает нужный сигнал:

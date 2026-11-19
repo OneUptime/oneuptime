@@ -77,7 +77,7 @@ O OneUptime encontra a aplicação pelo `service.name`, sem diferenciar maiúscu
 
 | Onde | O que mostra |
 | --- | --- |
-| **Visão geral** | Para um aplicativo web, blocos de **Carregamentos de página**, **Tempo de carregamento da página (p95)**, **Eventos**, **Taxa de erro**, **Duração dos eventos (p95)**, **Exceções**, **Clientes** e **Sessões gravadas**; para um aplicativo móvel, de **Sessões**, **Sessões sem falhas**, **Falhas**, **ANRs**, **Inicializações do app**, **Inicialização a frio (p95)**, **Quadros congelados** e **Taxa de erro**; e gráficos de tendência do intervalo de tempo que você escolher. |
+| **Visão geral** | Para um aplicativo web, blocos de **Carregamentos de página**, **Tempo de carregamento da página (p95)**, **Eventos**, **Taxa de erro**, **Duração dos eventos (p95)**, **Exceções**, **Clientes** e **Sessões gravadas**; para um aplicativo móvel, de **Sessões**, **Sessões sem falhas** com as instalações sem falhas, **Falhas**, **ANRs**, **Inicializações do app**, **Inicialização a frio (p95)**, **Quadros congelados** e **Taxa de erro**; e gráficos de tendência do intervalo de tempo que você escolher. |
 | **Core Web Vitals** | Um cartão na visão geral de um aplicativo web com LCP, INP, CLS, FCP e TTFB, cada um avaliado pelos limites do Google, e o INP de cada rota de um aplicativo de página única. Veja [Core Web Vitals](/docs/rum/web-vitals) e [Aplicativos de página única](/docs/rum/web-vitals#aplicativos-de-página-única). |
 | **Métricas**, **Registros**, **Traços** | Os exploradores de telemetria, limitados a esta aplicação. |
 | **Clientes** | As plataformas de navegador e os modelos de dispositivo em que a aplicação foi usada: uma lista curta por plataforma, nunca uma linha por usuário. |

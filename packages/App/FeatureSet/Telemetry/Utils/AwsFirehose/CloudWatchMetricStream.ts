@@ -1,4 +1,5 @@
 import { storedAttributesOf } from "Common/Server/Utils/CloudConnection/CloudMetricPayload";
+import { readDatapointTimeMs } from "Common/Server/Utils/CloudConnection/CloudResourceReadings";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import {
   AWS_KEY_METRICS,
@@ -340,6 +341,8 @@ export interface MetricResourceFacts {
   // The CloudWatch namespaces its datapoints carry.
   namespaces: Set<string>;
   datapoints: number;
+  // When its newest datapoint's minute starts, in milliseconds: null for none.
+  newestMs: number | null;
 }
 
 // What one resource holds: where it is from, its namespaces, how many datapoints.
@@ -354,6 +357,7 @@ export function readMetricResourceFacts(
     region: readStringAttribute(attributes, "cloud.region"),
     namespaces: new Set<string>(),
     datapoints: 0,
+    newestMs: null,
   };
 
   for (const rawScope of readArray(resourceMetrics["scopeMetrics"])) {
@@ -369,13 +373,22 @@ export function readMetricResourceFacts(
       for (const rawPoint of readArray(series["dataPoints"])) {
         facts.datapoints++;
 
+        const point: JSONObject = readObject(rawPoint);
         const namespace: string = readStringAttribute(
-          readArray(readObject(rawPoint)["attributes"]),
+          readArray(point["attributes"]),
           "Namespace",
         );
 
         if (namespace && facts.namespaces.size < 200) {
           facts.namespaces.add(namespace);
+        }
+
+        const pointMs: number | null = readDatapointTimeMs(
+          readStartTime(point),
+        );
+
+        if (pointMs !== null && pointMs > (facts.newestMs ?? 0)) {
+          facts.newestMs = pointMs;
         }
       }
     }
@@ -580,6 +593,9 @@ export function readStatisticValue(
       return readQuantileValue(point, 1) ?? single;
     case "Minimum":
       return readQuantileValue(point, 0) ?? single;
+    // How many values were published in the minute: a summary's count is CloudWatch's SampleCount.
+    case "SampleCount":
+      return count;
   }
 
   return null;
@@ -708,6 +724,35 @@ interface StreamedPointPlace {
   // The connection, the resource and the metric: null for a resource no rule knows.
   seriesKey: string | null;
   dimensions: number;
+  // The resource it is about, when one is.
+  resource?: CloudMonitoredResource | undefined;
+}
+
+/*
+ * One minute a delivery wrote of a key metric's series, as the read's
+ * gauge, with the minute's own summary - how many values, their sum, least
+ * and most - which the read's statistic over its five minutes is made of
+ * (CloudStreamReadings).
+ */
+export interface StreamedKeyPoint {
+  resource: CloudMonitoredResource;
+  // Its stored name: "amazonaws.com/AWS/EC2/CPUUtilization".
+  metricName: string;
+  dimensions: Record<string, string>;
+  minuteMs: number;
+  count: number;
+  sum: number;
+  min: number | null;
+  max: number | null;
+}
+
+// When a point's minute starts: its start time, or its time when it has none.
+function readStartTime(point: JSONObject): JSONValue | undefined {
+  const startTime: number | null = readNumberLike(point["startTimeUnixNano"]);
+
+  return startTime && startTime > 0
+    ? point["startTimeUnixNano"]
+    : point["timeUnixNano"];
 }
 
 // Whether a point is a split of a resource whose own aggregate streams.
@@ -728,6 +773,7 @@ function toReadGauge(data: {
   keyMetric: StreamedKeyMetric;
   places: Map<JSONObject, StreamedPointPlace>;
   fewest: Map<string, number>;
+  onKeyPoint?: ((point: StreamedKeyPoint) => void) | undefined;
 }): JSONObject | null {
   const dataPoints: Array<JSONObject> = [];
 
@@ -755,11 +801,22 @@ function toReadGauge(data: {
       continue;
     }
 
-    const startTime: number | null = readNumberLike(point["startTimeUnixNano"]);
-    const time: JSONValue | undefined =
-      startTime && startTime > 0
-        ? point["startTimeUnixNano"]
-        : point["timeUnixNano"];
+    const time: JSONValue | undefined = readStartTime(point);
+    // Nanoseconds, read as digits: a number that large would round a minute's start off it.
+    const minuteMs: number | null = readDatapointTimeMs(time);
+
+    if (data.onKeyPoint && place.resource && minuteMs !== null) {
+      data.onKeyPoint({
+        resource: place.resource,
+        metricName: readText(data.metric["name"]),
+        dimensions: readDimensions(readArray(point["attributes"])),
+        minuteMs,
+        count: readNumberLike(point["count"]) ?? 0,
+        sum: readNumberLike(point["sum"]) ?? 0,
+        min: readStatisticValue(point, "Minimum"),
+        max: readStatisticValue(point, "Maximum"),
+      });
+    }
 
     dataPoints.push({
       ...(time !== undefined && time !== null
@@ -830,6 +887,8 @@ export async function shapeStreamedMetrics(data: {
    * nothing of itself when left out.
    */
   stack?: AwsStreamStack | undefined;
+  // Told of each minute of a key metric written: what the resources' readings are made of.
+  onKeyPoint?: ((point: StreamedKeyPoint) => void) | undefined;
 }): Promise<Array<JSONObject>> {
   const memory: StreamedSeriesMemory = data.memory || STREAMED_SERIES_MEMORY;
   const stack: AwsStreamStack = data.stack || UNVERSIONED_AWS_STREAM_STACK;
@@ -914,7 +973,11 @@ export async function shapeStreamedMetrics(data: {
             ? `${data.connectionId}|${resource.identityKey}|${name.toLowerCase()}`
             : null;
 
-          places.set(point, { seriesKey, dimensions });
+          places.set(point, {
+            seriesKey,
+            dimensions,
+            ...(resource ? { resource } : {}),
+          });
 
           if (seriesKey) {
             deliveryFewest.set(
@@ -980,7 +1043,13 @@ export async function shapeStreamedMetrics(data: {
         const keyMetric: StreamedKeyMetric | undefined =
           STREAMED_KEY_METRICS.get(readText(metric["name"]).toLowerCase());
         const written: JSONObject | null = keyMetric
-          ? toReadGauge({ metric, keyMetric, places, fewest })
+          ? toReadGauge({
+              metric,
+              keyMetric,
+              places,
+              fewest,
+              onKeyPoint: data.onKeyPoint,
+            })
           : withoutSplits({ metric, places, fewest });
 
         if (written !== metric) {

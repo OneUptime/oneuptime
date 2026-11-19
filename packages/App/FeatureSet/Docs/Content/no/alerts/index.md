@@ -126,7 +126,7 @@ Reglene, eierne, feeden og den første tilstanden skjer likevel i begge tilfelle
 - **Endre tilstand til**, i menyen **⋯** ved siden av, flytter det til en egen tilstand, som "Under undersøkelse".
 - **Erklær hendelse** åpner en ny hendelse, forhåndsutfylt fra varselet, når det viser seg at problemet rammer brukerne. Se [Koblede varsler](/docs/incidents/linked-alerts).
 
-Et bytte til en annen tilstand ber deg bekrefte, med et valgfritt privat notat sammenfoldet under **Legg til et privat notat**. Hva hver tilstand gjør, står på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities).
+Et bytte til en annen tilstand ber deg bekrefte, med et valgfritt privat notat sammenfoldet under **Legg til et privat notat**. Når du løser det fra toppen, er også **Legg til rotårsaken** sammenfoldet: hvorfor det skjedde, som blir varselets rotårsak, og som undersøkelsen til OneUptime AI måles mot. Hva hver tilstand gjør, står på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities).
 
 Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varselsfeed** kjører også en runbook med **Kjør runbook**, eller tilkaller flere personer med **Kjør vaktpolicy**.
 

@@ -89,7 +89,11 @@ jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
 jest.mock("Common/Server/Services/StatusPageService", () => {
   return {
     __esModule: true,
-    default: { getStatusPageURL: jest.fn() },
+    /*
+     * findBy: the announcement forms' answer reads the pages picked as the
+     * project's (AnnouncementReachBuilder), in the parity tests at the end.
+     */
+    default: { getStatusPageURL: jest.fn(), findBy: jest.fn() },
     Service: {
       getSubscriberEmailFooterText: jest.fn(() => {
         return "Footer text";
@@ -274,6 +278,9 @@ import {
   pageShowingTheMonitorTwice,
 } from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Announcement/SendNotificationToSubscribers";
+import AnnouncementReachBuilder from "Common/Server/Utils/StatusPage/AnnouncementReachBuilder";
+import { AnnouncementReachResult } from "Common/Types/StatusPage/AnnouncementReach";
+import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 const CREATED_JOB: string = "Announcement:SendNotificationToSubscribers";
@@ -2773,5 +2780,128 @@ describe("Announcement notifications, in the subscriber's language", () => {
     expect(sentSms()[0]).toBe(
       `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     );
+  });
+});
+
+/*
+ * THE ANNOUNCEMENT FORMS SAY WHAT THIS JOB DOES (#9775).
+ *
+ * Create Announcement and the announcement's Edit ask the server what the
+ * status pages picked will do (AnnouncementReachBuilder) and say it: told
+ * when it starts showing, or why not. For every mix of pages, the answer is
+ * what this job does with the same pages - a subscriber is told exactly
+ * when the answer gives no reason, and a page that hides announcements and
+ * one that sends nothing are told apart as the job tells them apart.
+ */
+describe("the announcement forms' answer for the pages picked is what this job does", () => {
+  interface PageMix {
+    name: string;
+    pages: Array<{ shows: boolean; sends: boolean }>;
+    reason: AnnouncementReachResult["nothingSentReason"];
+  }
+
+  const PAGE_IDS: Array<ObjectID> = [
+    STATUS_PAGE_ID,
+    SECOND_STATUS_PAGE_ID,
+    THIRD_STATUS_PAGE_ID,
+  ];
+
+  const MIXES: Array<PageMix> = [
+    {
+      name: "a page that shows announcements and sends notifications",
+      pages: [{ shows: true, sends: true }],
+      reason: null,
+    },
+    {
+      name: "a page that hides announcements",
+      pages: [{ shows: false, sends: true }],
+      reason: PublicNoteNothingSentReason.NoStatusPages,
+    },
+    {
+      name: "a page that never notifies",
+      pages: [{ shows: true, sends: false }],
+      reason: PublicNoteNothingSentReason.NotificationsOff,
+    },
+    {
+      name: "a page that hides announcements and never notifies",
+      pages: [{ shows: false, sends: false }],
+      reason: PublicNoteNothingSentReason.NoStatusPages,
+    },
+    {
+      name: "a page that hides them beside one that never notifies",
+      pages: [
+        { shows: false, sends: true },
+        { shows: true, sends: false },
+      ],
+      reason: PublicNoteNothingSentReason.NotificationsOff,
+    },
+    {
+      name: "a page that hides them beside one that shows them and notifies",
+      pages: [
+        { shows: false, sends: true },
+        { shows: true, sends: true },
+      ],
+      reason: null,
+    },
+    {
+      name: "no page left to send from: archived, or a blocked project's",
+      pages: [],
+      reason: PublicNoteNothingSentReason.NoStatusPages,
+    },
+  ];
+
+  test.each(MIXES)("$name", async (mix: PageMix) => {
+    const picked: Array<ObjectID> =
+      mix.pages.length > 0
+        ? PAGE_IDS.slice(0, mix.pages.length)
+        : [STATUS_PAGE_ID];
+
+    // The pages as every subscriber notification loads them.
+    const loaded: Array<StatusPage> = mix.pages.map(
+      (
+        settings: { shows: boolean; sends: boolean },
+        index: number,
+      ): StatusPage => {
+        const page: StatusPage = statusPage({
+          id: PAGE_IDS[index]!,
+          showAnnouncementsOnStatusPage: settings.shows,
+        });
+        page.sendSubscriberNotifications = settings.sends;
+        return page;
+      },
+    );
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue(loaded as never);
+    // Every page picked is the project's.
+    mock(
+      (StatusPageService as unknown as { findBy: unknown }).findBy,
+    ).mockResolvedValue(
+      picked.map((id: ObjectID): StatusPage => {
+        return statusPage({ id: id });
+      }) as never,
+    );
+
+    const answer: AnnouncementReachResult =
+      await AnnouncementReachBuilder.build({
+        projectId: PROJECT_ID,
+        props: { isRoot: true },
+        request: { statusPageIds: picked, announcementId: null },
+      });
+
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+        statusPageIds: picked,
+      }),
+    ];
+
+    await runJob(CREATED_JOB);
+
+    expect(answer.nothingSentReason).toBe(mix.reason);
+    expect(sentMail().length > 0).toBe(answer.nothingSentReason === null);
+    expect(sentSms().length > 0).toBe(answer.nothingSentReason === null);
   });
 });

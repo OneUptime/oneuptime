@@ -16,6 +16,7 @@ import PerEntityCriteriaFanOut, {
   FanOutEntity,
 } from "./PerEntityCriteriaFanOut";
 import LogGroupCriteriaFanOut from "./LogGroupCriteriaFanOut";
+import TraceGroupCriteriaFanOut from "./TraceGroupCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import CriteriaFilterMatchHistory, {
   CriteriaFilterCheck,
@@ -73,6 +74,7 @@ import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
+import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
@@ -982,6 +984,15 @@ ${incomingRequestGrouping.rootCauseNote}
       );
     }
 
+    // And a Traces monitor's, the span-count one (#9711).
+    if (monitorType === MonitorType.Traces) {
+      return (
+        MonitorStepTraceMonitorUtil.getGroupByAttributes(
+          input.monitorStep.data?.traceMonitor,
+        ).length > 0
+      );
+    }
+
     /*
      * Monitor types with no group-by concept, whose criteria name one
      * entity each. They opt into per-entity alerting by naming "*"
@@ -1060,12 +1071,26 @@ ${incomingRequestGrouping.rootCauseNote}
      * tunnel (or user, or interface) that breaches raises its own alert,
      * through the same fan-out the disks and interfaces below use.
      */
-    if (input.monitor.monitorType === MonitorType.Logs) {
+    /*
+     * A grouped Traces monitor (#9711) the same way: one span count per
+     * group - per install of a mobile app - each judged on its own, a
+     * quiet one counted as 0 (TraceGroupAbsence).
+     */
+    if (
+      input.monitor.monitorType === MonitorType.Logs ||
+      (input.monitor.monitorType === MonitorType.Traces &&
+        TraceGroupCriteriaFanOut.isGroupedResponse(input.dataToProcess))
+    ) {
       return PerEntityCriteriaFanOut.collectMatches({
         criteriaInstance: input.criteriaInstance,
-        entities: LogGroupCriteriaFanOut.getGroupEntities({
-          dataToProcess: input.dataToProcess,
-        }),
+        entities:
+          input.monitor.monitorType === MonitorType.Traces
+            ? TraceGroupCriteriaFanOut.getGroupEntities({
+                dataToProcess: input.dataToProcess,
+              })
+            : LogGroupCriteriaFanOut.getGroupEntities({
+                dataToProcess: input.dataToProcess,
+              }),
         monitorId: input.monitor.id?.toString(),
         evaluateNarrowedCriteria: (
           narrowedCriteriaInstance: MonitorCriteriaInstance,

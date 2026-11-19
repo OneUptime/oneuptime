@@ -745,7 +745,7 @@ describe("UserWebAuthnService passkeys", () => {
       storedCredential,
     ]);
     const result: any = await UserWebAuthnService.generateAuthenticationOptions(
-      { email: "passkey@example.com" },
+      { userId: USER_ID },
     );
     expect(result.options.challenge).toBe(CHALLENGE);
     expect(cache.size).toBe(1);

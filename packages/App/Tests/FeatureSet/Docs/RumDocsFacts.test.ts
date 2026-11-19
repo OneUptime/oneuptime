@@ -99,6 +99,18 @@ import TelemetryIngestSurface, {
 } from "Common/Types/Telemetry/TelemetryIngestSurface";
 import { SessionRotationReason } from "Common/Utils/Rum/SessionIdentity";
 import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
+import {
+  APP_NOT_RESPONDING_EXCEPTION_TYPES,
+  HANG_EXCEPTION_TYPE,
+  METRICKIT_CRASH_EVENT_NAME,
+  METRICKIT_HANG_EVENT_NAME,
+  MobileAppFaultKind,
+  getMobileAppFaultKind,
+} from "Common/Utils/Telemetry/MobileAppFaults";
+import {
+  APP_START_SPAN_NAME,
+  APP_START_TYPE_ATTRIBUTE,
+} from "Common/Types/Rum/MobileAppTelemetry";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import { describe, expect, it, jest } from "@jest/globals";
@@ -143,6 +155,7 @@ const SOURCES: Record<string, string> = {
   performanceRecorder:
     "packages/App/FeatureSet/BrowserRecorder/src/PerformanceRecorder.ts",
   mobileRecorderPackage: "packages/App/FeatureSet/MobileRecorder/package.json",
+  mobileRumSignalData: `${DASHBOARD}/Components/Rum/MobileOverview/MobileRumSignalData.ts`,
 };
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
@@ -1202,6 +1215,69 @@ describe("Mobile Setup", () => {
     );
     // The page no longer says mobile apps cannot be recorded.
     expect(mobile).not.toContain("Session Replay is browser-only");
+  });
+
+  /*
+   * #9712: an iOS app's crashes and hangs, from opentelemetry-swift's
+   * MetricKit instrumentation. The section's names and types are the ones
+   * ingest files them under, and its Overview claims the reads it makes.
+   */
+  describe("iOS crashes and hangs", () => {
+    const ios: string = section(MOBILE_SETUP, "## iOS crashes and hangs");
+
+    it("names the events ingest files as a crash and a hang", () => {
+      expect(ios).toContain(
+        `| A crash | \`${METRICKIT_CRASH_EVENT_NAME}\` | An unhandled exception`,
+      );
+      expect(ios).toContain(
+        `| A hang | \`${METRICKIT_HANG_EVENT_NAME}\` | An unhandled exception of type **${HANG_EXCEPTION_TYPE}**`,
+      );
+      expect(
+        getMobileAppFaultKind({ "event.name": METRICKIT_CRASH_EVENT_NAME }),
+      ).toBe(MobileAppFaultKind.Crash);
+      expect(
+        getMobileAppFaultKind({ "event.name": METRICKIT_HANG_EVENT_NAME }),
+      ).toBe(MobileAppFaultKind.Hang);
+    });
+
+    it("says the ANRs tile counts hangs, as its read does", () => {
+      expect(ios).toContain(
+        "its **ANRs** tile counts the hangs with Android's ANRs",
+      );
+      expect(
+        source("mobileRumSignalData").includes(
+          "exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES]",
+        ),
+      ).toBe(true);
+      expect([...APP_NOT_RESPONDING_EXCEPTION_TYPES]).toContain(
+        HANG_EXCEPTION_TYPE,
+      );
+    });
+
+    it("exports logs, which MetricKit reports diagnostics as, and registers the instrumentation", () => {
+      for (const needle of [
+        "OtlpHttpLogExporter(",
+        'endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!',
+        "OpenTelemetry.registerLoggerProvider(",
+        "BatchLogRecordProcessor(logRecordExporter: logExporter)",
+        "import MetricKitInstrumentation",
+        "MXMetricManager.shared.add(metricKitInstrumentation)",
+      ]) {
+        expect(ios).toContain(needle);
+      }
+    });
+
+    it("names the span an iOS app records for its starts, which the Overview reads", () => {
+      expect(ios).toContain(
+        `a span named \`${APP_START_SPAN_NAME}\`, with \`${APP_START_TYPE_ATTRIBUTE}\` set to \`cold\`, \`warm\` or \`hot\``,
+      );
+    });
+
+    it("warns that MetricKit reports late", () => {
+      expect(ios).toContain(
+        "so a crash or a hang can arrive minutes or a day after it happened",
+      );
+    });
   });
 });
 

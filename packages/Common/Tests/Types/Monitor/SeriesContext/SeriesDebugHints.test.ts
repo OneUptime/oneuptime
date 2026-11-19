@@ -1242,6 +1242,46 @@ describe("SeriesDebugHints", () => {
     });
   });
 
+  /*
+   * #9711: a Traces monitor grouped by a mobile app's install (Device
+   * Stopped Reporting) - the CLI can list what the install sent last.
+   */
+  describe("a quiet install of a mobile app", () => {
+    test("lists the install's last spans, newest first, read-only", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Traces,
+          seriesLabels: {
+            "resource.app.installation.id":
+              "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+          },
+        }),
+      ).toEqual([
+        `oneuptime span list --query '{"attributes":{"resource.app.installation.id":"1b4e28ba-2fa1-11d2-883f-0016d3cca427"}}' --sort '{"startTime":"DESC"}' --limit 5 --fields startTime,name,attributes`,
+      ]);
+    });
+
+    test("a hostile install id is quoted into an inert argument", () => {
+      const [command] = getCommandStrings({
+        monitorType: MonitorType.Traces,
+        seriesLabels: { "resource.app.installation.id": "x'; rm -rf / '" },
+      });
+
+      expect(command).toContain(`'{"attributes":`);
+      // The single quote is closed, escaped and reopened, never left open.
+      expect(command).toContain(`x'\\''; rm -rf / '\\''`);
+    });
+
+    test("a Traces series that names no install has no command", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Traces,
+          seriesLabels: { "http.route": "/checkout" },
+        }),
+      ).toEqual([]);
+    });
+  });
+
   describe("types with no universally safe command", () => {
     test.each([
       MonitorType.Metrics,

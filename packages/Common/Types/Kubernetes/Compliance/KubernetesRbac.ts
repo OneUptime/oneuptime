@@ -15,11 +15,19 @@ import {
  * limited to some resourceNames grants access to those objects only, which
  * the "minimize access" controls do not count against a cluster.
  *
- * The roles and bindings Kubernetes and the managed platforms create and
- * keep up themselves are not the cluster owner's to change, so the
- * controls read the others: a built-in one carries the bootstrapping label,
- * or a name in the system: namespace of names, or EKS's and GKE's own
- * prefixes.
+ * The roles and bindings Kubernetes, its bootstrapper and the managed
+ * platforms create and keep up themselves are not the cluster owner's to
+ * change, so the controls read the others: a built-in one carries the
+ * bootstrapping label, or a name in the system: namespace of names, or
+ * kubeadm's, EKS's and GKE's own prefixes. kubeadm makes its kubeadm:
+ * objects again on every init and upgrade: the API server's kubelet client
+ * (kubeadm:apiserver-kubelet-client, which a kind or kubeadm cluster's API
+ * server needs to reach any kubelet), its admin.conf group
+ * (kubeadm:cluster-admins) and the nodes' bootstrap.
+ *
+ * The OneUptime agent's own roles and bindings are the cluster owner's -
+ * they install the agent - but the page says which they are, and why the
+ * agent asks for what a control finds (#9878).
  */
 
 export interface KubernetesRbacRequest {
@@ -54,9 +62,10 @@ const WILDCARD: string = "*";
 export const BOOTSTRAPPING_LABEL: string = "kubernetes.io/bootstrapping";
 export const BOOTSTRAPPING_VALUE: string = "rbac-defaults";
 
-// Names Kubernetes and the managed platforms give the RBAC objects they keep up.
+// Names Kubernetes, kubeadm and the managed platforms give the RBAC objects they keep up.
 export const BUILT_IN_RBAC_NAME_PREFIXES: ReadonlyArray<string> = [
   "system:",
+  "kubeadm:",
   "eks:",
   "gce:",
 ];
@@ -67,6 +76,76 @@ export function isBuiltInRbacObject(object: KubernetesRbacObjectMeta): boolean {
     BUILT_IN_RBAC_NAME_PREFIXES.some((prefix: string): boolean => {
       return object.name.startsWith(prefix);
     })
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The OneUptime agent's own (#9878)
+ * ---------------------------------------------------------------------------
+ *
+ * The kubernetes-agent chart labels everything it makes with its chart and
+ * OneUptime, whatever its release is called (helm.sh/chart:
+ * kubernetes-agent-<version>, app.kubernetes.io/part-of: oneuptime), and so
+ * does the Amazon EKS add-on, which is the same chart. Where its ClusterRole
+ * grants nodes/proxy, which reaches the whole kubelet API, it says why in a
+ * label of its own (templates/rbac.yaml): what still needs it, joined by a
+ * dot. A chart from before grants nodes/proxy on every cluster and says
+ * nothing.
+ */
+export const HELM_CHART_LABEL: string = "helm.sh/chart";
+export const ONEUPTIME_AGENT_CHART_PREFIX: string = "kubernetes-agent-";
+export const PART_OF_LABEL: string = "app.kubernetes.io/part-of";
+export const ONEUPTIME_PART_OF: string = "oneuptime";
+export const NODES_PROXY_REASON_LABEL: string = "oneuptime.com/nodes-proxy";
+
+// Why the agent's ClusterRole grants nodes/proxy, as its chart names it.
+export enum OneUptimeAgentNodesProxyReason {
+  /*
+   * The node collector reads each node's pod list from its kubelet, which
+   * a kubelet older than Kubernetes 1.33 allows only with nodes/proxy
+   * (kubeletstats.nodesProxy).
+   */
+  KubeletPods = "kubelet-pods",
+  /*
+   * The bundled cost Prometheus reads cAdvisor through the API server's node
+   * proxy, as EKS Fargate needs (cost.prometheus.nodesProxy).
+   */
+  CostPrometheus = "cost-prometheus",
+}
+
+// Whether the OneUptime agent's chart made this role or binding.
+export function isOneUptimeAgentObject(
+  object: KubernetesRbacObjectMeta,
+): boolean {
+  const labels: Record<string, string> = object.labels || {};
+
+  return (
+    labels[PART_OF_LABEL] === ONEUPTIME_PART_OF &&
+    (labels[HELM_CHART_LABEL] || "").startsWith(ONEUPTIME_AGENT_CHART_PREFIX)
+  );
+}
+
+/*
+ * Why the agent's role grants nodes/proxy, as its label says, in one order;
+ * a word the page does not know is left out. Empty for a role from a chart
+ * before the label, and for one that names no reason.
+ */
+export function getNodesProxyReasons(
+  role: KubernetesRbacObjectMeta | null,
+): Array<OneUptimeAgentNodesProxyReason> {
+  const named: Set<string> = new Set<string>(
+    ((role?.labels || {})[NODES_PROXY_REASON_LABEL] || "")
+      .split(".")
+      .map((word: string): string => {
+        return word.trim();
+      }),
+  );
+
+  return Object.values(OneUptimeAgentNodesProxyReason).filter(
+    (reason: OneUptimeAgentNodesProxyReason): boolean => {
+      return named.has(reason);
+    },
   );
 }
 

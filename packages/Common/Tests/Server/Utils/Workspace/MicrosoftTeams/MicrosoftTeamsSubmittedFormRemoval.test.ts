@@ -2466,6 +2466,16 @@ const RAW_REMOVAL: RegExp = /\.\s*deleteActivity\s*\(/g;
 const BEST_EFFORT_REMOVAL: RegExp =
   /MicrosoftTeamsReplies\s*\.\s*deleteBestEffort\s*\(/g;
 
+/*
+ * The one removal that is no form's: deleteMessage, the workspace's delete
+ * of a post OneUptime takes back on purpose (a call's transcript gone,
+ * 7d68709f7d6), outside any turn. Its caller is told when Teams refuses -
+ * a post gone already was deleted - so it is not best-effort. The method,
+ * from its signature to its closing brace, is set aside before the count.
+ */
+const DELETE_MESSAGE_METHOD: RegExp =
+  /public static override async deleteMessage\([\s\S]*?\n {2}\}\n/;
+
 describe("the forms above are every form removal there is", (): void => {
   test("the Teams bot removes messages only through deleteBestEffort, and only in the submits driven above", (): void => {
     const teamsDirectory: string = path.join(
@@ -2485,10 +2495,22 @@ describe("the forms above are every form removal there is", (): void => {
     );
 
     for (const relativePath of sourceFiles) {
-      const source: string = fs.readFileSync(
+      let source: string = fs.readFileSync(
         path.join(teamsDirectory, relativePath),
         "utf8",
       );
+
+      if (relativePath === "MicrosoftTeams.ts") {
+        const deleteMessage: RegExpMatchArray | null = source.match(
+          DELETE_MESSAGE_METHOD,
+        );
+
+        // Found, and holding the one raw call it makes.
+        expect(deleteMessage).not.toBeNull();
+        expect(countMatches(deleteMessage![0], RAW_REMOVAL)).toBe(1);
+        source = source.replace(DELETE_MESSAGE_METHOD, "");
+      }
+
       const rawRemovals: number = countMatches(source, RAW_REMOVAL);
 
       if (relativePath === "MicrosoftTeamsReplies.ts") {

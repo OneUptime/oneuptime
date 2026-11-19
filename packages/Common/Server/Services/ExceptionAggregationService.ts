@@ -19,6 +19,13 @@ import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
+import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
+
+/*
+ * The install an occurrence names (#9716): the attribute ingest copies onto
+ * it from its span's or log's resource. A constant key, written inline.
+ */
+const INSTALL_EXPRESSION: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
 
 export interface HistogramBucket {
   time: string;
@@ -60,6 +67,11 @@ export interface SessionCountRequest extends ExceptionFilters {
   projectId: ObjectID;
   startTime: Date;
   endTime: Date;
+  /*
+   * Count the installs too (#9716): the distinct `app.installation.id` an
+   * occurrence's span or log named, which ingest keeps on the occurrence.
+   */
+  countInstalls?: boolean | undefined;
 }
 
 export interface SessionCountResult {
@@ -67,6 +79,13 @@ export interface SessionCountResult {
   sessions: number;
   // Every matching occurrence, with a session or not.
   occurrences: number;
+  // The distinct installs, when asked for; an occurrence with none is no install.
+  installs?: number | undefined;
+  /*
+   * The occurrences that name their install, when asked for: fewer than
+   * every occurrence means some installs could not be told.
+   */
+  occurrencesWithInstall?: number | undefined;
 }
 
 export interface FacetValue {
@@ -156,20 +175,36 @@ export class ExceptionAggregationService {
     return {
       sessions: Number(row["sessions"] || 0),
       occurrences: Number(row["cnt"] || 0),
+      ...(request.countInstalls
+        ? {
+            installs: Number(row["installs"] || 0),
+            occurrencesWithInstall: Number(row["withInstall"] || 0),
+          }
+        : {}),
     };
   }
 
   /*
-   * `uniqIf`, as TraceAggregationService counts a scope's sessions, so the
-   * two counts a crash-free share divides are made the same way.
+   * `uniqIf`, as TraceAggregationService counts a scope's sessions and
+   * installs, so the two counts a crash-free share divides are made the
+   * same way.
    */
   public static buildSessionCountStatement(
     request: SessionCountRequest,
   ): Statement {
-    const statement: Statement = SQL`
-      SELECT
-        uniqIf(sessionId, sessionId != '') AS sessions,
-        count() AS cnt
+    const statement: Statement = new Statement();
+
+    statement.append(
+      "SELECT uniqIf(sessionId, sessionId != '') AS sessions, count() AS cnt",
+    );
+
+    if (request.countInstalls) {
+      statement.append(
+        `, uniqIf(${INSTALL_EXPRESSION}, ${INSTALL_EXPRESSION} != '') AS installs, countIf(${INSTALL_EXPRESSION} != '') AS withInstall`,
+      );
+    }
+
+    statement.append(SQL`
       FROM ${ExceptionAggregationService.TABLE_NAME}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -183,7 +218,7 @@ export class ExceptionAggregationService {
           type: TableColumnType.Date,
           value: request.endTime,
         }}
-    `;
+    `);
 
     statement.append(" AND retentionDate >= now()");
 

@@ -5,6 +5,7 @@ Android、iOS、React Native のアプリを OpenTelemetry でインストルメ
 :::cards
 - [OneUptime に必要なもの](#oneuptime-に必要なもの): サーバーキーで送る 2 つのリソース属性。
 - [プラットフォームの設定](#プラットフォームの設定): Android、iOS、React Native、そのほか。
+- [iOS のクラッシュとハング](#ios-のクラッシュとハング): 例外と概要に表示される MetricKit の診断。
 - [到着の確認](#到着を確認する): キーを確認してから、アプリを探します。
 - [モバイルのセッションリプレイ](#モバイルのセッションリプレイ): React Native アプリの録画。
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 `/v1/traces` 、 `/v1/metrics` 、 `/v1/logs` は SDK がエンドポイントに自動で付けます。
 :::
+
+## iOS のクラッシュとハング
+
+opentelemetry-swift 2.3 以降は、MetricKit のインストルメンテーションを通じて iOS アプリのクラッシュとハングを報告します。このインストルメンテーションは、Apple の各診断をログレコードとして OpenTelemetry に渡します。OneUptime はこれらを OpenTelemetry Android のクラッシュや ANR と同じように扱うため、 **例外** とアプリケーションの **概要** に表示されます。
+
+| Apple の診断 | イベント名 | 例外での表示 |
+| --- | --- | --- |
+| クラッシュ | `metrickit.diagnostic.crash` | 未処理の例外。タイプはアプリを終了させたものから決まります。iOS 17 以降では Objective-C の例外、それがなければ Mach 例外 ( `EXC_BAD_ACCESS` )、それもなければシグナル ( `SIGSEGV` ) です |
+| ハング | `metrickit.diagnostic.hang` | タイプが **Hang** の未処理の例外。iOS で ANR に相当するもので、ハングが続いた時間を保持します |
+
+概要の **クラッシュ** タイルはクラッシュを数え、 **ANR** タイルは Android の ANR と合わせてハングを数えます。各スタックトレースはクラッシュレポートのスレッドとして描画され、クラッシュまたはハングしたスレッドが先頭に来ます。フレームはシンボリケートされていません。各フレームにはバイナリと、その中でのコードの位置が示されます。 **Binary Images** には各バイナリの UUID が一覧表示され、どのビルドの dSYM でシンボリケートできるかがわかります。
+
+:::steps
+### スパンに加えてログもエクスポートする
+
+MetricKit は診断をログレコードとして報告するため、トレーサープロバイダーと並べて、同じリソース、エンドポイント、ヘッダーでロガープロバイダーを登録します。
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### MetricKit のインストルメンテーションを登録する
+
+opentelemetry-swift の `MetricKitInstrumentation` プロダクトを追加し、ロガープロバイダーを登録したら、MetricKit に登録します。
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### セッションを記録する
+
+**セッション** と **クラッシュのないセッション** のタイルは、スパンの `session.id` を数えます。これを設定するのは opentelemetry-swift の `Sessions` プロダクトです。トレーサープロバイダーに `SessionSpanProcessor` を追加し、ログプロセッサーを `SessionLogRecordProcessor` で包んで、診断にもセッションが付くようにします。そのリリースはまだ `app.installation.id` を設定しないため、iOS アプリの **クラッシュのないセッション** タイルには、クラッシュのないインストールの割合ではなく、クラッシュしたセッションの数が表示されます。
+:::
+
+> [!NOTE]
+> Apple は MetricKit の診断を次回以降の起動時にアプリへ渡します。iOS 15 以降ではすぐに、それより前では 1 日に 1 回渡すため、クラッシュやハングは発生から数分後、または 1 日後に届くことがあり、届いた時点で数えられます。iOS アプリの概要に「過去 1 時間のクラッシュ 0 件」と表示されていても、まだ良い知らせとは限りません。診断に付くのは、それを報告したセッションであり、それによって終了したセッションではありません。
+
+opentelemetry-swift はアプリの起動時にスパンを記録しないため、 **アプリの起動** と **コールドスタート（p95）** のタイルは、アプリが自分でスパンを記録するまで空のままです。記録するのは `AppStart` という名前のスパンで、 `start.type` を `cold` 、 `warm` 、 `hot` のいずれかに設定し、プロセスの開始から最初の画面の準備ができるまでを表します。
 
 ## 到着を確認する
 

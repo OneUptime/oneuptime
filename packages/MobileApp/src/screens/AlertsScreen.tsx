@@ -27,7 +27,7 @@ import { spacing, typography } from "../theme/tokens";
 import ListFilters from "../components/ListFilters";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import {
   useListPane,
@@ -37,7 +37,18 @@ import {
   type PaneScrollRestoration,
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
-import SearchField from "../components/SearchField";
+import SearchFilterRow from "../components/filters/SearchFilterRow";
+import ActiveFilterBar from "../components/filters/ActiveFilterBar";
+import FilterSheet from "../components/filters/FilterSheet";
+import {
+  useRecordFilterControls,
+  type RecordFilterControls,
+} from "../hooks/useRecordFilterControls";
+import type {
+  FilterFacet,
+  FilterableList,
+  RecordFilters,
+} from "../filters/recordFilters";
 import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { getResolvedStateIds } from "../utils/resolvedState";
@@ -141,6 +152,21 @@ export default function AlertsScreen({
     "alerts.visibleEpisodes",
     PAGE_SIZE,
   );
+  /*
+   * Owner, state, severity, labels and monitors, as the Dashboard filters
+   * alerts: asked of the server, so they reach every alert of the project.
+   * One set for the screen, so "Owner: You" stays on from alerts to episodes.
+   */
+  const filterList: FilterableList =
+    segment === "alerts" ? "alerts" : "alertEpisodes";
+  const recordFilters: RecordFilterControls = useRecordFilterControls(
+    filterList,
+    "alerts.recordFilters",
+    (): void => {
+      setVisibleCount(PAGE_SIZE);
+      setVisibleEpisodeCount(PAGE_SIZE);
+    },
+  );
   // The params already applied: seen again after a fold, they must not wipe the search.
   const [appliedParams, setAppliedParams] = usePaneState<
     AlertsStackParamList["AlertsList"] | null
@@ -180,6 +206,8 @@ export default function AlertsScreen({
     setAppliedParams(route.params);
     if (route.params?.initialSegment || route.params?.initialFilter) {
       setSearch("");
+      // A count on Home opens every record it counted, not a filtered few.
+      recordFilters.clear();
     }
     if (
       route.params?.initialSegment === "alerts" ||
@@ -201,7 +229,7 @@ export default function AlertsScreen({
     isLoading,
     isError,
     refetch,
-  } = useAllProjectAlerts();
+  } = useAllProjectAlerts(recordFilters.filters);
   const {
     statesMap,
     isLoading: statesLoading,
@@ -212,7 +240,7 @@ export default function AlertsScreen({
     isLoading: episodesLoading,
     isError: episodesError,
     refetch: refetchEpisodes,
-  } = useAllProjectAlertEpisodes();
+  } = useAllProjectAlertEpisodes(recordFilters.filters);
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
@@ -448,10 +476,14 @@ export default function AlertsScreen({
     (statesError && !hasStateMetadata) ||
     (segment === "alerts" ? isError : episodesError);
 
-  const hasFilters: boolean = search.trim().length > 0 || stateFilter !== "all";
+  const hasFilters: boolean =
+    search.trim().length > 0 ||
+    stateFilter !== "all" ||
+    recordFilters.hasActive;
   const resetFilters: () => void = () => {
     setSearch("");
     setStateFilter("all");
+    recordFilters.clear();
     setVisibleCount(PAGE_SIZE);
     setVisibleEpisodeCount(PAGE_SIZE);
   };
@@ -485,15 +517,20 @@ export default function AlertsScreen({
         {viewDescription}
       </Text>
       <View style={{ marginTop: spacing.md }}>
-        <SearchField
-          value={search}
-          onChangeText={(value: string) => {
+        <SearchFilterRow
+          search={search}
+          onSearch={(value: string) => {
             setSearch(value);
             setVisibleCount(PAGE_SIZE);
             setVisibleEpisodeCount(PAGE_SIZE);
           }}
           placeholder="Search title or ID"
-          accessibilityLabel="Search alerts and episodes"
+          searchAccessibilityLabel="Search alerts and episodes"
+          noun={segment === "alerts" ? "alerts" : "episodes"}
+          filterCount={recordFilters.activeCount}
+          onOpenFilters={(): void => {
+            recordFilters.open();
+          }}
         />
         {(segment === "alerts" ? allAlerts.length : allEpisodes.length) >=
         100 ? (
@@ -519,8 +556,9 @@ export default function AlertsScreen({
                 color: theme.colors.textSecondary,
               }}
             >
-              Search covers the 100 most recent{" "}
-              {segment === "alerts" ? "alerts" : "episodes"}.
+              {recordFilters.hasActive
+                ? `Showing the 100 newest ${segment === "alerts" ? "alerts" : "episodes"} that match your filters.`
+                : `Search covers the 100 most recent ${segment === "alerts" ? "alerts" : "episodes"}.`}
             </Text>
           </View>
         ) : null}
@@ -561,8 +599,41 @@ export default function AlertsScreen({
               )
         }
         onReset={hasFilters ? resetFilters : undefined}
-      />
+      >
+        <ActiveFilterBar
+          items={recordFilters.items}
+          onOpen={(facet: FilterFacet): void => {
+            recordFilters.open(facet);
+          }}
+          onRemove={(facet: FilterFacet): void => {
+            recordFilters.remove(facet);
+          }}
+        />
+      </ListFilters>
     </View>
+  );
+
+  const filterSheet: React.JSX.Element = (
+    <FilterSheet
+      visible={recordFilters.sheetVisible}
+      list={filterList}
+      noun={segment === "alerts" ? "alerts" : "episodes"}
+      value={recordFilters.filters}
+      options={recordFilters.options}
+      canFilterByMe
+      focusFacet={recordFilters.focusFacet}
+      onApply={(next: RecordFilters): void => {
+        /*
+         * Picking states in the sheet is the more exact question: the
+         * Active / Resolved chip goes back to All, so the two never
+         * contradict each other into an empty list.
+         */
+        if (recordFilters.apply(next).picksStates) {
+          setStateFilter("all");
+        }
+      }}
+      onClose={recordFilters.close}
+    />
   );
 
   const refreshControl: React.JSX.Element = (
@@ -603,6 +674,7 @@ export default function AlertsScreen({
             <SkeletonCard />
           </View>
         </ListStatusScroll>
+        {filterSheet}
       </View>
     );
   }
@@ -634,6 +706,7 @@ export default function AlertsScreen({
             onAction={onRefresh}
           />
         </ListStatusScroll>
+        {filterSheet}
       </View>
     );
   }
@@ -819,6 +892,7 @@ export default function AlertsScreen({
           onEndReachedThreshold={0.5}
         />
       )}
+      {filterSheet}
     </View>
   );
 }

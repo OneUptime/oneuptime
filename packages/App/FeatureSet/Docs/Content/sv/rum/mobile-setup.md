@@ -5,6 +5,7 @@ Instrumentera en Android-, iOS- eller React Native-app med OpenTelemetry så att
 :::cards
 - [Vad OneUptime behöver](#vad-oneuptime-behöver): Två resursattribut, skickade med en Server-nyckel.
 - [Konfigurera din plattform](#konfigurera-din-plattform): Android, iOS, React Native och resten.
+- [Krascher och hängningar på iOS](#krascher-och-hängningar-på-ios): MetricKits diagnostik i Undantag och på översikten.
 - [Kontrollera att det kommer in](#kontrollera-att-det-kommer-in): Testa nyckeln och hitta sedan appen.
 - [Session Replay på mobil](#session-replay-på-mobil): Inspelningar för React Native-appar.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK:t lägger själv till `/v1/traces`, `/v1/metrics` och `/v1/logs` på endpointen.
 :::
+
+## Krascher och hängningar på iOS
+
+opentelemetry-swift 2.3 och senare rapporterar en iOS-apps krascher och hängningar via sin MetricKit-instrumentering, som lämnar över var och en av Apples diagnostiker till OpenTelemetry som en loggpost. OneUptime arkiverar dem som det arkiverar krascher och ANR:er från OpenTelemetry Android, så de visas i **Undantag** och på applikationens sida **Översikt**:
+
+| Apples diagnostik | Händelsenamn | I Undantag |
+| --- | --- | --- |
+| En krasch | `metrickit.diagnostic.crash` | Ett ohanterat undantag, med typ efter det som avslutade appen: Objective-C-undantaget på iOS 17 och senare, annars Mach-undantaget (`EXC_BAD_ACCESS`), annars signalen (`SIGSEGV`) |
+| En hängning | `metrickit.diagnostic.hang` | Ett ohanterat undantag av typen **Hang**, iOS motsvarighet till en ANR, som behåller hur länge hängningen varade |
+
+Översiktens ruta **Krascher** räknar krascherna, och dess ruta **ANR:er** räknar hängningarna tillsammans med Androids ANR:er. Varje stackspårning ritas som trådarna i en kraschrapport, med tråden som kraschade eller hängde sig först. Stackramarna är inte symboliserade: var och en anger sin binärfil och hur långt in i den koden låg, och **Binary Images** listar varje binärfils UUID, som visar vilket bygges dSYM som symboliserar den.
+
+:::steps
+### Exportera loggar utöver spans
+
+MetricKit rapporterar diagnostik som loggposter, så registrera en logger provider bredvid tracer providern, med samma resurs, endpoint och header:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Registrera MetricKit-instrumenteringen
+
+Lägg till produkten `MetricKitInstrumentation` från opentelemetry-swift och registrera den hos MetricKit när logger providern har registrerats:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Märk sessionerna
+
+Rutorna **Sessioner** och **Kraschfria sessioner** räknar `session.id` på dina spans. Produkten `Sessions` i opentelemetry-swift sätter det: lägg till `SessionSpanProcessor` i tracer providern och slå in loggprocessorn i `SessionLogRecordProcessor`, så att diagnostiken också bär en session. Dess versioner sätter ännu inget `app.installation.id`, så en iOS-apps ruta **Kraschfria sessioner** visar hur många sessioner som kraschade i stället för dess kraschfria installationer.
+:::
+
+> [!NOTE]
+> Apple lämnar över MetricKits diagnostik till appen vid en senare start, direkt på iOS 15 och senare och en gång om dagen före det, så en krasch eller en hängning kan komma minuter eller en dag efter att den inträffade, och räknas när den kommer. "0 krascher den senaste timmen" på en iOS-apps översikt är ännu inga goda nyheter. En diagnostik bär den session som rapporterade den, inte den som den avslutade.
+
+opentelemetry-swift registrerar inget span när appen startar, så rutorna **Appstarter** och **Kallstart (p95)** förblir tomma tills din app registrerar ett: ett span med namnet `AppStart`, med `start.type` satt till `cold`, `warm` eller `hot`, från att processen startar tills den första skärmen är klar.
 
 ## Kontrollera att det kommer in
 

@@ -295,15 +295,20 @@ describe("the announcement only offers the update checkbox when editing", () => 
       readSource("Components", "Announcement", "AnnouncementsTable.tsx"),
     ).not.toContain("getNotifySubscribersOfUpdateFormField");
 
-    // The shared fields add it for the Edit only.
+    /*
+     * The shared fields add it for the Edit only, with why nobody would be
+     * sent it under it once ticked (#9775).
+     */
     expect(
       readSource("Components", "Announcement", "AnnouncementFormFields.tsx"),
     ).toMatch(
-      /if \(kind === AnnouncementFormKind\.Edit\) \{ fields\.push\( getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(/,
+      /if \(kind === AnnouncementFormKind\.Edit\) \{ fields\.push\(\{ \.\.\.getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(/,
     );
     expect(
       readSource("Pages", "StatusPages", "AnnouncementView.tsx"),
-    ).toContain("return getAnnouncementFormFields(AnnouncementFormKind.Edit);");
+    ).toContain(
+      "return getAnnouncementFormFields(AnnouncementFormKind.Edit, { announcementId: modelId, });",
+    );
   });
 
   test("the announcement edit form keeps its steps valid by placing the checkbox on a real step", () => {

@@ -5,7 +5,9 @@
  *
  * A command gets two minutes unless the model asks for more, up to ten - a
  * slow install, build or test suite needs it, a hung dev server must not
- * take ten. It never runs past the time its task has left. While it runs,
+ * take ten - or up to the project's own Time Limit per Command (issue
+ * #6532), at most two hours. It never runs past the time its task has left,
+ * nor past the run's own time limit. While it runs,
  * the run is reported alive every two minutes, well inside the server's
  * 12-minute stale-run sweeper, so a long command is never failed underneath
  * the Runner that is still running it.
@@ -15,15 +17,22 @@
 import {
   AGENT_COMMAND_KEEP_ALIVE_INTERVAL_MS,
   AGENT_COMMAND_TIMEOUT_ARGUMENT,
+  CEILING_AGENT_COMMAND_TIMEOUT_SECONDS,
   DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS,
   MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
   MIN_AGENT_COMMAND_TIMEOUT_SECONDS,
   describeAgentCommandTimedOut,
   describeAgentCommandTimeout,
+  getAgentCommandMaxSeconds,
   getAgentCommandTimeoutMs,
+  getDefaultAgentCommandTimeoutSeconds,
   getRequestedAgentCommandTimeoutSeconds,
   startAgentCommandKeepAlive,
 } from "../../Utils/AgentCommandLimits";
+import {
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+} from "Common/Types/AI/AIAgentRunLimits";
 import fs from "fs";
 import path from "path";
 
@@ -31,11 +40,21 @@ import path from "path";
 const SWEEPER_MINUTES: number = 12;
 
 describe("the limits themselves", () => {
-  test("two minutes by default, ten at most, a second at least", () => {
+  test("two minutes by default, ten at most unless the project says, two hours at the very most, a second at least", () => {
     expect(DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS).toBe(120);
     expect(MAX_AGENT_COMMAND_TIMEOUT_SECONDS).toBe(600);
+    expect(CEILING_AGENT_COMMAND_TIMEOUT_SECONDS).toBe(7200);
     expect(MIN_AGENT_COMMAND_TIMEOUT_SECONDS).toBe(1);
     expect(AGENT_COMMAND_TIMEOUT_ARGUMENT).toBe("timeout_seconds");
+  });
+
+  test("they are the project setting's default and ceiling, in seconds", () => {
+    expect(MAX_AGENT_COMMAND_TIMEOUT_SECONDS).toBe(
+      DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES * 60,
+    );
+    expect(CEILING_AGENT_COMMAND_TIMEOUT_SECONDS).toBe(
+      MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES * 60,
+    );
   });
 
   /*
@@ -181,6 +200,108 @@ describe("how long a command may run", () => {
   });
 });
 
+/*
+ * THE CUSTOMER'S CASE (issue #6532): a repository whose test suite takes 25
+ * minutes could never be checked - every command was stopped at ten. A
+ * project's Time Limit per Command lets one run longer, up to two hours,
+ * and never past the run's own time limit.
+ */
+describe("the most a command may be given: the project's Time Limit per Command", () => {
+  test("no setting: ten minutes, as it is today", () => {
+    expect(getAgentCommandMaxSeconds({})).toBe(600);
+    expect(getAgentCommandMaxSeconds({ commandTimeLimitInMinutes: null })).toBe(
+      600,
+    );
+    expect(
+      getAgentCommandMaxSeconds({ commandTimeLimitInMinutes: undefined }),
+    ).toBe(600);
+  });
+
+  test("a 30-minute setting: a command that asks for 25 minutes runs for 25, and one that asks for 40 is held to 30", () => {
+    const maxSeconds: number = getAgentCommandMaxSeconds({
+      commandTimeLimitInMinutes: 30,
+    });
+
+    expect(maxSeconds).toBe(1800);
+    expect(getAgentCommandTimeoutMs({ requested: 25 * 60, maxSeconds })).toBe(
+      25 * 60 * 1000,
+    );
+    expect(getAgentCommandTimeoutMs({ requested: 40 * 60, maxSeconds })).toBe(
+      30 * 60 * 1000,
+    );
+    // Asking for nothing still gets two minutes: the setting is a most, not a default.
+    expect(getAgentCommandTimeoutMs({ requested: undefined, maxSeconds })).toBe(
+      120_000,
+    );
+  });
+
+  test("never past the ceiling, whatever the server sends", () => {
+    expect(getAgentCommandMaxSeconds({ commandTimeLimitInMinutes: 120 })).toBe(
+      7200,
+    );
+    expect(
+      getAgentCommandMaxSeconds({ commandTimeLimitInMinutes: 100_000 }),
+    ).toBe(7200);
+  });
+
+  test("a setting that is not one is the default", () => {
+    for (const value of [0, -5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(
+        getAgentCommandMaxSeconds({ commandTimeLimitInMinutes: value }),
+      ).toBe(600);
+    }
+  });
+
+  test("never past the run's own time limit, or a step's", () => {
+    // A run of 20 minutes: a 60-minute setting gives a command 20 at most.
+    expect(
+      getAgentCommandMaxSeconds({
+        commandTimeLimitInMinutes: 60,
+        atMostMs: 20 * 60 * 1000,
+      }),
+    ).toBe(1200);
+    // A run that has more time than the setting keeps the setting.
+    expect(
+      getAgentCommandMaxSeconds({
+        commandTimeLimitInMinutes: 30,
+        atMostMs: 120 * 60 * 1000,
+      }),
+    ).toBe(1800);
+    // A time that is not one is not a limit.
+    expect(
+      getAgentCommandMaxSeconds({
+        commandTimeLimitInMinutes: 30,
+        atMostMs: Number.NaN,
+      }),
+    ).toBe(1800);
+  });
+
+  test("a project that shortened commands to a minute: a command that asks for nothing gets that minute", () => {
+    const maxSeconds: number = getAgentCommandMaxSeconds({
+      commandTimeLimitInMinutes: 1,
+    });
+
+    expect(maxSeconds).toBe(60);
+    expect(getDefaultAgentCommandTimeoutSeconds(maxSeconds)).toBe(60);
+    expect(getRequestedAgentCommandTimeoutSeconds(undefined, maxSeconds)).toBe(
+      60,
+    );
+    expect(getRequestedAgentCommandTimeoutSeconds(600, maxSeconds)).toBe(60);
+  });
+
+  test("a command never runs past the task's time, whatever the setting", () => {
+    expect(
+      getAgentCommandTimeoutMs({
+        requested: 100 * 60,
+        maxSeconds: getAgentCommandMaxSeconds({
+          commandTimeLimitInMinutes: 120,
+        }),
+        remainingMs: 7 * 60 * 1000,
+      }),
+    ).toBe(7 * 60 * 1000);
+  });
+});
+
 describe("what the model is told", () => {
   test.each([
     [120_000, "2 minutes"],
@@ -194,14 +315,50 @@ describe("what the model is told", () => {
   });
 
   test("a command that ran out of time below the most it may get says how to ask for more", () => {
-    expect(describeAgentCommandTimedOut(120_000)).toBe(
+    expect(describeAgentCommandTimedOut({ timeoutMs: 120_000 })).toBe(
       "Command timed out after 2 minutes. If it needs longer, such as a slow install, build or test suite, run it again with timeout_seconds (at most 600).",
     );
   });
 
-  test("one that had all ten minutes is not told to ask for more", () => {
-    expect(describeAgentCommandTimedOut(600_000)).toBe(
-      "Command timed out after 10 minutes.",
+  test("the most it may ask for is the project's, when the project set one", () => {
+    expect(
+      describeAgentCommandTimedOut({ timeoutMs: 600_000, maxSeconds: 1800 }),
+    ).toBe(
+      "Command timed out after 10 minutes. If it needs longer, such as a slow install, build or test suite, run it again with timeout_seconds (at most 1800).",
+    );
+  });
+
+  test("one that had all ten minutes is told to run a part of it, and of the setting that gives it longer", () => {
+    expect(describeAgentCommandTimedOut({ timeoutMs: 600_000 })).toBe(
+      "Command timed out after 10 minutes, the longest a command may run here. Run a smaller part of it, such as one test file or one package. If the whole of it must run, say so in your summary: the project's Time Limit per Command (Project Settings → AI → AI Features → More settings → Limits per run) lets a command run for up to 120 minutes.",
+    );
+  });
+
+  test("one that had all of the project's 30 minutes is told the same", () => {
+    expect(
+      describeAgentCommandTimedOut({ timeoutMs: 1_800_000, maxSeconds: 1800 }),
+    ).toContain(
+      "Command timed out after 30 minutes, the longest a command may run here.",
+    );
+  });
+
+  test("one that had the ceiling's two hours names no setting: none gives longer", () => {
+    expect(
+      describeAgentCommandTimedOut({ timeoutMs: 7_200_000, maxSeconds: 7200 }),
+    ).toBe(
+      "Command timed out after 120 minutes, the longest a command may run here. Run a smaller part of it, such as one test file or one package.",
+    );
+  });
+
+  test("one given less than it asked for, at the task's end, is told that was all the time left", () => {
+    expect(
+      describeAgentCommandTimedOut({
+        timeoutMs: 90_000,
+        maxSeconds: 1800,
+        heldToTimeLeft: true,
+      }),
+    ).toBe(
+      "Command timed out after 90 seconds: that was all the time this task had left.",
     );
   });
 });

@@ -2403,6 +2403,44 @@ export default class Project extends TenantModel {
   public aiRunTimeLimitInMinutes?: number = undefined;
 
   /*
+   * How long one command of a code task may run on a Runner of the
+   * project's own (issue #6532): the install, build or test suite the code
+   * agent runs to check its change. Unset means the default, 10 minutes
+   * (Types/AI/AIAgentRunLimits), at most 120; a command never runs past the
+   * run's own time limit either. Beside the run's time limit on the Limits
+   * per run card, and changed by the same people.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "AI Command Time Limit (Minutes)",
+    description:
+      "How long one command a code task runs on a Runner of the project's own may take, such as a slow install, build or test suite: at most 120 minutes, and never past the run's time limit. Unset means the default, 10 minutes.",
+    example: 30,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunCommandTimeLimitInMinutes?: number = undefined;
+
+  /*
    * When each of the two limits above last stopped OneUptime AI: the first
    * time it did on the latest UTC day it did (Types/AI/ProjectAiDailyLimits,
    * PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS). The conditional UPDATE that

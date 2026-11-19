@@ -41,7 +41,7 @@ Click your picture at the top right and choose **Profile**. The **Overview** pag
 
 Click **Edit User** and change what you need:
 
-- **Email**: the address you sign in with. If you change it, you verify the new address again.
+- **Email**: the address you sign in with. If you change it, OneUptime emails a link to the new address, and your address changes once you open it. Until then you sign in with your current one, and **Cancel Change** stops the change. A master admin's own address changes at once.
 - **Full Name**: the name your team sees across OneUptime.
 - **Timezone**: the time zone the dashboard shows and reads times in, and the one used for the times in notifications sent to you.
 - **Language**: the language of the dashboard on every browser you sign in on, and of your on-call pages. Not set, your pages are in English and the dashboard follows your browser.
@@ -184,6 +184,14 @@ Open **Danger Zone → Delete Account**. You can delete your account only once y
 
 :::details I did not get the email to verify my address
 Signing in again sends a new link: check your spam folder too. If you cannot sign in, use **Forgot password?** on the sign-in page. Its reset link verifies your address as well.
+:::
+
+:::details Signing up sent me an email saying I already have an account
+That address already has a OneUptime account, so signing up created and changed nothing. Sign in with it, or use **Forgot password?** on the sign-in page if you do not remember your password. The sign-up page says the same for every address, so it tells nobody which addresses have an account.
+:::
+
+:::details My email address has not changed
+Your address changes only once you open the link OneUptime sent to the new address. The link works for 24 hours: if it has expired, change your email again to get a new one. If another account already uses that address, the email sent there says so, and your address stays as it is.
 :::
 
 :::details I lost my authenticator app

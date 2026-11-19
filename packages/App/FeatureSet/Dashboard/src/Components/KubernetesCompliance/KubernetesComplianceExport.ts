@@ -18,6 +18,7 @@ import {
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFinding";
 import { KubernetesComplianceFramework } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import { KubernetesComplianceRequirementResult } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceScoring";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import downloadFile, { getExportFilename } from "Common/UI/Utils/DownloadFile";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 
@@ -118,7 +119,8 @@ function controlRow(
   return [
     framework.framework,
     requirement.requirement,
-    info?.title || requirement.title,
+    // As English writes it: "Capabilities", not its key's meaning.
+    withMeaningKeyAsItsWord(info?.title || requirement.title),
     requirement.status,
     requirement.notEvaluatedReason
       ? NOT_EVALUATED_REASONS[requirement.notEvaluatedReason] || ""

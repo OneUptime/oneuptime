@@ -8,7 +8,7 @@ import {
   usePane,
   useWindowLayout,
   type ResolvedPaneLayout,
-} from "../layout/WindowLayout";
+} from "../layout/WindowLayoutProvider";
 
 /**
  * Extra scroll space after the last item, including the complete tab bar.
