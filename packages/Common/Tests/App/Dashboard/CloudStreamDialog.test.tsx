@@ -99,7 +99,14 @@ import {
   STREAM_NOT_A_REGION,
   STREAM_NO_LOG_GROUP,
   STREAM_TEMPLATE_TOO_LARGE,
+  getAwsCloudStreamTemplate,
+  getAwsCloudStreamUpdateCommand,
 } from "../../../Types/CloudConnection/CloudStreamTemplate";
+import {
+  CLOUD_STREAM_METRICS_ATTRIBUTE,
+  CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+} from "../../../Types/CloudConnection/CloudStreamStack";
+import { AWS_STREAM_TEMPLATE_VERSION } from "../../../Types/Cloud/CloudKeyMetrics";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -640,19 +647,25 @@ describe("the stacks to update", () => {
         streamKeyCreatedAt: NOW,
         streamSummary: summaryOf([
           { region: "us-east-1" },
-          { region: "eu-west-1", templateVersion: 2, everyMetric: false },
+          {
+            region: "eu-west-1",
+            templateVersion: AWS_STREAM_TEMPLATE_VERSION,
+            everyMetric: false,
+          },
           { region: "ap-south-1", templateVersion: 1 },
           { region: "us-west-2", templateVersion: 1, everyMetric: true },
           { accountId: "210987654321", region: "us-east-1" },
+          // Template 2 is older since Glue's and Athena's key metrics (template 3).
+          { region: "ca-central-1", templateVersion: 2, everyMetric: false },
         ]),
         now: NOW,
       }),
-    ).toEqual({ regions: ["us-east-1", "ap-south-1"] });
+    ).toEqual({ regions: ["us-east-1", "ap-south-1", "ca-central-1"] });
   });
 
   test("are none once every stack is of the current template, without a key, or for another cloud", () => {
     const current: JSONObject = summaryOf([
-      { templateVersion: 2, everyMetric: false },
+      { templateVersion: AWS_STREAM_TEMPLATE_VERSION, everyMetric: false },
     ]);
     const older: JSONObject = summaryOf([{}]);
 
@@ -688,7 +701,13 @@ describe("the stacks to update", () => {
     ).toBeNull();
   });
 
-  test("the dialog says which stacks and what running the command again does", () => {
+  /*
+   * #9693: the update keeps what each stack streams of its logs, and its
+   * key - its own template read back and given today's filters - so the
+   * dialog shows that command, not the one that rewrites every stack from
+   * today's choices with a new key.
+   */
+  test("the dialog says which stacks, and shows the command that updates each in place with its key", () => {
     openDialog(
       connection({
         streamKeyCreatedAt: new Date(),
@@ -699,9 +718,25 @@ describe("the stacks to update", () => {
       }),
     );
 
-    expect(part("update")).toHaveTextContent(
-      "The stacks in us-east-1, eu-west-1 were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.",
+    expect(part("update-why")).toHaveTextContent(
+      "The stacks in us-east-1, eu-west-1 were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Update them to stream those every minute too.",
     );
+    expect(part("update-how")).toHaveTextContent(
+      "Run this in AWS CloudShell: it updates each stack in place, so each keeps its log groups and its key.",
+    );
+
+    const update: string =
+      part("update-command").querySelector("pre code")?.textContent || "";
+
+    expect(update).toBe(
+      getAwsCloudStreamUpdateCommand({
+        connectionId: CONNECTION_ID,
+        regions: ["us-east-1", "eu-west-1"],
+      }),
+    );
+    // No key to make first, and none in it.
+    expect(update).not.toContain("StreamKey");
+    expect(update).not.toContain("<YOUR_STREAM_KEY>");
   });
 
   test("the dialog says nothing of it once the stacks are of the current template", () => {
@@ -709,13 +744,19 @@ describe("the stacks to update", () => {
       connection({
         streamKeyCreatedAt: new Date(),
         streamSummary: summaryOf(
-          [{ templateVersion: 2, everyMetric: false }],
+          [
+            {
+              templateVersion: AWS_STREAM_TEMPLATE_VERSION,
+              everyMetric: false,
+            },
+          ],
           new Date(),
         ),
       }),
     );
 
     expect(queryPart("update")).not.toBeInTheDocument();
+    expect(queryPart("update-command")).not.toBeInTheDocument();
     expect(STREAM_OLDER_STACKS_SENTENCE).toContain("{{regions}}");
   });
 });
@@ -847,6 +888,67 @@ describe("the dialog", () => {
     expect(part("metrics-url")).toHaveTextContent(METRICS_URL);
     expect(part("logs-url")).toHaveTextContent(LOGS_URL);
     expect(part("access-key")).toHaveTextContent(STREAM_KEY);
+  });
+
+  /*
+   * #9693: a stream set up another way says its template as the stack's
+   * does, with the metrics Firehose stream's common attributes
+   * (CloudStreamStack) - the values the template's own stream sends.
+   */
+  test("for another way, the common attributes the template's metrics stream sends, by what it streams", async () => {
+    openDialog();
+    await openMoreFields();
+
+    expect(part("common-attributes")).toHaveTextContent(
+      "Only if its metric stream's filters are the template's, give the metrics Firehose stream these common attributes too, so OneUptime stops reading what it carries.",
+    );
+    expect(part("template-attribute")).toHaveTextContent(
+      `${CLOUD_STREAM_TEMPLATE_ATTRIBUTE}${AWS_STREAM_TEMPLATE_VERSION}`,
+    );
+    expect(part("metrics-attribute")).toHaveTextContent(
+      `${CLOUD_STREAM_METRICS_ATTRIBUTE}key`,
+    );
+
+    // Every metric: the stream says so.
+    await act(async () => {
+      fireEvent.click(part("every-metric"));
+    });
+
+    expect(part("metrics-attribute")).toHaveTextContent(
+      `${CLOUD_STREAM_METRICS_ATTRIBUTE}all`,
+    );
+
+    // As the template's own metrics stream says it.
+    const template: JSONObject = getAwsCloudStreamTemplate({
+      connectionId: CONNECTION_ID,
+      metricsUrl: METRICS_URL,
+      logsUrl: LOGS_URL,
+      metrics: CloudStreamMetricsMode.All,
+      logs: CloudStreamLogsMode.Off,
+    });
+
+    expect(
+      (
+        (
+          (
+            (template["Resources"] as JSONObject)[
+              "MetricsDeliveryStream"
+            ] as JSONObject
+          )["Properties"] as JSONObject
+        )["HttpEndpointDestinationConfiguration"] as JSONObject
+      )["RequestConfiguration"],
+    ).toMatchObject({
+      CommonAttributes: [
+        {
+          AttributeName: CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+          AttributeValue: String(AWS_STREAM_TEMPLATE_VERSION),
+        },
+        {
+          AttributeName: CLOUD_STREAM_METRICS_ATTRIBUTE,
+          AttributeValue: "all",
+        },
+      ],
+    });
   });
 
   test("a connection that streams already makes a new key, and hears how long the old one works", async () => {

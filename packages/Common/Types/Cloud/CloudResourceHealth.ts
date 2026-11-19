@@ -81,6 +81,18 @@ export const CLOUD_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
   criticalPercent: CLOUD_STORAGE_FULL_PERCENT,
 };
 export const CLOUD_AVAILABILITY_LOW_PERCENT: number = 99.9;
+/*
+ * An Elastic Beanstalk environment's EnvironmentHealth, as enhanced health
+ * reporting writes it: 0 OK, 1 Info, 5 Unknown, 10 No data, 15 Warning,
+ * 20 Degraded, 25 Severe. Degraded is a warning, Severe critical.
+ */
+export const CLOUD_BEANSTALK_HEALTH_DEGRADED: number = 20;
+export const CLOUD_BEANSTALK_HEALTH_SEVERE: number = 25;
+/*
+ * The share of a WAF web ACL's requests it may block before someone looks:
+ * half of them is an attack, or a rule turning real users away.
+ */
+export const CLOUD_BLOCKED_SHARE_WARNING_PERCENT: number = 50;
 export const CLOUD_AVAILABILITY_DOWN_PERCENT: number = 90;
 // A queue's oldest message, or a stream's consumers, this far behind.
 export const CLOUD_BACKLOG_AGE_SECONDS: number = 60 * 60;
@@ -299,6 +311,33 @@ export const REASON_SERVER_ERRORS: { one: string; other: string } = {
   one: translationKey("{{count}} server error"),
   other: translationKey("{{count}} server errors"),
 };
+export const REASON_UNHEALTHY_ENDPOINTS: { one: string; other: string } = {
+  one: translationKey("{{count}} unhealthy endpoint"),
+  other: translationKey("{{count}} unhealthy endpoints"),
+};
+export const REASON_SHORT_OF_DESIRED_CAPACITY: {
+  one: string;
+  other: string;
+} = {
+  one: translationKey("{{count}} instance short of desired capacity"),
+  other: translationKey("{{count}} instances short of desired capacity"),
+};
+export const REASON_PACKETS_DROPPED_OUTSIDE_RULES: {
+  one: string;
+  other: string;
+} = {
+  one: translationKey("{{count}} packet dropped outside its rules"),
+  other: translationKey("{{count}} packets dropped outside its rules"),
+};
+export const REASON_REQUESTS_BLOCKED: string = translationKey(
+  "{{percent}} of requests blocked",
+);
+export const REASON_ENVIRONMENT_HEALTH_DEGRADED: string = translationKey(
+  "Environment health degraded",
+);
+export const REASON_ENVIRONMENT_HEALTH_SEVERE: string = translationKey(
+  "Environment health severe",
+);
 export const REASON_RESTARTS: { one: string; other: string } = {
   one: translationKey("{{count}} restart"),
   other: translationKey("{{count}} restarts"),
@@ -1196,6 +1235,195 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
       failsWhenZero("aws/kafka/activecontrollercount", REASON_NO_CONTROLLER),
     ],
   },
+  /*
+   * The types read since #9567 (#9692): each judged by what its key
+   * metrics say of it being well.
+   */
+  {
+    provider: AWS,
+    types: ["AWS::AppRunner::Service"],
+    rules: [
+      failedShare({
+        failures: ["aws/apprunner/5xxstatusresponses"],
+        total: "aws/apprunner/requests",
+        reason: REASON_REQUESTS_FAILED,
+      }),
+    ],
+  },
+  {
+    /*
+     * An accelerator with no healthy endpoint sends its traffic nowhere; one
+     * with some unhealthy sends it to fewer.
+     */
+    provider: AWS,
+    types: ["AWS::GlobalAccelerator::Accelerator"],
+    rules: [
+      failsWhenZero(
+        "aws/globalaccelerator/healthyendpointcount",
+        REASON_NOT_AVAILABLE,
+      ),
+      warnsOnCount(
+        "aws/globalaccelerator/unhealthyendpointcount",
+        REASON_UNHEALTHY_ENDPOINTS,
+      ),
+    ],
+  },
+  {
+    provider: AWS,
+    types: ["AWS::ElasticBeanstalk::Environment"],
+    rules: [
+      {
+        readings: ["aws/elasticbeanstalk/environmenthealth"],
+        evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
+          const health: number | null = reader.value(
+            "aws/elasticbeanstalk/environmenthealth",
+          );
+
+          if (health !== null && health >= CLOUD_BEANSTALK_HEALTH_SEVERE) {
+            return critical({ text: REASON_ENVIRONMENT_HEALTH_SEVERE });
+          }
+
+          return health !== null && health >= CLOUD_BEANSTALK_HEALTH_DEGRADED
+            ? warning({ text: REASON_ENVIRONMENT_HEALTH_DEGRADED })
+            : null;
+        },
+      },
+    ],
+  },
+  {
+    /*
+     * A group with fewer instances in service than it wants, in one period:
+     * a whole instance short, so a period half spent launching one is not.
+     */
+    provider: AWS,
+    types: ["AWS::AutoScaling::AutoScalingGroup"],
+    rules: [
+      {
+        readings: [
+          "aws/autoscaling/groupinserviceinstances",
+          "aws/autoscaling/groupdesiredcapacity",
+        ],
+        evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
+          const desired: number | null = reader.value(
+            "aws/autoscaling/groupdesiredcapacity",
+          );
+          const inService: number | null = reader.value(
+            "aws/autoscaling/groupinserviceinstances",
+          );
+
+          if (desired === null || inService === null) {
+            return null;
+          }
+
+          // Two periods' readings say nothing of each other.
+          if (
+            inService > 0 &&
+            reader.aligned(
+              "aws/autoscaling/groupinserviceinstances",
+              "aws/autoscaling/groupdesiredcapacity",
+            ) !== inService
+          ) {
+            return null;
+          }
+
+          const short: number = Math.floor(desired - inService);
+
+          return short >= 1
+            ? warning(countText(REASON_SHORT_OF_DESIRED_CAPACITY, short))
+            : null;
+        },
+      },
+    ],
+  },
+  {
+    /*
+     * A web ACL blocking half its requests or more, once it blocked
+     * CLOUD_HEALTH_MIN_REQUESTS of them: an attack, or a rule turning real
+     * users away - a quiet ACL's few blocked scans are neither. Its requests
+     * are what it allowed and what it blocked; each is published only when
+     * it is not zero. Its recommended monitor judges the same.
+     */
+    provider: AWS,
+    types: ["AWS::WAFv2::WebACL"],
+    rules: [
+      {
+        readings: ["aws/wafv2/allowedrequests", "aws/wafv2/blockedrequests"],
+        evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
+          const blocked: number | null = reader.value(
+            "aws/wafv2/blockedrequests",
+          );
+
+          if (blocked === null) {
+            return null;
+          }
+
+          const total: number =
+            blocked +
+            reader.aligned(
+              "aws/wafv2/allowedrequests",
+              "aws/wafv2/blockedrequests",
+            );
+
+          if (blocked < CLOUD_HEALTH_MIN_REQUESTS) {
+            return null;
+          }
+
+          const percent: number = Math.min(100, (blocked / total) * 100);
+
+          return percent >= CLOUD_BLOCKED_SHARE_WARNING_PERCENT
+            ? warning(percentText(REASON_REQUESTS_BLOCKED, percent))
+            : null;
+        },
+      },
+    ],
+  },
+  {
+    // An endpoint's invocations of each production variant, added up.
+    provider: AWS,
+    types: ["AWS::SageMaker::Endpoint"],
+    rules: [
+      failedShare({
+        failures: ["aws/sagemaker/invocation5xxerrors"],
+        total: "aws/sagemaker/invocations",
+        reason: REASON_INVOCATIONS_FAILED,
+      }),
+    ],
+  },
+  {
+    /*
+     * A firewall drops what its rules say to; OtherDroppedPackets are the
+     * packets it dropped for anything else - throttled by traffic it could
+     * not keep up with, among others.
+     */
+    provider: AWS,
+    types: ["AWS::NetworkFirewall::Firewall"],
+    rules: [
+      warnsOnCount(
+        "aws/networkfirewall/otherdroppedpackets",
+        REASON_PACKETS_DROPPED_OUTSIDE_RULES,
+      ),
+    ],
+  },
+  {
+    // A user pool's sign-ins, token refreshes or sign-ups turned away for its quota.
+    provider: AWS,
+    types: ["AWS::Cognito::UserPool"],
+    rules: [
+      warnsWhenAnyAboveZero(
+        [
+          "aws/cognito/signinthrottles",
+          "aws/cognito/tokenrefreshthrottles",
+          "aws/cognito/signupthrottles",
+        ],
+        REASON_THROTTLED,
+      ),
+    ],
+  },
+  {
+    provider: AWS,
+    types: ["AWS::AppSync::GraphQLApi"],
+    rules: [warnsOnCount("aws/appsync/5xxerror", REASON_SERVER_ERRORS)],
+  },
   // ---- Azure --------------------------------------------------------------
   {
     provider: AZURE,
@@ -1682,6 +1910,20 @@ export const HEADLINE_QUEUE_LENGTH: string = translationKey("Queue length");
 export const HEADLINE_PORTS_USED: string = translationKey(
   "Outbound ports used",
 );
+export const HEADLINE_HEALTHY_ENDPOINTS: string =
+  translationKey("Healthy endpoints");
+export const HEADLINE_UNHEALTHY_ENDPOINTS: string = translationKey(
+  "Unhealthy endpoints",
+);
+export const HEADLINE_ALLOWED_REQUESTS: string =
+  translationKey("Allowed requests");
+export const HEADLINE_BLOCKED_REQUESTS: string =
+  translationKey("Blocked requests");
+export const HEADLINE_PACKETS_RECEIVED: string =
+  translationKey("Packets received");
+export const HEADLINE_PACKETS_DROPPED: string =
+  translationKey("Packets dropped");
+export const HEADLINE_SIGN_INS: string = translationKey("Sign-ins");
 
 /*
  * What each type's page leads with, in the order its tiles are drawn: what
@@ -1969,6 +2211,145 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       types: ["AWS::AmazonMQ::Broker"],
       readings: [
         headline("aws/amazonmq/cpuutilization", HEADLINE_CPU, "percent"),
+      ],
+    },
+    /*
+     * The types read since #9567 (#9692). An Elastic Beanstalk
+     * environment's one free metric is a health code (0 OK to 25 Severe),
+     * which its page's status already says in words: it has no tile.
+     */
+    {
+      provider: AWS,
+      types: ["AWS::AppRunner::Service"],
+      readings: [
+        headline("aws/apprunner/requests", HEADLINE_REQUESTS, "perPeriod"),
+        headline(
+          "aws/apprunner/requestlatency",
+          HEADLINE_RESPONSE_TIME,
+          "milliseconds",
+        ),
+        headline(
+          "aws/apprunner/5xxstatusresponses",
+          HEADLINE_ERRORS,
+          "perPeriod",
+        ),
+        headline("aws/apprunner/cpuutilization", HEADLINE_CPU, "percent"),
+        headline("aws/apprunner/memoryutilization", HEADLINE_MEMORY, "percent"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::GlobalAccelerator::Accelerator"],
+      readings: [
+        headline(
+          "aws/globalaccelerator/healthyendpointcount",
+          HEADLINE_HEALTHY_ENDPOINTS,
+          "count",
+        ),
+        headline(
+          "aws/globalaccelerator/unhealthyendpointcount",
+          HEADLINE_UNHEALTHY_ENDPOINTS,
+          "count",
+        ),
+        headline(
+          "aws/globalaccelerator/newflowcount",
+          HEADLINE_CONNECTIONS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/globalaccelerator/processedbytesin",
+          HEADLINE_NETWORK_IN,
+          "bytesPerPeriod",
+        ),
+        headline(
+          "aws/globalaccelerator/processedbytesout",
+          HEADLINE_NETWORK_OUT,
+          "bytesPerPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::AutoScaling::AutoScalingGroup"],
+      readings: [
+        headline(
+          "aws/autoscaling/groupinserviceinstances",
+          HEADLINE_INSTANCES,
+          "count",
+        ),
+        headline(
+          "aws/autoscaling/groupdesiredcapacity",
+          HEADLINE_CAPACITY,
+          "count",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::WAFv2::WebACL"],
+      readings: [
+        headline(
+          "aws/wafv2/allowedrequests",
+          HEADLINE_ALLOWED_REQUESTS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/wafv2/blockedrequests",
+          HEADLINE_BLOCKED_REQUESTS,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::SageMaker::Endpoint"],
+      readings: [
+        headline(
+          "aws/sagemaker/invocations",
+          HEADLINE_INVOCATIONS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/sagemaker/invocation5xxerrors",
+          HEADLINE_ERRORS,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::NetworkFirewall::Firewall"],
+      readings: [
+        headline(
+          "aws/networkfirewall/receivedpackets",
+          HEADLINE_PACKETS_RECEIVED,
+          "perPeriod",
+        ),
+        headline(
+          "aws/networkfirewall/droppedpackets",
+          HEADLINE_PACKETS_DROPPED,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::Cognito::UserPool"],
+      readings: [
+        headline("aws/cognito/signinsuccesses", HEADLINE_SIGN_INS, "perPeriod"),
+        headline(
+          "aws/cognito/signinthrottles",
+          HEADLINE_THROTTLED,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::AppSync::GraphQLApi"],
+      readings: [
+        headline("aws/appsync/latency", HEADLINE_LATENCY, "milliseconds"),
+        headline("aws/appsync/5xxerror", HEADLINE_ERRORS, "perPeriod"),
       ],
     },
     // ---- Azure ------------------------------------------------------------

@@ -24,7 +24,7 @@ flowchart TB
 
 - **One stack in each Region.** The command deploys a CloudFormation stack in each Region you stream from. Its metric stream and log subscription filters hand everything to two Firehose streams, and Firehose delivers it to OneUptime over HTTPS.
 - **The stream key says whose it is.** Firehose sends the connection's stream key with every delivery. The key names the connection, and so the project: nothing in a delivery decides where it is written. OneUptime keeps only the key's SHA-256.
-- **The reads leave streamed metrics to the stream.** While a stream delivers a namespace of a Region, the connection's reads stop reading and writing each key metric of it that the stream's stack carries, so CloudWatch no longer bills a read of what the stream sends, and no data point is counted twice. They still read the few a resource's health is judged from, and still write the key metrics a stream leaves to them, such as an S3 bucket's daily size and those a stack made before them does not carry. The reads go on finding resources, their health and their changes, and take a namespace back after 15 minutes without a delivery.
+- **The reads leave streamed metrics to the stream.** While a stream delivers a namespace of a Region, the connection's reads stop reading and writing each key metric of it that the stream's stack carries, so CloudWatch no longer bills a read of what the stream sends, and no data point is counted twice. A resource's health and headline tiles are judged from the stream too: each value is the read's statistic over five of the stream's minutes, so it is the value a read would get. When a Region's stream has delivered nothing for 10 minutes, the reads read those metrics from CloudWatch again, and the connection's last read says so. They still write the key metrics a stream leaves to them, such as an S3 bucket's daily size and those a stack made before them does not carry. The reads go on finding resources, their health and their changes, and take a namespace back after 15 minutes without a delivery.
 - **Nothing is lost while OneUptime cannot take it.** Firehose sends a refused batch again for up to an hour, then keeps it in the stack's S3 bucket for 30 days.
 
 ## Before you begin
@@ -138,7 +138,9 @@ done
 For a connection that reads an AWS Organization, run the dialog's command in the management account: when the organization was streamed, it also deletes every member account's stacks and the StackSet.
 :::
 
-To change what a stack streams, open **Stream metrics and logs** again, choose **Make a new key** and run the new command. The key it replaces keeps working for 24 hours, so no delivery is refused while the stacks update. At most 3 replaced keys work at once. Do the same when the account's row says **Update the stream**: its stacks were made before OneUptime streamed every key metric, and until they are updated the connection reads the key metrics they do not carry from CloudWatch, so none goes missing. AWS restarts a metric stream whose filters change, and sends only the data points that come after.
+To change what a stack streams, open **Stream metrics and logs** again, choose **Make a new key** and run the new command. The key it replaces keeps working for 24 hours, so no delivery is refused while the stacks update. At most 3 replaced keys work at once.
+
+When the account's row says **Update the stream**, its stacks were made before OneUptime streamed every key metric, and until they are updated the connection reads the key metrics they do not carry from CloudWatch, so none goes missing. Choose it: the dialog shows a command that updates each stack in place, with no new key. It reads the stack's own template back from CloudFormation, gives its metric stream today's key metric filters and its metrics Firehose stream the template's common attributes, and deploys it with the key it has, so the stack keeps its log groups. It needs `jq`, which AWS CloudShell has. For a connection that reads an AWS Organization, run it in the management account: it updates the StackSet, and so every member account's stacks, too. AWS restarts a metric stream whose filters change, and sends only the data points that come after.
 
 ## Set it up another way
 
@@ -152,8 +154,9 @@ Give each Firehose stream an HTTP endpoint destination with these values, and th
 | Content encoding | `GZIP` |
 | Buffer | 1 MiB or 60 seconds |
 | Retry duration | 3600 seconds, with an S3 bucket for what could not be delivered |
+| Common attributes | On the metrics Firehose stream, `oneuptime-stream-template` set to `3` and `oneuptime-stream-metrics` set to `key`, or `all` for a stream of every metric. Only when the metric stream's filters are the template's, which **Download the template** has to copy |
 
-On a self-hosted OneUptime, replace `https://oneuptime.com` with your OneUptime's HTTPS address. The metrics endpoint also takes a metric stream in the JSON format. OneUptime takes a metric stream set up this way to carry only the key metrics streams began with, and reads the others from CloudWatch.
+On a self-hosted OneUptime, replace `https://oneuptime.com` with your OneUptime's HTTPS address. The metrics endpoint also takes a metric stream in the JSON format. Without the common attributes, OneUptime takes a metric stream set up this way to carry only the key metrics streams began with, and reads the others from CloudWatch. With them, it leaves to the stream every key metric the template carries, as it does for a stack the command made.
 
 OneUptime answers every delivery the way Firehose expects:
 

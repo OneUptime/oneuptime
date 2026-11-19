@@ -1009,6 +1009,30 @@ const FILTERS_ADDED_IN_TEMPLATE_2: Record<string, Array<string>> = {
   ],
 };
 
+/*
+ * What template 3 adds: AWS Glue jobs' and Amazon Athena workgroups' key
+ * metrics (#9691). Stacks of template 3 are out there once it ships, so
+ * these stay as they are too: a key metric added after it is streamed since
+ * template 4.
+ */
+const FILTERS_ADDED_IN_TEMPLATE_3: Record<string, Array<string>> = {
+  Glue: [
+    "glue.driver.aggregate.numCompletedTasks",
+    "glue.driver.aggregate.numFailedTasks",
+    "glue.driver.aggregate.numKilledTasks",
+    "glue.driver.aggregate.recordsRead",
+    "glue.driver.aggregate.bytesRead",
+    "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+    "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
+  ],
+  "AWS/Athena": [
+    "ProcessedBytes",
+    "TotalExecutionTime",
+    "EngineExecutionTime",
+    "QueryQueueTime",
+  ],
+};
+
 function filtersByNamespace(
   filters: Array<{ Namespace: string; MetricNames: Array<string> }>,
 ): Record<string, Array<string>> {
@@ -1028,34 +1052,51 @@ describe("the metric stream's filters", () => {
     );
   });
 
-  test("of template 2 are template 1's and the ones it adds, pinned: a metric added since is streamed since template 3", () => {
-    const expected: Record<string, Array<string>> = {};
+  test("of template 2 and 3 are the earlier ones' and the ones each adds, pinned: a metric added since is streamed since template 4", () => {
+    for (const [version, added] of [
+      [2, [FILTERS_ADDED_IN_TEMPLATE_2]],
+      [3, [FILTERS_ADDED_IN_TEMPLATE_2, FILTERS_ADDED_IN_TEMPLATE_3]],
+    ] as Array<[number, Array<Record<string, Array<string>>>]>) {
+      const expected: Record<string, Array<string>> = {};
 
-    for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
-      const names: Array<string> = [
-        ...(FILTERS_EVERY_STACK_CARRIES[entry.namespace] || []),
-        ...(FILTERS_ADDED_IN_TEMPLATE_2[entry.namespace] || []),
-      ];
+      for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
+        const names: Array<string> = [
+          ...(FILTERS_EVERY_STACK_CARRIES[entry.namespace] || []),
+          ...added.flatMap(
+            (filters: Record<string, Array<string>>): Array<string> => {
+              return filters[entry.namespace] || [];
+            },
+          ),
+        ];
 
-      if (names.length > 0) {
-        expected[entry.namespace] = names;
+        if (names.length > 0) {
+          expected[entry.namespace] = names;
+        }
+      }
+
+      const filters: Record<string, Array<string>> = filtersByNamespace(
+        getCloudStreamKeyMetricFilters(version),
+      );
+
+      expect({ version, namespaces: Object.keys(filters) }).toEqual({
+        version,
+        namespaces: Object.keys(expected),
+      });
+
+      for (const [namespace, names] of Object.entries(expected)) {
+        expect({
+          version,
+          namespace,
+          names: new Set(filters[namespace]),
+        }).toEqual({
+          version,
+          namespace,
+          names: new Set(names),
+        });
       }
     }
 
-    const filters: Record<string, Array<string>> = filtersByNamespace(
-      getCloudStreamKeyMetricFilters(2),
-    );
-
-    expect(Object.keys(filters)).toEqual(Object.keys(expected));
-
-    for (const [namespace, names] of Object.entries(expected)) {
-      expect({ namespace, names: new Set(filters[namespace]) }).toEqual({
-        namespace,
-        names: new Set(names),
-      });
-    }
-
-    // Every key metric a stream can carry is in template 2, and only those.
+    // Every key metric a stream can carry is in template 3, and only those.
     for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of entry.metrics as ReadonlyArray<AwsKeyMetric>) {
         const where: string = `${entry.namespace}/${metric.metricName}`;
@@ -1065,10 +1106,13 @@ describe("the metric stream's filters", () => {
         const addedIn2: boolean = (
           FILTERS_ADDED_IN_TEMPLATE_2[entry.namespace] || []
         ).includes(metric.metricName);
+        const addedIn3: boolean = (
+          FILTERS_ADDED_IN_TEMPLATE_3[entry.namespace] || []
+        ).includes(metric.metricName);
 
         expect({ where, streamedSince: metric.streamedSince }).toEqual({
           where,
-          streamedSince: inTemplate1 ? 1 : addedIn2 ? 2 : null,
+          streamedSince: inTemplate1 ? 1 : addedIn2 ? 2 : addedIn3 ? 3 : null,
         });
       }
     }
@@ -1084,7 +1128,7 @@ describe("the metric stream's filters", () => {
       ),
     )["MetricStream"]!["Properties"] as JSONObject;
 
-    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(2);
+    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(3);
     expect(keyStream["IncludeFilters"]).toEqual(
       getCloudStreamKeyMetricFilters(AWS_STREAM_TEMPLATE_VERSION),
     );
