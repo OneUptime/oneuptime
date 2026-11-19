@@ -96,6 +96,12 @@ export default class AwsMarketplaceInbound {
    * hours, and resolving it is what proves which AWS account and license the
    * browser was sent for. The purchase is recorded (Pending until the buyer
    * links a project); a token for another seller's product is refused.
+   *
+   * The offer the buyer accepted - the public one, or a private offer made
+   * to them - is not in the token: the License Updated event names it, and
+   * so does the agreement when the buyer finishes the purchase page
+   * (AwsMarketplaceAdapter.toFacts). The product code is the same for every
+   * purchase, so nothing is written over the offer here.
    */
   public async registerBuyer(
     registrationToken: string,
@@ -127,7 +133,6 @@ export default class AwsMarketplaceInbound {
       ...(customer.agreementId
         ? { externalEntitlementId: customer.agreementId }
         : {}),
-      externalOfferId: customer.productCode || undefined,
     });
   }
 
