@@ -18,6 +18,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -385,6 +386,7 @@ export default class DatabaseServer extends BaseModel {
     description:
       "Stable identity of this database within the project: the engine family and its canonical endpoint joined with '|' (e.g. postgresql|orders-db.internal:5432), or the workload form for databases discovered on Kubernetes / Docker / Podman (e.g. postgresql|kubernetes:prod-cluster/data/statefulset/orders-db). A fork keys like the engine it forks (a MariaDB database is mysql|..., a Valkey one redis|...), so learning which of the two a database is never changes its identity. Computed by the server for manually added databases.",
     example: "postgresql|orders-db.internal:5432",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: false,
@@ -600,6 +602,7 @@ export default class DatabaseServer extends BaseModel {
     description:
       "How this database was first discovered: collector, client-spans, kubernetes, docker, podman or manual.",
     example: "collector",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

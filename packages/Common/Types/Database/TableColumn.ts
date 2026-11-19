@@ -5,6 +5,7 @@ import GenericObject from "../GenericObject";
 import { JSONObject } from "../JSON";
 import { getWordOfMeaningKey } from "../MeaningKeys";
 import { ReflectionMetadataType } from "../Reflection";
+import ServerOwned from "./ServerOwned";
 import TableColumnType from "./TableColumnType";
 import UserAttribution from "./UserAttribution";
 import "reflect-metadata";
@@ -152,6 +153,21 @@ export interface TableColumnMetadata {
    * set (Tests/Types/Database/ChangesOnlyWithColumns holds every one to it).
    */
   changesOnlyWith?: string;
+  /*
+   * OneUptime keeps the column's value once the record exists (ServerOwned):
+   * Always - only OneUptime writes it, as a check, a worker or an agent's
+   * report does: a heartbeat's time, a count, a flag that says an owner was
+   * told; AfterCreate - a create may give its first value, and OneUptime
+   * moves it on from there: a monitor's current status, an incident's
+   * current state. The OpenAPI spec says which (x-oneuptime-server-owned:
+   * ModelSchema) and leaves an Always column out of the create and update
+   * schemas, so the Terraform and Crossplane providers never fight OneUptime
+   * over it (#9985). Tests/Types/Database/ServerOwnedColumns holds each
+   * declaration to its column's permissions, and catches a new column named
+   * like one OneUptime keeps (current...Id, last...At, next...At) that
+   * declares nothing.
+   */
+  serverOwned?: ServerOwned;
 }
 
 /*

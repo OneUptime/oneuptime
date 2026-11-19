@@ -96,19 +96,34 @@ const CONTAINER_HOST_OWN_LOGS_DESCRIPTION: string = translationKey(
   "Every security event read from its containers' logs, whatever it names.",
 );
 
+/*
+ * A service's and a serverless function's own logs are their logs and
+ * their traces (#9780): a function's are the ones carrying its faas.name,
+ * whatever service they are filed under.
+ */
+const LOGS_AND_TRACES_SUMMARY_OWN_LOGS: string = translationKey(
+  "The security events read from its own logs and traces.",
+);
+
+const LOGS_AND_TRACES_OWN_LOGS_DESCRIPTION: string = translationKey(
+  "Every security event read from its own logs and traces, whatever it names.",
+);
+
 export const RESOURCE_SECURITY_EVENTS_SUMMARIES_BOTH: Readonly<
   Partial<Record<SecurityConnectionKind, string>>
 > = {
   [SecurityConnectionKind.DockerHost]: CONTAINER_HOST_SUMMARY_BOTH,
   [SecurityConnectionKind.PodmanHost]: CONTAINER_HOST_SUMMARY_BOTH,
+  [SecurityConnectionKind.ServerlessFunction]: translationKey(
+    "The security events about it: read from its own logs and traces, or naming it.",
+  ),
 };
 
 export const RESOURCE_SECURITY_EVENTS_SUMMARIES_OWN_LOGS: Readonly<
   Partial<Record<SecurityConnectionKind, string>>
 > = {
-  [SecurityConnectionKind.Service]: translationKey(
-    "The security events read from its own logs and traces.",
-  ),
+  [SecurityConnectionKind.Service]: LOGS_AND_TRACES_SUMMARY_OWN_LOGS,
+  [SecurityConnectionKind.ServerlessFunction]: LOGS_AND_TRACES_SUMMARY_OWN_LOGS,
 };
 
 export const RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTIONS: Readonly<
@@ -116,9 +131,9 @@ export const RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTIONS: Readonly<
 > = {
   [SecurityConnectionKind.DockerHost]: CONTAINER_HOST_OWN_LOGS_DESCRIPTION,
   [SecurityConnectionKind.PodmanHost]: CONTAINER_HOST_OWN_LOGS_DESCRIPTION,
-  [SecurityConnectionKind.Service]: translationKey(
-    "Every security event read from its own logs and traces, whatever it names.",
-  ),
+  [SecurityConnectionKind.Service]: LOGS_AND_TRACES_OWN_LOGS_DESCRIPTION,
+  [SecurityConnectionKind.ServerlessFunction]:
+    LOGS_AND_TRACES_OWN_LOGS_DESCRIPTION,
 };
 
 export const RESOURCE_SECURITY_EVENTS_NO_SEARCH_REASON: string = translationKey(

@@ -218,6 +218,7 @@ An AWS account, Google Cloud project or Azure subscription [connected under **Cl
 - Each record is read as **Your logs** reads it from a pipeline, so the rule library's CloudTrail, Google Cloud and Azure rules match it.
 - An event is stamped when it is stored, with the record's own time in `oneuptime.cloud.record_time`: an audit log reaches OneUptime minutes late, and a rule reads events by their time.
 - The account's own read brings nothing more: data events, Data Access logs and Microsoft Entra ID's logs still take **Your logs** or a [connection](/docs/integrations/microsoft-entra-id).
+- Each event names the cloud resources its record is about by their own IDs - an ARN, an Azure resource ID, a Google Cloud resource name - so it shows on each one's **Security Events** page, and on a serverless function's once its telemetry sets `cloud.account.id` and `cloud.region`.
 
 ### Connect a security product
 

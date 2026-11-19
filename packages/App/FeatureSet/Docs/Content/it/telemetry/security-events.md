@@ -218,6 +218,7 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 - Ogni record viene letto come lo legge **I tuoi log** da una pipeline, così le regole CloudTrail, Google Cloud e Azure della libreria delle regole lo riconoscono.
 - Un evento riceve l'ora in cui viene salvato, con l'ora propria del record in `oneuptime.cloud.record_time`: un log di audit raggiunge OneUptime con minuti di ritardo, e una regola legge gli eventi in base alla loro ora.
 - La lettura dell'account non porta altro: gli eventi di dati, i log Data Access e i log di Microsoft Entra ID richiedono ancora **I tuoi log** o una [connessione](/docs/integrations/microsoft-entra-id).
+- Ogni evento nomina le risorse cloud di cui parla il suo record con i loro ID - un ARN, un ID di risorsa Azure, un nome di risorsa Google Cloud - quindi compare nella pagina **Eventi di sicurezza** di ciascuna, e in quella di una funzione serverless non appena la sua telemetria imposta `cloud.account.id` e `cloud.region`.
 
 ### Collegare un prodotto di sicurezza
 

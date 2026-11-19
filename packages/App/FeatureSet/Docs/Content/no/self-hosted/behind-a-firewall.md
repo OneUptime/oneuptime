@@ -44,7 +44,7 @@ Hvis telefonene til de vakthavende ikke kan bruke VPN-et ditt, publiserer du sid
 | --- | --- | --- |
 | GET | `/l/*` | De korte lenkene i SMS-, WhatsApp- og Telegram-meldinger |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | Siden som viser hva varslingen gjelder, med knappen **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Knappen **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Knappen **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Valgfritt: siden som sender varslingen videre til neste person |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Valgfritt: knappen på den siden |
 | GET | `/oneuptime-assets/*` | Skrifttypene, stilene og logoen til disse sidene |

@@ -29,6 +29,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
@@ -2167,6 +2168,13 @@ export default class Monitor extends BaseModel {
     description: "Whats the current status ID of this monitor?",
     canReadOnRelationQuery: true,
     example: "c3d4e5f6-a7b8-9012-cdef-345678901234",
+    /*
+     * The status a new monitor starts in may be picked; its checks move it
+     * from there (an update changes it by hand, through a status timeline
+     * row: MonitorService.onUpdateSuccess). The providers send it to create
+     * the monitor only (#9985).
+     */
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -2473,6 +2481,7 @@ export default class Monitor extends BaseModel {
       "When was the last time we checked the heartbeat for incoming request?",
     description:
       "This field is for Incoming Request monitor only. When was the last time we checked the heartbeat?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2508,6 +2517,8 @@ export default class Monitor extends BaseModel {
     title: "Telemetry Monitor Next Monitor At",
     description:
       "This field is for Telemetry Monitor only. When is the next time we should monitor?",
+    // Every evaluation of the monitor moves it (#9985).
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2543,6 +2554,8 @@ export default class Monitor extends BaseModel {
     title: "Telemetry Monitor Last Monitor At",
     description:
       "This field is for Telemetry Monitor only. When was the last time we monitored?",
+    // Every evaluation of the monitor moves it (#9985).
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2710,6 +2723,7 @@ export default class Monitor extends BaseModel {
     title: "Server Monitor Request Received At",
     description:
       "This field is for Server Monitor only. When was the last time we received a request?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -3299,6 +3313,7 @@ export default class Monitor extends BaseModel {
     required: false,
     title: "Server Monitor Response",
     description: "Server Monitor Response for Server Monitor",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.JSON,

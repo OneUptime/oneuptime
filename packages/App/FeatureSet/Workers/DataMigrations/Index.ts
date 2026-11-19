@@ -144,6 +144,7 @@ import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
+import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -1511,6 +1512,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last one AddAuditLogMcpClientColumns keeps.
    */
   new MoveChartsAndSlosOffRetiredCloudMetrics(),
+  /*
+   * Records when this server was upgraded to on-call links that carry the
+   * page's own token (#10025): it changes no data, and its row says when.
+   * A link without a token acknowledges a page sent before that, for a week
+   * after it was sent (OnCallAcknowledgeLink). Independent of the moves
+   * before it; before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new RequireTokenToAcknowledgeOnCallPages(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

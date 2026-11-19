@@ -15,6 +15,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -331,6 +332,7 @@ export default class CephCluster extends BaseModel {
     description:
       "Ceph cluster fsid, sourced from the ceph.cluster.fsid OTel resource attribute when known",
     example: "9b2c3a4d-1e2f-4a5b-8c7d-6e5f4a3b2c1d",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -365,6 +367,7 @@ export default class CephCluster extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -400,6 +403,7 @@ export default class CephCluster extends BaseModel {
     description:
       "Version of the OneUptime Ceph agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -433,6 +437,7 @@ export default class CephCluster extends BaseModel {
     title: "Ceph Version",
     description: "Ceph version reported by this cluster",
     example: "18.2.4 (reef)",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -465,6 +470,7 @@ export default class CephCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -494,6 +500,7 @@ export default class CephCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Monitor Count",
     description: "Cached count of Ceph monitors (mons) in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -524,6 +531,7 @@ export default class CephCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "OSD Count",
     description: "Cached count of OSDs in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -555,6 +563,7 @@ export default class CephCluster extends BaseModel {
     title: "OSDs Up Count",
     description:
       "Cached count of OSDs that are up (ceph_osd_up == 1) in this cluster. Rendered as 'X up / Y in / Z total' next to osdCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -586,6 +595,7 @@ export default class CephCluster extends BaseModel {
     title: "OSDs In Count",
     description:
       "Cached count of OSDs that are in the cluster (ceph_osd_in == 1). Rendered as 'X up / Y in / Z total' next to osdCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -616,6 +626,7 @@ export default class CephCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Pool Count",
     description: "Cached count of pools in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -647,6 +658,7 @@ export default class CephCluster extends BaseModel {
     title: "Health Status",
     description:
       "Cached latest ceph_health_status value: 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR. Rendered as the OK/WARN/ERR health pill. Null until the first metric batch arrives.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -677,6 +689,7 @@ export default class CephCluster extends BaseModel {
     title: "Capacity Used Percent",
     description:
       "Cached cluster capacity usage percent (ceph_cluster_total_used_bytes / ceph_cluster_total_bytes * 100). Stored as decimal so sub-percent precision survives the round trip. Null until both series appear in one metric batch.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

@@ -2,7 +2,7 @@
   "about": [
     "What each core job costs a newcomer today, counted by the journeys in packages/E2E/Journeys (npm run test-journeys-ui): each job done in the real Dashboard or Admin Dashboard with only what is on screen, over a project made a minute ago. packages/E2E/Journeys/README.md says how each measure is counted, how to read a failure and how to add a journey.",
     "A run fails when a measure in failOn moves from its budget, either way. Up: the job got longer - make it short again, or raise the number here and say in the pull request why the job needs it. Down: the job got shorter - lower the number here to what the run counted, so the gain is kept. The measures in reported move with copy edits: the run's table shows them beside their budget, and they never fail it.",
-    "Each journey is one path through its job. When a guided setup ships beside a manual path (#6804, #6805, #6806), its journey gets an entry of its own with path \"guided\", and the guided one is the headline.",
+    "Each journey is one path through its job. When a guided setup ships beside a manual path (#6804, #6805, #6806), its journey gets an entry of its own with path \"guided\", and the guided one is the headline. Ask AI's way to the same job (#7251) has path \"ask-ai\", beside the guided one, counted the same way in Ask AI's own offline fixture.",
     "Concepts met along a journey cannot be counted by a machine: the epic #6802 keeps them as a hand count."
   ],
   "measuredOn": "2026-11-11",
@@ -58,6 +58,23 @@
         "defaultsKept": 2,
         "choices": 0,
         "words": 423
+      }
+    },
+    "website-down-ask-ai": {
+      "title": "Know when my website or API is down (Ask AI)",
+      "path": "ask-ai",
+      "startsAt": "Home, with Ask AI closed",
+      "endsWhen": "Ask AI's plan - the monitor, and an on-call policy that pages me for every new incident and alert - ran from its one approval card, and the policy's test page was sent",
+      "budget": {
+        "screens": 1,
+        "dialogs": 1,
+        "clicks": 6,
+        "fieldsTyped": 1,
+        "products": 1,
+        "keystrokes": 59,
+        "defaultsKept": 1,
+        "choices": 0,
+        "words": 78
       }
     },
     "paged-by-phone": {

@@ -8,6 +8,7 @@ import {
   readValue,
 } from "../NormalizerHelpers";
 import { SecurityRecordReading } from "../SecurityRecordReading";
+import { readGoogleCloudAuditResourceIds } from "./CloudAuditResources";
 import {
   MAX_JSON_LINE_LENGTH,
   SecurityLogLine,
@@ -374,6 +375,11 @@ export function readGoogleCloudAuditEntry(
     principalIp: readRemoteIpAddress(callerIp),
     targetHost: project,
     targetResource: resourceName || `${serviceName} ${shortMethod}`.trim(),
+    // The resource it was on, by its full resource name (#9779).
+    resourceIds: readGoogleCloudAuditResourceIds({
+      entry: audit.entry,
+      payload,
+    }),
     attributes,
   };
 }
@@ -410,6 +416,7 @@ export default class GoogleCloudAuditLogParser {
         principalIp: reading.principalIp,
         targetHost: reading.targetHost,
         targetResource: reading.targetResource,
+        resourceIds: reading.resourceIds,
         attributes: reading.attributes,
       }),
     ];

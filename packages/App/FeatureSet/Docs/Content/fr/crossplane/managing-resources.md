@@ -32,7 +32,7 @@ Les champs d'un type de ressource sont les arguments de la ressource Terraform, 
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` montre l'enregistrement tel que OneUptime le connaît, avec son `id`. Un champ que vous omettez et que OneUptime renseigne, comme une valeur par défaut, est copié dans `spec.forProvider` après la création de l'enregistrement, pour que la vérification suivante ne trouve rien à modifier.
+`status.atProvider` montre l'enregistrement tel que OneUptime le connaît, avec son `id`. Un champ que vous omettez et que OneUptime renseigne, comme une valeur par défaut, est copié dans `spec.forProvider` après la création de l'enregistrement, pour que la vérification suivante ne trouve rien à modifier. Un champ que OneUptime tient lui-même à jour n'est jamais copié : voir [Champs tenus à jour par OneUptime](#champs-tenus-à-jour-par-oneuptime).
 
 ## Faire référence à d'autres ressources
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-Pour que le tableau de bord garde la main sur un champ après la création de l'enregistrement, écrivez-le dans `spec.initProvider` au lieu de `spec.forProvider` : il sert à créer l'enregistrement et n'est jamais rétabli. Pour que le tableau de bord garde la main sur tout l'enregistrement, retirez `Update` de ses politiques de gestion : `["Observe", "Create", "Delete", "LateInitialize"]`.
+Pour que le tableau de bord garde la main sur un champ après la création de l'enregistrement, écrivez-le dans `spec.initProvider` au lieu de `spec.forProvider` : l'enregistrement est créé avec ce champ, et le fournisseur ne le copie jamais dans `spec.forProvider` ni ne le rétablit. Cela vaut pour tout champ facultatif ; un champ dont l'enregistrement a besoin, comme le `name` d'un moniteur, a sa place dans `spec.forProvider`. Pour que le tableau de bord garde la main sur tout l'enregistrement, retirez `Update` de ses politiques de gestion : `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Champs tenus à jour par OneUptime
+
+Il revient à OneUptime de tenir certains champs à jour, et le fournisseur les lui laisse : il ne les copie jamais dans `spec.forProvider` et ne les rétablit jamais.
+
+- Un champ que seul OneUptime écrit, comme la date de la dernière exécution d'un moniteur de télémétrie (`telemetryMonitorLastMonitorAt`) ou le nombre de nœuds d'un cluster Kubernetes (`nodeCount`), ne figure que dans `status.atProvider`.
+- Un champ qui a une valeur de départ, comme le `currentMonitorStatusId` d'un moniteur ou le `currentIncidentStateId` d'un incident, peut être indiqué pour créer l'enregistrement, dans `spec.initProvider` ou `spec.forProvider`. Ensuite, OneUptime le fait évoluer, comme les vérifications d'un moniteur font évoluer son statut, et `status.atProvider` montre où il en est.
+
+`kubectl explain` l'indique dans la description de chaque champ qui a une valeur de départ. Une ressource dont une version antérieure du fournisseur a rempli `spec.forProvider` avec ces champs cesse d'elle-même de lutter contre OneUptime, sans rien à modifier.
 
 ## Supprimer une ressource
 

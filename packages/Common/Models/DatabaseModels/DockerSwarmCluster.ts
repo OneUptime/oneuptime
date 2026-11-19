@@ -15,6 +15,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -317,6 +318,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -352,6 +354,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "Version of the OneUptime DockerSwarm agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -386,6 +389,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "Docker Engine version reported by the swarm manager this agent talks to.",
     example: "27.3.1",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -418,6 +422,7 @@ export default class DockerSwarmCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -447,6 +452,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Node Count",
     description: "Cached count of nodes in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -478,6 +484,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Ready Node Count",
     description:
       "Cached count of nodes whose status is 'ready' in this cluster. Rendered as 'Nodes X/Y ready' next to nodeCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -508,6 +515,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Manager Node Count",
     description: "Cached count of nodes with the manager role in this cluster.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -538,6 +546,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Service Count",
     description: "Cached count of swarm services in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -569,6 +578,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Task Count",
     description:
       "Cached count of swarm tasks (service instances) in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -600,6 +610,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Running Task Count",
     description:
       "Cached count of tasks in the running state. Rendered as 'Tasks X/Y running' next to taskCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -630,6 +641,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Stack Count",
     description: "Cached count of deployed compose stacks in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -661,6 +673,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Network Count",
     description:
       "Cached count of swarm-scoped (overlay) networks in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,

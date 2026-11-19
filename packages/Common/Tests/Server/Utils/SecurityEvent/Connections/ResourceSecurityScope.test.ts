@@ -7,6 +7,7 @@ import PodmanHostService from "../../../../../Server/Services/PodmanHostService"
 import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
 import SecurityEntityRiskService from "../../../../../Server/Services/SecurityEntityRiskService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import ServerlessFunctionService from "../../../../../Server/Services/ServerlessFunctionService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityCaseValues from "../../../../../Server/Utils/SecurityCase/SecurityCaseValues";
@@ -20,7 +21,9 @@ import PositiveNumber from "../../../../../Types/PositiveNumber";
 import {
   ResourceSecurityJson,
   ResourceSecurityScopeJson,
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
   SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
   SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
@@ -375,6 +378,154 @@ describe("ResourceSecurity.readScope: other records", () => {
         value: "build-1",
       },
     });
+  });
+
+  /*
+   * A cloud resource's page (#9779): the events its cloud's audit log names
+   * it in, by its ID exactly as its cloud writes it, and the events read
+   * from its own streamed logs, by the same ID as its Logs page reads them.
+   */
+  test("a cloud resource is read by its own ID and the names it answers on, or the events read from its own logs", async () => {
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "Checkout",
+      providerResourceId:
+        "arn:aws:lambda:us-east-1:111122223333:function:Checkout",
+      cloudEndpoints: ["checkout.lambda-url.us-east-1.on.aws"],
+    } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(scope?.isSearchedByLogs).toBe(false);
+    expect(scope?.values).toEqual([
+      "arn:aws:lambda:us-east-1:111122223333:function:Checkout",
+      "checkout.lambda-url.us-east-1.on.aws",
+    ]);
+    expect(scope?.scope).toEqual({
+      // The ARN as written only; the name it answers on in its casings.
+      observables: [
+        "arn:aws:lambda:us-east-1:111122223333:function:Checkout",
+        "checkout.lambda-url.us-east-1.on.aws",
+        "CHECKOUT.LAMBDA-URL.US-EAST-1.ON.AWS",
+      ],
+      attributeKey: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+      attributeValues: [
+        "arn:aws:lambda:us-east-1:111122223333:function:Checkout",
+      ],
+    });
+  });
+
+  test("an Azure resource's ID is read in its casings: the Activity Log writes it in capitals or in lower case", async () => {
+    const id: string =
+      "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod/providers/Microsoft.KeyVault/vaults/kv-payments";
+
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "kv-payments",
+      providerResourceId: id,
+    } as never);
+
+    expect(
+      (await readScope(SecurityConnectionKind.CloudResource))?.scope,
+    ).toEqual({
+      observables: [id, id.toLowerCase(), id.toUpperCase()],
+      attributeKey: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+      attributeValues: [id],
+    });
+  });
+
+  test("the card and the page of a cloud resource read the same", async () => {
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "acme-invoices",
+      providerResourceId: "arn:aws:s3:::acme-invoices",
+    } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    await ResourceSecurity.read({
+      projectId: PROJECT_ID,
+      kind: SecurityConnectionKind.CloudResource,
+      id: DEVICE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: scope?.scope.observables,
+      attribute: {
+        key: scope?.scope.attributeKey,
+        value: scope?.scope.attributeValues?.[0],
+      },
+    });
+    expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
+  });
+
+  /*
+   * A serverless function's page (#9780): the events read from its own
+   * logs and traces, by its faas.name, whatever service they are filed
+   * under - and, where its telemetry says its ARN, the events naming it.
+   */
+  test("a serverless function is read by its faas.name, and by its ARN where its telemetry says it", async () => {
+    const functionRead: jest.SpyInstance = jest
+      .spyOn(ServerlessFunctionService, "findOneBy")
+      .mockResolvedValue({
+        id: DEVICE_ID,
+        name: "checkout",
+        functionIdentifier: "checkout",
+        cloudProvider: "aws",
+        cloudPlatform: "aws_lambda",
+        cloudRegion: "us-east-1",
+        cloudAccountId: "111122223333",
+      } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.ServerlessFunction,
+    );
+
+    expect(scope?.isSearchedByLogs).toBe(false);
+    expect(scope?.scope).toEqual({
+      observables: ["arn:aws:lambda:us-east-1:111122223333:function:checkout"],
+      attributeKey: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+      attributeValues: ["checkout"],
+    });
+    // Read as the caller, inside the project.
+    expect(functionRead.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, _id: DEVICE_ID.toString() },
+      props: CALLER,
+    });
+
+    functionRead.mockResolvedValue({
+      id: DEVICE_ID,
+      name: "orders",
+      functionIdentifier: "orders-func",
+      cloudProvider: "azure",
+      cloudPlatform: "azure_functions",
+      cloudRegion: "westeurope",
+      cloudAccountId: "11111111-2222-3333-4444-555555555555",
+    } as never);
+
+    // An Azure function: its own logs and traces alone.
+    expect(
+      (await readScope(SecurityConnectionKind.ServerlessFunction))?.scope,
+    ).toEqual({
+      observables: [],
+      attributeKey: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+      attributeValues: ["orders-func"],
+    });
+  });
+
+  test("a function the caller may not read has no page to read", async () => {
+    jest.spyOn(ServerlessFunctionService, "findOneBy").mockResolvedValue(null);
+
+    expect(
+      await readScope(SecurityConnectionKind.ServerlessFunction),
+    ).toBeNull();
+    expect(countSpy).not.toHaveBeenCalled();
   });
 
   test("a cloud resource with no name or address of its own is read by its logs", async () => {
