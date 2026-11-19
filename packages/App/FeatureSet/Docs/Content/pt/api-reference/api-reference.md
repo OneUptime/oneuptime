@@ -254,7 +254,9 @@ Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nom
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem. Para equipes, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual.
+Ao lado da mensagem, a resposta traz `"refusalCode": "name_taken"`. Reconheça esta recusa por esse código, não pela frase, que pode ser reescrita. Nada foi gravado, então a mesma requisição pode ser enviada de novo assim que o outro registro liberar o nome: o provider do Terraform tenta de novo por até 30 segundos.
+
+Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem. Para equipes, rótulos, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual. Rótulos e políticas de plantão arquivados ficam de fora.
 
 ### Chaves liga/desliga
 

@@ -106,9 +106,11 @@ This network device references records that are not in this project: Network Sit
 
 ### 其他記錄已在使用的名稱
 
-團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已封存的待命策略會保留其名稱：請取消封存，或另選一個名稱。先前就同名的記錄會保留名稱，儀表板中團隊、待命策略和待命排程的清單會標示它們。
+團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已封存的待命策略會保留其名稱：請取消封存，或另選一個名稱。先前就同名的記錄會保留名稱，儀表板中團隊、標籤、待命策略和待命排程的清單會標示它們。
 
-Terraform 會平行執行同一次 apply 中的變更，因此如果重新命名為另一個資源在同一次 apply 中讓出的名稱，在那個資源仍占用該名稱時可能會被拒絕：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，都無法在一次 apply 中完成：先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
+Terraform 會平行執行同一次 apply 中的變更，因此如果重新命名為另一個資源在同一次 apply 中讓出的名稱，在那個資源仍占用該名稱時可能會被拒絕。此時提供者會在最多 30 秒內再次請求，因此重新命名鏈（例如 A 改為 B，同時 B 改為 C）可以在一次 apply 中完成。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，則永遠無法完成：30 秒後 apply 會失敗，並顯示 `The name was still taken after asking again for 30 seconds.` 請先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
+
+如果使用較舊的提供者或較舊的 OneUptime，第一次拒絕就會讓 apply 失敗：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。
 
 ## 無法穩定的計畫
 

@@ -254,7 +254,9 @@ Los equipos, las etiquetas, las políticas de guardia y las programaciones de gu
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos. Para los equipos, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual.
+Junto al mensaje, la respuesta incluye `"refusalCode": "name_taken"`. Reconoce este rechazo por ese código, no por la frase, que puede cambiar de redacción. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto el otro registro deje el nombre: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
+
+Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos. Para los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual. Las etiquetas y las políticas de guardia archivadas quedan fuera.
 
 ### Interruptores
 
