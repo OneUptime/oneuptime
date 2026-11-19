@@ -587,7 +587,7 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       "findOneById",
     );
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
     expect(result).toEqual({
@@ -607,7 +607,7 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       "findOneById",
     );
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
     expect(result).toEqual({
@@ -628,7 +628,7 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       "findBy",
     );
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
     expect(result).toEqual({
@@ -659,7 +659,7 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       .spyOn(AIRunEventService, "findBy")
       .mockResolvedValue(events);
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
     expect(result.run).toBe(run);
