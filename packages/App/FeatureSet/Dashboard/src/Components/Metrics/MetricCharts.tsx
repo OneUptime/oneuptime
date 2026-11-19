@@ -2940,15 +2940,19 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           }),
           ...buildMetricChartThresholdLines({
             /*
-             * A line with no unit of its own is in its query's unit: named
-             * so, a converted query's lines are drawn in the chart's too.
+             * A line with no unit of its own is in its query's unit, so a
+             * converted query's is converted as its values are. A line
+             * with a unit is converted into the chart's by the builder.
              */
             thresholds: isConverted
               ? (props.thresholds || []).map(
                   (threshold: MetricChartThreshold): MetricChartThreshold => {
                     return threshold.unit
                       ? threshold
-                      : { ...threshold, unit: member.unit };
+                      : {
+                          ...threshold,
+                          value: inDrawnUnit(threshold.value) as number,
+                        };
                   },
                 )
               : props.thresholds,
