@@ -15,7 +15,13 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import MetricService from "../../../../Server/Services/MetricService";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import {
+  AWS_CLOUDWATCH_UNITS,
+  AWS_UNIT_LOOK_BACK_DAYS,
+  pickAwsMetricUnit,
+} from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudWatch";
 import CloudResourceMetrics, {
+  CLOUD_PUBLISHED_METRICS_UNIT_PROBES,
   CloudResourceMetricsDependencies,
   getAwsDefaultStatistic,
   getAwsDimensionsOfAttributes,
@@ -35,6 +41,7 @@ import {
   readCloudAddedMetrics,
   toStoredCloudAddedMetrics,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
+import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import { CloudKeyMetricCondition } from "../../../../Types/Cloud/CloudKeyMetricCondition";
 import { AWS_KEY_METRICS } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
@@ -63,6 +70,7 @@ import {
   FakeGcpLive,
   LIVE_ACCOUNT,
   awsJson,
+  awsJsonError,
   createFakeAwsLive,
   createFakeAzureLive,
   createFakeGcpLive,
@@ -561,47 +569,48 @@ describe("an AWS resource's metrics", () => {
     "resource.cloud.region": "us-east-1",
   };
 
-  function awsFake(): FakeAwsLive {
-    return createFakeAwsLive({
-      "monitoring:ListMetrics": () => {
-        return awsJson({
-          Metrics: [
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "SwapUsage",
-              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
-            },
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "CPUUtilization",
-              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
-            },
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "ReadThroughput",
-              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
-            },
-            // A split of the same database: not its own series.
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "SwapUsage",
-              Dimensions: [
-                { Name: "DBInstanceIdentifier", Value: "orders" },
-                { Name: "Role", Value: "WRITER" },
-              ],
-            },
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "OnlyOnASplit",
-              Dimensions: [
-                { Name: "DBInstanceIdentifier", Value: "orders" },
-                { Name: "Role", Value: "WRITER" },
-              ],
-            },
+  // The database's metrics, as ListMetrics lists them over two weeks.
+  function listMetricsAnswer(): ReturnType<typeof awsJson> {
+    return awsJson({
+      Metrics: [
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "SwapUsage",
+          Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+        },
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "CPUUtilization",
+          Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+        },
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "ReadThroughput",
+          Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+        },
+        // A split of the same database: not its own series.
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "SwapUsage",
+          Dimensions: [
+            { Name: "DBInstanceIdentifier", Value: "orders" },
+            { Name: "Role", Value: "WRITER" },
           ],
-        });
-      },
+        },
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "OnlyOnASplit",
+          Dimensions: [
+            { Name: "DBInstanceIdentifier", Value: "orders" },
+            { Name: "Role", Value: "WRITER" },
+          ],
+        },
+      ],
     });
+  }
+
+  function awsFake(): FakeAwsLive {
+    return createFakeAwsLive({ "monitoring:ListMetrics": listMetricsAnswer });
   }
 
   beforeEach(() => {
@@ -674,6 +683,340 @@ describe("an AWS resource's metrics", () => {
         dimensions: [{ name: "DBInstanceIdentifier", value: "orders" }],
       }),
     );
+  });
+
+  /*
+   * #9809: CloudWatch answers a GetMetricData query that names a unit only
+   * with the data published with that unit, as here: each metric's
+   * datapoints carry the unit of `publishedWith`, a day's sample count a
+   * point over the fortnight asked.
+   */
+  function unitProbe(
+    publishedWith: Record<string, string | Array<[string, number]>>,
+  ): (call: AwsLiveCall) => ReturnType<typeof awsJson> {
+    return (call: AwsLiveCall) => {
+      const queries: Array<JSONObject> = call.json[
+        "MetricDataQueries"
+      ] as Array<JSONObject>;
+
+      return awsJson({
+        MetricDataResults: queries.map((query: JSONObject): JSONObject => {
+          const stat: JSONObject = query["MetricStat"] as JSONObject;
+          const name: string = String(
+            (stat["Metric"] as JSONObject)["MetricName"],
+          );
+          const published: string | Array<[string, number]> | undefined =
+            publishedWith[name];
+          const units: Array<[string, number]> =
+            typeof published === "string"
+              ? [[published, 1440]]
+              : published || [];
+          const samples: number =
+            units.find((entry: [string, number]): boolean => {
+              return entry[0] === stat["Unit"];
+            })?.[1] || 0;
+
+          return {
+            Id: query["Id"],
+            Label: name,
+            StatusCode: "Complete",
+            Timestamps: samples ? [1763337600, 1763424000] : [],
+            Values: samples ? [samples, samples] : [],
+          };
+        }),
+      });
+    };
+  }
+
+  function awsFakeWithUnits(
+    publishedWith: Record<string, string | Array<[string, number]>>,
+  ): FakeAwsLive {
+    return createFakeAwsLive({
+      "monitoring:ListMetrics": listMetricsAnswer,
+      "monitoring:GetMetricData": unitProbe(publishedWith),
+    });
+  }
+
+  test("adding one learns its unit from its datapoints: one GetMetricData call, a query per CloudWatch unit, on its own series", async () => {
+    const fake: FakeAwsLive = awsFakeWithUnits({ SwapUsage: "Bytes" });
+
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "SwapUsage",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Resource,
+      dependencies: dependencies(fake.transport),
+    });
+    const probes: Array<AwsLiveCall> = fake.callsTo("monitoring:GetMetricData");
+
+    expect(result.added.unit).toBe("Bytes");
+    expect(savedAdditions()[0]!.unit).toBe("Bytes");
+    expect(probes).toHaveLength(1);
+    expect(probes[0]!.region).toBe("us-east-1");
+
+    const queries: Array<JSONObject> = probes[0]!.json[
+      "MetricDataQueries"
+    ] as Array<JSONObject>;
+
+    expect(
+      queries.map((query: JSONObject): unknown => {
+        return (query["MetricStat"] as JSONObject)["Unit"];
+      }),
+    ).toEqual([...AWS_CLOUDWATCH_UNITS]);
+
+    for (const query of queries) {
+      const stat: JSONObject = query["MetricStat"] as JSONObject;
+
+      expect(stat["Stat"]).toBe("SampleCount");
+      expect(stat["Period"]).toBe(86400);
+      expect(stat["Metric"]).toEqual({
+        Namespace: "AWS/RDS",
+        MetricName: "SwapUsage",
+        Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+      });
+    }
+
+    // The fortnight ListMetrics lists a quiet metric for, up to now.
+    expect(probes[0]!.json["EndTime"]).toBe(NOW.getTime() / 1000);
+    expect(probes[0]!.json["StartTime"]).toBe(
+      NOW.getTime() / 1000 - AWS_UNIT_LOOK_BACK_DAYS * 86400,
+    );
+  });
+
+  test("a type's addition learns its unit from the series of the resource it is added from", async () => {
+    const fake: FakeAwsLive = awsFakeWithUnits({
+      ReadThroughput: "Bytes/Second",
+    });
+
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "ReadThroughput",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Type,
+      dependencies: dependencies(fake.transport),
+    });
+
+    expect(result.added.unit).toBe("Bytes/Second");
+    expect(result.added.dimensions).toBeUndefined();
+  });
+
+  test("a metric published with two units is kept with the one of most samples", () => {
+    expect(
+      pickAwsMetricUnit([
+        { id: "u14", timestamps: [1, 2], values: [3, 2] },
+        { id: "u26", timestamps: [1], values: [1440] },
+        { id: "u3", timestamps: [], values: [] },
+      ]),
+    ).toBe("None");
+    expect(
+      pickAwsMetricUnit([
+        { id: "u14", timestamps: [1, 2], values: [700, 800] },
+        { id: "u26", timestamps: [1], values: [1440] },
+      ]),
+    ).toBe("Count");
+    // Nothing published, or answers that are no probe's.
+    expect(pickAwsMetricUnit([])).toBe("");
+    expect(
+      pickAwsMetricUnit([
+        { id: "u3", timestamps: [1], values: [0] },
+        { id: "q0", timestamps: [1], values: [5] },
+        { id: "u99", timestamps: [1], values: [5] },
+      ]),
+    ).toBe("");
+  });
+
+  test("no datapoints in a fortnight, or a probe the role refuses: added all the same, with the unit AWS documents or none", async () => {
+    for (const probe of [
+      unitProbe({}),
+      (): ReturnType<typeof awsJson> => {
+        return awsJsonError(400, "AccessDenied", "not authorized");
+      },
+    ]) {
+      saved = [];
+
+      const fake: FakeAwsLive = createFakeAwsLive({
+        "monitoring:ListMetrics": listMetricsAnswer,
+        "monitoring:GetMetricData": probe,
+      });
+
+      const swap: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        name: "SwapUsage",
+        namespace: "AWS/RDS",
+        scope: CloudAddedMetricScope.Resource,
+        dependencies: dependencies(fake.transport),
+      });
+
+      expect(swap.added.unit).toBe(
+        getAwsDocumentedMetricUnit("AWS/RDS", "SwapUsage"),
+      );
+      expect(savedAdditions()).toHaveLength(1);
+    }
+  });
+
+  test("the list says each metric's unit: an addition's as it was kept, a key metric's from the catalog, any other's as AWS documents it", async () => {
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics([
+        added({
+          provider: CloudProvider.AWS,
+          resourceType: "AWS::RDS::DBInstance",
+          namespace: "AWS/RDS",
+          name: "SwapUsage",
+          aggregation: "Average",
+          grain: undefined,
+          unit: "Bytes",
+        }),
+      ]) as never,
+    });
+
+    const fake: FakeAwsLive = awsFakeWithUnits({});
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+    const unitOf: (name: string) => string = (name: string): string => {
+      return (
+        listing.metrics.find((metric: CloudPublishedMetric): boolean => {
+          return metric.name === name;
+        })?.unit ?? "missing"
+      );
+    };
+
+    expect(unitOf("SwapUsage")).toBe("Bytes");
+    expect(unitOf("CPUUtilization")).toBe("Percent");
+    expect(unitOf("ReadThroughput")).toBe(
+      getAwsDocumentedMetricUnit("AWS/RDS", "ReadThroughput"),
+    );
+    // An addition with its unit is never asked again.
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(0);
+    expect(saved).toHaveLength(0);
+  });
+
+  test("an addition kept with no unit is asked again when it is listed, and kept with the unit its datapoints now carry", async () => {
+    const swap: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "SwapUsage",
+      aggregation: "Average",
+      grain: undefined,
+      unit: "",
+    });
+    const other: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "BinLogDiskUsage",
+      aggregation: "Average",
+      grain: undefined,
+      unit: "",
+    });
+
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics([swap, other]) as never,
+    });
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+
+    const fake: FakeAwsLive = awsFakeWithUnits({ SwapUsage: "Bytes" });
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+
+    expect(
+      listing.metrics.find((metric: CloudPublishedMetric): boolean => {
+        return metric.name === "SwapUsage";
+      })?.unit,
+    ).toBe("Bytes");
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(1);
+    // Kept with it; the other addition, not listed for this resource, as it was.
+    expect(
+      savedAdditions().map((metric: CloudAddedMetric): string => {
+        return `${metric.name}:${metric.unit}`;
+      }),
+    ).toEqual(["SwapUsage:Bytes", "BinLogDiskUsage:"]);
+  });
+
+  test("a listing asks the unit of two additions at most", async () => {
+    const names: Array<string> = ["SwapUsage", "ReadThroughput", "OtherOne"];
+
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics(
+        names.map((name: string): CloudAddedMetric => {
+          return added({
+            provider: CloudProvider.AWS,
+            resourceType: "AWS::RDS::DBInstance",
+            namespace: "AWS/RDS",
+            name,
+            aggregation: "Average",
+            grain: undefined,
+            unit: "",
+          });
+        }),
+      ) as never,
+    });
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+
+    const fake: FakeAwsLive = createFakeAwsLive({
+      "monitoring:ListMetrics": () => {
+        return awsJson({
+          Metrics: names.map((name: string): JSONObject => {
+            return {
+              Namespace: "AWS/RDS",
+              MetricName: name,
+              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+            };
+          }),
+        });
+      },
+      "monitoring:GetMetricData": unitProbe({
+        SwapUsage: "Bytes",
+        ReadThroughput: "Bytes/Second",
+        OtherOne: "Count",
+      }),
+    });
+
+    await CloudResourceMetrics.listPublished({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      canEdit: true,
+      dependencies: dependencies(fake.transport),
+    });
+
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(
+      CLOUD_PUBLISHED_METRICS_UNIT_PROBES,
+    );
+    expect(
+      savedAdditions().filter((metric: CloudAddedMetric): boolean => {
+        return Boolean(metric.unit);
+      }),
+    ).toHaveLength(CLOUD_PUBLISHED_METRICS_UNIT_PROBES);
   });
 
   test("a resource whose dimensions are not known yet is not listed", async () => {

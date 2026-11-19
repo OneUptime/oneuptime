@@ -38,6 +38,7 @@ import {
   CLOUD_REGION_ATTRIBUTE,
   GCP_RESOURCE_TYPE_ATTRIBUTE,
 } from "../../../Types/Cloud/CloudMonitoredResource";
+import { getAwsDocumentedMetricUnit } from "../../../Types/Cloud/AwsMetricUnits";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudPublishedMetric,
@@ -79,7 +80,11 @@ import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import DataSourceHttpFetch from "../DataSource/HttpFetch";
 import { AwsCredentials } from "./Aws/AwsApi";
 import AwsCloudConnector from "./Aws/AwsCloudConnector";
-import { AwsListedMetric, listMetrics } from "./Aws/AwsCloudWatch";
+import {
+  AwsListedMetric,
+  findAwsMetricUnit,
+  listMetrics,
+} from "./Aws/AwsCloudWatch";
 import AzureCloudConnector, {
   AZURE_FIVE_MINUTE_CURSOR,
   SelectedMetric,
@@ -100,6 +105,7 @@ import {
 import GcpCloudConnector from "./Gcp/GcpCloudConnector";
 import { GcpMetricDescriptor } from "./Gcp/GcpMonitoring";
 import CloudLiveReadRateLimit from "./LiveRead/CloudLiveReadRateLimit";
+import logger from "../Logger";
 
 /*
  * A CLOUD RESOURCE'S METRICS, BEYOND THE KEY METRICS ITS CONNECTION READS.
@@ -126,6 +132,11 @@ import CloudLiveReadRateLimit from "./LiveRead/CloudLiveReadRateLimit";
 
 // One listing's budget: requests, and how long it may take.
 export const CLOUD_PUBLISHED_METRICS_MAX_REQUESTS: number = 25;
+/*
+ * AWS: the additions with no unit yet a listing asks CloudWatch the unit
+ * of, at most (#9809): a call each.
+ */
+export const CLOUD_PUBLISHED_METRICS_UNIT_PROBES: number = 2;
 export const CLOUD_PUBLISHED_METRICS_MAX_DURATION_MS: number = 25 * 1000;
 const REQUEST_TIMEOUT_MS: number = 15 * 1000;
 const DAY_MS: number = 24 * 60 * 60 * 1000;
@@ -469,6 +480,7 @@ export default class CloudResourceMetrics {
       cloudResourceId: target.resource.id!.toString(),
     });
 
+    const learnedUnits: Map<string, string> = new Map<string, string>();
     const read: {
       metrics: Array<CloudPublishedMetric>;
       azureMetricsInCall?: number | undefined;
@@ -478,7 +490,15 @@ export default class CloudResourceMetrics {
       connection,
       applying,
       dependencies,
+      learnedUnits,
     });
+
+    if (learnedUnits.size > 0) {
+      await CloudResourceMetrics.keepLearnedUnits({
+        connectionId: connection.id!,
+        learnedUnits,
+      });
+    }
 
     return {
       provider: target.provider,
@@ -556,6 +576,8 @@ export default class CloudResourceMetrics {
     connection: CloudConnection;
     applying: Array<CloudAddedMetric>;
     dependencies: CloudResourceMetricsDependencies;
+    // AWS: the units the listing learned of additions that had none, by key.
+    learnedUnits?: Map<string, string> | undefined;
   }): Promise<{
     metrics: Array<CloudPublishedMetric>;
     azureMetricsInCall?: number | undefined;
@@ -742,6 +764,7 @@ export default class CloudResourceMetrics {
     settings: CloudConnectionSettings;
     options: CloudConnectorCallOptions;
     budget: CloudReadBudget;
+    learnedUnits?: Map<string, string> | undefined;
   }): Promise<Array<CloudPublishedMetric>> {
     const place: {
       accountId: string;
@@ -756,19 +779,14 @@ export default class CloudResourceMetrics {
       );
     }
 
-    const connector: AwsCloudConnector = new AwsCloudConnector();
-    const settings: CloudConnectionSettings =
-      connector.isOrganization(data.settings) && place.accountId
-        ? connector.settingsForAccount(data.settings, place.accountId)
-        : data.settings;
-    const credentials: AwsCredentials = await connector.getCredentials(
-      settings,
-      {
-        ...data.options,
-        connectionId: data.connection.id!.toString(),
+    const credentials: AwsCredentials =
+      await CloudResourceMetrics.awsCredentialsOf({
+        connection: data.connection,
+        accountId: place.accountId,
+        settings: data.settings,
+        options: data.options,
         budget: data.budget,
-      },
-    );
+      });
     const listed: Array<AwsListedMetric> = await listMetrics(
       {
         transport: data.options.transport,
@@ -809,26 +827,197 @@ export default class CloudResourceMetrics {
         continue;
       }
 
+      const status: Pick<
+        CloudPublishedMetric,
+        "status" | "addedKey" | "addedScope"
+      > = CloudResourceMetrics.statusOf({
+        applying: data.applying,
+        namespace: place.namespace,
+        name: metric.metricName,
+        isKey: Boolean(getAwsKeyMetric(place.namespace, metric.metricName)),
+      });
+
       byName.set(metric.metricName.toLowerCase(), {
         name: metric.metricName,
         namespace: place.namespace,
-        unit: "",
+        // As its datapoints said when it was added, else as AWS documents it (#9809).
+        unit:
+          CloudResourceMetrics.addedUnitOf(data.applying, status.addedKey) ||
+          getAwsDocumentedMetricUnit(place.namespace, metric.metricName),
         aggregation: getAwsDefaultStatistic(metric.metricName),
         dimensions: metric.dimensions.map(
           (dimension: CloudAddedMetricDimension) => {
             return { name: dimension.name, value: dimension.value };
           },
         ),
-        ...CloudResourceMetrics.statusOf({
-          applying: data.applying,
-          namespace: place.namespace,
-          name: metric.metricName,
-          isKey: Boolean(getAwsKeyMetric(place.namespace, metric.metricName)),
-        }),
+        ...status,
       });
     }
 
-    return Array.from(byName.values());
+    const metrics: Array<CloudPublishedMetric> = Array.from(byName.values());
+
+    /*
+     * An addition whose datapoints said no unit when it was added - none
+     * published lately, or the probe could not run - is asked again while
+     * it is listed, a few at a time (#9809): once it has data, its unit is
+     * kept with it. Only by a listing, which keeps what it learns.
+     */
+    for (const metric of metrics
+      .filter((candidate: CloudPublishedMetric): boolean => {
+        return (
+          Boolean(data.learnedUnits) &&
+          candidate.status === CloudPublishedMetricStatus.Added &&
+          Boolean(candidate.addedKey) &&
+          !CloudResourceMetrics.addedUnitOf(data.applying, candidate.addedKey)
+        );
+      })
+      .slice(0, CLOUD_PUBLISHED_METRICS_UNIT_PROBES)) {
+      const unit: string = await CloudResourceMetrics.probeAwsUnit({
+        credentials,
+        region: place.region,
+        options: data.options,
+        budget: data.budget,
+        namespace: place.namespace,
+        metricName: metric.name,
+        dimensions: metric.dimensions || [],
+      });
+
+      if (unit) {
+        metric.unit = unit;
+        data.learnedUnits?.set(metric.addedKey!, unit);
+      }
+    }
+
+    return metrics;
+  }
+
+  // The credentials an AWS resource's account is read with: its own, in an organization.
+  private static async awsCredentialsOf(data: {
+    connection: CloudConnection;
+    accountId: string;
+    settings: CloudConnectionSettings;
+    options: CloudConnectorCallOptions;
+    budget: CloudReadBudget;
+  }): Promise<AwsCredentials> {
+    const connector: AwsCloudConnector = new AwsCloudConnector();
+    const settings: CloudConnectionSettings =
+      connector.isOrganization(data.settings) && data.accountId
+        ? connector.settingsForAccount(data.settings, data.accountId)
+        : data.settings;
+
+    return await connector.getCredentials(settings, {
+      ...data.options,
+      connectionId: data.connection.id!.toString(),
+      budget: data.budget,
+    });
+  }
+
+  /*
+   * The unit an AWS metric being added is kept with (#9809): what its
+   * datapoints carry, asked of CloudWatch on the series the listing found;
+   * else as AWS documents it (the listing's).
+   */
+  private static async learnAwsUnit(data: {
+    target: CloudResourceTarget;
+    connection: CloudConnection;
+    dependencies: CloudResourceMetricsDependencies;
+    listed: CloudPublishedMetric;
+  }): Promise<string> {
+    const place: { accountId: string; region: string } =
+      CloudResourceMetrics.awsPlaceOf(data.target);
+    const options: CloudConnectorCallOptions = CloudResourceMetrics.callOptions(
+      data.dependencies,
+    );
+    const budget: CloudReadBudget = CloudResourceMetrics.budget();
+    let unit: string = "";
+
+    try {
+      unit = await CloudResourceMetrics.probeAwsUnit({
+        credentials: await CloudResourceMetrics.awsCredentialsOf({
+          connection: data.connection,
+          accountId: place.accountId,
+          settings: await CloudConnectionService.getConnectorSettings(
+            data.connection,
+          ),
+          options,
+          budget,
+        }),
+        region: place.region,
+        options,
+        budget,
+        namespace: data.listed.namespace || "",
+        metricName: data.listed.name,
+        dimensions: data.listed.dimensions || [],
+      });
+    } catch (error) {
+      logger.debug(
+        `CloudResourceMetrics: the unit of ${data.listed.name} could not be read:`,
+      );
+      logger.debug(error);
+    }
+
+    return unit || data.listed.unit;
+  }
+
+  // The unit an addition was kept with: "" for none.
+  private static addedUnitOf(
+    applying: ReadonlyArray<CloudAddedMetric>,
+    addedKey: string | undefined,
+  ): string {
+    if (!addedKey) {
+      return "";
+    }
+
+    return (
+      applying.find((metric: CloudAddedMetric): boolean => {
+        return metric.key === addedKey;
+      })?.unit || ""
+    );
+  }
+
+  /*
+   * The unit an AWS metric's datapoints carry (findAwsMetricUnit), or ""
+   * when they say none or it cannot be asked now: an addition is never
+   * refused for want of its unit.
+   */
+  private static async probeAwsUnit(data: {
+    credentials: AwsCredentials;
+    region: string;
+    options: CloudConnectorCallOptions;
+    budget: CloudReadBudget;
+    namespace: string;
+    metricName: string;
+    dimensions: Array<CloudAddedMetricDimension>;
+  }): Promise<string> {
+    if (data.dimensions.length === 0 || data.budget.isSpent()) {
+      return "";
+    }
+
+    try {
+      return await findAwsMetricUnit(
+        {
+          transport: data.options.transport,
+          credentials: data.credentials,
+          region: data.region,
+          now: data.options.now,
+          timeoutInMs: data.options.requestTimeoutInMs,
+          sleep: data.options.sleep,
+          budget: data.budget,
+        },
+        {
+          namespace: data.namespace,
+          metricName: data.metricName,
+          dimensions: data.dimensions,
+          now: data.options.now ? data.options.now() : new Date(),
+        },
+      );
+    } catch (error) {
+      logger.debug(
+        `CloudResourceMetrics: the unit of ${data.namespace} ${data.metricName} could not be read:`,
+      );
+      logger.debug(error);
+      return "";
+    }
   }
 
   private static async readGcp(data: {
@@ -979,7 +1168,15 @@ export default class CloudResourceMetrics {
         listed: found,
         wanted: data.aggregation,
       }),
-      unit: found.unit,
+      unit:
+        target.provider === CloudProvider.AWS
+          ? await CloudResourceMetrics.learnAwsUnit({
+              target,
+              connection,
+              dependencies,
+              listed: found,
+            })
+          : found.unit,
       addedAt: now.toISOString(),
       ...(found.namespace ? { namespace: found.namespace } : {}),
       ...(found.grain ? { grain: found.grain } : {}),
@@ -1058,6 +1255,45 @@ export default class CloudResourceMetrics {
     }
 
     return identity;
+  }
+
+  /*
+   * Keeps the units a listing learned (#9809) with the additions they are
+   * of, on the connection's additions as they are now: one added or
+   * removed meanwhile stays added or removed.
+   */
+  private static async keepLearnedUnits(data: {
+    connectionId: ObjectID;
+    learnedUnits: Map<string, string>;
+  }): Promise<void> {
+    const connection: CloudConnection | null =
+      await CloudConnectionService.findOneById({
+        id: data.connectionId,
+        select: { _id: true, addedMetrics: true },
+        props: { isRoot: true },
+      });
+
+    if (!connection) {
+      return;
+    }
+
+    let changed: boolean = false;
+    const next: Array<CloudAddedMetric> = readCloudAddedMetrics(
+      connection.addedMetrics,
+    ).map((metric: CloudAddedMetric): CloudAddedMetric => {
+      const unit: string | undefined = data.learnedUnits.get(metric.key);
+
+      if (!unit || metric.unit) {
+        return metric;
+      }
+
+      changed = true;
+      return { ...metric, unit };
+    });
+
+    if (changed) {
+      await CloudResourceMetrics.saveAddedMetrics(connection, next);
+    }
   }
 
   private static async saveAddedMetrics(

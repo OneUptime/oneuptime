@@ -1,3 +1,4 @@
+import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
   AWS_DEFAULT_PERIOD_SECONDS,
@@ -231,13 +232,18 @@ interface AwsSeries {
  * An added metric (CloudAddedMetrics) as the read reads a key metric: with
  * its statistic, every five minutes, and never one a key-metric stream
  * carries (streamedSince null). Its group is not shown anywhere: a
- * resource's page lists an added metric under its own heading.
+ * resource's page lists an added metric under its own heading. Its unit is
+ * the one its datapoints carried when it was added (#9809), else the one
+ * AWS documents for it; with neither, it is stored with none, rather than
+ * as CloudWatch's "None", which says the metric has no unit.
  */
 export function toAwsAddedKeyMetric(metric: CloudAddedMetric): AwsKeyMetric {
   return {
     metricName: metric.name,
     statistic: metric.aggregation as AwsStatistic,
-    unit: metric.unit || "None",
+    unit:
+      metric.unit ||
+      getAwsDocumentedMetricUnit(metric.namespace || "", metric.name),
     group: CloudKeyMetricGroup.Traffic,
     periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
     streamedSince: null,

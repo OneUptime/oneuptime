@@ -6,7 +6,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import AwsCloudConnector, {
+  toAwsAddedKeyMetric,
+} from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
@@ -2067,6 +2070,66 @@ describe("metrics a person added to the reads", () => {
           return entry.attributes["Dimensions.InstanceId"];
         }),
     ).toEqual(["i-0aaa"]);
+  });
+
+  /*
+   * #9809: an addition is stored with the unit its datapoints carried when
+   * it was added; with none, the one AWS documents; with neither, none -
+   * never CloudWatch's "None", which says the metric has no unit.
+   */
+  function storedUnitsOf(result: CloudReadResult, name: string): Array<string> {
+    const units: Array<string> = [];
+
+    for (const payload of result.payloads) {
+      for (const rm of payload["resourceMetrics"] as Array<JSONObject>) {
+        for (const sm of rm["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of sm["metrics"] as Array<JSONObject>) {
+            if (metric["name"] === name) {
+              units.push(String(metric["unit"] ?? ""));
+            }
+          }
+        }
+      }
+    }
+
+    return units;
+  }
+
+  test("an addition is stored with the unit it was kept with, else the one AWS documents, never None", async () => {
+    const counted: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(instances()),
+        addedMetrics: [ownAddition({ unit: "Count" })],
+      },
+    );
+
+    expect(
+      storedUnitsOf(counted, "amazonaws.com/AWS/EC2/MetadataNoToken"),
+    ).toEqual(["Count"]);
+
+    const unknown: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(instances()),
+        addedMetrics: [ownAddition({ unit: "" })],
+      },
+    );
+
+    expect(
+      storedUnitsOf(unknown, "amazonaws.com/AWS/EC2/MetadataNoToken"),
+    ).toEqual([getAwsDocumentedMetricUnit("AWS/EC2", "MetadataNoToken")]);
+    expect(
+      storedUnitsOf(unknown, "amazonaws.com/AWS/EC2/MetadataNoToken"),
+    ).not.toContain("None");
+    expect(toAwsAddedKeyMetric(ownAddition({ unit: "" })).unit).toBe(
+      getAwsDocumentedMetricUnit("AWS/EC2", "MetadataNoToken"),
+    );
+    expect(
+      toAwsAddedKeyMetric(
+        ownAddition({ unit: "", name: "NoPageStatesThisOne" }),
+      ).unit,
+    ).toBe("");
   });
 
   test("a resource's own addition of another account, or of a Region or namespace the account has no resources in, is not read", async () => {
