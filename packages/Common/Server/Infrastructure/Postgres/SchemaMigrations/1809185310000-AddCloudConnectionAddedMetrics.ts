@@ -6,10 +6,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (CloudConnection.addedMetrics, CloudAddedMetrics, #9563). A nullable
  * column with no default, so adding it rewrites nothing.
  */
-export class AddCloudConnectionAddedMetrics1809185220000
+export class AddCloudConnectionAddedMetrics1809185310000
   implements MigrationInterface
 {
-  public name: string = "AddCloudConnectionAddedMetrics1809185220000";
+  public name: string = "AddCloudConnectionAddedMetrics1809185310000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

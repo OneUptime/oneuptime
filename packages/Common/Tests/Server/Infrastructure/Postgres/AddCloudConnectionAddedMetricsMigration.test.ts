@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddCloudConnectionAddedMetrics1809185220000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185220000-AddCloudConnectionAddedMetrics";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185310000-AddCloudConnectionAddedMetrics";
 import CloudConnection from "../../../../Models/DatabaseModels/CloudConnection";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -20,7 +20,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * holds its statement to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809185220000";
+const MIGRATION_TIMESTAMP: string = "1809185310000";
 const MIGRATION_BASE_NAME: string = "AddCloudConnectionAddedMetrics";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -37,7 +37,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddCloudConnectionAddedMetrics1809185220000();
+    new AddCloudConnectionAddedMetrics1809185310000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -48,7 +48,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddCloudConnectionAddedMetrics1809185220000", () => {
+describe("AddCloudConnectionAddedMetrics1809185310000", () => {
   test("adds addedMetrics to CloudConnection, as JSON, nullable, with no default", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "CloudConnection" ADD "addedMetrics" jsonb`,
@@ -93,7 +93,7 @@ describe("AddCloudConnectionAddedMetrics1809185220000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddCloudConnectionAddedMetrics1809185220000().name).toBe(
+    expect(new AddCloudConnectionAddedMetrics1809185310000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

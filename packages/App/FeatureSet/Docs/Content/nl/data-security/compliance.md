@@ -68,11 +68,15 @@ Het menu van een resource krijgt een sectie **Beveiliging**, ingeklapt tot je di
 - **Gegevensbeveiliging** somt die opslagen op, de riskantste eerst, en de openstaande problemen erop. Elk ervan opent in Gegevensbeveiliging, waar het wordt afgehandeld.
 - **Compliance** scoort de kaders alleen voor die opslagen. De kaders die door hun gegevens van toepassing zijn, staan bovenaan; de uitgeschakelde, en die waarvoor geen van de opslagen gegevens bevat, zijn eronder ingeklapt.
 
-Elk kader heeft een schakelaar, **Applies Here**, en elk van zijn eisen ook. Schakel je er een uit, dan vallen de opslagen van de resource buiten dat kader, of buiten die eis, op de pagina van de resource en op **Gegevensbeveiliging → Compliance**, waar staat hoeveel opslagen op hun resources zijn uitgeschakeld. Schakel je hem weer in, dan tellen ze weer mee. Elke schakelaar wordt meteen opgeslagen, en elke wijziging wordt bewaard in de [Auditlogboeken](/docs/configuration/audit-logs) van het project.
+Elk kader heeft een schakelaar, **Hier van toepassing**, en elk van zijn eisen ook. Schakel je er een uit, dan vallen de opslagen van de resource buiten dat kader, of buiten die eis, op de pagina van de resource en op **Gegevensbeveiliging → Compliance**, waar staat hoeveel opslagen op hun resources zijn uitgeschakeld. Schakel je hem weer in, dan tellen ze weer mee. Elke schakelaar wordt meteen opgeslagen, en elke wijziging wordt bewaard in de [Auditlogboeken](/docs/configuration/audit-logs) van het project.
+
+Schakel je er een uit, dan verschijnt eronder de vraag **Waarom is dit hier niet van toepassing?** Een reden is optioneel: schrijf een korte en kies **Reden opslaan**, of **Niet nu** om het erbij te laten. Vanaf dan staat erbij wie hem heeft uitgeschakeld en wanneer, met de reden, en met **Reden toevoegen** of **Reden bewerken** om die later te schrijven of te wijzigen. Net als de schakelaar wordt de reden bewaard in het auditlogboek.
+
+**Gegevensbeveiliging → Compliance** zegt hetzelfde voor elke resource. Een gekozen kader toont onder **Uitgeschakeld voor het hele kader** de resources die het helemaal hebben uitgeschakeld, en elke eis noemt onder haar status de resources die deze eis hebben uitgeschakeld: elk met een link naar de eigen Compliance-pagina, en met wie het uitschakelde, wanneer en waarom. Daar zet **CSV exporteren** ze in een kolom `Turned Off On`, en **JSON exporteren** in een lijst `turnedOff`.
 
 Een opslag volgt de schakelaars van één resource. Een database die op een Kubernetes-cluster draait, of op een Docker- of Podman-host, volgt die van dat cluster of die host: schakel een kader uit voor het cluster, en het staat uit voor elke database erop. De eigen Compliance-pagina van de database zegt dat en linkt ernaartoe, met de schakelaars vergrendeld.
 
-Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren kunnen kaders en eisen in- en uitschakelen, zoals ze ook een controle kunnen afstellen. Beveiligingskijkers zien wat er is uitgeschakeld.
+Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren kunnen kaders en eisen in- en uitschakelen, zoals ze ook een controle kunnen afstellen. Beveiligingskijkers zien wat er is uitgeschakeld, en waarom.
 
 ## Eisen en hun controles
 

@@ -668,7 +668,7 @@ describe("Services (telemetry/services)", () => {
     );
   });
 
-  it("describes a service's own menu section by section, with Developer and Advanced folded", () => {
+  it("describes a service's own menu section by section, with Security, Developer and Advanced folded", () => {
     const menuSource: string = readDashboardSource(
       "Pages/Service/View/SideMenu.tsx",
     );
@@ -700,7 +700,9 @@ describe("Services (telemetry/services)", () => {
         folded: startsCollapsed(menuSource, menuSection.title),
       }).toEqual({
         section: menuSection.title,
-        folded: ["Developer", "Advanced"].includes(menuSection.title),
+        folded: ["Security", "Developer", "Advanced"].includes(
+          menuSection.title,
+        ),
       });
     }
 
@@ -708,6 +710,40 @@ describe("Services (telemetry/services)", () => {
       "| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |",
     );
     expect(page).toContain("**Advanced** starts collapsed: expand it first.");
+  });
+
+  /*
+   * The Security section (#9547, #9555) is drawn only for a service Data
+   * Security has scanned, so the row says when it appears as well as what
+   * its two pages hold, and links to where each is explained (#9724).
+   */
+  it("says when a service's Security section appears, and links its pages' docs", () => {
+    const menuSource: string = readDashboardSource(
+      "Pages/Service/View/SideMenu.tsx",
+    );
+
+    expect(menuSource).toContain("{dataSecurityMenu ? (");
+    expect(menuSource).toContain("kind: DataStoreResourceKind.Service,");
+
+    const row: string =
+      section(page, "## A service's pages")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("| **Security** |");
+        }) || "";
+
+    expect(row).toContain(
+      "**Data Security**: the sensitive data its logs, traces and exceptions carry, and what to fix ([Sensitive Data in Telemetry](/docs/data-security/telemetry)).",
+    );
+    expect(row).toContain(
+      "**Compliance**: how that data stands against each framework, with a switch that turns a framework or a requirement off for this service ([Data Security Compliance](/docs/data-security/compliance#on-a-resources-page)).",
+    );
+    expect(row).toContain(
+      "It appears once Data Security has scanned the service's telemetry, and starts collapsed.",
+    );
+    expect(english("data-security/compliance")).toContain(
+      "\n## On a resource's page\n",
+    );
   });
 
   it("names the Settings page's cards, fields and buttons as the page draws them", () => {

@@ -14,6 +14,7 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { useResourceSecurityEventsMenu } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -83,6 +84,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
   const runsDesignate: boolean = runs(OpenStackServiceType.Dns);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Security Events inside the cloud (#9628).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -595,6 +599,25 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Logs}
         />
+        {/*
+         * The security events about this cloud, beside the logs they are
+         * often read from (#9628): read from its own logs, or naming it. Only
+         * in a project that uses Security Events, for whoever may read them.
+         */}
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Traces",

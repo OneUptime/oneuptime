@@ -230,6 +230,20 @@ export const SECURITY_LOG_RESOURCE_ID_ATTRIBUTE: string =
 export const SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE: string =
   "oneuptime.log.resource.type";
 
+/*
+ * The Docker or Podman host a container's log line was written on (#9628),
+ * by the host name its Docker or Podman agent stamps on every line (the
+ * line's resource.host.name, beside resource.container.runtime). A
+ * container's logs are filed under the container's own service, so the log
+ * resource names the service, never the host: these say which host's
+ * containers wrote it, as that host's Logs page reads them, and every event
+ * read from such a line carries one.
+ */
+export const SECURITY_LOG_DOCKER_HOST_ATTRIBUTE: string =
+  "oneuptime.log.docker.host";
+export const SECURITY_LOG_PODMAN_HOST_ATTRIBUTE: string =
+  "oneuptime.log.podman.host";
+
 // One way a security entity meets a record.
 export interface SecurityConnectionMatch {
   entity: SecurityEntity;

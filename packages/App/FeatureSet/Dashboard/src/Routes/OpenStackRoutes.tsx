@@ -73,6 +73,7 @@ import OpenStackCloudCapacity from "../Pages/OpenStack/View/Capacity";
 import OpenStackCloudSpend from "../Pages/OpenStack/View/Spend";
 import OpenStackCloudStatusPages from "../Pages/OpenStack/View/StatusPages";
 import OpenStackCloudLogs from "../Pages/OpenStack/View/Logs";
+import OpenStackCloudSecurityEvents from "../Pages/OpenStack/View/SecurityEvents";
 import OpenStackCloudTraces from "../Pages/OpenStack/View/Traces";
 import OpenStackCloudChecks from "../Pages/OpenStack/View/Checks";
 import OpenStackCloudIncidents from "../Pages/OpenStack/View/Incidents";
@@ -1029,6 +1030,20 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudLogs
               {...props}
               pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <OpenStackCloudSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS] as Route
+              }
             />
           }
         />
