@@ -296,6 +296,16 @@ const SecurityCaseViewLayout: FunctionComponent<
     setDialog("delete");
   }, []);
 
+  const requestDeclareIncident: () => void = useCallback((): void => {
+    setDialog("declareIncident");
+  }, []);
+
+  // Close Case, as the header's button closes it: into the project's closed status.
+  const requestClose: () => void = useCallback((): void => {
+    setCloseToStatus(null);
+    setDialog("close");
+  }, []);
+
   /*
    * A change made in one of the header's dialogs: saved with the dialog
    * open, which says why when it cannot be, then the case read again. A
@@ -340,6 +350,8 @@ const SecurityCaseViewLayout: FunctionComponent<
         updateCase: updateCase,
         runPlaybook: openRunPlaybook,
         requestDelete: requestDelete,
+        requestDeclareIncident: requestDeclareIncident,
+        requestClose: requestClose,
       };
     }, [
       securityCase,
@@ -350,6 +362,8 @@ const SecurityCaseViewLayout: FunctionComponent<
       updateCase,
       openRunPlaybook,
       requestDelete,
+      requestDeclareIncident,
+      requestClose,
     ]);
 
   const breadcrumbs: Array<Link> | undefined = nameRecordInTrail({

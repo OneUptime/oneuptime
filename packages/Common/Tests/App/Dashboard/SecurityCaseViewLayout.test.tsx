@@ -475,6 +475,22 @@ const Probe: (props: { page: string }) => ReactElement = (props: {
       >
         probe-delete
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          view.requestDeclareIncident();
+        }}
+      >
+        probe-declare-incident
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          view.requestClose();
+        }}
+      >
+        probe-close
+      </button>
     </div>
   );
 };
@@ -842,6 +858,35 @@ describe("the header's actions work from any page", () => {
       "data-playbook",
       PLAYBOOK_ID,
     );
+  });
+
+  /*
+   * The Overview's Response Plan presses the header's own buttons (#9557):
+   * Declare Incident and Close Case open the same dialogs from a page.
+   */
+  test("a page can open Declare Incident, and Close Case into the project's closed status, as the header does", async () => {
+    await openCase();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("probe-declare-incident"));
+    });
+
+    expect(screen.getByTestId("declare-incident-dialog")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("declare-incident-dialog-done"));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("probe-close"));
+    });
+
+    expect(screen.getByTestId("close-case-dialog")).toHaveAttribute(
+      "data-close-to",
+      "Closed",
+    );
+    // Asked first: nothing saved until the verdict is given.
+    expect(updates).toEqual([]);
   });
 
   test("Declare Incident opens its dialog, and a declared incident is read back with the case", async () => {

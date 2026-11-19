@@ -593,6 +593,7 @@
     "{{rate}}/s",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",
+    "{{values}} in {{field}}",
     "{{value}} ms",
     "{{value}} s"
   ]

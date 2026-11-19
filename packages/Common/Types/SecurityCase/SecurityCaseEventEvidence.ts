@@ -56,6 +56,14 @@ export const SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS: ReadonlyArray<string> = [
   "mitreTactics",
   "mitreTechniques",
   "attributes",
+  /*
+   * The request the event happened in: its trace, span and session, and how
+   * far it got. Kept so a kept event still opens its trace (#9556).
+   */
+  "traceId",
+  "spanId",
+  "sessionId",
+  "requestOutcome",
 ];
 
 // The hunt that found a kept event, as it was named when the event was kept.
@@ -93,6 +101,15 @@ export interface SecurityCaseEventSnapshot {
   mitreTactics: Array<string>;
   mitreTechniques: Array<string>;
   attributes: { [key: string]: string };
+  /*
+   * The request the event happened in, "" where the event names none (or it
+   * was kept before these were): its trace, span and session, and how far
+   * it got (SecurityEventRequestOutcome).
+   */
+  traceId: string;
+  spanId: string;
+  sessionId: string;
+  requestOutcome: string;
   hunt: SecurityCaseEventHunt | null;
 }
 
@@ -310,6 +327,10 @@ export function buildSecurityCaseEventSnapshot(data: {
     mitreTactics: readList(row["mitreTactics"]),
     mitreTechniques: readList(row["mitreTechniques"]),
     attributes: readAttributes(row["attributes"]),
+    traceId: readText(row["traceId"], 100),
+    spanId: readText(row["spanId"], 100),
+    sessionId: readText(row["sessionId"], 200),
+    requestOutcome: readText(row["requestOutcome"], 100),
     hunt: data.hunt ? readHunt(data.hunt) : null,
   };
 }

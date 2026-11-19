@@ -7,6 +7,7 @@ import { AddDataAssetOwnersAndFeedback1808992700000 } from "../../../../Server/I
 import { AddDataAssetUsage1808991300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage";
 import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182490000-AddRuleEmptiedLimits";
 import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
+import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -130,6 +131,12 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     "DataStoreFinding",
     "aiReason",
     AddDataSecurityFieldSuggestions1808792000000,
+  ],
+  // Which records a telemetry scan found each finding in (#9549), read again on the issue's page.
+  [
+    "DataStoreFinding",
+    "sampleRecords",
+    AddDataStoreFindingSampleRecords1809184700000,
   ],
   // Data Observability's table-health schedule and status, on the same store.
   [
