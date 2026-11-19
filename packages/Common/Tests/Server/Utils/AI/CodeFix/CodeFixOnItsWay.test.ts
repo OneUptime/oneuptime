@@ -20,6 +20,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import FixTurnsTable, { FixTurnFacts, FixTurnRow } from "./FixTurnsTable";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+// The mock types of the jest imported above.
+import type { Mock, SpyInstance } from "jest-mock";
 import { EntityManager } from "typeorm";
 
 /*
@@ -604,10 +606,10 @@ describe("a fix on its way, read from the project's runs", () => {
   });
 
   test("read through the manager it is handed, as inside the INSERT's transaction", async () => {
-    const query: jest.Mock = jest.fn(async () => {
+    const query: Mock<() => Promise<Array<unknown>>> = jest.fn(async () => {
       return [];
     });
-    const repository: jest.SpiedFunction<typeof AIRunService.getRepository> =
+    const repository: SpyInstance<typeof AIRunService.getRepository> =
       jest.spyOn(AIRunService, "getRepository");
 
     expect(
@@ -736,7 +738,7 @@ describe("every fix's INSERT is held to the rule", () => {
         triggeredByIncidentId: INCIDENT_ID,
       }),
     );
-    const query: jest.Mock = jest.fn(async () => {
+    const query: Mock<() => Promise<Array<unknown>>> = jest.fn(async () => {
       return [];
     });
 

@@ -560,7 +560,7 @@ describe("an insight's fix", () => {
     repository.name = "checkout";
 
     jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(insight);
-    jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue();
+    jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
     jest.spyOn(TraceInsightFix, "getAskableRepositories").mockResolvedValue([
       {
         id: REPOSITORY_ID.toString(),

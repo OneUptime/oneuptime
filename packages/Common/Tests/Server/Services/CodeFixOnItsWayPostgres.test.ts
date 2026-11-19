@@ -68,7 +68,7 @@ import { DataSource, QueryRunner } from "typeorm";
  * (LIKE ... INCLUDING ALL) in a uniquely named schema, dropped afterwards;
  * every row is synthetic.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_CODE_TASK_TESTS"] === "true"
     ? describe
     : describe.skip;
