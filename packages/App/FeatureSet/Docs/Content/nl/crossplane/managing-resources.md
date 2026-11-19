@@ -32,7 +32,7 @@ De velden van een resourcetype zijn de argumenten van de Terraform-resource, in 
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` toont het record zoals OneUptime het heeft, met zijn `id`. Een veld dat je weglaat en dat OneUptime invult, bijvoorbeeld met een standaardwaarde, wordt na het aanmaken van het record naar `spec.forProvider` gekopieerd, zodat de volgende controle niets te wijzigen vindt.
+`status.atProvider` toont het record zoals OneUptime het heeft, met zijn `id`. Een veld dat je weglaat en dat OneUptime invult, bijvoorbeeld met een standaardwaarde, wordt na het aanmaken van het record naar `spec.forProvider` gekopieerd, zodat de volgende controle niets te wijzigen vindt. Een veld dat OneUptime zelf actueel houdt, wordt nooit gekopieerd: zie [Velden die OneUptime actueel houdt](#velden-die-oneuptime-actueel-houdt).
 
 ## Naar andere resources verwijzen
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-Om het dashboard een veld te laten beheren nadat het record is aangemaakt, schrijf je het in `spec.initProvider` in plaats van `spec.forProvider`: het wordt gebruikt om het record aan te maken en daarna nooit teruggezet. Om het dashboard het hele record te laten beheren, laat je `Update` weg uit het beheerbeleid van de resource: `["Observe", "Create", "Delete", "LateInitialize"]`.
+Om het dashboard een veld te laten beheren nadat het record is aangemaakt, schrijf je het in `spec.initProvider` in plaats van `spec.forProvider`: het record wordt ermee aangemaakt, en de provider kopieert het nooit naar `spec.forProvider` en zet het nooit terug. Dit werkt voor elk optioneel veld; een veld dat het record nodig heeft, zoals de `name` van een monitor, hoort in `spec.forProvider`. Om het dashboard het hele record te laten beheren, laat je `Update` weg uit het beheerbeleid van de resource: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Velden die OneUptime actueel houdt
+
+Sommige velden houdt OneUptime zelf actueel, en de provider laat ze aan OneUptime over: hij kopieert ze nooit naar `spec.forProvider` en zet ze nooit terug.
+
+- Een veld dat alleen OneUptime schrijft, zoals wanneer een telemetriemonitor voor het laatst draaide (`telemetryMonitorLastMonitorAt`) of hoeveel nodes een Kubernetes-cluster heeft (`nodeCount`), staat alleen in `status.atProvider`.
+- Een veld waarmee een record begint, zoals `currentMonitorStatusId` van een monitor of `currentIncidentStateId` van een incident, kan worden opgegeven om het record aan te maken, in `spec.initProvider` of `spec.forProvider`. Daarna verandert OneUptime het, zoals de controles van een monitor zijn status veranderen, en `status.atProvider` toont waar het nu staat.
+
+`kubectl explain` vermeldt dat in de beschrijving van elk veld waarmee een record begint. Een resource waarvan een eerdere versie van de provider de `spec.forProvider` met deze velden vulde, stopt vanzelf met vechten tegen OneUptime, zonder dat je iets hoeft te bewerken.
 
 ## Een resource verwijderen
 

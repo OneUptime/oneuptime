@@ -18,6 +18,7 @@ import {
   readValue,
 } from "../NormalizerHelpers";
 import { SecurityRecordReading } from "../SecurityRecordReading";
+import { readAzureActivityResourceIds } from "./CloudAuditResources";
 import {
   MAX_JSON_LINE_LENGTH,
   SecurityLogLine,
@@ -252,6 +253,9 @@ export function readAzureActivityRecord(
     return null;
   }
 
+  // The resource it was on, and the one that is a part of, by their IDs (#9779).
+  const resourceIds: Array<string> = readAzureActivityResourceIds(record);
+
   if (category === "security") {
     const properties: JSONObject = asObject(record["properties"]) || {};
     const alertName: string =
@@ -276,6 +280,7 @@ export function readAzureActivityRecord(
       principalIp: ip,
       targetHost: subscription,
       targetResource: resourceId,
+      resourceIds,
       attributes: boundAttributes(flattenPayload(record)),
     };
   }
@@ -298,6 +303,7 @@ export function readAzureActivityRecord(
       principalIp: ip,
       targetHost: subscription,
       targetResource: resourceId,
+      resourceIds,
       attributes: boundAttributes(flattenPayload(record)),
     };
   }
@@ -321,6 +327,7 @@ export function readAzureActivityRecord(
     principalIp: ip,
     targetHost: subscription,
     targetResource: resourceId,
+    resourceIds,
     attributes: boundAttributes(flattenPayload(record)),
   };
 }
@@ -429,6 +436,7 @@ export default class AzureActivityLogParser {
             targetIp: reading.targetIp,
             targetPort: reading.targetPort,
             targetResource: reading.targetResource,
+            resourceIds: reading.resourceIds,
             attributes: reading.attributes,
             mitreTactics: reading.mitreTactics,
             mitreTechniques: reading.mitreTechniques,

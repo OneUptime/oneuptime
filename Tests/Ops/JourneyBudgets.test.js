@@ -336,11 +336,11 @@ describe("a budget file with something wrong", () => {
       "website-monitor: budget.concepts is not a measure",
     ],
     [
-      "a path that is neither manual nor guided",
+      "a path that is neither manual, guided nor ask-ai",
       (file) => {
         file.journeys["website-monitor"].path = "wizard";
       },
-      'website-monitor: path must be "manual" or "guided"',
+      'website-monitor: path must be "manual", "guided" or "ask-ai"',
     ],
     [
       "no title",

@@ -14,6 +14,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
@@ -379,6 +380,7 @@ export default class DataAsset extends BaseModel {
     allowedValues: Object.values(DataAssetKind),
     isDefaultValueColumn: true,
     defaultValue: DataAssetKind.Table,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,

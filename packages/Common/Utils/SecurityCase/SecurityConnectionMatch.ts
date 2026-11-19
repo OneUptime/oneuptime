@@ -1521,6 +1521,13 @@ export function readSecurityEventLogResources(
  * network's machine can hold the same one - and so are the ones that name
  * no machine; Security Events shows those as possible connections, never
  * counted on the record's page.
+ *
+ * A cloud resource's own ID is kept as its cloud writes it, never folded
+ * (#9779): an ARN or a Google Cloud resource name is written in the case
+ * its resource was named in - a Lambda function "Checkout" - and an event
+ * names it so, so only the ID as written finds it. getObservableSearchValues
+ * adds its lower and upper case, which is how an Azure resource ID, case
+ * insensitive, is named (CloudAuditResources writes it in lower case).
  */
 export function getRecordSecurityValues(data: {
   names: ReadonlyArray<string | undefined | null>;
@@ -1530,9 +1537,11 @@ export function getRecordSecurityValues(data: {
   const seen: Set<string> = new Set();
 
   for (const name of data.names) {
-    const folded: string = (name || "").trim().toLowerCase();
+    const trimmed: string = (name || "").trim();
+    const folded: string = trimmed.toLowerCase();
+    const isResourceId: boolean = isCloudResourceIdLike(folded);
     // A cloud resource's own ID may be longer than any name or email.
-    const maxLength: number = isCloudResourceIdLike(folded)
+    const maxLength: number = isResourceId
       ? MAX_RESOURCE_ID_LENGTH
       : MAX_EMAIL_LENGTH;
 
@@ -1541,7 +1550,7 @@ export function getRecordSecurityValues(data: {
     }
 
     seen.add(folded);
-    values.push(folded);
+    values.push(isResourceId ? trimmed : folded);
   }
 
   for (const address of readRecordAddresses(data.addresses)) {
@@ -1562,6 +1571,12 @@ export function getRecordSecurityValues(data: {
  * observables can be used and the usual casings still match: as written,
  * lowercase (how hosts and clusters are keyed) and uppercase (how Windows
  * and many EDRs name machines).
+ *
+ * An ARN and a Google Cloud resource name are searched for as written only
+ * (#9779): each cloud writes them in the case the resource was named in,
+ * and two resources may differ by case alone - a DynamoDB table "Orders"
+ * beside "orders" - so another casing names another resource. An Azure
+ * resource ID is case-insensitive, and keeps its casings.
  */
 export function getObservableSearchValues(
   values: ReadonlyArray<string>,
@@ -1577,11 +1592,13 @@ export function getObservableSearchValues(
       continue;
     }
 
-    for (const spelling of [
-      trimmed,
-      trimmed.toLowerCase(),
-      trimmed.toUpperCase(),
-    ]) {
+    const isCaseSensitiveId: boolean =
+      isCloudResourceIdLike(trimmed) &&
+      !trimmed.toLowerCase().startsWith("/subscriptions/");
+
+    for (const spelling of isCaseSensitiveId
+      ? [trimmed]
+      : [trimmed, trimmed.toLowerCase(), trimmed.toUpperCase()]) {
       if (!seen.has(spelling) && spellings.length < limit) {
         seen.add(spelling);
         spellings.push(spelling);

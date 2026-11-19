@@ -19,6 +19,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -290,6 +291,7 @@ export default class IncidentEpisode extends BaseModel {
     type: TableColumnType.Number,
     title: "Episode Number",
     description: "Auto-incrementing episode number per project",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -410,6 +412,7 @@ export default class IncidentEpisode extends BaseModel {
     isDefaultValueColumn: true,
     title: "Current Incident State ID",
     description: "Current Incident State ID",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -583,6 +586,7 @@ export default class IncidentEpisode extends BaseModel {
     type: TableColumnType.Date,
     title: "Last Incident Added At",
     description: "When the last incident was added to this episode",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -624,6 +628,7 @@ export default class IncidentEpisode extends BaseModel {
     type: TableColumnType.Date,
     title: "Resolved At",
     description: "When this episode was resolved",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -1019,6 +1024,7 @@ export default class IncidentEpisode extends BaseModel {
     title: "Title Template",
     description:
       "Template used to generate the episode title. Stored for dynamic variable updates.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,
@@ -1053,6 +1059,7 @@ export default class IncidentEpisode extends BaseModel {
     title: "Description Template",
     description:
       "Template used to generate the episode description. Stored for dynamic variable updates.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,
@@ -1333,6 +1340,7 @@ export default class IncidentEpisode extends BaseModel {
     title: "Grouping Key",
     description:
       "Key used for grouping incidents into this episode. Generated from groupByFields of the matching rule. When a private incident opened the episode, its title is in the key only as a keyed hash.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,
@@ -1412,6 +1420,7 @@ export default class IncidentEpisode extends BaseModel {
     title: "Incident Grouping Rule ID",
     description:
       "ID of the Incident Grouping Rule that created this episode (if applicable)",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1537,6 +1546,7 @@ export default class IncidentEpisode extends BaseModel {
     title: "Post Updates to Workspace Channels",
     description:
       "Workspace channels to post episode updates to (e.g., Slack, Microsoft Teams)",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.JSON,
