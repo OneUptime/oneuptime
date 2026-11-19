@@ -202,7 +202,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Eccezioni → IA → Insight** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove, compresi i frame del vostro codice nel suo stack trace. **View Exception Group** apre l'eccezione e, sugli stack trace mancanti di un servizio, **Apri in Eccezioni** apre le sue eccezioni non risolte dell'ultimo giorno.
-- **Eccezioni → IA → Log** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
+- **Eccezioni → IA → Log** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato. Una pull request dice come sta ora la sua attività in Code: una correzione richiesta di nuovo con Riprova dopo un errore non risulta più non riuscita e mostra la pull request che ha aperto.
 - La pull request spiega perché è stata aperta, con un link al suo rilevamento. Quella di un'eccezione nuova o in aumento rimanda anche all'eccezione e compare sulla sua pagina **Correggi con l'IA**. In Codice, la sua attività nomina l'eccezione che corregge, o il rilevamento da cui è nata.
 
 ## Informazioni sulle eccezioni

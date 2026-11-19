@@ -646,25 +646,34 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * What Data Security says about the databases running on the cluster
-       * (#9547), and how they stand against each framework, with what does
-       * not apply to this cluster turned off (#9555): only for a cluster
-       * with a data store, in a project that uses Data Security. Folded by
-       * its title, and open by itself on its own pages.
+       * How the cluster itself stands against the Pod Security Standards
+       * and the CIS Kubernetes Benchmark (#9627) - for a cluster whose agent
+       * reports the pods it runs, as there is nothing to score before - and,
+       * for a cluster with a data store in a project that uses Data
+       * Security, what it says about the databases running on it (#9547)
+       * and how they stand against each framework (#9555). Folded by its
+       * title, and open by itself on its own pages.
        */}
-      {dataSecurityMenu ? (
+      {dataSecurityMenu || counts.pods ? (
         <SideMenuSection title="Security">
-          <SideMenuItem
-            link={{
-              title: "Data Security",
-              to: dataSecurityMenu.dataSecurityRoute,
-            }}
-            icon={IconProp.Fingerprint}
-          />
+          {dataSecurityMenu ? (
+            <SideMenuItem
+              link={{
+                title: "Data Security",
+                to: dataSecurityMenu.dataSecurityRoute,
+              }}
+              icon={IconProp.Fingerprint}
+            />
+          ) : (
+            <></>
+          )}
           <SideMenuItem
             link={{
               title: "Compliance",
-              to: dataSecurityMenu.complianceRoute,
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE] as Route,
+                { modelId: props.modelId },
+              ),
             }}
             icon={IconProp.ClipboardDocumentCheck}
           />

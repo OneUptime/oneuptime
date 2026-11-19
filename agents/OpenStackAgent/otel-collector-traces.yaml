@@ -67,7 +67,7 @@ processors:
       # image docker-compose.traces.yml pins, its last number raised when these files
       # change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
     timeout: 5s

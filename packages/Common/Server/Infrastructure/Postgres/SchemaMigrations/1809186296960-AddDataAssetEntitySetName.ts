@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewrites no row, and holds the table's lock only while the catalog
  * changes.
  */
-export class AddDataAssetEntitySetName1809185969600
+export class AddDataAssetEntitySetName1809186296960
   implements MigrationInterface
 {
-  public name = "AddDataAssetEntitySetName1809185969600";
+  public name = "AddDataAssetEntitySetName1809186296960";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

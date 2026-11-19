@@ -87,7 +87,7 @@ Fanen **Custom Metric** tilbyr disse målingene, gruppert etter ressurstype:
 | Kategori | Målinger |
 | --- | --- |
 | Pod | Podens CPU-forbruk, Pod minnebruk, Podens fase (kode), Podens filsystembruk, Volumkapasitet, Ledig plass på volum, Podens utnyttelse av minnegrensen, Podens utnyttelse av CPU-grensen, Podens nettverks-I/O (akkumulert, begge retninger) |
-| Node | Nodens CPU-forbruk, Nodens allokerbare CPU, Node minnebruk, Nodens working set for minne, Node filsystembruk, Nodens allokerbare minne, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgjengelige filsystem |
+| Node | Nodens CPU-forbruk, Nodens allokerbare CPU, Node minnebruk, Nodens working set for minne, Node filsystembruk, Nodens allokerbare minne, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgjengelige filsystem, Nodens filsystemkapasitet |
 | Container | Containerens omstarter, Containerens omstarter (økning), Containerens CPU-grense, Containerens CPU-forespørsel, Containerens minnegrense, Containerens minneforespørsel, Container klar |
 | Arbeidsbelastning | Deploymentens tilgjengelige replikaer, Deploymentens ønskede replikaer, DaemonSetets ønskede noder, DaemonSetets feilplanlagte noder, DaemonSetets klare noder, StatefulSetets ønskede replikaer, StatefulSetets klare replikaer, Jobbens mislykkede poder, Jobbens mislykkede poder (økning), Jobbens vellykkede poder |
 | HPA | HPA-ens gjeldende replikaer, HPA-ens ønskede replikaer, HPA-ens maksimale replikaer, HPA-ens minimale replikaer |

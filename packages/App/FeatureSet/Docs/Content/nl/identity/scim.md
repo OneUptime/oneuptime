@@ -339,7 +339,7 @@ Wat `/ServiceProviderConfig` meldt:
 | ETag | Nee |
 | Verificatie | HTTP-bearer-token, of een OAuth 2.0-toegangstoken |
 
-Een groep die uw identiteitsprovider aanmaakt, wordt in het project een team met dezelfde naam; een team dat die naam al heeft, wordt gebruikt in plaats van een nieuw team.
+Een groep die uw identiteitsprovider aanmaakt, wordt in het project een team met dezelfde naam. Een team waarvan de naam hetzelfde luidt, ongeacht hoofdletters en spaties, wordt gebruikt in plaats van een nieuw team, en neemt de schrijfwijze van de groep over, tenzij een identiteitsprovider dat team al als een andere van zijn groepen heeft: twee groepen waarvan de namen alleen in hoofdletters of spaties verschillen, wat Microsoft Entra ID toestaat, krijgen elk een eigen team en worden nooit samengevoegd. Owners en Admin, die niet kunnen worden hernoemd, worden alleen bij hun exacte naam gebruikt. Een groep die in uw identiteitsprovider wordt hernoemd, hernoemt zijn eigen team, ook naar een naam die een ander team heeft.
 
 :::details SCIM-gebruikersschema
 ```json

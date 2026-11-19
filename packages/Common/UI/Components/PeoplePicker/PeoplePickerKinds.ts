@@ -48,6 +48,12 @@ export interface PeoplePickerSearchData {
   projectId: ObjectID;
   searchText: string;
   limit: number;
+  /*
+   * People only: the accepted members of these teams, and no one else
+   * (PeoplePickerFieldConfig.onlyMembersOfTeamIds). Left out, every person
+   * in the project.
+   */
+  onlyMembersOfTeamIds?: Array<string> | undefined;
 }
 
 export interface PeoplePickerLookupData {
@@ -216,6 +222,21 @@ const searchUsers: (
   const searchText: string = data.searchText.trim();
 
   /*
+   * Kept to some teams (onlyMembersOfTeamIds): their accepted members, as
+   * the server counts the people a team-scoped permission reaches - an
+   * invitation not accepted yet is no membership. No team, nobody.
+   */
+  const teamIds: Array<string> | undefined = data.onlyMembersOfTeamIds;
+
+  if (teamIds && teamIds.length === 0) {
+    return [];
+  }
+
+  const inTeams: Record<string, unknown> = teamIds
+    ? { teamId: new Includes(teamIds), hasAcceptedInvitation: true }
+    : {};
+
+  /*
    * The term is matched against the name AND the email. A query has no OR
    * across two relation fields, so it is one query for each, joined below.
    */
@@ -223,14 +244,16 @@ const searchUsers: (
     ? [
         {
           projectId: data.projectId,
+          ...inTeams,
           user: { name: new Search(searchText) },
         } as unknown as Query<TeamMember>,
         {
           projectId: data.projectId,
+          ...inTeams,
           user: { email: new Search(searchText) },
         } as unknown as Query<TeamMember>,
       ]
-    : [{ projectId: data.projectId } as Query<TeamMember>];
+    : [{ projectId: data.projectId, ...inTeams } as Query<TeamMember>];
 
   const results: Array<ListResult<TeamMember>> = await Promise.all(
     queries.map((query: Query<TeamMember>) => {

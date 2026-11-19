@@ -22,6 +22,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `This project has been blocked` | Demandez à un administrateur principal de débloquer le projet : voir [Un projet bloqué](#un-projet-bloqué) |
 | `references records that are not in this project` | Utilisez l'ID d'un enregistrement de votre propre projet : voir [Des ID d'un autre projet](#des-id-dun-autre-projet) |
 | `Not Found` ou `Ambiguous Match` venant d'une source de données | Corrigez les arguments de la recherche : voir [Des recherches qui ne trouvent rien ou en trouvent plusieurs](#des-recherches-qui-ne-trouvent-rien-ou-en-trouvent-plusieurs) |
+| `There is already a team called` (une étiquette, une politique d'astreinte, un planning d'astreinte) | Donnez-lui un nom qu'aucun autre de son type ne porte, ou renommez d'abord l'autre : voir [Des noms qu'un autre enregistrement porte déjà](#des-noms-quun-autre-enregistrement-porte-déjà) |
 | `Cannot import non-existent remote object` | Vérifiez l'ID et les permissions de la clé : voir [Importer des ressources](/docs/terraform/importing-resources#dépannage) |
 | `Provider produced inconsistent result after apply` | Mettez à jour le fournisseur : voir [Résultat incohérent après l'apply](#résultat-incohérent-après-lapply) |
 | Un plan crée une ressource que vous n'avez pas ajoutée | La clé ne peut plus la lire, et OneUptime a répondu `404` : rendez à la clé son accès en lecture, puis importez la ressource avec `terraform import` : voir [Une ressource quitte l'état, et l'apply suivant la recrée](#une-ressource-quitte-létat-et-lapply-suivant-la-recrée) |
@@ -102,6 +103,12 @@ Cela signifie généralement qu'un ID a été copié depuis la configuration ou 
 ### Des recherches qui ne trouvent rien ou en trouvent plusieurs
 
 Une source de données trouve exactement un enregistrement, ou arrête le plan. `Not Found` indique qu'aucun enregistrement n'a l'`id`, ou qu'aucun ne correspond aux arguments que vous avez définis ; `Ambiguous Match` indique que plusieurs correspondent. Corrigez les arguments, définissez-en davantage pour réduire la recherche à un seul, ou cherchez l'enregistrement par son `id`. [Lire ce qui existe déjà](/docs/terraform/complete-guide#lire-ce-qui-existe-déjà) en donne les règles.
+
+### Des noms qu'un autre enregistrement porte déjà
+
+Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte ont chacun un nom bien à eux dans un projet, quels que soient sa casse ou ses espaces. Une création, ou un renommage, vers un nom que porte déjà un autre enregistrement du même type reçoit la réponse `400`, par exemple `There is already an on-call policy called Primary in this project. Pick another name.` Une politique d'astreinte archivée garde son nom : désarchivez-la, ou choisissez un autre nom. Les enregistrements qui partageaient déjà un nom le gardent, et les listes des équipes, des politiques d'astreinte et des plannings d'astreinte du tableau de bord les signalent.
+
+Terraform effectue en parallèle les changements d'un même apply, si bien qu'un renommage vers un nom qu'une autre ressource abandonne dans le même apply peut être refusé tant que celle-ci le porte encore : appliquez de nouveau, ou ajoutez un `depends_on` de la ressource qui prend le nom vers celle qui l'abandonne. Un échange, A vers B et B vers A, ou toute chaîne de renommages qui finit là où elle a commencé, ne peut pas se faire en un seul apply : renommez l'une d'elles vers un nom que personne ne porte, appliquez, puis faites le reste du changement.
 
 ## Des plans qui ne se stabilisent pas
 

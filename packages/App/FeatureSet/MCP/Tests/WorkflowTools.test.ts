@@ -145,6 +145,8 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "get_data_table_freshness",
   "get_data_table_lineage",
   "oneuptime_whoami",
+  // Every ordered list's move, as the dashboard's drag (Tests/MoveInList).
+  "oneuptime_move_in_list",
 ];
 
 describe("WorkflowTools", () => {
@@ -225,11 +227,15 @@ describe("WorkflowTools", () => {
         ]);
       }
 
-      // An alert is not published.
+      /*
+       * An alert is not published, and neither is the order of a project's
+       * severities, states and statuses.
+       */
       for (const name of [
         "acknowledge_alert",
         "resolve_alert",
         "add_alert_note",
+        "oneuptime_move_in_list",
       ]) {
         expect([name, annotationsOf(name)]).toEqual([
           name,

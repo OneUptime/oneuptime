@@ -87,7 +87,7 @@ flowchart TB
 | 類別 | 指標 |
 | --- | --- |
 | Pod | Pod CPU 使用量, Pod 記憶體使用量, Pod 階段（代碼）, Pod 檔案系統使用量, 磁碟區容量, 磁碟區可用空間, Pod 記憶體限制使用率, Pod CPU 限制使用率, Pod 網路 I/O（累計，雙向） |
-| 節點 | 節點 CPU 使用量, 節點可分配 CPU, 節點記憶體使用量, 節點記憶體工作集, 節點檔案系統使用量, 節點可分配記憶體, 節點 Ready 狀況, 節點 MemoryPressure 狀況, 節點 DiskPressure 狀況, 節點 PIDPressure 狀況, 節點檔案系統可用空間 |
+| 節點 | 節點 CPU 使用量, 節點可分配 CPU, 節點記憶體使用量, 節點記憶體工作集, 節點檔案系統使用量, 節點可分配記憶體, 節點 Ready 狀況, 節點 MemoryPressure 狀況, 節點 DiskPressure 狀況, 節點 PIDPressure 狀況, 節點檔案系統可用空間, 節點檔案系統容量 |
 | 容器 | 容器重新啟動次數, 容器重新啟動次數（增量）, 容器 CPU 限制, 容器 CPU 請求, 容器記憶體限制, 容器記憶體請求, 容器就緒 |
 | 工作負載 | Deployment 可用副本數, Deployment 期望副本數, DaemonSet 期望節點數, DaemonSet 錯誤排程的節點數, DaemonSet 就緒節點數, StatefulSet 期望副本數, StatefulSet 就緒副本數, Job 失敗的 Pod 數, Job 失敗的 Pod 數（增量）, Job 成功的 Pod 數 |
 | HPA | HPA 目前副本數, HPA 期望副本數, HPA 最大副本數, HPA 最小副本數 |

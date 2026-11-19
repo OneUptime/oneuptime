@@ -22,6 +22,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `This project has been blocked` | Bitten Sie einen Master-Administrator, das Projekt freizugeben: siehe [Ein gesperrtes Projekt](#ein-gesperrtes-projekt) |
 | `references records that are not in this project` | Verwenden Sie die ID eines Datensatzes Ihres eigenen Projekts: siehe [IDs aus einem anderen Projekt](#ids-aus-einem-anderen-projekt) |
 | `Not Found` oder `Ambiguous Match` aus einer Datenquelle | Korrigieren Sie die Argumente der Suche: siehe [Suchen, die keinen oder mehrere finden](#suchen-die-keinen-oder-mehrere-finden) |
+| `There is already a team called` (eine Beschriftung, eine Bereitschaftsrichtlinie, ein Bereitschaftsplan) | Geben Sie ihm einen Namen, den kein anderer Datensatz derselben Art hat, oder benennen Sie zuerst den anderen um: siehe [Namen, die schon ein anderer Datensatz hat](#namen-die-schon-ein-anderer-datensatz-hat) |
 | `Cannot import non-existent remote object` | Prüfen Sie die ID und die Berechtigungen des Schlüssels: siehe [Ressourcen importieren](/docs/terraform/importing-resources#fehlerbehebung) |
 | `Provider produced inconsistent result after apply` | Aktualisieren Sie den Provider: siehe [Inkonsistentes Ergebnis nach dem Apply](#inkonsistentes-ergebnis-nach-dem-apply) |
 | Ein Plan legt eine Ressource an, die Sie nicht hinzugefügt haben | Der Schlüssel kann sie nicht mehr lesen, und OneUptime hat mit `404` geantwortet: Geben Sie dem Schlüssel den Lesezugriff zurück, dann importieren Sie die Ressource mit `terraform import`: siehe [Eine Ressource verlässt den State, und das nächste Apply legt sie erneut an](#eine-ressource-verlässt-den-state-und-das-nächste-apply-legt-sie-erneut-an) |
@@ -102,6 +103,12 @@ Meist wurde eine ID aus der Konfiguration oder dem State eines anderen Projekts 
 ### Suchen, die keinen oder mehrere finden
 
 Eine Datenquelle findet genau einen Datensatz, oder sie hält den Plan an. `Not Found` sagt, dass kein Datensatz die `id` hat oder keiner zu den gesetzten Argumenten passt; `Ambiguous Match` sagt, dass mehrere passen. Korrigieren Sie die Argumente, setzen Sie weitere, um die Suche auf einen einzugrenzen, oder suchen Sie den Datensatz über seine `id`. [Lesen, was schon existiert](/docs/terraform/complete-guide#lesen-was-schon-existiert) nennt die Regeln.
+
+### Namen, die schon ein anderer Datensatz hat
+
+Teams, Beschriftungen, Bereitschaftsrichtlinien und Bereitschaftspläne haben in einem Projekt jeweils einen eigenen Namen, unabhängig von Groß- und Kleinschreibung und Leerzeichen. Ein Anlegen oder Umbenennen auf einen Namen, den schon ein anderer Datensatz derselben Art hat, wird mit `400` beantwortet, etwa `There is already an on-call policy called Primary in this project. Pick another name.` Eine archivierte Bereitschaftsrichtlinie behält ihren Namen: Holen Sie sie aus dem Archiv, oder wählen Sie einen anderen Namen. Datensätze, die sich schon vorher einen Namen geteilt haben, behalten ihn, und die Listen der Teams, Bereitschaftsrichtlinien und Bereitschaftspläne im Dashboard markieren sie.
+
+Terraform nimmt die Änderungen eines Apply parallel vor, daher kann eine Umbenennung auf einen Namen, den eine andere Ressource im selben Apply aufgibt, abgelehnt werden, solange diese ihn noch hat: Wenden Sie erneut an, oder geben Sie der Ressource, die den Namen übernimmt, ein `depends_on` auf die Ressource, die ihn aufgibt. Ein Tausch, A zu B und B zu A, oder jede Kette von Umbenennungen, die dort endet, wo sie begann, lässt sich nicht in einem Apply ausführen: Benennen Sie eine davon in einen Namen um, den niemand hat, wenden Sie an, und nehmen Sie dann den Rest der Änderung vor.
 
 ## Pläne, die nicht zur Ruhe kommen
 

@@ -62,6 +62,8 @@ describe("the write policy", () => {
       "acknowledge_incident",
       "resolve_incident",
       "add_incident_note",
+      // A move of a row of an ordered list deletes nothing (#9651).
+      "oneuptime_move_in_list",
     ]) {
       expect([name, kept.includes(name)]).toEqual([name, true]);
     }
@@ -88,6 +90,7 @@ describe("the write policy", () => {
     );
     expect(namesOf(kept)).toContain("list_incidents");
     expect(namesOf(kept)).not.toContain("acknowledge_incident");
+    expect(namesOf(kept)).not.toContain("oneuptime_move_in_list");
   });
 
   test.each([

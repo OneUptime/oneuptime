@@ -3,14 +3,19 @@ import CreateBy from "../../Types/Database/CreateBy";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { RefusalWithValues } from "../../../Types/Exception/RefusalWithValues";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import {
+  NAME_WHITE_SPACE_RUN_PATTERN,
   getNameKey,
+  getNameKeySql,
   getNameTakenRefusalText,
   normalizeName,
 } from "../../../Types/Database/UniqueName";
@@ -61,6 +66,11 @@ export interface UniqueNameRules<TBaseModel extends BaseModel> {
   describeClash?:
     | ((data: { clash: TBaseModel; name: string }) => string | null)
     | undefined;
+  /*
+   * Which of several records with the name the refusal speaks of: a policy
+   * in service before an archived one, whose refusal says to unarchive it.
+   */
+  clashSort?: Sort<TBaseModel> | undefined;
 }
 
 // A column of a write's data, a row or a model, as it was written.
@@ -182,6 +192,93 @@ export default class UniqueNameInProject {
     });
   }
 
+  /*
+   * THE RECORDS OF A PROJECT THAT SHARE A NAME (#9746), for its list to
+   * mark them: records made before names were held to one record each keep
+   * their names, and nothing told an admin which ones a picker would draw
+   * alike.
+   *
+   * Each group is the records whose names read as one name - as the rule
+   * compares them, in Postgres, both sides read as findWithSameName reads
+   * them - and only those the reader may read, with the reader's own
+   * permissions. A group is found among every record of the project, as
+   * OneUptime, as the rule counts them: a record the reader may read can
+   * share its name with one they may not, which a rename onto that name
+   * would say anyway. A list's page holds only some of a project's records,
+   * so this reads the project, not the page: one query, its rows counted
+   * by their name, and one read of the ones that share it.
+   */
+  public static async findRecordsSharingName<
+    TBaseModel extends BaseModel,
+  >(data: {
+    service: DatabaseService<TBaseModel>;
+    projectId: ObjectID;
+    // The reader's own: the records of each group they may read.
+    props: DatabaseCommonInteractionProps;
+    /*
+     * Count only the records in service: an archived on-call policy is
+     * offered in no picker, so a policy named as one is drawn alike with
+     * nothing. Its name stays taken (a create or rename onto it is still
+     * refused), and unarchived it is counted again.
+     */
+    leaveOutArchived?: boolean | undefined;
+  }): Promise<Array<Array<string>>> {
+    const nameKey: string = getNameKeySql({
+      textSql: `"name"`,
+      patternSql: "$2",
+    });
+
+    const inService: string = data.leaveOutArchived
+      ? ` AND "isArchived" = false`
+      : "";
+
+    const rows: Array<{ id: string; nameKey: string }> = await data.service
+      .getRepository()
+      .query(
+        `SELECT "id", "nameKey" FROM (SELECT "_id" AS "id", ${nameKey} AS "nameKey", COUNT(*) OVER (PARTITION BY ${nameKey}) AS "count" FROM "${data.service.getRepository().metadata.tableName}" WHERE "projectId" = $1 AND "deletedAt" IS NULL${inService}) AS "named" WHERE "count" > 1 ORDER BY "nameKey", "id"`,
+        [data.projectId.toString(), NAME_WHITE_SPACE_RUN_PATTERN],
+      );
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const readable: Array<TBaseModel> = await data.service.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(
+          rows.map((row: { id: string }): ObjectID => {
+            return new ObjectID(row.id.toString());
+          }),
+        ),
+      } as unknown as Query<TBaseModel>,
+      select: { _id: true } as Select<TBaseModel>,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: data.props,
+    });
+
+    const readableIds: Set<string> = new Set<string>(
+      readable.map((record: TBaseModel): string => {
+        return (record.id?.toString() || "").toLowerCase();
+      }),
+    );
+
+    const groups: Map<string, Array<string>> = new Map<string, Array<string>>();
+
+    for (const row of rows) {
+      const id: string = row.id.toString().toLowerCase();
+
+      if (!readableIds.has(id)) {
+        continue;
+      }
+
+      groups.set(row.nameKey, [...(groups.get(row.nameKey) || []), id]);
+    }
+
+    return Array.from(groups.values());
+  }
+
   private static async refuseIfTaken<TBaseModel extends BaseModel>(data: {
     rules: UniqueNameRules<TBaseModel>;
     projectId: ObjectID;
@@ -205,6 +302,7 @@ export default class UniqueNameInProject {
         ...(data.rules.clashSelect || {}),
         _id: true,
       } as Select<TBaseModel>,
+      ...(data.rules.clashSort ? { sort: data.rules.clashSort } : {}),
       props: {
         isRoot: true,
       },

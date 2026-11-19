@@ -70,6 +70,10 @@ import { BILLING_ENABLED } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "../../../Types/Database/UniqueName";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -337,6 +341,77 @@ describe("the policy it makes", () => {
       users: [USER_ID],
       teams: [],
     });
+  });
+
+  /*
+   * #9742: a policy's name is one policy's. While another has the setup's
+   * name - an archived one, or one this person may not see - the policy is
+   * made numbered, as Duplicate numbers a copy; any other refusal stops
+   * the setup as it always did.
+   */
+  test("while another policy has its name, the policy is made numbered", async () => {
+    // Each try's name as it was sent: the model is the same object each time.
+    const tried: Array<string | undefined> = [];
+
+    createSpy.mockImplementation((async (args: {
+      model: OnCallDutyPolicy;
+    }): Promise<unknown> => {
+      tried.push(args.model.name);
+
+      if (tried.length === 1) {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message: getNameTakenRefusalText(
+              ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+              args.model.name,
+            ),
+          },
+          {},
+        );
+      }
+
+      return { data: { id: new ObjectID(POLICY_ID) } };
+    }) as never);
+
+    await expect(
+      OnCallSetupApi.createPolicy({
+        userIds: [USER_ID],
+        teamIds: [],
+        addRules: true,
+        translator: dashboardTranslator("en"),
+      }),
+    ).resolves.toBe(POLICY_ID);
+
+    expect(tried).toEqual([
+      "Default on-call policy",
+      "Default on-call policy 2",
+    ]);
+    expect(createSpy).toHaveBeenCalledTimes(2);
+    // Both tries ask for the same first responders and rules.
+    expect(callsFor(createSpy, OnCallDutyPolicy)[1]!["miscDataProps"]).toEqual(
+      callsFor(createSpy, OnCallDutyPolicy)[0]!["miscDataProps"],
+    );
+  });
+
+  test("any other refusal stops the setup, and nothing is tried again", async () => {
+    createSpy.mockRejectedValue(
+      new HTTPErrorResponse(
+        400,
+        { message: "You do not have permission to create an on-call policy." },
+        {},
+      ),
+    );
+
+    await expect(
+      OnCallSetupApi.createPolicy({
+        userIds: [USER_ID],
+        teamIds: [],
+        addRules: false,
+        translator: dashboardTranslator("en"),
+      }),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
+    expect(createSpy).toHaveBeenCalledTimes(1);
   });
 
   test("a create that answers no id is an error, not a policy", async () => {

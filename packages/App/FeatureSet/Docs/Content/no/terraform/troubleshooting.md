@@ -22,6 +22,7 @@ Slå opp meldingen Terraform skrev ut, eller det du så skje, i tabellen nedenfo
 | `This project has been blocked` | Be en hovedadministrator om å oppheve blokkeringen av prosjektet: se [Et blokkert prosjekt](#et-blokkert-prosjekt) |
 | `references records that are not in this project` | Bruk ID-en til en post i ditt eget prosjekt: se [ID-er fra et annet prosjekt](#id-er-fra-et-annet-prosjekt) |
 | `Not Found` eller `Ambiguous Match` fra en datakilde | Rett oppslagets argumenter: se [Oppslag som finner ingen eller flere](#oppslag-som-finner-ingen-eller-flere) |
+| `There is already a team called` (en etikett, en vaktpolicy, en vaktplan) | Gi den et navn som ingen andre av samme slag har, eller gi den andre nytt navn først: se [Navn som en annen post allerede har](#navn-som-en-annen-post-allerede-har) |
 | `Cannot import non-existent remote object` | Kontroller ID-en og nøkkelens tillatelser: se [Importere ressurser](/docs/terraform/importing-resources#feilsøking) |
 | `Provider produced inconsistent result after apply` | Oppgrader provideren: se [Inkonsistent resultat etter apply](#inkonsistent-resultat-etter-apply) |
 | En plan oppretter en ressurs du ikke har lagt til | Nøkkelen kan ikke lenger lese den, og OneUptime svarte `404`: gi nøkkelen lesetilgangen tilbake, og importer deretter ressursen med `terraform import`: se [En ressurs forlater state, og neste apply oppretter den på nytt](#en-ressurs-forlater-state-og-neste-apply-oppretter-den-på-nytt) |
@@ -102,6 +103,12 @@ Det betyr som regel at en ID er kopiert fra konfigurasjonen eller staten til et 
 ### Oppslag som finner ingen eller flere
 
 En datakilde finner nøyaktig én post, eller den stopper planen. `Not Found` sier at ingen post har den `id`-en, eller at ingen passer til argumentene du har angitt; `Ambiguous Match` sier at flere gjør det. Rett argumentene, angi flere av dem for å snevre oppslaget inn til én, eller slå opp posten via `id`. [Les det som allerede finnes](/docs/terraform/complete-guide#les-det-som-allerede-finnes) har reglene.
+
+### Navn som en annen post allerede har
+
+Team, etiketter, vaktpolicyer og vaktplaner har hvert sitt eget navn i et prosjekt, uavhengig av store og små bokstaver og mellomrom. En oppretting eller et navnebytte til et navn som en annen post av samme slag allerede har, får svaret `400`, for eksempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkivert vaktpolicy beholder navnet sitt: fjern den fra arkivet, eller velg et annet navn. Poster som allerede delte et navn, beholder det, og dashbordets lister over team, vaktpolicyer og vaktplaner merker dem.
+
+Terraform utfører endringene i én apply side om side, så et navnebytte til et navn som en annen ressurs gir fra seg i samme apply, kan bli avvist mens den andre fortsatt har det: ta i bruk på nytt, eller legg til en `depends_on` fra ressursen som tar navnet, til den som gir det fra seg. Et bytte, A til B og B til A, eller en hvilken som helst kjede av navnebytter som ender der den startet, kan ikke gjøres i én apply: gi én av dem et navn som ingen har, ta i bruk, og gjør så resten av endringen.
 
 ## Planer som ikke faller til ro
 

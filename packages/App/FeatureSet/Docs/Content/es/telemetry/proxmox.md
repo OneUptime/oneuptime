@@ -254,7 +254,7 @@ Quita el comentario del receiver `journald` y del pipeline `logs` en `otel-colle
 La imagen estándar `otel/opentelemetry-collector-contrib` se construye `FROM scratch`: no tiene `journalctl`, que es lo que ejecuta el receiver de journald, y se ejecuta como un usuario que no puede leer el journal. Construye este wrapper y apunta a él el `image:` de `docker-compose.yml`:
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

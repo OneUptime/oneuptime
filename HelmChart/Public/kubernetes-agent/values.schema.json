@@ -476,6 +476,10 @@
         "vpa": {
           "type": "boolean",
           "description": "Enable VPA collection (requires VPA CRDs installed in the cluster)"
+        },
+        "compliance": {
+          "type": "boolean",
+          "description": "Read RBAC (Roles, ClusterRoles and their bindings), ServiceAccounts and NetworkPolicies, read-only, to score the cluster against the CIS Kubernetes Benchmark on its Compliance page"
         }
       },
       "additionalProperties": false
@@ -498,7 +502,7 @@
         },
         "volumeMetrics": {
           "type": "object",
-          "description": "Disk usage of every mounted volume (k8s.volume.capacity / available / inodes), each persistent volume claim's named by k8s.persistentvolumeclaim.name: the used, free and capacity figures on the Persistent Volume Claims pages and the PVC Almost Full monitor template. A few series per volume per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
+          "description": "Disk usage of the volumes that hold data (claims, generic ephemeral ones too, emptyDirs and hostPaths: k8s.volume.capacity / available / inodes), each persistent volume claim's named by k8s.persistentvolumeclaim.name: the used, free and capacity figures on the Persistent Volume Claims pages, a nearly full claim under the cluster's Needs attention, and the PVC Almost Full monitor template. configMap, secret, downwardAPI and projected token volumes are dropped on the node. A few series per volume per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
           "properties": {
             "enabled": { "type": "boolean" }
           },

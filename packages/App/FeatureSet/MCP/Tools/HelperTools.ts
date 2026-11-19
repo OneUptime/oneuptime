@@ -9,6 +9,11 @@ import ModelType from "../Types/ModelType";
 import { sanitizeToolName } from "./SchemaConverter";
 import { readOnlyToolAnnotations } from "./ToolAnnotations";
 import { describeResource } from "./DescribeResource";
+import {
+  MOVE_IN_LIST_TOOL_NAME,
+  findMovableList,
+  isMovableTable,
+} from "./MoveInList";
 
 export const DESCRIBE_RESOURCE_TOOL_NAME: string =
   "oneuptime_describe_resource";
@@ -483,6 +488,18 @@ function getResourceTools(resource: ResourceInfo): Record<string, string> {
   return tools;
 }
 
+/*
+ * A resource's tools as the help tools list them: its own, and the move of a
+ * row past others when its rows are a list in order (MoveInList) - a tool
+ * every such list shares, so it is listed here and never found by.
+ */
+function getListedTools(resource: ResourceInfo): Record<string, string> {
+  return {
+    ...getResourceTools(resource),
+    ...(isMovableTable(resource.name) ? { move: MOVE_IN_LIST_TOOL_NAME } : {}),
+  };
+}
+
 function handleListResourcesTool(resources: ResourceInfo[]): string {
   const response: Record<string, unknown> = {
     success: true,
@@ -494,7 +511,7 @@ function handleListResourcesTool(resources: ResourceInfo[]): string {
         pluralName: r.pluralName,
         description: r.description,
         operations: r.operations,
-        tools: getResourceTools(r),
+        tools: getListedTools(r),
       };
     }),
   };
@@ -546,7 +563,8 @@ function handleDescribeResourceTool(
     name: resource.name,
     singularName: resource.singularName,
     modelType: resource.modelType,
-    tools: getResourceTools(resource),
+    tools: getListedTools(resource),
+    listColumn: findMovableList(resource.name)?.column,
   });
 }
 

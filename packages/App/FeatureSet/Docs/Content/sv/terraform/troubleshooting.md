@@ -22,6 +22,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | `This project has been blocked` | Be en huvudadministratör att häva blockeringen av projektet: se [Ett blockerat projekt](#ett-blockerat-projekt) |
 | `references records that are not in this project` | Använd ID:t för en post i ditt eget projekt: se [ID:n från ett annat projekt](#idn-från-ett-annat-projekt) |
 | `Not Found` eller `Ambiguous Match` från en datakälla | Rätta uppslagningens argument: se [Uppslagningar som hittar ingen eller flera](#uppslagningar-som-hittar-ingen-eller-flera) |
+| `There is already a team called` (en etikett, en jourpolicy, ett jourschema) | Ge den ett namn som ingen annan av samma slag har, eller byt först namn på den andra: se [Namn som en annan post redan har](#namn-som-en-annan-post-redan-har) |
 | `Cannot import non-existent remote object` | Kontrollera ID:t och nyckelns behörigheter: se [Importera resurser](/docs/terraform/importing-resources#felsökning) |
 | `Provider produced inconsistent result after apply` | Uppgradera providern: se [Inkonsekvent resultat efter apply](#inkonsekvent-resultat-efter-apply) |
 | En plan skapar en resurs som du inte har lagt till | Nyckeln kan inte längre läsa den, och OneUptime svarade `404`: ge nyckeln dess läsåtkomst tillbaka, och importera sedan resursen med `terraform import`: se [En resurs lämnar state, och nästa apply skapar den igen](#en-resurs-lämnar-state-och-nästa-apply-skapar-den-igen) |
@@ -102,6 +103,12 @@ Det betyder oftast att ett ID har kopierats från ett annat projekts konfigurati
 ### Uppslagningar som hittar ingen eller flera
 
 En datakälla hittar exakt en post, eller så stoppar den planen. `Not Found` säger att ingen post har det `id`, eller att ingen matchar argumenten som du har angett; `Ambiguous Match` säger att flera gör det. Rätta argumenten, ange fler av dem för att begränsa uppslagningen till en, eller slå upp posten via `id`. [Läs det som redan finns](/docs/terraform/complete-guide#läs-det-som-redan-finns) har reglerna.
+
+### Namn som en annan post redan har
+
+Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag. En begäran som skapar eller byter namn på en post till ett namn som en annan post av samma slag redan har får svaret `400`, till exempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkiverad jourpolicy behåller sitt namn: avarkivera den, eller välj ett annat namn. Poster som redan delade ett namn behåller det, och instrumentpanelens listor över team, jourpolicyer och jourscheman märker dem.
+
+Terraform gör ändringarna i en apply sida vid sida, så ett namnbyte till ett namn som en annan resurs lämnar i samma apply kan nekas medan den andra fortfarande har det: tillämpa igen, eller lägg till ett `depends_on` från resursen som tar namnet till den som lämnar det. Ett byte, A till B och B till A, eller en kedja av namnbyten som slutar där den började, kan inte göras i en apply: byt namn på en av dem till ett namn som ingen har, tillämpa och gör sedan resten av ändringen.
 
 ## Planer som inte stabiliseras
 

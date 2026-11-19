@@ -105,6 +105,10 @@ const KubernetesClusterPVCs: FunctionComponent<
                 latestVolumeAvailableBytes: row.latestVolumeAvailableBytes,
                 latestVolumeInodes: row.latestVolumeInodes,
                 latestVolumeInodesFree: row.latestVolumeInodesFree,
+                latestVolumeMeasuredAt: row.latestVolumeMeasuredAt,
+                latestVolumeUsedBaselineBytes:
+                  row.latestVolumeUsedBaselineBytes,
+                latestVolumeUsedBaselineAt: row.latestVolumeUsedBaselineAt,
                 metricsUpdatedAt: row.metricsUpdatedAt,
                 status: status as JSONObject,
                 spec: spec as JSONObject,

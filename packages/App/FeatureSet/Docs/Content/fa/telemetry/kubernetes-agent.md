@@ -410,7 +410,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 چند متریک پرسروصدا را کنار بگذارید (فهرست ممنوع، که معمولاً همان چیزی است که می‌خواهید):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 فقط یک مجموعه ثابت را بفرستید (فهرست مجاز: بقیه کنار گذاشته می‌شوند):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 کاردینالیتی، یعنی شمار سری‌های متمایز، به اندازه بسامد مهم است، چون هر سری جداگانه ذخیره و صورت‌حساب می‌شود.
 
 - cAdvisor عمداً فهرست مجاز دارد. گیرنده cAdvisor (به‌طور پیش‌فرض روشن) می‌تواند صدها متریک بفرستد؛ چارت فقط شمارنده‌های محدودسازی CPU و OOM kill در `cadvisor.metricsAllowlist` را می‌فرستد، برای نمودارها و مانیتورهای متریک خودتان: هیچ قالب داخلی آن‌ها را نمی‌خواند. فهرست را کوتاه نگه دارید: هر ورودی برای هر کانتینر نگه داشته می‌شود، پس یک متریک بیشتر در شمار کانتینرهای خوشه ضرب می‌شود. kube-state-metrics به‌طور پیش‌فرض خاموش است؛ اگر روشنش کنید (`kubeStateMetrics.enabled=true`)، `kubeStateMetrics.metricsAllowlist` آن به همان شیوه کار می‌کند و هر ورودی باید با نام کامل یک متریک جور باشد.
-- متریک‌های حجم (`kubeletstats.volumeMetrics.enabled`، به‌طور پیش‌فرض روشن) برای هر Volume در هر پاد چند سری می‌فرستند و مصرف، فضای آزاد و ظرفیت در صفحه‌های Persistent Volume Claimها و قالب PVC Almost Full از آن‌ها می‌آیند: برای بیشتر خوشه‌ها خوب است، ولی روی بارهای کاری حالت‌دار (Kafka، پایگاه‌های داده) با هزاران PVC زیاد است. اگر فضای دیسک PVC را نمی‌پایید، آنجا با `--set kubeletstats.volumeMetrics.enabled=false` خاموششان کنید.
+- متریک‌های حجم (`kubeletstats.volumeMetrics.enabled`، به‌طور پیش‌فرض روشن) برای هر Volume از هر پاد که داده نگه می‌دارد (یک Claim، یک emptyDir، یک hostPath) پنج سری می‌فرستند و مصرف، فضای آزاد و ظرفیت در صفحه‌های Persistent Volume Claimها، Claim تقریباً پر زیر **نیاز به توجه** خوشه و قالب PVC Almost Full از آن‌ها می‌آیند. Volumeهای configMap، secret، downwardAPI و توکن service account یک پاد، که بیشتر این سری‌ها از آن‌ها بود، روی همان گره کنار گذاشته می‌شوند. روی بارهای کاری حالت‌دار (Kafka، پایگاه‌های داده) با هزاران PVC هنوز زیاد است: اگر فضای دیسک PVC را نمی‌پایید، آنجا با `--set kubeletstats.volumeMetrics.enabled=false` خاموششان کنید.
 - متریک‌های اشباع (`kubeletstats.utilizationMetrics.enabled`، به‌طور پیش‌فرض روشن) ۸ خانواده مشتق از نوع «٪ از request یا limit» می‌افزایند. برداشت اضافه‌ای ندارند، ولی اگر از مانیتورهای CPU و حافظه در برابر limit استفاده نمی‌کنید، با `--set kubeletstats.utilizationMetrics.enabled=false` کنارشان بگذارید.
 - متریک‌ها را با `filters.metrics.exclude` که همه گیرنده‌ها را دربر می‌گیرد بر پایه نام کنار بگذارید، برای هر چیزی که فهرست‌های مجاز گیرنده‌ها نمی‌توانند بیان کنند (ببینید [گنجاندن یا کنار گذاشتن متریک‌ها بر پایه نام](#گنجاندن-یا-کنار-گذاشتن-متریکها-بر-پایه-نام)):
 

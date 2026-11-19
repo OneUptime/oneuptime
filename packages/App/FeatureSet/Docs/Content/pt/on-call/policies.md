@@ -13,7 +13,7 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 :::steps
 1. Vá para **Plantão → Políticas de plantão** e clique em **Criar política de plantão**.
-2. Informe um **Nome**, por exemplo "Pagamentos principal".
+2. Informe um **Nome**, por exemplo "Pagamentos principal". Um nome que outra política do projeto já tem, inclusive uma arquivada, é recusado, sem diferenciar maiúsculas de minúsculas nem espaços, para que todo seletor distinga as políticas.
 3. Em **Quem é acionado primeiro?**, clique em **Adicionar destinatário** e escolha os agendamentos de plantão, as equipes e as pessoas a acionar primeiro.
 4. Clique em **Criar política de plantão**. A política abre na sua página **Regras de escalonamento**, com **Level 1** já criado.
 :::
@@ -26,7 +26,7 @@ O formulário também pergunta **Dispará-la a cada novo incidente e a cada novo
 
 Para ser guiado passo a passo, do seu celular até um acionamento de teste, clique em **Configuração guiada**: na lista vazia de **Políticas de plantão** ou em **Como funciona**. Veja [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
 
-A lista **Políticas de plantão** mostra de cada política o **Nome**, os **Acionados primeiro**, a **Descrição**, os **Rótulos** e os **Proprietários**. **Acionados primeiro** mostra quem é acionado pela primeira regra de escalonamento da política: seus agendamentos de plantão, cada um com quem está de plantão nele agora, suas equipes e as pessoas que ela nomeia, ou **Nenhuma regra de escalonamento** ou **Nenhum destinatário** quando ela não aciona ninguém. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
+A lista **Políticas de plantão** mostra de cada política o **Nome**, os **Acionados primeiro**, a **Descrição**, os **Rótulos** e os **Proprietários**. **Acionados primeiro** mostra quem é acionado pela primeira regra de escalonamento da política: seus agendamentos de plantão, cada um com quem está de plantão nele agora, suas equipes e as pessoas que ela nomeia, ou **Nenhuma regra de escalonamento** ou **Nenhum destinatário** quando ela não aciona ninguém. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários. Uma política que tem o mesmo nome que outra política, de antes de os nomes precisarem ser diferentes, é marcada com **Mesmo nome que outra política**, e a lista diz quantas são: compare as regras de escalonamento delas e depois renomeie uma com **Renomear** na linha dela.
 
 ## O que executa uma política
 
@@ -157,7 +157,7 @@ Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a c
 Arquivar tira uma política de serviço e mantém tudo: abra as **Configurações** da política e clique em **Arquivar** no cartão de arquivamento dela, ou selecione políticas na lista e escolha **Arquivar**.
 
 - Uma política arquivada não aciona ninguém. Os incidentes e alertas que a usam a pulam, e uma execução que ainda esteja escalonando para no próximo passo.
-- Ela sai da lista **Políticas de plantão** e vai para **Plantão → Avançado → Políticas arquivadas**, onde **Desarquivar** a coloca de volta em serviço.
+- Ela sai da lista **Políticas de plantão** e vai para **Plantão → Avançado → Políticas arquivadas**, onde **Desarquivar** a coloca de volta em serviço. Ela mantém o nome: quem cria uma nova política com esse nome é orientado a desarquivar esta em vez disso.
 
 **Excluir política**, em **Avançado**, exclui a política junto com suas regras de escalonamento e substituições de usuário. A exclusão pela lista pede confirmação antes e sugere arquivar no lugar.
 

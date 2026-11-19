@@ -1689,28 +1689,14 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    // Get the created state
-    const createdState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: episode.projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!createdState || !createdState.id) {
-      throw new BadDataException("Created state not found for this project.");
-    }
+    // The project's created state: the topmost, as a new episode starts in.
+    const createdAlertStateId: ObjectID =
+      await AlertStateService.getCreatedAlertStateId(episode.projectId);
 
     await this.changeEpisodeState({
       projectId: episode.projectId,
       episodeId: episodeId,
-      alertStateId: createdState.id,
+      alertStateId: createdAlertStateId,
       notifyOwners: true,
       rootCause: "Episode reopened due to new alert added.",
       props: {

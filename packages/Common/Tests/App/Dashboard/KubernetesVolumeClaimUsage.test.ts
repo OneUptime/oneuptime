@@ -166,6 +166,66 @@ describe("getKubernetesVolumeClaimUsage", () => {
     expect(usage.space).toBeNull();
     expect(usage.gap).toBe(KubernetesVolumeUsageGap.NotReported);
   });
+
+  /*
+   * How fast it is filling (#9643), in the words the cluster's Needs
+   * attention uses: from the used bytes a few hours before.
+   */
+  test("says when it will be full at the rate it filled since its baseline", () => {
+    const usage: KubernetesVolumeClaimUsage = getKubernetesVolumeClaimUsage(
+      bound({
+        latestVolumeCapacityBytes: 50 * GIB,
+        latestVolumeAvailableBytes: 5 * GIB,
+        latestVolumeMeasuredAt: MEASURED,
+        // 4 GiB more used than 4 hours before: 1 GiB an hour, 5 GiB left.
+        latestVolumeUsedBaselineBytes: String(41 * GIB),
+        latestVolumeUsedBaselineAt: new Date(
+          MEASURED.getTime() - 4 * 60 * 60 * 1000,
+        ).toISOString(),
+        metricsUpdatedAt: new Date(MEASURED.getTime() + 60 * 1000),
+      }),
+    );
+
+    expect(usage.fill).toEqual({
+      text: "Full in about {{count}} hours",
+      plural: { one: "Full in about {{count}} hour", count: 5 },
+    });
+    // When it was measured is the reading's own time, not the row's.
+    expect(usage.measuredAt).toEqual(MEASURED);
+  });
+
+  test("says nothing of filling for one that is not filling, or has no baseline yet", () => {
+    const steady: KubernetesVolumeClaimUsage = getKubernetesVolumeClaimUsage(
+      bound({
+        latestVolumeCapacityBytes: 50 * GIB,
+        latestVolumeAvailableBytes: 5 * GIB,
+        latestVolumeMeasuredAt: MEASURED,
+        latestVolumeUsedBaselineBytes: 46 * GIB,
+        latestVolumeUsedBaselineAt: new Date(
+          MEASURED.getTime() - 4 * 60 * 60 * 1000,
+        ),
+      }),
+    );
+    const fresh: KubernetesVolumeClaimUsage = getKubernetesVolumeClaimUsage(
+      bound({
+        latestVolumeCapacityBytes: 50 * GIB,
+        latestVolumeAvailableBytes: 5 * GIB,
+        latestVolumeMeasuredAt: MEASURED,
+      }),
+    );
+    const silent: KubernetesVolumeClaimUsage = getKubernetesVolumeClaimUsage(
+      bound({
+        latestVolumeUsedBaselineBytes: GIB,
+        latestVolumeUsedBaselineAt: new Date(
+          MEASURED.getTime() - 4 * 60 * 60 * 1000,
+        ),
+      }),
+    );
+
+    expect(steady.fill).toBeNull();
+    expect(fresh.fill).toBeNull();
+    expect(silent.fill).toBeNull();
+  });
 });
 
 describe("what a claim with no usage says", () => {

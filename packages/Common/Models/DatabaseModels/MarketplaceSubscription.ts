@@ -157,7 +157,7 @@ export default class MarketplaceSubscription extends BaseModel {
     type: TableColumnType.LongText,
     title: "Marketplace Offer",
     description:
-      "The offer or product bought: the Azure offer ID, the AWS product code, or the Google Cloud product.",
+      "The offer or product bought: the Azure offer ID, the AWS offer ID (the public offer or a private one), or the Google Cloud product.",
     example: "oneuptime",
   })
   @Column({

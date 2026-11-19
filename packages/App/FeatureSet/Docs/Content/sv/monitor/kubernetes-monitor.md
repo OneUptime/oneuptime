@@ -87,7 +87,7 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 | Kategori | Mätvärden |
 | --- | --- |
 | Podd | Poddens CPU-förbrukning, Pod-minnesanvändning, Poddens fas (kod), Poddens filsystemsanvändning, Volymkapacitet, Ledigt utrymme på volym, Poddens utnyttjande av minnesgränsen, Poddens utnyttjande av CPU-gränsen, Poddens nätverks-I/O (ackumulerad, båda riktningarna) |
-| Nod | Nodens CPU-förbrukning, Nodens allokerbara CPU, Minnesanvändning för nod, Nodens working set för minne, Filsystemsanvändning för nod, Nodens allokerbara minne, Nodens Ready-villkor, Nodens MemoryPressure-villkor, Nodens DiskPressure-villkor, Nodens PIDPressure-villkor, Nodens tillgängliga filsystem |
+| Nod | Nodens CPU-förbrukning, Nodens allokerbara CPU, Minnesanvändning för nod, Nodens working set för minne, Filsystemsanvändning för nod, Nodens allokerbara minne, Nodens Ready-villkor, Nodens MemoryPressure-villkor, Nodens DiskPressure-villkor, Nodens PIDPressure-villkor, Nodens tillgängliga filsystem, Nodens filsystemskapacitet |
 | Container | Containerns omstarter, Containerns omstarter (ökning), Containerns CPU-gräns, Containerns CPU-begäran, Containerns minnesgräns, Containerns minnesbegäran, Container redo |
 | Arbetsbelastning | Deploymentens tillgängliga repliker, Deploymentens önskade repliker, DaemonSetets önskade noder, DaemonSetets felschemalagda noder, DaemonSetets redo noder, StatefulSetets önskade repliker, StatefulSetets redo repliker, Jobbets misslyckade poddar, Jobbets misslyckade poddar (ökning), Jobbets lyckade poddar |
 | HPA | HPA:ns aktuella repliker, HPA:ns önskade repliker, HPA:ns maximala repliker, HPA:ns minimala repliker |

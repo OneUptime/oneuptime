@@ -46,7 +46,7 @@ Un hôte est enregistré dès qu'un lot portant `host.name` porte aussi des mét
 - Une clé d'ingestion. Créez-en une sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et copiez sa valeur. Le collecteur l'envoie dans l'en-tête `x-oneuptime-token`.
 - Des droits d'administrateur sur la machine : `sudo` sous Linux et macOS, une invite PowerShell élevée sous Windows.
 - Du HTTPS sortant de la machine vers votre URL OneUptime.
-- La distribution contrib du collecteur, `otelcol-contrib`. La version core `otelcol` ne contient pas les receivers ni les processeurs qu'utilisent ces configurations. Le receiver `systemd` (Linux) fonctionne à partir de la v0.143.0 et le receiver `windows_service` (Windows) à partir de la v0.155.0 ; les commandes ci-dessous installent la v0.161.0, la version qu'épingle OneUptime.
+- La distribution contrib du collecteur, `otelcol-contrib`. La version core `otelcol` ne contient pas les receivers ni les processeurs qu'utilisent ces configurations. Le receiver `systemd` (Linux) fonctionne à partir de la v0.143.0 et le receiver `windows_service` (Windows) à partir de la v0.155.0 ; les commandes ci-dessous installent la v0.165.0, la version qu'épingle OneUptime.
 
 ## Installer le collecteur
 
@@ -140,7 +140,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -238,7 +238,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -346,7 +346,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -381,7 +381,7 @@ Chaque configuration est celle que le tableau de bord écrit sous **Produits →
 Sur Debian ou Ubuntu :
 
 ```bash
-VERSION=0.161.0                      # the release OneUptime pins
+VERSION=0.165.0                      # the release OneUptime pins
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \
@@ -392,7 +392,7 @@ sudo dpkg -i /tmp/otelcol-contrib.deb
 Sur RHEL, CentOS, Fedora ou Amazon Linux :
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \
@@ -413,7 +413,7 @@ sudo systemctl status otelcol-contrib
 L'unité fournie par le paquet exécute le collecteur sous l'utilisateur non privilégié `otelcol-contrib`. Le groupe `systemd-journal` lui permet de lire le journal ; pour suivre des fichiers dans `/var/log` (lisibles par le groupe `adm` sous Debian et Ubuntu), ajoutez aussi ce groupe. Pour que le scraper `process` voie les processus des autres utilisateurs, accordez-lui la capacité `CAP_SYS_PTRACE`.
 @tab macOS
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \
@@ -458,7 +458,7 @@ Utilisez cette archive tarball, pas Homebrew : la formule Homebrew est la versio
 Depuis une invite PowerShell élevée, dans le dossier qui contient `config.yaml`, exécutez ce bloc d'un seul tenant : chaque ligne dépend des variables définies au-dessus.
 
 ```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$VERSION = "0.165.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -852,7 +852,7 @@ docker run -d \
   -e HOST_VAR=/hostfs/var \
   -e HOST_RUN=/hostfs/run \
   -e HOST_DEV=/hostfs/dev \
-  otel/opentelemetry-collector-contrib:0.161.0 \
+  otel/opentelemetry-collector-contrib:0.165.0 \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
@@ -863,7 +863,7 @@ docker run -d \
 Là où les paquets ne sont pas envisageables, décompressez le binaire statique et donnez-lui sa propre unité systemd :
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \
@@ -1157,7 +1157,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 

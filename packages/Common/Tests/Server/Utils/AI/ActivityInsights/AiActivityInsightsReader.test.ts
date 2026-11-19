@@ -30,8 +30,10 @@ import {
 import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
+import PositiveNumber from "../../../../../Types/PositiveNumber";
 import RunbookStepType from "../../../../../Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "../../../../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../../../../Types/Runbook/RunnerJobStatus";
@@ -100,6 +102,21 @@ const FIX_FROM_JOB: ObjectID = new ObjectID(
   "eeeeeeee-0000-4000-8000-000000000002",
 );
 
+// The month's commands (serveMonth).
+const JOB_SUCCEEDED: ObjectID = new ObjectID(
+  "ffffffff-0000-4000-8000-000000000001",
+);
+const JOB_FAILED: ObjectID = new ObjectID(
+  "ffffffff-0000-4000-8000-000000000002",
+);
+const JOB_TIMED_OUT: ObjectID = new ObjectID(
+  "ffffffff-0000-4000-8000-000000000003",
+);
+const JOB_FIX: ObjectID = new ObjectID("ffffffff-0000-4000-8000-000000000004");
+const JOB_CONNECTION_TEST: ObjectID = new ObjectID(
+  "ffffffff-0000-4000-8000-000000000005",
+);
+
 const CALLER: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
   userId: USER_ID,
@@ -161,6 +178,7 @@ function minutesAgo(minutes: number): Date {
 
 describe("AiActivityInsightsReader.read", () => {
   let jobFind: jest.SpyInstance;
+  let jobCount: jest.SpyInstance;
   let incidentFind: jest.SpyInstance;
   let alertFind: jest.SpyInstance;
   let runFind: jest.SpyInstance;
@@ -172,6 +190,9 @@ describe("AiActivityInsightsReader.read", () => {
 
   beforeEach(() => {
     jobFind = jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
+    jobCount = jest
+      .spyOn(RunnerJobService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
     incidentFind = jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
     alertFind = jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
     runFind = jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
@@ -199,24 +220,117 @@ describe("AiActivityInsightsReader.read", () => {
    * the caller may not read (private), two alert runs from one monitor, an
    * insight's triage run with no subject, and two fixes.
    */
+  /*
+   * The scope's commands, answered as the permission layer would: as root,
+   * every one of the query's; as the caller, only `readable` ones - and a
+   * select of what a command ran refused when `canReadCommand` is false (a
+   * Viewer), every read refused when `canReadJobs` is false.
+   */
+  let jobRows: Array<Record<string, unknown>>;
+  let jobAccess: {
+    canReadJobs: boolean;
+    canReadCommand: boolean;
+    readable?: Set<string> | undefined;
+  };
+
+  function matchesJobQuery(
+    job: Record<string, unknown>,
+    query: Record<string, unknown>,
+  ): boolean {
+    if (query["_id"] && !idsIn(query["_id"]).includes(String(job["id"]))) {
+      return false;
+    }
+
+    return !query["status"] || query["status"] === job["status"];
+  }
+
+  function serveJobs(rows: Array<Record<string, unknown>>): void {
+    jobRows = rows;
+    jobAccess = { canReadJobs: true, canReadCommand: true };
+
+    const visible: (args: {
+      query: Record<string, unknown>;
+      select?: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    }) => Array<Record<string, unknown>> = (args: {
+      query: Record<string, unknown>;
+      select?: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    }): Array<Record<string, unknown>> => {
+      if (args.props.isRoot) {
+        return jobRows;
+      }
+
+      if (!jobAccess.canReadJobs) {
+        throw new NotAuthorizedException("You may not read Runner jobs.");
+      }
+
+      if (
+        !jobAccess.canReadCommand &&
+        (args.select?.["payload"] || args.select?.["script"])
+      ) {
+        throw new NotAuthorizedException("You may not select payload.");
+      }
+
+      return jobRows
+        .filter((job: Record<string, unknown>): boolean => {
+          return (
+            !jobAccess.readable || jobAccess.readable.has(String(job["id"]))
+          );
+        })
+        .filter((job: Record<string, unknown>): boolean => {
+          return matchesJobQuery(job, args.query);
+        })
+        .map((job: Record<string, unknown>): Record<string, unknown> => {
+          // Only what was selected: never what it ran, unless asked.
+          return args.select
+            ? Object.fromEntries(
+                Object.entries(job).filter(([key]: [string, unknown]) => {
+                  return key === "id" || Boolean(args.select![key]);
+                }),
+              )
+            : job;
+        });
+    };
+
+    jobFind.mockImplementation(async (args: unknown) => {
+      return visible(args as never);
+    });
+    jobCount.mockImplementation(async (args: unknown) => {
+      return new PositiveNumber(visible(args as never).length);
+    });
+  }
+
   function serveMonth(): void {
-    jobFind.mockResolvedValue([
+    serveJobs([
       {
+        id: JOB_SUCCEEDED,
         aiRunId: RUN_ALERT,
         origin: RunnerJobOrigin.AiInvestigation,
         status: RunnerJobStatus.Succeeded,
       },
       {
+        id: JOB_FAILED,
         aiRunId: RUN_ALERT,
         origin: RunnerJobOrigin.AiInvestigation,
         status: RunnerJobStatus.Failed,
+        payload: {
+          displayCommand: "kubectl get deployment home -n shop -o yaml",
+        },
+        exitCode: 1,
+        errorMessage:
+          'Error from server (NotFound): deployments.apps "home" not found',
+        createdAt: minutesAgo(29),
+        completedAt: minutesAgo(28),
       },
       {
+        id: JOB_TIMED_OUT,
         aiRunId: RUN_TRIAGE,
         origin: RunnerJobOrigin.AiInvestigation,
         status: RunnerJobStatus.TimedOut,
       },
       {
+        id: JOB_FIX,
         autoRemediationSuggestionId: FIX_FROM_JOB,
         aiRunId: RUN_REMEDIATION,
         origin: RunnerJobOrigin.AiRemediation,
@@ -224,6 +338,7 @@ describe("AiActivityInsightsReader.read", () => {
       },
       // The AI agent page's connection test: not AI's work.
       {
+        id: JOB_CONNECTION_TEST,
         origin: RunnerJobOrigin.AiInvestigation,
         status: RunnerJobStatus.Failed,
       },
@@ -398,6 +513,158 @@ describe("AiActivityInsightsReader.read", () => {
     expect(insights.totals.commands).toBe(4);
     expect(insights.totals.failedCommands).toBe(1);
     expect(insights.totals.timedOutCommands).toBe(1);
+  });
+
+  /*
+   * #9749: "N failed" opens which commands failed and why. The count and
+   * the list are the failed commands the caller may read as Runner jobs.
+   */
+  describe("the failed commands", () => {
+    async function read(): Promise<AiActivityInsights> {
+      return await AiActivityInsightsReader.read(scope(), NOW);
+    }
+
+    function callerJobReads(): Array<Array<unknown>> {
+      return jobFind.mock.calls.filter((call: Array<unknown>): boolean => {
+        return isCaller(call);
+      });
+    }
+
+    test("open as what each ran, how it ended, why, when and what for", async () => {
+      serveMonth();
+
+      const insights: AiActivityInsights = await read();
+
+      expect(insights.totals.failedCommands).toBe(1);
+      expect(insights.failedCommandList).toEqual([
+        {
+          id: JOB_FAILED.toString(),
+          at: minutesAgo(28).toISOString(),
+          command: "kubectl get deployment home -n shop -o yaml",
+          exitCode: 1,
+          errorMessage:
+            'Error from server (NotFound): deployments.apps "home" not found',
+          origin: RunnerJobOrigin.AiInvestigation,
+          // Its investigation's alert, which the caller may read.
+          subject: {
+            kind: "alert",
+            id: ALERT_ID.toString(),
+            title: "Replica mismatch - Deployment: home",
+            number: 7,
+          },
+        },
+      ]);
+    });
+
+    test("are read as the caller, by the ids counted, failed ones only, newest first", async () => {
+      serveMonth();
+
+      await read();
+
+      const reads: Array<Array<unknown>> = callerJobReads();
+
+      expect(reads.length).toBeGreaterThan(0);
+
+      for (const call of reads) {
+        const query: Record<string, unknown> = queryOf(call);
+
+        expect(query["projectId"]).toBe(PROJECT_ID);
+        expect(query["status"]).toBe(RunnerJobStatus.Failed);
+        // The connection test failed too, but it is not AI's work.
+        expect(idsIn(query["_id"])).toEqual([JOB_FAILED.toString()]);
+        expect((call[0] as { sort: unknown }).sort).toEqual({
+          createdAt: SortOrder.Descending,
+        });
+        // Never the output.
+        expect(
+          (call[0] as { select: Record<string, unknown> }).select["output"],
+        ).toBeUndefined();
+      }
+
+      expect(
+        jobCount.mock.calls.every((call: Array<unknown>): boolean => {
+          return isCaller(call);
+        }),
+      ).toBe(true);
+    });
+
+    test("one the caller may not read - another person's AI chat's, or about a private incident - is neither counted nor opened", async () => {
+      serveMonth();
+      jobAccess.readable = new Set<string>([JOB_SUCCEEDED.toString()]);
+
+      const insights: AiActivityInsights = await read();
+
+      // Still AI's command: counted among them, never as a failure of theirs.
+      expect(insights.totals.commands).toBe(4);
+      expect(insights.totals.failedCommands).toBe(0);
+      expect(insights.failedCommandList).toBeUndefined();
+    });
+
+    test("a Viewer reads that it failed and why, never what it ran", async () => {
+      serveMonth();
+      jobAccess.canReadCommand = false;
+
+      const insights: AiActivityInsights = await read();
+
+      expect(insights.totals.failedCommands).toBe(1);
+      expect(insights.failedCommandList).toHaveLength(1);
+      expect(insights.failedCommandList![0]!.command).toBeUndefined();
+      expect(insights.failedCommandList![0]!.exitCode).toBe(1);
+      expect(insights.failedCommandList![0]!.errorMessage).toContain(
+        "NotFound",
+      );
+    });
+
+    test("a role that may not read Runner jobs at all reads no failure", async () => {
+      serveMonth();
+      jobAccess.canReadJobs = false;
+
+      const insights: AiActivityInsights = await read();
+
+      expect(insights.totals.commands).toBe(4);
+      expect(insights.totals.failedCommands).toBe(0);
+      expect(insights.failedCommandList).toBeUndefined();
+    });
+
+    test("a command for an incident the caller may not read says nothing of it", async () => {
+      serveMonth();
+      jobRows[1]!["aiRunId"] = RUN_HIDDEN;
+
+      const insights: AiActivityInsights = await read();
+
+      expect(insights.failedCommandList).toHaveLength(1);
+      expect(insights.failedCommandList![0]!.subject).toBeUndefined();
+      expect(JSON.stringify(insights.failedCommandList)).not.toContain(
+        HIDDEN_INCIDENT_ID.toString(),
+      );
+    });
+
+    test("a fix's failed command is about its fix's incident or alert", async () => {
+      serveMonth();
+      jobRows[3]!["status"] = RunnerJobStatus.Failed;
+      jobRows[3]!["autoRemediationSuggestionId"] = FIX_OWN;
+
+      const insights: AiActivityInsights = await read();
+
+      expect(insights.totals.failedCommands).toBe(2);
+      expect(
+        insights.failedCommandList!.find((command: { id: string }): boolean => {
+          return command.id === JOB_FIX.toString();
+        })!.subject,
+      ).toMatchObject({ kind: "alert", id: ALERT_ID.toString() });
+    });
+
+    test("nothing failed: nothing is read as the caller, and nothing opens", async () => {
+      serveMonth();
+      jobRows[1]!["status"] = RunnerJobStatus.Succeeded;
+
+      const insights: AiActivityInsights = await read();
+
+      expect(insights.totals.failedCommands).toBe(0);
+      expect(insights.failedCommandList).toBeUndefined();
+      expect(callerJobReads()).toEqual([]);
+      expect(jobCount).not.toHaveBeenCalled();
+    });
   });
 
   test("finds linked incidents and alerts of the window under the caller's props", async () => {

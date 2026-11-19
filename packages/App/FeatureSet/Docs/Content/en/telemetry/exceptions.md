@@ -202,7 +202,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ### See what it did
 
 - **Exceptions → AI → Insights** lists what OneUptime found, each finding with its evidence, the frames of your code in its stack trace included. **View Exception Group** opens the exception, and on a service's missing stack traces, **Open in Exceptions** opens its unresolved exceptions from the last day.
-- **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
+- **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found. A pull request says how its task in Code stands now: a fix asked again with Try again after it failed no longer reads as failed, and names the pull request it opened.
 - The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **Fix with AI** page. In Code, its task names the exception it fixes, or the finding it came from.
 
 ## Exceptions Insights

@@ -402,6 +402,17 @@ const AIInsightViewPage: FunctionComponent<
   }, [fixAiRunId]);
 
   /*
+   * What production showed of the task's pull request, whichever of its
+   * turns opened it (#9812): a fix asked again from Code (Try again) opens
+   * its pull request on a later turn of the task, which a read by the
+   * task's id never finds. The task's summary carries the pull request it
+   * shows, from any turn; the read above stays for a reader the summary
+   * leaves out (one who may not read the task's repository in Code).
+   */
+  const shownFixProduction: FixProductionReport | null =
+    parseFixProductionReport(fixTask?.pullRequest?.production) || fixProduction;
+
+  /*
    * When the triage run lands, refetch the insight once — the runner posts
    * triageSummaryMarkdown onto the insight as it completes.
    */
@@ -1350,9 +1361,9 @@ const AIInsightViewPage: FunctionComponent<
                   void fixTasks.reload();
                 }}
               />
-              {fixProduction ? (
+              {shownFixProduction ? (
                 <FixProductionVerdict
-                  production={fixProduction}
+                  production={shownFixProduction}
                   testId="ai-insight-fix-production"
                   className="mt-3"
                 />

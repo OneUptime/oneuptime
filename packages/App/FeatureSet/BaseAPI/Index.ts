@@ -2113,6 +2113,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
@@ -6688,6 +6689,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Which teams, on-call policies and on-call schedules of a project share
+     * a name (SharedNamesAPI, #9746), for their lists to mark. A bare router
+     * for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
 
     /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member

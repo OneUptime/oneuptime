@@ -202,7 +202,7 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 ### Se, hvad den gjorde
 
 - **Undtagelser → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser, rammerne fra din kode i dets stack trace medregnet. **View Exception Group** åbner undtagelsen, og for en tjenestes manglende stack traces åbner **Åbn i Undtagelser** dens uløste undtagelser fra det seneste døgn.
-- **Undtagelser → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
+- **Undtagelser → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt. En pull request siger, hvordan dens opgave i Code står nu: en rettelse, der blev bedt om igen med Prøv igen, efter at den mislykkedes, står ikke længere som mislykket og nævner den pull request, den åbnede.
 - Pull requesten siger, hvorfor den blev åbnet, med et link til dens fund. En ny eller stigende undtagelses pull request linker også til undtagelsen og vises på undtagelsens side **Ret med AI**. I Kode nævner dens opgave den undtagelse, den retter, eller det fund, den kom fra.
 
 ## Indsigter i undtagelser

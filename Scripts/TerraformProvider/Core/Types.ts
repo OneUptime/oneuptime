@@ -1,4 +1,5 @@
 import { MembershipKind } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
 
 export interface TerraformProviderConfig {
   outputDir: string;
@@ -85,6 +86,12 @@ export interface OpenAPISpec {
      * keeps for a while, which the provider reads but never manages.
      */
     "x-oneuptime-telemetry"?: boolean;
+    /*
+     * A drag-ordered list's (@ListOrderColumn): which column numbers a row,
+     * and what a write of it does (Common/Utils/DeveloperDocs/
+     * ListOrderFacts). The resource's page says so in its Order section.
+     */
+    "x-oneuptime-list-order"?: ListOrderFacts;
   }>;
 }
 
@@ -124,6 +131,11 @@ export interface TerraformResource {
    * from it instead.
    */
   movedFrom?: string | undefined;
+  /*
+   * A drag-ordered list's facts, from its tag (x-oneuptime-list-order): its
+   * page gets an Order section, and the number attribute links to it.
+   */
+  listOrder?: ListOrderFacts | undefined;
   goTypeName: string;
   description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {

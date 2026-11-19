@@ -205,7 +205,7 @@ Führen Sie den Befehl erneut aus, um eine davon zu ändern oder auf ein neueres
 | `--key KEY` | `-Key KEY` | Ein Telemetrie-Ingestion-Schlüssel Ihres Projekts. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Beschriftet den Host. Wiederholen Sie sie für weitere Beschriftungen; unter Windows listen Sie sie mit Kommas auf. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Gibt dem Collector eine Umgebungsvariable, für Konfigurationen, die `${env:NAME}` lesen. |
-| `--version VERSION` | `-Version VERSION` | Das zu installierende Collector-Release, standardmäßig 0.161.0. |
+| `--version VERSION` | `-Version VERSION` | Das zu installierende Collector-Release, standardmäßig 0.165.0. |
 | `--download-url URL` | `-DownloadUrl URL` | Lädt die Releases von einem Spiegel mit derselben Ordnerstruktur wie bei GitHub. |
 | `--proxy URL` | `-Proxy URL` | Leitet die Downloads und den gesamten Verkehr des Collectors über einen HTTP-Proxy. |
 | `--replace-existing` | `-ReplaceExisting` | Stoppt und deaktiviert einen von Hand installierten Collector. |
