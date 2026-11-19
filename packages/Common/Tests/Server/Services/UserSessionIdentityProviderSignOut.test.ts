@@ -351,9 +351,11 @@ describe("the live sessions a SAML provider gave a person", () => {
   ): UserSession {
     const session: UserSession = new UserSession();
     session.id = new ObjectID(id);
-    session.identityProviderSignOut = record
-      ? ({ ...record } as unknown as JSONObject)
-      : undefined;
+
+    if (record) {
+      session.identityProviderSignOut = { ...record } as unknown as JSONObject;
+    }
+
     return session;
   }
 
