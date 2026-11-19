@@ -18,8 +18,8 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
  * takes it as a write OneUptime makes itself and keeps the people it names
  * (UserAttribution: a run's triggeredByUserId) - and carry who the person
  * is, and nothing of what they may do: their user and its type, the API key,
- * the MCP client or the workflow they acted through, and Ask AI when it
- * acted for them. The audit log reads its actor from these
+ * the MCP client or the workflow they acted through (with what it ran as),
+ * and Ask AI when it acted for them. The audit log reads its actor from these
  * (AuditLogRecorder), so the entry is theirs, kept whether or not the
  * project stores system events, like every other change they make.
  *
@@ -37,6 +37,8 @@ const IDENTITY_KEYS: ReadonlyArray<keyof DatabaseCommonInteractionProps> = [
   "mcpClientName",
   "workflowId",
   "workflowName",
+  // What the workflow ran as, and with whose permissions (#9766).
+  "workflowRunAsAudit",
   "writeSource",
 ];
 

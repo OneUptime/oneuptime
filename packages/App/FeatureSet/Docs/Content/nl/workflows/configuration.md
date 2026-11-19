@@ -217,15 +217,19 @@ Standaard draait een workflow met de machtigingen hierboven, en de meeste workfl
 
 Waarmee de workflow ook draait, een stap leest nooit instellingen met inloggegevens, ziet nooit privé-incidenten, -waarschuwingen of -episodes en wijzigt nooit API-sleutels, single sign-on of SCIM-instellingen. Als hij een team een machtiging of een rol geeft, kan hij alleen geven wat hij zelf heeft, en als hem iets ontbreekt, noemt het logboek van de uitvoering de machtiging.
 
-Een workflow die met meer dan de standaardmachtigingen draait, draait met de machtigingen van de persoon die ze heeft gegeven: wie als laatste de **Run As** ervan koos, of de stappen of variabelen ervan opsloeg. Zodat niemand er meer mee krijgt dan hij zelf heeft:
+Een workflow die met meer dan de standaardmachtigingen draait, draait met de machtigingen van wie ze heeft gegeven: de persoon of de API-sleutel van het project die als laatste de **Run As** ervan koos, of de stappen of variabelen ervan opsloeg. Zodat niemand er meer mee krijgt dan hij zelf heeft:
 
 - Alleen mensen die die machtigingen hebben, kunnen de workflow of zijn variabelen wijzigen, hem archiveren of verwijderen, hem of een van zijn stappen met de hand uitvoeren, of zijn webhook-URL en inkomende e-mailadres zien. Iedereen die hem mag bewerken, kan hem nog steeds uitschakelen. Gaat hij met meer dan de standaardmachtigingen draaien, of verandert waarmee hij draait, dan krijgt hij een nieuwe webhook-URL en een nieuw inkomend e-mailadres, zodat kopieën van de oude hem niet meer starten.
-- Alleen een persoon kan ze geven, nooit een API-sleutel.
-- Elke uitvoering controleert eerst of de persoon die ze gaf ze nog heeft. Zo niet, dan stopt de uitvoering vóór de eerste stap, en het logboek zegt waarom en wie ze opnieuw kan geven.
+- Een persoon of een van de API-sleutels van het project kan ze geven, en alleen wat die zelf heeft: de machtigingen van een sleutel, met zijn aangepaste rollen, worden gewogen zoals die van een persoon. De stappen van een workflow en de master-API-sleutel kunnen ze niet geven, en een sleutel opnieuw instellen vraagt elke machtiging die de sleutel heeft.
+- Elke uitvoering controleert eerst of wie ze gaf ze nog heeft: een persoon die nog in het project zit, of een sleutel die nog bestaat, niet verlopen is en ze niet kwijt is. Zo niet, dan stopt de uitvoering vóór de eerste stap, en het logboek zegt waarom en wie ze opnieuw kan geven.
 - Hij leest de globale variabelen van het project niet, die iedereen kan wijzigen die workflowvariabelen mag bewerken.
 - De stap **Andere workflow uitvoeren** van een andere workflow kan hem alleen starten als die workflow met dezelfde of meer machtigingen draait.
 
-Elke uitvoering legt vast waarmee ze draaide en met wiens machtigingen, te zien in het venster van de uitvoering en in een gedownload logboek, en het [auditlogboek](/docs/configuration/audit-logs) legt vast wie de **Run As** van een workflow heeft gewijzigd.
+Een geëxporteerde, geïmporteerde of gedupliceerde workflow draait met de standaardmachtigingen, waarmee het origineel ook draaide: iemand die meer heeft, kiest de **Run As** ervan opnieuw.
+
+Elke uitvoering legt vast waarmee ze draaide en met wiens machtigingen, te zien in het venster van de uitvoering en in een gedownload logboek. Het [auditlogboek](/docs/configuration/audit-logs) legt vast wie de **Run As** van een workflow heeft gewijzigd, een persoon of een API-sleutel bij naam, en elke wijziging die een stap van een workflow maakt, zegt waarmee de stap draaide en met wiens machtigingen. De filters **Workflow uitgevoerd als** en **Machtigingen van de workflow gegeven door** van het auditlogboek vinden die wijzigingen.
+
+Een aangepaste rol verwijderen waarmee workflows draaien, zou ze stoppen, dus het verwijderen somt ze op en vraagt waarmee ze voortaan draaien: **Standaardmachtigingen** of een andere aangepaste rol die u een team zou kunnen geven. Wie geen workflows mag bewerken, kan de rol pas verwijderen als hun Run As is gewijzigd. Via de API wordt het verwijderen van zo'n rol geweigerd, tenzij het verzoek zegt waarmee ze in plaats daarvan draaien: `miscDataProps` met `workflowsRunAs` op `Default`, of op `CustomRole` met de id van de rol in `workflowsRunAsCustomRoleId`.
 
 ## Planlimieten
 

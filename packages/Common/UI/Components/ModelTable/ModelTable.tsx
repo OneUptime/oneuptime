@@ -634,11 +634,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
             return BaseModel.fromJSON(item, props.modelType) as TBaseModel;
           },
 
-          deleteItem: async (item: TBaseModel) => {
+          deleteItem: async (
+            item: TBaseModel,
+            miscDataProps?: JSONObject | undefined,
+          ) => {
             await modelAPI.deleteItem({
               modelType: props.modelType,
               id: item.id as ObjectID,
               requestOptions: props.deleteRequestOptions,
+              ...(miscDataProps ? { miscDataProps: miscDataProps } : {}),
             });
           },
         }}

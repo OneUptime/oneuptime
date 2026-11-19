@@ -121,7 +121,7 @@ OneUptime sender hver batch med POST til **URL**, som en JSON-matrise (`applicat
 Hver oppføring er én RFC 5424-melding til **Vert** og **Port**, over TLS på port `6514` med mindre **Protokoll** angir TCP eller UDP, med facility 13 (log audit) og severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":3,"id":"..."}
 ```
 
 Over TLS og TCP skilles meldinger med oktettelling (RFC 5425), med mindre **Meldingsskille** angir én melding per linje. En mottaker med et sertifikat som en privat CA har signert, trenger sertifikatet til den CA-en i **CA-sertifikat**. Begge venter under **Flere felt**.
@@ -136,7 +136,7 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 
 | Nøkkel | Hva den inneholder |
 | --- | --- |
-| `schemaVersion` | `2` for en ny eksport, `1` for en som ble lagret før versjon 2. En versjon legger bare til nøkler. |
+| `schemaVersion` | `3` for en ny eksport, `1` for en som ble lagret før versjon 2. En versjon legger bare til nøkler. |
 | `id` | Oppføringens ID. Den samme oppføringen, sendt to ganger, har den samme ID-en. |
 | `createdAt` | Når endringen ble registrert, i UTC. |
 | `projectId` | Prosjektet endringen ble gjort i. |
@@ -147,6 +147,8 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 | `apiKeyId`, `apiKeyName` | API-nøkkelen den ble gjort med, hvis noen. |
 | `mcpOAuthGrantId`, `mcpClientName` | MCP-klienten den ble gjort gjennom, hvis noen. |
 | `workflowId`, `workflowName` | Arbeidsflyten som gjorde den, hvis noen. |
+| `workflowRunAs`, `workflowRunAsCustomRoleName` | I versjon 3, hva trinnet i arbeidsflyten kjørte som: `Default`, `ProjectOwner` eller `CustomRole`, og navnet rollen hadde da. |
+| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | I versjon 3, hvems tillatelser det kjørte med: id-en til personen eller API-nøkkelen i prosjektet, og navnet de hadde da. Hver av disse fem nøklene er `null` når ingen arbeidsflyt gjorde endringen. |
 | `changes` | Hvert endret felt: `field`, med `oldValue` og `newValue`, og i versjon 2 `summary`. |
 
 En fil har én oppføring per linje, komprimert med gzip, og arkiveres under timen for den første oppføringen: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
@@ -159,10 +161,11 @@ Nøkler, tokener og passord forlater aldri OneUptime: De registreres som `[REDAC
 
 | Versjon | Hva den sender |
 | --- | --- |
+| `3` | Hver oppføring sier også hva trinnet i arbeidsflyten som gjorde endringen, kjørte som, og med hvems tillatelser, i fem nøkler etter `workflowName`. |
 | `2` | Hver endring har også `summary`: hva som endret seg, i linjene revisjonsloggen viser, for eksempel `Added "Send Email" (send-email-1)` for et trinn i en arbeidsflyt eller stien som endret seg i JSON, ellers `null`. Linjene nevner innstillinger og stier, aldri verdier. |
 | `1` | Oppføringen slik den først ble sendt, uten `summary`. Trinnene i en arbeidsflyt sendes som størrelsen før og etter, for eksempel `3 steps and 2 connections`. |
 
-En ny eksport sender versjon 2. En eksport som ble lagret før versjon 2, fortsetter å sende versjon 1, så det som leser den, trenger ingen endring: Når det er klart for `summary`, klikker du på **Rediger** på eksporten og velger versjon 2 i **Postversjon** under **Flere felt**. Versjonen gjelder oppføringene som sendes fra da av, og hver oppføring oppgir sin egen i `schemaVersion`.
+En ny eksport sender versjon 3. En eksport som ble lagret før versjon 2, fortsetter å sende versjon 1, og en som ble lagret før versjon 3, fortsetter å sende versjon 2, så det som leser den, trenger ingen endring: Når det er klart for det en nyere versjon legger til, klikker du på **Rediger** på eksporten og velger versjon 3 i **Postversjon** under **Flere felt**. Versjonen gjelder oppføringene som sendes fra da av, og hver oppføring oppgir sin egen i `schemaVersion`.
 
 ## Når oppføringer sendes
 

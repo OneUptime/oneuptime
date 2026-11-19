@@ -125,14 +125,20 @@ export const AUDIT_LOG_EXPORT_SYSLOG_UDP_VALUE_LIMITS: ReadonlyArray<number> = [
  */
 export const AUDIT_LOG_EXPORT_SYSLOG_UDP_NAME_LIMIT: number = 128;
 
-// The names an entry carries as text a person typed, rather than an id or a time.
+/*
+ * The names an entry carries as text a person typed, rather than an id or a
+ * time - version 3's custom role and giver names among them (#9766), which
+ * an entry of an earlier version does not have.
+ */
 type ShortenedName =
   | "resourceName"
   | "userName"
   | "userEmail"
   | "apiKeyName"
   | "mcpClientName"
-  | "workflowName";
+  | "workflowName"
+  | "workflowRunAsCustomRoleName"
+  | "workflowRunAsGivenByName";
 
 const SHORTENED_NAMES: ReadonlyArray<ShortenedName> = [
   "resourceName",
@@ -141,6 +147,8 @@ const SHORTENED_NAMES: ReadonlyArray<ShortenedName> = [
   "apiKeyName",
   "mcpClientName",
   "workflowName",
+  "workflowRunAsCustomRoleName",
+  "workflowRunAsGivenByName",
 ];
 
 // What the egress check of a host answers: the addresses the connection may dial.
@@ -338,12 +346,12 @@ export function fitSyslogMessage(data: {
   const named: AuditLogExportRecord = { ...data.record };
 
   for (const key of SHORTENED_NAMES) {
-    const name: string | null = data.record[key];
+    const name: string | null | undefined = data.record[key];
 
-    named[key] =
-      typeof name === "string"
-        ? limitText(name, AUDIT_LOG_EXPORT_SYSLOG_UDP_NAME_LIMIT)
-        : name;
+    // A key the record's version does not have stays away.
+    if (typeof name === "string") {
+      named[key] = limitText(name, AUDIT_LOG_EXPORT_SYSLOG_UDP_NAME_LIMIT);
+    }
   }
 
   let shortest: AuditLogExportRecord = named;

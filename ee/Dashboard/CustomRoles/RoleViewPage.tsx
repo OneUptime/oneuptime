@@ -22,6 +22,14 @@ import {
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleReach";
 import CustomRoleApiKeysTable from "./CustomRoleApiKeysTable";
 import CustomRoleTeamsTable from "./CustomRoleTeamsTable";
+import {
+  CustomRoleDeleteWorkflows,
+  WORKFLOWS_RUN_AS_DEFAULT_CHOICE,
+  getCustomRoleDeleteBlockedReason,
+  getCustomRoleDeleteMiscDataProps,
+  loadCustomRoleDeleteWorkflows,
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleDeleteWorkflows";
+import CustomRoleDeleteWorkflowsChoice from "@oneuptime/dashboard/Components/CustomRole/CustomRoleDeleteWorkflowsChoice";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
@@ -31,6 +39,7 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -38,10 +47,12 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -61,7 +72,10 @@ import React, {
  *     for whoever may read the project's API keys, saying what a key gets
  *     of the role - read again after every change of its permissions, as
  *     an edited scope can change that;
- *   - Delete: what deleting it takes from whom, before it is pressed.
+ *   - Delete: what deleting it takes from whom, before it is pressed - and
+ *     the workflows that run as it, which would stop, with what they run as
+ *     instead (#9767): picked in the dialog and sent with the delete, or,
+ *     for a reader who may not edit them, Delete locked, saying why.
  *
  * Custom roles are an Enterprise feature: this is the Enterprise page, and
  * core keeps the route (Pages/Teams/RoleView.tsx). When the Enterprise
@@ -76,6 +90,16 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [roleName, setRoleName] = useState<string>("");
   const [reach, setReach] = useState<CustomRoleReachDetails | null>(null);
+  /*
+   * The workflows that run as the role (#9767): its Delete says they would
+   * stop, and what they run as instead - picked in the dialog, and sent
+   * with the delete.
+   */
+  const [deleteWorkflows, setDeleteWorkflows] =
+    useState<CustomRoleDeleteWorkflows | null>(null);
+  const workflowsChoice: MutableRefObject<string> = useRef<string>(
+    WORKFLOWS_RUN_AS_DEFAULT_CHOICE,
+  );
   // Counts the reads of the role's permissions: what its API keys get follows.
   const [permissionsChangeToggle, setPermissionsChangeToggle] =
     useState<number>(0);
@@ -95,7 +119,27 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         // Without it the card says what the role gives, not who has it.
         setReach(null);
       });
+
+    loadCustomRoleDeleteWorkflows({
+      customRoleId: modelId,
+      projectId: projectId,
+    })
+      .then((loaded: CustomRoleDeleteWorkflows) => {
+        setDeleteWorkflows(loaded);
+      })
+      .catch(() => {
+        // Without it the delete asks as before, and the server says what to do.
+        setDeleteWorkflows(null);
+      });
   }, [modelId.toString()]);
+
+  const hasDeleteWorkflows: boolean = Boolean(
+    deleteWorkflows && deleteWorkflows.workflows.length > 0,
+  );
+  // Workflows run as it, and the reader may not say what they run as instead.
+  const isDeleteBlocked: boolean = Boolean(
+    hasDeleteWorkflows && deleteWorkflows && !deleteWorkflows.canEditWorkflows,
+  );
 
   useEffect(() => {
     readReach();
@@ -225,15 +269,60 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         itemName={roleName || undefined}
         // Drawn as the dialog's own sentences are, as one more paragraph.
         confirmationContent={
-          reach ? (
-            <p
-              className="text-sm leading-6 text-gray-600"
-              data-testid="custom-role-delete-reach"
-            >
-              {getRoleDeleteReachSentence(translator, reach)}
-            </p>
+          reach || hasDeleteWorkflows ? (
+            <div className="space-y-3">
+              {reach ? (
+                <p
+                  className="text-sm leading-6 text-gray-600"
+                  data-testid="custom-role-delete-reach"
+                >
+                  {getRoleDeleteReachSentence(translator, reach)}
+                </p>
+              ) : (
+                <></>
+              )}
+              {deleteWorkflows && hasDeleteWorkflows && !isDeleteBlocked ? (
+                <CustomRoleDeleteWorkflowsChoice
+                  found={deleteWorkflows}
+                  onChoiceChange={(next: string): void => {
+                    workflowsChoice.current = next;
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+            </div>
           ) : undefined
         }
+        /*
+         * Workflows run as it that the reader may not change: Delete is
+         * locked, saying how many, why, and who can (#9767).
+         */
+        deleteLock={
+          isDeleteBlocked && deleteWorkflows
+            ? {
+                isAllowed: false,
+                disabledReason: getCustomRoleDeleteBlockedReason(
+                  translator,
+                  deleteWorkflows.workflows.length,
+                ),
+              }
+            : undefined
+        }
+        // With what its workflows run as instead, when any runs as it.
+        onDelete={async (): Promise<void> => {
+          await ModelAPI.deleteItem<CustomRole>({
+            modelType: CustomRole,
+            id: modelId,
+            ...(hasDeleteWorkflows
+              ? {
+                  miscDataProps: getCustomRoleDeleteMiscDataProps(
+                    workflowsChoice.current,
+                  ),
+                }
+              : {}),
+          });
+        }}
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(

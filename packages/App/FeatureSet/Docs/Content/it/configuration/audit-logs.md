@@ -67,10 +67,10 @@ Una modifica di queste impostazioni vale entro un minuto.
 | **Quando** | Quanto tempo fa, con data e ora. |
 | **Azione** | `Create`, `Update` o `Delete`, `Download` per un file di cattura dei pacchetti che qualcuno ha scaricato, oppure `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` o `Session Revoked` per un accesso o una sessione. |
 | **Risorsa** | Il nome della risorsa, che la apre finché esiste, e il suo tipo. |
-| **Attore** | Chi ha fatto la modifica: una persona, una chiave API, un flusso di lavoro, oppure `System` per una modifica che OneUptime ha fatto da solo. La modifica di una persona fatta tramite un client MCP indica quale. |
+| **Attore** | Chi ha fatto la modifica: una persona, una chiave API, un flusso di lavoro, oppure `System` per una modifica che OneUptime ha fatto da solo. La modifica di una persona fatta tramite un client MCP indica quale. La modifica di un flusso di lavoro dice come è stato eseguito e con i permessi di chi. |
 | **Modifiche** | Quanti campi sono cambiati, o sono stati acquisiti in una creazione o un'eliminazione. Per un accesso o una sessione, come è stato fatto l'accesso, perché non è riuscito o perché la sessione è finita. Fai clic per vedere ogni campo. |
 
-Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
+Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente**, **Flusso di lavoro eseguito come**, **Autorizzazioni del flusso di lavoro concesse da** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
 
 Una risorsa senza un nome proprio prende il nome da ciò che la nomina in OneUptime: un'eccezione dal suo tipo e dall'inizio del suo messaggio, con identificatori, indirizzi e tutto ciò che sembra un segreto mascherati, un'esecuzione di un runbook dal suo runbook, il numero di telefono di una politica chiamate in arrivo dal numero stesso, e un modello o un dominio dal proprio nome.
 

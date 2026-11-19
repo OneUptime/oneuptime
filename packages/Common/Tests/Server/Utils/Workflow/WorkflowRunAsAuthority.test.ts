@@ -2,7 +2,12 @@ import CustomRole from "../../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../../Models/DatabaseModels/CustomRolePermission";
 import Label from "../../../../Models/DatabaseModels/Label";
 import User from "../../../../Models/DatabaseModels/User";
+import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
+import ApiKeyPermissionService, {
+  ApiKeyPermissionRow,
+} from "../../../../Server/Services/ApiKeyPermissionService";
+import ApiKeyService from "../../../../Server/Services/ApiKeyService";
 import CustomRolePermissionService from "../../../../Server/Services/CustomRolePermissionService";
 import CustomRoleService from "../../../../Server/Services/CustomRoleService";
 import UserService from "../../../../Server/Services/UserService";
@@ -11,6 +16,7 @@ import WorkflowPrincipal, {
 } from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import WorkflowRunAsAuthority, {
   WorkflowRunAsAction,
+  WorkflowRunAsGiverKind,
   WorkflowRunAsRefusedException,
   WorkflowRunAsRole,
 } from "../../../../Server/Utils/Workflow/WorkflowRunAsAuthority";
@@ -24,8 +30,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
 import {
+  WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE,
   WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE,
-  WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE,
   WORKFLOW_RUN_AS_ROLE_DELETED_MESSAGE,
   WORKFLOW_RUN_AS_ROLE_MISSING_MESSAGE,
   WORKFLOW_RUN_AS_ROLE_NOT_FOUND_MESSAGE,
@@ -43,8 +49,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * One question decides each: could the holder give a team those
  * permissions themselves - the grant ceiling of TeamPermissionService,
  * which runs here for real. Only the reads are stubbed: the custom role
- * and its permissions, the person who gave a workflow its permissions, and
- * their permissions in the project as they are now.
+ * and its permissions, the person or the project API key (#9765) who gave
+ * a workflow its permissions, and their permissions in the project as they
+ * are now.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -105,6 +112,56 @@ const ADMIN: () => DatabaseCommonInteractionProps =
   (): DatabaseCommonInteractionProps => {
     return person([row(Permission.ProjectAdmin)]);
   };
+
+const KEY_ID: ObjectID = new ObjectID("95950000-0000-4000-8000-0000000000b1");
+
+/*
+ * A request one of the project's API keys made (ProjectMiddleware): no
+ * person, its own rows, its id and its name.
+ */
+function apiKey(
+  rows: Array<UserPermission>,
+  extra?: Partial<DatabaseCommonInteractionProps>,
+): DatabaseCommonInteractionProps {
+  return {
+    tenantId: PROJECT_ID,
+    userType: UserType.API,
+    apiKeyId: KEY_ID,
+    apiKeyName: "Terraform",
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: rows,
+      },
+    },
+    ...extra,
+  };
+}
+
+/*
+ * A request the server's master API key made: the master admin, named as
+ * the key (ProjectMiddleware.MASTER_API_KEY_AUDIT_NAME), with no key of a
+ * project - whatever rows its master admin holds in the project.
+ */
+function masterKey(
+  rows: Array<UserPermission> = [row(Permission.ProjectOwner)],
+): DatabaseCommonInteractionProps {
+  return person(rows, {
+    userType: UserType.MasterAdmin,
+    isMasterAdmin: true,
+    apiKeyName: "Master API Key",
+  });
+}
+
+// A workflow's step, of a workflow that runs as Project Owner.
+function ownerStep(): DatabaseCommonInteractionProps {
+  return WorkflowPrincipal.getPropsWithoutPlan({
+    projectId: PROJECT_ID,
+    workflowId: ObjectID.generate(),
+    runAs: { runAs: WorkflowRunAs.ProjectOwner },
+  });
+}
 
 function rolePermission(
   permission: Permission,
@@ -545,19 +602,8 @@ describe("choosing what a workflow runs as", () => {
     });
   });
 
-  test("an API key holding Project Owner, and a workflow running as one, are no person", async () => {
-    for (const props of [
-      person([row(Permission.ProjectOwner)], {
-        userType: UserType.API,
-        userId: undefined,
-        apiKeyId: ObjectID.generate(),
-      }),
-      WorkflowPrincipal.getPropsWithoutPlan({
-        projectId: PROJECT_ID,
-        workflowId: ObjectID.generate(),
-        runAs: { runAs: WorkflowRunAs.ProjectOwner },
-      }),
-    ]) {
+  test("a workflow running as Project Owner, and the master API key, may not give it: neither has permissions of its own to read again", async () => {
+    for (const props of [ownerStep(), masterKey()]) {
       const error: Error = await refusal(
         WorkflowRunAsAuthority.assertMayGive({
           setting: { runAs: WorkflowRunAs.ProjectOwner },
@@ -566,7 +612,8 @@ describe("choosing what a workflow runs as", () => {
         }),
       );
 
-      expect(error.message).toBe(WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE);
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE);
     }
   });
 
@@ -701,21 +748,22 @@ describe("acting on a workflow that runs as more than Default", () => {
     }
   });
 
-  test("an API key holding Project Owner may not change one: it is no person", async () => {
-    const error: Error = await refusal(
-      WorkflowRunAsAuthority.assertMayAct({
-        setting: ownerSetting,
-        projectId: PROJECT_ID,
-        props: person([row(Permission.ProjectOwner)], {
-          userType: UserType.API,
-          userId: undefined,
-          apiKeyId: ObjectID.generate(),
+  test("the master API key and a workflow's step may not act on one, whatever they hold, and are told why", async () => {
+    for (const props of [masterKey(), ownerStep()]) {
+      const error: Error = await refusal(
+        WorkflowRunAsAuthority.assertMayAct({
+          setting: ownerSetting,
+          projectId: PROJECT_ID,
+          props: props,
+          action: WorkflowRunAsAction.Change,
         }),
-        action: WorkflowRunAsAction.Change,
-      }),
-    );
+      );
 
-    expect(error.message).toContain(WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE);
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(
+        `This workflow runs as Project Owner, so only Project Owners can change it. You can still turn it off. ${WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE}`,
+      );
+    }
   });
 
   test("a custom role workflow is acted on by who could give the role", async () => {
@@ -1062,5 +1110,438 @@ describe("another workflow starting one that runs as more than Default", () => {
     expect(
       await mayStart({ runAs: WorkflowRunAs.ProjectOwner }, { runAs: "Root" }),
     ).toBeNull();
+  });
+});
+
+/*
+ * AN API KEY GIVES A WORKFLOW ITS RUN AS (#9765), held to its own
+ * permissions exactly as a person is held to theirs, and read again as
+ * every run starts.
+ */
+
+// The project API key KEY_ID as a run reads it: its row, and its permissions now.
+function givenKey(data: {
+  rows: Array<ApiKeyPermissionRow>;
+  exists?: boolean | undefined;
+  expiresAt?: Date | undefined;
+  name?: string | undefined;
+}): void {
+  const key: ApiKey = new ApiKey();
+  key.id = KEY_ID;
+  key.name = data.name ?? "Terraform";
+  key.expiresAt =
+    data.expiresAt || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+  getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue(
+    data.exists === false ? null : key,
+  );
+  getJestSpyOn(
+    ApiKeyPermissionService,
+    "findPermissionsByApiKeyId",
+  ).mockResolvedValue(data.rows);
+}
+
+function keyRow(
+  permission: Permission,
+  options?: { labelIds?: Array<ObjectID>; isBlockPermission?: boolean },
+): ApiKeyPermissionRow {
+  return {
+    permission: permission,
+    labelIds: options?.labelIds || [],
+    isBlockPermission: Boolean(options?.isBlockPermission),
+  };
+}
+
+describe("who may give a workflow its permissions", () => {
+  test("a person, by their id", () => {
+    const owner: DatabaseCommonInteractionProps = OWNER();
+
+    expect(WorkflowRunAsAuthority.getGiver(owner)).toEqual({
+      kind: WorkflowRunAsGiverKind.Person,
+      id: owner.userId,
+    });
+  });
+
+  test("one of the project's API keys, by its id and its name", () => {
+    expect(WorkflowRunAsAuthority.isProjectApiKey(apiKey([]))).toBe(true);
+    expect(WorkflowRunAsAuthority.getGiver(apiKey([]))).toEqual({
+      kind: WorkflowRunAsGiverKind.ApiKey,
+      id: KEY_ID,
+      name: "Terraform",
+    });
+    expect(
+      WorkflowRunAsAuthority.getGiver(apiKey([], { apiKeyName: undefined })),
+    ).toEqual({ kind: WorkflowRunAsGiverKind.ApiKey, id: KEY_ID });
+  });
+
+  test("never the master API key, a workflow's step, OneUptime, or a key that names a person", () => {
+    for (const props of [
+      masterKey(),
+      ownerStep(),
+      apiKey([], { isRoot: true }),
+      apiKey([], { isMasterAdmin: true }),
+      apiKey([], { userId: ObjectID.generate() }),
+      apiKey([], { userType: UserType.Workflow }),
+      { isRoot: true },
+      { userType: UserType.Public },
+    ] as Array<DatabaseCommonInteractionProps>) {
+      expect(WorkflowRunAsAuthority.getGiver(props)).toBeNull();
+    }
+  });
+
+  test("a workflow names one giver: the giver's column, and the other cleared", () => {
+    expect(
+      WorkflowRunAsAuthority.getGivenByColumns({
+        kind: WorkflowRunAsGiverKind.ApiKey,
+        id: KEY_ID,
+      }),
+    ).toEqual({ runAsGivenByUserId: null, runAsGivenByApiKeyId: KEY_ID });
+    expect(
+      WorkflowRunAsAuthority.getGivenByColumns({
+        kind: WorkflowRunAsGiverKind.Person,
+        id: GIVER_ID,
+      }),
+    ).toEqual({ runAsGivenByUserId: GIVER_ID, runAsGivenByApiKeyId: null });
+  });
+});
+
+describe("an API key choosing what a workflow runs as", () => {
+  test("a key holding Project Owner for the whole project gives Project Owner", async () => {
+    expect(
+      await WorkflowRunAsAuthority.assertMayGive({
+        setting: { runAs: WorkflowRunAs.ProjectOwner },
+        projectId: PROJECT_ID,
+        props: apiKey([row(Permission.ProjectOwner)]),
+      }),
+    ).toBeNull();
+  });
+
+  test("a key that holds less, or Project Owner on some labels, or blocked from it, may not: it never raises a workflow beyond itself", async () => {
+    for (const props of [
+      apiKey([]),
+      apiKey([row(Permission.ProjectAdmin)]),
+      apiKey([row(Permission.WorkflowAdmin), row(Permission.EditWorkflow)]),
+      apiKey([row(Permission.ProjectOwner, { labelIds: [LABEL_A] })]),
+      apiKey([
+        row(Permission.ProjectOwner),
+        row(Permission.ProjectOwner, { isBlockPermission: true }),
+      ]),
+    ]) {
+      const error: Error = await refusal(
+        WorkflowRunAsAuthority.assertMayGive({
+          setting: { runAs: WorkflowRunAs.ProjectOwner },
+          projectId: PROJECT_ID,
+          props: props,
+        }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE);
+    }
+  });
+
+  test("a key gives a custom role whose every permission it holds at the same or a broader scope", async () => {
+    givenRole([
+      rolePermission(Permission.EditProjectTeamPermissions),
+      rolePermission(Permission.IncidentAdmin, {
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_A],
+      }),
+    ]);
+
+    const role: WorkflowRunAsRole | null =
+      await WorkflowRunAsAuthority.assertMayGive({
+        setting: { runAs: WorkflowRunAs.CustomRole, customRoleId: ROLE_ID },
+        projectId: PROJECT_ID,
+        props: apiKey([
+          row(Permission.EditProjectTeamPermissions),
+          row(Permission.IncidentAdmin, { labelIds: [LABEL_A, LABEL_B] }),
+        ]),
+      });
+
+    expect(role?.name).toBe("Team Provisioner");
+  });
+
+  test("not one with a permission the key lacks, or holds only on fewer labels: the refusal names it", async () => {
+    givenRole([
+      rolePermission(Permission.EditProjectTeamPermissions),
+      rolePermission(Permission.IncidentAdmin, {
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_A, LABEL_B],
+      }),
+    ]);
+
+    const lacking: Error = await refusal(
+      WorkflowRunAsAuthority.assertMayGive({
+        setting: { runAs: WorkflowRunAs.CustomRole, customRoleId: ROLE_ID },
+        projectId: PROJECT_ID,
+        props: apiKey([row(Permission.IncidentAdmin)]),
+      }),
+    );
+
+    expect(lacking.message).toBe(
+      "You can't let this workflow run as \"Team Provisioner\": the role has Edit Team Permissions, and your own access doesn't include that permission at the same or a broader scope.",
+    );
+
+    const narrower: Error = await refusal(
+      WorkflowRunAsAuthority.assertMayGive({
+        setting: { runAs: WorkflowRunAs.CustomRole, customRoleId: ROLE_ID },
+        projectId: PROJECT_ID,
+        props: apiKey([
+          row(Permission.EditProjectTeamPermissions),
+          row(Permission.IncidentAdmin, { labelIds: [LABEL_A] }),
+        ]),
+      }),
+    );
+
+    expect(narrower.message).toContain("the role has Incident Admin");
+  });
+
+  test("a key holds nothing in a project that is not its own", async () => {
+    const error: Error = await refusal(
+      WorkflowRunAsAuthority.assertMayGive({
+        setting: { runAs: WorkflowRunAs.ProjectOwner },
+        projectId: ObjectID.generate(),
+        props: apiKey([row(Permission.ProjectOwner)]),
+      }),
+    );
+
+    expect(error.message).toBe(WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE);
+  });
+});
+
+describe("an API key acting on a workflow that runs as more than Default", () => {
+  test("a key holding Project Owner changes, runs and edits the variables of a Project Owner workflow", async () => {
+    for (const action of Object.values(WorkflowRunAsAction)) {
+      await WorkflowRunAsAuthority.assertMayAct({
+        setting: { runAs: WorkflowRunAs.ProjectOwner },
+        projectId: PROJECT_ID,
+        props: apiKey([row(Permission.ProjectOwner)]),
+        action: action,
+      });
+    }
+  });
+
+  test("a key holding less is refused as a person holding less is", async () => {
+    const error: Error = await refusal(
+      WorkflowRunAsAuthority.assertMayAct({
+        setting: { runAs: WorkflowRunAs.ProjectOwner },
+        projectId: PROJECT_ID,
+        props: apiKey([
+          row(Permission.ProjectAdmin),
+          row(Permission.EditWorkflow),
+        ]),
+        action: WorkflowRunAsAction.Change,
+      }),
+    );
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(
+      "This workflow runs as Project Owner, so only Project Owners can change it. You can still turn it off.",
+    );
+  });
+
+  test("a custom role workflow is acted on by a key that could give the role, and no other", async () => {
+    givenRole([rolePermission(Permission.IncidentAdmin)]);
+
+    const setting: { runAs: WorkflowRunAs; customRoleId: ObjectID } = {
+      runAs: WorkflowRunAs.CustomRole,
+      customRoleId: ROLE_ID,
+    };
+
+    await WorkflowRunAsAuthority.assertMayAct({
+      setting: setting,
+      projectId: PROJECT_ID,
+      props: apiKey([row(Permission.IncidentAdmin)]),
+      action: WorkflowRunAsAction.Run,
+    });
+
+    expect(
+      await WorkflowRunAsAuthority.mayAct({
+        setting: setting,
+        projectId: PROJECT_ID,
+        props: apiKey([row(Permission.IncidentMember)]),
+        action: WorkflowRunAsAction.ChangeVariable,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("what a run acts as, when an API key gave it", () => {
+  async function resolveForKey(
+    setting: { runAs: unknown; customRoleId?: ObjectID },
+    givenByUserId: ObjectID | null = null,
+  ): Promise<WorkflowRunAsGrant> {
+    return await WorkflowRunAsAuthority.resolveForRun({
+      projectId: PROJECT_ID,
+      setting: setting,
+      givenByUserId: givenByUserId,
+      givenByApiKeyId: KEY_ID,
+    });
+  }
+
+  test("Project Owner, while the key still holds it: the grant names the key, not a person", async () => {
+    givenKey({ rows: [keyRow(Permission.ProjectOwner)] });
+
+    expect(await resolveForKey({ runAs: WorkflowRunAs.ProjectOwner })).toEqual({
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByApiKeyId: KEY_ID,
+      givenByName: "Terraform",
+    });
+  });
+
+  test("the key is read again as the run starts: in the workflow's project, with its permissions as a request it made would have them", async () => {
+    givenKey({ rows: [keyRow(Permission.ProjectOwner)] });
+
+    await resolveForKey({ runAs: WorkflowRunAs.ProjectOwner });
+
+    const query: { _id: ObjectID; projectId: ObjectID } = (
+      getJestSpyOn(ApiKeyService, "findOneBy").mock.calls[0]![0] as {
+        query: { _id: ObjectID; projectId: ObjectID };
+      }
+    ).query;
+
+    expect(query._id.toString()).toBe(KEY_ID.toString());
+    expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(
+      getJestSpyOn(ApiKeyPermissionService, "findPermissionsByApiKeyId"),
+    ).toHaveBeenCalledWith(KEY_ID, PROJECT_ID);
+  });
+
+  test("a key is the one asked when a workflow names both a key and a person", async () => {
+    givenKey({ rows: [] });
+    givenGiver({ rows: [row(Permission.ProjectOwner)] });
+
+    const error: Error = await refusal(
+      resolveForKey({ runAs: WorkflowRunAs.ProjectOwner }, GIVER_ID),
+    );
+
+    expect(error.message).toContain("that key no longer has Project Owner");
+  });
+
+  test("not once the key is deleted (revoked), or is another project's", async () => {
+    givenKey({ rows: [keyRow(Permission.ProjectOwner)], exists: false });
+
+    const error: Error = await refusal(
+      resolveForKey({ runAs: WorkflowRunAs.ProjectOwner }),
+    );
+
+    expect(error).toBeInstanceOf(WorkflowRunAsRefusedException);
+    expect(error.message).toBe(
+      "This workflow didn't run: it runs as Project Owner, and the API key that gave it those permissions was deleted. One of the Project Owners needs to open the workflow's Settings and choose Run As again.",
+    );
+  });
+
+  test("not once the key has expired", async () => {
+    givenKey({
+      rows: [keyRow(Permission.ProjectOwner)],
+      expiresAt: new Date(Date.now() - 1000),
+    });
+
+    const error: Error = await refusal(
+      resolveForKey({ runAs: WorkflowRunAs.ProjectOwner }),
+    );
+
+    expect(error).toBeInstanceOf(WorkflowRunAsRefusedException);
+    expect(error.message).toBe(
+      "This workflow didn't run: it runs as Project Owner, which the API key \"Terraform\" gave it, and that key has expired. One of the Project Owners needs to open the workflow's Settings and choose Run As again.",
+    );
+  });
+
+  test("not once the key is narrowed: Project Owner taken away, blocked, or held on some labels only", async () => {
+    for (const rows of [
+      [keyRow(Permission.ProjectAdmin)],
+      [
+        keyRow(Permission.ProjectOwner),
+        keyRow(Permission.ProjectOwner, { isBlockPermission: true }),
+      ],
+      [keyRow(Permission.ProjectOwner, { labelIds: [LABEL_A] })],
+    ]) {
+      givenKey({ rows: rows });
+
+      const error: Error = await refusal(
+        resolveForKey({ runAs: WorkflowRunAs.ProjectOwner }),
+      );
+
+      expect(error).toBeInstanceOf(WorkflowRunAsRefusedException);
+      expect(error.message).toBe(
+        "This workflow didn't run: it runs as Project Owner, which the API key \"Terraform\" gave it, and that key no longer has Project Owner. One of the Project Owners needs to open the workflow's Settings and choose Run As again.",
+      );
+    }
+  });
+
+  test("a custom role: its rows, while the key could give it now", async () => {
+    givenRole([
+      rolePermission(Permission.EditProjectTeamPermissions),
+      rolePermission(Permission.IncidentAdmin, {
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_A],
+      }),
+    ]);
+    givenKey({
+      rows: [
+        keyRow(Permission.EditProjectTeamPermissions),
+        keyRow(Permission.IncidentAdmin, { labelIds: [LABEL_A] }),
+      ],
+    });
+
+    const grant: WorkflowRunAsGrant = await resolveForKey({
+      runAs: WorkflowRunAs.CustomRole,
+      customRoleId: ROLE_ID,
+    });
+
+    expect(grant.runAs).toBe(WorkflowRunAs.CustomRole);
+    expect(grant.customRoleName).toBe("Team Provisioner");
+    expect(grant.givenByApiKeyId?.toString()).toBe(KEY_ID.toString());
+    expect(grant.givenByUserId).toBeUndefined();
+    expect(grant.givenByName).toBe("Terraform");
+    expect(
+      grant.rolePermissions?.map((made: UserPermission): string => {
+        return made.permission;
+      }),
+    ).toEqual([
+      Permission.EditProjectTeamPermissions,
+      Permission.IncidentAdmin,
+    ]);
+  });
+
+  test("not once the role holds a permission the key does not: a role that grew, or a key narrowed", async () => {
+    givenRole([
+      rolePermission(Permission.EditProjectTeamPermissions),
+      rolePermission(Permission.MonitorAdmin),
+    ]);
+    givenKey({ rows: [keyRow(Permission.EditProjectTeamPermissions)] });
+
+    const error: Error = await refusal(
+      resolveForKey({
+        runAs: WorkflowRunAs.CustomRole,
+        customRoleId: ROLE_ID,
+      }),
+    );
+
+    expect(error.message).toBe(
+      'This workflow didn\'t run: it runs as the custom role "Team Provisioner", which the API key "Terraform" gave it, and that key can\'t give that role any more: it has Monitor Admin, which the key\'s own permissions don\'t include. One of the people who have every permission in "Team Provisioner" needs to open the workflow\'s Settings and choose Run As again.',
+    );
+  });
+
+  test("a key with no name is called an API key", async () => {
+    givenKey({ rows: [], name: "" });
+
+    const error: Error = await refusal(
+      resolveForKey({ runAs: WorkflowRunAs.ProjectOwner }),
+    );
+
+    expect(error.message).toContain(
+      "which an API key gave it, and that key no longer has Project Owner",
+    );
+  });
+
+  test("Default reads no key", async () => {
+    givenKey({ rows: [keyRow(Permission.ProjectOwner)] });
+
+    expect(await resolveForKey({ runAs: WorkflowRunAs.Default })).toEqual({
+      runAs: WorkflowRunAs.Default,
+    });
+    expect(getJestSpyOn(ApiKeyService, "findOneBy")).not.toHaveBeenCalled();
   });
 });

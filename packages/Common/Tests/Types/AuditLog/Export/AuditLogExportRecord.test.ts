@@ -8,9 +8,12 @@ import {
   AUDIT_LOG_EXPORT_SOURCE_COLUMNS,
   AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION,
   AUDIT_LOG_EXPORT_TEST_ACTION,
+  AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS,
+  AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION,
   AuditLogExportChange,
   AuditLogExportRecord,
   buildAuditLogExportTestRecord,
+  getAuditLogExportRecordKeys,
   isAuditLogExportSchemaVersion,
   readAuditLogExportChanges,
   readAuditLogExportDate,
@@ -61,31 +64,50 @@ const clickhouseRow: () => JSONObject = (): JSONObject => {
   };
 };
 
+// The keys of versions 1 and 2, in order: what they always wrote.
+const KEYS_BEFORE_VERSION_3: Array<string> = [
+  "schemaVersion",
+  "id",
+  "createdAt",
+  "projectId",
+  "action",
+  "resourceType",
+  "resourceId",
+  "resourceName",
+  "rootResourceType",
+  "rootResourceId",
+  "userId",
+  "userName",
+  "userEmail",
+  "userType",
+  "apiKeyId",
+  "apiKeyName",
+  "mcpOAuthGrantId",
+  "mcpClientName",
+  "workflowId",
+  "workflowName",
+  "changes",
+];
+
 describe("the export record schema", () => {
-  test("its newest version is 2, and every version has these keys in this order", () => {
-    expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(2);
+  test("its newest version is 3, and every version has these keys in this order", () => {
+    expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(3);
     expect([...AUDIT_LOG_EXPORT_RECORD_KEYS]).toEqual([
-      "schemaVersion",
-      "id",
-      "createdAt",
-      "projectId",
-      "action",
-      "resourceType",
-      "resourceId",
-      "resourceName",
-      "rootResourceType",
-      "rootResourceId",
-      "userId",
-      "userName",
-      "userEmail",
-      "userType",
-      "apiKeyId",
-      "apiKeyName",
-      "mcpOAuthGrantId",
-      "mcpClientName",
-      "workflowId",
-      "workflowName",
+      ...KEYS_BEFORE_VERSION_3.slice(0, -1),
+      "workflowRunAs",
+      "workflowRunAsCustomRoleName",
+      "workflowRunAsGivenByUserId",
+      "workflowRunAsGivenByApiKeyId",
+      "workflowRunAsGivenByName",
       "changes",
+    ]);
+  });
+
+  test("versions 1 and 2 have exactly the keys they always had; version 3 every key", () => {
+    expect(getAuditLogExportRecordKeys(1)).toEqual(KEYS_BEFORE_VERSION_3);
+    expect(getAuditLogExportRecordKeys(2)).toEqual(KEYS_BEFORE_VERSION_3);
+    expect(getAuditLogExportRecordKeys(3)).toEqual([
+      ...AUDIT_LOG_EXPORT_RECORD_KEYS,
     ]);
   });
 
@@ -159,9 +181,9 @@ describe("toAuditLogExportRecord", () => {
     });
 
     expect(record).not.toBeNull();
-    expect(Object.keys(record!)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+    expect(Object.keys(record!)).toEqual(getAuditLogExportRecordKeys(1));
 
-    for (const key of AUDIT_LOG_EXPORT_RECORD_KEYS) {
+    for (const key of getAuditLogExportRecordKeys(1)) {
       if (
         key === "schemaVersion" ||
         key === "id" ||
@@ -280,6 +302,23 @@ describe("serializeAuditLogExportRecord", () => {
 
     expect(
       Object.keys(JSON.parse(serializeAuditLogExportRecord(shuffled))),
+    ).toEqual(getAuditLogExportRecordKeys(1));
+
+    const third: AuditLogExportRecord = toAuditLogExportRecord(
+      clickhouseRow(),
+      3,
+    )!;
+
+    expect(
+      Object.keys(
+        JSON.parse(
+          serializeAuditLogExportRecord(
+            Object.fromEntries(
+              Object.entries(third).reverse(),
+            ) as unknown as AuditLogExportRecord,
+          ),
+        ),
+      ),
     ).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
   });
 
@@ -317,7 +356,20 @@ describe("the test record", () => {
     expect(record.projectId).toBe(PROJECT_ID);
     expect(record.changes).toEqual([]);
     expect(record.userId).toBeNull();
-    expect(Object.keys(record)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+    expect(Object.keys(record)).toEqual(getAuditLogExportRecordKeys(1));
+
+    const third: AuditLogExportRecord = buildAuditLogExportTestRecord({
+      now: new Date("2026-10-24T09:15:03.123Z"),
+      id: ENTRY_ID,
+      projectId: PROJECT_ID,
+      schemaVersion: 3,
+    });
+
+    expect(Object.keys(third)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+
+    for (const key of AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS) {
+      expect([key, third[key]]).toEqual([key, null]);
+    }
   });
 
   test("an instance export's test names no project", () => {
@@ -338,8 +390,8 @@ describe("the test record", () => {
  * before version 2 existed keeps working without anyone doing anything.
  */
 describe("the versions an export can send", () => {
-  test("are 1 and 2: the first, the newest, and the first with summaries", () => {
-    expect([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]).toEqual([1, 2]);
+  test("are 1, 2 and 3: the first, the first with summaries, and the newest, the first that says what a workflow ran as", () => {
+    expect([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]).toEqual([1, 2, 3]);
     expect(AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION).toBe(1);
     expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(
       AUDIT_LOG_EXPORT_SCHEMA_VERSIONS[
@@ -347,13 +399,15 @@ describe("the versions an export can send", () => {
       ],
     );
     expect(AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION).toBe(2);
+    expect(AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION).toBe(3);
   });
 
   test("a version is a whole number this release sends, nothing else", () => {
     expect(isAuditLogExportSchemaVersion(1)).toBe(true);
     expect(isAuditLogExportSchemaVersion(2)).toBe(true);
+    expect(isAuditLogExportSchemaVersion(3)).toBe(true);
 
-    for (const value of [0, 3, -1, 1.5, "1", "2", null, undefined, NaN, {}]) {
+    for (const value of [0, 4, -1, 1.5, "1", "2", null, undefined, NaN, {}]) {
       expect([value, isAuditLogExportSchemaVersion(value)]).toEqual([
         value,
         false,
@@ -362,11 +416,13 @@ describe("the versions an export can send", () => {
   });
 
   test("an export that holds none, or one this release does not know, sends version 1", () => {
+    expect(readAuditLogExportSchemaVersion(3)).toBe(3);
     expect(readAuditLogExportSchemaVersion(2)).toBe(2);
     expect(readAuditLogExportSchemaVersion(1)).toBe(1);
     // A form's dropdown holds text.
     expect(readAuditLogExportSchemaVersion("2")).toBe(2);
     expect(readAuditLogExportSchemaVersion(" 2 ")).toBe(2);
+    expect(readAuditLogExportSchemaVersion("3")).toBe(3);
 
     for (const value of [
       undefined,
@@ -374,9 +430,9 @@ describe("the versions an export can send", () => {
       "",
       "  ",
       0,
-      3,
+      4,
       9,
-      "3",
+      "4",
       "two",
       NaN,
       true,
@@ -933,6 +989,155 @@ describe("version 1 is the record as it was first sent", () => {
         index,
         serializeAuditLogExportRecord(first),
       ]);
+    }
+  });
+});
+
+/*
+ * VERSION 3 (#9766): what the workflow whose step made a change ran as,
+ * and with whose permissions - five keys after workflowName, always there,
+ * null on an entry no workflow made. Versions 1 and 2 are untouched.
+ */
+describe("version 3: what a workflow's step ran as", () => {
+  const GIVER_ID: string = "11111111-2222-4333-8444-666666666666";
+  const KEY_ID: string = "11111111-2222-4333-8444-777777777777";
+
+  // A step's change, as the audit table answers it.
+  const workflowRow: () => JSONObject = (): JSONObject => {
+    return {
+      ...clickhouseRow(),
+      userId: null,
+      userName: null,
+      userEmail: null,
+      userType: "Workflow",
+      workflowId: "99999999-9999-4999-8999-999999999999",
+      workflowName: "Give new teams their role",
+      workflowRunAs: "CustomRole",
+      workflowRunAsCustomRoleName: "Team Provisioner",
+      workflowRunAsGivenByUserId: null,
+      workflowRunAsGivenByApiKeyId: KEY_ID,
+      workflowRunAsGivenByName: "Terraform",
+    };
+  };
+
+  test("a step's entry says what its workflow ran as, and whose permissions, by id and by name", () => {
+    const record: AuditLogExportRecord = toAuditLogExportRecord(
+      workflowRow(),
+      3,
+    )!;
+
+    expect(record.schemaVersion).toBe(3);
+    expect({
+      workflowRunAs: record.workflowRunAs,
+      workflowRunAsCustomRoleName: record.workflowRunAsCustomRoleName,
+      workflowRunAsGivenByUserId: record.workflowRunAsGivenByUserId,
+      workflowRunAsGivenByApiKeyId: record.workflowRunAsGivenByApiKeyId,
+      workflowRunAsGivenByName: record.workflowRunAsGivenByName,
+    }).toEqual({
+      workflowRunAs: "CustomRole",
+      workflowRunAsCustomRoleName: "Team Provisioner",
+      workflowRunAsGivenByUserId: null,
+      workflowRunAsGivenByApiKeyId: KEY_ID,
+      workflowRunAsGivenByName: "Terraform",
+    });
+
+    const person: AuditLogExportRecord = toAuditLogExportRecord(
+      {
+        ...workflowRow(),
+        workflowRunAs: "ProjectOwner",
+        workflowRunAsCustomRoleName: null,
+        workflowRunAsGivenByUserId: GIVER_ID,
+        workflowRunAsGivenByApiKeyId: null,
+        workflowRunAsGivenByName: "Jane Doe",
+      },
+      3,
+    )!;
+
+    expect(person.workflowRunAs).toBe("ProjectOwner");
+    expect(person.workflowRunAsGivenByUserId).toBe(GIVER_ID);
+    expect(person.workflowRunAsGivenByName).toBe("Jane Doe");
+  });
+
+  test("Default is said too, with nobody's permissions", () => {
+    const record: AuditLogExportRecord = toAuditLogExportRecord(
+      {
+        ...workflowRow(),
+        workflowRunAs: "Default",
+        workflowRunAsCustomRoleName: null,
+        workflowRunAsGivenByApiKeyId: null,
+        workflowRunAsGivenByName: null,
+      },
+      3,
+    )!;
+
+    expect(record.workflowRunAs).toBe("Default");
+    expect(record.workflowRunAsGivenByName).toBeNull();
+  });
+
+  test("every key of version 3 is present, null on an entry no workflow made", () => {
+    const record: AuditLogExportRecord = toAuditLogExportRecord(
+      clickhouseRow(),
+      3,
+    )!;
+
+    expect(Object.keys(record)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+
+    for (const key of AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS) {
+      expect([key, record[key]]).toEqual([key, null]);
+    }
+  });
+
+  test("versions 1 and 2 never send them, though the entry recorded them, and write the line they always wrote", () => {
+    for (const version of [1, 2] as const) {
+      const record: AuditLogExportRecord = toAuditLogExportRecord(
+        workflowRow(),
+        version,
+      )!;
+
+      for (const key of AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS) {
+        expect([version, key, Object.keys(record).includes(key)]).toEqual([
+          version,
+          key,
+          false,
+        ]);
+      }
+
+      const line: string = serializeAuditLogExportRecord(record);
+
+      expect(line).not.toContain("workflowRunAs");
+      expect(Object.keys(JSON.parse(line))).toEqual(
+        getAuditLogExportRecordKeys(version),
+      );
+    }
+  });
+
+  test("a version 1 record that somehow holds them still writes only its own keys", () => {
+    const record: AuditLogExportRecord = {
+      ...toAuditLogExportRecord(clickhouseRow(), 1)!,
+      workflowRunAs: "ProjectOwner",
+    };
+
+    expect(serializeAuditLogExportRecord(record)).not.toContain(
+      "workflowRunAs",
+    );
+  });
+
+  test("a version 3 line writes the keys in schema order, after workflowName", () => {
+    const line: string = serializeAuditLogExportRecord(
+      toAuditLogExportRecord(workflowRow(), 3)!,
+    );
+    const keys: Array<string> = Object.keys(JSON.parse(line));
+
+    expect(keys.indexOf("workflowRunAs")).toBe(
+      keys.indexOf("workflowName") + 1,
+    );
+    expect(keys[keys.length - 1]).toBe("changes");
+    expect(line.includes("\n")).toBe(false);
+  });
+
+  test("reads only columns the audit log has", () => {
+    for (const key of AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS) {
+      expect(AUDIT_LOG_EXPORT_SOURCE_COLUMNS).toContain(key);
     }
   });
 });

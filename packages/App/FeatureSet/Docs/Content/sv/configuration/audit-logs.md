@@ -67,10 +67,10 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 | **När** | Hur länge sedan, med datum och klockslag. |
 | **Åtgärd** | `Create`, `Update` eller `Delete`, `Download` för en paketinspelningsfil som någon har laddat ner, eller `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` eller `Session Revoked` för en inloggning eller en session. |
 | **Resurs** | Resursens namn, som öppnar den så länge den finns, och dess typ. |
-| **Aktör** | Vem som gjorde ändringen: en person, en API-nyckel, ett arbetsflöde eller `System` för en ändring som OneUptime själv gjorde. En persons ändring via en MCP-klient anger vilken. |
+| **Aktör** | Vem som gjorde ändringen: en person, en API-nyckel, ett arbetsflöde eller `System` för en ändring som OneUptime själv gjorde. En persons ändring via en MCP-klient anger vilken. Ett arbetsflödes ändring anger vad det kördes som och med vems behörigheter. |
 | **Ändringar** | Hur många fält som ändrades, eller registrerades vid ett skapande eller en borttagning. För en inloggning eller en session: hur inloggningen gick till, varför den misslyckades eller varför sessionen slutade. Klicka för att se varje fält. |
 
-Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
+Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post**, **Arbetsflöde kört som**, **Arbetsflödets behörigheter givna av** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
 En resurs utan eget namn får namn efter det som namnger den i OneUptime: ett undantag efter sin typ och början av sitt meddelande, med id:n, adresser och allt som liknar en hemlighet maskerat, en körning av en runbook efter sin runbook, telefonnumret till en policy för inkommande samtal efter numret, och en mall eller en domän efter sitt eget namn.
 
