@@ -2635,6 +2635,13 @@ describe("KubernetesAlertTemplates - Node Image Disk Almost Full", () => {
     expect(description).toContain("deletes unused images once it is 85% full");
     expect(description).toContain("imagefs.available<15%");
     expect(description).toContain("for five minutes");
+    // DiskPressure taints the node: what the on-call engineer sees first.
+    expect(description).toContain(
+      "the node reports DiskPressure, takes no new pods and is evicting the ones it runs",
+    );
+    expect(getIncidentDescription(ID)).toContain(
+      "the node takes no new pods and is evicting the ones it runs",
+    );
   });
 
   test("says plainly where its reading is another disk, or none", () => {
