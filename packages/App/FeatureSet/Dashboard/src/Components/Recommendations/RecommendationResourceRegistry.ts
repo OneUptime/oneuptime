@@ -45,6 +45,7 @@ import {
   getCloudAlertTemplatesForType,
   getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
+  isCloudAlertTemplateOfOpsAgent,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
@@ -502,10 +503,13 @@ export function readCloudResourceRecommendationContext(
   const provider: unknown = record["cloudProvider"];
   const resourceType: unknown = record["cloudResourceType"];
   const connectionId: unknown = record["cloudConnectionId"];
+  const name: unknown = record["name"];
 
   return {
     cloudProvider: typeof provider === "string" ? provider : null,
     cloudResourceType: typeof resourceType === "string" ? resourceType : null,
+    // What a Compute Engine VM's first command names it by.
+    cloudResourceName: typeof name === "string" && name.trim() ? name : null,
     cloudTelemetryAttributes: readCloudTelemetryAttributes(
       record["telemetryAttributes"],
     ),
@@ -721,6 +725,22 @@ export function describeCloudResourceRecommendationContext(
   }
 
   const notes: Array<string> = [];
+
+  /*
+   * A Compute Engine VM whose Ops Agent reports nothing is offered no
+   * memory or disk monitor (#9741): what would offer them, as its Overview
+   * says it needs the agent.
+   */
+  if (
+    forType.some(isCloudAlertTemplateOfOpsAgent) &&
+    !offered.some(isCloudAlertTemplateOfOpsAgent)
+  ) {
+    notes.push(
+      translateTemplate(
+        "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.",
+      ),
+    );
+  }
 
   if (isStorageWaiting) {
     notes.push(

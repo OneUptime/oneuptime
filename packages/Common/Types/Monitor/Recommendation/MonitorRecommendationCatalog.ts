@@ -940,6 +940,7 @@ function normalizeCloudTemplate(
         readings: context?.cloudReadings,
         allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
         connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+        resourceName: context?.cloudResourceName,
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         defaultIncidentSeverityId: args.defaultIncidentSeverityId,
