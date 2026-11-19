@@ -1,5 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import EntitySource from "Common/Types/Telemetry/EntitySource";
 import {
   InventoryLiveness,
   getInventoryLivenessSql,
@@ -104,11 +103,12 @@ function expectedCountExpression(scope: InventoryScope): string {
   if (scope.staleOnly) {
     /*
      * The Stale facet filters on the status column, and that column's SQL
-     * says "not tracked" for anything that is not discovered — so the stale
-     * count needs no source clause, and a stale scope is only meaningful on
-     * discovered rows.
+     * says "not tracked" for anything without a heartbeat - every row but a
+     * discovered one and a managed device's host (issue #9586) - so the
+     * stale count needs no source clause, and the stale scope names none:
+     * Gone Quiet lists both kinds.
      */
-    expect(scope.source).toBe(EntitySource.Discovered);
+    expect(scope.source).toBeUndefined();
 
     return `COUNT(*) FILTER (WHERE (${getInventoryLivenessSql(`"InventoryItem"`)}) = '${InventoryLiveness.Stale}')`;
   }

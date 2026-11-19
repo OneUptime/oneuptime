@@ -1,4 +1,4 @@
-import { AddServiceAINote1809185818000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185818000-AddServiceAINote";
+import { AddServiceAINote1809185918000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185918000-AddServiceAINote";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ServiceAINote from "../../../../Models/DatabaseModels/ServiceAINote";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -22,7 +22,7 @@ import { describe, expect, test } from "@jest/globals";
  * against a fake QueryRunner.
  */
 
-const MIGRATION_NAME: string = "AddServiceAINote1809185818000";
+const MIGRATION_NAME: string = "AddServiceAINote1809185918000";
 const TABLE: string = "ServiceAINote";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 // A column of a CREATE TABLE: its quoted name, then its type.
@@ -48,8 +48,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: AddServiceAINote1809185818000 =
-    new AddServiceAINote1809185818000();
+  const migration: AddServiceAINote1809185918000 =
+    new AddServiceAINote1809185918000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -87,17 +87,17 @@ function createStatement(steps: Array<string>): string {
 
 describe("the Service AI Note migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddServiceAINote1809185818000().name).toBe(MIGRATION_NAME);
+    expect(new AddServiceAINote1809185918000().name).toBe(MIGRATION_NAME);
   });
 
   test("is registered once, after every earlier migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const at: number = registered.indexOf(AddServiceAINote1809185818000);
+    const at: number = registered.indexOf(AddServiceAINote1809185918000);
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddServiceAINote1809185818000;
+        return candidate === AddServiceAINote1809185918000;
       }),
     ).toHaveLength(1);
     // Not pinned to a neighbour: a migration main adds later may land next to it.
@@ -105,7 +105,7 @@ describe("the Service AI Note migration", () => {
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddServiceAINote1809185818000),
+        timestampOf(AddServiceAINote1809185918000),
       );
     }
   });
@@ -121,10 +121,10 @@ describe("the Service AI Note migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddServiceAINote1809185818000)}-`,
+          `${timestampOf(AddServiceAINote1809185918000)}-`,
         );
       }),
-    ).toEqual(["1809185818000-AddServiceAINote.ts"]);
+    ).toEqual(["1809185918000-AddServiceAINote.ts"]);
   });
 
   test("creates the table with every column the model stores", async () => {

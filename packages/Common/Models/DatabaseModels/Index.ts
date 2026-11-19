@@ -34,6 +34,9 @@ import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import NetworkDeviceNamingRule from "./NetworkDeviceNamingRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
+import DeviceManagementConnection from "./DeviceManagementConnection";
+import ManagedDevice from "./ManagedDevice";
+import ManagedDeviceApp from "./ManagedDeviceApp";
 import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -1246,6 +1249,9 @@ const AllModelTypes: Array<{
   NetworkSiteAssignmentRule,
   NetworkDeviceNamingRule,
   NetworkControllerConnection,
+  DeviceManagementConnection,
+  ManagedDevice,
+  ManagedDeviceApp,
   NetworkAddressName,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

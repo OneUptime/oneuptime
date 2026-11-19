@@ -8,8 +8,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * A new table: its indexes and keys are built on no rows, so nothing here
  * waits on a table that holds data.
  */
-export class AddServiceAINote1809185818000 implements MigrationInterface {
-  public name = "AddServiceAINote1809185818000";
+export class AddServiceAINote1809185918000 implements MigrationInterface {
+  public name = "AddServiceAINote1809185918000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
