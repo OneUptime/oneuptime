@@ -1559,7 +1559,9 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
 
     // Every added query has the switch, and the first query does not.
-    expect(settingsForm).toContain("canOverlayWithPreviousQuery={true}");
+    expect(settingsForm).toContain(
+      "canOverlayWithPreviousQuery={index + primaryOffset > 0}",
+    );
     expect(
       sliceOf(
         settingsForm,

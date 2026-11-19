@@ -324,6 +324,27 @@ describe("the switch is on every added query, never on Query 1", () => {
     }
   });
 
+  /*
+   * Written through the API with no Query 1, the widget draws its first
+   * added query first: no chart comes before it, so it has nothing to join.
+   */
+  test("a widget written with no Query 1: its first added query has no switch, the next one has", () => {
+    const chart: DashboardChartComponent = chartWith(query("a", "mem_used"), [
+      query("b", "mem_total"),
+      query("c", "mem_free"),
+    ]);
+    delete chart.arguments.metricQueryConfig;
+
+    drawSettings(chart);
+
+    const [first, second] = addedQueryCards();
+    openDisplaySettings(first!, "Display Settings");
+    openDisplaySettings(second!, "Display Settings");
+
+    expect(overlaySwitchIn(first!)).toBeNull();
+    expect(overlaySwitchIn(second!)).toBeInTheDocument();
+  });
+
   test("a widget with no added query has no switch anywhere", () => {
     drawSettings(chartWith(query("a", "mem_used"), []));
 

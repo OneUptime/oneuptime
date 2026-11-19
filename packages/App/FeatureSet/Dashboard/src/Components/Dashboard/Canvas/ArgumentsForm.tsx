@@ -832,9 +832,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                      * Every added query comes after Query 1, so each can be
                      * drawn on the chart before it instead of its own
                      * (issue #9961). Without the switch, each added query
-                     * was always its own chart, stacked in the widget.
+                     * was always its own chart, stacked in the widget. A
+                     * widget written with no Query 1 draws its first added
+                     * query first, with no chart before it to join.
                      */
-                    canOverlayWithPreviousQuery={true}
+                    canOverlayWithPreviousQuery={index + primaryOffset > 0}
                     overlayChartQuery={MetricQueryOverlay.getChartLead(
                       chartQueryConfigs,
                       index + primaryOffset,
