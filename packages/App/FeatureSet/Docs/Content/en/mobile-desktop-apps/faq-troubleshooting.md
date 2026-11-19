@@ -42,7 +42,7 @@ Everything else is in the dashboard.
 :::
 
 :::details Can I acknowledge a page from the notification?
-No. Tap the notification: the app opens the incident, alert, episode or security case it is about, in the right project, and you acknowledge it there. If the app is locked or you are signed out, it opens the page once you are in.
+Yes. Long press the notification on an iPhone, or expand it on Android: an on-call page offers **Acknowledge** and **Escalate**, a page that only keeps you informed offers **I've seen it**, and a test page offers **Acknowledge test page**. Each opens the app on the record once the phone is unlocked and does what the record's own button does, asking first before it escalates. Tapping the notification itself opens the incident, alert, episode or security case it is about, in the right project. If the app is locked or you are signed out, it opens the page once you are in.
 :::
 
 :::details Is my sign-in safe on the phone?

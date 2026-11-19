@@ -502,6 +502,8 @@ async function restCall(
     headers?: Dictionary<string> | undefined;
     body?: string | undefined;
     providerTitle?: string | undefined;
+    // A POST that only reads (OpenSearch Service's DescribeDomains).
+    isSafeToRepeat?: boolean | undefined;
   },
 ): Promise<AwsRestResponse> {
   const answer: AwsRestResponse = await sendAwsRestRequest({
@@ -521,6 +523,7 @@ async function restCall(
     timeoutInMs: ctx.timeoutInMs,
     sleep: ctx.sleep,
     budget: ctx.budget,
+    isSafeToRepeat: data.isSafeToRepeat,
   });
 
   ctx.reached.add(region);
@@ -2935,6 +2938,8 @@ async function readOpenSearch(
           path: "/2021-01-01/opensearch/domain-info",
           body: JSON.stringify({ DomainNames: batch }),
           step: "search domain request",
+          // DescribeDomains: a read, though a POST.
+          isSafeToRepeat: true,
         });
 
         return readArray(answer.json?.["DomainStatusList"]).map(
@@ -3193,7 +3198,11 @@ const CREDENTIAL_REPORT_WAIT_MS: number = 2000;
 
 async function iamCall(
   ctx: AccountContext,
-  data: { body: Dictionary<string>; step: string },
+  data: {
+    body: Dictionary<string>;
+    step: string;
+    isSafeToRepeat?: boolean | undefined;
+  },
 ): Promise<string> {
   const endpoint: { host: string; region: string } = getIamEndpoint(
     ctx.partition,
@@ -3211,6 +3220,7 @@ async function iamCall(
     timeoutInMs: ctx.timeoutInMs,
     sleep: ctx.sleep,
     budget: ctx.budget,
+    isSafeToRepeat: data.isSafeToRepeat,
   });
 
   return answer.text;
@@ -3314,6 +3324,8 @@ async function readUserUses(
         const text: string = await iamCall(ctx, {
           body: { Action: "GenerateCredentialReport" },
           step: "credential report request",
+          // Starts the report, or says how it is coming: sent again, it says so again.
+          isSafeToRepeat: true,
         });
 
         if (readXmlTag(text, "State").toUpperCase() === "COMPLETE") {

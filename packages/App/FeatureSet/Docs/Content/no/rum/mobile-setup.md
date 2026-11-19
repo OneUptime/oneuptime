@@ -5,6 +5,7 @@ Instrumenter en Android-, iOS- eller React Native-app med OpenTelemetry, slik at
 :::cards
 - [Hva OneUptime trenger](#hva-oneuptime-trenger): To ressursattributter, sendt med en Server-nøkkel.
 - [Sett opp plattformen din](#sett-opp-plattformen-din): Android, iOS, React Native og resten.
+- [Krasj og heng på iOS](#krasj-og-heng-på-ios): MetricKits diagnostikk i Unntak og på oversikten.
 - [Sjekk at det kommer inn](#sjekk-at-det-kommer-inn): Test nøkkelen, og finn så appen.
 - [Session Replay på mobil](#session-replay-på-mobil): Opptak for React Native-apper.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK-et legger selv til `/v1/traces`, `/v1/metrics` og `/v1/logs` på endepunktet.
 :::
+
+## Krasj og heng på iOS
+
+opentelemetry-swift 2.3 og nyere rapporterer krasj og heng i en iOS-app gjennom MetricKit-instrumenteringen sin, som gir hver av Apples diagnostikker videre til OpenTelemetry som en loggpost. OneUptime arkiverer dem slik det arkiverer krasj og ANR-er fra OpenTelemetry Android, så de vises i **Unntak** og på applikasjonens side **Oversikt**:
+
+| Apples diagnostikk | Hendelsesnavn | I Unntak |
+| --- | --- | --- |
+| Et krasj | `metrickit.diagnostic.crash` | Et uhåndtert unntak, med typen fra det som avsluttet appen: Objective-C-unntaket på iOS 17 og nyere, ellers Mach-unntaket (`EXC_BAD_ACCESS`), ellers signalet (`SIGSEGV`) |
+| Et heng | `metrickit.diagnostic.hang` | Et uhåndtert unntak av typen **Hang**, iOS' motstykke til en ANR, som tar vare på hvor lenge henget varte |
+
+Flisen **Krasj** på oversikten teller krasjene, og flisen **ANR-er** teller hengene sammen med Androids ANR-er. Hver stack trace tegnes som trådene i en krasjrapport, med tråden som krasjet eller hang, først. Stakkrammene er ikke symbolisert: Hver av dem nevner binærfilen sin og hvor langt inn i den koden var, og **Binary Images** viser UUID-en til hver binærfil, som forteller hvilket bygg dSYM-filen som symboliserer den, hører til.
+
+:::steps
+### Eksporter logger i tillegg til spenn
+
+MetricKit rapporterer diagnostikk som loggposter, så registrer en logger-provider ved siden av tracer-provideren, med samme ressurs, endepunkt og header:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Registrer MetricKit-instrumenteringen
+
+Legg til produktet `MetricKitInstrumentation` fra opentelemetry-swift, og registrer det hos MetricKit når logger-provideren er registrert:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Merk øktene
+
+Flisene **Økter** og **Krasjfrie økter** teller `session.id` på spennene dine. Produktet `Sessions` i opentelemetry-swift setter den: Legg til `SessionSpanProcessor` i tracer-provideren, og pakk inn loggprosessoren i `SessionLogRecordProcessor`, så diagnostikken også får med seg en økt. Utgivelsene setter ennå ingen `app.installation.id`, så flisen **Krasjfrie økter** for en iOS-app viser hvor mange økter som krasjet, i stedet for de krasjfrie installasjonene.
+:::
+
+> [!NOTE]
+> Apple gir MetricKits diagnostikk til appen ved en senere oppstart, med en gang på iOS 15 og nyere og én gang om dagen før det, så et krasj eller et heng kan komme minutter eller en dag etter at det skjedde, og telles når det kommer. "0 krasj den siste timen" på oversikten for en iOS-app er ennå ikke gode nyheter. En diagnostikk har med seg økten som rapporterte den, ikke den den avsluttet.
+
+opentelemetry-swift registrerer ikke noe spenn når appen starter, så flisene **Appoppstarter** og **Kaldstart (p95)** forblir tomme til appen din registrerer ett: et spenn med navnet `AppStart`, med `start.type` satt til `cold`, `warm` eller `hot`, fra prosessen starter til den første skjermen er klar.
 
 ## Sjekk at det kommer inn
 

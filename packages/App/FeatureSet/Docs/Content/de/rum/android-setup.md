@@ -107,7 +107,9 @@ OpenTelemetry Android zeichnet all das von sich aus auf. Die Geräteattribute, d
 
 Abstürze und ANRs erreichen **Ausnahmen** als nicht behandelt, gruppiert nach ihren Stacktraces, mit der Sitzung, in der sie passiert sind. Der Agent speichert einen Absturz auf dem Datenträger, noch während die App abstürzt, und sendet ihn von dort aus, sodass ein Absturz, der offline passiert, trotzdem ankommt, sobald die App wieder mit Netzwerk läuft.
 
-Die **Übersicht** der Anwendung wertet das für Sie aus: **Sitzungen**, **Absturzfreie Sitzungen**, **Abstürze**, **ANRs**, **App-Starts**, **Kaltstart (p95)** und **Eingefrorene Frames**, und jede dieser Kacheln öffnet die Ausnahmen, Spans oder Ereignisse, die sie zählt. Solange die App keine App-Starts oder Frames sendet, sagen die zugehörigen Diagramme, wie Sie sie einschalten. Die **Empfehlungen** der Anwendung bieten Monitore für Abstürze, ANRs, langsame Kaltstarts, eingefrorene Frames und eine App, die nicht mehr meldet.
+Die **Übersicht** der Anwendung wertet das für Sie aus: **Sitzungen**, **Absturzfreie Sitzungen**, **Abstürze**, **ANRs**, **App-Starts**, **Kaltstart (p95)** und **Eingefrorene Frames**, und jede dieser Kacheln öffnet die Ausnahmen, Spans oder Ereignisse, die sie zählt. Solange die App keine App-Starts oder Frames sendet, sagen die zugehörigen Diagramme, wie Sie sie einschalten. Die **Empfehlungen** der Anwendung bieten Monitore für Abstürze, ANRs, langsame Kaltstarts, eingefrorene Frames und für den Fall, dass die App oder eines ihrer Geräte nicht mehr meldet.
+
+Unter **Absturzfreie Sitzungen** zeigt die Zeile denselben Anteil für die Installationen: anhand der `app.installation.id`, die OpenTelemetry Android ab Version 1.1 auf jeden Span und jedes Log setzt, eine ID, die erhalten bleibt, solange die App installiert ist, und daher für die Benutzer der App steht. Für eine App mit Hunderten von Sitzungen pro Stunde, bei der ein Absturz am Tag normal ist, alarmieren **App Crash Rate** und **App ANR Rate** beim Anteil der Sitzungen einer Stunde, die abgestürzt oder eingefroren sind, sobald er die Grenzen von Android vitals überschreitet, 1,09 % und 0,47 %, statt bei jedem einzelnen Absturz.
 
 Eine Sitzung endet nach 15 Minuten im Hintergrund oder nach 4 Stunden. Eine App, die nie in den Hintergrund geht, etwa ein Kiosk, behält 4 Stunden lang eine einzige Sitzung. Tracen Sie daher den Besuch jedes Kunden als eigenen Span, wie [Eigene Abläufe tracen](#eigene-abläufe-tracen) zeigt.
 
@@ -222,6 +224,35 @@ resource {
 ```
 
 Die Telemetrie der App bleibt bei ihrer RUM-Anwendung, und das Gerät wird kein Host unter **Hosts**: Eine App meldet keine Host-Metriken, also gäbe es dort nichts zu zeigen. Die Seite des Geräts im **Inventar** zeigt seine eigenen Logs, Traces und Ausnahmen, und `@resource.host.name:` findet sie unter **Traces** und **Protokolle**. Ein Gerät, das 30 Tage lang nichts sendet, verschwindet aus dem **Inventar**. Das Gerät selbst, also seinen Arbeitsspeicher, seinen Speicherplatz und seine Neustarts sowie die Abstürze jeder App darauf, zeigt der [Android-Agent](/docs/telemetry/android-agent), wenn Sie ihn hinzufügen und ihm in seinem `device_name` denselben Namen geben: Das Gerät ist dann zusätzlich ein Host unter **Hosts** und weiterhin ein einziges Element im **Inventar**.
+
+### Erfahren, wenn ein Gerät verstummt
+
+Die **Empfehlungen** der Anwendung bieten **Device Stopped Reporting**: eine Warnung für jedes Gerät, das eine Stunde lang keine Spans sendet, nachdem es in der vergangenen Woche welche gesendet hat, unterschieden anhand der `app.installation.id`, die der Agent setzt. Die Warnung jedes Geräts nennt seine Installation und wird behoben, sobald das Gerät wieder meldet. Verstummen alle Geräte gleichzeitig, etwa wenn das Netzwerk einer Filiale ausfällt, alarmiert kein Gerät: **App Stopped Reporting** meldet es einmal für die ganze App.
+
+Ein Kiosk, der auf einem Bildschirm stehen bleibt, sendet nichts, bis ihn jemand benutzt. Senden Sie alle paar Minuten einen Span, solange die App läuft, damit ein unbenutzter Kiosk nicht für einen verstummten gehalten wird:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Starten Sie ihn, sobald der Agent gestartet ist, mit `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Ein Span alle fünf Minuten hält einen funktionierenden Kiosk deutlich innerhalb der Stunde.
 
 ### Die Flotte über Ihr MDM konfigurieren
 

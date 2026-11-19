@@ -42,7 +42,7 @@ Al het andere vindt u in het dashboard.
 :::
 
 :::details Kan ik een oproep vanuit de melding bevestigen?
-Nee. Tik op de melding: de app opent het incident, de waarschuwing, de episode of de beveiligingszaak waar het om gaat, in het juiste project, en daar bevestigt u. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
+Ja. Druk op een iPhone lang op de melding, of klap hem op Android uit: een bereikbaarheidsoproep biedt **Acknowledge** en **Escalate**, een oproep die u alleen op de hoogte houdt biedt **I've seen it**, en een testoproep biedt **Acknowledge test page**. Elke actie opent de app bij het record zodra de telefoon ontgrendeld is en doet wat de eigen knop van het record doet; voor het escaleren vraagt hij eerst. Tikt u op de melding zelf, dan opent de app het incident, de waarschuwing, de episode of de beveiligingszaak waar het om gaat, in het juiste project. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
 :::
 
 :::details Is mijn aanmelding veilig op de telefoon?

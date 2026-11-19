@@ -24,7 +24,7 @@ flowchart TB
 
 - **En stack i varje region.** Kommandot distribuerar en CloudFormation-stack i varje region du strömmar från. Dess mätvärdesström och prenumerationsfilter för loggar lämnar allt vidare till två Firehose-strömmar, och Firehose levererar det till OneUptime över HTTPS.
 - **Strömnyckeln säger vems det är.** Firehose skickar anslutningens strömnyckel med varje leverans. Nyckeln namnger anslutningen, och därmed projektet: ingenting i en leverans avgör var den skrivs. OneUptime sparar bara nyckelns SHA-256.
-- **Läsningarna överlåter strömmade mätvärden till strömmen.** Så länge en ström levererar en namnrymd i en region slutar anslutningens läsningar att läsa och skriva varje viktigt mätvärde i den som strömmens stack innehåller, så att CloudWatch inte längre tar betalt för att läsa det strömmen skickar och ingen datapunkt räknas två gånger. De läser fortfarande de få som en resurs tillstånd bedöms efter, och skriver fortfarande de viktiga mätvärden som en ström överlåter till dem, som en S3-buckets dagliga storlek och de som en stack skapad före dem inte innehåller. Läsningarna fortsätter att hitta resurser, deras tillstånd och deras ändringar, och tar tillbaka en namnrymd efter 15 minuter utan leverans.
+- **Läsningarna överlåter strömmade mätvärden till strömmen.** Så länge en ström levererar en namnrymd i en region slutar anslutningens läsningar att läsa och skriva varje viktigt mätvärde i den som strömmens stack innehåller, så att CloudWatch inte längre tar betalt för att läsa det strömmen skickar och ingen datapunkt räknas två gånger. En resurs tillstånd och rutorna överst på dess sida bedöms också utifrån strömmen: varje värde beräknas med läsningens statistik över fem av strömmens minuter, så det är det värde som en läsning skulle få. När strömmen i en region inte har levererat något på 10 minuter hämtar läsningarna de mätvärdena från CloudWatch igen, och anslutningens senaste läsning säger det. De skriver fortfarande de viktiga mätvärden som en ström överlåter till dem, som en S3-buckets dagliga storlek och de som en stack skapad före dem inte innehåller. Läsningarna fortsätter att hitta resurser, deras tillstånd och deras ändringar, och tar tillbaka en namnrymd efter 15 minuter utan leverans.
 - **Ingenting går förlorat medan OneUptime inte kan ta emot det.** Firehose skickar en avvisad batch igen i upp till en timme och sparar den sedan i 30 dagar i stackens S3-bucket.
 
 ## Innan du börjar
@@ -138,7 +138,9 @@ done
 För en anslutning som läser en AWS Organization kör du dialogrutans kommando i hanteringskontot: om organisationen strömmades tar det också bort varje medlemskontos stackar och StackSettet.
 :::
 
-För att ändra vad en stack strömmar öppnar du **Strömma mätvärden och loggar** igen, väljer **Skapa en ny nyckel** och kör det nya kommandot. Nyckeln som den ersätter fungerar i 24 timmar till, så ingen leverans avvisas medan stackarna uppdateras. Högst 3 ersatta nycklar fungerar samtidigt. Gör likadant när kontots rad visar **Uppdatera strömmen**: dess stackar skapades innan OneUptime strömmade alla viktiga mätvärden, och tills de är uppdaterade läser anslutningen de viktiga mätvärden som de inte innehåller från CloudWatch, så att inget saknas. AWS startar om en mätvärdesström vars filter ändras, och skickar bara de datapunkter som kommer efteråt.
+För att ändra vad en stack strömmar öppnar du **Strömma mätvärden och loggar** igen, väljer **Skapa en ny nyckel** och kör det nya kommandot. Nyckeln som den ersätter fungerar i 24 timmar till, så ingen leverans avvisas medan stackarna uppdateras. Högst 3 ersatta nycklar fungerar samtidigt.
+
+När kontots rad visar **Uppdatera strömmen** skapades dess stackar innan OneUptime strömmade alla viktiga mätvärden, och tills de är uppdaterade läser anslutningen de viktiga mätvärden som de inte innehåller från CloudWatch, så att inget saknas. Välj det alternativet: dialogen visar ett kommando som uppdaterar varje stack på plats, utan ny nyckel. Det läser tillbaka stackens egen mall från CloudFormation, ger dess mätvärdesström dagens filter för viktiga mätvärden och dess Firehose-ström för mätvärden mallens gemensamma attribut, och distribuerar den med nyckeln den har, så att stacken behåller sina logggrupper. Det behöver `jq`, som AWS CloudShell har. För en anslutning som läser en AWS Organization kör du det i hanteringskontot: det uppdaterar StackSettet, och därmed också varje medlemskontos stackar. AWS startar om en mätvärdesström vars filter ändras, och skickar bara de datapunkter som kommer efteråt.
 
 ## Konfigurera det på ett annat sätt
 
@@ -152,8 +154,9 @@ Ge varje Firehose-ström ett HTTP-slutpunktsmål med de här värdena, och mätv
 | Innehållskodning | `GZIP` |
 | Buffert | 1 MiB eller 60 sekunder |
 | Varaktighet för nya försök | 3600 sekunder, med en S3-bucket för det som inte kunde levereras |
+| Gemensamma attribut | På Firehose-strömmen för mätvärden sätts `oneuptime-stream-template` till `3` och `oneuptime-stream-metrics` till `key`, eller `all` för en ström av alla mätvärden. Bara när mätvärdesströmmens filter är mallens, som du kan kopiera från **Ladda ned mallen** |
 
-På en egen driftad OneUptime ersätter du `https://oneuptime.com` med din OneUptimes HTTPS-adress. Slutpunkten för mätvärden tar också emot en mätvärdesström i JSON-formatet. OneUptime utgår från att en mätvärdesström som har konfigurerats så bara innehåller de viktiga mätvärden som strömmarna började med, och läser de övriga från CloudWatch.
+På en egen driftad OneUptime ersätter du `https://oneuptime.com` med din OneUptimes HTTPS-adress. Slutpunkten för mätvärden tar också emot en mätvärdesström i JSON-formatet. Utan de gemensamma attributen utgår OneUptime från att en mätvärdesström som har konfigurerats så bara innehåller de viktiga mätvärden som strömmarna började med, och läser de övriga från CloudWatch. Med dem överlåter OneUptime varje viktigt mätvärde som mallen innehåller till strömmen, som den gör för en stack som kommandot har skapat.
 
 OneUptime svarar på varje leverans så som Firehose förväntar sig:
 

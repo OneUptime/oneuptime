@@ -65,6 +65,12 @@ export interface ComponentProps {
    */
   summary?: Array<string> | undefined;
   /*
+   * Drawn in place of those sentences, when the section has them
+   * (FormFieldCollapsibleSection.getSummaryElement): a line a component
+   * works out, such as what the server says of the status pages picked.
+   */
+  summaryElement?: ReactElement | undefined;
+  /*
    * The section's fields as the folded header lists them
    * (Forms/Utils/FoldedFormFields): every field, set or not, in order.
    */
@@ -194,7 +200,7 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
       icon={props.icon}
       description={props.description}
       items={items}
-      summary={summary || undefined}
+      summary={summary ? props.summaryElement || summary : undefined}
       badge={
         props.isConfigured && !hasSetItem && !summary
           ? CONFIGURED_BADGE

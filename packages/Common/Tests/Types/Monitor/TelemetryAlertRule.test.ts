@@ -1869,7 +1869,12 @@ describe("Matching a value, as the server compares one number", () => {
  * exactly as before - with no measure.
  */
 describe("an Exceptions rule's measure", () => {
-  test("Exceptions offer four measures; every other type its one", () => {
+  test("Exceptions offer five measures; every other type its one", () => {
+    /*
+     * The share of sessions with an exception is a rule's (#9716); the
+     * sessions alone are not: they say how much the app was used, a
+     * floor for that share in the criteria editor.
+     */
     expect(
       TelemetryAlertRuleUtil.getMeasureOptions(MonitorType.Exceptions),
     ).toEqual([
@@ -1877,7 +1882,14 @@ describe("an Exceptions rule's measure", () => {
       CheckOn.NewExceptionCount,
       CheckOn.RegressedExceptionCount,
       CheckOn.ExceptionCountIncreasePercent,
+      CheckOn.SessionsWithExceptionsPercent,
     ]);
+    expect(
+      TelemetryAlertRuleUtil.getRuleMeasure({
+        monitorType: MonitorType.Exceptions,
+        rule: { measure: CheckOn.SessionCount },
+      }),
+    ).toBe(CheckOn.ExceptionCount);
     expect(TelemetryAlertRuleUtil.getMeasureOptions(MonitorType.Logs)).toEqual([
       CheckOn.LogCount,
     ]);

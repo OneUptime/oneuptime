@@ -168,9 +168,9 @@ La télémétrie RUM se compose de journaux, de métriques et de traces ordinair
 | Groupe | Recommandations |
 | --- | --- |
 | Core Web Vitals | Pour une application web : Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint et Slow Time to First Byte. Voir [Core Web Vitals](/docs/rum/web-vitals). |
-| Erreurs | App Crashes et App Not Responding (ANR) pour une application mobile, Failed User Operations pour les deux, et Unhandled Browser Exceptions pour une application web. |
+| Erreurs | App Crashes et App Not Responding (ANR) pour une application mobile, et leurs taux, App Crash Rate et App ANR Rate, pour une application qui compte des centaines de sessions par heure ; Failed User Operations pour les deux, et Unhandled Browser Exceptions pour une application web. |
 | Performances | Pour une application mobile : Slow Cold Start, quand un démarrage à froid prend 5 secondes ou plus, ce qu'Android vitals considère comme excessif, et Frozen Frames, quand le rendu d'une image prend plus de 700 ms. |
-| Disponibilité | Pour une application mobile : App Stopped Reporting, quand l'application n'envoie aucun span pendant 30 minutes. |
+| Disponibilité | Pour une application mobile : App Stopped Reporting, quand l'application n'envoie aucun span pendant 30 minutes, et Device Stopped Reporting, quand l'un de ses appareils n'en envoie aucun pendant une heure après en avoir envoyé au cours de la semaine écoulée. |
 | Relecture de session | Les quatre [alertes de budget de stockage](/docs/telemetry/session-replay#alertes-de-budget-de-stockage), qui préviennent avant que la limite quotidienne du projet ou le budget mensuel de l'application soit épuisé. Elles sont proposées dès que l'application a enregistré une relecture, et la paire mensuelle dès qu'elle a aussi un budget mensuel. |
 
 Pour créer votre propre moniteur, choisissez celui qui lit le signal :

@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import {
   awsErrorCodeOf,
   classifyAwsError,
@@ -56,6 +64,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  jest.restoreAllMocks();
 });
 
 describe("partitions and hosts", () => {
@@ -178,7 +187,9 @@ describe("sending", () => {
     expect(budget.isSpent()).toBe(true);
   });
 
-  test("throttling is retried three times, waiting longer each time, then given up", async () => {
+  test("throttling is tried three times, as the AWS SDKs' standard retry mode tries, waiting longer each time, then given up", async () => {
+    // The jitter at its most: each wait is its whole backoff (AwsRetry).
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
     const fake: FakeAws = createFakeAws({
       regions: {},
       callerIdentityError: stsError(400, "Throttling", "Rate exceeded"),
@@ -202,8 +213,8 @@ describe("sending", () => {
         },
       }),
     ).rejects.toMatchObject({ kind: CloudConnectionFailureKind.RateLimited });
-    expect(waits).toEqual([1000, 2000, 4000]);
-    expect(fake.requests).toHaveLength(4);
+    expect(waits).toEqual([1000, 2000]);
+    expect(fake.requests).toHaveLength(3);
   });
 
   test("a query-protocol call is a signed form", async () => {

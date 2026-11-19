@@ -16,7 +16,7 @@
 
 ```mermaid title="コストの数値の出どころ"
 flowchart TB
-    cadvisor["API サーバーのノード<br/>プロキシ経由の cAdvisor"] --> prometheus["同梱の Prometheus"]
+    cadvisor["各ノードの kubelet<br/>からの cAdvisor"] --> prometheus["同梱の Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["クラウドの定価、<br/>または独自の料金表"] --> opencost
     opencost -->|"確定した 1 時間<br/>ずつ"| poller["コストポーラー"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**: オープンソースのコストエンジンです (Apache-2.0、CNCF。Kubecost の基盤でもある [cost-model](https://github.com/kubecost/cost-model))。クラスターを監視し、ノード、ボリューム、ロードバランサーの価格を算出して、各ワークロードのコストを計算します。
-2. **小さな Prometheus**: OpenCost が使用量と価格の履歴に必要とするものです。レプリカ 1 つで動作し、7 日分の履歴を保持し、スクレイプ対象はちょうど 2 つです。API サーバーのノードプロキシ経由の cAdvisor (OpenCost が読み取る系列だけを残します) と、OpenCost 自体です (OpenCost は自身のリソース request のメトリクスを出力するため、kube-state-metrics は使いません)。クラスターの外に公開されることはなく、そのデータがクラスターから出ることもありません。
+2. **小さな Prometheus**: OpenCost が使用量と価格の履歴に必要とするものです。レプリカ 1 つで動作し、7 日分の履歴を保持し、スクレイプ対象はちょうど 2 つです。各ノードの kubelet にある cAdvisor (Pod が kubelet に到達できない `eks-fargate` プリセットでは、API サーバーのノードプロキシを経由します。OpenCost が読み取る系列だけを残します) と、OpenCost 自体です (OpenCost は自身のリソース request のメトリクスを出力するため、kube-state-metrics は使いません)。クラスターの外に公開されることはなく、そのデータがクラスターから出ることもありません。
 3. **コストポーラー** (`cost.agent`)。1 時間が確定するたびに OpenCost の Allocation API を読み取り、ワークロードごとに 1 つのコスト行を OneUptime に送信します。内容は CPU、メモリ、GPU、ボリューム、ネットワーク、ロードバランサー、アイドル、そして効率です。各時間は 1 回だけ送信され、サーバーはすでに持っている時間をスキップするため、再起動で支出が二重に数えられることはありません。OneUptime は、これらの行から [コストメトリクス](#コストに対するアラート) も書き込みます。
 4. **コストメトリクスのスクレイプ** (`cost.metrics`)。エージェントの Collector が OpenCost の価格メトリクス (各ノード、ボリューム、ロードバランサーの 1 時間あたりのコスト) をスクレイプし、クラスターのほかのメトリクスと一緒に送信します。
 

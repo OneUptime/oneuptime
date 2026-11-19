@@ -129,9 +129,9 @@ Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden
 
 | Weg                  | Wo                                                                                        | Was abgefragt wird                                                                                                                   |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Schaltflächen im Kopfbereich** | Der Kopfbereich der Warnung: **Bestätigen**, **Beheben** und **Status ändern in** in seinem Menü **⋯** | Eine kurze Bestätigung, **Warnung bestätigen**, **Warnung beheben** oder **Warnung als {{state}} markieren**, mit einer optionalen Notiz unter **Private Notiz hinzufügen**. |
+| **Schaltflächen im Kopfbereich** | Der Kopfbereich der Warnung: **Bestätigen**, **Beheben** und **Status ändern in** in seinem Menü **⋯** | Eine kurze Bestätigung, **Warnung bestätigen**, **Warnung beheben** oder **Warnung als {{state}} markieren**, mit einer optionalen Notiz unter **Private Notiz hinzufügen**. Beim Beheben ist außerdem eine optionale Grundursache unter **Grundursache hinzufügen** eingeklappt. |
 | **Statuszeitachse**  | **Zustands-Zeitachse** im Seitenmenü der Warnung                                         | Eine Zeile, die Sie von Hand hinzufügen, mit **Warnungsstatus** und **Beginnt am**.                                                    |
-| **Listenzeile** | Das Menü **⋯** in der Zeile einer Warnung in der Warnungsliste: **Bestätigen**, **Beheben** und **Status ändern** | Die Bestätigung aus dem Kopfbereich, mit dem Namen der Warnung. Eine Warnung, die eine andere Änderung inzwischen weiterbewegt hat, bleibt unverändert, und der Dialog sagt, warum. |
+| **Listenzeile** | Das Menü **⋯** in der Zeile einer Warnung in der Warnungsliste: **Bestätigen**, **Beheben** und **Status ändern** | Die Bestätigung aus dem Kopfbereich, mit dem Namen der Warnung. Eine Warnung, die eine andere Änderung inzwischen weiterbewegt hat, bleibt unverändert, und der Dialog sagt, warum. Nach der Grundursache fragt sie nicht. |
 | **Massenänderung**   | **Bestätigen**, **Beheben** oder **Status ändern** für eine Auswahl in der Warnungsliste                                   | Der Status und eine private Notiz, die jeder Warnung hinzugefügt wird. Warnungen, die schon in diesem Status oder danach sind, werden übersprungen. |
 | **Automatisch**      | Ein Monitor, eine Episode, ein verknüpfter Vorfall oder Ihr eigener Code                  | **Warnung automatisch beheben** in den Kriterien eines Monitors, ein Statuswechsel der Episode, die Vorfallschalter auf [Verknüpfte Warnungen](/docs/incidents/linked-alerts) oder eine Zeile, die unter `/api/alert-state-timeline` angelegt wird. |
 
@@ -155,6 +155,12 @@ Eine Warnung ist behoben, wenn sie in Ihren behobenen Status wechselt oder in ei
 - **Ihr Monitor kann eine neue Warnung auslösen.** Ein Kriterium hält jeweils eine offene Warnung; ist diese behoben, öffnet die nächste Übereinstimmung eine weitere.
 
 Der Wechsel von **Behoben** in einen Status danach, etwa „Geschlossen“, ändert nichts davon: Die Warnung war schon behoben.
+
+## Die Grundursache beim Beheben eintragen
+
+Wird die Warnung über ihren Kopfbereich behoben, mit **Beheben** oder mit **Status ändern in** einen behobenen Status, klappt die Bestätigung eine optionale **Grundursache** unter **Grundursache hinzufügen** ein: warum es dazu kam. Was Sie dort schreiben, wird die Grundursache der Warnung, als hätten Sie es auf ihrer Seite **Grundursache** eingetragen, und die Untersuchung der Warnung durch OneUptime AI wird daran bewertet (siehe [Wie gut OneUptime AI abschneidet](/docs/ai/ai-sre#wie-gut-oneuptime-ai-abschneidet)). Bleibt das Feld leer, wird die Warnung wie bisher behoben und behält ihre Grundursache.
+
+Sie einzutragen braucht die Berechtigung, die Warnung zu bearbeiten, getrennt von der Berechtigung, ihren Status zu ändern: Wer sie nicht hat, bekommt **Grundursache hinzufügen** nicht angeboten, und ein Statuswechsel, den er mit einer Grundursache sendet, wird ganz abgelehnt, sodass die Warnung ihren Status behält. Über die API senden Sie sie mit der Zeile, die Sie unter `/api/alert-state-timeline` anlegen, als `writtenRootCause` in `miscDataProps`.
 
 ## Die Statuszeitachse
 

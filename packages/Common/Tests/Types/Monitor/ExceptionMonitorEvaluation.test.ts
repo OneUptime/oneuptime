@@ -4,10 +4,12 @@ import {
   EXCEPTION_BASELINE_LOOKBACK_SECONDS,
   EXCEPTION_BASELINE_MINIMUM_WEEKS,
   EXCEPTION_MEASURES,
+  EXCEPTION_RULE_MEASURES,
   ExceptionAnomalySettings,
   getExceptionAnomalySettings,
   getExceptionIncreasePercent,
   getExceptionMonitorNeeds,
+  getSessionsWithExceptionsPercent,
   getUsualExceptionCount,
   isExceptionCountAnomaly,
   isExceptionMeasure,
@@ -60,17 +62,34 @@ function stepWith(checkOns: Array<CheckOn>): MonitorStep {
 }
 
 describe("the exception measures", () => {
-  test("are the count, new, regressed and the increase over the usual", () => {
+  test("are the count, new, regressed, the increase over the usual, and the sessions", () => {
     expect(EXCEPTION_MEASURES).toEqual([
       CheckOn.ExceptionCount,
       CheckOn.NewExceptionCount,
       CheckOn.RegressedExceptionCount,
       CheckOn.ExceptionCountIncreasePercent,
+      CheckOn.SessionsWithExceptionsPercent,
+      CheckOn.SessionCount,
     ]);
     expect(isExceptionMeasure(CheckOn.NewExceptionCount)).toBe(true);
+    expect(isExceptionMeasure(CheckOn.SessionsWithExceptionsPercent)).toBe(
+      true,
+    );
+    expect(isExceptionMeasure(CheckOn.SessionCount)).toBe(true);
     expect(isExceptionMeasure(CheckOn.LogCount)).toBe(false);
     expect(isExceptionMeasure("New Exceptions")).toBe(true);
     expect(isExceptionMeasure(undefined)).toBe(false);
+  });
+
+  // The form's single rule: every measure but the sessions alone (#9716).
+  test("the rule offers every measure but the sessions alone", () => {
+    expect(EXCEPTION_RULE_MEASURES).toEqual([
+      CheckOn.ExceptionCount,
+      CheckOn.NewExceptionCount,
+      CheckOn.RegressedExceptionCount,
+      CheckOn.ExceptionCountIncreasePercent,
+      CheckOn.SessionsWithExceptionsPercent,
+    ]);
   });
 });
 
@@ -82,12 +101,14 @@ describe("getExceptionMonitorNeeds", () => {
       newExceptions: false,
       regressedExceptions: false,
       baseline: false,
+      sessions: false,
       learnedBaselineWindowDays: [],
     });
     expect(getExceptionMonitorNeeds(undefined)).toEqual({
       newExceptions: false,
       regressedExceptions: false,
       baseline: false,
+      sessions: false,
       learnedBaselineWindowDays: [],
     });
   });
@@ -105,6 +126,7 @@ describe("getExceptionMonitorNeeds", () => {
       newExceptions: true,
       regressedExceptions: true,
       baseline: true,
+      sessions: false,
       learnedBaselineWindowDays: [],
     });
     expect(
@@ -113,8 +135,102 @@ describe("getExceptionMonitorNeeds", () => {
       newExceptions: false,
       regressedExceptions: true,
       baseline: false,
+      sessions: false,
       learnedBaselineWindowDays: [],
     });
+  });
+
+  test("the share of sessions, or the sessions alone, read the sessions and nothing else", () => {
+    for (const checkOn of [
+      CheckOn.SessionsWithExceptionsPercent,
+      CheckOn.SessionCount,
+    ]) {
+      expect(getExceptionMonitorNeeds(stepWith([checkOn]))).toEqual({
+        newExceptions: false,
+        regressedExceptions: false,
+        baseline: false,
+        sessions: true,
+        learnedBaselineWindowDays: [],
+      });
+    }
+  });
+});
+
+/*
+ * A mobile app's crash rate (#9716): crashed sessions over sessions, as
+ * the Overview's Crash-free sessions tile reads them.
+ */
+describe("the share of sessions with an exception", () => {
+  test("is the sessions with one over the window's sessions, in percent to two decimals", () => {
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: 3,
+        sessions: 250,
+      }),
+    ).toBe(1.2);
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: 1,
+        sessions: 3,
+      }),
+    ).toBe(33.33);
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: 0,
+        sessions: 1000,
+      }),
+    ).toBe(0);
+  });
+
+  test("one crashed session in 250 is under both Android vitals rates", () => {
+    const share: number | null = getSessionsWithExceptionsPercent({
+      sessionsWithExceptions: 1,
+      sessions: 250,
+    });
+
+    expect(share).toBe(0.4);
+    expect(share!).toBeLessThan(0.47);
+    expect(share!).toBeLessThan(1.09);
+  });
+
+  test("is unknown, not 0%, without a session to take it of", () => {
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: 0,
+        sessions: 0,
+      }),
+    ).toBeNull();
+    // Crashes, and spans that name no session: still unknown.
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: 4,
+        sessions: 0,
+      }),
+    ).toBeNull();
+  });
+
+  test("never passes 100%, though a session only an exception named counts", () => {
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: 12,
+        sessions: 10,
+      }),
+    ).toBe(100);
+  });
+
+  test("reads a missing or negative count as none", () => {
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: -3,
+        sessions: 10,
+      }),
+    ).toBe(0);
+    expect(
+      getSessionsWithExceptionsPercent({
+        sessionsWithExceptions: undefined as unknown as number,
+        sessions: 10,
+      }),
+    ).toBe(0);
   });
 });
 
@@ -230,6 +346,7 @@ describe("an anomaly condition on the exception count", () => {
       newExceptions: false,
       regressedExceptions: false,
       baseline: false,
+      sessions: false,
       learnedBaselineWindowDays: [DEFAULT_ANOMALY_WINDOW_DAYS],
     });
   });

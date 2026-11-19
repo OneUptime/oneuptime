@@ -17,7 +17,7 @@ import { useTheme } from "../theme";
 import { radius, spacing, touchTarget } from "../theme/tokens";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useNow } from "../hooks/useNow";
 import { useHaptics } from "../hooks/useHaptics";

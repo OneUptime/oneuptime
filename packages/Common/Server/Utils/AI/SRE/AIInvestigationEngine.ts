@@ -1151,6 +1151,12 @@ export default class AIInvestigationEngine {
               ? { providerName: result.providerName }
               : {}),
             ...(result.modelName ? { modelName: result.modelName } : {}),
+            /*
+             * Its tools read for its readers (request.readAudience): what
+             * it recorded is theirs to read, so a replay shown to them may
+             * use it (#9811).
+             */
+            ...(request.readAudience ? { readForItsReaders: true } : {}),
           },
         });
       }

@@ -23,7 +23,10 @@ import path from "path";
  *
  * Nothing else is widened: a note posted with the change is written with the
  * caller's own props, as are the services' other writes that name what the
- * caller sent.
+ * caller sent. So is the root cause an incident's or an alert's resolve
+ * carries (StateChangeRootCause, #7765): the person's own words, written
+ * onto the event as them, with the permission to edit it that the change
+ * asked for before it was saved.
  *
  * This reads each state timeline service's onCreateSuccess (and the helpers
  * of the class it calls).
@@ -40,6 +43,11 @@ interface StateTimeline {
   eventService: string;
   // The services that post a note with the change, as the caller.
   noteWriters: Array<RegExp>;
+  /*
+   * What writes the root cause that comes with the change onto the event,
+   * as the caller (#7765): the person's words, like the note.
+   */
+  rootCauseWriters: Array<RegExp>;
 }
 
 const STATE_TIMELINES: Array<StateTimeline> = [
@@ -51,31 +59,37 @@ const STATE_TIMELINES: Array<StateTimeline> = [
       /IncidentPublicNoteService\.create/,
       /StateChangeNote\.postPrivateNotes/,
     ],
+    rootCauseWriters: [/StateChangeRootCause\.save/],
   },
   {
     file: "AlertStateTimelineService.ts",
     eventService: "AlertService",
     noteWriters: [/StateChangeNote\.postPrivateNotes/],
+    rootCauseWriters: [/StateChangeRootCause\.save/],
   },
   {
     file: "AlertEpisodeStateTimelineService.ts",
     eventService: "AlertEpisodeService",
     noteWriters: [/StateChangeNote\.postPrivateNotes/],
+    rootCauseWriters: [],
   },
   {
     file: "IncidentEpisodeStateTimelineService.ts",
     eventService: "IncidentEpisodeService",
     noteWriters: [/StateChangeNote\.postPrivateNotes/],
+    rootCauseWriters: [],
   },
   {
     file: "ScheduledMaintenanceStateTimelineService.ts",
     eventService: "ScheduledMaintenanceService",
     noteWriters: [/ScheduledMaintenancePublicNoteService\.create/],
+    rootCauseWriters: [],
   },
   {
     file: "MonitorStatusTimelineService.ts",
     eventService: "MonitorService",
     noteWriters: [],
+    rootCauseWriters: [],
   },
 ];
 
@@ -86,7 +100,7 @@ const AS_THE_CALLER: RegExp = /props:\s*onCreate\.createBy\.props\b/;
 
 describe.each(STATE_TIMELINES)(
   "$file",
-  ({ file, eventService, noteWriters }: StateTimeline) => {
+  ({ file, eventService, noteWriters, rootCauseWriters }: StateTimeline) => {
     const classSource: ClassSource = readClassSource(
       path.join(SERVICES_DIR, file),
     );
@@ -95,9 +109,24 @@ describe.each(STATE_TIMELINES)(
       "onCreateSuccess",
     );
 
-    // Every update its success hook makes to the event.
-    const eventWrites: Array<string> = callArguments(
+    // The root cause that came with the change, written as the caller.
+    const rootCauseWrites: Array<string> = rootCauseWriters.flatMap(
+      (writer: RegExp): Array<string> => {
+        return callArguments(onCreateSuccess, writer);
+      },
+    );
+
+    // What the success hook does besides writing that root cause.
+    const withoutRootCause: string = rootCauseWrites.reduce(
+      (text: string, call: string): string => {
+        return text.replace(call, "");
+      },
       onCreateSuccess,
+    );
+
+    // Every other update its success hook makes to the event.
+    const eventWrites: Array<string> = callArguments(
+      withoutRootCause,
       new RegExp(`\\b${eventService}\\.(?:updateOneBy|updateOneById|updateBy)`),
     );
 
@@ -111,8 +140,22 @@ describe.each(STATE_TIMELINES)(
       }
     });
 
-    test("writes nothing else with the caller's props but the note that comes with the change", () => {
-      let rest: string = onCreateSuccess;
+    test("writes the root cause that comes with the change onto the event as the caller, and only it", () => {
+      expect(rootCauseWrites.length).toBe(rootCauseWriters.length);
+
+      for (const write of rootCauseWrites) {
+        expect(write).toMatch(AS_THE_CALLER);
+        expect(write).toMatch(
+          new RegExp(`\\b${eventService}\\.updateOneById\\(`),
+        );
+        expect(write).toMatch(
+          /data:\s*\{\s*rootCause:\s*writtenRootCause,?\s*\}/,
+        );
+      }
+    });
+
+    test("writes nothing else with the caller's props but the note and the root cause that come with the change", () => {
+      let rest: string = withoutRootCause;
 
       for (const writer of noteWriters) {
         const calls: Array<string> = callArguments(onCreateSuccess, writer);

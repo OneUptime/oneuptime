@@ -9,7 +9,7 @@ import { spacing } from "../theme/tokens";
 import {
   useHeaderHeightOverride,
   useWindowLayout,
-} from "../layout/WindowLayout";
+} from "../layout/WindowLayoutProvider";
 import {
   NAVIGATION_RAIL_WIDTH,
   type WindowLayout,

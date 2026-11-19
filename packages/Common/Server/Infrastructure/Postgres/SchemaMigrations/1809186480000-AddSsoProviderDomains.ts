@@ -11,8 +11,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * once an admin adds a domain to it, since what a domain reveals is theirs
  * to decide.
  */
-export class AddSsoProviderDomains1809186400000 implements MigrationInterface {
-  public name: string = "AddSsoProviderDomains1809186400000";
+export class AddSsoProviderDomains1809186480000 implements MigrationInterface {
+  public name: string = "AddSsoProviderDomains1809186480000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -7,11 +7,14 @@ import AIAgentRunLimitsHelper, {
   AI_RUN_STOP_NOTE_OPENINGS,
   ALERT_AI_INVESTIGATION_LIMITS_LOCATION,
   CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES,
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
   INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION,
   MAX_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   MAX_AI_RUN_TIME_LIMIT_IN_MINUTES,
   MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+  MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   MIN_AI_RUN_TIME_LIMIT_IN_MINUTES,
   PROJECT_AI_RUN_LIMITS_LOCATION,
   TOOL_OUTPUT_PAGE_CHARS,
@@ -363,6 +366,100 @@ describe("AIAgentRunLimitsHelper.fromSettings", () => {
         timeLimitInMinutes: "soon",
       }),
     ).toEqual(AIAgentRunLimitsHelper.getDefault());
+  });
+});
+
+/*
+ * How long one command of a code task may run on a Runner of the project's
+ * own (issue #6532): ten minutes unless the project set its own Time Limit
+ * per Command, at most two hours. Not a cap on the run: a run with none set
+ * reads exactly as it always did.
+ */
+describe("the time limit per command", () => {
+  test("ten minutes by default, from one minute to two hours", () => {
+    expect(DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(10);
+    expect(MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(1);
+    expect(MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(120);
+  });
+
+  test("a value the project set is read in whole minutes, held inside its bounds", () => {
+    expect(AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(30)).toBe(
+      30,
+    );
+    expect(
+      AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes("45"),
+    ).toBe(45);
+    expect(
+      AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(12.7),
+    ).toBe(12);
+    expect(AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(500)).toBe(
+      120,
+    );
+    expect(AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(1)).toBe(
+      1,
+    );
+  });
+
+  test("nothing usable is the default, never a command cut short", () => {
+    for (const value of [
+      null,
+      undefined,
+      "",
+      "  ",
+      "soon",
+      0,
+      -3,
+      0.5,
+      Number.NaN,
+      true,
+      {},
+    ]) {
+      expect(
+        AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(value),
+      ).toBeUndefined();
+      expect(
+        AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes({
+          commandTimeLimitInMinutes: value as number | undefined,
+        }),
+      ).toBe(10);
+    }
+  });
+
+  test("fromSettings carries it only when it is set: a run with none reads as it always did", () => {
+    expect(
+      AIAgentRunLimitsHelper.fromSettings({ commandTimeLimitInMinutes: 30 })
+        .commandTimeLimitInMinutes,
+    ).toBe(30);
+    expect(
+      "commandTimeLimitInMinutes" in AIAgentRunLimitsHelper.fromSettings({}),
+    ).toBe(false);
+    expect(AIAgentRunLimitsHelper.fromSettings({})).toStrictEqual(
+      AIAgentRunLimitsHelper.getDefault(),
+    );
+    expect(
+      AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(
+        AIAgentRunLimitsHelper.getDefault(),
+      ),
+    ).toBe(10);
+  });
+
+  test("it is not a cap: a run with only a command time limit has no caps, and nothing stops it", () => {
+    const limits: AIAgentRunLimits = AIAgentRunLimitsHelper.fromSettings({
+      commandTimeLimitInMinutes: 60,
+    });
+
+    expect(AIAgentRunLimitsHelper.hasCaps(limits)).toBe(false);
+    expect(
+      AIAgentRunLimitsHelper.getCapStopDecision(limits, {
+        llmCallCount: 500,
+        toolCallCount: 500,
+        tokenCount: 10_000_000,
+        lastCallTokenCount: 50_000,
+      }),
+    ).toBeNull();
+    expect(limits.maxWallClockMs).toBe(
+      DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES * MINUTE_MS,
+    );
   });
 });
 

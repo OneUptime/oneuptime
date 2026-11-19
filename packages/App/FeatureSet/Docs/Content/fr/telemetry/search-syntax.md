@@ -129,7 +129,7 @@ Les noms de champs ne sont pas sensibles à la casse : `statusMessage:` et `stat
 
 ### Traces
 
-Les champs de trace acceptent une valeur simple ou une liste comme `status:(ok OR unset)`, et `duration` accepte aussi `>` et `<`. Les jokers, `~`, `!` et un `-` initial ne fonctionnent ici que sur les attributs.
+Les champs de trace acceptent une valeur simple ou une liste comme `status:(ok OR unset)`, et `duration` accepte aussi `>`, `>=`, `<` et `<=`. Les jokers, `~`, `!` et un `-` initial ne fonctionnent ici que sur les attributs.
 
 | Champ | Remarques |
 | --- | --- |
@@ -137,7 +137,7 @@ Les champs de trace acceptent une valeur simple ou une liste comme `status:(ok O
 | `name` | Nom du span. Une valeur unique correspond à n'importe quelle partie du nom. Les mots seuls le cherchent aussi |
 | `status` | `ok`, `error`, `unset` (unset = Aucun statut d'erreur défini, la valeur par défaut d'OpenTelemetry) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | En millisecondes : `duration:>500`, `duration:<200` ou une valeur exacte |
+| `duration` | En millisecondes : `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` ou une valeur exacte |
 | `statusMessage` | Texte du message de statut. Une valeur unique correspond à n'importe quelle partie du texte |
 | `hasException` | `true` ou `false` |
 | `trace`, `span` | ID |

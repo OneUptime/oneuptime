@@ -68,6 +68,10 @@ both palettes by `src/theme/colors.test.ts`.
 | `SectionHeader`                                                                 | A section title with optional icon, count and action link.                                                                |
 | `EmptyState`                                                                    | Empty, error and success placeholders with an optional action.                                                            |
 | `SearchField`, `ListFilters`, `SegmentedControl`                                | List search, filter chips and view switching.                                                                             |
+| `SearchFilterRow`, `FilterButton`                                               | A list's search with its Filter button beside it; the button is tinted and counts the filters that are on.                |
+| `FilterSheet`, `FilterChip`                                                     | A list's filters, one section per facet, values as toggle chips; nothing applies until Show results.                      |
+| `ActiveFilterBar`                                                               | The filters that are on, under the search: each opens the sheet or comes off with its own cross.                          |
+| `RecordOwnersAndLabels`                                                         | A record's owners (You first) and labels, as rows of its Details section.                                                 |
 | `ResponseRow`                                                                   | Incident, alert, episode, monitor and security case list cards; `badge` for a word that needs a decision.                 |
 | `ResponseDetailHeader`, `ResponseActions`, `ResponseSection`, `ResponseInfoRow` | Detail page structure.                                                                                                    |
 | `QueryErrorNotice`                                                              | A failed background read with a retry.                                                                                    |
@@ -92,7 +96,7 @@ from one into the other mid-task; Split View, Slide Over, iPhone Mirroring and
 Android desktop windows make any size possible anywhere. The rules live in
 `src/layout/windowLayout.ts` (pure, unit-tested) and are read through
 `useWindowLayout()`, `usePane()` and `useContentGutters()` in
-`src/layout/WindowLayout.tsx`. Never branch on `Platform.isPad`, a device
+`src/layout/WindowLayoutProvider.tsx`. Never branch on `Platform.isPad`, a device
 model, a list of known screen sizes or the orientation.
 
 The rows are checked in order; the first that fits the window wins.

@@ -213,6 +213,50 @@ describe("buildSearchTokenForFilter — column chips", () => {
     );
   });
 
+  /*
+   * A Traces monitor's "Takes at least (ms)" reaches the explorer as a
+   * Duration chip whose value is the search bar's own comparison
+   * (SpanQueryScope.toDurationSearchValue): its token is that comparison,
+   * written as it is, which the traces search compiler reads back (#9714).
+   */
+  test("traces: a duration chip's token is its comparison, unescaped", () => {
+    expect(
+      buildSearchTokenForFilter("traces", "durationUnixNano", ">=5000"),
+    ).toBe("duration:>=5000");
+    expect(
+      buildSearchTokenForFilter("traces", "durationUnixNano", "<200"),
+    ).toBe("duration:<200");
+    expect(
+      buildSearchTokenForFilter("traces", "durationUnixNano", "<=2.5"),
+    ).toBe("duration:<=2.5");
+    expect(buildSearchTokenForFilter("traces", "durationUnixNano", "750")).toBe(
+      "duration:750",
+    );
+  });
+
+  test("traces: a duration value that is no single comparison has no token", () => {
+    for (const value of [
+      "≥\u00A05\u00A0s",
+      ">=",
+      "fast",
+      ">=5000 <=9000",
+      "=5000",
+    ]) {
+      expect(
+        buildSearchTokenForFilter("traces", "durationUnixNano", value),
+      ).toBeNull();
+    }
+  });
+
+  test("logs and metrics: a span duration is no column of theirs", () => {
+    expect(
+      buildSearchTokenForFilter("logs", "durationUnixNano", ">=5000"),
+    ).toBeNull();
+    expect(
+      buildSearchTokenForFilter("metrics", "durationUnixNano", ">=5000"),
+    ).toBeNull();
+  });
+
   test("logs: the span columns are not log columns and have no token", () => {
     for (const facetKey of [
       "statusCode",

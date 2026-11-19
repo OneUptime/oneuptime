@@ -67,6 +67,11 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
    * note composer says (#9735).
    */
   "/public-note-reach",
+  /*
+   * Whether an announcement on the status pages picked on its form shows
+   * and notifies anyone: what Create Announcement's line says (#9775).
+   */
+  "/status-page-announcement/reach",
 ];
 
 /*
@@ -163,6 +168,14 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "EventNotes", "usePublicNoteReach.ts"],
     routePrefix: "/public-note-reach",
+  },
+  /*
+   * The announcement forms' Schedule line and their notify boxes ask what
+   * the status pages picked do through this one hook.
+   */
+  {
+    page: ["Components", "Announcement", "useAnnouncementReach.ts"],
+    routePrefix: "/status-page-announcement/reach",
   },
 ];
 

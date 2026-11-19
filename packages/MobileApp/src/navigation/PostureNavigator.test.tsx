@@ -37,7 +37,7 @@ import {
   WindowLayoutProvider,
   usePane,
   type ResolvedPaneLayout,
-} from "../layout/WindowLayout";
+} from "../layout/WindowLayoutProvider";
 import {
   NAVIGATION_RAIL_WIDTH,
   TABLETOP_FOLD_GAP,

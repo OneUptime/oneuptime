@@ -24,7 +24,13 @@ import MonitorStep from "../MonitorStep";
  *     hold;
  *   - Exception Increase (in %): how far the window's count is above the
  *     usual one - the matching occurrences of the day before the window, per
- *     window of the same length - a spike.
+ *     window of the same length - a spike;
+ *   - Sessions With Exceptions (in %): the share of the window's sessions a
+ *     matching exception happened in, and Sessions, how many there were -
+ *     the distinct session.id of the spans of the monitor's services. With
+ *     a crash's filters, a mobile app's crash rate (#9716): crashed
+ *     sessions over sessions, which Android vitals judges a rate of, where
+ *     the count alone grows with the app's audience.
  *
  * The count itself can also be judged against what is normal for the hour
  * of the week, learned from the monitor's own history: Exception Count with
@@ -41,7 +47,26 @@ export const EXCEPTION_MEASURES: ReadonlyArray<CheckOn> = [
   CheckOn.NewExceptionCount,
   CheckOn.RegressedExceptionCount,
   CheckOn.ExceptionCountIncreasePercent,
+  CheckOn.SessionsWithExceptionsPercent,
+  CheckOn.SessionCount,
 ];
+
+// The measures read from the window's sessions.
+export const EXCEPTION_SESSION_MEASURES: ReadonlyArray<CheckOn> = [
+  CheckOn.SessionsWithExceptionsPercent,
+  CheckOn.SessionCount,
+];
+
+/*
+ * What the monitor form's single rule can alert on: every measure but the
+ * sessions alone, which say how much the app was used rather than anything
+ * about its exceptions - the criteria editor offers them, as the fewest
+ * sessions a share is judged on.
+ */
+export const EXCEPTION_RULE_MEASURES: ReadonlyArray<CheckOn> =
+  EXCEPTION_MEASURES.filter((checkOn: CheckOn): boolean => {
+    return checkOn !== CheckOn.SessionCount;
+  });
 
 // The day before the window: what "the usual" count is read from.
 export const EXCEPTION_BASELINE_LOOKBACK_SECONDS: number = 24 * 60 * 60;
@@ -76,6 +101,8 @@ export interface ExceptionMonitorNeeds {
   newExceptions: boolean;
   regressedExceptions: boolean;
   baseline: boolean;
+  // The window's sessions, and those a matching exception happened in.
+  sessions: boolean;
   /*
    * The baseline windows of the criteria that judge the count against the
    * learned baseline, each once, in days. Empty when none does.
@@ -169,6 +196,7 @@ export function getExceptionMonitorNeeds(
     newExceptions: false,
     regressedExceptions: false,
     baseline: false,
+    sessions: false,
     learnedBaselineWindowDays: [],
   };
 
@@ -189,6 +217,10 @@ export function getExceptionMonitorNeeds(
 
       if (filter.checkOn === CheckOn.ExceptionCountIncreasePercent) {
         needs.baseline = true;
+      }
+
+      if (EXCEPTION_SESSION_MEASURES.includes(filter.checkOn)) {
+        needs.sessions = true;
       }
 
       if (isExceptionCountAnomaly(filter)) {
@@ -244,4 +276,30 @@ export function getExceptionIncreasePercent(data: {
   }
 
   return Math.round(((current - usual) / usual) * 100);
+}
+
+/*
+ * The share of the window's sessions a matching exception happened in, in
+ * percent to two decimals, or null without a session to take a share of:
+ * an app whose spans name no session.id, or a window nothing was used in,
+ * says nothing about its crash rate rather than 0%. Never above 100%: an
+ * iOS crash arrives in the session after the one it ended, which may have
+ * sent no span in the window.
+ */
+export function getSessionsWithExceptionsPercent(data: {
+  sessionsWithExceptions: number;
+  sessions: number;
+}): number | null {
+  const sessions: number = Math.max(0, data.sessions || 0);
+
+  if (sessions <= 0) {
+    return null;
+  }
+
+  const affected: number = Math.min(
+    Math.max(0, data.sessionsWithExceptions || 0),
+    sessions,
+  );
+
+  return Math.round((affected / sessions) * 10000) / 100;
 }

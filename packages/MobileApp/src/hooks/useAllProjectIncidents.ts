@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useActiveProject } from "./useProject";
+import { useListFilter, type ListFilterQuery } from "./useListFilter";
+import type { ListFilter } from "../api/recordFilters";
+import type { RecordFilters } from "../filters/recordFilters";
 import { fetchIncidents } from "../api/incidents";
 import type {
   ProjectItem,
@@ -19,13 +22,17 @@ interface UseAllProjectIncidentsResult {
 }
 
 /** The public name is retained for callers; only the selected project is queried. */
-export function useAllProjectIncidents(): UseAllProjectIncidentsResult {
+export function useAllProjectIncidents(
+  // The list's filters (filters/recordFilters.ts), asked of the server.
+  filters?: RecordFilters,
+): UseAllProjectIncidentsResult {
   const { projectList, isLoadingProjects } = useActiveProject();
   const project: ProjectItem | undefined = projectList[0];
   const projectId: string | undefined = project?._id;
+  const listFilter: ListFilterQuery = useListFilter("incidents", filters);
   const query: UseQueryResult<ListResponse<IncidentItem>, Error> = useQuery({
-    queryKey: ["incidents", projectId],
-    queryFn: () => {
+    queryKey: ["incidents", projectId, ...listFilter.keyParts],
+    queryFn: async () => {
       if (!projectId) {
         return Promise.resolve({
           data: [],
@@ -34,7 +41,14 @@ export function useAllProjectIncidents(): UseAllProjectIncidentsResult {
           limit: FETCH_LIMIT,
         });
       }
-      return fetchIncidents(projectId, { skip: 0, limit: FETCH_LIMIT });
+      const filter: ListFilter | undefined =
+        await listFilter.resolve(projectId);
+      return fetchIncidents(
+        projectId,
+        filter
+          ? { skip: 0, limit: FETCH_LIMIT, filter: filter }
+          : { skip: 0, limit: FETCH_LIMIT },
+      );
     },
     enabled: Boolean(projectId) && !isLoadingProjects,
     placeholderData: undefined,

@@ -14,7 +14,7 @@ import { HeaderHeightContext } from "@react-navigation/elements";
 import SettingsScreen from "./SettingsScreen";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
-import { WindowLayoutProvider } from "../layout/WindowLayout";
+import { WindowLayoutProvider } from "../layout/WindowLayoutProvider";
 import { TABLETOP_FOLD_GAP } from "../layout/windowLayout";
 import { getScreenBottomPadding } from "../theme/layout";
 import {

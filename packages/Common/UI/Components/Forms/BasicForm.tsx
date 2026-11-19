@@ -1750,6 +1750,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               summary={section.getSummary?.(
                                 refCurrentValue.current,
                               )}
+                              summaryElement={section.getSummaryElement?.(
+                                refCurrentValue.current,
+                              )}
                               /*
                                * What the folded header lists: the fields on
                                * screen, the set ones with what they are set

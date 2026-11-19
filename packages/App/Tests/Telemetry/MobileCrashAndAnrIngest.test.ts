@@ -27,6 +27,8 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   ANR_EXCEPTION_MESSAGE,
   ANR_EXCEPTION_TYPE,
+  HANG_EXCEPTION_MESSAGE,
+  HANG_EXCEPTION_TYPE,
 } from "Common/Utils/Telemetry/MobileAppFaults";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -126,6 +128,8 @@ function logsRequest(data: {
   attributes: Array<OtlpAttribute>;
   severityNumber?: number;
   body?: string;
+  // More of the resource's attributes, such as 1.1's app.installation.id.
+  resourceAttributes?: Array<OtlpAttribute>;
 }): TelemetryRequest {
   const record: JSONObject = {
     timeUnixNano: `${Date.now()}000000`,
@@ -163,11 +167,158 @@ function logsRequest(data: {
               stringAttribute("os.name", "Android"),
               stringAttribute("os.version", "13"),
               stringAttribute("session.id", "7a1d2c3b4e5f60718293a4b5c6d7e8f9"),
+              ...(data.resourceAttributes || []),
             ],
           },
           scopeLogs: [
             {
               scope: { name: "io.opentelemetry.crash" },
+              logRecords: [record],
+            },
+          ],
+        },
+      ],
+    },
+  } as unknown as TelemetryRequest;
+}
+
+function doubleAttribute(key: string, value: number): OtlpAttribute {
+  return { key: key, value: { doubleValue: value } };
+}
+
+const IOS_SESSION_ID: string = "550E8400-E29B-41D4-A716-446655440000";
+
+// The call stack tree a MetricKit crash carries, as 2.5.2 and later send it.
+const METRICKIT_CRASH_TREE: string = JSON.stringify({
+  callStackPerThread: true,
+  callStacks: [
+    {
+      threadAttributed: true,
+      callStackFrames: [
+        {
+          binaryUUID: "70B89F27-1634-3580-A695-57CDB41D7743",
+          offsetAddress: 165304,
+          binaryName: "Storefront",
+        },
+        {
+          binaryUUID: "77A62F2E-8212-30F3-84C1-E8497440ACF8",
+          offsetAddress: 6948,
+          binaryName: "libdyld.dylib",
+        },
+      ],
+    },
+  ],
+});
+
+// A hang's, in Apple's own shape, as 2.3.0 to 2.5.1 sent it.
+const METRICKIT_HANG_TREE: string = JSON.stringify({
+  callStacks: [
+    {
+      threadAttributed: true,
+      callStackRootFrames: [
+        {
+          binaryUUID: "70B89F27-1634-3580-A695-57CDB41D7743",
+          offsetIntoBinaryTextSegment: 42000,
+          sampleCount: 20,
+          binaryName: "Storefront",
+          address: 4295009000,
+          subFrames: [
+            {
+              binaryUUID: "77A62F2E-8212-30F3-84C1-E8497440ACF8",
+              offsetIntoBinaryTextSegment: 6948,
+              sampleCount: 20,
+              binaryName: "UIKitCore",
+              address: 7449245604,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  callStackPerThread: true,
+});
+
+function metricKitCrashAttributes(): Array<OtlpAttribute> {
+  return [
+    stringAttribute("name", "metrickit.diagnostic.crash"),
+    intAttribute("metrickit.diagnostic.crash.exception.code", 1),
+    intAttribute("metrickit.diagnostic.crash.exception.signal", 11),
+    stringAttribute(
+      "metrickit.diagnostic.crash.exception.signal.name",
+      "SIGSEGV",
+    ),
+    stringAttribute(
+      "metrickit.diagnostic.crash.exception.signal.description",
+      "segmentation violation",
+    ),
+    intAttribute("metrickit.diagnostic.crash.exception.mach_exception.type", 1),
+    stringAttribute(
+      "metrickit.diagnostic.crash.exception.mach_exception.name",
+      "EXC_BAD_ACCESS",
+    ),
+    stringAttribute(
+      "metrickit.diagnostic.crash.exception.mach_exception.description",
+      "Could not access memory",
+    ),
+    stringAttribute("exception.type", "EXC_BAD_ACCESS"),
+    stringAttribute("exception.message", "Could not access memory"),
+    stringAttribute("exception.stacktrace", METRICKIT_CRASH_TREE),
+    stringAttribute("session.id", IOS_SESSION_ID),
+  ];
+}
+
+function metricKitHangAttributes(seconds: number): Array<OtlpAttribute> {
+  return [
+    stringAttribute("name", "metrickit.diagnostic.hang"),
+    doubleAttribute("metrickit.diagnostic.hang.hang_duration", seconds),
+    stringAttribute("exception.stacktrace", METRICKIT_HANG_TREE),
+    stringAttribute("session.id", IOS_SESSION_ID),
+  ];
+}
+
+/*
+ * One MetricKit diagnostic as opentelemetry-swift exports it: the scope
+ * "MetricKit", a resource from its default providers, and the event name
+ * field only when `eventName` is given (2.4.1 and later).
+ */
+function iosLogsRequest(data: {
+  eventName?: string;
+  attributes: Array<OtlpAttribute>;
+}): TelemetryRequest {
+  const record: JSONObject = {
+    timeUnixNano: `${Date.now()}000000`,
+    observedTimeUnixNano: `${Date.now()}000000`,
+    attributes: data.attributes,
+  };
+
+  if (data.eventName) {
+    record["eventName"] = data.eventName;
+  }
+
+  return {
+    projectId: PROJECT_ID,
+    headers: {},
+    body: {
+      resourceLogs: [
+        {
+          resource: {
+            attributes: [
+              stringAttribute("service.name", "Storefront"),
+              stringAttribute("service.version", "4.2 (812)"),
+              stringAttribute("device.model.identifier", "iPhone15,2"),
+              stringAttribute(
+                "device.id",
+                "8C1A0C4E-0E5B-4F3D-9F0A-2B6C7D8E9F10",
+              ),
+              stringAttribute("os.type", "darwin"),
+              stringAttribute("os.name", "iOS"),
+              stringAttribute("os.version", "17.5.1"),
+              stringAttribute("telemetry.sdk.language", "swift"),
+            ],
+          },
+          scopeLogs: [
+            {
+              scope: { name: "MetricKit" },
               logRecords: [record],
             },
           ],
@@ -332,6 +483,87 @@ describe("A mobile app's crashes and ANRs reach Exceptions as unhandled", () => 
     });
   });
 
+  /*
+   * #9716: OpenTelemetry Android 1.1 and later set app.installation.id on
+   * the resource, a UUID kept for as long as the app stays installed. The
+   * crash's occurrence keeps it, as it keeps the session, so the Overview
+   * counts the installs a crash happened on as it counts its sessions.
+   */
+  describe("the install it happened on", () => {
+    const INSTALLATION_ID: string = "1b4e28ba-2fa1-11d2-883f-0016d3cca427";
+
+    test("a crash keeps its resource's app.installation.id", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "app.crash",
+          attributes: crashAttributes(),
+          resourceAttributes: [
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      const row: JSONObject = onlyRow(exceptionInsertSpy);
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+
+      expect(attributes["resource.app.installation.id"]).toBe(INSTALLATION_ID);
+      expect(row["attributeKeys"]).toContain("resource.app.installation.id");
+      // Beside what the occurrence kept before.
+      expect(attributes["event.name"]).toBe("app.crash");
+    });
+
+    test("an ANR keeps it too", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "device.anr",
+          attributes: [
+            stringAttribute("exception.stacktrace", MAIN_THREAD_STACK),
+          ],
+          resourceAttributes: [
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      expect(
+        (onlyRow(exceptionInsertSpy)["attributes"] as JSONObject)[
+          "resource.app.installation.id"
+        ],
+      ).toBe(INSTALLATION_ID);
+    });
+
+    test("an SDK that sets none adds none", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "app.crash",
+          attributes: crashAttributes(),
+        }),
+      );
+
+      const attributes: JSONObject = onlyRow(exceptionInsertSpy)[
+        "attributes"
+      ] as JSONObject;
+
+      expect(attributes).not.toHaveProperty("resource.app.installation.id");
+    });
+
+    test("one the record sets itself, not its resource, is not an install", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "app.crash",
+          attributes: [
+            ...crashAttributes(),
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      expect(onlyRow(exceptionInsertSpy)["attributes"]).not.toHaveProperty(
+        "resource.app.installation.id",
+      );
+    });
+  });
+
   describe("an ANR (device.anr)", () => {
     test("is an unhandled exception named ANR, with the main thread's stack", async () => {
       await ingest(
@@ -379,6 +611,141 @@ describe("A mobile app's crashes and ANRs reach Exceptions as unhandled", () => 
       const rows: Array<JSONObject> = insertedRows(exceptionInsertSpy);
       expect(rows).toHaveLength(2);
       expect(rows[0]!["fingerprint"]).toBe(rows[1]!["fingerprint"]);
+    });
+  });
+
+  /*
+   * #9712: an iOS app's crashes and hangs, as opentelemetry-swift's MetricKit
+   * instrumentation sends them (MetricKitInstrumentation.swift's
+   * reportDiagnostics): one log record per Apple diagnostic, under the scope
+   * "MetricKit", its name in the `name` attribute and - from 2.4.1 - in the
+   * record's event name field too; the session the Sessions processor puts
+   * on every record; a resource from opentelemetry-swift's default resource
+   * providers (SDKResourceExtension).
+   */
+  describe("an iOS app's MetricKit diagnostics", () => {
+    test("a crash is an unhandled exception with the Mach exception it died of", async () => {
+      await ingest(
+        iosLogsRequest({
+          eventName: "metrickit.diagnostic.crash",
+          attributes: metricKitCrashAttributes(),
+        }),
+      );
+
+      const row: JSONObject = onlyRow(exceptionInsertSpy);
+      expect(row["exceptionType"]).toBe("EXC_BAD_ACCESS");
+      expect(row["message"]).toBe("Could not access memory");
+      expect(row["escaped"]).toBe(true);
+      expect(row["primaryEntityId"]).toBe(RUM_APPLICATION_ID.toString());
+      expect(row["sessionId"]).toBe(IOS_SESSION_ID);
+      // Readable: the crashed thread first, never the JSON tree.
+      expect(String(row["stackTrace"]).split("\n")[0]).toBe(
+        "Thread 0 Crashed:",
+      );
+      expect(String(row["stackTrace"])).toContain(
+        "Storefront <70B89F27-1634-3580-A695-57CDB41D7743>",
+      );
+      expect((row["attributes"] as JSONObject)["event.name"]).toBe(
+        "metrickit.diagnostic.crash",
+      );
+
+      expect(upsertedPayloads).toHaveLength(1);
+      expect(upsertedPayloads[0]!.unhandled).toBe(true);
+      expect(upsertedPayloads[0]!.exceptionType).toBe("EXC_BAD_ACCESS");
+    });
+
+    test("2.3.0, which named the crash only in its name attribute, is read the same", async () => {
+      await ingest(
+        iosLogsRequest({
+          attributes: metricKitCrashAttributes(),
+        }),
+      );
+
+      const row: JSONObject = onlyRow(exceptionInsertSpy);
+      expect(row["exceptionType"]).toBe("EXC_BAD_ACCESS");
+      expect(row["escaped"]).toBe(true);
+      expect((row["attributes"] as JSONObject)["event.name"]).toBe(
+        "metrickit.diagnostic.crash",
+      );
+    });
+
+    test("2.3.0's log record is found by its event name too", async () => {
+      await ingest(
+        iosLogsRequest({
+          attributes: metricKitCrashAttributes(),
+        }),
+      );
+
+      const log: JSONObject = onlyRow(logInsertSpy);
+      expect((log["attributes"] as JSONObject)["event.name"]).toBe(
+        "metrickit.diagnostic.crash",
+      );
+      // What the SDK sent is kept as it was.
+      expect((log["attributes"] as JSONObject)["name"]).toBe(
+        "metrickit.diagnostic.crash",
+      );
+    });
+
+    test("a hang is an unhandled exception named Hang, which keeps how long it lasted", async () => {
+      await ingest(
+        iosLogsRequest({
+          eventName: "metrickit.diagnostic.hang",
+          attributes: metricKitHangAttributes(3.2),
+        }),
+      );
+
+      const row: JSONObject = onlyRow(exceptionInsertSpy);
+      expect(row["exceptionType"]).toBe(HANG_EXCEPTION_TYPE);
+      expect(row["message"]).toBe(HANG_EXCEPTION_MESSAGE);
+      expect(row["escaped"]).toBe(true);
+      expect(String(row["stackTrace"]).split("\n")[0]).toBe("Thread 0 Hung:");
+      expect(row["attributes"]).toEqual({
+        "exception.source": "log",
+        "log.severityText": "Unspecified",
+        "event.name": "metrickit.diagnostic.hang",
+        "metrickit.diagnostic.hang.hang_duration": "3.2",
+      });
+
+      expect(upsertedPayloads[0]!.unhandled).toBe(true);
+      expect(upsertedPayloads[0]!.exceptionType).toBe(HANG_EXCEPTION_TYPE);
+    });
+
+    test("two hangs in the same place are one exception, however long each was", async () => {
+      await ingest(
+        iosLogsRequest({
+          eventName: "metrickit.diagnostic.hang",
+          attributes: metricKitHangAttributes(0.4),
+        }),
+      );
+      await ingest(
+        iosLogsRequest({
+          eventName: "metrickit.diagnostic.hang",
+          attributes: metricKitHangAttributes(8.1),
+        }),
+      );
+
+      const rows: Array<JSONObject> = insertedRows(exceptionInsertSpy);
+      expect(rows).toHaveLength(2);
+      expect(rows[0]!["fingerprint"]).toBe(rows[1]!["fingerprint"]);
+    });
+
+    test("MetricKit's other diagnostics make no exception, and are found by their event name", async () => {
+      await ingest(
+        iosLogsRequest({
+          attributes: [
+            stringAttribute("name", "metrickit.diagnostic.cpu_exception"),
+            doubleAttribute(
+              "metrickit.diagnostic.cpu_exception.total_cpu_time",
+              92.5,
+            ),
+          ],
+        }),
+      );
+
+      expect(insertedRows(exceptionInsertSpy)).toHaveLength(0);
+      expect(
+        (onlyRow(logInsertSpy)["attributes"] as JSONObject)["event.name"],
+      ).toBe("metrickit.diagnostic.cpu_exception");
     });
   });
 

@@ -6,6 +6,7 @@ import EvalCorpus, {
 import EvalScores, {
   EvalScore,
   EvalScoreReport,
+  GradeAgreement,
   MINIMUM_TRUSTWORTHY_CORPUS_SIZE,
 } from "Common/Server/Utils/AI/Eval/EvalScores";
 import {
@@ -43,7 +44,10 @@ import fs from "fs";
  * LABELED investigation runs — a human verdict or an auto-grade — with their
  * recorded AIRunEvent trails), computes the four G3 scores from the
  * recordings (NO LLM is re-run), prints a report and writes the corpus to
- * ./eval-corpus.json (gitignored).
+ * ./eval-corpus.json (gitignored). The report also says how often the
+ * automatic grade agrees with the responders who judged the same runs, for
+ * incidents and alerts apart: the check to make before relying on alert
+ * grades (#7765).
  *
  * REPLAY (--replay; issue #6800): runs recent recorded investigations again
  * - today's prompt and the model named on the command line, on the evidence
@@ -96,6 +100,28 @@ function formatScore(score: EvalScore): string {
   return `${percent}%  (${score.numerator}/${score.denominator})`;
 }
 
+/*
+ * The automatic grade beside the responders' verdicts (#7765, "check the
+ * result"): rely on a subject's grades only once enough of its runs were
+ * judged both ways and they mostly agree.
+ */
+function describeGradeAgreement(
+  name: string,
+  agreement: GradeAgreement,
+): Array<string> {
+  const lines: Array<string> = [
+    `  ${name}  ${formatScore(agreement.agreement)}   graded Match but rejected: ${agreement.matchButRejectedCount}, graded Mismatch but confirmed: ${agreement.mismatchButConfirmedCount}, graded Partial: ${agreement.partialCount}`,
+  ];
+
+  if (agreement.sampleTooSmall) {
+    lines.push(
+      `             fewer than ${MINIMUM_TRUSTWORTHY_CORPUS_SIZE} runs judged both ways: too few to rely on this grade yet`,
+    );
+  }
+
+  return lines;
+}
+
 function printReport(report: EvalScoreReport): void {
   const lines: Array<string> = [
     "",
@@ -108,6 +134,11 @@ function printReport(report: EvalScoreReport): void {
     `  Citation grounding rate    ${formatScore(report.citationGroundingRate)}   posted analyses backed by >=1 server-minted citation`,
     `  Tool selection accuracy    ${formatScore(report.toolSelectionAccuracy)}   data-bearing tool calls / finished tool calls, aggregated across the corpus`,
     `  Inconclusive recall        ${formatScore(report.inconclusiveRecall)}   human-Rejected cases the deterministic evidence floor would have flagged`,
+    "",
+    "Does the automatic grade agree with responders? (runs judged both ways: Match = Confirmed, Mismatch = Rejected)",
+    ...describeGradeAgreement("Incidents", report.gradeAgreement.incidents),
+    ...describeGradeAgreement("Alerts   ", report.gradeAgreement.alerts),
+    ...describeGradeAgreement("All      ", report.gradeAgreement.all),
     "",
   ];
 

@@ -27,9 +27,15 @@ import InvestigationBenchmark, {
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/InvestigationBenchmark";
 import BENCHMARK_SCENARIOS from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScenarios";
 import {
+  BenchmarkExpectationKind,
   BenchmarkScenario,
   BenchmarkToolResponse,
+  getScenarioExpectationKind,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScenario";
+import AIConfidenceSignal, {
+  CONFIDENCE_CLASSIFICATION_MAX_TOKENS,
+  ConfidenceClassificationToken,
+} from "../../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import BenchmarkScorer, {
   BenchmarkScore,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScorer";
@@ -155,6 +161,47 @@ const KEY_EVIDENCE: { [scenarioId: string]: Array<string> } = {
     "invoice-worker spans",
     "invoice-worker consumer group",
     "Consumer lag vs baseline",
+  ],
+  "orders-api-noisy-neighbor-container": [
+    "Containers of Docker host docker-prod-2",
+    "docker-prod-2 CPU by state",
+    "docker-prod-2 CPU by container",
+    "Host CPU vs baseline",
+    "media-reindex logs",
+    "Logs matching reindex",
+    "Alerts",
+  ],
+  // Where the evidence names no cause: what shows nothing explains it.
+  "checkout-latency-blip-no-cause": [
+    "Checkout latency",
+    "checkout-service CPU and memory",
+    "Checkout latency vs baseline",
+    "Top exceptions",
+    "Logs matching error",
+    "Trace 7f3a1c9e5b2d4f8a9c6e1b3d5f7a9c2e",
+    "Spans",
+  ],
+  // Two causes: each one's own evidence.
+  "search-slow-cache-ttl-and-lost-node": [
+    "Config release cfg-8840",
+    "Search results cache hit ratio",
+    "Elasticsearch cluster nodes and shards",
+    "Elasticsearch node CPU",
+    "search-es logs",
+    "Logs matching es-data-3",
+    "Logs matching ttl",
+    "search-service logs",
+    "Cloud resources",
+    "Cloud resource es-data-3",
+    "Alerts",
+  ],
+  "payments-recurrence-fix-does-not-apply": [
+    "Top exceptions",
+    "Code behind exception exc-31af",
+    "src/charges/amounts.ts",
+    "Deploy payments-api v5.3.0",
+    "payments-api logs",
+    "Logs matching AmountPrecisionError",
   ],
 };
 
@@ -449,11 +496,51 @@ describe("naming the cause on evidence that is not the fault's fails", () => {
   );
 });
 
+/*
+ * The judge reads a scenario that names a cause against it, in the
+ * production grader's words, and one whose evidence names no cause as
+ * production's confidence classifier reads an investigation (#7766): its
+ * INCONCLUSIVE is the right answer there, and a confident verdict a wrong
+ * one.
+ */
+function isNoCause(scenario: BenchmarkScenario): boolean {
+  return (
+    getScenarioExpectationKind(scenario) ===
+    BenchmarkExpectationKind.Inconclusive
+  );
+}
+
+// What the judge says of a right answer, and of a wrong one, for this scenario.
+function rightVerdict(scenario: BenchmarkScenario): string {
+  return isNoCause(scenario) ? "INCONCLUSIVE" : "MATCH";
+}
+
+function wrongVerdict(scenario: BenchmarkScenario): string {
+  return isNoCause(scenario) ? "NO_CODE_FIX" : "MISMATCH";
+}
+
+// The judge's reading as the score reports it.
+function judgeReadingOf(
+  scenario: BenchmarkScenario,
+  verdict: string | null,
+): Partial<BenchmarkScore> {
+  if (isNoCause(scenario)) {
+    return { judgeClassification: verdict as ConfidenceClassificationToken };
+  }
+
+  return {
+    judgeGrade:
+      verdict === null
+        ? null
+        : (InvestigationGrader.parseAutoGradeToken(verdict) as AIRunAutoGrade),
+  };
+}
+
 describe("a judge grades the answer against the planted cause", () => {
   test.each(SCENARIO_CASES)(
-    "%s: a MATCH on cited key evidence passes, and the judge read the planted cause and the answer",
+    "%s: the right verdict on cited key evidence passes, and the judge read the answer in production's words",
     async (_id: string, scenario: BenchmarkScenario) => {
-      const judge: ScriptedModel = judgeSaying("MATCH");
+      const judge: ScriptedModel = judgeSaying(rightVerdict(scenario));
       const result: BenchmarkScenarioResult = await play({
         scenario,
         responses: [keyResponseOf(scenario)],
@@ -464,27 +551,42 @@ describe("a judge grades the answer against the planted cause", () => {
       });
 
       expect(result.error).toBeUndefined();
-      expect(result.score?.judgeGrade).toBe(AIRunAutoGrade.Match);
-      expect(result.score?.passed).toBe(true);
+      expect(result.score).toEqual(
+        expect.objectContaining({
+          ...judgeReadingOf(scenario, rightVerdict(scenario)),
+          passed: true,
+        }),
+      );
       expect(judge.calls).toHaveLength(1);
 
       const call: ObservabilityAssistantModelCall = judge.calls[0]!;
 
       expect(call.tools).toBeUndefined();
-      expect(call.maxTokens).toBe(GRADING_MAX_TOKENS);
       expect(call.temperature).toBe(0);
-      // The production grader's own words, the planted root cause as the humans' one.
-      expect(call.messages).toEqual(
-        InvestigationGrader.getGradingMessages({
-          rootCause: scenario.expectation.rootCause,
-          analysisMarkdown: result.analysisMarkdown,
-        }),
-      );
+
+      if (isNoCause(scenario)) {
+        // Production's confidence classifier, word for word.
+        expect(call.maxTokens).toBe(CONFIDENCE_CLASSIFICATION_MAX_TOKENS);
+        expect(call.messages).toEqual(
+          AIConfidenceSignal.getClassificationMessages({
+            analysisMarkdown: result.analysisMarkdown,
+          }),
+        );
+      } else {
+        // The production grader's own words, the planted root cause as the humans' one.
+        expect(call.maxTokens).toBe(GRADING_MAX_TOKENS);
+        expect(call.messages).toEqual(
+          InvestigationGrader.getGradingMessages({
+            rootCause: scenario.expectation.rootCause,
+            analysisMarkdown: result.analysisMarkdown,
+          }),
+        );
+      }
     },
   );
 
   test.each(SCENARIO_CASES)(
-    "%s: a MATCH passes an answer that names the cause in other words",
+    "%s: the right verdict passes an answer in other words",
     async (_id: string, scenario: BenchmarkScenario) => {
       const score: BenchmarkScore | undefined = (
         await play({
@@ -493,14 +595,14 @@ describe("a judge grades the answer against the planted cause", () => {
           answer: ([citationId]: Array<string | null>): string => {
             return report(OTHER_WORDS_ANSWER, citationId || null);
           },
-          judge: judgeSaying("MATCH"),
+          judge: judgeSaying(rightVerdict(scenario)),
         })
       ).score;
 
       expect(score).toEqual(
         expect.objectContaining({
           namesCause: false,
-          judgeGrade: AIRunAutoGrade.Match,
+          ...judgeReadingOf(scenario, rightVerdict(scenario)),
           passed: true,
         }),
       );
@@ -508,7 +610,7 @@ describe("a judge grades the answer against the planted cause", () => {
   );
 
   test.each(SCENARIO_CASES)(
-    "%s: a MISMATCH fails the answer, however right its words",
+    "%s: the wrong verdict fails the answer, however right its words",
     async (_id: string, scenario: BenchmarkScenario) => {
       const score: BenchmarkScore | undefined = (
         await play({
@@ -517,7 +619,7 @@ describe("a judge grades the answer against the planted cause", () => {
           answer: ([citationId]: Array<string | null>): string => {
             return rightAnswer(scenario, citationId || null);
           },
-          judge: judgeSaying("MISMATCH"),
+          judge: judgeSaying(wrongVerdict(scenario)),
         })
       ).score;
 
@@ -525,7 +627,7 @@ describe("a judge grades the answer against the planted cause", () => {
         expect.objectContaining({
           namesCause: true,
           citesKeyEvidence: true,
-          judgeGrade: AIRunAutoGrade.Mismatch,
+          ...judgeReadingOf(scenario, wrongVerdict(scenario)),
           passed: false,
         }),
       );
@@ -533,7 +635,7 @@ describe("a judge grades the answer against the planted cause", () => {
   );
 
   test.each(SCENARIO_CASES)(
-    "%s: a judge that fails leaves no grade, says why, and the run still ends with a score",
+    "%s: a judge that fails leaves no reading, says why, and the run still ends with a score",
     async (_id: string, scenario: BenchmarkScenario) => {
       const result: BenchmarkScenarioResult = await play({
         scenario,
@@ -551,7 +653,7 @@ describe("a judge grades the answer against the planted cause", () => {
         expect.objectContaining({
           namesCause: true,
           citesKeyEvidence: true,
-          judgeGrade: null,
+          ...judgeReadingOf(scenario, null),
           passed: false,
         }),
       );

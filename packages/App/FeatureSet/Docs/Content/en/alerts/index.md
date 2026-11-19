@@ -126,7 +126,7 @@ Open the alert. Its header shows its state, its severity, how long it has lasted
 - **Change state to**, in the **⋯** menu beside them, moves it to a state of your own, such as "Investigating".
 - **Declare Incident** opens a new incident prefilled from the alert, when the problem turns out to affect users. See [Linked Alerts](/docs/incidents/linked-alerts).
 
-A move to another state asks you to confirm, with an optional private note folded under **Add a private note**. What each state does is on [Alert States & Severities](/docs/alerts/states-and-severities).
+A move to another state asks you to confirm, with an optional private note folded under **Add a private note**. Resolving it from its header also folds **Add the root cause**: why it happened, which becomes the alert's root cause and what OneUptime AI's investigation of it is graded against. What each state does is on [Alert States & Severities](/docs/alerts/states-and-severities).
 
 While you work it, write down what you learn as **Private Notes**, fill in its **Root Cause** and **Remediation** pages, and add **Owners**. The **Actions** menu of the **Alert Feed** also runs a runbook with **Execute Runbook**, or pages more people with **Execute On-Call Policy**.
 

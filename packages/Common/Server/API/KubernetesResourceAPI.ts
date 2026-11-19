@@ -23,7 +23,9 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import { KubernetesComplianceResponse } from "../../Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
+import ProductKey from "../../Types/Product/ProductKey";
 import KubernetesClusterCompliance from "../Utils/Kubernetes/KubernetesClusterCompliance";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 
 // The kinds the inventory holds, and so the only ones a part read asks for.
 export const KUBERNETES_PART_KINDS: ReadonlySet<string> = new Set<string>([
@@ -55,6 +57,8 @@ export const KUBERNETES_PART_KINDS: ReadonlySet<string> = new Set<string>([
  *   POST /kubernetes-resource/inventory-summary/:clusterId
  *   POST /kubernetes-resource/needs-attention/:clusterId
  *   POST /kubernetes-resource/part/:clusterId  { kind, name, namespace? }
+ *   POST /kubernetes-resource/compliance/:clusterId  (refused while the
+ *        server has switched Kubernetes off)
  *
  * The standard CRUD endpoints (list / get) are still registered by
  * BaseAPI; the UI uses them via ModelAPI for detail-page reads.
@@ -123,12 +127,20 @@ export default class KubernetesResourceAPI extends BaseAPI<
      * How the cluster itself stands against the Pod Security Standards and
      * the CIS Kubernetes Benchmark, for its Compliance page (#9627,
      * KubernetesClusterCompliance): read by whoever may read the cluster.
+     *
+     * It changes nothing, but unlike the reads beside it, it sets Kubernetes
+     * to work: the server scores the cluster on request, up to 25,000 pods
+     * and every role and binding, for the cluster's own Compliance page and
+     * nothing else. So it is refused while the server has switched
+     * Kubernetes off (ServerProductRoutes, #7479), as a cloud connection's
+     * metric listings are.
      */
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/compliance/:clusterId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Kubernetes),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getCompliance(req, res);

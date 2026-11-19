@@ -168,9 +168,9 @@ RUM-telemetri er almindelige logs, metrikker og spor, så der er ingen separat R
 | Gruppe | Anbefalinger |
 | --- | --- |
 | Core Web Vitals | For en webapp: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
-| Fejl | App Crashes og App Not Responding (ANR) for en mobilapp, Failed User Operations for begge og Unhandled Browser Exceptions for en webapp. |
+| Fejl | App Crashes og App Not Responding (ANR) for en mobilapp samt deres rater, App Crash Rate og App ANR Rate, for en app med hundredvis af sessioner i timen; Failed User Operations for begge og Unhandled Browser Exceptions for en webapp. |
 | Ydeevne | For en mobilapp: Slow Cold Start, når en koldstart tager 5 sekunder eller mere, hvilket Android vitals regner som overdrevent, og Frozen Frames, når det tager længere end 700 ms at rendere en frame. |
-| Tilgængelighed | For en mobilapp: App Stopped Reporting, når appen ikke sender nogen spans i 30 minutter. |
+| Tilgængelighed | For en mobilapp: App Stopped Reporting, når appen ikke sender nogen spans i 30 minutter, og Device Stopped Reporting, når en af dens enheder ikke sender nogen i en time efter at have sendt nogle i den seneste uge. |
 | Sessionsafspilning | De fire [alarmer for lagerbudgettet](/docs/telemetry/session-replay#alarmer-for-lagerbudgettet), som advarer, før projektets daglige grænse eller applikationens månedlige budget er brugt op. De tilbydes, så snart applikationen har optaget en afspilning, og det månedlige par, når den også har et månedligt budget. |
 
 For at oprette din egen monitor skal du vælge den, der læser signalet:
