@@ -12,8 +12,16 @@ import {
 import {
   CEPH_CLUSTER_FULL_PERCENT,
   CEPH_CLUSTER_NEARFULL_PERCENT,
+  CEPH_OSD_FULL_PERCENT,
+  CEPH_OSD_NEARFULL_PERCENT,
+  CEPH_OSD_USAGE_THRESHOLDS,
   CEPH_READINGS_STALE_MS,
 } from "../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephHealth";
+import {
+  StorageUsageLevel,
+  StorageUsageThresholds,
+  getStorageUsageLevel,
+} from "Common/Utils/Storage/StorageUsage";
 
 /*
  * Source-level pins for the (i) tooltips on the IoT and Ceph pages: every
@@ -768,6 +776,44 @@ describe("Ceph OSD list", () => {
     );
   });
 
+  /*
+   * Used is the shared bar at Ceph's own nearfull and full ratios, past the
+   * line, as Ceph's ratios work: the lines its text names.
+   */
+  test("the Used column's lines are Ceph's nearfull and full ratios, the ones its text names", () => {
+    expect(
+      segment(
+        readCode("Pages/Ceph/Utils/CephPartFacts.ts"),
+        "export function getCephOsdStorageUsage(",
+        ");",
+      ),
+    ).toContain(
+      "getStorageUsage( { capacity: readings.totalBytes, used: readings.usedBytes }, CEPH_OSD_USAGE_THRESHOLDS,",
+    );
+    expect(CEPH_OSD_USAGE_THRESHOLDS).toEqual({
+      warningPercent: CEPH_OSD_NEARFULL_PERCENT,
+      criticalPercent: CEPH_OSD_FULL_PERCENT,
+      isPastLineOnly: true,
+    });
+    expect(CEPH_OSD_NEARFULL_PERCENT).toBe(85);
+    expect(CEPH_OSD_FULL_PERCENT).toBe(95);
+    expect(getStorageUsageLevel(85, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Normal,
+    );
+    expect(getStorageUsageLevel(85.1, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Warning,
+    );
+    expect(getStorageUsageLevel(95, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Warning,
+    );
+    expect(getStorageUsageLevel(95.1, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Critical,
+    );
+    expect(CEPH_METRIC_DESCRIPTIONS.osdUsedColumn).toContain(
+      "amber past Ceph's nearfull ratio (85%) and red past its full ratio (95%)",
+    );
+  });
+
   test("the built-in Status column is explained, and Class is not a metric", () => {
     expect(code).toContain(
       "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn, }}",
@@ -1076,12 +1122,33 @@ describe("Ceph daemons, Insights and Clusters list", () => {
     },
   );
 
+  /*
+   * The Capacity cell is the shared storage bar (#9539), at the Cluster Near
+   * Full and Cluster Full alerts' lines, past the line, as Ceph's ratios
+   * work - with no colours of its own beside the bar's. Read the way the bar
+   * reads them, those are the lines its text names.
+   */
   test("the Clusters list capacity lines are the alerts' ones its text names", () => {
     const code: string = readCode(PAGES["cephClusters"]!);
 
-    expect(code).toContain(
-      'pct > CEPH_CLUSTER_FULL_PERCENT ? "bg-red-500" : pct > CEPH_CLUSTER_NEARFULL_PERCENT ? "bg-amber-500" : "bg-emerald-500";',
+    expect(segment(code, 'title: "Capacity",', "},")).toContain(
+      "return renderCapacityBar(item.capacityUsedPercent);",
     );
+    const capacityBar: string = segment(code, "const renderCapacityBar", "};");
+    expect(capacityBar).toContain(
+      "<StorageUsageBar usage={getStorageUsage( { capacity: 100, used: capacityUsedPercent }, { warningPercent: CEPH_CLUSTER_NEARFULL_PERCENT, criticalPercent: CEPH_CLUSTER_FULL_PERCENT, isPastLineOnly: true, }, )} showAmount={false} />",
+    );
+    expect(capacityBar).not.toMatch(/bg-(red|amber|emerald)-\d+/);
+
+    const lines: StorageUsageThresholds = {
+      warningPercent: CEPH_CLUSTER_NEARFULL_PERCENT,
+      criticalPercent: CEPH_CLUSTER_FULL_PERCENT,
+      isPastLineOnly: true,
+    };
+    expect(getStorageUsageLevel(85, lines)).toBe(StorageUsageLevel.Normal);
+    expect(getStorageUsageLevel(85.1, lines)).toBe(StorageUsageLevel.Warning);
+    expect(getStorageUsageLevel(95, lines)).toBe(StorageUsageLevel.Warning);
+    expect(getStorageUsageLevel(95.1, lines)).toBe(StorageUsageLevel.Critical);
     expect(CEPH_METRIC_DESCRIPTIONS.clusterCapacity).toContain(
       "amber past 85% and red past 95%",
     );
