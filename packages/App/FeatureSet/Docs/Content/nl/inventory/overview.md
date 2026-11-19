@@ -128,6 +128,12 @@ Een apparaat dat al 30 minuten niet heeft ingecheckt, is **Offline** en laat zie
 
 Een apparaat dat uit Esper is verwijderd, krijgt de status **Verwijderd**, en zijn item wordt gearchiveerd: het verdwijnt uit de lijst en wacht onder **Geavanceerd → Gearchiveerd**. Een apparaat dat terugkomt in Esper, komt terug in de lijst. 30 dagen nadat het is vertrokken, wordt het apparaat verwijderd, en zijn item ook, tenzij telemetrie of jij er iets aan hebt toegevoegd.
 
+### Een waarschuwing krijgen als een apparaat niet meer incheckt
+
+Klik bij **Beheerde apparaten** op **Waarschuwingen instellen** in de rij van de koppeling en maak **Esper Device Stopped Checking In** aan. Die opent een waarschuwing voor elk apparaat dat al meer dan een uur niet bij Esper heeft ingecheckt, genoemd naar het apparaat, en lost die op zodra het apparaat weer incheckt.
+
+Elke lezing van de koppeling legt als de metriek `oneuptime.managed_device.check_in.age` vast hoeveel minuten geleden elk apparaat voor het laatst incheckte, en de monitor controleert elke 5 minuten de nieuwste waarde van elk apparaat. Een apparaat waarop ook de Android Agent draait, wordt aan **Host Stopped Reporting** overgelaten, zodat het nooit twee keer waarschuwt, en een apparaat dat uit Esper is verwijderd, lost zijn waarschuwing op. Een lezing die mislukt, legt niets vast, dus tot de volgende wordt er geen waarschuwing geopend of opgelost. Verhoog voor een vloot die 's nachts uit staat de drempel van de monitor.
+
 ## Iets handmatig toevoegen
 
 Voeg een item toe voor iets wat OneUptime nooit zelf zal zien, zodat een afhankelijkheid ergens echt eindigt en het ding je aangepaste velden kan dragen.

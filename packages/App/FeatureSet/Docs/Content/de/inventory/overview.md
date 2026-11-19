@@ -128,6 +128,12 @@ Ein Gerät, das sich 30 Minuten lang nicht bei Esper gemeldet hat, ist **Offline
 
 Ein aus Esper entferntes Gerät wird als **Entfernt** markiert, und sein Element wird archiviert: Es verschwindet aus der Liste und wartet unter **Erweitert → Archiviert**. Ein Gerät, das zu Esper zurückkehrt, kehrt auch in die Liste zurück. 30 Tage, nachdem es Esper verlassen hat, wird das Gerät gelöscht und mit ihm sein Element, es sei denn, Telemetrie oder Sie haben dem Element etwas hinzugefügt.
 
+### Eine Warnung erhalten, wenn sich ein Gerät nicht mehr meldet
+
+Klicken Sie unter **Verwaltete Geräte** in der Zeile der Verbindung auf **Warnungen einrichten**, und erstellen Sie **Esper Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einer Stunde nicht bei Esper gemeldet hat, eine eigene Warnung, die nach dem Gerät benannt ist, und behebt sie, sobald sich das Gerät wieder meldet.
+
+Jeder Lesevorgang der Verbindung hält als Metrik `oneuptime.managed_device.check_in.age` fest, vor wie vielen Minuten sich jedes Gerät zuletzt gemeldet hat, und der Monitor prüft alle 5 Minuten den neuesten Wert jedes Geräts. Ein Gerät, auf dem auch der Android-Agent läuft, bleibt **Host Stopped Reporting** überlassen, sodass es nie doppelt warnt, und die Warnung eines aus Esper entfernten Geräts wird behoben. Ein fehlgeschlagener Lesevorgang hält nichts fest, sodass bis zum nächsten keine Warnung geöffnet oder behoben wird. Für eine Flotte, die nachts ausgeschaltet wird, erhöhen Sie den Schwellenwert des Monitors.
+
 ## Etwas von Hand hinzufügen
 
 Fügen Sie ein Element für etwas hinzu, das OneUptime nie von selbst sehen wird, damit eine Abhängigkeit an einem realen Ort endet und das Ding Ihre benutzerdefinierten Felder tragen kann.

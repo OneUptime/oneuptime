@@ -128,6 +128,12 @@ Um dispositivo que não faz check-in há 30 minutos fica **Offline** e mostra h�
 
 Um dispositivo removido do Esper é marcado como **Removido**, e o item dele é arquivado: sai da lista e fica aguardando em **Avançado → Arquivado**. Um dispositivo que volta ao Esper volta à lista. 30 dias depois de sair, o dispositivo é excluído, e o item dele também, a menos que a telemetria ou você tenham acrescentado algo a ele.
 
+### Receber um alerta quando um dispositivo deixar de fazer check-in
+
+Em **Dispositivos gerenciados**, clique em **Configurar alertas** na linha da conexão e crie **Esper Device Stopped Checking In**. Ele abre um alerta para cada dispositivo que não faz check-in no Esper há mais de uma hora, com o nome do dispositivo, e o resolve assim que o dispositivo volta a fazer check-in.
+
+Cada leitura da conexão registra há quantos minutos cada dispositivo fez o último check-in, como a métrica `oneuptime.managed_device.check_in.age`, e o monitor verifica o valor mais recente de cada dispositivo a cada 5 minutos. Um dispositivo que também executa o Android Agent fica a cargo de **Host Stopped Reporting**, então nunca alerta duas vezes, e um dispositivo removido do Esper resolve o seu alerta. Uma leitura que falha não registra nada, então nenhum alerta abre nem se resolve até a próxima. Para uma frota desligada à noite, aumente o limite do monitor.
+
 ## Adicionar algo manualmente
 
 Adicione um item para algo que o OneUptime nunca verá sozinho, para que uma dependência termine em algo real e essa coisa possa carregar os seus campos personalizados.

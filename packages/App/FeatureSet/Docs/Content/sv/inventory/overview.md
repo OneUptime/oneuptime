@@ -128,6 +128,12 @@ En enhet som inte har checkat in på 30 minuter är **Offline** och visar hur l�
 
 En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt arkiveras: det försvinner från listan och väntar under **Avancerad → Arkiverad**. En enhet som kommer tillbaka till Esper kommer tillbaka till listan. 30 dagar efter att den försvann raderas enheten, och dess objekt likaså, såvida inte telemetri eller du har lagt till något i det.
 
+### Få ett larm när en enhet slutar checka in
+
+Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Esper på mer än en timme, namngivet efter enheten, och löser det så snart enheten checkar in igen.
+
+Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
+
 ## Lägg till något manuellt
 
 Lägg till ett objekt för något som OneUptime aldrig kommer att se på egen hand, så att ett beroende slutar någonstans på riktigt och saken kan bära dina anpassade fält.

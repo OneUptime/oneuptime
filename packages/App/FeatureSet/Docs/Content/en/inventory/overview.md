@@ -128,6 +128,12 @@ A device that has not checked in for 30 minutes is **Offline**, and says how lon
 
 A device removed from Esper is marked **Removed**, and its item is archived: it leaves the list, and waits under **Advanced → Archived**. A device that comes back to Esper comes back to the list. 30 days after it left, the device is deleted, and so is its item, unless telemetry or you added something to it.
 
+### Get an alert when a device stops checking in
+
+On **Managed Devices**, click **Set up alerts** on the connection's row, and create **Esper Device Stopped Checking In**. It opens one alert for each device that has not checked in with Esper for more than an hour, named after the device, and resolves it once the device checks in again.
+
+Each read of the connection records how many minutes ago each device last checked in, as the metric `oneuptime.managed_device.check_in.age`, and the monitor checks each device's latest reading every 5 minutes. A device that also runs the Android Agent is left to **Host Stopped Reporting**, so it never alerts twice, and a device removed from Esper resolves its alert. A read that fails records nothing, so no alert opens or resolves until the next one. For a fleet that is switched off at night, raise the monitor's threshold.
+
 ## Add something by hand
 
 Add an item for something OneUptime will never see on its own, so that a dependency ends somewhere real and the thing can carry your custom fields.

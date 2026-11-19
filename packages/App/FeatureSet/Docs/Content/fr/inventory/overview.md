@@ -128,6 +128,12 @@ Un appareil qui n'a pas contacté Esper depuis 30 minutes est **Hors ligne**, et
 
 Un appareil retiré d'Esper est marqué **Retiré**, et son élément est archivé : il quitte la liste, et attend sous **Avancé → Archivé**. Un appareil qui revient dans Esper revient dans la liste. 30 jours après son départ, l'appareil est supprimé, et son élément aussi, sauf si quelque chose y a été ajouté, par la télémétrie ou par vous.
 
+### Recevoir une alerte quand un appareil ne se manifeste plus
+
+Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Esper depuis plus d'une heure, au nom de l'appareil, et la résout dès que l'appareil se manifeste à nouveau.
+
+Chaque lecture de la connexion enregistre il y a combien de minutes chaque appareil a contacté Esper pour la dernière fois, sous la forme de la métrique `oneuptime.managed_device.check_in.age`, et le moniteur vérifie la dernière valeur de chaque appareil toutes les 5 minutes. Un appareil qui exécute aussi l'Agent Android est laissé à **Host Stopped Reporting**, si bien qu'il n'alerte jamais deux fois, et un appareil retiré d'Esper résout son alerte. Une lecture qui échoue n'enregistre rien, si bien qu'aucune alerte ne s'ouvre ni ne se résout avant la suivante. Pour une flotte éteinte la nuit, relevez le seuil du moniteur.
+
 ## Ajouter quelque chose à la main
 
 Ajoutez un élément pour quelque chose que OneUptime ne verra jamais de lui-même, afin qu'une dépendance aboutisse à quelque chose de réel et que la chose puisse porter vos champs personnalisés.
