@@ -1,4 +1,7 @@
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import ServiceKnowledgeCard from "../../../Components/ServiceAiMemory/ServiceKnowledgeCard";
+import ServiceAiNotesTable from "../../../Components/ServiceAiMemory/ServiceAiNotesTable";
+import useAiOffered from "../../../Utils/UseAiOffered";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageComponentProps from "../../PageComponentProps";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -94,6 +97,8 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  // OneUptime AI's memory of the service shows while the project uses AI.
+  const isAiOffered: boolean = useAiOffered();
 
   const [service, setService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -672,6 +677,24 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             { modelId: modelId },
           )}
         />
+        {/*
+         * What OneUptime AI learned about the service from its resolved
+         * incidents and alerts, read with the viewer's own permissions,
+         * and what the team told it (#7672): while the project uses AI.
+         */}
+        {isAiOffered ? (
+          <>
+            <ServiceKnowledgeCard
+              serviceId={modelId}
+              refreshToken={
+                lastRefreshedAt ? lastRefreshedAt.getTime() : undefined
+              }
+            />
+            <ServiceAiNotesTable serviceId={modelId} />
+          </>
+        ) : (
+          <></>
+        )}
         {/*
          * What Security Events found about it this week, for whoever
          * may read it (Components/SecurityConnections).
