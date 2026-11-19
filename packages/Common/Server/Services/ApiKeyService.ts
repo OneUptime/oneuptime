@@ -3,6 +3,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import DatabaseService from "./DatabaseService";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -213,6 +214,62 @@ export class Service extends DatabaseService<Model> {
      */
     this.apiKeyCache.clear();
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A KEY'S NEW VALUE GOES ONLY TO WHO COULD GIVE IT ALL IT HOLDS. A reset
+   * (resetApiKey) answers the key's new value to whoever made it, and with
+   * the value everything the key may do: its own permissions and the
+   * copies of its custom roles. Someone who could not give a key those
+   * permissions themselves would hold, through it, more than they were
+   * given - a Project Admin resetting the project's Project Owner key, or
+   * someone with Edit API Key using the key that gave a workflow its Run As
+   * (#9765) to change that workflow, which only that permission's holders
+   * may. So a write of the key is held to the grant ceiling each of the
+   * key's permissions met when it was given
+   * (ApiKeyPermissionService.assertCallerCanGrantPermission), for every
+   * permission it allows - a block only takes away. A key resetting itself
+   * holds all of its own. OneUptime's own writes, and a master admin, are
+   * not held to it, as they are not when they give a key a permission.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      updateBy.props.isRoot ||
+      updateBy.props.isMasterAdmin ||
+      data["apiKey"] === undefined
+    ) {
+      return;
+    }
+
+    const keys: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        name: true,
+      },
+    );
+
+    for (const key of keys) {
+      if (!key.id || !key.projectId) {
+        continue;
+      }
+
+      await ApiKeyPermissionService.assertCallerCanTakeKey({
+        apiKeyId: key.id,
+        apiKeyName: key.name?.toString() || "",
+        projectId: key.projectId,
+        props: updateBy.props,
+      });
+    }
   }
 
   /*
