@@ -32,7 +32,7 @@ A kind's fields are the Terraform resource's arguments, in camelCase, under `spe
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` shows the record as OneUptime has it, with its `id`. A field you leave out that OneUptime fills in, such as a default, is copied into `spec.forProvider` after the record is created, so that the next check finds nothing to change.
+`status.atProvider` shows the record as OneUptime has it, with its `id`. A field you leave out that OneUptime fills in, such as a default, is copied into `spec.forProvider` after the record is created, so that the next check finds nothing to change. A field OneUptime keeps up to date itself never is: see [Fields OneUptime keeps](#fields-oneuptime-keeps).
 
 ## Refer to other resources
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-To let the dashboard own a field after the record is created, write it in `spec.initProvider` instead of `spec.forProvider`: it is used to create the record and never put back. To let the dashboard own the whole record, leave `Update` out of its management policies: `["Observe", "Create", "Delete", "LateInitialize"]`.
+To let the dashboard own a field after the record is created, write it in `spec.initProvider` instead of `spec.forProvider`: the record is created with it, and the provider never copies it into `spec.forProvider` or puts it back. This works for every optional field; one the record needs, such as a monitor's `name`, belongs in `spec.forProvider`. To let the dashboard own the whole record, leave `Update` out of its management policies: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Fields OneUptime keeps
+
+Some fields are OneUptime's to keep up to date, and the provider leaves them to it: it never copies them into `spec.forProvider` and never puts them back.
+
+- A field only OneUptime writes, such as when a telemetry monitor last ran (`telemetryMonitorLastMonitorAt`) or how many nodes a Kubernetes cluster has (`nodeCount`), is in `status.atProvider` alone.
+- A field a record starts with, such as a monitor's `currentMonitorStatusId` or an incident's `currentIncidentStateId`, may be given to create the record, in `spec.initProvider` or `spec.forProvider`. After that OneUptime moves it, as a monitor's checks move its status, and `status.atProvider` shows where it is now.
+
+`kubectl explain` says so in the description of each field a record starts with. A resource whose `spec.forProvider` an earlier version of the provider filled with these fields stops fighting OneUptime by itself, with nothing to edit.
 
 ## Delete a resource
 

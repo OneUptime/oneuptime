@@ -1862,11 +1862,6 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     fields: [
       field("name", literal("PostgreSQL orders-db.internal:5432")),
       field(
-        "databaseIdentifier",
-        literal("postgresql|orders-db.internal:5432"),
-        "The engine and the endpoint, joined with | and :, as OneUptime keys it.",
-      ),
-      field(
         "dbSystem",
         literal("postgresql"),
         "The database engine, such as postgresql or mysql.",
@@ -1887,11 +1882,6 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "Queues are added when OneUptime first sees them in your telemetry. Create one only for a queue nothing reports on yet.",
     fields: [
       field("name", literal("orders.created")),
-      field(
-        "queueIdentifier",
-        literal("kafka||orders.created"),
-        "The broker, its scope and the destination, joined with |, as OneUptime keys it.",
-      ),
       field(
         "messagingSystem",
         literal("kafka"),
@@ -2070,9 +2060,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
 
   InventoryItem: {
     createNote:
-      "Most inventory items are discovered from telemetry. Add one by hand for something that sends none, such as a vendor's API: its type is external.service, external.database or appliance.",
-    terraformCannotCreate:
-      "OneUptime works out an inventory item's key from its name when it is created, so add new ones in the dashboard or with the API. Terraform can still manage the ones you have: bring them in below.",
+      "Most inventory items are discovered from telemetry. Add one by hand for something that sends none, such as a vendor's API: its type is external.service, external.database or appliance. OneUptime works out its key from its name.",
     fields: [
       field(
         "displayName",
@@ -2084,12 +2072,6 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         literal("external.service"),
         "What it is: external.service, external.database or appliance.",
       ),
-      field(
-        "entityKey",
-        literal("stripe-payments-api"),
-        "Required, but OneUptime replaces it with a key it works out from the name.",
-      ),
-      field("source", literal("manual"), "Where it came from: manual here."),
       field(
         "description",
         literal("Vendor-managed payments API. Sends no telemetry."),
