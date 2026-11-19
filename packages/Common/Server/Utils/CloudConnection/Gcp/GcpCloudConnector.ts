@@ -1388,6 +1388,7 @@ export default class GcpCloudConnector implements CloudConnector {
             projectId: string;
             metric: GcpKeyMetric;
           }): Promise<Array<GcpTimeSeries>> => {
+            // Read as a read reads it: a topic's first is a distribution's count.
             return await monitoring.listTimeSeries({
               projectId: ask.projectId,
               metricType: ask.metric.metricType,
@@ -1395,6 +1396,8 @@ export default class GcpCloudConnector implements CloudConnector {
               alignmentPeriodSeconds: 300,
               start,
               end,
+              metricLabels: ask.metric.metricLabels,
+              readAs: ask.metric.readAs,
               firstPageOnly: true,
             });
           },

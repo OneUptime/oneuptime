@@ -439,6 +439,54 @@ describe("testConnection", () => {
     );
   });
 
+  /*
+   * A topic's first metric is the count of its message sizes, a
+   * distribution (#9565): the test reads it as a read does, or it would
+   * find no topic.
+   */
+  test("finds a Pub/Sub topic by the count of its message sizes, as a read reads it", async () => {
+    const sizes: string = "pubsub.googleapis.com/topic/message_sizes";
+    const fake: FakeGcp = createFakeGcp({
+      series: {
+        [sizes]: [
+          {
+            metric: { type: sizes, labels: {} },
+            resource: {
+              type: "pubsub_topic",
+              labels: { project_id: PROJECT_ID, topic_id: "orders" },
+            },
+            points: [
+              {
+                interval: { endTime: "2026-10-21T12:00:00Z" },
+                value: { distributionValue: { count: "12", mean: 300 } },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result: CloudConnectionTestResult = await connector.testConnection(
+      settings(),
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
+    );
+
+    expect(result.resourceTypes).toEqual([{ type: "pubsub_topic", count: 1 }]);
+
+    const call: URL = fake.seriesCalls.find((url: URL): boolean => {
+      return metricTypeOf(url.searchParams.get("filter") || "") === sizes;
+    })!;
+
+    expect(call.searchParams.get("aggregation.perSeriesAligner")).toBe(
+      "ALIGN_SUM",
+    );
+  });
+
   test("nothing reporting is a warning", async () => {
     const fake: FakeGcp = createFakeGcp({});
 
