@@ -149,17 +149,20 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           icon={IconProp.Film}
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
         />
-        <TranslatedSentence
-          template={SIGNAL_MONITOR_SENTENCE}
-          slots={{
-            name:
-              signal.kind === "found" ? (
-                <bdi className="font-medium text-gray-900">{signal.name}</bdi>
-              ) : (
-                <InlineValueSkeleton widthClassName="w-24" />
-              ),
-          }}
-        />
+        {/* One item of the row: its words and the name, one line of text. */}
+        <span>
+          <TranslatedSentence
+            template={SIGNAL_MONITOR_SENTENCE}
+            slots={{
+              name:
+                signal.kind === "found" ? (
+                  <bdi className="font-medium text-gray-900">{signal.name}</bdi>
+                ) : (
+                  <InlineValueSkeleton widthClassName="w-24" />
+                ),
+            }}
+          />
+        </span>
       </span>
       {route && (
         <AppLink
