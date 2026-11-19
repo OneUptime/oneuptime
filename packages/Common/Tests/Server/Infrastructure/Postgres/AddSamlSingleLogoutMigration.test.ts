@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSamlSingleLogout1809185900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185900000-AddSamlSingleLogout";
+import { AddSamlSingleLogout1809186200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186200000-AddSamlSingleLogout";
 import GlobalSSO from "../../../../Models/DatabaseModels/GlobalSso";
 import InstanceSamlSigningKey from "../../../../Models/DatabaseModels/InstanceSamlSigningKey";
 import ProjectSSO from "../../../../Models/DatabaseModels/ProjectSso";
@@ -26,11 +26,11 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * against a fresh Postgres with every migration applied.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809185900000";
+const MIGRATION_TIMESTAMP: string = "1809186200000";
 const MIGRATION_BASE_NAME: string = "AddSamlSingleLogout";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddAIRunModelName1809185800000";
+const PREVIOUS_MIGRATION: string = "AddComplianceSettingNamespace1809186100000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -44,7 +44,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
       statements.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: MigrationInterface = new AddSamlSingleLogout1809185900000();
+  const migration: MigrationInterface = new AddSamlSingleLogout1809186200000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -55,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddSamlSingleLogout1809185900000", () => {
+describe("AddSamlSingleLogout1809186200000", () => {
   test("creates the signing key table, and adds the Sign Out URL and the switch, off, to both SAML provider tables", async () => {
     expect(await statementsOf("up")).toEqual([
       `CREATE TABLE "InstanceSamlSigningKey" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "privateKey" text NOT NULL, "certificate" text NOT NULL, CONSTRAINT "PK_3f0ac336cb8159663e3413d31cb" PRIMARY KEY ("_id"))`,
@@ -174,7 +174,7 @@ describe("AddSamlSingleLogout1809185900000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddSamlSingleLogout1809185900000().name).toBe(
+    expect(new AddSamlSingleLogout1809186200000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(names.indexOf(MIGRATION_CLASS_NAME)).toBeGreaterThan(

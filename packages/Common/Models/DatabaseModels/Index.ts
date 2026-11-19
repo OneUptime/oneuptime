@@ -34,6 +34,9 @@ import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import NetworkDeviceNamingRule from "./NetworkDeviceNamingRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
+import DeviceManagementConnection from "./DeviceManagementConnection";
+import ManagedDevice from "./ManagedDevice";
+import ManagedDeviceApp from "./ManagedDeviceApp";
 import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -649,6 +652,7 @@ import VMwareVCenterFeed from "./VMwareVCenterFeed";
 import HostFeed from "./HostFeed";
 import CloudResourceFeed from "./CloudResourceFeed";
 import ServiceFeed from "./ServiceFeed";
+import ServiceAINote from "./ServiceAINote";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
@@ -1202,6 +1206,7 @@ const AllModelTypes: Array<{
   HostFeed,
   CloudResourceFeed,
   ServiceFeed,
+  ServiceAINote,
 
   MetricType,
 
@@ -1246,6 +1251,9 @@ const AllModelTypes: Array<{
   NetworkSiteAssignmentRule,
   NetworkDeviceNamingRule,
   NetworkControllerConnection,
+  DeviceManagementConnection,
+  ManagedDevice,
+  ManagedDeviceApp,
   NetworkAddressName,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

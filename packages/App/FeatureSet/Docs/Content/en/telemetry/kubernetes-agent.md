@@ -410,7 +410,7 @@ Multi-line events are put back together before filtering in both modes, so a Jav
 Drop a few noisy metrics (a denylist, usually what you want):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Send only a fixed set (an allowlist: everything else is dropped):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Cardinality, the number of distinct series, matters as much as frequency, because each series is stored and billed on its own.
 
 - cAdvisor is allowlisted on purpose. The cAdvisor receiver (on by default) can emit hundreds of metrics; the chart forwards only the CPU throttling and OOM-kill counters in `cadvisor.metricsAllowlist`, for your own charts and metric monitors: no built-in template reads them. Keep the list short: each entry is kept per container, so one more metric multiplies by the cluster's container count. kube-state-metrics is off by default; if you turn it on (`kubeStateMetrics.enabled=true`), its `kubeStateMetrics.metricsAllowlist` works the same way, and each entry must match a metric's whole name.
-- Volume metrics (`kubeletstats.volumeMetrics.enabled`, on by default) emit a few series for each volume of each pod, and fill the used, free and capacity on the Persistent Volume Claims pages and the PVC Almost Full template: fine for most clusters, a lot on stateful workloads (Kafka, databases) with thousands of PVCs. Turn them off there if you do not watch PVC disk space, with `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volume metrics (`kubeletstats.volumeMetrics.enabled`, on by default) emit five series for each volume of each pod that holds data (a claim, an emptyDir, a hostPath), and fill the used, free and capacity on the Persistent Volume Claims pages, a nearly full claim under the cluster's Needs attention and the PVC Almost Full template. A pod's configMap, secret, downwardAPI and service account token volumes, which were most of these series, are dropped on the node. Still a lot on stateful workloads (Kafka, databases) with thousands of PVCs: turn them off there if you do not watch PVC disk space, with `--set kubeletstats.volumeMetrics.enabled=false`.
 - Saturation metrics (`kubeletstats.utilizationMetrics.enabled`, on by default) add 8 derived "% of request or limit" families. They cost no extra scrape, but if you do not use the CPU and memory-against-limit monitors, drop them with `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Drop metrics by name with `filters.metrics.exclude`, which spans every receiver, for anything the receiver allowlists cannot say (see [Including or excluding metrics by name](#including-or-excluding-metrics-by-name)):
 

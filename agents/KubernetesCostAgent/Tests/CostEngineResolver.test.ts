@@ -53,6 +53,7 @@ class World {
   public services: Array<KubernetesService> = [];
   public listError: Error | null = null;
   public lists: number = 0;
+  public queries: Array<ServiceQuery> = [];
   public engines: Map<string, FakeEngine> = new Map<string, FakeEngine>();
   public nowMs: number = Date.parse("2026-11-18T12:30:00Z");
   public clientsCreated: Array<string> = [];
@@ -71,24 +72,42 @@ class World {
 
   public resolver(
     mode: CostEngineMode,
-    overrides?: { rateCardHint?: string },
+    overrides?: { rateCardHint?: string; engineUrl?: string },
   ): CostEngineResolver {
     return new CostEngineResolver({
       mode: mode,
-      engineUrl: mode === "auto" ? "" : BUNDLED_URL,
+      engineUrl: overrides?.engineUrl ?? (mode === "auto" ? "" : BUNDLED_URL),
       rateCardHint: overrides?.rateCardHint || "",
       listServices: async (
         query: ServiceQuery,
       ): Promise<Array<KubernetesService>> => {
         this.lists++;
+        this.queries.push(query);
         if (this.listError) {
           throw this.listError;
         }
-        // The label reads see labelled Services; the name read, "opencost".
+        /*
+         * The label reads see labelled Services; a field read, the Services
+         * of that name (and namespace, when it names one).
+         */
+        const fields: Map<string, string> = new Map<string, string>(
+          (query.fieldSelector || "")
+            .split(",")
+            .filter(Boolean)
+            .map((field: string): [string, string] => {
+              const [key, value] = field.split("=");
+              return [key || "", value || ""];
+            }),
+        );
         return this.services.filter((service: KubernetesService): boolean => {
-          return query.fieldSelector
-            ? service.metadata?.name === "opencost"
-            : Boolean(service.metadata?.labels);
+          if (!query.fieldSelector) {
+            return Boolean(service.metadata?.labels);
+          }
+          return (
+            service.metadata?.name === fields.get("metadata.name") &&
+            (!fields.has("metadata.namespace") ||
+              service.metadata?.namespace === fields.get("metadata.namespace"))
+          );
         });
       },
       rediscoveryMs: HOUR_MS,
@@ -152,7 +171,13 @@ test("an engine of your own is read as set, and nothing is looked for", async ()
   await resolver.fetchAllocations(WINDOW);
   await resolver.fetchAllocations(WINDOW);
 
-  assert.strictEqual(world.lists, 0);
+  // Only the Service the URL names, once, to say which engine it is.
+  assert.deepStrictEqual(world.queries, [
+    {
+      fieldSelector:
+        "metadata.name=oneuptime-agent-kubernetes-agent-opencost,metadata.namespace=oneuptime",
+    },
+  ]);
   assert.deepStrictEqual(resolver.describe(), {
     engine: "OpenCost",
     service: "",
@@ -174,7 +199,111 @@ test("an engine of your own that fails is never swapped for another", async (): 
     await assert.rejects(resolver.fetchAllocations(WINDOW), /HTTP 500/);
   }
 
+  // No discovery: at most the one read of the Service the URL names.
+  assert.ok(
+    world.queries.every((query: ServiceQuery): boolean => {
+      return !query.labelSelector;
+    }),
+  );
+  assert.strictEqual(world.lists, 1);
+});
+
+/*
+ * #9776: the path the Allocation API answers on says whether the URL serves
+ * the API under /model, not which engine it is. Kubecost's cost model
+ * answers /allocation/compute like OpenCost, and OpenCost's UI passes
+ * /model/allocation to its API like a Kubecost frontend (both seen on kind,
+ * from the engines' own charts). The Service the URL names says.
+ */
+test("Kubecost named by its cost model is still called Kubecost", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [
+    {
+      ...KUBECOST,
+      spec: {
+        ports: [
+          { name: "tcp-model", port: 9003 },
+          { name: "tcp-frontend", port: 9090 },
+        ],
+      },
+    },
+  ];
+  const url: string = "http://kubecost-cost-analyzer.kubecost.svc:9003";
+  // The path read alone says OpenCost: /allocation/compute.
+  world.engine(url, { kind: "OpenCost" });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: url,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.describe()?.engine, "Kubecost");
+  // Named, not found: the pages draw no "your own engine" line for it.
+  assert.strictEqual(resolver.describe()?.service, "");
+});
+
+test("OpenCost named by its UI is still called OpenCost", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [
+    {
+      ...OPENCOST,
+      spec: {
+        ports: [
+          { name: "http", port: 9003 },
+          { name: "http-ui", port: 9090 },
+        ],
+      },
+    },
+  ];
+  const url: string = "http://opencost.opencost.svc.cluster.local:9090";
+  // The path read alone says Kubecost: /model/allocation.
+  world.engine(url, { kind: "Kubecost" });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: url,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.describe()?.engine, "OpenCost");
+});
+
+test("an engine named by an address that is no Service is named by its API's path, with nothing read", async (): Promise<void> => {
+  const world: World = new World();
+  const url: string = "https://kubecost.example.com";
+  world.engine(url, { kind: "Kubecost" });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: url,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
   assert.strictEqual(world.lists, 0);
+  assert.strictEqual(resolver.describe()?.engine, "Kubecost");
+});
+
+test("a Service read that fails leaves the path to say, and is tried again", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.listError = new Error("Kubernetes API answered HTTP 403");
+  const url: string = "http://kubecost-cost-analyzer.kubecost.svc:9003";
+  world.engine(url, { kind: "OpenCost" });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: url,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.describe()?.engine, "OpenCost");
+
+  world.listError = null;
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.describe()?.engine, "Kubecost");
+  assert.strictEqual(world.lists, 2);
+
+  // Read once it answered: never again.
+  await resolver.fetchAllocations(WINDOW);
+  assert.strictEqual(world.lists, 2);
 });
 
 // --- bundled ---------------------------------------------------------------
@@ -411,4 +540,76 @@ test("the same engine found again keeps its client, so its detected API path sta
   // One more client to verify it again, but the one in use is the same.
   assert.strictEqual(world.clientsCreated.length, clients + 1);
   assert.strictEqual(resolver.describe()?.service, "opencost/opencost");
+});
+
+// --- whose price metrics the collector scrapes (#9776) ---------------------
+
+test("the price metrics are those of the engine cost.engine.url names, from the start", (): void => {
+  const world: World = new World();
+
+  assert.deepStrictEqual(
+    world
+      .resolver("configured", {
+        engineUrl: "http://kubecost-frontend.kubecost.svc.cluster.local:9090",
+      })
+      .metricsEngine(),
+    {
+      url: "http://kubecost-frontend.kubecost.svc.cluster.local:9090",
+      namespace: "kubecost",
+    },
+  );
+  // Not a Service: no namespace to find a finops agent in.
+  assert.deepStrictEqual(
+    world
+      .resolver("configured", { engineUrl: "https://kubecost.example.com/" })
+      .metricsEngine(),
+    { url: "https://kubecost.example.com", namespace: null },
+  );
+  assert.strictEqual(world.lists, 0);
+});
+
+test("the price metrics follow the engine the allocations are read from", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, { kind: "Kubecost" });
+  world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+
+  // Before the first look: the bundled engine.
+  assert.deepStrictEqual(resolver.metricsEngine(), {
+    url: BUNDLED_URL,
+    namespace: "oneuptime",
+  });
+
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(resolver.metricsEngine(), {
+    url: KUBECOST_URL,
+    namespace: "kubecost",
+  });
+});
+
+test("auto has no price metrics to scrape until it has an engine, nor after losing it", async (): Promise<void> => {
+  const world: World = new World();
+  const resolver: CostEngineResolver = world.resolver("auto");
+
+  assert.strictEqual(resolver.metricsEngine(), null);
+
+  world.services = [OPENCOST];
+  const engine: FakeEngine = world.engine(OPENCOST_URL, {});
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(resolver.metricsEngine(), {
+    url: OPENCOST_URL,
+    namespace: "opencost",
+  });
+
+  // It keeps failing, and is dropped.
+  engine.answer = new Error("ECONNREFUSED");
+  for (let i: number = 0; i < 3; i++) {
+    await assert.rejects(resolver.fetchAllocations(WINDOW));
+  }
+
+  assert.strictEqual(resolver.metricsEngine(), null);
 });

@@ -12,13 +12,15 @@ OneUptime stores the allocations in ClickHouse (`KubernetesCostAllocation`) and 
 3. The allocations are mapped to OneUptime's ingest rows (cost components include the engine's reconciliation adjustments) and POSTed to `{ONEUPTIME_URL}/kubernetes-cost/ingest`, chunked at `SHIP_BATCH_SIZE` rows, authenticated with the `x-oneuptime-token` header.
 4. Every shipment says which engine priced its rows and where that engine's prices come from (`EnginePricing`): a cloud's public list prices (`/clusterInfo` names the provider), OpenCost's default rates, or a rate card (`/allNodePricing` gives the rates in force when no cloud is recognised). The cluster's Costs page and overview show it.
 5. Windows ship strictly in order; the checkpoint only advances when a window fully lands, so a failed ship is retried on the next tick. On restart the agent re-ships the last `LOOKBACK_WINDOWS` closed windows — the server skips windows that already have rows, so this cannot double-count.
+6. It finds where the engine in use serves its price metrics (`EngineMetrics`), for the chart's collector, which scrapes them for the Kubernetes Cost dashboard: the engine's `/metrics` (OpenCost's API, Kubecost's cost model), then the `/model/metrics` a Kubecost 2 frontend or OpenCost's UI passes on to the engine (their own `/metrics` is their web page), then a Kubecost 3 finops agent's Service in the engine's namespace (Kubecost 3's frontend serves its prices at no path: its `/model/metrics` is the aggregator's own runtime series), and takes the first that answers with price series, not merely in Prometheus' format. It looks when it starts, every minute until it finds them, then hourly. When `COST_ENGINE_URL` names an in-cluster Service, it also reads that one Service once to say which engine it is: the API path alone takes Kubecost's cost model for OpenCost and OpenCost's UI for Kubecost.
 
 ## Health
 
-Two endpoints on `HEALTH_PORT`, and the split matters:
+Three endpoints on `HEALTH_PORT`; the split between the first two matters:
 
 - **`/healthz`** (also `/`) — readiness. `200 {"status":"ok"}` while the pipeline is working, `503 {"status":"degraded", "reasons": [...]}` once it demonstrably is not, so the pod reads `0/1 Ready` instead of staying green while nothing ships. Degraded means any of: the poll has thrown `HEALTH_MAX_POLL_FAILURES` ticks in a row; no window has completed in `HEALTH_STALE_WINDOWS` windows; or nothing has ever shipped well past the point something should have.
 - **`/livez`** — liveness. `200` for as long as the process is up. Restarting cannot fix a cost engine that is down, and a restart loop would throw away both the poller's in-memory checkpoint and the diagnostic `/healthz` is carrying.
+- **`/scrape-targets`** — where the engine's price metrics are, as Prometheus `http_sd` JSON (`[{"targets":["host:port"],"labels":{"__scheme__":"http","__metrics_path__":"/model/metrics"}}]`), or `[]` until they are found. The chart's collector asks it when `cost.engine.url` is `auto` or a URL. Always `200`, whatever the readiness: the prices do not wait on the allocations. `/healthz` carries the same address as `costEngineMetricsUrl`, or what was tried as `costEngineMetricsError`.
 
 Silence alone never fails the agent. A healthy cost agent is idle most of the time, and on a fresh install the `LOOKBACK_WINDOWS` windows it re-ships predate the engine and legitimately come back empty — so the "nothing shipped yet" signal only counts once that grace has passed, and the fast signal needs real, repeated errors.
 
@@ -29,7 +31,7 @@ Silence alone never fails the agent. A healthy cost agent is idle most of the ti
 | `ONEUPTIME_URL` | yes | — | Base URL of your OneUptime host, e.g. `https://oneuptime.com` |
 | `ONEUPTIME_API_KEY` | yes | — | Ingestion key (Project Settings > Telemetry & APM > Ingestion Keys) |
 | `CLUSTER_NAME` | yes | — | Cluster identifier; must match the `k8s.cluster.name` the metrics agent stamps |
-| `COST_ENGINE_URL` | yes | — | Cost engine base URL, e.g. `http://opencost.opencost.svc.cluster.local:9003`, or `auto` to find the OpenCost or Kubecost the cluster runs |
+| `COST_ENGINE_URL` | yes | — | Cost engine base URL, any of the engine's Services, e.g. `http://opencost.opencost.svc.cluster.local:9003` or Kubecost's `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` (2.x) or `http://kubecost-frontend.kubecost.svc.cluster.local:9090` (3.x), or `auto` to find the OpenCost or Kubecost the cluster runs |
 | `COST_PREFER_EXISTING_ENGINE` | no | `false` | `true` when `COST_ENGINE_URL` is the chart's bundled engine: read the cluster's own engine instead when it runs one that answers |
 | `COST_ENGINE_RATE_CARD` | no | — | `true` / `false`: whether the chart gave its bundled engine a rate card, for saying where its prices come from when the engine cannot |
 | `COST_ENGINE_REDISCOVERY_SECONDS` | no | `3600` | How often to look for the cluster's own engine again |
@@ -44,7 +46,7 @@ Silence alone never fails the agent. A healthy cost agent is idle most of the ti
 | `SHIP_BATCH_SIZE` | no | `1000` | Rows per ingest POST (server cap: 5000) |
 | `EXPORT_MAX_RETRIES` | no | `5` | Retries per POST before the window is retried next tick |
 | `COST_CURRENCY` | no | `USD` | Currency code forwarded with every payload |
-| `HEALTH_PORT` | no | `13134` | Port serving `/healthz` and `/livez` |
+| `HEALTH_PORT` | no | `13134` | Port serving `/healthz`, `/livez` and `/scrape-targets` |
 | `HEALTH_MAX_POLL_FAILURES` | no | `3` | Consecutive failing ticks before `/healthz` reports degraded |
 | `HEALTH_STALE_WINDOWS` | no | `3` | Windows without a completed window before `/healthz` reports degraded |
 | `LOG_LEVEL` | no | `info` | `debug` / `info` / `warn` / `error` |

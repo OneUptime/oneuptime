@@ -14,9 +14,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *
  * A schedule's Overview says which on-call policies page whoever is on call
  * on it, and which escalation rules of each do, in the order they escalate -
- * each policy a link to its page, and a policy the member may not see
- * counted, never named (UsedByService, #6813). Nothing paging it, the card
- * says nobody on it is paged and where to add it. The fixture answers GET
+ * each policy a link to its Escalation Rules page, where those rules are
+ * (#9701), and a policy the member may not see counted, never named
+ * (UsedByService, #6813). Nothing paging it, the card says nobody on it is
+ * paged and where to add it. The fixture answers GET
  * /used-by/on-call-schedule/:id as UsedByService does (?usedBy=used); the
  * card's rules are held by jsdom (Common/Tests/App/Dashboard/
  * UsedByCard.test.tsx). Checked at 1280 and 390, light and dark, in German
@@ -155,9 +156,10 @@ test.describe("Used by on the on-call schedule overview", () => {
     await expect(rows.nth(1).getByTestId("used-by-row-detail")).toHaveText(
       "Night cover",
     );
+    // A policy opens on its Escalation Rules, the rules its line names (#9701).
     await expect(rows.nth(0).getByRole("link")).toHaveAttribute(
       "href",
-      `${DASHBOARD}/on-call-duty/policies/a1000000-0000-4000-8000-000000000001`,
+      `${DASHBOARD}/on-call-duty/policies/a1000000-0000-4000-8000-000000000001/escalation`,
     );
     await expect(groups.getByTestId("used-by-hidden")).toHaveText(
       "and 1 you can't see",

@@ -1,5 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
-import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
+import { ComplianceSettingFramework } from "Common/Types/DataSecurity/ComplianceSettingFramework";
 import {
   DataSecurityComplianceTurnedOff,
   DataSecurityResourceComplianceFramework,
@@ -23,9 +23,12 @@ const translationKey: (text: string) => string = (text: string): string => {
   return text;
 };
 
-// One switch: a framework, or one of its requirements.
+/*
+ * One switch: a framework, or one of its requirements. A resource's rows can
+ * hold a Kubernetes cluster's own frameworks too (#9627), keyed the same way.
+ */
 export interface ComplianceSwitchKey {
-  framework: ComplianceFramework;
+  framework: ComplianceSettingFramework;
   requirement?: string | null | undefined;
 }
 

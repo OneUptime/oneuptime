@@ -24,8 +24,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The SAML session record lives in "UserSession".identityProviderSignOut,
  * added for OpenID Connect: nothing changes there.
  */
-export class AddSamlSingleLogout1809185900000 implements MigrationInterface {
-  public name: string = "AddSamlSingleLogout1809185900000";
+export class AddSamlSingleLogout1809186200000 implements MigrationInterface {
+  public name: string = "AddSamlSingleLogout1809186200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

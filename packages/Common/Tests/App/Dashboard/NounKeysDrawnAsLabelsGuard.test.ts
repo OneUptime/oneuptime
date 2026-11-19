@@ -241,6 +241,11 @@ const SITES: Readonly<Record<string, NounSite>> = {
       'A tile\'s sublabel, the words under its figure: lower-case in English too, as "monitor daemons" and "of one CPU core" are.',
   },
   [`${DASHBOARD}/Components/Code/GitHubConnect.tsx`]: LINK_IN_A_SENTENCE,
+  [`${DASHBOARD}/Components/DeviceManagement/DeviceManagementConnectionsTable.tsx`]:
+    {
+      inSentence:
+        'The Esper connections list\'s pluralName, which its sentences take as a term: "Delete 2 Esper connections".',
+    },
   [`${DASHBOARD}/Components/LlmConversations/LlmConversationsView.tsx`]:
     LINK_IN_A_SENTENCE,
   [`${DASHBOARD}/Components/NetworkDevice/DeviceDiagnosticsCard.tsx`]:

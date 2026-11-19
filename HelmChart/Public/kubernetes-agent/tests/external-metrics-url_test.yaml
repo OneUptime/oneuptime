@@ -297,6 +297,11 @@ tests:
           pattern: "job_name: kube-state-metrics"
 
   # --- cost engine: what renders --------------------------------------------
+  # An engine URL is scraped as written only while the cost agent is off: with
+  # the agent on, the collector asks it where the engine's price metrics are
+  # (http_sd, #9776: cost-engine-metrics_test.yaml), because a Kubecost
+  # frontend answers /metrics with its web page. The bundled engine and an
+  # explicit cost.metrics.endpoint are always scraped as written.
 
   - it: writes no scheme or path for the bundled cost engine
     set:
@@ -312,6 +317,7 @@ tests:
       clusterName: prod-us
       cost.enabled: true
       cost.engine.url: http://opencost.opencost.svc.cluster.local:9003/
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -325,6 +331,7 @@ tests:
       clusterName: prod-us
       cost.enabled: true
       cost.engine.url: https://kubecost.example.com/model/
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -336,6 +343,7 @@ tests:
       clusterName: prod-us
       cost.enabled: true
       cost.engine.url: http://opencost.example.com:9003/metrics
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -346,6 +354,7 @@ tests:
       clusterName: prod-us
       cost.enabled: true
       cost.engine.url: http://kubecost.kubecost:9090/model/metrics/
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -394,6 +403,7 @@ tests:
       cost.enabled: true
       cost.engine.url: https://kubecost.example.com/model
       cost.metrics.endpoint: "   "
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]

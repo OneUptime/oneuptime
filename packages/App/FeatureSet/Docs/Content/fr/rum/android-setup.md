@@ -249,6 +249,12 @@ Passez ensuite `token` à `baseHeaders` à la place de `BuildConfig.ONEUPTIME_TO
 
 Après une modification, lancez un Converge des appareils pour qu'ils lisent les nouvelles valeurs. Déclarez les mêmes clés dans un `app_restrictions.xml` si votre MDM demande un schéma. Esper refuse un APK sans signature v1 : signez donc la version avec le schéma v1 en plus de v2 ou v3.
 
+### Importer le parc depuis Esper
+
+Connectez votre tenant Esper à l'inventaire, et chaque appareil qu'enrôle Esper est listé, y compris les appareils dont l'application n'a jamais démarré, avec ce que seul Esper sait : son groupe, sa version d'Android, son niveau de correctif de sécurité, son numéro de série, sa batterie, son stockage, ses applications installées et son dernier contact. Un appareil qui cesse de contacter Esper apparaît hors ligne, avec le temps écoulé depuis son dernier contact. Voir [Importer des appareils depuis Esper](/docs/inventory/overview#importer-des-appareils-depuis-esper).
+
+Un appareil que son application nomme comme ci-dessus ne forme qu'un seul élément avec ce que l'application envoie : `host.name` est son nom dans Esper. OneUptime trouve l'élément d'un appareil par `host.name`, puis par `host.serial_number` : donnez donc à chaque appareil le même nom et le même numéro de série dans chaque application qui envoie des données depuis cet appareil, ainsi que dans les paramètres `device_name` et `device_serial` de l'Agent Android.
+
 ### Conserver ce qui est enregistré hors ligne
 
 L'agent écrit chaque span, journal et métrique sur le disque avant de l'envoyer. Tant que le réseau est coupé, il les y garde, et les envoie dès qu'il revient, jusqu'à 18 heures plus tard. Il conserve 10 Mo ; augmentez cette valeur pour un appareil souvent hors ligne :

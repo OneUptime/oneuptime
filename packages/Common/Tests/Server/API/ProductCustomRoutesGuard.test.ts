@@ -364,6 +364,10 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  "packages/Common/Server/API/DeviceManagementConnectionAPI.ts": {
+    products: [ProductKey.Inventory],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/NetworkDeviceDiscoveryImportAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},

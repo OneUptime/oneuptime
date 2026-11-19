@@ -298,7 +298,7 @@ const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
 /*
  * Every (i) on the loaded page, in document order: the five tiles, the
- * five chart cards, then the two metric columns of the Filesystems table.
+ * five chart cards, then the three metric columns of the Filesystems table.
  */
 const LOADED: Array<[string, number, HostMetric]> = [
   ["CPU", 0, "cpu"],
@@ -311,8 +311,9 @@ const LOADED: Array<[string, number, HostMetric]> = [
   ["Memory", 1, "memoryChart"],
   ["Disk space", 0, "diskSpaceChart"],
   ["Network", 0, "networkChart"],
-  ["Used / Total", 0, "filesystemUsedTotal"],
-  ["Utilization", 0, "filesystemUtilization"],
+  ["Used", 0, "filesystemUtilization"],
+  ["Free", 0, "filesystemFree"],
+  ["Size", 0, "filesystemSize"],
 ];
 
 const SKELETON: Array<[string, HostMetric]> = [
@@ -375,7 +376,7 @@ describe("Host overview, loaded", () => {
     expect(await explanationOnFocus(infoButtonsFor("Load avg (1m)")[0]!)).toBe(
       D.loadAverage,
     );
-    expect(await explanationOnFocus(infoButtonsFor("Utilization")[0]!)).toBe(
+    expect(await explanationOnFocus(infoButtonsFor("Used")[0]!)).toBe(
       D.filesystemUtilization,
     );
   });
@@ -425,22 +426,22 @@ describe("Host overview, loaded", () => {
   test("the Filesystems header (i)s sit inside their own column headers", async () => {
     await renderLoaded();
 
-    const usedTotal: HTMLElement = infoButtonsFor("Used / Total")[0]!;
-    const utilization: HTMLElement = infoButtonsFor("Utilization")[0]!;
+    const used: HTMLElement = infoButtonsFor("Used")[0]!;
+    const size: HTMLElement = infoButtonsFor("Size")[0]!;
 
-    expect(usedTotal.closest("th")).toHaveTextContent("Used / Total");
-    expect(utilization.closest("th")).toHaveTextContent("Utilization");
-    expect(usedTotal.closest("th")).toHaveAttribute("scope", "col");
+    expect(used.closest("th")).toHaveTextContent("Used");
+    expect(size.closest("th")).toHaveTextContent("Size");
+    expect(used.closest("th")).toHaveAttribute("scope", "col");
   });
 
   test("clicking an (i) in a table header does nothing but explain", async () => {
     await renderLoaded();
 
-    const button: HTMLElement = infoButtonsFor("Utilization")[0]!;
+    const button: HTMLElement = infoButtonsFor("Used")[0]!;
     const notCancelled: boolean = fireEvent.click(button);
 
     expect(notCancelled).toBe(false);
-    expect(infoLabels()).toContain("Utilization");
+    expect(infoLabels()).toContain("Used");
   });
 
   /*

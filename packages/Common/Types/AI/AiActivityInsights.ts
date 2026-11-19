@@ -31,7 +31,10 @@ import { InvestigationNotStartedCode } from "./InvestigationNotStartedReason";
  * called to build it: the words that are AI's own (a finding, a suggested
  * step) were written by the investigation that found them, and are shown as
  * that investigation's. Summaries only: no command output, prompt or command
- * plan, and nothing about an incident or alert the caller may not read.
+ * plan, and nothing about an incident or alert the caller may not read. The
+ * one list of commands is the failed ones the caller may read - what each
+ * ran, for a caller who may read that, and how it ended - which is what
+ * "N failed" opens (failedCommandList, #9749).
  *
  * The incidents' and alerts' pages (IncidentAlertAiInsights) are this
  * contract, built by the same builder, plus what only a whole product has:
@@ -61,6 +64,8 @@ export const AI_ACTIVITY_INSIGHTS_MAX_FIXES: number = 500;
 export const AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS: number = 10;
 export const AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS: number = 8;
 export const AI_ACTIVITY_INSIGHTS_MAX_PREVENTIVE_INSIGHTS: number = 5;
+// The newest of the failed commands the reader may read.
+export const AI_ACTIVITY_INSIGHTS_MAX_FAILED_COMMANDS: number = 50;
 // How many affected objects a problem names.
 export const AI_ACTIVITY_INSIGHTS_MAX_PROBLEM_OBJECTS: number = 3;
 
@@ -119,6 +124,30 @@ export interface AiActivitySubject {
   number?: number | undefined;
   // The number with the project's prefix ("INC-42"), when the page reads it.
   numberWithPrefix?: string | undefined;
+}
+
+/*
+ * A command OneUptime AI ran in the window that failed, as the reader may
+ * read it: one row of what "N failed" opens (#9749).
+ */
+export interface AiActivityFailedCommand {
+  // The Runner job's id.
+  id: string;
+  // ISO: when it ended - when it was sent, for one that never said.
+  at: string;
+  /*
+   * What it ran, as the agent shows it ("kubectl rollout restart
+   * deployment/web -n shop"), cut to the AI Logs' length. Absent for a
+   * reader who may read the command but not what it ran (a Viewer).
+   */
+  command?: string | undefined;
+  // How it ended: the command's exit code, and the agent's own words.
+  exitCode?: number | undefined;
+  errorMessage?: string | undefined;
+  // RunnerJobOrigin: while investigating, or to fix.
+  origin?: string | undefined;
+  // The incident or alert it was for, when the reader may read it.
+  subject?: AiActivitySubject | undefined;
 }
 
 // A monitor or a service, by the name the caller may read.
@@ -494,7 +523,11 @@ export interface AiActivityInsightsTotals {
   fixes: number;
   // Commands AI ran on the scope; the AI agent page's connection tests are not counted.
   commands: number;
-  // Commands that ran and failed (a non-zero exit, or the agent's error).
+  /*
+   * Commands that ran and failed (a non-zero exit, or the agent's error)
+   * that the reader may read: what "N failed" says, and opens
+   * (failedCommandList).
+   */
   failedCommands: number;
   // Commands the agent never picked up in time.
   timedOutCommands: number;
@@ -516,6 +549,12 @@ export interface AiActivityInsights {
   // One entry per day of the window, oldest first.
   trend: Array<AiActivityTrendDay>;
   preventiveInsights: Array<AiActivityPreventiveInsight>;
+  /*
+   * The failed commands totals.failedCommands counts, newest first: at
+   * most AI_ACTIVITY_INSIGHTS_MAX_FAILED_COMMANDS of them. Absent when none
+   * failed, and from a server that did not list them.
+   */
+  failedCommandList?: Array<AiActivityFailedCommand> | undefined;
   /*
    * True when the window held more incidents, alerts, investigations, fixes
    * or commands than were read, so the numbers cover the newest of them only.

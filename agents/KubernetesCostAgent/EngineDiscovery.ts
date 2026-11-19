@@ -1,3 +1,4 @@
+import { URL } from "url";
 import { KubernetesService, ListServices, ServiceQuery } from "./KubernetesApi";
 
 /*
@@ -90,6 +91,44 @@ const isDnsLabel: (value: string) => boolean = (value: string): boolean => {
 };
 
 /*
+ * Which engine a Service belongs to, by the labels its chart gives it (or,
+ * for OpenCost's manifest, its name and selector), whatever port it serves:
+ * the engine a URL naming any of its Services reaches. Null for a Service no
+ * engine's chart creates this way.
+ */
+export const engineKindOfService: (
+  service: KubernetesService,
+) => EngineKind | null = (service: KubernetesService): EngineKind | null => {
+  const name: string = (service.metadata?.name || "").trim();
+  const labels: Record<string, string> | undefined = service.metadata?.labels;
+  const selector: Record<string, string> | undefined = service.spec?.selector;
+
+  const appLabels: Array<string> = [
+    labelOf(labels, APP_LABEL),
+    labelOf(labels, NAME_LABEL),
+  ];
+
+  if (
+    appLabels.some((value: string): boolean => {
+      return KUBECOST_APPS.includes(value);
+    })
+  ) {
+    return "Kubecost";
+  }
+
+  if (
+    appLabels.includes(OPENCOST_APP) ||
+    name === OPENCOST_APP ||
+    labelOf(selector, APP_LABEL) === OPENCOST_APP ||
+    labelOf(selector, NAME_LABEL) === OPENCOST_APP
+  ) {
+    return "OpenCost";
+  }
+
+  return null;
+};
+
+/*
  * The engine a Service is, and the URL its API answers at, or null for a
  * Service that is no cost engine's API (Kubecost's aggregator, an OpenCost
  * UI-only Service, a OneUptime agent's bundled engine).
@@ -102,7 +141,6 @@ export const toEngineCandidate: (
   const name: string = (service.metadata?.name || "").trim();
   const namespace: string = (service.metadata?.namespace || "").trim();
   const labels: Record<string, string> | undefined = service.metadata?.labels;
-  const selector: Record<string, string> | undefined = service.spec?.selector;
   const ports: Array<{ name?: string; port?: number }> = Array.isArray(
     service.spec?.ports,
   )
@@ -117,10 +155,7 @@ export const toEngineCandidate: (
     return null;
   }
 
-  const appLabels: Array<string> = [
-    labelOf(labels, APP_LABEL),
-    labelOf(labels, NAME_LABEL),
-  ];
+  const kind: EngineKind | null = engineKindOfService(service);
 
   const urlFor: (port: number) => string = (port: number): string => {
     return `http://${name}.${namespace}.svc:${port}`;
@@ -137,11 +172,7 @@ export const toEngineCandidate: (
     );
   };
 
-  if (
-    appLabels.some((value: string): boolean => {
-      return KUBECOST_APPS.includes(value);
-    })
-  ) {
+  if (kind === "Kubecost") {
     const frontend: { name?: string; port?: number } | undefined = ports.find(
       (port: { name?: string; port?: number }): boolean => {
         return (
@@ -156,13 +187,7 @@ export const toEngineCandidate: (
       : null;
   }
 
-  const isOpenCost: boolean =
-    appLabels.includes(OPENCOST_APP) ||
-    name === OPENCOST_APP ||
-    labelOf(selector, APP_LABEL) === OPENCOST_APP ||
-    labelOf(selector, NAME_LABEL) === OPENCOST_APP;
-
-  if (!isOpenCost) {
+  if (kind !== "OpenCost") {
     return null;
   }
 
@@ -237,6 +262,41 @@ export const discoverEngineCandidates: (data: {
   }
 
   return rankEngineCandidates(Array.from(byService.values()));
+};
+
+/*
+ * The Service an in-cluster URL names, or null for any other address. A
+ * Service is reached as <service>.<namespace>, optionally followed by .svc
+ * and the cluster's domain (.svc.cluster.local); an ingress host
+ * (kubecost.example.com), an IP address or a bare name is not read as one.
+ */
+export const serviceOfUrl: (
+  url: string,
+) => { name: string; namespace: string } | null = (
+  url: string,
+): { name: string; namespace: string } | null => {
+  let host: string;
+
+  try {
+    host = new URL(url.trim()).hostname.toLowerCase().replace(/\.$/, "");
+  } catch {
+    return null;
+  }
+
+  const parts: Array<string> = host.split(".");
+  const isServiceHost: boolean =
+    parts.length === 2 || (parts.length >= 3 && parts[2] === "svc");
+
+  if (
+    !isServiceHost ||
+    IPV4_PATTERN.test(host) ||
+    !isDnsLabel(parts[0] || "") ||
+    !isDnsLabel(parts[1] || "")
+  ) {
+    return null;
+  }
+
+  return { name: parts[0]!, namespace: parts[1]! };
 };
 
 /*

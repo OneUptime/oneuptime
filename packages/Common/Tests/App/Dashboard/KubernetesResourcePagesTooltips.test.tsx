@@ -707,9 +707,13 @@ interface ListCase {
 const LIST_CASES: Array<ListCase> = [
   {
     page: "Nodes",
+    // Its disk beside its CPU and memory (#9645).
     explained: [
       ["CPU", "nodeCpu"],
       ["Memory", "nodeMemory"],
+      ["Disk", "nodeDiskUsed"],
+      ["Disk Free", "nodeDiskFree"],
+      ["Disk Capacity", "nodeDiskCapacity"],
     ],
     plain: ["Name", "Status", "Age"],
   },
@@ -944,6 +948,10 @@ const DETAIL_CASES: Array<DetailCase> = [
     explained: [
       ["CPU (Capacity / Allocatable)", "nodeCpuCapacity"],
       ["Memory (Capacity / Allocatable)", "nodeMemoryCapacity"],
+      [
+        "Ephemeral Storage (Capacity / Allocatable)",
+        "nodeEphemeralStorageCapacity",
+      ],
       ["Pods (Capacity)", "nodePodCapacity"],
     ],
     plain: ["Node Name", "Internal IP", "Created"],

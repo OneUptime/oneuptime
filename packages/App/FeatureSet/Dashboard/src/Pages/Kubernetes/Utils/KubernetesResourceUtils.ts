@@ -117,8 +117,15 @@ export interface KubernetesResource {
   statusReasons?: Array<KubernetesHealthText> | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
-  // A claim's used and free, for the Used and Free columns (ResourceTable).
+  /*
+   * A claim's used and free, or a node's root disk's, for the Used and Free
+   * columns (ResourceTable).
+   */
   storageUsage?:
+    | { usage: StorageUsage | null; noUsageText?: string | undefined }
+    | undefined;
+  // A node's image filesystem, when it is a disk of its own (ResourceTable).
+  secondaryStorageUsage?:
     | { usage: StorageUsage | null; noUsageText?: string | undefined }
     | undefined;
 }
@@ -541,8 +548,11 @@ export default class KubernetesResourceUtils {
     kind: string;
     selectFullSpec?: boolean;
     /*
-     * A claim's latest volume usage (latestVolume* columns), for its Used
-     * and Free columns (KubernetesVolumeUsage).
+     * The latest disk reading: a claim's volume, or a node's root and image
+     * filesystems (latestVolume* and latestImageFs* columns, and when they
+     * were measured), for the Used and Free columns (KubernetesVolumeUsage,
+     * KubernetesNodeDisk) and for the status, which says a nearly full disk
+     * as the cluster's Needs attention does.
      */
     selectVolumeUsage?: boolean;
     transform?: (
@@ -575,6 +585,11 @@ export default class KubernetesResourceUtils {
       select["latestVolumeAvailableBytes"] = true;
       select["latestVolumeInodes"] = true;
       select["latestVolumeInodesFree"] = true;
+      select["latestVolumeMeasuredAt"] = true;
+      select["latestVolumeUsedBaselineBytes"] = true;
+      select["latestVolumeUsedBaselineAt"] = true;
+      select["latestImageFsCapacityBytes"] = true;
+      select["latestImageFsAvailableBytes"] = true;
     }
 
     const result: ListResult<KubernetesResourceModel> =
@@ -629,6 +644,17 @@ export default class KubernetesResourceUtils {
               status: row.status,
               lastSeenAt: row.lastSeenAt,
               resourceCreationTimestamp: row.resourceCreationTimestamp,
+              // Its disk, when the list read it: "Nearly full", "Disk almost full".
+              latestVolumeCapacityBytes: row.latestVolumeCapacityBytes,
+              latestVolumeAvailableBytes: row.latestVolumeAvailableBytes,
+              latestVolumeInodes: row.latestVolumeInodes,
+              latestVolumeInodesFree: row.latestVolumeInodesFree,
+              latestVolumeMeasuredAt: row.latestVolumeMeasuredAt,
+              latestVolumeUsedBaselineBytes: row.latestVolumeUsedBaselineBytes,
+              latestVolumeUsedBaselineAt: row.latestVolumeUsedBaselineAt,
+              latestImageFsCapacityBytes: row.latestImageFsCapacityBytes,
+              latestImageFsAvailableBytes: row.latestImageFsAvailableBytes,
+              metricsUpdatedAt: row.metricsUpdatedAt,
             });
           displayStatus = kubernetesHealthTextInEnglish(assessment.status);
           statusText = assessment.status.values

@@ -10,6 +10,9 @@ import InvestigationReportSummary, {
   InvestigationReportConclusion,
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
+import AiActivityFailedCommands, {
+  AiActivityFailedCommandsRead,
+} from "./AiActivityFailedCommands";
 import AiActivityInsightsBuilder, {
   AiActivityCommandStats,
   AiActivityFixInput,
@@ -40,6 +43,7 @@ import {
   AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS,
   AiActivityInsights,
   AiActivityPreventiveInsight,
+  AiActivitySubject,
 } from "../../../../Types/AI/AiActivityInsights";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -74,7 +78,10 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *     its author), reading them under the caller's props would empty the
  *     page for exactly the people it is for, and nothing from them leaves
  *     except statuses, dates, counts, opaque groupings and — next to an
- *     incident or alert the caller may read — the report's own words.
+ *     incident or alert the caller may read — the report's own words;
+ *   - the commands that failed are read again under the caller's props,
+ *     as Runner jobs (AiActivityFailedCommands): the failed count is how
+ *     many of them the caller may read, and the list it opens is theirs.
  *
  * Bounded: the window's newest AI_ACTIVITY_INSIGHTS_MAX_INVESTIGATIONS
  * investigations and AI_ACTIVITY_INSIGHTS_MAX_FIXES fixes, its newest
@@ -348,6 +355,8 @@ export default class AiActivityInsightsReader {
       failed: 0,
       timedOut: 0,
     };
+    // The commands counted: what "N failed" is read from (step 6).
+    const countedJobs: Array<RunnerJob> = [];
 
     for (const job of jobs) {
       // The AI agent page's connection tests are the only ones without a run.
@@ -356,6 +365,7 @@ export default class AiActivityInsightsReader {
       }
 
       commands.total++;
+      countedJobs.push(job);
 
       if (job.status === RunnerJobStatus.Failed) {
         commands.failed++;
@@ -531,6 +541,55 @@ export default class AiActivityInsightsReader {
       return Boolean(suggestion.id && suggestion.createdAt);
     });
 
+    /*
+     * 6. The failed commands the caller may read (#9749): what "N failed"
+     * says, and opens - each with the incident or alert its investigation
+     * or fix was about, when the caller may read it.
+     */
+    const runsById: Map<string, AIRun> = new Map<string, AIRun>();
+    const suggestionsById: Map<string, AutoRemediationSuggestion> = new Map<
+      string,
+      AutoRemediationSuggestion
+    >();
+
+    for (const run of candidateRuns) {
+      runsById.set(run.id!.toString(), run);
+    }
+
+    for (const suggestion of suggestions) {
+      suggestionsById.set(suggestion.id!.toString(), suggestion);
+    }
+
+    const failed: AiActivityFailedCommandsRead =
+      await AiActivityFailedCommands.read({
+        projectId,
+        jobIds: AiActivityFailedCommands.getFailedJobIds(countedJobs),
+        props: scope.props,
+        getSubject: (job: RunnerJob): AiActivitySubject | undefined => {
+          const suggestion: AutoRemediationSuggestion | undefined =
+            job.autoRemediationSuggestionId
+              ? suggestionsById.get(job.autoRemediationSuggestionId.toString())
+              : undefined;
+          const run: AIRun | undefined = job.aiRunId
+            ? runsById.get(job.aiRunId.toString())
+            : undefined;
+          // A fix's command is about its fix's; a run about both, the incident.
+          const subjectId: ObjectID | undefined = suggestion
+            ? suggestion.incidentId || suggestion.alertId
+            : run?.triggeredByIncidentId || run?.triggeredByAlertId;
+          const subject: AiActivitySubjectInput | undefined = subjectId
+            ? subjects.get(subjectId.toString())
+            : undefined;
+
+          return subject
+            ? AiActivityInsightsBuilder.toSubject(subject)
+            : undefined;
+        },
+      });
+
+    commands.failed = failed.count;
+    commands.failedCommands = failed.commands;
+
     const isPartial: boolean =
       jobs.length >= AI_ACTIVITY_INSIGHTS_JOB_SCAN_LIMIT ||
       linkedIncidents.length >= AI_ACTIVITY_INSIGHTS_LINKED_SUBJECT_LIMIT ||
@@ -594,7 +653,7 @@ export default class AiActivityInsightsReader {
     };
 
     /*
-     * 6. What each problem's newest completed investigation concluded: the
+     * 7. What each problem's newest completed investigation concluded: the
      * step its report suggests, and — when its TL;DR call failed — the
      * Summary its report opens with.
      */

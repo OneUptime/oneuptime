@@ -137,6 +137,12 @@ const TURNED_OFF_FRAMEWORK_DESCRIPTION: string = translationKey(
 
 export interface ComponentProps extends PageComponentProps {
   kind: DataStoreResourceKind;
+  /*
+   * The card's title, in English: "Compliance" unless the page holds more
+   * than the data frameworks - a Kubernetes cluster's, which scores the
+   * cluster itself first (#9627), names this card for its databases.
+   */
+  title?: string | undefined;
 }
 
 const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
@@ -416,7 +422,7 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const title: string = translationKey("Compliance");
+  const title: string = props.title || translationKey("Compliance");
   const description: string = RESOURCE_COMPLIANCE_DESCRIPTIONS[props.kind];
 
   if (error) {

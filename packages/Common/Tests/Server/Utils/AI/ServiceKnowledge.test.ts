@@ -99,11 +99,17 @@ function learned(data: {
   isConfirmedAnalysis?: boolean | undefined;
 }): LearnedCase {
   return {
+    kind: data.reference.startsWith("alert") ? "alert" : "incident",
+    id: `0193c0de-cccc-4aaa-8bbb-${data.reference.replace(/\D/g, "").padStart(12, "0")}`,
+    number: Number(data.reference.split("#")[1]) || null,
     reference: data.reference,
     title: data.title || "Untitled",
     cause: data.cause || null,
     isConfirmedAnalysis: data.isConfirmedAnalysis === true,
     fix: data.fix || null,
+    fixDetails: data.fix
+      ? { text: data.fix, runbookName: null, commands: [] }
+      : null,
     happenedAt: new Date(
       Date.parse("2026-11-10T12:00:00.000Z") - data.daysAgo * 86400000,
     ),

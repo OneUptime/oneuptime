@@ -11,6 +11,7 @@ import {
 } from "../Utils/ProxmoxResourceUtils";
 import { sortProxmoxGuests } from "../Utils/ProxmoxPartFacts";
 import {
+  PROXMOX_GUEST_DISK_COLUMNS,
   getProxmoxGuestColumns,
   toProxmoxListResource,
 } from "../../../Components/Proxmox/ProxmoxResourceColumns";
@@ -97,6 +98,7 @@ const ProxmoxClusterGuests: FunctionComponent<
         age: PROXMOX_METRIC_DESCRIPTIONS.guestsTableUptime,
       }}
       tableIdPrefix="proxmox"
+      storageUsageColumns={PROXMOX_GUEST_DISK_COLUMNS}
       emptyMessage="No guests reported yet. Make sure the Proxmox agent is sending metrics."
       columns={getProxmoxGuestColumns({
         rows: rows,

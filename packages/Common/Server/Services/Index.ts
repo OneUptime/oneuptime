@@ -90,6 +90,9 @@ import NetworkTopologySuppressionService from "./NetworkTopologySuppressionServi
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkDeviceNamingRuleService from "./NetworkDeviceNamingRuleService";
 import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
+import DeviceManagementConnectionService from "./DeviceManagementConnectionService";
+import ManagedDeviceService from "./ManagedDeviceService";
+import ManagedDeviceAppService from "./ManagedDeviceAppService";
 import NetworkAddressNameService from "./NetworkAddressNameService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
@@ -205,6 +208,7 @@ import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import ServiceFeedService from "./ServiceFeedService";
+import ServiceAINoteService from "./ServiceAINoteService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -733,6 +737,9 @@ const services: Array<BaseService> = [
   NetworkSiteAssignmentRuleService,
   NetworkDeviceNamingRuleService,
   NetworkControllerConnectionService,
+  DeviceManagementConnectionService,
+  ManagedDeviceService,
+  ManagedDeviceAppService,
   NetworkAddressNameService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
@@ -831,6 +838,7 @@ const services: Array<BaseService> = [
   HostFeedService,
   CloudResourceFeedService,
   ServiceFeedService,
+  ServiceAINoteService,
 
   NotificationService,
 
