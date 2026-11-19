@@ -534,7 +534,12 @@ export const addVerifiedTestDomain: AddVerifiedTestDomainFunction =
         headers: projectHeaders(data.projectId),
         data: {
           data: {
-            domain: { _type: "Domain", value: name },
+            /*
+             * As the Domains page sends it: the name as text. DomainService
+             * takes a domain as text or as its own server-side type, and
+             * refuses one sent as a { _type: "Domain" } value.
+             */
+            domain: name,
             projectId: data.projectId,
             isVerified: true,
           },
