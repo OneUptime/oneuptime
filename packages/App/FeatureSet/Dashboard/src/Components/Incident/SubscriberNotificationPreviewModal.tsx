@@ -41,6 +41,7 @@ import {
 } from "./SubscriberNotificationPreviewApi";
 import {
   describeHiddenPages,
+  describeNoteShownLater,
   describeNothingSent,
   describePreviewStatusPage,
   describeTemplateChoice,
@@ -224,6 +225,17 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
     }
 
     if (result.nothingSentReason) {
+      /*
+       * Why, and - for a public note on an incident no status page shows -
+       * that the note is still posted, and shows on a page that starts
+       * showing the incident (#9684). The event is the one asked about.
+       */
+      const noteShownLater: string | null = describeNoteShownLater(
+        result.nothingSentReason,
+        request.event,
+        translate,
+      );
+
       return (
         <div
           role="status"
@@ -237,9 +249,26 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
               {translate(SubscriberNotificationPreviewCopy.nothingWillBeSent)}
             </span>
           </div>
-          <p className="mt-1 pl-6">
-            {describeNothingSent(result.nothingSentReason, translate)}
+          <p
+            className="mt-1 pl-6"
+            data-testid={`${dataTestId}-nothing-sent-reason`}
+          >
+            {describeNothingSent(
+              result.nothingSentReason,
+              request.event,
+              translate,
+            )}
           </p>
+          {noteShownLater ? (
+            <p
+              className="mt-1 pl-6"
+              data-testid={`${dataTestId}-nothing-sent-note-later`}
+            >
+              {noteShownLater}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       );
     }

@@ -70,7 +70,9 @@ export interface CloudConnectionPullState {
   /*
    * Per datapoint period, in seconds: where the last metric window ended
    * (exclusive), as an ISO time. The next read starts there, so no
-   * datapoint is written twice.
+   * datapoint is written twice. A period read less often than every read
+   * has a key of its own, its seconds and how often it is read: "300/900",
+   * Azure's five-minute metrics read every 15 minutes (AzureReadGroup).
    */
   cursors?: Record<string, string> | undefined;
   // When the resources were last listed (Azure) or swept for (AWS).
@@ -98,6 +100,14 @@ export interface CloudConnectionPullState {
    * the metrics of the resource types it has (GcpCloudConnector).
    */
   gcpResourceTypesSeen?: Record<string, Record<string, string>> | undefined;
+  /*
+   * Google Cloud: per project, when one of its VMs last reported an Ops
+   * Agent metric - its agent metrics are asked every read for a day after -
+   * and when a read last asked whether one does, which a project none of
+   * whose VMs runs the agent is asked once an hour (getGcpOpsAgentAsk).
+   */
+  gcpOpsAgentSeen?: Record<string, string> | undefined;
+  gcpOpsAgentAskedAt?: Record<string, string> | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
   // When the inventory last listed every resource (CloudInventory).
