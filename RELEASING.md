@@ -232,6 +232,10 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
 - `publish-android-to-play-store` and `publish-ios-to-app-store` are skipped
   unless the run is dispatched with them turned on:
   [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md).
+- `Publish the Android agent to Google Play` is skipped, with a notice naming
+  what is missing, until its repository secrets are set; once they are, it
+  uploads a draft to the internal track for a maintainer to roll out:
+  [agents/AndroidAgent/RELEASING.md](agents/AndroidAgent/RELEASING.md).
 
 ### 9. Start the next release - if `main` has something new
 

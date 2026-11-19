@@ -1,0 +1,1 @@
+This version of the agent comes with the OneUptime release of the same number. That release's notes say what changed: https://github.com/OneUptime/oneuptime/releases
