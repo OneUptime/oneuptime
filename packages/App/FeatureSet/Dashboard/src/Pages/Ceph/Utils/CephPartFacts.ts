@@ -219,8 +219,10 @@ export function withCephStatus(
   };
 }
 
-// The numbers a row keeps for its cells' colours.
-export const CEPH_USED_PERCENT_ATTRIBUTE: string = "usedPercentValue";
+/*
+ * The numbers a row keeps for its cells' colours. How full an OSD or a
+ * pool is reads from the row's storageUsage instead (the shared bar).
+ */
 export const CEPH_APPLY_LATENCY_ATTRIBUTE: string = "applyLatencyValue";
 
 export function readCephRowNumber(
