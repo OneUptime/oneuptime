@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
   "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند.",
+  "Average of {{attribute}}": "میانگین {{attribute}}",
+  "Choose the numeric attribute to chart.": "ویژگی عددی را برای نمودار انتخاب کنید.",
+  "Choose which field's unique values to count.": "فیلدی را انتخاب کنید که مقدارهای یکتای آن شمرده شوند.",
+  "Maximum of {{attribute}}": "بیشینه {{attribute}}",
+  "Median of {{attribute}}": "میانه {{attribute}}",
+  "Minimum of {{attribute}}": "کمینه {{attribute}}",
+  "P90 of {{attribute}}": "P90 {{attribute}}",
+  "P95 of {{attribute}}": "P95 {{attribute}}",
+  "P99 of {{attribute}}": "P99 {{attribute}}",
+  "Sum of {{attribute}}": "جمع {{attribute}}",
+  "Unique count of {{attribute}}": "تعداد یکتای {{attribute}}"
 }

@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "Udgiv en statusside, der viser mine monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Udgiv en statusside med navnet {{name}}, der viser mine monitorer.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse.",
+  "Average of {{attribute}}": "Gennemsnit af {{attribute}}",
+  "Choose the numeric attribute to chart.": "Vælg den numeriske attribut, der skal vises i diagrammet.",
+  "Choose which field's unique values to count.": "Vælg det felt, hvis unikke værdier skal tælles.",
+  "Maximum of {{attribute}}": "Maksimum af {{attribute}}",
+  "Median of {{attribute}}": "Median af {{attribute}}",
+  "Minimum of {{attribute}}": "Minimum af {{attribute}}",
+  "P90 of {{attribute}}": "P90 af {{attribute}}",
+  "P95 of {{attribute}}": "P95 af {{attribute}}",
+  "P99 of {{attribute}}": "P99 af {{attribute}}",
+  "Sum of {{attribute}}": "Sum af {{attribute}}",
+  "Unique count of {{attribute}}": "Unikt antal af {{attribute}}"
 }

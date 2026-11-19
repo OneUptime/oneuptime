@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
   "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط.",
+  "Average of {{attribute}}": "متوسط قيم {{attribute}}",
+  "Choose the numeric attribute to chart.": "اختر السمة الرقمية التي تريد عرضها في المخطط.",
+  "Choose which field's unique values to count.": "اختر الحقل الذي تريد عدّ قيمه الفريدة.",
+  "Maximum of {{attribute}}": "الحد الأقصى لقيم {{attribute}}",
+  "Median of {{attribute}}": "وسيط قيم {{attribute}}",
+  "Minimum of {{attribute}}": "الحد الأدنى لقيم {{attribute}}",
+  "P90 of {{attribute}}": "P90 لقيم {{attribute}}",
+  "P95 of {{attribute}}": "P95 لقيم {{attribute}}",
+  "P99 of {{attribute}}": "P99 لقيم {{attribute}}",
+  "Sum of {{attribute}}": "مجموع قيم {{attribute}}",
+  "Unique count of {{attribute}}": "عدد القيم الفريدة في {{attribute}}"
 }

@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "내 모니터를 보여 주는 상태 페이지를 게시해 주세요.",
   "Publish a status page called {{name}} that shows my monitors.": "내 모니터를 보여 주는 {{name}}(이)라는 상태 페이지를 게시해 주세요.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "이 쿼리의 단위({{unit}})가 이전 쿼리 차트의 단위({{chartUnit}})와 달라, 그 차트의 축에서는 이 쿼리의 값을 제대로 읽을 수 없습니다."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "이 쿼리의 단위({{unit}})가 이전 쿼리 차트의 단위({{chartUnit}})와 달라, 그 차트의 축에서는 이 쿼리의 값을 제대로 읽을 수 없습니다.",
+  "Average of {{attribute}}": "{{attribute}}의 평균",
+  "Choose the numeric attribute to chart.": "차트에 표시할 숫자 속성을 선택하세요.",
+  "Choose which field's unique values to count.": "고유 값을 셀 필드를 선택하세요.",
+  "Maximum of {{attribute}}": "{{attribute}}의 최대",
+  "Median of {{attribute}}": "{{attribute}}의 중앙값",
+  "Minimum of {{attribute}}": "{{attribute}}의 최소",
+  "P90 of {{attribute}}": "{{attribute}}의 P90",
+  "P95 of {{attribute}}": "{{attribute}}의 P95",
+  "P99 of {{attribute}}": "{{attribute}}의 P99",
+  "Sum of {{attribute}}": "{{attribute}}의 합계",
+  "Unique count of {{attribute}}": "{{attribute}}의 고유 개수"
 }

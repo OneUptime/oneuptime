@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "Veröffentliche eine Statusseite, die meine Monitore zeigt.",
   "Publish a status page called {{name}} that shows my monitors.": "Veröffentliche eine Statusseite namens {{name}}, die meine Monitore zeigt.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hilf mir, die Logs, Metriken und Traces meines Dienstes an OneUptime zu senden, und warne mich, wenn er Fehler hat.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Diese Abfrage ist in {{unit}} und das Diagramm der vorherigen Abfrage in {{chartUnit}}, daher lassen sich ihre Werte auf der Achse dieses Diagramms nicht richtig ablesen."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Diese Abfrage ist in {{unit}} und das Diagramm der vorherigen Abfrage in {{chartUnit}}, daher lassen sich ihre Werte auf der Achse dieses Diagramms nicht richtig ablesen.",
+  "Average of {{attribute}}": "Durchschnitt von {{attribute}}",
+  "Choose the numeric attribute to chart.": "Wählen Sie das numerische Attribut für das Diagramm aus.",
+  "Choose which field's unique values to count.": "Wählen Sie das Feld aus, dessen eindeutige Werte gezählt werden sollen.",
+  "Maximum of {{attribute}}": "Maximum von {{attribute}}",
+  "Median of {{attribute}}": "Median von {{attribute}}",
+  "Minimum of {{attribute}}": "Minimum von {{attribute}}",
+  "P90 of {{attribute}}": "P90 von {{attribute}}",
+  "P95 of {{attribute}}": "P95 von {{attribute}}",
+  "P99 of {{attribute}}": "P99 von {{attribute}}",
+  "Sum of {{attribute}}": "Summe von {{attribute}}",
+  "Unique count of {{attribute}}": "Eindeutige Anzahl von {{attribute}}"
 }

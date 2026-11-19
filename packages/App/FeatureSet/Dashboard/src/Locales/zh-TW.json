@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "發布一個顯示我的監測器的狀態頁面。",
   "Publish a status page called {{name}} that shows my monitors.": "發布一個名為 {{name}} 並顯示我的監測器的狀態頁面。",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "幫我把服務的日誌、指標和追蹤傳送到 OneUptime，並在它出現錯誤時提醒我。",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表單位為 {{chartUnit}}，因此無法在該圖表的座標軸上正確讀出此查詢的數值。"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表單位為 {{chartUnit}}，因此無法在該圖表的座標軸上正確讀出此查詢的數值。",
+  "Average of {{attribute}}": "{{attribute}} 的平均",
+  "Choose the numeric attribute to chart.": "選擇要繪製圖表的數值屬性。",
+  "Choose which field's unique values to count.": "選擇要統計唯一值的欄位。",
+  "Maximum of {{attribute}}": "{{attribute}} 的最大值",
+  "Median of {{attribute}}": "{{attribute}} 的中位數",
+  "Minimum of {{attribute}}": "{{attribute}} 的最小值",
+  "P90 of {{attribute}}": "{{attribute}} 的 P90",
+  "P95 of {{attribute}}": "{{attribute}} 的 P95",
+  "P99 of {{attribute}}": "{{attribute}} 的 P99",
+  "Sum of {{attribute}}": "{{attribute}} 的總和",
+  "Unique count of {{attribute}}": "{{attribute}} 的唯一計數"
 }

@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "Pubblica una pagina di stato che mostri i miei monitor.",
   "Publish a status page called {{name}} that shows my monitors.": "Pubblica una pagina di stato chiamata {{name}} che mostri i miei monitor.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Questa query è in {{unit}} e il grafico della query precedente in {{chartUnit}}, quindi i suoi valori non si leggeranno correttamente sull'asse di quel grafico."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Questa query è in {{unit}} e il grafico della query precedente in {{chartUnit}}, quindi i suoi valori non si leggeranno correttamente sull'asse di quel grafico.",
+  "Average of {{attribute}}": "Media di {{attribute}}",
+  "Choose the numeric attribute to chart.": "Scegli l'attributo numerico da rappresentare nel grafico.",
+  "Choose which field's unique values to count.": "Scegli il campo di cui contare i valori univoci.",
+  "Maximum of {{attribute}}": "Massimo di {{attribute}}",
+  "Median of {{attribute}}": "Mediana di {{attribute}}",
+  "Minimum of {{attribute}}": "Minimo di {{attribute}}",
+  "P90 of {{attribute}}": "P90 di {{attribute}}",
+  "P95 of {{attribute}}": "P95 di {{attribute}}",
+  "P99 of {{attribute}}": "P99 di {{attribute}}",
+  "Sum of {{attribute}}": "Somma di {{attribute}}",
+  "Unique count of {{attribute}}": "Conteggio univoco di {{attribute}}"
 }

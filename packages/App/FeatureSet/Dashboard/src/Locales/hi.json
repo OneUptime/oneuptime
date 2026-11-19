@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
   "Publish a status page called {{name}} that shows my monitors.": "{{name}} नाम का एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "मेरी सेवा के लॉग, मेट्रिक्स और ट्रेस OneUptime पर भेजने में मेरी मदद करें, और उसमें त्रुटियाँ होने पर मुझे अलर्ट करें।",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "यह क्वेरी {{unit}} में है और पिछली क्वेरी का चार्ट {{chartUnit}} में, इसलिए उस चार्ट के अक्ष पर इसके मान सही ढंग से नहीं पढ़े जा सकेंगे।"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "यह क्वेरी {{unit}} में है और पिछली क्वेरी का चार्ट {{chartUnit}} में, इसलिए उस चार्ट के अक्ष पर इसके मान सही ढंग से नहीं पढ़े जा सकेंगे।",
+  "Average of {{attribute}}": "{{attribute}} का औसत",
+  "Choose the numeric attribute to chart.": "चार्ट के लिए संख्यात्मक एट्रिब्यूट चुनें।",
+  "Choose which field's unique values to count.": "वह फ़ील्ड चुनें जिसके अद्वितीय मान गिने जाने हैं।",
+  "Maximum of {{attribute}}": "{{attribute}} का अधिकतम",
+  "Median of {{attribute}}": "{{attribute}} की माध्यिका",
+  "Minimum of {{attribute}}": "{{attribute}} का न्यूनतम",
+  "P90 of {{attribute}}": "{{attribute}} का P90",
+  "P95 of {{attribute}}": "{{attribute}} का P95",
+  "P99 of {{attribute}}": "{{attribute}} का P99",
+  "Sum of {{attribute}}": "{{attribute}} का योग",
+  "Unique count of {{attribute}}": "{{attribute}} की अद्वितीय गणना"
 }

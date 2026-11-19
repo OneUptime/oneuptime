@@ -59036,5 +59036,16 @@
   "Publish a status page that shows my monitors.": "私のモニターを表示するステータスページを公開してください。",
   "Publish a status page called {{name}} that shows my monitors.": "私のモニターを表示する {{name}} という名前のステータスページを公開してください。",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。",
+  "Average of {{attribute}}": "{{attribute}} の平均",
+  "Choose the numeric attribute to chart.": "グラフにする数値属性を選択します。",
+  "Choose which field's unique values to count.": "ユニークな値を数えるフィールドを選択します。",
+  "Maximum of {{attribute}}": "{{attribute}} の最大",
+  "Median of {{attribute}}": "{{attribute}} の中央値",
+  "Minimum of {{attribute}}": "{{attribute}} の最小",
+  "P90 of {{attribute}}": "{{attribute}} の P90",
+  "P95 of {{attribute}}": "{{attribute}} の P95",
+  "P99 of {{attribute}}": "{{attribute}} の P99",
+  "Sum of {{attribute}}": "{{attribute}} の合計",
+  "Unique count of {{attribute}}": "{{attribute}} のユニーク数"
 }
