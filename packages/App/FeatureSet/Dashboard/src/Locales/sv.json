@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} ej felfria slutpunkter",
   "{{count}} unhealthy endpoints_one": "{{count}} ej felfri slutpunkt",
   "{{percent}} of requests blocked": "{{percent}} av förfrågningarna blockerades",
-  "{{share}} of installs crash-free": "{{share}} kraschfria installationer"
+  "{{share}} of installs crash-free": "{{share}} kraschfria installationer",
+  "Clear Sign-In Settings": "Rensa inloggningsinställningar",
+  "Clear their saved sign-in settings?": "Rensa deras sparade inloggningsinställningar?",
+  "Cleared the sign-in settings of {{count}} people.": "Inloggningsinställningarna för {{count}} personer har rensats.",
+  "Cleared the sign-in settings of {{count}} people._one": "Inloggningsinställningarna för {{count}} person har rensats.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Deras lösenord, passnycklar, säkerhetsnycklar, autentiseringsappar och reservkoder raderas, och var och en får ett e-postmeddelande. Det går inte att ångra.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personer vars alla projekt är dina har fortfarande ett lösenord eller tvåfaktorsautentisering sparat i OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person vars alla projekt är dina har fortfarande ett lösenord eller tvåfaktorsautentisering sparat i OneUptime."
 }

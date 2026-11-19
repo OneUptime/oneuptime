@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} usunde endepunkter",
   "{{count}} unhealthy endpoints_one": "{{count}} usundt endepunkt",
   "{{percent}} of requests blocked": "{{percent}} af anmodningerne blev blokeret",
-  "{{share}} of installs crash-free": "{{share}} af installationerne uden nedbrud"
+  "{{share}} of installs crash-free": "{{share}} af installationerne uden nedbrud",
+  "Clear Sign-In Settings": "Ryd loginindstillinger",
+  "Clear their saved sign-in settings?": "Ryd deres gemte loginindstillinger?",
+  "Cleared the sign-in settings of {{count}} people.": "Loginindstillingerne for {{count}} personer er ryddet.",
+  "Cleared the sign-in settings of {{count}} people._one": "Loginindstillingerne for {{count}} person er ryddet.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Deres adgangskoder, adgangsnøgler, sikkerhedsnøgler, godkendelsesapps og backupkoder slettes, og hver person får en e-mail. Det kan ikke fortrydes.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personer, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime."
 }

@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطه پایانی ناسالم",
   "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده",
-  "{{share}} of installs crash-free": "{{share}} از نصب‌ها بدون کرش"
+  "{{share}} of installs crash-free": "{{share}} از نصب‌ها بدون کرش",
+  "Clear Sign-In Settings": "پاک کردن تنظیمات ورود",
+  "Clear their saved sign-in settings?": "تنظیمات ورود ذخیره‌شدهٔ آن‌ها پاک شود؟",
+  "Cleared the sign-in settings of {{count}} people.": "تنظیمات ورود {{count}} نفر پاک شد.",
+  "Cleared the sign-in settings of {{count}} people._one": "تنظیمات ورود {{count}} نفر پاک شد.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "رمزهای عبور، کلیدهای عبور، کلیدهای امنیتی، اپلیکیشن‌های احراز هویت و کدهای پشتیبان آن‌ها حذف می‌شوند و به هر نفر ایمیل زده می‌شود. این کار برگشت‌پذیر نیست.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} نفر که مالک همهٔ پروژه‌هایشان هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارند.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} نفر که مالک همهٔ پروژه‌هایش هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد."
 }

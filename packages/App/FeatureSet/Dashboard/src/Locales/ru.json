@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "Неисправных конечных точек: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} неисправная конечная точка",
   "{{percent}} of requests blocked": "{{percent}} запросов заблокировано",
-  "{{share}} of installs crash-free": "{{share}} установок без сбоев"
+  "{{share}} of installs crash-free": "{{share}} установок без сбоев",
+  "Clear Sign-In Settings": "Удалить настройки входа",
+  "Clear their saved sign-in settings?": "Удалить их сохранённые настройки входа?",
+  "Cleared the sign-in settings of {{count}} people.": "Настройки входа удалены. Пользователей: {{count}}.",
+  "Cleared the sign-in settings of {{count}} people._one": "Настройки входа удалены у {{count}} пользователя.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Их пароли, ключи доступа, ключи безопасности, приложения-аутентификаторы и резервные коды удаляются, и каждый получает письмо. Это нельзя отменить.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "Пользователей, все проекты которых принадлежат вам и у которых в OneUptime всё ещё сохранены пароль или двухфакторная аутентификация: {{count}}.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} пользователь, все проекты которого принадлежат вам, всё ещё хранит в OneUptime пароль или двухфакторную аутентификацию."
 }

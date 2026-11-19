@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} endpoints con problemas",
   "{{count}} unhealthy endpoints_one": "{{count}} endpoint con problemas",
   "{{percent}} of requests blocked": "{{percent}} de las solicitudes bloqueadas",
-  "{{share}} of installs crash-free": "{{share}} de las instalaciones sin fallos"
+  "{{share}} of installs crash-free": "{{share}} de las instalaciones sin fallos",
+  "Clear Sign-In Settings": "Borrar configuración de inicio de sesión",
+  "Clear their saved sign-in settings?": "¿Borrar la configuración de inicio de sesión guardada de estas personas?",
+  "Cleared the sign-in settings of {{count}} people.": "Se borró la configuración de inicio de sesión de {{count}} personas.",
+  "Cleared the sign-in settings of {{count}} people._one": "Se borró la configuración de inicio de sesión de {{count}} persona.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Se eliminan sus contraseñas, llaves de acceso, llaves de seguridad, aplicaciones de autenticación y códigos de respaldo, y cada persona recibe un correo electrónico. Esto no se puede deshacer.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personas cuyos proyectos son todos tuyos siguen teniendo una contraseña o la autenticación de dos factores guardada en OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} persona cuyos proyectos son todos tuyos sigue teniendo una contraseña o la autenticación de dos factores guardada en OneUptime."
 }

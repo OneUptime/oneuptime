@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} ongezonde endpoints",
   "{{count}} unhealthy endpoints_one": "{{count}} ongezond endpoint",
   "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd",
-  "{{share}} of installs crash-free": "{{share}} van de installaties crashvrij"
+  "{{share}} of installs crash-free": "{{share}} van de installaties crashvrij",
+  "Clear Sign-In Settings": "Aanmeldinstellingen wissen",
+  "Clear their saved sign-in settings?": "Hun opgeslagen aanmeldinstellingen wissen?",
+  "Cleared the sign-in settings of {{count}} people.": "De aanmeldinstellingen van {{count}} mensen zijn gewist.",
+  "Cleared the sign-in settings of {{count}} people._one": "De aanmeldinstellingen van {{count}} persoon zijn gewist.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Hun wachtwoorden, passkeys, beveiligingssleutels, authenticator-apps en back-upcodes worden verwijderd, en iedereen krijgt een e-mail. Dit kan niet ongedaan worden gemaakt.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} mensen van wie alle projecten van u zijn, hebben nog een wachtwoord of tweefactorauthenticatie opgeslagen in OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} persoon van wie alle projecten van u zijn, heeft nog een wachtwoord of tweefactorauthenticatie opgeslagen in OneUptime."
 }

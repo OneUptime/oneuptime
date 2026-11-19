@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} 個不健康的端點",
   "{{count}} unhealthy endpoints_one": "{{count}} 個不健康的端點",
   "{{percent}} of requests blocked": "{{percent}} 的請求遭封鎖",
-  "{{share}} of installs crash-free": "{{share}} 的安裝無當機"
+  "{{share}} of installs crash-free": "{{share}} 的安裝無當機",
+  "Clear Sign-In Settings": "清除登入設定",
+  "Clear their saved sign-in settings?": "要清除這些人已儲存的登入設定嗎？",
+  "Cleared the sign-in settings of {{count}} people.": "已清除 {{count}} 人的登入設定。",
+  "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登入設定。",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "他們的密碼、通行密鑰、安全金鑰、驗證器應用程式和備用代碼都將被刪除，每個人都會收到一封電子郵件。此操作無法復原。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。"
 }

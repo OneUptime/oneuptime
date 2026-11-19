@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints_one": "비정상 엔드포인트 {{count}}개",
   "{{percent}} of requests blocked": "요청의 {{percent}} 차단",
-  "{{share}} of installs crash-free": "크래시 없는 설치 {{share}}"
+  "{{share}} of installs crash-free": "크래시 없는 설치 {{share}}",
+  "Clear Sign-In Settings": "로그인 설정 지우기",
+  "Clear their saved sign-in settings?": "이 사용자들의 저장된 로그인 설정을 지우시겠습니까?",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}}명의 로그인 설정을 지웠습니다.",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}}명의 로그인 설정을 지웠습니다.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "비밀번호, 패스키, 보안 키, 인증 앱, 백업 코드가 삭제되고 각 사용자에게 이메일이 발송됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다."
 }

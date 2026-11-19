@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "異常なエンドポイント {{count}} 個",
   "{{count}} unhealthy endpoints_one": "異常なエンドポイント {{count}} 個",
   "{{percent}} of requests blocked": "リクエストの {{percent}} がブロック",
-  "{{share}} of installs crash-free": "クラッシュのないインストール {{share}}"
+  "{{share}} of installs crash-free": "クラッシュのないインストール {{share}}",
+  "Clear Sign-In Settings": "サインイン設定を消去",
+  "Clear their saved sign-in settings?": "これらのユーザーの保存済みサインイン設定を消去しますか？",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}} 人のサインイン設定を消去しました。",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}} 人のサインイン設定を消去しました。",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードが削除され、各ユーザーにメールが送信されます。この操作は元に戻せません。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。"
 }

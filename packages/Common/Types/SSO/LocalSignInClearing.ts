@@ -96,7 +96,7 @@ export const CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE: string =
   "This project does not manage its people's sign-in with SSO, so their passwords and second steps still sign them in. Turn on Require SSO to Sign In and Manage Sign-In with SSO first.";
 
 export const CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE: string =
-  "Only the project's owners can clear the sign-in settings its people saved.";
+  "Only Project Owners can clear the sign-in settings this project's people saved.";
 
 // What one person has saved in OneUptime to sign in with.
 export interface LocalSignInSettings {

@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} unhealthy endpoints",
   "{{count}} unhealthy endpoints_one": "{{count}} unhealthy endpoint",
   "{{percent}} of requests blocked": "{{percent}} of requests blocked",
-  "{{share}} of installs crash-free": "{{share}} of installs crash-free"
+  "{{share}} of installs crash-free": "{{share}} of installs crash-free",
+  "Clear Sign-In Settings": "Clear Sign-In Settings",
+  "Clear their saved sign-in settings?": "Clear their saved sign-in settings?",
+  "Cleared the sign-in settings of {{count}} people.": "Cleared the sign-in settings of {{count}} people.",
+  "Cleared the sign-in settings of {{count}} people._one": "Cleared the sign-in settings of {{count}} person.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person whose projects are all yours still has a password or two-factor authentication saved in OneUptime."
 }

@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "نقاط النهاية غير السليمة: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطة نهاية غير سليمة",
   "{{percent}} of requests blocked": "حُظر {{percent}} من الطلبات",
-  "{{share}} of installs crash-free": "{{share}} من عمليات التثبيت خالية من التعطل"
+  "{{share}} of installs crash-free": "{{share}} من عمليات التثبيت خالية من التعطل",
+  "Clear Sign-In Settings": "مسح إعدادات تسجيل الدخول",
+  "Clear their saved sign-in settings?": "هل تريد مسح إعدادات تسجيل الدخول المحفوظة لديهم؟",
+  "Cleared the sign-in settings of {{count}} people.": "مُسحت إعدادات تسجيل الدخول لدى عدد من الأشخاص: {{count}}.",
+  "Cleared the sign-in settings of {{count}} people._one": "مُسحت إعدادات تسجيل الدخول لدى {{count}} شخص.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "تُحذف كلمات المرور ومفاتيح المرور ومفاتيح الأمان وتطبيقات المصادقة والرموز الاحتياطية الخاصة بهم، ويُرسل بريد إلكتروني إلى كل منهم. لا يمكن التراجع عن ذلك.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "عدد من تملك كل مشاريعهم ولا يزال لديهم كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime: {{count}}.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} شخص تملك كل مشاريعه ولا يزال لديه كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime."
 }

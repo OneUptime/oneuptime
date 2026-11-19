@@ -58761,5 +58761,12 @@
   "{{count}} unhealthy endpoints": "{{count}} points de terminaison défaillants",
   "{{count}} unhealthy endpoints_one": "{{count}} point de terminaison défaillant",
   "{{percent}} of requests blocked": "{{percent}} des requêtes bloquées",
-  "{{share}} of installs crash-free": "{{share}} des installations sans plantage"
+  "{{share}} of installs crash-free": "{{share}} des installations sans plantage",
+  "Clear Sign-In Settings": "Effacer les paramètres de connexion",
+  "Clear their saved sign-in settings?": "Effacer leurs paramètres de connexion enregistrés ?",
+  "Cleared the sign-in settings of {{count}} people.": "Les paramètres de connexion de {{count}} personnes ont été effacés.",
+  "Cleared the sign-in settings of {{count}} people._one": "Les paramètres de connexion de {{count}} personne ont été effacés.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Leurs mots de passe, clés d'accès, clés de sécurité, applications d'authentification et codes de secours sont supprimés, et chaque personne reçoit un e-mail. Cette action est irréversible.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personnes dont tous les projets sont les vôtres ont encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} personne dont tous les projets sont les vôtres a encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime."
 }
