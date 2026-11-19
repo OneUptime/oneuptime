@@ -8,8 +8,9 @@ import {
 } from "./serverProducts";
 import ProductKey from "../../../Common/Types/Product/ProductKey";
 import { ServerProductOffReason } from "../../../Common/Types/Product/ServerProducts";
-import { PROJECT_PRODUCTS_ROUTE } from "../../../Common/Types/Product/ProjectProductsAnswer";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * WHAT THE SERVER HAS SWITCHED OFF, AS THE APP READS IT (#7478).
@@ -20,6 +21,33 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * Home. Anything it cannot read is "nothing off" - the app never hides a
  * working product for want of an answer.
  */
+
+/*
+ * The route the web reads its products answer from: Common's
+ * PROJECT_PRODUCTS_ROUTE (Types/Product/ProjectProductsAnswer), read from
+ * its file rather than imported. That file's imports reach moment-timezone
+ * (ProductUsage's activation milestones, through the Translator), and CI
+ * installs this app's node_modules only, so importing it failed the suite
+ * before a test ran.
+ */
+const PROJECT_PRODUCTS_ANSWER_FILE: string = path.join(
+  __dirname,
+  "../../../Common/Types/Product/ProjectProductsAnswer.ts",
+);
+
+function readProjectProductsRoute(): string {
+  const match: RegExpMatchArray | null = fs
+    .readFileSync(PROJECT_PRODUCTS_ANSWER_FILE, "utf8")
+    .match(/export const PROJECT_PRODUCTS_ROUTE: string = "([^"]+)";/);
+
+  if (!match) {
+    throw new Error(
+      `${PROJECT_PRODUCTS_ANSWER_FILE} declares no PROJECT_PRODUCTS_ROUTE string`,
+    );
+  }
+
+  return match[1] as string;
+}
 
 jest.mock("./client", () => {
   return {
@@ -53,7 +81,7 @@ describe("the app's products", () => {
   });
 
   test("are read from the route the web reads", () => {
-    expect(PROJECT_PRODUCTS_PATH).toBe(`/api${PROJECT_PRODUCTS_ROUTE}`);
+    expect(PROJECT_PRODUCTS_PATH).toBe(`/api${readProjectProductsRoute()}`);
   });
 });
 
