@@ -100,11 +100,13 @@ export interface AuditLogRecorder {
   recordSignInFailures(events: Array<SignInFailureAuditEvent>): Promise<void>;
 
   /*
-   * A master admin clearing people's sign-in settings (issue #9762): each
-   * person's recorded in every project they are a member of that records
-   * audit logs, as their sessions are, by the master admin who did it
+   * People's sign-in settings cleared (issue #9762): each person's recorded
+   * in every project they are a member of that records audit logs, as their
+   * sessions are, by whoever cleared them - a master admin, or an owner of
+   * every project the person is in (#9820)
    * (Types/AuditLog/AuditLogSignInSettingsCleared). Several at once, for a
-   * clear of everyone the server's SSO requirement covers.
+   * clear of everyone the server's SSO requirement covers, or of a
+   * project's people.
    */
   recordSignInSettingsCleared(
     events: Array<SignInSettingsClearedAuditEvent>,

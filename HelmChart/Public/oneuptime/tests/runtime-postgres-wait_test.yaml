@@ -1,0 +1,311 @@
+suite: runtime pods wait for PostgreSQL before they start
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # The app, the worker, the telemetry writer and the ingress's certificate
+  # sidecar connect to PostgreSQL as they start, try four times five seconds
+  # apart, and exit (PostgresDatabase.connect()). On a fresh install the
+  # database is still pulling its image and initializing then, and the images,
+  # which run JavaScript compiled when they are built, get there within
+  # seconds: each of those pods exited and restarted at least once (the Iron
+  # Bank install check, HelmChart/Tests/suites/iron-bank-install.sh, counts
+  # restarts). An init container now holds them until PostgreSQL answers
+  # (oneuptime.postgres.runtimeWaitInitContainer).
+  # Tests/Ops/RuntimePodsWaitForPostgres.test.js runs its script.
+
+  # --- who waits ----------------------------------------------------------------
+  - it: makes the app wait for PostgreSQL, in its own image
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/app:release
+      - equal:
+          path: spec.template.spec.initContainers[0].command[0]
+          value: bash
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: ou-postgresql.oneuptime.svc.cluster.local
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGPORT
+            value: "5432"
+
+  - it: makes the worker wait too, in the app's image
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/app:release
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: ou-postgresql.oneuptime.svc.cluster.local
+
+  - it: makes the telemetry writer wait too, in the app's image
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      telemetryWriter.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/app:release
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: ou-postgresql.oneuptime.svc.cluster.local
+
+  # Its certificate sidecar connects to PostgreSQL, and the container exits
+  # when it cannot.
+  - it: makes the ingress wait too, in its own image
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/nginx:release
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: ou-postgresql.oneuptime.svc.cluster.local
+
+  - it: keeps the ingress's sysctl tuning first, and waits after it
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      nginx.sysctlTuning.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: sysctl-tuning
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: wait-for-postgres
+
+  - it: runs the Enterprise image when the pod does
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+
+  - it: runs an image that image.overrides replaces, as the pod does
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.nginx: registry1.dso.mil/ironbank/oneuptime/ingress:16.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: registry1.dso.mil/ironbank/oneuptime/ingress:16.0.0
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry1.dso.mil/ironbank/oneuptime/ingress:16.0.0
+
+  # --- what it waits for ---------------------------------------------------------
+  # pgbouncer accepts connections before PostgreSQL does, so the pod waits for
+  # the database behind it, as the migrate Job does.
+  - it: waits for the database, not for pgbouncer in front of it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pgbouncer.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: ou-postgresql.oneuptime.svc.cluster.local
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_HOST
+            value: ou-pgbouncer.oneuptime.svc.cluster.local
+
+  - it: waits for a CloudNativePG cluster's primary
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      postgresOperator.cnpg.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: ou-postgresql-cnpg-rw.oneuptime.svc.cluster.local
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGPORT
+            value: "5432"
+
+  - it: waits for a database you run yourself, at its address as the app reads it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      postgresql.enabled: false
+      externalPostgres.host: " db.example.com\n"
+      externalPostgres.port: 6543
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGHOST
+            value: db.example.com
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PGPORT
+            value: "6543"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_HOST
+            value: db.example.com
+
+  # --- it never holds a pod for good ----------------------------------------------
+  # After five minutes it starts the process anyway, which tries again itself,
+  # as before the wait. The migrate Job's own wait has nothing to start without
+  # the database, and has no such bound.
+  - it: gives up after five minutes
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: PG_WAIT_SECONDS
+            value: "300"
+
+  - it: leaves the migrate Job's own wait unbounded
+    templates:
+      - templates/migrate-job.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-postgres
+      - notExists:
+          path: spec.template.spec.initContainers[0].env[?(@.name == "PG_WAIT_SECONDS")]
+
+  # --- under the pod's own restrictions -------------------------------------------
+  - it: runs under the app container's own security context
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      containerSecurityContext:
+        runAsNonRoot: true
+      app.containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+  - it: runs under the chart-wide container security context when the pod has none of its own
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      containerSecurityContext:
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext
+          value:
+            runAsNonRoot: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            runAsNonRoot: true
+
+  - it: sets no security context when the pod's container has none
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notExists:
+          path: spec.template.spec.initContainers[0].securityContext

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import DeviceManagementConnection from "../../../../Models/DatabaseModels/DeviceManagementConnection";
 import DeviceManagementReadRunner, {
   APPS_NOT_READ_WARNING,
+  CHECK_INS_NOT_RECORDED_WARNING,
   CHECK_IN_WINDOW_MAX_MS,
   CHECK_IN_WINDOW_OVERLAP_MS,
   DeviceManagementReadDependencies,
@@ -11,6 +12,18 @@ import DeviceManagementReadRunner, {
   getCheckInLookups,
   getCheckInWindowStart,
 } from "../../../../Server/Utils/DeviceManagement/DeviceManagementReadRunner";
+import DeviceManagementConnectorRegistry from "../../../../Server/Utils/DeviceManagement/DeviceManagementConnectorRegistry";
+import {
+  DeviceManagementConnector,
+  DeviceManagementFleetRead,
+  DeviceManagementSession,
+  DeviceManagementSessionOptions,
+  DeviceManagementSettings,
+} from "../../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
+import {
+  ManagedDeviceCheckInOutcome,
+  ManagedDeviceCheckInRecordInput,
+} from "../../../../Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
 import { DeviceManagementReadSummary } from "../../../../Types/DeviceManagement/DeviceManagementReadSummary";
 import DeviceManagementProvider from "../../../../Types/DeviceManagement/DeviceManagementProvider";
 import {
@@ -93,6 +106,13 @@ function devices(): Array<JSONObject> {
   ];
 }
 
+/*
+ * The devices' check-in readings each read writes (#9835), caught here:
+ * ClickHouse is not played by the maps. ManagedDeviceCheckInMetrics has
+ * tests of its own.
+ */
+let checkInRecords: Array<ManagedDeviceCheckInRecordInput> = [];
+
 function dependencies(
   overrides: Partial<DeviceManagementReadDependencies> = {},
 ): DeviceManagementReadDependencies {
@@ -105,6 +125,12 @@ function dependencies(
     },
     isTelemetryAllowed: async (): Promise<boolean> => {
       return true;
+    },
+    recordCheckIns: async (
+      data: ManagedDeviceCheckInRecordInput,
+    ): Promise<ManagedDeviceCheckInOutcome> => {
+      checkInRecords.push(data);
+      return { readingCount: 0, hostCount: 0 };
     },
     ...overrides,
   };
@@ -218,6 +244,7 @@ beforeEach(() => {
   connection.pullState = {};
 
   db = installFakeDeviceManagementDb(connection);
+  checkInRecords = [];
 });
 
 afterEach(() => {
@@ -869,6 +896,142 @@ describe("what goes wrong", () => {
     expect((outcome.summary as DeviceManagementReadSummary).warnings).toEqual([
       INVENTORY_NOT_RECORDED_WARNING,
     ]);
+  });
+
+  test("check-ins that cannot be recorded are a warning, never the read's failure", async () => {
+    const outcome: DeviceManagementReadOutcome = await run({
+      recordCheckIns: async () => {
+        throw new Error("ClickHouse is not answering");
+      },
+    });
+
+    expect(outcome.status).toBe("success");
+    expect((outcome.summary as DeviceManagementReadSummary).warnings).toEqual([
+      CHECK_INS_NOT_RECORDED_WARNING,
+    ]);
+    // The read is still recorded, and so is where its check-ins got to.
+    expect(lastRecord()["lastSuccessfulPullAt"]).toBeTruthy();
+    expect(
+      (lastRecord()["pullState"] as JSONObject)["checkInCursor"],
+    ).toBeTruthy();
+  });
+});
+
+/*
+ * #9835: each read writes how long since each device checked in, which a
+ * Metrics monitor alerts on per device - only from a read that read every
+ * check-in up to its end, so no reading ever says a device was quiet longer
+ * than it was.
+ */
+describe("the devices' check-ins, as a metric", () => {
+  test("a read writes them once, for its connection and service, at the end of its check-in window", async () => {
+    await run();
+
+    expect(checkInRecords).toHaveLength(1);
+    expect(checkInRecords[0]!.projectId.toString()).toBe(PROJECT.toString());
+    expect(checkInRecords[0]!.connectionId.toString()).toBe(
+      CONNECTION.toString(),
+    );
+    expect(checkInRecords[0]!.provider).toBe(DeviceManagementProvider.Esper);
+
+    // At the window's end: where the next read's window starts.
+    expect(checkInRecords[0]!.asOf.toISOString()).toBe(
+      (lastRecord()["pullState"] as JSONObject)["checkInCursor"],
+    );
+  });
+
+  test("...after the devices are written, so each device's newest check-in is what is read", async () => {
+    let lastCheckInSeen: unknown = undefined;
+
+    await run({
+      recordCheckIns: async (
+        data: ManagedDeviceCheckInRecordInput,
+      ): Promise<ManagedDeviceCheckInOutcome> => {
+        lastCheckInSeen = deviceRow(KIOSK_A)["lastCheckInAt"];
+        checkInRecords.push(data);
+        return { readingCount: 2, hostCount: 0 };
+      },
+    });
+
+    expect(new Date(lastCheckInSeen as string).getTime()).toBe(
+      START.getTime() - 4 * MINUTE,
+    );
+  });
+
+  test("every read writes them again, each at its own window's end", async () => {
+    await run();
+    clock.advance(15 * MINUTE);
+    await run();
+
+    expect(checkInRecords).toHaveLength(2);
+    expect(checkInRecords[1]!.asOf.getTime()).toBeGreaterThanOrEqual(
+      START.getTime() + 15 * MINUTE,
+    );
+  });
+
+  test("a read whose check-ins were cut short writes none: its ages would be too old", async () => {
+    const connector: DeviceManagementConnector =
+      DeviceManagementConnectorRegistry.getConnector(
+        DeviceManagementProvider.Esper,
+      );
+    const openSession: (
+      settings: DeviceManagementSettings,
+      options: DeviceManagementSessionOptions,
+    ) => DeviceManagementSession = connector.openSession.bind(connector);
+
+    jest
+      .spyOn(connector, "openSession")
+      .mockImplementation(
+        (
+          settings: DeviceManagementSettings,
+          options: DeviceManagementSessionOptions,
+        ): DeviceManagementSession => {
+          const session: DeviceManagementSession = openSession(
+            settings,
+            options,
+          );
+          const readFleet: DeviceManagementSession["readFleet"] =
+            session.readFleet.bind(session);
+
+          // As the client says when its budget ran out part way.
+          session.readFleet = async (data: {
+            checkInSince: Date;
+          }): Promise<DeviceManagementFleetRead> => {
+            const fleet: DeviceManagementFleetRead = await readFleet(data);
+            return { ...fleet, checkInWindowEnd: undefined };
+          };
+
+          return session;
+        },
+      );
+
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("partial");
+    expect(checkInRecords).toEqual([]);
+  });
+
+  test("a read that fails writes none", async () => {
+    connection.secrets = JSON.stringify({ apiKey: "revoked-key-0123456789" });
+
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("failed");
+    expect(checkInRecords).toEqual([]);
+  });
+
+  test("a connection that is off, or a plan without telemetry, writes none", async () => {
+    connection.isEnabled = false;
+    await run();
+
+    connection.isEnabled = true;
+    await run({
+      isTelemetryAllowed: async (): Promise<boolean> => {
+        return false;
+      },
+    });
+
+    expect(checkInRecords).toEqual([]);
   });
 });
 

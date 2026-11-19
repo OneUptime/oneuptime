@@ -137,14 +137,14 @@ Haben Sie noch keine Backup-Codes, zeigt OneUptime sie Ihnen danach einmal, und 
 
 ### Wenn Ihre Organisation Ihre Anmeldung verwaltet
 
-Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt, es sei denn, ein Serveradministrator löscht es. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
+Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt, es sei denn, ein Serveradministrator löscht es, und dann erhalten Sie eine E-Mail. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
 
 Dasselbe gilt, wenn jedes Projekt, zu dem Sie gehören, Single Sign-On verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Ihr Passwort meldet Sie weiterhin bei OneUptime an, aber jedes Projekt verlangt SSO, daher richtet OneUptime für Sie kein neues Passwort, keinen neuen Passkey und keinen neuen zweiten Schritt ein:
 
 - **Ein Projekt, das das nicht tut**: Sobald Sie Mitglied eines Projekts sind oder zu einem Projekt eingeladen werden, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, kommt Ihr Abschnitt **Sicherheit** zurück. Die **Übersicht** nennt diese Projekte dann unter **Single Sign-On** als Grund dafür, dass Ihre Einstellungen bei Ihnen liegen. Verlassen Sie dieses Projekt, werden sie Ihnen wieder entzogen.
 - **Projekte mit unterschiedlichen Anbietern**: Verwalten alle Ihre Projekte die Anmeldung, jedes mit seinem eigenen Identitätsanbieter, nennt die **Übersicht** jeden Anbieter.
 - **Master-Admins** behalten immer ihre eigenen Einstellungen unter **Sicherheit**.
-- **Was Sie vorher eingerichtet haben**, bleibt gespeichert, und ein Serveradministrator kann es löschen.
+- **Was Sie vorher eingerichtet haben**, bleibt gespeichert. Ein Serveradministrator kann es löschen, ebenso ein Inhaber aller Projekte, zu denen Sie gehören; Sie erhalten eine E-Mail, wenn das geschieht.
 
 ## Ihre Projekte
 

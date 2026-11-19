@@ -1114,6 +1114,7 @@ import { AddSsoProviderDomains1809186480000 } from "./1809186480000-AddSsoProvid
 import { AddTeamMemberInviteeName1809186500000 } from "./1809186500000-AddTeamMemberInviteeName";
 import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessions";
 import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-AddProjectDetectVoicemailOnCalls";
+import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
 
 export default [
   InitialMigration,
@@ -2232,4 +2233,5 @@ export default [
   AddTeamMemberInviteeName1809186500000,
   AddHostLogSessions1809186600000,
   AddProjectDetectVoicemailOnCalls1809186610000,
+  BackfillSsoProviderDomains1809186620000,
 ];

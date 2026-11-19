@@ -330,10 +330,11 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
   }
 
   /*
-   * People whose sign-in settings a master admin cleared (Types/AuditLog/
-   * AuditLogSignInSettingsCleared, issue #9762), as LocalSignInClearing
-   * hands them over once they are cleared. Never throws: the settings are
-   * gone whatever happens here.
+   * People whose sign-in settings were cleared (Types/AuditLog/
+   * AuditLogSignInSettingsCleared, issue #9762) - by a master admin, as
+   * LocalSignInClearing hands them over, or by an owner of all their
+   * projects, as ProjectSignInClearing does (#9820) - once they are
+   * cleared. Never throws: the settings are gone whatever happens here.
    */
   public async recordSignInSettingsCleared(
     events: Array<SignInSettingsClearedAuditEvent>,

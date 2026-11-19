@@ -601,15 +601,15 @@
             },
             "preferExisting": {
               "type": "boolean",
-              "description": "With the bundled engine (url empty): read the cluster's own OpenCost or Kubecost instead when it runs one and answers. The agent looks when it starts and hourly, and falls back to the bundled engine. false always reads the bundled one; so does a rate card in cost.opencost.customPricing."
+              "description": "With the bundled engine (url empty): read the cluster's own OpenCost or Kubecost instead when it runs one and answers. The agent looks when it starts and hourly, and falls back to the bundled engine; the price metrics the collector scrapes follow it. false always reads the bundled one; so does a rate card in cost.opencost.customPricing."
             },
             "prometheusUrl": {
               "type": "string",
-              "description": "Prometheus the cost agent reads per-container memory peaks from, for right-sizing recommendations. Empty (default) uses the bundled Prometheus when the engine is bundled, and nothing when an external engine is configured. Without it, CPU recommendations still work and memory ones are unavailable."
+              "description": "Prometheus the cost agent reads per-container memory peaks from, for right-sizing recommendations, whatever the engine. Empty (default): the bundled Prometheus for the bundled engine, and for the cluster's own engine the Prometheus that engine reads, found at run time (OpenCost's PROMETHEUS_SERVER_ENDPOINT, the Prometheus Kubecost 2 bundles) once it answers for this cluster's cAdvisor series. Kubecost 3 reads none. Without one, CPU recommendations still work and memory ones are unavailable."
             },
             "prometheusCadvisorJob": {
               "type": "string",
-              "description": "Prometheus job label of the cAdvisor scrape. Empty (default) uses kubernetes-nodes-cadvisor, which is what the bundled Prometheus names it. Override when reusing your own Prometheus."
+              "description": "Prometheus job label of the cAdvisor scrape. Empty (default): read off the Prometheus in use (kubernetes-nodes-cadvisor when it has it, as the bundled one, Kubecost's and the community chart's do; kubelet in kube-prometheus-stack's). Set it when that Prometheus scrapes cAdvisor under more than one job."
             },
             "allocationPath": {
               "type": "string",
@@ -768,7 +768,7 @@
             "enabled": { "type": "boolean" },
             "endpoint": {
               "type": "string",
-              "description": "Metrics endpoint URL. Empty: the bundled OpenCost's /metrics; with cost.engine.url set to auto or a URL, wherever the engine the cost agent reads serves its price metrics, which the agent finds (the engine's /metrics, the /model/metrics a Kubecost 2 frontend or OpenCost's UI proxies, or a Kubecost 3 finops agent) and the collector asks it for; with cost.agent.enabled false, <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused. Example: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics"
+              "description": "Metrics endpoint URL. Empty: wherever the engine the cost agent reads serves its price metrics, which the agent finds (the engine's /metrics, the /model/metrics a Kubecost 2 frontend or OpenCost's UI proxies, or a Kubecost 3 finops agent) and the collector asks it for: the bundled OpenCost's until the agent reads the cluster's own engine instead, or the engine cost.engine.url auto or a URL gives. The bundled OpenCost the agent always reads (preferExisting false, or a rate card) is scraped where the chart puts it; with cost.agent.enabled false, <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused. Example: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics"
             },
             "scrapeInterval": { "type": "string" },
             "metricsAllowlist": {

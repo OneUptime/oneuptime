@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -23,7 +23,8 @@ import { MemoryRouter } from "react-router-dom";
  *     connection is doing - red only for a read that failed, grey for one
  *     someone turned off; View error only while it fails, Read now and
  *     Turn off while it is on, Turn on while it is off, each greyed with
- *     why without the right to change connections;
+ *     why without the right to change connections; Set up alerts on every
+ *     row, opening the connection's recommended monitors (#9835);
  *   - the devices list reads this project's devices, adds and changes
  *     nothing, and opens a device on its host's Inventory page;
  *   - a device's apps are that device's, read only;
@@ -48,9 +49,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import DeviceManagementConnectionsTable, {
   getConnectionHealth,
+  getConnectionRecommendationsRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagementConnectionsTable";
 import ManagedDevicesTable from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDevicesTable";
 import ManagedDeviceAppsTable from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceAppsTable";
+import ManagedDeviceCard from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceCard";
 import ManagedDeviceStatusPill, {
   getMinutesSinceCheckIn,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceStatusPill";
@@ -83,6 +86,7 @@ import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmCon
 import ObjectID from "../../../Types/ObjectID";
 import { PillTone } from "../../../UI/Components/Pill/PillTone";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "../../../UI/Utils/Navigation";
 import { PermissionGateResult } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
@@ -348,6 +352,48 @@ describe("the Esper connections list", () => {
     expect(done).toHaveBeenCalled();
   });
 
+  /*
+   * #9835: a connection's recommended monitors - Esper Device Stopped
+   * Checking In - are a page of their own, opened from its row.
+   */
+  test("Set up alerts opens the connection's recommended monitors", () => {
+    const navigate: jest.SpyInstance<any, any> = getJestSpyOn(
+      Navigation,
+      "navigate",
+    ).mockImplementation(() => {});
+    const props: Record<string, unknown> = renderConnections();
+    const done: MockFunction = getJestMockFunction();
+
+    expect(action(props, "Set up alerts").tooltip).toBe(
+      "Get an alert when one of its devices stops checking in.",
+    );
+    void action(props, "Set up alerts").onClick(
+      connection(),
+      done as unknown as () => void,
+    );
+
+    expect(done).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/inventory/managed-devices/${CONNECTION_ID}/recommendations`,
+    );
+    expect(
+      getConnectionRecommendationsRoute(new ObjectID(CONNECTION_ID)).toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/inventory/managed-devices/${CONNECTION_ID}/recommendations`,
+    );
+  });
+
+  test("Set up alerts is on every row, for everyone who sees it: creating a monitor asks its own permission", () => {
+    const props: Record<string, unknown> = renderConnections({
+      isAllowed: false,
+      disabledReason: "You need permission to edit connections.",
+    });
+
+    expect(action(props, "Set up alerts").isVisible).toBeUndefined();
+    expect(action(props, "Set up alerts").disabled).toBeUndefined();
+  });
+
   test("greys every change, with why, without the right to change connections", () => {
     const props: Record<string, unknown> = renderConnections({
       isAllowed: false,
@@ -423,6 +469,48 @@ describe("a device's apps", () => {
     expect(props["isCreateable"]).toBe(false);
     expect(props["isEditable"]).toBe(false);
     expect(props["isDeleteable"]).toBe(false);
+  });
+});
+
+/*
+ * A device's Esper card draws Esper's agent version as every agent version
+ * is drawn (AgentVersion, AgentVersionDisplayGuard): Esper releases and
+ * updates its agent, so OneUptime never calls it outdated.
+ */
+describe("a device's Esper card", () => {
+  async function renderCard(fields: Record<string, unknown>): Promise<void> {
+    const device: ManagedDevice = new ManagedDevice();
+    device._id = DEVICE_ID;
+    device.deviceName = "ESP-ID-AAAAW";
+    device.lastCheckInAt = new Date("2026-11-19T11:50:00.000Z");
+    Object.assign(device, fields);
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(device);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ManagedDeviceCard managedDeviceId={new ObjectID(DEVICE_ID)} />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  function agentRow(): HTMLElement {
+    return screen.getByText("Esper Agent").parentElement as HTMLElement;
+  }
+
+  test("shows Esper's agent version as it is, with no sign however old", async () => {
+    await renderCard({ agentVersion: "0.0.1" });
+
+    expect(within(agentRow()).getByText("0.0.1")).toBeInTheDocument();
+    expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
+  });
+
+  test("a device whose agent reported no version shows none", async () => {
+    await renderCard({ agentVersion: "" });
+
+    expect(within(agentRow()).queryByText("0.0.1")).toBeNull();
+    expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
   });
 });
 

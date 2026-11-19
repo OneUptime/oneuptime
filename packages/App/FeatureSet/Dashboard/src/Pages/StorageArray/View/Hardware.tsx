@@ -253,7 +253,7 @@ const StorageArrayHardware: FunctionComponent<
           }),
           StorageArrayResourceColumns.getTextColumn({
             field: "model",
-            title: "Model",
+            title: "Model (hardware model)",
           }),
           StorageArrayResourceColumns.getTextColumn({
             field: "firmwareVersion",

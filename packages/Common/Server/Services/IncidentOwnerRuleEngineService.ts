@@ -3,15 +3,11 @@ import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentService from "./IncidentService";
-import TeamService from "./TeamService";
-import UserService from "./UserService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
@@ -20,9 +16,7 @@ import FeedMarkdown, {
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
@@ -30,8 +24,10 @@ import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -398,8 +394,13 @@ class IncidentOwnerRuleEngineServiceClass
       }),
     );
 
-    const addedUserIds: Array<string> = [];
-    const addedTeamIds: Array<string> = [];
+    /*
+     * What addOwners actually did: the owners it wrote, and the ones it
+     * skipped and why - a user who has left the project, a team that is not
+     * one of its teams (#9933). The feed item, the log lines and the count
+     * are made from these, never from the ids the rules asked for.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -421,33 +422,38 @@ class IncidentOwnerRuleEngineServiceClass
         continue;
       }
 
-      await IncidentService.addOwners(
-        incident.projectId,
-        incident.id,
-        userIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        teamIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        notify,
-        RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.addUp(
+        outcome,
+        await IncidentService.addOwners(
+          incident.projectId,
+          incident.id,
+          userIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          teamIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          notify,
+          RuleRunWriteProps.get(data.props),
+        ),
       );
-
-      addedUserIds.push(...userIds);
-      addedTeamIds.push(...teamIds);
     }
 
-    const ownersAdded: number = addedUserIds.length + addedTeamIds.length;
+    const addedUserIds: Array<string> = OwnerRuleFeed.idsOf(outcome.userIds);
+    const addedTeamIds: Array<string> = OwnerRuleFeed.idsOf(outcome.teamIds);
 
-    if (ownersAdded === 0) {
+    if (OwnerRuleFeed.isEmpty(outcome)) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    logger.debug(
-      `IncidentOwnerRuleEngine added owners to incident ${incident.id}`,
-      { projectId: incident.projectId.toString() } as LogAttributes,
-    );
+    OwnerRuleFeed.log({
+      engine: "IncidentOwnerRuleEngine",
+      record: `incident ${incident.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: incident.projectId.toString(),
+      } as LogAttributes,
+    });
 
     const addedUserIdSet: Set<string> = new Set(addedUserIds);
     const addedTeamIdSet: Set<string> = new Set(addedTeamIds);
@@ -468,8 +474,7 @@ class IncidentOwnerRuleEngineServiceClass
     await this.createRuleExecutedFeedItem({
       incident,
       matchedRules: plan.matchedRules,
-      userIds: addedUserIds,
-      teamIds: addedTeamIds,
+      outcome: outcome,
       inheritedFromMonitors: addedAnyFrom("monitors"),
       inheritedFromHosts: addedAnyFrom("hosts"),
       inheritedFromKubernetesClusters: addedAnyFrom("kubernetesClusters"),
@@ -482,15 +487,15 @@ class IncidentOwnerRuleEngineServiceClass
       ruleChange: data.ruleChange,
     });
 
-    return RuleApplicationResultUtil.updated(ownersAdded);
+    return OwnerRuleFeed.getResult(outcome);
   }
 
   @CaptureSpan()
   private async createRuleExecutedFeedItem(data: {
     incident: Incident;
     matchedRules: Array<IncidentOwnerRule>;
-    userIds: Array<string>;
-    teamIds: Array<string>;
+    // The owners added, and the ones skipped with why.
+    outcome: OwnersAdded;
     inheritedFromMonitors: boolean;
     inheritedFromHosts: boolean;
     inheritedFromKubernetesClusters: boolean;
@@ -505,8 +510,7 @@ class IncidentOwnerRuleEngineServiceClass
     const {
       incident,
       matchedRules,
-      userIds,
-      teamIds,
+      outcome,
       inheritedFromMonitors,
       inheritedFromHosts,
       inheritedFromKubernetesClusters,
@@ -519,40 +523,12 @@ class IncidentOwnerRuleEngineServiceClass
       !incident.id ||
       !incident.projectId ||
       matchedRules.length === 0 ||
-      (userIds.length === 0 && teamIds.length === 0)
+      OwnerRuleFeed.isEmpty(outcome)
     ) {
       return;
     }
 
     try {
-      const userObjectIds: Array<ObjectID> = userIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-      const teamObjectIds: Array<ObjectID> = teamIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-
-      const [users, teams]: [Array<User>, Array<Team>] = await Promise.all([
-        userObjectIds.length > 0
-          ? UserService.findBy({
-              query: { _id: QueryHelper.any(userObjectIds) },
-              select: { name: true, email: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<User>),
-        teamObjectIds.length > 0
-          ? TeamService.findBy({
-              query: { _id: QueryHelper.any(teamObjectIds) },
-              select: { name: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<Team>),
-      ]);
-
       const ruleNames: Array<string> = matchedRules
         .map((r: IncidentOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -601,9 +577,12 @@ class IncidentOwnerRuleEngineServiceClass
               ruleNames.length > 1 ? "them" : "it"
             }: ${data.ruleChange}.`
           : ""
-      }\n\nAssigned the following owner${
-        users.length + teams.length === 1 ? "" : "s"
-      } to the incident:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: incident.projectId })}${inheritedNote}${creatorTeamNote}`;
+      }\n\n${await OwnerRuleFeed.readOutcome({
+        projectId: incident.projectId,
+        recordNoun: "incident",
+        outcome: outcome,
+        notesOnAdded: mdText`${inheritedNote}${creatorTeamNote}`,
+      })}`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id,

@@ -79,7 +79,7 @@ Du skal have tilladelse til at tilføje SSO-udbydere — **Projektejer**, **Proj
    - En ny udbyder starter slået fra. Når din IdP har disse to værdier, skal du redigere udbyderen og slå **Aktiveret** til
 
 4. **Test udbyderen**
-   - Åbn linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen på den side, der åbnes. Du sendes til din identitetsudbyders loginside og tilbage til OneUptime, logget ind
+   - Åbn linket i kortet **SSO-loginlink**, og vælg udbyderen på den side, der åbnes. Du sendes til din identitetsudbyders loginside og tilbage til OneUptime, logget ind
    - Når det virker, kan du [kræve SSO](#kræv-sso-for-dit-projekt) for projektet
 :::
 
@@ -131,7 +131,7 @@ Keycloak er en populær open source-løsning til identitets- og adgangsstyring. 
 
 5. **Slå udbyderen til, og test den**
 
-   Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Keycloaks loginside og tilbage til OneUptime.
+   Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **SSO-loginlink**, og vælg udbyderen. Du bør blive sendt til Keycloaks loginside og tilbage til OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudbaserede identitetstjeneste. Du skal bruge en lejer, der understøtter virksomhedsapplikationer med SAML-SSO, og administratoradgang til både Entra ID og OneUptime. Findes OneUptime i Microsoft Entra-applikationsgalleriet, så tilføj appen derfra på OneUptime Cloud: den leveres med de claims, OneUptime læser, og mønstrene for OneUptimes URL'er.
@@ -182,7 +182,7 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
 
 7. **Slå udbyderen til, og test den**
 
-   Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Microsofts loginside og tilbage til OneUptime.
+   Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **SSO-loginlink**, og vælg udbyderen. Du bør blive sendt til Microsofts loginside og tilbage til OneUptime.
 :::
 @tab Okta
 Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organisation med administratoradgang og administratoradgang til OneUptime. Findes OneUptime i Okta Integration Network, så tilføj appen derfra på OneUptime Cloud: den logger personer ind fra OneUptimes side **Log ind med SSO** og fra deres Okta-dashboard, giver dem en konto ved deres første login og beder om to ID'er i stedet for OneUptimes URL'er.
@@ -232,7 +232,7 @@ Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organi
 
 6. **Slå udbyderen til, og test den**
 
-   Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Oktas loginside og tilbage til OneUptime.
+   Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **SSO-loginlink**, og vælg udbyderen. Du bør blive sendt til Oktas loginside og tilbage til OneUptime.
 :::
 @tab Andre
 OneUptimes SSO bruger SAML 2.0 og fungerer med enhver kompatibel identitetsudbyder:
@@ -242,7 +242,7 @@ OneUptimes SSO bruger SAML 2.0 og fungerer med enhver kompatibel identitetsudbyd
 2. Opret udbyderen i OneUptime med disse værdier, og kopiér **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service-URL)** fra dialogen **SSO-konfiguration** (eller via **Vis SSO-konfiguration**).
 3. Sæt **Assertion Consumer Service URL / Reply URL** og **Entity ID / Audience URI** til OneUptimes værdier i din identitetsudbyders SAML-applikation, og sæt **Name ID Format** til e-mailadresse.
 4. **Signaturmetode** (`RSA-SHA256`) og **Digest-metode** (`SHA256`) er allerede angivet under **Flere felter**; ændr dem kun, hvis din identitetsudbyder signerer anderledes
-5. Slå **Aktiveret** til for udbyderen, og test den med linket i kortet **Test Single Sign On (SSO)**.
+5. Slå **Aktiveret** til for udbyderen, og test den med linket i kortet **SSO-loginlink**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspac
 3. Indtast et **Navn** (det, personer ser på loginsiden), **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**. Du kan også indsætte udbyderens discovery-URL i **Udsteder-URL** i stedet.
 4. I trinnet **Login** starter **Teams** med dit projekts medlemsteam: personer, der logger ind for første gang, kommer med i disse teams. Resten er allerede udfyldt under **Flere felter**: **Discovery-URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), claim-navnene `email` og `name` og en beskrivelse ("Sign in with" og navnet). Ændr dem kun, hvis din udbyder kræver det. Kun teams, du selv kunne invitere nogen til, accepteres: et team, der giver mere adgang, end du har, nævnes under **Teams**.
 5. Gem. Dialogen **OIDC-konfiguration** åbnes med **Redirect URI**: tilføj den til din apps tilladte redirect-URI'er. En ny udbyder starter slået fra, så rediger den bagefter, og slå **Aktiveret** til.
-6. Åbn linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen for at logge ind via den, før du kræver SSO for projektet.
+6. Åbn linket i kortet **SSO-loginlink**, og vælg udbyderen for at logge ind via den, før du kræver SSO for projektet.
 :::
 
 ## Log også ud af identitetsudbyderen
@@ -300,14 +300,20 @@ En udbyders teams afgør, hvad de personer, der logger ind med den, kan gøre, s
 1. Tilføj dit domæne under **Projektindstillinger** > **Avanceret** > **Domæner**, klik på **Bekræft domæne** i dets række, og tilføj den viste TXT-post til domænets DNS. Så snart posten er fundet, er domænet bekræftet.
 2. Rediger udbyderen, og vælg domænet under **Domæner** i trinnet **Login**. Kun projektets bekræftede domæner vises.
 
-**Log ind med SSO** tilbyder derefter udbyderen til alle adresser på det domæne, uanset hvem der skriver dem. Domænet skal passe præcist: `acme.com` dækker ikke `eu.acme.com`, så tilføj hvert domæne, folk logger ind med. En udbyder uden domæner, for eksempel en, der blev sat op, før domæner fandtes, tilbydes ikke til nogen der, og logger stadig folk ind fra din identitetsudbyder og fra linket i kortet **Test Single Sign On (SSO)**.
+**Log ind med SSO** tilbyder derefter udbyderen til alle adresser på det domæne, uanset hvem der skriver dem. Domænet skal passe præcist: `acme.com` dækker ikke `eu.acme.com`, så tilføj hvert domæne, folk logger ind med.
+
+Udbydere, der blev sat op, før domæner fandtes, fik deres projekts bekræftede domæner, da OneUptime blev opgraderet: hvert domæne, projektet havde bekræftet, medmindre et andet projekt også havde bekræftet det. Vælg selv et sådant domæne, hvis det er dit. Et domæne, der blev tilføjet, men aldrig bekræftet, blev ikke givet til nogen udbyder.
+
+En udbyder, der ikke angiver noget bekræftet domæne, tilbydes ikke til nogen der. Dens kolonne **Domæner** viser **Intet bekræftet domæne**, og en meddelelse over dine udbydere nævner den og siger, hvad du skal gøre. Så længe projektet ikke har noget bekræftet domæne, åbner meddelelsens **Bekræft et domæne** siden **Domæner**.
+
+Den, hvis e-mail er på et andet domæne, for eksempel en ekstern konsulent, finder heller ingen udbyder der. Del dit projekts SSO-loginlink med vedkommende: kopiér det fra kortet **SSO-loginlink** under dine udbydere. Det viser projektets udbydere og beder ikke om nogen e-mailadresse, så det siger intet om, hvem der har en konto. Et login, der starter hos din identitetsudbyder, virker også, uanset domænet.
 
 ## Kræv SSO for dit projekt
 
 En opsat udbyder forhindrer ikke nogen i at logge ind med en adgangskode. For at gøre SSO til den eneste vej ind i projektet skal du bruge kontakten **Kræv SSO for at logge ind** under **Projektindstillinger** > **Sikkerhed** > **SSO**, under dine udbydere:
 
 :::steps
-1. Test først din udbyder med linket i kortet **Test Single Sign On (SSO)**.
+1. Test først din udbyder med linket i kortet **SSO-loginlink**.
 2. Slå **Kræv SSO for at logge ind** til. OneUptime spørger, før noget gemmes: fra da af skal alle i projektet, også dig, logge ind med SSO for at åbne det, og alle, der er logget ind med en adgangskode, er udelukket fra projektet, indtil de logger ind med SSO.
 3. Klik på **Kræv SSO** for at bekræfte. Kontakten gemmer med det samme; der er ingen separat knap til at gemme.
 :::
@@ -336,9 +342,21 @@ Reglen kontrolleres hver gang, så:
 - **En person i et projekt, der ikke styrer login**: Så snart vedkommende er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, får vedkommende sine indstillinger tilbage, og vedkommendes **Brugerprofil** nævner det projekt som grunden. Forlader vedkommende det, styres login igen. En konto kan høre til mange organisationer, så én organisation bestemmer aldrig over en andens projekter.
 - **Projekter med forskellige udbydere**: En person i to projekter, der begge styrer login, hver med sin egen identitetsudbyder, styres, og profilen nævner begge udbydere.
 - **Master-admins** beholder altid deres egne indstillinger.
-- **Det, folk har opsat før**, bevares, ubrugt af dit projekt. En serveradministrator kan rydde det på personens side **Godkendelse** i Admin Dashboard med **Ryd loginindstillinger**.
+- **Det, folk har opsat før**, bevares, ubrugt af dit projekt, indtil det ryddes: af Projektejere i dit projekt (se nedenfor) eller af en serveradministrator på personens side **Godkendelse** i Admin Dashboard med **Ryd loginindstillinger**.
 
 **Styr login med SSO** gemmes, så snart du slår kontakten om, sletter intet, og slår du den fra, får alle straks deres indstillinger tilbage. Den, der kan ændre **Kræv SSO for at logge ind**, kan ændre den, på de samme planer. Når **Kræv SSO for at logge ind** er slået fra, er den skjult og ændrer intet.
+
+### Ryd det, dine brugere har gemt før
+
+Mens **Styr login med SSO** er slået til, ser Projektejere i dit projekt under den, hvor mange af dets brugere der stadig har en adgangskode eller tofaktorgodkendelse gemt i OneUptime. **Ryd loginindstillinger** sletter, efter at have spurgt, deres adgangskoder med eventuelle links til nulstilling eller login, adgangsnøgler, sikkerhedsnøgler, godkendelsesapps og backupkoder, slår tofaktorgodkendelse fra og afslutter de sessioner, de loggede ind i uden SSO. Det kan ikke fortrydes.
+
+En konto kan høre til mange organisationer, så du kan kun rydde indstillingerne for de personer, din organisation er ansvarlig for. Din organisation er de projekter, du ejer: En persons indstillinger ryddes kun, når alle de projekter, vedkommende hører til, inklusive ethvert projekt, vedkommende er inviteret til, er projekter, du er **Projektejer** af, og har **Styr login med SSO** slået til. Alle andre beholder deres indstillinger:
+
+- en person, der er medlem af eller inviteret til et projekt, du ikke ejer, eller et projekt, der ikke styrer login med SSO;
+- en person, der kun er inviteret til dit projekt og endnu ikke er blevet medlem;
+- master-admins og dig selv: Skift dine egne i din **Brugerprofil**.
+
+Hver person, hvis indstillinger ryddes, får en e-mail om, hvad der blev fjernet, og at vedkommende nu logger ind med SSO, og dine projekters auditlogs registrerer rydningen som din. Kun en **Projektejer** kan rydde, logget ind i dashboardet: aldrig med en API-nøgle.
 
 ## Slå en udbyder fra eller slet den
 

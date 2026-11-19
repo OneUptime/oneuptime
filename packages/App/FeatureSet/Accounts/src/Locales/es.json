@@ -234,7 +234,9 @@
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
     "selectProjectTitle": "Seleccionar proyecto",
-    "notSetUpForDomain": "El inicio de sesión único no está configurado para {{domain}}. Pida a su administrador que lo configure, o inicie sesión de otra forma.",
+    "notSetUpForDomain": "El inicio de sesión único no está configurado para {{domain}}. Pida a su administrador el enlace de inicio de sesión con SSO de su organización, o inicie sesión de otra forma.",
+    "projectNoProvider": "Este enlace no tiene ningún proveedor de inicio de sesión único con el que iniciar sesión. Pida a su administrador que active uno, o inicie sesión de otra forma.",
+    "signInAnotherWay": "Iniciar sesión de otra forma",
     "emailRequired": "Se requiere correo electrónico para realizar esta acción",
     "defaultProjectName": "Proyecto",
     "globalProvidersTitle": "Inicie sesión con su organización",
@@ -304,6 +306,19 @@
     "returnToApp": "Volver a la aplicación",
     "cancel": "Cancelar y volver a la aplicación",
     "setup": "Crea una clave de acceso en el panel web, en Perfil de usuario → Seguridad → Llaves de acceso."
+  },
+  "mobilePasskeyEnrolment": {
+    "title": "Configurar una clave de acceso",
+    "description": "Usa el rostro, la huella digital o el bloqueo de pantalla de este teléfono, o una llave de seguridad. La próxima vez iniciarás sesión en OneUptime On-Call con ella.",
+    "create": "Crear clave de acceso",
+    "tryAgain": "Volver a intentarlo",
+    "notCompleted": "La clave de acceso no se creó: la solicitud se canceló o caducó. Inténtalo de nuevo cuando estés listo.",
+    "expired": "Esta configuración ha caducado o ya se usó. Vuelve a la aplicación y empieza de nuevo.",
+    "failed": "No se pudo crear la clave de acceso. Inténtalo de nuevo, o vuelve a la aplicación y configura una aplicación de autenticación en su lugar.",
+    "complete": "Tu clave de acceso está lista. Vuelve a la aplicación para completar el inicio de sesión.",
+    "invalid": "Empieza a configurar una clave de acceso desde la aplicación móvil de OneUptime. Esta solicitud no existe o no es válida.",
+    "insecure": "Las claves de acceso requieren HTTPS. Vuelve a la aplicación para configurar una aplicación de autenticación en su lugar.",
+    "unsupported": "Este navegador no puede crear una clave de acceso. Vuelve a la aplicación para configurar una aplicación de autenticación en su lugar."
   },
   "mcpAuthorize": {
     "title": "Conectar un cliente MCP",

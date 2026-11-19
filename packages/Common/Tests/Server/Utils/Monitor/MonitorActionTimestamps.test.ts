@@ -36,6 +36,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * The real creators import the template sandbox, but these fixtures do not
@@ -326,9 +327,11 @@ describe.each(ENTITY_KINDS)(
        */
       jest.spyOn(AlertService, "addOwners").mockImplementation(async () => {
         currentDate = AFTER_OWNERS_AT;
+        return OwnerRuleAssignment.noOwnersAdded();
       });
       jest.spyOn(IncidentService, "addOwners").mockImplementation(async () => {
         currentDate = AFTER_OWNERS_AT;
+        return OwnerRuleAssignment.noOwnersAdded();
       });
       jest
         .spyOn(AlertStateTimelineService, "getResolvedStateIdForProject")

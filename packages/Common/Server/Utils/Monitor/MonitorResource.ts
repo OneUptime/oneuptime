@@ -92,6 +92,7 @@ import LogGroupCriteriaFanOut, {
   LOG_GROUP_RESOLVED_ROOT_CAUSE,
 } from "./LogGroupCriteriaFanOut";
 import TraceGroupCriteriaFanOut from "./TraceGroupCriteriaFanOut";
+import ManagedDeviceCheckInSilence from "./ManagedDeviceCheckInSilence";
 import MonitorMaintenanceSuppression, {
   MonitorMaintenanceSuppressionResult,
 } from "./MonitorMaintenanceSuppression";
@@ -227,6 +228,19 @@ export default class MonitorResourceUtil {
     if (
       input.monitor.monitorType === MonitorType.Traces &&
       TraceGroupCriteriaFanOut.isQuietWindow(input.dataToProcess)
+    ) {
+      return true;
+    }
+
+    /*
+     * A Metrics monitor of managed devices' check-ins none of whose devices
+     * has a reading in the window (#9835): their connection stopped reading,
+     * not every device checked in again. Their alerts stay open until it
+     * reads again (ManagedDeviceCheckInSilence).
+     */
+    if (
+      input.monitor.monitorType === MonitorType.Metrics &&
+      ManagedDeviceCheckInSilence.isQuietWindow(input.dataToProcess)
     ) {
       return true;
     }
