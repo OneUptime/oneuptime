@@ -41,12 +41,14 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import {
+  ResourcePartAttention,
+  ResourcePartBadge,
+} from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   fetchOpenStackDhcpAgents,
   fetchOpenStackNetworkForecast,
@@ -77,10 +79,16 @@ import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/C
  * out, which routers go through it and which addresses came from it.
  */
 
-const NetworkOverview: FunctionComponent<{
+interface NetworkOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const NetworkOverview: FunctionComponent<NetworkOverviewProps> = (
+  props: NetworkOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
   const { part, row } = props;
@@ -107,12 +115,6 @@ const NetworkOverview: FunctionComponent<{
         })
       : Promise.resolve([]);
   }, [dhcpAgentIds.join(","), part.refreshToken]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const percent: number | null = getOpenStackNetworkIpPercent(
@@ -201,12 +203,9 @@ const NetworkOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-network-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Network}/${part.externalId}`,
-          label: translationKey("This network"),
-        }}
-        description="What about this network is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -341,12 +340,27 @@ const OpenStackCloudNetworkDetail: FunctionComponent<
     badges.push({ key: "shared", label: "Shared", tone: "neutral" });
   }
 
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Network,
+    externalId: part.externalId,
+    row: row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
+
   return (
     <OpenStackPartPage
       part={part}
-      hero={{ badges }}
+      hero={{ badges, attention }}
       overview={(overviewRow: OpenStackResource): ReactElement => {
-        return <NetworkOverview part={part} row={overviewRow} />;
+        return (
+          <NetworkOverview
+            part={part}
+            row={overviewRow}
+            attention={attention}
+          />
+        );
       }}
       tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const subnetFacts: JSONObject = { networkId: part.externalId };

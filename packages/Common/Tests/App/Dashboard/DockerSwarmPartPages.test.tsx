@@ -398,6 +398,56 @@ describe("a node's page", () => {
     expect(screen.queryByRole("tab")).toBeNull();
   });
 
+  /*
+   * "Down" beside the node's name said nothing of Swarm's own reason: that
+   * was Needs attention, under the hero (#9594). Pressed, it opens it.
+   */
+  test("its Down opens why: This node, with Swarm's message, and no View", async () => {
+    mockRows = [
+      node(
+        "worker-2",
+        { state: "down", isReady: false },
+        { message: "heartbeat failure" },
+      ),
+      task("shop_web.2", { nodeHostname: "worker-2" }),
+    ];
+    await openNode("worker-2");
+
+    const status: HTMLElement = screen.getByTestId(
+      "docker-swarm-node-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "docker-swarm-node-hero-status-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(
+      attentionRows("docker-swarm-node-attention").map(
+        (row: { key: string | null }): string | null => {
+          return row.key;
+        },
+      ),
+    );
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).getByTestId("docker-swarm-node-hero-status-dialog-name"),
+    ).toHaveTextContent("This node");
+    expect(rows[0]!).toHaveTextContent("heartbeat failure");
+    expect(
+      within(rows[0]!).queryByTestId(
+        "docker-swarm-node-hero-status-dialog-view",
+      ),
+    ).toBeNull();
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What about this node and the tasks it runs is broken or needs a look.",
+    );
+  });
+
   test("the leader: its badge, its standing and its size in its details", async () => {
     mockRows = [
       node(
@@ -860,6 +910,28 @@ describe("a task's page", () => {
       "docker-swarm-task-hero-location",
     );
     expect(within(location).getByText("shop_web").closest("a")).toBeNull();
+  });
+
+  test("its Failed opens why: Docker's error, as This task", async () => {
+    mockRows = [
+      task(
+        "shop_web.3",
+        { state: "failed", latestCpuPercent: 0 },
+        { error: "task: non-zero exit (137)", exitCode: "137" },
+      ),
+    ];
+    await openTask("task/shop_web-3-id");
+
+    fireEvent.click(screen.getByTestId("docker-swarm-task-hero-status"));
+
+    const row: HTMLElement = screen.getByTestId(
+      "docker-swarm-task-hero-status-dialog-item",
+    );
+    expect(row).toHaveAttribute("data-key", "Task:task/shop_web-3-id");
+    expect(
+      within(row).getByTestId("docker-swarm-task-hero-status-dialog-name"),
+    ).toHaveTextContent("This task");
+    expect(row).toHaveTextContent("task: non-zero exit (137)");
   });
 
   test("near its memory limit: amber, with how close, and the task alerts to turn on", async () => {

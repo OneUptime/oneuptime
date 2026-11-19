@@ -405,6 +405,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
         name={cronJobName}
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
+        clusterIdentifier={clusterIdentifier}
         routes={routes}
         namespace={namespaceParam}
       />

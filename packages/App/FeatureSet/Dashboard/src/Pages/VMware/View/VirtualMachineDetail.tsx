@@ -41,6 +41,8 @@ import {
   VMwarePartRoutes,
   getVMwarePartRoutes,
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -483,6 +485,20 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const clusterRoute: Route | undefined = clusterRow?.externalId
     ? routes.getPartRoute(VMwareResourceKind.Cluster, clusterRow.externalId)
     : undefined;
+  /*
+   * Read once: the Overview's card lists it, the hero's status opens it -
+   * on a host vCenter cannot reach, that host too.
+   */
+  const attention: ResourcePartAttention = getVMwarePartAttention({
+    kind: VMwareResourceKind.VirtualMachine,
+    externalId: externalId,
+    row: row,
+    hosts: hostRow ? [hostRow] : [],
+    datacenters: datacenterRows,
+    now: now,
+    routeFor: routes.getPartRoute,
+    listRouteFor: routes.getListRoute,
+  });
 
   const tabs: Array<Tab> = [
     {
@@ -503,6 +519,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
           row={row}
           hostRow={hostRow}
           datacenters={datacenterRows}
+          attention={attention}
           routes={routes}
           hostRoute={hostRoute}
           now={now}
@@ -546,6 +563,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         hostRoute={hostRoute}
         clusterRoute={clusterRoute}
         now={now}
+        attention={attention}
       />
       <Tabs
         label="Virtual Machine"

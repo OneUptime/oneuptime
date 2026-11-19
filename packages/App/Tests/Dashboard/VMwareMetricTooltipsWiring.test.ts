@@ -1056,3 +1056,41 @@ describe("VMware list pages: column headers", () => {
     );
   });
 });
+
+/*
+ * "1/2 ESXi hosts connected" said a host was out of reach, never which or
+ * why (#9594): beside the hosts chip, a count per state that needs
+ * attention opens exactly those hosts, by the vCenter's rules.
+ */
+describe("VMware overview: the hosts out of reach open which, and why", () => {
+  const code: string = readCode("Pages/VMware/View/Index.tsx");
+
+  test("one count per state that needs attention, from the vCenter's rules, while it reports", () => {
+    expect(code).toContain(
+      'import ResourceAttentionPill, { ComponentProps as ResourceAttentionPillProps, } from "../../../Components/ResourcePart/ResourceAttentionPill";',
+    );
+    const problems: string = between(
+      code,
+      "const hostProblems: Array<ResourceAttentionPillProps> = [];",
+      "const specChips",
+    );
+    expect(problems).toContain("if (inventory && isVCenterConnected) {");
+    expect(problems).toContain("state: VMwareHostState.NotResponding,");
+    expect(problems).toContain("state: VMwareHostState.NoUsage,");
+    expect(problems).toContain('testId: "vmware-hero-hosts-not-responding"');
+    expect(problems).toContain('testId: "vmware-hero-hosts-no-usage"');
+    expect(problems).toContain('hint: "Show which hosts and why"');
+  });
+
+  test("the counts follow the hosts chip, which still opens every host", () => {
+    expect(code).toContain(
+      'route: hostsRoute, testId: "vmware-hero-hosts", problems: hostProblems,',
+    );
+    // After the chip's link, never inside it.
+    const chip: string = between(code, "</Link>", "</React.Fragment>");
+    expect(chip).toContain("{(chip.problems || []).map(");
+    expect(chip).toContain(
+      "<ResourceAttentionPill key={problem.testId} {...problem} />",
+    );
+  });
+});

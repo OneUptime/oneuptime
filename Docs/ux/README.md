@@ -178,7 +178,14 @@ next, and how to change it last.
   own words (a container's reason and exit code, the scheduler's message), which one it is (its
   namespace, its owner, its node), since when, what it reported lately, and View, a step from its
   page. A hero's health is `ResourceHealthPill`, handed what needs attention; a count is
-  `ResourceAttentionPill`, which reads its parts only when it is pressed. Enforced by
+  `ResourceAttentionPill`, which reads its parts only when it is pressed. A part's own page says
+  it too: "Offline" or "CrashLoopBackOff" in its hero opens what its Needs attention card lists,
+  the part itself named as the card names it ("This node"), so every page that draws
+  `ResourcePartHero` hands it that list (`attention`), and a chip that counts something wrong
+  ("3 pods failed") is a pill of its own (#9594, #9595). A count in a tile or a bar opens its
+  parts without making the tile or the bar a control around another: a pill under the tile's
+  figure (`GoldenMetricTile`'s `attention`), the bar's legend entry (`StackedProgressBar`'s
+  `onClick`). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by

@@ -171,6 +171,34 @@ export function getArrayValues(
     .filter(Boolean) as Array<JSONObject>;
 }
 
+/*
+ * A list of strings an object holds under a key ("finalizers": ["kubernetes"]),
+ * in order; blanks and values of any other type left out.
+ */
+export function getKvStringList(
+  kvList: JSONObject | undefined,
+  key: string,
+): Array<string> {
+  const arrayValue: string | JSONObject | null = getKvValue(kvList, key);
+  if (!arrayValue || typeof arrayValue === "string") {
+    return [];
+  }
+  const values: unknown = arrayValue["values"];
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  const strings: Array<string> = [];
+  for (const value of values) {
+    const item: JSONObject =
+      value && typeof value === "object" ? (value as JSONObject) : {};
+    const text: unknown = item["stringValue"] ?? item["string_value"];
+    if (typeof text === "string" && text.trim()) {
+      strings.push(text.trim());
+    }
+  }
+  return strings;
+}
+
 // How many items an OTLP arrayValue holds, whatever their type; 0 for none.
 export function countArrayValues(value: string | JSONObject | null): number {
   if (!value || typeof value === "string") {
@@ -551,8 +579,24 @@ export interface KubernetesCronJobObject {
 
 export interface KubernetesNamespaceObject {
   metadata: KubernetesObjectMetadata;
+  /*
+   * What must finish before a namespace that is being deleted is gone: the
+   * namespace controller's own finalizer (spec.finalizers, "kubernetes"),
+   * then any an operator put on the namespace itself (metadata.finalizers).
+   * Optional: namespaces stored before these were read have none.
+   */
+  spec?: {
+    finalizers: Array<string>;
+  };
   status: {
     phase: string;
+    /*
+     * While it is deleted, why it is still there: the namespace
+     * controller's NamespaceContentRemaining, NamespaceFinalizersRemaining
+     * and NamespaceDeletion*Failure conditions, with Kubernetes' messages.
+     * Optional, as spec is.
+     */
+    conditions?: Array<KubernetesCondition> | undefined;
   };
 }
 
@@ -1761,17 +1805,38 @@ export function parseNamespaceObject(
       return null;
     }
 
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
     );
 
+    // The controller's own first, then an operator's, each once.
+    const finalizers: Array<string> = Array.from(
+      new Set<string>([
+        ...getKvStringList(
+          specKv && typeof specKv !== "string" ? specKv : undefined,
+          "finalizers",
+        ),
+        ...getKvStringList(metadataKv, "finalizers"),
+      ]),
+    );
+
     return {
       metadata: parseMetadata(metadataKv),
+      spec: {
+        finalizers: finalizers,
+      },
       status: {
         phase: statusKv
           ? getKvStringValue(statusKv as JSONObject, "phase")
           : "",
+        conditions:
+          statusKv && typeof statusKv !== "string"
+            ? parseConditions(
+                getKvValue(statusKv, "conditions") as JSONObject | null,
+              )
+            : [],
       },
     };
   } catch {

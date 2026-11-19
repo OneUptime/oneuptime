@@ -473,6 +473,36 @@ describe("a virtual machine's page", () => {
     expect(tiles).toHaveTextContent("82.0%");
   });
 
+  test("Running in red opens why: the host's swapping, as This VM", async () => {
+    mockRowsByKind["VirtualMachine"] = [
+      vm("db-primary", {
+        latestCpuPercent: 78.4,
+        latestMemoryBytes: 58 * GIB,
+        latestMemoryPercent: 90.6,
+        maxMemoryBytes: 64 * GIB,
+        memorySwappedBytes: 1.5 * GIB,
+      }),
+    ];
+    await openVm("db-primary");
+
+    const status: HTMLElement = screen.getByTestId("vmware-vm-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const row: HTMLElement = screen.getByTestId(
+      "vmware-vm-hero-status-dialog-item",
+    );
+    expect(row).toHaveAttribute(
+      "data-key",
+      "VirtualMachine:vm/db-primary-uuid",
+    );
+    expect(row).toHaveAttribute("data-current", "true");
+    expect(
+      within(row).getByTestId("vmware-vm-hero-status-dialog-name"),
+    ).toHaveTextContent("This VM");
+    expect(row).toHaveTextContent(/1\.5\sGiB of memory swapped by the host/);
+  });
+
   test("the VM alerts: all seven, the ones that mean trouble first, and one step to turn them on", async () => {
     mockRowsByKind["VirtualMachine"] = [vm("web-01")];
     await openVm("web-01");
@@ -708,6 +738,50 @@ describe("a datastore's page", () => {
       "VMware:vmware-datastore-capacity-critical",
       "VMware:vmware-datastore-capacity-warning",
     ]);
+  });
+
+  /*
+   * "93% used" in red beside the name said how full and nothing about what
+   * it means: that was the Needs attention card, under the tabs (#9594).
+   */
+  test("93% full: its status opens the card's list, This datastore with no View", async () => {
+    await openDatastore();
+
+    const status: HTMLElement = screen.getByTestId(
+      "vmware-datastore-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("aria-haspopup", "dialog");
+
+    fireEvent.click(status);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "vmware-datastore-hero-status-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(
+      attentionRows("vmware-datastore-attention").map(
+        (row: { key: string | null }): string | null => {
+          return row.key;
+        },
+      ),
+    );
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).getByTestId("vmware-datastore-hero-status-dialog-name"),
+    ).toHaveTextContent("This datastore");
+    expect(rows[0]!).toHaveTextContent("93% full");
+    expect(
+      within(rows[0]!).queryByTestId(
+        "vmware-datastore-hero-status-dialog-view",
+      ),
+    ).toBeNull();
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What about this datastore is broken or needs a look.",
+    );
   });
 
   test("40% full needs nothing: calm, and no Needs attention card", async () => {

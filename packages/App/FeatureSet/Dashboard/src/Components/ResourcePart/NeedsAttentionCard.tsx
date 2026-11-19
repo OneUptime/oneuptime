@@ -5,9 +5,10 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionCounts,
+  ResourceAttentionCurrent,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   countResourceAttention,
@@ -42,13 +43,13 @@ import ResourcePartRow from "./ResourcePartRow";
 export const NEEDS_ATTENTION_SHOWN: number = 6;
 
 /*
- * The item that is the part whose page this is, and how its row names it
- * (English, looked up in the reader's language): "This node".
+ * The card's own words, which the dialog a part's status opens takes too
+ * (ResourcePartHero): the same list, under the same name.
  */
-export interface ResourceAttentionCurrent {
-  key: string;
-  label: string;
-}
+export const NEEDS_ATTENTION_TITLE: string = translationKey("Needs attention");
+export const NEEDS_ATTENTION_DESCRIPTION: string = translationKey(
+  "What is broken or needs a look, the most urgent first.",
+);
 
 export interface ComponentProps {
   items: Array<ResourceAttentionItem>;
@@ -94,11 +95,8 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
     return (
       <div className="mb-6" data-testid={`${testId}-error`}>
         <Card
-          title={props.title || "Needs attention"}
-          description={
-            props.description ||
-            "What is broken or needs a look, the most urgent first."
-          }
+          title={props.title || NEEDS_ATTENTION_TITLE}
+          description={props.description || NEEDS_ATTENTION_DESCRIPTION}
         >
           <ErrorMessage message={props.error} onRefreshClick={props.onRetry} />
         </Card>
@@ -145,11 +143,8 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
   return (
     <div className="mb-6" data-testid={testId}>
       <Card
-        title={props.title || "Needs attention"}
-        description={
-          props.description ||
-          "What is broken or needs a look, the most urgent first."
-        }
+        title={props.title || NEEDS_ATTENTION_TITLE}
+        description={props.description || NEEDS_ATTENTION_DESCRIPTION}
         rightElement={
           <span
             className="inline-flex flex-wrap gap-1.5"

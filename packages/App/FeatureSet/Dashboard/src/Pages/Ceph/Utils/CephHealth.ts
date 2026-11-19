@@ -973,6 +973,105 @@ export function getCephTopologyHealth(
 
 /*
  * ---------------------------------------------------------------------------
+ * What an Overview count is about
+ * ---------------------------------------------------------------------------
+ *
+ * "5/6 OSDs up", the OSD States card's "Down + In" and the Problem PGs tile
+ * each count parts Needs attention lists, and said how many and nothing else
+ * (#9594). Pressed, each opens exactly the parts it counts, with why: the
+ * same items as Needs attention, chosen by the rows the count was made of,
+ * so a count and its list never disagree about a part.
+ */
+
+// Where an OSD sits in the OSD States card's up/in matrix.
+export type CephOsdQuadrant = "upIn" | "upOut" | "downIn" | "downOut";
+
+/*
+ * The card's quadrant for an OSD: an OSD that has not said it is up is not
+ * up, and one that has not said it is in is not in, as the card counts.
+ */
+export function getCephOsdQuadrant(
+  row: Pick<CephResource, "isUp" | "isIn">,
+): CephOsdQuadrant {
+  if (row.isUp) {
+    return row.isIn ? "upIn" : "upOut";
+  }
+  return row.isIn ? "downIn" : "downOut";
+}
+
+// The items of Needs attention about the OSDs a count is made of.
+export function getCephOsdAttentionItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+  isCounted: (row: CephResource) => boolean;
+}): Array<ResourceAttentionItem> {
+  const keys: Set<string> = new Set<string>(
+    data.rows
+      .filter((row: CephResource): boolean => {
+        return (
+          row.kind === "Osd" && Boolean(row.externalId) && data.isCounted(row)
+        );
+      })
+      .map((row: CephResource): string => {
+        return getCephAttentionKey("Osd", row.externalId || "");
+      }),
+  );
+  return data.items.filter((item: ResourceAttentionItem): boolean => {
+    return keys.has(item.key);
+  });
+}
+
+// The OSDs a "5/6 OSDs up" leaves out: every one that says it is down.
+export function getCephDownOsdItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+}): Array<ResourceAttentionItem> {
+  return getCephOsdAttentionItems({
+    items: data.items,
+    rows: data.rows,
+    isCounted: (row: CephResource): boolean => {
+      return row.isUp === false;
+    },
+  });
+}
+
+/*
+ * The pools that hold the placement groups the Problem PGs tile counts:
+ * those with a degraded or an undersized one, by their latest readings.
+ */
+export function getCephProblemPgPoolItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+  pgStatesByPool: Map<string, CephPoolPgStates> | null | undefined;
+}): Array<ResourceAttentionItem> {
+  const pgStatesByPool: Map<string, CephPoolPgStates> | null | undefined =
+    data.pgStatesByPool;
+  if (!pgStatesByPool) {
+    return [];
+  }
+  const keys: Set<string> = new Set<string>();
+  for (const row of data.rows) {
+    if (row.kind !== "Pool" || !row.externalId) {
+      continue;
+    }
+    const states: CephPoolPgStates | undefined = pgStatesByPool.get(
+      row.externalId,
+    );
+    if (
+      states &&
+      (Math.round(states.degraded ?? 0) > 0 ||
+        Math.round(states.undersized ?? 0) > 0)
+    ) {
+      keys.add(getCephAttentionKey("Pool", row.externalId));
+    }
+  }
+  return data.items.filter((item: ResourceAttentionItem): boolean => {
+    return keys.has(item.key);
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Which part an open incident or alert is about
  * ---------------------------------------------------------------------------
  *

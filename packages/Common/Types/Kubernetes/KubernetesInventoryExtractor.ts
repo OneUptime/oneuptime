@@ -501,8 +501,8 @@ export function extractInventoryResource(data: {
 
   /*
    * Collect spec/status blocks when the typed parser exposed them.
-   * Some kinds (Namespace) don't carry spec/status, so these are
-   * nullable.
+   * Not every parser exposes both (a Namespace stored before its
+   * finalizers were read has no spec), so these are nullable.
    * Cast to a minimal structural shape so TS permits optional access
    * across the heterogeneous union.
    */

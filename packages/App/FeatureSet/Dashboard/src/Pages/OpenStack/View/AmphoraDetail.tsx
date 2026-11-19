@@ -12,7 +12,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -33,14 +37,38 @@ const WHY_NOT_KNOWN: string = translationKey(
   "Nothing OneUptime reads says why an amphora failed. Run openstack loadbalancer amphora show for this one, and read octavia-health-manager's log.",
 );
 
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This amphora"),
+  attentionDescription: translationKey(
+    "What about this amphora is broken or needs a look.",
+  ),
+  openTitle: translationKey("Open on this amphora"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this amphora, incidents first.",
+  ),
+  alertsTitle: translationKey("Amphora alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alert that watches every amphora, this one included: it is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey(
+    "What Octavia reports about this amphora.",
+  ),
+};
+
 const OpenStackCloudAmphoraDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Amphora);
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
         const now: Date = OneUptimeDate.getCurrentDate();
         const certExpiresAt: string = getOpenStackFactText(
@@ -168,23 +196,8 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
             alertTemplateIds={OPENSTACK_AMPHORA_ALERT_TEMPLATE_IDS}
             detailRows={detailRows}
             whyNotKnown={WHY_NOT_KNOWN}
-            words={{
-              thisOne: translationKey("This amphora"),
-              attentionDescription: translationKey(
-                "What about this amphora is broken or needs a look.",
-              ),
-              openTitle: translationKey("Open on this amphora"),
-              openDescription: translationKey(
-                "Unresolved incidents and alerts about this amphora, incidents first.",
-              ),
-              alertsTitle: translationKey("Amphora alerts"),
-              alertsDescription: translationKey(
-                "The cloud's alert that watches every amphora, this one included: it is one monitor on the cloud.",
-              ),
-              detailsDescription: translationKey(
-                "What Octavia reports about this amphora.",
-              ),
-            }}
+            words={WORDS}
+            attention={attention}
             tiles={
               <>
                 <GoldenMetricTile

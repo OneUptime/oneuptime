@@ -357,6 +357,8 @@ export default class KubernetesResourceAPI extends BaseAPI<
       part: result.part as unknown as JSONObject,
       pods: result.pods as unknown as JSONObject,
       jobs: result.jobs as unknown as JSONObject,
+      // A namespace's other objects that need attention.
+      objects: result.objects as unknown as JSONObject,
       isPodsTruncated: result.isPodsTruncated,
     });
   }
