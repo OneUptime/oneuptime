@@ -9,6 +9,8 @@ import StoreIssuesTable from "../DataSecurity/StoreIssuesTable";
 import StoreNameCell, {
   getDataStoreRoute,
 } from "../DataSecurity/StoreNameCell";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import {
   RESOURCE_DATA_STORES_DESCRIPTIONS,
   RESOURCE_NO_DATA_STORES_DESCRIPTIONS,
@@ -19,6 +21,8 @@ import useResourceDataScope, {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
+import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam";
+import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -83,6 +87,24 @@ const ResourceDataSecurityPage: FunctionComponent<ComponentProps> = (
       modelId,
       isEnabled: true,
     });
+  /*
+   * The Owner chip over the stores and their Owners column, as on Data
+   * Stores: a store has owners of its own, and a resource's stores are
+   * found by them here too.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+  } = useResourceOwners<DataStore>({
+    persistKey: RESOURCE_DATA_SECURITY_STORES_TABLE_ID,
+    ownerUserModelType: DataStoreOwnerUser,
+    ownerTeamModelType: DataStoreOwnerTeam,
+    resourceIdField: "dataStoreId",
+  });
 
   if (isLoading) {
     return <PageSkeleton shape="table" />;
@@ -125,9 +147,14 @@ const ResourceDataSecurityPage: FunctionComponent<ComponentProps> = (
         id={RESOURCE_DATA_SECURITY_STORES_TABLE_ID}
         userPreferencesKey={RESOURCE_DATA_SECURITY_STORES_TABLE_ID}
         name="Data Stores"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
           _id: new Includes(storeIds),
+        })}
+        onFetchSuccess={(data: Array<DataStore>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -201,6 +228,20 @@ const ResourceDataSecurityPage: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: DataStore): ReactElement => {
               return <ExposurePill exposure={item.exposure} />;
+            },
+          },
+          {
+            field: { _id: true },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: DataStore): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

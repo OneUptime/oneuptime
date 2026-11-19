@@ -1,8 +1,13 @@
 import { JSONObject } from "Common/Types/JSON";
 import {
-  StorageUsage,
-  getStorageUsage,
-} from "Common/Utils/Storage/StorageUsage";
+  KubernetesStorageText,
+  getKubernetesStorageMeasuredAt,
+  getKubernetesVolumeFill,
+  getKubernetesVolumeFillReason,
+  getKubernetesVolumeInodeUsage,
+  getKubernetesVolumeUsage,
+} from "Common/Types/Kubernetes/KubernetesStorageHealth";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -33,6 +38,11 @@ export interface KubernetesVolumeClaimUsageRow {
   latestVolumeAvailableBytes?: number | string | null | undefined;
   latestVolumeInodes?: number | string | null | undefined;
   latestVolumeInodesFree?: number | string | null | undefined;
+  // When the reading was taken; rows from before it was kept read metricsUpdatedAt.
+  latestVolumeMeasuredAt?: Date | string | null | undefined;
+  // Its used bytes a few hours before, and when: how fast it is filling.
+  latestVolumeUsedBaselineBytes?: number | string | null | undefined;
+  latestVolumeUsedBaselineAt?: Date | string | null | undefined;
   metricsUpdatedAt?: Date | string | null | undefined;
   // The claim's phase (status.phase) and volumeMode (spec.volumeMode).
   status?: JSONObject | null | undefined;
@@ -48,6 +58,12 @@ export interface KubernetesVolumeClaimUsage {
   measuredAt: Date | null;
   // Why there is no usage to show; null when there is.
   gap: KubernetesVolumeUsageGap | null;
+  /*
+   * When it will be full at the rate it filled over the last few hours
+   * ("Full in about 3 days"), as the cluster's Needs attention says it;
+   * null when it is not filling, or would take more than a month.
+   */
+  fill: KubernetesStorageText | null;
 }
 
 /*
@@ -79,16 +95,6 @@ export const KUBERNETES_VOLUME_USAGE_GAP_EXPLANATION: Record<
   ),
 };
 
-function readDate(value: Date | string | null | undefined): Date | null {
-  if (!value) {
-    return null;
-  }
-
-  const date: Date = value instanceof Date ? value : new Date(value);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 function readString(
   object: JSONObject | null | undefined,
   key: string,
@@ -101,14 +107,13 @@ function readString(
 export function getKubernetesVolumeClaimUsage(
   row: KubernetesVolumeClaimUsageRow,
 ): KubernetesVolumeClaimUsage {
-  const space: StorageUsage | null = getStorageUsage({
-    capacity: row.latestVolumeCapacityBytes,
-    available: row.latestVolumeAvailableBytes,
-  });
-  const inodes: StorageUsage | null = getStorageUsage({
-    capacity: row.latestVolumeInodes,
-    available: row.latestVolumeInodesFree,
-  });
+  // The claim's own row, read by the cluster's rules (KubernetesStorageHealth).
+  const claimRow: KubernetesVolumeClaimUsageRow & { kind: string } = {
+    ...row,
+    kind: "PersistentVolumeClaim",
+  };
+  const space: StorageUsage | null = getKubernetesVolumeUsage(claimRow);
+  const inodes: StorageUsage | null = getKubernetesVolumeInodeUsage(claimRow);
 
   let gap: KubernetesVolumeUsageGap | null = null;
 
@@ -127,8 +132,12 @@ export function getKubernetesVolumeClaimUsage(
   return {
     space: space,
     inodes: inodes,
-    measuredAt: space || inodes ? readDate(row.metricsUpdatedAt) : null,
+    measuredAt:
+      space || inodes ? getKubernetesStorageMeasuredAt(claimRow) : null,
     gap: gap,
+    fill: space
+      ? getKubernetesVolumeFillReason(getKubernetesVolumeFill(claimRow))
+      : null,
   };
 }
 

@@ -7,7 +7,9 @@ import Link from "Common/UI/Components/Link/Link";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
+import GoldenMetricTile, {
+  STORAGE_USAGE_TILE_TONES,
+} from "../../Infrastructure/GoldenMetricTile";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
@@ -17,13 +19,16 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
-import { isProxmoxIssueAbout } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
+import {
+  getProxmoxDiskUsage,
+  isProxmoxIssueAbout,
+} from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import {
   PROXMOX_NODE_ALERT_TEMPLATE_IDS,
   ProxmoxBusyGuest,
   ProxmoxGuestSummary,
   getProxmoxBusiestGuests,
-  getProxmoxDiskPercent,
   getProxmoxMemoryPercent,
   getProxmoxNodeName,
   summarizeProxmoxGuests,
@@ -105,9 +110,8 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
     : null;
   const memoryUsed: number | null = toProxmoxNumber(row?.latestMemoryBytes);
   const memoryTotal: number | null = toProxmoxNumber(row?.maxMemoryBytes);
-  const diskPercent: number | null = row ? getProxmoxDiskPercent(row) : null;
-  const diskUsed: number | null = toProxmoxNumber(row?.latestDiskBytes);
-  const diskTotal: number | null = toProxmoxNumber(row?.maxDiskBytes);
+  // Its root filesystem as the Nodes list's bar and Needs attention read it.
+  const diskUsage: StorageUsage | null = row ? getProxmoxDiskUsage(row) : null;
 
   const nodeIssueRow: Pick<
     ProxmoxResource,
@@ -256,17 +260,19 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
           title="Root Disk"
           icon={IconProp.Database}
           iconColor="amber"
-          value={formatPercent(diskPercent)}
+          value={diskUsage ? formatPercent(diskUsage.usedPercent) : undefined}
           sublabel={
-            diskUsed !== null && diskTotal !== null
+            diskUsage
               ? translator.translateTemplate("{{used}} of {{total}}", {
-                  used: formatBytes(diskUsed),
-                  total: formatBytes(diskTotal),
+                  used: formatBytes(diskUsage.used),
+                  total: formatBytes(diskUsage.capacity),
                 })
               : undefined
           }
-          percent={diskPercent}
-          thresholds={{ warn: 80, danger: 90 }}
+          percent={diskUsage ? diskUsage.usedPercent : null}
+          tone={
+            diskUsage ? STORAGE_USAGE_TILE_TONES[diskUsage.level] : undefined
+          }
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeRootDisk}
         />
         <GoldenMetricTile

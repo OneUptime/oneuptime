@@ -10,6 +10,14 @@ import {
 } from "./OverridePresentation";
 import { notifyScheduleUserOverridesChanged } from "./ScheduleOverrides";
 import { getGlobalUserOverrideLock } from "../UserOverrides/GlobalUserOverrideLock";
+import {
+  UserOverrideTeamLimit,
+  getUserOverrideTeamLimit,
+  getUserOverrideTeamLock,
+} from "../UserOverrides/UserOverrideTeamLimit";
+import useUserOverrideTeamPeople, {
+  UserOverrideTeamPeople,
+} from "../UserOverrides/UseUserOverrideTeamPeople";
 import UserOverrideFormModal, {
   UserOverrideEditTarget,
 } from "../UserOverrides/UserOverrideFormModal";
@@ -112,6 +120,30 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   // The override End Now is asking about, if any (issue #7899).
   const [ending, setEnding] = useState<UserOverrideEndNowTarget | null>(null);
 
+  /*
+   * For a reader who manages the user overrides of their own team's people
+   * only (issue #9733): an override naming somebody outside those teams
+   * locks its Edit and End Now, saying why (UserOverrideTeamLimit). Global
+   * overrides and a policy's are reached by different grants.
+   */
+  const globalTeamLimit: UserOverrideTeamLimit | null =
+    getUserOverrideTeamLimit({ action: ModelAction.Update, isGlobal: true });
+  const policyTeamLimit: UserOverrideTeamLimit | null =
+    getUserOverrideTeamLimit({ action: ModelAction.Update, isGlobal: false });
+
+  const teamPeople: UserOverrideTeamPeople = useUserOverrideTeamPeople({
+    teamIds:
+      props.rows.length > 0 && (globalTeamLimit || policyTeamLimit)
+        ? Array.from(
+            new Set<string>([
+              ...(globalTeamLimit?.teamIds || []),
+              ...(policyTeamLimit?.teamIds || []),
+            ]),
+          ).sort()
+        : null,
+    withMembers: true,
+  });
+
   if (props.rows.length === 0) {
     return null;
   }
@@ -133,9 +165,20 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
       return editGate.disabledReason || null;
     }
 
-    return row.onCallDutyPolicyId
-      ? null
-      : getGlobalUserOverrideLock(ModelAction.Update);
+    return (
+      (row.onCallDutyPolicyId
+        ? null
+        : getGlobalUserOverrideLock(ModelAction.Update)) ||
+      getUserOverrideTeamLock({
+        action: ModelAction.Update,
+        limit: row.onCallDutyPolicyId ? policyTeamLimit : globalTeamLimit,
+        memberIds: teamPeople.memberIds,
+        people: {
+          awayUserId: row.originalUserId,
+          coverUserId: row.substituteUserId || null,
+        },
+      })
+    );
   };
 
   const getEditButton: (row: OverrideSummaryRow) => ReactElement = (

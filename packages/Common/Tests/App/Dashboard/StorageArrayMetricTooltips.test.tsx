@@ -1008,6 +1008,8 @@ const FILE_SYSTEMS_COLUMNS: ColumnPairs = [
   ["Name", null],
   ["Status", "fileSystemStatusColumn"],
   ["Protocols", "fileSystemProtocolsColumn"],
+  // How full it is, with the shared bar (#9647).
+  ["Used", "fileSystemUsedColumn"],
   ["Provisioned", "fileSystemProvisionedColumn"],
   ["Physical", "physicalColumn"],
   ["Data Reduction", "dataReductionColumn"],
@@ -1018,8 +1020,10 @@ const FILE_SYSTEMS_COLUMNS: ColumnPairs = [
 const BUCKETS_COLUMNS: ColumnPairs = [
   ["Name", null],
   ["Account", "bucketAccountColumn"],
-  ["Quota", "bucketQuotaColumn"],
+  // What it stores against its quota, with the shared bar (#9647).
   ["Used", "bucketUsedColumn"],
+  ["Quota", "bucketQuotaColumn"],
+  ["Physical", "physicalColumn"],
   ["Objects", "bucketObjectsColumn"],
   ["Data Reduction", "dataReductionColumn"],
   ...PERFORMANCE_COLUMNS,
@@ -1066,7 +1070,8 @@ const FILE_SYSTEM_DETAIL_FIELDS: Array<[string, StorageArrayMetric]> = [
 const BUCKET_DETAIL_FIELDS: Array<[string, StorageArrayMetric]> = [
   ["Account", "bucketAccountColumn"],
   ["Quota", "bucketQuotaColumn"],
-  ["Used", "bucketUsedColumn"],
+  // The flash it takes; how full it is against its quota is its Storage card.
+  ["Physical", "physicalColumn"],
   ["Objects", "bucketObjectsColumn"],
   ["Data Reduction", "dataReductionColumn"],
   ["Read Latency", "readLatencyColumn"],
@@ -1587,6 +1592,14 @@ describe("Storage Arrays list", () => {
       ]).toEqual([percent, expect.stringContaining(colour)]);
     }
     expect(cellText(capacity, {})).toBe(QUIET_DASH_TEXT);
+    // With its capacity, the bar says how much of it is used (#9647).
+    expect(
+      cellText(capacity, {
+        capacityUsedPercent: 50,
+        capacityBytes: 100 * 1024 ** 4,
+        usedBytes: 50 * 1024 ** 4,
+      }),
+    ).toBe("50%50\u00A0TiB");
   });
 
   test("Open Alerts counts the open alerts and how many are critical", async () => {

@@ -45,9 +45,13 @@ import {
   readRefusalValues,
 } from "../../../Types/Exception/RefusalWithValues";
 import {
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
   LABEL_NAME_TAKEN_REFUSAL,
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL,
   TEAM_NAME_TAKEN_REFUSAL,
   getLabelNameTakenRefusal,
+  getNameTakenRefusalText,
   getTeamNameTakenRefusal,
 } from "../../../Types/Database/UniqueName";
 import {
@@ -693,13 +697,17 @@ describe("why a data check could not be written is said in the reader's language
   });
 });
 
-describe("a name another team or label has is said in the reader's language, with the name as written (#9674)", () => {
+describe("a name another team, label, on-call policy or on-call schedule has is said in the reader's language, with the name as written (#9674, #9742)", () => {
   const NAME: string = "Tenants";
 
   test("in English, as the server wrote it", () => {
     for (const refusal of [
       getTeamNameTakenRefusal(NAME),
       getLabelNameTakenRefusal(NAME),
+      // An on-call policy's and an on-call schedule's (#9742).
+      getNameTakenRefusalText(ON_CALL_POLICY_NAME_TAKEN_REFUSAL, NAME),
+      getNameTakenRefusalText(ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL, NAME),
+      getNameTakenRefusalText(ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL, NAME),
     ]) {
       expect(wordsOf(refusal)).toEqual({ isUnexplained: false, text: refusal });
     }
@@ -711,6 +719,21 @@ describe("a name another team or label has is said in the reader's language, wit
       for (const [refusal, message] of [
         [TEAM_NAME_TAKEN_REFUSAL, getTeamNameTakenRefusal(NAME)],
         [LABEL_NAME_TAKEN_REFUSAL, getLabelNameTakenRefusal(NAME)],
+        [
+          ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+          getNameTakenRefusalText(ON_CALL_POLICY_NAME_TAKEN_REFUSAL, NAME),
+        ],
+        [
+          ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+          getNameTakenRefusalText(
+            ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+            NAME,
+          ),
+        ],
+        [
+          ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL,
+          getNameTakenRefusalText(ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL, NAME),
+        ],
       ] as const) {
         const said: string = getErrorInSentenceText({
           message: message,

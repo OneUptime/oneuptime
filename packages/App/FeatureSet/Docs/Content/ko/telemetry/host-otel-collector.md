@@ -46,7 +46,7 @@ flowchart TB
 - 수집 키. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 만들고 값을 복사합니다. Collector는 이 값을 `x-oneuptime-token` 헤더로 보냅니다.
 - 머신의 관리자 권한: Linux와 macOS에서는 `sudo`, Windows에서는 관리자 권한 PowerShell 프롬프트.
 - 머신에서 OneUptime URL로 나가는 HTTPS.
-- Collector의 contrib 배포판인 `otelcol-contrib`. 핵심 `otelcol` 빌드에는 이 구성들이 사용하는 리시버와 프로세서가 없습니다. `systemd` 리시버(Linux)는 v0.143.0부터, `windows_service` 리시버(Windows)는 v0.155.0부터 작동하며, 아래 명령은 OneUptime이 고정한 릴리스인 v0.161.0을 설치합니다.
+- Collector의 contrib 배포판인 `otelcol-contrib`. 핵심 `otelcol` 빌드에는 이 구성들이 사용하는 리시버와 프로세서가 없습니다. `systemd` 리시버(Linux)는 v0.143.0부터, `windows_service` 리시버(Windows)는 v0.155.0부터 작동하며, 아래 명령은 OneUptime이 고정한 릴리스인 v0.165.0을 설치합니다.
 
 ## Collector 설치
 
@@ -140,7 +140,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -238,7 +238,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -346,7 +346,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -381,7 +381,7 @@ service:
 Debian 또는 Ubuntu:
 
 ```bash
-VERSION=0.161.0                      # the release OneUptime pins
+VERSION=0.165.0                      # the release OneUptime pins
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \
@@ -392,7 +392,7 @@ sudo dpkg -i /tmp/otelcol-contrib.deb
 RHEL, CentOS, Fedora 또는 Amazon Linux:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \
@@ -413,7 +413,7 @@ sudo systemctl status otelcol-contrib
 패키지된 유닛은 권한 없는 `otelcol-contrib` 사용자로 Collector를 실행합니다. `systemd-journal` 그룹은 저널을 읽을 수 있게 해 주며, `/var/log`의 파일(Debian과 Ubuntu에서는 `adm` 그룹이 읽을 수 있음)을 추적하려면 그 그룹도 추가하세요. `process` 스크레이퍼가 다른 사용자의 프로세스를 보려면 `CAP_SYS_PTRACE` 기능을 부여하세요.
 @tab macOS
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \
@@ -458,7 +458,7 @@ Homebrew가 아니라 이 tarball을 사용하세요. Homebrew 포뮬러는 핵�
 관리자 권한 PowerShell 프롬프트에서 `config.yaml`이 있는 폴더로 이동해 이 블록 전체를 한 번에 실행하세요. 각 줄은 위의 변수에 의존합니다.
 
 ```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$VERSION = "0.165.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -852,7 +852,7 @@ docker run -d \
   -e HOST_VAR=/hostfs/var \
   -e HOST_RUN=/hostfs/run \
   -e HOST_DEV=/hostfs/dev \
-  otel/opentelemetry-collector-contrib:0.161.0 \
+  otel/opentelemetry-collector-contrib:0.165.0 \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
@@ -863,7 +863,7 @@ docker run -d \
 패키지를 쓸 수 없는 경우 정적 바이너리를 풀고 전용 systemd 유닛을 만드세요:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \
@@ -1157,7 +1157,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 

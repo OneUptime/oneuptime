@@ -27,11 +27,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Compact is a list's cell: the bar, the percent, and the amount used under
  * them. Detail is a card's body: the percent large, the bar, then Used,
  * Free and Capacity, a pill when it is nearly full, and when it was
- * measured. A store that reported nothing says so in words (noUsageText),
+ * measured. Inline is a dashboard widget's narrow cell: a short bar and the
+ * percent on one line, with no width of its own to push the next column
+ * aside. A store that reported nothing says so in words (noUsageText),
  * never with an empty bar or a 0% it never measured.
  */
 
 export enum StorageUsageBarSize {
+  Inline = "inline",
   Compact = "compact",
   Detail = "detail",
 }
@@ -126,6 +129,10 @@ const StorageUsageBar: FunctionComponent<ComponentProps> = (
   const testId: string = props.dataTestId || "storage-usage";
 
   if (!props.usage) {
+    if (size === StorageUsageBarSize.Inline && !props.noUsageText) {
+      return <TableEmptyValue isSmall={true} />;
+    }
+
     if (size === StorageUsageBarSize.Compact && !props.noUsageText) {
       return <TableEmptyValue />;
     }
@@ -134,9 +141,9 @@ const StorageUsageBar: FunctionComponent<ComponentProps> = (
       <span
         data-testid={`${testId}-none`}
         className={
-          size === StorageUsageBarSize.Compact
-            ? "text-xs text-gray-500"
-            : "text-sm text-gray-600"
+          size === StorageUsageBarSize.Detail
+            ? "text-sm text-gray-600"
+            : "text-xs text-gray-500"
         }
       >
         {translator.translateText(props.noUsageText || "No usage reported.")}
@@ -149,6 +156,23 @@ const StorageUsageBar: FunctionComponent<ComponentProps> = (
   const meterLabel: string = translator.translateTemplate("{{percent}} used", {
     percent: percent,
   });
+
+  if (size === StorageUsageBarSize.Inline) {
+    return (
+      <div data-testid={testId} className="flex min-w-0 items-center gap-1.5">
+        <div className="flex w-12 flex-shrink-0">
+          <UsageTrack
+            usage={usage}
+            heightClassName="h-1.5"
+            label={meterLabel}
+          />
+        </div>
+        <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
+          {percent}
+        </span>
+      </div>
+    );
+  }
 
   if (size === StorageUsageBarSize.Compact) {
     return (

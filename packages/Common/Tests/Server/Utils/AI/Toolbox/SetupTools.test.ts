@@ -42,6 +42,10 @@ import MonitorProbeService from "../../../../../Server/Services/MonitorProbeServ
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
+import {
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "../../../../../Types/Database/UniqueName";
 import PayAsYouGoBillingService, {
   PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
 } from "../../../../../Server/Services/PayAsYouGoBillingService";
@@ -1682,6 +1686,76 @@ describe("set_up_paging", () => {
     expect(result.dataForLlm).toContain(
       'find_dashboard_page "Notification Methods"',
     );
+  });
+
+  /*
+   * #9742: a policy's name is one policy's. While another has the guided
+   * setup's name - an archived one, or one the person may not see - the
+   * policy is made numbered, as Duplicate numbers a copy, and the card, its
+   * test page and the model's answer name it as it was made.
+   */
+  test("approved while another policy has its name, it makes the policy numbered and says it by that name", async () => {
+    stubPagingCounts({ policies: 0, incidentRules: 0, alertRules: 0 });
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+    const tried: Array<string> = [];
+    const create: Spy = jest
+      .spyOn(OnCallDutyPolicyService, "create")
+      .mockImplementation((async (args: {
+        data: OnCallDutyPolicy;
+      }): Promise<OnCallDutyPolicy> => {
+        tried.push(args.data.name || "");
+
+        if (tried.length === 1) {
+          throw new BadDataException(
+            getNameTakenRefusalText(
+              ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+              args.data.name,
+            ),
+          );
+        }
+
+        const created: OnCallDutyPolicy = args.data;
+        created._id = POLICY_ID;
+        return created;
+      }) as never);
+
+    const result: ToolExecutionResult = await SetUpPagingTool.execute(
+      { userIds: [USER_ID.toString()] },
+      ctx,
+    );
+
+    expect(tried).toEqual([
+      GUIDED_SETUP_POLICY_NAME,
+      `${GUIDED_SETUP_POLICY_NAME} 2`,
+    ]);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result.widget?.data.testPage).toEqual({
+      kind: "policy",
+      policyId: POLICY_ID,
+      policyName: `${GUIDED_SETUP_POLICY_NAME} 2`,
+    });
+    expect(result.dataForLlm).toContain(
+      `Created the on-call policy "${GUIDED_SETUP_POLICY_NAME} 2"`,
+    );
+  });
+
+  test("approved, any other refusal of the policy is the person's to read, and nothing is tried again", async () => {
+    stubPagingCounts({ policies: 0, incidentRules: 0, alertRules: 0 });
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+    const create: Spy = jest
+      .spyOn(OnCallDutyPolicyService, "create")
+      .mockRejectedValue(
+        new BadDataException(
+          "You do not have permission to create an on-call policy.",
+        ) as never,
+      );
+
+    await expect(
+      SetUpPagingTool.execute({ userIds: [USER_ID.toString()] }, ctx),
+    ).rejects.toThrow(
+      "You do not have permission to create an on-call policy.",
+    );
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   /*

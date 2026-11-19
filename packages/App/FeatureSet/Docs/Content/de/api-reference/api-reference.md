@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Beide Namen werden auf dieselbe Weise geprüft. Die Regeln für den Datensatz, den Sie nennen, gelten, unter welchem Namen Sie ihn auch senden: Die übergeordnete Gruppe einer Statusseitengruppe muss auf derselben Statusseite liegen, eine Statusseite nimmt höchstens drei Kopfzeilen-Links, und der Name einer Gruppe muss auf ihrer Statusseite eindeutig sein.
 
+#### Namen, die schon ein anderer Datensatz hat
+
+Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne haben in einem Projekt jeweils einen eigenen Namen, unabhängig von Groß- und Kleinschreibung und Leerzeichen: `Primary`, ` primary` und `PRIMARY` sind ein Name. Ein Anlegen oder ein Update, das einen davon umbenennt, auf einen Namen, den schon ein anderer derselben Art hat, wird mit einem `400` abgelehnt, das genau das sagt:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden. Für Teams, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf.
+
 ### Schalter
 
 Ein Feld, das an oder aus ist - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` und jedes andere `true`- oder `false`-Feld -, nimmt `true` oder `false`. Text und Zahlen, die die Datenbank als einen dieser Werte liest, werden als dieser Wert übernommen, auf dieselbe Weise für die API, Terraform und Workflows: `"true"`, `"yes"`, `"on"`, `"1"` und `1` sind `true`, und `"false"`, `"no"`, `"off"`, `"0"` und `0` sind `false`, in jeder Schreibweise. Alles, was OneUptime mit dem Datensatz tut, behandelt ihn ebenfalls als diesen Wert: Ein Wartungsereignis, das mit `"isVisibleOnStatusPage": "true"` gesendet wird, zeigt seine Bilder auf der Statusseite, und `"isEnabled": "false"` schaltet eine Ressource unterhalb ihres Tarifs aus wie `false`. Jeder andere Wert, etwa `"maybe"`, `""` oder `2`, wird mit einem `400` abgelehnt, das das Feld nennt:

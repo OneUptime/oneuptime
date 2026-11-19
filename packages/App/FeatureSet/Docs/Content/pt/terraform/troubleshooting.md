@@ -22,6 +22,7 @@ Procure na tabela abaixo a mensagem que o Terraform exibiu, ou o que você viu a
 | `This project has been blocked` | Peça a um administrador master para desbloquear o projeto: veja [Um projeto bloqueado](#um-projeto-bloqueado) |
 | `references records that are not in this project` | Use o ID de um registro do seu próprio projeto: veja [IDs de outro projeto](#ids-de-outro-projeto) |
 | `Not Found` ou `Ambiguous Match` de uma fonte de dados | Corrija os argumentos da busca: veja [Buscas que não encontram nenhum ou encontram vários](#buscas-que-não-encontram-nenhum-ou-encontram-vários) |
+| `There is already a team called` (um rótulo, uma política de plantão, um agendamento de plantão) | Dê a ele um nome que nenhum outro do mesmo tipo tenha, ou renomeie o outro primeiro: veja [Nomes que outro registro já tem](#nomes-que-outro-registro-já-tem) |
 | `Cannot import non-existent remote object` | Verifique o ID e as permissões da chave: veja [Importar recursos](/docs/terraform/importing-resources#solução-de-problemas) |
 | `Provider produced inconsistent result after apply` | Atualize o provider: veja [Resultado inconsistente depois do apply](#resultado-inconsistente-depois-do-apply) |
 | Um plano cria um recurso que você não adicionou | A chave não consegue mais lê-lo, e o OneUptime respondeu `404`: devolva à chave o acesso de leitura, e depois importe o recurso com `terraform import`: veja [Um recurso sai do estado, e o próximo apply o cria de novo](#um-recurso-sai-do-estado-e-o-próximo-apply-o-cria-de-novo) |
@@ -102,6 +103,12 @@ Isso geralmente significa que um ID foi copiado da configuração ou do estado d
 ### Buscas que não encontram nenhum ou encontram vários
 
 Uma fonte de dados encontra exatamente um registro, ou interrompe o plano. `Not Found` diz que nenhum registro tem o `id`, ou que nenhum corresponde aos argumentos que você definiu; `Ambiguous Match` diz que vários correspondem. Corrija os argumentos, defina mais deles para reduzir a busca a um só, ou busque o registro pelo `id`. [Ler o que já existe](/docs/terraform/complete-guide#ler-o-que-já-existe) tem as regras.
+
+### Nomes que outro registro já tem
+
+Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nome só seu em um projeto, sem diferenciar maiúsculas de minúsculas nem espaços. Uma criação, ou uma renomeação, para um nome que outro registro do mesmo tipo já tem recebe como resposta `400`, por exemplo `There is already an on-call policy called Primary in this project. Pick another name.` Uma política de plantão arquivada mantém o nome: desarquive-a ou escolha outro nome. Os registros que já compartilhavam um nome o mantêm, e as listas de equipes, de políticas de plantão e de agendamentos de plantão do painel os marcam.
+
+O Terraform faz as alterações de um apply em paralelo, então uma renomeação para um nome que outro recurso libera no mesmo apply pode ser recusada enquanto esse outro ainda o tem: aplique de novo, ou adicione um `depends_on` do recurso que assume o nome para o que o libera. Uma troca, A para B e B para A, ou qualquer cadeia de renomeações que termina onde começou, não pode ser feita em um só apply: renomeie um deles para um nome que ninguém tem, aplique e depois faça o resto da alteração.
 
 ## Planos que não se estabilizam
 

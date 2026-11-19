@@ -141,7 +141,7 @@ processors:
       # Shown as the agent version, with a sign when a newer one is out. The collector
       # release install-logs.sh pins, its last number raised when these files change.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
       # OneUptime routes a batch by service.name first, so one here would register a
       # phantom Service instead of reaching the cloud.

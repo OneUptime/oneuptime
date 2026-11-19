@@ -131,6 +131,36 @@ describe("SeriesDebugHints", () => {
       );
     });
 
+    /*
+     * High Node Disk Usage (#9645): which pod fills the node's disk is in
+     * the kubelet's own reading - each pod's ephemeral storage, and the
+     * node's root and image filesystems - read-only through the API
+     * server's node proxy, after the node's conditions and its pods.
+     */
+    test("a node's alert reads the kubelet's own reading of its disks and its pods' storage, third", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: { "resource.k8s.node.name": "ip-10-0-3-14" },
+      });
+
+      expect(commands).toEqual([
+        "kubectl describe node ip-10-0-3-14",
+        "kubectl get pods --all-namespaces --field-selector spec.nodeName=ip-10-0-3-14 -o wide",
+        "kubectl get --raw /api/v1/nodes/ip-10-0-3-14/proxy/stats/summary",
+      ]);
+    });
+
+    test("quotes a node name that needs it inside the proxy path", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: { "resource.k8s.node.name": "node; rm -rf /" },
+      });
+
+      expect(commands[2]).toBe(
+        "kubectl get --raw /api/v1/nodes/'node; rm -rf /'/proxy/stats/summary",
+      );
+    });
+
     test("omits -n rather than guessing when the namespace is unknown", () => {
       /*
        * Guessing "default" sends the engineer to the wrong namespace and

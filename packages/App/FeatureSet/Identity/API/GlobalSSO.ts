@@ -1,4 +1,6 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
+import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import SamlSingleLogoutEndpoint from "../Utils/SamlSingleLogoutEndpoint";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import SamlAssertionOneTimeUse, {
   SamlProviderKind,
@@ -244,6 +246,39 @@ router.post(
   },
 );
 
+/*
+ * The provider's Single Logout URL (#9603), on the HTTP-Redirect (GET) and
+ * HTTP-POST bindings: where the identity provider answers the sign-out
+ * OneUptime sent a person with, and sends its own. Pasted into the
+ * identity provider like the ACS URL, so its path may never change either
+ * (Utils/SamlSingleLogoutEndpoint).
+ */
+const takeGlobalSingleLogout: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    await SamlSingleLogoutEndpoint.handle({
+      req,
+      res,
+      providerType: SsoProviderType.GlobalSSO,
+      providerId: req.params["globalSsoId"],
+    });
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+    return next(err);
+  }
+};
+
+router.get("/global-idp-logout/:globalSsoId", takeGlobalSingleLogout);
+
+router.post("/global-idp-logout/:globalSsoId", takeGlobalSingleLogout);
+
 type LoginUserWithGlobalSsoFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -336,6 +371,8 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         publicCertificate: true,
         disableSignUpWithSso: true,
         restrictToAttachedProjects: true,
+        // Whether the session keeps what signing out of the provider too takes.
+        signOutOfIdentityProvider: true,
       },
       props: { isRoot: true },
     });
@@ -802,6 +839,19 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
           method: SignInMethod.Saml,
           ssoProviderName: globalSso.name,
         },
+        /*
+         * With the provider's "Sign out of the identity provider too" on, a
+         * browser sign-in keeps what the assertion named the person and
+         * their session by, encrypted, for its sign-out at the provider
+         * (Utils/IdentityProviderSignOut, #9603).
+         */
+        identityProviderSignOut: IdentityProviderSignOut.forSamlSignIn({
+          signOutOfIdentityProvider: globalSso.signOutOfIdentityProvider,
+          isMobileRequest: isMobileRequest,
+          providerType: SsoProviderType.GlobalSSO,
+          providerId: globalSsoId,
+          assertion: verifiedSaml,
+        }),
       });
 
     /*

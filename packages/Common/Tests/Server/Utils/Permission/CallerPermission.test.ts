@@ -257,3 +257,90 @@ describe("CallerPermission.isGrantedAny", () => {
     expect(CallerPermission.holdsAnyOf(both, BILLING)).toBe(false);
   });
 });
+
+/*
+ * The teams that give the caller a permission (issue #9733): for Manage
+ * On-Call Policy User Overrides for Own Team, which reaches the people of
+ * the team it is given to. Read from the request's rows in the project -
+ * never another project's - by the one rule (HeldPermissionsUtil
+ * .getTeamGrants).
+ */
+describe("CallerPermission.getTeamGrants", () => {
+  const projectId: ObjectID = ObjectID.generate();
+  const otherProjectId: ObjectID = ObjectID.generate();
+  const payments: ObjectID = new ObjectID(
+    "6f1d6c39-0a8e-4f4a-9e43-0d8d4fb0a0f1",
+  );
+  const mobile: ObjectID = new ObjectID("6f1d6c39-0a8e-4f4a-9e43-0d8d4fb0a0f2");
+
+  const teamRow: (teamId: ObjectID, isBlock?: boolean) => UserPermission = (
+    teamId: ObjectID,
+    isBlock?: boolean,
+  ): UserPermission => {
+    return {
+      ...row(Permission.ManageTeamOnCallDutyPolicyUserOverride, {
+        isBlock: Boolean(isBlock),
+      }),
+      teamId: teamId,
+    };
+  };
+
+  test("the teams of the allow rows that give it, in the request's project", () => {
+    expect(
+      CallerPermission.getTeamGrants(
+        caller(projectId, [
+          teamRow(payments),
+          teamRow(mobile, true),
+          row(Permission.OnCallMember),
+        ]),
+        Permission.ManageTeamOnCallDutyPolicyUserOverride,
+      ),
+    ).toEqual({
+      teams: [{ teamId: payments.toString(), isProjectWide: true }],
+      isGrantedByNoTeam: false,
+    });
+  });
+
+  test("another project's rows give nothing here, and are read when that project is named", () => {
+    const carrier: PermissionCarrier = {
+      ...caller(projectId, []),
+      userTenantAccessPermission: {
+        [projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: projectId,
+          permissions: [],
+        },
+        [otherProjectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: otherProjectId,
+          permissions: [teamRow(mobile)],
+        },
+      },
+    };
+
+    expect(
+      CallerPermission.getTeamGrants(
+        carrier,
+        Permission.ManageTeamOnCallDutyPolicyUserOverride,
+      ).teams,
+    ).toEqual([]);
+    expect(
+      CallerPermission.getTeamGrants(
+        carrier,
+        Permission.ManageTeamOnCallDutyPolicyUserOverride,
+        otherProjectId,
+      ).teams,
+    ).toEqual([{ teamId: mobile.toString(), isProjectWide: true }]);
+  });
+
+  test("an API key's row is given by no team", () => {
+    expect(
+      CallerPermission.getTeamGrants(
+        caller(projectId, [
+          row(Permission.ManageTeamOnCallDutyPolicyUserOverride),
+        ]),
+        Permission.ManageTeamOnCallDutyPolicyUserOverride,
+      ),
+    ).toEqual({ teams: [], isGrantedByNoTeam: true });
+  });
+});

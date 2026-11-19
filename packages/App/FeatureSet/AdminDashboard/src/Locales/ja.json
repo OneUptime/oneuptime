@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "この人がまだ OneUptime のアカウントを持っていない場合は、この名前でアカウントが作成されます。",
   "Suggest every account on this server?": "このサーバーのすべてのアカウントを候補に表示しますか？",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "メンバーを招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られるようになります。ここのすべてのアカウントが 1 つの組織に属している場合にのみオンにしてください。",
-  "Suggest Every Account": "すべてのアカウントを表示"
+  "Suggest Every Account": "すべてのアカウントを表示",
+  "Sign Out URL": "サインアウト URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。",
+  "Single Logout URL:": "シングルログアウト URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID プロバイダーからもサインアウトさせるには、シングルログアウト URL と OneUptime の署名証明書もプロバイダーに登録してください。",
+  "Download Signing Certificate": "署名証明書をダウンロード"
 }

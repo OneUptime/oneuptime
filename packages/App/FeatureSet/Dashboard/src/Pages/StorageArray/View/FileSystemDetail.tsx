@@ -4,6 +4,13 @@ import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResou
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { getStorageArrayFileSystemUsage } from "../Utils/StorageArrayHealth";
+
+/*
+ * A file system's Storage card says so in words until the FlashBlade's
+ * available share of it arrives.
+ */
+const FILE_SYSTEM_USAGE_NOT_REPORTED: string = translationKey("Not reported");
 import { SummaryField } from "../../../Components/Infrastructure/ResourceOverviewTab";
 import StorageArrayResourceDetail from "../../../Components/StorageArray/StorageArrayResourceDetail";
 import StorageArrayResourceUtils, {
@@ -130,6 +137,22 @@ const StorageArrayFileSystemDetail: FunctionComponent<
         "File system {{name}} is not in the inventory yet. It appears here a few minutes after the Storage Array Agent starts scraping the FlashBlade.",
       )}
       metricsTitleTemplate={translationKey("File System Metrics: {{name}}")}
+      storage={{
+        description:
+          "How much of its provisioned size is used, as the FlashBlade reports it.",
+        getUsage: (
+          row: StorageArrayResource,
+          readings: { availableRatio: number | null },
+        ) => {
+          return getStorageArrayFileSystemUsage({
+            provisionedBytes: getFileSystemProvisionedBytes(row),
+            availableRatio: readings.availableRatio,
+          });
+        },
+        getNoUsageText: (): string => {
+          return FILE_SYSTEM_USAGE_NOT_REPORTED;
+        },
+      }}
       description="Latency and space of this file system, as the FlashBlade reports them."
     />
   );

@@ -18,7 +18,7 @@ Cuando creas una programación en la página **Programaciones de guardia**, el f
 
 :::steps
 1. Ve a **Guardia** > **Programaciones de guardia** y haz clic en **Crear programación de guardia**.
-2. Escribe un **Nombre**.
+2. Escribe un **Nombre**. Se rechaza un nombre que ya tenga otra programación del proyecto, sin importar mayúsculas, minúsculas ni espacios, para que todo selector distinga las programaciones.
 3. En **¿Quiénes se turnan?**, haz clic en **Añadir usuario** y elige a las personas, en el orden en que se turnan.
 4. Si quieres, abre **Más campos** para cambiar cuánto dura cada turno, la zona horaria, la descripción o las etiquetas.
 5. Haz clic en **Crear programación de guardia**. La nueva programación se abre después en su página **Capas**, donde puedes cambiar la rotación o añadir más capas.
@@ -101,7 +101,7 @@ Una ausencia añadida así se aplica a todas las políticas de guardia, por lo q
 
 Con la API, una sustitución de usuario (`/api/on-call-duty-policy-user-override`) creada sin `routeAlertsToUserId` omite a la persona de `overrideUserId` desde `startsAt` hasta `endsAt`.
 
-La **Vista general** de una programación tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan a quien está de guardia, con las reglas que lo hacen. Si ninguna lo hace, lo dice y enlaza a las políticas de guardia. Eliminar la programación, en su página o desde la lista, dice primero qué políticas avisan a través de ella. Las políticas que no puedes abrir se cuentan, pero no se nombran.
+La **Vista general** de una programación tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan a quien está de guardia, con las reglas que lo hacen. Si ninguna lo hace, lo dice y enlaza a las políticas de guardia. Eliminar la programación, en su página o desde la lista, dice primero qué políticas avisan a través de ella. Las políticas que no puedes abrir se cuentan, pero no se nombran. Una programación que tiene el mismo nombre que otra programación, de cuando los nombres no tenían que ser distintos, aparece marcada como **Mismo nombre que otra programación** en la lista **Programaciones de guardia**, que indica cuántas hay: compara sus capas y luego cambia el nombre de una con **Cambiar nombre** en su fila.
 
 ## Crear programaciones con la API o Terraform
 

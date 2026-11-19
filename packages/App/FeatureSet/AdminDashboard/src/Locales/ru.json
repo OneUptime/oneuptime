@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Если у этого человека ещё нет учётной записи OneUptime, она будет создана с этим именем.",
   "Suggest every account on this server?": "Предлагать все учётные записи этого сервера?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Любой, кто может приглашать людей, будет видеть при вводе имя и почту каждой учётной записи. Включайте это, только если все учётные записи здесь относятся к одной организации.",
-  "Suggest Every Account": "Предлагать все учётные записи"
+  "Suggest Every Account": "Предлагать все учётные записи",
+  "Sign Out URL": "URL выхода",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "URL единого выхода вашего поставщика удостоверений. Нужен, чтобы выходить и из него.",
+  "Single Logout URL:": "URL Single Logout:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Чтобы выходить и из поставщика удостоверений, передайте ему также URL Single Logout и сертификат подписи OneUptime.",
+  "Download Signing Certificate": "Скачать сертификат подписи"
 }

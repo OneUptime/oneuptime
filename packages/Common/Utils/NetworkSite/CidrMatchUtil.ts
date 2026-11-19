@@ -5,10 +5,12 @@
  * engine's decisions are unit-testable.
  */
 
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../Types/Rules/RuleCriteria";
+import { compareListOrderValues } from "../ListOrder";
 import RuleCriteriaMatcher from "../Rules/RuleCriteriaMatcher";
 import {
   getPatternWorkAllowance,
@@ -473,16 +475,24 @@ export class CidrMatchUtil {
         continue;
       }
 
-      const bestPriority: number = best.priority || 0;
-      const rulePriority: number = rule.priority || 0;
+      /*
+       * The higher priority first, a rule without one after every rule that
+       * has one (the one rule of Utils/ListOrder, for a list that counts
+       * down) - not at 0, beside the rules numbered 0.
+       */
+      const byPriority: number = compareListOrderValues(
+        rule.priority,
+        best.priority,
+        SortOrder.Descending,
+      );
 
-      if (rulePriority > bestPriority) {
+      if (byPriority < 0) {
         best = rule;
         continue;
       }
 
       if (
-        rulePriority === bestPriority &&
+        byPriority === 0 &&
         rule.createdAt &&
         best.createdAt &&
         rule.createdAt.getTime() < best.createdAt.getTime()
