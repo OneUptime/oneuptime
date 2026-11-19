@@ -1,10 +1,11 @@
 # Samsvar i Datasikkerhet
 
-Datasikkerhet gir ni samsvarsrammeverk en score ut fra det skanningene fant. Hvert rammeverk dekker datalagrene reglene i det handler om – GDPR datalagrene som inneholder personopplysninger, PCI DSS datalagrene der det ble funnet kortdata, SOC 2 alle datalagre – og om hvert krav i det er oppfylt, avgjøres av kontrollene som er bevis for det. **Datasikkerhet → Samsvar** viser scoren for hvert rammeverk, hvor mange datalagre det dekker, og hvert krav med hvor mange åpne problemer som bryter det. En score er bevis til en revisjon, ikke et sertifikat: den sier hva OneUptime kan se av datalagrene den leser.
+Datasikkerhet gir ni samsvarsrammeverk en score ut fra det skanningene fant. Hvert rammeverk dekker datalagrene reglene i det handler om – GDPR datalagrene som inneholder personopplysninger, PCI DSS datalagrene der det ble funnet kortdata, SOC 2 alle datalagre – og om hvert krav i det er oppfylt, avgjøres av kontrollene som er bevis for det. **Datasikkerhet → Samsvar** viser scoren for hvert rammeverk, hvor mange datalagre det dekker, og hvert krav med hvor mange åpne problemer som bryter det. Hver ressurs som inneholder datalagre – en Kubernetes-klynge, en Docker- eller Podman-vert, en database, en tjeneste eller en skyressurs – har en egen slik side, der det som ikke gjelder for den, kan slås av. En score er bevis til en revisjon, ikke et sertifikat: den sier hva OneUptime kan se av datalagrene den leser.
 
 :::cards
 - [Rammeverkene](#rammeverkene): De ni, og hvilke datalagre hvert av dem dekker.
 - [Slik får et rammeverk sin score](#slik-får-et-rammeverk-sin-score): Krav som er oppfylt, ikke oppfylt eller ikke evaluert.
+- [På siden til en ressurs](#på-siden-til-en-ressurs): Samsvaret for én klynge, vert, database, tjeneste eller skyressurs, og hva som er slått av for den.
 - [Kravene og kontrollene deres](#kravene-og-kontrollene-deres): Hvert krav, og kontrollene som er bevis for det.
 - [Behandlingsprotokoll](#behandlingsprotokoll): GDPR artikkel 30, skrevet ut fra datalagrene dine.
 :::
@@ -47,9 +48,31 @@ flowchart TB
 - **Et krav er oppfylt** når ingen åpne problemer fra kontrollene som er knyttet til det, ligger på et datalager i rammeverkets omfang, og **ikke oppfylt** når ett gjør det.
 - **Det er ikke evaluert** så lenge ingen datalagre i omfanget har fått konfigurasjonen lest eller innholdet skannet.
 - **To krav oppfylles av Datasikkerhet selv**: GDPR artikkel 30, protokoll over behandlingsaktiviteter, og ISO 27001 A.5.12, klassifisering av informasjon. De er oppfylt når hvert datalager i omfanget er lest eller skannet, og ikke oppfylt så lenge ett ikke er det.
-- **Scoren** er andelen av rammeverkets evaluerte krav som er oppfylt, som en hel prosent. Et rammeverk der ingenting er evaluert, har ingen score.
+- **Det er slått av** når hvert datalager i omfanget tilhører en ressurs som har slått av kravet (se [På siden til en ressurs](#på-siden-til-en-ressurs)).
+- **Scoren** er andelen av rammeverkets evaluerte krav som er oppfylt, som en hel prosent: et krav som er slått av, teller verken for eller mot. Et rammeverk der ingenting er evaluert, har ingen score.
 
 Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke er et problem, bryter ikke kravene sine, så en godtatt risiko er en beslutning revisjonen din kan se på problemet: hvem som godtok den, hvorfor og til når.
+
+## På siden til en ressurs
+
+Menyen til en ressurs får en **Sikkerhet**-del, som er lukket til du åpner den, så snart ressursen inneholder et datalager Datasikkerhet kjenner, i et prosjekt som bruker Datasikkerhet, og for den som kan lese datalagre:
+
+| Ressurs | Datalagrene til den |
+| --- | --- |
+| Kubernetes-klynge | Databasene som kjører på den |
+| Docker- eller Podman-vert | Databasene som kjører på den |
+| Database | Selve databasen |
+| Tjeneste | Telemetrien den sender: loggene, sporene og unntakene |
+| Skyressurs | Ressursen selv: en bucket, en database eller et datavarehus |
+
+- **Datasikkerhet** viser disse datalagrene, de mest risikable først, og de åpne problemene på dem. Hvert av dem åpnes i Datasikkerhet, der det behandles.
+- **Samsvar** gir rammeverkene en score ut fra bare disse datalagrene. Rammeverkene som dataene deres bringer inn i omfanget, kommer først; de som er slått av, og de som ingen av datalagrene inneholder data for, ligger lukket nedenfor.
+
+Hvert rammeverk har en bryter, **Applies Here**, og det har hvert av kravene også. Slår du en av, holdes ressursens datalagre utenfor det rammeverket, eller utenfor det kravet, både på ressursens side og på **Datasikkerhet → Samsvar**, som viser hvor mange datalagre som er slått av på ressursene sine. Slår du den på igjen, kommer de med igjen. Hver bryter lagres med en gang, og hver endring tas vare på i prosjektets [Revisjonslogger](/docs/configuration/audit-logs).
+
+Et datalager følger bryterne til én ressurs. En database som kjører på en Kubernetes-klynge, eller på en Docker- eller Podman-vert, følger bryterne til den klyngen eller verten: slå av et rammeverk for klyngen, så er det av for hver database på den. Databasens egen samsvarsside sier dette og lenker dit, med bryterne låst.
+
+Sikkerhetsmedlem, Sikkerhetsadministrator, Prosjektadministrator og Prosjekteier kan slå rammeverk og krav av og på, slik de også kan justere en kontroll. Sikkerhetsleser ser hva som er slått av.
 
 ## Kravene og kontrollene deres
 
@@ -162,7 +185,7 @@ GDPR artikkel 30 krever at du fører en protokoll over behandlingsaktivitetene d
 | Oppbevaring | Det du skriver i **Oppbevaring** for datalageret: hvor lenge data oppbevares i det |
 | Rammeverk | Rammeverkene datatypene bringer inn i omfanget |
 
-Fyll ut **Formål** og **Oppbevaring** under **Innstillinger** for hvert datalager: det er de to tingene ingen skanning kan vite. Protokollen og scorene er også tilgjengelige fra API-et til Datasikkerhet, på `/data-security/record-of-processing` og `/data-security/compliance`, for alle som kan lese datalagre (se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations#api-terraform-og-mcp)).
+Fyll ut **Formål** og **Oppbevaring** under **Innstillinger** for hvert datalager: det er de to tingene ingen skanning kan vite. Protokollen og scorene er også tilgjengelige fra API-et til Datasikkerhet, på `/data-security/record-of-processing`, `/data-security/compliance` og, for én ressurs, `/data-security/resource-compliance`, for alle som kan lese datalagre (se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations#api-terraform-og-mcp)).
 
 ## Neste steg
 

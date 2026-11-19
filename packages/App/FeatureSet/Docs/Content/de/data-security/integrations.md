@@ -127,7 +127,7 @@ Alles, was Datensicherheit aufbewahrt, ist ein Datensatz der OneUptime-API, gele
 | Datenspeicher, ihre Zeitachsen, ihre Funde, wer sie erreichen kann und jede Identität, die das tut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Probleme, ihre Zeitachsen und Datenflüsse | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
-| Benutzerdefinierte Datentypen, Prüfungseinstellungen und Residenzregeln | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Benutzerdefinierte Datentypen, Prüfungseinstellungen, Compliance-Einstellungen und Residenzregeln | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Die Einstellungen des Projekts | `/data-security-setting` |
 | Eigentümer, Eigentümerregeln und Beschriftungsregeln | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,6 +137,8 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | --- | --- |
 | `/data-security/overview` | Die Zahlen der Übersicht: Datenspeicher nach Sensibilität und Kategorie, offene Probleme nach Schweregrad, die riskantesten Probleme und die Probleme der letzten 30 Tage |
 | `/data-security/compliance` | Bewertung und Anforderungen jedes Rahmenwerks |
+| `/data-security/resource-scope` | Die Datenspeicher einer Ressource - eines Kubernetes-Clusters, eines Docker- oder Podman-Hosts, einer Datenbank, eines Dienstes oder einer Cloud-Ressource - und welcher Ressource sie bei den Compliance-Schaltern folgen |
+| `/data-security/resource-compliance` | Die Rahmenwerke einer Ressource: ihre Bewertungen für die Datenspeicher der Ressource und was für sie ausgeschaltet ist |
 | `/data-security/record-of-processing` | Das GDPR-Verzeichnis von Verarbeitungstätigkeiten, eine Zeile für jeden Datenspeicher, der personenbezogene Daten enthält |
 | `/data-store/<id>/scan-now` | **Jetzt scannen**: nimmt sofort Stichproben vom Inhalt des Datenspeichers |
 | `/data-store/<id>/check-now` | **Jetzt prüfen**: liest die Konfiguration des Datenspeichers erneut und führt seine Prüfungen aus |
@@ -146,9 +148,9 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | `/data-store/<id>/response-actions` | Welche Reaktionsaktionen am Datenspeicher jetzt möglich sind, und warum nicht |
 | `/data-store/<id>/respond` | Eine Reaktionsaktion am Datenspeicher, etwa **Öffentlichen Zugriff sperren** oder **Versionierung einschalten**, mit dem Problem, aus dem sie ausgeführt wurde |
 
-Der [Terraform-Provider](/docs/terraform/index) hat eine Ressource für jede Art von Datensatz, die Sie erstellen - Datenspeicher, die Sie selbst hinzufügen, benutzerdefinierte Datentypen, Prüfungseinstellungen, Residenzregeln, Eigentümer- und Beschriftungsregeln -, benannt nach dem Datensatz, etwa `oneuptime_residency_rule`.
+Der [Terraform-Provider](/docs/terraform/index) hat eine Ressource für jede Art von Datensatz, die Sie erstellen - Datenspeicher, die Sie selbst hinzufügen, benutzerdefinierte Datentypen, Prüfungseinstellungen, Compliance-Einstellungen, Residenzregeln, Eigentümer- und Beschriftungsregeln -, benannt nach dem Datensatz, etwa `oneuptime_residency_rule`.
 
-Der [MCP-Server](/docs/ai/mcp-server) hat Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für diese Datensätze: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule und Data Security Setting. Ein KI-Assistent kann dann mit Ihren Berechtigungen fragen, welche Datenspeicher Kartennummern enthalten oder was an einem Bucket offen ist.
+Der [MCP-Server](/docs/ai/mcp-server) hat Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für diese Datensätze: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule und Data Security Setting. Ein KI-Assistent kann dann mit Ihren Berechtigungen fragen, welche Datenspeicher Kartennummern enthalten oder was an einem Bucket offen ist.
 
 ## Nächste Schritte
 

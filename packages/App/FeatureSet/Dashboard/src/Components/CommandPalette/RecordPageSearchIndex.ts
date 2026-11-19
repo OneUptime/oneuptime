@@ -791,6 +791,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Scheduled Maintenance",
       },
       {
+        page: PageMap.SERVICE_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "telemetry"],
+      },
+      {
+        page: PageMap.SERVICE_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
+      },
+      {
         page: PageMap.SERVICE_VIEW_SETTINGS,
         section: "Advanced",
         title: "Settings",
@@ -842,6 +861,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Processes",
       },
       { page: PageMap.HOST_VIEW_LOGS, section: "Observability", title: "Logs" },
+      {
+        page: PageMap.HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
       {
         page: PageMap.HOST_VIEW_TRACES,
         section: "Observability",
@@ -1656,6 +1681,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Recommendations",
       },
       {
+        page: PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data store"],
+      },
+      {
+        page: PageMap.DATABASE_SERVER_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
+      },
+      {
         page: PageMap.DATABASE_SERVER_VIEW_ENDPOINTS,
         section: "Advanced",
         title: "Endpoints",
@@ -1945,6 +1989,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Events",
       },
       {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "audit log", "siem", "threats"],
+      },
+      {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES,
         section: "Telemetry",
         title: "Profiles",
@@ -2040,6 +2090,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS,
@@ -2143,6 +2212,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.DOCKER_HOST_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.DOCKER_HOST_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.DOCKER_HOST_VIEW_OWNERS,
@@ -2385,6 +2473,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.PODMAN_HOST_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.PODMAN_HOST_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.PODMAN_HOST_VIEW_OWNERS,
@@ -2669,6 +2776,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.CLOUD_RESOURCE_VIEW_CHANGES,
         section: "Activity",
         title: "Changes",
+      },
+      {
+        page: PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data store", "bucket"],
+      },
+      {
+        page: PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.CLOUD_RESOURCE_VIEW_OWNERS,

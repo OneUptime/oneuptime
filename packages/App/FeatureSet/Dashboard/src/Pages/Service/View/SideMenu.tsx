@@ -31,6 +31,11 @@ import React, {
 import ServiceModel from "Common/Models/DatabaseModels/Service";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  ResourceDataSecurityMenu,
+  useResourceDataSecurityMenu,
+} from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
+import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -40,6 +45,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const dataSecurityMenu: ResourceDataSecurityMenu | null =
+    useResourceDataSecurityMenu({
+      kind: DataStoreResourceKind.Service,
+      modelId: props.modelId,
+    });
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -309,6 +319,34 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {/*
+       * What Data Security says about this service's telemetry (#9547): the
+       * sensitive data its logs, traces and exceptions carry and what to fix,
+       * and how it stands against each framework (#9555) - only once Data
+       * Security has scanned it, in a project that uses Data Security.
+       * Folded by its title, and open by itself on its own pages.
+       */}
+      {dataSecurityMenu ? (
+        <SideMenuSection title="Security">
+          <SideMenuItem
+            link={{
+              title: "Data Security",
+              to: dataSecurityMenu.dataSecurityRoute,
+            }}
+            icon={IconProp.Fingerprint}
+          />
+          <SideMenuItem
+            link={{
+              title: "Compliance",
+              to: dataSecurityMenu.complianceRoute,
+            }}
+            icon={IconProp.ClipboardDocumentCheck}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       {getDeveloperSideMenuSection({
         modelType: ServiceModel,

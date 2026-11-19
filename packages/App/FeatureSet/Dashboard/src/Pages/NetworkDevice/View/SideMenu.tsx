@@ -29,6 +29,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useResourceSecurityEventsMenu } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -48,6 +49,7 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
 
   /*
    * The Incidents and Alerts badges count what is still open, which takes
@@ -179,18 +181,25 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         {/*
          * The security events about the device, beside the logs they are
          * read from (issue #5769): its own syslog's, and any other
-         * source's that name it.
+         * source's that name it. Only in a project that uses Security
+         * Events, while the server has it on, for whoever may read them
+         * (#9547): before, the entry stayed on a server that had switched
+         * Security Events off.
          */}
-        <SideMenuItem
-          link={{
-            title: "Security Events",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.ShieldCheck}
-        />
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Monitors",

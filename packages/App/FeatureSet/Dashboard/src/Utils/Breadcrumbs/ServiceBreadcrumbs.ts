@@ -75,6 +75,18 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Services", "View Service", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_DATA_SECURITY, [
+      "Project",
+      "Services",
+      "View Service",
+      "Data Security",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_COMPLIANCE, [
+      "Project",
+      "Services",
+      "View Service",
+      "Compliance",
+    ]),
 
     // Service Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_OWNER_RULES, [
