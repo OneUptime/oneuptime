@@ -604,12 +604,16 @@ describe("an issue's Where It Was Found, on a service's metrics", () => {
     expect(notice).toHaveTextContent(
       "The metric pipeline rule Data Security: Email address in attributes.user.email now redacts this data in new metrics.",
     );
+    // One sentence: the rule's name in it opens the pipeline rules.
     expect(
-      within(notice).getByRole("link", { name: "View pipeline rules" }),
+      within(notice).getByRole("link", {
+        name: "Data Security: Email address in attributes.user.email",
+      }),
     ).toHaveAttribute(
       "href",
       routeFor(PageMap.METRICS_SETTINGS_PIPELINE_RULES),
     );
+    expect(within(notice).getAllByRole("link")).toHaveLength(1);
   });
 
   test("a metric's name has no Scrub It: why it cannot be, where the button would be", async () => {
@@ -839,6 +843,15 @@ describe("In Your Telemetry", () => {
     expect(scrubSpy).toHaveBeenCalledWith(new ObjectID(METRIC_FINDING_ID));
     expect(notice).toHaveTextContent(
       "The metric pipeline rule Data Security: Email address in attributes.user.email now redacts this data in new metrics.",
+    );
+    // The rule's name, inside the sentence, opens the pipeline rules.
+    expect(
+      within(notice).getByRole("link", {
+        name: "Data Security: Email address in attributes.user.email",
+      }),
+    ).toHaveAttribute(
+      "href",
+      routeFor(PageMap.METRICS_SETTINGS_PIPELINE_RULES),
     );
     await waitFor(() => {
       expect(

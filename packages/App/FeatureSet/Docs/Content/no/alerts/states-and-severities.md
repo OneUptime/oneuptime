@@ -129,9 +129,9 @@ Arkiver en status eller alvorlighetsgrad som teamet ditt ikke lenger skal bruke,
 
 | Måte                 | Hvor                                                                                      | Hva det spørres om                                                                                                                   |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knapper i toppen** | Toppen av varselet: **Bekreft**, **Løs** og **Endre tilstand til** i menyen **⋯**            | En kort bekreftelse, **Bekreft varsel**, **Løs varsel** eller **Merk varsel som {{state}}**, med et valgfritt notat under **Legg til et privat notat**. |
+| **Knapper i toppen** | Toppen av varselet: **Bekreft**, **Løs** og **Endre tilstand til** i menyen **⋯**            | En kort bekreftelse, **Bekreft varsel**, **Løs varsel** eller **Merk varsel som {{state}}**, med et valgfritt notat under **Legg til et privat notat**. En løsning folder også sammen en valgfri rotårsak under **Legg til rotårsaken**. |
 | **Tilstandstidslinje**   | **Tilstandstidslinje** i varselets sidemeny                                               | En rad du legger til manuelt, med **Varselstatus** og **Begynner den**.                                                               |
-| **Rad i listen** | Menyen **⋯** på et varsels rad i varsellisten: **Bekreft**, **Løs** og **Endre tilstand** | Bekreftelsen fra toppen, som nevner varselet. Et varsel som en annen endring har flyttet i mellomtiden, blir latt være, og dialogen sier hvorfor. |
+| **Rad i listen** | Menyen **⋯** på et varsels rad i varsellisten: **Bekreft**, **Løs** og **Endre tilstand** | Bekreftelsen fra toppen, som nevner varselet. Et varsel som en annen endring har flyttet i mellomtiden, blir latt være, og dialogen sier hvorfor. Den spør ikke om rotårsaken. |
 | **Masseendring**     | **Bekreft**, **Løs** eller **Endre tilstand** på et utvalg i varsellisten                                            | Tilstanden og ett privat notat som legges til hvert varsel. Varsler som allerede er i eller etter tilstanden, hoppes over.            |
 | **Automatisk**       | En monitor, en episode, en tilknyttet hendelse eller din egen kode                        | **Løs varsel automatisk** i kriteriene til en monitor, en episodes tilstandsendring, hendelsesbryterne på [Koblede varsler](/docs/incidents/linked-alerts) eller en rad som opprettes på `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Et varsel er løst når det flyttes til løst-tilstanden din eller til en tilsta
 - **Monitoren kan utløse et nytt varsel.** Et kriterium holder ett åpent varsel om gangen; når det er løst, åpner neste samsvar et nytt.
 
 Å gå videre fra **Løst** til en tilstand etter den, for eksempel "Lukket", endrer ingenting av dette: Varselet var allerede løst.
+
+## Skriv rotårsaken når du løser
+
+Når toppen av varselet løser det, med **Løs** eller med **Endre tilstand til** en løst tilstand, folder bekreftelsen sammen en valgfri **Rotårsak** under **Legg til rotårsaken**: hvorfor det skjedde. Det du skriver der, blir varselets rotårsak, som om du hadde skrevet det på siden **Rotårsak**, og undersøkelsen til OneUptime AI av varselet måles mot det (se [Hvor godt OneUptime AI gjør det](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-gjør-det)). Lar du det stå tomt, løses varselet som før og beholder rotårsaken det har.
+
+Å skrive den krever tillatelse til å redigere varselet, i tillegg til tillatelsen til å endre tilstanden: den som ikke har den, får ikke tilbud om **Legg til rotårsaken**, og en tilstandsendring vedkommende sender med en rotårsak, avvises helt, så varselet beholder tilstanden. Via API-et sender du den med raden du oppretter på `/api/alert-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tilstandstidslinjen
 

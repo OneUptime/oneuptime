@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The agent's words in Korean: every string of res/values/strings.xml, in the Dashboard's terms (Locales/ko.json). -->
+<resources>
+
+    <string name="notification_channel_name">에이전트 상태</string>
+    <string name="notification_channel_description">이 디바이스가 OneUptime에 보고하고 있는지 표시합니다.</string>
+
+    <string name="notification_requests_channel_name">OneUptime의 요청</string>
+    <string name="notification_requests_channel_description">OneUptime이 문제 해결을 위해 이 디바이스의 로그를 읽으려고 요청할 때 표시됩니다.</string>
+    <string name="notification_request_title">OneUptime에서 이 디바이스의 로그를 요청합니다</string>
+
+    <string name="status_not_set_up">아직 설정되지 않음</string>
+    <string name="status_not_set_up_detail">수집 키를 입력하거나 디바이스 관리 서비스에서 oneuptime_token으로 보내세요.</string>
+    <string name="status_unreachable">OneUptime에 연결할 수 없음</string>
+    <string name="status_unreachable_detail">디바이스의 네트워크를 확인하세요. 에이전트가 자동으로 다시 시도합니다.</string>
+    <string name="status_key_refused">OneUptime이 수집 키를 거부함</string>
+    <string name="status_key_refused_detail">켜져 있고 만료되지 않은 서버 수집 키를 사용하세요(HTTP %1$d).</string>
+    <string name="status_not_found">이 주소에 OneUptime이 없음</string>
+    <string name="status_not_found_detail">OneUptime URL(%1$s)을 확인하세요.</string>
+    <string name="status_server_error">OneUptime이 지금 텔레메트리를 받지 않음</string>
+    <string name="status_server_error_detail">OneUptime이 %1$d 응답을 보냈습니다. 에이전트가 자동으로 다시 시도합니다.</string>
+    <string name="status_server_error_unknown_detail">OneUptime이 오류로 응답했습니다. 에이전트가 자동으로 다시 시도합니다.</string>
+    <string name="status_sending_failed">전송 실패</string>
+    <string name="status_retrying">에이전트가 자동으로 다시 시도합니다.</string>
+    <string name="status_kept">텔레메트리는 전송할 수 있을 때까지 디바이스에 보관됩니다.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">OneUptime에 보고 중</string>
+    <string name="status_as_device">디바이스 이름: %1$s</string>
+    <string name="status_starting">시작 중</string>
+    <string name="status_starting_detail">디바이스 이름: %1$s. 첫 보고는 1분 안에 전송됩니다.</string>
+
+    <string name="address_empty">OneUptime URL을 입력하세요.</string>
+    <string name="address_not_a_url">OneUptime URL이 웹 주소가 아닙니다.</string>
+    <string name="address_not_https">수집 키가 암호화되지 않은 상태로 전송되는 일이 없도록 OneUptime URL은 https://로 시작해야 합니다.</string>
+    <string name="address_query_or_fragment">OneUptime URL에서 ? 또는 #부터 시작하는 부분을 제거하세요.</string>
+    <string name="address_credentials">OneUptime URL에서 사용자 이름과 비밀번호를 제거하세요.</string>
+
+    <string name="setup_subtitle">이 디바이스의 상태, 재시작, 앱, 로그를 OneUptime에 보고합니다.</string>
+    <string name="setup_last_report">마지막 보고 전송: %1$s</string>
+    <string name="setup_no_report_yet">아직 전송한 내용 없음</string>
+    <string name="setup_waiting">%1$s 전송 대기 중</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: 디바이스 관리 서비스가 %2$s 값을 채우지 않고 그대로 보냈습니다.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s 값은 사용할 수 없어 기본값이 적용됩니다.</string>
+    <string name="setup_connection">연결</string>
+    <string name="setup_managed_notice">잠금으로 표시된 설정은 조직의 디바이스 관리 서비스에서 지정합니다.</string>
+    <string name="setup_url_label">OneUptime URL</string>
+    <string name="setup_url_help">OneUptime을 자체 호스팅하는 경우에만 변경하세요.</string>
+    <string name="setup_token_label">수집 키</string>
+    <string name="setup_token_hint">서버 수집 키를 붙여 넣으세요</string>
+    <string name="setup_token_stored_hint">저장되었습니다. 바꾸려면 새 키를 붙여 넣으세요.</string>
+    <string name="setup_token_help">OneUptime의 프로젝트 설정 > 텔레메트리 및 APM > 수집 키에 있습니다. 서버 키를 사용하세요.</string>
+    <string name="setup_token_unreadable">저장된 키를 이 디바이스에서 더 이상 읽을 수 없습니다. 다시 붙여 넣으세요.</string>
+    <string name="setup_device_name_label">디바이스 이름</string>
+    <string name="setup_device_name_help">호스트와 인벤토리에 이 디바이스가 표시되는 이름입니다.</string>
+    <string name="setup_set_by_organization">조직에서 설정함</string>
+    <string name="setup_save">저장 및 연결</string>
+    <string name="setup_saved">저장되었습니다. 에이전트가 지금 보고를 보냅니다.</string>
+    <string name="setup_token_required">수집 키를 붙여 넣으세요.</string>
+    <string name="setup_save_failed">이 디바이스에 키를 안전하게 저장하지 못했습니다: %1$s</string>
+    <string name="setup_readings">이 디바이스에서 에이전트가 읽을 수 있는 항목</string>
+    <string name="setup_reading_yes">예</string>
+    <string name="setup_reading_cpu">CPU 사용량</string>
+    <string name="setup_reading_cpu_device_owner">예, 디바이스 소유자로서</string>
+    <string name="setup_reading_cpu_not_device_owner">에이전트가 디바이스 소유자일 때만</string>
+    <string name="setup_reading_cpu_not_supported">이 디바이스에서는 불가: Android가 CPU 사용량을 제공하지 않음</string>
+    <string name="setup_reading_memory">메모리, 스토리지, 네트워크</string>
+    <string name="setup_reading_battery">배터리</string>
+    <string name="setup_reading_no_battery">배터리 없음</string>
+    <string name="setup_reading_thermal">온도 및 스로틀링</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 이상</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">크래시 스택 추적 및 재부팅 이유</string>
+    <string name="setup_reading_crash_details_yes">예, 모든 앱</string>
+    <string name="setup_reading_crash_details_not_granted">꺼짐: READ_LOGS 권한이 부여되지 않음</string>
+    <string name="setup_reading_crash_details_no_usage_access">꺼짐: 사용 정보 접근이 허용되지 않음</string>
+    <string name="setup_reading_apps">설치된 앱</string>
+    <string name="setup_reading_off_by_manager">꺼짐: 디바이스 관리 서비스에서 끔</string>
+    <string name="setup_reading_unknown">첫 보고 후 표시</string>
+    <string name="setup_grants">다른 앱의 로그와 크래시 스택 추적을 보내려면 adb 또는 디바이스 관리 서비스의 원격 ADB로 다음 권한을 한 번 부여하세요:</string>
+    <string name="setup_usage_access">사용 정보 접근 허용</string>
+
+    <string name="logcat_not_started">시작 전</string>
+    <string name="logcat_not_granted">꺼짐: READ_LOGS 권한이 부여되지 않음</string>
+    <string name="logcat_crashes_and_anrs">모든 앱의 크래시와 ANR</string>
+    <string name="logcat_full">모든 앱의 로그, 크래시, ANR</string>
+
+    <string name="log_session_title">문제 해결용 로그</string>
+    <string name="log_session_request_by">%1$s님이 OneUptime에서 이 디바이스에 있는 모든 앱의 %3$s 수준 이상 로그를 %2$s 동안 보내 달라고 요청합니다.</string>
+    <string name="log_session_request">OneUptime에서 이 디바이스에 있는 모든 앱의 %2$s 수준 이상 로그를 %1$s 동안 보내 달라고 요청합니다.</string>
+    <string name="log_session_android_prompt">그다음 Android에서 모든 기기 로그에 액세스하도록 허용할지 묻습니다. 거기에서도 허용을 선택하세요.</string>
+    <string name="log_session_allow">허용</string>
+    <string name="log_session_decline">거부</string>
+    <string name="log_session_stop">전송 중지</string>
+    <string name="log_session_starting">Android 확인 창에서 모든 기기 로그에 대한 액세스를 허용하세요.</string>
+    <string name="log_session_collecting_until">%1$s까지 모든 앱의 로그를 보내는 중입니다.</string>
+    <string name="log_session_collecting">모든 앱의 로그를 보내는 중입니다.</string>
+    <string name="log_session_declined_here">거부했습니다. 더 이상 보내지 않습니다.</string>
+    <string name="log_session_declined_by_android">모든 기기 로그에 대한 액세스가 허용되지 않아 더 이상 보내지 않습니다.</string>
+    <string name="log_session_no_answer">아무도 Android 확인 창에 응답하지 않아 더 이상 보내지 않습니다.</string>
+    <string name="log_session_time_up">완료: 요청한 시간 동안 모든 앱의 로그를 보냈습니다.</string>
+    <string name="log_session_stopped">중지했습니다. 더 이상 보내지 않습니다.</string>
+    <string name="log_session_agent_restarted">에이전트가 다시 시작되어 종료되었습니다.</string>
+    <string name="log_session_logcat_stopped">종료됨: Logcat 읽기가 중지되었습니다.</string>
+    <string name="log_session_logcat_disabled">이 디바이스에서 보낼 수 없습니다: 디바이스 관리 서비스에서 Logcat을 껐습니다.</string>
+    <string name="log_session_not_granted">이 디바이스에서 보낼 수 없습니다: READ_LOGS 권한이 부여되지 않았습니다.</string>
+    <string name="log_session_expired">제시간에 아무도 허용하지 않았습니다.</string>
+    <string name="log_session_cancelled">OneUptime에서 취소되었습니다.</string>
+    <string name="log_session_ended">종료되었습니다.</string>
+    <plurals name="duration_minutes">
+        <item quantity="other">%d분</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="other">%d시간</item>
+    </plurals>
+
+    <string name="device_admin_description">에이전트가 디바이스 소유자로서 이 디바이스의 CPU 사용량을 읽을 수 있게 합니다. 디바이스를 잠그거나 초기화하거나 제한하는 일은 절대 없습니다.</string>
+
+    <string name="restriction_url_title">OneUptime URL</string>
+    <string name="restriction_url_description">텔레메트리를 보낼 곳입니다. OneUptime을 자체 호스팅하지 않는다면 https://oneuptime.com 그대로 두세요.</string>
+    <string name="restriction_token_title">수집 키</string>
+    <string name="restriction_token_description">프로젝트 설정 > 텔레메트리 및 APM > 수집 키에 있는 서버 수집 키입니다.</string>
+    <string name="restriction_device_name_title">디바이스 이름</string>
+    <string name="restriction_device_name_description">OneUptime에서 쓰는 디바이스 이름입니다(예: ${esper.deviceName}). 둘이 하나의 디바이스로 표시되도록 앱의 host.name에도 같은 이름을 사용하세요.</string>
+    <string name="restriction_device_serial_title">일련 번호</string>
+    <string name="restriction_device_serial_description">디바이스의 일련 번호입니다(예: ${esper.serialNumber}). Android는 앱에 일련 번호를 직접 제공하지 않습니다.</string>
+    <string name="restriction_device_type_title">디바이스 유형</string>
+    <string name="restriction_device_type_description">디바이스의 종류입니다(키오스크, POS 단말기, 핸드헬드, 사이니지 등).</string>
+    <string name="restriction_device_location_title">위치</string>
+    <string name="restriction_device_location_description">디바이스가 있는 곳입니다(예: 매장 번호).</string>
+    <string name="restriction_labels_title">레이블</string>
+    <string name="restriction_labels_description">OneUptime에서 디바이스에 붙일 레이블입니다. 이름=값 쌍을 쉼표로 구분해 지정합니다(예: store=0412, region=emea).</string>
+    <string name="restriction_interval_title">수집 간격(초)</string>
+    <string name="restriction_interval_description">에이전트가 보고하는 간격으로, 30~600초 사이입니다. 기본값은 60입니다.</string>
+    <string name="restriction_logcat_enabled_title">Logcat 보내기</string>
+    <string name="restriction_logcat_enabled_description">다른 앱의 크래시, ANR, 로그를 보내고 OneUptime이 요청하는 로그 세션을 허용합니다. adb로 부여한 READ_LOGS 권한이 필요합니다.</string>
+    <string name="restriction_logcat_level_title">최저 Logcat 수준</string>
+    <string name="restriction_logcat_level_description">Android 12 이하에서 보낼 Logcat 줄의 가장 낮은 심각도입니다. 기본값은 경고입니다.</string>
+    <string name="restriction_apps_enabled_title">설치된 앱 보내기</string>
+    <string name="restriction_apps_enabled_description">설치된 앱과 버전을 하루에 한 번 보내고, 앱을 설치, 업데이트, 삭제할 때마다 보냅니다.</string>
+    <string name="logcat_level_verbose">상세</string>
+    <string name="logcat_level_debug">디버그</string>
+    <string name="logcat_level_info">정보</string>
+    <string name="logcat_level_warn">경고</string>
+    <string name="logcat_level_error">오류</string>
+    <string name="logcat_level_fatal">치명적</string>
+</resources>

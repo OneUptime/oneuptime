@@ -49,7 +49,7 @@ Dans **Exceptions à surveiller**, renseignez **Le message contient**, **Types d
 
 ### Affiner (facultatif)
 
-Ouvrez **Plus de champs** pour filtrer par service de télémétrie ou entité d'infrastructure, ou pour compter aussi les exceptions résolues et archivées.
+Ouvrez **Plus de champs** pour filtrer par service de télémétrie ou entité d'infrastructure, pour ne compter que les exceptions non gérées ou exclure certains types, ou pour compter aussi les exceptions résolues et archivées.
 
 ### Dire quand alerter
 
@@ -74,6 +74,8 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Fenêtre de temps** (dans **Quand alerter**) | Les exceptions des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
 | **Filtrer par service** (sous **Plus de champs**) | Les exceptions de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les exceptions de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
+| **Uniquement les exceptions non gérées** (sous **Plus de champs**) | Seulement les exceptions que rien n'a interceptées, comme un plantage : celles que l'explorateur d'exceptions marque **Non géré**. Une exception qui n'indique pas si elle a été interceptée compte comme gérée. | Désactivé |
+| **Exclure des types d'exception** (sous **Plus de champs**) | Toutes les exceptions sauf celles de ces types, séparés par des virgules, comme `ANR, Hang`. Le nom du type doit correspondre exactement. Un type listé ici est exclu même quand **Types d'exception** le liste aussi. | Vide : aucun type n'est exclu |
 | **Inclure les exceptions résolues** (sous **Plus de champs**) | Compter aussi les exceptions marquées comme résolues. | Désactivé |
 | **Inclure les exceptions archivées** (sous **Plus de champs**) | Compter aussi les exceptions archivées. | Désactivé |
 
@@ -103,6 +105,17 @@ Quand vous créez le moniteur via l'API, définissez `environments` dans le `exc
 }
 ```
 
+Via l'API, **Uniquement les exceptions non gérées** est `unhandledOnly` et **Exclure des types d'exception** est `excludedExceptionTypes`, une liste de noms de types. La recommandation **App Crashes** d'une application mobile définit les deux, pour compter ses plantages et non ses blocages :
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Comment il est évalué
 
 - **Chaque minute.** Un moniteur d'exceptions n'est pas vérifié par des sondes ; il n'a donc pas d'intervalle à régler ni de page **Sondes et intervalle**.
@@ -116,7 +129,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur d'exceptions ont quatre sortes de **Type de filtre** : **Nombre d'exceptions**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **Nouvelles exceptions**, **Exceptions en régression** et **Augmentation des exceptions (en %)**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
+Les critères d'un moniteur d'exceptions ont six sortes de **Type de filtre** : **Nombre d'exceptions**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **Nouvelles exceptions**, **Exceptions en régression**, **Augmentation des exceptions (en %)**, **Sessions avec exceptions (en %)** et **Sessions**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
@@ -160,6 +173,17 @@ Au-delà du nombre d'exceptions, un moniteur d'exceptions peut alerter sur ce qu
 | **Augmentation des exceptions (en %)** | De combien le nombre d'exceptions correspondantes dépasse l'habitude : la veille de la fenêtre, par fenêtre de même durée, au moins une. Dix exceptions après une journée calme donnent 900 %. |
 
 Les exceptions nouvelles et revenues sont filtrées par service, type d'exception, environnement et message, et aussi par entité d'infrastructure : une exception compte quand l'une de ses occurrences dans la fenêtre vient de l'une des entités choisies.
+
+## Une part des sessions
+
+Une application installée sur des milliers de téléphones a toujours quelques plantages : ce que son équipe veut savoir, c'est si le taux de plantage augmente. Pour une application dont les spans portent `session.id`, comme une application mobile, un moniteur d'exceptions peut alerter sur la part des sessions dans lesquelles une exception s'est produite. Les deux ne sont lus que lorsqu'un critère les vérifie.
+
+| Type de filtre | Ce qu'il lit dans la fenêtre |
+| --- | --- |
+| **Sessions avec exceptions (en %)** | La part des sessions de la fenêtre dans lesquelles une exception correspondante s'est produite. Sans session dans la fenêtre, il n'y a pas de part, et aucun critère qui la vérifie ne correspond. |
+| **Sessions** | Les sessions de la fenêtre : les `session.id` distincts des spans des services du moniteur. Associez-le à la part, pour qu'une part calculée sur quelques sessions seulement n'alerte pas. |
+
+Avec **Uniquement les exceptions non gérées** activé et les types `ANR` et `Hang` exclus, la part est le taux de plantage d'une application mobile. La recommandation **App Crash Rate** d'une application mobile alerte quand plus de 1,09 % des sessions d'une heure plantent, le taux qu'Android vitals considère comme un comportement insatisfaisant, dès que l'heure compte au moins 250 sessions. **App ANR Rate** compte `ANR` et `Hang` seuls, au-delà de 0,47 %. Pour écrire vous-même une telle règle, choisissez **Une part des sessions** sous **Alerter sur** dans **Quand alerter**.
 
 ## Les pics par rapport à la normale
 

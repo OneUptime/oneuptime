@@ -183,6 +183,87 @@ export default class SsoManagedSignIn {
     });
   }
 
+  /*
+   * WHETHER AN INVITATION LEADS TO SSO (#9819): why the person's sign-in
+   * would be managed by SSO once they are in `joiningProjectId` - the rule
+   * above, with that project among theirs - or null when it would not. The
+   * invitation email and the page it opens then offer that project's SSO
+   * instead of a password nobody could set. Asked before the membership is
+   * written, so the project is counted whether or not it is there yet.
+   *
+   * Someone who also belongs to a project that does not manage sign-in -
+   * an accepted membership or another invitation - keeps their own sign-in,
+   * so their invitation is the one it always was: nobody is sent to an SSO
+   * that would not be the only way in. A master admin never; a person with
+   * no account yet (userId null) has no other project.
+   */
+  public static async getManagedByOnceIn(data: {
+    userId: ObjectID | null;
+    // Read from the account when not given.
+    isMasterAdmin?: boolean | undefined;
+    joiningProjectId: ObjectID;
+  }): Promise<SsoManagedBy | null> {
+    let isMasterAdmin: boolean | undefined = data.isMasterAdmin;
+
+    if (isMasterAdmin === undefined && data.userId) {
+      const user: User | null = await UserService.findOneById({
+        id: data.userId,
+        select: {
+          _id: true,
+          isMasterAdmin: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      isMasterAdmin = user?.isMasterAdmin === true;
+    }
+
+    if (isMasterAdmin === true) {
+      return null;
+    }
+
+    if (
+      await SsoRequiredSignIn.isNonSsoSignInRefused({
+        isMasterAdmin: isMasterAdmin,
+      })
+    ) {
+      return SsoManagedBy.Server;
+    }
+
+    const joiningProject: Project | null = await ProjectService.findOneById({
+      id: data.joiningProjectId,
+      select: {
+        _id: true,
+        requireSsoForLogin: true,
+        manageSignInWithSso: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !joiningProject ||
+      joiningProject.requireSsoForLogin !== true ||
+      joiningProject.manageSignInWithSso !== true
+    ) {
+      return null;
+    }
+
+    if (!data.userId) {
+      return SsoManagedBy.Projects;
+    }
+
+    const projects: {
+      managingProjects: Array<SsoManagedSignInProject>;
+      otherProjects: Array<SsoManagedSignInProject>;
+    } = await SsoManagedSignIn.readProjects(data.userId);
+
+    return projects.otherProjects.length === 0 ? SsoManagedBy.Projects : null;
+  }
+
   // Why this person's sign-in is managed by SSO now, or null when it is not.
   public static async getManagedBy(
     userId: ObjectID,

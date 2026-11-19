@@ -63,6 +63,42 @@ export interface EvalScoreReport {
    * floor's recall of bad analyses, measured against human ground truth.
    */
   inconclusiveRecall: EvalScore;
+  /*
+   * Whether the automatic grade can be relied on: how often it agrees with
+   * the responders who judged the same investigation, for incidents and
+   * alerts apart (#7765, "check the result" - alerts are graded since
+   * their resolve asks for a root cause).
+   */
+  gradeAgreement: GradeAgreementReport;
+}
+
+/*
+ * One subject's agreement between the automatic grade and the people who
+ * judged the same investigations. A run judged both ways agrees when the
+ * grade said Match and the responder confirmed it, or the grade said
+ * Mismatch and the responder rejected it. A Partial grade is neither, and
+ * is counted apart.
+ */
+export interface GradeAgreement {
+  // Of the runs graded Match or Mismatch and judged by a responder.
+  agreement: EvalScore;
+  // Graded Match, rejected by the responder: the grade too generous.
+  matchButRejectedCount: number;
+  // Graded Mismatch, confirmed by the responder: the grade too strict.
+  mismatchButConfirmedCount: number;
+  // Graded Partial and judged by a responder: in no count above.
+  partialCount: number;
+  /*
+   * Fewer runs judged both ways than MINIMUM_TRUSTWORTHY_CORPUS_SIZE: the
+   * agreement is noise, not a reason to rely on the grade.
+   */
+  sampleTooSmall: boolean;
+}
+
+export interface GradeAgreementReport {
+  all: GradeAgreement;
+  incidents: GradeAgreement;
+  alerts: GradeAgreement;
 }
 
 export default class EvalScores {
@@ -167,6 +203,74 @@ export default class EvalScores {
         humanRejectedFloorFlaggedCount,
         humanRejectedCount,
       ),
+      gradeAgreement: this.computeGradeAgreementReport(cases),
+    };
+  }
+
+  public static computeGradeAgreementReport(
+    cases: Array<GoldenCase>,
+  ): GradeAgreementReport {
+    return {
+      all: this.computeGradeAgreement(cases),
+      incidents: this.computeGradeAgreement(
+        cases.filter((goldenCase: GoldenCase): boolean => {
+          return goldenCase.subjectType === "Incident";
+        }),
+      ),
+      alerts: this.computeGradeAgreement(
+        cases.filter((goldenCase: GoldenCase): boolean => {
+          return goldenCase.subjectType === "Alert";
+        }),
+      ),
+    };
+  }
+
+  // The agreement of the cases handed in (pure, exported for tests).
+  public static computeGradeAgreement(
+    cases: Array<GoldenCase>,
+  ): GradeAgreement {
+    let agreeingCount: number = 0;
+    let comparedCount: number = 0;
+    let matchButRejectedCount: number = 0;
+    let mismatchButConfirmedCount: number = 0;
+    let partialCount: number = 0;
+
+    for (const goldenCase of cases) {
+      const grade: AIRunAutoGrade | undefined = goldenCase.label.autoGrade;
+      const verdict: AIRunHumanVerdict | undefined =
+        goldenCase.label.humanVerdict;
+
+      if (!grade || !verdict) {
+        continue;
+      }
+
+      if (grade === AIRunAutoGrade.Partial) {
+        partialCount++;
+        continue;
+      }
+
+      comparedCount++;
+
+      if (
+        (grade === AIRunAutoGrade.Match &&
+          verdict === AIRunHumanVerdict.Confirmed) ||
+        (grade === AIRunAutoGrade.Mismatch &&
+          verdict === AIRunHumanVerdict.Rejected)
+      ) {
+        agreeingCount++;
+      } else if (grade === AIRunAutoGrade.Match) {
+        matchButRejectedCount++;
+      } else {
+        mismatchButConfirmedCount++;
+      }
+    }
+
+    return {
+      agreement: this.makeScore(agreeingCount, comparedCount),
+      matchButRejectedCount,
+      mismatchButConfirmedCount,
+      partialCount,
+      sampleTooSmall: comparedCount < MINIMUM_TRUSTWORTHY_CORPUS_SIZE,
     };
   }
 }

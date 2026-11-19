@@ -46,12 +46,14 @@ import {
   KubernetesComplianceControlInfo,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
 import {
+  KubernetesComplianceAgentObject,
   KubernetesComplianceDetail,
   KubernetesComplianceFinding,
   getComplianceDetailKey,
   getComplianceObjectKey,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFinding";
 import { KubernetesComplianceFramework } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFramework";
+import { OneUptimeAgentNodesProxyReason } from "Common/Types/Kubernetes/Compliance/KubernetesRbac";
 import {
   KubernetesComplianceNotEvaluatedReason,
   KubernetesComplianceRequirementResult,
@@ -119,6 +121,29 @@ export const KUBERNETES_COMPLIANCE_TEST_ID: string = "kubernetes-compliance";
 
 // How many objects a failing control shows before Show all.
 export const FINDINGS_SHOWN: number = 5;
+
+/*
+ * A control as its switch names it to a screen reader: a CIS control by its
+ * number, as the table shows it, and a Pod Security Standards control by its
+ * title in the reader's language - its requirement is the standard's English
+ * name, which would read English on every page.
+ */
+export function getSwitchControlName(
+  framework: KubernetesComplianceFramework,
+  row: KubernetesComplianceRequirementResult,
+  translator: Translator,
+): string {
+  const info: KubernetesComplianceControlInfo | undefined = getControlInfo(
+    framework,
+    row.requirement,
+  );
+
+  if (!info || info.isNumbered) {
+    return row.requirement;
+  }
+
+  return translator.translateText(info.title) || info.title;
+}
 
 // Every framework's controls on one page: at most the CIS benchmark's 27.
 const CONTROLS_PER_PAGE: number = 30;
@@ -250,6 +275,44 @@ const NOT_SCORED_COUNT: PluralTemplate = {
 const CONTAINER_LABEL: string = translationKey("Container {{name}}");
 
 const VOLUME_LABEL: string = translationKey("Volume {{name}}");
+
+/*
+ * The OneUptime agent's own binding (#9878): said so, and under 5.1.10, why
+ * its role grants nodes/proxy, with the one value that drops it once nothing
+ * needs it. The values are code, drawn as written in every language.
+ */
+const AGENT_OWN_BINDING: string = translationKey(
+  "This binding is the OneUptime Kubernetes agent's own.",
+);
+
+const AGENT_NODES_PROXY_REASONS: Readonly<
+  Record<OneUptimeAgentNodesProxyReason, { template: string; setting: string }>
+> = {
+  [OneUptimeAgentNodesProxyReason.KubeletPods]: {
+    template: translationKey(
+      "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with {{setting}}.",
+    ),
+    setting: "--set kubeletstats.nodesProxy=false",
+  },
+  [OneUptimeAgentNodesProxyReason.CostPrometheus]: {
+    template: translationKey(
+      "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with {{setting}}.",
+    ),
+    setting: "--set cost.prometheus.nodesProxy=false",
+  },
+};
+
+// A role from a chart before the label grants nodes/proxy on every cluster.
+const AGENT_NODES_PROXY_OLDER_CHART: string = translationKey(
+  "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.",
+);
+
+// The control a binding's nodes/proxy fails.
+const NODES_PROXY_CONTROL: string = "5.1.10";
+
+// A field, a value or a setting, drawn as code.
+const INLINE_CODE_CLASS_NAME: string =
+  "rounded bg-white px-1.5 py-0.5 font-mono text-xs text-gray-800 ring-1 ring-gray-200";
 
 // The reasons a CIS control is not scored here, in the order the fold lists them.
 const NOT_SCORED_REASONS: ReadonlyArray<CisNotScoredReason> = [
@@ -831,7 +894,13 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
                       {
                         ariaLabel: translator.translateTemplate(
                           CONTROL_APPLIES_LABEL,
-                          { requirement: row.requirement },
+                          {
+                            requirement: getSwitchControlName(
+                              framework.framework,
+                              row,
+                              translator,
+                            ),
+                          },
                         ),
                         dataTestId: `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${framework.framework}-${row.requirement}`,
                       },
@@ -1275,6 +1344,7 @@ const ControlCell: FunctionComponent<{
                 <FindingLine
                   key={getComplianceObjectKey(finding.object)}
                   clusterId={props.clusterId}
+                  requirement={row.requirement}
                   finding={finding}
                   translator={translator}
                 />
@@ -1317,10 +1387,13 @@ const ControlCell: FunctionComponent<{
 // One object a control fails on: its page, its kind, and the fields that fail it.
 const FindingLine: FunctionComponent<{
   clusterId: ObjectID;
+  // The control it fails.
+  requirement: string;
   finding: KubernetesComplianceFinding;
   translator: Translator;
 }> = (props: {
   clusterId: ObjectID;
+  requirement: string;
   finding: KubernetesComplianceFinding;
   translator: Translator;
 }): ReactElement => {
@@ -1371,7 +1444,76 @@ const FindingLine: FunctionComponent<{
       ) : (
         <></>
       )}
+      {finding.oneUptimeAgent ? (
+        <AgentBindingNote
+          agent={finding.oneUptimeAgent}
+          isNodesProxyControl={props.requirement === NODES_PROXY_CONTROL}
+          translator={translator}
+        />
+      ) : (
+        <></>
+      )}
     </li>
+  );
+};
+
+/*
+ * The OneUptime agent's own binding (#9878): whose it is, and, under 5.1.10,
+ * why its role grants nodes/proxy - as the role's label says - with the
+ * value that drops it once nothing needs it. A role from an older chart
+ * names no reason: it grants nodes/proxy everywhere, and upgrading drops it.
+ */
+const AgentBindingNote: FunctionComponent<{
+  agent: KubernetesComplianceAgentObject;
+  isNodesProxyControl: boolean;
+  translator: Translator;
+}> = (props: {
+  agent: KubernetesComplianceAgentObject;
+  isNodesProxyControl: boolean;
+  translator: Translator;
+}): ReactElement => {
+  const { translator } = props;
+  const reasons: Array<OneUptimeAgentNodesProxyReason> =
+    props.isNodesProxyControl ? props.agent.nodesProxyReasons : [];
+
+  return (
+    <div
+      className="mt-2 flex items-start gap-2 text-xs text-gray-600"
+      data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`}
+    >
+      <Icon
+        icon={IconProp.Info}
+        className="mt-0.5 h-3.5 w-3.5 flex-none text-gray-400"
+      />
+      <div className="space-y-1">
+        <p>{translator.translateText(AGENT_OWN_BINDING)}</p>
+        {reasons.map((reason: OneUptimeAgentNodesProxyReason): ReactElement => {
+          const words: { template: string; setting: string } =
+            AGENT_NODES_PROXY_REASONS[reason];
+
+          return (
+            <p key={reason}>
+              <TranslatedSentence
+                template={words.template}
+                slots={{
+                  setting: (
+                    // One long token: it breaks only where a phone's row is too narrow for it.
+                    <code className={`${INLINE_CODE_CLASS_NAME} break-words`}>
+                      {words.setting}
+                    </code>
+                  ),
+                }}
+              />
+            </p>
+          );
+        })}
+        {props.isNodesProxyControl && reasons.length === 0 ? (
+          <p>{translator.translateText(AGENT_NODES_PROXY_OLDER_CHART)}</p>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -1403,7 +1545,7 @@ const DetailChip: FunctionComponent<{
           }
         : null;
   const code: ReactElement = (
-    <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-gray-800 ring-1 ring-gray-200">
+    <code className={INLINE_CODE_CLASS_NAME}>
       {detail.isNotSet || !detail.value
         ? detail.field
         : `${detail.field}: ${detail.value}`}
@@ -1425,7 +1567,14 @@ const DetailChip: FunctionComponent<{
         <></>
       )}
       {detail.isNotSet ? (
-        <TranslatedSentence template={IS_NOT_SET} slots={{ field: code }} />
+        /*
+         * One item of the chip's row: loose in the flex <li>, each piece of
+         * the sentence would be an item of its own, and on a page read right
+         * to left the marks that set the field apart would be gaps too.
+         */
+        <span>
+          <TranslatedSentence template={IS_NOT_SET} slots={{ field: code }} />
+        </span>
       ) : (
         code
       )}

@@ -168,9 +168,9 @@ RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM �
 | 分组 | 推荐 |
 | --- | --- |
 | Core Web Vitals | 适用于 Web 应用：Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 和 Slow Time to First Byte。参见 [核心 Web 指标](/docs/rum/web-vitals) 。 |
-| 错误 | 适用于移动应用的 App Crashes 和 App Not Responding (ANR)，适用于两者的 Failed User Operations，以及适用于 Web 应用的 Unhandled Browser Exceptions。 |
+| 错误 | 适用于移动应用的 App Crashes 和 App Not Responding (ANR)，以及适用于每小时有数百个会话的应用的对应比率 App Crash Rate 和 App ANR Rate；适用于两者的 Failed User Operations，以及适用于 Web 应用的 Unhandled Browser Exceptions。 |
 | 性能 | 适用于移动应用：Slow Cold Start，在冷启动耗时 5 秒或更长时触发，Android vitals 将这种情况视为过长；以及 Frozen Frames，在某一帧的绘制耗时超过 700 ms 时触发。 |
-| 可用性 | 适用于移动应用：App Stopped Reporting，在应用 30 分钟内没有发送任何 span 时触发。 |
+| 可用性 | 适用于移动应用：App Stopped Reporting，在应用 30 分钟内没有发送任何 span 时触发；以及 Device Stopped Reporting，在应用的某台设备过去一周内发送过 span、之后一小时没有发送任何 span 时触发。 |
 | 会话回放 | 四个 [存储预算警报](/docs/telemetry/session-replay#存储预算警报) ，会在项目的每日上限或应用程序的每月预算用尽之前发出警告。应用程序录制过回放后就会提供它们，月度那一对则在应用程序还设置了每月预算后提供。 |
 
 要自己构建监视器，请选择读取相应信号的那种：

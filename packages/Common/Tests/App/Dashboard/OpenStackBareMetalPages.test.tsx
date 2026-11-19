@@ -10,6 +10,7 @@ import "@testing-library/jest-dom";
 import {
   cleanup,
   configure,
+  fireEvent,
   render,
   screen,
   within,
@@ -274,6 +275,195 @@ describe("the list, on what a real cloud said", () => {
     expect(baremetal).toHaveTextContent("Failed: 2");
     expect(baremetal).toHaveTextContent("In maintenance: 1");
     expect(none).toHaveTextContent("0 of 1 can take an instance");
+  });
+
+  /*
+   * #9751: a class's "Failed: N" opens which nodes failed and why, read when pressed - the very
+   * nodes the count counts - each with Ironic's last error where a probe read it, since when it
+   * failed, and View to the node.
+   */
+  test("a class's Failed: N opens which nodes failed and why, a step from each", async () => {
+    const readAt: Date = minutesAgo(5);
+    server.rows = [
+      apiRow(),
+      nodeRow({
+        externalId: "aaaaaaaa-3333-4333-8333-000000000002",
+        name: "node-b",
+        status: "deploy failed",
+        stateChangedAt: minutesAgo(45),
+        facts: {
+          resourceClass: "gold",
+          powerState: "power off",
+          lastError: "Failed to deploy: IPMI call timed out",
+          lastErrorReadAt: readAt.toISOString(),
+        },
+      }),
+      nodeRow({
+        externalId: "aaaaaaaa-3333-4333-8333-000000000003",
+        name: "node-a",
+        status: "clean failed",
+        facts: { resourceClass: "gold", powerState: "power off" },
+      }),
+      nodeRow({
+        externalId: "aaaaaaaa-3333-4333-8333-000000000004",
+        name: "node-c",
+        status: "available",
+        facts: { resourceClass: "gold", powerState: "power off" },
+      }),
+      nodeRow({
+        externalId: "aaaaaaaa-3333-4333-8333-000000000005",
+        name: "node-d",
+        status: "deploy failed",
+        facts: { resourceClass: "silver", powerState: "power off" },
+      }),
+    ];
+
+    await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
+
+    const gold: HTMLElement = (
+      await screen.findAllByTestId("openstack-bare-metal-class")
+    ).find((one: HTMLElement): boolean => {
+      return Boolean(one.textContent?.includes("gold"));
+    }) as HTMLElement;
+    const failed: HTMLElement = within(gold).getByTestId(
+      "openstack-bare-metal-class-failed",
+    );
+
+    expect(failed.tagName).toBe("BUTTON");
+    expect(failed).toHaveTextContent("Failed: 2");
+    // Read only when pressed.
+    expect(
+      server.postCalls.filter((call: { path: string }): boolean => {
+        return call.path.includes("bare-metal-failed-nodes");
+      }),
+    ).toEqual([]);
+
+    fireEvent.click(failed);
+    await settle();
+
+    expect(
+      server.postCalls.filter((call: { path: string }): boolean => {
+        return call.path.includes("bare-metal-failed-nodes");
+      }),
+    ).toEqual([
+      {
+        path: expect.stringContaining(
+          `/openstack-resource/bare-metal-failed-nodes/${CLOUD_ID}`,
+        ),
+        body: { resourceClass: "gold" },
+      },
+    ]);
+
+    const dialogId: string = "openstack-bare-metal-class-failed-dialog";
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "2 failed nodes in resource class gold",
+    );
+    // Each node that failed and only those, by name, in Ironic's word for its state.
+    expect(attentionRowsOf(dialogId)).toEqual([
+      "node-a: In clean failed",
+      "node-b: In deploy failed",
+    ]);
+
+    const nodeB: HTMLElement = screen
+      .getAllByTestId(`${dialogId}-item`)
+      .find((item: HTMLElement): boolean => {
+        return Boolean(item.textContent?.includes("node-b"));
+      }) as HTMLElement;
+
+    // Why, in Ironic's own words, and when a probe read it.
+    expect(within(nodeB).getByTestId(`${dialogId}-message`)).toHaveTextContent(
+      "Failed to deploy: IPMI call timed out",
+    );
+    expect(
+      within(nodeB).getByTestId(`${dialogId}-explanation`),
+    ).toHaveTextContent("What Ironic last said, at");
+    expect(within(nodeB).getByTestId(`${dialogId}-since`)).toHaveTextContent(
+      "Failed 45 minutes ago",
+    );
+    // A step from the node's own page.
+    expect(
+      within(nodeB).getByTestId(`${dialogId}-view`).getAttribute("href"),
+    ).toContain(partPath("bare-metal", "aaaaaaaa-3333-4333-8333-000000000002"));
+  });
+
+  test("a class with no failed node reads Failed: 0 as words, with nothing to press", async () => {
+    server.rows = [
+      apiRow(),
+      nodeRow({ facts: { resourceClass: "gold", powerState: "power off" } }),
+    ];
+
+    await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
+
+    const only: HTMLElement = await screen.findByTestId(
+      "openstack-bare-metal-class",
+    );
+
+    expect(only).toHaveTextContent("Failed: 0");
+    expect(
+      within(only).queryByTestId("openstack-bare-metal-class-failed"),
+    ).toBeNull();
+  });
+
+  test("the nodes with no resource class are asked for as such, and say so", async () => {
+    server.rows = [
+      apiRow(),
+      nodeRow({
+        externalId: "aaaaaaaa-3333-4333-8333-000000000006",
+        name: "node-classless",
+        status: "inspect failed",
+        facts: { powerState: "power off" },
+      }),
+    ];
+
+    await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
+
+    fireEvent.click(
+      await screen.findByTestId("openstack-bare-metal-class-failed"),
+    );
+    await settle();
+
+    expect(
+      server.postCalls.find((call: { path: string }): boolean => {
+        return call.path.includes("bare-metal-failed-nodes");
+      })?.body,
+    ).toEqual({ resourceClass: null });
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "1 failed node with no resource class",
+    );
+    expect(attentionRowsOf("openstack-bare-metal-class-failed-dialog")).toEqual(
+      ["node-classless: In inspect failed"],
+    );
+  });
+
+  test("a read that fails says so, with Try again", async () => {
+    server.rows = [
+      apiRow(),
+      nodeRow({
+        status: "deploy failed",
+        facts: { resourceClass: "gold", powerState: "power off" },
+      }),
+    ];
+    server.failPosts.add("bare-metal-failed-nodes");
+
+    await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
+
+    fireEvent.click(
+      await screen.findByTestId("openstack-bare-metal-class-failed"),
+    );
+    await settle();
+
+    const error: HTMLElement = screen.getByTestId(
+      "openstack-bare-metal-class-failed-dialog-error",
+    );
+
+    // What went wrong, never an empty list that reads as nothing failed.
+    expect(
+      screen.queryByTestId("openstack-bare-metal-class-failed-dialog-empty"),
+    ).toBeNull();
+    expect(error).toHaveTextContent("Server is not available");
+    // And a way to read again.
+    expect(within(error).getAllByRole("button").length).toBeGreaterThan(0);
   });
 
   test("the card has nothing to say where its read fails, and the list goes on", async () => {

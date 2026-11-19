@@ -41,6 +41,7 @@ import OpenTelemetryMark from "./Marks/opentelemetry";
 import FluentBitMark from "./Marks/fluent-bit";
 import FluentdMark from "./Marks/fluentd";
 import KubernetesMark from "./Marks/kubernetes";
+import AndroidMark from "./Marks/android";
 import NodeJsMark from "./Marks/nodejs";
 import PythonMark from "./Marks/python";
 import GoMark from "./Marks/go";
@@ -145,6 +146,7 @@ const ALL_PROVIDER_LOGO_MARKS: Readonly<
   [ProviderLogo.FluentBit]: FluentBitMark,
   [ProviderLogo.Fluentd]: FluentdMark,
   [ProviderLogo.Kubernetes]: KubernetesMark,
+  [ProviderLogo.Android]: AndroidMark,
   [ProviderLogo.NodeJs]: NodeJsMark,
   [ProviderLogo.Python]: PythonMark,
   [ProviderLogo.Go]: GoMark,

@@ -573,7 +573,7 @@ class AlertOwnerRuleEngineServiceClass
         },
       )}\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
-      } to the alert:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}${creatorTeamNote}`;
+      } to the alert:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: alert.projectId })}${inheritedNote}${creatorTeamNote}`;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id,

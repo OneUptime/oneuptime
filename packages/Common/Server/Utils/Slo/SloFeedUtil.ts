@@ -5,6 +5,9 @@ import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
 import UserService from "../../Services/UserService";
 import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 
 /*
  * The server-side half of the SLO feed: the few things a feed writer needs
@@ -105,6 +108,34 @@ export default class SloFeedUtil {
   }
 
   /*
+   * getUserDisplayName, as the project names the user: someone only invited
+   * to it by the name typed for them, else their address - never their
+   * account's own name, which it does not see until they join (#9823).
+   */
+  public static async getUserDisplayNameInProject(data: {
+    user: User | null | undefined;
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<string> {
+    if (!data.user) {
+      return "";
+    }
+
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: [data.userId.toString()],
+        projectId: data.projectId,
+      });
+
+    return PendingInviteeProfiles.getNameInProject({
+      userId: data.userId,
+      name: data.user.name,
+      email: data.user.email,
+      withheld: withheld,
+    });
+  }
+
+  /*
    * `[Jane Doe](<dashboard link to the user>)` for the acting user of a feed
    * item, the name the link's own text, placed as text (mdText) as
    * UserService.getUserMarkdownString places it - a user's name is theirs to
@@ -141,7 +172,12 @@ export default class SloFeedUtil {
       return null;
     }
 
-    const displayName: string = SloFeedUtil.getUserDisplayName(user) || "User";
+    const displayName: string =
+      (await SloFeedUtil.getUserDisplayNameInProject({
+        user: user,
+        userId: data.userId,
+        projectId: data.projectId,
+      })) || "User";
 
     const link: URL = await UserService.getUserLinkInDashboard(
       data.projectId,

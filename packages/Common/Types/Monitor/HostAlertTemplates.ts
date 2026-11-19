@@ -935,6 +935,384 @@ const systemdUnitFailedTemplate: HostAlertTemplate = {
   },
 };
 
+/*
+ * --- Android devices (#9802) ---
+ *
+ * What only an Android device reports, from the metrics the OneUptime
+ * Android agent sends (agents/AndroidAgent, collect/HostMetrics.kt): whether
+ * it is on external power, its battery, Android's thermal status and its
+ * restarts. A kiosk or a POS terminal has failures a server does not: a
+ * pulled cable, a battery run down, a cabinet in the sun, a crash loop.
+ *
+ * Each groups by the device's host.name and its Android API level, which
+ * only the Android agent sends. There is one series per device either way,
+ * since the monitor is scoped to one host, but the labels are what the
+ * alert is built from: the device's name in its title, its Android version
+ * beside it, and the API level is how the alert's first debug commands
+ * (SeriesDebugHints) know to be adb's, not a server's shell.
+ */
+export const ANDROID_API_LEVEL_LABEL: string = "resource.android.os.api_level";
+
+export const ANDROID_TEMPLATE_GROUP_BY: Array<string> = [
+  "resource.host.name",
+  ANDROID_API_LEVEL_LABEL,
+];
+
+const androidDeviceUnpluggedTemplate: HostAlertTemplate = {
+  id: "android-device-unplugged",
+  name: "Device Unplugged",
+  summary: "The device runs on its battery for 10 minutes.",
+  description:
+    "Alert when a device meant to stay on power, such as a kiosk, a POS terminal or a signage player, runs on its battery for ten minutes: its cable was pulled, or its power supply failed. Reads android.battery.plugged, 1 on external power and 0 on battery. A device without a battery sends no reading and never raises it; a handheld that runs on its battery by design should not use it.",
+  category: "Availability",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_plugged";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        metricName: "android.battery.plugged",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        // The highest reading of each bucket: one sample on power in the window is power.
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: ANDROID_TEMPLATE_GROUP_BY,
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 1,
+        incidentTitle: `[Android] Device Unplugged${hostTitleSuffix(args)}`,
+        incidentDescription: `This device has run on its battery for ten minutes: someone pulled its power cable, or its power supply or socket failed. A kiosk or a POS terminal meant to stay on power shuts down when its battery runs out. Check the cable, the adapter and the socket at the device. The incident resolves once the device is on power again.`,
+        criteriaName: "Device Unplugged - On battery for 10 minutes",
+        criteriaDescription:
+          "Triggers when the device reports running on its battery for every sample in the ten-minute window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+        isBinaryMetric: true,
+      }),
+    });
+  },
+};
+
+const androidLowBatteryTemplate: HostAlertTemplate = {
+  id: "android-low-battery",
+  name: "Low Battery",
+  summary: "The battery stays below 20%.",
+  description:
+    "Alert when the device's battery stays below 20% for the whole evaluation window: a handheld or a POS terminal is about to shut down. Reads hw.battery.charge. A device without a battery sends no reading and never raises it.",
+  category: "Resource",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_battery";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostFormulaMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        queries: [
+          {
+            metricAlias: "android_battery_charge",
+            metricName: "hw.battery.charge",
+            // The lowest charge of each bucket.
+            aggregationType: MetricsAggregationType.Min,
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "Battery (%)",
+        // A [0, 1] fraction, scaled here: see buildHostFormulaMonitorConfig.
+        formula: "android_battery_charge * 100",
+        legendUnit: "%",
+        rollingTime: RollingTime.Past5Minutes,
+        groupByAttributeKeys: ANDROID_TEMPLATE_GROUP_BY,
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 20,
+        incidentTitle: `[Android] Low Battery (<20%)${hostTitleSuffix(args)}`,
+        incidentDescription: `The device's battery stayed below 20% for the whole evaluation window, so it will shut down soon unless it is charged. Put it on its charger or swap the battery. A device meant to stay on power that runs low has lost its power: Device Unplugged says since when.`,
+        criteriaName: "Low Battery - Charge < 20%",
+        criteriaDescription:
+          "Triggers when the battery charge is below 20% for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 20,
+      }),
+    });
+  },
+};
+
+const androidOverheatingTemplate: HostAlertTemplate = {
+  id: "android-device-overheating",
+  name: "Device Overheating",
+  summary: "Android reports a severe thermal status or worse.",
+  description:
+    "Alert when Android's thermal status stays at severe (3) or worse for the whole evaluation window: Android is throttling the device hard, and from emergency (5) it starts shutting it down. Reads android.thermal.status, 0 (none) to 6 (shutdown), which Android 10 and later report. Kiosks in direct sun, in closed cabinets or with blocked vents are the usual cause.",
+  category: "Resource",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_thermal_status";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        metricName: "android.thermal.status",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: ANDROID_TEMPLATE_GROUP_BY,
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 3,
+        incidentTitle: `[Android] Device Overheating${hostTitleSuffix(args)}`,
+        incidentDescription: `Android has reported a severe thermal status (3 of 6) or worse on this device for the whole evaluation window: it is slowing the device down hard to cool it, and at emergency (5) it starts shutting it down. Check what the device stands in: direct sun, a closed cabinet, blocked vents. The incident resolves once the status is below severe again.`,
+        criteriaName: "Device Overheating - Thermal status severe or worse",
+        criteriaDescription:
+          "Triggers when Android's thermal status is 3 (severe) or higher for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 3,
+      }),
+    });
+  },
+};
+
+const androidRestartLoopTemplate: HostAlertTemplate = {
+  id: "android-restart-loop",
+  name: "Restart Loop",
+  summary: "The device starts three or more times in an hour.",
+  description:
+    "Alert when the device has started three or more times in the last hour: it is restarting in a loop, from a crash in the system, a failing app, a watchdog or a power fault. Reads android.boot.recent_count, the boots in the last hour, which the agent sends every collection. Its device.boot logs say how each boot ended, and why the device rebooted where the agent reads DropBox.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_recent_boots";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        metricName: "android.boot.recent_count",
+        metricAlias,
+        rollingTime: RollingTime.Past1Hour,
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: ANDROID_TEMPLATE_GROUP_BY,
+      }),
+      /*
+       * A restart loop is an event, as Host Restarted is: any reading at
+       * three or more fires, and the device is healthy again once a whole
+       * hour reads fewer.
+       */
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 3,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+        incidentTitle: `[Android] Restart Loop${hostTitleSuffix(args)}`,
+        incidentDescription: `This device has started three or more times in the last hour: it is restarting in a loop. Its device.boot logs say how each boot ended (android.boot.previous_shutdown: clean or unexpected) and, where the agent reads DropBox, why it rebooted (android.boot.reason) and whether the kernel panicked. A crash loop in an app the device manager restarts, a watchdog in the system, or a failing power supply are the usual causes. The incident resolves once an hour passes with fewer than three boots.`,
+        criteriaName: "Restart Loop - 3 or more boots in an hour",
+        criteriaDescription:
+          "Triggers when the device reports three or more boots in the last hour at any point in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 3,
+        metricAggregationType: EvaluateOverTimeType.AllValues,
+      }),
+    });
+  },
+};
+
+const androidStorageNearlyFullTemplate: HostAlertTemplate = {
+  id: "android-storage-nearly-full",
+  name: "Storage Nearly Full",
+  summary: "The device's storage is more than 90% full.",
+  description:
+    "Alert when the device's own storage (/data) stays more than 90% full: Android starts refusing app installs and updates as it fills, and apps that cache or log start failing. Reads system.filesystem.utilization, as High Filesystem Usage does for a server.",
+  category: "Resource",
+  severity: "Critical",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_storage";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostFormulaMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        queries: [
+          {
+            metricAlias: "android_storage_ratio",
+            metricName: "system.filesystem.utilization",
+            aggregationType: MetricsAggregationType.Max,
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "Storage Used (%)",
+        formula: "android_storage_ratio * 100",
+        legendUnit: "%",
+        rollingTime: RollingTime.Past5Minutes,
+        // The mount names what filled up (/data); the API level gives the alert adb's commands.
+        groupByAttributeKeys: ["mountpoint", ANDROID_API_LEVEL_LABEL],
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[Android] Storage Nearly Full (>90%)${hostTitleSuffix(args)}`,
+        incidentDescription: `The device's storage stayed more than 90% full for the whole evaluation window. Android refuses app installs and updates as it fills, and apps that keep caches or logs start failing. Clear what the apps keep, or remove apps the device does not need, through your device manager.`,
+        criteriaName: "Storage Nearly Full - Usage > 90%",
+        criteriaDescription:
+          "Triggers when the device's storage is more than 90% used for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+/*
+ * CPU use, for an Android device that reports it: Android 7, or a device on
+ * which the agent is the device owner (Android 8 and later keep CPU use
+ * from other apps). Busy is 1 - idle, not user + system as High CPU
+ * Utilization reads it: as device owner Android gives a core's active time
+ * as one figure, which the agent sends as user, and leaves out system.
+ */
+const androidHighCpuTemplate: HostAlertTemplate = {
+  id: "android-high-cpu",
+  name: "High CPU Utilization",
+  summary: "The device's CPU stays more than 80% busy.",
+  description:
+    "Alert when the device's CPU stays more than 80% busy (1 - idle) for the whole evaluation window. Offered only for a device that reports CPU use: Android 7, or one on which the Android agent is the device owner.",
+  category: "Resource",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_cpu";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostFormulaMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        queries: [
+          {
+            metricAlias: "android_cpu_idle",
+            metricName: "system.cpu.utilization",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "idle" },
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "CPU Busy (%)",
+        formula: "(1 - android_cpu_idle) * 100",
+        legendUnit: "%",
+        rollingTime: RollingTime.Past5Minutes,
+        groupByAttributeKeys: ANDROID_TEMPLATE_GROUP_BY,
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 80,
+        incidentTitle: `[Android] High CPU Utilization (>80%)${hostTitleSuffix(args)}`,
+        incidentDescription: `The device's CPU stayed more than 80% busy for the whole evaluation window. On a kiosk or a POS terminal that shows as a slow screen and slow payments. The device's logs and crashes around the same time usually name the app doing the work.`,
+        criteriaName: "High CPU - Busy > 80%",
+        criteriaDescription:
+          "Triggers when the device's CPU is more than 80% busy for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 80,
+      }),
+    });
+  },
+};
+
+/** The templates only an Android device has: offered for hosts whose OS is Android. */
+export function getAndroidHostAlertTemplates(): Array<HostAlertTemplate> {
+  return [
+    androidDeviceUnpluggedTemplate,
+    androidLowBatteryTemplate,
+    androidOverheatingTemplate,
+    androidRestartLoopTemplate,
+    androidStorageNearlyFullTemplate,
+    androidHighCpuTemplate,
+  ];
+}
+
+/*
+ * The server templates an Android device also answers: it sends the metrics
+ * they read. The rest read what a device never sends (swap, inodes, load,
+ * processes, systemd units), or are replaced by an Android one that reads
+ * it the way the device sends it (storage, CPU), and would never fire.
+ */
+const SERVER_TEMPLATES_FOR_ANDROID: ReadonlyArray<string> = [
+  "host-stopped-reporting",
+  "host-restarted",
+  "host-high-memory",
+];
+
+/**
+ * The templates to offer for one host: every server template, or, for an
+ * Android device, the ones it answers and its own. Its CPU template only
+ * when it reports CPU use, which most Android devices do not.
+ */
+export function getHostAlertTemplatesFor(host: {
+  isAndroid?: boolean | null | undefined;
+  reportsCpu?: boolean | null | undefined;
+}): Array<HostAlertTemplate> {
+  if (!host.isAndroid) {
+    return getAllHostAlertTemplates();
+  }
+
+  return [
+    ...getAllHostAlertTemplates().filter((template: HostAlertTemplate) => {
+      return SERVER_TEMPLATES_FOR_ANDROID.includes(template.id);
+    }),
+    ...getAndroidHostAlertTemplates().filter((template: HostAlertTemplate) => {
+      return template !== androidHighCpuTemplate || Boolean(host.reportsCpu);
+    }),
+  ];
+}
+
 export function getAllHostAlertTemplates(): Array<HostAlertTemplate> {
   return [
     hostStoppedReportingTemplate,
@@ -961,7 +1339,10 @@ export function getHostAlertTemplatesByCategory(
 export function getHostAlertTemplateById(
   id: string,
 ): HostAlertTemplate | undefined {
-  return getAllHostAlertTemplates().find((template: HostAlertTemplate) => {
+  return [
+    ...getAllHostAlertTemplates(),
+    ...getAndroidHostAlertTemplates(),
+  ].find((template: HostAlertTemplate) => {
     return template.id === id;
   });
 }

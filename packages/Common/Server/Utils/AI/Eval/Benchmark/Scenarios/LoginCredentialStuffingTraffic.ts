@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * A credential-stuffing bot from one network (AS64500, user agent
@@ -886,27 +887,20 @@ const scenario: BenchmarkScenario = {
         { name: "Catalog API", status: "Operational", type: "API" },
       ],
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: LOGIN_SLO_ID,
-          name: "Login success rate",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.5,
-          window: "Rolling 30d",
-          monitors: "Login",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.73,
-          errorBudgetRemainingPercentage: 46,
-          currentBurnRate: 26.9,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-09-12T19:25:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: LOGIN_SLO_ID,
+        name: "Login success rate",
+        monitors: ["Login"],
+        targetPercentage: 99.5,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.73,
+        errorBudgetRemainingPercentage: 46,
+        currentBurnRate: 26.9,
+        lastEvaluatedAt: "2026-09-12T19:25:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

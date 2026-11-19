@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames";
 import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryEntry,
@@ -156,6 +157,23 @@ describe("the Rule Library's response steps", () => {
     expect(getDetectionRuleLibraryResponseSteps("not-a-library-id")).toEqual(
       [],
     );
+  });
+
+  /*
+   * The tables are read by the id a caller hands in: as plain objects they
+   * answered "constructor" with a function, and "__proto__" with
+   * Object.prototype, which no rule's steps are (TextLookupTablesGuard).
+   */
+  test("a name every object inherits is no library rule, and names no steps", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        steps: getDetectionRuleLibraryResponseSteps(name),
+        named: getDetectionRuleLibraryStepIdsNamed(name),
+      }).toEqual({ name, steps: [], named: [] });
+    }
+
+    expect(getDetectionRuleLibraryIdsWithSteps()).not.toContain("constructor");
   });
 });
 

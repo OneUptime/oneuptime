@@ -23,10 +23,7 @@ import {
   ALL_COMPLIANCE_SETTING_FRAMEWORKS,
   ComplianceSettingFramework,
 } from "../../Types/DataSecurity/ComplianceSettingFramework";
-import {
-  ALL_DATA_STORE_RESOURCE_KINDS,
-  DataStoreResourceKind,
-} from "../../Types/DataSecurity/DataStoreResource";
+import { DataStoreResourceKind } from "../../Types/DataSecurity/DataStoreResource";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -198,7 +195,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
-    allowedValues: [...ALL_DATA_STORE_RESOURCE_KINDS],
+    allowedValues: Object.values(DataStoreResourceKind),
     required: true,
     canReadOnRelationQuery: true,
     title: "Resource Type",

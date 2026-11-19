@@ -44,7 +44,7 @@ import {
   useWindowLayout,
   type ListPaneWidthControl,
   type PaneLayout,
-} from "../layout/WindowLayout";
+} from "../layout/WindowLayoutProvider";
 import type { ListPaneWidthRange, WindowLayout } from "../layout/windowLayout";
 import { clampListPaneWidth } from "../layout/paneDivider";
 import PaneGap from "../components/PaneGap";

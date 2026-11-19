@@ -471,6 +471,17 @@ function serve(pageCase: HostPageCase): void {
   });
 
   getListMock.mockImplementation((request: unknown): Promise<unknown> => {
+    /*
+     * A unit's journal (#9748) is read apart from the page's range - on
+     * opening, a state change and Refresh, never on a tick - so it is no
+     * part of the loads this suite times: answered at once.
+     */
+    if (
+      (request as { modelType?: { name?: string } }).modelType?.name === "Log"
+    ) {
+      return Promise.resolve({ data: [] });
+    }
+
     const call: ListRequest = request as ListRequest;
     const answer: { data: Array<Row> } = { data: pageCase.listRows(call) };
 

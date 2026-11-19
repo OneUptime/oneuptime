@@ -63,7 +63,7 @@ Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: 
 Haga clic en una fila. Sus detalles se abren junto a la lista.
 :::
 
-Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros. Un enlace a una sola línea de registro, como **Ver línea de registro** de un evento de seguridad, abre esa línea encima de la lista, leída con sus propios permisos.
+Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros. Un enlace a una sola línea de registro, como **Ver línea de registro** de un evento de seguridad, abre esa línea encima de la lista, leída con sus propios permisos. **Copiar enlace**, en los detalles de una línea, copia un enlace así, con debajo la lista de la que lo copió, en el mismo intervalo de tiempo.
 
 ## Leer un registro
 

@@ -528,6 +528,52 @@ describe("POST /ai-agent-data/llm-completion (work)", () => {
     ]);
   });
 
+  /*
+   * Issue #6530: the answer says how many tokens one request to the model
+   * may hold, next to the run's limits, so the Runner sizes its
+   * conversation to it - and null when the server cannot tell.
+   */
+  test("the answer carries the model's context window, as the completion said it", async () => {
+    identity = PROJECT_RUNNER;
+    storedRun = makeRun({
+      hold: HELD_BY_IT,
+      taskType: CodeFixTaskType.FixException,
+    });
+    jest.spyOn(CodeFixAgentCompletion, "execute").mockResolvedValue({
+      content: "Done",
+      toolCalls: [],
+      stopReason: "stop",
+      limits: { timeLimitInMinutes: 120 },
+      budget: {},
+      contextWindowTokens: 200_000,
+    } as never);
+
+    const answer: Answer = await complete();
+
+    expect(answer.error).toBeUndefined();
+    expect(answer.json?.["contextWindowTokens"]).toBe(200_000);
+    expect(answer.json?.["limits"]).toEqual({ timeLimitInMinutes: 120 });
+  });
+
+  test("a window the server cannot tell is sent as null", async () => {
+    identity = PROJECT_RUNNER;
+    storedRun = makeRun({
+      hold: HELD_BY_IT,
+      taskType: CodeFixTaskType.FixException,
+    });
+    jest.spyOn(CodeFixAgentCompletion, "execute").mockResolvedValue({
+      content: "Done",
+      toolCalls: [],
+      stopReason: "stop",
+      budget: {},
+      contextWindowTokens: null,
+    } as never);
+
+    const answer: Answer = await complete();
+
+    expect(answer.json?.["contextWindowTokens"]).toBeNull();
+  });
+
   test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
     "a global Runner spends nothing of $name",
     async (hold: RunHold) => {

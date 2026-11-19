@@ -106,6 +106,14 @@ enum TelemetryIngestSurface {
    * requests-per-minute ceiling would refuse.
    */
   HostCollectorManagement = "host-collector-management",
+  /*
+   * The OneUptime Android agent asks for the log sessions open for its
+   * device and says what became of the ones it has, every minute
+   * (POST /telemetry/android-agent/v1/log-sessions, #9806). Server keys
+   * only: a device's agent holds a server key, and no page asks for a
+   * device's logs.
+   */
+  AndroidAgentLogSessions = "android-agent-log-sessions",
 }
 
 /*
@@ -199,6 +207,8 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
     "infrastructure AI agent registration",
   [TelemetryIngestSurface.HostCollectorManagement]:
     "host collector management (OpAMP)",
+  [TelemetryIngestSurface.AndroidAgentLogSessions]:
+    "Android agent log sessions",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

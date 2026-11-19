@@ -6,6 +6,7 @@ import android.os.ParcelFileDescriptor
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.oneuptime.androidagent.agent.AgentRuntime
+import com.oneuptime.androidagent.collect.CpuUnavailable
 import com.oneuptime.androidagent.collect.DeviceSnapshot
 import com.oneuptime.androidagent.collect.SnapshotCollector
 import com.oneuptime.androidagent.config.KeystoreSecretCipher
@@ -81,6 +82,8 @@ class OnDeviceAgentTest {
             // What the docs say: CPU use and load are not readable by an app.
             assertTrue(!collector.capabilities.cpuUtilization)
             assertTrue(!collector.capabilities.loadAverage)
+            // Android's hardware properties give it to the device owner only, which the agent is not here.
+            assertEquals(CpuUnavailable.NOT_DEVICE_OWNER, collector.capabilities.cpuUnavailable)
         }
     }
 

@@ -24,6 +24,7 @@ const { spawn, spawnSync } = require("node:child_process");
 const {
   NGINX_DIRECTORY,
   ingressListenEnvironment,
+  primaryHttp2Environment,
   primaryServerNameEnvironment,
   readTemplate,
   readNginxConf,
@@ -160,7 +161,8 @@ function render(environment) {
  * representative of a real deployment. The listen directives are the ones
  * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
  * with, on a kernel with IPv6, and the primary server's name the one it
- * exports for HOST; an override names them to differ.
+ * exports for HOST; an override names them to differ. NGINX_HTTP2 is what the
+ * script exports for the setting (on unless an override says off).
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -201,6 +203,7 @@ function baseEnvironment(overrides = {}) {
     ...ingressListenEnvironment({ listenAddress }),
     ...primaryServerNameEnvironment(host),
     ...overrides,
+    ...primaryHttp2Environment(overrides.NGINX_HTTP2),
   };
 }
 

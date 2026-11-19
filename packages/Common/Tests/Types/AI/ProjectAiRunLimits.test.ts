@@ -1,10 +1,14 @@
 import Project from "../../../Models/DatabaseModels/Project";
 import {
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   MAX_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   MIN_AI_RUN_TIME_LIMIT_IN_MINUTES,
 } from "../../../Types/AI/AIAgentRunLimits";
 import { PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS } from "../../../Types/AI/ProjectAiDailyLimits";
 import ProjectAiRunLimits, {
+  PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
   PROJECT_AI_RUN_LIMIT_BOUNDS,
   PROJECT_AI_RUN_LIMIT_COLUMNS,
   PROJECT_AI_RUN_LIMIT_UPDATE_PERMISSIONS,
@@ -12,6 +16,7 @@ import ProjectAiRunLimits, {
   PROJECT_AI_RUN_MAX_TOKENS_COLUMN,
   PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN,
   PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
+  PROJECT_AI_RUN_TIME_LIMIT_COLUMNS,
   ProjectAiRunLimitColumn,
   ProjectAiRunLimitValues,
 } from "../../../Types/AI/ProjectAiRunLimits";
@@ -20,25 +25,37 @@ import Permission from "../../../Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * A project's own limits on each AI run (issue #6440): four opt-in columns
- * on Project - model calls, tool calls and tokens per run, and a time limit.
- * These pin that they are unset for every project (no stored value equals an
- * old fixed limit, since none was ever stored), how a stored value is read,
- * what a write may hold, and who may change them.
+ * A project's own limits on each AI run (issue #6440): opt-in columns on
+ * Project - model calls, tool calls and tokens per run, a time limit, and
+ * how long one command of a code task may run (Time Limit per Command,
+ * issue #6532). These pin that they are unset for every project (no stored
+ * value equals an old fixed limit, since none was ever stored), how a
+ * stored value is read, what a write may hold, and who may change them.
  */
 
 describe("the columns", () => {
-  test("are the four limits, in the card's order", () => {
+  test("are the four limits and the time limit per command, in the card's order", () => {
     expect(PROJECT_AI_RUN_LIMIT_COLUMNS).toEqual([
       "aiRunMaxModelCalls",
       "aiRunMaxToolCalls",
       "aiRunMaxTokens",
       "aiRunTimeLimitInMinutes",
+      "aiRunCommandTimeLimitInMinutes",
     ]);
     expect(PROJECT_AI_RUN_MAX_MODEL_CALLS_COLUMN).toBe("aiRunMaxModelCalls");
     expect(PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN).toBe("aiRunMaxToolCalls");
     expect(PROJECT_AI_RUN_MAX_TOKENS_COLUMN).toBe("aiRunMaxTokens");
     expect(PROJECT_AI_RUN_TIME_LIMIT_COLUMN).toBe("aiRunTimeLimitInMinutes");
+    expect(PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN).toBe(
+      "aiRunCommandTimeLimitInMinutes",
+    );
+  });
+
+  test("the two times are the run's and a command's: empty is their default", () => {
+    expect(PROJECT_AI_RUN_TIME_LIMIT_COLUMNS).toEqual([
+      "aiRunTimeLimitInMinutes",
+      "aiRunCommandTimeLimitInMinutes",
+    ]);
   });
 
   test("exist on Project as optional numbers: no project starts with a limit", () => {
@@ -64,6 +81,7 @@ describe("the columns", () => {
       maxToolCalls: null,
       maxTokens: null,
       timeLimitInMinutes: null,
+      commandTimeLimitInMinutes: null,
     });
   });
 
@@ -145,6 +163,7 @@ describe("ProjectAiRunLimits.getLimits and countSet", () => {
       aiRunMaxToolCalls: 200,
       aiRunMaxTokens: "3000000",
       aiRunTimeLimitInMinutes: 30,
+      aiRunCommandTimeLimitInMinutes: 25,
     });
 
     expect(limits).toEqual({
@@ -152,8 +171,17 @@ describe("ProjectAiRunLimits.getLimits and countSet", () => {
       maxToolCalls: 200,
       maxTokens: 3_000_000,
       timeLimitInMinutes: 30,
+      commandTimeLimitInMinutes: 25,
     });
-    expect(ProjectAiRunLimits.countSet(limits)).toBe(4);
+    expect(ProjectAiRunLimits.countSet(limits)).toBe(5);
+  });
+
+  test("a time limit per command alone is one set", () => {
+    expect(
+      ProjectAiRunLimits.countSet(
+        ProjectAiRunLimits.getLimits({ aiRunCommandTimeLimitInMinutes: 30 }),
+      ),
+    ).toBe(1);
   });
 
   test("no project, or one with nothing set, has none", () => {
@@ -162,6 +190,7 @@ describe("ProjectAiRunLimits.getLimits and countSet", () => {
       maxToolCalls: null,
       maxTokens: null,
       timeLimitInMinutes: null,
+      commandTimeLimitInMinutes: null,
     });
     expect(
       ProjectAiRunLimits.countSet(ProjectAiRunLimits.getLimits(null)),
@@ -200,6 +229,16 @@ describe("the bounds", () => {
     });
   });
 
+  test("a command's time limit runs from 1 minute to two hours, ten minutes unless set", () => {
+    expect(PROJECT_AI_RUN_LIMIT_BOUNDS.aiRunCommandTimeLimitInMinutes).toEqual({
+      min: MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+      max: MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+    });
+    expect(MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(1);
+    expect(MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(120);
+    expect(DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(10);
+  });
+
   test("tokens start at 1,000: fewer is not one model call", () => {
     expect(PROJECT_AI_RUN_LIMIT_BOUNDS.aiRunMaxTokens.min).toBe(1_000);
   });
@@ -211,6 +250,7 @@ describe("ProjectAiRunLimits.getWriteError", () => {
     aiRunMaxToolCalls: "The limit of tool calls per run",
     aiRunMaxTokens: "The limit of tokens per run",
     aiRunTimeLimitInMinutes: "The time limit per run",
+    aiRunCommandTimeLimitInMinutes: "The time limit per command",
   };
 
   test.each(
@@ -304,6 +344,14 @@ describe("ProjectAiRunLimits.getWriteError", () => {
       ProjectAiRunLimits.getWriteError(PROJECT_AI_RUN_MAX_TOKENS_COLUMN, 999),
     ).toBe(
       "The limit of tokens per run must be a whole number from 1,000 to 2,000,000,000. Leave it empty for no limit.",
+    );
+    expect(
+      ProjectAiRunLimits.getWriteError(
+        PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
+        121,
+      ),
+    ).toBe(
+      "The time limit per command must be a whole number from 1 to 120. Leave it empty for the default.",
     );
   });
 

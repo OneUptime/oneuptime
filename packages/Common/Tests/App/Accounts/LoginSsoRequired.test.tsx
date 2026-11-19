@@ -773,7 +773,8 @@ describe("the single sign-on page (/accounts/sso) while the server requires SSO"
    * The screenshot in #5193: "No SSO configuration found for the email:
    * <address>" above an empty field saying "Email is required." The page
    * gave way to a loader while it looked the address up, and the form came
-   * back without it.
+   * back without it. The message now names the address's domain, by which
+   * providers are found (#9824).
    */
   test("an address that finds no project's provider stays in the field, under the message that names it", async () => {
     signInMethodsAnswer = required([WHATABURGER], true);
@@ -791,7 +792,7 @@ describe("the single sign-on page (/accounts/sso) while the server requires SSO"
 
     expect(
       await screen.findByText(
-        english.sso.noConfigForEmail.replace("{{email}}", "bgssteeph@wbhq.com"),
+        english.sso.notSetUpForDomain.replace("{{domain}}", "wbhq.com"),
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId("email")).toHaveValue("bgssteeph@wbhq.com");

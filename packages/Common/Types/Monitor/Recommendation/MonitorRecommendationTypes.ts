@@ -229,6 +229,22 @@ export interface MonitorRecommendationContext {
    */
   kubernetesProvider?: string | null | undefined;
   /*
+   * A host's OS type as the Host keeps it (HostOperatingSystem): `android`
+   * for a device the Android agent reports. An Android device is offered
+   * the templates only a device has (unplugged, low battery, overheating,
+   * restart loop, storage nearly full) and the server ones it answers, and
+   * not those reading what it never sends (swap, inodes, load, processes,
+   * systemd units), which would never fire (#9802). Any other value, or none,
+   * is offered the server set, as every host was before.
+   */
+  hostOsType?: string | null | undefined;
+  /*
+   * Whether the host has reported CPU use (its `latestCpuPercent`). Most
+   * Android devices cannot (Android 8 and later keep it from apps), so an
+   * Android device is offered a CPU template only once it has reported one.
+   */
+  hostReportsCpu?: boolean | null | undefined;
+  /*
    * Whether a probe collects this cloud. Some series only a native read of an API sends, and on an
    * agent's cloud a template over one would never fire. Anything but true withholds them.
    */

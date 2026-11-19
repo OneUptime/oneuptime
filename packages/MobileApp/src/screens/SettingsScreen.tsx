@@ -32,7 +32,7 @@ import { useCriticalAlertSoundChoice } from "../hooks/useCriticalAlertSoundChoic
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import type { FoldSplit } from "../layout/foldSplit";
 import {

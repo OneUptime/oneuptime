@@ -2,6 +2,10 @@ import {
   ALL_HOST_FEATURES,
   HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES,
   HOST_COLLECTOR_FILESYSTEM_EXCLUSION,
+  JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE,
+  JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE,
+  JOURNALD_SYSTEMD_RESULT_ATTRIBUTE,
+  JOURNALD_SYSTEMD_UNIT_ATTRIBUTE,
   HostCollectorHostFeatures,
   UNKNOWN_HOST_FEATURES,
   WINDOWS_SECURITY_TOOL_CHANNELS,
@@ -20,6 +24,8 @@ import HostCollectorConfigPolicy, {
   HostCollectorConfigCheckResult,
 } from "../../../Server/Utils/HostCollector/HostCollectorConfigPolicy";
 import yaml from "js-yaml";
+import fs from "fs";
+import path from "path";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -251,6 +257,194 @@ describe("the file systems every default leaves out", () => {
         },
       },
     });
+  });
+});
+
+/*
+ * THE JOURNAL, FILED UNDER ITS UNITS (#9748).
+ *
+ * journalctl hands each entry over as a map of its fields, and the journal
+ * arrived whole: every row of a host's Logs was JSON, no row said which unit
+ * wrote it, and a failed unit's page could not say why it failed. The
+ * default's journald receiver now sends each entry as its message, at its
+ * level, filed under the unit it is about, with systemd's own result and
+ * exit status where systemd said them - and nothing else of the entry.
+ *
+ * What the operators DO is proven on the collector itself: CI validates the
+ * default (Tests/Ops/validate-collector-configs.sh, over the file below),
+ * and Tests/Ops/host-collector-journal-behaviour.sh feeds them journal
+ * entries and reads what comes out. Here: what they are.
+ */
+interface StanzaOperator {
+  type: string;
+  if?: string;
+  from?: string;
+  to?: string;
+  parse_from?: string;
+  preset?: string;
+  overwrite_text?: boolean;
+  mapping?: Record<string, string>;
+  fields?: Array<string>;
+  on_error?: string;
+}
+
+function journaldReceiver(): Record<string, unknown> {
+  return parse(
+    getHostCollectorDefaultConfig(HostCollectorOsType.Linux, ALL_HOST_FEATURES),
+  ).receivers["journald"] as Record<string, unknown>;
+}
+
+function journaldOperators(): Array<StanzaOperator> {
+  return journaldReceiver()["operators"] as Array<StanzaOperator>;
+}
+
+function moveTo(attribute: string): StanzaOperator | undefined {
+  return journaldOperators().find((operator: StanzaOperator): boolean => {
+    return (
+      operator.type === "move" && operator.to === `attributes["${attribute}"]`
+    );
+  });
+}
+
+describe("the journal on a Linux host", () => {
+  test("reads info and above, a line with a control character as text, and never a line past journalctl's 4096 bytes", () => {
+    const receiver: Record<string, unknown> = journaldReceiver();
+
+    expect(receiver["priority"]).toBe("info");
+    expect(receiver["convert_message_bytes"]).toBe(true);
+    // `all` would send lines of any length: left at its default, false.
+    expect(receiver["all"]).toBeUndefined();
+  });
+
+  test("files each line under the unit it is about: systemd's own lines under the unit they name", () => {
+    const operators: Array<StanzaOperator> = journaldOperators();
+    const fromSystemd: StanzaOperator | undefined = operators.find(
+      (operator: StanzaOperator): boolean => {
+        return operator.from === "body.UNIT";
+      },
+    );
+    const fromWriter: StanzaOperator | undefined = operators.find(
+      (operator: StanzaOperator): boolean => {
+        return operator.from === "body._SYSTEMD_UNIT";
+      },
+    );
+
+    expect(JOURNALD_SYSTEMD_UNIT_ATTRIBUTE).toBe("systemd.unit.name");
+    // Only PID 1 names another unit: any process can write a UNIT field.
+    expect(fromSystemd?.if).toBe('body._PID == "1" and body.UNIT != nil');
+    expect(fromSystemd?.to).toBe('attributes["systemd.unit.name"]');
+    // Else the unit that wrote it, and never over the unit systemd named.
+    expect(fromWriter?.if).toBe(
+      'attributes["systemd.unit.name"] == nil and body._SYSTEMD_UNIT != nil',
+    );
+    expect(operators.indexOf(fromSystemd!)).toBeLessThan(
+      operators.indexOf(fromWriter!),
+    );
+  });
+
+  test("keeps why a unit failed, as systemd says it, from systemd's own lines only", () => {
+    for (const [field, attribute] of [
+      ["UNIT_RESULT", JOURNALD_SYSTEMD_RESULT_ATTRIBUTE],
+      ["EXIT_CODE", JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE],
+      ["EXIT_STATUS", JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE],
+    ] as Array<[string, string]>) {
+      const operator: StanzaOperator | undefined = moveTo(attribute);
+
+      expect(operator?.from).toBe(`body.${field}`);
+      expect(operator?.if).toBe(`body._PID == "1" and body.${field} != nil`);
+    }
+
+    expect([
+      JOURNALD_SYSTEMD_RESULT_ATTRIBUTE,
+      JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE,
+      JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE,
+    ]).toEqual([
+      "systemd.unit.result",
+      "systemd.unit.exit_code",
+      "systemd.unit.exit_status",
+    ]);
+  });
+
+  test("says who wrote it, after every rule that reads its PID", () => {
+    const operators: Array<StanzaOperator> = journaldOperators();
+    const pid: StanzaOperator | undefined = operators.find(
+      (operator: StanzaOperator): boolean => {
+        return operator.to === 'attributes["process.pid"]';
+      },
+    );
+
+    expect(moveTo("syslog.identifier")?.from).toBe("body.SYSLOG_IDENTIFIER");
+    expect(pid?.from).toBe("body._PID");
+
+    for (const operator of operators) {
+      if (operator !== pid && (operator.if || "").includes("body._PID")) {
+        expect(operators.indexOf(operator)).toBeLessThan(
+          operators.indexOf(pid!),
+        );
+      }
+    }
+  });
+
+  test("sets each line's severity from its syslog priority, every level of it", () => {
+    const severity: StanzaOperator | undefined = journaldOperators().find(
+      (operator: StanzaOperator): boolean => {
+        return operator.type === "severity_parser";
+      },
+    );
+
+    expect(severity?.parse_from).toBe("body.PRIORITY");
+    // Only the journal's own levels, never a guess from a word.
+    expect(severity?.preset).toBe("none");
+    expect(severity?.overwrite_text).toBe(true);
+    // syslog's eight levels, as OpenTelemetry's logs data model maps them.
+    expect(severity?.mapping).toEqual({
+      fatal: "0",
+      error3: "1",
+      error2: "2",
+      error: "3",
+      warn: "4",
+      info2: "5",
+      info: "6",
+      debug: "7",
+    });
+  });
+
+  test("sends the message as the line, and nothing else of the entry: no command line, no user, no cursor", () => {
+    const operators: Array<StanzaOperator> = journaldOperators();
+    const last: Array<StanzaOperator> = operators.slice(-2);
+
+    expect(last[0]).toEqual({ type: "retain", fields: ["body.MESSAGE"] });
+    expect(last[1]).toEqual({
+      type: "move",
+      from: "body.MESSAGE",
+      to: "body",
+      on_error: "send_quiet",
+    });
+
+    // Nothing moves a field that could hold a secret out of the body first.
+    for (const operator of operators) {
+      expect(operator.from || "").not.toMatch(
+        /_CMDLINE|_EXE|_COMM|_UID|_GID|_CAP_EFFECTIVE|__CURSOR|_BOOT_ID|_MACHINE_ID/,
+      );
+    }
+  });
+
+  test("the file CI runs the collector over is this default, unchanged", () => {
+    const fixture: string = path.join(
+      __dirname,
+      "../../../../../Tests/Ops/HostCollectorDefaults/linux.yaml",
+    );
+    const current: string = getHostCollectorDefaultConfig(
+      HostCollectorOsType.Linux,
+      ALL_HOST_FEATURES,
+    );
+
+    // UPDATE_HOST_COLLECTOR_DEFAULTS=true writes it after a change to the default.
+    if (process.env["UPDATE_HOST_COLLECTOR_DEFAULTS"] === "true") {
+      fs.writeFileSync(fixture, current);
+    }
+
+    expect(fs.readFileSync(fixture, "utf8")).toBe(current);
   });
 });
 

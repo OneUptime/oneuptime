@@ -29,6 +29,7 @@ import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../../Types/HeldPermissions";
 import Typeof from "../../../../Types/Typeof";
+import PendingInviteeProfiles from "../../../Utils/TeamMember/PendingInviteeProfiles";
 
 export default class QueryPermission {
   /**
@@ -509,6 +510,16 @@ export default class QueryPermission {
             `Column ${relatedColumn} not found on ${relatedModel.singularName}`,
           );
         }
+
+        /*
+         * A person's account dates say when they were last active: never
+         * a filter through a relation (#9823, PendingInviteeProfiles).
+         */
+        PendingInviteeProfiles.assertMayReadThroughRelation({
+          relatedModel: relatedModel,
+          column: relatedColumn,
+          props: data.props,
+        });
 
         if (
           !excludedColumnNames.includes(relatedColumn) &&

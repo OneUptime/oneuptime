@@ -8,7 +8,10 @@ import Timezone from "Common/Types/Timezone";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
+  DataSecurityDropMetricImpact,
+  DataSecurityDropMetricResult,
   DataSecurityExplainResult,
+  DataSecurityMetricUser,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
@@ -194,6 +197,65 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.scrubFinding(findingId.toString()),
     )) as unknown as DataSecurityScrubResult;
+  }
+
+  /*
+   * What dropping the metrics whose names hold a finding's data would do
+   * (#9757): asked before the drop, which it never makes.
+   */
+  public static async getDropMetricImpact(
+    findingId: ObjectID,
+  ): Promise<DataSecurityDropMetricImpact> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(findingId.toString()),
+    );
+    const usersOf: (
+      value: JSONValue | undefined,
+    ) => Array<DataSecurityMetricUser> = (
+      value: JSONValue | undefined,
+    ): Array<DataSecurityMetricUser> => {
+      return Array.isArray(value)
+        ? (value as Array<unknown>).filter(
+            (user: unknown): user is DataSecurityMetricUser => {
+              const entry: JSONObject = (user || {}) as JSONObject;
+
+              return (
+                typeof entry["id"] === "string" &&
+                ObjectID.isValidUUID(entry["id"]) &&
+                typeof entry["name"] === "string"
+              );
+            },
+          )
+        : [];
+    };
+
+    return {
+      ...(answer as unknown as DataSecurityDropMetricImpact),
+      isAvailable: answer["isAvailable"] === true,
+      metricsMatched:
+        typeof answer["metricsMatched"] === "number"
+          ? (answer["metricsMatched"] as number)
+          : 0,
+      isMetricsMatchedCapped: answer["isMetricsMatchedCapped"] === true,
+      metricsCounted: answer["metricsCounted"] === true,
+      monitors: usersOf(answer["monitors"]),
+      dashboards: usersOf(answer["dashboards"]),
+      monitorsChecked: answer["monitorsChecked"] === true,
+      dashboardsChecked: answer["dashboardsChecked"] === true,
+    };
+  }
+
+  /*
+   * The drop itself: the service's new data points of those metrics are
+   * dropped at ingest from now on, and lost for good.
+   */
+  public static async dropMetric(
+    findingId: ObjectID,
+  ): Promise<DataSecurityDropMetricResult> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.dropMetric(findingId.toString()),
+      { confirmDataLoss: true },
+    )) as unknown as DataSecurityDropMetricResult;
   }
 
   // The newest records a telemetry finding's data was seen in, read now.

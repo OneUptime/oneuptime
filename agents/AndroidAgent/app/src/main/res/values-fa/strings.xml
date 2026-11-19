@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The agent's words in Persian: every string of res/values/strings.xml, in the Dashboard's terms (Locales/fa.json). -->
+<resources>
+
+    <string name="notification_channel_name">وضعیت عامل</string>
+    <string name="notification_channel_description">نشان می‌دهد که آیا این دستگاه به OneUptime گزارش می‌دهد یا نه.</string>
+
+    <string name="notification_requests_channel_name">درخواست‌های OneUptime</string>
+    <string name="notification_requests_channel_description">درخواست OneUptime برای خواندن لاگ‌های این دستگاه به‌منظور عیب‌یابی.</string>
+    <string name="notification_request_title">درخواست OneUptime برای لاگ‌های این دستگاه</string>
+
+    <string name="status_not_set_up">هنوز راه‌اندازی نشده</string>
+    <string name="status_not_set_up_detail">کلید دریافت داده را وارد کنید، یا آن را از سرویس مدیریت دستگاه خود با نام oneuptime_token بفرستید.</string>
+    <string name="status_unreachable">دسترسی به OneUptime ممکن نیست</string>
+    <string name="status_unreachable_detail">شبکهٔ دستگاه را بررسی کنید. عامل خودش دوباره تلاش می‌کند.</string>
+    <string name="status_key_refused">کلید دریافت داده از سوی OneUptime رد شد</string>
+    <string name="status_key_refused_detail">از یک کلید دریافت داده سرور استفاده کنید که روشن باشد و منقضی نشده باشد (HTTP %1$d).</string>
+    <string name="status_not_found">در این نشانی OneUptime پیدا نشد</string>
+    <string name="status_not_found_detail">نشانی OneUptime را بررسی کنید: %1$s.</string>
+    <string name="status_server_error">در حال حاضر OneUptime تله‌متری نمی‌پذیرد</string>
+    <string name="status_server_error_detail">از OneUptime پاسخ %1$d دریافت شد. عامل خودش دوباره تلاش می‌کند.</string>
+    <string name="status_server_error_unknown_detail">از OneUptime پاسخ خطا دریافت شد. عامل خودش دوباره تلاش می‌کند.</string>
+    <string name="status_sending_failed">ارسال ناموفق بود</string>
+    <string name="status_retrying">عامل خودش دوباره تلاش می‌کند.</string>
+    <string name="status_kept">تله‌متری تا زمانی که بتوان آن را فرستاد، روی دستگاه نگه داشته می‌شود.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">در حال گزارش به OneUptime</string>
+    <string name="status_as_device">با نام %1$s</string>
+    <string name="status_starting">در حال شروع</string>
+    <string name="status_starting_detail">با نام %1$s. نخستین گزارش ظرف یک دقیقه ارسال می‌شود.</string>
+
+    <string name="address_empty">نشانی OneUptime خود را وارد کنید.</string>
+    <string name="address_not_a_url">نشانی OneUptime یک نشانی وب نیست.</string>
+    <string name="address_not_https">نشانی OneUptime باید با https://‎ شروع شود تا کلید دریافت داده هرگز بدون رمزگذاری فرستاده نشود.</string>
+    <string name="address_query_or_fragment">بخشی را که با ? یا # شروع می‌شود از نشانی OneUptime حذف کنید.</string>
+    <string name="address_credentials">نام کاربری و رمز عبور را از نشانی OneUptime حذف کنید.</string>
+
+    <string name="setup_subtitle">سلامت، راه‌اندازی‌های مجدد، برنامه‌ها و لاگ‌های این دستگاه را به OneUptime گزارش می‌دهد.</string>
+    <string name="setup_last_report">آخرین گزارش %1$s ارسال شد</string>
+    <string name="setup_no_report_yet">هنوز چیزی ارسال نشده</string>
+    <string name="setup_waiting">%1$s در انتظار ارسال</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">تنظیم %1$s: سرویس مدیریت دستگاه شما ‎%2$s‎ را همان‌طور که بود و بدون پر کردن آن فرستاد.</string>
+    <string name="setup_problem_invalid">تنظیم %1$s: مقدار ‎%2$s‎ قابل استفاده نیست، پس مقدار پیش‌فرض اعمال می‌شود.</string>
+    <string name="setup_connection">اتصال</string>
+    <string name="setup_managed_notice">تنظیماتی که قفل‌شده نشان داده می‌شوند، از سوی سرویس مدیریت دستگاه سازمان شما تعیین می‌شوند.</string>
+    <string name="setup_url_label">نشانی OneUptime</string>
+    <string name="setup_url_help">فقط اگر OneUptime را خودتان میزبانی می‌کنید، آن را تغییر دهید.</string>
+    <string name="setup_token_label">کلید دریافت داده</string>
+    <string name="setup_token_hint">یک کلید دریافت داده سرور بچسبانید</string>
+    <string name="setup_token_stored_hint">ذخیره شد. برای جایگزینی، کلید جدیدی بچسبانید.</string>
+    <string name="setup_token_help">در OneUptime: تنظیمات پروژه > تله‌متری و APM > کلیدهای دریافت داده. از کلید سرور استفاده کنید.</string>
+    <string name="setup_token_unreadable">کلید ذخیره‌شده دیگر روی این دستگاه خوانده نمی‌شود. دوباره آن را بچسبانید.</string>
+    <string name="setup_device_name_label">نام دستگاه</string>
+    <string name="setup_device_name_help">نامی که این دستگاه با آن در میزبان‌ها و موجودی فهرست می‌شود.</string>
+    <string name="setup_set_by_organization">تعیین‌شده توسط سازمان شما</string>
+    <string name="setup_save">ذخیره و اتصال</string>
+    <string name="setup_saved">ذخیره شد. عامل اکنون یک گزارش می‌فرستد.</string>
+    <string name="setup_token_required">کلید دریافت داده را بچسبانید.</string>
+    <string name="setup_save_failed">این دستگاه نتوانست کلید را به‌صورت امن ذخیره کند: %1$s</string>
+    <string name="setup_readings">آنچه این دستگاه اجازه می‌دهد عامل بخواند</string>
+    <string name="setup_reading_yes">بله</string>
+    <string name="setup_reading_cpu">مصرف CPU</string>
+    <string name="setup_reading_cpu_device_owner">بله، به‌عنوان مالک دستگاه</string>
+    <string name="setup_reading_cpu_not_device_owner">فقط وقتی عامل مالک دستگاه باشد</string>
+    <string name="setup_reading_cpu_not_supported">در این دستگاه ممکن نیست: Android در اینجا مصرف CPU را گزارش نمی‌کند</string>
+    <string name="setup_reading_memory">حافظه، ذخیره‌سازی و شبکه</string>
+    <string name="setup_reading_battery">باتری</string>
+    <string name="setup_reading_no_battery">بدون باتری</string>
+    <string name="setup_reading_thermal">دما و محدودسازی حرارتی</string>
+    <string name="setup_reading_thermal_unavailable">از Android 10 به بعد</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">ردیابی پشتهٔ کرش‌ها و دلایل راه‌اندازی مجدد</string>
+    <string name="setup_reading_crash_details_yes">بله، برای همهٔ برنامه‌ها</string>
+    <string name="setup_reading_crash_details_not_granted">خاموش: مجوز READ_LOGS داده نشده است</string>
+    <string name="setup_reading_crash_details_no_usage_access">خاموش: دسترسی به داده‌های مصرف مجاز نشده است</string>
+    <string name="setup_reading_apps">برنامه‌های نصب‌شده</string>
+    <string name="setup_reading_off_by_manager">خاموش: سرویس مدیریت دستگاه شما آن را خاموش کرده است</string>
+    <string name="setup_reading_unknown">پس از نخستین گزارش</string>
+    <string name="setup_grants">برای ارسال لاگ‌ها و ردیابی پشتهٔ کرش‌های برنامه‌های دیگر، این مجوزها را یک بار با adb یا ADB راه دور سرویس مدیریت دستگاه خود اعطا کنید:</string>
+    <string name="setup_usage_access">مجاز کردن دسترسی به داده‌های مصرف</string>
+
+    <string name="logcat_not_started">شروع‌نشده</string>
+    <string name="logcat_not_granted">خاموش: مجوز READ_LOGS داده نشده است</string>
+    <string name="logcat_crashes_and_anrs">کرش‌ها و ANRهای همهٔ برنامه‌ها</string>
+    <string name="logcat_full">لاگ‌ها، کرش‌ها و ANRهای همهٔ برنامه‌ها</string>
+
+    <string name="log_session_title">لاگ‌ها برای عیب‌یابی</string>
+    <string name="log_session_request_by">لاگ‌های همهٔ برنامه‌های این دستگاه به مدت %2$s و از سطح %3$s به بالا، از سوی %1$s در OneUptime درخواست شده است.</string>
+    <string name="log_session_request">لاگ‌های همهٔ برنامه‌های این دستگاه به مدت %1$s و از سطح %2$s به بالا، از سوی OneUptime درخواست شده است.</string>
+    <string name="log_session_android_prompt">سپس Android از شما می‌پرسد که آیا اجازهٔ دسترسی به همهٔ گزارش‌های دستگاه را می‌دهید. آنجا هم اجازه دهید.</string>
+    <string name="log_session_allow">اجازه دادن</string>
+    <string name="log_session_decline">رد کردن</string>
+    <string name="log_session_stop">توقف ارسال</string>
+    <string name="log_session_starting">در پنجرهٔ Android، اجازهٔ دسترسی به همهٔ گزارش‌های دستگاه را بدهید.</string>
+    <string name="log_session_collecting_until">در حال ارسال لاگ‌های همهٔ برنامه‌ها تا %1$s.</string>
+    <string name="log_session_collecting">در حال ارسال لاگ‌های همهٔ برنامه‌ها.</string>
+    <string name="log_session_declined_here">رد شد. دیگر چیزی ارسال نمی‌شود.</string>
+    <string name="log_session_declined_by_android">دسترسی به همهٔ گزارش‌های دستگاه داده نشد، پس دیگر چیزی ارسال نمی‌شود.</string>
+    <string name="log_session_no_answer">کسی به پنجرهٔ Android پاسخ نداد، پس دیگر چیزی ارسال نمی‌شود.</string>
+    <string name="log_session_time_up">انجام شد: لاگ‌های همهٔ برنامه‌ها در مدت درخواست‌شده ارسال شد.</string>
+    <string name="log_session_stopped">متوقف شد. دیگر چیزی ارسال نمی‌شود.</string>
+    <string name="log_session_agent_restarted">با راه‌اندازی مجدد عامل پایان یافت.</string>
+    <string name="log_session_logcat_stopped">پایان یافت: خواندن Logcat متوقف شد.</string>
+    <string name="log_session_logcat_disabled">این دستگاه نمی‌تواند آن‌ها را بفرستد: سرویس مدیریت دستگاه شما Logcat را خاموش کرده است.</string>
+    <string name="log_session_not_granted">این دستگاه نمی‌تواند آن‌ها را بفرستد: مجوز READ_LOGS داده نشده است.</string>
+    <string name="log_session_expired">کسی به‌موقع اجازه نداد.</string>
+    <string name="log_session_cancelled">در OneUptime لغو شد.</string>
+    <string name="log_session_ended">پایان یافت.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d دقیقه</item>
+        <item quantity="other">%d دقیقه</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d ساعت</item>
+        <item quantity="other">%d ساعت</item>
+    </plurals>
+
+    <string name="device_admin_description">به عامل اجازه می‌دهد به‌عنوان مالک دستگاه، مصرف CPU این دستگاه را بخواند. هرگز دستگاه را قفل، پاک یا محدود نمی‌کند.</string>
+
+    <string name="restriction_url_title">نشانی OneUptime</string>
+    <string name="restriction_url_description">جایی که تله‌متری به آن فرستاده می‌شود. اگر OneUptime را خودتان میزبانی نمی‌کنید، آن را همان https://oneuptime.com نگه دارید.</string>
+    <string name="restriction_token_title">کلید دریافت داده</string>
+    <string name="restriction_token_description">یک کلید دریافت داده سرور از تنظیمات پروژه > تله‌متری و APM > کلیدهای دریافت داده.</string>
+    <string name="restriction_device_name_title">نام دستگاه</string>
+    <string name="restriction_device_name_description">نام دستگاه در OneUptime، برای مثال ‎${esper.deviceName}‎. همین نام را در host.name برنامهٔ خود به کار ببرید تا هر دو به‌صورت یک دستگاه نشان داده شوند.</string>
+    <string name="restriction_device_serial_title">شماره سریال</string>
+    <string name="restriction_device_serial_description">شماره سریال دستگاه، برای مثال ‎${esper.serialNumber}‎. خود Android آن را در اختیار برنامه‌ها نمی‌گذارد.</string>
+    <string name="restriction_device_type_title">نوع دستگاه</string>
+    <string name="restriction_device_type_description">اینکه دستگاه چیست: کیوسک، پایانهٔ POS، دستگاه دستی، تابلوی دیجیتال.</string>
+    <string name="restriction_device_location_title">مکان</string>
+    <string name="restriction_device_location_description">جایی که دستگاه قرار دارد، برای مثال شمارهٔ فروشگاه.</string>
+    <string name="restriction_labels_title">برچسب‌ها</string>
+    <string name="restriction_labels_description">برچسب‌های دستگاه در OneUptime، به‌صورت جفت‌های نام=مقدار که با ویرگول از هم جدا شده‌اند: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">فاصلهٔ جمع‌آوری (ثانیه)</string>
+    <string name="restriction_interval_description">هر چند وقت یک بار عامل گزارش می‌دهد، از ۳۰ تا ۶۰۰ ثانیه. پیش‌فرض ۶۰ است.</string>
+    <string name="restriction_logcat_enabled_title">ارسال Logcat</string>
+    <string name="restriction_logcat_enabled_description">ارسال کرش‌ها، ANRها و لاگ‌های برنامه‌های دیگر، و مجاز کردن نشست‌های لاگی که OneUptime درخواست می‌کند. به مجوز READ_LOGS نیاز دارد که با adb اعطا می‌شود.</string>
+    <string name="restriction_logcat_level_title">پایین‌ترین سطح Logcat</string>
+    <string name="restriction_logcat_level_description">کمترین شدت خطوط Logcat برای ارسال، در Android 12 و نسخه‌های قدیمی‌تر. پیش‌فرض هشدار است.</string>
+    <string name="restriction_apps_enabled_title">ارسال برنامه‌های نصب‌شده</string>
+    <string name="restriction_apps_enabled_description">ارسال برنامه‌های نصب‌شده و نسخه‌هایشان روزی یک بار، و ارسال هر نصب، به‌روزرسانی و حذف.</string>
+    <string name="logcat_level_verbose">پرجزئیات</string>
+    <string name="logcat_level_debug">اشکال‌زدایی</string>
+    <string name="logcat_level_info">اطلاعات</string>
+    <string name="logcat_level_warn">هشدار</string>
+    <string name="logcat_level_error">خطا</string>
+    <string name="logcat_level_fatal">مهلک</string>
+</resources>

@@ -2137,6 +2137,8 @@ function mobileAppStarts(): MobileAppStarts {
 const MOBILE_SESSIONS: MobileSessions = {
   sessions: 200,
   spans: 4000,
+  // An app on an SDK that names no install (#9716): the line under the share is its sessions'.
+  installs: 0,
   failed: false,
 };
 
@@ -2145,9 +2147,16 @@ const MOBILE_FAULTS: MobileFaults = {
     total: 3,
     series: points([T0, 2], [T1, 1]),
     sessions: 2,
+    installs: 0,
     failed: false,
   },
-  anrs: { total: 1, series: points([T1, 1]), sessions: 1, failed: false },
+  anrs: {
+    total: 1,
+    series: points([T1, 1]),
+    sessions: 1,
+    installs: 0,
+    failed: false,
+  },
 };
 
 const MOBILE_FRAMES: MobileFrames = {
@@ -2286,6 +2295,30 @@ describe("RUM overview: a mobile app's tiles (#9588)", () => {
     expectTile("Cold start (p95)", "2.30 s", "median 1.10 s");
     expectTile("Frozen frames", "3", "52 slow frames");
     expectTile("Error rate", "2.0%", "912 errored");
+  });
+
+  /*
+   * #9716: an app that names its installs (OpenTelemetry Android's
+   * app.installation.id) reads its crash-free installs under the
+   * sessions' share.
+   */
+  test("an app that names its installs reads its crash-free installs under the sessions' share", async () => {
+    arrangeMobile({
+      sessions: Promise.resolve({ ...MOBILE_SESSIONS, installs: 80 }),
+      faults: Promise.resolve({
+        ...MOBILE_FAULTS,
+        crashes: { ...MOBILE_FAULTS.crashes, installs: 2 },
+      }),
+    });
+    await renderMobilePage();
+
+    expectTile(
+      "Crash-free sessions",
+      "99.00%",
+      "97.50% of installs crash-free",
+    );
+    // The sessions a crash ended still read on the Crashes tile.
+    expectTile("Crashes", "3", "in 2 sessions");
   });
 
   test("no browser tile is drawn", async () => {
@@ -2488,7 +2521,7 @@ describe("RUM overview: a mobile app's charts and cards", () => {
 });
 
 describe("RUM overview: a mobile app's tiles link where the number is read", () => {
-  test("crashes open the app's exceptions, ANRs only the type ANR", async () => {
+  test("crashes open the app's exceptions, ANRs only the types ANR and Hang", async () => {
     arrangeMobile();
     await renderMobilePage();
 
@@ -2500,7 +2533,7 @@ describe("RUM overview: a mobile app's tiles link where the number is read", () 
     );
     expect(tileHref("Crash-free sessions")).toBe(tileHref("Crashes"));
     expect(tileHref("ANRs")).toContain(
-      `[["rumApplicationId","${MODEL_ID}"],["exceptionType","ANR"]]`,
+      `[["rumApplicationId","${MODEL_ID}"],["exceptionType","ANR"],["exceptionType","Hang"]]`,
     );
   });
 
@@ -2648,7 +2681,12 @@ describe("RUM overview: a mobile app's empty and failed reads", () => {
 
   test("a failed read could not load on its tiles, and the others still draw", async () => {
     arrangeMobile({
-      sessions: Promise.resolve({ sessions: 0, spans: 0, failed: true }),
+      sessions: Promise.resolve({
+        sessions: 0,
+        spans: 0,
+        installs: null,
+        failed: true,
+      }),
     });
     await renderMobilePage();
 
@@ -2680,7 +2718,12 @@ describe("RUM overview: a mobile app's empty and failed reads", () => {
 
   test("spans that name no session say so, and open the setup guide", async () => {
     arrangeMobile({
-      sessions: Promise.resolve({ sessions: 0, spans: 512, failed: false }),
+      sessions: Promise.resolve({
+        sessions: 0,
+        spans: 512,
+        installs: 0,
+        failed: false,
+      }),
     });
     await renderMobilePage();
 

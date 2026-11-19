@@ -76,4 +76,10 @@
         <item name="android:paddingEnd">20dp</item>
         <item name="android:stateListAnimator">@null</item>
     </style>
+
+    <!-- The lesser action beside the main one. -->
+    <style name="AgentButton.Outline">
+        <item name="android:background">@drawable/bg_button_outline</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
 </resources>

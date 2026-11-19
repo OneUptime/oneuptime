@@ -6,6 +6,7 @@ import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/Databas
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -105,6 +106,12 @@ export class Service extends ProjectReferencesService<Model> {
         props: {
           isRoot: true,
         },
+      });
+
+      // Someone only invited is named as the project knows them (#9823).
+      await PendingInviteeProfiles.nameInProject({
+        users: [user],
+        projectId: projectId,
       });
 
       if (!user || !user.name) {

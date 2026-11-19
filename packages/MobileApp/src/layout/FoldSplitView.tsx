@@ -12,7 +12,7 @@ import {
   useWindowLayout,
   type PaneLayout,
   type ResolvedPaneLayout,
-} from "./WindowLayout";
+} from "./WindowLayoutProvider";
 import { READABLE_CONTENT_WIDTH, type WindowLayout } from "./windowLayout";
 import { getFoldSplit, type FoldSplit } from "./foldSplit";
 

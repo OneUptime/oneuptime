@@ -126,7 +126,7 @@ Dens regler, dens ejere, dens feed og dens første tilstand sker stadig i begge 
 - **Skift tilstand til**, i menuen **⋯** ved siden af dem, flytter den til en af dine egne tilstande, som "Under undersøgelse".
 - **Erklær hændelse** åbner en ny hændelse, udfyldt på forhånd fra advarslen, når det viser sig, at problemet rammer brugerne. Se [Tilknyttede advarsler](/docs/incidents/linked-alerts).
 
-Et skift til en anden tilstand beder dig bekræfte, med en valgfri privat note foldet sammen under **Tilføj en privat note**. Hvad hver tilstand gør, står på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities).
+Et skift til en anden tilstand beder dig bekræfte, med en valgfri privat note foldet sammen under **Tilføj en privat note**. Når du løser den fra dens hoved, er **Tilføj grundårsagen** også foldet sammen: hvorfor den skete, som bliver advarslens grundårsag, og som OneUptime AI's undersøgelse af den holdes op mod. Hvad hver tilstand gør, står på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities).
 
 Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, udfylder dens sider **Grundårsag** og **Afhjælpning** og tilføjer **Ejere**. Menuen **Handlinger** i **Advarselsfeed** kører også en runbook med **Kør runbook** eller tilkalder flere personer med **Udfør vagtpolitik**.
 

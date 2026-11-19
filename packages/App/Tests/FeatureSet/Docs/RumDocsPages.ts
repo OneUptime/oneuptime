@@ -227,6 +227,22 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     // A row's More menu, which is a symbol in every language.
     [RUM_APPLICATIONS]: ["⋯"],
     /*
+     * An iOS hang's exception type, as Exceptions lists it, and the
+     * heading its stack trace draws over the binaries, as ingest writes
+     * it (MetricKitCallStack): text the reader finds as it is (#9712).
+     */
+    [MOBILE_SETUP]: ["Hang", "Binary Images"],
+    /*
+     * A mobile app's recommendations, as their cards name them: a card
+     * draws the template's name as written (#9711, #9716).
+     */
+    [ANDROID_SETUP]: [
+      "App Crash Rate",
+      "App ANR Rate",
+      "Device Stopped Reporting",
+      "App Stopped Reporting",
+    ],
+    /*
      * A status at the head of a paragraph: the code is the lead, in every
      * language (the 413 one is what OtlpIngestDocsClaims reads).
      */

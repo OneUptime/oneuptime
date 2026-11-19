@@ -8,6 +8,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import RetryAfter from "Common/Utils/RetryAfter";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   isRemediationRoundLive,
@@ -41,9 +42,12 @@ export const REMEDIATION_ROUND_BACKOFF_MAX_MS: number = 15 * 60 * 1000;
 const TOO_MANY_REQUESTS_STATUS: number = 429;
 
 /*
- * How long to wait after a read refused as too many (429): the seconds its
- * Retry-After names, held between a minute and the limit's window. Null for
- * any other answer, which is not waited on.
+ * How long to wait after a read refused as too many (429): its Retry-After,
+ * as RFC 9110 writes it (Common's RetryAfter) - whole seconds or an
+ * HTTP-date - held between a minute and the limit's window. A minute when
+ * it names no wait that can be read: Number() read "1e3" as a thousand
+ * seconds and "+120" as two minutes. Null for any other answer, which is
+ * not waited on.
  */
 export function getRemediationRoundBackoffMs(
   response: HTTPErrorResponse,
@@ -52,27 +56,11 @@ export function getRemediationRoundBackoffMs(
     return null;
   }
 
-  const headers: Record<string, unknown> = (response.headers || {}) as Record<
-    string,
-    unknown
-  >;
-  const retryAfterKey: string | undefined = Object.keys(headers).find(
-    (key: string): boolean => {
-      return key.toLowerCase() === "retry-after";
-    },
-  );
-  const retryAfterSeconds: number = retryAfterKey
-    ? Number(headers[retryAfterKey])
-    : NaN;
-
-  const waitMs: number =
-    Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-      ? retryAfterSeconds * 1000
-      : REMEDIATION_ROUND_BACKOFF_MIN_MS;
-
-  return Math.min(
-    REMEDIATION_ROUND_BACKOFF_MAX_MS,
-    Math.max(REMEDIATION_ROUND_BACKOFF_MIN_MS, waitMs),
+  return (
+    RetryAfter.msFromHeaders(response.headers, {
+      minMs: REMEDIATION_ROUND_BACKOFF_MIN_MS,
+      maxMs: REMEDIATION_ROUND_BACKOFF_MAX_MS,
+    }) ?? REMEDIATION_ROUND_BACKOFF_MIN_MS
   );
 }
 

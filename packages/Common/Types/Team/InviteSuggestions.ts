@@ -33,11 +33,49 @@ import { readProjectMemberSearchText } from "./ProjectMemberSearch";
  * Only someone whose address the reader may see is suggested: an
  * invitation is sent to an address. This module is the request and the
  * answer, read the same way on both sides. React-free and server-free.
+ *
+ * The Admin Dashboard's invitation forms suggest people too (#9826), by
+ * the same rule: there the reader is a master admin, who works in no
+ * project, so the project the page is about is named in the path of a
+ * route of its own (INVITE_SUGGESTIONS_IN_PROJECT_ROUTE).
  */
 
 // Where the invitation forms ask, under the API (the team member route's own path).
 export const INVITE_SUGGESTIONS_ROUTE: string =
   "/team-member/invite-suggestions";
+
+/*
+ * Where the Admin Dashboard's invitation forms ask (#9826): Invite New User
+ * on a project's Users, and a team's members. The Admin Dashboard works in
+ * no project, so the project is named in the path, never as the request's
+ * tenant, and only a master admin may ask. Who is suggested is the same
+ * rule as above.
+ */
+export const INVITE_SUGGESTIONS_IN_PROJECT_ROUTE: string =
+  "/team-member/invite-suggestions-in-project";
+
+// /team-member/invite-suggestions-in-project/<the project's id>.
+export function getInviteSuggestionsInProjectRoute(
+  projectId: ObjectID | string,
+): string {
+  return `${INVITE_SUGGESTIONS_IN_PROJECT_ROUTE}/${projectId.toString().trim()}`;
+}
+
+/*
+ * The project the Admin Dashboard's route asks about, as its path names it:
+ * a project's id, or refused before anything is read.
+ */
+export function readInviteSuggestionsProjectId(value: unknown): ObjectID {
+  const projectId: string = typeof value === "string" ? value.trim() : "";
+
+  if (!ObjectID.isValidUUID(projectId)) {
+    throw new BadDataException(
+      "The project to suggest people for must be a project's ID. Open the project from the Projects list, then try again.",
+    );
+  }
+
+  return new ObjectID(projectId);
+}
 
 // The most of the server's other accounts one answer suggests.
 export const INVITE_SUGGESTIONS_SERVER_LIMIT: number = 5;

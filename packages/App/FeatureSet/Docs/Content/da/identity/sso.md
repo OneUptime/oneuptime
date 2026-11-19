@@ -48,7 +48,7 @@ Hvert svar logger kun ind én gang. Sendes det igen, for eksempel når du går t
 Personer, der logger ind for første gang, kommer med i udbyderens **Teams**, og de afgør, hvad personen kan gøre: se [Roller og teams for SSO-brugere](#roller-og-teams-for-sso-brugere).
 
 > [!NOTE]
-> På OneUptime Cloud logger OneUptime ikke en person ind, første gang vedkommende logger ind i projektet med en af projektets SAML- eller OIDC-udbydere; i stedet sender OneUptime et link pr. e-mail. Personen åbner linket, bekræfter, at projektets single sign-on må logge vedkommende ind, og fortsætter med at logge ind. Linket gælder i 24 timer. Det sker én gang pr. projekt og igen, hvis personen forlader projektet og vender tilbage. Selvhostede installationer logger personer ind med det samme.
+> På OneUptime Cloud logger OneUptime ikke en person ind, første gang vedkommende logger ind i projektet med en af projektets SAML- eller OIDC-udbydere; i stedet sender OneUptime et link pr. e-mail. Personen åbner linket, bekræfter, at projektets single sign-on må logge vedkommende ind, og fortsætter med at logge ind. Linket gælder i 24 timer. Det sker én gang pr. projekt og igen, hvis personen forlader projektet og vender tilbage. Selvhostede installationer logger personer ind med det samme. På OneUptime Cloud får ethvert login, der ikke går direkte igennem, det samme svar, uanset om adressen har en konto: den, der endnu ikke har en konto, får også mailen, og kontoen oprettes, når personen bekræfter, mens en blokeret konto eller en OneUptime-administrator ikke får nogen mail. En selvhostet installation afviser i stedet de to med én besked.
 
 På OneUptime Cloud optager en person, der kommer med i projektet via SSO, en plads, præcis som en person, du inviterer. Hvis din plan har et fast antal pladser, og de alle er optaget, kan nye personer ikke komme med via SSO, før en plads bliver ledig.
 
@@ -292,6 +292,15 @@ En udbyder, hvor den ikke er registreret, viser sin egen fejlside, efter at noge
 OneUptime overtager ikke roller eller grupper fra din identitetsudbyder. Hvad en person kan gøre, afhænger af de teams, vedkommende er med i: en udbyder tilføjer nye personer til sine **Teams**, og du administrerer teams og deres tilladelser i OneUptime, som beskrevet i [Brugere, teams og tilladelser](/docs/permissions/index). Brug [SCIM](/docs/identity/scim) til at holde teammedlemskaber i takt med din identitetsudbyder. Hvert team, nogen bliver medlem af, når de logger ind, registreres på teamets side **Auditlogs** som en ændring foretaget af den person, der loggede ind.
 
 En udbyders teams afgør, hvad de personer, der logger ind med den, kan gøre, så en udbyder gemmes kun med teams, som den, der gemmer den, kunne invitere nogen til. Hver gemning kontrollerer dem igen: en udbyder, hvis teams giver mere adgang, end du har, kan kun ændres af en person, hvis adgang dækker dem, for eksempel en Projektejer. Udbydere, der blev gemt før denne kontrol, bliver ved med at logge personer ind i deres teams. Alle, der må redigere en udbyder, kan stadig slå den fra, så den kan stoppes med det samme.
+
+## Domæner
+
+**Log ind med SSO** beder om en e-mailadresse og tilbyder de udbydere, der betjener adressens domæne. Den læser ingen konto: en adresse med en konto i dit projekt og en adresse helt uden konto får det samme svar, så siden siger intet om, hvem der har en konto. For at blive tilbudt der angiver en udbyder de domæner, den betjener:
+
+1. Tilføj dit domæne under **Projektindstillinger** > **Avanceret** > **Domæner**, klik på **Bekræft domæne** i dets række, og tilføj den viste TXT-post til domænets DNS. Så snart posten er fundet, er domænet bekræftet.
+2. Rediger udbyderen, og vælg domænet under **Domæner** i trinnet **Login**. Kun projektets bekræftede domæner vises.
+
+**Log ind med SSO** tilbyder derefter udbyderen til alle adresser på det domæne, uanset hvem der skriver dem. Domænet skal passe præcist: `acme.com` dækker ikke `eu.acme.com`, så tilføj hvert domæne, folk logger ind med. En udbyder uden domæner, for eksempel en, der blev sat op, før domæner fandtes, tilbydes ikke til nogen der, og logger stadig folk ind fra din identitetsudbyder og fra linket i kortet **Test Single Sign On (SSO)**.
 
 ## Kræv SSO for dit projekt
 

@@ -12,6 +12,15 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  // A domain's name as it is saved and compared: trimmed and lower-cased.
+  public static normalizeName(value: unknown): string {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    return String(value).trim().toLowerCase();
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -55,6 +64,39 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A domain is verified by its name. Renamed, it is a domain nobody has
+     * proved: the rename takes its verification away, and an update that
+     * renames it does not verify it in the same write - its TXT record is
+     * checked again from its row, under the new name. A verified domain
+     * offers its project's SSO providers to every address on it at Sign in
+     * with SSO (#9824), so a verified name carried over to another would
+     * offer them for a domain the project never proved it owns. Saving the
+     * same name back changes nothing.
+     */
+    if (updateBy.data.domain !== undefined && !updateBy.props.isRoot) {
+      const name: string = Service.normalizeName(updateBy.data.domain);
+
+      if (name) {
+        updateBy.data.domain = new Domain(name);
+      }
+
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
+          domain: true,
+        },
+      );
+
+      const renames: boolean = rows.some((row: Model): boolean => {
+        return Service.normalizeName(row.domain) !== name;
+      });
+
+      if (renames) {
+        updateBy.data.isVerified = false;
+      }
+    }
+
     if (updateBy.data.isVerified && !updateBy.props.isRoot) {
       // A domain is verified within a project: the one named, or the caller's.
       if (!updateBy.query.projectId && !updateBy.props.tenantId) {

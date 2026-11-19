@@ -48,7 +48,7 @@ En **Spans que vigilar**, rellena **Estado del span** y **El nombre del span con
 
 ### Acotarlos (opcional)
 
-Abre **Más campos** para filtrar por servicio de telemetría, entidad de infraestructura o atributo, o para contar solo los spans que tardaron al menos un tiempo dado.
+Abre **Más campos** para filtrar por servicio de telemetría, entidad de infraestructura o atributo, para contar solo los spans que tardaron al menos un tiempo dado, o para generar una alerta por cada valor de un atributo con **Agrupar por atributos**.
 
 ### Decir cuándo alertar
 
@@ -77,8 +77,9 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Spans de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Filtrar por atributos** (en **Más campos**) | Spans cuyos atributos cumplen todas las condiciones. Cada condición tiene su propio operador, como «es igual a» o «contiene». | Vacío: ninguna condición |
 | **Tarda al menos (ms)** (en **Más campos**) | Spans que tardaron este tiempo o más, en milisegundos, como 5000 para un inicio en frío de cinco segundos. | Vacío: cualquier duración |
+| **Agrupar por atributos** (en **Más campos**) | No es un filtro: un recuento, y una alerta o un incidente, por cada combinación de los valores de estos atributos. Consulta [Una alerta por grupo](#una-alerta-por-grupo). | Vacío: todos los spans coincidentes cuentan juntos |
 
-Todos los filtros que definas deben coincidir para que un span se cuente.
+Todos los filtros que definas deben coincidir para que un span se cuente. Los spans que hay detrás de una alerta o un incidente que abre el monitor se listan con los mismos filtros, con **Tarda al menos (ms)** incluido como filtro de **Duración**, así que son los spans que contó.
 
 ### Códigos de estado de span
 
@@ -99,6 +100,14 @@ Si quieres que las solicitudes exitosas se muestren como OK, añade un pipeline 
 - **Criterios de arriba abajo.** Decide el primer criterio que coincide, así que pon primero el más grave.
 
 Cada cambio de estado, con su motivo, queda registrado en la **Cronología de estados** del monitor.
+
+## Una alerta por grupo
+
+Con **Agrupar por atributos** definido, el monitor cuenta los spans coincidentes por cada combinación de los valores de los atributos, y cada grupo genera su propia alerta o incidente y lo resuelve por su cuenta. La recomendación **Device Stopped Reporting** de una aplicación móvil agrupa por `resource.app.installation.id`, un grupo por cada instalación de la aplicación.
+
+Un dispositivo que deja de enviar spans no deja en la ventana ningún span con el que formar un grupo. Por eso, un monitor agrupado cuya regla puede coincidir sin ningún span, como **Menos de** `1`, también cuenta como 0 cada grupo que envió spans en la semana anterior a la ventana y ninguno en ella. Un grupo en silencio durante más de esa semana desaparece, y su alerta se resuelve.
+
+Cuando ninguno de los grupos envía un span, es toda la aplicación la que se ha quedado en silencio, no un dispositivo: ningún grupo alerta, y las alertas abiertas siguen abiertas hasta que lleguen spans. Un monitor sin agrupar, como **App Stopped Reporting**, alerta en ese caso. Como máximo se evalúan 100 grupos en cada comprobación, primero los que están en silencio.
 
 ## Criterios
 

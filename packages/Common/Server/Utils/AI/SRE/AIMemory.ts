@@ -143,6 +143,20 @@ export interface VerifiedFix {
   commands: Array<string>;
 }
 
+// One past incident, as an incident's recurrence context lists it.
+export interface IncidentRecurrenceCase {
+  incidentNumber?: number | undefined;
+  title?: string | undefined;
+  // The root cause people recorded, or OneUptime AI's analysis they confirmed.
+  cause: string;
+  isConfirmedAnalysis: boolean;
+  monitorNames: Array<string>;
+  // Its "Matched on: ..." line (describeMatch); null when it shares nothing.
+  matchedOn: string | null;
+  // How OneUptime AI fixed it, when its fix was verified (describeFix).
+  fix?: string | undefined;
+}
+
 // What a past case shares with the subject, for its "Matched on" line.
 interface MatchReasons {
   structuralScore: number;
@@ -695,49 +709,74 @@ export default class AIMemory {
         }),
     });
 
+    return AIMemory.writeIncidentRecurrence({
+      isFallback,
+      cases: chosen.map(
+        (item: {
+          incident: Incident;
+          cause: string;
+          isConfirmedAnalysis: boolean;
+          match: MatchReasons;
+        }): IncidentRecurrenceCase => {
+          return {
+            incidentNumber: item.incident.incidentNumber,
+            title: item.incident.title,
+            cause: item.cause,
+            isConfirmedAnalysis: item.isConfirmedAnalysis,
+            monitorNames: (item.incident.monitors || [])
+              .map((m: Monitor) => {
+                return m.name || "";
+              })
+              .filter(Boolean),
+            matchedOn: isFallback ? null : AIMemory.describeMatch(item.match),
+            fix: fixes.get(item.incident.id?.toString().toLowerCase() || ""),
+          };
+        },
+      ),
+    });
+  }
+
+  /*
+   * An incident's recurrence context, as an investigation reads it: the
+   * heading, what to do with a match, then each past case with its cause,
+   * its monitors, what it shares with the incident (or that it is one of
+   * the most recent, when none matched) and OneUptime AI's verified fix.
+   * Pure, so the benchmark's scenarios write their project history in the
+   * product's own words (Eval/Benchmark, #7766).
+   */
+  public static writeIncidentRecurrence(data: {
+    cases: Array<IncidentRecurrenceCase>;
+    // None of them matched the incident: they are the most recent resolved ones.
+    isFallback: boolean;
+  }): string {
     let markdown: string =
       `\n\n${PAST_RESOLVED_INCIDENTS_HEADING}\n` +
       "If the current signal matches one of these, this may be a recurrence — say so explicitly and reference the incident number and how it was resolved. When OneUptime AI's fix of one was verified, say in the next steps whether the same fix applies now. Each says what it has in common with this incident; a match by meaning alone is a lead to check, not proof.\n";
 
-    for (const item of chosen) {
-      const incident: Incident = item.incident;
+    for (const item of data.cases) {
       // A past incident's screenshot is a note here too, not its base64.
       const shortRootCause: string = PromptText.field(item.cause, {
         maxLength: MAX_ROOT_CAUSE_CHARS,
       });
 
-      markdown += `\n- **#${incident.incidentNumber} — ${incident.title || "Untitled"}**`;
+      markdown += `\n- **#${item.incidentNumber} — ${item.title || "Untitled"}**`;
       markdown += `\n  Previously resolved. ${
         item.isConfirmedAnalysis ? CONFIRMED_ANALYSIS_LABEL : "Root cause"
       }: ${shortRootCause}`;
 
-      const monitorNames: Array<string> = (incident.monitors || [])
-        .map((m: Monitor) => {
-          return m.name || "";
-        })
-        .filter(Boolean);
-
-      if (monitorNames.length > 0) {
-        markdown += `\n  Monitors: ${monitorNames.join(", ")}`;
+      if (item.monitorNames.length > 0) {
+        markdown += `\n  Monitors: ${item.monitorNames.join(", ")}`;
       }
 
-      if (isFallback) {
+      if (data.isFallback) {
         markdown +=
           "\n  Nothing in it matched this incident: it is one of the project's most recent resolved incidents.";
-      } else {
-        const matchedOn: string | null = AIMemory.describeMatch(item.match);
-
-        if (matchedOn) {
-          markdown += `\n  ${matchedOn}`;
-        }
+      } else if (item.matchedOn) {
+        markdown += `\n  ${item.matchedOn}`;
       }
 
-      const fix: string | undefined = fixes.get(
-        incident.id?.toString().toLowerCase() || "",
-      );
-
-      if (fix) {
-        markdown += `\n  Fixed by OneUptime AI (verified): ${fix}`;
+      if (item.fix) {
+        markdown += `\n  Fixed by OneUptime AI (verified): ${item.fix}`;
       }
     }
 

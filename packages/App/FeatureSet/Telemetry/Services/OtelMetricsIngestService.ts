@@ -739,6 +739,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }): Promise<void> {
     interface HostEnrichmentEntry {
       osType: string | null;
+      // os.name: "Android" makes the host's OS type android (HostOperatingSystem).
+      osName: string | null;
       osVersion: string | null;
       hostId: string | null;
       hostArch: string | null;
@@ -831,6 +833,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       if (!entry) {
         entry = {
           osType: null,
+          osName: null,
           osVersion: null,
           hostId: null,
           hostArch: null,
@@ -865,6 +868,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       if (!entry.osType) {
         entry.osType = OtelIngestBaseService.getStringAttribute(ras, "os.type");
+      }
+      if (!entry.osName) {
+        entry.osName = OtelIngestBaseService.getStringAttribute(ras, "os.name");
       }
       if (!entry.osVersion) {
         entry.osVersion =
@@ -953,6 +959,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
         const extras: Parameters<typeof HostService.updateLastSeen>[1] = {
           osType: entry.osType ?? undefined,
+          osName: entry.osName ?? undefined,
           osVersion: entry.osVersion ?? undefined,
           hostId: entry.hostId ?? undefined,
           hostArch: entry.hostArch ?? undefined,

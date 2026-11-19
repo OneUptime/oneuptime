@@ -25,7 +25,8 @@ import {
  *
  *   - a detection rule: the events its condition counted for the group, in
  *     the window the run read, with the run's own exceptions and bounds;
- *   - a correlation: the events of the rules it reads that name its group;
+ *   - a correlation: the events of its steps, grouped as its group-by
+ *     groups them, for every group it fires for at once (#9795);
  *   - a threat intel feed: the events carrying the indicator;
  *   - a connected product, or a threat in Your logs: the event it was
  *     recorded as.
@@ -40,10 +41,13 @@ import {
  * WHAT IT COSTS. At most SECURITY_DETECTION_MATCHED_EVENTS_MAX events and
  * SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES of them per detection, in its
  * Postgres row - the earliest first, as the card lists them, plus a count of
- * how far their requests got. An event read from a log line or an alert is
- * well under a kilobyte, so a detection keeps some 5 to 25 KB. A detection
- * that fires again adds to what it keeps until it is full; one that is full
- * reads nothing more. Deleting the case deletes its detections and what
+ * how far their requests got - and at most SECURITY_DETECTION_MATCHED_EVENTS_
+ * FIRING_MAX events and SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX_BYTES
+ * across every group one firing fires for, shared equally (below). An event
+ * read from a log line or an alert is well under a kilobyte, so a detection
+ * keeps some 5 to 25 KB. A detection that fires again adds to what it keeps
+ * until it is full; one that is full takes in no more events, only how far
+ * their requests got. Deleting the case deletes its detections and what
  * they kept.
  *
  * Shared by the server, which keeps and reads them, and the Dashboard,
@@ -55,6 +59,85 @@ export const SECURITY_DETECTION_MATCHED_EVENTS_MAX: number = 25;
 
 // The most a detection's kept events take, as JSON.
 export const SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES: number = 64 * 1024;
+
+/*
+ * WHAT ONE FIRING KEEPS, ACROSS EVERY GROUP IT FIRES FOR (#9795).
+ *
+ * A source fires for many groups at once - a rule's run opens up to
+ * DETECTION_MAX_GROUPS_PER_EVALUATION (100) of them, a threat intel feed's
+ * check as many indicators - and each group's detection keeps the events
+ * it matched. Every group keeps some: the firing keeps at most as much as
+ * SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS full detections do -
+ * 1,000 events and 2.5 MB of them - shared equally by its groups
+ * (getSecurityDetectionMatchedEventsShare). Up to 40 groups each keep a
+ * full detection's 25 events and 64 KB; at the most a run opens, 100
+ * groups, each keeps 10 events and about 26 KB - twice the five the card
+ * lists before "Show more" - and a group whose detection fires again tops
+ * it up to the full 25 then.
+ *
+ * Why a budget at all: what is kept is one read of the events table and a
+ * write of each detection's row in Postgres, inside the run. Without one, a
+ * run that opens 100 groups kept up to 2,500 events and 6.4 MB; with it,
+ * one firing's read returns at most 1,000 rows, and its detections take in
+ * at most 2.5 MB, however many groups it fires for. A group's first event
+ * is always kept, whatever its size, so no group fires with nothing.
+ */
+export const SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS: number = 40;
+
+// The most events one firing keeps, across all its groups: 1,000.
+export const SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX: number =
+  SECURITY_DETECTION_MATCHED_EVENTS_MAX *
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS;
+
+// ...and the most they take, as JSON: 2.5 MB.
+export const SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX_BYTES: number =
+  SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES *
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS;
+
+// How much of a firing's events one of its groups keeps.
+export interface SecurityDetectionMatchedEventsShare {
+  // At most this many events: at least 1, at most a detection's 25.
+  maxEvents: number;
+  // ...taking at most this much, as JSON: at most a detection's 64 KB.
+  maxBytes: number;
+}
+
+// A detection's whole bound: what a group keeps when its firing has room for all of it.
+export const SECURITY_DETECTION_MATCHED_EVENTS_FULL_SHARE: SecurityDetectionMatchedEventsShare =
+  {
+    maxEvents: SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+    maxBytes: SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES,
+  };
+
+/*
+ * Each group's equal share of what a firing for `groupCount` groups keeps:
+ * a detection's whole bound while the firing's budget has room for it,
+ * less as there are more groups, and never less than one event.
+ */
+export function getSecurityDetectionMatchedEventsShare(
+  groupCount: number,
+): SecurityDetectionMatchedEventsShare {
+  const groups: number = Number.isFinite(groupCount)
+    ? Math.max(1, Math.floor(groupCount))
+    : 1;
+
+  return {
+    maxEvents: Math.max(
+      1,
+      Math.min(
+        SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+        Math.floor(SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX / groups),
+      ),
+    ),
+    maxBytes: Math.max(
+      1,
+      Math.min(
+        SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES,
+        Math.floor(SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX_BYTES / groups),
+      ),
+    ),
+  };
+}
 
 // What a kept event keeps of its longer text: a message, a command line.
 export const SECURITY_DETECTION_MATCHED_EVENT_TEXT_MAX_LENGTH: number = 1000;
@@ -302,11 +385,24 @@ function addOutcomes(
  * SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES of them; a detection that
  * keeps nothing yet always keeps its first). The firing's request outcomes
  * add to the ones it counted before.
+ *
+ * `share` holds it to less room: a group's share of a firing for many
+ * groups (getSecurityDetectionMatchedEventsShare), never more than the
+ * whole bound.
  */
 export function keepSecurityDetectionMatchedEvents(data: {
   kept: SecurityDetectionMatchedEvents | null;
   firing: SecurityDetectionMatchedEvents;
+  share?: SecurityDetectionMatchedEventsShare | undefined;
 }): SecurityDetectionMatchedEvents {
+  const maxEvents: number = Math.min(
+    SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+    Math.max(1, Math.floor(data.share?.maxEvents ?? Number.POSITIVE_INFINITY)),
+  );
+  const maxBytes: number = Math.min(
+    SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES,
+    Math.max(1, Math.floor(data.share?.maxBytes ?? Number.POSITIVE_INFINITY)),
+  );
   const events: Array<SecurityDetectionMatchedEvent> = [
     ...(data.kept?.events || []),
   ];
@@ -325,7 +421,7 @@ export function keepSecurityDetectionMatchedEvents(data: {
   );
 
   for (const event of added) {
-    if (events.length >= SECURITY_DETECTION_MATCHED_EVENTS_MAX) {
+    if (events.length >= maxEvents) {
       break;
     }
 
@@ -338,10 +434,7 @@ export function keepSecurityDetectionMatchedEvents(data: {
     // A comma between it and the one before, and the event itself.
     const size: number = JSON.stringify(event).length + 1;
 
-    if (
-      events.length > 0 &&
-      bytes + size > SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES
-    ) {
+    if (events.length > 0 && bytes + size > maxBytes) {
       break;
     }
 

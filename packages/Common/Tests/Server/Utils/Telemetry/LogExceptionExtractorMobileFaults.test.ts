@@ -5,6 +5,8 @@ import LogExceptionExtractor, {
 import {
   ANR_EXCEPTION_MESSAGE,
   ANR_EXCEPTION_TYPE,
+  HANG_EXCEPTION_MESSAGE,
+  HANG_EXCEPTION_TYPE,
 } from "../../../../Utils/Telemetry/MobileAppFaults";
 import { JSONObject } from "../../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
@@ -252,5 +254,269 @@ describe("everything else is as it was", () => {
     expect(
       extract({ body: CRASH_STACK, severityNumber: INFO, attributes: {} }),
     ).toBeNull();
+  });
+});
+
+/*
+ * #9712: an iOS app's crashes and hangs, as opentelemetry-swift's MetricKit
+ * instrumentation reports them (MetricKitInstrumentation.swift's
+ * reportDiagnostics): one log record per Apple diagnostic, the attributes
+ * exactly as it builds them. A crash's type and message come from the
+ * Objective-C exception (iOS 17+), else the Mach exception, else the
+ * signal; a hang has only its call stack and its duration. Both stacks are
+ * Apple's call stack tree as JSON.
+ */
+const METRICKIT_CRASH_TREE: string = JSON.stringify({
+  callStackPerThread: true,
+  callStacks: [
+    {
+      threadAttributed: true,
+      callStackFrames: [
+        {
+          binaryUUID: "70B89F27-1634-3580-A695-57CDB41D7743",
+          offsetAddress: 165304,
+          binaryName: "Storefront",
+        },
+        {
+          binaryUUID: "77A62F2E-8212-30F3-84C1-E8497440ACF8",
+          offsetAddress: 6948,
+          binaryName: "libdyld.dylib",
+        },
+      ],
+    },
+  ],
+});
+
+// What 2.3.0 to 2.5.1 sent: Apple's own shape, frames nested.
+const METRICKIT_HANG_TREE_APPLE_SHAPE: string = JSON.stringify({
+  callStacks: [
+    {
+      threadAttributed: true,
+      callStackRootFrames: [
+        {
+          binaryUUID: "A1B2C3D4-5678-90AB-CDEF-1234567890AB",
+          offsetIntoBinaryTextSegment: 42000,
+          sampleCount: 20,
+          binaryName: "Storefront",
+          address: 4295009000,
+          subFrames: [
+            {
+              binaryUUID: "77A62F2E-8212-30F3-84C1-E8497440ACF8",
+              offsetIntoBinaryTextSegment: 6948,
+              sampleCount: 20,
+              binaryName: "UIKitCore",
+              address: 7449245604,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  callStackPerThread: true,
+});
+
+// A crash diagnostic of 2.4.1 and later: the event name and the `name` attribute.
+function metricKitCrashAttributes(extra: JSONObject = {}): JSONObject {
+  return {
+    "event.name": "metrickit.diagnostic.crash",
+    name: "metrickit.diagnostic.crash",
+    "metrickit.diagnostic.crash.exception.code": 1,
+    "metrickit.diagnostic.crash.exception.signal": 11,
+    "metrickit.diagnostic.crash.exception.signal.name": "SIGSEGV",
+    "metrickit.diagnostic.crash.exception.signal.description":
+      "segmentation violation",
+    "metrickit.diagnostic.crash.exception.mach_exception.type": 1,
+    "metrickit.diagnostic.crash.exception.mach_exception.name":
+      "EXC_BAD_ACCESS",
+    "metrickit.diagnostic.crash.exception.mach_exception.description":
+      "Could not access memory",
+    "exception.type": "EXC_BAD_ACCESS",
+    "exception.message": "Could not access memory",
+    "exception.stacktrace": METRICKIT_CRASH_TREE,
+    ...extra,
+  };
+}
+
+function metricKitHangAttributes(extra: JSONObject = {}): JSONObject {
+  return {
+    "event.name": "metrickit.diagnostic.hang",
+    name: "metrickit.diagnostic.hang",
+    "metrickit.diagnostic.hang.hang_duration": 3.2,
+    "exception.stacktrace": METRICKIT_HANG_TREE_APPLE_SHAPE,
+    ...extra,
+  };
+}
+
+describe("an iOS crash (metrickit.diagnostic.crash)", () => {
+  test("is an unhandled exception with the Mach exception's type and description", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitCrashAttributes(),
+    });
+
+    expect(extracted).not.toBeNull();
+    expect(extracted!.exceptionType).toBe("EXC_BAD_ACCESS");
+    expect(extracted!.message).toBe("Could not access memory");
+    expect(extracted!.escaped).toBe(true);
+  });
+
+  test("its stack is the crashed thread, readable, never the JSON it came as", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitCrashAttributes(),
+    });
+
+    expect(extracted!.stackTrace).toBe(
+      [
+        "Thread 0 Crashed:",
+        "0   Storefront                     Storefront + 165304",
+        "1   libdyld.dylib                  libdyld.dylib + 6948",
+        "",
+        "Binary Images:",
+        "Storefront <70B89F27-1634-3580-A695-57CDB41D7743>",
+        "libdyld.dylib <77A62F2E-8212-30F3-84C1-E8497440ACF8>",
+      ].join("\n"),
+    );
+  });
+
+  test("an Objective-C exception (iOS 17+) reads as itself", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitCrashAttributes({
+        "metrickit.diagnostic.crash.exception.objc.name":
+          "NSInvalidArgumentException",
+        "metrickit.diagnostic.crash.exception.objc.message":
+          "-[__NSCFNumber length]: unrecognized selector sent to instance 0x8000000000000000",
+        "exception.type": "NSInvalidArgumentException",
+        "exception.message":
+          "-[__NSCFNumber length]: unrecognized selector sent to instance 0x8000000000000000",
+      }),
+    });
+
+    expect(extracted!.exceptionType).toBe("NSInvalidArgumentException");
+    expect(extracted!.message).toContain("unrecognized selector");
+  });
+
+  test("2.3.0, which named the crash only in its name attribute, is read the same", () => {
+    const attributes: JSONObject = metricKitCrashAttributes();
+    delete attributes["event.name"];
+
+    const extracted: ExtractedLogException | null = extract({
+      attributes: attributes,
+    });
+
+    expect(extracted!.exceptionType).toBe("EXC_BAD_ACCESS");
+    expect(extracted!.escaped).toBe(true);
+    expect(extracted!.stackTrace.startsWith("Thread 0 Crashed:")).toBe(true);
+  });
+
+  test("a stack that is no call stack tree is kept as sent", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitCrashAttributes({
+        "exception.stacktrace": "not a tree",
+      }),
+    });
+
+    expect(extracted!.stackTrace).toBe("not a tree");
+  });
+});
+
+describe("an iOS hang (metrickit.diagnostic.hang)", () => {
+  test("is an unhandled exception named Hang, with a sentence that says what happened", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitHangAttributes(),
+    });
+
+    expect(extracted).not.toBeNull();
+    expect(extracted!.exceptionType).toBe(HANG_EXCEPTION_TYPE);
+    expect(extracted!.message).toBe(HANG_EXCEPTION_MESSAGE);
+    expect(extracted!.escaped).toBe(true);
+  });
+
+  test("never an ANR: an iOS hang keeps Apple's word", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitHangAttributes(),
+    });
+
+    expect(extracted!.exceptionType).not.toBe(ANR_EXCEPTION_TYPE);
+    expect(extracted!.message).not.toBe(ANR_EXCEPTION_MESSAGE);
+  });
+
+  test("its stack is the main thread that hung, with Apple's addresses", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: metricKitHangAttributes(),
+    });
+    const lines: Array<string> = extracted!.stackTrace.split("\n");
+
+    expect(lines[0]).toBe("Thread 0 Hung:");
+    expect(lines[1]).toMatch(
+      /^0 {3}Storefront {21}0x[0-9a-f]{16} 0x[0-9a-f]+ \+ 42000$/,
+    );
+    expect(lines[2]).toMatch(/^1 {3}UIKitCore/);
+  });
+
+  test("2.3.0's hang, named only in its name attribute, is a hang too", () => {
+    const attributes: JSONObject = metricKitHangAttributes();
+    delete attributes["event.name"];
+
+    expect(extract({ attributes: attributes })!.exceptionType).toBe(
+      HANG_EXCEPTION_TYPE,
+    );
+  });
+
+  test("one with no stack at all still counts, as a hang that happened", () => {
+    const extracted: ExtractedLogException | null = extract({
+      attributes: {
+        "event.name": "metrickit.diagnostic.hang",
+        "metrickit.diagnostic.hang.hang_duration": 1.4,
+      },
+    });
+
+    expect(extracted).not.toBeNull();
+    expect(extracted!.exceptionType).toBe(HANG_EXCEPTION_TYPE);
+    expect(extracted!.message).toBe(HANG_EXCEPTION_MESSAGE);
+    expect(extracted!.stackTrace).toBe("");
+    expect(extracted!.escaped).toBe(true);
+  });
+
+  test("every hang has the same type and message, so hangs group by their stack", () => {
+    const short: ExtractedLogException | null = extract({
+      attributes: metricKitHangAttributes({
+        "metrickit.diagnostic.hang.hang_duration": 0.3,
+      }),
+    });
+    const long: ExtractedLogException | null = extract({
+      attributes: metricKitHangAttributes({
+        "metrickit.diagnostic.hang.hang_duration": 9.7,
+      }),
+    });
+
+    // The fingerprint hashes type, message and stack (ExceptionUtil).
+    expect(long).toEqual(short);
+  });
+});
+
+describe("MetricKit's other diagnostics are no exception", () => {
+  test.each([
+    [
+      "a CPU exception",
+      {
+        "event.name": "metrickit.diagnostic.cpu_exception",
+        "metrickit.diagnostic.cpu_exception.total_cpu_time": 92.5,
+      },
+    ],
+    [
+      "a disk write exception",
+      {
+        "event.name": "metrickit.diagnostic.disk_write_exception",
+        "metrickit.diagnostic.disk_write_exception.total_writes_caused": 1.1e9,
+      },
+    ],
+    [
+      "a slow launch",
+      {
+        "event.name": "metrickit.diagnostic.app_launch",
+        "metrickit.diagnostic.app_launch.launch_duration": 4.2,
+      },
+    ],
+  ])("%s", (_label: string, attributes: JSONObject) => {
+    expect(extract({ attributes: attributes })).toBeNull();
   });
 });

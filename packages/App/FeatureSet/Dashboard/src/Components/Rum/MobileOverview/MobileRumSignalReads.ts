@@ -33,11 +33,13 @@ import {
   buildAppStartSeriesBody,
   buildAppStartTableBody,
   buildCrashFilterBody,
+  buildFaultSessionCountBody,
   buildFrameSeriesBody,
   buildFramesByScreenBody,
   buildSessionCountBody,
   emptyAppStarts,
   emptyFrames,
+  readFaultInstalls,
   readFaultSessions,
   readSessionCount,
   summarizeAppStarts,
@@ -108,12 +110,15 @@ export async function fetchMobileSessions(
       ),
     );
   } catch {
-    return { sessions: 0, spans: 0, failed: true };
+    return { sessions: 0, spans: 0, installs: null, failed: true };
   }
 }
 
 async function fetchFaultCount(body: JSONObject): Promise<MobileFaultCount> {
-  const [histogram, sessions]: [unknown, number | null] = await Promise.all([
+  const [histogram, reach]: [
+    unknown,
+    { sessions: number; installs: number | null } | null,
+  ] = await Promise.all([
     post("/telemetry/exceptions/histogram", body)
       .then((answer: JSONObject): unknown => {
         return answer["buckets"];
@@ -121,22 +126,37 @@ async function fetchFaultCount(body: JSONObject): Promise<MobileFaultCount> {
       .catch((): null => {
         return null;
       }),
-    post("/telemetry/exceptions/session-count", body)
-      .then((answer: JSONObject): number => {
-        return readFaultSessions(answer);
-      })
+    post(
+      "/telemetry/exceptions/session-count",
+      buildFaultSessionCountBody(body),
+    )
+      .then(
+        (answer: JSONObject): { sessions: number; installs: number | null } => {
+          return {
+            sessions: readFaultSessions(answer),
+            installs: readFaultInstalls(answer),
+          };
+        },
+      )
       .catch((): null => {
         return null;
       }),
   ]);
 
   if (histogram === null) {
-    return { total: 0, series: [], sessions: null, failed: true };
+    return {
+      total: 0,
+      series: [],
+      sessions: null,
+      installs: null,
+      failed: true,
+    };
   }
 
   return {
     ...summarizeFaultBuckets(histogram),
-    sessions,
+    sessions: reach ? reach.sessions : null,
+    installs: reach ? reach.installs : null,
     failed: false,
   };
 }

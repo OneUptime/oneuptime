@@ -16,7 +16,7 @@ import {
   useContentGutters,
   usePane,
   type PaneLayout,
-} from "../layout/WindowLayout";
+} from "../layout/WindowLayoutProvider";
 import {
   READABLE_CONTENT_WIDTH,
   TWO_COLUMN_READABLE_WIDTH,
