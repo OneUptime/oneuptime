@@ -118,7 +118,19 @@ export interface FacetRequest {
 }
 
 export type AnalyticsChartType = "timeseries" | "toplist" | "table";
-export type AnalyticsAggregation = "count" | "unique";
+/*
+ * What a row counts: its rows, the distinct values of `aggregationField`,
+ * or the total of `aggregationField` read as a number - the frames a mobile
+ * app's app.jank events report in app.jank.frame_count (#9588), where one
+ * event stands for several frames.
+ */
+export type AnalyticsAggregation = "count" | "unique" | "sum";
+
+export const ANALYTICS_AGGREGATIONS: ReadonlyArray<AnalyticsAggregation> = [
+  "count",
+  "unique",
+  "sum",
+];
 
 export interface AnalyticsRequest {
   projectId: ObjectID;
@@ -149,6 +161,11 @@ export interface AnalyticsRequest {
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
+  /*
+   * Attribute filters, compiled as the histogram and the facets compile
+   * them: only the app.jank events at one threshold, say.
+   */
+  attributes?: LogAttributeFilters | undefined;
   limit?: number | undefined;
 }
 
@@ -849,6 +866,27 @@ export class LogAggregationService {
         type: TableColumnType.Text,
         value: request.aggregationField,
       }}])`;
+    }
+
+    /*
+     * A total of a field read as a number. Attribute values are stored as
+     * text, so each is read with toFloat64OrZero: a value that is no number,
+     * or a row that lacks the attribute, adds nothing rather than failing
+     * the read.
+     */
+    if (request.aggregation === "sum" && request.aggregationField) {
+      LogAggregationService.validateFacetKey(request.aggregationField);
+
+      if (LogAggregationService.isTopLevelColumn(request.aggregationField)) {
+        return new Statement().append(
+          `sum(toFloat64OrZero(toString(${request.aggregationField})))`,
+        );
+      }
+
+      return SQL`sum(toFloat64OrZero(attributes[${{
+        type: TableColumnType.Text,
+        value: request.aggregationField,
+      }}]))`;
     }
 
     return new Statement().append("count()");

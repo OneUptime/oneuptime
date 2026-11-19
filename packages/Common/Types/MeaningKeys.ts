@@ -43,6 +43,12 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   // What an import did with a row (ImportResultWords).
   "Created (import result)",
   /*
+   * A mobile app's screen, as app.screen.name names it: the column of the
+   * mobile Overview's frames-by-screen card (#9588). The bare "Screen" is a
+   * device's display (the Playlist player's keys).
+   */
+  "Screen (app screen)",
+  /*
    * A data asset's kind: a database's view and table (DataAssetKindWords).
    * The table is also the title over Data Observability's lists of tables,
    * a table's page and its side menu (#8176).

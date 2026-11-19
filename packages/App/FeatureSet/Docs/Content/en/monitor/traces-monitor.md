@@ -48,7 +48,7 @@ In **Spans to watch**, set **Span Status** and **Span name contains**. A filter 
 
 ### Narrow them down (optional)
 
-Open **More fields** to filter by telemetry service, infrastructure entity or attribute.
+Open **More fields** to filter by telemetry service, infrastructure entity or attribute, or to count only the spans that took at least a given time.
 
 ### Say when to alert
 
@@ -76,6 +76,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Filter by Service** (under **More fields**) | Spans from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Spans from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Spans whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
+| **Takes at least (ms)** (under **More fields**) | Spans that took this long or longer, in milliseconds, such as 5000 for a five-second cold start. | Empty: any duration |
 
 All the filters you set must match for a span to be counted.
 

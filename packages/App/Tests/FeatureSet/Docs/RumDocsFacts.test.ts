@@ -665,13 +665,19 @@ describe("RUM Overview: how OneUptime recognises RUM", () => {
 describe("RUM Overview: what you get", () => {
   const what: string = section(RUM_INDEX, "## What you get");
 
-  it("names the overview's tiles, in the order the page draws them", () => {
+  it("names the overview's tiles, a web app's and then a mobile app's, in the order the page draws them", () => {
     const overview: string = source("overview");
     const tilesSource: string = overview.slice(
       overview.indexOf("const tiles: Array<ResourceOverviewTile> = ["),
       overview.indexOf("const syncId"),
     );
+    // A mobile app's Overview draws tiles of its own (#9588).
+    const mobileTilesSource: string = overview.slice(
+      overview.indexOf("const mobileTiles: Array<ResourceOverviewTile> = ["),
+      overview.indexOf("const mobileCharts"),
+    );
     const tiles: Array<string> = allMatches(tilesSource, TITLE, 1);
+    const mobileTiles: Array<string> = allMatches(mobileTilesSource, TITLE, 1);
 
     expect(tiles).toEqual([
       "Page loads",
@@ -683,7 +689,26 @@ describe("RUM Overview: what you get", () => {
       "Clients",
       "Sessions recorded",
     ]);
-    expect(boldOf(rowOf(what, "**Overview**")[1] as string)).toEqual(tiles);
+    expect(mobileTiles).toEqual([
+      "Sessions",
+      "Crash-free sessions",
+      "Crashes",
+      "ANRs",
+      "App starts",
+      "Cold start (p95)",
+      "Frozen frames",
+      "Error rate",
+    ]);
+    expect(boldOf(rowOf(what, "**Overview**")[1] as string)).toEqual([
+      ...tiles,
+      ...mobileTiles,
+    ]);
+  });
+
+  it("says a mobile app's tiles count what OpenTelemetry Android sends", () => {
+    expect(what).toContain(
+      "A mobile app's tiles count what [OpenTelemetry Android](/docs/rum/android-setup) sends on its own",
+    );
   });
 
   it("counts page loads from the documentLoad span", () => {
@@ -706,13 +731,18 @@ describe("RUM Overview: what you get", () => {
       "rum-poor-inp",
       "rum-failed-user-operations",
       "rum-unhandled-exceptions",
+      "rum-app-crashes",
+      "rum-app-not-responding",
+      "rum-slow-cold-start",
+      "rum-frozen-frames",
+      "rum-app-stopped-reporting",
       "rum-session-replay-daily-budget-spent",
     ]) {
       expect(ids).toContain(id);
     }
 
     expect(rowOf(what, "**Recommendations**")[1]).toBe(
-      "Ready-made monitors for the application: poor Core Web Vitals, failed requests, browser exceptions and, once it records, Session Replay budgets.",
+      "Ready-made monitors that fit the application: poor Core Web Vitals and browser exceptions for a web app; crashes, ANRs, slow cold starts, frozen frames and an app that stops reporting for a mobile app; failed requests for both; and, once it records, Session Replay budgets.",
     );
   });
 

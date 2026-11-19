@@ -48,7 +48,7 @@ Dans **Spans à surveiller**, renseignez **Statut du span** et **Le nom du span 
 
 ### Affiner (facultatif)
 
-Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut.
+Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut, ou pour ne compter que les spans qui ont duré au moins un temps donné.
 
 ### Dire quand alerter
 
@@ -76,6 +76,7 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Filtrer par service** (sous **Plus de champs**) | Les spans de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les spans de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les spans dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
+| **Dure au moins (ms)** (sous **Plus de champs**) | Les spans d'une durée égale ou supérieure à cette valeur, en millisecondes, comme 5000 pour un démarrage à froid de cinq secondes. | Vide : toute durée |
 
 Tous les filtres que vous définissez doivent correspondre pour qu'un span soit compté.
 
