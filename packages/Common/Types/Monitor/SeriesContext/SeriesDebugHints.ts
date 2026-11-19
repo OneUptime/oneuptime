@@ -460,6 +460,10 @@ export default class SeriesDebugHints {
       purpose: "The crashes and reboots Android kept, newest last",
       command: "adb shell dumpsys dropbox",
     });
+    commands.push({
+      purpose: "The security patch level the device's build includes",
+      command: "adb shell getprop ro.build.version.security_patch",
+    });
 
     return commands;
   }

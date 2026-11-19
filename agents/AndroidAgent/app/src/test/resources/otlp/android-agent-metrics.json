@@ -748,6 +748,19 @@
                   }
                 ]
               }
+            },
+            {
+              "name": "android.os.security_patch.age",
+              "description": "Days since the device's security patch level: more than 90 is out of date.",
+              "unit": "d",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "897"
+                  }
+                ]
+              }
             }
           ]
         }
