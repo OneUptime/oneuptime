@@ -12,6 +12,8 @@ import {
 } from "../../Types/AuditLog/AuditLogRedaction";
 import { getColumnAccessControlForAllColumns } from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import { holdsOnlyListedValues } from "../../Types/AuditLog/AuditLogCoverage";
+import MonitorSecret from "../../Models/DatabaseModels/MonitorSecret";
 
 /*
  * NO AUDIT LOG ENTRY CARRIES A SECRET.
@@ -34,7 +36,9 @@ import TableColumnType from "../../Types/Database/TableColumnType";
  * private keys of custom domains, a form's share key, and webhook addresses.
  *
  * A column whose type cannot hold a secret - a switch, a number, a date, a
- * reference to another row, an id - is not one, whatever it is called. The
+ * reference to another row, an id - is not one, whatever it is called, and
+ * nor is a kind whose every value the code lists (allowedValues): a monitor
+ * secret's type is Text or TOTP, so its entry says which (#9760). The
  * columns below look like secrets by name, are of a type that could hold
  * one, and are not: each says why.
  */
@@ -187,10 +191,13 @@ function secretLookingColumns(): Array<SecretLookingColumn> {
           (Array.isArray(read) && read.length === 0) ||
           ignored.includes(column),
         isRedacted: redacted.has(column),
-        holdsNoSecretByType: holdsNoSecretByType(
-          column,
-          model.getTableColumnMetadata(column)?.type,
-        ),
+        holdsNoSecretByType:
+          holdsNoSecretByType(
+            column,
+            model.getTableColumnMetadata(column)?.type,
+          ) ||
+          // A kind whose every value the code lists (#9760).
+          holdsOnlyListedValues(model.getTableColumnMetadata(column)),
       });
     }
   }
@@ -237,6 +244,26 @@ describe("audit log entries carry no secrets", () => {
       ]);
       expect(NOT_SECRETS[name]!.length).toBeGreaterThan(5);
     }
+  });
+
+  test("a monitor secret's type reaches its entries as Text or TOTP; its value never does (#9760)", () => {
+    const redacted: Set<string> = getAuditLogRedactedColumns(
+      new MonitorSecret(),
+    );
+
+    expect(redacted.has("secretType")).toBe(false);
+    expect(
+      holdsOnlyListedValues(
+        new MonitorSecret().getTableColumnMetadata("secretType"),
+      ),
+    ).toBe(true);
+    // Encrypted, and nobody may read it: never with a value.
+    expect(redacted.has("secretValue")).toBe(true);
+    expect(
+      holdsOnlyListedValues(
+        new MonitorSecret().getTableColumnMetadata("secretValue"),
+      ),
+    ).toBe(false);
   });
 
   test("the six secrets the sweep found are redacted", () => {
