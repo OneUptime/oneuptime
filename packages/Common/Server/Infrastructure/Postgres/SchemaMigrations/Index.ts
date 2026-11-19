@@ -1089,6 +1089,8 @@ import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020
 import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
 import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
 import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
+import { AddWorkflowRunAsApiKey1809185200000 } from "./1809185200000-AddWorkflowRunAsApiKey";
+import { AddWorkflowRunAsApiKeyKey1809185200100 } from "./1809185200100-AddWorkflowRunAsApiKeyKey";
 
 export default [
   InitialMigration,
@@ -2182,4 +2184,6 @@ export default [
   AddMonitorSecretType1809185030000,
   AddWorkflowRunAs1809185100000,
   AddWorkflowRunAsKeys1809185100100,
+  AddWorkflowRunAsApiKey1809185200000,
+  AddWorkflowRunAsApiKeyKey1809185200100,
 ];
