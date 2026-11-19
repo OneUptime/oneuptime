@@ -981,8 +981,8 @@ cost:
     # OpenCost's UI answers /metrics with its web page, so the agent tries
     # the engine's /metrics, then the /model/metrics a frontend proxies to
     # the engine (Kubecost 2, OpenCost's UI), then the finops agent in the
-    # engine's namespace (Kubecost 3, whose frontend serves its metrics at
-    # no path), and takes the first with price series. Until it finds them
+    # engine's namespace (Kubecost 3, whose frontend serves its prices at no
+    # path), and takes the first with price series. Until it finds them
     # nothing is scraped, and its /healthz says why (troubleshoot.sh shows
     # it). With cost.agent.enabled false, <cost.engine.url>/metrics.
     #

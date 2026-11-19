@@ -31,7 +31,9 @@ import { KubernetesService, ServiceQuery } from "../KubernetesApi";
  *                              /model/metrics -> the cost model's metrics
  *   Kubecost 2 cost model :9003 /metrics -> metrics
  *   Kubecost 3 frontend :9090  /metrics -> 200 text/html (the UI)
- *                              /model/metrics -> 404 (the aggregator's)
+ *                              /model/metrics -> the aggregator's: 404
+ *                              while it starts, then its own Go runtime
+ *                              series, no price among them
  *   Kubecost 3 finops agent :80 /metrics -> metrics
  *   OpenCost API :9003         /metrics -> metrics
  *   OpenCost UI :9090          /metrics -> 200 text/html (the UI)
@@ -425,6 +427,8 @@ test("an address that does not answer is not the endpoint, and says why", async 
 class Cluster {
   public metrics: Set<string> = new Set<string>();
   public webPages: Set<string> = new Set<string>();
+  // Prometheus' format, and no price series in it.
+  public runtimeOnly: Set<string> = new Set<string>();
   public services: Array<KubernetesService> = [];
   public listError: Error | null = null;
   public probed: Array<string> = [];
@@ -437,6 +441,12 @@ class Cluster {
     }
     if (this.webPages.has(url)) {
       return { ok: false, reason: "a web page (text/html), not metrics" };
+    }
+    if (this.runtimeOnly.has(url)) {
+      return {
+        ok: false,
+        reason: "answers, but with none of the engine's price series",
+      };
     }
     return { ok: false, reason: "HTTP 404" };
   };
@@ -477,6 +487,8 @@ const kubecost2: () => Cluster = (): Cluster => {
 const kubecost3: () => Cluster = (): Cluster => {
   const cluster: Cluster = new Cluster();
   cluster.webPages.add(`${KUBECOST3}:9090/metrics`);
+  // The aggregator's own runtime series, once it has started.
+  cluster.runtimeOnly.add(`${KUBECOST3}:9090/model/metrics`);
   cluster.metrics.add("http://kubecost-finopsagent.kubecost3.svc:80/metrics");
   cluster.services = [KUBECOST3_FINOPS_AGENT];
   return cluster;
@@ -539,6 +551,32 @@ test("Kubecost 3 named by its frontend: its finops agent, which has the prices",
     `${KUBECOST3}:9090/model/metrics`,
     "http://kubecost-finopsagent.kubecost3.svc:80/metrics",
   ]);
+});
+
+test("Kubecost 3's aggregator answers /model/metrics in Prometheus' format, but without prices: never taken", async (): Promise<void> => {
+  // Taken, the dashboard would stay empty silently: no scrape error, no data.
+  const cluster: Cluster = kubecost3();
+
+  const found: FoundMetricsEndpoint = await cluster.find({
+    url: `${KUBECOST3}:9090`,
+    namespace: "kubecost3",
+  });
+
+  assert.strictEqual(
+    found.url,
+    "http://kubecost-finopsagent.kubecost3.svc:80/metrics",
+  );
+});
+
+test("Kubecost 3 while its aggregator starts (404 at /model/metrics): its finops agent all the same", async (): Promise<void> => {
+  const cluster: Cluster = kubecost3();
+  cluster.runtimeOnly.clear();
+
+  assert.strictEqual(
+    (await cluster.find({ url: `${KUBECOST3}:9090`, namespace: "kubecost3" }))
+      .url,
+    "http://kubecost-finopsagent.kubecost3.svc:80/metrics",
+  );
 });
 
 test("Kubecost 3 named by its aggregator: its finops agent too", async (): Promise<void> => {

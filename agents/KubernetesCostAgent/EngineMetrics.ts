@@ -21,9 +21,11 @@ import { EngineMetricsSource, ScrapeTargetGroup } from "./Types";
  *     /metrics is the web UI's page (HTTP 200, text/html), which the
  *     collector cannot parse; /model/metrics is the engine behind it.
  *   - Kubecost 3's frontend: /metrics is the web UI too, and /model/ leads
- *     to the aggregator, which serves no metrics (404). The prices are on
- *     its finops agent's Service (<release>-finopsagent, port http), at
- *     /metrics.
+ *     to the aggregator, whose /metrics is 404 while it starts and then its
+ *     own Go runtime series, with no price among them. The prices are on its
+ *     finops agent's Service (<release>-finopsagent, port http), at
+ *     /metrics. So an address only counts when a price series is in it:
+ *     answering in Prometheus' format is not enough.
  *
  * The chart cannot tell these apart while it renders (Helm's lookup sees
  * nothing under helm template, Argo CD or a dry run), and the collector's

@@ -11,7 +11,9 @@
 #                                     /model/metrics: the cost model's metrics
 #   Kubecost 2.8.7 cost model (:9003) /metrics: the metrics
 #   Kubecost 3.3.2 frontend (:9090)   /metrics: its web page
-#                                     /model/metrics: 404 (the aggregator's)
+#                                     /model/metrics: the aggregator's, 404
+#                                     while it starts, then Go runtime series
+#                                     with no price among them
 #   Kubecost 3.3.2 finops agent (:80) /metrics: the metrics
 #   OpenCost 1.121.4 API (:9003)      /metrics: the metrics
 #   OpenCost 1.121.4 UI (:9090)       /metrics: its web page
