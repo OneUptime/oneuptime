@@ -135,7 +135,7 @@ export function getKubernetesVolumeUsageCharts(data: {
             "How many files and directories claim {{claimName}}'s filesystem can hold, and how many more it can still create.",
             { claimName: data.claimName },
           ),
-          legend: translator.translateText("Inodes"),
+          legend: translator.translateText("Total Inodes"),
           legendUnit: "",
         },
         metricQueryData: {

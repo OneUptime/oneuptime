@@ -58,7 +58,7 @@ const InodeUsage: FunctionComponent<{ inodes: StorageUsage }> = (props: {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
         <span className="font-medium text-gray-700">
-          {translator.translateText("Inodes")}
+          {translator.translateText("Inode Usage")}
         </span>
         <span className="text-xs text-gray-600">
           {translator.translateTemplate(
