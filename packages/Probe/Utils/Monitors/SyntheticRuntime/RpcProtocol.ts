@@ -124,6 +124,11 @@ export interface SandboxExecutionResult {
   capturedMetrics: SandboxMetric[];
   screenshots: Record<string, Buffer>;
   scriptError?: string | undefined;
+  /*
+   * How long the run waited for one-time codes that were about to expire
+   * (issue #9703): OneUptime's wait, kept out of the run's execution time.
+   */
+  totpWaitInMs?: number | undefined;
 }
 
 export function createExecutionId(): string {
