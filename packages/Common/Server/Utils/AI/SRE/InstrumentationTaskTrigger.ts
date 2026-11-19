@@ -293,6 +293,7 @@ export default class InstrumentationTaskTrigger {
 
       const existingRun: AIRun | null =
         await SubjectCodeFixRun.findNonTerminalRunForSubject({
+          projectId,
           taskType: CodeFixTaskType.ImproveInstrumentation,
           incidentId: data.incidentId,
           alertId: data.alertId,

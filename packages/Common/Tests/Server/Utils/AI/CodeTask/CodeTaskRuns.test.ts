@@ -3,6 +3,11 @@ import Semaphore, {
 } from "../../../../../Server/Infrastructure/Semaphore";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import CodeFixOnItsWay, {
+  CODE_FIX_ON_ITS_WAY_LIMIT_NAME,
+  CodeFixProblem,
+} from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
+import CreateLimit from "../../../../../Server/Types/Database/CreateLimit";
 import CodeTaskRuns, {
   CODE_TASK_BUSY_MESSAGE,
   CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE,
@@ -176,6 +181,52 @@ describe("CodeTaskRuns.start", () => {
     expect(
       (AIRunService.create as unknown as jest.Mock).mock.calls[0]![0],
     ).toMatchObject({ props: { isRoot: true } });
+  });
+
+  /*
+   * A request a path starts as a fix of a problem it names only in its
+   * context - a profile's slow function - is written only while no fix of
+   * it is on its way, decided with its INSERT (CodeFixOnItsWay); a request
+   * typed in Code is held to nothing (#9882).
+   */
+  test("the problems a path starts it as a fix of hold its INSERT, and only while it is written", async () => {
+    const function_: CodeFixProblem = CodeFixOnItsWay.ofProfileFunction({
+      projectId: PROJECT_ID,
+      serviceId: ObjectID.generate(),
+      functionName: "listUsers",
+      fileName: "",
+    });
+    const limits: Array<CreateLimit | null> = [];
+
+    (AIRunService.create as unknown as jest.Mock).mockImplementation(
+      async (data: { data: AIRun }): Promise<AIRun> => {
+        limits.push(CodeFixOnItsWay.getCreateLimit(data.data));
+        return data.data;
+      },
+    );
+
+    const run: AIRun = await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Make listUsers lighter",
+      context: CONTEXT,
+      holdsTo: [function_],
+    });
+
+    expect(limits[0]?.limitName).toBe(CODE_FIX_ON_ITS_WAY_LIMIT_NAME);
+    expect(CodeFixOnItsWay.getCreateLimit(run)).toBeNull();
+
+    // Asked in Code, without a path that starts it as a fix: never held.
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Make listUsers lighter",
+      context: CONTEXT,
+    });
+
+    expect(limits[1]).toBeNull();
   });
 
   /*
