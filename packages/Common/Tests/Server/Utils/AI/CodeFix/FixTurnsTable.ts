@@ -517,10 +517,23 @@ export default class FixTurnsTable {
 
     const projectId: string = key(parameters[0]);
     const runType: string = String(parameters[1]);
-    const endStatuses: Array<string> = (parameters[2] as Array<string>).map(
-      String,
-    );
+    // The statuses a turn ends in, when the statement leaves them out.
+    const endStatuses: Array<string> = sql.includes(
+      `"turn"."status" <> ALL($3::text[])`,
+    )
+      ? (parameters[2] as Array<string>).map(String)
+      : [];
     const problem: StatementProblem = readStatementProblem(sql, parameters);
+
+    /*
+     * Whether the statement reads a turn's task's first turn at all - beside
+     * it, and in what it matches - as a reply needs it to: read off the
+     * statement, so one that forgot it is answered as Postgres would.
+     */
+    const readsTheTask: boolean =
+      sql.includes(
+        `LEFT JOIN "AIRun" AS "task" ON "task"."_id" = "turn"."codeTaskId"`,
+      ) && sql.includes(`"task"."codeFixTaskType" = ANY(`);
 
     const isFixOf: (row: FixTurnRow | undefined) => boolean = (
       row: FixTurnRow | undefined,
@@ -539,7 +552,7 @@ export default class FixTurnsTable {
     const taskOf: (turn: FixTurnRow) => FixTurnRow | undefined = (
       turn: FixTurnRow,
     ): FixTurnRow | undefined => {
-      return turn.codeTaskId
+      return readsTheTask && turn.codeTaskId
         ? this.rows.find((row: FixTurnRow): boolean => {
             return (
               key(row._id) === key(turn.codeTaskId) &&
