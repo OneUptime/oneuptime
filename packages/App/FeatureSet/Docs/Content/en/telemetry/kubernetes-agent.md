@@ -32,7 +32,7 @@ flowchart TB
 | eBPF instrumentation (OBI) | DaemonSet | HTTP, gRPC, SQL and Redis traces and request metrics from every pod, and the service map. | By default, except on GKE Autopilot and EKS Fargate |
 | Kubernetes AI agent | Deployment | Read-only `kubectl` for OneUptime AI while it investigates an incident or alert. | By default |
 | Log tailer | Deployment | Pod logs through the Kubernetes API, where the node collector cannot read them. | With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets |
-| Cost engine and poller | Deployments | Spend per namespace, workload and pod. | With `cost.enabled=true` |
+| Cost engine and poller | Deployments | Spend per namespace, workload and pod. | By default, except on GKE Autopilot and EKS Fargate |
 
 Every agent image is Linux-only, so every workload is pinned to Linux nodes.
 
@@ -199,7 +199,8 @@ Set them in the EKS console's **Optional configuration settings**, or with `--co
 - `oneuptime.labels`: project labels for everything this cluster sends, such as `{"team": "payments"}`.
 - `preset`: `eks-fargate` for a cluster that runs only on Fargate, otherwise `standard`, the default.
 - `logs.enabled`, `ebpf.enabled` and `aiAgent.enabled`: pod logs, eBPF traces and the [Kubernetes AI agent](#kubernetes-ai-agent), each on by default.
-- `kubeStateMetrics.enabled` and `cost.enabled`: kube-state-metrics and [cost observability](/docs/telemetry/kubernetes-cost), each off by default.
+- `kubeStateMetrics.enabled`: kube-state-metrics, off by default.
+- `cost.enabled`: [cost observability](/docs/telemetry/kubernetes-cost), `auto` by default: on with EC2 nodes, off on Fargate.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ To get them back, move to `openshift` with `--set preset=openshift` on an upgrad
 | Service graph (eBPF) | Caller-to-callee request rate, latency and error edges, which draw the service map |
 | Network flow metrics (eBPF) | Pod-to-pod TCP and UDP byte and packet counters, with Kubernetes metadata |
 | TCP stats (eBPF) | Node-level round-trip time, failed-connection and retransmit counters |
-| Workload costs (opt-in, `cost.enabled=true`) | Spend per namespace, workload and pod, with idle and efficiency, and node and volume hourly costs: see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
+| Workload costs (on by default, except on GKE Autopilot and EKS Fargate) | Spend per namespace, workload and pod, with idle and efficiency, also as metrics to alert on, and node and volume hourly costs: see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes events
 
@@ -594,7 +595,7 @@ Some charts show metrics the agent has no scrape for: **kube-proxy** on the **Co
 
 ### Enable cost observability
 
-See what every namespace, workload and pod costs, with idle capacity and how much of each request is used, on the cluster's **Costs** page:
+Cost observability is on by default: the cluster's overview and its **Costs** page show what every namespace, workload and pod costs, with idle capacity and how much of each request is used, and the cost metrics can be charted and alerted on. It is off by default on the `gke-autopilot` and `eks-fargate` presets, which bill every pod by what it requests, and on an agent installed before it was on by default. Turn it on there:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-That alone is a complete install: the chart bundles the open-source [OpenCost](https://opencost.io) engine (with the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices, with no credentials. It adds two small pods, and the first costs appear after the first closed hour. Already running Kubecost or OpenCost? Add `--set cost.engine.url=<its service URL>` instead, and nothing is bundled. On-prem clusters can set a rate card with `cost.opencost.customPricing`. The full guide, with on-prem pricing and troubleshooting, is [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
+That alone is a complete install: the chart bundles the open-source [OpenCost](https://opencost.io) engine (with the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices, with no credentials. It adds three small pods, and the first costs appear after the first closed hour. To turn it off, set `--set cost.enabled=false` the same way. Already running Kubecost or OpenCost? Add `--set cost.engine.url=<its service URL>` instead, and nothing is bundled. On-prem clusters can set a rate card with `cost.opencost.customPricing`. The full guide, with on-prem pricing and troubleshooting, is [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
 
 ### Auto-tag with project labels
 
@@ -990,7 +991,8 @@ These are off by default because they add load. Turn one on only when you use wh
 | `kubeStateMetrics.enabled` | CrashLoop, ImagePull and scheduling-reason metrics (adds a kube-state-metrics Deployment and a scrape) |
 | `ebpf.features.networkInterZoneMetrics` | Doubles the network flow series |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | More Prometheus scrape jobs |
-| `cost.enabled` | Workload costs (bundles OpenCost and a small Prometheus; hourly cost rows and a tightly allowlisted metrics scrape; modest ingest, two more pods) |
+
+Cost observability (`cost.enabled`) is on by default instead: three small pods, an hourly cost row per container, and a scrape of one price series per node, volume and load balancer. Turn it off with `--set cost.enabled=false` if you do not use it.
 
 ### Sample traces instead of dropping them
 
