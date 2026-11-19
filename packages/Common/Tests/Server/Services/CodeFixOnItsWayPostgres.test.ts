@@ -614,6 +614,7 @@ describePostgres(
        */
       async function createWhileHeld(
         runs: Array<AIRun>,
+        createRun: (run: AIRun) => Promise<AIRun> = create,
       ): Promise<Array<PromiseSettledResult<AIRun>>> {
         const holder: QueryRunner = database.createQueryRunner();
 
@@ -634,7 +635,7 @@ describePostgres(
 
           settled = Promise.allSettled(
             runs.map((run: AIRun): Promise<AIRun> => {
-              return create(run);
+              return createRun(run);
             }),
           );
 
@@ -699,6 +700,63 @@ describePostgres(
         ).toEqual(["fulfilled", "fulfilled"]);
         expect(await fixesOf(traceId)).toBe(1);
         expect(await fixesOf(otherTrace)).toBe(1);
+      });
+
+      /*
+       * A profile's slow function is named only in a request's context, so
+       * the path that starts its fix holds the INSERT to it
+       * (CodeFixOnItsWay.createHeldTo) - and a request typed in Code naming
+       * the same function is held to nothing.
+       */
+      test("of two fixes of one profile function started at once, exactly one is written; a request typed in Code naming it is not held", async () => {
+        const functionFix: () => AIRun = (): AIRun => {
+          const run: AIRun = new AIRun();
+          run.projectId = projectId;
+          run.runType = AIRunType.CodeFix;
+          run.codeFixTaskType = CodeFixTaskType.CodeRequest;
+          run.status = AIRunStatus.Queued;
+          run.taskContext = {
+            request: {
+              message: "Make listOrders lighter.",
+              context: [profileContext],
+            },
+          } as never;
+          return run;
+        };
+
+        const heldToTheFunction: (run: AIRun) => Promise<AIRun> = async (
+          run: AIRun,
+        ): Promise<AIRun> => {
+          return await CodeFixOnItsWay.createHeldTo({
+            run,
+            problems: [KINDS[6]!.problem()],
+            create: async (): Promise<AIRun> => {
+              return await create(run);
+            },
+          });
+        };
+
+        const results: Array<PromiseSettledResult<AIRun>> =
+          await createWhileHeld(
+            [functionFix(), functionFix()],
+            heldToTheFunction,
+          );
+
+        expect(
+          results
+            .map((result: PromiseSettledResult<AIRun>): string => {
+              return result.status === "rejected"
+                ? (result.reason as Error).message
+                : result.status;
+            })
+            .sort(),
+        ).toEqual([
+          "OneUptime AI is already working on this function. Follow it in Code.",
+          "fulfilled",
+        ]);
+
+        // Asked in Code, beside the fix on its way: written.
+        await expect(create(functionFix())).resolves.toBeDefined();
       });
 
       test("a reply working on the trace's fix refuses a new fix at the INSERT, whatever came before it", async () => {

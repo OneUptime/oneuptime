@@ -48,7 +48,9 @@ import { EntityManager } from "typeorm";
  * moment - two clicks, a click and Try again, OneUptime's own lane and a
  * person - cannot both pass: the second is decided once the first's run is
  * written, and sees it. A reply is never refused here: it is a person
- * continuing their own task.
+ * continuing their own task. A profile's slow function is named only in a
+ * Code request's context, as a request typed in Code may name it too, so
+ * the path that starts its fix holds the INSERT to it (createHeldTo).
  */
 
 // What a fix is of: the problem one fix at a time is held to.
@@ -101,6 +103,17 @@ export interface CodeFixRunFacts {
 export const CODE_FIX_ON_ITS_WAY_LIMIT_NAME: string = "code-fix-on-its-way";
 
 type QueryRows = Array<Record<string, unknown>>;
+
+/*
+ * The problems a run being created is a fix of that it carries in no column
+ * a create can read (createHeldTo): the very model instances, held only for
+ * the length of their create, so nothing a request body carries can put a
+ * run in here.
+ */
+const problemsHeldTo: WeakMap<AIRun, Array<CodeFixProblem>> = new WeakMap<
+  AIRun,
+  Array<CodeFixProblem>
+>();
 
 export default class CodeFixOnItsWay {
   /*
@@ -469,7 +482,10 @@ LIMIT ${limit}`,
    * an investigation).
    */
   public static getCreateLimit(run: AIRun): CreateLimit | null {
-    const problems: Array<CodeFixProblem> = CodeFixOnItsWay.problemsOf(run);
+    const problems: Array<CodeFixProblem> = [
+      ...CodeFixOnItsWay.problemsOf(run),
+      ...(problemsHeldTo.get(run) || []),
+    ];
 
     if (problems.length === 0 || !run.projectId) {
       return null;
@@ -492,6 +508,29 @@ LIMIT ${limit}`,
         }
       },
     };
+  }
+
+  /*
+   * Creates `run` - with `create`, which writes that very instance - held
+   * to `problems` beside what it carries: a fix of a problem it names in no
+   * column a create can read, as a profile's slow function, which a Code
+   * request names only in its context (ProfileFixTaskTrigger) - and which a
+   * request typed in Code may name without being its fix, so it is never
+   * read off the run itself. Its INSERT is then decided as every fix's is
+   * (getCreateLimit).
+   */
+  public static async createHeldTo<T>(data: {
+    run: AIRun;
+    problems: Array<CodeFixProblem>;
+    create: () => Promise<T>;
+  }): Promise<T> {
+    problemsHeldTo.set(data.run, data.problems);
+
+    try {
+      return await data.create();
+    } finally {
+      problemsHeldTo.delete(data.run);
+    }
   }
 
   /*

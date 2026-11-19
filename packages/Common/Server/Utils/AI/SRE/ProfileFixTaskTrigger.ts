@@ -562,6 +562,18 @@ export default class ProfileFixTaskTrigger {
       ...(request.insightId
         ? { triggeredByAiInsightId: request.insightId }
         : {}),
+      /*
+       * Written only while no fix of the function is on its way, decided
+       * with the INSERT: two asked at once start one.
+       */
+      holdsTo: [
+        CodeFixOnItsWay.ofProfileFunction({
+          projectId: request.projectId,
+          serviceId: request.serviceId,
+          functionName: request.functionName,
+          fileName: request.fileName,
+        }),
+      ],
     });
 
     if (request.insightId) {

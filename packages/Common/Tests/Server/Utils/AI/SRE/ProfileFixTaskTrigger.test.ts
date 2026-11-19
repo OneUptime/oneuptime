@@ -42,6 +42,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import FixTurnsTable, { FixTurnRow } from "../CodeFix/FixTurnsTable";
+import CodeFixOnItsWay from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import ObjectID from "../../../../../Types/ObjectID";
 import { ProfileFrameOrigin } from "../../../../../Utils/Profiles/ProfileFrames";
 import {
@@ -558,6 +559,18 @@ describe("starting the fix", () => {
       "Make parseOrder in src/orders/parse.ts faster",
     );
     expect(started.message).toContain("It takes 42% of checkout's CPU time");
+    /*
+     * A fix of the function, decided with its INSERT: two asked at once
+     * start one (CodeFixOnItsWay.createHeldTo).
+     */
+    expect(started.holdsTo).toEqual([
+      CodeFixOnItsWay.ofProfileFunction({
+        projectId,
+        serviceId,
+        functionName: "parseOrder",
+        fileName: "src/orders/parse.ts",
+      }),
+    ]);
   });
 
   test("the person's own words, when they edited the ask", async () => {

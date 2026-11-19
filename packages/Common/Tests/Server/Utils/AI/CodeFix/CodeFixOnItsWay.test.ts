@@ -691,6 +691,15 @@ describe("what a second fix is told", () => {
       }),
       "OneUptime AI is already improving this service's tracing. Follow it in Code.",
     ],
+    [
+      CodeFixOnItsWay.ofProfileFunction({
+        projectId: PROJECT_ID,
+        serviceId: SERVICE_ID,
+        functionName: "listOrders",
+        fileName: "",
+      }),
+      "OneUptime AI is already working on this function. Follow it in Code.",
+    ],
   ])(
     "what is on its way, and where to follow it: %#",
     (problem: CodeFixProblem, refusal: string) => {
@@ -786,6 +795,91 @@ describe("every fix's INSERT is held to the rule", () => {
         },
       } as unknown as EntityManager),
     ).rejects.toThrow(CODE_TASK_TRY_AGAIN_FIX_ON_ITS_WAY_MESSAGE);
+  });
+
+  test("a request a path starts as a fix of a profile's function is held to it for the length of its create, and only then", async () => {
+    const run: AIRun = fixRun({ codeFixTaskType: CodeFixTaskType.CodeRequest });
+    const function_: CodeFixProblem = CodeFixOnItsWay.ofProfileFunction({
+      projectId: PROJECT_ID,
+      serviceId: SERVICE_ID,
+      functionName: "listOrders",
+      fileName: "src/orders/list.ts",
+    });
+
+    // A request typed in Code names a function in its context: no fix of it.
+    expect(CodeFixOnItsWay.getCreateLimit(run)).toBeNull();
+
+    let heldWhileCreating: CreateLimit | null = null;
+
+    await CodeFixOnItsWay.createHeldTo({
+      run,
+      problems: [function_],
+      create: async (): Promise<void> => {
+        heldWhileCreating = CodeFixOnItsWay.getCreateLimit(run);
+      },
+    });
+
+    expect(heldWhileCreating!.limitName).toBe(CODE_FIX_ON_ITS_WAY_LIMIT_NAME);
+    expect(heldWhileCreating!.projectId).toBe(PROJECT_ID);
+
+    const statements: Array<string> = [];
+
+    await expect(
+      heldWhileCreating!.check({
+        query: async (sql: string) => {
+          statements.push(sql);
+          return [{ turnId: ObjectID.generate().toString() }];
+        },
+      } as unknown as EntityManager),
+    ).rejects.toThrow(
+      "OneUptime AI is already working on this function. Follow it in Code.",
+    );
+    expect(statements[0]).toContain(`"item" ->> 'functionName'`);
+
+    // Let go once the create is done - even one that failed.
+    expect(CodeFixOnItsWay.getCreateLimit(run)).toBeNull();
+
+    await expect(
+      CodeFixOnItsWay.createHeldTo({
+        run,
+        problems: [function_],
+        create: async (): Promise<void> => {
+          throw new BadDataException("The INSERT failed.");
+        },
+      }),
+    ).rejects.toThrow("The INSERT failed.");
+    expect(CodeFixOnItsWay.getCreateLimit(run)).toBeNull();
+  });
+
+  test("a held problem adds to what the run carries", async () => {
+    const run: AIRun = fixRun({
+      codeFixTaskType: CodeFixTaskType.CodeRequest,
+      triggeredByAiInsightId: INSIGHT_ID,
+    });
+    let statements: number = 0;
+
+    await CodeFixOnItsWay.createHeldTo({
+      run,
+      problems: [
+        CodeFixOnItsWay.ofProfileFunction({
+          projectId: PROJECT_ID,
+          serviceId: SERVICE_ID,
+          functionName: "listOrders",
+          fileName: "",
+        }),
+      ],
+      create: async (): Promise<void> => {
+        await CodeFixOnItsWay.getCreateLimit(run)!.check({
+          query: async () => {
+            statements++;
+            return [];
+          },
+        } as unknown as EntityManager);
+      },
+    });
+
+    // The insight it carries, and the function it was started for.
+    expect(statements).toBe(2);
   });
 
   test("a reply, a request, a GitHub task and a chat are never held", () => {
