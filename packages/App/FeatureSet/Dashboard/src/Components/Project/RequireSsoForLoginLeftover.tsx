@@ -57,6 +57,8 @@ const RequireSsoForLoginLeftover: FunctionComponent<ComponentProps> = (
       id: props.projectId,
       select: {
         requireSsoForLogin: true,
+        // The switch under it, while it requires SSO (RequireSsoForLoginCard).
+        manageSignInWithSso: true,
       },
     })
       .then((project: Project | null): void => {

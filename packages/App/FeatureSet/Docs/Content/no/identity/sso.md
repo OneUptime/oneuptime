@@ -294,6 +294,21 @@ Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pål
 > [!NOTE]
 > På OneUptime Cloud krever det planen **Scale** å kreve SSO, mens det fungerer på alle planer å slå det av. Under Scale viser **Prosjektinnstillinger** > **Sikkerhet** > **SSO** planens oppgraderingstilbud; et prosjekt som en Scale-prøveperiode etterlot med krav om SSO, finner også **Krev SSO for å logge på** der, under tilbudet, slik at det kan slås av. Å slå det på igjen krever **Scale**.
 
+### Styr påloggingen til brukerne dine med SSO
+
+Å kreve SSO holder prosjektets data bak identitetsleverandøren din, men brukerne dine kan fortsatt sette opp passord, passnøkler og tofaktorautentisering i OneUptime, noe prosjektet ditt aldri ber om. Så lenge **Krev SSO for å logge på** er slått på, hindrer en andre bryter under den, **Styr pålogging med SSO**, dette.
+
+En persons pålogging styres av SSO når alle prosjektene vedkommende hører til, inkludert alle prosjekter vedkommende er invitert til, krever SSO og har **Styr pålogging med SSO** slått på. Vedkommende kan da ikke sette opp passord, passnøkkel, sikkerhetsnøkkel, autentiseringsapp, reservekoder eller tofaktorautentisering, **Glemt passord?** sender ingen lenke, og vedkommendes **Brukerprofil** viser identitetsleverandøren i stedet for å tilby disse innstillingene. Ingenting ved påloggingen endres: Passordet logger fortsatt vedkommende på OneUptime, og prosjektet ditt ber om SSO som før.
+
+Regelen sjekkes hver gang, så:
+
+- **Noen i et prosjekt som ikke styrer påloggingen**: Så snart vedkommende er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, får vedkommende innstillingene sine tilbake, og vedkommendes **Brukerprofil** viser det prosjektet som grunnen. Forlater vedkommende det, styres påloggingen igjen. En konto kan høre til mange organisasjoner, så én organisasjon bestemmer aldri over en annens prosjekter.
+- **Prosjekter med ulike leverandører**: Noen i to prosjekter som begge styrer påloggingen, hvert med sin egen identitetsleverandør, blir styrt, og profilen viser begge leverandørene.
+- **Master-admins** beholder alltid sine egne innstillinger.
+- **Det folk har satt opp før**, blir beholdt, ubrukt av prosjektet ditt. En serveradministrator kan fjerne det på personens side **Autentisering** i Admin Dashboard, med **Fjern påloggingsinnstillinger**.
+
+**Styr pålogging med SSO** lagres så snart du slår om bryteren, sletter ingenting, og slår du den av, får alle innstillingene sine tilbake med en gang. Den som kan endre **Krev SSO for å logge på**, kan endre den, på de samme planene. Når **Krev SSO for å logge på** er slått av, er den skjult og endrer ingenting.
+
 ## Slå av eller slette en leverandør
 
 | Hva du endrer | Personer som logget inn med leverandøren |

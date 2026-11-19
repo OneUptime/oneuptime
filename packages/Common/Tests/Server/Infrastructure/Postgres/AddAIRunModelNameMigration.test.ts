@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddAIRunModelName1809185500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185500000-AddAIRunModelName";
+import { AddAIRunModelName1809185800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185800000-AddAIRunModelName";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 
@@ -38,11 +38,11 @@ function timestampOf(migration: unknown): number {
   );
 }
 
-describe("AddAIRunModelName1809185500000", () => {
+describe("AddAIRunModelName1809185800000", () => {
   test("adds the two columns to AIRun, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddAIRunModelName1809185500000().up(runner);
+        return new AddAIRunModelName1809185800000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "AIRun" ADD "modelName" character varying(100)`,
@@ -52,7 +52,7 @@ describe("AddAIRunModelName1809185500000", () => {
 
   test("nullable, no default, no index, no row rewritten", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddAIRunModelName1809185500000().up(runner);
+      return new AddAIRunModelName1809185800000().up(runner);
     })) {
       expect(statement).not.toMatch(
         /NOT NULL|DEFAULT|CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE /i,
@@ -74,7 +74,7 @@ describe("AddAIRunModelName1809185500000", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddAIRunModelName1809185500000().down(runner);
+        return new AddAIRunModelName1809185800000().down(runner);
       }),
     ).toEqual([
       `ALTER TABLE "AIRun" DROP COLUMN "llmProviderType"`,
@@ -87,17 +87,17 @@ describe("AddAIRunModelName1809185500000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddAIRunModelName1809185500000;
+        return candidate === AddAIRunModelName1809185800000;
       }),
     ).toHaveLength(1);
 
-    const position: number = registered.indexOf(AddAIRunModelName1809185500000);
+    const position: number = registered.indexOf(AddAIRunModelName1809185800000);
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddAIRunModelName1809185500000));
-    expect(new AddAIRunModelName1809185500000().name).toBe(
-      "AddAIRunModelName1809185500000",
+    ).toBeLessThan(timestampOf(AddAIRunModelName1809185800000));
+    expect(new AddAIRunModelName1809185800000().name).toBe(
+      "AddAIRunModelName1809185800000",
     );
   });
 });

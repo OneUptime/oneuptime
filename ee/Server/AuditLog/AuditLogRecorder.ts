@@ -43,6 +43,11 @@ import {
   SignInFailureAuditEvent,
 } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import {
+  AUDIT_LOG_SIGN_IN_SETTINGS_CLEARED_RESOURCE_TYPE,
+  getSignInSettingsClearedChanges,
+  SignInSettingsClearedAuditEvent,
+} from "Common/Types/AuditLog/AuditLogSignInSettingsCleared";
+import {
   AUDIT_LOG_STATUS_PAGE_READER_ACTOR_TYPE,
   AUDIT_LOG_STATUS_PAGE_SESSION_RESOURCE_TYPE,
   AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE,
@@ -608,6 +613,79 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   }
 
   /*
+   * SIGN-IN SETTINGS A MASTER ADMIN CLEARED (issue #9762): a person's
+   * password, passkeys, security keys, authenticator apps, backup codes and
+   * two-factor authentication, removed from the Admin Dashboard
+   * (Common/Types/AuditLog/AuditLogSignInSettingsCleared).
+   *
+   * Filed as a person's session is: in every project they are a member of
+   * that records audit logs, whether or not it stores system events - a
+   * master admin did it by hand. The entry is an Update of the person (a
+   * User, by their id, named by their name or email); its actor is the
+   * master admin who cleared it, so filtering by their email finds every
+   * clear they made; its fields are what was removed, never a value of it.
+   * A clear that removed nothing makes no entry.
+   */
+  public async recordSignInSettingsCleared(
+    events: Array<SignInSettingsClearedAuditEvent>,
+  ): Promise<void> {
+    try {
+      const recordable: Array<SignInSettingsClearedAuditEvent> = (
+        events || []
+      ).filter((event: SignInSettingsClearedAuditEvent): boolean => {
+        return Boolean(
+          event &&
+            event.userId &&
+            event.clearedByUserId &&
+            event.cleared &&
+            getSignInSettingsClearedChanges(event.cleared).length > 0,
+        );
+      });
+
+      if (recordable.length === 0) {
+        return;
+      }
+
+      // Each master admin who cleared some, looked up once.
+      const actors: Map<
+        string,
+        { name: string | null; email: string | null } | null
+      > = new Map();
+
+      for (const event of recordable) {
+        const key: string = event.clearedByUserId.toString().toLowerCase();
+
+        if (!actors.has(key)) {
+          actors.set(key, await this.getUserInfo(event.clearedByUserId));
+        }
+      }
+
+      await this.insertMany(
+        await this.buildEntriesInMemberProjects({
+          events: recordable,
+          getUserId: (event: SignInSettingsClearedAuditEvent): ObjectID => {
+            return event.userId;
+          },
+          buildEntry: (
+            data: MemberProjectEntryInput<SignInSettingsClearedAuditEvent>,
+          ) => {
+            return this.buildSignInSettingsClearedEntry({
+              ...data,
+              clearedBy:
+                actors.get(
+                  data.event.clearedByUserId.toString().toLowerCase(),
+                ) || null,
+            });
+          },
+        }),
+      );
+    } catch (err) {
+      logger.warn("AuditLog: failed to record cleared sign-in settings");
+      logger.warn(err);
+    }
+  }
+
+  /*
    * A PRIVATE STATUS PAGE'S READERS' SESSIONS (issue #6790): a reader's
    * sign-in, sign-out or a session OneUptime ended
    * (Common/Types/AuditLog/AuditLogStatusPageSession).
@@ -841,6 +919,43 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       event: data.event,
       projectId: data.projectId,
     });
+    auditLog.retentionDate = this.computeRetentionDate(data.retentionInDays);
+
+    return auditLog;
+  }
+
+  // One project's entry about a person whose sign-in settings were cleared.
+  private buildSignInSettingsClearedEntry(
+    data: MemberProjectEntryInput<SignInSettingsClearedAuditEvent> & {
+      clearedBy: { name: string | null; email: string | null } | null;
+    },
+  ): AuditLog {
+    const auditLog: AuditLog = new AuditLog();
+
+    auditLog.projectId = data.projectId;
+    auditLog.resourceType = AUDIT_LOG_SIGN_IN_SETTINGS_CLEARED_RESOURCE_TYPE;
+    auditLog.resourceId = data.event.userId;
+
+    const resourceName: string | null =
+      data.person?.name || data.person?.email || null;
+
+    if (resourceName) {
+      auditLog.resourceName = resourceName;
+    }
+
+    auditLog.rootResourceType =
+      AUDIT_LOG_SIGN_IN_SETTINGS_CLEARED_RESOURCE_TYPE;
+    auditLog.rootResourceId = data.event.userId;
+    auditLog.action = AuditLogAction.Update;
+
+    // The master admin who cleared them.
+    this.setPersonAsActor({
+      auditLog,
+      userId: data.event.clearedByUserId,
+      person: data.clearedBy,
+    });
+
+    auditLog.changes = getSignInSettingsClearedChanges(data.event.cleared);
     auditLog.retentionDate = this.computeRetentionDate(data.retentionInDays);
 
     return auditLog;

@@ -38,7 +38,21 @@ describe("the words each cause is revoked with", () => {
       [SessionEndCause.TwoFactorReset]: "Two factor auth reset by admin",
       // New in #6116: a master admin signing out everyone who signed in without SSO.
       [SessionEndCause.SignedInWithoutSso]: "Signed in without SSO",
+      // New in #9762: a master admin clearing someone's sign-in settings.
+      [SessionEndCause.SignInSettingsCleared]:
+        "Sign-in settings cleared by admin",
     });
+  });
+
+  test("a clear of someone's sign-in settings is a revocation of its own, never a timeout", () => {
+    expect(
+      readSessionEndCause(
+        getSessionEndCauseRevokedReason(SessionEndCause.SignInSettingsCleared),
+      ),
+    ).toBe(SessionEndCause.SignInSettingsCleared);
+    expect(isSessionTimeoutCause(SessionEndCause.SignInSettingsCleared)).toBe(
+      false,
+    );
   });
 
   // UserSession.revokedReason is a ShortText column: 100 characters.

@@ -2,8 +2,14 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
-import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
-import React, { FunctionComponent, ReactElement } from "react";
+import ModelSwitchRow, {
+  ModelSwitchConfirmation,
+} from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import ManageSignInWithSsoSwitchCopy, {
+  MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN,
+  MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID,
+} from "./ManageSignInWithSsoSwitchCopy";
 import RequireSsoForLoginSwitchCopy, {
   REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN,
   REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID,
@@ -22,6 +28,10 @@ import RequireSsoForLoginSwitchCopy, {
  * then leaves out the line about the test link, which is not on that page,
  * and locks the switch once it is off, saying the plan: requiring SSO
  * again needs Scale, and its dialog would point at the missing test link.
+ *
+ * While the project requires SSO, a second switch hangs under the first:
+ * Manage Sign-In with SSO (#9763, ManageSignInWithSsoSwitchCopy), which
+ * saves on its own column - turning Require SSO on never turns it on.
  */
 
 export interface ComponentProps {
@@ -82,6 +92,35 @@ const RequireSsoForLoginCard: FunctionComponent<ComponentProps> = (
       dataTestId={REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID}
       initialItem={props.initialProject}
       locksWhenPlanNeeded={props.isPlanLeftover}
+      select={{ [MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN]: true }}
+      getDetails={(item: Project, isOn: boolean): ReactNode => {
+        /*
+         * Whether the project also manages its people's sign-in with SSO
+         * (#9763): only while it requires SSO, when the switch decides
+         * something. It saves on its own, and keeps its setting while
+         * Require SSO is off.
+         */
+        if (!isOn) {
+          return null;
+        }
+
+        return (
+          <ModelSwitchRow<Project>
+            modelType={Project}
+            modelId={props.projectId}
+            column={MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN}
+            initialValue={Boolean(item.manageSignInWithSso)}
+            title={ManageSignInWithSsoSwitchCopy.switchTitle}
+            getDescription={(isManaging: boolean): string => {
+              return isManaging
+                ? ManageSignInWithSsoSwitchCopy.switchOnDescription
+                : ManageSignInWithSsoSwitchCopy.switchOffDescription;
+            }}
+            dataTestId={MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID}
+            locksWhenPlanNeeded={props.isPlanLeftover}
+          />
+        );
+      }}
     />
   );
 };

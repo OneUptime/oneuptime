@@ -97,6 +97,74 @@ jest.mock("Common/Server/Services/EmailVerificationTokenService", () => {
   };
 });
 
+/*
+ * The person's memberships and their projects' sign-in rules (#9763): what
+ * the real rule reads while the server does not require SSO. Nobody is in a
+ * project unless a test says so.
+ */
+const teamMemberFindBy: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/TeamMemberService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: (...args: Array<unknown>): unknown => {
+        return teamMemberFindBy(...args);
+      },
+      findOneBy: jest.fn(),
+    },
+  };
+});
+
+const projectFindBy: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: (...args: Array<unknown>): unknown => {
+        return projectFindBy(...args);
+      },
+    },
+  };
+});
+
+type ProjectRule = {
+  requireSsoForLogin: boolean;
+  manageSignInWithSso: boolean;
+};
+
+// The account's projects, each with its rule, as the rule reads them.
+function storeProjects(rules: Array<ProjectRule>): void {
+  const rows: Array<Record<string, unknown>> = rules.map(
+    (rule: ProjectRule, index: number): Record<string, unknown> => {
+      const id: ObjectID = new ObjectID(
+        `9d000000-0000-4000-8000-0000000001${String(index).padStart(2, "0")}`,
+      );
+
+      return {
+        id: id,
+        _id: id.toString(),
+        name: `Project ${index + 1}`,
+        requireSsoForLogin: rule.requireSsoForLogin,
+        manageSignInWithSso: rule.manageSignInWithSso,
+      };
+    },
+  );
+
+  teamMemberFindBy.mockResolvedValue(
+    rows.map((row: Record<string, unknown>) => {
+      return { projectId: row["id"] };
+    }),
+  );
+  projectFindBy.mockResolvedValue(rows);
+}
+
+const MANAGING: ProjectRule = {
+  requireSsoForLogin: true,
+  manageSignInWithSso: true,
+};
+
 const ACCOUNT_ID: ObjectID = new ObjectID(
   "9d000000-0000-4000-8000-0000000000aa",
 );
@@ -284,6 +352,11 @@ function expectTheUsualAnswer(error: Exception | null): void {
   expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
 }
 
+// In no project, unless a test says otherwise.
+beforeEach(() => {
+  storeProjects([]);
+});
+
 describe("POST /forgot-password while the server requires SSO (#9688)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -297,6 +370,8 @@ describe("POST /forgot-password while the server requires SSO (#9688)", () => {
     expectTheUsualAnswer(error);
     expectNothingSent();
     expect(getRequireSsoForLogin).toHaveBeenCalledTimes(1);
+    // The server's requirement decides: the person's projects are not read.
+    expect(teamMemberFindBy).not.toHaveBeenCalled();
   });
 
   it("mails an account with no password yet no link to set its first one either", async () => {
@@ -382,5 +457,116 @@ describe("POST /forgot-password while the server does not require SSO", () => {
 
     expectTheUsualAnswer(error);
     expect(resetEmails()).toHaveLength(1);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * PROJECTS THAT MANAGE THEIR PEOPLE'S SIGN-IN WITH SSO (#9763).
+ *
+ * On a server that does not require SSO - OneUptime Cloud, or a self-hosted
+ * server some of whose projects use passwords - a project that requires SSO
+ * can also manage its people's sign-in with it. Somebody whose EVERY
+ * project does so sets no password in OneUptime, so Forgot password mails
+ * them nothing, exactly as while the server requires SSO. One project that
+ * does not - an invitation to it included - keeps their password theirs,
+ * and the link goes out as always. The answer is the same in every case.
+ * ---------------------------------------------------------------------------
+ */
+describe("POST /forgot-password when the person's projects manage sign-in with SSO (#9763)", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getRequireSsoForLogin.mockResolvedValue(false);
+    account = { isMasterAdmin: false, hasPassword: true };
+  });
+
+  it("mails someone whose every project manages sign-in no reset link, and writes no token", async () => {
+    storeProjects([MANAGING, MANAGING]);
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expectNothingSent();
+
+    // Read for this account, from its own id - never an address typed.
+    const query: Record<string, unknown> = (
+      teamMemberFindBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(String(query["userId"])).toBe(ACCOUNT_ID.toString());
+  });
+
+  it("mails such an account with no password yet no first-password link either", async () => {
+    storeProjects([MANAGING]);
+    account = { isMasterAdmin: false, hasPassword: false };
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expectNothingSent();
+  });
+
+  it("mails the link once a project that does not require SSO is theirs, an invitation included", async () => {
+    storeProjects([
+      MANAGING,
+      { requireSsoForLogin: false, manageSignInWithSso: false },
+    ]);
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expect(wasTokenWritten()).toBe(true);
+    expect(resetEmails()).toHaveLength(1);
+  });
+
+  it("mails the link when a project requires SSO without managing sign-in", async () => {
+    storeProjects([
+      MANAGING,
+      { requireSsoForLogin: true, manageSignInWithSso: false },
+    ]);
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expect(resetEmails()).toHaveLength(1);
+  });
+
+  it("mails the link when the projects' switch is on but they do not require SSO", async () => {
+    storeProjects([{ requireSsoForLogin: false, manageSignInWithSso: true }]);
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expect(resetEmails()).toHaveLength(1);
+  });
+
+  it("mails the link to someone in no project at all", async () => {
+    storeProjects([]);
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expect(resetEmails()).toHaveLength(1);
+  });
+
+  it("mails a master admin their link, without their projects being read", async () => {
+    storeProjects([MANAGING]);
+    account = { isMasterAdmin: true, hasPassword: true };
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expect(resetEmails()).toHaveLength(1);
+    expect(teamMemberFindBy).not.toHaveBeenCalled();
+  });
+
+  it("projects that cannot be read mail nothing, are logged, and tell the caller nothing", async () => {
+    teamMemberFindBy.mockRejectedValue(new Error("connection refused"));
+
+    const error: Exception | null = await forgotPassword();
+
+    expectTheUsualAnswer(error);
+    expectNothingSent();
+    expect(loggerError).toHaveBeenCalled();
   });
 });

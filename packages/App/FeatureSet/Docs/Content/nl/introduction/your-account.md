@@ -123,12 +123,28 @@ De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUpti
 
 Hebt u al een app onder **Authenticator-apps** of een sleutel onder **Beveiligingssleutels**, dan vraagt **Tweefactorauthenticatie inschakelen** alleen om een bevestiging. Zolang ze is ingeschakeld, kunt u uw laatste app, sleutel of passkey niet verwijderen: voeg eerst een andere toe, of schakel tweefactorauthenticatie uit. Toont de kaart **Instellen vereist**, dan is tweefactorauthenticatie ingeschakeld zonder dat er iets is ingesteld, vaak omdat een beheerder het vereiste: klik op **Instellen afronden**, anders wordt u daar bij uw volgende aanmelding om gevraagd.
 
+### Tweefactorauthenticatie instellen tijdens het aanmelden
+
+Als een beheerder tweefactorauthenticatie vereist en u nog niets hebt ingesteld, vraagt uw volgende aanmelding met een wachtwoord of een gemailde link u om die in te stellen voordat u binnenkomt. Kies **Authenticator-app** of **Beveiligingssleutel** en klik op **Doorgaan**:
+
+- **Authenticator-app**: scan de QR-code, voer de 6-cijferige code in die uw app toont en klik op **Verifiëren en aanmelden**.
+- **Beveiligingssleutel**: klik op **Beveiligingssleutel registreren** en volg de aanwijzingen van uw browser. Raak een USB- of NFC-sleutel aan, of gebruik de vingerafdruk, het gezicht of de schermvergrendeling van uw telefoon of computer.
+
+Hebt u nog geen back-upcodes, dan toont OneUptime ze daarna één keer, en bent u aangemeld. **Een andere manier kiezen** gaat terug naar de keuze. Een browser die geen beveiligingssleutel kan registreren, zoals een op een pagina zonder HTTPS, biedt alleen de authenticator-app aan.
+
 > [!TIP]
 > Raken uw back-upcodes op? **Codes opnieuw genereren** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
 
 ### Als uw organisatie uw aanmelding beheert
 
-Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
+Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist, tenzij een serverbeheerder het wist. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
+
+Hetzelfde gebeurt als elk project waartoe u behoort single sign-on vereist en **Aanmelden beheren met SSO** heeft ingeschakeld. Uw wachtwoord meldt u nog steeds aan bij OneUptime, maar elk project vraagt om SSO, dus stelt OneUptime voor u geen nieuw wachtwoord, nieuwe passkey of nieuwe tweede stap in:
+
+- **Een project dat dat niet doet**: zodra u lid bent van, of uitgenodigd bent voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, komt uw sectie **Beveiliging** terug. Het **Overzicht** noemt die projecten dan onder **Single Sign-On**, als de reden dat uw instellingen van uzelf zijn. Verlaat u dat project, dan raakt u ze weer kwijt.
+- **Projecten met verschillende providers**: als al uw projecten het aanmelden beheren, elk met een eigen identiteitsprovider, noemt het **Overzicht** elke provider.
+- **Hoofdbeheerders** houden altijd hun eigen instellingen onder **Beveiliging**.
+- **Wat u eerder hebt ingesteld**, blijft bewaard, en een serverbeheerder kan het wissen.
 
 ## Uw projecten
 
