@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Bajar el paso {{number}}",
   "Move step {{number}} up": "Subir el paso {{number}}",
   "Step {{from}} is now step {{to}}.": "El paso {{from}} ahora es el paso {{to}}.",
-  "step {{number}}": "el paso {{number}}"
+  "step {{number}}": "el paso {{number}}",
+  "No verified domain": "Ningún dominio verificado",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Nadie encuentra estos proveedores por su correo en «Iniciar sesión con SSO» hasta que tu proyecto verifique un dominio: {{names}}. Verifica uno y elígelo en Dominios de cada proveedor.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Nadie encuentra este proveedor por su correo en «Iniciar sesión con SSO» hasta que tu proyecto verifique un dominio: {{names}}. Verifica uno y elígelo en Dominios del proveedor.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Nadie encuentra estos proveedores por su correo en «Iniciar sesión con SSO», porque no tienen ningún dominio verificado: {{names}}. Edita cada uno y elige un dominio en Dominios.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Nadie encuentra este proveedor por su correo en «Iniciar sesión con SSO», porque no tiene ningún dominio verificado: {{names}}. Edítalo y elige uno en Dominios.",
+  "SSO Sign-in Link": "Enlace de inicio de sesión con SSO",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Comparte este enlace para que las personas inicien sesión con estos proveedores, sea cual sea el dominio de su correo. Pruébalo antes de exigir SSO.",
+  "Verify a Domain": "Verificar un dominio",
+  "{{domain}} (not verified)": "{{domain}} (sin verificar)"
 }

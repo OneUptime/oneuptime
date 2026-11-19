@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "انتقال گام {{number}} به پایین",
   "Move step {{number}} up": "انتقال گام {{number}} به بالا",
   "Step {{from}} is now step {{to}}.": "گام {{from}} اکنون گام {{to}} است.",
-  "step {{number}}": "گام {{number}}"
+  "step {{number}}": "گام {{number}}",
+  "No verified domain": "بدون دامنهٔ تأییدشده",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "تا پروژهٔ شما دامنه‌ای را تأیید نکند، کسی نمی‌تواند این ارائه‌دهندگان را با ایمیلش در «ورود با SSO» پیدا کند: {{names}}. یک دامنه را تأیید کنید، سپس آن را در دامنه‌های هر ارائه‌دهنده انتخاب کنید.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "تا پروژهٔ شما دامنه‌ای را تأیید نکند، کسی نمی‌تواند این ارائه‌دهنده را با ایمیلش در «ورود با SSO» پیدا کند: {{names}}. یک دامنه را تأیید کنید، سپس آن را در دامنه‌های ارائه‌دهنده انتخاب کنید.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "کسی نمی‌تواند این ارائه‌دهندگان را با ایمیلش در «ورود با SSO» پیدا کند، چون هیچ دامنهٔ تأییدشده‌ای ندارند: {{names}}. هر کدام را ویرایش کنید و در دامنه‌ها یک دامنه انتخاب کنید.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "کسی نمی‌تواند این ارائه‌دهنده را با ایمیلش در «ورود با SSO» پیدا کند، چون هیچ دامنهٔ تأییدشده‌ای ندارد: {{names}}. آن را ویرایش کنید و در دامنه‌ها یکی را انتخاب کنید.",
+  "SSO Sign-in Link": "پیوند ورود با SSO",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "این پیوند را به اشتراک بگذارید تا افراد، ایمیلشان روی هر دامنه‌ای که باشد، با این ارائه‌دهندگان وارد شوند. پیش از الزامی کردن SSO آن را آزمایش کنید.",
+  "Verify a Domain": "تأیید یک دامنه",
+  "{{domain}} (not verified)": "{{domain}} (تأییدنشده)"
 }

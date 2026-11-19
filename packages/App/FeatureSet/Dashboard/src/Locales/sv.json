@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Flytta ned steg {{number}}",
   "Move step {{number}} up": "Flytta upp steg {{number}}",
   "Step {{from}} is now step {{to}}.": "Steg {{from}} är nu steg {{to}}.",
-  "step {{number}}": "steg {{number}}"
+  "step {{number}}": "steg {{number}}",
+  "No verified domain": "Ingen verifierad domän",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Ingen hittar de här leverantörerna via sin e-post i ”Logga in med SSO” förrän ditt projekt har verifierat en domän: {{names}}. Verifiera en och välj den sedan under Domäner för varje leverantör.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Ingen hittar den här leverantören via sin e-post i ”Logga in med SSO” förrän ditt projekt har verifierat en domän: {{names}}. Verifiera en och välj den sedan under leverantörens Domäner.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Ingen hittar de här leverantörerna via sin e-post i ”Logga in med SSO”, eftersom de inte anger någon verifierad domän: {{names}}. Redigera var och en och välj en domän under Domäner.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Ingen hittar den här leverantören via sin e-post i ”Logga in med SSO”, eftersom den inte anger någon verifierad domän: {{names}}. Redigera den och välj en under Domäner.",
+  "SSO Sign-in Link": "SSO-inloggningslänk",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Dela den här länken så att personer kan logga in med de här leverantörerna, oavsett vilken domän deras e-post finns på. Testa den innan du kräver SSO.",
+  "Verify a Domain": "Verifiera en domän",
+  "{{domain}} (not verified)": "{{domain}} (inte verifierad)"
 }

@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Mover a etapa {{number}} para baixo",
   "Move step {{number}} up": "Mover a etapa {{number}} para cima",
   "Step {{from}} is now step {{to}}.": "A etapa {{from}} agora é a etapa {{to}}.",
-  "step {{number}}": "a etapa {{number}}"
+  "step {{number}}": "a etapa {{number}}",
+  "No verified domain": "Nenhum domínio verificado",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Ninguém encontra estes provedores pelo e-mail em “Login com SSO” até o seu projeto verificar um domínio: {{names}}. Verifique um e depois escolha-o em Domínios de cada provedor.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Ninguém encontra este provedor pelo e-mail em “Login com SSO” até o seu projeto verificar um domínio: {{names}}. Verifique um e depois escolha-o em Domínios do provedor.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Ninguém encontra estes provedores pelo e-mail em “Login com SSO”, porque eles não indicam nenhum domínio verificado: {{names}}. Edite cada um e escolha um domínio em Domínios.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Ninguém encontra este provedor pelo e-mail em “Login com SSO”, porque ele não indica nenhum domínio verificado: {{names}}. Edite-o e escolha um em Domínios.",
+  "SSO Sign-in Link": "Link de login SSO",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Compartilhe este link para que as pessoas entrem com estes provedores, seja qual for o domínio do e-mail delas. Teste-o antes de exigir SSO.",
+  "Verify a Domain": "Verificar um domínio",
+  "{{domain}} (not verified)": "{{domain}} (não verificado)"
 }

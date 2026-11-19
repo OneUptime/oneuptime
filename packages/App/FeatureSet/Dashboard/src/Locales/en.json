@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Move step {{number}} down",
   "Move step {{number}} up": "Move step {{number}} up",
   "Step {{from}} is now step {{to}}.": "Step {{from}} is now step {{to}}.",
-  "step {{number}}": "step {{number}}"
+  "step {{number}}": "step {{number}}",
+  "No verified domain": "No verified domain",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "People cannot find this provider by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under the provider's Domains.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "People cannot find this provider by their email on Sign in with SSO, because it lists no verified domain: {{names}}. Edit it and pick one under Domains.",
+  "SSO Sign-in Link": "SSO Sign-in Link",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.",
+  "Verify a Domain": "Verify a Domain",
+  "{{domain}} (not verified)": "{{domain}} (not verified)"
 }

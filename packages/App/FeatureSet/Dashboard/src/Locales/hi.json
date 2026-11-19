@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "चरण {{number}} को नीचे ले जाएँ",
   "Move step {{number}} up": "चरण {{number}} को ऊपर ले जाएँ",
   "Step {{from}} is now step {{to}}.": "चरण {{from}} अब चरण {{to}} है।",
-  "step {{number}}": "चरण {{number}}"
+  "step {{number}}": "चरण {{number}}",
+  "No verified domain": "कोई सत्यापित डोमेन नहीं",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "जब तक आपका प्रोजेक्ट कोई डोमेन सत्यापित नहीं करता, ‘SSO से लॉगिन’ पर लोग अपने ईमेल से ये प्रदाता नहीं ढूंढ सकते: {{names}}। एक डोमेन सत्यापित करें, फिर हर प्रदाता के डोमेन में उसे चुनें।",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "जब तक आपका प्रोजेक्ट कोई डोमेन सत्यापित नहीं करता, ‘SSO से लॉगिन’ पर लोग अपने ईमेल से यह प्रदाता नहीं ढूंढ सकते: {{names}}। एक डोमेन सत्यापित करें, फिर प्रदाता के डोमेन में उसे चुनें।",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "‘SSO से लॉगिन’ पर लोग अपने ईमेल से ये प्रदाता नहीं ढूंढ सकते, क्योंकि इनमें कोई सत्यापित डोमेन नहीं है: {{names}}। हर एक को संपादित करें और डोमेन में एक डोमेन चुनें।",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "‘SSO से लॉगिन’ पर लोग अपने ईमेल से यह प्रदाता नहीं ढूंढ सकते, क्योंकि इसमें कोई सत्यापित डोमेन नहीं है: {{names}}। इसे संपादित करें और डोमेन में एक चुनें।",
+  "SSO Sign-in Link": "SSO साइन-इन लिंक",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "यह लिंक साझा करें ताकि लोग इन प्रदाताओं से साइन इन कर सकें, उनका ईमेल किसी भी डोमेन पर हो। SSO को अनिवार्य करने से पहले इसे आज़माएं।",
+  "Verify a Domain": "डोमेन सत्यापित करें",
+  "{{domain}} (not verified)": "{{domain}} (सत्यापित नहीं)"
 }

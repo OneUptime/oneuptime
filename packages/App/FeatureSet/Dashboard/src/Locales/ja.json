@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "ステップ {{number}} を下へ移動",
   "Move step {{number}} up": "ステップ {{number}} を上へ移動",
   "Step {{from}} is now step {{to}}.": "ステップ {{from}} はステップ {{to}} になりました。",
-  "step {{number}}": "ステップ {{number}}"
+  "step {{number}}": "ステップ {{number}}",
+  "No verified domain": "確認済みのドメインなし",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "プロジェクトでドメインを確認するまで、「SSOでログイン」でメールアドレスからこれらのプロバイダーを見つけることはできません：{{names}}。ドメインを確認してから、各プロバイダーの「ドメイン」で選んでください。",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "プロジェクトでドメインを確認するまで、「SSOでログイン」でメールアドレスからこのプロバイダーを見つけることはできません：{{names}}。ドメインを確認してから、プロバイダーの「ドメイン」で選んでください。",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "確認済みのドメインが設定されていないため、「SSOでログイン」でメールアドレスからこれらのプロバイダーを見つけることはできません：{{names}}。それぞれを編集して「ドメイン」でドメインを選んでください。",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "確認済みのドメインが設定されていないため、「SSOでログイン」でメールアドレスからこのプロバイダーを見つけることはできません：{{names}}。編集して「ドメイン」でドメインを選んでください。",
+  "SSO Sign-in Link": "SSO サインインリンク",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "このリンクを共有すると、メールアドレスのドメインに関係なく、これらのプロバイダーでサインインできます。SSO を必須にする前に試してください。",
+  "Verify a Domain": "ドメインを確認",
+  "{{domain}} (not verified)": "{{domain}}（未確認）"
 }

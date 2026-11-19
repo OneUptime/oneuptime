@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "下移步骤 {{number}}",
   "Move step {{number}} up": "上移步骤 {{number}}",
   "Step {{from}} is now step {{to}}.": "步骤 {{from}} 现在是步骤 {{to}}。",
-  "step {{number}}": "步骤 {{number}}"
+  "step {{number}}": "步骤 {{number}}",
+  "No verified domain": "无已验证域名",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "在项目验证域名之前，用户无法在“使用 SSO 登录”中通过邮箱找到这些提供商：{{names}}。请先验证一个域名，再在每个提供商的“域名”中选择它。",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "在项目验证域名之前，用户无法在“使用 SSO 登录”中通过邮箱找到此提供商：{{names}}。请先验证一个域名，再在该提供商的“域名”中选择它。",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "这些提供商没有已验证的域名，因此用户无法在“使用 SSO 登录”中通过邮箱找到它们：{{names}}。请编辑每个提供商，并在“域名”中选择一个域名。",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "此提供商没有已验证的域名，因此用户无法在“使用 SSO 登录”中通过邮箱找到它：{{names}}。请编辑它，并在“域名”中选择一个。",
+  "SSO Sign-in Link": "SSO 登录链接",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "分享此链接，无论邮箱属于哪个域名，大家都可以通过这些提供商登录。在要求使用 SSO 之前先试用一下。",
+  "Verify a Domain": "验证域名",
+  "{{domain}} (not verified)": "{{domain}}（未验证）"
 }

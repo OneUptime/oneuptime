@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Переместить шаг {{number}} вниз",
   "Move step {{number}} up": "Переместить шаг {{number}} вверх",
   "Step {{from}} is now step {{to}}.": "Шаг {{from}} стал шагом {{to}}.",
-  "step {{number}}": "шаг {{number}}"
+  "step {{number}}": "шаг {{number}}",
+  "No verified domain": "Нет подтверждённого домена",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Через «Вход через SSO» никто не найдёт этих поставщиков по своей почте, пока ваш проект не подтвердит домен: {{names}}. Подтвердите домен, а затем выберите его в поле «Домены» каждого поставщика.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Через «Вход через SSO» никто не найдёт этого поставщика по своей почте, пока ваш проект не подтвердит домен: {{names}}. Подтвердите домен, а затем выберите его в поле «Домены» поставщика.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Через «Вход через SSO» никто не найдёт этих поставщиков по своей почте, так как у них нет подтверждённого домена: {{names}}. Измените каждого из них и выберите домен в поле «Домены».",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Через «Вход через SSO» никто не найдёт этого поставщика по своей почте, так как у него нет подтверждённого домена: {{names}}. Измените его и выберите домен в поле «Домены».",
+  "SSO Sign-in Link": "Ссылка для входа через SSO",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Поделитесь этой ссылкой, чтобы люди могли войти через этих поставщиков, на каком бы домене ни была их почта. Проверьте её, прежде чем делать SSO обязательным.",
+  "Verify a Domain": "Подтвердить домен",
+  "{{domain}} (not verified)": "{{domain}} (не подтверждён)"
 }

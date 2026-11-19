@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "下移步驟 {{number}}",
   "Move step {{number}} up": "上移步驟 {{number}}",
   "Step {{from}} is now step {{to}}.": "步驟 {{from}} 現在是步驟 {{to}}。",
-  "step {{number}}": "步驟 {{number}}"
+  "step {{number}}": "步驟 {{number}}",
+  "No verified domain": "無已驗證網域",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "在專案驗證網域之前，使用者無法在「使用 SSO 登入」中透過電子郵件找到這些提供者：{{names}}。請先驗證一個網域，再在每個提供者的「網域」中選擇它。",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "在專案驗證網域之前，使用者無法在「使用 SSO 登入」中透過電子郵件找到此提供者：{{names}}。請先驗證一個網域，再在該提供者的「網域」中選擇它。",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "這些提供者沒有已驗證的網域，因此使用者無法在「使用 SSO 登入」中透過電子郵件找到它們：{{names}}。請編輯每個提供者，並在「網域」中選擇一個網域。",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "此提供者沒有已驗證的網域，因此使用者無法在「使用 SSO 登入」中透過電子郵件找到它：{{names}}。請編輯它，並在「網域」中選擇一個。",
+  "SSO Sign-in Link": "SSO 登入連結",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "分享此連結，無論電子郵件屬於哪個網域，大家都能透過這些提供者登入。在要求使用 SSO 之前先試用一下。",
+  "Verify a Domain": "驗證網域",
+  "{{domain}} (not verified)": "{{domain}}（未驗證）"
 }

@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Stap {{number}} omlaag verplaatsen",
   "Move step {{number}} up": "Stap {{number}} omhoog verplaatsen",
   "Step {{from}} is now step {{to}}.": "Stap {{from}} is nu stap {{to}}.",
-  "step {{number}}": "stap {{number}}"
+  "step {{number}}": "stap {{number}}",
+  "No verified domain": "Geen geverifieerd domein",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Niemand vindt deze providers via zijn e-mailadres in ‘Inloggen met SSO’ totdat uw project een domein verifieert: {{names}}. Verifieer er een en kies het daarna onder Domeinen van elke provider.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Niemand vindt deze provider via zijn e-mailadres in ‘Inloggen met SSO’ totdat uw project een domein verifieert: {{names}}. Verifieer er een en kies het daarna onder Domeinen van de provider.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Niemand vindt deze providers via zijn e-mailadres in ‘Inloggen met SSO’, omdat ze geen geverifieerd domein vermelden: {{names}}. Bewerk ze een voor een en kies een domein onder Domeinen.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Niemand vindt deze provider via zijn e-mailadres in ‘Inloggen met SSO’, omdat hij geen geverifieerd domein vermeldt: {{names}}. Bewerk hem en kies er een onder Domeinen.",
+  "SSO Sign-in Link": "SSO-aanmeldlink",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Deel deze link zodat mensen zich met deze providers kunnen aanmelden, op welk domein hun e-mailadres ook staat. Probeer hem uit voordat u SSO verplicht stelt.",
+  "Verify a Domain": "Een domein verifiëren",
+  "{{domain}} (not verified)": "{{domain}} (niet geverifieerd)"
 }

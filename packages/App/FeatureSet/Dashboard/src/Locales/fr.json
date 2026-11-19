@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Descendre l'étape {{number}}",
   "Move step {{number}} up": "Monter l'étape {{number}}",
   "Step {{from}} is now step {{to}}.": "L'étape {{from}} est maintenant l'étape {{to}}.",
-  "step {{number}}": "l'étape {{number}}"
+  "step {{number}}": "l'étape {{number}}",
+  "No verified domain": "Aucun domaine vérifié",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Personne ne trouve ces fournisseurs par son e-mail dans « Connexion avec SSO » tant que votre projet n'a pas vérifié de domaine : {{names}}. Vérifiez-en un, puis choisissez-le dans les Domaines de chaque fournisseur.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Personne ne trouve ce fournisseur par son e-mail dans « Connexion avec SSO » tant que votre projet n'a pas vérifié de domaine : {{names}}. Vérifiez-en un, puis choisissez-le dans les Domaines du fournisseur.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Personne ne trouve ces fournisseurs par son e-mail dans « Connexion avec SSO », car ils n'indiquent aucun domaine vérifié : {{names}}. Modifiez chacun d'eux et choisissez un domaine dans Domaines.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Personne ne trouve ce fournisseur par son e-mail dans « Connexion avec SSO », car il n'indique aucun domaine vérifié : {{names}}. Modifiez-le et choisissez-en un dans Domaines.",
+  "SSO Sign-in Link": "Lien de connexion SSO",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Partagez ce lien pour que chacun puisse se connecter avec ces fournisseurs, quel que soit le domaine de son e-mail. Essayez-le avant d'exiger le SSO.",
+  "Verify a Domain": "Vérifier un domaine",
+  "{{domain}} (not verified)": "{{domain}} (non vérifié)"
 }

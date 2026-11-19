@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "نقل الخطوة {{number}} لأسفل",
   "Move step {{number}} up": "نقل الخطوة {{number}} لأعلى",
   "Step {{from}} is now step {{to}}.": "أصبحت الخطوة {{from}} الآن الخطوة {{to}}.",
-  "step {{number}}": "الخطوة {{number}}"
+  "step {{number}}": "الخطوة {{number}}",
+  "No verified domain": "لا نطاق متحقق منه",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "لا يستطيع أحد العثور على هؤلاء الموفّرين ببريده الإلكتروني في «تسجيل الدخول باستخدام SSO» حتى يتحقق مشروعك من نطاق: {{names}}. تحقّق من نطاق، ثم اختره في النطاقات لكل موفّر.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "لا يستطيع أحد العثور على هذا الموفّر ببريده الإلكتروني في «تسجيل الدخول باستخدام SSO» حتى يتحقق مشروعك من نطاق: {{names}}. تحقّق من نطاق، ثم اختره في نطاقات الموفّر.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "لا يستطيع أحد العثور على هؤلاء الموفّرين ببريده الإلكتروني في «تسجيل الدخول باستخدام SSO»، لأنهم لا يذكرون أي نطاق متحقق منه: {{names}}. عدّل كلًّا منهم واختر نطاقًا في النطاقات.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "لا يستطيع أحد العثور على هذا الموفّر ببريده الإلكتروني في «تسجيل الدخول باستخدام SSO»، لأنه لا يذكر أي نطاق متحقق منه: {{names}}. عدّله واختر نطاقًا في النطاقات.",
+  "SSO Sign-in Link": "رابط تسجيل الدخول عبر SSO",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "شارك هذا الرابط ليتمكّن الأشخاص من تسجيل الدخول عبر هؤلاء الموفّرين، أيًّا كان نطاق بريدهم الإلكتروني. جرّبه قبل أن تفرض SSO.",
+  "Verify a Domain": "التحقق من نطاق",
+  "{{domain}} (not verified)": "{{domain}} (غير متحقق منه)"
 }

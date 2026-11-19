@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Flyt trin {{number}} ned",
   "Move step {{number}} up": "Flyt trin {{number}} op",
   "Step {{from}} is now step {{to}}.": "Trin {{from}} er nu trin {{to}}.",
-  "step {{number}}": "trin {{number}}"
+  "step {{number}}": "trin {{number}}",
+  "No verified domain": "Intet bekræftet domæne",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Ingen kan finde disse udbydere via deres e-mail i »Log ind med SSO«, før dit projekt har bekræftet et domæne: {{names}}. Bekræft et, og vælg det derefter under Domæner for hver udbyder.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Ingen kan finde denne udbyder via deres e-mail i »Log ind med SSO«, før dit projekt har bekræftet et domæne: {{names}}. Bekræft et, og vælg det derefter under udbyderens Domæner.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Ingen kan finde disse udbydere via deres e-mail i »Log ind med SSO«, fordi de ikke angiver noget bekræftet domæne: {{names}}. Rediger hver af dem, og vælg et domæne under Domæner.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Ingen kan finde denne udbyder via deres e-mail i »Log ind med SSO«, fordi den ikke angiver noget bekræftet domæne: {{names}}. Rediger den, og vælg et under Domæner.",
+  "SSO Sign-in Link": "SSO-loginlink",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Del dette link, så folk kan logge ind med disse udbydere, uanset hvilket domæne deres e-mail er på. Prøv det, før du kræver SSO.",
+  "Verify a Domain": "Bekræft et domæne",
+  "{{domain}} (not verified)": "{{domain}} (ikke bekræftet)"
 }

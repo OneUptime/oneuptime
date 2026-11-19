@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "단계 {{number}} 아래로 이동",
   "Move step {{number}} up": "단계 {{number}} 위로 이동",
   "Step {{from}} is now step {{to}}.": "단계 {{from}}이(가) 단계 {{to}}(으)로 이동했습니다.",
-  "step {{number}}": "단계 {{number}}"
+  "step {{number}}": "단계 {{number}}",
+  "No verified domain": "인증된 도메인 없음",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "프로젝트에서 도메인을 인증하기 전까지는 ‘SSO로 로그인’에서 이메일로 이 공급자들을 찾을 수 없습니다: {{names}}. 도메인을 인증한 다음 각 공급자의 ‘도메인’에서 선택하세요.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "프로젝트에서 도메인을 인증하기 전까지는 ‘SSO로 로그인’에서 이메일로 이 공급자를 찾을 수 없습니다: {{names}}. 도메인을 인증한 다음 공급자의 ‘도메인’에서 선택하세요.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "인증된 도메인이 없어 ‘SSO로 로그인’에서 이메일로 이 공급자들을 찾을 수 없습니다: {{names}}. 각 공급자를 편집해 ‘도메인’에서 도메인을 선택하세요.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "인증된 도메인이 없어 ‘SSO로 로그인’에서 이메일로 이 공급자를 찾을 수 없습니다: {{names}}. 공급자를 편집해 ‘도메인’에서 하나를 선택하세요.",
+  "SSO Sign-in Link": "SSO 로그인 링크",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "이메일 도메인과 관계없이 이 공급자로 로그인할 수 있도록 이 링크를 공유하세요. SSO를 필수로 설정하기 전에 사용해 보세요.",
+  "Verify a Domain": "도메인 인증",
+  "{{domain}} (not verified)": "{{domain}}(인증되지 않음)"
 }

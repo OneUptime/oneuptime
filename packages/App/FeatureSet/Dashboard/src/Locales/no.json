@@ -58791,5 +58791,14 @@
   "Move step {{number}} down": "Flytt trinn {{number}} ned",
   "Move step {{number}} up": "Flytt trinn {{number}} opp",
   "Step {{from}} is now step {{to}}.": "Trinn {{from}} er nå trinn {{to}}.",
-  "step {{number}}": "trinn {{number}}"
+  "step {{number}}": "trinn {{number}}",
+  "No verified domain": "Ingen verifisert domene",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains.": "Ingen finner disse leverandørene via e-posten sin i «Logg inn med SSO» før prosjektet ditt har verifisert et domene: {{names}}. Verifiser et, og velg det deretter under Domener for hver leverandør.",
+  "People cannot find these providers by their email on Sign in with SSO until your project verifies a domain: {{names}}. Verify one, then pick it under each provider's Domains._one": "Ingen finner denne leverandøren via e-posten sin i «Logg inn med SSO» før prosjektet ditt har verifisert et domene: {{names}}. Verifiser et, og velg det deretter under leverandørens Domener.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains.": "Ingen finner disse leverandørene via e-posten sin i «Logg inn med SSO», fordi de ikke oppgir noe verifisert domene: {{names}}. Rediger hver av dem og velg et domene under Domener.",
+  "People cannot find these providers by their email on Sign in with SSO, because they list no verified domain: {{names}}. Edit each one and pick a domain under Domains._one": "Ingen finner denne leverandøren via e-posten sin i «Logg inn med SSO», fordi den ikke oppgir noe verifisert domene: {{names}}. Rediger den og velg et under Domener.",
+  "SSO Sign-in Link": "SSO-påloggingslenke",
+  "Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.": "Del denne lenken så folk kan logge inn med disse leverandørene, uansett hvilket domene e-posten deres er på. Prøv den før du krever SSO.",
+  "Verify a Domain": "Verifiser et domene",
+  "{{domain}} (not verified)": "{{domain}} (ikke verifisert)"
 }
