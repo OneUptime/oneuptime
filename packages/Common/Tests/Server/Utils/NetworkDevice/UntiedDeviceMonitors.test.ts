@@ -18,6 +18,7 @@ jest.mock("../../../../Server/Services/NetworkDeviceService", () => {
     default: {
       getAllDevicesAtHostnames: jest.fn(),
       resolveDevicesSeenFrom: jest.fn(),
+      findBy: jest.fn(),
     },
   };
 });
@@ -99,6 +100,8 @@ const allAt: jest.Mock =
   NetworkDeviceService.getAllDevicesAtHostnames as unknown as jest.Mock;
 const resolve: jest.Mock =
   NetworkDeviceService.resolveDevicesSeenFrom as unknown as jest.Mock;
+const deviceFindBy: jest.Mock =
+  NetworkDeviceService.findBy as unknown as jest.Mock;
 
 function device(data: {
   id: string;
@@ -158,6 +161,8 @@ interface FakeMonitor {
 let monitors: Array<FakeMonitor>;
 // The monitors the caller may read, by id.
 let readable: Set<string>;
+// The devices the caller may read, by id.
+let readableDevices: Set<string>;
 
 function stepsOf(monitor: FakeMonitor): MonitorSteps {
   const monitorSteps: MonitorSteps = new MonitorSteps();
@@ -253,6 +258,25 @@ beforeEach(() => {
   jest.clearAllMocks();
   monitors = [];
   readable = new Set<string>();
+  readableDevices = new Set<string>(
+    DEVICES.map((item: NetworkDevice): string => {
+      return item.id!.toString();
+    }),
+  );
+
+  // The devices the caller may read, as they read them.
+  deviceFindBy.mockImplementation(
+    async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<NetworkDevice>> => {
+      const asked: Array<string> = valuesOf(args.query["_id"]);
+
+      return DEVICES.filter((item: NetworkDevice): boolean => {
+        const id: string = item.id!.toString();
+        return asked.includes(id) && readableDevices.has(id);
+      });
+    },
+  );
 
   // The project's untied monitors, as OneUptime reads them, then the caller.
   monitorFindBy.mockImplementation(
@@ -413,6 +437,33 @@ describe("on branch A's router's page (10.0.0.5, a branch B router there too)", 
         otherDeviceIds: [BRANCH_B_ROUTER],
       },
     ]);
+  });
+
+  it("names only the other routers the caller may read, and reads them as the caller", async () => {
+    monitor("Both ping", ["10.0.0.5"], [PROBE_A, PROBE_B]);
+    readableDevices.delete(BRANCH_B_ROUTER);
+
+    expect((await untiedOn(BRANCH_A_ROUTER)).monitors[0]).toMatchObject({
+      match: UntiedMonitorMatch.CannotTellApart,
+      ambiguousReason: AmbiguousAddressReason.PollSeveral,
+      otherDeviceIds: [],
+    });
+
+    const read: {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    } = deviceFindBy.mock.calls[0]![0];
+
+    expect(read.props).toBe(CALLER);
+    expect(valuesOf(read.query["_id"])).toEqual([BRANCH_B_ROUTER]);
+  });
+
+  it("reads no devices when no row names another", async () => {
+    monitor("A ping", ["10.0.0.5"], [PROBE_A]);
+
+    await untiedOn(BRANCH_A_ROUTER);
+
+    expect(deviceFindBy).not.toHaveBeenCalled();
   });
 
   it("lists a monitor whose probe polls nothing and is no site's, as one that cannot tell", async () => {

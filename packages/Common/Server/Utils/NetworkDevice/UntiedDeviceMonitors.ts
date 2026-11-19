@@ -57,7 +57,8 @@ import {
  * address (QueryHelper.textContainsAnyOf) among the project's untied
  * monitors of those kinds, at most UNTIED_MONITORS_READ_LIMIT, and each is
  * checked as a tie checks it (getMonitorCheckedHost). Read as OneUptime,
- * then held to what the caller may read.
+ * then held to what the caller may read: the monitors, and the other
+ * devices a row names.
  */
 
 // The most monitors one device's page reads for its address.
@@ -218,7 +219,71 @@ export default class UntiedDeviceMonitors {
       });
     }
 
-    return { monitors: monitors, hasMore: hasMore };
+    return {
+      monitors: await this.withReadableOtherDevices({
+        projectId: data.projectId,
+        monitors: monitors,
+        props: data.props,
+      }),
+      hasMore: hasMore,
+    };
+  }
+
+  /*
+   * The other devices a row names, held to the ones the caller may read: a
+   * device they may not see is not named, nor its id handed out. The row
+   * still says why its probes cannot tell this device apart.
+   */
+  private static async withReadableOtherDevices(data: {
+    projectId: ObjectID;
+    monitors: Array<UntiedDeviceMonitor>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<UntiedDeviceMonitor>> {
+    const otherDeviceIds: Set<string> = new Set<string>();
+
+    for (const monitor of data.monitors) {
+      for (const id of monitor.otherDeviceIds || []) {
+        otherDeviceIds.add(id);
+      }
+    }
+
+    if (otherDeviceIds.size === 0) {
+      return data.monitors;
+    }
+
+    const readable: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(Array.from(otherDeviceIds)),
+      },
+      select: { _id: true },
+      limit: otherDeviceIds.size,
+      skip: 0,
+      props: data.props,
+    });
+
+    const readableIds: Set<string> = new Set<string>(
+      readable.map((device: NetworkDevice): string => {
+        return toIdKey(device.id);
+      }),
+    );
+
+    return data.monitors.map(
+      (monitor: UntiedDeviceMonitor): UntiedDeviceMonitor => {
+        if (!monitor.otherDeviceIds) {
+          return monitor;
+        }
+
+        return {
+          ...monitor,
+          otherDeviceIds: monitor.otherDeviceIds.filter(
+            (id: string): boolean => {
+              return readableIds.has(id);
+            },
+          ),
+        };
+      },
+    );
   }
 
   // What monitors running on these probes see at the address.
