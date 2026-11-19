@@ -811,7 +811,7 @@ describe("what a project calls someone OneUptime read for it", () => {
     const named: User = personRead(OTHER_PROJECT_ID);
     const member: User = personRead(MEMBER_ID);
 
-    const withheldIn: jest.SpiedFunction<
+    const withheldIn: SpyInstance<
       typeof PendingInviteeProfiles.readWithheldProfilesInProject
     > = jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
