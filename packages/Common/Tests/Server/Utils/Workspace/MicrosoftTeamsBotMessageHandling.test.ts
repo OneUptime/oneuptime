@@ -123,6 +123,7 @@ import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../../../../Server/Utils/Logger";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -289,6 +290,14 @@ function tenantResolvedToProject(): MicrosoftTeamsTenantResolution {
 }
 
 beforeEach(() => {
+  /*
+   * Every product is on. A command and an action ask what the server has
+   * switched off before they act (WorkspaceProductRefusal,
+   * WorkspaceActionAuthorization), a read of the database, which nothing
+   * connects here.
+   */
+  jest.spyOn(ServerProducts, "getOff").mockResolvedValue({});
+
   /*
    * The dedupe claims an activity in Redis first. Nothing connects Redis in
    * unit tests, so every claim falls back to this process's memory; the stub
