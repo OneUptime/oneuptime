@@ -6,11 +6,11 @@ import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonito
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
@@ -23,8 +23,6 @@ import {
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareClusterHeadroom,
   VMwareClusterHeadroomGap,
-  getVMwareAttentionItems,
-  getVMwareAttentionKey,
   getVMwareClusterHeadroom,
   getVMwareClusterHeadroomGap,
   hasFreshVMwareReadings,
@@ -56,9 +54,6 @@ import { VMwarePartRoutes } from "./VMwarePartRoutes";
  * it is in trouble, and its details.
  */
 
-// How the cluster's own row reads in its Needs attention card.
-const THIS_CLUSTER: string = translationKey("This cluster");
-
 const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
   warn: VMWARE_HOST_SATURATION_PERCENT,
   danger: Number.POSITIVE_INFINITY,
@@ -74,6 +69,12 @@ export interface ComponentProps {
   attentionVirtualMachines: Array<VMwareResource>;
   // The vCenter's datacenters: a host's state reads its datacenter's counts.
   datacenters: Array<VMwareResource>;
+  /*
+   * What needs attention in the cluster, its hosts and the VMs on them:
+   * the page reads it once (getVMwarePartAttention) for this card and for
+   * the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: VMwarePartRoutes;
   onShowHosts: () => void;
   now: Date;
@@ -103,14 +104,6 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
-
-  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems({
-    rows: [row, ...props.hosts, ...props.attentionVirtualMachines],
-    contextRows: props.datacenters,
-    now: props.now,
-    routeFor: props.routes.getPartRoute,
-    listRouteFor: props.routes.getListRoute,
-  });
 
   const fresh: boolean = hasFreshVMwareReadings(row, props.now);
   const total: number | null = fresh ? toVMwareNumber(row.hostCount) : null;
@@ -219,15 +212,9 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="vmware-cluster-overview">
       <NeedsAttentionCard
         testId="vmware-cluster-attention"
-        items={attentionItems}
-        current={{
-          key: getVMwareAttentionKey(
-            VMwareResourceKind.Cluster,
-            props.externalId,
-          ),
-          label: THIS_CLUSTER,
-        }}
-        description="What in this cluster is broken or needs a look: the cluster, its hosts and the VMs on them."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div

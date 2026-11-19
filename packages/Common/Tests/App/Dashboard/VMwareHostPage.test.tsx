@@ -628,11 +628,31 @@ describe("the hero says which host this is and whether vCenter still reports it"
     const status: HTMLElement = screen.getByTestId("vmware-host-hero-status");
     expect(status).toHaveTextContent("Not responding");
     expect(status).toHaveAttribute("data-tone", "danger");
-    // What it means, for a pointer and a screen reader.
-    expect(status).toHaveAttribute(
-      "title",
-      "vCenter has lost contact with this host: it crashed, lost power or its management network, or was disconnected.",
+    // What it means, read after the word for a screen reader.
+    expect(status).toHaveTextContent(
+      "Not responding vCenter has lost contact with this host: it crashed, lost power or its management network, or was disconnected.",
     );
+    /*
+     * Pressed, it opens why (#9594): what Needs attention lists, the host
+     * itself as This host, with no step to the page the reader is on.
+     */
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("title", "Show why");
+    fireEvent.click(status);
+    const own: HTMLElement = screen.getAllByTestId(
+      "vmware-host-hero-status-dialog-item",
+    )[0]!;
+    expect(own).toHaveAttribute("data-current", "true");
+    expect(
+      within(own).getByTestId("vmware-host-hero-status-dialog-name"),
+    ).toHaveTextContent("This host");
+    expect(
+      within(own).getByTestId("vmware-host-hero-status-dialog-reason"),
+    ).toHaveTextContent("Not responding");
+    expect(
+      within(own).queryByTestId("vmware-host-hero-status-dialog-view"),
+    ).toBeNull();
+    fireEvent.click(screen.getByTestId("close-button"));
     // The 0% it reports is no reading: the tiles say a dash.
     expect(tile("CPU")).toHaveTextContent("—");
     expect(tile("Memory")).toHaveTextContent("—");
