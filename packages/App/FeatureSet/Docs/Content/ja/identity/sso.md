@@ -127,7 +127,7 @@ Keycloak は、人気のあるオープンソースの ID およびアクセス�
 4. **クライアントの設定を調整する**
 
    - **Name ID Format** を `email` に設定し、**Force Name ID Format** をオンにして、Keycloak が常にメールアドレスを Name ID として送るようにします
-   - クライアントの **Keys** タブで、**Client signature required**（**Signing keys config** 内）をオフにします。OneUptime はリクエストに署名しません
+   - クライアントの **Keys** タブで、**Client signature required**（**Signing keys config** 内）をオフにします。OneUptime はサインインのリクエストに署名しません
 
 5. **プロバイダーをオンにしてテストする**
 
@@ -259,11 +259,33 @@ OneUptime の SSO は SAML 2.0 を使い、準拠したあらゆるアイデン�
 6. プロジェクトで SSO を必須にする前に、**シングルサインオン（SSO）をテスト** カードのリンクを開いてプロバイダーを選び、そのプロバイダーでサインインしてみてください。
 :::
 
-### ID プロバイダーからもサインアウトする
+## ID プロバイダーからもサインアウトする
 
-OneUptime からサインアウトしても、ID プロバイダーへのサインインは残ります。そのため、NOC の画面やキオスクのような共用コンピューターでは、次にサインインページでそのプロバイダーを選んだ人が、去った人としてサインインしてしまいます。OneUptime からのサインアウトでプロバイダーのセッションも終わらせるには、**その他の項目** の **ID プロバイダーからもサインアウト** をオンにします。既定ではオフです。個人のノート PC では、そのプロバイダーを使うほかのすべてのアプリからもサインアウトしてしまうためです。
+OneUptime からサインアウトしても、ID プロバイダーへのサインインは残ります。そのため、NOC の画面やキオスクのような共用コンピューターでは、次にサインインページでそのプロバイダーを選んだ人が、去った人としてサインインしてしまいます。OneUptime からのサインアウトでプロバイダーのセッションも終わらせるには、SAML または OIDC のプロバイダーで、**その他の項目** の **ID プロバイダーからもサインアウト** をオンにします。既定ではオフです。個人のノート PC では、そのプロバイダーを使うほかのすべてのアプリからもサインアウトしてしまうためです。オンにしたあとにブラウザーでサインインした人に適用され、モバイルアプリは OneUptime からだけサインアウトします。
 
-オンにすると、OneUptime がサインアウトしたあと、ブラウザーはプロバイダー自身のサインアウトへ進み、プロバイダーが OneUptime のサインインページへ戻します。そのページをプロバイダーに登録してください。**OIDC の設定** ダイアログに、サインアウト後のリダイレクト URI として表示されます。プロバイダーでは post-logout redirect URI と呼ばれます。Google のように、ディスカバリードキュメントに `end_session_endpoint` がないプロバイダーではオンにできません。オンにしたあとにブラウザーでサインインした人に適用され、モバイルアプリは OneUptime からだけサインアウトします。SAML プロバイダーが ID プロバイダーからサインアウトさせることはありません。
+:::tabs
+@tab SAML
+ID プロバイダーのサインアウト URL を、**その他の項目** にあるプロバイダーの **サインアウト URL** に入力します。これがないとスイッチをオンにできません。次に、**SSO の設定** ダイアログの **シングルログアウト URL** と、OneUptime がサインアウト要求の署名に使う証明書を ID プロバイダーに渡します。証明書は同じダイアログの **署名証明書をダウンロード** から取得できます。
+
+| ID プロバイダー | サインアウト URL | シングルログアウト URL と証明書の設定先 |
+| --- | --- | --- |
+| Okta | **Sign On** タブの **View SAML setup instructions** にある **Identity Provider Single Logout URL** | **General** タブで **SAML Settings** を編集し、**Show Advanced Settings** をクリックして **Allow application to initiate Single Logout** を選びます。**Single Logout URL** にシングルログアウト URL を、**SP Issuer** に識別子（エンティティ ID）を設定し、証明書を **Signature Certificate** としてアップロードします。 |
+| Microsoft Entra ID | **Set up OneUptime** にある **Logout URL** | **Basic SAML Configuration** で、**Logout Url (Optional)** にシングルログアウト URL を設定します。Entra ID に証明書は不要です。 |
+| Keycloak | レルムの SAML エンドポイント。サインオン URL と同じです | クライアントの **Advanced** タブで、**Logout Service Redirect Binding URL** にシングルログアウト URL を設定します。**Front channel logout** はオンのままにします。上記の設定どおり **Client signature required** がオフの間は、Keycloak に証明書は不要です。 |
+
+そこでサインアウトすると、ID プロバイダーはブラウザーをシングルログアウト URL へ戻し、サインインページが開くか、ID プロバイダーがサインアウトを確認しなかったことが表示されます。本人が ID プロバイダーや、それを使う別のアプリでサインアウトしたときは、Keycloak や Microsoft Entra ID のように自分のアプリへサインアウト要求を送る ID プロバイダーなら、OneUptime からもサインアウトさせます。OneUptime が受け付けるのは、ID プロバイダーが署名した要求だけです。
+@tab OpenID Connect
+OneUptime がサインアウトしたあと、ブラウザーはプロバイダー自身のサインアウトへ進み、プロバイダーが OneUptime のサインインページへ戻します。そのページをプロバイダーに登録してください。**OIDC の設定** ダイアログに、サインアウト後のリダイレクト URI として表示されます。プロバイダーでは post-logout redirect URI と呼ばれます。Google のように、ディスカバリードキュメントに `end_session_endpoint` がないプロバイダーではオンにできません。
+
+| ID プロバイダー | サインアウト後のリダイレクト URI の登録先 |
+| --- | --- |
+| Okta | アプリ統合の **General** タブで、**General Settings** の **Edit** をクリックし、**Sign-out redirect URIs** に追加します。 |
+| Microsoft Entra ID | アプリの登録の **Authentication** で、**Web** プラットフォームの **Redirect URIs** に追加します。**Front-channel logout URL** は別の設定で、OneUptime は使いません。 |
+| Auth0 | アプリケーションの **Settings** で、**Allowed Logout URLs** に追加します。2023 年 11 月 14 日より前に作成したテナントでは、ディスカバリードキュメントに `end_session_endpoint` が載るように、テナントの **Advanced** 設定で **RP-Initiated Logout End Session Endpoint Discovery** もオンにします。 |
+| Keycloak | クライアントの設定で、**Valid post logout redirect URIs** に追加します（Keycloak 19 以降）。 |
+
+登録していないプロバイダーは、OneUptime からのサインアウト後に本人を戻さず、プロバイダー自身のエラーページを表示します。それでも OneUptime からはサインアウトしています。
+:::
 
 ## SSO ユーザーのロールとチーム
 

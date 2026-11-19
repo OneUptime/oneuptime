@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDataAssetEntitySetName1809186296960 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186296960-AddDataAssetEntitySetName";
+import { AddDataAssetEntitySetName1809186396960 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186396960-AddDataAssetEntitySetName";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -24,12 +24,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186296960";
+const MIGRATION_TIMESTAMP: string = "1809186396960";
 const MIGRATION_BASE_NAME: string = "AddDataAssetEntitySetName";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddTeamScimGroupLinkedAt1809186200000";
-const PREVIOUS_TIMESTAMP: number = 1809186200000;
+const PREVIOUS_MIGRATION: string = "AddSamlSingleLogout1809186300000";
+const PREVIOUS_TIMESTAMP: number = 1809186300000;
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -44,7 +44,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddDataAssetEntitySetName1809186296960();
+    new AddDataAssetEntitySetName1809186396960();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -55,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddDataAssetEntitySetName1809186296960", () => {
+describe("AddDataAssetEntitySetName1809186396960", () => {
   test("adds each table's entity set name to DataAsset, as nullable text", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DataAsset" ADD "entitySetName" character varying(500)`,
@@ -105,7 +105,7 @@ describe("AddDataAssetEntitySetName1809186296960", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddDataAssetEntitySetName1809186296960().name).toBe(
+    expect(new AddDataAssetEntitySetName1809186396960().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

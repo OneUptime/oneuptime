@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Si cette personne n'a pas encore de compte OneUptime, il sera créé avec ce nom.",
   "Suggest every account on this server?": "Suggérer tous les comptes de ce serveur ?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Toute personne pouvant inviter verra le nom et l'e-mail de chaque compte pendant la saisie. Ne l'activez que si tous les comptes d'ici appartiennent à une seule organisation.",
-  "Suggest Every Account": "Suggérer tous les comptes"
+  "Suggest Every Account": "Suggérer tous les comptes",
+  "Sign Out URL": "URL de déconnexion",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "L'URL de déconnexion unique de votre fournisseur d'identité. Nécessaire pour y déconnecter aussi les personnes.",
+  "Single Logout URL:": "URL de Single Logout :",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Pour déconnecter aussi les personnes du fournisseur d'identité, donnez-lui aussi l'URL de Single Logout et le certificat de signature de OneUptime.",
+  "Download Signing Certificate": "Télécharger le certificat de signature"
 }

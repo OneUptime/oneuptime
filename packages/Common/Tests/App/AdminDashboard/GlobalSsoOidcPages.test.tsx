@@ -369,6 +369,10 @@ const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
 const SAML_ACS_URL: string = `https://${TEST_HOST}/identity/global-idp-login/${PROVIDER_ID}`;
 const SAML_ISSUER_URL: string = `https://${TEST_HOST}/global-sso/${PROVIDER_ID}`;
 const SAML_TEST_LOGIN_URL: string = `https://${TEST_HOST}/identity/global-sso/${PROVIDER_ID}`;
+// Where the identity provider answers a sign-out, and sends its own (#9603).
+const SAML_SINGLE_LOGOUT_URL: string = `https://${TEST_HOST}/identity/global-idp-logout/${PROVIDER_ID}`;
+// The certificate OneUptime signs its SAML sign-out requests with (#9603).
+const SAML_SIGNING_CERTIFICATE_URL: string = `https://${TEST_HOST}/identity/saml-signing-certificate`;
 const OIDC_REDIRECT_URI: string = `https://${TEST_HOST}/identity/global-oidc-callback/${PROVIDER_ID}`;
 const OIDC_TEST_LOGIN_URL: string = `https://${TEST_HOST}/identity/global-oidc/${PROVIDER_ID}`;
 // Where the provider sends people once it has signed them out: the sign-in page (#9535).
@@ -755,6 +759,12 @@ const GLOBAL_SAML_FORM_FIELDS: Array<string> = [
   "digestMethod",
   "description",
   ...GLOBAL_SSO_QUESTION_FIELDS,
+  /*
+   * Whether signing out signs people out of the provider too, with the
+   * provider's own sign-out URL (#9603), last.
+   */
+  "singleLogoutURL",
+  "signOutOfIdentityProvider",
 ];
 
 const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
@@ -1361,6 +1371,33 @@ describe("the Global SSO provider page", () => {
         screen.getByRole("button", { name: "Copy Issuer (Entity ID)" }),
       ).toBeInTheDocument();
 
+      /*
+       * What signing people out of the identity provider too takes there
+       * (#9603): the Single Logout URL, and the signing certificate.
+       */
+      expect(printedValueFor("Single Logout URL")).toBe(SAML_SINGLE_LOGOUT_URL);
+      expect(
+        screen.getByRole("button", { name: "Copy Single Logout URL" }),
+      ).toBeInTheDocument();
+
+      const signOutNote: HTMLElement = screen.getByTestId(
+        "global-sso-sign-out-note",
+      );
+
+      expect(signOutNote).toHaveTextContent(
+        "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate. Download Signing Certificate",
+      );
+
+      const certificateLink: HTMLElement = within(signOutNote).getByTestId(
+        "global-sso-signing-certificate",
+      );
+
+      expect(certificateLink).toHaveAttribute(
+        "href",
+        SAML_SIGNING_CERTIFICATE_URL,
+      );
+      expect(certificateLink).toHaveAttribute("target", "_blank");
+
       const testCard: HTMLElement = screen
         .getByText("Test this SSO provider")
         .closest('[data-testid="card"]') as HTMLElement;
@@ -1395,6 +1432,9 @@ describe("the Global SSO provider page", () => {
       "digestMethod",
       "disableSignUpWithSso",
       "restrictToAttachedProjects",
+      // Signing people out of the identity provider too (#9603).
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
       "isEnabled",
     ]);
     expectAnswerRows(
