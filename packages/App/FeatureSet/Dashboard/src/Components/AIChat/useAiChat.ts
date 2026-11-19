@@ -81,6 +81,12 @@ export interface UseAiChat {
   isConversationView: boolean;
   error: string;
   setError: (error: string) => void;
+  /*
+   * The question the server refused to take - over a limit, its
+   * subscription unpaid, too busy right now - for the docs results drawn
+   * beside why (#7063). "" once a question is taken or the error is gone.
+   */
+  refusedQuestion: string;
   providers: Array<ChatProvider>;
   /*
    * True once the provider list has actually loaded — lets the UI tell "no
@@ -180,6 +186,17 @@ export function useAiChat(options: {
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isAwaitingResponse, setIsAwaitingResponse] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * The question the server refused, with the error it refused it with:
+   * its docs show while that error does, and go with it (#7063).
+   */
+  const [refused, setRefused] = useState<{
+    question: string;
+    error: string;
+  } | null>(null);
+  const refusedQuestion: string =
+    refused && error && refused.error === error ? refused.question : "";
+
   const [providers, setProviders] = useState<Array<ChatProvider>>([]);
   const [providersLoaded, setProvidersLoaded] = useState<boolean>(false);
   /*
@@ -923,6 +940,8 @@ export function useAiChat(options: {
           "conversationId"
         ] as string;
 
+        setRefused(null);
+
         /*
          * A question Ask AI took (issue #6830) - never its words: whether it
          * started a conversation, and the permission mode it runs under.
@@ -950,7 +969,10 @@ export function useAiChat(options: {
           }
         }, 1500);
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        const refusal: string = API.getFriendlyMessage(err);
+        setError(refusal);
+        // Looked up in the docs beside why it was refused (#7063).
+        setRefused({ question: content, error: refusal });
         setMessages((current: Array<AIConversationMessage>) => {
           return current.filter((message: AIConversationMessage) => {
             return message.id?.toString() !== optimisticMessage.id?.toString();
@@ -1210,6 +1232,7 @@ export function useAiChat(options: {
     isConversationView,
     error,
     setError,
+    refusedQuestion,
     providers,
     providersLoaded,
     unavailableReason,

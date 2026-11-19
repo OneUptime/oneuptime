@@ -202,13 +202,20 @@ describe("the pages where a project is set up have a context", () => {
     });
   });
 
-  test("the lists and explorers keep their own context, now with the page on screen", () => {
+  test("the lists, explorers and other records keep the context they had", () => {
     navigateTo(`/dashboard/${PROJECT_ID}/monitors`);
 
-    expect(detected()).toMatchObject({
+    expect(detected()).toEqual({
       type: AIChatPageContextType.MonitorsList,
-      page: "/dashboard/:projectId/monitors",
+      noun: "monitors",
+      chipLabel: "Monitors",
+      icon: "AltGlobe",
+      isEntity: false,
     });
+
+    navigateTo(`/dashboard/${PROJECT_ID}/monitors/${POLICY_ID}/criteria`);
+
+    expect(detected()?.page).toBeUndefined();
   });
 });
 

@@ -385,6 +385,24 @@ const setupPageRules: Array<SetupPageRule> = [
 ];
 
 /*
+ * The contexts that also say which of their pages is on screen (#7062):
+ * the setup pages, whose area has many pages - API Keys, Labels, SSO -
+ * and one status page's and one on-call policy's, where "here" is Custom
+ * Domains or Escalation Rules. A list's or a record's own questions are
+ * about its data, and keep the context they had.
+ */
+const PAGE_TELLING_CONTEXT_TYPES: ReadonlyArray<AIChatPageContextType> = [
+  AIChatPageContextType.Home,
+  AIChatPageContextType.ProjectSettings,
+  AIChatPageContextType.UserSettings,
+  AIChatPageContextType.OnCall,
+  AIChatPageContextType.StatusPagesList,
+  AIChatPageContextType.CreateForm,
+  AIChatPageContextType.StatusPage,
+  AIChatPageContextType.OnCallPolicy,
+];
+
+/*
  * THE FORMS THAT CREATE SOMETHING (#7062): "what does this field do?" is
  * about the form on screen. A product's own create page (Create Monitor,
  * Declare Incident), and a list's create form opened from its address
@@ -566,8 +584,8 @@ export default class PageContextUtil {
     const context: DashboardPageContext | null =
       PageContextUtil.detectPageSubject();
 
-    if (!context) {
-      return null;
+    if (!context || !PAGE_TELLING_CONTEXT_TYPES.includes(context.type)) {
+      return context;
     }
 
     /*
@@ -1958,6 +1976,12 @@ export default class PageContextUtil {
             question:
               "How many people subscribe to this status page, and how do people subscribe to it?",
           },
+          {
+            icon: IconProp.Announcement,
+            title: "Post an update",
+            question:
+              "How do I post an update about an incident on this status page?",
+          },
         ];
       case AIChatPageContextType.OnCallPolicy:
         return [
@@ -1977,6 +2001,12 @@ export default class PageContextUtil {
             question:
               "Did this policy page anyone in the last 24 hours, and did they acknowledge?",
           },
+          {
+            icon: IconProp.Clock,
+            title: "Escalate sooner",
+            question:
+              "How do I page the next person sooner when nobody acknowledges?",
+          },
         ];
       case AIChatPageContextType.Home:
         return [
@@ -1990,6 +2020,16 @@ export default class PageContextUtil {
             icon: IconProp.Alert,
             title: "What needs attention?",
             question: "What needs my attention in this project right now?",
+          },
+          {
+            icon: IconProp.Call,
+            title: "Get paged",
+            question: "How do I get paged on my phone when something breaks?",
+          },
+          {
+            icon: IconProp.Globe,
+            title: "Watch my website",
+            question: "How do I know when my website goes down?",
           },
         ];
       case AIChatPageContextType.ProjectSettings:
@@ -2007,6 +2047,17 @@ export default class PageContextUtil {
             title: "How do I use it?",
             question: "How do I set up what this page is for, step by step?",
           },
+          {
+            icon: IconProp.Settings,
+            title: "What can I change?",
+            question:
+              "What can I change on this page, and what does each setting do?",
+          },
+          {
+            icon: IconProp.Team,
+            title: "Who can change it?",
+            question: "Who in my project can change what is on this page?",
+          },
         ];
       case AIChatPageContextType.CreateForm:
         return [
@@ -2015,6 +2066,17 @@ export default class PageContextUtil {
             title: "What do I fill in?",
             question:
               "Which fields of this form do I need to fill in, and what does each one do?",
+          },
+          {
+            icon: IconProp.QuestionMarkCircle,
+            title: "Which option fits me?",
+            question:
+              "Which of the options on this form fits what I want to do?",
+          },
+          {
+            icon: IconProp.Edit,
+            title: "Can I change it later?",
+            question: "Can I change what I fill in here after it is created?",
           },
           {
             icon: IconProp.ArrowRight,
