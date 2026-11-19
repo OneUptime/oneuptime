@@ -57418,5 +57418,6 @@
   "Volume Free Space": "فضای آزاد Volume",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} از {{total}} استفاده‌شده ({{percent}})",
   "Inode Usage": "مصرف inode",
-  "Total Inodes": "کل inodeها"
+  "Total Inodes": "کل inodeها",
+  "See sessions": "دیدن نشست‌ها"
 }

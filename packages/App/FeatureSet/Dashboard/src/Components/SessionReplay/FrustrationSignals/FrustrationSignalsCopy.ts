@@ -925,6 +925,13 @@ export const DELETE_SIGNAL_TEXT: string = translationKey("Delete");
 
 export const EDIT_SIGNAL_TEXT: string = translationKey("Edit");
 
+/*
+ * The row's way to the sessions the signal fired in: the session list,
+ * filtered to its name. Offered to every reader, since it changes nothing,
+ * and on a signal switched off too, whose earlier sessions still carry it.
+ */
+export const SEE_SESSIONS_TEXT: string = translationKey("See sessions");
+
 export const DELETE_SIGNAL_DESCRIPTION: string = translationKey(
   "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.",
 );

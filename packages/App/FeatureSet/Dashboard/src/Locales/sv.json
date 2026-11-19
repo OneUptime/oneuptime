@@ -57418,5 +57418,6 @@
   "Volume Free Space": "Ledigt utrymme på volym",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} av {{total}} används ({{percent}})",
   "Inode Usage": "Inodeanvändning",
-  "Total Inodes": "Totalt antal inoder"
+  "Total Inodes": "Totalt antal inoder",
+  "See sessions": "Visa sessioner"
 }

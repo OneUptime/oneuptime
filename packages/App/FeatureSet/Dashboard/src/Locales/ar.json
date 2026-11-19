@@ -57418,5 +57418,6 @@
   "Volume Free Space": "المساحة المتاحة في وحدة التخزين",
   "{{used}} of {{total}} used ({{percent}})": "المستخدَم {{used}} من {{total}} ({{percent}})",
   "Inode Usage": "استخدام inode",
-  "Total Inodes": "إجمالي inode"
+  "Total Inodes": "إجمالي inode",
+  "See sessions": "عرض الجلسات"
 }

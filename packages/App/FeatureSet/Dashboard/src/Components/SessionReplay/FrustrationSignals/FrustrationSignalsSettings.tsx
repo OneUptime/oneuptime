@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
@@ -20,6 +21,9 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import PageMap from "../../../Utils/PageMap";
+import { RouteUtil } from "../../../Utils/RouteMap";
+import { buildCustomSignalSessionsQuery } from "../SessionReplayListFilters";
 import BuiltInSignalRow from "./BuiltInSignalRow";
 import CustomSignalModal from "./CustomSignalModal";
 import CustomSignalRow from "./CustomSignalRow";
@@ -65,9 +69,14 @@ import useFrustrationSettings, {
  * to sessions recorded from then on; the page says so once, at the top.
  * Someone who may not edit the application sees the same page with every
  * control locked and why.
+ *
+ * Each signal of the application's own leads to the sessions it fired in
+ * (See sessions, issue #6515): the application's session list, filtered
+ * to its name.
  */
 
 export interface ViewProps {
+  rumApplicationId: ObjectID;
   state: FrustrationSettingsState;
   // A test seam: the browser's own reading of a selector.
   acceptsSelector?: SelectorCheck | undefined;
@@ -86,6 +95,15 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
   const settings: SessionReplayFrustrationSettings | null = state.settings;
 
   const [dialog, setDialog] = useState<DialogState>({ kind: "closed" });
+
+  const sessionsRouteOf: (signal: SessionReplayCustomSignal) => Route = (
+    signal: SessionReplayCustomSignal,
+  ): Route => {
+    return RouteUtil.getPageRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY, {
+      modelId: props.rumApplicationId,
+      query: buildCustomSignalSessionsQuery(signal.name),
+    });
+  };
 
   if (state.loadError && !settings) {
     return (
@@ -213,6 +231,7 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
                   <CustomSignalRow
                     key={signal.id}
                     signal={signal}
+                    sessionsRoute={sessionsRouteOf(signal)}
                     canEdit={state.canEdit}
                     isSaving={state.isSaving}
                     onSwitch={(isEnabled: boolean): Promise<string | null> => {
@@ -293,7 +312,12 @@ const FrustrationSignalsSettings: FunctionComponent<ComponentProps> = (
     props.rumApplicationId,
   );
 
-  return <FrustrationSignalsView state={state} />;
+  return (
+    <FrustrationSignalsView
+      rumApplicationId={props.rumApplicationId}
+      state={state}
+    />
+  );
 };
 
 export default FrustrationSignalsSettings;

@@ -57418,5 +57418,6 @@
   "Volume Free Space": "Spazio libero del volume",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} di {{total}} in uso ({{percent}})",
   "Inode Usage": "Utilizzo degli inode",
-  "Total Inodes": "Inode totali"
+  "Total Inodes": "Inode totali",
+  "See sessions": "Vedi le sessioni"
 }

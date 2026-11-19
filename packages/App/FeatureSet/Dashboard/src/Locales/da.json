@@ -57418,5 +57418,6 @@
   "Volume Free Space": "Ledig plads på volumen",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} af {{total}} brugt ({{percent}})",
   "Inode Usage": "Inodeforbrug",
-  "Total Inodes": "Inoder i alt"
+  "Total Inodes": "Inoder i alt",
+  "See sessions": "Se sessioner"
 }

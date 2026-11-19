@@ -57418,5 +57418,6 @@
   "Volume Free Space": "卷可用空间",
   "{{used}} of {{total}} used ({{percent}})": "已用 {{used}}，共 {{total}}（{{percent}}）",
   "Inode Usage": "inode 使用量",
-  "Total Inodes": "inode 总数"
+  "Total Inodes": "inode 总数",
+  "See sessions": "查看会话"
 }

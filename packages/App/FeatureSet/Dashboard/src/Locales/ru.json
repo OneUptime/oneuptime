@@ -57418,5 +57418,6 @@
   "Volume Free Space": "Свободное место на томе",
   "{{used}} of {{total}} used ({{percent}})": "Занято {{used}} из {{total}} ({{percent}})",
   "Inode Usage": "Использование инодов",
-  "Total Inodes": "Всего инодов"
+  "Total Inodes": "Всего инодов",
+  "See sessions": "Посмотреть сеансы"
 }

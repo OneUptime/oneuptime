@@ -28,6 +28,7 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { Gray500, Yellow } from "../../../Types/BrandColors";
 import { getPillColors } from "../../../UI/Components/Pill/PillColors";
+import Navigation from "../../../UI/Utils/Navigation";
 
 /*
  * The Frustration Signals page (issue #6443), driven the way a person uses
@@ -41,6 +42,7 @@ import { getPillColors } from "../../../UI/Components/Pill/PillColors";
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const isMasterAdminMock: MockFunction = getJestMockFunction();
+const navigateMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -151,12 +153,48 @@ function switchOf(testId: string): HTMLElement {
   return within(screen.getByTestId(testId)).getByRole("switch");
 }
 
+// A signal row's ⋯, opened.
+function openRowMenu(rowTestId: string): HTMLElement {
+  fireEvent.click(
+    within(screen.getByTestId(rowTestId)).getByTestId(
+      "row-actions-more-button",
+    ),
+  );
+
+  return screen.getByRole("menu");
+}
+
+function menuItemNames(menu: HTMLElement): Array<string> {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
+
+// What the page handed Navigation.navigate on its nth call.
+function navigatedHref(call: number = 0): string {
+  return (
+    navigateMock.mock.calls[call]![0] as { toString: () => string }
+  ).toString();
+}
+
+function navigatedTo(call: number = 0): URL {
+  return new URL(navigatedHref(call), "https://dash.example.com");
+}
+
 beforeEach(() => {
   getItemMock.mockReset();
   updateByIdMock.mockReset();
   isMasterAdminMock.mockReset();
+  navigateMock.mockReset();
   isMasterAdminMock.mockReturnValue(true);
   updateByIdMock.mockResolvedValue({});
+  jest
+    .spyOn(Navigation, "navigate")
+    .mockImplementation((...args: Array<unknown>): void => {
+      navigateMock(...args);
+    });
 });
 
 afterEach(() => {
@@ -1146,6 +1184,132 @@ describe("signals of the application's own", () => {
   });
 });
 
+/*
+ * See sessions (issue #6515): each signal of the application's own leads
+ * to the sessions it fired in, the application's session list filtered to
+ * its exact name - what the list's filter form would have needed typed,
+ * case included.
+ */
+describe("a signal's sessions", () => {
+  test("See sessions comes first in a signal's ⋯, ahead of Edit and Delete", async () => {
+    await renderPage(settingsWith([signal({})]));
+
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
+      "See sessions",
+      "Edit",
+      "Delete",
+    ]);
+  });
+
+  test("opens the application's session list on the signal's name, and saves nothing", async () => {
+    await renderPage(settingsWith([signal({})]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const target: URL = navigatedTo();
+
+    expect(
+      target.pathname.endsWith(`/rum/${APP_ID.toString()}/session-replay`),
+    ).toBe(true);
+    // The signal, and nothing else: the list keeps its own window and sort.
+    expect(Array.from(target.searchParams.keys())).toEqual(["signalName"]);
+    expect(target.searchParams.get("signalName")).toBe("Payment failed");
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("carries the exact name, encoded, whatever it holds", async () => {
+    const name: string = "Card déclinée & retried #2 / 100%?";
+
+    await renderPage(settingsWith([signal({ name: name })]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    const href: string = navigatedHref();
+
+    // Nothing of the name breaks out of its parameter.
+    expect(href.split("?")).toHaveLength(2);
+    expect(href).not.toContain("#");
+    expect(href).not.toContain(" ");
+    expect(navigatedTo().searchParams.get("signalName")).toBe(name);
+  });
+
+  test("a signal that is switched off keeps it, for the sessions recorded while it was on", async () => {
+    await renderPage(settingsWith([signal({ isEnabled: false })]));
+
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))[0]).toBe(
+      "See sessions",
+    );
+  });
+
+  test("each signal leads to its own sessions", async () => {
+    await renderPage(
+      settingsWith([
+        signal({}),
+        signal({
+          id: "signal-2",
+          name: "Support chat opened",
+          trigger: "click",
+          match: "#open-chat",
+          isFrustration: false,
+        }),
+      ]),
+    );
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-2")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    expect(navigatedTo().searchParams.get("signalName")).toBe(
+      "Support chat opened",
+    );
+  });
+
+  test("is there while a save is on its way, since it changes nothing", async () => {
+    let finishSave: (value: unknown) => void = (): void => {};
+
+    updateByIdMock.mockImplementation((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void): void => {
+        finishSave = resolve;
+      });
+    });
+
+    await renderPage(settingsWith([signal({})]));
+
+    fireEvent.click(screen.getByRole("switch", { name: "Payment failed" }));
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const seeSessions: HTMLElement = within(
+      openRowMenu("custom-signal-signal-1"),
+    ).getByRole("menuitem", { name: "See sessions" });
+
+    expect(seeSessions).not.toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(seeSessions);
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finishSave({});
+    });
+  });
+});
+
 describe("a reader who may not edit the application", () => {
   test("sees every setting, every control locked, and why", async () => {
     isMasterAdminMock.mockReturnValue(false);
@@ -1166,9 +1330,28 @@ describe("a reader who may not edit the application", () => {
     ).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Change the rule")).toBeNull();
     expect(screen.queryByRole("button", { name: "Add signal" })).toBeNull();
-    expect(screen.queryByTestId("row-actions-more-button")).toBeNull();
+    // A signal's ⋯ holds only what changes nothing: See sessions.
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
+      "See sessions",
+    ]);
 
     fireEvent.click(switchOf("frustration-signal-rageClick"));
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("may still open a signal's sessions, which changes nothing", async () => {
+    isMasterAdminMock.mockReturnValue(false);
+
+    await renderPage(settingsWith([signal({ isEnabled: false })]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo().searchParams.get("signalName")).toBe("Payment failed");
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
