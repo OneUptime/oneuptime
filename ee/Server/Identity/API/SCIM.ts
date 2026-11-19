@@ -5,7 +5,10 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
 import { createProjectSCIMLog } from "../Utils/SCIMLogger";
 import ProjectSCIMAccountPolicy, {
+  HOSTED_EMAIL_CHANGE_STEP,
+  NAME_CHANGE_STEP,
   ProjectSCIMTeamAddOutcome,
+  SELF_HOSTED_EMAIL_CHANGE_STEP,
 } from "../Utils/ProjectSCIMAccountPolicy";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import Express, {
@@ -23,6 +26,7 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import Text from "Common/Types/Text";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
+import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import { JSONObject } from "Common/Types/JSON";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
@@ -54,6 +58,7 @@ import {
   applyScimUserPatch,
   getAccountEmail,
   getAccountName,
+  getChangedScimUserAttributes,
   getRecordDataOfScimUserResource,
   getScimUserResourceOfAccount,
   getScimUserResourceOfRecord,
@@ -1430,6 +1435,27 @@ const renderProjectScimUser: (data: {
   });
 };
 
+/*
+ * What the connection's SCIM log says of a user: the address and name the
+ * SCIM user has - what the identity provider sent, or for a member it has
+ * not written, what the project sees of them - never the account's own
+ * name, nor its address when the identity provider gave another (#9825).
+ * The address is "" when the SCIM user has none.
+ */
+const getScimUserForLog: (user: ProjectScimUser) => {
+  email: string;
+  name: string;
+} = (user: ProjectScimUser): { email: string; name: string } => {
+  const resource: ScimUserResource = user.record
+    ? getScimUserResourceOfRecord(user.record)
+    : getScimUserResourceOfAccount(toScimAccount(user));
+
+  return {
+    email: getAccountEmail(resource) || "",
+    name: getAccountName(resource),
+  };
+};
+
 // The accounts of `records`, beside them. A record whose account is gone is no user.
 const withAccounts: (
   records: Array<ProjectSCIMUser>,
@@ -2032,7 +2058,14 @@ type UpdatedProjectScimUser =
       user: ProjectScimUser;
       active: boolean | undefined;
       teamOperationPerformed: string | null;
+      /*
+       * What the log says of the user: the SCIM user's attributes the
+       * request changed, and its address and name before and after - as the
+       * identity provider sent them, never the account's own (#9825).
+       */
       fieldsUpdated: Array<string>;
+      email: string;
+      name: string;
       previousEmail: string;
       previousName: string;
     };
@@ -2091,14 +2124,23 @@ const updateProjectScimUser: (data: {
   }
 
   const userId: ObjectID = found.account.id!;
-  const previousEmail: string = found.account.email?.toString() || "";
-  const previousName: string = found.account.name?.toString() || "";
 
-  executionSteps.push(`Found existing user: ${previousEmail}`);
+  // What the account has: whether the request would change it.
+  const accountEmail: string = found.account.email?.toString() || "";
+  const accountName: string = found.account.name?.toString() || "";
 
   const current: ScimUserResource = found.record
     ? getScimUserResourceOfRecord(found.record)
     : getScimUserResourceOfAccount(toScimAccount(found));
+
+  /*
+   * The SCIM user as the identity provider had it - what the log says it
+   * was, never the account's own name or address (#9825).
+   */
+  const previousEmail: string = getAccountEmail(current) || "";
+  const previousName: string = getAccountName(current);
+
+  executionSteps.push(`Found the user: ${previousEmail || userId.toString()}`);
 
   const body: JSONObject =
     data.body && typeof data.body === "object" && !Array.isArray(data.body)
@@ -2138,17 +2180,18 @@ const updateProjectScimUser: (data: {
   );
 
   /*
-   * ProjectSCIMAccountPolicy decides whether this account's profile is this
-   * project's to change. Checked before anything is written.
+   * Whether the request would change the account's address or name: what
+   * ProjectSCIMAccountPolicy is asked about. Checked before anything is
+   * written.
    */
   const isEmailChanging: boolean =
     Boolean(email) &&
     ProjectSCIMAccountPolicy.isEmailChanging({
-      currentEmail: previousEmail,
+      currentEmail: accountEmail,
       newEmail: email!,
     });
 
-  const isNameChanging: boolean = Boolean(name) && name !== previousName;
+  const isNameChanging: boolean = Boolean(name) && name !== accountName;
 
   /*
    * Whether the identity provider's addresses for the person - its userName
@@ -2179,26 +2222,9 @@ const updateProjectScimUser: (data: {
   const isAddressChanging: boolean =
     getAddresses(next) !== getAddresses(current);
 
-  /*
-   * Whether the new name is this project's to give
-   * (ProjectSCIMAccountPolicy.mayChangeName) - read once, and only when it
-   * matters.
-   */
-  let mayChangeNameRead: boolean | null = null;
-
-  const getMayChangeName: () => Promise<boolean> =
-    async (): Promise<boolean> => {
-      if (mayChangeNameRead === null) {
-        mayChangeNameRead =
-          isNameChanging &&
-          (await ProjectSCIMAccountPolicy.mayChangeName({
-            projectId: data.projectId,
-            userId: userId,
-          }));
-      }
-
-      return mayChangeNameRead;
-    };
+  // Whether the identity provider's name for the person is another than the one the connection has.
+  const isScimNameChanging: boolean =
+    getAccountName(next) !== getAccountName(current);
 
   /*
    * Below the plan SCIM needs (Utils/SCIMBelowPlan), a deactivation goes
@@ -2211,6 +2237,12 @@ const updateProjectScimUser: (data: {
    * it is sent (auto-deprovisioning off, or groups pushed instead): what
    * else it asks is a change on its own. Checked before anything is
    * written, so a refused update changes nothing at all.
+   *
+   * A change of email or name is one of the SCIM user - what the identity
+   * provider sent, against what the connection has - and never of the
+   * account: whether the account would take it depends on its other
+   * projects and on the addresses of other accounts, which the answer must
+   * not say (#9825). Sending what the connection has again is no change.
    */
   let profileLeftAsItIs: boolean = false;
 
@@ -2227,8 +2259,8 @@ const updateProjectScimUser: (data: {
         active === false &&
         Boolean(scimConfig.autoDeprovisionUsers) &&
         !scimConfig.enablePushGroups,
-      isEmailChanging: isEmailChanging || isAddressChanging,
-      isNameChanging: await getMayChangeName(),
+      isEmailChanging: isAddressChanging,
+      isNameChanging: isScimNameChanging,
     });
 
     if (belowPlan === ScimUpdateBelowPlan.Refused) {
@@ -2237,7 +2269,7 @@ const updateProjectScimUser: (data: {
 
     if (
       belowPlan === ScimUpdateBelowPlan.Removal &&
-      (isEmailChanging || isAddressChanging || (await getMayChangeName()))
+      (isAddressChanging || isScimNameChanging)
     ) {
       executionSteps.push(
         `Below the ${missingPlan} plan the deactivation goes through, and the user's email and name are left as they are`,
@@ -2248,31 +2280,51 @@ const updateProjectScimUser: (data: {
     profileLeftAsItIs = true;
   }
 
-  let changesEmail: boolean = isEmailChanging && !profileLeftAsItIs;
+  /*
+   * A new address or name from the identity provider stays on the SCIM user
+   * and is answered with; the account takes it as far as
+   * ProjectSCIMAccountPolicy lets this project change it, and the request
+   * succeeds either way - an error would be retried for ever. The log says
+   * what the identity provider changed, in the same words whether or not the
+   * account took it: whether it did depends on the account's other projects,
+   * on whether it is an administrator, and on other accounts' addresses,
+   * none of which the project may learn (#9825).
+   */
+  const isSignInAddressChanging: boolean =
+    Boolean(email) &&
+    ProjectSCIMAccountPolicy.isEmailChanging({
+      currentEmail: previousEmail,
+      newEmail: email!,
+    });
 
-  if (changesEmail) {
-    const emailChangeRefusal: string | null =
-      await ProjectSCIMAccountPolicy.getEmailChangeRefusal({
-        projectId: data.projectId,
-        userId: userId,
-      });
-
-    if (emailChangeRefusal) {
-      changesEmail = false;
-      executionSteps.push(
-        `Email change not applied to the OneUptime account: ${emailChangeRefusal} The SCIM user keeps the address the identity provider sent.`,
-      );
-    }
-  }
-
-  const mayChangeName: boolean = await getMayChangeName();
-  const changesName: boolean = mayChangeName && !profileLeftAsItIs;
-
-  if (isNameChanging && !mayChangeName) {
+  if (!profileLeftAsItIs && isSignInAddressChanging) {
     executionSteps.push(
-      "Name change skipped: this account has not joined this project, belongs to another project, or is a OneUptime administrator",
+      ProjectSCIMAccountPolicy.isHostedService()
+        ? HOSTED_EMAIL_CHANGE_STEP
+        : SELF_HOSTED_EMAIL_CHANGE_STEP,
     );
   }
+
+  if (!profileLeftAsItIs && name && isScimNameChanging) {
+    executionSteps.push(NAME_CHANGE_STEP);
+  }
+
+  let changesEmail: boolean =
+    isEmailChanging &&
+    !profileLeftAsItIs &&
+    (await ProjectSCIMAccountPolicy.mayChangeEmail({
+      projectId: data.projectId,
+      userId: userId,
+      newEmail: email!,
+    }));
+
+  const changesName: boolean =
+    isNameChanging &&
+    !profileLeftAsItIs &&
+    (await ProjectSCIMAccountPolicy.mayChangeName({
+      projectId: data.projectId,
+      userId: userId,
+    }));
 
   let teamOperationPerformed: string | null = null;
 
@@ -2316,36 +2368,57 @@ const updateProjectScimUser: (data: {
     const addOutcomes: Array<ProjectSCIMTeamAddOutcome> =
       await handleUserTeamOperations("add", data.projectId, userId, scimConfig);
     teamOperationPerformed = "added_to_teams";
+    // How many teams, never whether an add was an invitation (describeTeamAddOutcomes).
     executionSteps.push(
       `Configured teams: ${describeTeamAddOutcomes(addOutcomes)}`,
     );
   }
 
-  const fieldsUpdated: Array<string> = [];
   let account: User = found.account;
 
+  /*
+   * The account's own address and name, as far as the policy lets this
+   * project change them. Not logged when they change: whether they do is
+   * the policy's, and the log speaks of the SCIM user (#9825).
+   */
   if (changesEmail || changesName) {
     const updateData: { email?: Email; name?: Name } = {};
 
     if (changesEmail) {
       updateData.email = new Email(email!);
-      fieldsUpdated.push("email");
     }
 
     if (changesName) {
       updateData.name = new Name(name);
-      fieldsUpdated.push("name");
     }
 
-    executionSteps.push(`Updating user record in database`);
+    try {
+      await UserService.updateOneById({
+        id: userId,
+        data: updateData,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      /*
+       * Another account took the address after the policy looked: the
+       * account keeps its own, as when the policy finds the address taken,
+       * and the rest of the change still goes through - with nothing said
+       * of it, as nothing is when the policy finds it.
+       */
+      if (!changesEmail || !PostgresErrorTranslator.isUniqueViolation(err)) {
+        throw err;
+      }
 
-    await UserService.updateOneById({
-      id: userId,
-      data: updateData,
-      props: { isRoot: true },
-    });
+      changesEmail = false;
 
-    executionSteps.push("User record updated successfully");
+      if (changesName) {
+        await UserService.updateOneById({
+          id: userId,
+          data: { name: new Name(name) },
+          props: { isRoot: true },
+        });
+      }
+    }
 
     account =
       (await UserService.findOneById({
@@ -2355,9 +2428,11 @@ const updateProjectScimUser: (data: {
       })) || account;
   }
 
+  const recorded: ScimUserResource = profileLeftAsItIs ? current : next;
+
   const record: ProjectSCIMUser = await ProjectSCIMUserService.saveRecord(
     getRecordDataOfScimUserResource({
-      resource: profileLeftAsItIs ? current : next,
+      resource: recorded,
       projectId: data.projectId,
       projectScimId: data.projectScimId,
       userId: userId,
@@ -2372,7 +2447,12 @@ const updateProjectScimUser: (data: {
     user: { account: account, record: record, showsAccountProfile: false },
     active: active,
     teamOperationPerformed: teamOperationPerformed,
-    fieldsUpdated: fieldsUpdated,
+    fieldsUpdated: getChangedScimUserAttributes({
+      before: current,
+      after: { ...recorded, active: next.active !== false },
+    }),
+    email: getAccountEmail(recorded) || previousEmail,
+    name: getAccountName(recorded),
     previousEmail: previousEmail,
     previousName: previousName,
   };
@@ -3358,7 +3438,11 @@ router.get(
         );
       }
 
-      executionSteps.push(`Found user: ${user.account.email?.toString()}`);
+      const logged: { email: string; name: string } = getScimUserForLog(user);
+
+      executionSteps.push(
+        `Found user: ${logged.email || user.account.id?.toString()}`,
+      );
 
       const responseBody: JSONObject = renderProjectScimUser({
         req: req,
@@ -3374,13 +3458,13 @@ router.get(
         httpMethod: "GET",
         requestPath: req.path,
         httpStatusCode: 200,
-        affectedUserEmail: user.account.email?.toString(),
+        affectedUserEmail: logged.email || undefined,
         responseBody: responseBody,
         steps: executionSteps,
         userInfo: {
           userId: user.account.id?.toString(),
-          email: user.account.email?.toString(),
-          name: user.account.name?.toString(),
+          email: logged.email || null,
+          name: logged.name || null,
           active: user.record ? user.record.isActive !== false : true,
         },
       });
@@ -3434,6 +3518,10 @@ const handleUserUpdate: (
     });
 
     if (outcome.refused) {
+      const logged: { email: string; name: string } = getScimUserForLog(
+        outcome.user,
+      );
+
       refuseBelowPlan({
         req: req,
         res: res,
@@ -3444,11 +3532,11 @@ const handleUserUpdate: (
           "the update would reactivate the user, or only change their email or name",
         executionSteps: executionSteps,
         requestBody: getRequestBody(req),
-        affectedUserEmail: outcome.user.account.email?.toString(),
+        affectedUserEmail: logged.email || undefined,
         userInfo: {
           userId: outcome.user.account.id?.toString(),
-          email: outcome.user.account.email?.toString(),
-          name: outcome.user.account.name?.toString(),
+          email: logged.email || null,
+          name: logged.name || null,
         },
       });
 
@@ -3471,16 +3559,16 @@ const handleUserUpdate: (
       httpMethod: req.method,
       requestPath: req.path,
       httpStatusCode: 200,
-      affectedUserEmail: outcome.user.account.email?.toString(),
+      affectedUserEmail: outcome.email || undefined,
       requestBody: getRequestBody(req),
       responseBody: responseBody,
       steps: executionSteps,
       userInfo: {
         userId: outcome.user.account.id?.toString(),
-        email: outcome.user.account.email?.toString(),
-        name: outcome.user.account.name?.toString(),
-        previousEmail: outcome.previousEmail,
-        previousName: outcome.previousName,
+        email: outcome.email || null,
+        name: outcome.name || null,
+        previousEmail: outcome.previousEmail || null,
+        previousName: outcome.previousName || null,
       },
       additionalContext: {
         httpMethod: req.method,
@@ -4643,6 +4731,10 @@ router.delete(
 
       executionSteps.push("User successfully deprovisioned from project");
 
+      const logged: { email: string; name: string } = getScimUserForLog(
+        deleted.user,
+      );
+
       void createProjectSCIMLog({
         projectId: projectId,
         projectScimId: new ObjectID(projectScimId),
@@ -4651,11 +4743,11 @@ router.delete(
         httpMethod: "DELETE",
         requestPath: req.path,
         httpStatusCode: 204,
-        affectedUserEmail: deleted.user.account.email?.toString(),
+        affectedUserEmail: logged.email || undefined,
         steps: executionSteps,
         userInfo: {
           userId: deleted.user.account.id?.toString(),
-          email: deleted.user.account.email?.toString(),
+          email: logged.email || null,
         },
         additionalContext: {
           autoDeprovisionEnabled: Boolean(scimConfig.autoDeprovisionUsers),

@@ -8,9 +8,10 @@ import {
 } from "@jest/globals";
 import ProjectSCIMRouter from "../../../Server/Identity/API/SCIM";
 import ProjectSCIMAccountPolicy, {
-  HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE,
+  HOSTED_EMAIL_CHANGE_STEP,
+  NAME_CHANGE_STEP,
   ProjectSCIMAccountStanding,
-  UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE,
+  SELF_HOSTED_EMAIL_CHANGE_STEP,
 } from "../../../Server/Identity/Utils/ProjectSCIMAccountPolicy";
 import { createProjectSCIMLog } from "../../../Server/Identity/Utils/SCIMLogger";
 import {
@@ -339,6 +340,29 @@ jest.mock("Common/Server/Services/UserService", () => {
             return item.id === idOf(args.id);
           },
         );
+
+        /*
+         * The User table's unique index on email: the write is refused, as
+         * the database refuses it, and changes nothing.
+         */
+        if (
+          args.data.email &&
+          world.users.some((item: FakeUser) => {
+            return (
+              item.email === args.data.email!.toString() &&
+              item.id !== idOf(args.id)
+            );
+          })
+        ) {
+          const translator: typeof import("Common/Server/Utils/Database/PostgresErrorTranslator") =
+            jest.requireActual(
+              "Common/Server/Utils/Database/PostgresErrorTranslator",
+            ) as typeof import("Common/Server/Utils/Database/PostgresErrorTranslator");
+
+          throw translator.default.createUniqueViolationException(
+            "A User with this Email already exists. Please use a different value and try again.",
+          );
+        }
 
         world.userUpdates.push({
           id: idOf(args.id),
@@ -914,23 +938,21 @@ function expectSuccess(result: HttpResult): void {
 }
 
 /*
- * The request succeeded, and the address it asked for was not given to the
- * account: the connection's SCIM log says why (`refusal`). The identity
- * provider is answered with the SCIM user as it sent it - its own record.
+ * The request succeeded, and the connection's SCIM log says the SCIM user
+ * keeps the new address (`step`): on the hosted service, that no account
+ * takes one; on a self-hosted install, the same words whether or not the
+ * account took it, and whatever kept it from taking it (#9825). The
+ * identity provider is answered with the SCIM user as it sent it - its own
+ * record.
  */
-function expectEmailChangeNotApplied(
-  result: HttpResult,
-  refusal: string,
-): void {
+function expectEmailChangeLogged(result: HttpResult, step: string): void {
   expect(result.status).toBe(200);
   expect(createProjectSCIMLog).toHaveBeenCalledWith(
     expect.objectContaining({
       operationType: "UpdateUser",
       status: "Success",
       httpStatusCode: 200,
-      steps: expect.arrayContaining([
-        `Email change not applied to the OneUptime account: ${refusal} The SCIM user keeps the address the identity provider sent.`,
-      ]),
+      steps: expect.arrayContaining([step]),
     }),
   );
 }
@@ -1018,17 +1040,17 @@ async function sendBulkUserUpdate(
 const deployments: Array<{
   label: string;
   hosted: boolean;
-  refusalForUnmanaged: string;
+  emailChangeStep: string;
 }> = [
   {
     label: "the hosted service",
     hosted: true,
-    refusalForUnmanaged: HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE,
+    emailChangeStep: HOSTED_EMAIL_CHANGE_STEP,
   },
   {
     label: "a self-hosted install",
     hosted: false,
-    refusalForUnmanaged: UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE,
+    emailChangeStep: SELF_HOSTED_EMAIL_CHANGE_STEP,
   },
 ];
 
@@ -1042,10 +1064,10 @@ describe.each(deployments)(
   "on $label, SCIM cannot rewrite the email of an account it does not manage",
   ({
     hosted,
-    refusalForUnmanaged,
+    emailChangeStep,
   }: {
     hosted: boolean;
-    refusalForUnmanaged: string;
+    emailChangeStep: string;
   }) => {
     beforeEach(() => {
       setTestBillingEnabled(hosted);
@@ -1138,22 +1160,36 @@ describe.each(deployments)(
       },
     );
 
-    test("the address that was not given is written to the project's SCIM log, with why", async () => {
+    /*
+     * #9825: the log says what the identity provider changed, in words that
+     * do not say why the account kept its address - that it belongs to
+     * another customer, is an invitee or an administrator.
+     */
+    test("the project's SCIM log says the SCIM user keeps the new address, and never why the account kept its own", async () => {
       const result: HttpResult = await send(
         "PATCH",
         scimPath(`Users/${cast.pendingInvitee}`),
         patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
       );
 
-      expectEmailChangeNotApplied(result, refusalForUnmanaged);
+      expectEmailChangeLogged(result, emailChangeStep);
+      expect(emailOf(cast.pendingInvitee)).toBe("alice@globex.example");
       expect(createProjectSCIMLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          affectedUserEmail: "alice@globex.example",
+          affectedUserEmail: ATTACKER_MAILBOX,
           userInfo: expect.objectContaining({
-            email: "alice@globex.example",
+            email: ATTACKER_MAILBOX,
             previousEmail: "alice@globex.example",
           }),
+          additionalContext: expect.objectContaining({
+            fieldsUpdated: ["userName"],
+          }),
         }),
+      );
+
+      const log: string = JSON.stringify(loggedSteps());
+      expect(log).not.toMatch(
+        /another project|administrator|has not joined|invite|already|in use/i,
       );
     });
 
@@ -1281,7 +1317,7 @@ describe("on the hosted service, SCIM never changes an email address", () => {
       }),
     );
 
-    expectEmailChangeNotApplied(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeLogged(result, HOSTED_EMAIL_CHANGE_STEP);
 
     const readBack: HttpResult = await send(
       "GET",
@@ -1304,7 +1340,7 @@ describe("on the hosted service, SCIM never changes an email address", () => {
       patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
     );
 
-    expectEmailChangeNotApplied(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeLogged(result, HOSTED_EMAIL_CHANGE_STEP);
     expect(emailOf(newUserId)).toBe("new.hire@acme.example");
   });
 });
@@ -1408,7 +1444,7 @@ describe("on a self-hosted install, SCIM still changes the email of an account t
       patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
     );
 
-    expectEmailChangeNotApplied(result, UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeLogged(result, SELF_HOSTED_EMAIL_CHANGE_STEP);
     expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
   });
 });
@@ -1440,12 +1476,14 @@ describe.each(deployments)(
       expect(result.status).toBe(200);
       expect(nameOf(cast.multiProjectMember)).toBe("bob");
       expect(world.userUpdates).toEqual([]);
+      // The same words whether or not the account took the name (#9825).
       expect(createProjectSCIMLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          steps: expect.arrayContaining([
-            expect.stringMatching(/Name change skipped/),
-          ]),
+          steps: expect.arrayContaining([NAME_CHANGE_STEP]),
         }),
+      );
+      expect(JSON.stringify(loggedSteps())).not.toMatch(
+        /another project|administrator|has not joined|skipped/i,
       );
     });
 

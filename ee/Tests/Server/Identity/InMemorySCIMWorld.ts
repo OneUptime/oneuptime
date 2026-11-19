@@ -1,6 +1,7 @@
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -290,6 +291,21 @@ export const fakeUserService: Record<string, unknown> = {
         return item.id === idOf(args.id);
       },
     );
+
+    // The User table's unique index on email: the write is refused, and changes nothing.
+    if (
+      args.data.email &&
+      scimWorld.users.some((item: WorldUser): boolean => {
+        return (
+          item.email === args.data.email!.toString() &&
+          item.id !== idOf(args.id)
+        );
+      })
+    ) {
+      throw PostgresErrorTranslator.createUniqueViolationException(
+        "A User with this Email already exists. Please use a different value and try again.",
+      );
+    }
 
     if (row && args.data.email) {
       row.email = args.data.email.toString();

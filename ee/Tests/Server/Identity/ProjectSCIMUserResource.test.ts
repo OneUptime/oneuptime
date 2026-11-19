@@ -7,6 +7,7 @@ import {
   applyScimUserPatch,
   getAccountEmail,
   getAccountName,
+  getChangedScimUserAttributes,
   getRecordDataOfScimUserResource,
   getScimUserResourceOfAccount,
   getScimUserResourceOfRecord,
@@ -808,5 +809,66 @@ describe("records keep what they were given", () => {
       "emails",
       "name",
     ]);
+  });
+});
+
+/*
+ * What an update changed, as the connection's SCIM log lists it: attributes
+ * of the SCIM user, never whether the account took them (#9825).
+ */
+describe("getChangedScimUserAttributes", () => {
+  const before: ScimUserResource = readScimUserResource(OKTA_USER);
+
+  test("nothing, for the same user sent again", () => {
+    expect(
+      getChangedScimUserAttributes({
+        before: before,
+        after: roundTripResource(before),
+      }),
+    ).toEqual([]);
+  });
+
+  test("each attribute that differs, by its SCIM name, in one order", () => {
+    expect(
+      getChangedScimUserAttributes({
+        before: before,
+        after: patch(
+          before,
+          { op: "replace", path: "active", value: false },
+          { op: "replace", path: "name.givenName", value: "Fox William" },
+          {
+            op: "replace",
+            path: 'emails[type eq "work"].value',
+            value: "fox@example.com",
+          },
+          { op: "replace", path: "userName", value: "fox@example.com" },
+        ),
+      }),
+    ).toEqual(["userName", "name", "emails", "active"]);
+  });
+
+  test("never sent and cleared are alike, and a name's parts in another order are the same name", () => {
+    expect(
+      getChangedScimUserAttributes({
+        before: { userName: "a@example.com" },
+        after: { userName: "a@example.com", displayName: null, name: null },
+      }),
+    ).toEqual([]);
+
+    expect(
+      getChangedScimUserAttributes({
+        before: { name: { givenName: "Fox", familyName: "Mulder" } },
+        after: { name: { familyName: "Mulder", givenName: "Fox" } },
+      }),
+    ).toEqual([]);
+  });
+
+  test("an empty value is a change from none", () => {
+    expect(
+      getChangedScimUserAttributes({
+        before: { displayName: null },
+        after: { displayName: "" },
+      }),
+    ).toEqual(["displayName"]);
   });
 });

@@ -839,6 +839,76 @@ export const getScimUserResourceOfAccount: (
   return resource;
 };
 
+// The SCIM user's attributes, by name, in the order a log lists them.
+const SCIM_USER_ATTRIBUTES: ReadonlyArray<keyof ScimUserResource> = [
+  "userName",
+  "externalId",
+  "displayName",
+  "name",
+  "emails",
+  "active",
+];
+
+// An attribute's value, to compare: never sent and cleared alike, keys in one order.
+const toComparable: (
+  attribute: keyof ScimUserResource,
+  resource: ScimUserResource,
+) => string = (
+  attribute: keyof ScimUserResource,
+  resource: ScimUserResource,
+): string => {
+  const value: unknown = resource[attribute];
+
+  if (value === undefined || value === null) {
+    return "null";
+  }
+
+  if (attribute === "name") {
+    const name: ScimUserNameParts = value as ScimUserNameParts;
+
+    return JSON.stringify(
+      NAME_PARTS.map((part: keyof ScimUserNameParts): unknown => {
+        return name[part] === undefined ? null : name[part];
+      }),
+    );
+  }
+
+  if (attribute === "emails") {
+    return JSON.stringify(
+      (value as Array<ScimUserEmail>).map(
+        (email: ScimUserEmail): Array<unknown> => {
+          return [email.value, email.type ?? null, email.primary ?? null];
+        },
+      ),
+    );
+  }
+
+  return JSON.stringify(value);
+};
+
+/*
+ * The attributes of a SCIM user that differ between `before` and `after`, by
+ * their SCIM names: what an update changed, as the connection's log lists
+ * it. Of the SCIM user, not the account: the log never says whether the
+ * account took a change (#9825).
+ */
+export const getChangedScimUserAttributes: (data: {
+  before: ScimUserResource;
+  after: ScimUserResource;
+}) => Array<string> = (data: {
+  before: ScimUserResource;
+  after: ScimUserResource;
+}): Array<string> => {
+  return SCIM_USER_ATTRIBUTES.filter(
+    (attribute: keyof ScimUserResource): boolean => {
+      return (
+        toComparable(attribute, data.before) !==
+        toComparable(attribute, data.after)
+      );
+    },
+  );
+};
+
 // What a record of `resource` holds.
 export const getRecordDataOfScimUserResource: (data: {
   resource: ScimUserResource;
