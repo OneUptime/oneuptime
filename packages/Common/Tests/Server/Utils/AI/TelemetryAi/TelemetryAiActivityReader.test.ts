@@ -12,6 +12,9 @@ import AIRunService from "../../../../../Server/Services/AIRunService";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
 import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import ProfileInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/ProfileInsightFix";
 import TelemetryAiActivityReader from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiActivityReader";
@@ -69,6 +72,8 @@ const PERSON_ID: string = "5092eeee-0000-4000-8000-0000000000d5";
 const TRIAGE_RUN: string = "5092eeee-0000-4000-8000-0000000000e1";
 const TASK_RUN: string = "5092eeee-0000-4000-8000-0000000000e2";
 const PERSON_TASK_RUN: string = "5092eeee-0000-4000-8000-0000000000e3";
+// A later turn of TASK_RUN: its fix asked again from Code (Try again).
+const ASKED_AGAIN_TURN: string = "5092eeee-0000-4000-8000-0000000000e4";
 
 const READER: DatabaseCommonInteractionProps = {
   userId: new ObjectID(PERSON_ID),
@@ -126,6 +131,27 @@ function pullRequest(runId: string): AIAgentTaskPullRequest {
   value.pullRequestUrl = URL.fromString(
     "https://github.com/acme/shop/pull/812",
   );
+  return value;
+}
+
+/*
+ * A later turn of a task, as CodeTaskListRows.readReplies reads a task's
+ * newest: a code-fix run of its own, without a run type in its select.
+ */
+function laterTurn(data: {
+  id: string;
+  taskId: string;
+  status: AIRunStatus;
+  needsUserInput?: boolean;
+}): AIRun {
+  const value: AIRun = new AIRun();
+  value.id = new ObjectID(data.id);
+  value.codeTaskId = new ObjectID(data.taskId);
+  value.status = data.status;
+  value.createdAt = new Date("2026-10-24T11:00:00.000Z");
+  if (data.needsUserInput !== undefined) {
+    value.needsUserInput = data.needsUserInput;
+  }
   return value;
 }
 
@@ -370,6 +396,107 @@ describe("TelemetryAiActivityReader.toEntry", () => {
 
     expect(entry.repositoryHostedAt).toBe(CodeRepositoryType.GitLab);
   });
+
+  /*
+   * A Code task stands as its newest turn (#9812): a fix that failed and
+   * was asked again from Code is the newer turn's, whatever its first said.
+   */
+  test.each([
+    [AIRunStatus.Queued, false, TelemetryAiLogState.Waiting],
+    [AIRunStatus.Running, false, TelemetryAiLogState.Working],
+    [AIRunStatus.Completed, false, TelemetryAiLogState.Done],
+    [AIRunStatus.Completed, true, TelemetryAiLogState.WaitingForYou],
+    [AIRunStatus.NoFixFound, false, TelemetryAiLogState.NothingToChange],
+    [AIRunStatus.Cancelled, false, TelemetryAiLogState.Stopped],
+    [AIRunStatus.Error, false, TelemetryAiLogState.Failed],
+  ])(
+    "a failed task whose newest turn is %s (needs input: %s) reads as %s",
+    (
+      status: AIRunStatus,
+      needsUserInput: boolean,
+      state: TelemetryAiLogState,
+    ) => {
+      const entry: TelemetryAiLogEntryJSON = TelemetryAiActivityReader.toEntry({
+        run: run({
+          id: TASK_RUN,
+          runType: AIRunType.CodeFix,
+          status: AIRunStatus.Error,
+          insightId: INSIGHT_A,
+        }),
+        latestTurn: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status,
+          needsUserInput,
+        }),
+        problem: problem(INSIGHT_A, "slow"),
+      });
+
+      expect(entry.state).toBe(state);
+      // One row per task: still named, and dated, by its first turn.
+      expect(entry.runId).toBe(TASK_RUN);
+      expect(entry.taskId).toBe(TASK_RUN);
+      expect(entry.at).toBe("2026-10-24T09:00:00.000Z");
+    },
+  );
+
+  test("a task done on its first turn reads as done whatever an older read said", () => {
+    expect(
+      TelemetryAiActivityReader.toEntry({
+        run: run({
+          id: TASK_RUN,
+          runType: AIRunType.CodeFix,
+          status: AIRunStatus.Completed,
+          insightId: INSIGHT_A,
+        }),
+        problem: problem(INSIGHT_A, "slow"),
+      }).state,
+    ).toBe(TelemetryAiLogState.Done);
+  });
+
+  test("an investigation is never stated by a turn: it has none", () => {
+    const entry: TelemetryAiLogEntryJSON = TelemetryAiActivityReader.toEntry({
+      run: run({
+        id: TRIAGE_RUN,
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        insightId: INSIGHT_A,
+      }),
+      latestTurn: laterTurn({
+        id: ASKED_AGAIN_TURN,
+        taskId: TRIAGE_RUN,
+        status: AIRunStatus.Error,
+      }),
+      problem: problem(INSIGHT_A, "slow"),
+    });
+
+    expect(entry.state).toBe(TelemetryAiLogState.Done);
+    expect(entry.classification).toBe("Actionable");
+  });
+
+  test("a pull request recorded without a state reads as open, as Code reads it", () => {
+    const stateless: AIAgentTaskPullRequest = pullRequest(ASKED_AGAIN_TURN);
+    stateless.pullRequestState = undefined;
+
+    const entry: TelemetryAiLogEntryJSON = TelemetryAiActivityReader.toEntry({
+      run: run({
+        id: TASK_RUN,
+        runType: AIRunType.CodeFix,
+        status: AIRunStatus.Completed,
+        insightId: INSIGHT_A,
+        repositoryId: REPO_ID,
+      }),
+      problem: problem(INSIGHT_A, "slow"),
+      repository: repositoryRow(REPO_ID, "acme/shop"),
+      pullRequest: stateless,
+    });
+
+    expect(entry.pullRequest).toEqual({
+      state: PullRequestState.Open,
+      number: 812,
+      url: "https://github.com/acme/shop/pull/812",
+    });
+  });
 });
 
 describe("TelemetryAiActivityReader.readLogs", () => {
@@ -377,10 +504,14 @@ describe("TelemetryAiActivityReader.readLogs", () => {
   let readRuns: SpyInstance<typeof AIRunService.findBy>;
   let countRuns: SpyInstance<typeof AIRunService.countBy>;
   let readRepositories: SpyInstance<typeof CodeRepositoryService.findBy>;
-  let readPullRequests: SpyInstance<typeof CodeTaskThread.getPullRequests>;
+  let readReplies: SpyInstance<typeof CodeTaskListRows.readReplies>;
+  let readPullRequests: SpyInstance<typeof CodeTaskListRows.readPullRequests>;
   let problems: Array<AIInsight>;
   let runs: Array<AIRun>;
   let readableRepositories: Array<CodeRepository> | Error;
+  // Each task's newest later turn, and the pull request it shows, by task id.
+  let replies: Map<string, CodeTaskRepliesRead>;
+  let taskPullRequests: Map<string, AIAgentTaskPullRequest>;
 
   beforeEach(() => {
     problems = [
@@ -435,10 +566,20 @@ describe("TelemetryAiActivityReader.readLogs", () => {
         }
         return readableRepositories;
       });
-    readPullRequests = jest
-      .spyOn(CodeTaskThread, "getPullRequests")
+    replies = new Map<string, CodeTaskRepliesRead>();
+    taskPullRequests = new Map<string, AIAgentTaskPullRequest>([
+      [TASK_RUN, pullRequest(TASK_RUN)],
+      [PERSON_TASK_RUN, pullRequest(PERSON_TASK_RUN)],
+    ]);
+    readReplies = jest
+      .spyOn(CodeTaskListRows, "readReplies")
       .mockImplementation(async () => {
-        return [pullRequest(TASK_RUN), pullRequest(PERSON_TASK_RUN)];
+        return replies;
+      });
+    readPullRequests = jest
+      .spyOn(CodeTaskListRows, "readPullRequests")
+      .mockImplementation(async () => {
+        return taskPullRequests;
       });
     jest.spyOn(CodeTaskThread, "getPeople").mockImplementation(async () => {
       return new Map<string, CodeTaskPersonJSON>([
@@ -572,14 +713,170 @@ describe("TelemetryAiActivityReader.readLogs", () => {
         readRepositories.mock.calls[0]![0] as unknown as Record<string, unknown>
       )["select"],
     ).toEqual({ _id: true, name: true, repositoryHostedAt: true });
-    expect(
-      (
-        (readPullRequests.mock.calls[0]![0] as { runIds: Array<ObjectID> })
-          .runIds || []
-      ).map((id: ObjectID): string => {
-        return id.toString();
-      }),
-    ).toEqual([TASK_RUN, PERSON_TASK_RUN]);
+
+    // Each task's turns are read by its first turn's id: never a triage's.
+    for (const spy of [readPullRequests, readReplies]) {
+      const call: { projectId: ObjectID; taskIds: Array<ObjectID> } = spy.mock
+        .calls[0]![0] as { projectId: ObjectID; taskIds: Array<ObjectID> };
+
+      expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(
+        call.taskIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ).toEqual([TASK_RUN, PERSON_TASK_RUN]);
+    }
+  });
+
+  /*
+   * #9812: Try again on a fix OneUptime started asks it again as a later
+   * turn of the same task. The log read only the first turn - a failed fix
+   * stayed failed, with no pull request, while the fix asked again worked
+   * and after it opened its pull request.
+   */
+  describe("a fix asked again from Code (#9812)", () => {
+    beforeEach(() => {
+      // The task's first turn failed, and wrote nothing.
+      runs[0]!.status = AIRunStatus.Error;
+      taskPullRequests.delete(TASK_RUN);
+    });
+
+    test("is working while the fix asked again works", async () => {
+      replies.set(TASK_RUN, {
+        count: 1,
+        newest: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status: AIRunStatus.Running,
+        }),
+      });
+
+      const task: TelemetryAiLogEntryJSON = (await read()).entries[0]!;
+
+      expect(task.runId).toBe(TASK_RUN);
+      expect(task.state).toBe(TelemetryAiLogState.Working);
+      expect(task.pullRequest).toBeUndefined();
+    });
+
+    test("waits while the fix asked again waits for a Runner", async () => {
+      replies.set(TASK_RUN, {
+        count: 1,
+        newest: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status: AIRunStatus.Queued,
+        }),
+      });
+
+      expect((await read()).entries[0]!.state).toBe(
+        TelemetryAiLogState.Waiting,
+      );
+    });
+
+    test("is done, with the pull request the fix asked again opened", async () => {
+      replies.set(TASK_RUN, {
+        count: 1,
+        newest: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status: AIRunStatus.Completed,
+        }),
+      });
+      // Opened by the later turn: the task's pull request all the same.
+      taskPullRequests.set(TASK_RUN, pullRequest(ASKED_AGAIN_TURN));
+
+      const logs: TelemetryAiLogsJSON = await read();
+      const task: TelemetryAiLogEntryJSON = logs.entries[0]!;
+
+      expect(task.state).toBe(TelemetryAiLogState.Done);
+      expect(task.taskId).toBe(TASK_RUN);
+      expect(task.repositoryName).toBe("acme/shop");
+      expect(task.pullRequest).toEqual({
+        state: PullRequestState.Open,
+        number: 812,
+        url: "https://github.com/acme/shop/pull/812",
+      });
+      // Still one row for the task: the first turn's, where it was.
+      expect(
+        logs.entries.map((entry: TelemetryAiLogEntryJSON): string => {
+          return entry.runId;
+        }),
+      ).toEqual([TASK_RUN, PERSON_TASK_RUN, TRIAGE_RUN]);
+    });
+
+    test("fails again when the fix asked again fails too", async () => {
+      replies.set(TASK_RUN, {
+        count: 1,
+        newest: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status: AIRunStatus.Error,
+        }),
+      });
+
+      const task: TelemetryAiLogEntryJSON = (await read()).entries[0]!;
+
+      expect(task.state).toBe(TelemetryAiLogState.Failed);
+      expect(task.pullRequest).toBeUndefined();
+    });
+
+    test("a task with no later turn reads as its first turn, as before", async () => {
+      const logs: TelemetryAiLogsJSON = await read();
+
+      expect(logs.entries[0]!.state).toBe(TelemetryAiLogState.Failed);
+      expect(logs.entries[0]!.pullRequest).toBeUndefined();
+      // The other task, done on its first turn, is done.
+      expect(logs.entries[1]!.state).toBe(TelemetryAiLogState.Done);
+    });
+
+    test("a reply someone sent in Code stands for the task too", async () => {
+      replies.set(TASK_RUN, {
+        count: 3,
+        newest: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status: AIRunStatus.Completed,
+          needsUserInput: true,
+        }),
+      });
+
+      expect((await read()).entries[0]!.state).toBe(
+        TelemetryAiLogState.WaitingForYou,
+      );
+    });
+
+    test("the pull request of a task in a repository the reader may not read is not named", async () => {
+      readableRepositories = [];
+      replies.set(TASK_RUN, {
+        count: 1,
+        newest: laterTurn({
+          id: ASKED_AGAIN_TURN,
+          taskId: TASK_RUN,
+          status: AIRunStatus.Completed,
+        }),
+      });
+      taskPullRequests.set(TASK_RUN, pullRequest(ASKED_AGAIN_TURN));
+
+      const task: TelemetryAiLogEntryJSON = (await read()).entries[0]!;
+
+      // How it stands is no secret of the repository's: its link is.
+      expect(task.state).toBe(TelemetryAiLogState.Done);
+      expect(task.repositoryName).toBeUndefined();
+      expect(task.pullRequest).toBeUndefined();
+    });
+  });
+
+  test("reads no turns when the page lists no task", async () => {
+    runs = [runs[2]!];
+
+    const logs: TelemetryAiLogsJSON = await read();
+
+    expect(logs.entries).toHaveLength(1);
+    for (const spy of [readPullRequests, readReplies]) {
+      expect(
+        (spy.mock.calls[0]![0] as { taskIds: Array<ObjectID> }).taskIds,
+      ).toEqual([]);
+    }
   });
 
   test("names no repository for a reader the repositories refuse", async () => {
