@@ -44,8 +44,8 @@ import AthenaApi, {
   describeScanLimit,
   readAthenaConnection,
 } from "./AthenaApi";
+import { asSentence } from "../DataSource/HttpFailure";
 import DataverseApi, {
-  asSentence,
   DATAVERSE_CORE_TABLES,
   DataverseRequestError,
   DataverseSkippedTables,

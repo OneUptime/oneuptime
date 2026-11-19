@@ -4,6 +4,22 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
+import {
+  asSentence,
+  DataSourceRequestError,
+  describeFailedAnswer,
+  MAX_PROVIDER_MESSAGE_LENGTH,
+  readBodyText,
+  redactAnswer,
+} from "../DataSource/HttpFailure";
+import DataSourceHttpRetry, {
+  HTTP_RETRY_BUDGET_IN_MS,
+  HTTP_RETRY_FIRST_BACKOFF_IN_MS,
+  HTTP_RETRY_MAX_ATTEMPTS,
+  HTTP_RETRY_MAX_WAIT_IN_MS,
+  HttpRetryReason,
+  HttpRetryVerdict,
+} from "../DataSource/HttpRetry";
 import logger from "../Logger";
 
 /*
@@ -49,7 +65,10 @@ import logger from "../Logger";
  * then four seconds; a 429 holds back every request of the collection, not
  * only its own. A wait of more than thirty seconds, or past a minute of
  * waiting in one collection, is not waited out: a 429 then stops the reads
- * of the collection that met it, and the rest wait for the next.
+ * of the collection that met it, and the rest wait for the next. Once two
+ * requests in a row have failed every try, the rest are sent once. The
+ * asking again is the one every collector shares (DataSourceHttpRetry), as
+ * is the way a failure is said (DataSource/HttpFailure).
  *
  * Not every table is watched. An environment holds hundreds of tables
  * before anyone adds one, most of them Dataverse's own, and every watched
@@ -114,16 +133,17 @@ export const DATAVERSE_TABLES_PER_COLUMN_READ: number = 20;
 export const DATAVERSE_TABLES_PER_DEFINITION_READ: number = 20;
 
 // The most times one request is sent: once, and twice more for an answer that may pass.
-export const DATAVERSE_MAX_ATTEMPTS: number = 3;
+export const DATAVERSE_MAX_ATTEMPTS: number = HTTP_RETRY_MAX_ATTEMPTS;
 
 // The longest one wait between tries: a Retry-After past it is left to the next collection.
-export const DATAVERSE_MAX_RETRY_WAIT_IN_MS: number = 30_000;
+export const DATAVERSE_MAX_RETRY_WAIT_IN_MS: number = HTTP_RETRY_MAX_WAIT_IN_MS;
 
 // The most one collection waits between tries in all, so a struggling environment cannot hold it up.
-export const DATAVERSE_RETRY_BUDGET_IN_MS: number = 60_000;
+export const DATAVERSE_RETRY_BUDGET_IN_MS: number = HTTP_RETRY_BUDGET_IN_MS;
 
 // The first backoff when Dataverse names no Retry-After, doubled at each try after it.
-export const DATAVERSE_FIRST_BACKOFF_IN_MS: number = 2_000;
+export const DATAVERSE_FIRST_BACKOFF_IN_MS: number =
+  HTTP_RETRY_FIRST_BACKOFF_IN_MS;
 
 /*
  * Answers worth asking again: a request that timed out, a throttle, and a
@@ -224,7 +244,6 @@ const MISSING_PROPERTY: RegExp = /could not find a property named/i;
 // A character a SQL name or variable may hold: one beside @p0 makes it no placeholder.
 const NAME_CHARACTER: RegExp = /[A-Za-z0-9_@#$]/;
 const DIGIT: RegExp = /[0-9]/;
-const SENTENCE_END: RegExp = /[.!?]$/;
 // A request ID, as Dataverse's x-ms-service-request-id and REQ_ID headers give it.
 const GUID: RegExp =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
@@ -232,24 +251,6 @@ const GUID: RegExp =
 const ERROR_CODE: RegExp = /^[A-Za-z0-9_.-]{1,40}$/;
 // The code Dataverse gives when it has none.
 const EMPTY_ERROR_CODE: RegExp = /^(?:0x)?0+$/i;
-// A body that is an HTML page, as a gateway or a proxy answers: never Dataverse's own error.
-const HTML_PAGE: RegExp = /^<(?:!doctype|html|head|body|\?xml)/i;
-const HTML_TITLE: RegExp = /<title[^>]*>([\s\S]*?)<\/title>/i;
-const HTML_HIDDEN: RegExp = /<(script|style)[^>]*>[\s\S]*?<\/\1>/gi;
-const HTML_TAG: RegExp = /<[^>]*>/g;
-// Credentials an answer could repeat: a bearer token, or a JSON web token on its own.
-const BEARER_TOKEN: RegExp = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
-/*
- * A JSON web token, looked for once per run of the characters it is made of
- * (TokenPatternsGuard): from the first "eyJ" in the run, with the run's text
- * before it put back ($1). A later "eyJ" in the same run has a shorter first
- * segment and ends no better, so this masks the tokens a search from every
- * "eyJ" did, in time in line with the answer's length rather than its square.
- */
-const JSON_WEB_TOKEN: RegExp =
-  /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g;
-// The most of Dataverse's own message an error keeps, so the whole sentence around it fits.
-const MAX_ERROR_MESSAGE_LENGTH: number = 130;
 // The longest name of a table's collection an error names.
 const MAX_NAME_IN_ERROR_LENGTH: number = 60;
 
@@ -707,29 +708,7 @@ export class DataverseThrottledError extends Error {
  * enough to be kept whole; reason says only the answer, for a warning that
  * names the tables itself. Neither ever holds a token or the app's secret.
  */
-export class DataverseRequestError extends Error {
-  public readonly statusCode: number;
-  public readonly errorCode: string | null;
-  public readonly requestId: string | null;
-  public readonly attempts: number;
-  public readonly reason: string;
-
-  public constructor(data: {
-    message: string;
-    reason: string;
-    statusCode: number;
-    errorCode: string | null;
-    requestId: string | null;
-    attempts: number;
-  }) {
-    super(data.message);
-    this.reason = data.reason;
-    this.statusCode = data.statusCode;
-    this.errorCode = data.errorCode;
-    this.requestId = data.requestId;
-    this.attempts = data.attempts;
-  }
-}
+export class DataverseRequestError extends DataSourceRequestError {}
 
 /*
  * Whether a read that failed leaves out only the tables it asked about:
@@ -775,36 +754,23 @@ export interface DataverseTablesRead<T> {
   throttle: DataverseThrottledError | null;
 }
 
-// A message ending in a full stop, so a sentence can follow it.
-export function asSentence(text: string): string {
-  const trimmed: string = text.trim();
-
-  return !trimmed || SENTENCE_END.test(trimmed) ? trimmed : `${trimmed}.`;
-}
-
-// The words of a body that is no JSON: an HTML page's title (a gateway's 502), else its first line.
-function readBodyText(text: string): string {
-  const trimmed: string = (text || "").trim();
-
-  if (!HTML_PAGE.test(trimmed)) {
-    return trimmed.split(/\r?\n/)[0]!.trim();
+/*
+ * Whether Dataverse's answer may pass: a 429 is a throttle, the limit
+ * being the app's; a 408 or a 5xx failed for now. Microsoft's own Web API
+ * sample retries the same (its WebAPIService's retry policy). Every
+ * request a collection sends is a read or a sign-in, so each is safe to
+ * send again.
+ */
+export function classifyDataverseAnswer(
+  response: DataSourceHttpResponse,
+): HttpRetryVerdict | null {
+  if (response.statusCode === 429) {
+    return { reason: HttpRetryReason.Throttled };
   }
 
-  const title: string | undefined = HTML_TITLE.exec(trimmed)?.[1];
-
-  return (
-    title !== undefined
-      ? title
-      : trimmed.replace(HTML_HIDDEN, " ").replace(HTML_TAG, " ")
-  )
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/gi, "&")
-    .replace(/\s+/g, " ")
-    .trim();
+  return RETRYABLE_STATUS_CODES.includes(response.statusCode)
+    ? { reason: HttpRetryReason.Unavailable }
+    : null;
 }
 
 // The first line of what Dataverse or Entra ID said went wrong, in its own words; "" when it said nothing.
@@ -879,15 +845,11 @@ function isLogicalName(name: string): boolean {
 
 export default class DataverseApi {
   private readonly connection: DataverseConnection;
-  private readonly transport: DataverseTransport;
   private readonly now: () => number;
-  private readonly sleep: (ms: number) => Promise<void>;
+  // Every request of the collection, asked again within one budget (DataSourceHttpRetry).
+  private readonly retry: DataSourceHttpRetry;
   private tenantId: string | null;
   private accessToken: { value: string; expiresAt: number } | null = null;
-  // Until when every Web API request waits, as a 429 asked.
-  private throttledUntil: number = 0;
-  // How long this client has waited between tries, held to DATAVERSE_RETRY_BUDGET_IN_MS.
-  private waitedInMs: number = 0;
 
   // How the client waits between tries; replaced in tests.
   public static sleep(ms: number): Promise<void> {
@@ -904,18 +866,23 @@ export default class DataverseApi {
   }) {
     this.connection = data.connection;
     this.tenantId = data.connection.tenantId;
-    this.transport =
-      data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch);
     this.now =
       data.now ||
       ((): number => {
         return Date.now();
       });
-    this.sleep =
-      data.sleep ||
-      ((ms: number): Promise<void> => {
-        return DataverseApi.sleep(ms);
-      });
+    this.retry = new DataSourceHttpRetry({
+      transport:
+        data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+      classify: classifyDataverseAnswer,
+      provider: "Dataverse",
+      now: this.now,
+      sleep:
+        data.sleep ||
+        ((ms: number): Promise<void> => {
+          return DataverseApi.sleep(ms);
+        }),
+    });
   }
 
   public get host(): string {
@@ -1018,7 +985,7 @@ export default class DataverseApi {
     if (response.statusCode >= 400 || !token) {
       const message: string = this.redact(
         messageOf(response) || "no token was given",
-      ).slice(0, MAX_ERROR_MESSAGE_LENGTH);
+      ).slice(0, MAX_PROVIDER_MESSAGE_LENGTH);
       const isOutage: boolean = RETRYABLE_STATUS_CODES.includes(
         response.statusCode,
       );
@@ -1042,99 +1009,31 @@ export default class DataverseApi {
    * One request, asked again when its answer may pass (a 429, a 408 or a
    * 5xx), after the Retry-After the answer gives or a doubling backoff,
    * DATAVERSE_MAX_ATTEMPTS times at most and within the collection's
-   * budget for waiting. The last answer is returned, whatever it is. A 429
-   * of the Web API holds back every Web API request of this client: the
-   * limit is the app's, not the request's.
+   * budget for waiting (DataSourceHttpRetry). The last answer is returned,
+   * whatever it is. A 429 of the Web API holds back every Web API request
+   * of this client: the limit is the app's, not the request's.
    */
   private async exchange(
     build: () => Promise<DataSourceHttpRequest>,
     isWebApi: boolean,
   ): Promise<{ response: DataSourceHttpResponse; attempts: number }> {
-    for (let attempts: number = 1; ; attempts++) {
-      if (isWebApi) {
-        await this.waitOutThrottle();
-      }
+    const { response, attempts } = await this.retry.exchange({
+      build,
+      isSafeToRepeat: true,
+      sharesThrottle: isWebApi,
+    });
 
-      const request: DataSourceHttpRequest = await build();
-      const response: DataSourceHttpResponse = await this.transport(request);
-      const waitInMs: number | null =
-        attempts < DATAVERSE_MAX_ATTEMPTS
-          ? this.reserveWait(response, attempts)
-          : null;
-
-      if (waitInMs === null) {
-        return { response, attempts };
-      }
-
-      logger.debug(
-        `Dataverse: ${request.method} ${request.url.split("?")[0]} answered ${response.statusCode}; asking again in ${Math.ceil(waitInMs / 1000)} seconds (try ${attempts + 1} of ${DATAVERSE_MAX_ATTEMPTS}).`,
-      );
-
-      if (isWebApi && response.statusCode === 429) {
-        this.throttledUntil = Math.max(
-          this.throttledUntil,
-          this.now() + waitInMs,
-        );
-      } else {
-        await this.sleep(waitInMs);
-      }
-    }
-  }
-
-  /*
-   * How long to wait before asking again, taken from the collection's
-   * budget; null when the answer is not worth asking again, or the wait is
-   * longer than a collection waits.
-   */
-  private reserveWait(
-    response: DataSourceHttpResponse,
-    attempts: number,
-  ): number | null {
-    if (!RETRYABLE_STATUS_CODES.includes(response.statusCode)) {
-      return null;
-    }
-
-    const waitInMs: number =
-      RetryAfter.msFromHeaders(response.headers, { nowMs: this.now() }) ??
-      DATAVERSE_FIRST_BACKOFF_IN_MS * 2 ** (attempts - 1);
-
-    if (
-      waitInMs > DATAVERSE_MAX_RETRY_WAIT_IN_MS ||
-      this.waitedInMs + waitInMs > DATAVERSE_RETRY_BUDGET_IN_MS
-    ) {
-      return null;
-    }
-
-    this.waitedInMs += waitInMs;
-
-    return waitInMs;
-  }
-
-  // Waits until a 429 said the app may ask again.
-  private async waitOutThrottle(): Promise<void> {
-    const waitInMs: number = this.throttledUntil - this.now();
-
-    if (waitInMs > 0) {
-      await this.sleep(waitInMs);
-    }
+    return { response, attempts };
   }
 
   // Text from an answer with any token or the app's secret in it taken out.
   private redact(text: string): string {
-    let redacted: string = text
-      .replace(BEARER_TOKEN, "Bearer ****")
-      .replace(JSON_WEB_TOKEN, "$1****");
+    return redactAnswer(text, this.secrets());
+  }
 
-    for (const secret of [
-      this.connection.clientSecret,
-      this.accessToken?.value || "",
-    ]) {
-      if (secret.length >= 3) {
-        redacted = redacted.split(secret).join("****");
-      }
-    }
-
-    return redacted;
+  // What an answer could repeat that no error may: the app's secret and its token.
+  private secrets(): Array<string> {
+    return [this.connection.clientSecret, this.accessToken?.value || ""];
   }
 
   /*
@@ -1150,44 +1049,32 @@ export default class DataverseApi {
     const statusCode: number = response.statusCode;
     const errorCode: string | null = errorCodeOf(response);
     const requestId: string | null = requestIdOf(response);
-    const message: string = asSentence(
-      this.redact(messageOf(response))
-        .slice(0, MAX_ERROR_MESSAGE_LENGTH)
-        .trim(),
-    );
     const isRefusal: boolean = statusCode === 401 || statusCode === 403;
-    const answer: string = isRefusal
-      ? `Dataverse refused the app (${statusCode}${errorCode ? `, ${errorCode}` : ""})`
-      : `Dataverse answered ${statusCode}${errorCode ? ` (${errorCode})` : ""}`;
-    const said: string = message
-      ? `: ${message}`
-      : isRefusal
-        ? "."
-        : ", with no error message.";
-    const reason: string = `${answer}${said}`;
-    const parts: Array<string> = [`${answer} while ${operation}${said}`];
-
-    if (isRefusal) {
-      parts.push(
-        "Add it to the environment as an application user, with a security role that may read the tables.",
-      );
-    } else {
-      if (attempts > 1) {
-        parts.push(`Tried ${attempts} times.`);
-      }
-
-      if (requestId) {
-        parts.push(`Request ID: ${requestId}.`);
-      }
-    }
+    const described: { message: string; reason: string } = describeFailedAnswer(
+      {
+        provider: "Dataverse",
+        statusCode,
+        errorCode,
+        operation,
+        message: messageOf(response),
+        attempts,
+        requestId,
+        refused: {
+          who: "the app",
+          advice:
+            "Add it to the environment as an application user, with a security role that may read the tables.",
+        },
+        secrets: this.secrets(),
+      },
+    );
 
     logger.debug(
-      `Dataverse: ${parts.join(" ")}${requestId && isRefusal ? ` Request ID: ${requestId}.` : ""}`,
+      `Dataverse: ${described.message}${requestId && isRefusal ? ` Request ID: ${requestId}.` : ""}`,
     );
 
     return new DataverseRequestError({
-      message: parts.join(" "),
-      reason,
+      message: described.message,
+      reason: described.reason,
       statusCode,
       errorCode,
       requestId,
