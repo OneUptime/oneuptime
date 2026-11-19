@@ -212,10 +212,18 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {/*
        * Who manages the person's sign-in, when their organization does
        * (#9688): their side menu has no Security section, and this says why.
+       * When only some of their projects manage it (#9763), this says why
+       * their Security section is still there: the projects that keep it.
        */}
-      {signInManagement?.isManagedBySso ? (
+      {signInManagement?.isManagedBySso ||
+      (signInManagement?.localSignInProjectNames.length || 0) > 0 ? (
         <SsoManagedSignInNotice
-          ssoProviderNames={signInManagement.ssoProviderNames}
+          ssoProviderNames={signInManagement!.ssoProviderNames}
+          localSignInProjectNames={
+            signInManagement!.isManagedBySso
+              ? []
+              : signInManagement!.localSignInProjectNames
+          }
         />
       ) : (
         <></>

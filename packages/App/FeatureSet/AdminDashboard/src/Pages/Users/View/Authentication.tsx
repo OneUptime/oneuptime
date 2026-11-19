@@ -10,6 +10,10 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserAuthenticationStatus from "Common/Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "Common/Types/TwoFactorAuthStatus";
+import { CLEAR_LOCAL_SIGN_IN_ACTION } from "Common/Types/SSO/LocalSignInClearing";
+import { SsoManagedBy } from "Common/Types/SSO/SsoManagedSignIn";
+import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
+import UserUtil from "Common/UI/Utils/User";
 import { Translator } from "Common/Types/Translator";
 import IconProp from "Common/Types/Icon/IconProp";
 import User from "Common/Models/DatabaseModels/User";
@@ -96,6 +100,23 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
   const [isSavingTwoFactor, setIsSavingTwoFactor] = useState<boolean>(false);
   const [twoFactorError, setTwoFactorError] = useState<string>("");
   const [twoFactorSuccess, setTwoFactorSuccess] = useState<string>("");
+
+  /*
+   * Clear Sign-In Settings (#9762): one dialog, and for a master admin a
+   * box to tick that says so first - their settings are cleared only when
+   * asked for by name (isMasterAdminConfirmed).
+   */
+  const [showClearSignInModal, setShowClearSignInModal] =
+    useState<boolean>(false);
+  const [isMasterAdminConfirmed, setIsMasterAdminConfirmed] =
+    useState<boolean>(false);
+  const [isClearingSignIn, setIsClearingSignIn] = useState<boolean>(false);
+  const [clearSignInError, setClearSignInError] = useState<string>("");
+  const [clearSignInSuccess, setClearSignInSuccess] = useState<string>("");
+
+  // Their own settings are in User Profile, and never cleared from here.
+  const isOwnAccount: boolean =
+    UserUtil.getUserId().toString() === modelId.toString();
 
   const loadStatus: () => Promise<void> = async (): Promise<void> => {
     setIsStatusLoading(true);
@@ -270,6 +291,55 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
       setIsSavingTwoFactor(false);
     }
   };
+
+  /*
+   * Clears their password, passkeys, security keys, authenticator apps,
+   * backup codes and two factor authentication, then reads the status
+   * again: every count above it has just changed.
+   */
+  const clearSignIn: () => Promise<void> = async (): Promise<void> => {
+    setIsClearingSignIn(true);
+    setClearSignInError("");
+    setClearSignInSuccess("");
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: userAuthenticationRoute(modelId, CLEAR_LOCAL_SIGN_IN_ACTION),
+          data: {
+            isMasterAdminConfirmed:
+              status?.isMasterAdmin === true && isMasterAdminConfirmed,
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setClearSignInSuccess(t("pages.userAuthentication.clearSignInSuccess"));
+      setShowClearSignInModal(false);
+      setIsMasterAdminConfirmed(false);
+
+      await loadStatus();
+    } catch (err) {
+      setClearSignInError(API.getFriendlyMessage(err));
+    } finally {
+      setIsClearingSignIn(false);
+    }
+  };
+
+  /*
+   * What a password - set here, or chosen with a reset link - does for
+   * somebody whose sign-in single sign-on manages (#9762): nothing, so the
+   * cards that give one say so. Not for a master admin, whom SSO never
+   * manages.
+   */
+  const ssoManagedWarning: string | null =
+    status?.signInManagedBy === SsoManagedBy.Server
+      ? t("pages.userAuthentication.ssoManagedByServerWarning")
+      : status?.signInManagedBy === SsoManagedBy.Projects
+        ? t("pages.userAuthentication.ssoManagedByProjectsWarning")
+        : null;
 
   const yesNo: (value: boolean) => string = (value: boolean): string => {
     return value ? t("common.yes") : t("common.no");
@@ -520,6 +590,17 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
           description={t("pages.userAuthentication.setPasswordCardDescription")}
         >
           <div className="mt-3">
+            {ssoManagedWarning ? (
+              <Alert
+                type={AlertType.WARNING}
+                title={ssoManagedWarning}
+                className="mb-5"
+                dataTestId="set-password-sso-managed-warning"
+              />
+            ) : (
+              <></>
+            )}
+
             {setPasswordSuccess ? (
               <Alert
                 type={AlertType.SUCCESS}
@@ -577,6 +658,17 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
           ]}
         >
           <div className="mt-3">
+            {ssoManagedWarning ? (
+              <Alert
+                type={AlertType.WARNING}
+                title={ssoManagedWarning}
+                className="mb-3"
+                dataTestId="reset-link-sso-managed-warning"
+              />
+            ) : (
+              <></>
+            )}
+
             {resetLinkSuccess ? (
               <Alert type={AlertType.SUCCESS} title={resetLinkSuccess} />
             ) : (
@@ -590,6 +682,98 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
             )}
           </div>
         </Card>
+
+        {/*
+         * Clear Sign-In Settings (#9762): last on the page, in the danger
+         * style, since it cannot be undone. Their password and its links,
+         * passkeys and security keys, authenticator apps, backup codes and
+         * two factor authentication go, with the sessions they signed in
+         * to without SSO. Not for your own account, whose settings are in
+         * your User Profile.
+         */}
+        <Card
+          title={t("pages.userAuthentication.clearSignInCardTitle")}
+          description={t("pages.userAuthentication.clearSignInCardDescription")}
+          buttons={[
+            {
+              title: t("pages.userAuthentication.clearSignInButton"),
+              icon: IconProp.Trash,
+              buttonStyle: ButtonStyleType.DANGER,
+              disabled: isOwnAccount,
+              tooltip: isOwnAccount
+                ? t("pages.userAuthentication.clearSignInOwnAccountTooltip")
+                : undefined,
+              onClick: () => {
+                setClearSignInError("");
+                setClearSignInSuccess("");
+                setIsMasterAdminConfirmed(false);
+                setShowClearSignInModal(true);
+              },
+            },
+          ]}
+        >
+          <div className="mt-3">
+            {clearSignInSuccess ? (
+              <Alert type={AlertType.SUCCESS} title={clearSignInSuccess} />
+            ) : (
+              <></>
+            )}
+
+            {clearSignInError && !showClearSignInModal ? (
+              <Alert type={AlertType.DANGER} title={clearSignInError} />
+            ) : (
+              <></>
+            )}
+          </div>
+        </Card>
+
+        {showClearSignInModal ? (
+          <ConfirmModal
+            title={t("pages.userAuthentication.clearSignInModalTitle")}
+            isTitleTranslated={true}
+            description={
+              <div className="space-y-4">
+                <p>
+                  {t("pages.userAuthentication.clearSignInModalDescription")}
+                </p>
+                {status?.isMasterAdmin ? (
+                  <Checkbox
+                    title={t(
+                      "pages.userAuthentication.clearSignInMasterAdminConfirmation",
+                    )}
+                    value={isMasterAdminConfirmed}
+                    onChange={(value: boolean) => {
+                      setIsMasterAdminConfirmed(value);
+                    }}
+                    dataTestId="clear-sign-in-master-admin-confirmation"
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
+            }
+            submitButtonText={t(
+              "pages.userAuthentication.clearSignInModalSubmit",
+            )}
+            submitButtonType={ButtonStyleType.DANGER}
+            disableSubmitButton={
+              status?.isMasterAdmin === true && !isMasterAdminConfirmed
+            }
+            isLoading={isClearingSignIn}
+            error={clearSignInError || undefined}
+            onSubmit={() => {
+              clearSignIn().catch(() => {
+                // Surfaced through clearSignInError.
+              });
+            }}
+            onClose={() => {
+              setShowClearSignInModal(false);
+              setIsMasterAdminConfirmed(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
 
         {showRequireTwoFactorModal ? (
           <ConfirmModal

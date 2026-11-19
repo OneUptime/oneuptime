@@ -1009,6 +1009,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Test Single Sign On (SSO)",
               "SSO Settings",
               "Require SSO to Sign In",
+              // Under Require SSO to Sign In while it is on (#9763).
+              "Manage Sign-In with SSO",
             ],
           },
           {
