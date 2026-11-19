@@ -92,6 +92,32 @@ describe("the share of sessions with an exception, and the sessions", () => {
     ).toBeNull();
   });
 
+  /*
+   * REGRESSION: the criteria form saves what was typed as text, and the
+   * count's converter (parseInt) read "1.09" as 1, so a share of 1.05%
+   * alerted above Android vitals' 1.09%.
+   */
+  test("a share typed with its fraction, as the form saves it, keeps the fraction", async () => {
+    const typed: CriteriaFilter = {
+      checkOn: CheckOn.SessionsWithExceptionsPercent,
+      filterType: FilterType.GreaterThan,
+      value: "1.09" as unknown as number,
+    };
+
+    expect(
+      await judge(
+        { sessionCount: 400, sessionsWithExceptionsPercent: 1.05 },
+        typed,
+      ),
+    ).toBeNull();
+    expect(
+      await judge(
+        { sessionCount: 400, sessionsWithExceptionsPercent: 1.1 },
+        typed,
+      ),
+    ).toBeTruthy();
+  });
+
   test("a share that could not be taken matches neither way, rather than reading 0%", async () => {
     for (const unknown of [null, undefined]) {
       expect(

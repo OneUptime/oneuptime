@@ -48,11 +48,21 @@ export default class ExceptionMonitorCriteria {
       return null;
     }
 
+    /*
+     * A share is typed with its fraction - 1.09% of sessions - and the
+     * criteria form saves what was typed as text, which convertToNumber
+     * would cut to 1: read it as a metric's threshold is, fraction kept.
+     */
+    const threshold: number | null =
+      input.criteriaFilter.checkOn === CheckOn.SessionsWithExceptionsPercent
+        ? CompareCriteria.convertMetricThresholdToNumber(
+            input.criteriaFilter.value,
+          )
+        : CompareCriteria.convertToNumber(input.criteriaFilter.value);
+
     return CompareCriteria.compareCriteriaNumbers({
       value,
-      threshold: CompareCriteria.convertToNumber(
-        input.criteriaFilter.value,
-      ) as number,
+      threshold: threshold as number,
       criteriaFilter: input.criteriaFilter,
     });
   }
