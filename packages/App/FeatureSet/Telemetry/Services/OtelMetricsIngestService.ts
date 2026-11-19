@@ -69,9 +69,13 @@ import {
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
+  KubernetesImageFsReading,
   ResourceLatestMetric,
+  ResourceLatestNodeFilesystem,
   ResourceLatestVolumeStats,
 } from "Common/Server/Services/KubernetesResourceService";
+import { isSeparateKubernetesImageFs } from "Common/Types/Kubernetes/KubernetesStorageHealth";
+import KubernetesEphemeralVolumeClaims from "Common/Server/Utils/Telemetry/KubernetesEphemeralVolumeClaims";
 import KubernetesContainerService, {
   ContainerLatestMetric,
 } from "Common/Server/Services/KubernetesContainerService";
@@ -294,6 +298,29 @@ const K8S_VOLUME_AVAILABLE_METRIC: string = "k8s.volume.available";
 const K8S_VOLUME_INODES_METRIC: string = "k8s.volume.inodes";
 const K8S_VOLUME_INODES_FREE_METRIC: string = "k8s.volume.inodes.free";
 
+/*
+ * A node's disks (#9645): its root filesystem, as the kubeletstats node
+ * group reports it - the disk the kubelet evicts pods by - and the
+ * filesystem its container images live on, which the kubelet reports as
+ * every container's root filesystem (the same reading for each container of
+ * the node: its image filesystem's). Mirrored onto the node's row
+ * (KubernetesResourceService.bulkUpdateLatestNodeFilesystems), the image
+ * filesystem only when one scrape shows it is a disk of its own.
+ */
+const K8S_NODE_FS_CAPACITY_METRIC: string = "k8s.node.filesystem.capacity";
+const K8S_NODE_FS_AVAILABLE_METRIC: string = "k8s.node.filesystem.available";
+const K8S_CONTAINER_FS_CAPACITY_METRIC: string =
+  "container.filesystem.capacity";
+const K8S_CONTAINER_FS_AVAILABLE_METRIC: string =
+  "container.filesystem.available";
+
+const K8S_NODE_FILESYSTEM_METRIC_NAMES: ReadonlySet<string> = new Set([
+  K8S_NODE_FS_CAPACITY_METRIC,
+  K8S_NODE_FS_AVAILABLE_METRIC,
+  K8S_CONTAINER_FS_CAPACITY_METRIC,
+  K8S_CONTAINER_FS_AVAILABLE_METRIC,
+]);
+
 const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.pod.cpu.utilization",
   "k8s.pod.memory.usage",
@@ -307,6 +334,7 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   K8S_VOLUME_AVAILABLE_METRIC,
   K8S_VOLUME_INODES_METRIC,
   K8S_VOLUME_INODES_FREE_METRIC,
+  ...K8S_NODE_FILESYSTEM_METRIC_NAMES,
 ]);
 
 /*
@@ -489,6 +517,22 @@ interface VolumeClaimMetricBufferEntry {
   availableAt: Date | null;
   inodesAt: Date | null;
   inodesFreeAt: Date | null;
+  observedAt: Date;
+}
+
+// One reading of a node's disk, and when it was taken.
+interface NodeFilesystemReading {
+  value: number;
+  at: Date;
+}
+
+// A node's disks, as the batch last reported them.
+interface NodeFilesystemBufferEntry {
+  nodeName: string;
+  rootCapacity: NodeFilesystemReading | null;
+  rootAvailable: NodeFilesystemReading | null;
+  imageCapacity: NodeFilesystemReading | null;
+  imageAvailable: NodeFilesystemReading | null;
   observedAt: Date;
 }
 
@@ -1146,6 +1190,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         Map<string, VolumeClaimMetricBufferEntry>
       > = new Map();
+      const k8sNodeFilesystemBuffer: Map<
+        string,
+        Map<string, NodeFilesystemBufferEntry>
+      > = new Map();
       const dockerContainerMetricsBuffer: Map<
         string,
         Map<string, DockerContainerMetricBufferEntry>
@@ -1402,6 +1450,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               receiverSystemHint: databaseReceiverSystemHint,
             }),
           ]);
+
+          /*
+           * A generic ephemeral volume's usage names its claim, as the
+           * receiver names any other claim's volume, before its rows are
+           * built (KubernetesEphemeralVolumeClaims): a pod's `ephemeral:`
+           * volume is the claim `<pod>-<volume>` it owns. Only a volume the
+           * receiver left unlabelled is looked at.
+           */
+          if (kubernetesClusterId) {
+            try {
+              await KubernetesEphemeralVolumeClaims.nameClaim({
+                projectId,
+                kubernetesClusterId,
+                attributes: resourceAttributes_raw,
+              });
+            } catch (err) {
+              logger.warn(
+                `Naming an ephemeral volume's claim failed (best-effort): ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
+          }
 
           if (storageArrayId) {
             const declaredStorageSystem: string | null =
@@ -2036,6 +2105,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             resourceBuffer: k8sResourceMetricsBuffer,
                             containerBuffer: k8sContainerMetricsBuffer,
                             volumeClaimBuffer: k8sVolumeClaimMetricsBuffer,
+                            nodeFilesystemBuffer: k8sNodeFilesystemBuffer,
                           });
                         }
 
@@ -2495,6 +2565,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         resourceBuffer: k8sResourceMetricsBuffer,
         containerBuffer: k8sContainerMetricsBuffer,
         volumeClaimBuffer: k8sVolumeClaimMetricsBuffer,
+        nodeFilesystemBuffer: k8sNodeFilesystemBuffer,
       });
 
       await this.flushDockerSnapshotBuffer({
@@ -2891,6 +2962,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     volumeClaimBuffer?:
       | Map<string, Map<string, VolumeClaimMetricBufferEntry>>
       | undefined;
+    nodeFilesystemBuffer?:
+      | Map<string, Map<string, NodeFilesystemBufferEntry>>
+      | undefined;
   }): void {
     const valueFromInt: number | null = this.toNumberOrNull(
       data.datapoint["asInt"],
@@ -2943,6 +3017,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         rawValue,
         nowMs,
       );
+      return;
+    }
+
+    /*
+     * A node's disks belong to the node's row, its image filesystem's
+     * reading too, which arrives as each of its containers' root
+     * filesystem: never a container's or a pod's row, and never the node's
+     * CPU and memory reading.
+     */
+    if (K8S_NODE_FILESYSTEM_METRIC_NAMES.has(data.metricName)) {
+      const nodeName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.node.name",
+      );
+      if (nodeName && data.nodeFilesystemBuffer) {
+        this.foldNodeFilesystemSnapshot({
+          buffer: data.nodeFilesystemBuffer,
+          clusterIdStr: data.clusterIdStr,
+          nodeName,
+          metricName: data.metricName,
+          value: rawValue,
+          observedAt: ts.date,
+        });
+      }
       return;
     }
 
@@ -3293,12 +3391,139 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
   }
 
+  /*
+   * Fold one reading of a node's disks into the batch's buffer, the latest
+   * point of each winning: its root filesystem's, or its image filesystem's
+   * - the same for every container of the node, whichever sent it.
+   */
+  private static foldNodeFilesystemSnapshot(data: {
+    buffer: Map<string, Map<string, NodeFilesystemBufferEntry>>;
+    clusterIdStr: string;
+    nodeName: string;
+    metricName: string;
+    value: number;
+    observedAt: Date;
+  }): void {
+    if (!Number.isFinite(data.value) || data.value < 0) {
+      return;
+    }
+
+    let perCluster: Map<string, NodeFilesystemBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+
+    let entry: NodeFilesystemBufferEntry | undefined = perCluster.get(
+      data.nodeName,
+    );
+    if (!entry) {
+      entry = {
+        nodeName: data.nodeName,
+        rootCapacity: null,
+        rootAvailable: null,
+        imageCapacity: null,
+        imageAvailable: null,
+        observedAt: data.observedAt,
+      };
+      perCluster.set(data.nodeName, entry);
+    }
+
+    const reading: NodeFilesystemReading = {
+      value: Math.trunc(data.value),
+      at: data.observedAt,
+    };
+    const newer: (current: NodeFilesystemReading | null) => boolean = (
+      current: NodeFilesystemReading | null,
+    ): boolean => {
+      return current === null || data.observedAt >= current.at;
+    };
+
+    switch (data.metricName) {
+      case K8S_NODE_FS_CAPACITY_METRIC:
+        if (newer(entry.rootCapacity)) {
+          entry.rootCapacity = reading;
+        }
+        break;
+      case K8S_NODE_FS_AVAILABLE_METRIC:
+        if (newer(entry.rootAvailable)) {
+          entry.rootAvailable = reading;
+        }
+        break;
+      case K8S_CONTAINER_FS_CAPACITY_METRIC:
+        if (newer(entry.imageCapacity)) {
+          entry.imageCapacity = reading;
+        }
+        break;
+      case K8S_CONTAINER_FS_AVAILABLE_METRIC:
+        if (newer(entry.imageAvailable)) {
+          entry.imageAvailable = reading;
+        }
+        break;
+      default:
+        return;
+    }
+
+    if (data.observedAt > entry.observedAt) {
+      entry.observedAt = data.observedAt;
+    }
+  }
+
+  /*
+   * A node's disks as the row takes them. Whether its image filesystem is
+   * a disk of its own is told only from one scrape's readings of both (the
+   * kubelet reads them at the same moment, so the same filesystem reads
+   * the same); a batch that cannot tell leaves what is stored.
+   */
+  public static toNodeFilesystem(
+    entry: NodeFilesystemBufferEntry,
+  ): ResourceLatestNodeFilesystem {
+    let imageFs: KubernetesImageFsReading = { state: "unknown" };
+
+    if (
+      entry.rootCapacity &&
+      entry.rootAvailable &&
+      entry.imageCapacity &&
+      entry.imageAvailable &&
+      entry.rootCapacity.at.getTime() === entry.imageCapacity.at.getTime() &&
+      entry.rootAvailable.at.getTime() === entry.imageAvailable.at.getTime()
+    ) {
+      const isSeparate: boolean | null = isSeparateKubernetesImageFs({
+        rootCapacityBytes: entry.rootCapacity.value,
+        rootAvailableBytes: entry.rootAvailable.value,
+        imageCapacityBytes: entry.imageCapacity.value,
+        imageAvailableBytes: entry.imageAvailable.value,
+      });
+      if (isSeparate === true) {
+        imageFs = {
+          state: "separate",
+          capacityBytes: entry.imageCapacity.value,
+          availableBytes: entry.imageAvailable.value,
+        };
+      } else if (isSeparate === false) {
+        imageFs = { state: "same" };
+      }
+    }
+
+    return {
+      name: entry.nodeName,
+      capacityBytes: entry.rootCapacity ? entry.rootCapacity.value : null,
+      availableBytes: entry.rootAvailable ? entry.rootAvailable.value : null,
+      imageFs: imageFs,
+      observedAt: entry.observedAt,
+    };
+  }
+
   private static async flushKubernetesSnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
     containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
     volumeClaimBuffer?:
       | Map<string, Map<string, VolumeClaimMetricBufferEntry>>
+      | undefined;
+    nodeFilesystemBuffer?:
+      | Map<string, Map<string, NodeFilesystemBufferEntry>>
       | undefined;
   }): Promise<void> {
     if (data.resourceBuffer.size > 0) {
@@ -3390,6 +3615,32 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         } catch (err) {
           logger.warn(
             `K8s snapshot writeback (volume claim) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    if (data.nodeFilesystemBuffer && data.nodeFilesystemBuffer.size > 0) {
+      for (const [
+        clusterIdStr,
+        byNode,
+      ] of data.nodeFilesystemBuffer.entries()) {
+        if (byNode.size === 0) {
+          continue;
+        }
+        try {
+          const nodes: Array<ResourceLatestNodeFilesystem> = [];
+          for (const entry of byNode.values()) {
+            nodes.push(this.toNodeFilesystem(entry));
+          }
+          await KubernetesResourceService.bulkUpdateLatestNodeFilesystems({
+            projectId: data.projectId,
+            kubernetesClusterId: new ObjectID(clusterIdStr),
+            nodes,
+          });
+        } catch (err) {
+          logger.warn(
+            `K8s snapshot writeback (node filesystem) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }

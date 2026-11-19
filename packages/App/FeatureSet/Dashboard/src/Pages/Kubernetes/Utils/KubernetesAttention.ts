@@ -113,11 +113,19 @@ function toAttentionText(text: KubernetesHealthText): ResourceAttentionText {
   return result;
 }
 
+/*
+ * A claim's pod - one that mounts it, the workload writing to it - as a
+ * fact under the claim: a step to its page in the list a count opens
+ * (ResourceAttentionDialog), its name on the card, whose row opens the
+ * claim.
+ */
+export const KUBERNETES_CLAIM_POD_FACT_LABEL: string = translationKey("Pod");
+
 export function toKubernetesAttentionItem(
   finding: KubernetesAttentionFinding,
   routeFor: KubernetesPartRouteFor,
 ): ResourceAttentionItem {
-  return {
+  const item: ResourceAttentionItem = {
     key: finding.key,
     kind: getKubernetesKindChip(finding.kind),
     kindAsWritten: true,
@@ -136,6 +144,23 @@ export function toKubernetesAttentionItem(
       namespace: finding.namespace,
     }),
   };
+
+  if (finding.pod) {
+    item.facts = [
+      {
+        key: "pod",
+        label: KUBERNETES_CLAIM_POD_FACT_LABEL,
+        value: finding.pod,
+        route: routeFor({
+          kind: "Pod",
+          name: finding.pod,
+          namespace: finding.namespace,
+        }),
+      },
+    ];
+  }
+
+  return item;
 }
 
 /*
@@ -230,6 +255,9 @@ export function parseKubernetesAttentionFindings(
     }
     if (typeof source["podCount"] === "number") {
       finding.podCount = source["podCount"];
+    }
+    if (typeof source["pod"] === "string" && source["pod"]) {
+      finding.pod = source["pod"];
     }
     findings.push(finding);
   }

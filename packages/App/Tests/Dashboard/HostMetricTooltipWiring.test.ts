@@ -82,9 +82,11 @@ const FILESYSTEMS_FILE: string = path.join(
   "Host",
   "HostFilesystemsTable.tsx",
 );
+// The shared storage bar's Used, then Free and Size (#9647), in column order.
 const FILESYSTEMS_KEYS: Array<HostMetric> = [
-  "filesystemUsedTotal",
   "filesystemUtilization",
+  "filesystemFree",
+  "filesystemSize",
 ];
 
 function readFilesystemsCode(): string {
@@ -435,33 +437,33 @@ describe("Host overview", () => {
     ).toBeLessThan(definition.indexOf("{params.headerExtra ?? null}"));
   });
 
-  test("the Filesystems table explains its two metric columns", () => {
+  test("the Filesystems table explains its three metric columns", () => {
     /*
      * Drawn by the product's table (HostFilesystemsTable): a column's (i)
      * is its headerTooltip, which the table's header cell draws beside the
      * column's name - and a phone's card beside the field's.
      */
     const table: string = readFilesystemsCode();
-    const usedTotal: string = between(
+    const used: string = between(table, 'title: "Used",', "getElement:");
+    const free: string = between(
       table,
-      'title: "Used / Total",',
+      'title: "Free (storage space)",',
       "getElement:",
     );
-    const utilization: string = between(
-      table,
-      'title: "Utilization",',
-      "getElement:",
-    );
+    const size: string = between(table, 'title: "Size",', "getElement:");
 
-    expect(usedTotal).toMatch(HEADER_TOOLTIP_PROPERTY);
-    expect(usedTotal).toContain(
-      "headerTooltip: HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal,",
-    );
-    expect(utilization).toContain(
+    expect(used).toMatch(HEADER_TOOLTIP_PROPERTY);
+    expect(used).toContain(
       "headerTooltip: HOST_METRIC_DESCRIPTIONS.filesystemUtilization,",
     );
+    expect(free).toContain(
+      "headerTooltip: HOST_METRIC_DESCRIPTIONS.filesystemFree,",
+    );
+    expect(size).toContain(
+      "headerTooltip: HOST_METRIC_DESCRIPTIONS.filesystemSize,",
+    );
     // Mount, Type and Device are names, not metrics.
-    expect(countOf(table, "headerTooltip:")).toBe(2);
+    expect(countOf(table, "headerTooltip:")).toBe(3);
 
     // The overview draws the table, and no table of its own.
     expect(code).toContain("<HostFilesystemsTable");

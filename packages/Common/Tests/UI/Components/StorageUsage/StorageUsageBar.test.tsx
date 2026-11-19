@@ -263,3 +263,67 @@ describe("StorageUsageBar on a page", () => {
     );
   });
 });
+
+/*
+ * A dashboard widget's narrow cell (#9646): the Ceph OSD and pool widgets
+ * drew bars of their own, at 70% and 85% where Ceph's lines are 85% and
+ * 95%, with English-digit percents.
+ */
+describe("StorageUsageBar in a dashboard widget's cell", () => {
+  test("draws a short bar and the percent on one line, with no amount and no width of its own", () => {
+    draw(
+      <StorageUsageBar usage={usageOf(36)} size={StorageUsageBarSize.Inline} />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("storage-usage");
+    expect(cell.textContent).toBe("72%");
+    expect(fill()).toHaveStyle({ width: "72%" });
+    expect(cell.className).not.toContain("min-w-[8rem]");
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "72");
+  });
+
+  test("colours at the reading's lines, as a list's cell does", () => {
+    draw(
+      <StorageUsageBar
+        usage={getStorageUsage(
+          { capacity: 100, used: 96 },
+          { warningPercent: 85, criticalPercent: 95, isPastLineOnly: true },
+        )}
+        size={StorageUsageBarSize.Inline}
+      />,
+    );
+
+    expect(fill()).toHaveClass(
+      STORAGE_USAGE_BAR_COLOR_CLASS_NAMES[StorageUsageLevel.Critical],
+    );
+  });
+
+  test("draws the small quiet dash when there is no reading, or the page's words", () => {
+    draw(<StorageUsageBar usage={null} size={StorageUsageBarSize.Inline} />);
+    expect(screen.queryByRole("meter")).toBeNull();
+    expect(screen.queryByTestId("storage-usage-none")).toBeNull();
+    cleanup();
+
+    draw(
+      <StorageUsageBar
+        usage={null}
+        size={StorageUsageBarSize.Inline}
+        noUsageText="Not reported"
+      />,
+    );
+    expect(screen.getByTestId("storage-usage-none")).toHaveTextContent(
+      "Not reported",
+    );
+  });
+
+  test("writes the percent in the reader's digits", () => {
+    draw(
+      <StorageUsageBar usage={usageOf(36)} size={StorageUsageBarSize.Inline} />,
+      "fa",
+    );
+
+    expect(screen.getByTestId("storage-usage").textContent).toBe(
+      "\u06F7\u06F2\u066A",
+    );
+  });
+});

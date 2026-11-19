@@ -11,6 +11,7 @@ import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
+import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import {
   AI_OUTCOMES_PART_OUTCOMES,
   AI_OUTCOMES_PARTS,
@@ -1229,8 +1230,218 @@ describe("by model (#7762)", () => {
       runType: true,
       triggeredByIncidentId: true,
       triggeredByAlertId: true,
+      // Whether it is a later turn of a Code task, whose first turn is the fix's.
+      codeTaskId: true,
     });
     expect(matchesFilter(task._id, taskReads[0]!.query["_id"])).toBe(true);
     expect(taskReads[0]!.limit).toBe(1);
+  });
+});
+
+/*
+ * A PULL REQUEST A LATER TURN OF ITS TASK OPENED (#9812).
+ *
+ * Try again asks a fix again as a later turn of the same Code task, and a
+ * reply someone sends in Code is one too; either can open the task's pull
+ * request. The pull request is the task's: what it was a fix of and when
+ * the fix started are its first turn's - a reply carries no incident or
+ * alert, and a turn asked again started after the investigation the fix
+ * was written from.
+ */
+describe("a pull request a later turn of its task opened (#9812)", () => {
+  // A reply someone sent in Code: a request of the task, about nothing.
+  function replyTo(task: FakeRow, overrides: Partial<FakeRow> = {}): FakeRow {
+    return fixTask(
+      {},
+      {
+        codeFixTaskType: CodeFixTaskType.CodeRequest,
+        codeTaskId: new ObjectID(task._id),
+        createdAt: daysAgo(3),
+        ...overrides,
+      },
+    );
+  }
+
+  // The fix asked again with Try again: it carries its task's incident or alert.
+  function askedAgain(
+    task: FakeRow,
+    overrides: Partial<FakeRow> = {},
+  ): FakeRow {
+    return fixTask(
+      {
+        triggeredByIncidentId: task["triggeredByIncidentId"],
+        triggeredByAlertId: task["triggeredByAlertId"],
+      },
+      {
+        codeTaskId: new ObjectID(task._id),
+        createdAt: daysAgo(3),
+        ...overrides,
+      },
+    );
+  }
+
+  test("a reply's pull request of a fix of an incident the caller may not read is neither counted nor listed", async () => {
+    const task: FakeRow = fixTask(aboutIncident(INCIDENT_PRIVATE), {
+      status: AIRunStatus.Error,
+    });
+    const reply: FakeRow = replyTo(task);
+
+    install(
+      {
+        incidents: [INCIDENT_A, INCIDENT_PRIVATE],
+        alerts: [ALERT_A],
+        runs: [task, reply],
+        pullRequests: [pullRequest(FixProductionStatus.Regressed, reply)],
+      },
+      {},
+      READABLE,
+    );
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.pullRequestFixes!.regressed).toBe(0);
+
+    const records: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.PullRequestFixes,
+      "regressed",
+    );
+
+    expect(records.total).toBe(0);
+    expect(JSON.stringify(records)).not.toContain("Raise the checkout timeout");
+  });
+
+  test("a reply's pull request of a fix of an incident the caller may read is listed under that incident", async () => {
+    const task: FakeRow = fixTask(aboutIncident(INCIDENT_A), {
+      status: AIRunStatus.Error,
+    });
+    const reply: FakeRow = replyTo(task);
+
+    install(
+      {
+        incidents: [INCIDENT_A, INCIDENT_PRIVATE],
+        alerts: [ALERT_A],
+        runs: [task, reply],
+        pullRequests: [pullRequest(FixProductionStatus.Verified, reply)],
+      },
+      {},
+      READABLE,
+    );
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.pullRequestFixes!.verified).toBe(1);
+
+    const records: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.PullRequestFixes,
+      "verified",
+    );
+
+    expect(records.records).toHaveLength(1);
+    expect(records.records[0]).toMatchObject({
+      subject: { kind: "incident", id: INCIDENT_A._id },
+      pullRequestNumber: 42,
+    });
+  });
+
+  test("a fix asked again is matched by when its task started, not when it was asked again", async () => {
+    const task: FakeRow = fixTask(aboutIncident(INCIDENT_A), {
+      status: AIRunStatus.Error,
+      createdAt: daysAgo(10),
+    });
+    const again: FakeRow = askedAgain(task, { createdAt: daysAgo(4) });
+
+    install({
+      incidents: [INCIDENT_A],
+      runs: [
+        task,
+        again,
+        // The investigation the fix was written from, before its task started.
+        investigation(aboutIncident(INCIDENT_A), MATCH, {
+          modelName: "chat-large",
+          createdAt: daysAgo(12),
+        }),
+        // A later one of the same incident, between the task and Try again.
+        investigation(aboutIncident(INCIDENT_A), MISMATCH, {
+          modelName: "chat-medium",
+          createdAt: daysAgo(6),
+        }),
+      ],
+      pullRequests: [
+        pullRequest(FixProductionStatus.Verified, again, {
+          createdAt: daysAgo(3),
+        }),
+      ],
+    });
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.pullRequestFixes!.verified).toBe(1);
+    expect(outcomes.models!.fixes).toEqual([
+      { modelName: "chat-large", value: 1, total: 1 },
+    ]);
+  });
+
+  test("the first turns are read once, as root, by their ids - and only when a later turn opened a pull request", async () => {
+    const task: FakeRow = fixTask(aboutIncident(INCIDENT_A), {
+      status: AIRunStatus.Error,
+      createdAt: daysAgo(10),
+    });
+    const again: FakeRow = askedAgain(task, { createdAt: daysAgo(5) });
+    const reply: FakeRow = replyTo(task, { createdAt: daysAgo(4) });
+
+    install({
+      incidents: [INCIDENT_A],
+      runs: [task, again, reply],
+      pullRequests: [
+        pullRequest(FixProductionStatus.Regressed, again),
+        pullRequest(FixProductionStatus.Verified, reply),
+      ],
+    });
+
+    await readOutcomes();
+
+    const taskReads: Array<Call> = callsTo("runs").filter(
+      (call: Call): boolean => {
+        return call.query["runType"] === undefined;
+      },
+    );
+
+    // The turns that opened the pull requests, then their task's first turn.
+    expect(taskReads).toHaveLength(2);
+    expect(matchesFilter(again._id, taskReads[0]!.query["_id"])).toBe(true);
+    expect(matchesFilter(reply._id, taskReads[0]!.query["_id"])).toBe(true);
+    expect(matchesFilter(task._id, taskReads[1]!.query["_id"])).toBe(true);
+    expect(matchesFilter(again._id, taskReads[1]!.query["_id"])).toBe(false);
+    expect(taskReads[1]!.limit).toBe(1);
+
+    for (const call of taskReads) {
+      expect(call.props).toEqual({ isRoot: true });
+      expect(call.query["projectId"]).toEqual(PROJECT_ID);
+    }
+  });
+
+  test("a later turn whose first turn is gone is read as itself", async () => {
+    const task: FakeRow = fixTask(aboutIncident(INCIDENT_A));
+    const reply: FakeRow = replyTo(task);
+
+    install(
+      {
+        incidents: [INCIDENT_A],
+        // The task's first turn is not there to read.
+        runs: [reply],
+        pullRequests: [pullRequest(FixProductionStatus.Verified, reply)],
+      },
+      {},
+      READABLE,
+    );
+
+    const records: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.PullRequestFixes,
+      "verified",
+    );
+
+    // A reply is no fix of anything: counted, about nothing, as before.
+    expect(records.total).toBe(1);
+    expect(records.records[0]!.subject).toBeUndefined();
   });
 });

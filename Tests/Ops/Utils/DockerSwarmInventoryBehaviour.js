@@ -353,8 +353,46 @@ function buildSwarmApi(nowMs) {
           Driver: "local",
           Scope: "local",
           Mountpoint: "/var/lib/docker/volumes/shop_data/_data",
+          Options: null,
+        },
+        // A local volume mounted from an NFS share: its data is elsewhere.
+        {
+          Name: "shop_media",
+          Driver: "local",
+          Scope: "local",
+          Mountpoint: "/var/lib/docker/volumes/shop_media/_data",
+          Options: { type: "nfs", o: "addr=10.0.0.5", device: ":/media" },
+        },
+        {
+          Name: "shared_cache",
+          Driver: "rexray/ebs",
+          Scope: "global",
+          Mountpoint: "",
         },
       ],
+    },
+    /*
+     * GET /system/df?type=volume (API 1.42; an older daemon answers every
+     * type): UsageData.Size is the bytes a local volume's files take, -1 for
+     * a volume Docker cannot measure.
+     */
+    "system-df": {
+      LayersSize: 0,
+      Images: [],
+      Containers: [],
+      Volumes: [
+        {
+          Name: "shop_data",
+          Driver: "local",
+          UsageData: { Size: 10920104, RefCount: 2 },
+        },
+        {
+          Name: "shared_cache",
+          Driver: "rexray/ebs",
+          UsageData: { Size: -1, RefCount: 1 },
+        },
+      ],
+      BuildCache: [],
     },
   };
 }
@@ -376,6 +414,7 @@ case "$endpoint" in
   /secrets) file=secrets ;;
   /configs) file=configs ;;
   /volumes) file=volumes ;;
+  "/system/df?type=volume") file=system-df ;;
   *) exit 22 ;;
 esac
 [ -f "$SWARM_API_DIR/$file.json" ] || exit 22

@@ -84,6 +84,7 @@ export type ProxmoxMetric =
   | "nodesTableMemory"
   | "nodesTableUptime"
   | "nodesTableGuests"
+  | "nodesTableDisk"
   // Guests list.
   | "guestsTableStatus"
   | "guestsTableCpu"
@@ -91,6 +92,7 @@ export type ProxmoxMetric =
   | "guestsTableUptime"
   | "guestsTableHaState"
   | "guestsTableBackup"
+  | "guestsTableDisk"
   // Storage list.
   | "storageTableStatus"
   // Insights.
@@ -269,6 +271,9 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   nodesTableGuests: translationKey(
     "Guests running on each node out of all guests on it, templates left out, at their latest report.",
   ),
+  nodesTableDisk: translationKey(
+    "Space used on each node's root filesystem, at its latest report: amber above 85% and red above 95%, as storage is.",
+  ),
 
   // Guests list.
   guestsTableStatus: translationKey(
@@ -288,6 +293,9 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   ),
   guestsTableBackup: translationKey(
     "How each guest's last backup went and when, from Proxmox VE's notifications; before any arrive, In a backup job or In no backup job. A dash means nothing is reported yet.",
+  ),
+  guestsTableDisk: translationKey(
+    "Space used on each container's root disk: amber above 85% and red above 95%. Proxmox cannot see inside a VM, so a VM says Not reported.",
   ),
 
   // Storage list.

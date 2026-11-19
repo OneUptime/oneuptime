@@ -29,6 +29,9 @@ import {
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import * as fs from "fs";
 import * as path from "path";
+import { KUBERNETES_STORAGE_USAGE_THRESHOLDS } from "../../../Types/Kubernetes/KubernetesStorageHealth";
+import { DEFAULT_STORAGE_USAGE_THRESHOLDS } from "../../../Utils/Storage/StorageUsage";
+import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 
 /*
  * How the Kubernetes agent's chart names its cumulative-to-delta processor:
@@ -135,23 +138,23 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     groupBy: ["resource.k8s.node.name"],
   },
   /*
-   * Node disk fill — Avg/Avg, and the ONE template with a non-default
-   * formula. `k8s.node.filesystem.usage` is bytes, so comparing it to 90
-   * fired on every node forever; the percentage is built from the
-   * companion `k8s.node.filesystem.available` on the same kubeletstats
-   * node scrape.
+   * Node disk fill — Avg/Avg, with a formula of its own. Bytes compared to
+   * 90 once fired on every node forever; the percentage is the node's root
+   * filesystem's used share of its capacity, from the same kubeletstats node
+   * scrape - the kubelet's own reading for its evictions (nodefs.available),
+   * and how the Nodes list and Needs attention read a node's disk (#9645).
    */
   {
     id: "k8s-high-disk-usage",
-    numerator: "k8s.node.filesystem.usage",
-    denominator: "k8s.node.filesystem.available",
-    numAlias: "used_disk",
-    denAlias: "avail_disk",
+    numerator: "k8s.node.filesystem.available",
+    denominator: "k8s.node.filesystem.capacity",
+    numAlias: "free_disk",
+    denAlias: "capacity_disk",
     resultAlias: "disk_usage",
     aggregation: MetricsAggregationType.Avg,
     threshold: 90,
     groupBy: ["resource.k8s.node.name"],
-    formula: "(used_disk / (used_disk + avail_disk)) * 100",
+    formula: "((capacity_disk - free_disk) / capacity_disk) * 100",
   },
   /*
    * A claim's fill — Avg/Avg, one series per pod that mounts the claim,
@@ -638,12 +641,15 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
     expect(formulaConfigs).toHaveLength(1);
 
     /*
-     * There is no `k8s.node.filesystem.capacity` anywhere in this repo, so
-     * the denominator is `usage + available` — the same figure `df`
-     * reports as Use%, and the same one the cluster dashboard charts.
+     * Used is the root filesystem's capacity less what is still available,
+     * as the kubelet reads nodefs.available for its evictions, and as the
+     * Nodes list, the node's page and Needs attention read it (#9645): a
+     * filesystem's reserved blocks count as used. It used to be df's Use%,
+     * usage / (usage + available), which read 89.5% on an ext4 node the
+     * kubelet was already evicting from.
      */
     expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
-      "(used_disk / (used_disk + avail_disk)) * 100",
+      "((capacity_disk - free_disk) / capacity_disk) * 100",
     );
     expect(formulaConfigs[0].metricAliasData.legendUnit).toBe("%");
 
@@ -2411,5 +2417,67 @@ describe("KubernetesAlertTemplates - PVC Almost Full", () => {
 
     expect(incident).toContain("expand the claim");
     expect(incident).toContain('"Affected resource"');
+  });
+});
+
+/*
+ * The two storage templates fire where the pages draw a disk red and the
+ * cluster's Needs attention lists it as critical (#9643, #9645): one line,
+ * KubernetesStorageHealth's, read from StorageUsage. A template that kept a
+ * 90 of its own would drift the day the line moved.
+ */
+describe("KubernetesAlertTemplates - the storage templates fire at the shared line", () => {
+  test.each(["k8s-pvc-almost-full", "k8s-high-disk-usage"])(
+    "%s fires above the critical line and recovers below it, past the shared dead band",
+    (id: string) => {
+      const line: number = KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent;
+      const [offline, online] = getCriteriaInstances(id);
+
+      expect(offline.data.filters[0].filterType).toBe(FilterType.GreaterThan);
+      expect(offline.data.filters[0].value).toBe(line);
+      expect(online.data.filters[0].filterType).toBe(
+        FilterType.LessThanOrEqualTo,
+      );
+      // The firing line's own dead band, as every template's recovery.
+      expect(online.data.filters[0].value).toBe(
+        getRecoveryThreshold({
+          filterType: FilterType.GreaterThan,
+          value: line,
+        }),
+      );
+
+      const template: KubernetesAlertTemplate =
+        getKubernetesAlertTemplateById(id)!;
+      expect(template.summary).toContain(`${line}%`);
+      expect(template.description).toContain(`${line}%`);
+      expect(offline.data.incidents[0].title).toContain(`(>${line}%)`);
+    },
+  );
+
+  test("the line is the claims list's: almost out of space at 90% used", () => {
+    expect(KUBERNETES_STORAGE_USAGE_THRESHOLDS).toBe(
+      DEFAULT_STORAGE_USAGE_THRESHOLDS,
+    );
+    expect(KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent).toBe(90);
+  });
+
+  test("High Node Disk Usage reads the node's root filesystem as the kubelet does", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-high-disk-usage"),
+    );
+    const metricNames: Array<string> = (
+      monitor.metricViewConfig.queryConfigs as Array<any>
+    ).map((query: any): string => {
+      return query.metricQueryData.filterData.metricName;
+    });
+
+    expect(metricNames).toEqual([
+      "k8s.node.filesystem.available",
+      "k8s.node.filesystem.capacity",
+    ]);
+    // Both come with the agent's node group by default.
+    for (const name of metricNames) {
+      expect(AGENT_EMITTED_METRIC_NAMES.has(name)).toBe(true);
+    }
   });
 });

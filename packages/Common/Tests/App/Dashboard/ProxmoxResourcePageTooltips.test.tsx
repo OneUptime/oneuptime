@@ -789,18 +789,27 @@ function rowOf(name: string): HTMLElement {
 }
 
 describe("Proxmox nodes list", () => {
-  test("Status, Guests, CPU, Memory and Age headers each explain their column", async () => {
+  test("Status, Guests, CPU, Memory, Disk and Age headers each explain their column", async () => {
     await renderPage(ProxmoxClusterNodes, CLUSTER_ID, "pve1");
 
-    expect(infoLabels()).toEqual(["Status", "Guests", "CPU", "Memory", "Age"]);
+    // Disk, beside CPU and Memory: each node's root filesystem (#9646).
+    expect(infoLabels()).toEqual([
+      "Status",
+      "Guests",
+      "CPU",
+      "Memory",
+      "Disk",
+      "Age",
+    ]);
     await expectExplained([
       ["Status", "nodesTableStatus"],
       ["Guests", "nodesTableGuests"],
       ["CPU", "nodesTableCpu"],
       ["Memory", "nodesTableMemory"],
+      ["Disk", "nodesTableDisk"],
       ["Age", "nodesTableUptime"],
     ]);
-    for (const title of ["Status", "Guests", "CPU", "Memory", "Age"]) {
+    for (const title of ["Status", "Guests", "CPU", "Memory", "Disk", "Age"]) {
       expect(columnHeader(title)).toBeTruthy();
     }
     expectNoNestedInfoButtons();
@@ -838,12 +847,14 @@ describe("Proxmox guests list", () => {
   test("every metric column explains itself; identity columns do not", async () => {
     await renderPage(ProxmoxClusterGuests, CLUSTER_ID, "web");
 
+    // Disk, beside CPU and Memory: each guest's root disk (#9646).
     expect(infoLabels()).toEqual([
       "Status",
       "HA State",
       "Backup",
       "CPU",
       "Memory",
+      "Disk",
       "Age",
     ]);
     await expectExplained([
@@ -852,6 +863,7 @@ describe("Proxmox guests list", () => {
       ["Backup", "guestsTableBackup"],
       ["CPU", "guestsTableCpu"],
       ["Memory", "guestsTableMemory"],
+      ["Disk", "guestsTableDisk"],
       ["Age", "guestsTableUptime"],
     ]);
     for (const title of ["VMID", "Type", "Node", "Name"]) {

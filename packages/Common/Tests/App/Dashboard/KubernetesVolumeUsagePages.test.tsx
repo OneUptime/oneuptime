@@ -402,6 +402,52 @@ describe("a claim's page", () => {
     });
   });
 
+  test("says when it will be full at the rate it is filling, read with its usage", async () => {
+    const measuredAt: Date = new Date();
+    mockGetList.mockImplementation(() => {
+      return Promise.resolve({
+        data: [
+          {
+            ...NEARLY_FULL,
+            latestVolumeMeasuredAt: measuredAt,
+            // 6 GiB more used than 3 hours before: 2 GiB an hour, 4 GiB left.
+            latestVolumeUsedBaselineBytes: String(40 * GIB),
+            latestVolumeUsedBaselineAt: new Date(
+              measuredAt.getTime() - 3 * 60 * 60 * 1000,
+            ),
+          },
+        ],
+        count: 1,
+      });
+    });
+
+    render(<PVCDetailPage {...PAGE_PROPS} />);
+    await settle();
+
+    expect(
+      screen.getByTestId("kubernetes-volume-usage-fill"),
+    ).toHaveTextContent("Full in about 2 hours");
+    expect(mockGetList.mock.calls[0]![0]).toMatchObject({
+      select: {
+        latestVolumeMeasuredAt: true,
+        latestVolumeUsedBaselineBytes: true,
+        latestVolumeUsedBaselineAt: true,
+      },
+    });
+  });
+
+  test("says nothing of filling for a claim with no baseline yet", async () => {
+    mockGetList.mockImplementation(() => {
+      return Promise.resolve({ data: [NEARLY_FULL], count: 1 });
+    });
+
+    render(<PVCDetailPage {...PAGE_PROPS} />);
+    await settle();
+
+    expect(screen.getByTestId("kubernetes-volume-usage-used")).toBeTruthy();
+    expect(screen.queryByTestId("kubernetes-volume-usage-fill")).toBeNull();
+  });
+
   test("says why when the claim reports no usage", async () => {
     mockGetList.mockImplementation(() => {
       return Promise.resolve({

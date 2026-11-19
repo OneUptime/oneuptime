@@ -202,7 +202,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Unntak → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene, rammene fra koden din i stack tracen medregnet. **View Exception Group** åpner unntaket, og for en tjenestes manglende stack traces åpner **Åpne i Unntak** de uløste unntakene dens fra det siste døgnet.
-- **Unntak → KI → Logger** viser hver undersøkelse og hver pull request, nyeste først, med status for hver og hva hver undersøkelse fant.
+- **Unntak → KI → Logger** viser hver undersøkelse og hver pull request, nyeste først, med status for hver og hva hver undersøkelse fant. En pull request sier hvordan oppgaven i Code står nå: en retting som ble bedt om på nytt med Prøv igjen etter at den mislyktes, står ikke lenger som mislykket og viser hvilken pull request den åpnet.
 - Pull requesten sier hvorfor den ble åpnet, med en lenke til funnet. Den for et nytt eller økende unntak lenker også til unntaket og vises på siden **Fiks med AI** til unntaket. I Kode nevner oppgaven unntaket den retter, eller funnet den kom fra.
 
 ## Innsikt i unntak

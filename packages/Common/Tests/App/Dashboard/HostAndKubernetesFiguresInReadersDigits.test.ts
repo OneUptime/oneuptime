@@ -547,4 +547,37 @@ describe("a reason's percentage and decimals take the sentence's language", () =
       ),
     ).toBe("96% of a sentence no locale has");
   });
+
+  /*
+   * A claim's or a node's free space under Needs attention (#9643): the
+   * size the rules write as StorageUsage writes it - its number held to its
+   * binary unit by a no-break space - takes the sentence's digits and
+   * decimal sign, its unit as written; a size written any other way stays
+   * as it came.
+   */
+  test("a size StorageUsage wrote takes the sentence's digits, its unit kept", () => {
+    expect(
+      filled(dashboardTranslator("fa"), "{{percent}} full", {
+        percent: "4.5\u00A0GiB",
+      }),
+    ).toBe("۴٫۵\u00A0GiB پر");
+    expect(
+      filled(dashboardTranslator("de"), "{{percent}} full", {
+        percent: "1.5\u00A0TiB",
+      }),
+    ).toBe("1,5\u00A0TiB voll");
+    expect(
+      filled(dashboardTranslator("en"), "{{percent}} full", {
+        percent: "4.5\u00A0GiB",
+      }),
+    ).toBe("4.5\u00A0GiB full");
+    // Arabic writes Latin digits, with its own decimal sign.
+    expect(
+      ARABIC_INDIC_DIGIT.test(
+        filled(dashboardTranslator("ar"), "{{percent}} full", {
+          percent: "4.5\u00A0GiB",
+        }),
+      ),
+    ).toBe(false);
+  });
 });

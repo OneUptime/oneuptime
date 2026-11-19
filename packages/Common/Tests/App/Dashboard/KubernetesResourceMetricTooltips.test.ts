@@ -58,9 +58,23 @@ const TITLES: Array<[string, KubernetesResourceMetric]> = [
   ["Desired", "hpaDesiredReplicas"],
   ["Capacity", "pvcCapacity"],
   ["Capacity", "pvCapacity"],
+  // A claim's and a volume's usage (#9539).
+  ["Used", "pvcUsed"],
+  ["Free", "pvcFree"],
+  ["Used", "pvUsed"],
+  ["Free", "pvFree"],
+  // The Nodes list's disk (#9645).
+  ["Disk", "nodeDiskUsed"],
+  ["Disk Free", "nodeDiskFree"],
+  ["Disk Capacity", "nodeDiskCapacity"],
+  ["Image Disk", "nodeImageDisk"],
   // Detail summary fields and headers.
   ["CPU (Capacity / Allocatable)", "nodeCpuCapacity"],
   ["Memory (Capacity / Allocatable)", "nodeMemoryCapacity"],
+  [
+    "Ephemeral Storage (Capacity / Allocatable)",
+    "nodeEphemeralStorageCapacity",
+  ],
   ["Pods (Capacity)", "nodePodCapacity"],
   ["Network Throughput", "nodeNetworkThroughput"],
   ["Restarts", "podRestarts"],

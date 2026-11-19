@@ -22,6 +22,7 @@ import {
   AI_ACTIVITY_INSIGHTS_MAX_RISK_INSIGHTS,
   AI_ACTIVITY_INSIGHTS_MAX_STOPPED_INSIGHTS,
   AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS,
+  AiActivityFailedCommand,
   AiActivityHotspot,
   AiActivityInsight,
   AiActivityInsightKind,
@@ -1366,6 +1367,52 @@ describe("AiActivityInsightsBuilder.build", () => {
           timedOutCommands: 0,
         }),
       );
+    });
+
+    /*
+     * #9749: "N failed" opens the failed commands the reader may read, as
+     * the reader read them - in the order they came, and only with a count
+     * to open them from.
+     */
+    test("hand on the failed commands the reader read, for the count to open", () => {
+      const failedCommands: Array<AiActivityFailedCommand> = [
+        {
+          id: "job-2",
+          at: hoursAgo(1).toISOString(),
+          command: "kubectl get pods -n shop",
+          exitCode: 1,
+          errorMessage: "pods is forbidden",
+          origin: "AiInvestigation",
+          subject: { kind: "alert", id: "alert-a", title: "Pods pending" },
+        },
+        { id: "job-1", at: hoursAgo(2).toISOString() },
+      ];
+
+      const insights: AiActivityInsights = build({
+        commands: { total: 9, failed: 2, timedOut: 0, failedCommands },
+      });
+
+      expect(insights.totals.failedCommands).toBe(2);
+      expect(insights.failedCommandList).toEqual(failedCommands);
+      // A copy: the reader's list is never the page's.
+      expect(insights.failedCommandList).not.toBe(failedCommands);
+    });
+
+    test("open nothing when nothing failed, or the reader read none", () => {
+      expect(
+        build({ commands: { total: 9, failed: 0, timedOut: 1 } })
+          .failedCommandList,
+      ).toBeUndefined();
+      expect(
+        build({
+          commands: { total: 9, failed: 0, timedOut: 0, failedCommands: [] },
+        }).failedCommandList,
+      ).toBeUndefined();
+      // A count with nothing read under it opens nothing either.
+      expect(
+        build({ commands: { total: 9, failed: 3, timedOut: 0 } })
+          .failedCommandList,
+      ).toBeUndefined();
     });
 
     test("count problems, recurring ones and the window's fixes", () => {

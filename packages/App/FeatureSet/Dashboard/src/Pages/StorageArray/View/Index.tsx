@@ -598,9 +598,10 @@ const StorageArrayOverview: FunctionComponent<
   /*
    * The parts that need attention, by the rules' lines, read where the
    * inventory can find them: a part the array reports a problem with (its
-   * status), a host that lost a path, a pod more than a minute behind, and
-   * a FlashBlade file system its latest reading says is nearly full. Each
-   * a short list, however many volumes the array holds.
+   * status), a host that lost a path, a pod more than a minute behind, a
+   * FlashBlade file system its latest reading says is nearly full, and a
+   * bucket with a quota (the rules keep the nearly full ones). Each a short
+   * list, however many volumes the array holds.
    */
   const fetchAttention: (item: StorageArray) => Promise<void> = async (
     item: StorageArray,
@@ -702,6 +703,19 @@ const StorageArrayOverview: FunctionComponent<
           listParts({
             kind: StorageArrayResourceKind.FileSystem,
             name: new Includes(nearFull),
+          }),
+        );
+      }
+      /*
+       * A bucket with a quota, which the rules judge against it (#9647):
+       * one with none can grow until the array is full, which the array's
+       * own capacity says.
+       */
+      if (kinds.includes(StorageArrayResourceKind.Bucket)) {
+        reads.push(
+          listParts({
+            kind: StorageArrayResourceKind.Bucket,
+            capacityBytes: new GreaterThan(0),
           }),
         );
       }

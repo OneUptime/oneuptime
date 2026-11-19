@@ -11,6 +11,9 @@ import TelemetryExceptionService, {
 } from "../Services/TelemetryExceptionService";
 import { AIFixReadiness } from "../../Types/AI/AIFixReadiness";
 import AIRunService from "../Services/AIRunService";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../Utils/AI/CodeTask/CodeTaskListRows";
 import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import FixProductionCheck, {
@@ -871,6 +874,18 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     }
 
     /*
+     * Each run is a turn of a Code task: its first, or a later one - a fix
+     * asked again from Code (Try again, #6509) carries the exception and
+     * the recipe as its first turn did. The panel names the task (its
+     * first turn's id), for its link and for whether the caller may see
+     * it, and says how the task stands now: by its newest turn, the fix
+     * asked again or a reply someone sent in Code (#9812).
+     */
+    const taskIdOf: (run: AIRun) => ObjectID = (run: AIRun): ObjectID => {
+      return run.codeTaskId || run.id!;
+    };
+
+    /*
      * A task a reply carried a private incident or alert into, which the
      * caller does not see, is read as the task's own page reads it: not at
      * all (CodeTaskThread.findTasksHiddenFrom). The panel learns its type -
@@ -879,27 +894,45 @@ export default class TelemetryExceptionAPI extends BaseAPI<
      */
     const hiddenRunIds: Set<string> = await CodeTaskThread.findTasksHiddenFrom({
       projectId: telemetryException.projectId,
-      taskIds: runs.map((run: AIRun): ObjectID => {
-        return run.id!;
-      }),
+      taskIds: runs.map(taskIdOf),
       reader: props,
     });
 
     const isHidden: (run: AIRun) => boolean = (run: AIRun): boolean => {
-      return hiddenRunIds.has((run.id?.toString() || "").toLowerCase());
+      return hiddenRunIds.has(taskIdOf(run).toString().toLowerCase());
+    };
+
+    const visibleRuns: Array<AIRun> = runs.filter((run: AIRun): boolean => {
+      return !isHidden(run);
+    });
+
+    // Each task's newest later turn, read per task as Code's lists read it.
+    const replies: Map<string, CodeTaskRepliesRead> =
+      await CodeTaskListRows.readReplies({
+        projectId: telemetryException.projectId,
+        taskIds: visibleRuns.map(taskIdOf),
+      });
+
+    const latestOf: (run: AIRun) => AIRun = (run: AIRun): AIRun => {
+      return replies.get(CodeTaskListRows.key(taskIdOf(run)))?.newest || run;
     };
 
     /*
-     * Whether each run's merged fix fixed the exception in production
+     * Whether each task's merged fix fixed the exception in production
      * (FixProductionVerifier), read as root like the runs themselves: the
-     * caller may read the exception, and these are its runs' pull requests.
+     * caller may read the exception, and these are its runs' pull requests
+     * - its newest turn's, else the turn found's.
      */
+    const turnsById: Map<string, AIRun> = new Map<string, AIRun>();
+
+    for (const turn of [...visibleRuns, ...visibleRuns.map(latestOf)]) {
+      if (turn.id) {
+        turnsById.set(turn.id.toString(), turn);
+      }
+    }
+
     const productionByRunId: Map<string, JSONObject> =
-      await this.readFixProduction(
-        runs.filter((run: AIRun): boolean => {
-          return !isHidden(run);
-        }),
-      );
+      await this.readFixProduction(Array.from(turnsById.values()));
 
     const toTaskJson: (run: AIRun) => JSONObject = (run: AIRun): JSONObject => {
       if (isHidden(run)) {
@@ -912,15 +945,16 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         };
       }
 
-      const status: AIRunStatus = run.status || AIRunStatus.Queued;
-      const production: JSONObject | undefined = productionByRunId.get(
-        run.id?.toString() || "",
-      );
+      const latest: AIRun = latestOf(run);
+      const status: AIRunStatus = latest.status || AIRunStatus.Queued;
+      const production: JSONObject | undefined =
+        productionByRunId.get(latest.id?.toString() || "") ||
+        productionByRunId.get(run.id?.toString() || "");
 
       return {
-        _id: run.id?.toString(),
+        _id: taskIdOf(run).toString(),
         status: status,
-        statusMessage: run.errorMessage,
+        statusMessage: latest.errorMessage,
         statusTitle: CODE_FIX_STATUS_TEXT[status]?.title,
         statusDescription: CODE_FIX_STATUS_TEXT[status]?.description,
         createdAt: run.createdAt,
@@ -933,7 +967,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     // Newest first — the first element is the latest run overall.
     const latestRunOverall: AIRun = runs[0]!;
     const latestStatus: AIRunStatus =
-      latestRunOverall.status || AIRunStatus.Queued;
+      latestOf(latestRunOverall).status || AIRunStatus.Queued;
 
     return Response.sendJsonObjectResponse(req, res, {
       // Of a task hidden from the caller, not even whether it is working.

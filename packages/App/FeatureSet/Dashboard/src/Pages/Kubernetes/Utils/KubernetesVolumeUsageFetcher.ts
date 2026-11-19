@@ -26,6 +26,9 @@ const CLAIM_USAGE_SELECT: Record<string, boolean> = {
   latestVolumeAvailableBytes: true,
   latestVolumeInodes: true,
   latestVolumeInodesFree: true,
+  latestVolumeMeasuredAt: true,
+  latestVolumeUsedBaselineBytes: true,
+  latestVolumeUsedBaselineAt: true,
   metricsUpdatedAt: true,
 };
 
@@ -37,6 +40,9 @@ export function getClaimUsageFromRow(
     latestVolumeAvailableBytes: row.latestVolumeAvailableBytes,
     latestVolumeInodes: row.latestVolumeInodes,
     latestVolumeInodesFree: row.latestVolumeInodesFree,
+    latestVolumeMeasuredAt: row.latestVolumeMeasuredAt,
+    latestVolumeUsedBaselineBytes: row.latestVolumeUsedBaselineBytes,
+    latestVolumeUsedBaselineAt: row.latestVolumeUsedBaselineAt,
     metricsUpdatedAt: row.metricsUpdatedAt,
     status: (row.status as JSONObject | undefined) || null,
     spec: (row.spec as JSONObject | undefined) || null,

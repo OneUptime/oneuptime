@@ -58,6 +58,15 @@ import {
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
+import KubernetesNodeDiskCard from "../../../Components/Kubernetes/KubernetesNodeDiskCard";
+import {
+  KubernetesNodeDisk,
+  getKubernetesNodeDisk,
+} from "../Utils/KubernetesNodeDisk";
+import {
+  KubernetesNodeDiskCharts,
+  getKubernetesNodeDiskCharts,
+} from "../Utils/KubernetesNodeDiskCharts";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -230,33 +239,25 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  const filesystemQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_filesystem",
-      title: translator.translateText("Filesystem Usage"),
-      description: translator.translateTemplate(
-        "Filesystem usage for node {{nodeName}}",
-        { nodeName: nodeName },
-      ),
-      legend: translator.translateText("Filesystem"),
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.filesystem.usage",
-        attributes: {
-          "resource.k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.node.name": nodeName,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
-  };
+  /*
+   * The node's disks as the inventory last read them (#9645): its root
+   * filesystem, and its image filesystem when that is a disk of its own.
+   */
+  const disk: KubernetesNodeDisk | null = partState.read?.part
+    ? getKubernetesNodeDisk(partState.read.part)
+    : null;
+
+  /*
+   * Its disks over time: capacity with the free space on the same chart,
+   * and the share used against the lines the Nodes list's bar turns amber
+   * and red at, as a claim's page charts a claim.
+   */
+  const diskCharts: KubernetesNodeDiskCharts = getKubernetesNodeDiskCharts({
+    clusterIdentifier: clusterIdentifier,
+    nodeName: nodeName,
+    hasImageDisk: Boolean(disk?.image),
+    translator: translator,
+  });
 
   /*
    * What Kubernetes reports about it, in one Details card under the hero,
@@ -356,6 +357,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         value: `${nodeObject.status.capacity["memory"] || "N/A"} / ${nodeObject.status.allocatable["memory"] || "N/A"}`,
       },
       {
+        title: "Ephemeral Storage (Capacity / Allocatable)",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeEphemeralStorageCapacity,
+        value: `${nodeObject.status.capacity["ephemeral-storage"] || "N/A"} / ${nodeObject.status.allocatable["ephemeral-storage"] || "N/A"}`,
+      },
+      {
         title: "Pods (Capacity)",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodePodCapacity,
         value: nodeObject.status.capacity["pods"] || "N/A",
@@ -405,6 +412,15 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             onRetry={partState.refresh}
             routes={routes}
           />
+          {/*
+           * How full its disk is: a node out of disk evicts its pods and
+           * pulls no image (#9645).
+           */}
+          <KubernetesNodeDiskCard
+            disk={disk}
+            isLoading={partState.isLoading && !partState.read}
+            error={partState.read ? "" : partState.error}
+          />
           <OpenStackPlacementOfKubernetesNode
             clusterId={modelId}
             nodeName={nodeName}
@@ -435,10 +451,11 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           title={translator.translateTemplate("Node Metrics: {{nodeName}}", {
             nodeName: nodeName,
           })}
-          description="CPU, memory, filesystem, and network usage for this node over the selected time range (the past hour by default)."
+          description="CPU, memory, disk, and network usage for this node over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
+            queryConfigs={[cpuQuery, memoryQuery, ...diskCharts.queryConfigs]}
+            formulaConfigs={diskCharts.formulaConfigs}
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
               /*
                * The tab's card hands this chart its zoom: a drag here

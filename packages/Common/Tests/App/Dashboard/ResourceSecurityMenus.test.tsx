@@ -376,6 +376,83 @@ describe("a Kubernetes cluster's menu", () => {
 
     expect(scopeSpy).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * A cluster's Compliance also scores the cluster itself against the Pod
+   * Security Standards and the CIS Kubernetes Benchmark (#9627): there is
+   * something to score once its agent reports the pods it runs, data store
+   * or none, Data Security or none.
+   */
+  describe("its own hardening", () => {
+    async function renderWithPods(pods: number): Promise<void> {
+      await renderMenu(
+        <KubernetesClusterSideMenu
+          modelId={CLUSTER_ID}
+          resourceCounts={{ pods }}
+        />,
+      );
+    }
+
+    test("a cluster whose agent reports pods has a Security section with Compliance, even with no data store", async () => {
+      scopeSpy.mockResolvedValue(scopeWith([]));
+
+      await renderWithPods(12);
+
+      expect(linksIn("Security")).toEqual([
+        {
+          title: "Compliance",
+          href: pageOf(PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE, CLUSTER_ID),
+        },
+      ]);
+      expect(isExpanded("Security")).toBe(false);
+    });
+
+    test("it has Compliance with Data Security switched off on the server, or hidden, or unread", async () => {
+      for (const extra of [
+        {
+          offOnServer: {
+            [ProductKey.DataSecurity]: ServerProductOffReason.SwitchedOff,
+          },
+        },
+        { hidden: [ProductKey.DataSecurity] },
+        { usage: {} },
+      ] as Array<Partial<ProjectProductsAnswer>>) {
+        cleanup();
+        givenProducts(extra);
+
+        await renderWithPods(3);
+
+        expect(titles(linksIn("Security"))).toEqual(["Compliance"]);
+      }
+    });
+
+    test("a cluster with pods and a data store has both pages, Data Security first", async () => {
+      await renderWithPods(12);
+
+      expect(titles(linksIn("Security"))).toEqual([
+        "Data Security",
+        "Compliance",
+      ]);
+    });
+
+    test("a cluster that reports no pods and holds no store has no Security section", async () => {
+      scopeSpy.mockResolvedValue(scopeWith([]));
+
+      await renderWithPods(0);
+
+      expect(sectionTitlesInOrder()).not.toContain("Security");
+    });
+
+    test("its Compliance page opens the Security section by itself and lights Compliance", async () => {
+      scopeSpy.mockResolvedValue(scopeWith([]));
+      goTo(pageOf(PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE, CLUSTER_ID));
+
+      await renderWithPods(12);
+
+      expect(isExpanded("Security")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Compliance"]);
+    });
+  });
 });
 
 describe("a host's menu", () => {

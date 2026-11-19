@@ -77,11 +77,18 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
    * The row's 24px line tall (the "chip" size), so a row with owners is as
    * tall as one without: at 32px every owned row of a list stood 8px taller
    * than the rows around it.
+   *
+   * An image named by its owner, for a screen reader: the initials are
+   * drawn for the eye only (PeopleAvatar), and the tooltip that names the
+   * owner shows under the pointer only, so an owner drawn as initials was
+   * not read at all. The name is an attribute, not words in the cell, so
+   * the cell's own text - what a cut-short cell shows in full under the
+   * pointer - stays its initials.
    */
   return (
     <div className="relative -ml-1.5 first:ml-0 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
       <Tooltip richContent={tooltipContent}>
-        <div className="cursor-default">
+        <div className="cursor-default" role="img" aria-label={item.name}>
           <PeopleAvatar item={item} size="chip" />
         </div>
       </Tooltip>
@@ -159,8 +166,20 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
       })}
       {hiddenOwners.length > 0 ? (
         <div className="relative -ml-1.5 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
+          {/*
+           * Read as the owners it stands for, after the ones drawn before
+           * it, rather than as "+2".
+           */}
           <Tooltip richContent={overflowTooltip}>
-            <div className="h-6 w-6 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-xs font-semibold text-gray-700 select-none cursor-default">
+            <div
+              className="h-6 w-6 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-xs font-semibold text-gray-700 select-none cursor-default"
+              role="img"
+              aria-label={hiddenOwners
+                .map((owner: CellOwner): string => {
+                  return owner.name;
+                })
+                .join(", ")}
+            >
               +{hiddenOwners.length}
             </div>
           </Tooltip>

@@ -2885,7 +2885,8 @@ describe("the agents the pages describe", () => {
     // The page names the files versions that send them, which the agent reports.
     expect(englishPage(SWARM)).toContain("version 0.161.2");
     expect(englishPage(SWARM)).toContain("version 0.161.3");
-    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.3}");
+    // 0.161.4: each local volume's size and the disk it lives on (#9648).
+    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.4}");
     // The swarm's own state, every minute, from the poller on a manager.
     const poller: string = source(
       "agents/DockerSwarmAgent/inventory-snapshot.sh",

@@ -307,6 +307,24 @@ export function makeIncidentAlertInsights(
     },
     trend: makeTrend(),
     preventiveInsights: [],
+    // The two failed commands "2 failed" opens (#9749), newest first.
+    failedCommandList: [
+      {
+        id: "eeeeeeee-0000-4000-8000-000000000001",
+        at: "2026-10-04T02:41:00.000Z",
+        command: "db long-queries --min-seconds 30",
+        exitCode: 2,
+        errorMessage: "permission denied for table pg_stat_activity",
+        origin: "AiInvestigation",
+        subject: subjectOf(subjectKind),
+      },
+      {
+        id: "eeeeeeee-0000-4000-8000-000000000002",
+        at: "2026-10-03T11:00:00.000Z",
+        errorMessage: "The agent did not answer in time.",
+        origin: "AiRemediation",
+      },
+    ],
     isPartial: false,
     coverage: {
       subjects: 20,
@@ -387,6 +405,8 @@ export function makeQuietIncidentAlertInsights(
     problems: [],
     monitors: [],
     services: [],
+    // No command ran, so none failed: nothing to open.
+    failedCommandList: undefined,
     fixOutcomes: {
       total: 0,
       planning: 0,

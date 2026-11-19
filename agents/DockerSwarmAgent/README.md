@@ -5,7 +5,7 @@ Monitor a Docker Swarm cluster — nodes, services, tasks, stacks, overlay netwo
 The agent is two cooperating containers:
 
 1. **Collector** (a pinned `otel/opentelemetry-collector-contrib`) — the stock upstream image, pointed at the tuned [`otel-collector-config.yaml`](./otel-collector-config.yaml) that ships next to this file. It scrapes `docker_stats` for container metrics, tails container logs, and tails the inventory snapshot file, stamping everything with your cluster identity (`docker.swarm.cluster.name`), and each task's metrics with its service and node, before shipping over OTLP.
-2. **Inventory poller** (a small `alpine` + `curl` + `jq` sidecar running [`inventory-snapshot.sh`](./inventory-snapshot.sh)) — every 5 minutes it walks the Swarm manager API (`/nodes`, `/services?status=true`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) and derives stacks from the `com.docker.stack.namespace` service label, writing one JSON line per object to a file the collector tails.
+2. **Inventory poller** (a small `alpine` + `curl` + `jq` sidecar running [`inventory-snapshot.sh`](./inventory-snapshot.sh)) — every 5 minutes it walks the Swarm manager API (`/nodes`, `/services?status=true`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) and derives stacks from the `com.docker.stack.namespace` service label, writing one JSON line per object to a file the collector tails. Each local volume carries its size, as Docker measures it with `/system/df?type=volume` at most once an hour (`DOCKER_VOLUME_USAGE_INTERVAL_SECONDS`, `0` never), and how full the disk Docker keeps local volumes on is (`df` on the poller's own volume, which lives beside them).
 
 ## Prerequisites
 
