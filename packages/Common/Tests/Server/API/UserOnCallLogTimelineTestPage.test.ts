@@ -18,6 +18,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import Response from "../../../Server/Utils/Response";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Hostname from "../../../Types/API/Hostname";
@@ -95,14 +96,26 @@ type RouterFunction = (
   next: NextFunction,
 ) => void | Promise<void>;
 
-async function callRoute(uri: string, query: JSONObject = {}): Promise<void> {
-  const handler: RouterFunction = mockRouter.match("GET", uri)
-    .handlerFunction as RouterFunction;
+/*
+ * The page opened from a test message's link, with the page's own token
+ * every link OneUptime sends carries - or, for the acknowledge address, its
+ * button pressed: a form that posts the token (#10025).
+ */
+async function callRoute(uri: string, query?: JSONObject): Promise<void> {
+  const pageToken: string = OnCallPageLinkToken.sign({
+    userOnCallLogTimelineId: ITEM,
+  });
+  const isPress: boolean = uri === ACKNOWLEDGE_ROUTE;
+  const handler: RouterFunction = mockRouter.match(
+    isPress ? "POST" : "GET",
+    uri,
+  ).handlerFunction as RouterFunction;
 
   await handler(
     {
       params: { itemId: ITEM.toString() },
-      query: query,
+      query: isPress ? {} : query || { pageToken: pageToken },
+      body: isPress ? { pageToken: pageToken } : {},
     } as unknown as ExpressRequest,
     {} as unknown as ExpressResponse,
     ((err: unknown) => {
@@ -211,8 +224,17 @@ describe("a test page's link", () => {
       title: ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
       message: ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
       acknowledgeText: ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+      // Where its button posts, with the link's token in the form (#10025).
       acknowledgeUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/${ITEM.toString()}`,
+      pageTokenParam: "pageToken",
+      pageToken: expect.any(String),
     });
+    expect(
+      OnCallPageLinkToken.isValid({
+        token: variables["pageToken"],
+        userOnCallLogTimelineId: ITEM,
+      }),
+    ).toBe(true);
     expect(ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE).toBe("Acknowledge test page");
     expect(ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE).toBe(
       "This is a test page. Nothing is wrong: acknowledge it to show that on-call pages reach you.",
@@ -339,5 +361,82 @@ describe("a test page's Acknowledge", () => {
     expect(ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE).toBe(
       "Test page not acknowledged",
     );
+  });
+});
+
+/*
+ * A test page's link acknowledges it only with the page's own token, as a
+ * real page's does (#10025): a test that says it works must have been
+ * answered by the person it paged. Its message was sent after the upgrade
+ * here (no createdAt older than it), so a link without a valid token has
+ * nothing to stand on.
+ */
+describe("a test page's link without a valid token", () => {
+  const CANNOT_ACKNOWLEDGE: string =
+    "This link cannot acknowledge the page: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
+
+  test("opens a page that says it cannot acknowledge the test, and writes nothing", async () => {
+    for (const query of [
+      {},
+      { pageToken: "nonsense" },
+      {
+        pageToken: OnCallPageLinkToken.sign({
+          userOnCallLogTimelineId: new ObjectID(
+            "7e5ad000-0000-4000-8000-000000000009",
+          ),
+        }),
+      },
+    ]) {
+      (Response.render as unknown as jest.Mock).mockClear();
+
+      await callRoute(ACKNOWLEDGE_PAGE_ROUTE, query);
+
+      const { path, variables } = rendered();
+
+      expect(path).toContain("ViewMessage.ejs");
+      expect(variables).toEqual({
+        title: "This link has expired",
+        message: CANNOT_ACKNOWLEDGE,
+      });
+    }
+
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("its button, posted without one, acknowledges nothing, and never says the test works", async () => {
+    const handler: RouterFunction = mockRouter.match("POST", ACKNOWLEDGE_ROUTE)
+      .handlerFunction as RouterFunction;
+
+    await handler(
+      {
+        params: { itemId: ITEM.toString() },
+        query: {},
+        body: {},
+      } as unknown as ExpressRequest,
+      {} as unknown as ExpressResponse,
+      ((err: unknown) => {
+        throw err || new Error("the route handler must not fall through");
+      }) as unknown as NextFunction,
+    );
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(currentItem.isAcknowledged).toBeFalsy();
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain("ViewMessage.ejs");
+    expect(variables["title"]).toBe("This link has expired");
+    expect(variables["message"]).toBe(CANNOT_ACKNOWLEDGE);
+  });
+
+  test("a test already acknowledged still says it works, whatever the link carries", async () => {
+    givenItem(testPageMessage({ isAcknowledged: true }));
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE, {});
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain("ViewMessage.ejs");
+    expect(variables["statusIcon"]).toBe("check");
   });
 });

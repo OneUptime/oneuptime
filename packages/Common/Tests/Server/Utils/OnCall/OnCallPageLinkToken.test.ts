@@ -23,11 +23,12 @@ import {
  * THE LINKS IN A PERSON'S OWN PAGE, AND THE TOKEN THAT LETS THEM PASS IT ON.
  *
  * Passing a page on stops the person's notifications and wakes the next
- * people in line, so a link that does it has to be one OneUptime sent that
- * person - not any link somebody builds from a notification's id, which
- * people who may read the on-call policy can read. Each message's links
- * carry a token signed for that one notification; these pin what it
- * accepts, what it refuses, and the links that carry it.
+ * people in line, and acknowledging it stops it for everyone (#10025), so
+ * a link that does either has to be one OneUptime sent that person - not
+ * any link somebody builds from a notification's id, which people who may
+ * read the on-call policy can read. Each message's links carry a token
+ * signed for that one notification; these pin what it accepts, what it
+ * refuses, and the links that carry it.
  */
 
 const NOTIFICATION: ObjectID = new ObjectID(
@@ -196,15 +197,17 @@ describe("the links that carry it", () => {
     ).toBe(true);
   });
 
-  test("an email's acknowledge page: the same page, without the token - the email prints it in full", async () => {
-    const url: URL =
-      await OnCallPageLinks.getEmailAcknowledgePageUrl(NOTIFICATION);
-
-    // One short line to copy and paste, as before passing on existed.
-    expect(url.toString()).toBe(
-      `https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge-page/${NOTIFICATION.toString()}`,
-    );
-    expect(tokenOf(url)).toBeNull();
+  test("no link leads to Acknowledge without the token any more: an email's is the same page (#10025)", () => {
+    /*
+     * An email's Acknowledge had no token, so the link it prints to copy
+     * stayed one line; it is the page with the token now
+     * (UserNotificationRuleService), as every other message's link is.
+     */
+    expect(
+      (OnCallPageLinks as unknown as Record<string, unknown>)[
+        "getEmailAcknowledgePageUrl"
+      ],
+    ).toBeUndefined();
   });
 
   test("the pass-on page, with the token", async () => {
@@ -232,13 +235,20 @@ describe("the links that carry it", () => {
     expect(parsed.search).toBe("");
   });
 
-  test("where a call sends its key press, with the token", async () => {
+  test("where a call sends its key press, as the worker hands it to the Notification service: with the token, for one release (#10025)", async () => {
     const url: URL = await OnCallPageLinks.getCallResponseUrl(NOTIFICATION);
     const parsed: globalThis.URL = new globalThis.URL(url.toString());
 
     expect(parsed.pathname).toBe(
       `/api/user-notification-log-timeline/call/gather-input/${NOTIFICATION.toString()}`,
     );
+    /*
+     * A Notification service of the release before, placing calls while an
+     * upgrade rolls out, puts it in the call as it is. This release's
+     * CallService leaves it out of the call's <Gather> action, which lands
+     * in Twilio's request logs, and adds the call's own token
+     * (CallService.getKeypadAction, OnCallKeypadToken).
+     */
     expect(
       OnCallPageLinkToken.isValid({
         token: tokenOf(url),
@@ -247,12 +257,14 @@ describe("the links that carry it", () => {
     ).toBe(true);
   });
 
-  test("the acknowledge address itself is the one it always was", async () => {
+  test("where the Acknowledge button posts: the address it always was, with no token in it - it rides in the form", async () => {
     const url: URL = await OnCallPageLinks.getAcknowledgeUrl(NOTIFICATION);
+    const parsed: globalThis.URL = new globalThis.URL(url.toString());
 
-    expect(new globalThis.URL(url.toString()).pathname).toBe(
+    expect(parsed.pathname).toBe(
       `/api/user-notification-log-timeline/acknowledge/${NOTIFICATION.toString()}`,
     );
+    expect(parsed.search).toBe("");
   });
 
   test("each notification's links carry its own token", async () => {

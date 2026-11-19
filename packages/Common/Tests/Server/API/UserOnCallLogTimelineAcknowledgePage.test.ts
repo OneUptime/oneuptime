@@ -20,6 +20,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import Response from "../../../Server/Utils/Response";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
@@ -102,15 +103,30 @@ type RouterFunction = (
 
 type CallRoute = (uri: string, itemId: string) => Promise<void>;
 
+/*
+ * The page opened from a message's link, with the page's own token every
+ * link OneUptime sends carries - or, for the acknowledge address, its
+ * button pressed: a form that posts the token (#10025).
+ */
 const callRoute: CallRoute = async (
   uri: string,
   itemId: string,
 ): Promise<void> => {
-  const handler: RouterFunction = mockRouter.match("GET", uri)
-    .handlerFunction as RouterFunction;
+  const pageToken: string = OnCallPageLinkToken.sign({
+    userOnCallLogTimelineId: new ObjectID(itemId),
+  });
+  const isPress: boolean = uri === ACKNOWLEDGE_ROUTE;
+  const handler: RouterFunction = mockRouter.match(
+    isPress ? "POST" : "GET",
+    uri,
+  ).handlerFunction as RouterFunction;
 
   await handler(
-    { params: { itemId: itemId } } as unknown as ExpressRequest,
+    {
+      params: { itemId: itemId },
+      query: isPress ? {} : { pageToken: pageToken },
+      body: isPress ? { pageToken: pageToken } : {},
+    } as unknown as ExpressRequest,
     {} as unknown as ExpressResponse,
     (() => {
       throw new Error("the route handler must not fall through to next()");
@@ -216,8 +232,9 @@ describe("the acknowledge page route", () => {
       .mockResolvedValue(Protocol.HTTPS);
   });
 
-  test("is registered", () => {
+  test("is registered, and so is the button it posts to", () => {
     expect(mockRouter.match("GET", ACKNOWLEDGE_PAGE_ROUTE)).toBeTruthy();
+    expect(mockRouter.match("POST", ACKNOWLEDGE_ROUTE)).toBeTruthy();
   });
 
   describe("an alert", () => {
