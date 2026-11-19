@@ -1135,21 +1135,24 @@ describe("what names a row with no name of its own", () => {
    * Kubernetes cluster's setting for one namespace names it too (#9627):
    * "PSS Baseline kube-system".
    */
-  test("a compliance setting is named by its framework, requirement and namespace, and its switch and reason are recorded", () => {
+  test("a compliance setting is named by its framework, requirement, namespace and the object whose finding it accepts, and its switch, reason and expiry are recorded", () => {
     const config: EnableAuditLogOn | undefined = BY_TABLE.get(
       "DataSecurityComplianceSetting",
     )!.enableAuditLogOn;
 
+    // An accepted finding (#9874) is named by its object: "PSS Baseline ... DaemonSet cilium".
     expect(config?.resourceNameColumns).toEqual([
       "framework",
       "requirement",
       "namespace",
+      "objectKind",
+      "objectName",
     ]);
     expect(config?.create).toBe(true);
     expect(config?.update).toBe(true);
     expect(config?.delete).toBe(true);
 
-    for (const column of ["isEnabled", "note"]) {
+    for (const column of ["isEnabled", "note", "expiresAt"]) {
       expect([column, (config?.ignoreColumns || []).includes(column)]).toEqual([
         column,
         false,

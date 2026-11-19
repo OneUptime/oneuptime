@@ -165,13 +165,16 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(ONLY_CANCEL_MESSAGE);
     }
 
-    const sessions: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { _id: true, status: true },
-      skip: 0,
-      limit: 100,
-      props: updateBy.props,
-    });
+    /*
+     * The sessions the cancel writes, read in its own query and window -
+     * those the person may change - and the cancel held to them
+     * (findRowsAndHoldUpdateToThem): a session judged still open is the
+     * session cancelled.
+     */
+    const sessions: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true, status: true },
+    );
 
     for (const session of sessions) {
       if (!HostLogSessionUtil.isActive(session.status)) {
