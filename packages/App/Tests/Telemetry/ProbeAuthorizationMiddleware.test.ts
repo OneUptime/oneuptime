@@ -362,6 +362,70 @@ describe("ProbeAuthorization.isAuthorizedServiceMiddleware", () => {
    * and then went silent until its own timeout — the customer-visible 45s+
    * ECONNABORTED hang that got healthy probes flagged Disconnected.
    */
+  /*
+   * The release the probe says it runs (issue #9759) is kept with its
+   * liveness stamp, read from the body of whatever request authenticated:
+   * a probe from 17.0.1 on says it on every request, an older one says
+   * what it can do and no release, and a probe checking its key as it
+   * starts says neither.
+   */
+  test.each([
+    [
+      "a probe that says its release",
+      {
+        probeVersion: "17.0.1",
+        probeCapabilities: ["networkDevicePing", "totpCodes"],
+      },
+      { isReported: true, version: "17.0.1" },
+    ],
+    [
+      "a probe older than 17.0.1, which says what it can do and no release",
+      { probeCapabilities: ["networkDevicePing", "retryWhenBusy"] },
+      { isReported: true, version: null },
+    ],
+    [
+      "a probe built without a release version",
+      { probeVersion: "unknown", probeCapabilities: ["totpCodes"] },
+      { isReported: true, version: "unknown" },
+    ],
+    [
+      "a probe checking its key as it starts",
+      {},
+      {
+        isReported: false,
+        version: null,
+      },
+    ],
+  ])(
+    "stamps %s with what its request says of its release",
+    async (_label: string, extra: JSONObject, expected: unknown) => {
+      const { next, middlewarePromise } = callMiddleware({
+        probeId: probeId.toString(),
+        probeKey: probeKey,
+        ...extra,
+      });
+      await middlewarePromise;
+
+      expect(next).toHaveBeenCalledWith();
+      expect(probeService.updateLastAlive).toHaveBeenCalledTimes(1);
+      expect(probeService.updateLastAlive.mock.calls[0]![1]).toEqual(expected);
+    },
+  );
+
+  test("a request refused for its key stamps no release", async () => {
+    probeService.verifyProbeKey.mockResolvedValue(false as never);
+
+    const { middlewarePromise } = callMiddleware({
+      probeId: probeId.toString(),
+      probeKey: "a wrong key",
+      probeVersion: "17.0.1",
+      probeCapabilities: ["totpCodes"],
+    });
+    await middlewarePromise;
+
+    expect(probeService.updateLastAlive).not.toHaveBeenCalled();
+  });
+
   test("a verifyProbeKey rejection reaches next(err) so the request is answered", async () => {
     const boom: Error = new Error("pool acquire timeout");
     probeService.verifyProbeKey.mockRejectedValue(boom as never);

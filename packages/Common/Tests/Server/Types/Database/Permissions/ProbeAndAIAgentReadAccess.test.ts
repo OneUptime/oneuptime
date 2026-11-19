@@ -124,6 +124,7 @@ const PROBE_PICKER_COLUMNS: Array<string> = [
 const PROBE_COLUMNS_PICKERS_NEVER_READ: Array<string> = [
   "key",
   "probeVersion",
+  "reportedVersion",
   "packetCaptureCapability",
   "labels",
   "createdByUserId",
@@ -497,6 +498,8 @@ describe("Probe - whoever may pick a probe", () => {
   test("a probe's version, labels and packet capture report are its readers' alone", () => {
     for (const column of [
       "probeVersion",
+      // The release the probe says it runs (#9759), read as its label is.
+      "reportedVersion",
       "labels",
       "packetCaptureCapability",
     ]) {

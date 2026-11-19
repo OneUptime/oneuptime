@@ -1087,6 +1087,7 @@ import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-Add
 import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
 import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
 import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
+import { AddProbeReportedVersion1809185040000 } from "./1809185040000-AddProbeReportedVersion";
 
 export default [
   InitialMigration,
@@ -2178,4 +2179,5 @@ export default [
   MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
   AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
   AddMonitorSecretType1809185030000,
+  AddProbeReportedVersion1809185040000,
 ];

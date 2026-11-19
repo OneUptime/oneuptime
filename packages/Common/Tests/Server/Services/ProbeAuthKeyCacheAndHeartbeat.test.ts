@@ -552,6 +552,76 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
 
       expect(mockDeleteKey).not.toHaveBeenCalled();
     });
+
+    /*
+     * The release the probe says it runs (issue #9759) rides along with the
+     * stamp: the same one statement, so knowing it costs no extra write.
+     */
+    test("keeps the release the probe says it runs in the same write as the stamp", async () => {
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await ProbeService.updateLastAlive(PROBE_ID, {
+        isReported: true,
+        version: "17.0.1",
+      });
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy).toHaveBeenCalledWith({
+        id: PROBE_ID,
+        data: { lastAlive: expect.any(Date), reportedVersion: "17.0.1" },
+      });
+    });
+
+    test("clears the release kept for a probe whose request says none: it is older than the first that says one", async () => {
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      // A probe moved back to a release from before 17.0.1 says none.
+      await ProbeService.updateLastAlive(PROBE_ID, {
+        isReported: true,
+        version: null,
+      });
+
+      expect(updateSpy).toHaveBeenCalledWith({
+        id: PROBE_ID,
+        data: { lastAlive: expect.any(Date), reportedVersion: null },
+      });
+    });
+
+    test("leaves the kept release alone for a request that says nothing of the probe's build", async () => {
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await ProbeService.updateLastAlive(PROBE_ID, {
+        isReported: false,
+        version: null,
+      });
+
+      expect(updateSpy).toHaveBeenCalledWith({
+        id: PROBE_ID,
+        data: { lastAlive: expect.any(Date) },
+      });
+    });
+
+    test("writes no release while the 30s throttle stamp is fresh, as it writes no stamp", async () => {
+      mockGetString.mockResolvedValue(
+        OneUptimeDate.toString(OneUptimeDate.getSomeSecondsAgo(5)),
+      );
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await ProbeService.updateLastAlive(PROBE_ID, {
+        isReported: true,
+        version: "17.0.1",
+      });
+
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("auth cache invalidation hooks", () => {
