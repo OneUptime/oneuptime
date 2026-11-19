@@ -478,6 +478,45 @@ describe("a hypervisor's page", () => {
     expect(asked).toEqual([["compute-07", HYPERVISOR_NAME]]);
   });
 
+  /*
+   * "Lost" beside its name said nothing of what was lost with it: that was
+   * Needs attention, its nova-compute and the instances on it (#9594).
+   */
+  test("its Lost opens why: the nova-compute that is down, read once for the card and the hero", async () => {
+    server.rows = [
+      hypervisorRow({ status: "down" }),
+      computeServiceRow({ status: "down" }),
+    ];
+
+    await renderPage(OpenStackCloudHypervisorDetail, PATH);
+    await screen.findByTestId("openstack-hypervisor-attention");
+
+    const status: HTMLElement = screen.getByTestId(
+      "openstack-hypervisor-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const dialogRows: Array<string> = screen
+      .getAllByTestId("openstack-hypervisor-hero-status-dialog-item")
+      .map((item: HTMLElement): string => {
+        return item.getAttribute("data-key") || "";
+      });
+    const cardRows: Array<string> = within(
+      screen.getByTestId("openstack-hypervisor-attention"),
+    )
+      .getAllByTestId("openstack-hypervisor-attention-item")
+      .map((item: HTMLElement): string => {
+        return item.getAttribute("data-key") || "";
+      });
+    expect(dialogRows).toEqual(cardRows);
+    expect(
+      screen.getByTestId("openstack-hypervisor-hero-status-dialog-name"),
+    ).toHaveTextContent("nova-compute");
+    // Its nova-compute was asked for once, for both.
+    expect(kindCalls(OpenStackResourceKind.Service)).toHaveLength(1);
+  });
+
   test("what needs attention: its own allocation, and the instances on it by name", async () => {
     server.rows = [
       hypervisorRow({ vcpuAllocated: 60 }),
