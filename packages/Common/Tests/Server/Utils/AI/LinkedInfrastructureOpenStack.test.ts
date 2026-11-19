@@ -1078,9 +1078,9 @@ describe("a linked host's place in a cloud, read for the incident's readers", ()
     );
 
     expect(read?.openStackPlacements).toBeUndefined();
-    expect(LinkedInfrastructureContext.buildContextSection(read!)).not.toContain(
-      "payroll",
-    );
+    expect(
+      LinkedInfrastructureContext.buildContextSection(read!),
+    ).not.toContain("payroll");
   });
 
   test("a project whose roles narrow nobody tells it, as before", async () => {

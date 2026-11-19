@@ -21,6 +21,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
+import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import {
   PROXMOX_MONITOR_WINDOW_MS,
   PROXMOX_NODE_SILENCE_MS,
@@ -5866,9 +5867,13 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
         },
       );
       const stack: Array<{ handle: RouteHandler }> = layer?.route?.stack || [];
-      // UserMiddleware, then the route itself.
-      expect(stack).toHaveLength(2);
-      handler = stack[1]!.handle;
+      /*
+       * UserMiddleware, the refusal while Proxmox is switched off on the
+       * server (ServerProductRoutes), then the route itself.
+       */
+      expect(stack).toHaveLength(3);
+      expect(ServerProductRoutes.isRefusal(stack[1]!.handle)).toBe(true);
+      handler = stack[2]!.handle;
     });
 
     beforeEach(async () => {
