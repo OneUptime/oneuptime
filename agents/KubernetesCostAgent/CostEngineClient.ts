@@ -21,6 +21,20 @@ const CANDIDATE_PATHS: Array<string> = [
 const KUBECOST_PATH_PREFIX: string = "/model";
 
 /*
+ * What a /model/allocation answer is grouped by: each container, as
+ * OpenCost's /allocation/compute answers anyway. Asked nothing, a Kubecost's
+ * aggregator answers per namespace: Kubecost 2.8.7's and 3.3.2's both gave 12
+ * rows, each a namespace with no workload, pod, container or cluster, where
+ * these keys gave the 28 containers. Rows with no container are rows the
+ * Costs pages can put under no workload, right-sizing can size nothing from,
+ * no memory peak joins, and the check against an engine that answers for
+ * several clusters cannot see the cluster of. OpenCost's UI, which passes
+ * /model/allocation on to its API, answers the same 28 either way.
+ */
+export const CONTAINER_AGGREGATE: string =
+  "cluster,node,namespace,controllerKind,controller,pod,container";
+
+/*
  * RFC3339 to the SECOND — no fractional part. Both engines parse the
  * `window` bound with a fixed set of layouts and none of them accept
  * milliseconds, so a raw Date.toISOString() (which always emits `.sssZ`)
@@ -103,6 +117,9 @@ export class CostEngineClient {
       url.searchParams.set("accumulate", "true");
       if (INCLUDE_IDLE) {
         url.searchParams.set("includeIdle", "true");
+      }
+      if (path.startsWith(`${KUBECOST_PATH_PREFIX}/`)) {
+        url.searchParams.set("aggregate", CONTAINER_AGGREGATE);
       }
 
       try {
