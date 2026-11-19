@@ -1,6 +1,10 @@
 import { mockRouter } from "./Helpers";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import AutoRemediationRoundRateLimit, {
+  AutoRemediationRoundRateLimitBucket,
+} from "../../../Server/Middleware/AutoRemediationRoundRateLimit";
+import CodeFixAutoRetry from "../../../Server/Utils/AI/CodeFix/CodeFixAutoRetry";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
@@ -16,11 +20,12 @@ import CodeFixReadiness, {
 } from "../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeRepositoryRunnerChoice from "../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
-import {
+import CodeTaskAccess, {
   CODE_TASK_ASK_REFUSED_MESSAGE,
   CODE_TASK_NOT_FOUND_MESSAGE,
   CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE,
 } from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
+import { CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE } from "../../../Types/AI/CodeTaskTryAgain";
 import {
   CODE_TASK_PLAN_REQUIRED_MESSAGE,
   CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
@@ -71,6 +76,8 @@ import {
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
   CodeTaskState,
+  CodeTaskSummaryJSON,
+  CodeTaskTurnJSON,
   MAX_CODE_TASKS_PER_REQUEST,
 } from "../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -425,6 +432,7 @@ describe("every route is for a member of the project", () => {
       { repositoryId: REPOSITORY_ID.toString() },
     ],
     ["/code-task/get/:taskId", { taskId: TASK_ID.toString() }],
+    ["/code-task/turns/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/progress/:taskId", { taskId: TASK_ID.toString() }],
     [
       "/code-task/branches/:repositoryId",
@@ -509,6 +517,8 @@ describe("every route acts as a signed-in person", () => {
       // A repository's branches, for the branch a task starts from.
       "/code-task/branches/:repositoryId",
       "/code-task/get/:taskId",
+      // A long task's turns its page does not show, a page at a time (#7128).
+      "/code-task/turns/:taskId",
       // A working turn's new steps, as each is announced (CodeTaskLive).
       "/code-task/progress/:taskId",
       "/code-task/create",
@@ -552,7 +562,14 @@ describe("every route acts as a signed-in person", () => {
     const refused: Array<string> = [];
 
     for (const route of routes) {
-      const refusals: Array<unknown> = route.middlewares.slice(1);
+      // Behind the user: a Try again's limit per person, then the refusal.
+      const refusals: Array<unknown> = route.middlewares
+        .slice(1)
+        .filter((middleware: unknown): boolean => {
+          return (
+            AutoRemediationRoundRateLimit.bucketOf(middleware) === undefined
+          );
+        });
 
       if (refusals.length === 0) {
         continue;
@@ -2664,4 +2681,456 @@ describe("a task about a private incident or alert, read by the API", () => {
       expect(query["triggeredByAutoRemediationSuggestionId"]).toBeUndefined();
     }
   });
+});
+
+/*
+ * SHOW EARLIER TURNS (#7128): a long task's turns its page does not show,
+ * a page at a time, read as the conversation is.
+ */
+describe("a long task's earlier turns, a page at a time", () => {
+  const route: string = "/code-task/turns/:taskId";
+  const OLDEST_SHOWN: string = "6d2e3f4a-5b6c-4d7e-8f9a-0b1c2d3e4f5a";
+
+  beforeEach(() => {
+    jest
+      .spyOn(CodeTaskPresenter, "getEarlierTurns")
+      .mockResolvedValue({ turns: [], firstNumber: 2 });
+  });
+
+  function asked(): {
+    beforeRunId: ObjectID;
+    limit: number;
+    canSeeChanges: boolean;
+    props: DatabaseCommonInteractionProps;
+  } {
+    return (CodeTaskPresenter.getEarlierTurns as unknown as jest.Mock).mock
+      .calls[0]![0] as never;
+  }
+
+  test("reads the 50 turns just before the one named, the diff for someone who may ask", async () => {
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { before: OLDEST_SHOWN },
+    });
+
+    expect(result).toEqual({ turns: [], firstNumber: 2 });
+    expect(asked().beforeRunId.toString()).toBe(OLDEST_SHOWN);
+    expect(asked().limit).toBe(50);
+    expect(asked().canSeeChanges).toBe(true);
+    expect(asked().props).toBe(MEMBER);
+  });
+
+  test("a read-only member reads them too, without the diff", async () => {
+    world.props = VIEWER;
+
+    await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { before: OLDEST_SHOWN },
+    });
+
+    expect(asked().canSeeChanges).toBe(false);
+  });
+
+  test.each([
+    [5000, 50],
+    [7, 7],
+    [0, 1],
+  ])(
+    "a read asks for %j and reads %j: never more than 50, at least one",
+    async (limit: number, read: number) => {
+      await call(route, {
+        params: { taskId: TASK_ID.toString() },
+        body: { before: OLDEST_SHOWN, limit },
+      });
+
+      expect(asked().limit).toBe(read);
+    },
+  );
+
+  test("a turn that is not one of the task's replies is not found", async () => {
+    (
+      CodeTaskPresenter.getEarlierTurns as unknown as jest.Mock
+    ).mockResolvedValue(null);
+
+    const { next, result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { before: OLDEST_SHOWN },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(NotFoundException);
+    expect(result).toBeNull();
+  });
+
+  test.each([[{}], [{ before: "not-a-turn" }], [{ before: 42 }]])(
+    "a read that names no turn (%j) is refused before anything is read",
+    async (body: JSONObject) => {
+      const { next } = await call(route, {
+        params: { taskId: TASK_ID.toString() },
+        body,
+      });
+
+      expect(refusal(next)).toBeInstanceOf(BadDataException);
+      expect(CodeTaskPresenter.getEarlierTurns).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a task the reader may not read is not found, and none of its turns is read", async () => {
+    world.repositoryReadable = false;
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { before: OLDEST_SHOWN },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(NotFoundException);
+    expect(CodeTaskPresenter.getEarlierTurns).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * TRY AGAIN IS A PRESS OF TRY AGAIN: Code's Try again and Retry selected
+ * count against the person's presses of every Try again, an AI fix's too
+ * (AutoRemediationRoundRateLimit, #6525) - one press of Retry selected is
+ * one, however many tasks it picked.
+ */
+describe("Try again and Retry selected are limited per person, with every Try again", () => {
+  test.each(["/code-task/retry/:taskId", "/code-task/retry-many"])(
+    "%s counts as a press of Try again, right behind the signed-in user",
+    (uri: string) => {
+      const middlewares: Array<unknown> = mockRouter.match(
+        "post",
+        uri,
+      ).middlewares;
+
+      expect(middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
+      expect(AutoRemediationRoundRateLimit.bucketOf(middlewares[1])).toBe(
+        AutoRemediationRoundRateLimitBucket.TryAgain,
+      );
+    },
+  );
+
+  test("no other route of Code is limited: a read, a request, a reply and Stop are not presses of Try again", () => {
+    const limited: Array<string> = (
+      mockRouter.routes as Array<{ uri: string; middlewares: Array<unknown> }>
+    )
+      .filter((route: { uri: string; middlewares: Array<unknown> }) => {
+        return (
+          route.uri.startsWith("/code-task/") &&
+          route.middlewares.some((middleware: unknown): boolean => {
+            return (
+              AutoRemediationRoundRateLimit.bucketOf(middleware) !== undefined
+            );
+          })
+        );
+      })
+      .map((route: { uri: string }): string => {
+        return route.uri;
+      });
+
+    expect(limited).toEqual([
+      "/code-task/retry/:taskId",
+      "/code-task/retry-many",
+    ]);
+  });
+});
+
+/*
+ * TRY AGAIN WHERE IT CAN BE PRESSED (#6508, #6509): a list's row - on a
+ * repository's page, on Code's own page across every repository - and an
+ * insight's Fix Task card offer it on a failed or stopped task the reader
+ * may ask again now, per repository, and on no other.
+ */
+describe("which tasks a list offers Try again on", () => {
+  let summaries: Array<CodeTaskSummaryJSON>;
+
+  function summary(
+    data: Partial<CodeTaskSummaryJSON> = {},
+  ): CodeTaskSummaryJSON {
+    return {
+      id: TASK_ID.toString(),
+      title: "Add retries",
+      recipe: CodeFixTaskType.CodeRequest,
+      state: CodeTaskState.Failed,
+      isQueued: false,
+      createdAt: new Date().toISOString(),
+      lastActivityAt: new Date().toISOString(),
+      origin: { type: "Request", label: "" } as never,
+      turnCount: 1,
+      codeRepositoryId: REPOSITORY_ID.toString(),
+      ...data,
+    };
+  }
+
+  beforeEach(() => {
+    summaries = [];
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([task()]);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest.spyOn(CodeTaskPresenter, "summarize").mockImplementation(async () => {
+      return summaries;
+    });
+  });
+
+  async function listed(
+    body: JSONObject = { repositoryId: REPOSITORY_ID.toString() },
+  ): Promise<Array<JSONObject>> {
+    const { result } = await call("/code-task/list", { body });
+
+    return (result?.["tasks"] as Array<JSONObject>) || [];
+  }
+
+  test("a failed or stopped request offers it; one working, done or waiting for an answer does not", async () => {
+    summaries = [
+      summary({ id: "a", state: CodeTaskState.Failed }),
+      summary({ id: "b", state: CodeTaskState.Stopped }),
+      summary({ id: "c", state: CodeTaskState.Working }),
+      summary({ id: "d", state: CodeTaskState.Done }),
+      summary({ id: "e", state: CodeTaskState.WaitingForYou }),
+    ];
+
+    const rows: Array<JSONObject> = await listed();
+
+    expect(
+      rows.map((row: JSONObject) => {
+        return [row["id"], row["canTryAgain"] === true];
+      }),
+    ).toEqual([
+      ["a", true],
+      ["b", true],
+      ["c", false],
+      ["d", false],
+      ["e", false],
+    ]);
+  });
+
+  test("a fix OneUptime started offers it while its task has no pull request - one would be opened twice", async () => {
+    summaries = [
+      summary({ id: "fix", recipe: CodeFixTaskType.FixException }),
+      summary({
+        id: "fix-with-pull-request",
+        recipe: CodeFixTaskType.FixFromIncident,
+        pullRequest: { number: 12, state: "open" },
+      }),
+      // A reply in it, a request, failed: asked again in its own words.
+      summary({
+        id: "fix-then-request",
+        recipe: CodeFixTaskType.FixException,
+        latestRecipe: CodeFixTaskType.CodeRequest,
+        pullRequest: { number: 13, state: "open" },
+      }),
+    ];
+
+    const rows: Array<JSONObject> = await listed();
+
+    expect(
+      rows.map((row: JSONObject) => {
+        return [row["id"], row["canTryAgain"] === true];
+      }),
+    ).toEqual([
+      ["fix", true],
+      ["fix-with-pull-request", false],
+      ["fix-then-request", true],
+    ]);
+  });
+
+  test("a task asked for on GitHub, a production review and a task with no repository never offer it", async () => {
+    summaries = [
+      summary({ id: "issue", recipe: CodeFixTaskType.GitHubIssueFix }),
+      summary({
+        id: "review",
+        recipe: CodeFixTaskType.GitHubPullRequestProductionReview,
+      }),
+      summary({ id: "nowhere", codeRepositoryId: undefined }),
+    ];
+
+    const rows: Array<JSONObject> = await listed();
+
+    for (const row of rows) {
+      expect(row["canTryAgain"]).toBeUndefined();
+    }
+  });
+
+  test("a member who may only read the repository is offered none - each row keeps its reason", async () => {
+    world.props = VIEWER;
+    summaries = [summary({ errorMessage: "The Runner went away." })];
+
+    const [row] = await listed();
+
+    expect(row!["canTryAgain"]).toBeUndefined();
+    expect(row!["errorMessage"]).toBe("The Runner went away.");
+  });
+
+  test("with AI switched off nothing is offered, and the project is asked once, not per repository", async () => {
+    world.enableAi = false;
+    const SECOND_REPOSITORY: string = "4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a";
+    summaries = [
+      summary({ id: "a" }),
+      summary({ id: "b", codeRepositoryId: SECOND_REPOSITORY }),
+    ];
+
+    const rows: Array<JSONObject> = await listed({ allRepositories: true });
+
+    expect(
+      rows.some((row: JSONObject): boolean => {
+        return row["canTryAgain"] === true;
+      }),
+    ).toBe(false);
+    expect(ProjectService.findOneById).toHaveBeenCalledTimes(1);
+  });
+
+  test("Code's own page offers it per repository: on the rows of a repository the reader may ask in, never on another's", async () => {
+    const CANNOT_ASK: string = "4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a";
+
+    jest
+      .spyOn(CodeTaskAccess, "canAskInRepository")
+      .mockImplementation(async (data: { repositoryId: ObjectID }) => {
+        return data.repositoryId.toString() !== CANNOT_ASK;
+      });
+
+    summaries = [
+      summary({ id: "here" }),
+      summary({ id: "there", codeRepositoryId: CANNOT_ASK }),
+      summary({ id: "here-too", state: CodeTaskState.Stopped }),
+    ];
+
+    const rows: Array<JSONObject> = await listed({ allRepositories: true });
+
+    expect(
+      rows.map((row: JSONObject) => {
+        return [row["id"], row["canTryAgain"] === true];
+      }),
+    ).toEqual([
+      ["here", true],
+      ["there", false],
+      ["here-too", true],
+    ]);
+    // Each repository is asked once, however many of its rows.
+    expect(CodeTaskAccess.canAskInRepository).toHaveBeenCalledTimes(2);
+  });
+
+  test("an insight's fix task is offered it as a row is", async () => {
+    summaries = [summary({ recipe: CodeFixTaskType.FixException })];
+
+    const { result } = await call("/code-task/summaries", {
+      body: { taskIds: [TASK_ID.toString()] },
+    });
+
+    expect(
+      ((result?.["tasks"] as Array<JSONObject>)[0] as JSONObject)[
+        "canTryAgain"
+      ],
+    ).toBe(true);
+  });
+});
+
+/*
+ * A FIX ONEUPTIME STARTED, ON ITS TASK'S PAGE (#6509): its failed or
+ * stopped turn is asked again unless it may already have written, and the
+ * page says why where Try again would be.
+ */
+describe("why a failed fix OneUptime started is not asked again", () => {
+  const route: string = "/code-task/get/:taskId";
+  const REPLY_ID: string = "6d2e3f4a-5b6c-4d7e-8f9a-0b1c2d3e4f5a";
+  let latest: Partial<CodeTaskTurnJSON>;
+
+  beforeEach(() => {
+    latest = {
+      runId: TASK_ID.toString(),
+      recipe: CodeFixTaskType.FixException,
+      state: CodeTaskState.Failed,
+    };
+
+    jest
+      .spyOn(CodeTaskPresenter, "getConversation")
+      .mockImplementation(async () => {
+        return {
+          task: { id: TASK_ID.toString(), state: latest.state } as never,
+          turns: [latest as CodeTaskTurnJSON],
+        };
+      });
+  });
+
+  test("one that may already have pushed or opened a pull request says so, and why", async () => {
+    const mayHaveWritten: jest.SpyInstance = jest
+      .spyOn(CodeFixAutoRetry, "mayHaveWritten")
+      .mockResolvedValue(true);
+
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(result?.["tryAgainRefusal"]).toBe(
+      CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE,
+    );
+
+    const asked: { run: AIRun; isRunnerGone: boolean } = mayHaveWritten.mock
+      .calls[0]![0] as never;
+
+    expect(asked.run.id!.toString()).toBe(TASK_ID.toString());
+    // Its own turn: no task of its own to name.
+    expect(asked.run.codeTaskId).toBeUndefined();
+    // Every pull request of its task counts: a new turn opens its own.
+    expect(asked.isRunnerGone).toBe(true);
+  });
+
+  test("a fix asked again before names its task, so the task's pull requests count", async () => {
+    latest.runId = REPLY_ID;
+    const mayHaveWritten: jest.SpyInstance = jest
+      .spyOn(CodeFixAutoRetry, "mayHaveWritten")
+      .mockResolvedValue(true);
+
+    await call(route, { params: { taskId: TASK_ID.toString() } });
+
+    const asked: { run: AIRun } = mayHaveWritten.mock.calls[0]![0] as never;
+
+    expect(asked.run.id!.toString()).toBe(REPLY_ID);
+    expect(asked.run.codeTaskId!.toString()).toBe(TASK_ID.toString());
+  });
+
+  test("one that has not written says nothing: Try again is offered", async () => {
+    jest.spyOn(CodeFixAutoRetry, "mayHaveWritten").mockResolvedValue(false);
+
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(result).not.toHaveProperty("tryAgainRefusal");
+  });
+
+  test.each([
+    [
+      "a request's failed turn",
+      { recipe: CodeFixTaskType.CodeRequest },
+      MEMBER,
+    ],
+    ["a fix that is done", { state: CodeTaskState.Done }, MEMBER],
+    [
+      "a task asked for on GitHub",
+      { recipe: CodeFixTaskType.GitHubIssueFix },
+      MEMBER,
+    ],
+    ["a member who may only read", {}, VIEWER],
+  ])(
+    "%s: nothing is said, and nothing is asked of what the turn wrote",
+    async (
+      _name: string,
+      turn: Partial<CodeTaskTurnJSON>,
+      props: DatabaseCommonInteractionProps,
+    ) => {
+      world.props = props;
+      latest = { ...latest, ...turn };
+      const mayHaveWritten: jest.SpyInstance = jest.spyOn(
+        CodeFixAutoRetry,
+        "mayHaveWritten",
+      );
+
+      const { result } = await call(route, {
+        params: { taskId: TASK_ID.toString() },
+      });
+
+      expect(result).not.toHaveProperty("tryAgainRefusal");
+      expect(mayHaveWritten).not.toHaveBeenCalled();
+    },
+  );
 });

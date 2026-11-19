@@ -4,7 +4,9 @@
  * Verifies the tools/list metadata generated for real models:
  * - every tool carries a title and operation-appropriate annotations
  *   (readOnlyHint / destructiveHint / openWorldHint / idempotentHint): every
- *   write is destructive, and no tool reaches past the caller's project
+ *   write is destructive, and a write is open-world when what it changes is
+ *   published - an incident's is, a label's is not
+ * - a resource with no field to change gets no update tool
  * - database list/get tools expose a `select` array parameter
  * - the list tool's sort schema takes any field, ASC or DESC
  * - analytics (telemetry) models generate ONLY list and count tools, and they
@@ -20,6 +22,8 @@ import {
   generateToolsForAnalyticsModel,
 } from "../Tools/ToolGenerator";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
+import Label from "Common/Models/DatabaseModels/Label";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import {
@@ -88,28 +92,32 @@ describe("Generated tool metadata", () => {
       );
     });
 
-    it("marks the delete tool destructive and idempotent", () => {
+    /*
+     * An incident is shown on the status pages of what it affects and sent to
+     * their subscribers, so each write to one reaches past the project.
+     */
+    it("marks the delete tool destructive, idempotent and open-world", () => {
       expect(findTool(tools, "delete_incident").annotations).toEqual({
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
         idempotentHint: true,
       });
     });
 
-    it("marks the create tool destructive: creating an incident pages people", () => {
+    it("marks the create tool destructive, as creating an incident pages people, and open-world", () => {
       expect(findTool(tools, "create_incident").annotations).toEqual({
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
       });
     });
 
-    it("marks the update tool destructive, as it overwrites, and idempotent", () => {
+    it("marks the update tool destructive, as it overwrites, idempotent and open-world", () => {
       expect(findTool(tools, "update_incident").annotations).toEqual({
         readOnlyHint: false,
         destructiveHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
         idempotentHint: true,
       });
     });
@@ -179,6 +187,55 @@ describe("Generated tool metadata", () => {
           findTool(tools, name).inputSchema.properties?.["query"]?.description,
         ).toContain("oneuptime_describe_resource");
       }
+    });
+  });
+
+  describe("database model tools whose writes stay in the project (Label)", () => {
+    const tools: McpToolInfo[] = generateToolsForDatabaseModel(
+      new Label(),
+      Label,
+    ).tools;
+
+    it("marks the writes destructive and closed-world: a label is not published", () => {
+      expect(findTool(tools, "create_label").annotations).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+      });
+
+      for (const name of ["update_label", "delete_label"]) {
+        expect(findTool(tools, name).annotations).toEqual({
+          readOnlyHint: false,
+          destructiveHint: true,
+          openWorldHint: false,
+          idempotentHint: true,
+        });
+      }
+    });
+  });
+
+  describe("database model tools for a resource with no field to change (Incident Alert)", () => {
+    const tools: McpToolInfo[] = generateToolsForDatabaseModel(
+      new IncidentAlert(),
+      IncidentAlert,
+    ).tools;
+
+    it("generates every tool but update, which would take an id and change nothing", () => {
+      expect(
+        tools
+          .map((tool: McpToolInfo) => {
+            return tool.name;
+          })
+          .sort(),
+      ).toEqual(
+        [
+          "count_incident_alerts",
+          "create_incident_alert",
+          "delete_incident_alert",
+          "get_incident_alert",
+          "list_incident_alerts",
+        ].sort(),
+      );
     });
   });
 

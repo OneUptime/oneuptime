@@ -703,6 +703,8 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "INCIDENT_ALERT_AI_LOGS_PATHS[subjectKind]": READ,
       "INCIDENT_ALERT_AI_INSIGHTS_PATHS[subjectKind]": READ,
       AI_OUTCOMES_PATH: READ,
+      // The records one of AI Results' numbers counts (#7768).
+      AI_OUTCOMES_RECORDS_PATH: READ,
     },
   },
   "packages/Common/Server/API/TelemetryAiAPI.ts": {
@@ -725,6 +727,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,
         '"/code-task/get/:taskId"': READ,
+        '"/code-task/turns/:taskId"': READ,
         '"/code-task/progress/:taskId"': READ,
         '"/code-task/summaries"': READ,
         '"/code-task/source-links"': READ,
@@ -989,7 +992,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Signing in, and keeping a session, which every product needs: what a person proves to get in is of no one product.",
       {
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 18,
+        // #9764: a security key set up at sign-in - its options, and the key's answer.
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 20,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 1,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
@@ -1036,9 +1040,13 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        // Its invite suggestions read only (#9701).
-        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
-        "packages/Common/Server/API/UserAPI.ts": 7,
+        /*
+         * Its invite suggestions read only (#9701); is-user-registered is
+         * gone (#9745).
+         */
+        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
+        // #9762: a master admin clearing one person's sign-in settings.
+        "packages/Common/Server/API/UserAPI.ts": 8,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
@@ -1068,7 +1076,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "The server's own setup, which a master admin changes or the server reads - switching a product on again among it.",
       {
-        "packages/Common/Server/API/GlobalConfigAPI.ts": 6,
+        // #9762: clearing the sign-in settings of everyone the server's SSO requirement covers.
+        "packages/Common/Server/API/GlobalConfigAPI.ts": 7,
         "packages/Common/Server/API/ProbeAPI.ts": 1,
         "packages/Common/Server/API/RunnerAPI.ts": 1,
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,

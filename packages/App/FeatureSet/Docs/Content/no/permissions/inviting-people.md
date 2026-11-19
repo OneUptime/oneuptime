@@ -43,7 +43,7 @@ Klikk på **Inviter bruker**. Dialogen **Inviter ny bruker** åpnes.
 
 ### Skriv inn e-postadressen
 
-Skriv adressen i **E-post**. Hvis ingen OneUptime-konto bruker den ennå, ber dialogen også om et **Navn**, som den nye kontoen starter med. Mens du skriver, foreslår **E-post** personer i prosjektet etter navn eller adresse, og viser hvem som er **Invitert** og hvem som er **Allerede i dette teamet**: klikk på en av dem for å fylle inn adressen. På en selvhostet server får en hovedadministrator også foreslått serverens andre kontoer, merket **Ikke i dette prosjektet ennå**.
+Skriv adressen i **E-post**. Mens du skriver, foreslår **E-post** personer i prosjektet etter navn eller adresse, og viser hvem som er **Invitert** og hvem som er **Allerede i dette teamet**: klikk på en av dem for å fylle inn adressen. På en selvhostet server får en hovedadministrator også foreslått serverens andre kontoer, merket **Ikke i dette prosjektet ennå**, og det samme gjør alle som kan invitere personer, når en hovedadministrator tillater det i Admin Dashboard. For en adresse du skriver selv, ber dialogen også om et **Navn**, som er valgfritt: har personen ingen OneUptime-konto ennå, opprettes den med det navnet.
 
 ### Velg teamet
 

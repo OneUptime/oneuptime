@@ -1,19 +1,26 @@
 import AccessTokenService from "../../Services/AccessTokenService";
+import ApiKeyService from "../../Services/ApiKeyService";
 import CustomRolePermissionService from "../../Services/CustomRolePermissionService";
 import CustomRoleService from "../../Services/CustomRoleService";
 import TeamPermissionService from "../../Services/TeamPermissionService";
 import UserService from "../../Services/UserService";
+import APIKeyAccessPermission from "../APIKey/AccessPermission";
 import CallerPermission from "../Permission/CallerPermission";
 import WorkflowPrincipal, { WorkflowRunAsGrant } from "./WorkflowPrincipal";
+import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Label from "../../../Models/DatabaseModels/Label";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import {
   getCopyScope,
   isRolePermissionGivenToApiKeys,
@@ -21,8 +28,8 @@ import {
 import { getPermissionTitleForSentence } from "../../../Types/Team/CustomRole";
 import UserType from "../../../Types/UserType";
 import {
+  WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE,
   WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE,
-  WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE,
   WORKFLOW_RUN_AS_ROLE_DELETED_MESSAGE,
   WORKFLOW_RUN_AS_ROLE_MISSING_MESSAGE,
   WORKFLOW_RUN_AS_ROLE_NOT_FOUND_MESSAGE,
@@ -35,7 +42,10 @@ import {
   getWorkflowRunAsGiverGoneMessage,
   getWorkflowRunAsGiverLeftMessage,
   getWorkflowRunAsGiverLostMessage,
-  getWorkflowRunAsPersonOnlyRefusedMessage,
+  getWorkflowRunAsGiverOnlyRefusedMessage,
+  getWorkflowRunAsKeyExpiredMessage,
+  getWorkflowRunAsKeyGoneMessage,
+  getWorkflowRunAsKeyLostMessage,
   getWorkflowRunAsRoleRefusedMessage,
   getWorkflowRunAsRunRefusedMessage,
   getWorkflowRunAsVariableRefusedMessage,
@@ -51,24 +61,45 @@ import {
  * give a team a permission or a role (TeamPermissionService
  * .assertCanGrantPermission), asked of:
  *
- *   - the person choosing a Run As (assertMayGive): Project Owner takes an
+ *   - whoever chooses a Run As (assertMayGive): Project Owner takes an
  *     unblocked Project Owner of their own; a custom role takes every
  *     permission the role gives a workflow, at its scope and labels;
- *   - the person changing, deleting, archiving or running by hand a
- *     workflow that has them (assertMayAct) - the same question for what it
- *     runs as now, so nobody who holds less makes it do what they could
- *     not;
- *   - the person who gave them, as every run starts (resolveForRun), so a
- *     workflow stops being able to do what its giver can no longer do -
- *     they left the project, lost the role, or the role grew;
+ *   - whoever changes, deletes, archives or runs by hand a workflow that has
+ *     them (assertMayAct) - the same question for what it runs as now, so
+ *     nobody who holds less makes it do what they could not;
+ *   - whoever gave them, as every run starts (resolveForRun), so a workflow
+ *     stops being able to do what its giver can no longer do - a person
+ *     left the project or lost the role, a key was deleted, expired or
+ *     narrowed, or the role grew;
  *   - another workflow's permissions, before its Run Workflow step starts a
  *     raised workflow (assertMayStart).
  *
- * Only a person's own project permissions count: no root, no master admin's
- * pass, no API key and no workflow. A raised workflow runs with a person's
- * permissions, and is re-checked against that person on every run, so the
- * person must be one whose permissions can be read again then.
+ * WHO MAY GIVE THEM (getGiver): a person, or one of the project's API keys
+ * (#9765) - each holder whose own permissions in the project can be read
+ * again as every run starts. Only those own permissions count: no root, no
+ * master admin's pass, and never a workflow's step or the server's master
+ * API key, which holds nothing of its own in a project. A key is weighed
+ * exactly as a person is - its rows, the copies of its custom roles among
+ * them, against the same ceiling - so a key never raises a workflow beyond
+ * itself, and a person never gets more through a key than the key holds,
+ * which was itself given by someone who held it
+ * (ApiKeyPermissionService.assertCallerCanGrantPermission) and is shown again
+ * only to someone who could give all of it (ApiKeyService, on a reset).
  */
+
+// Who gave a raised workflow its permissions: a person, or a project API key.
+export enum WorkflowRunAsGiverKind {
+  Person = "Person",
+  ApiKey = "ApiKey",
+}
+
+export interface WorkflowRunAsGiver {
+  kind: WorkflowRunAsGiverKind;
+  // The person's id (Person), or the key's id (ApiKey).
+  id: ObjectID;
+  // The key's name, as the request carried it (ApiKey only).
+  name?: string | undefined;
+}
 
 // What a workflow is set to run as, as stored.
 export interface WorkflowRunAsSetting {
@@ -116,6 +147,67 @@ export default class WorkflowRunAsAuthority {
       (props.userType === UserType.User ||
         props.userType === UserType.MasterAdmin)
     );
+  }
+
+  /*
+   * Whether `props` are one of a project's API keys (#9765): a request the
+   * key made, carrying its id (ProjectMiddleware) and no person - never the
+   * server's master API key, which is no key of a project and has no id,
+   * never a workflow's step and never OneUptime itself.
+   */
+  public static isProjectApiKey(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      Boolean(props.apiKeyId) &&
+      !props.userId &&
+      !props.isRoot &&
+      !props.isMasterAdmin &&
+      props.userType === UserType.API
+    );
+  }
+
+  /*
+   * Who `props` are, as someone who may give a workflow raised permissions:
+   * a person, or a project API key - or null for anyone else, who may not.
+   */
+  public static getGiver(
+    props: DatabaseCommonInteractionProps,
+  ): WorkflowRunAsGiver | null {
+    if (WorkflowRunAsAuthority.isPerson(props)) {
+      return { kind: WorkflowRunAsGiverKind.Person, id: props.userId! };
+    }
+
+    if (WorkflowRunAsAuthority.isProjectApiKey(props)) {
+      const giver: WorkflowRunAsGiver = {
+        kind: WorkflowRunAsGiverKind.ApiKey,
+        id: props.apiKeyId!,
+      };
+
+      if (props.apiKeyName) {
+        giver.name = props.apiKeyName;
+      }
+
+      return giver;
+    }
+
+    return null;
+  }
+
+  /*
+   * The columns of a workflow that record who gave it its permissions, as a
+   * write sets them: the giver's own column, and the other one cleared, so
+   * a workflow names one giver at a time.
+   */
+  public static getGivenByColumns(
+    giver: WorkflowRunAsGiver,
+  ): Record<"runAsGivenByUserId" | "runAsGivenByApiKeyId", ObjectID | null> {
+    return {
+      runAsGivenByUserId:
+        giver.kind === WorkflowRunAsGiverKind.Person ? giver.id : null,
+      runAsGivenByApiKeyId:
+        giver.kind === WorkflowRunAsGiverKind.ApiKey ? giver.id : null,
+    };
   }
 
   /*
@@ -278,8 +370,8 @@ export default class WorkflowRunAsAuthority {
    * Refuses `props` giving a workflow of `projectId` this Run As, in words
    * that name what is missing. Default asks nothing: anyone who may create
    * or edit the workflow may set it, as before. Anything else takes a
-   * person who could give a team those permissions themselves. Answers the
-   * role a custom role Run As names.
+   * person, or a project API key, who could give a team those permissions
+   * themselves. Answers the role a custom role Run As names.
    */
   public static async assertMayGive(data: {
     setting: WorkflowRunAsSetting;
@@ -315,8 +407,8 @@ export default class WorkflowRunAsAuthority {
       }
     }
 
-    if (!WorkflowRunAsAuthority.isPerson(data.props)) {
-      throw new NotAuthorizedException(WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE);
+    if (!WorkflowRunAsAuthority.getGiver(data.props)) {
+      throw new NotAuthorizedException(WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE);
     }
 
     const missing: Permission | null =
@@ -399,9 +491,9 @@ export default class WorkflowRunAsAuthority {
           ? getWorkflowRunAsVariableRefusedMessage(choice)
           : getWorkflowRunAsChangeRefusedMessage(choice);
 
-    if (!WorkflowRunAsAuthority.isPerson(data.props)) {
+    if (!WorkflowRunAsAuthority.getGiver(data.props)) {
       throw new NotAuthorizedException(
-        getWorkflowRunAsPersonOnlyRefusedMessage(refusal),
+        getWorkflowRunAsGiverOnlyRefusedMessage(refusal),
       );
     }
 
@@ -444,23 +536,26 @@ export default class WorkflowRunAsAuthority {
 
   /*
    * WHAT A RUN ACTS AS, as it starts or carries on after a Sleep step: the
-   * workflow's Run As, checked against the person who gave it, as they are
-   * in the project now. Default needs nothing. Anything else is refused -
-   * the run does not start - when:
+   * workflow's Run As, checked against whoever gave it - a person, or a
+   * project API key (#9765) - as they are in the project now. Default needs
+   * nothing. Anything else is refused - the run does not start - when:
    *
    *   - it cannot be read, or its custom role is gone;
-   *   - nobody is recorded as having given it, or that person is gone;
-   *   - they are no longer a member of the project, or may no longer sign
-   *     in (blocked or turned off);
-   *   - they could not give it now: they lost the permission, or the role
-   *     holds one they don't.
+   *   - nobody is recorded as having given it, or that person or key is gone;
+   *   - a person who gave it is no longer a member of the project, or may no
+   *     longer sign in (blocked or turned off);
+   *   - a key that gave it has expired;
+   *   - they could not give it now: they lost the permission (a key's own
+   *     permissions narrowed), or the role holds one they don't.
    *
-   * Each refusal says why, and who can give the permissions again.
+   * A workflow names one giver; should it name both, the key is the one
+   * asked. Each refusal says why, and who can give the permissions again.
    */
   public static async resolveForRun(data: {
     projectId: ObjectID;
     setting: WorkflowRunAsSetting;
     givenByUserId?: ObjectID | null | undefined;
+    givenByApiKeyId?: ObjectID | null | undefined;
   }): Promise<WorkflowRunAsGrant> {
     const runAs: WorkflowRunAs | null = WorkflowRunAsAuthority.readSetting(
       data.setting,
@@ -498,9 +593,45 @@ export default class WorkflowRunAsAuthority {
       customRoleName: role?.name,
     };
 
-    const giver: User | null = data.givenByUserId
+    const grant: WorkflowRunAsGrant = data.givenByApiKeyId
+      ? await WorkflowRunAsAuthority.resolveKeyGiver({
+          projectId: data.projectId,
+          apiKeyId: data.givenByApiKeyId,
+          runAs: runAs,
+          role: role,
+          choice: choice,
+        })
+      : await WorkflowRunAsAuthority.resolvePersonGiver({
+          projectId: data.projectId,
+          userId: data.givenByUserId,
+          runAs: runAs,
+          role: role,
+          choice: choice,
+        });
+
+    if (role) {
+      grant.customRoleId = role.id;
+      grant.customRoleName = role.name;
+      grant.rolePermissions = role.rows;
+    }
+
+    return grant;
+  }
+
+  /*
+   * A raised run's person: still in the project, able to sign in, and
+   * still able to give what the workflow runs as.
+   */
+  private static async resolvePersonGiver(data: {
+    projectId: ObjectID;
+    userId: ObjectID | null | undefined;
+    runAs: WorkflowRunAs;
+    role: WorkflowRunAsRole | null;
+    choice: WorkflowRunAsChoice;
+  }): Promise<WorkflowRunAsGrant> {
+    const giver: User | null = data.userId
       ? await UserService.findOneById({
-          id: data.givenByUserId,
+          id: data.userId,
           select: {
             _id: true,
             name: true,
@@ -516,7 +647,7 @@ export default class WorkflowRunAsAuthority {
 
     if (!giver || !giver.id) {
       throw new WorkflowRunAsRefusedException(
-        getWorkflowRunAsGiverGoneMessage(choice),
+        getWorkflowRunAsGiverGoneMessage(data.choice),
       );
     }
 
@@ -534,7 +665,7 @@ export default class WorkflowRunAsAuthority {
     if (!CallerPermission.isProjectMember(giverProps, data.projectId)) {
       throw new WorkflowRunAsRefusedException(
         getWorkflowRunAsGiverLeftMessage({
-          choice: choice,
+          choice: data.choice,
           giverName: giverName,
         }),
       );
@@ -543,7 +674,7 @@ export default class WorkflowRunAsAuthority {
     if (giver.isBlocked || giver.isDisabled) {
       throw new WorkflowRunAsRefusedException(
         getWorkflowRunAsGiverLostMessage({
-          choice: choice,
+          choice: data.choice,
           giverName: giverName,
         }),
       );
@@ -551,8 +682,8 @@ export default class WorkflowRunAsAuthority {
 
     const missing: Permission | null =
       WorkflowRunAsAuthority.findMissingPermission({
-        runAs: runAs,
-        role: role,
+        runAs: data.runAs,
+        role: data.role,
         holderProps: WorkflowRunAsAuthority.getOwnProps(
           giverProps,
           data.projectId,
@@ -562,26 +693,129 @@ export default class WorkflowRunAsAuthority {
     if (missing) {
       throw new WorkflowRunAsRefusedException(
         getWorkflowRunAsGiverLostMessage({
-          choice: choice,
+          choice: data.choice,
           giverName: giverName,
           missingPermissionTitle: getPermissionTitleForSentence(missing),
         }),
       );
     }
 
-    const grant: WorkflowRunAsGrant = {
-      runAs: runAs,
+    return {
+      runAs: data.runAs,
       givenByUserId: giver.id,
       givenByName: giverName,
     };
+  }
 
-    if (role) {
-      grant.customRoleId = role.id;
-      grant.customRoleName = role.name;
-      grant.rolePermissions = role.rows;
+  /*
+   * A RAISED RUN'S API KEY (#9765), read again as every run starts: one of
+   * the workflow's project's keys, not deleted (revoked) and not expired,
+   * whose own permissions now - its rows and the copies of its custom
+   * roles, read as a request the key made would read them
+   * (APIKeyAccessPermission) - still give what the workflow runs as. A key
+   * narrowed since, or a role grown since, stops the run before its first
+   * step, as a person who lost the permission does.
+   */
+  private static async resolveKeyGiver(data: {
+    projectId: ObjectID;
+    apiKeyId: ObjectID;
+    runAs: WorkflowRunAs;
+    role: WorkflowRunAsRole | null;
+    choice: WorkflowRunAsChoice;
+  }): Promise<WorkflowRunAsGrant> {
+    const key: ApiKey | null = await ApiKeyService.findOneBy({
+      query: {
+        _id: data.apiKeyId,
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        expiresAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!key || !key.id) {
+      throw new WorkflowRunAsRefusedException(
+        getWorkflowRunAsKeyGoneMessage(data.choice),
+      );
     }
 
-    return grant;
+    const keyName: string = key.name?.toString() || "";
+
+    if (
+      !key.expiresAt ||
+      OneUptimeDate.fromString(key.expiresAt).getTime() <=
+        OneUptimeDate.getCurrentDate().getTime()
+    ) {
+      throw new WorkflowRunAsRefusedException(
+        getWorkflowRunAsKeyExpiredMessage({
+          choice: data.choice,
+          keyName: keyName,
+        }),
+      );
+    }
+
+    const missing: Permission | null =
+      WorkflowRunAsAuthority.findMissingPermission({
+        runAs: data.runAs,
+        role: data.role,
+        holderProps: WorkflowRunAsAuthority.getOwnProps(
+          await WorkflowRunAsAuthority.getApiKeyProps({
+            apiKeyId: key.id,
+            projectId: data.projectId,
+          }),
+          data.projectId,
+        ),
+      });
+
+    if (missing) {
+      throw new WorkflowRunAsRefusedException(
+        getWorkflowRunAsKeyLostMessage({
+          choice: data.choice,
+          keyName: keyName,
+          missingPermissionTitle: getPermissionTitleForSentence(missing),
+        }),
+      );
+    }
+
+    return {
+      runAs: data.runAs,
+      givenByApiKeyId: key.id,
+      givenByName: keyName,
+    };
+  }
+
+  /*
+   * A project API key's props as a request it made has them
+   * (ProjectMiddleware): the key, in its project, holding the defaults every
+   * key has and its own permission rows, allows and blocks alike.
+   */
+  public static async getApiKeyProps(data: {
+    apiKeyId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<DatabaseCommonInteractionProps> {
+    const tenantAccess: UserTenantAccessPermission =
+      await APIKeyAccessPermission.getApiTenantAccessPermission(
+        data.projectId,
+        data.apiKeyId,
+      );
+
+    return {
+      tenantId: data.projectId,
+      userType: UserType.API,
+      apiKeyId: data.apiKeyId,
+      userGlobalAccessPermission:
+        await APIKeyAccessPermission.getDefaultApiGlobalPermission(
+          data.projectId,
+        ),
+      userTenantAccessPermission: {
+        [data.projectId.toString()]: tenantAccess,
+      },
+    };
   }
 
   /*

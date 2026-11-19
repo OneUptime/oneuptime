@@ -724,13 +724,40 @@ const PAGES: Array<PageVisit> = [
       await expect(page.getByTestId("code")).toBeVisible();
     },
   },
+  /*
+   * A required enrolment (#9764): this browser can register a key, so the
+   * page first asks which second step to set up - the authenticator app
+   * picked - then draws the app's QR code and code, or the security key's
+   * one button.
+   */
+  {
+    name: "second-step-enrolment-choice",
+    address: "/accounts/login?signin=enrol",
+    ready: visible("email"),
+    steps: async (page: Page): Promise<void> => {
+      await signInWithPassword(page);
+      await expect(page.getByTestId("enrolment-choice")).toBeVisible();
+    },
+  },
   {
     name: "second-step-enrolment",
     address: "/accounts/login?signin=enrol",
     ready: visible("email"),
     steps: async (page: Page): Promise<void> => {
       await signInWithPassword(page);
+      await page.getByTestId("enrolment-choice-continue").click();
       await expect(page.getByTestId("enrolment-code")).toBeVisible();
+    },
+  },
+  {
+    name: "second-step-enrolment-security-key",
+    address: "/accounts/login?signin=enrol",
+    ready: visible("email"),
+    steps: async (page: Page): Promise<void> => {
+      await signInWithPassword(page);
+      await page.getByRole("radio", { name: /Security key/ }).click();
+      await page.getByTestId("enrolment-choice-continue").click();
+      await expect(page.getByTestId("enrolment-security-key")).toBeVisible();
     },
   },
   {

@@ -117,6 +117,7 @@ function task(data: Partial<CodeTaskSummaryJSON> = {}): CodeTaskSummaryJSON {
   };
 }
 
+// The server says the reader may try these again (CodeTaskTryAgain).
 const FAILED: CodeTaskSummaryJSON = task({
   id: FAILED_TASK_ID,
   taskNumber: 14,
@@ -124,6 +125,7 @@ const FAILED: CodeTaskSummaryJSON = task({
   state: CodeTaskState.Failed,
   errorMessage: "The AI could not finish: LLM completion request failed",
   retry: { attempt: 3, maxAttempts: 3 },
+  canTryAgain: true,
 });
 
 const STOPPED: CodeTaskSummaryJSON = task({
@@ -131,6 +133,7 @@ const STOPPED: CodeTaskSummaryJSON = task({
   taskNumber: 13,
   title: "Log the card brand on declined charges",
   state: CodeTaskState.Stopped,
+  canTryAgain: true,
 });
 
 const COUNTS: CodeTaskListCountsJSON = {
@@ -861,20 +864,238 @@ describe("trying failed tasks again from the list", () => {
     expect(screen.getByTestId("code-task-list-bulk")).toContainElement(status);
   });
 
-  test("a task OneUptime started is not tried again from the list", async () => {
+  /*
+   * A fix OneUptime started is tried again from the list too (#6509), when
+   * the server says it may be: one with a pull request it would open a
+   * second of, or one in a repository the reader may only read, is not.
+   */
+  test("a fix OneUptime started is tried again from the list as a request is, where the server says it may be", async () => {
+    const EXCEPTION_FIX_ID: string = "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e";
+
     listTasksMock.mockResolvedValue(
       answer([
         {
           ...FAILED,
+          id: EXCEPTION_FIX_ID,
+          title: "Fix TypeError in checkout",
           recipe: CodeFixTaskType.FixException,
           origin: { type: CodeTaskOriginType.Exception, label: "TypeError" },
         },
+        {
+          ...STOPPED,
+          title: "Fix the slow trace",
+          recipe: CodeFixTaskType.FixPerformance,
+          origin: { type: CodeTaskOriginType.Trace, label: "GET /cart" },
+          canTryAgain: undefined,
+          pullRequest: { number: 7, state: PullRequestState.Open },
+        },
       ]) as never,
+    );
+    retryManyMock.mockResolvedValue({ retried: 1, failed: [] } as never);
+
+    drawList();
+    await screen.findAllByTestId("code-task-row");
+
+    expect(screen.getAllByTestId("code-task-row-retry-button")).toHaveLength(1);
+    expect(
+      within(rowOf("Fix the slow trace")).queryByTestId(
+        "code-task-row-retry-button",
+      ),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(rowOf("Fix TypeError in checkout")).getByTestId(
+        "code-task-row-retry-button",
+      ),
+    );
+
+    expect(
+      await screen.findByTestId("code-task-list-retry-result"),
+    ).toHaveTextContent("Trying 1 task again.");
+    expect(retryManyMock).toHaveBeenCalledWith([EXCEPTION_FIX_ID]);
+  });
+
+  test("negative control: a failed row the server does not mark offers neither Try again nor a box", async () => {
+    listTasksMock.mockResolvedValue(
+      answer([{ ...FAILED, canTryAgain: undefined }]) as never,
     );
 
     drawList();
     await screen.findByTestId("code-task-row");
 
     expect(screen.queryByTestId("code-task-row-retry-button")).toBeNull();
+    expect(screen.queryByTestId("code-task-row-select")).toBeNull();
+    expect(screen.getByTestId("code-task-row-error")).toHaveTextContent(
+      "LLM completion request failed",
+    );
+  });
+
+  /*
+   * Picked across repositories, tasks can be refused for different
+   * reasons (#6508): each refused row says its own, and the bar how many.
+   */
+  test("tasks refused for different reasons each say why on their own row", async () => {
+    listTasksMock.mockResolvedValue(answer([FAILED, STOPPED]) as never);
+    retryManyMock.mockResolvedValue({
+      retried: 0,
+      failed: [
+        {
+          taskId: FAILED_TASK_ID,
+          message: "This repository's Runner takes no AI code fixes.",
+        },
+        {
+          taskId: STOPPED_TASK_ID,
+          message:
+            "You can read this repository's tasks. Asking AI to work in it takes permission to edit the repository - ask a Project Admin for it.",
+        },
+      ],
+    } as never);
+
+    drawList();
+    await screen.findAllByTestId("code-task-row");
+
+    fireEvent.click(screen.getAllByTestId("code-task-row-select")[0]!);
+    fireEvent.click(
+      within(screen.getByTestId("code-task-list-bulk")).getByTestId(
+        "code-task-list-select-all",
+      ),
+    );
+    fireEvent.click(screen.getByTestId("code-task-list-retry-selected"));
+
+    expect(
+      await screen.findByTestId("code-task-list-retry-result"),
+    ).toHaveTextContent(
+      "2 tasks could not be tried again: each says why below.",
+    );
+    expect(
+      within(rowOf("Add a retry budget to the payment client")).getByTestId(
+        "code-task-row-not-tried-again",
+      ),
+    ).toHaveTextContent(
+      "Not tried again: This repository's Runner takes no AI code fixes.",
+    );
+    expect(
+      within(rowOf("Log the card brand on declined charges")).getByTestId(
+        "code-task-row-not-tried-again",
+      ),
+    ).toHaveTextContent(
+      "Not tried again: You can read this repository's tasks.",
+    );
+  });
+
+  test("tasks refused for one reason say it once, in the bar, not on each row", async () => {
+    listTasksMock.mockResolvedValue(answer([FAILED, STOPPED]) as never);
+    retryManyMock.mockResolvedValue({
+      retried: 0,
+      failed: [FAILED_TASK_ID, STOPPED_TASK_ID].map((taskId: string) => {
+        return {
+          taskId,
+          message:
+            "OneUptime AI is switched off for this project. A Project Owner can turn it on.",
+        };
+      }),
+    } as never);
+
+    drawList();
+    await screen.findAllByTestId("code-task-row");
+
+    fireEvent.click(screen.getAllByTestId("code-task-row-select")[0]!);
+    fireEvent.click(screen.getByTestId("code-task-list-select-all"));
+    fireEvent.click(screen.getByTestId("code-task-list-retry-selected"));
+
+    expect(
+      await screen.findByTestId("code-task-list-retry-result"),
+    ).toHaveTextContent(
+      "2 tasks could not be tried again: OneUptime AI is switched off for this project.",
+    );
+    expect(screen.queryByTestId("code-task-row-not-tried-again")).toBeNull();
+  });
+});
+
+/*
+ * CODE'S OWN PAGE (#6508): its list across every repository offers Try
+ * again, and a box for Retry selected, on the rows the server marks - per
+ * repository - with no page-wide switch to pass.
+ */
+describe("trying tasks again on Code's own page, across repositories", () => {
+  const OTHER_REPOSITORY_ID: string = "5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e";
+
+  function drawEveryTask(): void {
+    draw(
+      <CodeTaskList
+        scope={{ allRepositories: true }}
+        showFilters={true}
+        repositoryNames={
+          new Map<string, string>([
+            [REPOSITORY_ID, "payments-api"],
+            [OTHER_REPOSITORY_ID, "checkout-web"],
+          ])
+        }
+        emptyState={<p data-testid="empty-state">No tasks yet</p>}
+      />,
+    );
+  }
+
+  test("a row of a repository the reader may ask in has Try again and a box; one of a repository they may only read has neither, and keeps its reason", async () => {
+    listTasksMock.mockResolvedValue(
+      answer([
+        FAILED,
+        {
+          ...STOPPED,
+          codeRepositoryId: OTHER_REPOSITORY_ID,
+          canTryAgain: undefined,
+          errorMessage: "Stopped by Grace Hopper.",
+        },
+      ]) as never,
+    );
+    retryManyMock.mockResolvedValue({ retried: 1, failed: [] } as never);
+
+    drawEveryTask();
+    await screen.findAllByTestId("code-task-row");
+
+    const here: HTMLElement = rowOf("Add a retry budget to the payment client");
+    const there: HTMLElement = rowOf("Log the card brand on declined charges");
+
+    expect(within(here).getByTestId("code-task-row-retry-button")).toBeTruthy();
+    expect(within(here).getByTestId("code-task-row-select")).toBeTruthy();
+    expect(
+      within(here).getByTestId("code-task-row-repository"),
+    ).toHaveTextContent("payments-api");
+    expect(
+      within(there).queryByTestId("code-task-row-retry-button"),
+    ).toBeNull();
+    expect(within(there).queryByTestId("code-task-row-select")).toBeNull();
+    // Its place is kept, so every row's title starts in one column.
+    expect(
+      within(there).getByTestId("code-task-row-select-space"),
+    ).toBeTruthy();
+
+    fireEvent.click(within(here).getByTestId("code-task-row-select"));
+    fireEvent.click(screen.getByTestId("code-task-list-retry-selected"));
+
+    expect(
+      await screen.findByTestId("code-task-list-retry-result"),
+    ).toHaveTextContent("Trying 1 task again.");
+    expect(retryManyMock).toHaveBeenCalledWith([FAILED_TASK_ID]);
+  });
+
+  test("Select all picks only the rows that may be tried again, across repositories", async () => {
+    listTasksMock.mockResolvedValue(
+      answer([
+        FAILED,
+        { ...STOPPED, codeRepositoryId: OTHER_REPOSITORY_ID },
+        task(),
+      ]) as never,
+    );
+
+    drawEveryTask();
+    await screen.findAllByTestId("code-task-row");
+
+    fireEvent.click(screen.getAllByTestId("code-task-row-select")[0]!);
+    fireEvent.click(screen.getByTestId("code-task-list-select-all"));
+
+    expect(screen.getByTestId("code-task-list-bulk")).toHaveTextContent(
+      "2 selected",
+    );
   });
 });

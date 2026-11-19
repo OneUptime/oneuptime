@@ -523,6 +523,10 @@ The AI settings and the AI rules used to be at `…/settings/ai` and `…/settin
 
 Each card puts its last 4 weeks beside the 4 weeks before them. A week counts the work OneUptime AI started that week, however long its check took. When a project had more than 5,000 of one kind in the 12 weeks, the newest 5,000 are counted, and the page says so.
 
+Each part of a card's breakdown opens what it counts: **Paged: the hold time ran out** lists those held pages with the incident or alert each was for, **Missed the root cause** lists those investigations with what each found and how it was judged, and **Still happening after the fix** lists those fix pull requests. The list holds exactly what the number counts, newest first, and only incidents and alerts you may read, private ones included: a held page or a fix pull request about an incident or alert you may not read is not counted either.
+
+Each investigation keeps the model that wrote its answer, the model of its last call: an investigation whose provider changed while it ran counts under the model it ended on. Once more than one model ran in the 12 weeks, **Root Causes Confirmed** shows **By model** how each did (*chat-large: 23 of 27*), and **Fixes Verified** does the same for the fixes that came from an investigation, each under that investigation's model. Investigations that finished before models were recorded show as **Model not recorded**. The week most investigations moved to another model, after you switch the project's default LLM provider or its model, say, is marked on every card's weeks. Models are named only to people who may read the project's **AI Logs**, where each call's model is listed.
+
 ## Cost controls
 
 Every limit below is optional, and none applies until you set it: with automatic investigation on, every new incident and alert is investigated, whatever its severity, and nothing caps how many investigations or fix tasks run. Alert volume can be much higher than incident volume, so these are the controls to reach for when you want a ceiling.

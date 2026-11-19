@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "हम इस उपयोगकर्ता को ईमेल से एक लिंक भेजेंगे जिससे वे नया पासवर्ड सेट कर सकें। यह लिंक 24 घंटे में समाप्त हो जाता है और पहले भेजे गए किसी भी लिंक की जगह ले लेता है।",
       "resetLinkModalSubmit": "लिंक भेजें",
       "resetLinkSuccess": "पासवर्ड रीसेट लिंक भेज दिया गया।",
-      "resetLinkSentTo": "पासवर्ड रीसेट लिंक {{email}} पर भेज दिया गया।"
+      "resetLinkSentTo": "पासवर्ड रीसेट लिंक {{email}} पर भेज दिया गया।",
+      "ssoManagedByServerWarning": "जब तक यह सर्वर SSO अनिवार्य रखता है, यह व्यक्ति पासवर्ड से साइन इन नहीं कर सकता।",
+      "ssoManagedByProjectsWarning": "इस व्यक्ति के हर प्रोजेक्ट में साइन-इन SSO से प्रबंधित होता है, इसलिए पासवर्ड से उनमें से कोई प्रोजेक्ट नहीं खुलेगा।",
+      "clearSignInCardTitle": "साइन-इन सेटिंग्स हटाएँ",
+      "clearSignInCardDescription": "उनका पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटाएँ, और दो-कारक प्रमाणीकरण बंद करें।",
+      "clearSignInButton": "साइन-इन सेटिंग्स हटाएँ",
+      "clearSignInOwnAccountTooltip": "अपनी साइन-इन सेटिंग्स उपयोगकर्ता प्रोफ़ाइल में बदलें।",
+      "clearSignInModalTitle": "साइन-इन सेटिंग्स हटाएँ",
+      "clearSignInModalDescription": "उनका पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटाता है, और दो-कारक प्रमाणीकरण बंद करता है। इसे पहले जैसा नहीं किया जा सकता।",
+      "clearSignInMasterAdminConfirmation": "यह व्यक्ति मास्टर एडमिन है। मुझे पता है कि साइन इन करने के लिए उन्हें SSO या पासवर्ड रीसेट लिंक की ज़रूरत होगी।",
+      "clearSignInModalSubmit": "साइन-इन सेटिंग्स हटाएँ",
+      "clearSignInSuccess": "साइन-इन सेटिंग्स हटा दी गईं। बिना SSO के साइन इन किए गए उनके सेशन खत्म हो गए हैं।"
     },
     "userProjects": {
       "title": "उपयोगकर्ता की परियोजनाएँ",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "नियंत्रित करें कि इस OneUptime सर्वर पर कौन नई परियोजनाएँ बना सकता है।",
         "projectCreationSwitchTitle": "उपयोगकर्ताओं को प्रोजेक्ट बनाने दें",
         "projectCreationSwitchOnDescription": "इस सर्वर में साइन इन किया कोई भी व्यक्ति प्रोजेक्ट बना सकता है।",
-        "projectCreationSwitchOffDescription": "केवल मास्टर एडमिन प्रोजेक्ट बना सकते हैं।"
+        "projectCreationSwitchOffDescription": "केवल मास्टर एडमिन प्रोजेक्ट बना सकते हैं।",
+        "inviteSuggestionsCardTitle": "आमंत्रण सुझाव",
+        "inviteSuggestionsCardDescription": "क्या किसी प्रोजेक्ट में आमंत्रित करने वाले लोग इस सर्वर पर खाता रखने वाले किसी को भी ढूँढ सकते हैं। अगर सर्वर पर एक से ज़्यादा संगठन हैं तो इसे बंद रखें।",
+        "inviteSuggestionsSwitchTitle": "इस सर्वर के हर खाते को सुझाएँ",
+        "inviteSuggestionsSwitchOnDescription": "किसी प्रोजेक्ट में लोगों को आमंत्रित कर सकने वाला कोई भी व्यक्ति टाइप करते समय हर खाते का नाम और ईमेल देखता है, \"अभी इस प्रोजेक्ट में नहीं\" के निशान के साथ।",
+        "inviteSuggestionsSwitchOffDescription": "आमंत्रण फ़ॉर्म प्रोजेक्ट के अपने लोगों को सुझाते हैं। मास्टर एडमिन को सर्वर के दूसरे खाते भी दिखाए जाते हैं।"
       },
       "email": {
         "adminNotificationCardTitle": "एडमिन सूचना ईमेल",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "संस्करण 2 यह भी बताता है कि किसी वर्कफ़्लो के चरणों और JSON में क्या बदला। संस्करण 1 मूल रिकॉर्ड है, उन रीडर के लिए जो इसके लिए बने हैं।",
   "Version 2 (newest)": "संस्करण 2 (नवीनतम)",
   "Version 1 (original)": "संस्करण 1 (मूल)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "संस्करण 3 यह भी बताता है कि किसी वर्कफ़्लो का हर चरण किस रूप में चला। संस्करण 2 बताता है कि चरणों और JSON में क्या बदला। संस्करण 1 मूल है।",
+  "Version 3 (newest)": "संस्करण 3 (नवीनतम)",
+  "Version 2": "संस्करण 2",
   "Unchanged": "अपरिवर्तित",
   "Setup guide": "सेटअप गाइड",
   "Write a test file": "टेस्ट फ़ाइल लिखें",
@@ -4110,6 +4129,13 @@
   "Sign them out": "उन्हें साइन आउट करें",
   "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} लोगों का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है। SSO अनिवार्य न रहने पर इससे वे फिर से साइन इन कर सकेंगे।",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} व्यक्ति का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है। SSO अनिवार्य न रहने पर इससे वह फिर से साइन इन कर सकेगा।",
+  "Clear Sign-In Settings": "साइन-इन सेटिंग्स हटाएँ",
+  "Clear everyone's saved sign-in settings?": "सभी की सहेजी गई साइन-इन सेटिंग्स हटाएँ?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "उनके पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटा दिए जाते हैं। इसे पहले जैसा नहीं किया जा सकता। मास्टर एडमिन अपने रखते हैं।",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}} लोगों की साइन-इन सेटिंग्स हटा दी गईं।",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}} व्यक्ति की साइन-इन सेटिंग्स हटा दी गईं।",
   "Made by {{name}} on {{date}}": "{{name}} ने {{date}} को बनाई",
   "Made on {{date}}": "{{date}} को बनाई गई",
   "Ends in {{hint}}": "अंत में {{hint}}",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "पहचान प्रदाता से भी साइन आउट करें",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime से साइन आउट करने पर लोग इस प्रदाता से, और इसे इस्तेमाल करने वाले हर दूसरे ऐप से भी, साइन आउट हो जाते हैं। साझा कंप्यूटरों के लिए चालू करें।",
   "Sign-out Redirect URI:": "साइन आउट के बाद रीडायरेक्ट URI:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "रीडायरेक्ट URI को अपने OIDC पहचान प्रदाता के साथ पंजीकृत करें, और जब \"पहचान प्रदाता से भी साइन आउट करें\" चालू हो, तो साइन आउट के बाद रीडायरेक्ट URI भी।"
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "रीडायरेक्ट URI को अपने OIDC पहचान प्रदाता के साथ पंजीकृत करें, और जब \"पहचान प्रदाता से भी साइन आउट करें\" चालू हो, तो साइन आउट के बाद रीडायरेक्ट URI भी।",
+  "If they have no OneUptime account yet, it is set up with this name.": "अगर इस व्यक्ति का अभी OneUptime खाता नहीं है, तो यह खाता इसी नाम से बनेगा।",
+  "Suggest every account on this server?": "इस सर्वर के हर खाते को सुझाएँ?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "लोगों को आमंत्रित कर सकने वाला हर व्यक्ति टाइप करते समय हर खाते का नाम और ईमेल देखेगा। इसे तभी चालू करें जब यहाँ का हर खाता एक ही संगठन का हो।",
+  "Suggest Every Account": "हर खाता सुझाएँ"
 }

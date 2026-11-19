@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentAlert from "../../../Models/DatabaseModels/IncidentAlert";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -16,6 +17,7 @@ import {
   getMcpServerUrl,
   getMcpToolNames,
   hasMcpTools,
+  hasUpdatableFields,
   McpClientSetup,
   sanitizeMcpToolName,
 } from "../../../Utils/DeveloperDocs/AiAssistantExamples";
@@ -54,6 +56,20 @@ describe("tool names", () => {
     expect(getMcpToolNames(OnCallDutyPolicy)?.list).toBe(
       "list_on_call_duty_policies",
     );
+  });
+
+  test("a model with no field to change once it is made has no update tool", () => {
+    // An incident's link to an alert: every field is set when it is made.
+    expect(hasUpdatableFields(IncidentAlert)).toBe(false);
+    expect(getMcpToolNames(IncidentAlert)).toEqual({
+      create: "create_incident_alert",
+      get: "get_incident_alert",
+      list: "list_incident_alerts",
+      delete: "delete_incident_alert",
+      count: "count_incident_alerts",
+    });
+
+    expect(hasUpdatableFields(Monitor)).toBe(true);
   });
 
   test("a model the MCP server does not cover has none", () => {

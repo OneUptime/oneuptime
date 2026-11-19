@@ -123,12 +123,28 @@ Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUpt
 
 Har du allerede en app under **Godkendelsesapps** eller en nøgle under **Sikkerhedsnøgler**, beder **Aktivér tofaktorgodkendelse** dig bare om at bekræfte. Mens den er slået til, kan din sidste app, nøgle eller adgangsnøgle ikke fjernes: Tilføj først en anden, eller slå tofaktorgodkendelse fra. Viser kortet **Opsætning mangler**, er tofaktorgodkendelse slået til, uden at noget er opsat, ofte fordi en administrator har krævet det: Klik på **Afslut opsætningen**, ellers bliver du bedt om det ved dit næste login.
 
+### Opsæt tofaktorgodkendelse, når du logger ind
+
+Når en administrator kræver tofaktorgodkendelse, og du endnu ikke har opsat noget, beder dit næste login med adgangskode eller et link i en e-mail dig om at opsætte det, før du bliver lukket ind. Vælg **Autentifikator-app** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**:
+
+- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**.
+- **Sikkerhedsnøgle**: Klik på **Registrer sikkerhedsnøgle**, og følg din browsers vejledning. Rør ved en USB- eller NFC-nøgle, eller brug din telefons eller computers fingeraftryk, ansigt eller skærmlås.
+
+Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er logget ind. **Vælg en anden måde** går tilbage til valget. En browser, der ikke kan registrere en sikkerhedsnøgle, fx på en side uden HTTPS, tilbyder kun autentifikator-appen.
+
 > [!TIP]
 > Er du ved at løbe tør for backupkoder? **Generér nye koder** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
 
 ### Når din organisation styrer dit login
 
-På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
+På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on, medmindre en serveradministrator rydder det. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
+
+Det samme sker, når alle de projekter, du hører til, kræver single sign-on og har **Styr login med SSO** slået til. Din adgangskode logger dig stadig ind i OneUptime, men alle projekter beder om SSO, så OneUptime opsætter ingen ny adgangskode, adgangsnøgle eller andet trin for dig:
+
+- **Et projekt, der ikke gør det**: Så snart du er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, kommer din sektion **Sikkerhed** tilbage. **Oversigt** nævner så de projekter under **Single sign-on** som grunden til, at dine indstillinger er dine egne. Forlader du det projekt, mister du dem igen.
+- **Projekter med forskellige udbydere**: Styrer alle dine projekter login, hver med sin egen identitetsudbyder, nævner **Oversigt** hver udbyder.
+- **Hovedadministratorer** beholder altid deres egne indstillinger under **Sikkerhed**.
+- **Det, du har opsat før**, forbliver gemt, og en serveradministrator kan rydde det.
 
 ## Dine projekter
 

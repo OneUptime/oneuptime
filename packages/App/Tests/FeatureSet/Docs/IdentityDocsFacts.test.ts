@@ -1112,10 +1112,18 @@ describe("the Global SSO guide", () => {
     };
     const assertion: string = "SsoManagedSignIn.assertMayChangeLocalSignIn(";
 
-    // The rule is the instance's own Require SSO, which exempts master admins.
-    expect(repo("packages/Common/Server/Utils/SsoManagedSignIn.ts")).toContain(
-      "return await SsoRequiredSignIn.isNonSsoSignInRefused(account);",
+    /*
+     * The rule is the instance's own Require SSO, which exempts master
+     * admins - asked before the projects' rule (#9763), and never of a
+     * master admin.
+     */
+    const rule: string = repo(
+      "packages/Common/Server/Utils/SsoManagedSignIn.ts",
     );
+
+    expect(rule).toContain("if (account.isMasterAdmin === true) {");
+    expect(rule).toContain("await SsoRequiredSignIn.isNonSsoSignInRefused({");
+    expect(rule).toContain("managedBy: SsoManagedBy.Server,");
 
     /*
      * Every write it names asks first: a password and two-factor
@@ -1153,6 +1161,120 @@ describe("the Global SSO guide", () => {
     );
     expect(page).toContain(
       "Their **User Profile** has no **Security** section, and its **Overview** names the providers they sign in with. What they set up before stays saved but unused until the requirement is turned off.",
+    );
+  });
+
+  it("says what Clear Sign-In Settings clears, for whom, and that it cannot be undone, as the server and the Admin Dashboard do (#9762)", () => {
+    const page: string = english(GLOBAL_SSO);
+    const repo: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(REPO_DIR, relative), "utf8");
+    };
+    const clearing: string = repo(
+      "packages/Common/Server/Utils/LocalSignInClearing.ts",
+    );
+    const adminEnglish: Record<string, unknown> = JSON.parse(
+      repo("packages/App/FeatureSet/AdminDashboard/src/Locales/en.json"),
+    ) as Record<string, unknown>;
+    const authenticationWords: Record<string, string> = (
+      adminEnglish["pages"] as Record<string, Record<string, string>>
+    )["userAuthentication"]!;
+
+    // The card's button, and the user page's card and button, by their words.
+    expect(adminEnglish["Clear Sign-In Settings"]).toBe(
+      "Clear Sign-In Settings",
+    );
+    expect(authenticationWords["clearSignInCardTitle"]).toBe(
+      "Clear Sign-In Settings",
+    );
+    expect(authenticationWords["clearSignInButton"]).toBe(
+      "Clear Sign-In Settings",
+    );
+
+    // Everyone the requirement covers: never a master admin, only while it is on.
+    expect(clearing).toContain('"person"."isMasterAdmin" = false');
+    expect(clearing).toContain(
+      "if (!(await SsoRequiredSignIn.isSsoRequired())) {",
+    );
+
+    // What goes: password, keys, apps, codes, the switch, and non-SSO sessions.
+    for (const write of [
+      "password: null!",
+      "enableTwoFactorAuth: false",
+      "await UserTotpAuthService.deleteBy({",
+      "await UserWebAuthnService.deleteBy({",
+      "await UserTwoFactorBackupCodeService.deleteBy({",
+      "UserSessionService.endSessionsOfPeopleSignedInWithoutSso(",
+      "AuditLogService.recordSignInSettingsCleared(",
+    ]) {
+      expect({ write, found: clearing.includes(write) }).toEqual({
+        write,
+        found: true,
+      });
+    }
+
+    // One person: never your own, and a master admin's only when confirmed.
+    expect(clearing).toContain(
+      "throw new BadDataException(CLEAR_OWN_SIGN_IN_MESSAGE);",
+    );
+    expect(clearing).toContain(
+      "if (isMasterAdmin && !data.isMasterAdminConfirmed) {",
+    );
+
+    expect(page).toContain(
+      "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, and each person's projects record it in their audit logs.",
+    );
+    expect(page).toContain(
+      "- On a person's **Authentication** page in **Users**, **Clear Sign-In Settings** does the same for that one person, and **Set Password** and **Send Password Reset Link** say that a password will not sign them in. You cannot clear your own there, and clearing another master admin's asks you to confirm they are one.",
+    );
+  });
+
+  it("states the rule for Manage Sign-In with SSO, with each case, as the server and the project's switch decide it (#9763)", () => {
+    const page: string = english(SSO);
+    const repo: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(REPO_DIR, relative), "utf8");
+    };
+    const rule: string = repo(
+      "packages/Common/Server/Utils/SsoManagedSignIn.ts",
+    );
+    const switchCopy: string = repo(
+      `${DASHBOARD}/Components/Project/ManageSignInWithSsoSwitchCopy.ts`,
+    );
+
+    // The switch's name, as the card draws it.
+    expect(switchCopy).toContain(
+      'switchTitle: translationKey("Manage Sign-In with SSO")',
+    );
+    expect(page).toContain("### Managing your people's sign-in with SSO");
+    expect(page).toContain(
+      "a second switch under it, **Manage Sign-In with SSO**",
+    );
+
+    /*
+     * Every project, an invitation included (TeamMember rows of any state),
+     * requires SSO and has the switch on; none means not managed.
+     */
+    expect(rule).toContain(
+      "project.requireSsoForLogin === true &&\n          project.manageSignInWithSso === true",
+    );
+    expect(rule).toContain("projects.otherProjects.length === 0");
+    expect(rule).not.toContain("hasAcceptedInvitation");
+    expect(page).toContain(
+      "Someone's sign-in is managed by SSO when every project they belong to, including any project they are invited to, requires SSO and has **Manage Sign-In with SSO** on.",
+    );
+
+    // Each case the issue named.
+    expect(page).toContain(
+      "- **Someone in a project that does not manage sign-in**: as soon as they are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, they get their settings back, and their **User Profile** names that project as the reason.",
+    );
+    expect(page).toContain("- **Projects with different providers**:");
+    expect(page).toContain(
+      "- **Master admins** always keep their own settings.",
+    );
+    expect(page).toContain("- **What people set up before** is kept");
+
+    // No sign-in changes: the projects' rule refuses settings, not sign-ins.
+    expect(page).toContain(
+      "Nothing about signing in changes: their password still signs them in to OneUptime, and your project asks for SSO as before.",
     );
   });
 

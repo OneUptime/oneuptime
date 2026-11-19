@@ -1,5 +1,8 @@
 import MonitorSecret from "../../../Models/DatabaseModels/MonitorSecret";
-import MonitorSecretService from "../../../Server/Services/MonitorSecretService";
+import MonitorSecretService, {
+  SETUP_KEY_AS_TEXT_MESSAGE,
+  TYPE_CHANGE_NEEDS_VALUE_MESSAGE,
+} from "../../../Server/Services/MonitorSecretService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
@@ -10,6 +13,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import MonitorSecretAccess from "../../../Types/Monitor/MonitorSecretAccess";
 import MonitorSecretType from "../../../Types/Monitor/MonitorSecretType";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import {
   afterEach,
   beforeEach,
@@ -26,7 +30,9 @@ import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayW
  * when the secret is created and whenever its value is replaced, stored in
  * one canonical form, and refused - with a sentence that says what is
  * wrong - when no code could be made from it. A Text secret's value is
- * stored as written, as it always was, and no secret changes its type.
+ * stored as written, as it always was. A secret's type changes only
+ * together with a new value, read for the new type (issue #9760), and the
+ * value is named for the audit log whenever an update writes it.
  */
 
 const PROJECT_ID: string = "aaaaaaaa-0000-4000-8000-00000000000a";
@@ -52,6 +58,8 @@ type OnBeforeUpdate = (
 interface StoredRow {
   id: string;
   secretType: MonitorSecretType | undefined;
+  // The value as a read with isRoot gives it: decrypted.
+  secretValue?: string | undefined;
 }
 
 let storedRows: Array<StoredRow> = [];
@@ -97,8 +105,16 @@ function readIds(value: unknown): Array<string> {
 
 beforeEach(() => {
   storedRows = [
-    { id: TOTP_SECRET_ID, secretType: MonitorSecretType.TOTP },
-    { id: TEXT_SECRET_ID, secretType: MonitorSecretType.Text },
+    {
+      id: TOTP_SECRET_ID,
+      secretType: MonitorSecretType.TOTP,
+      secretValue: STORED_SEED,
+    },
+    {
+      id: TEXT_SECRET_ID,
+      secretType: MonitorSecretType.Text,
+      secretValue: "the old password",
+    },
   ];
 
   stubRowsCallerMayWriteLikeFindBy(
@@ -120,6 +136,9 @@ beforeEach(() => {
             secret.projectId = new ObjectID(PROJECT_ID);
             if (row.secretType !== undefined) {
               secret.secretType = row.secretType;
+            }
+            if (row.secretValue !== undefined) {
+              secret.secretValue = row.secretValue;
             }
             return secret;
           }),
@@ -149,10 +168,10 @@ async function create(data: Dictionary<unknown>): Promise<MonitorSecret> {
   return onCreate.createBy.data;
 }
 
-async function update(
+async function updateBy(
   data: Dictionary<unknown>,
   ids: Array<string> = [TOTP_SECRET_ID],
-): Promise<Dictionary<unknown>> {
+): Promise<UpdateBy<MonitorSecret>> {
   const onUpdate: OnUpdate<MonitorSecret> = await (
     MonitorSecretService as unknown as { onBeforeUpdate: OnBeforeUpdate }
   ).onBeforeUpdate({
@@ -165,7 +184,14 @@ async function update(
     skip: 0,
   });
 
-  return onUpdate.updateBy.data as unknown as Dictionary<unknown>;
+  return onUpdate.updateBy;
+}
+
+async function update(
+  data: Dictionary<unknown>,
+  ids: Array<string> = [TOTP_SECRET_ID],
+): Promise<Dictionary<unknown>> {
+  return (await updateBy(data, ids)).data as unknown as Dictionary<unknown>;
 }
 
 async function refusal(work: Promise<unknown>): Promise<string> {
@@ -346,22 +372,228 @@ describe("replacing a secret's value", () => {
   });
 });
 
-describe("a secret's type", () => {
-  test("cannot be changed once the secret is created", async () => {
-    for (const secretType of [
-      MonitorSecretType.Text,
-      MonitorSecretType.TOTP,
-      null,
-    ]) {
-      expect(await refusal(update({ secretType }))).toBe(
-        "A secret's type is set when the secret is created and cannot be changed. Create a new secret of the type you need instead.",
-      );
+describe("changing a secret's type (#9760)", () => {
+  test("Text to one-time code: the new setup key is read and stored canonically, with the type", async () => {
+    expect(
+      await update(
+        {
+          secretType: MonitorSecretType.TOTP,
+          secretValue: "gezd gnbv gy3t qojq gezd gnbv gy3t qojq",
+        },
+        [TEXT_SECRET_ID],
+      ),
+    ).toEqual({ secretType: MonitorSecretType.TOTP, secretValue: STORED_SEED });
+  });
+
+  test("Text to one-time code with the value it held: a setup key saved as Text by mistake is read as one", async () => {
+    storedRows = [
+      {
+        id: TEXT_SECRET_ID,
+        secretType: MonitorSecretType.Text,
+        secretValue: SEED,
+      },
+    ];
+
+    expect(
+      await update({ secretType: MonitorSecretType.TOTP, secretValue: SEED }, [
+        TEXT_SECRET_ID,
+      ]),
+    ).toEqual({ secretType: MonitorSecretType.TOTP, secretValue: STORED_SEED });
+  });
+
+  test("one-time code to Text: the new value is stored as written, with the type", async () => {
+    expect(
+      await update({
+        secretType: MonitorSecretType.Text,
+        secretValue: " a new password ",
+      }),
+    ).toEqual({
+      secretType: MonitorSecretType.Text,
+      secretValue: " a new password ",
+    });
+  });
+
+  test("the type stays with a value: the value is read for that type, as the dialog sends it", async () => {
+    expect(
+      await update({
+        secretType: MonitorSecretType.TOTP,
+        secretValue: `otpauth://totp/x?secret=${SEED.toLowerCase()}`,
+      }),
+    ).toEqual({ secretType: MonitorSecretType.TOTP, secretValue: STORED_SEED });
+    expect(
+      await update(
+        { secretType: MonitorSecretType.Text, secretValue: "rotated" },
+        [TEXT_SECRET_ID],
+      ),
+    ).toEqual({ secretType: MonitorSecretType.Text, secretValue: "rotated" });
+  });
+
+  test("never without a value: the value it holds means something else in the other type", async () => {
+    for (const secretType of [MonitorSecretType.Text, MonitorSecretType.TOTP]) {
+      for (const ids of [[TEXT_SECRET_ID], [TOTP_SECRET_ID]]) {
+        expect(await refusal(update({ secretType }, ids))).toBe(
+          TYPE_CHANGE_NEEDS_VALUE_MESSAGE,
+        );
+      }
+    }
+
+    expect(TYPE_CHANGE_NEEDS_VALUE_MESSAGE).toBe(
+      "A secret's type changes only together with a new value, because the value it holds means something else in the other type. Enter the new value along with the type.",
+    );
+  });
+
+  test("never to Text with an empty value", async () => {
+    for (const secretValue of [null, "", "   ", 42, { value: "x" }]) {
+      expect(
+        await refusal(
+          update({ secretType: MonitorSecretType.Text, secretValue }),
+        ),
+      ).toBe(TYPE_CHANGE_NEEDS_VALUE_MESSAGE);
     }
   });
 
-  test("takes no update on its column, so the API says so too", () => {
+  test("never to one-time code with a value no code can be made from, saying why", async () => {
+    expect(
+      await refusal(
+        update(
+          {
+            secretType: MonitorSecretType.TOTP,
+            secretValue: "the old password",
+          },
+          [TEXT_SECRET_ID],
+        ),
+      ),
+    ).toContain("setup key");
+    expect(
+      await refusal(
+        update(
+          {
+            secretType: MonitorSecretType.TOTP,
+            secretValue: `otpauth://hotp/a?secret=${SEED}&counter=0`,
+          },
+          [TEXT_SECRET_ID],
+        ),
+      ),
+    ).toBe(
+      "This link is for counter-based codes (HOTP). A monitor needs a time-based link, which starts with otpauth://totp/.",
+    );
+    expect(
+      await refusal(
+        update({ secretType: MonitorSecretType.TOTP, secretValue: "   " }, [
+          TEXT_SECRET_ID,
+        ]),
+      ),
+    ).toBe(
+      "Enter the setup key or the otpauth:// link from the site's two-factor setup.",
+    );
+  });
+
+  test("never to Text with the setup key the secret holds, however it is written: it would be sent where the code went", async () => {
+    for (const secretValue of [
+      SEED,
+      "gezd gnbv gy3t qojq gezd gnbv gy3t qojq",
+      `otpauth://totp/Someone:else?secret=${SEED}&issuer=Else`,
+      STORED_SEED,
+    ]) {
+      expect(
+        await refusal(
+          update({ secretType: MonitorSecretType.Text, secretValue }),
+        ),
+      ).toBe(SETUP_KEY_AS_TEXT_MESSAGE);
+    }
+
+    expect(SETUP_KEY_AS_TEXT_MESSAGE).not.toContain(SEED);
+  });
+
+  test("to Text with another key is a Text value like any other", async () => {
+    const other: string = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
+
+    expect(
+      await update({ secretType: MonitorSecretType.Text, secretValue: other }),
+    ).toEqual({ secretType: MonitorSecretType.Text, secretValue: other });
+  });
+
+  test("a Text secret that stays Text may hold a setup key: it never held one as a code", async () => {
+    expect(
+      await update({ secretType: MonitorSecretType.Text, secretValue: SEED }, [
+        TEXT_SECRET_ID,
+      ]),
+    ).toEqual({ secretType: MonitorSecretType.Text, secretValue: SEED });
+  });
+
+  test("a type change over several secrets gives each the type and the value, and refuses a key one of them holds", async () => {
+    expect(
+      await update({ secretType: MonitorSecretType.TOTP, secretValue: SEED }, [
+        TOTP_SECRET_ID,
+        TEXT_SECRET_ID,
+      ]),
+    ).toEqual({ secretType: MonitorSecretType.TOTP, secretValue: STORED_SEED });
+
+    expect(
+      await refusal(
+        update({ secretType: MonitorSecretType.Text, secretValue: SEED }, [
+          TOTP_SECRET_ID,
+          TEXT_SECRET_ID,
+        ]),
+      ),
+    ).toBe(SETUP_KEY_AS_TEXT_MESSAGE);
+  });
+
+  test("never to a type that does not exist", async () => {
+    for (const secretType of ["Password", "totp", null, 7]) {
+      expect(
+        await refusal(
+          update({ secretType, secretValue: SEED }, [TEXT_SECRET_ID]),
+        ),
+      ).toBe("Secret type must be one of: Text, TOTP.");
+    }
+  });
+
+  test("takes an update on its column from whoever may edit a secret's value, so the API says so too", () => {
+    expect(
+      [
+        ...(new MonitorSecret().getColumnAccessControlFor("secretType")
+          ?.update || []),
+      ].sort(),
+    ).toEqual(
+      [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.EditMonitorSecret,
+      ].sort(),
+    );
     expect(
       new MonitorSecret().getColumnAccessControlFor("secretType")?.update,
-    ).toEqual([]);
+    ).toEqual(
+      new MonitorSecret().getColumnAccessControlFor("secretValue")?.update,
+    );
+  });
+});
+
+describe("a value written is named for the audit log, never with the value (#9760)", () => {
+  test("a type change names the value it writes", async () => {
+    const written: UpdateBy<MonitorSecret> = await updateBy(
+      { secretType: MonitorSecretType.Text, secretValue: "new" },
+      [TOTP_SECRET_ID],
+    );
+
+    expect(written.auditLogIncludeColumns).toEqual(["secretValue"]);
+  });
+
+  test("Update Secret Value with the type kept names it too", async () => {
+    const written: UpdateBy<MonitorSecret> = await updateBy(
+      { secretValue: "rotated" },
+      [TEXT_SECRET_ID],
+    );
+
+    expect(written.auditLogIncludeColumns).toEqual(["secretValue"]);
+  });
+
+  test("an update that writes no value names nothing", async () => {
+    const written: UpdateBy<MonitorSecret> = await updateBy({
+      name: "Renamed",
+    });
+
+    expect(written.auditLogIncludeColumns).toBeUndefined();
   });
 });

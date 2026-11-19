@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "Invieremo a questo utente un'e-mail con un link per impostare una nuova password. Il link scade tra 24 ore e sostituisce qualsiasi link inviato in precedenza.",
       "resetLinkModalSubmit": "Invia link",
       "resetLinkSuccess": "Link per la reimpostazione della password inviato.",
-      "resetLinkSentTo": "Link per la reimpostazione della password inviato a {{email}}."
+      "resetLinkSentTo": "Link per la reimpostazione della password inviato a {{email}}.",
+      "ssoManagedByServerWarning": "Finché questo server richiede l'SSO, una password non consente a questa persona di accedere.",
+      "ssoManagedByProjectsWarning": "Ogni progetto di questa persona gestisce l'accesso con l'SSO, quindi una password non ne apre nessuno.",
+      "clearSignInCardTitle": "Cancella impostazioni di accesso",
+      "clearSignInCardDescription": "Elimina la sua password, le passkey, le chiavi di sicurezza, le app di autenticazione e i codici di backup, e disattiva l'autenticazione a due fattori.",
+      "clearSignInButton": "Cancella impostazioni di accesso",
+      "clearSignInOwnAccountTooltip": "Modifica le tue impostazioni di accesso in Profilo utente.",
+      "clearSignInModalTitle": "Cancella impostazioni di accesso",
+      "clearSignInModalDescription": "Elimina la sua password, le passkey, le chiavi di sicurezza, le app di autenticazione e i codici di backup, e disattiva l'autenticazione a due fattori. Non si può annullare.",
+      "clearSignInMasterAdminConfirmation": "Questa persona è un amministratore principale. Sono consapevole che le servirà l'SSO o un link di reimpostazione della password per accedere.",
+      "clearSignInModalSubmit": "Cancella impostazioni di accesso",
+      "clearSignInSuccess": "Impostazioni di accesso cancellate. Le sessioni in cui aveva effettuato l'accesso senza SSO sono terminate."
     },
     "userProjects": {
       "title": "Progetti dell'utente",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "Controlla chi può creare nuovi progetti su questo server OneUptime.",
         "projectCreationSwitchTitle": "Consenti agli utenti di creare progetti",
         "projectCreationSwitchOnDescription": "Chiunque abbia effettuato l'accesso a questo server può creare un progetto.",
-        "projectCreationSwitchOffDescription": "Solo gli amministratori master possono creare progetti."
+        "projectCreationSwitchOffDescription": "Solo gli amministratori master possono creare progetti.",
+        "inviteSuggestionsCardTitle": "Suggerimenti per gli inviti",
+        "inviteSuggestionsCardDescription": "Se chi invita a un progetto può trovare chiunque abbia un account su questo server. Lascialo disattivato se il server ospita più di un'organizzazione.",
+        "inviteSuggestionsSwitchTitle": "Suggerisci ogni account di questo server",
+        "inviteSuggestionsSwitchOnDescription": "Chiunque possa invitare persone a un progetto vede nome ed email di ogni account mentre digita, segnato come Non ancora in questo progetto.",
+        "inviteSuggestionsSwitchOffDescription": "I moduli di invito suggeriscono le persone del progetto. Agli amministratori master vengono offerti anche gli altri account del server."
       },
       "email": {
         "adminNotificationCardTitle": "E-mail di notifica admin",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "La versione 2 indica anche cosa è cambiato nei passaggi di un flusso di lavoro e nel JSON. La versione 1 è il record originale, per i lettori creati per essa.",
   "Version 2 (newest)": "Versione 2 (la più recente)",
   "Version 1 (original)": "Versione 1 (originale)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "La versione 3 aggiunge come cosa è stato eseguito ogni passaggio di un flusso di lavoro. La versione 2 aggiunge cosa è cambiato nei passaggi e nel JSON. La versione 1 è l'originale.",
+  "Version 3 (newest)": "Versione 3 (la più recente)",
+  "Version 2": "Versione 2",
   "Unchanged": "Invariato",
   "Setup guide": "Guida alla configurazione",
   "Write a test file": "Scrivi un file di prova",
@@ -4110,6 +4129,13 @@
   "Sign them out": "Disconnettile",
   "Sign out everyone signed in without SSO?": "Disconnettere tutti quelli che hanno eseguito l'accesso senza SSO?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Le loro sessioni terminano subito su ogni dispositivo e accedono di nuovo con l'SSO. Gli amministratori principali restano connessi.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} persone hanno ancora una password o l'autenticazione a due fattori salvata in OneUptime. Permetterebbe loro di accedere di nuovo se l'SSO non fosse più richiesto.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} persona ha ancora una password o l'autenticazione a due fattori salvata in OneUptime. Le permetterebbe di accedere di nuovo se l'SSO non fosse più richiesto.",
+  "Clear Sign-In Settings": "Cancella impostazioni di accesso",
+  "Clear everyone's saved sign-in settings?": "Cancellare le impostazioni di accesso salvate di tutti?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Le loro password, passkey, chiavi di sicurezza, app di autenticazione e codici di backup vengono eliminati. Non si può annullare. Gli amministratori principali mantengono i propri.",
+  "Cleared the sign-in settings of {{count}} people.": "Le impostazioni di accesso di {{count}} persone sono state cancellate.",
+  "Cleared the sign-in settings of {{count}} people._one": "Le impostazioni di accesso di {{count}} persona sono state cancellate.",
   "Made by {{name}} on {{date}}": "Creata da {{name}} il {{date}}",
   "Made on {{date}}": "Creata il {{date}}",
   "Ends in {{hint}}": "Termina con {{hint}}",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "Esci anche dal provider di identità",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Uscire da OneUptime fa uscire anche da questo provider e da ogni altra app che lo usa. Attivalo per i computer condivisi.",
   "Sign-out Redirect URI:": "URI di reindirizzamento dopo l'uscita:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registra l'URI di reindirizzamento presso il tuo provider di identità OIDC, e anche l'URI di reindirizzamento dopo l'uscita quando «Esci anche dal provider di identità» è attivo."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registra l'URI di reindirizzamento presso il tuo provider di identità OIDC, e anche l'URI di reindirizzamento dopo l'uscita quando «Esci anche dal provider di identità» è attivo.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Se questa persona non ha ancora un account OneUptime, verrà creato con questo nome.",
+  "Suggest every account on this server?": "Suggerire ogni account di questo server?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Chiunque possa invitare persone vedrà nome ed email di ogni account mentre digita. Attivalo solo se ogni account qui appartiene a un'unica organizzazione.",
+  "Suggest Every Account": "Suggerisci ogni account"
 }

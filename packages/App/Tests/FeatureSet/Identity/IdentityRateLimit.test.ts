@@ -159,6 +159,21 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
   ).ssoNotRequired();
 });
 
+/*
+ * Single sign-on manages nobody's sign-in here: setting up a second step at
+ * sign-in, claiming an invited account with a password and a password reset
+ * link each ask SsoManagedSignIn first, which reads the server's rule and,
+ * since #9763, every project the person is in. Driven for real in
+ * SignInMatrixSsoAndTwoFactor.test.ts and ForgotPasswordSsoManaged.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoManagedSignInStandIn",
+    ) as typeof import("./SsoManagedSignInStandIn")
+  ).ssoManagesNobody();
+});
+
 jest.mock("Common/Server/Infrastructure/Redis", () => {
   return {
     __esModule: true,
@@ -603,6 +618,17 @@ beforeEach(() => {
     .mockResolvedValue(null as never);
 
   jest.spyOn(UserService, "updateOneById").mockResolvedValue(1 as never);
+
+  /*
+   * A sign-in for an address with no account spends a scrypt derivation,
+   * so its refusal takes as long as a wrong password's (#9745,
+   * SignInSaysNothingOfAccounts). These suites count requests, hundreds of
+   * them for addresses nobody has, not the time each takes: the derivation
+   * is skipped here, or each such request would cost tens of milliseconds.
+   */
+  jest
+    .spyOn(PasswordHash, "spendVerificationTime")
+    .mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -619,6 +645,10 @@ describe("the credential routes have a limiter in front of the handler", () => {
     ["/verify-totp-auth"],
     ["/verify-webauthn-auth"],
     ["/verify-totp-enrolment"],
+
+    // A security key in place of an app, to finish that setup (#9764).
+    ["/security-key-enrolment-options"],
+    ["/verify-security-key-enrolment"],
     ["/verify-backup-code"],
 
     /*
@@ -1058,6 +1088,48 @@ describe("the ways a caller might try to buy a fresh bucket", () => {
     expect(refused.reachedHandler).toBe(false);
     expect(refused.errorCode).toBe(ExceptionCode.TooManyRequestsException);
   });
+
+  /*
+   * The security key's way through the same setup (#9764): both requests
+   * carry the password again, so both are password oracles, and an
+   * attacker refused at the other second steps must not find a fresh
+   * budget here.
+   */
+  it.each([
+    ["/security-key-enrolment-options"],
+    ["/verify-security-key-enrolment"],
+  ])("%s shares the second-step budget", async (uri: string) => {
+    for (let i: number = 0; i < PER_ACCOUNT_LIMIT; i++) {
+      await attempt({ uri: "/verify-totp-auth" });
+    }
+
+    const refused: AttemptResult = await attempt({ uri: uri });
+
+    expect(refused.reachedHandler).toBe(false);
+    expect(refused.errorCode).toBe(ExceptionCode.TooManyRequestsException);
+  });
+
+  it.each([
+    ["/security-key-enrolment-options"],
+    ["/verify-security-key-enrolment"],
+  ])(
+    "%s bounds password guessing aimed at it directly, before the handler reads anything",
+    async (uri: string) => {
+      for (let i: number = 0; i < PER_ACCOUNT_LIMIT; i++) {
+        const allowed: AttemptResult = await attempt({ uri: uri });
+
+        expect(allowed.reachedHandler).toBe(true);
+      }
+
+      findOneBy.mockClear();
+
+      const refused: AttemptResult = await attempt({ uri: uri });
+
+      expect(refused.reachedHandler).toBe(false);
+      expect(refused.errorCode).toBe(ExceptionCode.TooManyRequestsException);
+      expect(findOneBy).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /*

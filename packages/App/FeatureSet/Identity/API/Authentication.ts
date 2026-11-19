@@ -108,6 +108,13 @@ import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
+import {
+  SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
+  SIGN_IN_AUTHENTICATOR_APP_NAME,
+  SIGN_IN_SECURITY_KEY_NAME,
+  VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
+} from "Common/Types/Accounts/SecondStepEnrolment";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
@@ -172,9 +179,21 @@ import PublicMessageRateLimit, {
   PublicMessageSendPermit,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { URL as NodeURL } from "url";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The two requests of a security key set up at sign-in (#9764, login()'s
+ * `securityKeyEnrolment`, Types/Accounts/SecondStepEnrolment).
+ */
+enum SecurityKeyEnrolmentStage {
+  // The options for the browser's prompt: nobody is signed in.
+  Options = "Options",
+  // The key's answer: the key is saved and the sign-in finishes.
+  Verify = "Verify",
+}
 
 /*
  * The credential routes below are anonymous by definition -- they are how a
@@ -193,8 +212,10 @@ const loginRateLimit: (
 );
 
 /*
- * The second step gets its own bucket, shared by all three routes that reach
- * `login()` with verifyTotpAuth, verifyWebAuthn or verifyTotpEnrolment set.
+ * The second step gets its own bucket, shared by every route that reaches
+ * `login()` with verifyTotpAuth, verifyWebAuthn, verifyTotpEnrolment or
+ * securityKeyEnrolment set - the last two setting up a first second step
+ * (#9764), and each a password oracle like the others.
  *
  * For /verify-totp-auth it is the sharper of the two limiters: the password
  * has already been accepted by the time it is reached, so all that stands
@@ -791,6 +812,8 @@ router.post(
           password: true,
           timezone: true,
           isBlocked: true,
+          // Whether SSO manages their sign-in is not asked of a master admin.
+          isMasterAdmin: true,
         },
         props: {
           isRoot: true,
@@ -913,6 +936,21 @@ router.post(
             new BadDataException(ExceptionMessages.UserBlocked),
           );
         }
+
+        /*
+         * Claiming an invited account gives it its first password: refused
+         * while single sign-on manages the person's sign-in - every project
+         * they are invited to requires SSO and manages sign-in with it
+         * (SsoManagedSignIn, #9763). They sign in with SSO instead, which
+         * the message says. While the whole server requires SSO no sign-up
+         * gets this far (assertSignUpAllowed, above). Asked only after the
+         * token has proved the mailbox, like the block above, so whoever
+         * typed the address learns nothing about the account.
+         */
+        await SsoManagedSignIn.assertMayChangeLocalSignInFor({
+          userId: alreadySavedUser.id!,
+          isMasterAdmin: alreadySavedUser.isMasterAdmin === true,
+        });
 
         didClaimInvitedAccount = true;
 
@@ -1333,10 +1371,11 @@ router.post(
 
       /*
        * Somebody whose sign-in is managed by single sign-on - everyone but a
-       * master admin, while the server requires SSO (SsoManagedSignIn,
-       * #9688) - is mailed no link: a password they set would sign them in
-       * nowhere, and would lie there until the requirement was turned off.
-       * The answer is the one every address gets.
+       * master admin, while the server requires SSO, or whose every project
+       * requires SSO and manages sign-in with it (SsoManagedSignIn, #9688,
+       * #9763) - is mailed no link: a password they set would open none of
+       * their projects, and would lie there until the requirement was
+       * turned off. The answer is the one every address gets.
        *
        * A rule that cannot be read mails them nothing either: it is logged,
        * never told to the caller, whose answer must not differ by account.
@@ -1348,6 +1387,7 @@ router.post(
 
         try {
           isManagedBySso = await SsoManagedSignIn.isManagedBySsoFor({
+            userId: alreadySavedUser.id,
             isMasterAdmin: alreadySavedUser.isMasterAdmin === true,
           });
         } catch (err) {
@@ -3014,6 +3054,65 @@ router.post(
   },
 );
 
+/*
+ * The other way to finish that setup (issue #9764,
+ * Types/Accounts/SecondStepEnrolment): a security key - a USB or NFC key,
+ * or the device's own fingerprint, face or screen lock - in place of an
+ * authenticator app, for somebody who has a key but no app.
+ *
+ * Two requests, as the profile's Add Security Key makes: the options for
+ * the browser's prompt, then the key's answer to them. Both are sign-in
+ * routes like /verify-totp-enrolment, and for the same reasons: there is no
+ * session until the key works, each request carries the email and password
+ * again (or the sign-in link's token) and passes every check /login makes,
+ * and both sit on the second step's limiter, since each is a password
+ * oracle in its own right. The options are for the account the password
+ * proves and the challenge is kept for it on the server, so a key answers
+ * for that account and for no other. Only the second request signs anybody
+ * in, and only once the key's answer has verified and the key is saved.
+ */
+router.post(
+  SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
+  twoFactorRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
+      verifyBackupCode: false,
+      securityKeyEnrolment: SecurityKeyEnrolmentStage.Options,
+    });
+  },
+);
+
+router.post(
+  VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
+  twoFactorRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
+      verifyBackupCode: false,
+      securityKeyEnrolment: SecurityKeyEnrolmentStage.Verify,
+    });
+  },
+);
+
 router.post(
   "/login",
   loginRateLimit,
@@ -3140,9 +3239,10 @@ const fetchTotpAuthList: FetchTotpAuthListFunction = async (
  * `UserTotpAuth.name` is NOT NULL and the user never gets to type one here --
  * they are being marched through setup, not browsing a settings page -- so the
  * server has to supply something. It shows up in their profile afterwards, and
- * they can rename it there.
+ * they can rename it there. A security key set up at sign-in is filed the
+ * same way (Types/Accounts/SecondStepEnrolment).
  */
-const FORCED_TOTP_ENROLMENT_NAME: string = "Authenticator App";
+const FORCED_TOTP_ENROLMENT_NAME: string = SIGN_IN_AUTHENTICATOR_APP_NAME;
 
 /**
  * The pending TOTP enrolment to draw a QR code from, reusing one if it exists.
@@ -3331,33 +3431,42 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
  * because the session must not exist until the factor does -- see the
  * enrolment branch below.
  *
+ * `securityKeyEnrolment` is the other way to set that factor up (#9764,
+ * Types/Accounts/SecondStepEnrolment): a security key, in two requests - the
+ * options for the browser's prompt (Options), which signs nobody in, then the
+ * key's answer to them (Verify), which saves the key and signs in. Both are
+ * enrolments, held to everything `verifyTotpEnrolment` is held to.
+ *
  * `isMagicLinkFirstStep` is POST /login-with-magic-link: a first step that
  * proves the account with a sign-in link instead of its email and password
  * (Types/Accounts/MagicLink). A second step needs no flag of its own for
  * that: it finishes whichever first step began it, by what its request
  * carries -- the password again, or the link's token again.
  */
+
 /*
  * The second factor a login proved, for the audit log's sign-in entry
  * (SessionSignIn): the step it is finishing, or none for an account
- * without one. An enrolment proves the authenticator app it sets up.
+ * without one. An enrolment proves the second step it sets up.
  */
 const getSecondFactorOfLogin: (stage: {
   verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
+  securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
 }) => SecondFactor | undefined = (stage: {
   verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
+  securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
 }): SecondFactor | undefined => {
   if (stage.verifyTotpAuth || stage.verifyTotpEnrolment) {
     return SecondFactor.AuthenticatorApp;
   }
 
-  if (stage.verifyWebAuthn) {
+  if (stage.verifyWebAuthn || stage.securityKeyEnrolment) {
     return SecondFactor.SecurityKey;
   }
 
@@ -3376,6 +3485,7 @@ type LoginFunction = (options: {
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
+  securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
   isMagicLinkFirstStep?: boolean | undefined;
 }) => Promise<void>;
 
@@ -3387,6 +3497,7 @@ const login: LoginFunction = async (options: {
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
+  securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
   isMagicLinkFirstStep?: boolean | undefined;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
@@ -3396,6 +3507,8 @@ const login: LoginFunction = async (options: {
   const verifyWebAuthn: boolean = options.verifyWebAuthn;
   const verifyTotpEnrolment: boolean = options.verifyTotpEnrolment;
   const verifyBackupCode: boolean = options.verifyBackupCode;
+  const securityKeyEnrolment: SecurityKeyEnrolmentStage | undefined =
+    options.securityKeyEnrolment;
   const isMagicLinkFirstStep: boolean = options.isMagicLinkFirstStep === true;
 
   /*
@@ -3406,7 +3519,11 @@ const login: LoginFunction = async (options: {
    * second step fall through to the challenge screen it was answering.
    */
   const isSecondStep: boolean =
-    verifyTotpAuth || verifyWebAuthn || verifyTotpEnrolment || verifyBackupCode;
+    verifyTotpAuth ||
+    verifyWebAuthn ||
+    verifyTotpEnrolment ||
+    verifyBackupCode ||
+    Boolean(securityKeyEnrolment);
 
   /*
    * Recovery codes minted during a forced enrolment, carried out to the
@@ -3483,11 +3600,13 @@ const login: LoginFunction = async (options: {
             ? "webauthn"
             : verifyTotpEnrolment
               ? "totp-enrolment"
-              : verifyBackupCode
-                ? "backup-code"
-                : isMagicLinkFirstStep
-                  ? "magic-link"
-                  : "password"),
+              : securityKeyEnrolment
+                ? "security-key-enrolment"
+                : verifyBackupCode
+                  ? "backup-code"
+                  : isMagicLinkFirstStep
+                    ? "magic-link"
+                    : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 
@@ -3631,13 +3750,21 @@ const login: LoginFunction = async (options: {
     };
 
     if (alreadySavedUser) {
+      /*
+       * No password yet: an invitation nobody has claimed, or an account a
+       * master admin made without one. Answered as a wrong password is, and
+       * after as long as a password check takes: "You have not signed up so
+       * far" told anyone who typed an address that it had an account (#9745).
+       * Its person signs up through their invitation, or asks Forgot password
+       * for the link to set their first password (#9260).
+       */
       if (!alreadySavedUser.password) {
+        await PasswordHash.spendVerificationTime(submittedPassword);
+
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "You have not signed up so far. Please go to the registration page to sign up.",
-          ),
+          new BadDataException("Email or password does not match."),
         );
       }
 
@@ -3734,6 +3861,177 @@ const login: LoginFunction = async (options: {
       }
 
       /*
+       * Whether this account may set up its first second step here, at
+       * sign-in - an authenticator app or a security key (#9764): not while
+       * single sign-on manages its person's sign-in (SsoManagedSignIn,
+       * #9763). Every project they are in requires SSO and manages sign-in
+       * with it, so a second step would be a local credential they set
+       * none of: they sign in with SSO instead, as the message says. While
+       * the whole server requires SSO no such sign-in gets this far
+       * (above). A refusal is a failed sign-in, filed as SSO required; a
+       * rule that cannot be read refuses as well, as it does everywhere,
+       * and is not filed - nothing was decided about the account.
+       */
+      const assertMayEnrolASecondStep: () => Promise<void> =
+        async (): Promise<void> => {
+          try {
+            await SsoManagedSignIn.assertMayChangeLocalSignInFor({
+              userId: alreadySavedUser.id!,
+              isMasterAdmin: alreadySavedUser.isMasterAdmin === true,
+            });
+          } catch (err) {
+            if (
+              err instanceof BadDataException &&
+              err.message === SSO_MANAGED_SIGN_IN_MESSAGE
+            ) {
+              recordFailedSignIn(SignInFailureReason.SingleSignOnRequired);
+            }
+
+            throw err;
+          }
+        };
+
+      /*
+       * Why this account may not finish setting up its first second step
+       * now, or null when it may: the two refusals every enrolment - an
+       * authenticator app or a security key - makes before it looks at what
+       * it was sent, and neither is bookkeeping:
+       *
+       *  - if the account is NOT required to use two factor auth, an
+       *    enrolment would let anybody holding the password bolt a factor of
+       *    their own choosing onto somebody else's account -- turning a
+       *    stolen password into a lockout of the real owner. Enrolment is
+       *    only ever the completion of a requirement the server itself
+       *    imposed;
+       *  - if the account ALREADY has a verified factor, the correct route
+       *    is that factor's challenge. Allowing enrolment here would mean a
+       *    password alone could add a second factor and then satisfy the
+       *    challenge with it, stepping around the first.
+       */
+      const getEnrolmentRefusal: () => Promise<BadDataException | null> =
+        async (): Promise<BadDataException | null> => {
+          if (!alreadySavedUser.enableTwoFactorAuth) {
+            return new BadDataException(
+              "Two factor authentication is not required for this account.",
+            );
+          }
+
+          const existingFactors: {
+            totpAuthList: Array<UserTotpAuth>;
+            webAuthnList: Array<UserWebAuthn>;
+          } = await fetchTotpAuthList(alreadySavedUser.id!);
+
+          if (
+            existingFactors.totpAuthList.length > 0 ||
+            existingFactors.webAuthnList.length > 0
+          ) {
+            return new BadDataException(
+              "Two factor authentication is already set up for this account.",
+            );
+          }
+
+          return null;
+        };
+
+      /*
+       * What every enrolment does once its second step is saved - an
+       * authenticator app verified, or a security key registered - before
+       * the sign-in finishes.
+       */
+      const finishSecondStepEnrolment: () => Promise<void> =
+        async (): Promise<void> => {
+          /*
+           * Any half-finished authenticator app for this account is now dead
+           * weight -- an abandoned scan from a previous attempt, or the QR
+           * code /login drew for somebody who chose a security key instead,
+           * still holding a secret nobody uses.
+           *
+           * Sweeping them matters because `getOrCreatePendingTotpEnrolment`
+           * REUSES the first unverified row it finds. Leave one behind and the
+           * next time this account is sent through enrolment -- after an admin
+           * resets it, say -- it would be offered that stale secret rather than
+           * a fresh one.
+           */
+          await UserTotpAuthService.deleteBy({
+            query: {
+              userId: alreadySavedUser.id!,
+              isVerified: false,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          /*
+           * This is the single most important place in the product to mint
+           * recovery codes, and the one where it was most obviously missing.
+           *
+           * An account arrives here in exactly two situations: an admin has
+           * just mandated two factor auth on somebody who had none, or an
+           * admin has just RESET two factor auth for somebody who was locked
+           * out -- and `UserService.resetTwoFactorAuth` deletes the backup
+           * codes along with the factors, by design. Both of those used to end
+           * with the user signed in, a fresh authenticator app, and no
+           * recovery route whatsoever: the same lockout, one device away, with
+           * nothing learned. The user who had just been rescued was the user
+           * most certain to need rescuing again. A security key, which can be
+           * left in a taxi, needs them as much as an app does.
+           *
+           * The codes go out in the login response and the sign-in page shows
+           * them before it redirects, which is what keeps the show-once
+           * guarantee: nothing is written on a path that has no screen to
+           * display it.
+           *
+           * Never fatal. The enrolment itself is complete and the password was
+           * correct, so refusing the login over a failed mint would lock out
+           * the user this whole feature exists to let in.
+           */
+          try {
+            const mintedCodes: Array<string> | null =
+              await UserTwoFactorBackupCodeService.generateForUserIfNone({
+                userId: alreadySavedUser.id!,
+              });
+
+            enrolmentBackupCodes = mintedCodes || [];
+
+            /*
+             * A null return means the account ALREADY had codes, and the
+             * sign-in page has to be told so.
+             *
+             * That account is rarer than it sounds but it is reachable: the
+             * profile card deliberately lets a user generate codes before
+             * turning two factor auth on, so somebody can be holding a printed
+             * set and still have no verified factor when an admin mandates
+             * one. Without this flag the page would fall through to its "you
+             * have no backup codes" offer -- telling that user something false
+             * and, if they took it up, replacing the very set they had
+             * printed. Nothing else on this response can distinguish the two
+             * cases: no codes are minted in either.
+             */
+            enrolmentAccountAlreadyHadCodes = mintedCodes === null;
+
+            /*
+             * Same out-of-band notice the profile routes send. Forced
+             * enrolment is reached with a correct password and no session, so
+             * a stolen password alone can put a second factor -- and its ten
+             * recovery codes -- onto somebody else's mandated account. The
+             * mail is how the real owner learns that happened.
+             */
+            if (mintedCodes && mintedCodes.length > 0) {
+              TwoFactorBackupCodeNotification.notifyCodesCreated({
+                userId: alreadySavedUser.id!,
+                codeCount: mintedCodes.length,
+                origin: RequestOriginUtil.fromRequest(req),
+              });
+            }
+          } catch (backupCodeError) {
+            logger.error(backupCodeError);
+          }
+        };
+
+      /*
        * An unverified address gets no session, on any stage. This is the gate
        * a hosted signup is held at until its welcome link is followed, and
        * the way back for somebody who lost that email: signing in mails them a
@@ -3810,7 +4108,13 @@ const login: LoginFunction = async (options: {
            * this branch already required the correct password and a verified
            * email, so the QR code is shown to somebody who could enrol anyway;
            * it is not a credential.
+           *
+           * Not while single sign-on manages the person's sign-in (#9763):
+           * a second step is a local credential they set none of, so they
+           * are told to sign in with SSO, before anything is created.
            */
+          await assertMayEnrolASecondStep();
+
           const pendingEnrolment: UserTotpAuth =
             await getOrCreatePendingTotpEnrolment(alreadySavedUser.id!);
 
@@ -4219,47 +4523,20 @@ const login: LoginFunction = async (options: {
            * authenticator produced. Getting here proves the password and the
            * verified email, exactly as the other two second steps do.
            *
-           * Two refusals sit in front of the code check, and neither is
-           * bookkeeping:
-           *
-           *  - if the account is NOT required to use two factor auth, this
-           *    endpoint would let anybody holding the password bolt a factor
-           *    of their own choosing onto somebody else's account -- turning a
-           *    stolen password into a lockout of the real owner. Enrolment is
-           *    only ever the completion of a requirement the server itself
-           *    imposed;
-           *  - if the account ALREADY has a verified factor, the correct route
-           *    is /verify-totp-auth. Allowing enrolment here would mean a
-           *    password alone could add a second factor and then satisfy the
-           *    challenge with it, stepping around the first.
+           * The two refusals every enrolment makes sit in front of the code
+           * check (getEnrolmentRefusal: two factor auth is required, and
+           * nothing is set up yet), and so does single sign-on: an
+           * enrolment begun before SSO came to manage the person's sign-in
+           * finishes nowhere (assertMayEnrolASecondStep, #9763).
            */
-          if (!alreadySavedUser.enableTwoFactorAuth) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Two factor authentication is not required for this account.",
-              ),
-            );
+          const enrolmentRefusal: BadDataException | null =
+            await getEnrolmentRefusal();
+
+          if (enrolmentRefusal) {
+            return Response.sendErrorResponse(req, res, enrolmentRefusal);
           }
 
-          const existingFactors: {
-            totpAuthList: Array<UserTotpAuth>;
-            webAuthnList: Array<UserWebAuthn>;
-          } = await fetchTotpAuthList(alreadySavedUser.id!);
-
-          if (
-            existingFactors.totpAuthList.length > 0 ||
-            existingFactors.webAuthnList.length > 0
-          ) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Two factor authentication is already set up for this account.",
-              ),
-            );
-          }
+          await assertMayEnrolASecondStep();
 
           const code: string = data["code"] as string;
           const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
@@ -4341,93 +4618,94 @@ const login: LoginFunction = async (options: {
             },
           });
 
+          await finishSecondStepEnrolment();
+        } else if (securityKeyEnrolment) {
           /*
-           * Any OTHER half-finished enrolment for this account is now dead
-           * weight -- an abandoned scan from a previous attempt, still holding
-           * a secret nobody uses.
-           *
-           * Sweeping them matters because `getOrCreatePendingTotpEnrolment`
-           * REUSES the first unverified row it finds. Leave one behind and the
-           * next time this account is sent through enrolment -- after an admin
-           * resets it, say -- it would be offered that stale secret rather than
-           * a fresh one.
+           * A security key in place of an authenticator app, to finish the
+           * setup the account is required to make (#9764). Held to the
+           * same refusals as the app, in the same order, at both of its
+           * steps: the options are as much a part of an enrolment as the
+           * answer to them.
            */
-          await UserTotpAuthService.deleteBy({
-            query: {
-              userId: alreadySavedUser.id!,
-              isVerified: false,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          const enrolmentRefusal: BadDataException | null =
+            await getEnrolmentRefusal();
+
+          if (enrolmentRefusal) {
+            return Response.sendErrorResponse(req, res, enrolmentRefusal);
+          }
+
+          await assertMayEnrolASecondStep();
+
+          if (securityKeyEnrolment === SecurityKeyEnrolmentStage.Options) {
+            /*
+             * The options for the browser's prompt, for the account the
+             * password proved. Its challenge is kept on the server for that
+             * account (UserWebAuthnService), so only a registration for it
+             * can answer them. A security key rather than a passkey: a
+             * second step after the password, which a USB or NFC key with
+             * no PIN can be - as the profile's Add Security Key registers
+             * one - and which a phone's or a computer's own fingerprint,
+             * face or screen lock answers just as well. Nothing more
+             * happens here: no session, and nothing saved but the
+             * challenge.
+             */
+            const registration: { options: any; challenge: string } =
+              await UserWebAuthnService.generateRegistrationOptions({
+                userId: alreadySavedUser.id!,
+                isPasskey: false,
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              options: registration.options,
+            });
+          }
+
+          const credential: unknown = data["credential"];
+
+          // Proven present before anything is spent for it.
+          CredentialGuard.assertPresent(credential, "Security key");
 
           /*
-           * This is the single most important place in the product to mint
-           * recovery codes, and the one where it was most obviously missing.
-           *
-           * An account arrives here in exactly two situations: an admin has
-           * just mandated two factor auth on somebody who had none, or an
-           * admin has just RESET two factor auth for somebody who was locked
-           * out -- and `UserService.resetTwoFactorAuth` deletes the backup
-           * codes along with the factors, by design. Both of those used to end
-           * with the user signed in, a fresh authenticator app, and no
-           * recovery route whatsoever: the same lockout, one device away, with
-           * nothing learned. The user who had just been rescued was the user
-           * most certain to need rescuing again.
-           *
-           * The codes go out in the login response and the sign-in page shows
-           * them before it redirects, which is what keeps the show-once
-           * guarantee: nothing is written on a path that has no screen to
-           * display it.
-           *
-           * Never fatal. The enrolment itself is complete and the password was
-           * correct, so refusing the login over a failed mint would lock out
-           * the user this whole feature exists to let in.
+           * A sign-in begun with a link spends the link before the key is
+           * saved, as a backup code is spent: the recovery codes minted
+           * below are shown once, in this response, and a sign-in that
+           * lost a race for its link afterwards would have no response to
+           * show them in. A key whose answer is refused costs the link,
+           * which a fresh email replaces.
+           */
+          if (isMagicLinkSignIn && !(await spendMagicLink(alreadySavedUser))) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(MAGIC_LINK_INVALID_MESSAGE),
+            );
+          }
+
+          /*
+           * The key's answer, checked against the challenge made for this
+           * account above - spent whether it verifies or not - and saved
+           * as this account's key, under the name the profile then lists
+           * it by. A refused answer is a failed sign-in, as a refused key
+           * at the challenge is.
            */
           try {
-            const mintedCodes: Array<string> | null =
-              await UserTwoFactorBackupCodeService.generateForUserIfNone({
+            await UserWebAuthnService.verifyRegistration({
+              credential: credential,
+              name: SIGN_IN_SECURITY_KEY_NAME,
+              props: {
                 userId: alreadySavedUser.id!,
-              });
-
-            enrolmentBackupCodes = mintedCodes || [];
-
-            /*
-             * A null return means the account ALREADY had codes, and the
-             * sign-in page has to be told so.
-             *
-             * That account is rarer than it sounds but it is reachable: the
-             * profile card deliberately lets a user generate codes before
-             * turning two factor auth on, so somebody can be holding a printed
-             * set and still have no verified factor when an admin mandates
-             * one. Without this flag the page would fall through to its "you
-             * have no backup codes" offer -- telling that user something false
-             * and, if they took it up, replacing the very set they had
-             * printed. Nothing else on this response can distinguish the two
-             * cases: no codes are minted in either.
-             */
-            enrolmentAccountAlreadyHadCodes = mintedCodes === null;
-
-            /*
-             * Same out-of-band notice the profile routes send. Forced
-             * enrolment is reached with a correct password and no session, so
-             * a stolen password alone can put a second factor -- and its ten
-             * recovery codes -- onto somebody else's mandated account. The
-             * mail is how the real owner learns that happened.
-             */
-            if (mintedCodes && mintedCodes.length > 0) {
-              TwoFactorBackupCodeNotification.notifyCodesCreated({
-                userId: alreadySavedUser.id!,
-                codeCount: mintedCodes.length,
-                origin: RequestOriginUtil.fromRequest(req),
-              });
+                isRoot: true,
+              },
+            });
+          } catch (err) {
+            if (err instanceof BadDataException) {
+              recordFailedSignIn(SignInFailureReason.SecurityKeyNotAccepted);
             }
-          } catch (backupCodeError) {
-            logger.error(backupCodeError);
+
+            throw err;
           }
+
+          await finishSecondStepEnrolment();
         }
 
         /*
@@ -4479,6 +4757,7 @@ const login: LoginFunction = async (options: {
               verifyWebAuthn,
               verifyTotpEnrolment,
               verifyBackupCode,
+              securityKeyEnrolment,
             }),
           },
         });
@@ -4528,6 +4807,16 @@ const login: LoginFunction = async (options: {
         );
       }
     }
+
+    /*
+     * No account has this address. Answered as a wrong password is, and
+     * after as long as checking one takes: answered at once, it told anyone
+     * timing the answer which addresses have accounts (#9745).
+     */
+    if (!alreadySavedUser) {
+      await PasswordHash.spendVerificationTime(submittedPassword);
+    }
+
     return Response.sendErrorResponse(
       req,
       res,

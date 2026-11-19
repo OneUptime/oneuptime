@@ -39,7 +39,7 @@ Die Sonde, die die Prüfung ausführt, erhält den Wert. Ein Monitor, der ein Ge
 :::
 
 > [!IMPORTANT]
-> Geheimnisse werden verschlüsselt und sicher gespeichert. Der Wert des Geheimnisses wird nach dem Speichern nie wieder angezeigt — nicht in der Tabelle, nicht im Bearbeitungsformular und nicht über die API. Wenn Sie den Wert verlieren, müssen Sie ihn von dort holen, wo er herkam, und ihn erneut setzen. Um ein Geheimnis zu rotieren, verwenden Sie die Schaltfläche **Geheimwert aktualisieren** in seiner Zeile; Sie müssen es nicht löschen und neu erstellen.
+> Geheimnisse werden verschlüsselt und sicher gespeichert. Der Wert des Geheimnisses wird nach dem Speichern nie wieder angezeigt — nicht in der Tabelle, nicht im Bearbeitungsformular und nicht über die API. Wenn Sie den Wert verlieren, müssen Sie ihn von dort holen, wo er herkam, und ihn erneut setzen. Um ein Geheimnis zu rotieren, verwenden Sie die Schaltfläche **Geheimwert aktualisieren** in seiner Zeile; Sie müssen es nicht löschen und neu erstellen. Dieselbe Schaltfläche ändert zusammen mit einem neuen Wert auch, was das Geheimnis enthält, **Text** oder **Einmalcode (TOTP)**, und Monitore, die das Geheimnis nutzen, übernehmen den neuen Typ bei ihrer nächsten Prüfung.
 
 ### Festlegen, welche Monitore ein Geheimnis verwenden dürfen
 
@@ -128,7 +128,7 @@ return {
 Die Sonde gibt nie einen Code heraus, der nur noch weniger als fünf Sekunden gilt, oder weniger als ein Drittel des Zeitraums, wenn der Zeitraum kürzer ist: Sie wartet stattdessen auf den nächsten Code, höchstens fünf Sekunden, und rechnet diese Wartezeit nicht in die Ausführungszeit der Prüfung ein. Jeder Code, den eine Prüfung erzeugt, erscheint als Sternchen, etwa `******`, in ihren Protokollmeldungen, ihrem Ergebnis, ihrem Fehler und den Namen ihrer Screenshots. Ein Screenshot ist ein Bild der Seite, machen Sie ihn also, bevor der Code eingegeben wird, oder nachdem die Seite weitergegangen ist.
 
 > [!NOTE]
-> Die Sonde erzeugt die Codes, aktualisieren Sie also eine benutzerdefinierte Sonde, bevor Sie ein Einmalcode-Geheimnis verwenden: Eine ältere Sonde sendet `{{monitorSecrets.NAME}}` so, wie es geschrieben ist. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
+> Die Sonde erzeugt die Codes, daher braucht eine benutzerdefinierte Sonde OneUptime 17.0.1 oder neuer. Auf einer älteren läuft eine Prüfung, die einen Code braucht, nicht, sondern schlägt mit einem Satz fehl, der sagt, dass die Sonde aktualisiert werden muss; das Formular des Monitors und die Seite der Sonde nennen eine zu alte Sonde, und [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren) erklärt, wie. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
 
 ## Fehlerbehebung
 
@@ -146,6 +146,10 @@ Nur die Felder in der Tabelle oben nehmen Geheimnisse an. In jedem anderen Feld 
 
 :::details Die Website lehnt den Einmalcode ab
 Prüfen Sie, ob der Code unter **Aktueller Code** beim Speichern des Geheimnisses mit Ihrer Authenticator-App übereinstimmte, ob die Uhr der Sonde stimmt und ob ein Verweis in einem JSON-Request-Body in Anführungszeichen steht. Wenn die Anmeldung eine Weile braucht, bis sie die Abfrage des Codes erreicht, fordern Sie den Code dort mit `oneuptime.getTotpCode` an.
+:::
+
+:::details Die Prüfung meldet, dass die Sonde zu alt ist, um Einmalcodes zu erzeugen
+Die Sonde läuft mit einer Version vor OneUptime 17.0.1, die keine Einmalcodes erzeugen kann, daher wurde die Prüfung auf ihr nicht ausgeführt. Aktualisieren Sie die Sonde (siehe [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren)), oder lassen Sie den Monitor von Sonden mit 17.0.1 oder neuer prüfen.
 :::
 
 ## Nächste Schritte

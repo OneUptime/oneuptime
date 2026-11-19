@@ -67,10 +67,10 @@ En endring av disse innstillingene trer i kraft innen ett minutt.
 | **Når** | Hvor lenge siden, med dato og klokkeslett. |
 | **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopptaksfil som noen har lastet ned, eller `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` eller `Session Revoked` for en pålogging eller en økt. |
 | **Ressurs** | Ressursens navn, som åpner den så lenge den finnes, og typen. |
-| **Aktør** | Hvem som gjorde endringen: en person, en API-nøkkel, en arbeidsflyt eller `System` for en endring OneUptime selv gjorde. En persons endring via en MCP-klient nevner hvilken. |
+| **Aktør** | Hvem som gjorde endringen: en person, en API-nøkkel, en arbeidsflyt eller `System` for en endring OneUptime selv gjorde. En persons endring via en MCP-klient nevner hvilken. En arbeidsflyts endring sier hva den kjørte som og med hvems tillatelser. |
 | **Endringer** | Hvor mange felt som ble endret, eller registrert ved en opprettelse eller sletting. For en pålogging eller en økt: hvordan det ble logget på, hvorfor det mislyktes, eller hvorfor økten sluttet. Klikk for å se hvert felt. |
 
-Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
+Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post**, **Arbeidsflyt kjørt som**, **Arbeidsflytens tillatelser gitt av** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
 
 En ressurs uten eget navn får navn etter det som navngir den i OneUptime: et unntak etter typen og begynnelsen av meldingen, med ID-er, adresser og alt som ligner en hemmelighet maskert, en kjøring av en runbook etter runbooken, telefonnummeret til en policy for innkommende anrop etter nummeret, og en mal eller et domene etter sitt eget navn.
 

@@ -54,6 +54,10 @@ export default class FeedFollowOnWriteProps {
         isRoot: true,
         workflowId: data.props.workflowId,
         workflowName: workflowName,
+        // What that workflow ran as, and with whose permissions (#9766).
+        ...(data.props.workflowRunAsAudit
+          ? { workflowRunAsAudit: data.props.workflowRunAsAudit }
+          : {}),
       };
     }
 

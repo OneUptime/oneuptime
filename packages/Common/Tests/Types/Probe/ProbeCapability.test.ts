@@ -1,5 +1,6 @@
 import ProbeCapability, {
   FIRST_PROBE_VERSION_WITH_SNMP_TABLES,
+  FIRST_PROBE_VERSION_WITH_TOTP_CODES,
   MAX_PROBE_CAPABILITIES,
   MAX_PROBE_CAPABILITY_LENGTH,
   ProbeCapabilityUtil,
@@ -24,6 +25,8 @@ describe("ProbeCapability", () => {
     expect(ProbeCapability.RetryWhenBusy).toBe("retryWhenBusy");
     // And every other work endpoint, once the probe declares this (#8051).
     expect(ProbeCapability.RetryAllWorkWhenBusy).toBe("retryAllWorkWhenBusy");
+    // Only a probe declaring this is handed a step that needs a one-time code (#9759).
+    expect(ProbeCapability.TotpCodes).toBe("totpCodes");
   });
 
   test("a probe that reads a 429 from its scheduling fetches alone does not declare it reads one from all its work fetches", () => {
@@ -72,6 +75,32 @@ describe("ProbeCapability", () => {
 
   test("SNMP tables first shipped in 14.0.18", () => {
     expect(FIRST_PROBE_VERSION_WITH_SNMP_TABLES).toBe("14.0.18");
+  });
+
+  test("one-time codes ship in the release after 17.0.0", () => {
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+  });
+
+  test("a probe from before one-time codes does not declare it makes them", () => {
+    const before9759: Array<string> = ProbeCapabilityUtil.parse([
+      "networkDevicePing",
+      "snmpTables",
+      "snmpWalk",
+      "dataSecurityScan",
+      "dataObservabilityCollect",
+      "retryWhenBusy",
+      "retryAllWorkWhenBusy",
+    ]);
+
+    expect(ProbeCapabilityUtil.has(before9759, ProbeCapability.TotpCodes)).toBe(
+      false,
+    );
+    expect(
+      ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse([...before9759, "totpCodes"]),
+        ProbeCapability.TotpCodes,
+      ),
+    ).toBe(true);
   });
 });
 

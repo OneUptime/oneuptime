@@ -644,6 +644,45 @@ export const CODE_CONTEXT_REFUSALS: Array<string> = [
 export const CODE_TURN_FAILED: string = translationKey("AI could not finish.");
 
 /*
+ * A fix OneUptime started, asked again (#6509): it has no words of its
+ * own, so its turn says who asked for it again.
+ */
+export const CODE_TASK_ASKED_AGAIN: string = translationKey(
+  "{{name}} asked OneUptime AI to try again.",
+);
+
+/*
+ * Why the server does not ask a task again (Types/AI/CodeTaskTryAgain):
+ * drawn under Try again, in a list's Retry selected and on a fix's page,
+ * each looked up in the reader's language (ErrorInSentence). Kept here as
+ * keys, word for word as the server writes them - a test holds them to it.
+ */
+export const CODE_TASK_TRY_AGAIN_REFUSAL_KEYS: Array<string> = [
+  translationKey("Only a turn that failed or was stopped can be tried again."),
+  translationKey(
+    "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.",
+  ),
+  translationKey(
+    "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.",
+  ),
+  translationKey(
+    "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.",
+  ),
+  translationKey(
+    "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.",
+  ),
+  translationKey(
+    "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.",
+  ),
+  translationKey(
+    "The exception this fix was for is gone, so OneUptime AI cannot fix it again.",
+  ),
+  translationKey(
+    "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.",
+  ),
+];
+
+/*
  * The request box's pickers (CodeRepositoryPicker, CodeBranchPicker): what
  * they are called, how they search, and what they say when there is
  * nothing to pick or the branches cannot be read.

@@ -21,6 +21,7 @@ import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -80,6 +81,26 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
       },
       assertSignUpAllowed: (): Promise<void> => {
         return Promise.resolve();
+      },
+    },
+  };
+});
+
+/*
+ * Whether single sign-on manages the person's sign-in (#9763), which a
+ * first second step set up at sign-in asks: not, unless a test says so.
+ */
+const assertMayChangeLocalSignInFor: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return {
+    __esModule: true,
+    default: {
+      assertMayChangeLocalSignInFor: (...args: Array<unknown>): unknown => {
+        return assertMayChangeLocalSignInFor(...args);
+      },
+      isManagedBySsoFor: (): Promise<boolean> => {
+        return Promise.resolve(false);
       },
     },
   };
@@ -206,6 +227,7 @@ jest.mock("Common/Server/Services/UserTotpAuthService", () => {
 });
 
 const verifyAuthentication: jest.Mock = jest.fn();
+const verifyRegistration: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/UserWebAuthnService", () => {
   return {
@@ -216,6 +238,12 @@ jest.mock("Common/Server/Services/UserWebAuthnService", () => {
       },
       verifyAuthentication: (...args: Array<unknown>): unknown => {
         return verifyAuthentication(...args);
+      },
+      generateRegistrationOptions: (): Promise<unknown> => {
+        return Promise.resolve({ options: {}, challenge: "challenge" });
+      },
+      verifyRegistration: (...args: Array<unknown>): unknown => {
+        return verifyRegistration(...args);
       },
     },
   };
@@ -501,6 +529,8 @@ beforeEach(() => {
   );
 
   assertNonSsoSignInAllowed.mockResolvedValue(undefined as never);
+  assertMayChangeLocalSignInFor.mockResolvedValue(undefined as never);
+  verifyRegistration.mockResolvedValue(undefined as never);
 
   const totp: UserTotpAuth = new UserTotpAuth();
   totp.id = new ObjectID(TOTP_ID);
@@ -772,5 +802,99 @@ describe("a second step that fails", () => {
     );
 
     expect(recorded().reason).toBe(SignInFailureReason.WrongAuthenticatorCode);
+  });
+});
+
+/*
+ * A first second step set up at sign-in - an authenticator app, or a
+ * security key (#9764) - for an account required to use two-factor
+ * authentication with nothing set up behind it.
+ */
+describe("setting up a first second step that fails", () => {
+  beforeEach(() => {
+    storedRow["enableTwoFactorAuth"] = true;
+    totpFindBy.mockResolvedValue([] as never);
+  });
+
+  /*
+   * While single sign-on manages the person's sign-in (#9763), they set up
+   * no second step in OneUptime: a sign-in that needed SSO, as a password
+   * while the server requires it is.
+   */
+  it.each([
+    ["/login", {}],
+    ["/verify-totp-enrolment", { code: RIGHT_CODE, twoFactorAuthId: TOTP_ID }],
+    ["/security-key-enrolment-options", {}],
+    ["/verify-security-key-enrolment", { credential: { id: "key" } }],
+  ])(
+    "%s, while single sign-on manages the sign-in, is recorded as single sign-on required",
+    async (uri: string, extra: JSONObject) => {
+      assertMayChangeLocalSignInFor.mockRejectedValue(
+        new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE) as never,
+      );
+
+      const outcome: Outcome = await invoke(
+        uri,
+        signInAs(USER_EMAIL, PASSWORD, extra),
+      );
+
+      expect(outcome.answered?.message).toBe(SSO_MANAGED_SIGN_IN_MESSAGE);
+      expect(recorded().reason).toBe(SignInFailureReason.SingleSignOnRequired);
+      expect(recorded().signIn).toEqual({ method: SignInMethod.Password });
+      expect(createSession).not.toHaveBeenCalled();
+    },
+  );
+
+  // Nobody failed to sign in when the rule itself could not be read.
+  it("a rule that cannot be read refuses the setup, and records nothing", async () => {
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new Error("Postgres is down") as never,
+    );
+
+    const outcome: Outcome = await invoke(
+      "/security-key-enrolment-options",
+      signInAs(USER_EMAIL),
+    );
+
+    expect(outcome.answered?.message).toBe("Postgres is down");
+    expect(recordFailedSignIn).not.toHaveBeenCalled();
+  });
+
+  it("a security key whose answer is refused, at sign-in's setup (#9764)", async () => {
+    verifyRegistration.mockRejectedValue(
+      new BadDataException("Registration verification failed") as never,
+    );
+
+    const outcome: Outcome = await invoke(
+      "/verify-security-key-enrolment",
+      signInAs(USER_EMAIL, PASSWORD, { credential: { id: "key" } }),
+    );
+
+    expect(outcome.answered?.message).toBe("Registration verification failed");
+    expect(recorded().reason).toBe(SignInFailureReason.SecurityKeyNotAccepted);
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("a security key setup that breaks is no refused key", async () => {
+    verifyRegistration.mockRejectedValue(
+      new Error("connection reset") as never,
+    );
+
+    await invoke(
+      "/verify-security-key-enrolment",
+      signInAs(USER_EMAIL, PASSWORD, { credential: { id: "key" } }),
+    );
+
+    expect(recordFailedSignIn).not.toHaveBeenCalled();
+  });
+
+  it("a security key set up at sign-in records no failure", async () => {
+    await invoke(
+      "/verify-security-key-enrolment",
+      signInAs(USER_EMAIL, PASSWORD, { credential: { id: "key" } }),
+    );
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(recordFailedSignIn).not.toHaveBeenCalled();
   });
 });

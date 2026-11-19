@@ -1028,6 +1028,40 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Ends these people's sessions that did not sign in with single sign-on -
+   * a password or a sign-in link, a passkey, Google or Microsoft - when a
+   * master admin cleared their sign-in settings (#9762,
+   * Utils/LocalSignInClearing): what those sessions were signed in with is
+   * gone. A session signed in with SSO stays. Ended as every other
+   * revocation is (endSessionsSelectedBy), with SignInSettingsCleared's
+   * words. Returns how many sessions it ended.
+   */
+  @CaptureSpan()
+  public async endSessionsOfPeopleSignedInWithoutSso(
+    userIds: Array<ObjectID>,
+  ): Promise<number> {
+    if (userIds.length === 0) {
+      return 0;
+    }
+
+    return await this.endSessionsSelectedBy({
+      buildQuery: (): SelectQueryBuilder<Model> => {
+        return this.getLiveSessionsQuery()
+          .andWhere(Service.getSessionKindSql(false))
+          .andWhere(`session.userId IN (:...clearedUserIds)`, {
+            clearedUserIds: userIds.map((userId: ObjectID): string => {
+              return userId.toString();
+            }),
+          });
+      },
+      revokedReason: getSessionEndCauseRevokedReason(
+        SessionEndCause.SignInSettingsCleared,
+      ),
+      description: "of people whose sign-in settings were cleared",
+    });
+  }
+
   // Ends the sessions one condition ends, a batch at a time; how many it ended.
   private async endSessionsWhere(
     condition: PastLengthCondition,

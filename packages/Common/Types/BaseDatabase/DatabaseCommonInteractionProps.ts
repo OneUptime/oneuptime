@@ -7,6 +7,7 @@ import {
   UserTenantAccessPermission,
 } from "../Permission";
 import UserType from "../UserType";
+import { WorkflowRunAsAudit } from "../Workflow/WorkflowRunAs";
 import WriteSource from "./WriteSource";
 import ReadAudience from "./ReadAudience";
 
@@ -60,6 +61,15 @@ export default interface DatabaseCommonInteractionProps {
    * What the step may do is in its permission rows, as for anyone.
    */
   workflowRunAs?: string | undefined;
+  /*
+   * What the workflow whose step this is ran as, and with whose
+   * permissions - Default, or Project Owner or a custom role given by a
+   * person or a project API key (#9766) - for the audit trail only, like
+   * workflowId and workflowName: no permission check reads it. Set by
+   * WorkflowPrincipal on every step's props, so each audit entry a step's
+   * change makes says it (AuditLogRecorder).
+   */
+  workflowRunAsAudit?: WorkflowRunAsAudit | undefined;
   /*
    * Where the change came from when it was not made by the person's own
    * hand: Ask AI, acting for them (Server/Utils/AI/Toolbox/

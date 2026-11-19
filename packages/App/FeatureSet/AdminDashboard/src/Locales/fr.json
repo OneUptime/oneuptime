@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "Nous enverrons à cet utilisateur un e-mail contenant un lien lui permettant de définir un nouveau mot de passe. Le lien expire dans 24 heures et remplace tout lien envoyé auparavant.",
       "resetLinkModalSubmit": "Envoyer le lien",
       "resetLinkSuccess": "Lien de réinitialisation du mot de passe envoyé.",
-      "resetLinkSentTo": "Lien de réinitialisation du mot de passe envoyé à {{email}}."
+      "resetLinkSentTo": "Lien de réinitialisation du mot de passe envoyé à {{email}}.",
+      "ssoManagedByServerWarning": "Tant que ce serveur exige le SSO, un mot de passe ne permet pas à cette personne de se connecter.",
+      "ssoManagedByProjectsWarning": "Tous les projets de cette personne gèrent la connexion avec le SSO, donc un mot de passe n'en ouvre aucun.",
+      "clearSignInCardTitle": "Effacer les paramètres de connexion",
+      "clearSignInCardDescription": "Supprimez son mot de passe, ses clés d'accès, clés de sécurité, applications d'authentification et codes de secours, et désactivez l'authentification à deux facteurs.",
+      "clearSignInButton": "Effacer les paramètres de connexion",
+      "clearSignInOwnAccountTooltip": "Modifiez vos propres paramètres de connexion dans Profil utilisateur.",
+      "clearSignInModalTitle": "Effacer les paramètres de connexion",
+      "clearSignInModalDescription": "Supprime son mot de passe, ses clés d'accès, clés de sécurité, applications d'authentification et codes de secours, et désactive l'authentification à deux facteurs. Cette action est irréversible.",
+      "clearSignInMasterAdminConfirmation": "Cette personne est administrateur principal. Je comprends qu'elle aura besoin du SSO ou d'un lien de réinitialisation du mot de passe pour se connecter.",
+      "clearSignInModalSubmit": "Effacer les paramètres de connexion",
+      "clearSignInSuccess": "Paramètres de connexion effacés. Les sessions ouvertes sans SSO ont pris fin."
     },
     "userProjects": {
       "title": "Projets de l'utilisateur",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "Contrôlez qui peut créer de nouveaux projets sur ce serveur OneUptime.",
         "projectCreationSwitchTitle": "Autoriser les utilisateurs à créer des projets",
         "projectCreationSwitchOnDescription": "Toute personne connectée à ce serveur peut créer un projet.",
-        "projectCreationSwitchOffDescription": "Seuls les administrateurs principaux peuvent créer des projets."
+        "projectCreationSwitchOffDescription": "Seuls les administrateurs principaux peuvent créer des projets.",
+        "inviteSuggestionsCardTitle": "Suggestions d'invitation",
+        "inviteSuggestionsCardDescription": "Si les personnes qui invitent dans un projet peuvent trouver toute personne ayant un compte sur ce serveur. Laissez-le désactivé si le serveur héberge plusieurs organisations.",
+        "inviteSuggestionsSwitchTitle": "Suggérer tous les comptes de ce serveur",
+        "inviteSuggestionsSwitchOnDescription": "Toute personne pouvant inviter dans un projet voit le nom et l'e-mail de chaque compte pendant la saisie, avec la mention Pas encore dans ce projet.",
+        "inviteSuggestionsSwitchOffDescription": "Les formulaires d'invitation suggèrent les personnes du projet. Les administrateurs principaux se voient aussi proposer les autres comptes du serveur."
       },
       "email": {
         "adminNotificationCardTitle": "E-mail de notification admin",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "La version 2 indique aussi ce qui a changé dans les étapes d'un flux de travail et dans le JSON. La version 1 est l'enregistrement d'origine, pour les lecteurs conçus pour elle.",
   "Version 2 (newest)": "Version 2 (la plus récente)",
   "Version 1 (original)": "Version 1 (d'origine)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "La version 3 indique en plus en tant que quoi chaque étape d'un flux de travail s'est exécutée. La version 2 ajoute ce qui a changé dans les étapes et dans le JSON. La version 1 est l'originale.",
+  "Version 3 (newest)": "Version 3 (la plus récente)",
+  "Version 2": "Version 2",
   "Unchanged": "Inchangé",
   "Setup guide": "Guide de configuration",
   "Write a test file": "Écrire un fichier de test",
@@ -4110,6 +4129,13 @@
   "Sign them out": "Les déconnecter",
   "Sign out everyone signed in without SSO?": "Déconnecter tous ceux qui sont connectés sans SSO ?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Leurs sessions prennent fin maintenant, sur tous les appareils, et ils se reconnectent avec le SSO. Les administrateurs principaux restent connectés.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} personnes ont encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime. Ils leur permettraient de se reconnecter si le SSO n'était plus exigé.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} personne a encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime. Ils lui permettraient de se reconnecter si le SSO n'était plus exigé.",
+  "Clear Sign-In Settings": "Effacer les paramètres de connexion",
+  "Clear everyone's saved sign-in settings?": "Effacer les paramètres de connexion enregistrés de tout le monde ?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Leurs mots de passe, clés d'accès, clés de sécurité, applications d'authentification et codes de secours sont supprimés. Cette action est irréversible. Les administrateurs principaux conservent les leurs.",
+  "Cleared the sign-in settings of {{count}} people.": "Les paramètres de connexion de {{count}} personnes ont été effacés.",
+  "Cleared the sign-in settings of {{count}} people._one": "Les paramètres de connexion de {{count}} personne ont été effacés.",
   "Made by {{name}} on {{date}}": "Créée par {{name}} le {{date}}",
   "Made on {{date}}": "Créée le {{date}}",
   "Ends in {{hint}}": "Se termine par {{hint}}",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "Se déconnecter aussi du fournisseur d'identité",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Se déconnecter de OneUptime déconnecte aussi de ce fournisseur, et de toutes les autres applications qui l'utilisent. À activer pour les ordinateurs partagés.",
   "Sign-out Redirect URI:": "URI de redirection après déconnexion :",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Enregistrez l'URI de redirection auprès de votre fournisseur d'identité OIDC, et aussi l'URI de redirection après déconnexion lorsque « Se déconnecter aussi du fournisseur d'identité » est activé."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Enregistrez l'URI de redirection auprès de votre fournisseur d'identité OIDC, et aussi l'URI de redirection après déconnexion lorsque « Se déconnecter aussi du fournisseur d'identité » est activé.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Si cette personne n'a pas encore de compte OneUptime, il sera créé avec ce nom.",
+  "Suggest every account on this server?": "Suggérer tous les comptes de ce serveur ?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Toute personne pouvant inviter verra le nom et l'e-mail de chaque compte pendant la saisie. Ne l'activez que si tous les comptes d'ici appartiennent à une seule organisation.",
+  "Suggest Every Account": "Suggérer tous les comptes"
 }

@@ -194,36 +194,56 @@ export type CodeTaskLogPickerEntry =
 
 /*
  * The picker's entries, in the order of the task: the turns its page
- * shows, a turn not shown that the address names (`linkedTurn`) at its
- * place, and a line wherever turns between two listed ones are not listed.
- * Turn 1 then Turn 9 reads as the task's numbering, not as turns gone
- * missing; a turn named between them splits the line in two.
+ * shows, the earlier turns the conversation was asked to show (Show
+ * earlier turns, #7128) at their places, a turn not shown that the address
+ * names (`linkedTurn`) at its place, and a line wherever turns between two
+ * listed ones are not listed. Turn 1 then Turn 9 reads as the task's
+ * numbering, not as turns gone missing; a turn named between them splits
+ * the line in two. A turn both shown earlier and named is listed once.
  */
 export function getCodeTaskLogPickerEntries(data: {
   turns: ReadonlyArray<CodeTaskTurnJSON>;
   turnsNotShown?: number | undefined;
   linkedTurn?: CodeTaskLinkedTurnJSON | null | undefined;
+  earlierTurns?:
+    | ReadonlyArray<{ number: number; turn: CodeTaskTurnJSON }>
+    | undefined;
 }): Array<CodeTaskLogPickerEntry> {
   const listed: Array<CodeTaskLogTurn> = getCodeTaskLogTurns(
     data.turns,
     data.turnsNotShown || 0,
   );
 
-  const linked: CodeTaskLinkedTurnJSON | null | undefined = data.linkedTurn;
-
-  if (
-    linked &&
-    Number.isInteger(linked.number) &&
-    linked.number > 1 &&
-    !listed.some((turn: CodeTaskLogTurn): boolean => {
-      return turn.runId.toLowerCase() === linked.turn.runId.toLowerCase();
-    })
-  ) {
-    listed.push(toCodeTaskLogTurn(linked.turn, linked.number));
-    listed.sort((left: CodeTaskLogTurn, right: CodeTaskLogTurn): number => {
-      return left.number - right.number;
+  const isListed: (runId: string, number: number) => boolean = (
+    runId: string,
+    number: number,
+  ): boolean => {
+    return listed.some((turn: CodeTaskLogTurn): boolean => {
+      return (
+        turn.runId.toLowerCase() === runId.toLowerCase() ||
+        turn.number === number
+      );
     });
+  };
+
+  const placed: Array<{ number: number; turn: CodeTaskTurnJSON }> = [
+    ...(data.earlierTurns || []),
+    ...(data.linkedTurn ? [data.linkedTurn] : []),
+  ];
+
+  for (const entry of placed) {
+    if (
+      Number.isInteger(entry.number) &&
+      entry.number > 1 &&
+      !isListed(entry.turn.runId, entry.number)
+    ) {
+      listed.push(toCodeTaskLogTurn(entry.turn, entry.number));
+    }
   }
+
+  listed.sort((left: CodeTaskLogTurn, right: CodeTaskLogTurn): number => {
+    return left.number - right.number;
+  });
 
   const entries: Array<CodeTaskLogPickerEntry> = [];
 

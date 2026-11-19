@@ -11,7 +11,10 @@ import {
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
@@ -59,6 +62,27 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
       "./SsoNotRequiredStandIn",
     ) as typeof import("./SsoNotRequiredStandIn")
   ).ssoNotRequired();
+});
+
+/*
+ * Whether single sign-on manages the invited person's sign-in (#9763,
+ * SsoManagedSignIn): a claim gives the account its first password, so it
+ * asks first - not, unless a test says so.
+ */
+const assertMayChangeLocalSignInFor: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return {
+    __esModule: true,
+    default: {
+      assertMayChangeLocalSignInFor: (...args: Array<unknown>): unknown => {
+        return assertMayChangeLocalSignInFor(...args);
+      },
+      isManagedBySsoFor: (): Promise<boolean> => {
+        return Promise.resolve(false);
+      },
+    },
+  };
 });
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -451,6 +475,7 @@ function expectNothingHappened(): void {
 beforeEach(() => {
   jest.clearAllMocks();
 
+  assertMayChangeLocalSignInFor.mockResolvedValue(undefined);
   acceptForClaimedAccount.mockResolvedValue(null);
   userFindOneBy.mockResolvedValue(unclaimedInvitedUser());
   consumeRegistrationToken.mockResolvedValue(false);
@@ -1066,6 +1091,125 @@ describe("Identity /signup - joining the project the sign-up page named", () => 
       ],
     ).toBeUndefined();
     // The account is still claimed, and signed in.
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A CLAIM IS A FIRST PASSWORD, REFUSED WHILE SINGLE SIGN-ON MANAGES THE
+ * PERSON'S SIGN-IN (#9763).
+ *
+ * Somebody invited only to projects that require SSO and manage sign-in with
+ * it sets no password in OneUptime: claiming the invitation with one is
+ * refused, and they sign in with SSO instead, as the message says. The
+ * refusal comes only once the registration token has proved the mailbox,
+ * like the block before it, so whoever typed the address learns nothing
+ * about the account from it - and on a refusal nothing happened: no
+ * password, no session, no invitation accepted.
+ * ---------------------------------------------------------------------------
+ */
+describe("Identity /signup - claiming an invitation while single sign-on manages the person's sign-in (#9763)", () => {
+  function claim(registrationToken?: string): Promise<InvokeResult> {
+    return invoke(
+      "/signup",
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "alice-chosen-passphrase",
+        ...(registrationToken !== undefined ? { registrationToken } : {}),
+      }),
+    );
+  }
+
+  beforeEach(() => {
+    consumeRegistrationToken.mockResolvedValue(true);
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE),
+    );
+  });
+
+  it("refuses with the reason, writing no password and issuing no session", async () => {
+    const result: InvokeResult = await claim(VALID_TOKEN);
+
+    expect(result.nextError?.message).toBe(SSO_MANAGED_SIGN_IN_MESSAGE);
+    expectNothingHappened();
+    expect(acceptForClaimedAccount).not.toHaveBeenCalled();
+    expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
+  });
+
+  it("asks with the invited account and its master-admin standing, which the sign-up reads", async () => {
+    await claim(VALID_TOKEN);
+
+    expect(assertMayChangeLocalSignInFor).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      userId: { toString: () => string };
+      isMasterAdmin: boolean;
+    } = assertMayChangeLocalSignInFor.mock.calls[0]![0] as {
+      userId: { toString: () => string };
+      isMasterAdmin: boolean;
+    };
+
+    expect(asked.userId.toString()).toBe(INVITED_USER_ID);
+    expect(asked.isMasterAdmin).toBe(false);
+
+    const select: Record<string, unknown> = (
+      userFindOneBy.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["isMasterAdmin"]).toBe(true);
+  });
+
+  it("is not asked before a token proves the mailbox: the owner is mailed a link, as before", async () => {
+    await claim();
+
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expect(sendCompleteRegistrationEmail).toHaveBeenCalledTimes(1);
+    expectNothingHappened();
+  });
+
+  it("is not asked for a token the token service refuses", async () => {
+    consumeRegistrationToken.mockResolvedValue(false);
+
+    await claim(VALID_TOKEN);
+
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("a blocked invited account is refused as blocked, before the rule is asked", async () => {
+    userFindOneBy.mockResolvedValue({
+      ...unclaimedInvitedUser(),
+      isBlocked: true,
+    });
+
+    await claim(VALID_TOKEN);
+
+    expect(
+      (sendErrorResponse.mock.calls[0]![2] as Exception | undefined)?.message,
+    ).toBe(ExceptionMessages.UserBlocked);
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("a rule that cannot be read refuses the claim as well", async () => {
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new Error("connection refused"),
+    );
+
+    const result: InvokeResult = await claim(VALID_TOKEN);
+
+    expect(result.nextError?.message).toBe("connection refused");
+    expectNothingHappened();
+  });
+
+  it("someone single sign-on does not manage claims their invitation as before", async () => {
+    assertMayChangeLocalSignInFor.mockResolvedValue(undefined);
+
+    const result: InvokeResult = await claim(VALID_TOKEN);
+
+    expect(result.nextError).toBeNull();
+    expect(userUpdateOneByIdAndFetch).toHaveBeenCalledTimes(1);
     expect(createSession).toHaveBeenCalledTimes(1);
   });
 });

@@ -43,7 +43,7 @@ Haga clic en **Invitar usuario**. Se abre el diálogo **Invitar a un nuevo usuar
 
 ### Escribir su dirección de correo
 
-Escriba su dirección en **Correo electrónico**. Si ninguna cuenta de OneUptime la usa todavía, el diálogo también pide un **Nombre**, con el que empieza su nueva cuenta. Mientras escribe, **Correo electrónico** sugiere a las personas del proyecto por nombre o dirección, e indica quién está **Invitado** y quién **Ya está en este equipo**: haga clic en una para rellenar su dirección. En un servidor autoalojado, a un administrador maestro también se le ofrecen las demás cuentas del servidor, marcadas como **Aún no está en este proyecto**.
+Escriba su dirección en **Correo electrónico**. Mientras escribe, **Correo electrónico** sugiere a las personas del proyecto por nombre o dirección, e indica quién está **Invitado** y quién **Ya está en este equipo**: haga clic en una para rellenar su dirección. En un servidor autoalojado, a un administrador maestro también se le ofrecen las demás cuentas del servidor, marcadas como **Aún no está en este proyecto**, y también a quien pueda invitar a personas, una vez que un administrador maestro lo permita en el Admin Dashboard. Para una dirección que escriba usted, el diálogo también pide un **Nombre**, que es opcional: si esa persona aún no tiene cuenta de OneUptime, se creará con ese nombre.
 
 ### Elegir su equipo
 
