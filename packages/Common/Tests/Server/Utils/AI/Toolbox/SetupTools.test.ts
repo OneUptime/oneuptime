@@ -464,11 +464,29 @@ describe("the setup actions, together", () => {
     ).toEqual([...SETUP_TOOL_NAMES]);
     expect([...SETUP_TOOL_NAMES]).toEqual([...AI_SETUP_ACTION_TOOL_NAMES]);
     expect(SETUP_TOOL_NAMES).toEqual([
+      "invite_people",
       SET_UP_PAGING_TOOL_NAME,
+      "add_to_on_call_policy",
+      "set_how_to_reach_me",
       SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+      "set_up_service_monitor",
       PUBLISH_STATUS_PAGE_TOOL_NAME,
       ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
     ]);
+    // In the order a plan runs them, as analytics names its parts.
+    expect(
+      SETUP_TOOLS.map((tool: ObservabilityTool): number => {
+        return tool.setupAction!.planOrder;
+      }),
+    ).toEqual(
+      [...SETUP_TOOLS]
+        .map((tool: ObservabilityTool): number => {
+          return tool.setupAction!.planOrder;
+        })
+        .sort((a: number, b: number): number => {
+          return a - b;
+        }),
+    );
 
     for (const tool of SETUP_TOOLS) {
       expect(AIToolbox.getToolByName(tool.name)).toBe(tool);
@@ -569,19 +587,21 @@ describe("reading the arguments", () => {
     expect(getMonitorNamesSetUpInPlan(undefined)).toEqual([]);
   });
 
-  test("reads who a prepared paging call pages, ids only where they are ids", () => {
+  test("reads who a prepared paging call pages, ids only where they are ids, addresses only where they are addresses", () => {
     expect(
       readPreparedResponders({
         userIds: [USER_ID.toString(), "not-an-id"],
         teamIds: [TEAM_ID],
         otherPeople: ["Ana Lopez"],
         pagedTeams: ["Platform"],
+        invitedEmails: ["Bo@Acme.Example", "not an address"],
       }),
     ).toEqual({
       userIds: [USER_ID.toString()],
       teamIds: [TEAM_ID],
       otherPeople: ["Ana Lopez"],
       pagedTeams: ["Platform"],
+      invitedEmails: ["bo@acme.example"],
     });
   });
 });
