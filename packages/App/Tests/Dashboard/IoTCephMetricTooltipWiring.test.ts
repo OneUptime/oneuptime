@@ -668,6 +668,52 @@ describe("Ceph cluster overview", () => {
     expect(code).toContain("matrix[getCephOsdQuadrant(row)]++;");
   });
 
+  /*
+   * The Placement Group States bar's Degraded and Undersized said how many
+   * and nothing of where (#9727): each is a legend button that opens the
+   * pools that hold them, read when pressed, while the agent reports and
+   * only on a Ceph that counts placement groups per pool.
+   */
+  test("the bar's Degraded and Undersized open the pools that hold them, and Ceph's reason", () => {
+    expect(code).toContain(
+      "const canOpenPgPools: boolean = isAttentionCurrent && Boolean(pgStatesByPool && pgStatesByPool.size > 0);",
+    );
+    const bar: string = segment(
+      code,
+      "const renderPgDistribution: () => ReactElement",
+      "const renderGoldenCharts",
+    );
+    expect(bar).toContain("if (!canOpenPgPools) { return {}; }");
+    expect(bar).toContain(
+      'label: tx("Degraded PGs"), ...pressToOpenPools("degraded"),',
+    );
+    expect(bar).toContain(
+      'label: tx("Undersized PGs"), ...pressToOpenPools("undersized"),',
+    );
+    expect(bar).toContain("clickHint: tx(CEPH_POOL_HINT),");
+    // The rest of the bar stays words.
+    expect(bar).toContain('label: tx("Active + Clean"), },');
+
+    // Read when it opens: Ceph's states for them, then the pools by the rules.
+    const read: string = segment(
+      code,
+      "const loadPgStatePools:",
+      "const renderHero",
+    );
+    expect(read).toContain(
+      "reasonsByPool = await loadCephPgReasonStates(clusterName);",
+    );
+    expect(read).toContain(
+      "items: getCephPgStatePoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, state: state, reasonsByPool: reasonsByPool, translator: translator, }),",
+    );
+    expect(code).toContain(
+      "<ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+    );
+    expect(code).toContain(
+      "load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStatePools(openPgState); }}",
+    );
+  });
+
   test("each rate chart has a header with its (i)", () => {
     expect(count(code, RATE_CHART)).toBe(2);
     // The header also names the chart's drag-to-zoom (issue #4105).

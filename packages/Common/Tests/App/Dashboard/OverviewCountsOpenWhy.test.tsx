@@ -72,10 +72,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import {
   CephOsdQuadrant,
+  CephPgProblemState,
+  CephPgReasonStates,
   CephPoolPgStates,
+  formatCephPgReasonStates,
   getCephAttentionItems,
   getCephDownOsdItems,
   getCephOsdQuadrant,
+  getCephPgReasonSentences,
+  getCephPgStatePoolItems,
   getCephProblemPgPoolItems,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephHealth";
 import {
@@ -376,6 +381,187 @@ describe("a Ceph cluster's counts", () => {
     expect(screen.queryByTestId("ceph-osd-state-downIn")).toBeNull();
     // Only its (i).
     expect(container.querySelectorAll("button")).toHaveLength(1);
+  });
+});
+
+/*
+ * The Placement Group States bar's Degraded and Undersized said how many
+ * and nothing of where (#9727): each opens the pools that hold them, how
+ * many each, and what Ceph is doing about it - its other states for them.
+ */
+describe("a Ceph cluster's Placement Group States bar", () => {
+  const ROWS: Array<CephResource> = [
+    ...CEPH_ROWS,
+    cephRow({ kind: "Pool", externalId: "3", name: "cold" }),
+    cephRow({ kind: "Pool", externalId: "4", name: "images" }),
+  ];
+  const STATES: Map<string, CephPoolPgStates> = new Map([
+    ["1", { total: 128, active: 128, clean: 120, degraded: 6, undersized: 2 }],
+    ["2", { total: 64, active: 64, clean: 64, degraded: 0, undersized: 0 }],
+    // Some of its placement groups are inactive too: critical, first.
+    ["3", { total: 32, active: 30, clean: 28, degraded: 2, undersized: 2 }],
+    ["4", { total: 256, active: 256, clean: 238, degraded: 18, undersized: 0 }],
+  ]);
+
+  function items(): Array<ResourceAttentionItem> {
+    return getCephAttentionItems({
+      rows: ROWS,
+      pgStatesByPool: STATES,
+      routeFor: (kind: string, externalId: string): Route => {
+        return new Route(`/dashboard/ceph/${kind.toLowerCase()}/${externalId}`);
+      },
+      now: NOW,
+    });
+  }
+
+  function poolsOf(
+    state: CephPgProblemState,
+    reasonsByPool?: Map<string, CephPgReasonStates> | null,
+  ): Array<ResourceAttentionItem> {
+    return getCephPgStatePoolItems({
+      items: items(),
+      rows: ROWS,
+      pgStatesByPool: STATES,
+      state: state,
+      reasonsByPool: reasonsByPool,
+      translator: english(),
+    });
+  }
+
+  test("Degraded opens the pools that hold them: the most urgent first, then the most of them", () => {
+    expect(keysOf(poolsOf("degraded"))).toEqual(["Pool:3", "Pool:4", "Pool:1"]);
+    // The segment's own reason leads each row, the inactive ones next.
+    expect(
+      poolsOf("degraded")[0]!.reasons.map(
+        (reason: { text: string }): string => {
+          return reason.text;
+        },
+      ),
+    ).toEqual([
+      "{{count}} placement groups degraded",
+      "{{count}} placement groups inactive",
+      "{{count}} placement groups undersized",
+    ]);
+  });
+
+  test("Undersized opens only the pools with undersized ones, its reason first", () => {
+    const pools: Array<ResourceAttentionItem> = poolsOf("undersized");
+    expect(keysOf(pools)).toEqual(["Pool:3", "Pool:1"]);
+    expect(pools[1]!.reasons[0]).toEqual({
+      text: "{{count}} placement groups undersized",
+      plural: { one: "{{count}} placement group undersized", count: 2 },
+    });
+  });
+
+  test("each pool says how many placement groups it has, and is a step from its page", () => {
+    const rbd: ResourceAttentionItem = poolsOf("degraded")[2]!;
+    expect(rbd.name).toBe("rbd");
+    expect(rbd.facts).toEqual([
+      {
+        key: "placementGroups",
+        label: "Placement Groups",
+        value: "128",
+        isCount: true,
+      },
+    ]);
+    expect(rbd.route?.toString()).toBe("/dashboard/ceph/pool/1");
+  });
+
+  test("with Ceph's other states read, each pool says what Ceph is doing, in our words and in Ceph's", () => {
+    const pools: Array<ResourceAttentionItem> = poolsOf(
+      "degraded",
+      new Map([
+        ["1", { recovering: 2, backfill_wait: 4, remapped: 4 }],
+        ["3", { backfill_toofull: 2, recovery_unfound: 1 }],
+        ["4", { recovering: 0, backfilling: 0, recovery_wait: 0 }],
+      ]),
+    );
+    const byKey: Record<string, ResourceAttentionItem> = {};
+    for (const pool of pools) {
+      byKey[pool.key] = pool;
+    }
+
+    expect(byKey["Pool:1"]!.explanation).toBe(
+      "Ceph is copying the missing data back.",
+    );
+    expect(byKey["Pool:1"]!.message).toBe(
+      "2 recovering, 4 backfill_wait, 4 remapped",
+    );
+    // What it cannot do comes first: then the reader knows to act.
+    expect(byKey["Pool:3"]!.explanation).toBe(
+      "Ceph can't find every copy of some of their objects. Ceph can't copy them back: an OSD it would copy to is too full.",
+    );
+    expect(byKey["Pool:3"]!.message).toBe(
+      "1 recovery_unfound, 2 backfill_toofull",
+    );
+    // Read, every count 0: nothing is under way, and no state to name.
+    expect(byKey["Pool:4"]!.explanation).toBe(
+      "Ceph reports nothing under way to copy the missing data back.",
+    );
+    expect(byKey["Pool:4"]!.message).toBeUndefined();
+  });
+
+  test("Ceph's reason, the most pressing first", () => {
+    const say: (states: CephPgReasonStates) => Array<string> = (
+      states: CephPgReasonStates,
+    ): Array<string> => {
+      return getCephPgReasonSentences(states, english());
+    };
+    expect(say({ backfill_unfound: 1 })).toEqual([
+      "Ceph can't find every copy of some of their objects.",
+    ]);
+    expect(say({ recovery_toofull: 3, recovering: 1 })).toEqual([
+      "Ceph can't copy them back: an OSD it would copy to is too full.",
+      "Ceph is copying the missing data back.",
+    ]);
+    expect(say({ stale: 2 })).toEqual([
+      "The OSD that holds their first copy has stopped reporting them.",
+    ]);
+    // Waiting only while nothing is copying.
+    expect(say({ recovery_wait: 2 })).toEqual([
+      "Ceph is waiting to copy the missing data back.",
+    ]);
+    expect(say({ recovery_wait: 2, backfilling: 1 })).toEqual([
+      "Ceph is copying the missing data back.",
+    ]);
+    expect(say({})).toEqual([
+      "Ceph reports nothing under way to copy the missing data back.",
+    ]);
+    expect(formatCephPgReasonStates({ remapped: 0, stale: 2.4 })).toBe(
+      "2 stale",
+    );
+  });
+
+  test("a pool Needs attention does not list, or a pool the inventory does not hold, is not one", () => {
+    const pools: Array<ResourceAttentionItem> = getCephPgStatePoolItems({
+      // Only rbd is among what needs attention.
+      items: items().filter((item: ResourceAttentionItem): boolean => {
+        return item.key === "Pool:1";
+      }),
+      rows: ROWS,
+      pgStatesByPool: new Map([
+        ...STATES,
+        // A pool the inventory has no row for.
+        ["9", { total: 8, active: 8, clean: 0, degraded: 8, undersized: 0 }],
+      ]),
+      state: "degraded",
+      translator: english(),
+    });
+    expect(keysOf(pools)).toEqual(["Pool:1"]);
+  });
+
+  test("a Ceph that counts placement groups for the whole cluster only has no pools to open", () => {
+    for (const pgStatesByPool of [null, new Map()]) {
+      expect(
+        getCephPgStatePoolItems({
+          items: items(),
+          rows: ROWS,
+          pgStatesByPool: pgStatesByPool,
+          state: "degraded",
+          translator: english(),
+        }),
+      ).toEqual([]);
+    }
   });
 });
 
