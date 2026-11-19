@@ -121,10 +121,6 @@ export default class Consent {
     return !Consent.hasPrivacySignal(navigatorRef);
   }
 
-  public getMode(): SessionReplayConsentMode {
-    return this.mode;
-  }
-
   /*
    * Consent given. Also the way back after a revoke: the revoke already
    * dropped everything held under the earlier consent, so a later grant

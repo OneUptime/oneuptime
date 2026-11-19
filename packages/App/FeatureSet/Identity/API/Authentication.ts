@@ -88,6 +88,7 @@ import {
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
+import SsoManagedSignIn from "Common/Server/Utils/SsoManagedSignIn";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactorBackupCodeService";
@@ -1315,6 +1316,39 @@ router.post(
           isRoot: true,
         },
       });
+
+      /*
+       * Somebody whose sign-in is managed by single sign-on - everyone but a
+       * master admin, while the server requires SSO (SsoManagedSignIn,
+       * #9688) - is mailed no link: a password they set would sign them in
+       * nowhere, and would lie there until the requirement was turned off.
+       * The answer is the one every address gets.
+       *
+       * A rule that cannot be read mails them nothing either: it is logged,
+       * never told to the caller, whose answer must not differ by account.
+       * A master admin is never asked about the rule, so their way back in
+       * when the identity provider is down stays open.
+       */
+      if (alreadySavedUser?.id) {
+        let isManagedBySso: boolean = true;
+
+        try {
+          isManagedBySso = await SsoManagedSignIn.isManagedBySsoFor({
+            isMasterAdmin: alreadySavedUser.isMasterAdmin === true,
+          });
+        } catch (err) {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        }
+
+        if (isManagedBySso) {
+          logger.debug(
+            "Forgot password asked for an account whose sign-in is managed by SSO; no link sent.",
+            getLogAttributesFromRequest(req as RequestLike),
+          );
+
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+      }
 
       if (alreadySavedUser?.id && !alreadySavedUser.password) {
         /*

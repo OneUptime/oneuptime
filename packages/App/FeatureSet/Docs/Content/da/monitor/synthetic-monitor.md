@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 Se [Monitorhemmeligheder](/docs/monitor/monitor-secrets) for at oprette en hemmelighed og vælge, hvilke monitorer der må bruge den.
 
+En engangskodehemmelighed indeholder et websteds opsætningsnøgle til tofaktorgodkendelse i stedet for en værdi. Dens `{{monitorSecrets.NAME}}` er den kode, der gælder, når scriptet starter, og `await oneuptime.getTotpCode("NAME")` genererer en ny kode, når scriptet beder om den, hvilket passer til et login, der først beder om koden et par sider inde. Se [Log ind med en engangskode](/docs/monitor/monitor-secrets#log-ind-med-en-engangskode).
+
 ## Brugerdefinerede metrikker
 
 Du kan indsamle brugerdefinerede metrikker fra dit script med funktionen `oneuptime.captureMetric()`. Disse metrikker gemmes i OneUptime og kan vises i grafer på dashboards med Metric Explorer.
@@ -258,6 +260,7 @@ I hændelses- og advarselsskabeloner findes hver kørsel i `{{syntheticResponses
 | `crypto` | En implementering i en browser-worker af SHA-256-hashes, HMAC-SHA-256, `randomBytes`, `randomInt` og `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` og `error`. Meddelelserne gemmes med hver kørsel. |
 | `oneuptime.captureMetric` | Indsamler en brugerdefineret metrik. Se [Brugerdefinerede metrikker](#brugerdefinerede-metrikker). |
+| `oneuptime.getTotpCode` | Genererer den aktuelle kode for en engangskodehemmelighed: `await oneuptime.getTotpCode("NAME")`. Se [Brug af monitorhemmeligheder](#brug-af-monitorhemmeligheder). |
 | `http` | En bufferet kompatibilitetsfacade kun til klienter, der understøtter `request`, `get` og `Agent`. |
 | `https` | HTTPS-modstykket til facaden `http`, der kun er til klienter. |
 | `Buffer`, `setTimeout`, `setInterval` | Og deres `clear`-funktioner. |

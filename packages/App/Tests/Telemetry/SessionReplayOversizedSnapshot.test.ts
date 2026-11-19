@@ -262,6 +262,8 @@ function buildPolicy(): SessionReplayGatePolicy {
     frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
     isProductAnalyticsEnabled: false,
     productAnalyticsUserPropertyKeys: [],
+    pageRules: { recordOnly: [], neverRecord: [] },
+    readableEventPropertyKeys: [],
     configEpoch: 1,
   };
 }

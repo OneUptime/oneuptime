@@ -418,6 +418,98 @@ describe("Docker Swarm overview page", () => {
     }
   });
 
+  /*
+   * "1/2 nodes ready" said a node was not ready, never which or why
+   * (#9594): beside the chip, the count of what is wrong opens exactly
+   * those, and the chip still opens the whole list.
+   */
+  test("a node not ready and a task failing are counts beside their chips that open which, and why", async () => {
+    mockInventory = [
+      ...inventory().filter((candidate: DockerSwarmResource): boolean => {
+        return candidate.externalId !== "node/b";
+      }),
+      row({
+        kind: "Node",
+        externalId: "node/b",
+        name: "worker-1",
+        state: "down",
+        role: "worker",
+        isReady: false,
+        attributes: { availability: "active", message: "heartbeat failure" },
+      }),
+      row({
+        kind: "Task",
+        externalId: "task/t3",
+        name: "shop_web.3",
+        state: "failed",
+        isReady: false,
+        serviceName: "shop_web",
+        nodeHostname: "worker-1",
+        attributes: {
+          desiredState: "running",
+          error: "task: non-zero exit (1)",
+        },
+      }),
+    ];
+
+    await renderOverview();
+
+    // The chip still opens the whole list.
+    expect(
+      screen.getByTestId("docker-swarm-hero-nodes").getAttribute("href") || "",
+    ).toMatch(/\/nodes$/);
+
+    const notReady: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-nodes-not-ready",
+    );
+    expect(notReady.tagName).toBe("BUTTON");
+    expect(notReady).toHaveTextContent("1 node not ready");
+    expect(notReady).toHaveAttribute("data-tone", "danger");
+    expect(notReady).toHaveAttribute("title", "Show which nodes and why");
+
+    fireEvent.click(notReady);
+    const nodeRow: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-nodes-not-ready-dialog-item",
+    );
+    expect(nodeRow).toHaveTextContent("worker-1");
+    expect(nodeRow).toHaveTextContent("Down");
+    expect(nodeRow).toHaveTextContent("heartbeat failure");
+    expect(
+      within(nodeRow).getByTestId(
+        "docker-swarm-hero-nodes-not-ready-dialog-view",
+      ),
+    ).toHaveAttribute("href", expect.stringContaining(CLUSTER_ID));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]!);
+
+    const failing: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-tasks-failing",
+    );
+    expect(failing).toHaveTextContent("1 task failing");
+    fireEvent.click(failing);
+    const taskRow: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-tasks-failing-dialog-item",
+    );
+    expect(taskRow).toHaveTextContent("shop_web.3");
+    expect(taskRow).toHaveTextContent("task: non-zero exit (1)");
+    // Which service and node it is, each a step from its page.
+    expect(
+      within(taskRow)
+        .getAllByTestId("docker-swarm-hero-tasks-failing-dialog-fact")
+        .map((fact: HTMLElement): string => {
+          return fact.getAttribute("data-fact") || "";
+        }),
+    ).toEqual(["service", "node"]);
+  });
+
+  test("nothing wrong among the nodes and tasks: no count beside them", async () => {
+    await renderOverview();
+
+    expect(
+      screen.queryByTestId("docker-swarm-hero-nodes-not-ready"),
+    ).toBeNull();
+    expect(screen.queryByTestId("docker-swarm-hero-tasks-failing")).toBeNull();
+  });
+
   test("one (i) says what the chips count; it is named for them, never after a number", async () => {
     await renderOverview();
 

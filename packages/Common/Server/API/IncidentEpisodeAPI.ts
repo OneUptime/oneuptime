@@ -30,6 +30,8 @@ import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
 import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
+import PublicNoteReachRoute from "./PublicNoteReachRoute";
+import { PublicNoteReachEvent } from "../../Types/StatusPage/PublicNoteReach";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
 
@@ -65,6 +67,17 @@ export default class IncidentEpisodeAPI extends BaseAPI<
       router: this.router,
       apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
       event: OwnerRulePreviewEvent.IncidentEpisode,
+    });
+
+    /*
+     * Whether a public note posted now is on a status page, and whether it
+     * notifies anyone (Types/StatusPage/PublicNoteReach): what the note
+     * composer says.
+     */
+    PublicNoteReachRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      event: PublicNoteReachEvent.IncidentEpisode,
     });
   }
 

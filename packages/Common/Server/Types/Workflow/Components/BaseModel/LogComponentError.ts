@@ -12,6 +12,11 @@ import CallerPlan from "../../../../Utils/Billing/CallerPlan";
 import ColumnWriteRefusedException from "../../../Database/Permissions/ColumnWriteRefusedException";
 import WorkflowAccessChangeRefusedException from "../../../Database/Permissions/WorkflowAccessChangeRefusedException";
 import logger from "../../../../Utils/Logger";
+import { WorkflowRunAsGrant } from "../../../../Utils/Workflow/WorkflowPrincipal";
+import {
+  WorkflowRunAs,
+  describeWorkflowRunAs,
+} from "../../../../../Types/Workflow/WorkflowRunAs";
 import { RunOptions } from "../../ComponentCode";
 import {
   ID_ARGUMENT_KEY,
@@ -65,16 +70,43 @@ type DescribeRefusalFunction = (data: {
   error: unknown;
   message: string;
   stepTitle: string;
+  // What the run acts as (RunOptions.runAs); the default permissions when absent.
+  runAs?: WorkflowRunAsGrant | undefined;
 }) => string | null;
 
 /*
- * A step acts as a Project Admin of its project, on the project's plan
- * (WorkflowPrincipal). When it is refused for either - something only an
- * owner, or the billing team, or nobody but OneUptime itself may do;
- * something the plan does not sell - the run log says so in plain words and
- * names the step, before the reason the refusal itself gave. A change to
- * who may do what in the project is refused to every step, though a
- * Project Admin may make it, so its reason is said as it is
+ * What a refused step of a run that acts as `runAs` was held to, as the run
+ * log says it: "Workflow steps can do only what a Project Admin of this
+ * project can do" for the default permissions, as it always said; what a
+ * Project Owner can do, or what the custom role allows, for a workflow
+ * that runs as one (#9695).
+ */
+export const describeStepCeiling: (
+  runAs?: WorkflowRunAsGrant | undefined,
+) => string = (runAs?: WorkflowRunAsGrant | undefined): string => {
+  switch (runAs?.runAs) {
+    case WorkflowRunAs.ProjectOwner:
+      return "This workflow runs as Project Owner, so its steps can do only what a Project Owner of this project can do";
+    case WorkflowRunAs.CustomRole:
+      return `This workflow runs as ${describeWorkflowRunAs({
+        runAs: WorkflowRunAs.CustomRole,
+        customRoleName: runAs.customRoleName,
+      })}, so its steps can do only what that role allows`;
+    default:
+      return "Workflow steps can do only what a Project Admin of this project can do";
+  }
+};
+
+/*
+ * A step acts as what its workflow runs as - a Project Admin of its project
+ * by default - on the project's plan (WorkflowPrincipal). When it is
+ * refused for either - something only an owner, or the billing team, or
+ * nobody but OneUptime itself may do; something the plan does not sell -
+ * the run log says so in plain words and names the step, before the
+ * reason the refusal itself gave. A change to who may do what in the
+ * project that the step may not make whatever it holds - any change, for a
+ * workflow that runs with the default permissions, and an API key's or a
+ * sign-in setting's for every workflow - says its reason as it is
  * (WorkflowAccessChangeRefusedException). Refusals are told by their type
  * (a column refusal is a ColumnWriteRefusedException), never by their
  * words. Null for any other failure.
@@ -83,6 +115,7 @@ export const describeRefusal: DescribeRefusalFunction = (data: {
   error: unknown;
   message: string;
   stepTitle: string;
+  runAs?: WorkflowRunAsGrant | undefined;
 }): string | null => {
   const step: string = `"${data.stepTitle}"`;
 
@@ -112,7 +145,7 @@ export const describeRefusal: DescribeRefusalFunction = (data: {
     data.error instanceof NotAuthenticatedException ||
     data.error instanceof ColumnWriteRefusedException
   ) {
-    return `${step} was refused. Workflow steps can do only what a Project Admin of this project can do: ${data.message}`;
+    return `${step} was refused. ${describeStepCeiling(data.runAs)}: ${data.message}`;
   }
 
   return null;
@@ -159,6 +192,8 @@ type LogComponentErrorFunction = (data: {
   log: RunOptions["log"];
   // The step's title, as the builder shows it ("Create One Team Permission").
   stepTitle?: string | undefined;
+  // What the run acts as (RunOptions.runAs), for what a refusal says it was held to.
+  runAs?: WorkflowRunAsGrant | undefined;
 }) => string;
 
 /*
@@ -177,6 +212,7 @@ const logComponentError: LogComponentErrorFunction = (data: {
   model: BaseModel | null;
   log: RunOptions["log"];
   stepTitle?: string | undefined;
+  runAs?: WorkflowRunAsGrant | undefined;
 }): string => {
   const { error, model, log } = data;
 
@@ -197,6 +233,7 @@ const logComponentError: LogComponentErrorFunction = (data: {
         error: error,
         message: message,
         stepTitle: data.stepTitle,
+        runAs: data.runAs,
       })
     : null;
 

@@ -17,6 +17,16 @@ import {
   summarizeProxmoxBackups,
 } from "../../Pages/Proxmox/Utils/ProxmoxPartFacts";
 import { PROXMOX_NOTIFICATIONS_STEP_ANCHOR } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
+  ProxmoxProblem,
+  ProxmoxRouteFor,
+  getProxmoxProblemItems,
+} from "../../Pages/Proxmox/Utils/ProxmoxHealth";
+import { METRIC_STALE_MS } from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
+import { ResourceAttentionItem } from "../ResourcePart/ResourceAttention";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../ResourcePart/ResourceAttentionPill";
 
 /*
  * A cluster's backups on its Overview: how each guest's last backup went
@@ -40,6 +50,12 @@ export interface ComponentProps {
   setupRoute: Route;
   guestsRoute: Route;
   now: Date;
+  /*
+   * Each guest's own page, for the guests a count of what is wrong opens
+   * ("Last backup failed 2", "In no backup job 3"); without it they are
+   * listed, a step from nowhere.
+   */
+  routeFor?: ProxmoxRouteFor | undefined;
 }
 
 type StatTone = "positive" | "danger" | "warning" | "neutral";
@@ -58,6 +74,8 @@ interface Stat {
   value?: string | undefined;
   tone: StatTone;
   description: string;
+  // A count of what is wrong opens which guests, and why (#9594).
+  problem?: ResourceAttentionPillProps | undefined;
 }
 
 const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
@@ -81,6 +99,39 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
     return translator.formatNumber(count);
   };
 
+  /*
+   * The guests a count of what is wrong is about, with why and which node
+   * each is on - by the rules Needs attention lists them by.
+   */
+  const guestsOf: (problem: ProxmoxProblem) => Array<ResourceAttentionItem> = (
+    problem: ProxmoxProblem,
+  ): Array<ResourceAttentionItem> => {
+    return getProxmoxProblemItems({
+      rows: props.rows,
+      problem: problem,
+      routeFor:
+        props.routeFor ||
+        ((): undefined => {
+          return undefined;
+        }),
+      now: props.now,
+      staleMs: METRIC_STALE_MS,
+    });
+  };
+
+  // "3 guests", which opens them: the figure above says how many.
+  const guestsWords: (count: number) => string = (count: number): string => {
+    return translator.translatePlural(
+      { one: "{{count}} guest", other: "{{count}} guests" },
+      count,
+    );
+  };
+
+  const failedGuests: Array<ResourceAttentionItem> =
+    summary.failed > 0 ? guestsOf({ kind: "backupFailed" }) : [];
+  const guestsNotInJob: Array<ResourceAttentionItem> =
+    summary.notInJob > 0 ? guestsOf({ kind: "noBackupJob" }) : [];
+
   const stats: Array<Stat> = [];
 
   if (hasResults || hasNotifications) {
@@ -98,6 +149,28 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
         value: formatCount(summary.failed),
         tone: summary.failed > 0 ? "danger" : "neutral",
         description: PROXMOX_METRIC_DESCRIPTIONS.backupsLastFailed,
+        problem:
+          failedGuests.length > 0
+            ? {
+                testId: "proxmox-backups-card-failed-guests",
+                label: guestsWords(failedGuests.length),
+                tone: "danger",
+                hint: "Show which guests and why",
+                dialog: {
+                  title: translator.translatePlural(
+                    {
+                      one: "Last backup failed for {{count}} guest",
+                      other: "Last backup failed for {{count}} guests",
+                    },
+                    failedGuests.length,
+                  ),
+                  description: PROXMOX_METRIC_DESCRIPTIONS.backupsLastFailed,
+                  items: failedGuests,
+                  emptyMessage: "No guest's last backup failed now.",
+                  showKind: false,
+                },
+              }
+            : undefined,
       },
     );
   }
@@ -109,6 +182,27 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
       summary.coverageKnown > 0 ? formatCount(summary.notInJob) : undefined,
     tone: summary.notInJob > 0 ? "warning" : "neutral",
     description: PROXMOX_METRIC_DESCRIPTIONS.backupsNotInJob,
+    problem:
+      guestsNotInJob.length > 0
+        ? {
+            testId: "proxmox-backups-card-guests-not-in-job",
+            label: guestsWords(guestsNotInJob.length),
+            tone: "warning",
+            hint: "Show which guests and why",
+            dialog: {
+              title: translator.translatePlural(
+                {
+                  one: "{{count}} guest in no backup job",
+                  other: "{{count}} guests in no backup job",
+                },
+                guestsNotInJob.length,
+              ),
+              items: guestsNotInJob,
+              emptyMessage: "Every guest is in a backup job now.",
+              showKind: false,
+            },
+          }
+        : undefined,
   });
 
   if (hasResults) {
@@ -173,6 +267,17 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
                   >
                     {getFigure(stat.value)}
                   </dd>
+                  {/*
+                   * The guests it counts, a press away: which, and why.
+                   * Beside the (i), never inside it.
+                   */}
+                  {stat.problem ? (
+                    <dd className="mt-2">
+                      <ResourceAttentionPill {...stat.problem} />
+                    </dd>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             })}

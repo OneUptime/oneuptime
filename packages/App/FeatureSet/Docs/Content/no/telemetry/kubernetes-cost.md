@@ -5,7 +5,7 @@ Se hva hver Kubernetes-arbeidsbelastning koster — forbruk per navnerom, arbeid
 :::cards
 - [Slå det på](#slå-på-kostnadsobserverbarhet): På som standard; én `helm upgrade` der det ikke er det.
 - [Varsling på kostnader](#varsling-på-kostnader): Kostnad per klynge, navnerom og arbeidsbelastning, som målinger.
-- [Bruk din egen motor](#kjører-du-allerede-kubecost-eller-opencost): Pek agenten mot Kubecost eller OpenCost.
+- [Din egen motor](#kjører-du-allerede-kubecost-eller-opencost): Kubecost eller OpenCost som du allerede kjører, blir funnet og lest.
 - [Right-sizing](#right-sizing): Anbefalinger for requests, og hvordan de lages.
 - [Feilsøking](#feilsøking): Tomme sider, manglende anbefalinger.
 :::
@@ -63,28 +63,33 @@ De første kostnadene vises etter at den første hele timen er avsluttet, og Ope
 
 Kostnadsmålingene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige målinger: de finnes i målingsutforskeren, på egendefinerte dashbord og i målingsmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
 
+Under tallene viser oversikten og siden **Kostnader** hvor prisene kommer fra: en skyleverandørs listepriser, prislisten din eller standardprisene til OpenCost. Effektivitet er ett og samme tall overalt, også i effektivitetsmålingen: hvor mye av den forespurte CPU-en og minnet som ble brukt, der hver containers time vektes etter hva CPU-en og minnet dens koster, slik at en billig jobb som ikke bruker noe, ikke kan trekke ned en godt utnyttet klynge, og ledig kapasitet telles ikke med.
+
 ## Kjører du allerede Kubecost eller OpenCost?
 
-Pek agenten mot din egen motor i stedet, så følger ingenting med:
+Kostnadsagenten finner motoren din og leser den i stedet for den medfølgende OpenCost, så klyngen prises slik du har satt den opp: med prislisten din, eller med skyregningen din som Kubecost er koblet til. Den leter når den starter, og deretter hver time, gjennom Kubernetes-API-et etter Services som motorenes egne charts oppretter i et hvilket som helst navnerom (`cost-analyzer` eller `frontend` fra Kubecost, chartet til OpenCost, og Servicen `opencost` som manifestet til OpenCost oppretter), med Kubecost først. Den hopper over en motor som ikke svarer, krever innlogging eller svarer for flere klynger, og leser da den medfølgende.
+
+Klyngens oversikt viser deretter navnet på motoren din og sier at den medfølgende OpenCost ikke trengs. Slutt å kjøre den:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+Med `cost.engine.url=auto` følger ingenting med, og agenten leser motoren din uansett hvor den kjører; er ingen motor installert, blir ingenting priset. Chartet kan ikke selv lete etter en motor: Helms funksjon `lookup` ser ingenting under `helm template`, Argo CD eller en tørrkjøring. For å beholde den medfølgende OpenCost ved siden av din egen motor, sett `cost.engine.preferExisting=false`; for å angi hvilken motor som skal leses, sett `cost.engine.url` til Servicen dens:
 
 | Motor | Vanlig tjeneste-URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Stien til Allocation API-et finnes av seg selv (`/model/allocation` for Kubecost, `/allocation/compute` eller `/allocation` for OpenCost). Sett `cost.engine.allocationPath` bare for en uvanlig installasjon. For minneanbefalinger, sett også `cost.engine.prometheusUrl` (se [Dataene bak](#dataene-bak)).
+Stien til Allocation API-et finnes av seg selv (`/model/allocation` for Kubecost, `/allocation/compute` eller `/allocation` for OpenCost). Sett `cost.engine.allocationPath` bare for en uvanlig installasjon. Med `auto` eller en URL følger ingenting med, så for minneanbefalinger må du også sette `cost.engine.prometheusUrl` (se [Dataene bak](#dataene-bak)).
 
 ## Prising for lokale klynger og bare metal
 
-Klynger der nodene ikke har noen offentlig listepris i skyen, kan sette en prisliste. OpenCost priser da hver ressurs ut fra disse tallene, alle i USD per ressurstime:
+Klynger der nodene ikke har noen offentlig listepris i skyen, kan sette en prisliste. Uten prisliste priser OpenCost dem etter standardprisene sine (lokale klynger, bare metal, kind, k3s), som kan ligge langt unna det maskinvaren din koster, og det sier klyngens oversikt og siden **Kostnader** også; på en sky den gjenkjenner, beholder en node listeprisen sin, og en prisliste priser bare det listen mangler. Med en prisliste priser OpenCost da hver ressurs ut fra disse tallene, alle i USD per ressurstime:
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+Dette er OpenCosts egne standardpriser: fyll inn dine egne tall, ellers sier siden **Kostnader** fortsatt at klyngen er priset etter standardprisene til OpenCost.
 
 ## Innstillinger som er verdt å kjenne
 
@@ -148,7 +155,7 @@ Ved siden av forbruket samler polleren inn det en anbefaling trenger: hver conta
 Minne trenger én kilde til. Allocation API-et rapporterer bare et gjennomsnitt over hvert vindu, og et timesgjennomsnitt skjuler toppen som OOM-dreper en container, så å dimensjonere minne ut fra det ville vært farlig. Polleren leser i stedet hver containers minnetopp fra Prometheus, koblet på `(namespace, pod, container)`:
 
 - Med den medfølgende motoren (standard) bruker den chartets egen Prometheus. Ingenting å sette.
-- Med din egen motor (`cost.engine.url`), pek `cost.engine.prometheusUrl` mot en Prometheus som scraper cAdvisor, og sett `cost.engine.prometheusCadvisorJob` hvis scrapejobben ikke heter `kubernetes-nodes-cadvisor`.
+- Når `cost.engine.url` er satt (`auto` eller URL-en til motoren din), pek `cost.engine.prometheusUrl` mot en Prometheus som scraper cAdvisor, og sett `cost.engine.prometheusCadvisorJob` hvis scrapejobben ikke heter `kubernetes-nodes-cadvisor`.
 - Uten Prometheus fungerer CPU-anbefalinger fortsatt, ut fra de lagrede timesgjennomsnittene, og minneanbefalinger utelates i stedet for å gjettes.
 
 Et Prometheus-brudd stopper aldri innsamlingen av forbruk: toppene er et tillegg, og en time sendes uten dem. CPU bruker bevisst ikke Prometheus: en for stor CPU-request struper bare, der en for liten minne-request dreper, så timesgjennomsnittene er trygge for CPU, og å spørre etter CPU-raten til hver container i en hel klynge er tungt nok til å velte en liten Prometheus.
@@ -180,6 +187,14 @@ Med presetene `gke-autopilot` og `eks-fargate` er kostnadsovervåking av som sta
 
 :::details Den medfølgende OpenCost er ikke klar
 Les loggene: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`. De sier hvilken skyleverandør den oppdaget og om prisdataene ble lastet.
+:::
+
+:::details Oversikten sier at den medfølgende OpenCost ikke trengs
+Klyngen kjører sin egen Kubecost eller OpenCost, og kostnadsagenten leser den, så OpenCost og Prometheus som fulgte med chartet, priser ingenting. Oppgrader med `--set cost.engine.url=auto` for å slutte å kjøre dem, eller sett `cost.engine.preferExisting=false` for å lese den medfølgende motoren i stedet.
+:::
+
+:::details Kostnadsagenten leser ikke motoren din
+Loggen til kostnadsagenten sier hvilken motor den leser, og hvorfor den hoppet over de andre: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Den hopper over en motor som ikke svarer (for eksempel på grunn av en NetworkPolicy mellom navnerommene), krever innlogging eller svarer for flere klynger, slik en Kubecost som samler flere klynger i en føderasjon, gjør. Angi med `cost.engine.url` hvilken motor som skal leses.
 :::
 
 :::details OpenCost-loggen sier mkdir /var/configs: permission denied

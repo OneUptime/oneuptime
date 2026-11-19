@@ -4,6 +4,7 @@ import SessionIdentity, {
   SessionRotationReason,
   StoredSessionState,
 } from "../../../Utils/Rum/SessionIdentity";
+import SessionReplayIngestBounds from "../../../Utils/Rum/SessionReplayIngestBounds";
 
 const NOW: number = 1_700_000_000_000;
 const MINUTE: number = 60 * 1000;
@@ -294,9 +295,9 @@ describe("SessionIdentity", () => {
 
   describe("clampSessionStart", () => {
     it("passes through a sane client timestamp", () => {
-      expect(SessionIdentity.clampSessionStart(NOW - MINUTE, NOW)).toBe(
-        NOW - MINUTE,
-      );
+      expect(
+        SessionReplayIngestBounds.clampSessionStart(NOW - MINUTE, NOW),
+      ).toBe(NOW - MINUTE);
     });
 
     it("clamps a future client clock to the server clock", () => {
@@ -307,7 +308,9 @@ describe("SessionIdentity", () => {
        */
       const yearAhead: number = NOW + 365 * 24 * HOUR;
 
-      expect(SessionIdentity.clampSessionStart(yearAhead, NOW)).toBe(NOW);
+      expect(SessionReplayIngestBounds.clampSessionStart(yearAhead, NOW)).toBe(
+        NOW,
+      );
     });
 
     it("clamps an ancient client clock forward to the acceptance window", () => {
@@ -317,13 +320,15 @@ describe("SessionIdentity", () => {
        */
       const decadeAgo: number = NOW - 10 * 365 * 24 * HOUR;
 
-      expect(SessionIdentity.clampSessionStart(decadeAgo, NOW)).toBe(
+      expect(SessionReplayIngestBounds.clampSessionStart(decadeAgo, NOW)).toBe(
         NOW - 4 * HOUR,
       );
     });
 
     it("falls back to the server clock for non-finite input", () => {
-      expect(SessionIdentity.clampSessionStart(Number.NaN, NOW)).toBe(NOW);
+      expect(SessionReplayIngestBounds.clampSessionStart(Number.NaN, NOW)).toBe(
+        NOW,
+      );
     });
 
     it("always returns a value inside the acceptance window", () => {
@@ -338,7 +343,10 @@ describe("SessionIdentity", () => {
       ];
 
       for (const input of inputs) {
-        const clamped: number = SessionIdentity.clampSessionStart(input, NOW);
+        const clamped: number = SessionReplayIngestBounds.clampSessionStart(
+          input,
+          NOW,
+        );
 
         expect(clamped).toBeLessThanOrEqual(NOW);
         expect(clamped).toBeGreaterThanOrEqual(NOW - 4 * HOUR);
@@ -353,7 +361,7 @@ describe("SessionIdentity", () => {
   describe("getClientQueueDelayMs", () => {
     it("is send time minus the chunk's end, on the device clock", () => {
       expect(
-        SessionIdentity.getClientQueueDelayMs({
+        SessionReplayIngestBounds.getClientQueueDelayMs({
           sessionStartUnixMs: NOW,
           chunkEndOffsetMs: 15_000,
           clientSendUnixMs: NOW + 15_000 + 6 * HOUR,
@@ -364,7 +372,7 @@ describe("SessionIdentity", () => {
     it("is the same however wrong the device clock is", () => {
       for (const clockErrorMs of [-3 * HOUR, 0, 90 * MINUTE, 400 * 24 * HOUR]) {
         expect(
-          SessionIdentity.getClientQueueDelayMs({
+          SessionReplayIngestBounds.getClientQueueDelayMs({
             sessionStartUnixMs: NOW + clockErrorMs,
             chunkEndOffsetMs: 15_000,
             clientSendUnixMs: NOW + clockErrorMs + 15_000 + 2 * HOUR,
@@ -375,7 +383,7 @@ describe("SessionIdentity", () => {
 
     it("is zero for a chunk sent as it closed", () => {
       expect(
-        SessionIdentity.getClientQueueDelayMs({
+        SessionReplayIngestBounds.getClientQueueDelayMs({
           sessionStartUnixMs: NOW,
           chunkEndOffsetMs: 15_000,
           clientSendUnixMs: NOW + 15_000,
@@ -386,7 +394,7 @@ describe("SessionIdentity", () => {
     it("is zero when the send stamp is before the chunk ended", () => {
       /* An older recorder stamped the send time when the chunk closed. */
       expect(
-        SessionIdentity.getClientQueueDelayMs({
+        SessionReplayIngestBounds.getClientQueueDelayMs({
           sessionStartUnixMs: NOW,
           chunkEndOffsetMs: 4 * HOUR,
           clientSendUnixMs: NOW + 15_000,
@@ -396,7 +404,7 @@ describe("SessionIdentity", () => {
 
     it("never believes more than a recorder may hold a chunk", () => {
       expect(
-        SessionIdentity.getClientQueueDelayMs({
+        SessionReplayIngestBounds.getClientQueueDelayMs({
           sessionStartUnixMs: NOW,
           chunkEndOffsetMs: 0,
           clientSendUnixMs: NOW + 90 * 24 * HOUR,
@@ -434,23 +442,27 @@ describe("SessionIdentity", () => {
       ];
 
       for (const input of cases) {
-        expect(SessionIdentity.getClientQueueDelayMs(input)).toBe(0);
+        expect(SessionReplayIngestBounds.getClientQueueDelayMs(input)).toBe(0);
       }
     });
   });
 
   describe("getClockSkewMs", () => {
     it("is positive when the client clock runs ahead", () => {
-      expect(SessionIdentity.getClockSkewMs(NOW + 5000, NOW)).toBe(5000);
+      expect(SessionReplayIngestBounds.getClockSkewMs(NOW + 5000, NOW)).toBe(
+        5000,
+      );
     });
 
     it("is negative when the client clock lags", () => {
-      expect(SessionIdentity.getClockSkewMs(NOW - 5000, NOW)).toBe(-5000);
+      expect(SessionReplayIngestBounds.getClockSkewMs(NOW - 5000, NOW)).toBe(
+        -5000,
+      );
     });
 
     it("returns zero rather than NaN for unusable input", () => {
-      expect(SessionIdentity.getClockSkewMs(Number.NaN, NOW)).toBe(0);
-      expect(SessionIdentity.getClockSkewMs(NOW, Number.NaN)).toBe(0);
+      expect(SessionReplayIngestBounds.getClockSkewMs(Number.NaN, NOW)).toBe(0);
+      expect(SessionReplayIngestBounds.getClockSkewMs(NOW, Number.NaN)).toBe(0);
     });
   });
 
@@ -459,7 +471,9 @@ describe("SessionIdentity", () => {
 
     it("passes through an exact allowed value", () => {
       for (const days of allowed) {
-        expect(SessionIdentity.clampRetentionDays(days, allowed, 7)).toBe(days);
+        expect(
+          SessionReplayIngestBounds.clampRetentionDays(days, allowed, 7),
+        ).toBe(days);
       }
     });
 
@@ -469,31 +483,43 @@ describe("SessionIdentity", () => {
        * configured retention destroys evidence they expected to keep,
        * whereas keeping it a little longer only costs disk.
        */
-      expect(SessionIdentity.clampRetentionDays(2, allowed, 7)).toBe(7);
-      expect(SessionIdentity.clampRetentionDays(8, allowed, 7)).toBe(14);
-      expect(SessionIdentity.clampRetentionDays(31, allowed, 7)).toBe(90);
+      expect(SessionReplayIngestBounds.clampRetentionDays(2, allowed, 7)).toBe(
+        7,
+      );
+      expect(SessionReplayIngestBounds.clampRetentionDays(8, allowed, 7)).toBe(
+        14,
+      );
+      expect(SessionReplayIngestBounds.clampRetentionDays(31, allowed, 7)).toBe(
+        90,
+      );
     });
 
     it("caps at the largest allowed value", () => {
-      expect(SessionIdentity.clampRetentionDays(365, allowed, 7)).toBe(90);
+      expect(
+        SessionReplayIngestBounds.clampRetentionDays(365, allowed, 7),
+      ).toBe(90);
     });
 
     it("falls back for non-positive or non-finite input", () => {
-      expect(SessionIdentity.clampRetentionDays(0, allowed, 7)).toBe(7);
-      expect(SessionIdentity.clampRetentionDays(-5, allowed, 7)).toBe(7);
-      expect(SessionIdentity.clampRetentionDays(Number.NaN, allowed, 7)).toBe(
+      expect(SessionReplayIngestBounds.clampRetentionDays(0, allowed, 7)).toBe(
         7,
       );
+      expect(SessionReplayIngestBounds.clampRetentionDays(-5, allowed, 7)).toBe(
+        7,
+      );
+      expect(
+        SessionReplayIngestBounds.clampRetentionDays(Number.NaN, allowed, 7),
+      ).toBe(7);
     });
 
     it("falls back when the allowed set is empty", () => {
-      expect(SessionIdentity.clampRetentionDays(30, [], 7)).toBe(7);
+      expect(SessionReplayIngestBounds.clampRetentionDays(30, [], 7)).toBe(7);
     });
 
     it("handles an unsorted allowed set", () => {
-      expect(SessionIdentity.clampRetentionDays(8, [90, 1, 30, 7, 14], 7)).toBe(
-        14,
-      );
+      expect(
+        SessionReplayIngestBounds.clampRetentionDays(8, [90, 1, 30, 7, 14], 7),
+      ).toBe(14);
     });
 
     it("only ever returns a member of the allowed set", () => {
@@ -504,7 +530,7 @@ describe("SessionIdentity", () => {
        */
       for (let days: number = -5; days <= 400; days++) {
         expect(allowed).toContain(
-          SessionIdentity.clampRetentionDays(days, allowed, 7),
+          SessionReplayIngestBounds.clampRetentionDays(days, allowed, 7),
         );
       }
     });

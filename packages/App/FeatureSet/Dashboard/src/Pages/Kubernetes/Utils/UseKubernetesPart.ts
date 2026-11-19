@@ -78,6 +78,17 @@ export default function useKubernetesPart(data: {
   useEffect(() => {
     let ignore: boolean = false;
 
+    /*
+     * No name, no read: a page that has yet to learn which object it is
+     * about (a container's page finding its pod) reads nothing meanwhile.
+     */
+    if (!data.name) {
+      setState({ read: null, isLoading: false, error: "" });
+      return () => {
+        ignore = true;
+      };
+    }
+
     setState((previous: KubernetesPartState): KubernetesPartState => {
       return { ...previous, isLoading: true };
     });

@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 Per creare un segreto e scegliere quali monitor possono usarlo, consultate [Segreti del monitor](/docs/monitor/monitor-secrets).
 
+Un segreto di tipo codice monouso contiene la chiave di configurazione dell'autenticazione a due fattori di un sito invece di un valore. Il suo `{{monitorSecrets.NAME}}` è il codice del momento in cui lo script si avvia, e `await oneuptime.getTotpCode("NAME")` genera un codice nuovo quando lo script lo chiede, il che è adatto a un accesso che arriva alla richiesta del codice dopo qualche pagina. Consultate [Accedere con un codice monouso](/docs/monitor/monitor-secrets#accedere-con-un-codice-monouso).
+
 ## Metriche personalizzate
 
 Potete catturare metriche personalizzate dallo script con la funzione `oneuptime.captureMetric()`. Queste metriche vengono salvate in OneUptime e possono essere rappresentate nelle dashboard con l'esploratore di metriche.
@@ -258,6 +260,7 @@ Nei modelli di incidente e di avviso, ogni esecuzione si trova in `{{syntheticRe
 | `crypto` | Un'implementazione per worker del browser di hash SHA-256, HMAC-SHA-256, `randomBytes`, `randomInt` e `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` ed `error`. I messaggi vengono conservati con ogni esecuzione. |
 | `oneuptime.captureMetric` | Cattura una metrica personalizzata. Consultate [Metriche personalizzate](#metriche-personalizzate). |
+| `oneuptime.getTotpCode` | Genera il codice attuale di un segreto di tipo codice monouso: `await oneuptime.getTotpCode("NAME")`. Consultate [Usare i segreti del monitor](#usare-i-segreti-del-monitor). |
 | `http` | Una facciata di compatibilità con buffer, solo lato client, che supporta `request`, `get` e `Agent`. |
 | `https` | L'equivalente HTTPS della facciata `http` solo lato client. |
 | `Buffer`, `setTimeout`, `setInterval` | E le loro funzioni `clear`. |

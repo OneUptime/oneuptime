@@ -1,5 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/UserTotpAuth";
 import TotpAuth from "../Utils/TotpAuth";
@@ -8,6 +9,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import User from "../../Models/DatabaseModels/User";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -20,6 +22,17 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.userId) {
       throw new BadDataException("User id is required");
+    }
+
+    /*
+     * An authenticator app a person adds from their profile: refused while
+     * their sign-in is managed by single sign-on (SsoManagedSignIn, #9688),
+     * where it would guard a password sign-in the server refuses them. The
+     * enrolment a sign-in with a password walks somebody through is a root
+     * write, and that sign-in has already been refused such a person.
+     */
+    if (!createBy.props.isRoot) {
+      await SsoManagedSignIn.assertMayChangeLocalSignIn(createBy.props.userId);
     }
 
     // The session user's own, and no other name of it to be stored instead.
@@ -61,31 +74,50 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * There is no `onBeforeDelete` here any more.
+   * Removing the last second step while two factor authentication is on is
+   * refused (UserService.assertTwoFactorAuthKeepsASecondStep, #9666).
    *
-   * It used to refuse the deletion of a user's LAST verified factor while
-   * `enableTwoFactorAuth` was on, telling them to "disable two factor auth
-   * before deleting this item". Both halves of that stopped being true:
+   * An earlier guard of this kind was taken out, and each of its reasons has
+   * been answered since:
    *
-   *  - the advice is impossible to follow for a user whose two factor auth was
-   *    mandated by an admin. They cannot turn the requirement off, so the
-   *    guard did not protect them, it stranded them on an authenticator they
-   *    may have been trying to replace -- and it would have made
-   *    UserService.resetTwoFactorAuth, the fix for a lost device, throw on the
-   *    one account that needs it most;
-   *  - the lockout it protected against no longer exists. An account that is
-   *    required to use two factor auth and has nothing set up is now sent
-   *    through enrolment at its next sign-in rather than refused, so deleting
-   *    the last factor costs a QR code, not an account.
+   *  - its advice, "turn off two factor authentication first", could not be
+   *    followed by somebody whose admin required it. Its owner turns it off
+   *    from their profile now, whoever turned it on (UserService
+   *    .onBeforeUpdate);
+   *  - it would have made a master admin's Reset two factor authentication -
+   *    the fix for a lost device - throw. A root delete is not asked;
+   *  - it counted the factors that existed BEFORE the delete, once per row,
+   *    so a delete of two rows passed twice and left none. The count is taken
+   *    over every row the delete removes (findRowsAndHoldDeleteToThem), and
+   *    only verified rows count, so an unfinished setup can always go;
+   *  - "the lockout it protected against no longer exists": still true - an
+   *    account required to use it with nothing set up is walked through
+   *    enrolment at its next sign-in. What does exist is the profile saying
+   *    "Enabled" over nothing, and anybody holding the password enrolling an
+   *    app of their choosing at that sign-in. That is the state #9666
+   *    reported, and removing the last app is how a person walks into it.
    *
-   * It was also wrong on its own terms: it counted the verified factors that
-   * existed BEFORE the delete, once per item, inside a loop over the whole
-   * `deleteBy` set -- so removing two verified factors in a single call passed
-   * the check twice and landed in exactly the state it existed to prevent.
-   *
-   * The same guard has been removed from UserWebAuthnService for the same
-   * reasons; the two were mirror images and had to move together.
+   * UserWebAuthnService asks the same, for security keys and passkeys.
    */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
+          _id: true,
+          userId: true,
+          isVerified: true,
+        },
+      );
+
+      await UserService.assertTwoFactorAuthKeepsASecondStep(rows);
+    }
+
+    return { deleteBy, carryForward: null };
+  }
 }
 
 export default new Service();

@@ -211,6 +211,9 @@ function makeApplication(): RumApplication {
   application.sessionReplayTracePropagationOrigins = [];
   application.sessionReplayRetentionInDays = 30;
   application.sessionReplayMonthlyBudgetInGB = 2;
+  application.sessionReplayRecordOnlyPages = [];
+  application.sessionReplayNeverRecordPages = [];
+  application.sessionReplayReadableEventProperties = [];
 
   return application;
 }
@@ -300,6 +303,112 @@ describe("the Replay Policy page's read view in the reader's language", () => {
       expect(within(card).getAllByText("⟦Off⟧")).toHaveLength(2);
       expect(screen.getByTestId("privacy-summary-retention")).toHaveTextContent(
         "⟦Recorded footage is deleted after 30 days",
+      );
+    },
+    WAIT_TIMEOUT * 2,
+  );
+});
+
+/*
+ * The pages a recording may hold (#7502) and the readable event
+ * properties (#7501) on the read view: each list's empty sentence looked
+ * up, a set list as chips of what was written, and what a recording
+ * contains says so - in amber while an event property is readable under
+ * Mask all text, the one thing that mode then holds as written.
+ */
+describe("page rules and readable event properties on the Replay Policy page", () => {
+  const renderPage: () => void = (): void => {
+    render(
+      <MemoryRouter>
+        <RumApplicationSessionReplaySettings
+          pageRoute={new Route(PAGE_PATH)}
+          currentProject={null}
+          hasPaymentMethod={false}
+        />
+      </MemoryRouter>,
+    );
+  };
+
+  const waitForPolicy: () => Promise<void> = async (): Promise<void> => {
+    await waitFor(
+      () => {
+        expect(
+          within(getPolicyCard()).getByText("⟦30 days⟧"),
+        ).toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  };
+
+  it(
+    "says what the empty lists mean, looked up",
+    async () => {
+      renderPage();
+      await waitForPolicy();
+
+      const card: HTMLElement = getPolicyCard();
+
+      for (const value of [
+        "⟦Record only these pages⟧",
+        "⟦Never record these pages⟧",
+        "⟦Readable event properties⟧",
+        "⟦Every page⟧",
+        "⟦None: no page is kept out⟧",
+        "⟦None: under Mask all text, every event property value is masked⟧",
+      ]) {
+        expect({
+          value: value,
+          drawn: within(card).queryAllByText(value).length > 0,
+        }).toEqual({ value: value, drawn: true });
+      }
+
+      // Nothing readable: the wireframe sentence is the safe one.
+      expect(
+        screen.getByTestId("privacy-summary-page-text"),
+      ).not.toHaveTextContent("event properties readable");
+    },
+    WAIT_TIMEOUT * 2,
+  );
+
+  it(
+    "draws the lists as written, and what a recording contains names them",
+    async () => {
+      getItemMock.mockImplementation((): Promise<RumApplication> => {
+        const application: RumApplication = makeApplication();
+
+        application.sessionReplayRecordOnlyPages = ["/checkout*"];
+        application.sessionReplayNeverRecordPages = [
+          "/checkout/card*",
+          "/admin*",
+        ];
+        application.sessionReplayReadableEventProperties = ["step", "setup"];
+
+        return Promise.resolve(application);
+      });
+
+      renderPage();
+      await waitForPolicy();
+
+      const card: HTMLElement = getPolicyCard();
+
+      for (const written of ["/checkout*", "/checkout/card*", "/admin*"]) {
+        expect(within(card).getByText(written)).toBeInTheDocument();
+      }
+
+      expect(within(card).getByText("step")).toBeInTheDocument();
+      expect(within(card).getByText("setup")).toBeInTheDocument();
+      expect(within(card).queryByText("⟦Every page⟧")).toBeNull();
+
+      const pageText: HTMLElement = screen.getByTestId(
+        "privacy-summary-page-text",
+      );
+
+      expect(pageText).toHaveTextContent(
+        "⟦only the pages the policy names recorded⟧",
+      );
+      expect(pageText).toHaveTextContent("2 page paths never recorded⟧");
+      expect(pageText).toHaveTextContent(
+        "2 event properties readable as short codes⟧",
       );
     },
     WAIT_TIMEOUT * 2,

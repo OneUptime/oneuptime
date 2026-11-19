@@ -377,6 +377,15 @@ describe("the update notification strings are translated", () => {
       readRaw("Pages", "StatusPages", "AnnouncementView.tsx") +
       readRaw("Components", "Announcement", "AnnouncementFormFields.tsx");
     const feed: string = readRaw(...EVENT_NOTES_DIR, "EventNotes.tsx");
+    /*
+     * The feed's edit says them through the composer's words for where a
+     * note shows (#9735): ticked, who gets the edit - only while a status
+     * page that shows the event notifies.
+     */
+    const reachCopy: string = readRaw(
+      ...EVENT_NOTES_DIR,
+      "PublicNoteReachCopy.ts",
+    );
     const util: string = readRaw(...EVENT_NOTES_DIR, "EventNotesUtil.ts");
 
     for (const text of ANNOUNCEMENT_STRINGS) {
@@ -384,8 +393,15 @@ describe("the update notification strings are translated", () => {
     }
 
     for (const text of NOTE_FEED_STRINGS) {
-      expect(feed).toContain(`"${text}"`);
+      expect(reachCopy).toContain(`"${text}"`);
     }
+
+    expect(feed).toContain(
+      "checkedDescription: updateNotifyDescriptions.checked, uncheckedDescription: updateNotifyDescriptions.unchecked,",
+    );
+    expect(feed).toContain(
+      "getUpdateNotifyDescriptions({ eventNoun: props.eventNoun, reach: reach.reach, });",
+    );
 
     for (const label of UPDATE_BADGE_LABELS) {
       expect(util).toContain(`label: "${label}",`);

@@ -40,7 +40,7 @@ flowchart TB
 
 ![Listen «Inntaksnøkler», med «Opprett inntaksnøkkel» uthevet](screen:ingestion-keys)
 
-Den nye nøkkelen åpnes på en egen side. Kopier **Hemmelig nøkkel**: Det er tokenet SDK-et sender som `x-oneuptime-token`.
+Den nye nøkkelen åpnes på en egen side. Kopier **Hemmelig nøkkel**: Det er tokenet SDK-et sender som `x-oneuptime-token`. En Browser-nøkkel er ment å være offentlig: Den virker bare fra opprinnelsene du oppgir, sender bare nettlesertelemetri og øktavspillinger og har en grense for antall forespørsler. Legg aldri en Server-nøkkel i en side.
 
 ![Siden til en telemetri-inntaksnøkkel, med den hemmelige nøkkelen](/docs/static/images/TelemetryIngestionKeyView.png)
 

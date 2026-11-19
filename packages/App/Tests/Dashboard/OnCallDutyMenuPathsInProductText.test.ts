@@ -27,9 +27,11 @@ import path from "path";
  *
  * The On Call docs audit (#4853) found product text that sent people where
  * the menu does not: the User Overrides cards and the Skip dialog said "add
- * (or delete) it under On-Call Duty > User Overrides", but User Overrides is
- * in On-Call Duty's Advanced section, which starts folded, so the page is not
- * on screen until Advanced is opened. A policy's own User Overrides page is in
+ * (or delete) it under On-Call Duty > User Overrides", but User Overrides was
+ * in On-Call Duty's Advanced section, which starts folded, so the page was
+ * not on screen until Advanced was opened. Since #9701 it is in the open
+ * Schedules section, beside the timeline that draws the cover, and the texts
+ * name it there. A policy's own User Overrides page is in
  * the policy menu's folded Advanced section too. And a policy's readiness
  * note and the notification deletion preview said "On-Call > Readiness",
  * naming a menu the bar did not have: the product was On-Call Duty.
@@ -48,7 +50,9 @@ import path from "path";
  *   - every translation of such a text names each step as that language's
  *     Dashboard draws it;
  *   - the global card names a policy's User Overrides page with the Advanced
- *     section it is in, in every language.
+ *     section it is in, in every language;
+ *   - the policy card and the Skip dialog name the global page with the
+ *     Schedules section it is in (#9701), in every language.
  *
  * The docs pages are held the same way by OnCallDutyMenuPathsDocs. Texts
  * are read as the menu paths guard for the settings menus reads them
@@ -128,9 +132,9 @@ const LANGUAGES: ReadonlyArray<string> = fs
 
 // The texts this task rewrote, as the Dashboard's English locale keys them.
 const POLICY_CARD: string =
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.";
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.";
 const SKIP_DIALOG: string =
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.";
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.";
 const GLOBAL_CARD: string =
   "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.";
 const READINESS_NOTE: string =
@@ -157,22 +161,21 @@ describe("the menu the paths are held to, read from its source", () => {
       "Readiness",
       "Incoming Call Policies",
     ]);
+    // User Overrides is in Schedules, beside the timeline (#9701).
     expect(section("Schedules").items).toEqual([
       "On-Call Schedules",
       "Schedule Timeline",
+      "User Overrides",
       "Calendar Feeds",
     ]);
   });
 
-  test("User Overrides, Execution Logs and Archived Policies are in the folded Advanced section", () => {
+  test("Execution Logs and Archived Policies are in the folded Advanced section, and User Overrides is no longer", () => {
     const advanced: SettingsMenuSection = section("Advanced");
 
     expect(advanced.folded).toBe(true);
-    expect(advanced.items).toEqual([
-      "User Overrides",
-      "Execution Logs",
-      "Archived Policies",
-    ]);
+    expect(advanced.items).toEqual(["Execution Logs", "Archived Policies"]);
+    expect(section("Schedules").folded).toBe(false);
   });
 
   test("the On-Call menu is the bar's entry the paths start from", () => {
@@ -198,14 +201,14 @@ describe("a written On-Call path, as a reader follows it", () => {
 
   test.each([
     [
-      "the policy card's old pointer",
-      "To cover someone on every policy at once, add the override under On-Call > User Overrides.",
-      'names "User Overrides" without "Advanced", the folded section it is in: write On-Call > Advanced > User Overrides',
+      "the policy card's pointer of before #9701",
+      "For every policy at once, use On-Call > Advanced > User Overrides.",
+      'names no page of its Advanced section: "User Overrides',
     ],
     [
-      "the Skip dialog's old pointer",
-      "To end it early, delete it under On-Call > User Overrides.",
-      'names "User Overrides" without "Advanced"',
+      "the Skip dialog's pointer of before #9701",
+      "To end it early, delete it under On-Call > Advanced > User Overrides.",
+      'names no page of its Advanced section: "User Overrides',
     ],
     [
       "the execution logs without their section",
@@ -251,8 +254,13 @@ describe("a written On-Call path, as a reader follows it", () => {
 
   test.each([
     [
-      "add the override under On-Call > Advanced > User Overrides.",
-      ["On-Call > Advanced > User Overrides"],
+      "add the override under On-Call > Schedules > User Overrides.",
+      ["On-Call > Schedules > User Overrides"],
+    ],
+    // A page of an open section needs nothing in between.
+    [
+      "add the override under On-Call > User Overrides.",
+      ["On-Call > User Overrides"],
     ],
     [
       "Add one in the OneUptime Dashboard under On-Call > Policies, or ask a Project Admin for access to one.",
@@ -349,11 +357,11 @@ describe("every On-Call path OneUptime writes is one a reader can follow", () =>
   test.each([
     [
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx",
-      ["On-Call > Advanced > User Overrides"],
+      ["On-Call > Schedules > User Overrides"],
     ],
     [
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
-      ["On-Call > Advanced > User Overrides"],
+      ["On-Call > Schedules > User Overrides"],
     ],
     [
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx",

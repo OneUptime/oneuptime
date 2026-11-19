@@ -16,6 +16,7 @@ import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
+import { TotpSecrets, readTotpSecrets } from "Common/Utils/Totp/TotpParameters";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import os from "os";
@@ -60,6 +61,12 @@ export interface SyntheticMonitorOptions {
   browserTypes?: Array<BrowserType> | undefined;
   script: string;
   retryCountOnError?: number | undefined;
+  /*
+   * The one-time code (TOTP) secrets the script references (issue #9703).
+   * Each run - every browser, screen size and retry - makes its own codes
+   * when it starts, and when its script asks with oneuptime.getTotpCode.
+   */
+  totpSecrets?: TotpSecrets | undefined;
 }
 
 export default class SyntheticMonitor {
@@ -92,6 +99,7 @@ export default class SyntheticMonitor {
             browserType: browserType,
             screenSizeType: screenSizeType,
             retryCountOnError: options.retryCountOnError || 0,
+            totpSecrets: options.totpSecrets,
           });
 
         if (result) {
@@ -112,6 +120,7 @@ export default class SyntheticMonitor {
     retryCountOnError: number;
     currentRetry?: number;
     attemptHistory?: Array<RetryAttempt>;
+    totpSecrets?: TotpSecrets | undefined;
   }): Promise<SyntheticMonitorResponse | null> {
     const currentRetry: number = options.currentRetry || 0;
     const attemptHistory: Array<RetryAttempt> = options.attemptHistory || [];
@@ -121,6 +130,7 @@ export default class SyntheticMonitor {
         script: options.script,
         browserType: options.browserType,
         screenSizeType: options.screenSizeType,
+        totpSecrets: options.totpSecrets,
       });
     const result: SyntheticMonitorResponse = attempt.response;
 
@@ -168,6 +178,7 @@ export default class SyntheticMonitor {
         retryCountOnError: options.retryCountOnError,
         currentRetry: currentRetry + 1,
         attemptHistory: attemptHistory,
+        totpSecrets: options.totpSecrets,
       });
     }
 
@@ -187,6 +198,7 @@ export default class SyntheticMonitor {
     script: string;
     browserType: BrowserType;
     screenSizeType: ScreenSizeType;
+    totpSecrets?: TotpSecrets | undefined;
   }): Promise<SyntheticMonitorAttempt> {
     if (!options) {
       // this should never happen
@@ -234,6 +246,13 @@ export default class SyntheticMonitor {
         args: {},
       };
 
+      // Only a script that references one-time code secrets is handed any.
+      const totpSecrets: TotpSecrets = readTotpSecrets(options.totpSecrets);
+
+      if (Object.keys(totpSecrets).length > 0) {
+        workerConfig.totpSecrets = totpSecrets;
+      }
+
       const processResult: { result: SyntheticMonitorWorkerResult } =
         await this.processRunner.run<
           SyntheticMonitorWorkerConfig,
@@ -248,7 +267,14 @@ export default class SyntheticMonitor {
         });
       const result: SyntheticMonitorWorkerResult = processResult.result;
 
-      scriptResult.executionTimeInMS = this.getElapsedTimeInMs(startTime);
+      /*
+       * Time the run waited for a one-time code about to expire is
+       * OneUptime's wait, not the monitored site's: it is left out.
+       */
+      scriptResult.executionTimeInMS = Math.max(
+        0,
+        this.getElapsedTimeInMs(startTime) - (result.totpWaitInMs || 0),
+      );
 
       scriptResult.logMessages = result.logMessages;
       scriptResult.capturedMetrics = result.capturedMetrics || [];

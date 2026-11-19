@@ -158,15 +158,31 @@ export function maskTextValue(value: string): string {
   return "•".repeat(maskedLength);
 }
 
+/*
+ * A short token, not text: mirrors Common's
+ * SESSION_REPLAY_READABLE_VALUE_PATTERN without a runtime dependency.
+ */
+export const READABLE_VALUE_PATTERN: RegExp = /^[A-Za-z0-9_.:/-]{0,32}$/;
+
+/*
+ * Every value masked, as this recorder masks all text - except where the
+ * application listed the key as a readable event property (issue #7501)
+ * and the value is a short token. Mirrors Common's
+ * maskSessionReplayProperties. Traits are masked with no keys listed.
+ */
 export function maskStringMapValues(
   values: Record<string, string>,
+  readableKeys: ReadonlyArray<string> = [],
 ): Record<string, string> {
   const masked: Record<string, string> = Object.create(null) as Record<
     string,
     string
   >;
   for (const [key, value] of Object.entries(values)) {
-    masked[key] = maskTextValue(value);
+    masked[key] =
+      readableKeys.indexOf(key) !== -1 && READABLE_VALUE_PATTERN.test(value)
+        ? value
+        : maskTextValue(value);
   }
   return masked;
 }

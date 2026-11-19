@@ -115,7 +115,7 @@ const AWAY_LABELS: Array<string> = [
   EVERYONE_AWAY,
   "Schedule Timeline",
   "On-Call",
-  "Advanced",
+  "Schedules",
   "User Overrides",
   // Its overlap, said beside the times (#7898), and End Now (#7899).
   "Edit that override",
@@ -538,15 +538,21 @@ describe("the On-Call Schedules docs page", () => {
       expect(away).toContain("the layers below it take over");
 
       /*
-       * Where it is listed - in On-Call's Advanced section, which starts
-       * folded, so the path names it - and that it reaches every policy.
+       * Where it is listed - in On-Call's Schedules section since #9701,
+       * which is open, named in the path so the reader finds it beside the
+       * schedules - and that it reaches every policy.
        */
       const sideMenu: string = readRepoFile(ON_CALL_SIDE_MENU_FILE);
       expect(
-        sectionByTitle(menuSections(sideMenu), "Advanced").items,
+        sectionByTitle(menuSections(sideMenu), "Schedules").items,
       ).toContain("User Overrides");
-      expect(startsCollapsed(sideMenu, "Advanced")).toBe(true);
-      expect(away).toContain("**On-Call** > **Advanced** > **User Overrides**");
+      expect(
+        sectionByTitle(menuSections(sideMenu), "Advanced").items,
+      ).not.toContain("User Overrides");
+      expect(startsCollapsed(sideMenu, "Schedules")).toBe(false);
+      expect(away).toContain(
+        "**On-Call** > **Schedules** > **User Overrides**",
+      );
       expect(away).toContain("applies to every on-call policy");
     });
 

@@ -200,6 +200,163 @@ jest.mock("Common/Server/Services/DataStoreOwnerTeamService", () => {
 jest.mock("Common/Server/Services/DataStoreOwnerUserService", () => {
   return mockOwnerRowService();
 });
+// The records whose owner rules told nobody until #9700.
+jest.mock("Common/Server/Services/ServiceOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/ServiceOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DatabaseServerOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DatabaseServerOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/MessageQueueOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/MessageQueueOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RumApplicationOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RumApplicationOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/HostOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/HostOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/KubernetesClusterOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/KubernetesClusterOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DockerHostOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DockerHostOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DockerSwarmClusterOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DockerSwarmClusterOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/PodmanHostOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/PodmanHostOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/ProxmoxClusterOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/ProxmoxClusterOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/OpenStackCloudOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/OpenStackCloudOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/VMwareVCenterOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/VMwareVCenterOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/CephClusterOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/CephClusterOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/StorageArrayOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/StorageArrayOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/IoTFleetOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/IoTFleetOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/CloudResourceOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/CloudResourceOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/ServerlessFunctionOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/ServerlessFunctionOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DashboardOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DashboardOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/WorkflowOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/WorkflowOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RunbookOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RunbookOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService",
+  () => {
+    return mockOwnerRowService();
+  },
+);
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService",
+  () => {
+    return mockOwnerRowService();
+  },
+);
+jest.mock("Common/Server/Services/IncomingCallPolicyOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/IncomingCallPolicyOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/MonitorGroupOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/MonitorGroupOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RunnerOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RunnerOwnerUserService", () => {
+  return mockOwnerRowService();
+});
 
 // The resources the notifications are about.
 jest.mock("Common/Server/Services/AIAgentService", () => {
@@ -386,6 +543,321 @@ jest.mock("Common/Server/Services/DataStoreService", () => {
   };
 });
 
+// Services, infrastructure, dashboards, workflows, runbooks, on-call (#9700).
+jest.mock("Common/Server/Services/ServiceService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getServiceLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/DatabaseServerService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getDatabaseServerLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/MessageQueueService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getMessageQueueLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/RumApplicationService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/HostService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getHostLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/KubernetesClusterService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getKubernetesClusterLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/DockerHostService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getDockerHostLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/DockerSwarmClusterService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getDockerSwarmClusterLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/PodmanHostService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getPodmanHostLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/ProxmoxClusterService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getProxmoxClusterLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/OpenStackCloudService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getOpenStackCloudLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/VMwareVCenterService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getVMwareVCenterLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/CephClusterService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getCephClusterLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/StorageArrayService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getStorageArrayLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/IoTFleetService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/CloudResourceService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/ServerlessFunctionService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/DashboardService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/WorkflowService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/RunbookService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/OnCallDutyPolicyService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getOnCallDutyPolicyLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/IncomingCallPolicyService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/MonitorGroupService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/RunnerService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
@@ -431,6 +903,81 @@ import DataPipelineService from "Common/Server/Services/DataPipelineService";
 import DataStoreOwnerTeamService from "Common/Server/Services/DataStoreOwnerTeamService";
 import DataStoreOwnerUserService from "Common/Server/Services/DataStoreOwnerUserService";
 import DataStoreService from "Common/Server/Services/DataStoreService";
+import ServiceOwnerTeamService from "Common/Server/Services/ServiceOwnerTeamService";
+import ServiceOwnerUserService from "Common/Server/Services/ServiceOwnerUserService";
+import ServiceService from "Common/Server/Services/ServiceService";
+import DatabaseServerOwnerTeamService from "Common/Server/Services/DatabaseServerOwnerTeamService";
+import DatabaseServerOwnerUserService from "Common/Server/Services/DatabaseServerOwnerUserService";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import MessageQueueOwnerTeamService from "Common/Server/Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "Common/Server/Services/MessageQueueOwnerUserService";
+import MessageQueueService from "Common/Server/Services/MessageQueueService";
+import RumApplicationOwnerTeamService from "Common/Server/Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUserService from "Common/Server/Services/RumApplicationOwnerUserService";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import HostOwnerTeamService from "Common/Server/Services/HostOwnerTeamService";
+import HostOwnerUserService from "Common/Server/Services/HostOwnerUserService";
+import HostService from "Common/Server/Services/HostService";
+import KubernetesClusterOwnerTeamService from "Common/Server/Services/KubernetesClusterOwnerTeamService";
+import KubernetesClusterOwnerUserService from "Common/Server/Services/KubernetesClusterOwnerUserService";
+import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import DockerHostOwnerTeamService from "Common/Server/Services/DockerHostOwnerTeamService";
+import DockerHostOwnerUserService from "Common/Server/Services/DockerHostOwnerUserService";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import DockerSwarmClusterOwnerTeamService from "Common/Server/Services/DockerSwarmClusterOwnerTeamService";
+import DockerSwarmClusterOwnerUserService from "Common/Server/Services/DockerSwarmClusterOwnerUserService";
+import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
+import PodmanHostOwnerTeamService from "Common/Server/Services/PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService from "Common/Server/Services/PodmanHostOwnerUserService";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import ProxmoxClusterOwnerTeamService from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import OpenStackCloudOwnerTeamService from "Common/Server/Services/OpenStackCloudOwnerTeamService";
+import OpenStackCloudOwnerUserService from "Common/Server/Services/OpenStackCloudOwnerUserService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import VMwareVCenterOwnerTeamService from "Common/Server/Services/VMwareVCenterOwnerTeamService";
+import VMwareVCenterOwnerUserService from "Common/Server/Services/VMwareVCenterOwnerUserService";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
+import CephClusterOwnerTeamService from "Common/Server/Services/CephClusterOwnerTeamService";
+import CephClusterOwnerUserService from "Common/Server/Services/CephClusterOwnerUserService";
+import CephClusterService from "Common/Server/Services/CephClusterService";
+import StorageArrayOwnerTeamService from "Common/Server/Services/StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService from "Common/Server/Services/StorageArrayOwnerUserService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import IoTFleetOwnerTeamService from "Common/Server/Services/IoTFleetOwnerTeamService";
+import IoTFleetOwnerUserService from "Common/Server/Services/IoTFleetOwnerUserService";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
+import CloudResourceOwnerTeamService from "Common/Server/Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService from "Common/Server/Services/CloudResourceOwnerUserService";
+import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import ServerlessFunctionOwnerTeamService from "Common/Server/Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService from "Common/Server/Services/ServerlessFunctionOwnerUserService";
+import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
+import DashboardOwnerTeamService from "Common/Server/Services/DashboardOwnerTeamService";
+import DashboardOwnerUserService from "Common/Server/Services/DashboardOwnerUserService";
+import DashboardService from "Common/Server/Services/DashboardService";
+import WorkflowOwnerTeamService from "Common/Server/Services/WorkflowOwnerTeamService";
+import WorkflowOwnerUserService from "Common/Server/Services/WorkflowOwnerUserService";
+import WorkflowService from "Common/Server/Services/WorkflowService";
+import RunbookOwnerTeamService from "Common/Server/Services/RunbookOwnerTeamService";
+import RunbookOwnerUserService from "Common/Server/Services/RunbookOwnerUserService";
+import RunbookService from "Common/Server/Services/RunbookService";
+import OnCallDutyPolicyOwnerTeamService from "Common/Server/Services/OnCallDutyPolicyOwnerTeamService";
+import OnCallDutyPolicyOwnerUserService from "Common/Server/Services/OnCallDutyPolicyOwnerUserService";
+import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyService";
+import OnCallDutyPolicyScheduleOwnerTeamService from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService";
+import OnCallDutyPolicyScheduleOwnerUserService from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService";
+import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
+import IncomingCallPolicyOwnerTeamService from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
+import IncomingCallPolicyOwnerUserService from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
+import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
+import MonitorGroupOwnerTeamService from "Common/Server/Services/MonitorGroupOwnerTeamService";
+import MonitorGroupOwnerUserService from "Common/Server/Services/MonitorGroupOwnerUserService";
+import MonitorGroupService from "Common/Server/Services/MonitorGroupService";
+import RunnerOwnerTeamService from "Common/Server/Services/RunnerOwnerTeamService";
+import RunnerOwnerUserService from "Common/Server/Services/RunnerOwnerUserService";
+import RunnerService from "Common/Server/Services/RunnerService";
 
 // Imported for their side effect: RunCron (mocked above) records each handler.
 import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
@@ -447,6 +994,31 @@ import "../../../FeatureSet/Workers/Jobs/StatusPageOwners/SendOwnerAddedNotifica
 import "../../../FeatureSet/Workers/Jobs/DataAssetOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/DataPipelineOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/DataStoreOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/ServiceOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DatabaseServerOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/MessageQueueOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RumApplicationOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/HostOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/KubernetesClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DockerHostOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DockerSwarmClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/PodmanHostOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/ProxmoxClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/OpenStackCloudOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/CephClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/IoTFleetOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/CloudResourceOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DashboardOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/WorkflowOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RunbookOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/MonitorGroupOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RunnerOwners/SendOwnerAddedNotification";
 
 interface RowServiceMock {
   findBy: jest.Mock;
@@ -625,6 +1197,195 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
     resourceIdColumn: "dataStoreId",
     resourceService: DataStoreService as unknown as ResourceServiceMock,
   },
+  // Services, infrastructure, dashboards, workflows, runbooks, on-call (#9700).
+  {
+    job: "ServiceOwner:SendOwnerAddedNotification",
+    teamService: ServiceOwnerTeamService as unknown as RowServiceMock,
+    userService: ServiceOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "serviceId",
+    resourceService: ServiceService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "DatabaseServerOwner:SendOwnerAddedNotification",
+    teamService: DatabaseServerOwnerTeamService as unknown as RowServiceMock,
+    userService: DatabaseServerOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "databaseServerId",
+    resourceService: DatabaseServerService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "MessageQueueOwner:SendOwnerAddedNotification",
+    teamService: MessageQueueOwnerTeamService as unknown as RowServiceMock,
+    userService: MessageQueueOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "messageQueueId",
+    resourceService: MessageQueueService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "RumApplicationOwner:SendOwnerAddedNotification",
+    teamService: RumApplicationOwnerTeamService as unknown as RowServiceMock,
+    userService: RumApplicationOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "rumApplicationId",
+    resourceService: RumApplicationService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "HostOwner:SendOwnerAddedNotification",
+    teamService: HostOwnerTeamService as unknown as RowServiceMock,
+    userService: HostOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "hostId",
+    resourceService: HostService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "KubernetesClusterOwner:SendOwnerAddedNotification",
+    teamService: KubernetesClusterOwnerTeamService as unknown as RowServiceMock,
+    userService: KubernetesClusterOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "kubernetesClusterId",
+    resourceService: KubernetesClusterService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "DockerHostOwner:SendOwnerAddedNotification",
+    teamService: DockerHostOwnerTeamService as unknown as RowServiceMock,
+    userService: DockerHostOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "dockerHostId",
+    resourceService: DockerHostService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "DockerSwarmClusterOwner:SendOwnerAddedNotification",
+    teamService:
+      DockerSwarmClusterOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      DockerSwarmClusterOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "dockerSwarmClusterId",
+    resourceService:
+      DockerSwarmClusterService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "PodmanHostOwner:SendOwnerAddedNotification",
+    teamService: PodmanHostOwnerTeamService as unknown as RowServiceMock,
+    userService: PodmanHostOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "podmanHostId",
+    resourceService: PodmanHostService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "ProxmoxClusterOwner:SendOwnerAddedNotification",
+    teamService: ProxmoxClusterOwnerTeamService as unknown as RowServiceMock,
+    userService: ProxmoxClusterOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "proxmoxClusterId",
+    resourceService: ProxmoxClusterService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "OpenStackCloudOwner:SendOwnerAddedNotification",
+    teamService: OpenStackCloudOwnerTeamService as unknown as RowServiceMock,
+    userService: OpenStackCloudOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "openStackCloudId",
+    resourceService: OpenStackCloudService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "VMwareVCenterOwner:SendOwnerAddedNotification",
+    teamService: VMwareVCenterOwnerTeamService as unknown as RowServiceMock,
+    userService: VMwareVCenterOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "vmwareVCenterId",
+    resourceService: VMwareVCenterService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "CephClusterOwner:SendOwnerAddedNotification",
+    teamService: CephClusterOwnerTeamService as unknown as RowServiceMock,
+    userService: CephClusterOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "cephClusterId",
+    resourceService: CephClusterService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "StorageArrayOwner:SendOwnerAddedNotification",
+    teamService: StorageArrayOwnerTeamService as unknown as RowServiceMock,
+    userService: StorageArrayOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "storageArrayId",
+    resourceService: StorageArrayService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "IoTFleetOwner:SendOwnerAddedNotification",
+    teamService: IoTFleetOwnerTeamService as unknown as RowServiceMock,
+    userService: IoTFleetOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "iotFleetId",
+    resourceService: IoTFleetService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "CloudResourceOwner:SendOwnerAddedNotification",
+    teamService: CloudResourceOwnerTeamService as unknown as RowServiceMock,
+    userService: CloudResourceOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "cloudResourceId",
+    resourceService: CloudResourceService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "ServerlessFunctionOwner:SendOwnerAddedNotification",
+    teamService:
+      ServerlessFunctionOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      ServerlessFunctionOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "serverlessFunctionId",
+    resourceService:
+      ServerlessFunctionService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "DashboardOwner:SendOwnerAddedNotification",
+    teamService: DashboardOwnerTeamService as unknown as RowServiceMock,
+    userService: DashboardOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "dashboardId",
+    resourceService: DashboardService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "WorkflowOwner:SendOwnerAddedNotification",
+    teamService: WorkflowOwnerTeamService as unknown as RowServiceMock,
+    userService: WorkflowOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "workflowId",
+    resourceService: WorkflowService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "RunbookOwner:SendOwnerAddedNotification",
+    teamService: RunbookOwnerTeamService as unknown as RowServiceMock,
+    userService: RunbookOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "runbookId",
+    resourceService: RunbookService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "OnCallDutyPolicyOwner:SendOwnerAddedNotification",
+    teamService: OnCallDutyPolicyOwnerTeamService as unknown as RowServiceMock,
+    userService: OnCallDutyPolicyOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "onCallDutyPolicyId",
+    resourceService: OnCallDutyPolicyService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "OnCallDutyPolicyScheduleOwner:SendOwnerAddedNotification",
+    teamService:
+      OnCallDutyPolicyScheduleOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      OnCallDutyPolicyScheduleOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "onCallDutyPolicyScheduleId",
+    resourceService:
+      OnCallDutyPolicyScheduleService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "IncomingCallPolicyOwner:SendOwnerAddedNotification",
+    teamService:
+      IncomingCallPolicyOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      IncomingCallPolicyOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "incomingCallPolicyId",
+    resourceService:
+      IncomingCallPolicyService as unknown as ResourceServiceMock,
+  },
+  // #9758: a monitor group's and a Runner's, added on their Owners pages.
+  {
+    job: "MonitorGroupOwner:SendOwnerAddedNotification",
+    teamService: MonitorGroupOwnerTeamService as unknown as RowServiceMock,
+    userService: MonitorGroupOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "monitorGroupId",
+    resourceService: MonitorGroupService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "RunnerOwner:SendOwnerAddedNotification",
+    teamService: RunnerOwnerTeamService as unknown as RowServiceMock,
+    userService: RunnerOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "runnerId",
+    resourceService: RunnerService as unknown as ResourceServiceMock,
+  },
 ];
 
 // One owner team row and one owner user row per user, all on the resource.
@@ -700,6 +1461,20 @@ beforeEach(() => {
     DataPipelineService.getDataPipelineLinkInDashboard,
     DataStoreService.getDataStoreLinkInDashboard,
     DataStoreService.getDataObservabilityDatabaseLinkInDashboard,
+    ServiceService.getServiceLinkInDashboard,
+    DatabaseServerService.getDatabaseServerLinkInDashboard,
+    MessageQueueService.getMessageQueueLinkInDashboard,
+    HostService.getHostLinkInDashboard,
+    KubernetesClusterService.getKubernetesClusterLinkInDashboard,
+    DockerHostService.getDockerHostLinkInDashboard,
+    DockerSwarmClusterService.getDockerSwarmClusterLinkInDashboard,
+    PodmanHostService.getPodmanHostLinkInDashboard,
+    ProxmoxClusterService.getProxmoxClusterLinkInDashboard,
+    OpenStackCloudService.getOpenStackCloudLinkInDashboard,
+    VMwareVCenterService.getVMwareVCenterLinkInDashboard,
+    CephClusterService.getCephClusterLinkInDashboard,
+    StorageArrayService.getStorageArrayLinkInDashboard,
+    OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard,
   ]) {
     (link as jest.Mock).mockResolvedValue(RESOURCE_LINK);
   }

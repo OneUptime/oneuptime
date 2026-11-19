@@ -52,6 +52,9 @@ import {
 } from "../Utils/KubernetesCostTableCells";
 import KubernetesRightSizingCard from "./KubernetesRightSizingCard";
 import KubernetesCostTrendChart from "./KubernetesCostTrendChart";
+import KubernetesCostPricingNote from "./KubernetesCostPricingNote";
+import { fetchKubernetesCostEngine } from "../Utils/KubernetesCostEngine";
+import { KubernetesCostEngineInfo } from "Common/Types/Kubernetes/KubernetesCostPricing";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import {
@@ -124,6 +127,10 @@ const KubernetesClusterCosts: FunctionComponent<
     [],
   );
   const [workloadRows, setWorkloadRows] = useState<Array<WorkloadCostRow>>([]);
+  // Which engine priced the window's newest hour, and at what prices.
+  const [costEngine, setCostEngine] = useState<KubernetesCostEngineInfo | null>(
+    null,
+  );
 
   const [namespacePage, setNamespacePage] = useState<number>(1);
   const [namespacePageSize, setNamespacePageSize] =
@@ -199,10 +206,11 @@ const KubernetesClusterCosts: FunctionComponent<
           endDate: new Date(endMs),
         };
 
-        const [trendPoints, namespaces, workloads] = await Promise.all([
+        const [trendPoints, namespaces, workloads, engine] = await Promise.all([
           fetchCostTrend(params),
           fetchNamespaceBreakdown(params),
           fetchWorkloadBreakdown(params),
+          fetchKubernetesCostEngine(params),
         ]);
 
         if (cancelled) {
@@ -212,6 +220,7 @@ const KubernetesClusterCosts: FunctionComponent<
         setTrend(trendPoints);
         setNamespaceRows(namespaces);
         setWorkloadRows(workloads);
+        setCostEngine(engine);
         setNamespacePage(1);
         setWorkloadPage(1);
       } catch (err) {
@@ -505,6 +514,16 @@ const KubernetesClusterCosts: FunctionComponent<
             startAndEndDate={startAndEndDate}
             syncid={`k8s-costs-${modelId.toString()}`}
           />
+          {/*
+           * Where the window's prices come from, under the figures they
+           * price (#9634); and when the cluster runs its own engine, which
+           * one, and whether the bundled one can go (#9633).
+           */}
+          {showFigures ? (
+            <KubernetesCostPricingNote engine={costEngine} className="mt-4" />
+          ) : (
+            <></>
+          )}
         </div>
       </EmbeddedMetricCard>
 

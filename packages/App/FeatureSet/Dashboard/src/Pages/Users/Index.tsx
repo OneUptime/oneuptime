@@ -18,7 +18,13 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import {
+  drawInviteeEmailField,
+  getInviteeEmailError,
+  readFormTeamId,
+} from "../../Components/Team/InviteeEmailFormField";
 import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
 import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -720,12 +726,27 @@ const Users: FunctionComponent<PageComponentProps> = (
                     ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
                     : SERVER_EMAIL_COPY.inviteEmailDescription
                   : "We email them an invitation to the team you pick.",
-                fieldType: FormFieldSchemaType.Email,
+                /*
+                 * The form's text box, which suggests people as it is typed
+                 * in, each with where they stand for the team picked below
+                 * (#9701, Components/Team/InviteeEmailFormField).
+                 */
+                fieldType: FormFieldSchemaType.CustomComponent,
                 required: true,
                 placeholder: "member@company.com",
                 overrideFieldKey: "email",
                 onChange: (value: string) => {
                   checkEmail(value);
+                },
+                customValidation: getInviteeEmailError,
+                getCustomElement: (
+                  values: FormValues<TeamMember>,
+                  customProps: CustomElementProps,
+                ): ReactElement => {
+                  return drawInviteeEmailField({
+                    customProps: customProps,
+                    teamId: readFormTeamId((values as JSONObject)["team"]),
+                  });
                 },
               },
               {

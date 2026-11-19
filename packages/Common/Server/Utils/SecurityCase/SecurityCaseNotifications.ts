@@ -40,6 +40,7 @@ import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
+import { hasWhatsAppTemplate } from "../../../Types/WhatsApp/WhatsAppEventTemplates";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
@@ -1034,7 +1035,13 @@ export default class SecurityCaseNotifications {
       );
 
       // Someone who switched every channel off is not asked about.
-      if (setting && !this.hasChannelOn(setting)) {
+      if (
+        setting &&
+        !this.hasChannelOn(
+          setting,
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+        )
+      ) {
         continue;
       }
 
@@ -1599,7 +1606,13 @@ export default class SecurityCaseNotifications {
         member.userId.toString(),
       );
 
-      if (setting && !this.hasChannelOn(setting)) {
+      if (
+        setting &&
+        !this.hasChannelOn(
+          setting,
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+        )
+      ) {
         continue;
       }
 
@@ -2005,13 +2018,23 @@ export default class SecurityCaseNotifications {
     return settings;
   }
 
-  private static hasChannelOn(setting: UserNotificationSetting): boolean {
+  /*
+   * Whether the setting has a channel on that can send its event. WhatsApp
+   * switched on for an event it has no approved template for - every
+   * security case event - sends nothing (Types/WhatsApp/WhatsAppEventTemplates,
+   * #9715), so a person whose only switch is that one is told nothing, and
+   * is not counted as told.
+   */
+  private static hasChannelOn(
+    setting: UserNotificationSetting,
+    eventType: NotificationSettingEventType,
+  ): boolean {
     return Boolean(
       setting.alertByEmail ||
         setting.alertBySMS ||
         setting.alertByCall ||
         setting.alertByPush ||
-        setting.alertByWhatsApp ||
+        (setting.alertByWhatsApp && hasWhatsAppTemplate(eventType)) ||
         setting.alertByTelegram ||
         setting.alertBySlack ||
         setting.alertByMicrosoftTeams ||

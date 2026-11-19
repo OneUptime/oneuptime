@@ -48,7 +48,7 @@ export interface DataStoreViewOutletContext {
 // What a store's kind says about it, for the pages that differ by kind.
 export interface DataStoreKindFacts {
   kindInfo: DataStoreKindInfo | undefined;
-  // A service's logs, traces, exceptions, replays or AI conversations.
+  // A service's logs, traces, metrics, exceptions, replays or AI conversations.
   isTelemetry: boolean;
   // A database a team runs itself, scanned with a connection string or a probe.
   isSelfManaged: boolean;

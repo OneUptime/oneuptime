@@ -331,9 +331,7 @@ describe("user settings > notification settings", () => {
 
       expect(await screen.findByText("Incoming Call Policies")).toBeVisible();
       expect(
-        screen.getByText(
-          "Notify me about calls to incoming call policies I own.",
-        ),
+        screen.getByText("Notify me about incoming call policies I own."),
       ).toBeVisible();
 
       const row: HTMLElement = await findEventRow("Missed call");
@@ -364,6 +362,185 @@ describe("user settings > notification settings", () => {
       expect(updateById.mock.calls[0][0].id).toEqual(missedCallRow!.id);
       expect(updateById.mock.calls[0][0].data).toEqual({ alertByEmail: false });
     });
+
+    /*
+     * #9700: being made an owner of a service or a piece of infrastructure
+     * is one row of its own card on the Monitoring tab, and of a dashboard,
+     * a workflow or a runbook one row each on another, each toggling its own
+     * setting alone. #9758: a Runner's beside the runbook's, and a monitor
+     * group's on the Monitors card.
+     */
+    test.each([
+      {
+        card: "Services and Infrastructure",
+        cardDescription:
+          "Notify me about the services and infrastructure I own.",
+        label: "Added as service or infrastructure owner",
+        description:
+          "You are added as an owner of a service, a RUM application, a host, a cluster, a database, a queue, a cloud resource or other infrastructure.",
+        eventType:
+          NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Dashboards & Automation",
+        cardDescription:
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
+        label: "Added as dashboard owner",
+        description: "You are added as an owner of a dashboard.",
+        eventType:
+          NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Dashboards & Automation",
+        cardDescription:
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
+        label: "Added as workflow owner",
+        description: "You are added as an owner of a workflow.",
+        eventType:
+          NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Dashboards & Automation",
+        cardDescription:
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
+        label: "Added as runbook owner",
+        description: "You are added as an owner of a runbook.",
+        eventType:
+          NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Dashboards & Automation",
+        cardDescription:
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
+        label: "Added as Runner owner",
+        description:
+          "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.",
+        eventType:
+          NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Monitors",
+        cardDescription: "Notify me about monitors I own.",
+        label: "Added as monitor group owner",
+        description: "You are added as an owner of a monitor group.",
+        eventType:
+          NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+      },
+    ])(
+      "the Monitoring tab has $label on the $card card, which toggles alone",
+      async (owned: {
+        card: string;
+        cardDescription: string;
+        label: string;
+        description: string;
+        eventType: NotificationSettingEventType;
+      }) => {
+        const updateById: jest.SpyInstance = jest
+          .spyOn(ModelAPI, "updateById")
+          .mockResolvedValue({} as any);
+
+        renderPage();
+        await findEventRow("Assigned to an incident");
+        fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+
+        expect(await screen.findByText(owned.card)).toBeVisible();
+        expect(screen.getByText(owned.cardDescription)).toBeVisible();
+
+        const row: HTMLElement = await findEventRow(owned.label);
+        expect(within(row).getByText(owned.description)).toBeVisible();
+
+        fireEvent.click(
+          within(row).getByRole("switch", { name: /^Email for / }),
+        );
+
+        await waitFor(() => {
+          expect(updateById).toHaveBeenCalledTimes(1);
+        });
+        const ownedRow: UserNotificationSetting | undefined = rows.find(
+          (setting: UserNotificationSetting): boolean => {
+            return setting.eventType === owned.eventType;
+          },
+        );
+        expect(updateById.mock.calls[0][0].id).toEqual(ownedRow!.id);
+        expect(updateById.mock.calls[0][0].data).toEqual({
+          alertByEmail: false,
+        });
+      },
+    );
+
+    /*
+     * #9700: being made an owner of an on-call policy or schedule is a card
+     * of its own on the On-Call tab, apart from the person's own shifts, and
+     * of an incoming call policy a row beside Missed call.
+     */
+    test.each([
+      {
+        card: "On-Call Policies and Schedules",
+        cardDescription:
+          "Notify me about on-call policies and schedules I own.",
+        label: "Added as on-call policy owner",
+        description: "You are added as an owner of an on-call policy.",
+        eventType:
+          NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "On-Call Policies and Schedules",
+        cardDescription:
+          "Notify me about on-call policies and schedules I own.",
+        label: "Added as on-call schedule owner",
+        description: "You are added as an owner of an on-call schedule.",
+        eventType:
+          NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Incoming Call Policies",
+        cardDescription: "Notify me about incoming call policies I own.",
+        label: "Added as incoming call policy owner",
+        description: "You are added as an owner of an incoming call policy.",
+        eventType:
+          NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+      },
+    ])(
+      "the On-Call tab has $label on the $card card, which toggles alone",
+      async (owned: {
+        card: string;
+        cardDescription: string;
+        label: string;
+        description: string;
+        eventType: NotificationSettingEventType;
+      }) => {
+        const updateById: jest.SpyInstance = jest
+          .spyOn(ModelAPI, "updateById")
+          .mockResolvedValue({} as any);
+
+        renderPage();
+        await findEventRow("Assigned to an incident");
+        fireEvent.click(screen.getByRole("tab", { name: "On-Call" }));
+
+        expect(await screen.findByText(owned.card)).toBeVisible();
+        expect(screen.getByText(owned.cardDescription)).toBeVisible();
+
+        const row: HTMLElement = await findEventRow(owned.label);
+        expect(within(row).getByText(owned.description)).toBeVisible();
+
+        fireEvent.click(
+          within(row).getByRole("switch", { name: /^Email for / }),
+        );
+
+        await waitFor(() => {
+          expect(updateById).toHaveBeenCalledTimes(1);
+        });
+        const ownedRow: UserNotificationSetting | undefined = rows.find(
+          (setting: UserNotificationSetting): boolean => {
+            return setting.eventType === owned.eventType;
+          },
+        );
+        expect(updateById.mock.calls[0][0].id).toEqual(ownedRow!.id);
+        expect(updateById.mock.calls[0][0].data).toEqual({
+          alertByEmail: false,
+        });
+      },
+    );
 
     /*
      * An exception assigned to the member, or to a team they are on, is told
@@ -877,6 +1054,10 @@ describe("user settings > notification settings", () => {
       })!;
     }
 
+    /*
+     * Every channel but WhatsApp, which has no approved template for a
+     * security case and offers no switch for one (#9715).
+     */
     test("lists the three security case events, each with its switches", async () => {
       await openSecurityTab();
 
@@ -886,7 +1067,10 @@ describe("user settings > notification settings", () => {
         "Playbook step waiting for my approval",
       ]) {
         const row: HTMLElement = await findEventRow(label);
-        expect(within(row).getAllByRole("switch")).toHaveLength(9);
+        expect(within(row).getAllByRole("switch")).toHaveLength(8);
+        expect(
+          within(row).queryByRole("switch", { name: /^WhatsApp for / }),
+        ).not.toBeInTheDocument();
       }
     });
 

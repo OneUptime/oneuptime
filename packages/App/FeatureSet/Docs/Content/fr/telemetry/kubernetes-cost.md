@@ -5,7 +5,7 @@ Voyez ce que coûte chaque charge de travail Kubernetes — les dépenses par na
 :::cards
 - [L'activer](#activer-lobservabilité-des-coûts): Activée par défaut ; un seul `helm upgrade` là où elle ne l'est pas.
 - [Alertes sur les coûts](#alertes-sur-les-coûts): Le coût par cluster, namespace et charge de travail, sous forme de métriques.
-- [Utiliser votre propre moteur](#vous-utilisez-déjà-kubecost-ou-opencost): Pointer l'agent vers Kubecost ou OpenCost.
+- [Votre propre moteur](#vous-utilisez-déjà-kubecost-ou-opencost): Le Kubecost ou l'OpenCost que vous utilisez déjà est détecté et lu.
 - [Right-sizing](#right-sizing): Les recommandations de requests, et comment elles sont établies.
 - [Dépannage](#dépannage): Pages vides, recommandations manquantes.
 :::
@@ -63,28 +63,33 @@ Les premiers coûts apparaissent après la clôture de la première heure compl�
 
 Les métriques de coûts (`node_total_hourly_cost`, `pv_hourly_cost` et les autres) sont des métriques ordinaires : elles se trouvent dans l'explorateur de métriques, sur les tableaux de bord personnalisés et dans les moniteurs de métriques. Pour un tableau de bord prêt à l'emploi, allez dans **Produits → Tableaux de bord**, sélectionnez **Créer un tableau de bord** et choisissez **Kubernetes Cost Dashboard** : l'évolution du coût horaire des nœuds, les coûts unitaires du CPU et de la mémoire, et les dépenses de volumes et de load balancers.
 
+Sous les chiffres, la vue d'ensemble et la page **Coûts** indiquent d'où viennent leurs prix : les prix catalogue d'un cloud, votre grille tarifaire ou les tarifs par défaut d'OpenCost. L'efficacité est un seul et même chiffre partout, métrique d'efficacité comprise : la part du CPU et de la mémoire demandés qui a été utilisée, chaque heure de conteneur étant pondérée par ce que coûtent son CPU et sa mémoire, si bien qu'un job peu coûteux qui n'utilise rien ne peut pas tirer vers le bas un cluster bien utilisé, et la capacité inutilisée n'est pas comptée.
+
 ## Vous utilisez déjà Kubecost ou OpenCost ?
 
-Pointez plutôt l'agent vers votre moteur, et rien n'est embarqué :
+L'agent de coûts détecte votre moteur et le lit à la place de l'OpenCost embarqué, si bien que le prix du cluster est calculé comme vous l'avez configuré : votre grille tarifaire, ou votre facture cloud derrière Kubecost. Au démarrage, puis toutes les heures, il recherche via l'API Kubernetes, dans n'importe quel namespace, les Services que créent les charts des moteurs eux-mêmes (`cost-analyzer` ou `frontend` pour Kubecost, celui du chart d'OpenCost, et le Service `opencost` que crée son manifeste), Kubecost en premier. Il écarte un moteur qui ne répond pas, qui exige une connexion ou qui répond pour plusieurs clusters, et lit alors le moteur embarqué.
+
+La vue d'ensemble du cluster nomme alors votre moteur et indique que l'OpenCost embarqué n'est pas nécessaire. Arrêtez-le :
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+Avec `cost.engine.url=auto`, rien n'est embarqué, et l'agent lit votre moteur où qu'il tourne ; sans moteur installé, aucun prix n'est calculé. Le chart ne peut pas chercher de moteur lui-même : le `lookup` de Helm ne voit rien avec `helm template`, avec Argo CD ou lors d'une simulation. Pour garder l'OpenCost embarqué à côté de votre propre moteur, définissez `cost.engine.preferExisting=false` ; pour désigner le moteur à lire, définissez `cost.engine.url` sur son Service :
 
 | Moteur | URL de service habituelle |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Le chemin de l'Allocation API est trouvé automatiquement (`/model/allocation` pour Kubecost, `/allocation/compute` ou `/allocation` pour OpenCost). Ne définissez `cost.engine.allocationPath` que pour une installation inhabituelle. Pour les recommandations de mémoire, définissez aussi `cost.engine.prometheusUrl` (voir [Les données sous-jacentes](#les-données-sous-jacentes)).
+Le chemin de l'Allocation API est trouvé automatiquement (`/model/allocation` pour Kubecost, `/allocation/compute` ou `/allocation` pour OpenCost). Ne définissez `cost.engine.allocationPath` que pour une installation inhabituelle. Avec `auto` ou une URL, rien n'est embarqué : pour les recommandations de mémoire, définissez donc aussi `cost.engine.prometheusUrl` (voir [Les données sous-jacentes](#les-données-sous-jacentes)).
 
 ## Tarification sur site et bare metal
 
-Les clusters dont les nœuds n'ont pas de prix catalogue cloud public peuvent définir une grille tarifaire. OpenCost calcule alors le prix de chaque ressource à partir de ces chiffres, tous en USD par heure de ressource :
+Les clusters dont les nœuds n'ont pas de prix catalogue cloud public peuvent définir une grille tarifaire. Sans elle, OpenCost calcule le prix de ces nœuds à ses tarifs par défaut (sur site, bare metal, kind, k3s), qui peuvent être très éloignés de ce que coûte votre matériel, et la vue d'ensemble et la page **Coûts** du cluster le signalent ; sur un cloud qu'il reconnaît, un nœud garde son prix catalogue, et une grille tarifaire ne fixe que le prix de ce qui manque au catalogue. Avec une grille tarifaire, OpenCost calcule alors le prix de chaque ressource à partir de ces chiffres, tous en USD par heure de ressource :
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+Ce sont les tarifs par défaut d'OpenCost lui-même : mettez-y vos propres chiffres, sinon la page **Coûts** indique toujours que le prix du cluster est calculé aux tarifs par défaut d'OpenCost.
 
 ## Réglages utiles
 
@@ -148,7 +155,7 @@ En plus des dépenses, le collecteur de coûts récupère ce dont une recommanda
 La mémoire nécessite une source de plus. L'Allocation API ne fournit qu'une moyenne sur chaque fenêtre, et une moyenne horaire masque le pic qui provoque l'OOM kill d'un conteneur : dimensionner la mémoire à partir d'elle serait dangereux. Le collecteur de coûts lit plutôt le pic de mémoire de chaque conteneur dans Prometheus, joint sur `(namespace, pod, container)` :
 
 - Avec le moteur embarqué (par défaut), il utilise le Prometheus du chart. Rien à définir.
-- Avec votre propre moteur (`cost.engine.url`), pointez `cost.engine.prometheusUrl` vers un Prometheus qui collecte cAdvisor, et définissez `cost.engine.prometheusCadvisorJob` si son job de collecte ne s'appelle pas `kubernetes-nodes-cadvisor`.
+- Lorsque `cost.engine.url` est définie (`auto` ou l'URL de votre moteur), pointez `cost.engine.prometheusUrl` vers un Prometheus qui collecte cAdvisor, et définissez `cost.engine.prometheusCadvisorJob` si son job de collecte ne s'appelle pas `kubernetes-nodes-cadvisor`.
 - Sans Prometheus, les recommandations de CPU fonctionnent toujours, à partir des moyennes horaires stockées, et les recommandations de mémoire sont omises plutôt que devinées.
 
 Une panne de Prometheus n'arrête jamais la collecte des dépenses : les pics sont un plus, et une heure est envoyée sans eux. Le CPU n'utilise délibérément pas Prometheus : une request de CPU trop élevée ne fait que brider, là où une request de mémoire trop faible arrête le conteneur. Les moyennes horaires sont donc sûres pour le CPU, et interroger le débit CPU de chaque conteneur sur tout un cluster est assez lourd pour faire tomber un petit Prometheus.
@@ -180,6 +187,14 @@ Avec les presets `gke-autopilot` et `eks-fargate`, la surveillance des coûts es
 
 :::details L'OpenCost intégré n'est pas prêt
 Lisez ses journaux : `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`. Ils indiquent quel fournisseur cloud il a détecté et si ses données de prix ont été chargées.
+:::
+
+:::details La vue d'ensemble indique que l'OpenCost embarqué n'est pas nécessaire
+Le cluster exécute son propre Kubecost ou OpenCost, et l'agent de coûts lit celui-ci : l'OpenCost et le Prometheus embarqués par le chart ne calculent donc aucun prix. Mettez à jour avec `--set cost.engine.url=auto` pour les arrêter, ou définissez `cost.engine.preferExisting=false` pour lire plutôt le moteur embarqué.
+:::
+
+:::details L'agent de coûts ne lit pas votre moteur
+Son journal indique quel moteur il lit, et pourquoi il a écarté les autres : `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Il écarte un moteur qui ne répond pas (à cause d'une NetworkPolicy entre les namespaces, par exemple), qui exige une connexion, ou qui répond pour plusieurs clusters, comme le fait un Kubecost qui en fédère d'autres. Désignez le moteur à lire avec `cost.engine.url`.
 :::
 
 :::details Le journal d'OpenCost indique mkdir /var/configs: permission denied

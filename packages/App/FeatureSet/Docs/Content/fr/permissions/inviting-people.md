@@ -43,7 +43,7 @@ Cliquez sur **Inviter un utilisateur**. La boîte de dialogue **Inviter un nouve
 
 ### Saisir son adresse e-mail
 
-Saisissez son adresse dans **E-mail**. Si aucun compte OneUptime ne l'utilise encore, la boîte de dialogue demande aussi un **Nom**, avec lequel son nouveau compte commence.
+Saisissez son adresse dans **E-mail**. Si aucun compte OneUptime ne l'utilise encore, la boîte de dialogue demande aussi un **Nom**, avec lequel son nouveau compte commence. Pendant la saisie, **E-mail** suggère les personnes du projet par nom ou par adresse, et indique qui est **Invité** et qui est **Déjà dans cette équipe** : cliquez sur l'une d'elles pour remplir son adresse. Sur un serveur auto-hébergé, un administrateur principal se voit aussi proposer les autres comptes du serveur, marqués **Pas encore dans ce projet**.
 
 ### Choisir son équipe
 

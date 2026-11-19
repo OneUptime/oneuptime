@@ -1169,6 +1169,11 @@ const FormField: <T extends GenericObject>(
                 : fieldLabelId,
 
               ariaDescribedby: describedBy,
+
+              // Enter in a custom text box submits, as in the form's own.
+              onEnterPress: () => {
+                props.submitForm?.();
+              },
             })}
 
           {/*

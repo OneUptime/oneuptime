@@ -875,17 +875,35 @@ export function getUsedByRowPage(rowKind: UsedByRowKind): PageMap | null {
 }
 
 /*
+ * Where a row of a relation leads when it is not its kind's own page: an
+ * on-call policy that pages the schedule or the team opens on its
+ * Escalation Rules, where the schedule or the team is named - the rules its
+ * line names (#9701). Anywhere else - a team's owned policies - a policy
+ * opens on its overview.
+ */
+const RELATION_ROW_PAGES: Partial<Record<UsedByRelation, PageMap>> = {
+  [UsedByRelation.ScheduleOnCallPolicies]:
+    PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
+  [UsedByRelation.TeamOnCallPolicies]:
+    PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
+};
+
+/*
  * Where a row leads: its kind's page, opened on the row - or on the record
  * the server named for it (linkId: an SLO's burn-rate rule opens its SLO's
- * Burn-Rate Rules page). A kind's list of rules opens as it is. Null for a
- * kind with no page.
+ * Burn-Rate Rules page), or the page its relation opens it on (a policy that
+ * pages a schedule, on its Escalation Rules). A kind's list of rules opens
+ * as it is. Null for a kind with no page.
  */
 export function getUsedByRowRoute(
   rowKind: UsedByRowKind,
   rowId: string,
   linkId?: string | undefined,
+  relation?: UsedByRelation | undefined,
 ): Route | null {
-  const page: PageMap | null = getUsedByRowPage(rowKind);
+  const page: PageMap | null =
+    (relation ? RELATION_ROW_PAGES[relation] : undefined) ||
+    getUsedByRowPage(rowKind);
 
   if (!page) {
     return null;

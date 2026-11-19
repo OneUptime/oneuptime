@@ -33,7 +33,7 @@ flowchart TB
 
 ## How it is different
 
-- **Your telemetry is a data store.** Each service's logs, traces, exceptions, session replays and AI conversations are checked like a bucket, every hour. An email address in a log line is a finding, and **Scrub It** masks it at ingest from then on. See [Sensitive Data in Telemetry](/docs/data-security/telemetry).
+- **Your telemetry is a data store.** Each service's logs, traces, metrics, exceptions, session replays and AI conversations are checked like a bucket, every hour. An email address in a log line is a finding, and **Scrub It** masks it at ingest from then on. See [Sensitive Data in Telemetry](/docs/data-security/telemetry).
 - **Flows come from real traffic.** The service map says which service uses which database, AI calls name the provider they reach, and copies of production data are found by comparing fingerprints. See [Data Flows, Access and Residency](/docs/data-security/flows-access-residency).
 - **Access is read from both sides.** Data Security reads what each store's own settings let in, and on AWS what every role and user may reach through its IAM policies, and when each was last used. **Access** ranks every identity by the harm it could do, and access to sensitive data unused for 90 days is an issue. See [Who can reach a store](/docs/data-security/flows-access-residency#who-can-reach-a-store).
 - **Evidence is masked, always.** A finding keeps counts and at most three masked samples, such as `j***@e******.com`, masked inside the scanner before anything leaves it. Turn samples off and it keeps counts only.
@@ -70,7 +70,7 @@ Open **Data Security**. Stores appear under **Data Stores** as discovery finds t
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databases you run | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logs, Traces, Exceptions, Session Replays, AI Conversations | Logs, Traces, Exceptions, Session Replays, AI Conversations |
+| OneUptime | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics |
 
 Every store gets the checks that apply to its kind. A store whose content cannot be sampled is still checked: a public bucket or an unencrypted database is a problem whatever it holds.
 

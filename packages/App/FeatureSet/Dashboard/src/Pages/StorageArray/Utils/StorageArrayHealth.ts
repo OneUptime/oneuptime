@@ -872,6 +872,25 @@ export function getStorageArrayHealth(
   return getResourceAttentionHealth(items);
 }
 
+/*
+ * The parts the Unhealthy Hardware tile counts, as Needs attention lists
+ * them: each component, drive, controller or network interface the array
+ * says is failed or degraded, once per physical part, with why. The tile
+ * said how many and nothing else (#9594).
+ */
+export function getStorageArrayHardwareItems(
+  items: Array<ResourceAttentionItem>,
+): Array<ResourceAttentionItem> {
+  const kinds: Set<string> = new Set<string>(
+    STORAGE_ARRAY_HARDWARE_KINDS.map((kind: StorageArrayPartKind): string => {
+      return STORAGE_ARRAY_KIND_LABELS[kind];
+    }),
+  );
+  return items.filter((item: ResourceAttentionItem): boolean => {
+    return kinds.has(item.kind);
+  });
+}
+
 // A list row's why: the reasons the rules give, as a status cell draws them.
 export function getStorageArrayStatusReasons(
   assessment: StorageArrayAssessment,

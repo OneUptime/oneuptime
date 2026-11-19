@@ -6,11 +6,12 @@ Los secretos de monitor mantienen fuera del propio monitor las contraseñas, cla
 - [Añadir un secreto](#añadir-un-secreto): Guardar un valor y elegir quién puede usarlo.
 - [Elegir el acceso](#elegir-qué-monitores-pueden-usar-un-secreto): Todos los monitores, monitores concretos o monitores con etiquetas.
 - [Usar un secreto](#usar-un-secreto): Dónde funciona `{{monitorSecrets.NAME}}`.
+- [Iniciar sesión con un código de un solo uso](#iniciar-sesión-con-un-código-de-un-solo-uso): Permitir que un monitor supere el inicio de sesión de dos factores de un sitio.
 :::
 
 ## Cómo llegan los secretos a un monitor
 
-Un secreto se guarda cifrado y no se vuelve a mostrar después de guardarlo. Antes de entregar un monitor a una sonda, OneUptime sustituye cada referencia que el monitor puede usar por el valor descifrado; una referencia que el monitor no puede usar se queda tal como está escrita.
+Un secreto se guarda cifrado y no se vuelve a mostrar después de guardarlo. Antes de entregar un monitor a una sonda, OneUptime sustituye cada referencia que el monitor puede usar por el valor descifrado; una referencia que el monitor no puede usar se queda tal como está escrita. Un secreto de código de un solo uso es la excepción: la sonda genera su código cuando se ejecuta la comprobación (consulte [Iniciar sesión con un código de un solo uso](#iniciar-sesión-con-un-código-de-un-solo-uso)).
 
 ```mermaid title="Cómo se rellena la referencia a un secreto"
 flowchart TB
@@ -33,7 +34,7 @@ La sonda que ejecuta la comprobación recibe el valor, así que un monitor que u
 
 :::steps
 1. Vaya a **Monitores → Ajustes → Secretos** y haga clic en **Crear Secreto de monitor**.
-2. Introduzca un **Nombre** y el **Valor del secreto**. El nombre es lo que usted referencia, por ejemplo `ApiKey`. Solo puede contener letras, números, guiones (`-`) y guiones bajos (`_`), y dos secretos de un mismo proyecto no pueden compartirlo.
+2. Introduzca un **Nombre** y el **Valor del secreto**. El nombre es lo que usted referencia, por ejemplo `ApiKey`. Solo puede contener letras, números, guiones (`-`) y guiones bajos (`_`), y dos secretos de un mismo proyecto no pueden compartirlo. Para la clave de configuración de dos factores de un sitio, elija primero **Código de un solo uso (TOTP)** (consulte [Iniciar sesión con un código de un solo uso](#iniciar-sesión-con-un-código-de-un-solo-uso)).
 3. En el paso **Acceso**, elija qué monitores pueden usarlo (consulte la sección siguiente) y haga clic en **Crear Secreto de monitor**.
 :::
 
@@ -84,6 +85,51 @@ Si un monitor referencia un secreto que no puede usar, la referencia se queda co
 
 Cuando prueba un monitor antes de guardarlo, solo se rellenan los secretos disponibles para **Todos los monitores**, porque un monitor nuevo no está en ninguna lista y todavía no tiene etiquetas. Después de guardar el monitor, las pruebas usan todos los secretos que el monitor puede usar.
 
+## Iniciar sesión con un código de un solo uso
+
+Algunos sitios piden un código de una aplicación de autenticación al iniciar sesión. Un secreto **Código de un solo uso (TOTP)** guarda la clave de configuración de ese sitio, para que un monitor pueda iniciar sesión igual que usted: dondequiera que el monitor use el secreto, la sonda genera el código actual con su propio reloj, en el momento en que la comprobación lo necesita. La clave de configuración se guarda cifrada y no se vuelve a mostrar, como cualquier valor de secreto, y nunca se escribe en el monitor.
+
+1. Active el inicio de sesión de dos factores en la cuenta con la que inicia sesión el monitor. Donde el sitio muestre un código QR, pida en su lugar introducir la clave a mano, y copie la clave de configuración o el enlace `otpauth://`.
+2. Vaya a **Monitores → Ajustes → Secretos**, haga clic en **Crear Secreto de monitor**, elija **Código de un solo uso (TOTP)** y pegue la clave o el enlace en **Clave de configuración**.
+3. Compruebe que el **Código actual** que aparece debajo coincide con el código que muestra ahora su aplicación de autenticación y, después, elija qué monitores pueden usar el secreto en el paso **Acceso**, como con cualquier secreto.
+
+| Lo que pega | Los códigos que genera el monitor |
+| --- | --- |
+| Una clave de configuración, como `JBSW Y3DP EHPK 3PXP` | SHA1, 6 dígitos y un código nuevo cada 30 segundos: lo que da por hecho cualquier aplicación de autenticación |
+| Un enlace `otpauth://totp/` | Los valores `algorithm` (`SHA1`, `SHA256` o `SHA512`), `digits` (`6` u `8`) y `period` en segundos (`30` si el enlace no lo indica) del enlace |
+
+| Tipo de monitor | Dónde va el código y cuándo se genera |
+| --- | --- |
+| API | `{{monitorSecrets.NAME}}` en la URL, una cabecera de la solicitud o el cuerpo de la solicitud, justo antes de enviar cada intento |
+| Monitor sintético, Código JavaScript personalizado | `{{monitorSecrets.NAME}}` en el script, cuando empieza el script, y `await oneuptime.getTotpCode("NAME")`, cuando el script lo pide |
+
+Cualquier otro campo conserva `{{monitorSecrets.NAME}}` tal como está escrito. En el cuerpo JSON de una solicitud, ponga la referencia entre comillas, como en `{"otp": "{{monitorSecrets.LoginCode}}"}`, porque un código puede empezar por cero.
+
+Un inicio de sesión suele llegar a la petición del código unas páginas después de que empiece el script, así que pida el código ahí. Este script inicia sesión con una contraseña y un código de un solo uso:
+
+```javascript
+await page.goto("https://app.example.com/login");
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// The code is made now, when the sign-in asks for it.
+await page.waitForSelector("#otp");
+await page.fill("#otp", await oneuptime.getTotpCode("AppLoginCode"));
+await page.click("button[type=submit]");
+
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+
+return {
+  data: { signedIn: true },
+};
+```
+
+La sonda nunca entrega un código al que le queden menos de cinco segundos, o menos de un tercio del periodo cuando el periodo es más corto: en su lugar espera al código siguiente, cinco segundos como máximo, y deja esa espera fuera del tiempo de ejecución de la comprobación. Cada código que genera una comprobación se muestra como asteriscos, como `******`, en sus mensajes de registro, su resultado, su error y los nombres de sus capturas de pantalla. Una captura de pantalla es una imagen de la página, así que tómela antes de que se escriba el código o después de que la página avance.
+
+> [!NOTE]
+> Es la sonda la que genera los códigos, así que actualice una sonda personalizada antes de usar un secreto de código de un solo uso: una sonda más antigua envía `{{monitorSecrets.NAME}}` tal como está escrito. El reloj de la sonda también debe estar en hora, porque una sonda que va un minuto desfasada genera códigos que el sitio ya ha dejado atrás.
+
 ## Solución de problemas
 
 :::details `{{monitorSecrets.NAME}}` se envía literalmente
@@ -96,6 +142,10 @@ Antes de guardar un monitor, solo se rellenan los secretos disponibles para **To
 
 :::details Un campo ignora el secreto
 Solo los campos de la tabla de arriba admiten secretos. En cualquier otro campo, `{{monitorSecrets.NAME}}` se envía tal como está escrito.
+:::
+
+:::details El sitio rechaza el código de un solo uso
+Compruebe que el **Código actual** coincidía con su aplicación de autenticación cuando guardó el secreto, que el reloj de la sonda está en hora y que una referencia en el cuerpo JSON de una solicitud va entre comillas. Si el inicio de sesión tarda en llegar a la petición del código, pida el código ahí con `oneuptime.getTotpCode`.
 :::
 
 ## Próximos pasos

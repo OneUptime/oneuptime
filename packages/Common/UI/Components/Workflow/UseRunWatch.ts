@@ -20,6 +20,7 @@ import {
   WorkflowStepTrace,
   emptyTrace,
 } from "../../../Types/Workflow/StepTrace";
+import { WorkflowRunRanAs } from "./WorkflowRunRanAs";
 import React, { useEffect, useRef, useState } from "react";
 
 /** A run, with everything the run log modal needs to show it. */
@@ -39,6 +40,8 @@ export interface WatchedRunDetail extends WatchedRun {
    */
   isTestRun?: boolean | null | undefined;
   startedBy?: string | null | undefined;
+  // What it ran as, when more than Default (#9695): the modal says so.
+  ranAs?: WorkflowRunRanAs | null | undefined;
   // What it started with was kept, so it can be run again (WorkflowRunAgain).
   canRunAgain?: boolean | null | undefined;
 }

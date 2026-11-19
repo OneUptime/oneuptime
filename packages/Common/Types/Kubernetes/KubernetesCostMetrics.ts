@@ -1,3 +1,14 @@
+import {
+  KUBERNETES_COST_IDLE_NAMESPACE,
+  KUBERNETES_COST_UNALLOCATED_NAMESPACE,
+  isKubernetesCostSentinelNamespace,
+} from "./KubernetesCostIngest";
+import {
+  KubernetesCostEfficiencySums,
+  addToKubernetesCostEfficiencySums,
+  getKubernetesCostEfficiency,
+} from "./KubernetesCostEfficiency";
+
 /*
  * THE METRICS ONEUPTIME WRITES FROM A CLUSTER'S COST ALLOCATIONS (#9548).
  *
@@ -95,21 +106,15 @@ export const KUBERNETES_COST_NAMESPACE_ATTRIBUTE: string =
 export const KUBERNETES_COST_POD_ATTRIBUTE: string = "resource.k8s.pod.name";
 
 /*
- * The engine's names for capacity that is no workload's, in the namespace
- * column of an allocation row (the cost agent's AllocationMapper puts them
- * there). Their spend is idle spend, never a workload's.
+ * The engine's names for capacity that is no workload's live with the wire
+ * contract that carries them (KubernetesCostIngest); they are named here too,
+ * where the metrics split idle spend off by them.
  */
-export const KUBERNETES_COST_IDLE_NAMESPACE: string = "__idle__";
-export const KUBERNETES_COST_UNALLOCATED_NAMESPACE: string = "__unallocated__";
-
-export function isKubernetesCostSentinelNamespace(
-  namespace: string | null | undefined,
-): boolean {
-  return (
-    namespace === KUBERNETES_COST_IDLE_NAMESPACE ||
-    namespace === KUBERNETES_COST_UNALLOCATED_NAMESPACE
-  );
-}
+export {
+  KUBERNETES_COST_IDLE_NAMESPACE,
+  KUBERNETES_COST_UNALLOCATED_NAMESPACE,
+  isKubernetesCostSentinelNamespace,
+};
 
 /*
  * Whether a metric name is in OneUptime's Kubernetes cost namespace.
@@ -217,9 +222,8 @@ export interface KubernetesCostMetricPoint {
 interface WorkloadTotals {
   attributes: Record<string, string>;
   cost: number;
-  // Σ efficiency × weight and Σ weight, for the cost-weighted efficiency.
-  weightedEfficiency: number;
-  weight: number;
+  // The workload's efficiency sums (KubernetesCostEfficiency).
+  efficiency: KubernetesCostEfficiencySums;
 }
 
 interface WindowTotals {
@@ -349,8 +353,7 @@ export function buildKubernetesCostMetricPoints(data: {
       workload = {
         attributes: attributes,
         cost: 0,
-        weightedEfficiency: 0,
-        weight: 0,
+        efficiency: { weightedEfficiency: 0, weight: 0 },
       };
       window.workloads.set(workloadKey, workload);
     }
@@ -360,16 +363,10 @@ export function buildKubernetesCostMetricPoints(data: {
     /*
      * Efficiency is about CPU and memory, so each row counts by what its CPU
      * and memory cost: a sidecar that reserves little cannot drag a large
-     * container's figure down to its own.
+     * container's figure down to its own. The weighting is the one every
+     * page shows efficiency by (KubernetesCostEfficiency).
      */
-    const weight: number =
-      Math.max(0, finite(row.cpuCost)) + Math.max(0, finite(row.ramCost));
-    const efficiency: number = row.totalEfficiency;
-
-    if (weight > 0 && Number.isFinite(efficiency)) {
-      workload.weightedEfficiency += efficiency * weight;
-      workload.weight += weight;
-    }
+    addToKubernetesCostEfficiencySums(workload.efficiency, row);
   }
 
   const points: Array<KubernetesCostMetricPoint> = [];
@@ -409,13 +406,17 @@ export function buildKubernetesCostMetricPoints(data: {
         value: workload.cost,
       });
 
-      if (workload.weight > 0) {
+      const efficiency: number | null = getKubernetesCostEfficiency(
+        workload.efficiency,
+      );
+
+      if (efficiency !== null) {
         points.push({
           metric: KubernetesCostMetric.Efficiency,
           windowStart: window.windowStart,
           windowEnd: window.windowEnd,
           attributes: { ...workload.attributes },
-          value: (workload.weightedEfficiency / workload.weight) * 100,
+          value: efficiency * 100,
         });
       }
     }

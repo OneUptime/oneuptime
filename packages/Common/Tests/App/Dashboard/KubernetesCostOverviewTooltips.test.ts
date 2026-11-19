@@ -110,6 +110,13 @@ describe("the cost card's tooltips say what the card computes", () => {
   test("the idle and efficiency tiles name the thresholds their bars turn at", () => {
     expect(OVERVIEW.idleSpend).toContain("Amber from 25%, red from 40%");
     expect(OVERVIEW.efficiency).toContain("Green from 70%, red below 40%");
-    expect(OVERVIEW.efficiency).toContain("weighted by what it cost");
+  });
+
+  // #9635: the card and the Costs page weigh efficiency the same way.
+  test("efficiency says what it is weighted by, and that the Costs page counts it the same", () => {
+    expect(OVERVIEW.efficiency).toContain(
+      "weighted by what that CPU and memory cost",
+    );
+    expect(OVERVIEW.efficiency).toContain("as the Costs page counts it");
   });
 });

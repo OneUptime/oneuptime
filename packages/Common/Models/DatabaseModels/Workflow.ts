@@ -1,3 +1,4 @@
+import CustomRole from "./CustomRole";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -24,6 +25,7 @@ import { JSONObject } from "../../Types/JSON";
 import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { WorkflowRunAs } from "../../Types/Workflow/WorkflowRunAs";
 import {
   Column,
   Entity,
@@ -763,6 +765,244 @@ export default class Workflow extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+  /*
+   * What the workflow's steps act as in its project (Types/Workflow
+   * /WorkflowRunAs, #9695): Default - a Project Admin's permissions, with
+   * no change to who has access - or Project Owner, or one of the
+   * project's custom roles (runAsCustomRoleId). Anyone who may create or
+   * edit a workflow may send it; WorkflowService lets only a person choose
+   * anything but Default, only what they could give a team themselves, and
+   * lets a workflow that runs as more than Default be changed only by who
+   * holds what it runs as (WorkflowRunAsAuthority).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateWorkflow,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkflowRunAs),
+    title: "Run As",
+    description:
+      "What the workflow's steps can do in the project. Default: what a Project Admin can, except change who has access. ProjectOwner: what a Project Owner can. CustomRole: exactly what the custom role in runAsCustomRoleId allows. Only a person who has those permissions can choose anything but Default, and only such a person can then change the workflow or run it by hand.",
+    defaultValue: WorkflowRunAs.Default,
+    example: WorkflowRunAs.Default,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: WorkflowRunAs.Default,
+  })
+  public runAs?: WorkflowRunAs = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateWorkflow,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runAsCustomRoleId",
+    type: TableColumnType.Entity,
+    modelType: CustomRole,
+    title: "Run As Custom Role",
+    description:
+      "The custom role the workflow's steps act as, when Run As is CustomRole.",
+  })
+  @ManyToOne(
+    () => {
+      return CustomRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runAsCustomRoleId" })
+  public runAsCustomRole?: CustomRole = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateWorkflow,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Run As Custom Role ID",
+    description:
+      "ID of the custom role the workflow's steps act as, when Run As is CustomRole. Empty otherwise.",
+    example: "4b2c1d3e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runAsCustomRoleId?: ObjectID = undefined;
+
+  /*
+   * The person whose permissions a workflow that runs as more than Default
+   * runs with: whoever last chose its Run As, or saved its steps or its own
+   * variables, while it ran as more than Default. Every run checks they
+   * still hold what it runs as, and does not start if they don't (left the
+   * project, lost the role). Stamped by OneUptime from the person making the
+   * change once it has passed its checks (UserAttribution); empty for a
+   * workflow that runs as Default.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runAsGivenByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Run As Given by User",
+    description:
+      "The person whose permissions the workflow runs with when it runs as more than Default: whoever last chose its Run As, or saved its steps or its variables. Set by OneUptime.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runAsGivenByUserId" })
+  public runAsGivenByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Run As Given by User ID",
+    description:
+      "ID of the person whose permissions the workflow runs with when it runs as more than Default. Set by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runAsGivenByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Run As Given At",
+    description:
+      "When the person in runAsGivenByUserId last gave the workflow its permissions. Set by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public runAsGivenAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -1,6 +1,6 @@
 # Données sensibles dans la télémétrie
 
-La télémétrie contient tout ce qu'écrit votre code : une adresse e-mail dans une ligne de journal, un numéro de carte dans un attribut de span, un jeton dans une trace de pile, la question d'un client dans un prompt. Sécurité des données traite les journaux, traces, exceptions et conversations IA de chaque service, ainsi que les sessions de chaque application RUM, comme des magasins de données à part entière. Elle les échantillonne toutes les heures, y trouve les données sensibles comme dans un bucket, et **Nettoyer** transforme une détection en une règle de nettoyage qui masque ces données à l'ingestion à partir de là.
+La télémétrie contient tout ce qu'écrit votre code : une adresse e-mail dans une ligne de journal, un numéro de carte dans un attribut de span, un jeton dans une trace de pile, la question d'un client dans un prompt, l'adresse IP d'un utilisateur dans l'étiquette d'une métrique. Sécurité des données traite les journaux, traces, métriques, exceptions et conversations IA de chaque service, ainsi que les sessions de chaque application RUM, comme des magasins de données à part entière. Elle les échantillonne toutes les heures, y trouve les données sensibles comme dans un bucket, et **Nettoyer** transforme une détection en une règle qui masque ces données à l'ingestion à partir de là.
 
 Il n'y a rien à configurer : la télémétrie de chaque service est analysée toutes les heures, sauf si **Analyser la télémétrie** est désactivé dans les paramètres du projet. Pour laisser de côté les journaux, les traces ou un autre signal d'un service, désactivez **Analyser le contenu** dans les **Paramètres** de ce magasin de données : dès l'analyse suivante, rien n'en est lu.
 
@@ -34,8 +34,19 @@ Une détection couverte par une règle de nettoyage est marquée comme nettoyée
 | Exceptions | Le message, la trace de pile et les attributs | `message`, `stackTrace`, `attributes.<key>` |
 | Conversations IA | Les prompts et les réponses de chaque appel d'IA, sous les clés où les conventions GenAI les placent, et chaque autre attribut | La clé où ils se trouvent, comme `gen_ai.input.messages` ou `gen_ai.prompt[].content` |
 | Relectures de session | Les attributs des spans et des journaux d'une application RUM, les attributs de ses sessions, les traits que `identify()` a donnés à ses utilisateurs et la référence utilisateur qui lui a été indiquée | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Métriques | Chaque attribut d'un point de données, y compris ceux de sa ressource, et les noms des métriques | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Les clés numérotées sont regroupées en un seul emplacement : `gen_ai.prompt.3.content` devient `gen_ai.prompt[].content`, si bien que les vingt messages d'une conversation font une seule détection, pas vingt. Les attributs que OneUptime ajoute lui-même, qui commencent par `oneuptime.`, ne sont pas lus.
+
+### Métriques
+
+Les attributs d'une métrique sont les étiquettes de ses séries. Ils sont les mêmes sur chaque point de données d'une série : une métrique qui écrit mille points par minute peut donc ne contenir que trois valeurs, et une étiquette qui expose l'e-mail d'un utilisateur ajoute une série, pas un point. Une métrique est donc échantillonnée par ses séries, pas par ses points :
+
+- **Sa minute la plus récente.** Chaque métrique est lue à la minute la plus récente où elle a écrit au cours de la dernière heure : jusqu'à 100 des points de données de cette minute, soit, pour une métrique envoyée une fois par minute comme OpenTelemetry le fait par défaut, un point de chaque série. Une valeur n'est classifiée qu'une fois, quel que soit le nombre de points qui la répètent, si bien qu'une détection compte les valeurs distinctes à son emplacement.
+- **Les plus actives d'abord, les autres à tour de rôle.** La liste des métriques qu'un service a écrites vient de l'agrégation par minute que conserve la table des métriques, jamais de ses points. Chaque analyse lit les métriques les plus actives d'un service, les plus susceptibles d'avoir de nombreuses séries, et quelques-unes de ses autres métriques, les suivantes à chaque heure, si bien que chaque métrique a son tour.
+- **La plage propre à chaque métrique.** Les métriques sont lues ensemble, chacune par sa propre plage de la clé primaire de la table. Une métrique dont la minute la plus récente contient plus de 16 384 points, comme une métrique étiquetée avec l'e-mail de chaque utilisateur, est lue seule, et la lecture s'arrête à ses premiers points : elle ne coûte donc pas plus que n'importe quelle autre métrique.
+
+Une détection nomme l'attribut, comme `attributes.user.email`, ou `name` pour des données dans le nom d'une métrique. Ses enregistrements sont les points de données où elle a été trouvée : chacun montre sa métrique et la valeur de l'attribut, masquée, et s'ouvre dans **Métriques** sur cette métrique, regroupée par cet attribut. Quand le nom d'une métrique contient des données sensibles, le nom est masqué lui aussi, et l'enregistrement ouvre plutôt les métriques du service.
 
 ### Pourquoi l'enregistrement d'une relecture n'est jamais lu
 
@@ -62,6 +73,8 @@ Toutes les heures, les enregistrements les plus récents de la dernière heure d
 | Attributs d'un enregistrement | 128 ; 64 pour un appel d'IA |
 | Événements d'un span, et attributs d'un événement | 16 et 32 |
 | Emplacements d'un magasin de données | 500 |
+| Métriques lues en une analyse | 100, partagées entre les services, au moins une de chacun ; au plus 10 d'un même service, la moitié parmi ses plus actives et la moitié parmi ses autres, à tour de rôle |
+| Points de données d'une métrique | Ceux de sa minute la plus récente, au plus 100 |
 
 Chaque valeur est tronquée dans la base de données, si bien qu'aucune valeur longue n'en sort, et chaque lecture s'arrête au bout de 30 secondes. Une lecture qui échoue devient un avertissement sur les magasins de données qu'elle concernait ; l'analyse continue avec la suivante.
 
@@ -69,16 +82,16 @@ Pour exclure quelque chose, ajoutez-le aux **Exclusions d'analyse** du magasin d
 
 ## Nettoyer
 
-**Nettoyer**, sur une détection, crée la règle de nettoyage qui masque ce type de données à cet emplacement à partir de là, ou indique la règle activée qui le fait déjà :
+**Nettoyer**, sur une détection, crée la règle qui masque ce type de données à cet emplacement à partir de là, ou indique la règle activée qui le fait déjà :
 
 :::steps
 ### Ouvrir la détection
 
-Ouvrez le magasin de données de télémétrie - les **Journaux** d'un service, par exemple - puis la détection.
+Ouvrez le problème - **Où cela a été trouvé** liste chaque détection qui le cause - ou **Sécurité des données > Dans votre télémétrie**, où **Afficher les enregistrements** ouvre, à côté de la liste, les enregistrements où une détection a été trouvée.
 
 ### Cliquer sur Nettoyer
 
-Cliquez sur **Nettoyer**. OneUptime crée une règle de nettoyage de journaux pour les journaux et les journaux d'une application RUM, et une règle de nettoyage de traces pour les spans, les exceptions et les appels d'IA, sur la partie de l'enregistrement où se trouve la détection.
+Cliquez sur **Nettoyer**. OneUptime crée une règle de nettoyage de journaux pour les journaux et les journaux d'une application RUM, une règle de nettoyage de traces pour les spans, les exceptions et les appels d'IA, sur la partie de l'enregistrement où se trouve la détection, et une règle de pipeline de métriques pour l'attribut d'une métrique.
 
 ### Corriger aussi le code
 
@@ -92,16 +105,18 @@ La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: 
 | Adresse e-mail, numéro de carte, numéro de sécurité sociale américain, numéro de téléphone ou adresse IP | Le motif intégré de ce type. Les numéros de carte, les numéros de sécurité sociale et les numéros de téléphone sont masqués, le reste est caviardé. |
 | Une valeur sous une clé qui semble sensible, comme `password` ou `token` | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
 | Tout autre type de données qu'un motif peut trouver | Une règle **Regex personnalisée** construite à partir des motifs propres au type de données, qui caviarde chaque valeur de cette forme |
+| Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut ayant la forme du type de données, ou chaque valeur de l'attribut quand aucun motif ne trouve ce type de données |
 
-Certaines détections ne peuvent pas être nettoyées par une règle, et **Nettoyer** dit pourquoi :
+Certaines détections ne peuvent pas être nettoyées par une règle, et **Nettoyer** dit pourquoi. L'attribut d'une métrique peut toujours l'être, puisque sa règle peut masquer chaque valeur de l'attribut :
 
 - Un type de données trouvé d'après les seuls noms de champs, comme le nom d'une personne : aucun motif ne peut le trouver. Renommez l'attribut avec une clé que masque une règle de clés sensibles, ou cessez de l'envoyer.
 - Un type de données qui ne se distingue des autres valeurs que par les mots qui l'entourent, comme un numéro de routage bancaire : une règle masquerait bien plus que ce type de données.
 - Un marquage de document : masquer le mot ne masquerait pas le document.
 - L'un de vos propres types de données : ajoutez vous-même une règle de nettoyage personnalisée avec son motif.
 - Les détails propres d'une session (`sessions.*`) : l'ingestion des relectures de session n'applique aucune règle de nettoyage.
+- Le nom d'une métrique (`name`) : c'est le code qui crée la métrique qui le définit, et une règle de pipeline ne peut que renommer une métrique en entier. Renommez la métrique, et envoyez plutôt ce qui varie dans son nom sous forme d'attribut.
 
-**Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Propriétaires du projet et les Administrateurs du projet peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, et des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA.
+**Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Propriétaires du projet et les Administrateurs du projet peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA, et des règles de pipeline de métriques pour les métriques.
 
 ## Ce qui compte comme nettoyé
 
@@ -111,6 +126,7 @@ Une détection n'est marquée comme nettoyée que lorsque l'ingestion lui appliq
 - **La bonne partie.** Les **Champs à nettoyer** de la règle incluent la partie de l'enregistrement où se trouve la détection, ou la règle les laisse à leur valeur par défaut.
 - **Un motif qui trouve le type.** Un **Type de modèle** intégré trouve son propre type de données : **Adresse e-mail** trouve les adresses e-mail, **Numéro de carte de crédit** les numéros de carte, **SSN (numéro de sécurité sociale)** les numéros de sécurité sociale américains, **Numéro de téléphone** les numéros de téléphone et **Adresse IP** les adresses IP. **Clés d'attributs sensibles** couvre chaque valeur sous une clé qui semble sensible, quelle que soit la valeur.
 - **Vos propres motifs personnalisés ne comptent jamais.** Une **Regex personnalisée** ne couvre une détection que si elle est exactement le motif que **Nettoyer** crée pour son type. Une détection ne conserve que des échantillons masqués, sur lesquels aucun motif ne peut être essayé : OneUptime ne pourrait donc pas prouver que votre motif masque les données, et une détection marquée à tort comme nettoyée est une fuite que personne ne regarde.
+- **L'attribut d'une métrique.** Une règle de pipeline de métriques **Masquer l'attribut** ou **Supprimer l'attribut** portant sur la clé de cet attribut, pour le service de la détection ou pour tout le projet, la couvre quand elle n'a aucun filtre, ou exactement le filtre que crée **Nettoyer**. Un filtre que vous avez écrit ne compte jamais, pour la même raison.
 
 Une règle désactivée, ou qui ne nettoie rien, ne compte jamais. La couverture est recalculée après chaque analyse, donc une règle que vous ajoutez ou supprimez à la main change ce qui est marqué comme nettoyé dans l'heure.
 

@@ -19,6 +19,7 @@ flowchart TB
 ```
 
 - Varje rad är en händelse, och varje kolumn en kanal: E-post, SMS, Samtal, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost och Webhook. Slack, Microsoft Teams och Mattermost är bara kolumner när projektet har anslutit dem. En kanal som du inte har konfigurerat än är ingen kolumn: den står ovanför flikarna under **Kanaler som inte är konfigurerade än**, som en länk för att konfigurera den.
+- WhatsApp levererar bara meddelanden som Meta har godkänt, och OneUptime har sådana för uppdateringar om incidenter, larm, episoder, monitorer, sonder, AI-agenter, statussidor, underhållshändelser och de flesta jourpass. Andra uppdateringar, som en SLO:s status, ett missat samtal, ett säkerhetsärende eller att bli ägare av en tjänst, har ingen WhatsApp-brytare, och deras kort säger att WhatsApp inte är tillgängligt. De når dig via dina andra kanaler.
 - En kanal som är påslagen skickar till varje verifierad metod du har på den i det här projektet, inte bara till en.
 - En kanal som är påslagen utan någon verifierad metod bakom sig skickar ingenting. Dess kolumn visar **Konfigurera** under namnet, och dess reglage kan bara stängas av. **Your setup checklist** säger det också, under **Staying informed**.
 - En uppdatering går till sakens ägare: personerna som är angivna som ägare, och medlemmarna i dess ägarteam. Har en sak inga ägare går den i stället till Projektägare. Den som jourlarmet för en ny incident, ett nytt larm eller en ny episod redan har nått får inget nytt besked om att den har skapats. En händelse om att ha lagts till som ägare går bara till personen som lades till. Om OneUptime stannar medan det skickar en uppdatering till en saks ägare får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
@@ -49,23 +50,28 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 | --- | --- | --- |
 | **Incidenter** | **Incident skapad**, **Incidenttillstånd ändrat**, **Påminnelse om incident**, **Incidentens SLA överskridet**, **Incidentepisod skapad**, **Tillstånd för incidentepisod ändrat**, **Incident tillagd i incidentepisod** | **Incidentanteckning publicerad**, **Tillagd som ägare av incident**, **Tilldelad till en incident**, **Anteckning för incidentepisod publicerad**, **Tillagd som ägare av incidentepisod** |
 | **Larm** | **Larm skapat**, **Larmtillstånd ändrades**, **Påminnelse om larm**, **Larmepisod skapad**, **Tillstånd för larmepisod ändrades**, **Larm tillagt i larmepisod** | **Larmanteckning publicerad**, **Tillagd som ägare av larm**, **Anteckning för larmepisod publicerad**, **Tillagd som ägare av larmepisod** |
-| **Övervakning** | **Sondstatus ändrad för din övervakning**, **Övervakningen har inga aktiva sonder**, **SLO-status ändrad**, **Tillagd som SLO-ägare**, **Undantag tilldelat mig**, **Sondstatus ändrad**, **Tillagd som ägare av sond**, **Tillagd som ägare av tabell**, **Tillagd som ägare av pipeline** | **Övervakning skapad**, **Övervakningsstatus ändrad**, **Tillagd som ägare av övervakning**, **Status för AI-agent ändrades**, **Tillagd som ägare av AI-agent** |
+| **Övervakning** | **Sondstatus ändrad för din övervakning**, **Övervakningen har inga aktiva sonder**, **SLO-status ändrad**, **Tillagd som SLO-ägare**, **Undantag tilldelat mig**, **Sondstatus ändrad**, **Tillagd som ägare av sond**, **Tillagd som ägare av tabell**, **Tillagd som ägare av pipeline**, **Tillagd som ägare av tjänst eller infrastruktur**, **Tillagd som ägare av instrumentpanel**, **Tillagd som ägare av arbetsflöde**, **Tillagd som ägare av runbook**, **Tillagd som ägare av monitorgrupp**, **Tillagd som ägare av Runner** | **Övervakning skapad**, **Övervakningsstatus ändrad**, **Tillagd som ägare av övervakning**, **Status för AI-agent ändrades**, **Tillagd som ägare av AI-agent** |
 | **Statussidor** | **Min offentliga anteckning godkänd eller avvisad**, och även via push: **Offentlig anteckning väntar på mitt godkännande** | **Statussida skapad**, **Statussidemeddelande publicerat**, **Tillagd som ägare av statussida** |
 | **Schemalagt underhåll** | **Påminnelse om underhåll** | **Underhållshändelse skapad**, **Underhållstillstånd ändrat**, **Underhållsanteckning publicerad**, **Tillagd som ägare av underhåll** |
-| **Jour** | **Du går på jour**, **Du är näst på tur i jouren**, **Du går av jour**, **Tillagd i jourpolicy**, **Borttagen från jourpolicy**, **Missat samtal**, och även via push: **Innan mitt jourpass börjar**, **Mitt kommande jourpass tilldelas någon annan** | Inga |
+| **Jour** | **Du går på jour**, **Du är näst på tur i jouren**, **Du går av jour**, **Tillagd i jourpolicy**, **Borttagen från jourpolicy**, **Missat samtal**, **Tillagd som ägare av jourpolicy**, **Tillagd som ägare av jourschema**, **Tillagd som ägare av inkommande samtalspolicy**, och även via push: **Innan mitt jourpass börjar**, **Mitt kommande jourpass tilldelas någon annan** | Inga |
 | **Säkerhet** | **Tillagd som ägare av datalager**, och även via push: **Nytt säkerhetsärende** (ärenden med High och Critical), **Säkerhetsärende tilldelat mig**, **Playbook-steg väntar på mitt godkännande**, **Svarsmål för säkerhetsärende**, **Uppgift i säkerhetsärende tilldelad mig**, **En hunt hittade säkerhetshändelser** | Inga |
 
 > [!IMPORTANT]
 > **Övervakningsstatus ändrad** börjar avstängd. För att få veta när en övervakning du äger går ned eller kommer tillbaka slår du på den på fliken **Övervakning**.
 
+**Tillagd som ägare av tjänst eller infrastruktur**, på kortet **Tjänster och infrastruktur**, är en enda brytare för varje tjänst, RUM-applikation, databas, kö, värd, kluster, molnresurs och annan infrastruktur som du blir ägare av. Meddelandet säger vilken det är.
+
+**Tillagd som ägare av monitorgrupp**, på kortet **Monitorer**, och **Tillagd som ägare av Runner**, på kortet **Instrumentpaneler och automatisering**, talar om när någon lägger till dig som ägare av en monitorgrupp eller en Runner.
+
 ## Dina jourpass
 
-Fliken **Jour** handlar om dig, inte om det du äger:
+Fliken **Jour** handlar om dig och om de jourposter du äger:
 
 - **Du går på jour**, **Du är näst på tur i jouren** och **Du går av jour** följer dina turer i jourschemana du är med i.
 - **Tillagd i jourpolicy** och **Borttagen från jourpolicy** berättar när en jourpolicy börjar eller slutar nämna dig.
 - **Innan mitt jourpass börjar** skickar påminnelser vid de tider du väljer under **Användarinställningar → Profil och kalender → Kalenderflöde**, och **Mitt kommande jourpass tilldelas någon annan** berättar när någon annan täcker ett jourpass som du har påmints om. Se [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning).
 - **Missat samtal**, på kortet **Inkommande samtalspolicyer**, berättar för ägarna av en policy för inkommande samtal att någon som ringde inte nådde någon. Se [Policy för inkommande samtal](/docs/on-call/incoming-call-policy#missade-samtal).
+- **Tillagd som ägare av jourpolicy**, **Tillagd som ägare av jourschema** och **Tillagd som ägare av inkommande samtalspolicy** berättar när du blir ägare av en av dem, genom en ägarregel eller av en person på dess sida Ägare.
 
 ## Säkerhetsärenden
 
@@ -99,6 +105,10 @@ Se [Aviseringssammanfattning](/docs/emails/notification-rollup).
 
 :::details En brytare är påslagen, men ingenting kommer fram
 Kontrollera att du har en verifierad metod på den kanalen under **Användarinställningar → Aviseringsmetoder**. För SMS, samtal, WhatsApp och Telegram måste projektet också ha slagit på kanalen.
+:::
+
+:::details Det finns ingen WhatsApp-brytare för en uppdatering
+WhatsApp levererar bara meddelanden som Meta har godkänt, och OneUptime har inget för den uppdateringen, så dess kort säger att WhatsApp inte är tillgängligt. Välj en annan kanal för den, som SMS eller Push.
 :::
 
 :::details Jag äger en övervakning, men får aldrig veta när den går ned

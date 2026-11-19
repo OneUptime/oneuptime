@@ -8,6 +8,9 @@ import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntrySta
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { TILE_TITLE_LONG_WORDS } from "../TelemetryResource/TileTitleWords";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../ResourcePart/ResourceAttentionPill";
 
 /*
  * Product-neutral golden-metric hero tile (extracted from the
@@ -75,6 +78,14 @@ export interface GoldenMetricTileProps {
   tone?: GoldenMetricTileTone | undefined;
   // What the number means, shown in an (i) tooltip beside the title.
   description?: string | undefined;
+  /*
+   * A count of something wrong the tile states - "1 down", "2 lost" -
+   * drawn under its value as a pill that opens exactly those parts and why
+   * (ResourceAttentionPill), where the tile only said how many (#9594). The
+   * tile itself stays a tile: its (i) is a control already, and one
+   * control is never inside another.
+   */
+  attention?: ResourceAttentionPillProps | undefined;
 }
 
 export type GoldenMetricTileTone = "positive" | "warning" | "danger";
@@ -234,6 +245,13 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
         </div>
       ) : (
         <div className="mt-1 text-xs text-gray-500">&nbsp;</div>
+      )}
+      {props.attention ? (
+        <div className="mt-2" data-testid="golden-metric-tile-attention">
+          <ResourceAttentionPill {...props.attention} />
+        </div>
+      ) : (
+        <></>
       )}
       {props.percent !== undefined && props.percent !== null && (
         <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">

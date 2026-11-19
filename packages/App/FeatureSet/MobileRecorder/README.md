@@ -160,7 +160,11 @@ Identity and traits are sent only when the RUM application's policy enables
 user-identity capture. Under mobile's mandatory `MaskAllText`, trait values,
 custom-event property values, and manual-capture reasons use the same coarse
 text masks as the browser recorder. Event names and the explicitly supplied
-user reference stay readable. Tag values deliberately stay readable and
+user reference stay readable. So does a custom-event property or metric
+attribute whose key the application lists under **Readable event
+properties** on its Replay Policy page, while its value is a short token
+(letters, digits and `_ . : / -`, at most 32 characters); any other value
+under that key is still masked, and traits always are. Tag values deliberately stay readable and
 searchable, matching the browser contract; do not use tags for secrets. All
 maps remain count/length bounded. Routes always drop query strings and
 fragments and are stored as `app://com.example.checkout/checkout`. The
@@ -195,7 +199,9 @@ in `src/ProductAnalyticsContract.ts` and held to it by `ContractParity`):
   session the grant opens; `revokeConsent()` drops them.
 - **Masked as the recording is.** The SDK always masks text, so property,
   attribute and trait values arrive masked; event names, keys and metric
-  values are sent as written. A screen is its scrubbed route.
+  values are sent as written. A screen is its scrubbed route. A property or
+  attribute whose key the application lists as a readable event property
+  keeps a short token value as written, as the recording's marker does.
 - **Small batches.** Every 5 seconds and as the app leaves the foreground,
   at most 100 events and 100 metric points each, one session's and one
   person's per batch. A failed batch is retried with backoff up to 5 minutes

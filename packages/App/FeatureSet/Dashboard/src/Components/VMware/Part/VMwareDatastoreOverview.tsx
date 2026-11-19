@@ -2,15 +2,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
@@ -20,8 +19,6 @@ import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   VMWARE_DATASTORE_CRITICAL_PERCENT,
   VMWARE_DATASTORE_WARNING_PERCENT,
-  getVMwareAttentionItems,
-  getVMwareAttentionKey,
   getVMwareDatastorePercent,
   isVMwareIssueAbout,
   toVMwareDate,
@@ -42,14 +39,16 @@ import { VMwarePartRoutes } from "./VMwarePartRoutes";
  * first thing the page says.
  */
 
-// How the datastore's own row reads in its Needs attention card.
-const THIS_DATASTORE: string = translationKey("This datastore");
-
 export interface ComponentProps {
   vcenterId: ObjectID;
   vcenterName: string;
   externalId: string;
   row: VMwareResource | null;
+  /*
+   * What needs attention on the datastore: the page reads it once
+   * (getVMwarePartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: VMwarePartRoutes;
   /*
    * Days until the datastore is full at its growth over the forecast
@@ -57,7 +56,6 @@ export interface ComponentProps {
    */
   daysToFull: number | null;
   forecastWindowHours: number;
-  now: Date;
   refreshToken?: number | undefined;
 }
 
@@ -84,13 +82,6 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
-
-  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems({
-    rows: [row],
-    now: props.now,
-    routeFor: props.routes.getPartRoute,
-    listRouteFor: props.routes.getListRoute,
-  });
 
   const used: number | null = toVMwareNumber(row.latestDiskBytes);
   const total: number | null = toVMwareNumber(row.maxDiskBytes);
@@ -138,15 +129,9 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="vmware-datastore-overview">
       <NeedsAttentionCard
         testId="vmware-datastore-attention"
-        items={attentionItems}
-        current={{
-          key: getVMwareAttentionKey(
-            VMwareResourceKind.Datastore,
-            props.externalId,
-          ),
-          label: THIS_DATASTORE,
-        }}
-        description="What about this datastore is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
