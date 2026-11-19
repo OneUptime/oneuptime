@@ -2202,7 +2202,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid Project ID"),
+          new BadDataException(
+            "A session count needs a project: send its ID in the tenantid header.",
+          ),
         );
       }
 
@@ -2981,7 +2983,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid Project ID"),
+          new BadDataException(
+            "A session count needs a project: send its ID in the tenantid header.",
+          ),
         );
       }
 
