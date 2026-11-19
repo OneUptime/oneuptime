@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import Dictionary from "Common/Types/Dictionary";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import {
   INVENTORY_ASSET_ATTRIBUTE_KEYS,
   INVENTORY_ASSET_FIELDS,
@@ -103,7 +104,10 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
       }),
     ).toEqual(
       INVENTORY_ASSET_FIELDS.map((field: InventoryAssetField): string => {
-        return INVENTORY_ASSET_FIELD_LABELS[field].toLowerCase();
+        // In English: a meaning key draws its word (Model, #9838).
+        return withMeaningKeyAsItsWord(
+          INVENTORY_ASSET_FIELD_LABELS[field],
+        ).toLowerCase();
       }),
     );
   });

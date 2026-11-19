@@ -1282,6 +1282,63 @@ describe("SeriesDebugHints", () => {
     });
   });
 
+  /*
+   * #9835: a Metrics monitor grouped by a managed device (Esper Device
+   * Stopped Checking In) - the CLI can list what the device's connection
+   * last read of it.
+   */
+  describe("a managed device that stopped checking in", () => {
+    test("lists the device's last readings, newest first, read-only", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Metrics,
+          seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
+        }),
+      ).toEqual([
+        `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      ]);
+    });
+
+    test("finds the device under the resource. spelling too", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Metrics,
+          seriesLabels: {
+            "resource.oneuptime.managed_device.name": "ESP-ID-AAAAW",
+          },
+        })[0],
+      ).toContain('"oneuptime.managed_device.name":"ESP-ID-AAAAW"');
+    });
+
+    test("a hostile device name is quoted into an inert argument", () => {
+      const [command] = getCommandStrings({
+        monitorType: MonitorType.Metrics,
+        seriesLabels: { "oneuptime.managed_device.name": "x'; rm -rf / '" },
+      });
+
+      expect(command).toContain(`'{"name":`);
+      expect(command).toContain(`x'\\''; rm -rf / '\\''`);
+    });
+
+    test("a Metrics series that names no managed device has no command", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Metrics,
+          seriesLabels: { "service.instance.id": "api-1" },
+        }),
+      ).toEqual([]);
+    });
+
+    test("another monitor type grouped by a managed device has none either", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Logs,
+          seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
+        }),
+      ).toEqual([]);
+    });
+  });
+
   describe("types with no universally safe command", () => {
     test.each([
       MonitorType.Metrics,

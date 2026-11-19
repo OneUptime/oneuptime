@@ -191,6 +191,7 @@ describe("an up-to-date or unknown version looks exactly as before", () => {
     [AgentKind.IoTExporter],
     [AgentKind.ServerlessSdk],
     [AgentKind.RumSdk],
+    [AgentKind.EsperAgent],
   ])(
     "%s: an agent OneUptime does not release never shows a sign, however old",
     (kind: AgentKind) => {

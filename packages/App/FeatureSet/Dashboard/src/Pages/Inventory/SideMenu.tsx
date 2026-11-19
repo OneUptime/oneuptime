@@ -8,6 +8,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
@@ -64,6 +65,19 @@ const getScopedItemsRoute: ScopedItemsRouteFunction = (
 };
 
 const InventorySideMenu: FunctionComponent = (): ReactElement => {
+  /*
+   * An Esper connection's recommended monitors keep Managed Devices marked:
+   * the connection is one of those listed there, and its row opens them.
+   */
+  const connectionRecommendationsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[
+      PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS
+    ] as Route,
+  );
+  const isOnConnectionRecommendations: boolean = Navigation.isOnThisPage(
+    connectionRecommendationsRoute,
+  );
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Inventory",
@@ -97,6 +111,9 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
               RouteMap[PageMap.INVENTORY_MANAGED_DEVICES] as Route,
             ),
           },
+          activeRoute: isOnConnectionRecommendations
+            ? connectionRecommendationsRoute
+            : undefined,
           icon: IconProp.DevicePhoneMobile,
         },
         {

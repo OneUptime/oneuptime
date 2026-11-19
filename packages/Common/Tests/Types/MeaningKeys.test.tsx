@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen and a Pod Security control's Linux capabilities, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities and a machine's model, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -126,6 +126,7 @@ describe("the keys that name their meaning", () => {
         "From (range start)",
         "Insights (explorer analytics)",
         "Missed (target)",
+        "Model (hardware model)",
         "Not fetched yet (OAuth token)",
         "Not fetched yet (calendar feed)",
         "Open (invoice status)",
