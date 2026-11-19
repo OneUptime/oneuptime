@@ -35,6 +35,7 @@ import { ReplayTimelineEventKind } from "../ReplayTimelineTypes";
 import {
   formatReplayOffsetInLanguage,
   formatReplayOffsetPreciseInLanguage,
+  writeReplayFigureInLanguage,
 } from "../ReplayTimeFormat";
 import {
   ReplayButtonGroup,
@@ -572,6 +573,8 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       startTimeUnixMs: props.startTimeUnixMs,
       alignment: alignment,
       serviceNameById: props.serviceNameById,
+      // The rows' own words in the reader's language (#6516).
+      translator: translator,
     };
     const logs: Array<ReplaySignal> = [];
     const exceptions: Array<ReplaySignal> = [];
@@ -604,6 +607,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     snapshot.rows.log,
     snapshot.rows.span,
     snapshot.rows.exception,
+    translator.language,
   ]);
 
   useEffect(() => {
@@ -1250,7 +1254,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
   /* ---- Derived copy. ---- */
 
   const alignmentNote: string = describeClockAlignment(alignment, translator);
-  const uncertaintyLabel: string = formatAlignmentUncertainty(alignment);
+  // "±3s" in the reader's digits, as the row's time beside it (#6516).
+  const uncertaintyLabel: string = writeReplayFigureInLanguage(
+    formatAlignmentUncertainty(alignment),
+    translator.language,
+  );
   const coverageNote: string | null = describeRailCoverage({
     loadedChunkCount: props.loadedChunkCount,
     totalChunkCount: props.totalChunkCount,
