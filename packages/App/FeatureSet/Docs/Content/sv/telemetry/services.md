@@ -57,13 +57,14 @@ För att lägga till en tjänst innan dess telemetri kommer in, till exempel fö
 
 ## En tjänsts sidor
 
-En tjänsts sidomeny har fem avsnitt:
+En tjänsts sidomeny har sex avsnitt:
 
 | Avsnitt | Sidor |
 | --- | --- |
 | **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Rekommendationer**: färdiga monitorer för tjänsten, valda efter dess språk. **SLOs**: de SLO:er som mäter dess begäranden, där du kan skapa ett som redan mäter tjänsten. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
 | **Telemetri** | Dess **Loggar**, **Spår**, **Mätvärden**, **Profiler**, **Undantag** och **Source maps**, redan filtrerade på den här tjänsten. |
 | **Aktivitet** | De **Incidenter**, **Larm** och händelser under **Schemalagt underhåll** som berör den. |
+| **Säkerhet** | **Datasäkerhet**: de känsliga data som tjänstens loggar, spår och undantag innehåller, och vad som ska åtgärdas ([Känsliga data i telemetri](/docs/data-security/telemetry)). **Efterlevnad**: hur de data står sig mot varje ramverk, med ett reglage som stänger av ett ramverk eller ett krav för den här tjänsten ([Efterlevnad i Datasäkerhet](/docs/data-security/compliance#på-en-resurs-sida)). Avsnittet visas när Datasäkerhet har skannat tjänstens telemetri, och är hopfällt från början. |
 | **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
 | **Avancerad** | **Inställningar**, **Granskningsloggar** och **Ta bort tjänst**. **Avancerad** är hopfälld från början: fäll ut den först. |
 
