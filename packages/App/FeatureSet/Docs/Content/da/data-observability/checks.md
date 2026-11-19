@@ -42,7 +42,7 @@ Indstil **Advar, når** for at advare på et tjek:
 
 Når du gemmer tjekket, oprettes en metrik-monitor for det, i dit navn og med dine tilladelser. Rydder du betingelsen, fjernes monitoren.
 
-Et tjeks **Status**, under **Tjek** og på fanen **Tjek** for dets tabel, siger, hvordan det står: **Fejler**, mens dets advarsel er åben, **Bestås**, mens den ikke er, og **Kunne ikke køre**, når dets forespørgsel fejlede. Et tjek uden advarsel siger kun, at det **Kørte**. Et tjek, der fejler, og et, der ikke kunne køre, står også på **Oversigt**. **Tjek** viser de tjek, der fejler, først, så dem, der ikke kunne køre, og derefter dem, der bestås, og filteret **Status** viser tjekkene med én status. **Fejlende kontroller** på **Oversigt** åbner **Tjek** med kun dem, der fejler.
+Et tjeks **Status**, under **Tjek** og på fanen **Tjek** for dets tabel, siger, hvordan det står: **Fejler**, mens dets advarsel er åben, **Bestås**, mens den ikke er, og **Kunne ikke køre**, når dets forespørgsel fejlede. Et tjek uden advarsel siger kun, at det **Kørte**. En forespørgsel, der fejler et øjeblik hos datavarehuset, og hvor dets egen dokumentation siger, at fejlen kan gå over (optaget, midlertidigt utilgængeligt eller under vedligeholdelse), startes igen én gang, 10 sekunder senere, og tjekket siger, at det kørte i andet forsøg, eller at det fejlede igen. Et tjek, der fejler, og et, der ikke kunne køre, står også på **Oversigt**. **Tjek** viser de tjek, der fejler, først, så dem, der ikke kunne køre, og derefter dem, der bestås, og filteret **Status** viser tjekkene med én status. **Fejlende kontroller** på **Oversigt** åbner **Tjek** med kun dem, der fejler.
 
 ## Hvad et tjek koster
 

@@ -6,6 +6,7 @@ import {
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
+import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -80,9 +81,15 @@ export const VERIFY_BACKUP_CODE_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/verify-backup-code"));
 
+/*
+ * The options for a security key's prompt at the second step (#9822,
+ * Types/Accounts/SecurityKeySignIn). A sign-in route like the two around
+ * it: the request carries the email and password again (or the sign-in
+ * link's token), and only the account they prove gets its keys' options.
+ */
 export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
-  APP_API_URL,
-).addRoute(new Route("/user-webauthn/generate-authentication-options"));
+  IDENTITY_URL,
+).addRoute(new Route(SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE));
 
 /*
  * Mints a set of recovery codes for the user who is ALREADY signed in.

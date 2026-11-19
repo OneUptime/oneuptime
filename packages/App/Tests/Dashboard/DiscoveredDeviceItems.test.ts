@@ -16,6 +16,8 @@ import {
   DiscoveredDeviceItem,
   DiscoveredDeviceState,
   getAddToMonitoringPlan,
+  getAlreadyAddedDeviceIdsOf,
+  getMonitoredDeviceIdOf,
   getDiscoveredDeviceEmptyKind,
   getDiscoveredDeviceItemForNode,
   getDiscoveredDeviceLabel,
@@ -127,6 +129,27 @@ describe("a row as the table holds it", () => {
       isMonitored: true,
       isOnPage: false,
     });
+  });
+
+  test("a row selected on another page that is a device carries the device, for its monitors (#9675)", () => {
+    expect(
+      toSelectedDiscoveredDeviceItem({
+        id: ID_B,
+        name: "camera-lobby",
+        ipAddress: "10.20.0.31",
+        isMonitored: true,
+        monitoredDeviceId: ID_C,
+      }).monitoredDevice,
+    ).toEqual({ id: ID_C });
+
+    // Never a device for a row that is not one.
+    expect(
+      toSelectedDiscoveredDeviceItem({
+        id: ID_B,
+        name: "camera-lobby",
+        monitoredDeviceId: ID_C,
+      }).monitoredDevice,
+    ).toBeUndefined();
   });
 
   test("a selected row with no address and no monitored flag is neither", () => {
@@ -338,6 +361,7 @@ describe("the table's sort, as the server sorts", () => {
 describe("which of a selection Add to monitoring adds", () => {
   test("the ones with an address and not monitored, in the order picked; the rest named with why", () => {
     const first: DiscoveredDeviceItem = item({ id: ID_A, _id: ID_A });
+    // A device whose own device is not known: left out, as before.
     const monitored: DiscoveredDeviceItem = item({
       id: ID_B,
       _id: ID_B,
@@ -357,7 +381,9 @@ describe("which of a selection Add to monitoring adds", () => {
     expect(getAddToMonitoringPlan([first, monitored, noAddress, last])).toEqual(
       {
         toAdd: [first, last],
+        toGiveMonitor: [],
         monitored: [monitored],
+        checking: [],
         withoutAddress: [noAddress],
       },
     );
@@ -371,8 +397,84 @@ describe("which of a selection Add to monitoring adds", () => {
 
     expect(getAddToMonitoringPlan([monitored])).toEqual({
       toAdd: [],
+      toGiveMonitor: [],
       monitored: [monitored],
+      checking: [],
       withoutAddress: [],
+    });
+  });
+
+  /*
+   * ISSUE #9675: a device added already with no monitor is given one, as
+   * Review Results gives a scan's host one (#9544); one with a monitor is
+   * left out, and one whose monitors are still being read waits.
+   */
+  describe("a device already added (#9675)", () => {
+    const DEVICE_WITH_NONE: string = "d0000000-0000-4000-8000-000000000001";
+    const DEVICE_WITH_ONE: string = "d0000000-0000-4000-8000-000000000002";
+    const withNone: DiscoveredDeviceItem = item({
+      id: ID_A,
+      _id: ID_A,
+      isMonitored: true,
+      monitoredDevice: { id: DEVICE_WITH_NONE.toUpperCase() },
+    });
+    const withOne: DiscoveredDeviceItem = item({
+      id: ID_B,
+      _id: ID_B,
+      isMonitored: true,
+      monitoredDevice: { id: DEVICE_WITH_ONE },
+    });
+    const fresh: DiscoveredDeviceItem = item({ id: ID_C, _id: ID_C });
+
+    test("with no monitor is given one, and with a monitor is left out", () => {
+      expect(
+        getAddToMonitoringPlan(
+          [withNone, withOne, fresh],
+          new Set<string>([DEVICE_WITH_ONE]),
+        ),
+      ).toEqual({
+        toAdd: [fresh],
+        toGiveMonitor: [withNone],
+        monitored: [withOne],
+        checking: [],
+        withoutAddress: [],
+      });
+    });
+
+    test("waits while the monitors are read", () => {
+      expect(getAddToMonitoringPlan([withNone, fresh])).toEqual({
+        toAdd: [fresh],
+        toGiveMonitor: [],
+        monitored: [],
+        checking: [withNone],
+        withoutAddress: [],
+      });
+    });
+
+    test("is offered when the read failed and knows of no monitor", () => {
+      expect(
+        getAddToMonitoringPlan([withNone, withOne], new Set<string>())
+          .toGiveMonitor,
+      ).toEqual([withNone, withOne]);
+    });
+
+    test("with no address on its row cannot be sent, and says why", () => {
+      const noAddress: DiscoveredDeviceItem = {
+        ...withNone,
+        ipAddress: undefined,
+      };
+
+      expect(
+        getAddToMonitoringPlan([noAddress], new Set<string>()).withoutAddress,
+      ).toEqual([noAddress]);
+    });
+
+    test("names the devices whose monitors are read, each once, in lower case", () => {
+      expect(
+        getAlreadyAddedDeviceIdsOf([withNone, withOne, fresh, withNone]),
+      ).toEqual([DEVICE_WITH_NONE, DEVICE_WITH_ONE]);
+      expect(getMonitoredDeviceIdOf(fresh)).toBe("");
+      expect(getMonitoredDeviceIdOf(withNone)).toBe(DEVICE_WITH_NONE);
     });
   });
 

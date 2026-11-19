@@ -27,7 +27,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # The version the agent images are built FROM. Keep this in step with the
 # Dockerfiles; validating against a different collector proves less than it
 # looks, because operator and receiver schemas move between releases.
-COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.161.0"
+COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.165.0"
 
 # The same image at the tag the Kubernetes agent chart pinned before this one
 # (its image.tag), which `helm upgrade --reuse-values` keeps: see the

@@ -325,13 +325,17 @@ class UserSession extends BaseModel {
 
   /*
    * What signing this session's person out of their identity provider too
-   * takes (Types/SSO/IdentityProviderSignOut, #9535): kept only for a
-   * browser sign-in through an OpenID Connect provider whose "Sign out of
-   * the identity provider too" switch is on - the provider, its
-   * end_session_endpoint, and the sign-in's ID token, the id_token_hint,
-   * encrypted at rest. Read by POST /identity/logout once the session has
-   * ended, and cleared then. Nobody reads or writes it through the API, and
-   * it is never sent to the browser while the session lives.
+   * takes (Types/SSO/IdentityProviderSignOut, #9535, #9603): kept only for a
+   * browser sign-in through a provider whose "Sign out of the identity
+   * provider too" switch is on - for an OpenID Connect provider, the
+   * provider, its end_session_endpoint, and the sign-in's ID token, the
+   * id_token_hint; for a SAML provider, the provider and what the assertion
+   * named the person and their session by, its Name ID and SessionIndex.
+   * The ID token, the Name ID and the SessionIndex are encrypted at rest.
+   * Read by POST /identity/logout once the session has ended, and cleared
+   * then, and by a SAML provider's own sign-out request. Nobody reads or
+   * writes it through the API, and it is never sent to the browser while
+   * the session lives.
    */
   @ColumnAccessControl({
     create: [],
@@ -342,7 +346,7 @@ class UserSession extends BaseModel {
     type: TableColumnType.JSON,
     title: "Identity Provider Sign-Out",
     description:
-      "Internal: what signing this session's person out of their OpenID Connect provider takes. Its ID token is kept encrypted.",
+      "Internal: what signing this session's person out of their identity provider takes. Its ID token, or its SAML Name ID and session index, are kept encrypted.",
     encrypted: true,
     encryptedFields: IDENTITY_PROVIDER_SIGN_OUT_ENCRYPTED_FIELDS,
     hideColumnInDocumentation: true,

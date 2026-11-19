@@ -208,8 +208,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "vCenter 的标识来自 `VMWARE_VCENTER_NAME`，它以 `vmware.vcenter.name` 的形式打在每条指标上。此 vCenter 为 **`vcenter-1`**。在 `.env` 中修正它，并在 `docker-compose.yml` 所在的文件夹中用 `docker compose up -d` 应用。注意，新名称会注册为一个新的 vCenter。",
   "A Linux machine (x86_64 or arm64) with systemd 235 or later — Ubuntu 18.04, Debian 10, RHEL 8 or newer — and `sudo`, that can reach vCenter over HTTPS (TCP 443) — ideally not a VM on the cluster it watches":
     "一台 Linux 机器（x86_64 或 arm64），带有 systemd 235 或更高版本（Ubuntu 18.04、Debian 10、RHEL 8 或更新版本）和 `sudo`，能通过 HTTPS（TCP 443）访问 vCenter——最好不是它所监控的集群上的虚拟机",
-  "Run these on the Linux machine that will host the agent. They download `otelcol-contrib` 0.161.0 — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime, and install them to `/opt/oneuptime-vmware-agent`:":
-    "在将要运行代理的 Linux 机器上运行这些命令。它们会从此 OneUptime 下载 `otelcol-contrib` 0.161.0（代理固定使用的上游 OpenTelemetry Collector 版本），连同代理的 `otel-collector-config.yaml` 及其 systemd 单元，并安装到 `/opt/oneuptime-vmware-agent`：",
+  "Run these on the Linux machine that will host the agent. They download `otelcol-contrib` 0.165.0 — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime, and install them to `/opt/oneuptime-vmware-agent`:":
+    "在将要运行代理的 Linux 机器上运行这些命令。它们会从此 OneUptime 下载 `otelcol-contrib` 0.165.0（代理固定使用的上游 OpenTelemetry Collector 版本），连同代理的 `otel-collector-config.yaml` 及其 systemd 单元，并安装到 `/opt/oneuptime-vmware-agent`：",
   "The agent's settings go in `/opt/oneuptime-vmware-agent/.env`. It holds a password, so make it readable by root alone, then open it (`sudoedit` uses your `$EDITOR`):":
     "代理的设置写在 `/opt/oneuptime-vmware-agent/.env` 中。它包含密码，因此请让它仅 root 可读，然后打开它（`sudoedit` 会使用你的 `$EDITOR`）：",
   "Put this in it:": "写入以下内容：",

@@ -59,9 +59,23 @@ export const isResetLinkRefusal: (message: string) => boolean = (
   );
 };
 
-// A sign-up with an email address that already has an account.
+/*
+ * A sign-up with an email address that already has an account - said only
+ * by a self-hosted server that cannot email the address (#9816): every
+ * other server answers every address alike, and says this in an email to
+ * the address instead (Identity's EmailProvedSignUp).
+ */
 export const getAccountAlreadyExistsMessage: (email: string) => string = (
   email: string,
 ): string => {
   return `An account with ${email} already exists. Sign in instead, or reset your password if you have forgotten it.`;
 };
+
+/*
+ * What every sign-up is told while a server's admin has turned sign-up off,
+ * whatever the address (#9816). It used to go on for an address with an
+ * invitation waiting, which said which addresses had one; that person is
+ * emailed their link instead, and these words tell them where to look.
+ */
+export const SIGN_UP_TURNED_OFF_MESSAGE: string =
+  "Sign up is turned off on this OneUptime server. If you were invited, use the link in your invitation email. Otherwise, ask your server's admin to turn it on.";

@@ -266,7 +266,8 @@ describe("AWS rules", () => {
 
   test("namespaces are CloudWatch's AWS namespaces, listed once each for discovery", () => {
     for (const rule of AWS_CLOUDWATCH_RESOURCE_RULES) {
-      expect(rule.namespace).toMatch(/^AWS\/[A-Za-z0-9]+$/);
+      // AWS Glue publishes under "Glue", CloudWatch's one AWS namespace without AWS/.
+      expect(rule.namespace).toMatch(/^(AWS\/[A-Za-z0-9]+|Glue)$/);
       expect(rule.identityDimensions.length).toBeGreaterThan(0);
     }
     expect(new Set(AWS_CLOUDWATCH_DISCOVERY_NAMESPACES).size).toBe(

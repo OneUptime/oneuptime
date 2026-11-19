@@ -68,6 +68,10 @@ both palettes by `src/theme/colors.test.ts`.
 | `SectionHeader`                                                                 | A section title with optional icon, count and action link.                                                                |
 | `EmptyState`                                                                    | Empty, error and success placeholders with an optional action.                                                            |
 | `SearchField`, `ListFilters`, `SegmentedControl`                                | List search, filter chips and view switching.                                                                             |
+| `SearchFilterRow`, `FilterButton`                                               | A list's search with its Filter button beside it; the button is tinted and counts the filters that are on.                |
+| `FilterSheet`, `FilterChip`                                                     | A list's filters, one section per facet, values as toggle chips; nothing applies until Show results.                      |
+| `ActiveFilterBar`                                                               | The filters that are on, under the search: each opens the sheet or comes off with its own cross.                          |
+| `RecordOwnersAndLabels`                                                         | A record's owners (You first) and labels, as rows of its Details section.                                                 |
 | `ResponseRow`                                                                   | Incident, alert, episode, monitor and security case list cards; `badge` for a word that needs a decision.                 |
 | `ResponseDetailHeader`, `ResponseActions`, `ResponseSection`, `ResponseInfoRow` | Detail page structure.                                                                                                    |
 | `QueryErrorNotice`                                                              | A failed background read with a retry.                                                                                    |

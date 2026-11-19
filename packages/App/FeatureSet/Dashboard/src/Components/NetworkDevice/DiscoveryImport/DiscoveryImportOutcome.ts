@@ -342,3 +342,13 @@ export function getDiscoveryImportBlocker(data: {
 export const EXISTING_DEVICES_NEED_A_TEMPLATE: string = translationKey(
   "The devices you picked are already added. Give them a monitor from a template, or go back and pick new hosts.",
 );
+
+/*
+ * The same, in the Discovered Devices list's Add to monitoring (issue
+ * #9675), which picks its devices before it opens: there is no step to go
+ * back to.
+ */
+export const EXISTING_DISCOVERED_DEVICES_NEED_A_TEMPLATE: string =
+  translationKey(
+    "The devices you picked are already added. Give them a monitor from a template.",
+  );

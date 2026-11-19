@@ -18,6 +18,7 @@ import {
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { isCloudReadingOfType } from "../../../../Types/Cloud/CloudReadingKeys";
+import { getStreamedReadingSource } from "../CloudStreamReadings";
 import {
   AwsStreamCoverage,
   NO_AWS_STREAM_COVERAGE,
@@ -344,8 +345,11 @@ function dimensionsOf(metric: AwsListedMetric): Record<string, string> {
 /*
  * The series a read reads from CloudWatch: every one, but a key metric a
  * stream writes in the read's place (CloudStreamStack) - GetMetricData
- * bills each metric read - unless the resource's health or headline is
- * judged from it (CloudReadingKeys): those are read for the resource's
+ * bills each metric read. One a resource's health or headline is judged
+ * from (CloudReadingKeys) is left to the stream too where its account and
+ * Region's streamed readings are fresh (streamedReadingSources,
+ * CloudStreamReadings: the read's statistic over its five minutes, from
+ * the stream's minutes); elsewhere it is read, for the resource's
  * readings, and left out of what the read writes (CloudStreamedMetrics).
  */
 export function getAwsSeriesToRead<
@@ -358,20 +362,26 @@ export function getAwsSeriesToRead<
   series: Array<T>;
   accountId: string;
   coverage: AwsStreamCoverage;
+  streamedReadingSources?: ReadonlySet<string> | undefined;
 }): Array<T> {
   if (data.coverage.size === 0) {
     return data.series;
   }
 
   return data.series.filter((entry: T): boolean => {
-    return (
+    if (
       !isAwsKeyMetricLeftToStream({
         coverage: data.coverage,
         accountId: data.accountId,
         region: entry.resource.region,
         namespace: entry.metric.namespace,
         metric: entry.keyMetric,
-      }) ||
+      })
+    ) {
+      return true;
+    }
+
+    return (
       isCloudReadingOfType({
         provider: CloudProvider.AWS,
         resourceType: entry.resource.resourceType,
@@ -379,9 +389,70 @@ export function getAwsSeriesToRead<
           entry.metric.namespace,
           entry.metric.metricName,
         ),
-      })
+      }) &&
+      !(data.streamedReadingSources || new Set<string>()).has(
+        getStreamedReadingSource({
+          accountId: data.accountId,
+          region: entry.resource.region,
+        }),
+      )
     );
   });
+}
+
+/*
+ * The Regions whose streams carry metrics a resource's health is judged
+ * from, which the read read from CloudWatch all the same: their streamed
+ * readings were not fresh (CloudStreamReadings) - a stream gone quiet, or
+ * readings that could not be kept. Each once, in the order found.
+ */
+export function getAwsRegionsReadForStreamedHealth<
+  T extends {
+    metric: AwsListedMetric;
+    keyMetric: AwsKeyMetric;
+    resource: CloudMonitoredResource;
+  },
+>(data: {
+  series: Array<T>;
+  accountId: string;
+  coverage: AwsStreamCoverage;
+  streamedReadingSources?: ReadonlySet<string> | undefined;
+}): Array<string> {
+  const regions: Array<string> = [];
+
+  if (data.coverage.size === 0) {
+    return regions;
+  }
+
+  for (const entry of data.series) {
+    const region: string = entry.resource.region;
+
+    if (
+      !regions.includes(region) &&
+      isAwsKeyMetricLeftToStream({
+        coverage: data.coverage,
+        accountId: data.accountId,
+        region,
+        namespace: entry.metric.namespace,
+        metric: entry.keyMetric,
+      }) &&
+      isCloudReadingOfType({
+        provider: CloudProvider.AWS,
+        resourceType: entry.resource.resourceType,
+        storedMetricName: getAwsStoredMetricName(
+          entry.metric.namespace,
+          entry.metric.metricName,
+        ),
+      }) &&
+      !(data.streamedReadingSources || new Set<string>()).has(
+        getStreamedReadingSource({ accountId: data.accountId, region }),
+      )
+    ) {
+      regions.push(region);
+    }
+  }
+
+  return regions;
 }
 
 export default class AwsCloudConnector implements CloudConnector {
@@ -1475,10 +1546,27 @@ export default class AwsCloudConnector implements CloudConnector {
      * health is judged from them (getAwsSeriesToRead), and the added
      * metrics a stream of every metric writes already.
      */
+    // Said only where the read was told the streams' readings: one that was not reads as it always has.
+    const readForHealth: Array<string> = options.awsStreamedReadingSources
+      ? getAwsRegionsReadForStreamedHealth({
+          series,
+          accountId,
+          coverage,
+          streamedReadingSources: options.awsStreamedReadingSources,
+        })
+      : [];
+
+    if (readForHealth.length > 0) {
+      warnings.push(
+        `The streams sent no resource health from ${readForHealth.join(", ")} lately, so it was read from CloudWatch.`,
+      );
+    }
+
     const toRead: Array<AwsSeries> = getAwsSeriesToRead({
       series,
       accountId,
       coverage,
+      streamedReadingSources: options.awsStreamedReadingSources,
     }).filter((entry: AwsSeries): boolean => {
       return !(
         entry.isAdded &&

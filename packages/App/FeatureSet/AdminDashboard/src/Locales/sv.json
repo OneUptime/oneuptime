@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Har personen inget OneUptime-konto ännu skapas det med det här namnet.",
   "Suggest every account on this server?": "Föreslå alla konton på den här servern?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Alla som får bjuda in personer ser varje kontos namn och e-postadress medan de skriver. Slå bara på det om varje konto här hör till en och samma organisation.",
-  "Suggest Every Account": "Föreslå alla konton"
+  "Suggest Every Account": "Föreslå alla konton",
+  "Sign Out URL": "Utloggnings-URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsleverantörens URL för gemensam utloggning (Single Sign-out). Behövs för att logga ut personer där också.",
+  "Single Logout URL:": "Single Logout-URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Om personer också ska loggas ut från identitetsleverantören ger du den även Single Logout-URL:en och OneUptimes signeringscertifikat.",
+  "Download Signing Certificate": "Ladda ned signeringscertifikat"
 }

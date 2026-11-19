@@ -872,6 +872,94 @@ describe("BasicForm section summaries", () => {
     });
     expect(setChips()).toEqual([]);
   });
+
+  /*
+   * A line that depends on more than the form's values - what the server
+   * says of the status pages picked (Create Announcement, #9775) - is drawn
+   * by a component of the section's (getSummaryElement), in place of its
+   * sentences, from the values as they are now. The sentences still decide
+   * that the section has a line at all.
+   */
+  const LiveLine: (props: {
+    values: FormValues<JSONObject>;
+  }) => ReactElement = (props: {
+    values: FormValues<JSONObject>;
+  }): ReactElement => {
+    return (
+      <span data-testid="live-line">
+        {props.values["reminder"]
+          ? "Told, and reminded, as the server says."
+          : "Told, as the server says."}
+      </span>
+    );
+  };
+
+  const LIVE: FormFieldCollapsibleSection<JSONObject> = {
+    ...NOTIFY,
+    getSummaryElement: (values: FormValues<JSONObject>): ReactElement => {
+      return <LiveLine values={values} />;
+    },
+  };
+
+  function withSection(
+    section: FormFieldCollapsibleSection<JSONObject>,
+  ): Fields<JSONObject> {
+    return NOTIFY_FIELDS.map(
+      (candidate: Field<JSONObject>): Field<JSONObject> => {
+        return candidate.collapsibleSection
+          ? { ...candidate, collapsibleSection: section }
+          : candidate;
+      },
+    );
+  }
+
+  test("draws the line a component works out in place of its sentences, and it follows the values", async () => {
+    const { user }: RenderFormResult = renderForm({
+      fields: withSection(LIVE),
+      initialValues: {},
+    });
+
+    const header: HTMLElement = await notifyButton();
+
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      "Told, as the server says.",
+    );
+    expect(header).toHaveAccessibleDescription("Told, as the server says.");
+    expect(screen.queryByText("Subscribers are told when it starts.")).toBe(
+      null,
+    );
+
+    await user.click(header);
+    fireEvent.change(screen.getByTestId("reminder"), {
+      target: { value: "1 day before" },
+    });
+    await user.click(header);
+
+    expect(screen.getByTestId("live-line")).toHaveTextContent(
+      "Told, and reminded, as the server says.",
+    );
+  });
+
+  test("draws no line, the component's or any, while the section's sentences say nothing", async () => {
+    renderForm({
+      fields: withSection({
+        ...LIVE,
+        openWhenConfigured: false,
+        getSummary: (): Array<string> => {
+          return [];
+        },
+      }),
+      initialValues: { title: "Database upgrade", reminder: "1 day" },
+    });
+
+    await notifyButton();
+
+    await waitFor(() => {
+      expect(setChips()).toEqual(["Reminder: 1 day"]);
+    });
+    expect(screen.queryByTestId("live-line")).toBeNull();
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+  });
 });
 
 /*

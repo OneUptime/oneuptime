@@ -37,7 +37,14 @@ import {
   type PaneScrollRestoration,
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
-import SearchField from "../components/SearchField";
+import SearchFilterRow from "../components/filters/SearchFilterRow";
+import ActiveFilterBar from "../components/filters/ActiveFilterBar";
+import FilterSheet from "../components/filters/FilterSheet";
+import {
+  useRecordFilterControls,
+  type RecordFilterControls,
+} from "../hooks/useRecordFilterControls";
+import type { FilterFacet, RecordFilters } from "../filters/recordFilters";
 import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { getMonitorHealth, type MonitorHealth } from "../utils/monitorHealth";
@@ -333,6 +340,17 @@ export default function MonitorsScreen(): React.JSX.Element {
     "monitors.visible",
     PAGE_SIZE,
   );
+  /*
+   * Owner, status, type and labels, as the Dashboard filters monitors:
+   * asked of the server, so they reach every monitor of the project.
+   */
+  const recordFilters: RecordFilterControls = useRecordFilterControls(
+    "monitors",
+    "monitors.recordFilters",
+    (): void => {
+      setVisibleCount(PAGE_SIZE);
+    },
+  );
   // The params already applied: seen again after a fold, they must not wipe the search.
   const [appliedParams, setAppliedParams] = usePaneState<
     MonitorsStackParamList["MonitorsList"] | null
@@ -358,6 +376,8 @@ export default function MonitorsScreen(): React.JSX.Element {
     setAppliedParams(route.params);
     if (route.params?.initialFilter) {
       setSearch("");
+      // A count on Home opens every monitor it counted, not a filtered few.
+      recordFilters.clear();
       setFilter(route.params.initialFilter);
       setVisibleCount(PAGE_SIZE);
     }
@@ -368,7 +388,7 @@ export default function MonitorsScreen(): React.JSX.Element {
     isLoading,
     isError,
     refetch,
-  } = useAllProjectMonitors();
+  } = useAllProjectMonitors(recordFilters.filters);
   const { lightImpact } = useHaptics();
   // When a first result turns overdue, its row says so without a reload.
   const now: number = useNow();
@@ -528,10 +548,12 @@ export default function MonitorsScreen(): React.JSX.Element {
     [navigation],
   );
 
-  const hasFilters: boolean = search.trim().length > 0 || filter !== "all";
+  const hasFilters: boolean =
+    search.trim().length > 0 || filter !== "all" || recordFilters.hasActive;
   const resetFilters: () => void = () => {
     setSearch("");
     setFilter("all");
+    recordFilters.clear();
     setVisibleCount(PAGE_SIZE);
   };
 
@@ -555,18 +577,25 @@ export default function MonitorsScreen(): React.JSX.Element {
       {totalCount > 0 && !isLoading && !isError ? (
         <MonitorSummary counts={counts} />
       ) : null}
-      <SearchField
-        value={search}
-        onChangeText={(value: string) => {
+      <SearchFilterRow
+        search={search}
+        onSearch={(value: string) => {
           setSearch(value);
           setVisibleCount(PAGE_SIZE);
         }}
         placeholder="Search name or ID"
-        accessibilityLabel="Search monitors"
+        searchAccessibilityLabel="Search monitors"
+        noun="monitors"
+        filterCount={recordFilters.activeCount}
+        onOpenFilters={(): void => {
+          recordFilters.open();
+        }}
       />
       {allMonitors.length >= 100 ? (
         <HelperNote testID="monitor-search-cap">
-          Search covers the 100 most recent monitors.
+          {recordFilters.hasActive
+            ? "Showing the 100 newest monitors that match your filters."
+            : "Search covers the 100 most recent monitors."}
         </HelperNote>
       ) : null}
       <ListFilters
@@ -600,7 +629,17 @@ export default function MonitorsScreen(): React.JSX.Element {
               )
         }
         onReset={hasFilters ? resetFilters : undefined}
-      />
+      >
+        <ActiveFilterBar
+          items={recordFilters.items}
+          onOpen={(facet: FilterFacet): void => {
+            recordFilters.open(facet);
+          }}
+          onRemove={(facet: FilterFacet): void => {
+            recordFilters.remove(facet);
+          }}
+        />
+      </ListFilters>
       {/*
        * Where a disabled monitor went, said only when there is one: its
        * last status may have been Offline, and it is no issue now.
@@ -620,6 +659,29 @@ export default function MonitorsScreen(): React.JSX.Element {
         </HelperNote>
       ) : null}
     </View>
+  );
+
+  const filterSheet: React.JSX.Element = (
+    <FilterSheet
+      visible={recordFilters.sheetVisible}
+      list="monitors"
+      noun="monitors"
+      value={recordFilters.filters}
+      options={recordFilters.options}
+      canFilterByMe
+      focusFacet={recordFilters.focusFacet}
+      onApply={(next: RecordFilters): void => {
+        /*
+         * Picking statuses in the sheet is the more exact question: the
+         * health chip goes back to All, so the two never contradict each
+         * other into an empty list.
+         */
+        if (recordFilters.apply(next).picksStates) {
+          setFilter("all");
+        }
+      }}
+      onClose={recordFilters.close}
+    />
   );
 
   const scrollContentStyle: {
@@ -652,6 +714,7 @@ export default function MonitorsScreen(): React.JSX.Element {
             <SkeletonCard />
           </View>
         </ListStatusScroll>
+        {filterSheet}
       </View>
     );
   }
@@ -678,6 +741,7 @@ export default function MonitorsScreen(): React.JSX.Element {
             }}
           />
         </ListStatusScroll>
+        {filterSheet}
       </View>
     );
   }
@@ -758,6 +822,7 @@ export default function MonitorsScreen(): React.JSX.Element {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
       />
+      {filterSheet}
     </View>
   );
 }

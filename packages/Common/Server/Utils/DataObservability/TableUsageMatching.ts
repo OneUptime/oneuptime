@@ -56,6 +56,12 @@ export interface UsageAsset {
   dataStoreId: string;
   schemaName: string;
   name: string;
+  /*
+   * A Dataverse table's entity set name, as its collection keeps it: what
+   * Power BI's OData connectors name it by (#9696). Unset for other
+   * engines, and for a table no collection has said one of yet.
+   */
+  entitySetName?: string | null | undefined;
 }
 
 export interface TableUsageMatch {

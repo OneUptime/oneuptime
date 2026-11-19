@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import { postFilteredList, type ListFilter } from "./recordFilters";
 import { getUnresolvedStateIds, toStateIdsQuery } from "../utils/resolvedState";
 import type { AxiosResponse } from "axios";
 import type {
@@ -12,9 +13,15 @@ import type {
 
 export async function fetchIncidentEpisodes(
   projectId: string,
-  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+  options: {
+    skip?: number;
+    limit?: number;
+    unresolvedOnly?: boolean;
+    // The list's filters, asked of the server (api/recordFilters.ts).
+    filter?: ListFilter;
+  } = {},
 ): Promise<ListResponse<IncidentEpisodeItem>> {
-  const { skip = 0, limit = 20, unresolvedOnly = false } = options;
+  const { skip = 0, limit = 20, unresolvedOnly = false, filter } = options;
 
   const query: Record<string, unknown> = {};
   if (unresolvedOnly) {
@@ -28,29 +35,45 @@ export async function fetchIncidentEpisodes(
     );
   }
 
-  const response: AxiosResponse = await apiClient.post(
-    `/api/incident-episode/get-list?skip=${skip}&limit=${limit}`,
-    {
-      query,
-      select: {
-        _id: true,
-        title: true,
-        episodeNumber: true,
-        episodeNumberWithPrefix: true,
-        description: true,
-        rootCause: true,
-        createdAt: true,
-        declaredAt: true,
-        incidentCount: true,
-        currentIncidentState: { _id: true, name: true, color: true },
-        incidentSeverity: { _id: true, name: true, color: true },
+  const post: (listQuery: Record<string, unknown>) => Promise<AxiosResponse> = (
+    listQuery: Record<string, unknown>,
+  ): Promise<AxiosResponse> => {
+    return apiClient.post(
+      `/api/incident-episode/get-list?skip=${skip}&limit=${limit}`,
+      {
+        query: listQuery,
+        select: {
+          _id: true,
+          title: true,
+          episodeNumber: true,
+          episodeNumberWithPrefix: true,
+          description: true,
+          rootCause: true,
+          createdAt: true,
+          declaredAt: true,
+          incidentCount: true,
+          currentIncidentState: { _id: true, name: true, color: true },
+          incidentSeverity: { _id: true, name: true, color: true },
+        },
+        sort: { createdAt: "DESC" },
       },
-      sort: { createdAt: "DESC" },
-    },
-    {
-      headers: { tenantid: projectId },
-    },
-  );
+      {
+        headers: { tenantid: projectId },
+      },
+    );
+  };
+
+  const response: AxiosResponse = filter
+    ? await postFilteredList({
+        projectId: projectId,
+        list: "incidentEpisodes",
+        filters: filter.filters,
+        owners: filter.owners,
+        baseQuery: query,
+        post: post,
+        limit: limit,
+      })
+    : await post(query);
   return response.data;
 }
 

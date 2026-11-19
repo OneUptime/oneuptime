@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard
- *     which part to draw (all but charts, states, skeletons and keyboard when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard|popups
+ *     which part to draw (all but charts, states, skeletons, keyboard and popups when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -121,6 +121,11 @@ import CSVFileUpload from "Common/UI/Components/CSVFileUpload/CSVFileUpload";
 import TrafficConversationDiagram from "../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficConversationDiagram";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
+import LogsViewerToolbar from "Common/UI/Components/LogsViewer/components/LogsViewerToolbar";
+import CopyAttributesAsJSONButton from "Common/UI/Components/AttributesJSON/CopyAttributesAsJSONButton";
+import FacetSectionHeader from "Common/UI/Components/TelemetryViewer/components/FacetSectionHeader";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import TimeRange from "Common/Types/Time/TimeRange";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
@@ -1709,6 +1714,136 @@ function Skeletons() {
   );
 }
 
+/*
+ * Popups opened inside boxes that clip, as the Dashboard draws them (#9859,
+ * #9861, #9863): a logs list's card with its toolbar in it and nothing
+ * under it yet - a trace's empty logs - which hides what runs past it; a
+ * log row expanded in a list that scrolls sideways, its Copy attributes at
+ * the row's foot; and the traces explorer's facet list, 224px wide and
+ * scrolling, with the Span Type's defined title. Each popup must open
+ * whole, over the page.
+ */
+const LOG_COLUMNS = [
+  { id: "time", label: "Time" },
+  { id: "service", label: "Service" },
+  { id: "severity", label: "Severity" },
+  { id: "body", label: "Message" },
+  { id: "traceId", label: "Trace ID" },
+  { id: "spanId", label: "Span ID" },
+];
+
+const LOG_ATTRIBUTES = {
+  "http.request.method": "POST",
+  "http.route": "/api/checkout",
+  "http.response.status_code": 502,
+};
+
+function Popups() {
+  const [columns, setColumns] = useState(["time", "service", "body"]);
+  const [range, setRange] = useState({ range: TimeRange.PAST_ONE_HOUR });
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="space-y-6" data-testid="section-popups">
+      {/* A logs list with no filter bar: its toolbar sits in its card. */}
+      <div
+        className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+        data-testid="popups-logs-card"
+      >
+        <div className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+          <LogsViewerToolbar
+            resultCount={0}
+            availableColumns={LOG_COLUMNS}
+            selectedColumns={columns}
+            onSelectedColumnsChange={setColumns}
+            savedViews={[
+              { id: "errors", name: "Errors only" },
+              { id: "checkout", name: "Checkout API" },
+            ]}
+            onSavedViewSelect={() => {}}
+            onExportCSV={() => {}}
+            onExportJSON={() => {}}
+            showKeyboardShortcuts={showShortcuts}
+            onToggleKeyboardShortcuts={() => {
+              setShowShortcuts((shown) => {
+                return !shown;
+              });
+            }}
+            timeRange={range}
+            onTimeRangeChange={setRange}
+          />
+        </div>
+        <p className="px-4 py-3 text-sm text-gray-500">No logs yet.</p>
+      </div>
+
+      {/* A log row expanded in a list that scrolls sideways. */}
+      <div
+        className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+        data-testid="popups-log-rows"
+      >
+        <div className="overflow-x-auto" data-testid="popups-log-rows-scroll">
+          <table className="min-w-full">
+            <tbody>
+              <tr
+                className="cursor-pointer"
+                onClick={() => {
+                  setExpanded((open) => {
+                    return !open;
+                  });
+                }}
+              >
+                <td className="px-4 py-2 text-sm text-gray-700">
+                  POST /api/checkout failed
+                </td>
+              </tr>
+              {expanded ? (
+                <tr>
+                  <td className="px-6 pb-3 pt-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold uppercase text-gray-500">
+                        Attributes
+                      </span>
+                      <CopyAttributesAsJSONButton
+                        attributes={LOG_ATTRIBUTES}
+                        dataTestId="popups-copy-json"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* The traces explorer's facet list, at its default width. */}
+      <div
+        className="h-40 w-56 overflow-y-auto rounded-lg border border-gray-200 bg-white"
+        data-testid="popups-facet-list"
+      >
+        <FacetSectionHeader
+          title="Span Type"
+          activeCount={0}
+          isExpanded={true}
+          controlsId="popups-span-type-body"
+          onToggle={() => {}}
+          titleGlossaryTerm={GlossaryTerm.Span}
+        />
+        <div id="popups-span-type-body" className="px-3 py-1">
+          <button
+            type="button"
+            className="text-sm text-gray-700"
+            data-testid="popups-entry-spans"
+          >
+            Entry spans
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1722,9 +1857,16 @@ const SECTIONS = {
   keyboard: Keyboard,
   states: States,
   skeletons: Skeletons,
+  popups: Popups,
 };
 
-const ONLY_WHEN_ASKED_FOR = ["charts", "states", "skeletons", "keyboard"];
+const ONLY_WHEN_ASKED_FOR = [
+  "charts",
+  "states",
+  "skeletons",
+  "keyboard",
+  "popups",
+];
 
 function Gallery() {
   const shown =

@@ -871,3 +871,136 @@ describe("getTabbableElements", () => {
     ).toEqual(["link", "button", "input", "focusable-div"]);
   });
 });
+
+/*
+ * The layer and its Tab order, for what #9859, #9861 and #9863 put on it:
+ * a menu's items reached with the arrow keys (out of the Tab order), a menu
+ * that closes itself on Tab, and a page shown full screen.
+ */
+describe("Tooltip - what a menu on the layer needs too", () => {
+  test("Tab from something Tab never stops at (a menu's roving item) goes on from the trigger", async () => {
+    render(
+      <div>
+        <Tooltip
+          richContent={
+            <div>
+              <button type="button" tabIndex={-1}>
+                Flat JSON
+              </button>
+            </div>
+          }
+        >
+          <button type="button">Copy as</button>
+        </Tooltip>
+        <button type="button">Next on the page</button>
+      </div>,
+    );
+
+    const trigger: HTMLElement = screen.getByRole("button", {
+      name: "Copy as",
+    });
+
+    await focusTrigger(trigger);
+    expect(isTooltipShown("Flat JSON")).toBe(true);
+
+    // The arrows put the focus on an item; Tab never would.
+    act(() => {
+      screen.getByRole("button", { name: "Flat JSON" }).focus();
+    });
+
+    // Back on the trigger, the browser's own Tab moving on from there.
+    expect(pressTab()).toBe(true);
+    expect(trigger).toHaveFocus();
+    await settle();
+    expect(isTooltipShown("Flat JSON")).toBe(false);
+  });
+
+  test("Shift+Tab from such an item lands on the trigger", async () => {
+    render(
+      <Tooltip
+        richContent={
+          <button type="button" tabIndex={-1}>
+            Nested JSON
+          </button>
+        }
+      >
+        <button type="button">Copy as</button>
+      </Tooltip>,
+    );
+
+    const trigger: HTMLElement = screen.getByRole("button", {
+      name: "Copy as",
+    });
+
+    await focusTrigger(trigger);
+    act(() => {
+      screen.getByRole("button", { name: "Nested JSON" }).focus();
+    });
+
+    expect(pressTab({ shiftKey: true })).toBe(false);
+    expect(trigger).toHaveFocus();
+  });
+
+  test("Tab is answered before what is inside hears it", async () => {
+    const focusWhenHeard: Array<string> = [];
+
+    render(
+      <Tooltip
+        richContent={
+          <div
+            onKeyDown={(event: React.KeyboardEvent) => {
+              if (event.key === "Tab") {
+                focusWhenHeard.push(
+                  (document.activeElement as HTMLElement | null)?.textContent ||
+                    "",
+                );
+              }
+            }}
+          >
+            <button type="button">Database down</button>
+            <button type="button">Disk full</button>
+          </div>
+        }
+      >
+        <button type="button">Tuesday&apos;s bar</button>
+      </Tooltip>,
+    );
+
+    await focusTrigger(screen.getByRole("button", { name: "Tuesday's bar" }));
+    pressTab();
+    expect(screen.getByRole("button", { name: "Database down" })).toHaveFocus();
+
+    pressTab();
+
+    // The tooltip had already moved the focus on when the content heard Tab.
+    expect(focusWhenHeard).toEqual(["Disk full"]);
+  });
+
+  test("a tooltip whose trigger is in a part of the page shown full screen is drawn there", async () => {
+    render(
+      <div data-testid="canvas">
+        <Tooltip richContent={<div>Ada Lovelace</div>}>
+          <button type="button">AL</button>
+        </Tooltip>
+      </div>,
+    );
+
+    const canvas: HTMLElement = screen.getByTestId("canvas");
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: (): Element | null => {
+        return canvas;
+      },
+    });
+
+    try {
+      await hover(screen.getByRole("button", { name: "AL" }));
+
+      // Full screen shows the canvas alone: drawn on the body, it would not be seen.
+      expect(tooltipRootOf("Ada Lovelace").parentElement).toBe(canvas);
+    } finally {
+      Reflect.deleteProperty(document, "fullscreenElement");
+    }
+  });
+});

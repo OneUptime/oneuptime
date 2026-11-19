@@ -105,7 +105,7 @@ describe("LinkMonitorsToTheirNetworkDevices", () => {
 
       expect(run).toHaveBeenCalledTimes(1);
       expect(mockedLogger.info).toHaveBeenCalledWith(
-        "LinkMonitorsToTheirNetworkDevices: read 41 monitor(s) in 3 project(s) with network devices, and tied 17 to the one device at the address each checks.",
+        "LinkMonitorsToTheirNetworkDevices: read 41 monitor(s) in 3 project(s) with network devices, and tied 17 to the device its probes see at the address each checks.",
       );
     });
 

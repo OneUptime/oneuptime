@@ -308,8 +308,8 @@ describe("reading an answer", () => {
         devices: [
           { id: "a", name: "Back office printer", ipAddress: "10.0.0.5" },
           { id: "a", name: "again" },
-          { id: "b", isMonitored: true },
-          { id: "e", isMonitored: "yes" },
+          { id: "b", isMonitored: true, monitoredDeviceId: "device-b" },
+          { id: "e", isMonitored: "yes", monitoredDeviceId: "device-e" },
           { name: "no id" },
           "c",
         ],
@@ -318,7 +318,12 @@ describe("reading an answer", () => {
     ).toEqual({
       devices: [
         { id: "a", name: "Back office printer", ipAddress: "10.0.0.5" },
-        { id: "b", name: "b", isMonitored: true },
+        {
+          id: "b",
+          name: "b",
+          isMonitored: true,
+          monitoredDeviceId: "device-b",
+        },
         { id: "e", name: "e" },
       ],
       count: 7,

@@ -1,6 +1,12 @@
 import { FacetData } from "../../../UI/Components/LogsViewer/types";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import React from "react";
@@ -26,10 +32,12 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  * right edge, wider than a 375px phone and past the left edge of a 390px one.
  *
  * Below md the sidebar now stacks above the list, folded behind a "Filters"
- * toggle, the toolbar groups wrap onto their own rows, and every popover in
- * the toolbar spans the row instead of hanging off its (now moved) trigger.
- * From md up every change is undone by an md: class, so the desktop layout is
- * the old one. jsdom has no stylesheet, so these tests
+ * toggle, and the toolbar groups wrap onto their own rows. Every popover in
+ * the toolbar is drawn over the page from its trigger (LayeredPopover),
+ * never wider than the screen less its sides, and kept inside them: drawn
+ * inside the row, under a list with no filter bar, the list's card cut it
+ * off (#9859). From md up every change is undone by an md: class, so the
+ * desktop layout is the old one. jsdom has no stylesheet, so these tests
  * read the Tailwind classes, and ResponsiveVisibility resolves `display` per
  * width.
  *
@@ -96,6 +104,7 @@ import {
   LOGS_VIEWER_TOOLBAR_TEST_ID,
 } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
 import { COLUMN_SELECTOR_PANEL_TEST_ID } from "../../../UI/Components/LogsViewer/components/ColumnSelector";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import { KEYBOARD_SHORTCUTS_HELP_TEST_ID } from "../../../UI/Components/LogsViewer/components/KeyboardShortcutsHelp";
 import { FACET_SIDEBAR_RESIZE_HANDLE_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/FacetSidebarResizeHandle";
 import { FACET_SIDEBAR_WIDTH_CLASS_NAME } from "../../../UI/Components/TelemetryViewer/FacetSidebarWidth";
@@ -491,8 +500,10 @@ interface ToolbarPopover {
   props?: Partial<React.ComponentProps<typeof LogsViewer>>;
   trigger: () => HTMLElement;
   panel: () => HTMLElement;
-  // The classes that put the panel back where it always was from md up.
-  mdPlacement: Array<string>;
+  // Its width where there is room for it.
+  width: string;
+  // The edge of its trigger it hangs from, as Popper places it (left to right).
+  placement: "bottom-start" | "bottom-end";
 }
 
 /*
@@ -500,7 +511,8 @@ interface ToolbarPopover {
  * triggers, so a panel hung off its trigger at a fixed width could run off
  * either side of a phone: the column picker's 24rem one already did, and the
  * 18rem saved-views and shortcuts panels started to once their triggers moved
- * mid-row.
+ * mid-row. Each is never wider than the screen less 8px a side, and Popper
+ * slides it in to stay 8px inside the window (LayeredPopover).
  */
 const TOOLBAR_POPOVERS: Array<ToolbarPopover> = [
   {
@@ -511,7 +523,8 @@ const TOOLBAR_POPOVERS: Array<ToolbarPopover> = [
     panel: (): HTMLElement => {
       return screen.getByTestId(COLUMN_SELECTOR_PANEL_TEST_ID);
     },
-    mdPlacement: ["right-0", "md:left-auto", "md:w-96"],
+    width: "w-96",
+    placement: "bottom-end",
   },
   {
     name: "saved views",
@@ -527,7 +540,8 @@ const TOOLBAR_POPOVERS: Array<ToolbarPopover> = [
     panel: (): HTMLElement => {
       return screen.getByRole("dialog", { name: "Saved views" });
     },
-    mdPlacement: ["left-0", "md:right-auto", "md:w-72"],
+    width: "w-72",
+    placement: "bottom-start",
   },
   {
     name: "keyboard shortcuts",
@@ -537,7 +551,8 @@ const TOOLBAR_POPOVERS: Array<ToolbarPopover> = [
     panel: (): HTMLElement => {
       return screen.getByTestId(KEYBOARD_SHORTCUTS_HELP_TEST_ID);
     },
-    mdPlacement: ["right-0", "md:left-auto", "md:top-full", "md:w-72"],
+    width: "w-72",
+    placement: "bottom-end",
   },
   {
     name: "export menu",
@@ -548,9 +563,30 @@ const TOOLBAR_POPOVERS: Array<ToolbarPopover> = [
     panel: (): HTMLElement => {
       return screen.getByTestId(LOGS_VIEWER_EXPORT_MENU_TEST_ID);
     },
-    mdPlacement: ["right-0", "md:left-auto", "md:w-40"],
+    width: "w-40",
+    placement: "bottom-end",
   },
 ];
+
+// The layer's element a popover is drawn in: Tippy's root, on the body.
+function layerOf(panel: HTMLElement): HTMLElement {
+  const root: HTMLElement | null = panel.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(root).not.toBeNull();
+
+  return root as HTMLElement;
+}
+
+// Lets Popper place what it was handed: its first placement waits a tick.
+async function placed(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  });
+}
 
 describe.each(TOOLBAR_POPOVERS)(
   "the $name below md",
@@ -561,32 +597,47 @@ describe.each(TOOLBAR_POPOVERS)(
       return popover.panel();
     }
 
-    test("spans the toolbar on a phone, instead of hanging off its trigger", async () => {
+    test("is drawn over the page, outside the toolbar and the list's card, never wider than a phone", async () => {
       const panel: HTMLElement = await openPopover();
+      const layer: HTMLElement = layerOf(panel);
 
-      expect(panel).toHaveClass("absolute", "left-0", "right-0");
-      // A fixed width below md is the regression: 384px on a 390px screen.
-      expect(
-        classTokens(panel).filter((token: string): boolean => {
-          return token.startsWith("w-");
-        }),
-      ).toEqual([]);
+      // On the page's body: no card, list or row around it to cut it off.
+      expect(layer.parentElement).toBe(document.body);
+      expect(toolbar()).not.toContainElement(panel);
+      expect(listCard()).not.toContainElement(panel);
 
-      expect(resolvePosition(panel, PHONE_WIDTH_IN_PX)).toBe("absolute");
-      expect(containingBlockAt(panel, PHONE_WIDTH_IN_PX)).toBe(toolbar());
-    });
-
-    test("from md up it is the old panel, hung off its trigger", async () => {
-      const panel: HTMLElement = await openPopover();
-
-      expect(panel).toHaveClass(...popover.mdPlacement);
-
-      for (const width of [TABLET_WIDTH_IN_PX, LAPTOP_WIDTH_IN_PX]) {
-        expect({ width, block: containingBlockAt(panel, width) }).toEqual({
+      /*
+       * Its own width where it has the room, and never more than the screen
+       * less 8px a side: a 384px panel on a 390px phone was the regression.
+       */
+      expect(panel).toHaveClass(popover.width, "max-w-[calc(100vw-1rem)]");
+      // Placed by the layer, at every width: nothing in-place is left on it.
+      for (const width of [
+        PHONE_WIDTH_IN_PX,
+        TABLET_WIDTH_IN_PX,
+        LAPTOP_WIDTH_IN_PX,
+      ]) {
+        expect({ width, position: resolvePosition(panel, width) }).toEqual({
           width,
-          block: popover.trigger().parentElement,
+          position: "static",
         });
       }
+    });
+
+    test("hangs off its trigger at every width, from the trigger's edge it always had", async () => {
+      const panel: HTMLElement = await openPopover();
+      const layer: HTMLElement = layerOf(panel);
+
+      await placed();
+
+      // Placed against its own trigger (Tippy's instance on the layer).
+      expect(
+        (layer as HTMLElement & { _tippy?: { reference: Element } })._tippy
+          ?.reference,
+      ).toBe(popover.trigger());
+      expect(layer).toHaveAttribute("data-popper-placement", popover.placement);
+      // Not inside a box the trigger is in.
+      expect(containingBlockAt(panel, PHONE_WIDTH_IN_PX)).toBeNull();
     });
   },
 );

@@ -114,7 +114,7 @@ Klik på **Opsæt e-mail**. Det åbner **Indstillinger > Notifikationer > E-mail
 
 ### Vælg, hvem der kan tilmelde sig
 
-Alle, der kan åbne din adresse, kan tilmelde sig. Når dit team har sine konti, så slå **Tillad tilmelding** fra under **Indstillinger > Godkendelse**: folk, du inviterer til et projekt, kan stadig komme med. Klik på **Hold tilmelding åben** for at lade tilmeldingen stå åben.
+Alle, der kan åbne din adresse, kan tilmelde sig. Når din server kan sende e-mail, åbner en ny konto det link, OneUptime sender til den, før den kan logge ind, og en adresse, der allerede har en konto, får det at vide i en e-mail. Når dit team har sine konti, så slå **Tillad tilmelding** fra under **Indstillinger > Godkendelse**: folk, du inviterer til et projekt, kan stadig komme med. Klik på **Hold tilmelding åben** for at lade tilmeldingen stå åben.
 
 **Det virkede, når** tjeklisten markerer Tilmelding som færdig.
 
