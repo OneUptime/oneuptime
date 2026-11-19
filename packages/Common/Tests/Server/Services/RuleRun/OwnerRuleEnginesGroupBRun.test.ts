@@ -1513,3 +1513,141 @@ describe.each([
     });
   },
 );
+
+/*
+ * #9933, for the resource engines that add owners one by one (Podman,
+ * Proxmox, RUM, runbook, serverless, service, vCenter, workflow, queue): a
+ * run whose every owner was skipped - someone who has left the project, a
+ * team that is not one of its teams - is one it could not update, never
+ * "already applied", with the skipped logged by id; and the feed credits
+ * only the rules that added someone.
+ */
+const RESOURCE_CASES: Array<EngineCase> = ENGINE_CASES.filter(
+  (testCase: EngineCase): boolean => {
+    return ![
+      "SLO",
+      "status page",
+      "alert episode",
+      "incident episode",
+    ].includes(testCase.name);
+  },
+);
+
+describe.each(RESOURCE_CASES)(
+  "$name owner rule engine - credits only the rules that added someone (#9933)",
+  (testCase: EngineCase) => {
+    let warned: jest.SpyInstance;
+
+    beforeEach(() => {
+      warned = spy(logger, "warn").mockImplementation((): void => {
+        // Asserted where it matters.
+      });
+    });
+
+    // Only these users are members of the project; anyone else has left.
+    function membersAre(members: Array<ObjectID>): void {
+      jest
+        .spyOn(TeamMemberService, "isUserMemberOfProject")
+        .mockImplementation(async (data: { userId: ObjectID }) => {
+          return members.some((member: ObjectID): boolean => {
+            return member.toString() === data.userId.toString();
+          });
+        });
+    }
+
+    function feedItem(harness: Harness): {
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown: string;
+    } {
+      return harness.feed!.mock.calls[0]![0] as {
+        feedInfoInMarkdown: string;
+        moreInformationInMarkdown: string;
+      };
+    }
+
+    function named(rule: BaseModel, name: string): BaseModel {
+      (rule as unknown as Record<string, unknown>)["name"] = name;
+      return rule;
+    }
+
+    it("counts the rule that names a member, and not the one that names only someone who left", async () => {
+      const harness: Harness = setup(testCase);
+      membersAre([USER_A]);
+
+      const result: RuleApplicationResult = await run(testCase, {
+        rules: [
+          fakeRule(testCase, { users: [USER_A] }),
+          named(
+            fakeRule(testCase, { id: OTHER_RULE_ID, users: [DEPARTED] }),
+            "Leavers",
+          ),
+        ],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(describeWrites(harness.writes)).toEqual([
+        `user:${USER_A.toString()}`,
+      ]);
+
+      if (harness.feed) {
+        expect(harness.feed).toHaveBeenCalledTimes(1);
+        expect(feedItem(harness).feedInfoInMarkdown).toContain(
+          "by 1 owner rule.",
+        );
+        expect(feedItem(harness).moreInformationInMarkdown).toContain(
+          "Checkout owners",
+        );
+        expect(feedItem(harness).moreInformationInMarkdown).not.toContain(
+          "Leavers",
+        );
+      }
+
+      expect(warned).toHaveBeenCalledTimes(1);
+      expect(String(warned.mock.calls[0]![0])).toContain(
+        `user ${DEPARTED.toString()} (NotProjectMember)`,
+      );
+    });
+
+    it("is a resource it could not update - never already applied - when every owner was skipped", async () => {
+      const harness: Harness = setup(testCase);
+      membersAre([]);
+      spy(testCase.ownerTeamService, "create").mockRejectedValue(
+        new ProjectScopedReferenceException(
+          `This owner team references records that are not in this project: Team "${FOREIGN_TEAM.toString()}". Please pick values from this project and try again.`,
+        ),
+      );
+
+      const result: RuleApplicationResult = await run(testCase, {
+        rules: [
+          fakeRule(testCase, { users: [DEPARTED], teams: [FOREIGN_TEAM] }),
+        ],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.failed());
+      expect(result).not.toEqual(RuleApplicationResultUtil.alreadyApplied());
+      expect(harness.writes).toEqual([]);
+
+      if (harness.feed) {
+        expect(harness.feed).not.toHaveBeenCalled();
+      }
+
+      expect(warned).toHaveBeenCalledTimes(1);
+      const line: string = String(warned.mock.calls[0]![0]);
+      expect(line).toContain(`user ${DEPARTED.toString()} (NotProjectMember)`);
+      expect(line).toContain(
+        `team ${FOREIGN_TEAM.toString()} (NotProjectRecord)`,
+      );
+    });
+
+    it("still says already applied, and warns of nothing, when every owner is there", async () => {
+      setup(testCase, { existingUsers: [USER_A], existingTeams: [TEAM_A] });
+
+      await expect(
+        run(testCase, {
+          rules: [fakeRule(testCase, { users: [USER_A], teams: [TEAM_A] })],
+        }),
+      ).resolves.toEqual(RuleApplicationResultUtil.alreadyApplied());
+      expect(warned).not.toHaveBeenCalled();
+    });
+  },
+);
