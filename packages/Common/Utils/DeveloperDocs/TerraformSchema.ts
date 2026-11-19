@@ -10,6 +10,7 @@ import {
   TableColumnMetadata,
 } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import { JSONValue } from "../../Types/JSON";
 import Permission from "../../Types/Permission";
 import {
@@ -41,7 +42,8 @@ import {
  *   - the resource is `oneuptime_<singular name in snake_case>`, and exists
  *     when the model is documented, has an API, and can be created over it;
  *   - a column is an attribute when it is in the create or update schema:
- *     documented, not computed, not a relation object, and with create (or
+ *     documented, not computed, not one only OneUptime keeps
+ *     (ServerOwned.Always), not a relation object, and with create (or
  *     update) permissions;
  *   - its Terraform type follows its column type (strings, numbers, booleans,
  *     RFC3339 timestamps, sets of ids, JSON strings, typed monitor steps);
@@ -475,8 +477,14 @@ function getSecretKind(
 export function isServerManagedColumn(
   tableName: string,
   columnName: string,
+  column?: TableColumnMetadata,
 ): boolean {
   if (SYSTEM_COLUMNS.includes(columnName)) {
+    return true;
+  }
+
+  // The model says OneUptime keeps it (TableColumnMetadata.serverOwned).
+  if (column?.serverOwned) {
     return true;
   }
 
@@ -514,7 +522,8 @@ function isColumnInWriteSchema(data: {
     return false;
   }
 
-  if (column.computed) {
+  // What only OneUptime writes (ModelSchema.isWrittenOnlyByOneUptime).
+  if (column.computed || column.serverOwned === ServerOwned.Always) {
     return false;
   }
 
@@ -668,7 +677,7 @@ export function getTerraformAttributes(
       inUpdateSchema,
       isRequired: inCreateSchema && isColumnRequiredOnCreate(column),
       secretKind: getSecretKind(columnName, column),
-      isServerManaged: isServerManagedColumn(tableName, columnName),
+      isServerManaged: isServerManagedColumn(tableName, columnName, column),
       readPermissions: accessControl?.read || [],
       isReservedName: TERRAFORM_RESOURCE_META_ARGUMENTS.includes(
         toTerraformSnakeCase(columnName),
