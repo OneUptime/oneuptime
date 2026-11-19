@@ -1,6 +1,7 @@
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { KUBERNETES_COST_METRICS } from "../../../../Types/Kubernetes/KubernetesCostMetrics";
 
 /*
  * The metric names the kubernetes-agent chart's collectors actually send,
@@ -224,10 +225,22 @@ export const CHART_DERIVED_METRICS: ReadonlyArray<string> = [
   "k8s.job.failed_pods.increase",
 ];
 
+/*
+ * Not the agent's collector's either: OneUptime's cost ingest writes them
+ * from the allocation rows the agent's cost poller sends (#9548), under the
+ * cluster, with the cluster's, namespace's and workload's resource
+ * attributes - so for a Kubernetes monitor they arrive like any metric the
+ * agent sends, from an agent with cost monitoring on (its default).
+ */
+export const COST_INGEST_METRICS: ReadonlyArray<string> = [
+  ...KUBERNETES_COST_METRICS,
+];
+
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
   ...K8S_CLUSTER_RECEIVER_METRICS,
   ...KUBELETSTATS_RECEIVER_METRICS,
   ...CONTROL_PLANE_SCRAPE_METRICS,
   ...ALLOWLISTED_SCRAPE_METRICS,
   ...CHART_DERIVED_METRICS,
+  ...COST_INGEST_METRICS,
 ]);

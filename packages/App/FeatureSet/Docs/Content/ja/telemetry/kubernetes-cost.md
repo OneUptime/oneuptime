@@ -1,9 +1,10 @@
 # Kubernetes コストオブザーバビリティ
 
-すべての Kubernetes ワークロードのコスト (namespace、ワークロード、Pod ごとの支出、アイドル容量、各 request のうち実際に使われている割合) を、[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) がすでに収集しているメトリクス、ログ、トレースと並べて確認できます。Helm の値 1 つで有効になり、クラウドの認証情報は不要です。有効にすると、クラスターの **コスト** ページで、どの request を縮小すべきかがわかります。
+すべての Kubernetes ワークロードのコスト (namespace、ワークロード、Pod ごとの支出、アイドル容量、各 request のうち実際に使われている割合) を、[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) がすでに収集しているメトリクス、ログ、トレースと並べて確認できます。既定で有効になっており、クラウドの認証情報は不要です。クラスターの概要にはクラスターのコストが表示され、**コスト** ページではどの request を縮小すべきかがわかります。コストメトリクスも、ほかのメトリクスと同じようにグラフにしたり、アラートを設定したりできます。
 
 :::cards
-- [有効にする](#コストオブザーバビリティを有効にする): `helm upgrade` 1 回。
+- [有効にする](#コストオブザーバビリティを有効にする): 既定で有効。そうでない場合は `helm upgrade` 1 回。
+- [コストに対するアラート](#コストに対するアラート): クラスター、namespace、ワークロードごとのコストを、メトリクスとして。
 - [独自のエンジンを使う](#kubecost-や-opencost-をすでに実行している場合): エージェントの接続先を Kubecost または OpenCost にします。
 - [適正サイズ](#適正サイズ): request の推奨値と、その算出方法。
 - [トラブルシューティング](#トラブルシューティング): 空のページ、推奨値が表示されない場合。
@@ -11,7 +12,7 @@
 
 ## 仕組み
 
-`cost.enabled=true` を設定すると、チャートはエージェントの横で 4 つのものを実行します:
+コストの監視が既定どおり有効な場合 (`cost.enabled: auto`)、チャートはエージェントの横で 4 つのものを実行します:
 
 ```mermaid title="コストの数値の出どころ"
 flowchart TB
@@ -25,16 +26,20 @@ flowchart TB
 ```
 
 1. **OpenCost**: オープンソースのコストエンジンです (Apache-2.0、CNCF。Kubecost の基盤でもある [cost-model](https://github.com/kubecost/cost-model))。クラスターを監視し、ノード、ボリューム、ロードバランサーの価格を算出して、各ワークロードのコストを計算します。
-2. **小さな Prometheus**: OpenCost が使用量と価格の履歴に必要とするものです。レプリカ 1 つで動作し、7 日分の履歴を保持し、スクレイプ対象はちょうど 2 つです。API サーバーのノードプロキシ経由の cAdvisor と、OpenCost 自体です (OpenCost は自身のリソース request のメトリクスを出力するため、kube-state-metrics は使いません)。クラスターの外に公開されることはなく、そのデータがクラスターから出ることもありません。
-3. **コストポーラー** (`cost.agent`)。1 時間が確定するたびに OpenCost の Allocation API を読み取り、ワークロードごとに 1 つのコスト行を OneUptime に送信します。内容は CPU、メモリ、GPU、ボリューム、ネットワーク、ロードバランサー、アイドル、そして効率です。各時間は 1 回だけ送信され、サーバーはすでに持っている時間をスキップするため、再起動で支出が二重に数えられることはありません。
-4. **コストメトリクスのスクレイプ** (`cost.metrics`)。エージェントの Collector が OpenCost のコストメトリクスをスクレイプし、クラスターのほかのメトリクスと一緒に送信します。
+2. **小さな Prometheus**: OpenCost が使用量と価格の履歴に必要とするものです。レプリカ 1 つで動作し、7 日分の履歴を保持し、スクレイプ対象はちょうど 2 つです。API サーバーのノードプロキシ経由の cAdvisor (OpenCost が読み取る系列だけを残します) と、OpenCost 自体です (OpenCost は自身のリソース request のメトリクスを出力するため、kube-state-metrics は使いません)。クラスターの外に公開されることはなく、そのデータがクラスターから出ることもありません。
+3. **コストポーラー** (`cost.agent`)。1 時間が確定するたびに OpenCost の Allocation API を読み取り、ワークロードごとに 1 つのコスト行を OneUptime に送信します。内容は CPU、メモリ、GPU、ボリューム、ネットワーク、ロードバランサー、アイドル、そして効率です。各時間は 1 回だけ送信され、サーバーはすでに持っている時間をスキップするため、再起動で支出が二重に数えられることはありません。OneUptime は、これらの行から [コストメトリクス](#コストに対するアラート) も書き込みます。
+4. **コストメトリクスのスクレイプ** (`cost.metrics`)。エージェントの Collector が OpenCost の価格メトリクス (各ノード、ボリューム、ロードバランサーの 1 時間あたりのコスト) をスクレイプし、クラスターのほかのメトリクスと一緒に送信します。
 
-OpenCost は、クラウドプロバイダー (AWS、Google Cloud、Azure) の公開定価から、認証情報なしでノードの価格を算出します。クラウドの定価がないクラスターでは、代わりに [料金表](#オンプレミスとベアメタルの価格設定) を設定します。
+OpenCost は、クラウドプロバイダー (AWS、Google Cloud、Azure) の公開定価から、認証情報なしでノードの価格を算出します。それ以外の環境では OpenCost の既定の料金を使い、独自の [料金表](#オンプレミスとベアメタルの価格設定) を設定するとそれに置き換わります。
+
+3 つの Pod が要求するリソースは、合わせて CPU 約 150m、メモリ約 450Mi です。`gke-autopilot` と `eks-fargate` のプリセットでは、コストの監視は既定で無効です。これらのプラットフォームはすべての Pod をその request に応じて課金するため、コストの Pod が、自らが測定する請求額を増やしてしまいます。また、OpenCost はノード単位で価格を算出しますが、どちらのプラットフォームもそのようには課金しません。
 
 ## コストオブザーバビリティを有効にする
 
+新規インストールでは何もする必要はありません。コストの監視は既定で有効です。既定で有効になる前にインストールしたエージェントをアップグレードするか、`gke-autopilot` または `eks-fargate` のプリセットで有効にするには、次のようにします:
+
 :::steps
-### cost.enabled でエージェントをアップグレードする
+### エージェントをアップグレードする
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -43,7 +48,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-これだけで完全なインストールです。追加されるのは小さな Pod 2 つ、OpenCost とその Prometheus です。エージェントを別のリリース名や namespace でインストールした場合は、それを使ってください (`helm list -A | grep kubernetes-agent` で確認できます)。
+これだけで完全なインストールです。追加されるのは小さな Pod 3 つ、つまり OpenCost、その Prometheus、コストエージェントです。エージェントを別のリリース名や namespace でインストールした場合は、それを使ってください (`helm list -A | grep kubernetes-agent` で確認できます)。コストの監視を無効にするには、同じ方法で `--set cost.enabled=false` を設定します。
 
 ### 最初の 1 時間が確定するのを待つ
 
@@ -52,6 +57,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### コストのページを開く
 
 - **製品 → インフラストラクチャ → Kubernetes → コスト** には、プロジェクト内のすべてのクラスターの支出が表示されます。
+- クラスターの概要には、過去 24 時間の支出、月間の見込み額 (ランレート)、アイドルの支出、効率、そして最もコストのかかっている namespace とワークロードが表示されます。
 - クラスターの **コスト** には、支出の推移、CPU・メモリ・ストレージの内訳付きの **Namespace 別の支出**、**ワークロード別の支出**、アイドルの支出、効率、**適正サイズ** カードが表示されます。
 :::
 
@@ -98,6 +104,7 @@ cost:
 
 ```yaml title="values.yaml"
 cost:
+  enabled: auto           # on, except with the gke-autopilot and eks-fargate presets
   agent:
     windowSeconds: 3600   # allocation window length (hourly = native)
     includeIdle: true     # ship the engine's __idle__ allocation
@@ -148,7 +155,18 @@ Prometheus が停止しても、支出の収集は止まりません。ピーク
 
 ## コストに対するアラート
 
-コストメトリクスは通常のメトリクスなので、[メトリクスモニター](/docs/monitor/metrics-monitor) でほかのものと同じようにアラートを出せます。たとえば、`node_total_hourly_cost` の平均が予算を超えたときや、クラスターに存在すべきでないボリュームクラスの `pv_hourly_cost` が現れたときです。
+OneUptime は 1 時間ごとのコスト行から 4 つのメトリクスを書き込みます。金額が算出され、内容どおりの名前が付いているため、コストをグラフにしたり、ダッシュボードに置いたり、[Kubernetes モニター](/docs/monitor/kubernetes-monitor) や [メトリクスモニター](/docs/monitor/metrics-monitor) でアラートを設定したりできます:
+
+| メトリクス | 内容 | 属性 |
+| --- | --- | --- |
+| `oneuptime.kubernetes.cost.total` | 各時間のクラスターのコスト (アイドル容量を含む) | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.idle` | そのうち、どのワークロードも使わなかった部分: アイドル容量と未割り当て容量 | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.workload` | 各時間の各ワークロードのコスト。namespace ごとに合計すると、その namespace のコストになります | `k8s.cluster.name`、`k8s.namespace.name`、およびワークロードの種類ごとの名前 (`k8s.deployment.name` など) |
+| `oneuptime.kubernetes.cost.efficiency` | 各ワークロードが、request した CPU とメモリのうちどれだけを使ったか (パーセント、コストで加重) | ワークロードの属性 (上と同じ) |
+
+各ポイントは 1 時間分のコストで、エージェントの通貨 (既定は USD) で表され、その時間の開始時刻がタイムスタンプになり、その時間が終わってから約 1 時間後に書き込まれます。数時間のウィンドウでポイントを合計でき、1 日分を合計するとその日のコストになります。これらはクラスターがすでに送信したデータから作られるため、取り込んだメトリクスとして課金されることはなく、クラスターのほかのメトリクスと同じ期間保持されます。
+
+Kubernetes モニターには、これらのメトリクス用のテンプレートが 3 つあります。Cluster Daily Cost Over Budget、Namespace Daily Cost Over Budget、High Idle Spend で、それぞれ予算を自分の値に設定して使います。OpenCost の価格メトリクスも通常のメトリクスです。メトリクスモニターで、`node_total_hourly_cost` の平均が予算を超えたときや、クラスターに存在すべきでないボリュームクラスの `pv_hourly_cost` が現れたときにアラートを出せます。
 
 ## データモデルと保持期間
 
@@ -157,7 +175,7 @@ Prometheus が停止しても、支出の収集は止まりません。ピーク
 ## トラブルシューティング
 
 :::details コストのページが空
-コストポーラーのログを確認してください: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。(リリース名に `kubernetes-agent` が含まれない場合、Deployment は `<release>-kubernetes-agent-cost` です。`kubectl get deploy -n oneuptime-agent` で一覧できます。) `HTTP 401` は、OneUptime が取り込みキーを拒否したことを意味します。`did not answer any known allocation path` は、エンジンがまだ起動していない (同梱の OpenCost は最初の数時間の価格を算出するのに数分かかります) か、`cost.engine.url` が誤っていることを意味します。
+`gke-autopilot` と `eks-fargate` のプリセットでは、コストの監視は既定で無効です。`--set cost.enabled=true` で有効にしてください。それ以外の場合は、コストポーラーのログを確認してください: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。(リリース名に `kubernetes-agent` が含まれない場合、Deployment は `<release>-kubernetes-agent-cost` です。`kubectl get deploy -n oneuptime-agent` で一覧できます。) `HTTP 401` は、OneUptime が取り込みキーを拒否したことを意味します。`did not answer any known allocation path` は、エンジンがまだ起動していない (同梱の OpenCost は最初の数時間の価格を算出するのに数分かかります) か、`cost.engine.url` が誤っていることを意味します。
 :::
 
 :::details 同梱の OpenCost が準備完了にならない

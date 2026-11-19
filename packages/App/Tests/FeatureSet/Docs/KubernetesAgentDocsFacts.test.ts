@@ -199,7 +199,8 @@ const DEFAULTS: Array<{ option: string; page: string; chart: unknown }> = [
   { option: "csi.enabled", page: "off", chart: false },
   { option: "coreDns.enabled", page: "off", chart: false },
   { option: "controlPlane.enabled", page: "off", chart: false },
-  { option: "cost.enabled", page: "off", chart: false },
+  // On by default, except with the gke-autopilot and eks-fargate presets (#9548).
+  { option: "cost.enabled", page: "`auto`", chart: "auto" },
   { option: "preset", page: "(empty: `standard`)", chart: "" },
   { option: "oneuptime.labels", page: "`{}`", chart: {} },
   { option: "filters.logs.minSeverity", page: '`""`', chart: "" },
@@ -733,6 +734,8 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "Node collector": "Yes",
         "eBPF instrumentation (OBI)": "Yes",
         "Kubernetes AI agent": "Yes",
+        "Cost engine and poller":
+          "Yes, except with the `gke-autopilot` and `eks-fargate` presets",
         "Log tailer":
           "With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets",
         "eBPF profiler": "No",
@@ -740,6 +743,11 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       });
       expect(valueAt("ebpf.enabled")).toBe(true);
       expect(valueAt("aiAgent.enabled")).toBe(true);
+      // auto: on, except with the two presets (kubernetes-agent.costEnabled).
+      expect(valueAt("cost.enabled")).toBe("auto");
+      expect(chartFile("templates/_helpers.tpl")).toContain(
+        '{{- ternary "false" "true" (or (eq $preset "gke-autopilot") (eq $preset "eks-fargate")) -}}',
+      );
       expect(valueAt("profiling.enabled")).toBe(false);
       expect(valueAt("kubeStateMetrics.enabled")).toBe(false);
 
@@ -751,6 +759,9 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "deployment-logs-api.yaml",
         "daemonset-profiling.yaml",
         "kube-state-metrics.yaml",
+        "deployment-cost-agent.yaml",
+        "opencost.yaml",
+        "prometheus-cost.yaml",
       ]) {
         expect(fs.existsSync(path.join(CHART_DIR, "templates", template))).toBe(
           true,

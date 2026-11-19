@@ -1938,7 +1938,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           },
           {
             label: "Ready-made alerts",
-            detail: "Twenty-one templates",
+            detail: "Twenty-four templates",
             icon: "bell",
           },
           {
@@ -1977,7 +1977,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
         },
         {
           key: "alerts",
-          title: "Twenty-one ready-made alerts",
+          title: "Twenty-four ready-made alerts",
           description:
             "Start from a template, from a silent cluster to etcd, on the metrics the agent sends.",
           icon: "bell",
@@ -2030,7 +2030,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           name: "Agent images",
           usually: "Docker Hub, `registry.k8s.io`, `ghcr.io` and `quay.io`",
           inside:
-            "Mirror each one, and set its `repository` in your values. Images you turn on later, such as cost or profiling, take theirs the same way.",
+            "Mirror each one, and set its `repository` in your values. Images you turn on later, such as profiling, take theirs the same way.",
           status: "change-a-setting",
         },
         {
@@ -2102,6 +2102,16 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           "aiAgent:",
           "  image:",
           "    repository: registry.example.com/oneuptime/kubernetes-ai-agent",
+          "cost:",
+          "  opencost:",
+          "    image:",
+          "      repository: registry.example.com/opencost/opencost",
+          "  prometheus:",
+          "    image:",
+          "      repository: registry.example.com/prometheus/prometheus",
+          "  agent:",
+          "    image:",
+          "      repository: registry.example.com/oneuptime/kubernetes-cost-agent",
         ].join("\n"),
         separator: ": ",
       },

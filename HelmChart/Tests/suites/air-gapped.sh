@@ -339,15 +339,15 @@ agent_images() {
 }
 
 render_agent "${WORK_DIR}/agent-stock.yaml"
-assert_eq "a stock agent chart renders three images, none from the registry" "0" \
+assert_eq "a stock agent chart renders six images, none from the registry" "0" \
     "$(agent_images "${WORK_DIR}/agent-stock.yaml" | grep -c "^${REGISTRY}/" || true)"
-assert_eq "a stock agent chart runs the three images the values name" "3" \
+assert_eq "a stock agent chart runs the six images the values name" "6" \
     "$(agent_images "${WORK_DIR}/agent-stock.yaml" | wc -l | tr -d ' ')"
 
 render_agent "${WORK_DIR}/agent-air-gapped.yaml" -f "$AGENT_VALUES"
 assert_eq "every image of the agent comes from ${REGISTRY}" "" \
     "$(agent_images "${WORK_DIR}/agent-air-gapped.yaml" | grep -v "^${REGISTRY}/" || true)"
-assert_eq "the values move all three images" "3" \
+assert_eq "the values move all six images" "6" \
     "$(agent_images "${WORK_DIR}/agent-air-gapped.yaml" | wc -l | tr -d ' ')"
 
 harness_report

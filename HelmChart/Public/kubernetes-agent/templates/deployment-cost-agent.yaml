@@ -1,4 +1,4 @@
-{{- if and .Values.cost.enabled .Values.cost.agent.enabled }}
+{{- if and (eq (include "kubernetes-agent.costEnabled" .) "true") .Values.cost.agent.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

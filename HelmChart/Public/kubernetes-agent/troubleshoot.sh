@@ -27,8 +27,8 @@
 # path, so even a server that old answers a bad token with
 # `400 Invalid service token` there (a current one answers 401/422).
 #
-# When the chart is installed with `cost.enabled=true` it also diagnoses the
-# cost pipeline (Section 9), which fails the same silent way: the cost-agent /
+# When cost monitoring runs (on by default: `cost.enabled: auto`) it also
+# diagnoses the cost pipeline (Section 9), which fails the same silent way: the cost-agent /
 # OpenCost / Prometheus pods, the poller's own /healthz (it reports its last
 # poll and ship error), and whether the cost engine's Allocation API answers.
 #
@@ -616,8 +616,9 @@ fi
 # ----------------------------------------------------------------------------
 section "9. Cost pipeline"
 # ----------------------------------------------------------------------------
-# Everything below is gated on the cost-agent Deployment existing — i.e. on the
-# chart having been installed with `--set cost.enabled=true`.
+# Everything below is gated on the cost-agent Deployment existing — i.e. on
+# cost monitoring running: on by default (`cost.enabled: auto`) except on the
+# gke-autopilot and eks-fargate presets, and with `--set cost.enabled=true`.
 #
 # Cost fails the same silent way the ingestion token does: nothing crashes, the
 # workloads above stay green, and the Kubernetes Cost dashboard just never grows
@@ -733,8 +734,9 @@ if [ -z "$COST_AGENT_DEPLOY" ]; then
     warn "A cost engine is deployed, but there is no cost-agent Deployment (cost.agent.enabled=false)."
     add_finding "The bundled cost engine runs but nothing polls it — cost.agent.enabled is false, so allocations are computed in-cluster and never shipped to OneUptime. Re-run with --set cost.agent.enabled=true."
   else
-    info "Cost collection is not enabled here (no component=cost-agent Deployment) — skipping."
-    detail "Enable it with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.enabled=true"
+    info "Cost collection is not running here (no component=cost-agent Deployment) — skipping."
+    detail "It is on by default, except on the gke-autopilot and eks-fargate presets; cost.enabled=false, or a chart from before it was on by default, leaves it off."
+    detail "Turn it on with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.enabled=true"
   fi
 else
   COST_ENABLED=1

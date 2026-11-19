@@ -16,3 +16,13 @@ ebpf:
 aiAgent:
   image:
     repository: registry.example.com/oneuptime/kubernetes-ai-agent
+cost:
+  opencost:
+    image:
+      repository: registry.example.com/opencost/opencost
+  prometheus:
+    image:
+      repository: registry.example.com/prometheus/prometheus
+  agent:
+    image:
+      repository: registry.example.com/oneuptime/kubernetes-cost-agent

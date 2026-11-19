@@ -35,6 +35,7 @@ flowchart LR
 | Node-collector | DaemonSet | Pod-logger fra `/var/log/pods`, kubelet- og cAdvisor-målinger og nodens operativsystemmålinger. | Ja |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og forespørselsmålinger fra hver pod, og tjenestekartet. | Ja |
 | Kubernetes AI-agent | Deployment | Lar OneUptime AI kjøre skrivebeskyttet `kubectl` mens den undersøker en hendelse eller et varsel på dette clusteret. | Ja |
+| Kostnadsmotor og poller | Deployments | Hva hvert namespace og hver workload koster: OpenCost, den lille Prometheus-en den trenger, og kostnadsagenten som sender det de regner ut. | Ja, unntatt med presetene `gke-autopilot` og `eks-fargate` |
 | Logg-tailer | Deployment | Pod-logger gjennom Kubernetes-API-et, der node-collectoren ikke kan lese dem. | Med presetene `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Kontinuerlige CPU-flammegrafer for hver prosess. | Nei |
 | kube-state-metrics | Deployment | Pod-faser, containeres venteårsaker og ressurskvoter. | Nei |
@@ -364,7 +365,7 @@ Profilering krever **Linux 5.10** eller nyere og en privilegert pod med nodens p
 | `csi.enabled` | av | Målinger fra CSI-lagringsdrivere, fra pods med etiketten `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider for å koble til og fra volumer, klargjøringsfeil, IOPS. |
 | `coreDns.enabled` | av | CoreDNS' målinger på `:9153/metrics`: spørringsrate, latens, treff i hurtigbufferen og feil. |
 | `controlPlane.enabled` | av | API-serveren på adressen sin inne i klyngen, og etcd, scheduleren og controller manageren på endepunktene du oppgir ([Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Bare selvadministrerte clustere: administrerte eksponerer dem ikke. |
-| `cost.enabled` | av | Hva hver workload koster. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Hva hvert namespace og hver workload koster, med ledig kapasitet og effektivitet, også som målinger å varsle på: på, unntatt med presetene `gke-autopilot` og `eks-fargate`; `false` slår det av. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
 
 ## Vanlige innstillinger
 

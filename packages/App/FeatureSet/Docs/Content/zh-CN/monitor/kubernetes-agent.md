@@ -35,6 +35,7 @@ flowchart LR
 | 节点采集器 | DaemonSet | 来自 `/var/log/pods` 的 Pod 日志、kubelet 和 cAdvisor 指标，以及节点的操作系统指标。 | 是 |
 | eBPF 插桩(OBI) | DaemonSet | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis 追踪与请求指标，以及服务地图。 | 是 |
 | Kubernetes AI 代理 | Deployment | 让 OneUptime AI 在调查此集群上的事件或警报时运行只读的 `kubectl`。 | 是 |
+| 成本引擎和轮询器 | Deployments | 每个命名空间和工作负载的成本：OpenCost、它所需的小型 Prometheus，以及发送它们计算结果的成本代理。 | 是，但 `gke-autopilot` 和 `eks-fargate` 预设除外 |
 | 日志跟随器 | Deployment | 在节点采集器无法读取的地方，通过 Kubernetes API 获取 Pod 日志。 | 在 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 预设中 |
 | eBPF 性能分析器 | DaemonSet | 每个进程的持续 CPU 火焰图。 | 否 |
 | kube-state-metrics | Deployment | Pod 阶段、容器等待原因和资源配额。 | 否 |
@@ -364,7 +365,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `csi.enabled` | 关闭 | 来自带有 `app=csi-driver` 或 `app.kubernetes.io/component=csi-driver` 标签的 Pod 的 CSI 存储驱动指标：卷挂接和分离时间、预配失败、IOPS。 |
 | `coreDns.enabled` | 关闭 | `:9153/metrics` 上的 CoreDNS 指标：查询速率、延迟、缓存命中和错误。 |
 | `controlPlane.enabled` | 关闭 | API 服务器（在其集群内地址上），以及 etcd、调度器和控制器管理器（在你列出的端点上）（[启用控制平面监控](/docs/telemetry/kubernetes-agent#启用控制平面监控)）。仅限自管理集群：托管集群不暴露这些组件。 |
-| `cost.enabled` | 关闭 | 每个工作负载的成本。请参阅 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。 |
+| `cost.enabled` | `auto` | 每个命名空间和工作负载的成本，含空闲容量和效率，也以可设置警报的指标形式提供：除 `gke-autopilot` 和 `eks-fargate` 预设外均开启；设为 `false` 即可关闭。请参阅 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。 |
 
 ## 常用选项
 
