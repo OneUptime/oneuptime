@@ -1,8 +1,7 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import {
-  SUBSCRIBER_NOTIFICATION_SUMMARIES,
-  getEventSubscriberNotificationsSection,
-} from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { SUBSCRIBER_NOTIFICATION_SUMMARIES } from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { getEventSubscriberNotificationsFold } from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import { PickedStatusPagesReachResult } from "Common/Types/StatusPage/PickedStatusPagesReach";
 import {
   PUBLISHING_SUMMARIES,
   PublishingCopy,
@@ -43,6 +42,38 @@ function readGuide(language: string): string {
 
 const CREATE_FORM: string = readRepoFile(CREATE_FORM_FILE);
 const ENGLISH_GUIDE: string = readGuide("en");
+
+// A status page picked on the form.
+const STATUS_PAGE_ID: string = "b0000000-0000-4000-8000-000000000001";
+
+const LOCALES_DIR: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Locales",
+);
+
+const locales: Map<string, Record<string, string>> = new Map();
+
+// A label as the reader's dashboard shows it, in the guide's language.
+function labelIn(language: string, english: string): string {
+  if (language === "en") {
+    return english;
+  }
+
+  let locale: Record<string, string> | undefined = locales.get(language);
+
+  if (!locale) {
+    locale = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+    locales.set(language, locale);
+  }
+
+  expect(`${language} ${english}: ${typeof locale[english]}`).toBe(
+    `${language} ${english}: string`,
+  );
+
+  return locale[english]!;
+}
 
 // The step titles, in order, as the create form declares them.
 function stepTitles(): Array<string> {
@@ -91,18 +122,83 @@ describe("the scheduled maintenance create form in the docs", () => {
   });
 
   /*
-   * The line a new event's folded section draws: when it shows on its
-   * status pages - right away - then who is told, and when (#5249).
+   * The line a new event's folded section draws, with a status page picked
+   * that shows maintenance events and notifies: when it shows on its status
+   * pages - right away - then who is told, and when (#5249, #9920).
    */
-  test("quotes the folded section's line word for word", () => {
+  test("quotes the folded section's line word for word, for a page that notifies", () => {
     const line: Array<string> =
-      getEventSubscriberNotificationsSection().getSummary?.({}) || [];
+      getEventSubscriberNotificationsFold(
+        (): PickedStatusPagesReachResult => {
+          return { nothingSentReason: null };
+        },
+      ).getSummary?.({ statusPages: [STATUS_PAGE_ID] }) || [];
 
     expect(line).toEqual([
       PUBLISHING_SUMMARIES.rightAway,
       SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
     ]);
-    expect(ENGLISH_GUIDE).toContain(`"${line.join(" ")}"`);
+    expect(ENGLISH_GUIDE).toContain(
+      `With a status page picked that shows maintenance events and notifies its subscribers, it reads "${line.join(" ")}"`,
+    );
+  });
+
+  /*
+   * The line says what the status pages picked and the event's own settings
+   * will do (#9920): it does not promise that subscribers are notified when
+   * no page is picked, none shows maintenance events or the ones that do
+   * send nothing, and it names only the moments and reminders that tell
+   * someone. Every guide says so where it walks the step, and that the
+   * reminders say which are not sent - naming **Reminders before the
+   * event** a second time, as the reader's dashboard does.
+   */
+  test("says the line follows the status pages picked, and what the notes under the boxes say, in every language", () => {
+    expect(ENGLISH_GUIDE).toContain(
+      "It follows the status pages picked as well: with none picked, when none of them shows maintenance events, or when the ones that do send their subscribers no notifications, it says so instead of saying subscribers are notified, and it names only the moments and reminders that will tell someone.",
+    );
+    expect(ENGLISH_GUIDE).toContain(
+      "Below the three moments a note says why nobody would be told, and under **Reminders before the event** a note says which reminders are not sent: those due before the event is published, and those whose time has passed.",
+    );
+
+    const problems: Array<string> = [];
+
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      if (!fs.existsSync(path.join(CONTENT_DIR, language, GUIDE))) {
+        continue;
+      }
+
+      const publish: string = `**${labelIn(language, PublishingCopy.question)}**`;
+      const reminders: string = `**${labelIn(language, "Reminders before the event")}**`;
+
+      // The step that asks when the event is published.
+      const step: string | undefined = readGuide(language)
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes(publish);
+        });
+
+      if (!step) {
+        problems.push(`${language}: no line names ${publish}`);
+        continue;
+      }
+
+      const named: number = step.split(reminders).length - 1;
+
+      if (named < 2) {
+        problems.push(
+          `${language}: ${reminders} named ${named} time(s) on the step`,
+        );
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+
+  // #9921: the Edit's update box says so before the update is skipped.
+  test("says an announcement's Edit warns before its update is skipped", () => {
+    expect(ENGLISH_GUIDE).toContain(
+      "Two cases send nothing on purpose, and record why; on an announcement's Edit, a note under the ticked **Notify subscribers about this update** says so before you save:",
+    );
   });
 
   test("says where the section asks when the event is published", () => {

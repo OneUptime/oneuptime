@@ -10,12 +10,16 @@ import {
   getDefaultMaintenanceEndsAt,
   getDefaultMaintenanceStartsAt,
   getMaintenanceEndsAtError,
-  getSubscriberNotificationSummary,
-  getSubscriberNotificationsSection,
   moveMaintenanceEndWithStart,
   readRequestedMaintenanceStartsAt,
   readSubscriberNotificationSettings,
 } from "../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  getMomentsSummary,
+  getTemplateSubscriberNotificationsFold,
+  getTemplateSubscriberNotificationsSummary,
+} from "../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import { MaintenanceSubscriberMoment } from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "Common/Types/Date";
 import Timezone from "Common/Types/Timezone";
@@ -65,6 +69,15 @@ const readLocale: (locale: string) => Record<string, string> = (
 
 type Settings = Partial<Record<string, unknown>>;
 
+// A status page picked on the form.
+const STATUS_PAGE_ID: string = "b0000000-0000-4000-8000-000000000001";
+
+const SCHEDULED: MaintenanceSubscriberMoment =
+  MaintenanceSubscriberMoment.Scheduled;
+const STARTED: MaintenanceSubscriberMoment =
+  MaintenanceSubscriberMoment.Started;
+const ENDED: MaintenanceSubscriberMoment = MaintenanceSubscriberMoment.Ended;
+
 const withSwitches: (
   scheduled: boolean,
   started: boolean,
@@ -98,8 +111,18 @@ describe("the Subscriber Notifications line", () => {
     }
   });
 
-  test("says the default in one sentence: notified when it is scheduled, starts and ends", () => {
-    expect(getSubscriberNotificationSummary({})).toEqual([
+  /*
+   * With a status page picked that shows maintenance events and notifies,
+   * the defaults tell its subscribers at all three moments - what the line
+   * says for every other case is ScheduledMaintenanceReach.test.ts's.
+   */
+  test("says the default in one sentence, for a page that notifies: notified when it is scheduled, starts and ends", () => {
+    expect(
+      getTemplateSubscriberNotificationsSummary(
+        { statusPages: [STATUS_PAGE_ID] },
+        { nothingSentReason: null },
+      ),
+    ).toEqual([
       "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
     ]);
   });
@@ -123,66 +146,48 @@ describe("the Subscriber Notifications line", () => {
     ).toBe(false);
   });
 
-  test("has a whole sentence for every combination of the switches", () => {
-    const cases: Array<[boolean, boolean, boolean, string]> = [
+  test("has a whole sentence for every combination of the moments that tell someone", () => {
+    const cases: Array<[Array<MaintenanceSubscriberMoment>, string]> = [
       [
-        true,
-        true,
-        true,
+        [SCHEDULED, STARTED, ENDED],
         "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
       ],
       [
-        true,
-        true,
-        false,
+        [SCHEDULED, STARTED],
         "Subscribers of the event's status pages are notified when it is scheduled and when it starts.",
       ],
       [
-        true,
-        false,
-        true,
+        [SCHEDULED, ENDED],
         "Subscribers of the event's status pages are notified when it is scheduled and when it ends.",
       ],
       [
-        false,
-        true,
-        true,
+        [STARTED, ENDED],
         "Subscribers of the event's status pages are notified when it starts and when it ends.",
       ],
       [
-        true,
-        false,
-        false,
+        [SCHEDULED],
         "Subscribers of the event's status pages are notified when it is scheduled.",
       ],
       [
-        false,
-        true,
-        false,
+        [STARTED],
         "Subscribers of the event's status pages are notified when it starts.",
       ],
       [
-        false,
-        false,
-        true,
+        [ENDED],
         "Subscribers of the event's status pages are notified when it ends.",
       ],
       [
-        false,
-        false,
-        false,
+        [],
         "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.",
       ],
     ];
 
     const seen: Set<string> = new Set();
 
-    for (const [scheduled, started, ended, sentence] of cases) {
-      expect(
-        getSubscriberNotificationSummary(
-          withSwitches(scheduled, started, ended),
-        ),
-      ).toEqual([sentence]);
+    for (const [moments, sentence] of cases) {
+      expect(getMomentsSummary(moments)).toBe(sentence);
+      // In any order: the sentence names them in theirs.
+      expect(getMomentsSummary([...moments].reverse())).toBe(sentence);
       seen.add(sentence);
     }
 
@@ -193,23 +198,33 @@ describe("the Subscriber Notifications line", () => {
     );
   });
 
-  test("adds a sentence about reminders when there are any, whatever the switches say", () => {
+  test("names the moments its switches leave on, and its reminders, for a page that notifies", () => {
     const reminders: Settings = {
-      [SUBSCRIBER_REMINDERS_KEY]: [{ intervalType: "Day", intervalCount: 1 }],
+      [SUBSCRIBER_REMINDERS_KEY]: [
+        { _type: "Recurring", value: { intervalType: "Day", intervalCount: 1 } },
+      ],
     };
 
     expect(
-      getSubscriberNotificationSummary(
-        withSwitches(true, true, true, reminders),
+      getTemplateSubscriberNotificationsSummary(
+        {
+          statusPages: [STATUS_PAGE_ID],
+          ...withSwitches(true, false, true, reminders),
+        },
+        { nothingSentReason: null },
       ),
     ).toEqual([
-      SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
+      SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,ended"],
       SUBSCRIBER_REMINDERS_SUMMARY,
     ]);
     // Quiet otherwise, the reminders still go out; the line says so.
     expect(
-      getSubscriberNotificationSummary(
-        withSwitches(false, false, false, reminders),
+      getTemplateSubscriberNotificationsSummary(
+        {
+          statusPages: [STATUS_PAGE_ID],
+          ...withSwitches(false, false, false, reminders),
+        },
+        { nothingSentReason: null },
       ),
     ).toEqual([
       SUBSCRIBER_NOTIFICATION_SUMMARIES[""],
@@ -217,23 +232,32 @@ describe("the Subscriber Notifications line", () => {
     ]);
     // An empty list is no reminder.
     expect(
-      getSubscriberNotificationSummary({ [SUBSCRIBER_REMINDERS_KEY]: [] }),
+      getTemplateSubscriberNotificationsSummary(
+        { statusPages: [STATUS_PAGE_ID], [SUBSCRIBER_REMINDERS_KEY]: [] },
+        { nothingSentReason: null },
+      ),
     ).toHaveLength(1);
   });
 
   test("is the section's line, on a section that opens when something is set", () => {
     const section: FormFieldCollapsibleSection<ScheduledMaintenance> =
-      getSubscriberNotificationsSection<ScheduledMaintenance>();
+      getTemplateSubscriberNotificationsFold<ScheduledMaintenance>(() => {
+        return { nothingSentReason: null };
+      });
 
     expect(section.id).toBe(SUBSCRIBER_NOTIFICATIONS_SECTION_ID);
     expect(section.title).toBe("Subscriber Notifications");
+    expect(section.description).toBe(
+      "When the subscribers of the event's status pages hear about it.",
+    );
     // Not an Advanced section: one set away from the default opens itself.
     expect(section.openWhenConfigured).toBeUndefined();
     expect(section.isConfigured).toBeUndefined();
     expect(
-      section.getSummary!(
-        withSwitches(true, false, true) as FormValues<ScheduledMaintenance>,
-      ),
+      section.getSummary!({
+        statusPages: [STATUS_PAGE_ID],
+        ...withSwitches(true, false, true),
+      } as FormValues<ScheduledMaintenance>),
     ).toEqual([SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,ended"]]);
   });
 });

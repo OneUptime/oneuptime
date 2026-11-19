@@ -25,9 +25,12 @@ import {
   EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION,
   SUBSCRIBER_NOTIFICATIONS_SECTION_ID,
   SUBSCRIBER_NOTIFICATION_SUMMARIES,
-  getEventSubscriberNotificationsSection,
-  getSubscriberNotificationsSection,
 } from "../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  getEventSubscriberNotificationsFold,
+  getTemplateSubscriberNotificationsFold,
+} from "../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import { PickedStatusPagesReachResult } from "Common/Types/StatusPage/PickedStatusPagesReach";
 import {
   getColumnChoiceInForm,
   getValuesForColumnChoice,
@@ -80,6 +83,9 @@ const readLocale: (locale: string) => Record<string, string> = (
 const CREATED_ON: Date = new Date("2026-10-01T08:00:00.000Z");
 const PUBLISH_AT: Date = new Date("2026-11-24T09:00:00.000Z");
 const STARTS_AT: Date = new Date("2026-12-01T02:00:00.000Z");
+
+// A status page picked on the form, one that shows the event and notifies.
+const STATUS_PAGE_ID: string = "b0000000-0000-4000-8000-000000000001";
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -282,14 +288,19 @@ describe("the folded Publishing line", () => {
   /*
    * On Create the question is the first of the folded Subscriber
    * Notifications - publishing is when their subscribers are told it is
-   * scheduled - and the section's line starts with when the event shows.
+   * scheduled - and the section's line starts with when the event shows,
+   * once a status page is picked that shows it (#9920).
    */
   test("is the first sentence of the event's Subscriber Notifications line, before who is told", () => {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(CREATED_ON);
     OneUptimeDate.setUserTimezone(Timezone.UTC);
 
     const section: FormFieldCollapsibleSection<ScheduledMaintenance> =
-      getEventSubscriberNotificationsSection<ScheduledMaintenance>();
+      getEventSubscriberNotificationsFold<ScheduledMaintenance>(
+        (): PickedStatusPagesReachResult => {
+          return { nothingSentReason: null };
+        },
+      );
 
     expect(section.id).toBe(SUBSCRIBER_NOTIFICATIONS_SECTION_ID);
     expect(section.title).toBe("Subscriber Notifications");
@@ -297,16 +308,21 @@ describe("the folded Publishing line", () => {
       EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION,
     );
 
-    expect(section.getSummary!({} as FormValues<ScheduledMaintenance>)).toEqual(
-      [
-        PUBLISHING_SUMMARIES.rightAway,
-        SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
-      ],
-    );
+    expect(
+      section.getSummary!({
+        statusPages: [STATUS_PAGE_ID],
+      } as FormValues<ScheduledMaintenance>),
+    ).toEqual([
+      PUBLISHING_SUMMARIES.rightAway,
+      SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
+    ]);
 
     expect(
       section.getSummary!({
+        statusPages: [STATUS_PAGE_ID],
         publishOnStatusPageAt: PUBLISH_AT,
+        startsAt: STARTS_AT,
+        endsAt: new Date(STARTS_AT.getTime() + 60 * 60 * 1000),
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: false,
       } as FormValues<ScheduledMaintenance>),
     ).toEqual([
@@ -317,12 +333,18 @@ describe("the folded Publishing line", () => {
 
   test("a template's section, published nowhere, says nothing of publishing", () => {
     const section: FormFieldCollapsibleSection<ScheduledMaintenance> =
-      getSubscriberNotificationsSection<ScheduledMaintenance>();
+      getTemplateSubscriberNotificationsFold<ScheduledMaintenance>(
+        (): PickedStatusPagesReachResult => {
+          return { nothingSentReason: null };
+        },
+      );
 
     expect(section.title).toBe("Subscriber Notifications");
-    expect(section.getSummary!({} as FormValues<ScheduledMaintenance>)).toEqual(
-      [SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"]],
-    );
+    expect(
+      section.getSummary!({
+        statusPages: [STATUS_PAGE_ID],
+      } as FormValues<ScheduledMaintenance>),
+    ).toEqual([SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"]]);
   });
 });
 
