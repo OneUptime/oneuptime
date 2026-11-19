@@ -5,6 +5,7 @@ Instrumenter en Android-, iOS- eller React Native-app med OpenTelemetry, så den
 :::cards
 - [Hvad OneUptime har brug for](#hvad-oneuptime-har-brug-for): To ressourceattributter, sendt med en Server-nøgle.
 - [Sæt din platform op](#sæt-din-platform-op): Android, iOS, React Native og resten.
+- [Nedbrud og hæng på iOS](#nedbrud-og-hæng-på-ios): MetricKits diagnosticeringer i Undtagelser og på Oversigt.
 - [Tjek, at det kommer frem](#tjek-at-det-kommer-frem): Test nøglen, og find så appen.
 - [Session Replay på mobil](#session-replay-på-mobil): Optagelser til React Native-apps.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK'et føjer selv `/v1/traces`, `/v1/metrics` og `/v1/logs` til endpointet.
 :::
+
+## Nedbrud og hæng på iOS
+
+opentelemetry-swift 2.3 og nyere rapporterer en iOS-apps nedbrud og hæng gennem sin MetricKit-instrumentering, som giver hver af Apples diagnosticeringer videre til OpenTelemetry som en logpost. OneUptime arkiverer dem, som det arkiverer OpenTelemetry Androids nedbrud og ANR'er, så de vises i **Undtagelser** og på applikationens side **Oversigt**:
+
+| Apples diagnosticering | Hændelsesnavn | I Undtagelser |
+| --- | --- | --- |
+| Et nedbrud | `metrickit.diagnostic.crash` | En ikke-håndteret undtagelse med typen af det, der afsluttede appen: Objective-C-undtagelsen på iOS 17 og nyere, ellers Mach-undtagelsen (`EXC_BAD_ACCESS`), ellers signalet (`SIGSEGV`) |
+| Et hæng | `metrickit.diagnostic.hang` | En ikke-håndteret undtagelse af typen **Hang**, iOS' modstykke til en ANR, som gemmer, hvor længe hænget varede |
+
+Oversigtens felt **Nedbrud** tæller nedbruddene, og dens felt **ANR'er** tæller hængene sammen med Androids ANR'er. Hvert stack trace tegnes som trådene i en nedbrudsrapport, med den tråd, der gik ned eller hang, først. Frames er ikke symboliseret: hver nævner sin binære fil, og hvor langt inde i den koden lå, og **Binary Images** viser hver binær fils UUID, som fortæller, hvilket builds dSYM der symboliserer den.
+
+:::steps
+### Eksportér logs ud over spans
+
+MetricKit rapporterer diagnosticeringer som logposter, så registrér en logger provider ved siden af tracer provider, med samme ressource, endpoint og header:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Registrér MetricKit-instrumenteringen
+
+Tilføj produktet `MetricKitInstrumentation` fra opentelemetry-swift, og registrér det hos MetricKit, når logger provider er registreret:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Registrér sessioner
+
+Felterne **Sessioner** og **Sessioner uden nedbrud** tæller det `session.id`, der er på dine spans. Produktet `Sessions` fra opentelemetry-swift sætter det: tilføj `SessionSpanProcessor` til tracer provider, og pak logprocessoren ind i `SessionLogRecordProcessor`, så diagnosticeringer også bærer en session. Udgivelserne af opentelemetry-swift sætter endnu intet `app.installation.id`, så en iOS-apps felt **Sessioner uden nedbrud** viser, hvor mange sessioner der gik ned, i stedet for installationerne uden nedbrud.
+:::
+
+> [!NOTE]
+> Apple leverer først MetricKits diagnosticeringer til appen ved en senere start, med det samme på iOS 15 og nyere og én gang om dagen før det, så et nedbrud eller et hæng kan ankomme minutter eller en dag efter, at det skete, og tælles, når det ankommer. «0 nedbrud i den seneste time» på en iOS-apps oversigt er altså endnu ikke gode nyheder. En diagnosticering bærer den session, der rapporterede den, ikke den, den afsluttede.
+
+opentelemetry-swift registrerer intet span, når appen starter, så felterne **Appstarter** og **Koldstart (p95)** forbliver tomme, indtil din app selv registrerer et: et span med navnet `AppStart`, med `start.type` sat til `cold`, `warm` eller `hot`, fra processen starter, til den første skærm er klar.
 
 ## Tjek, at det kommer frem
 

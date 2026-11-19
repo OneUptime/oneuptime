@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58167,
-    "untranslated": 8135
+    "keys": 58375,
+    "untranslated": 8133
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -17,6 +17,7 @@
     "A-Z",
     "AM",
     "AND",
+    "ANR, Hang",
     "Access point",
     "Account",
     "Account: {{accounts}}",

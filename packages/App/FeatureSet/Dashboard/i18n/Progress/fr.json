@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58167,
-    "untranslated": 4615
+    "keys": 58375,
+    "untranslated": 4613
   },
   "sameAsEnglish": [
     " incidents",
@@ -48,6 +48,7 @@
     "AES",
     "AES-256",
     "AM",
+    "ANR, Hang",
     "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",
     "Action",
