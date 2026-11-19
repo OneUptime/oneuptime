@@ -443,16 +443,19 @@ const addGroupMembersToTeam: (data: {
   members: Array<SCIMMember>;
 }) => Promise<{
   added: number;
-  invited: number;
   skipped: number;
 }> = async (data: {
   projectId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
-}): Promise<{ added: number; invited: number; skipped: number }> => {
-  const counts: { added: number; invited: number; skipped: number } = {
+}): Promise<{ added: number; skipped: number }> => {
+  /*
+   * An invitation counts as an add: which adds were invitations says, on
+   * OneUptime Cloud, which accounts existed before the identity provider
+   * created them (describeTeamAddOutcomes, #9825).
+   */
+  const counts: { added: number; skipped: number } = {
     added: 0,
-    invited: 0,
     skipped: 0,
   };
 
@@ -483,11 +486,7 @@ const addGroupMembersToTeam: (data: {
       continue;
     }
 
-    if (outcome === ProjectSCIMTeamAddOutcome.AddedAsMember) {
-      counts.added++;
-    } else {
-      counts.invited++;
-    }
+    counts.added++;
 
     // Remove user from "Unassigned" team since they now have a real group
     await removeUserFromUnassignedTeam(data.projectId, userId);
@@ -551,7 +550,6 @@ const replaceGroupMembersOfTeam: (data: {
   removeOnly?: boolean | undefined;
 }) => Promise<{
   added: number;
-  invited: number;
   skipped: number;
   kept: number;
   removed: number;
@@ -562,7 +560,6 @@ const replaceGroupMembersOfTeam: (data: {
   removeOnly?: boolean | undefined;
 }): Promise<{
   added: number;
-  invited: number;
   skipped: number;
   kept: number;
   removed: number;
@@ -636,14 +633,13 @@ const replaceGroupMembersOfTeam: (data: {
     });
   }
 
-  const counts: { added: number; invited: number; skipped: number } =
-    data.removeOnly
-      ? { added: 0, invited: 0, skipped: membersToAdd.length }
-      : await addGroupMembersToTeam({
-          projectId: data.projectId,
-          teamId: data.teamId,
-          members: membersToAdd,
-        });
+  const counts: { added: number; skipped: number } = data.removeOnly
+    ? { added: 0, skipped: membersToAdd.length }
+    : await addGroupMembersToTeam({
+        projectId: data.projectId,
+        teamId: data.teamId,
+        members: membersToAdd,
+      });
 
   /*
    * A kept account has a real group too, so it leaves the "Unassigned" team
@@ -687,7 +683,6 @@ const getTeamMemberUserIds: (data: {
 // What applying a group PATCH did, for the response and the SCIM log.
 interface GroupPatchResult {
   added: number;
-  invited: number;
   removed: number;
   kept: number;
   replaced: boolean;
@@ -725,7 +720,6 @@ const applyGroupPatchActions: (data: {
 }): Promise<GroupPatchResult> => {
   const result: GroupPatchResult = {
     added: 0,
-    invited: 0,
     removed: 0,
     kept: 0,
     replaced: false,
@@ -745,7 +739,6 @@ const applyGroupPatchActions: (data: {
 
       const counts: {
         added: number;
-        invited: number;
         skipped: number;
         kept: number;
         removed: number;
@@ -755,12 +748,11 @@ const applyGroupPatchActions: (data: {
         members: action.members as Array<SCIMMember>,
         removeOnly: data.removeOnly,
       });
-      result.added += counts.added + counts.invited;
-      result.invited += counts.invited;
+      result.added += counts.added;
       result.removed += counts.removed;
       result.kept += counts.kept;
       data.executionSteps.push(
-        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${counts.added + counts.invited} (${counts.invited} of them invited, pending acceptance)`,
+        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${counts.added}`,
       );
       continue;
     }
@@ -778,14 +770,13 @@ const applyGroupPatchActions: (data: {
         getLogAttributesFromRequest(data.req as any),
       );
       data.executionSteps.push(`Adding ${action.members.length} members`);
-      const counts: { added: number; invited: number; skipped: number } =
+      const counts: { added: number; skipped: number } =
         await addGroupMembersToTeam({
           projectId: data.projectId,
           teamId: data.team.id!,
           members: action.members as Array<SCIMMember>,
         });
-      result.added += counts.added + counts.invited;
-      result.invited += counts.invited;
+      result.added += counts.added;
       continue;
     }
 
@@ -3922,7 +3913,6 @@ router.post(
       const members: Array<SCIMMember> =
         (scimGroup["members"] as Array<SCIMMember>) || [];
       let membersAdded: number = 0;
-      let membersInvited: number = 0;
       let membersSkipped: number = 0;
       if (members.length > 0) {
         logger.debug(
@@ -3932,17 +3922,16 @@ router.post(
         executionSteps.push(
           `Processing ${members.length} members from request`,
         );
-        const counts: { added: number; invited: number; skipped: number } =
+        const counts: { added: number; skipped: number } =
           await addGroupMembersToTeam({
             projectId: projectId,
             teamId: targetTeam.id!,
             members: members,
           });
-        membersAdded = counts.added + counts.invited;
-        membersInvited = counts.invited;
+        membersAdded = counts.added;
         membersSkipped = counts.skipped;
         executionSteps.push(
-          `Members processed: ${membersAdded} added (${membersInvited} of them invited, pending acceptance), ${membersSkipped} skipped (already members or not found)`,
+          `Members processed: ${membersAdded} added, ${membersSkipped} skipped (already members or not found)`,
         );
       } else {
         executionSteps.push("No members provided in request");
@@ -4003,7 +3992,6 @@ router.post(
           displayName: displayName,
           wasNewlyCreated: createdNewTeam,
           membersAdded: membersAdded,
-          membersInvited: membersInvited,
           membersSkipped: membersSkipped,
           totalMembers: finalMemberCount,
         },
@@ -4181,7 +4169,6 @@ router.put(
 
       const counts: {
         added: number;
-        invited: number;
         skipped: number;
         kept: number;
         removed: number;
@@ -4196,11 +4183,10 @@ router.put(
          */
         removeOnly: Boolean(missingPlan),
       });
-      const membersAdded: number = counts.added + counts.invited;
-      const membersInvited: number = counts.invited;
+      const membersAdded: number = counts.added;
       const membersSkipped: number = counts.skipped;
       executionSteps.push(
-        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${membersAdded} (${membersInvited} of them invited, pending acceptance), skipped: ${membersSkipped}`,
+        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${membersAdded}, skipped: ${membersSkipped}`,
       );
 
       // Fetch updated team
@@ -4248,7 +4234,6 @@ router.put(
             previousName: previousName,
             nameUpdated: nameUpdated,
             membersAdded: membersAdded,
-            membersInvited: membersInvited,
             membersSkipped: membersSkipped,
             membersKept: counts.kept,
             membersRemoved: counts.removed,
@@ -4425,7 +4410,6 @@ router.patch(
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM PatchGroup request");
     let membersAdded: number = 0;
-    let membersInvited: number = 0;
     let membersRemoved: number = 0;
     let membersKept: number = 0;
     let membersReplaced: boolean = false;
@@ -4532,14 +4516,13 @@ router.patch(
         removeOnly: Boolean(getScimMissingPlan(req)),
       });
       membersAdded = applied.added;
-      membersInvited = applied.invited;
       membersRemoved = applied.removed;
       membersKept = applied.kept;
       membersReplaced = applied.replaced;
       nameUpdated = applied.nameUpdated;
 
       executionSteps.push(
-        `Operations completed: ${membersAdded} added (${membersInvited} of them invited, pending acceptance), ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`,
+        `Operations completed: ${membersAdded} added, ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`,
       );
 
       // Fetch updated team
@@ -4587,7 +4570,6 @@ router.patch(
             previousName: previousName,
             nameUpdated: nameUpdated,
             membersAdded: membersAdded,
-            membersInvited: membersInvited,
             membersRemoved: membersRemoved,
             membersKept: membersKept,
             membersReplaced: membersReplaced,

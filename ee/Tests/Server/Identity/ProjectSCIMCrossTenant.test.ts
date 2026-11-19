@@ -2022,7 +2022,11 @@ describe("on the hosted service, an existing account is invited, not added", () 
       expect(membershipsOf(nobody)).toEqual([]);
     });
 
-    test("the group log reports how many of the adds were only invitations", async () => {
+    /*
+     * Which adds were invitations would say, for the users SCIM provisioned,
+     * which addresses already had an account (#9825): the log counts adds.
+     */
+    test("the group log counts the adds, and never says which were invitations", async () => {
       await send(
         "PATCH",
         scimPath(`Groups/${GROUP_TEAM}`),
@@ -2038,10 +2042,16 @@ describe("on the hosted service, an existing account is invited, not added", () 
           operationType: "UpdateGroup",
           groupInfo: expect.objectContaining({
             membersAdded: 2,
-            membersInvited: 1,
           }),
         }),
       );
+      // The stranger was invited, the member added - and the log says neither.
+      expect(membershipIn(cast.stranger, GROUP_TEAM)).toMatchObject({
+        hasAcceptedInvitation: false,
+      });
+      expect(
+        JSON.stringify((createProjectSCIMLog as jest.Mock).mock.calls),
+      ).not.toMatch(/invit|pending/i);
     });
   });
 });
@@ -2416,10 +2426,12 @@ test("the group log says how many members a replace kept and removed", async () 
         membersKept: 1,
         membersRemoved: 1,
         membersAdded: 1,
-        membersInvited: 1,
       }),
     }),
   );
+  expect(
+    JSON.stringify((createProjectSCIMLog as jest.Mock).mock.calls),
+  ).not.toMatch(/invit|pending/i);
 });
 
 /*
