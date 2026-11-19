@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 
@@ -39,6 +40,9 @@ const BRUTE_FORCE_ID: string = "acf2a37e-301a-46de-87c7-d4343f3a8445";
 const BRUTE_FORCE_YAML: string = `title: Brute force from one IP address\nid: ${BRUTE_FORCE_ID}\n`;
 const OWN_YAML: string = "title: Our own rule\n";
 
+// What the field hands its form: the steps, as they are now.
+type OnChangeMock = Mock<(steps: Array<DetectionRuleResponseStep>) => void>;
+
 const PAGE: DetectionRuleResponseStep = {
   id: "page-payments",
   phase: DetectionRuleResponsePhase.Contain,
@@ -49,8 +53,8 @@ function draw(data: {
   value: unknown;
   sigmaRuleYaml?: string;
   error?: string;
-}): jest.Mock<(steps: Array<DetectionRuleResponseStep>) => void> {
-  const onChange: jest.Mock<(steps: Array<DetectionRuleResponseStep>) => void> =
+}): OnChangeMock {
+  const onChange: OnChangeMock =
     jest.fn<(steps: Array<DetectionRuleResponseStep>) => void>();
 
   render(
@@ -65,9 +69,7 @@ function draw(data: {
   return onChange;
 }
 
-function lastChange(
-  onChange: jest.Mock<(steps: Array<DetectionRuleResponseStep>) => void>,
-): Array<DetectionRuleResponseStep> {
+function lastChange(onChange: OnChangeMock): Array<DetectionRuleResponseStep> {
   return onChange.mock.calls[onChange.mock.calls.length - 1]![0];
 }
 
@@ -95,9 +97,7 @@ describe("a rule's response steps on its form", () => {
   });
 
   test("Add Step puts a line in under Contain it, with an id of its own", () => {
-    const onChange: jest.Mock<
-      (steps: Array<DetectionRuleResponseStep>) => void
-    > = draw({ value: [PAGE] });
+    const onChange: OnChangeMock = draw({ value: [PAGE] });
 
     fireEvent.click(screen.getByTestId(IDS.add));
 
@@ -110,9 +110,7 @@ describe("a rule's response steps on its form", () => {
   });
 
   test("its words are typed into its line, at most 300 characters, its id kept", () => {
-    const onChange: jest.Mock<
-      (steps: Array<DetectionRuleResponseStep>) => void
-    > = draw({ value: [PAGE] });
+    const onChange: OnChangeMock = draw({ value: [PAGE] });
     const input: HTMLInputElement = screen.getByTestId(
       `${IDS.text}-0`,
     ) as HTMLInputElement;
@@ -131,9 +129,7 @@ describe("a rule's response steps on its form", () => {
   });
 
   test("a line's bin takes it out, named by its number", () => {
-    const onChange: jest.Mock<
-      (steps: Array<DetectionRuleResponseStep>) => void
-    > = draw({
+    const onChange: OnChangeMock = draw({
       value: [PAGE, { ...PAGE, id: "second", text: "Second" }],
     });
     const remove: HTMLElement = screen.getByTestId(`${IDS.remove}-1`);
@@ -148,9 +144,10 @@ describe("a rule's response steps on its form", () => {
   test("a rule from the library shows the steps it comes with, saying so; changing one makes them its own", () => {
     const library: Array<DetectionRuleResponseStep> =
       getDetectionRuleLibraryResponseSteps(BRUTE_FORCE_ID);
-    const onChange: jest.Mock<
-      (steps: Array<DetectionRuleResponseStep>) => void
-    > = draw({ value: null, sigmaRuleYaml: BRUTE_FORCE_YAML });
+    const onChange: OnChangeMock = draw({
+      value: null,
+      sigmaRuleYaml: BRUTE_FORCE_YAML,
+    });
 
     expect(screen.getByTestId(IDS.fromLibrary)).toHaveTextContent(
       "These steps come with this rule in the rule library.",
