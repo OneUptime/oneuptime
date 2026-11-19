@@ -57275,5 +57275,6 @@
   "{{count}} more detections are on the Detections page._one": "Nella pagina Rilevamenti c'è {{count}} altro rilevamento.",
   "{{through}} of {{count}} requests got past the app's checks.": "{{through}} su {{count}} richieste hanno superato i controlli dell'app.",
   "{{through}} of {{count}} requests got past the app's checks._one": "{{through}} su {{count}} richiesta ha superato i controlli dell'app.",
-  "{{values}} in {{field}}": "{{values}} in {{field}}"
+  "{{values}} in {{field}}": "{{values}} in {{field}}",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "Le tabelle che questa pipeline legge e scrive, con lo stato attuale di ciascuna. Segui una colonna per vedere da dove viene e dove va, oppure scegli più passaggi per vedere da cosa sono costruite e cosa è costruito da esse."
 }

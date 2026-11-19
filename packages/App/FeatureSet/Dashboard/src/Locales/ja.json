@@ -57275,5 +57275,6 @@
   "{{count}} more detections are on the Detections page._one": "残り {{count}} 件の検出は検出ページで確認できます。",
   "{{through}} of {{count}} requests got past the app's checks.": "{{count}} 件中 {{through}} 件のリクエストがアプリのチェックを通過しました。",
   "{{through}} of {{count}} requests got past the app's checks._one": "{{count}} 件中 {{through}} 件のリクエストがアプリのチェックを通過しました。",
-  "{{values}} in {{field}}": "{{field}} 内の {{values}}"
+  "{{values}} in {{field}}": "{{field}} 内の {{values}}",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "このパイプラインが読み書きするテーブルと、それぞれの現在の状態です。列をたどると、その列がどこから来てどこへ行くかを確認できます。ステップ数を増やすと、それらの構築元と、それらから作られたものを確認できます。"
 }

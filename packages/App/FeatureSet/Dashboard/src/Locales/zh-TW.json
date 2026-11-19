@@ -57275,5 +57275,6 @@
   "{{count}} more detections are on the Detections page._one": "另有 {{count}} 個偵測在「偵測」頁面中。",
   "{{through}} of {{count}} requests got past the app's checks.": "{{count}} 個請求中有 {{through}} 個通過了應用程式的檢查。",
   "{{through}} of {{count}} requests got past the app's checks._one": "{{count}} 個請求中有 {{through}} 個通過了應用程式的檢查。",
-  "{{values}} in {{field}}": "{{field}} 中的 {{values}}"
+  "{{values}} in {{field}}": "{{field}} 中的 {{values}}",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "此管道讀取和寫入的資料表，以及每個資料表的目前狀況。追蹤某一欄位可查看它從哪裡來、往哪裡去；選擇更多步數可查看它們由什麼建置、又建置了什麼。"
 }

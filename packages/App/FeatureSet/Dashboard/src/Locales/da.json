@@ -57275,5 +57275,6 @@
   "{{count}} more detections are on the Detections page._one": "Yderligere {{count}} detektion er på siden Detektioner.",
   "{{through}} of {{count}} requests got past the app's checks.": "{{through}} af {{count}} anmodninger kom forbi appens kontroller.",
   "{{through}} of {{count}} requests got past the app's checks._one": "{{through}} af {{count}} anmodning kom forbi appens kontroller.",
-  "{{values}} in {{field}}": "{{values}} i {{field}}"
+  "{{values}} in {{field}}": "{{values}} i {{field}}",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "Tabellerne, som denne pipeline læser og skriver, med hvordan hver har det nu. Følg en kolonne for at se, hvor den kommer fra, og hvor den går hen, eller vælg flere trin for at se, hvad de er bygget fra, og hvad der er bygget fra dem."
 }

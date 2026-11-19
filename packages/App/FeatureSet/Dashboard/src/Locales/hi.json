@@ -57275,5 +57275,6 @@
   "{{count}} more detections are on the Detections page._one": "डिटेक्शन पेज पर {{count}} और डिटेक्शन है।",
   "{{through}} of {{count}} requests got past the app's checks.": "{{count}} में से {{through}} अनुरोध ऐप की जाँचों से आगे निकल गए।",
   "{{through}} of {{count}} requests got past the app's checks._one": "{{count}} में से {{through}} अनुरोध ऐप की जाँचों से आगे निकल गया।",
-  "{{values}} in {{field}}": "{{field}} में {{values}}"
+  "{{values}} in {{field}}": "{{field}} में {{values}}",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "यह पाइपलाइन जो टेबल पढ़ती और लिखती है, हर एक की अभी की स्थिति के साथ। कोई कॉलम फ़ॉलो करें ताकि दिखे कि वह कहां से आता है और कहां जाता है, या यह देखने के लिए अधिक चरण चुनें कि वे किससे बनी हैं और उनसे क्या बना है।"
 }

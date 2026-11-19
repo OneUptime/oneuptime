@@ -57275,5 +57275,6 @@
   "{{count}} more detections are on the Detections page._one": "나머지 탐지 {{count}}건은 탐지 페이지에서 볼 수 있습니다.",
   "{{through}} of {{count}} requests got past the app's checks.": "요청 {{count}}개 중 {{through}}개가 앱의 검사를 통과했습니다.",
   "{{through}} of {{count}} requests got past the app's checks._one": "요청 {{count}}개 중 {{through}}개가 앱의 검사를 통과했습니다.",
-  "{{values}} in {{field}}": "{{field}}의 {{values}}"
+  "{{values}} in {{field}}": "{{field}}의 {{values}}",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "이 파이프라인이 읽고 쓰는 테이블과 각각의 현재 상태입니다. 열을 따라가면 그 열이 어디에서 와서 어디로 가는지 볼 수 있고, 단계를 늘리면 그 테이블들의 원본과 그 테이블들로 만든 것을 볼 수 있습니다."
 }
