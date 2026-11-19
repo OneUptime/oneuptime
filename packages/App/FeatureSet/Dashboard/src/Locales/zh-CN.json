@@ -59010,5 +59010,7 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google 已弃用 {{metric}}：请改为读取 {{replacement}}，即每分钟发布的消息数，是每秒速率的 60 倍。只要 Google 仍在发布，OneUptime 就会继续为已保存的监视器和图表读取它。",
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft 正在从 Azure Monitor 中移除 {{metric}}：请改为读取 {{direct}} 或 {{gateway}}。OneUptime 仍会为已保存的监视器和图表读取它，并在账户报告其中一种延迟后，把每一个切换到该延迟。"
 }

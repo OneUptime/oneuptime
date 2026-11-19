@@ -692,7 +692,7 @@ describe("MoveMonitorsOffRetiredCloudMetrics", () => {
       );
     });
 
-    test("an account that reported neither is left as it is, and told what to read instead", async () => {
+    test("an account that reported neither is left as it is, still read for it, and told it moves once the account reports a latency", async () => {
       monitors.rows.push(row(MONITOR_A, cosmosMonitor()));
       const before: string = JSON.stringify(monitors.rows[0]!.monitorSteps);
 
@@ -704,9 +704,9 @@ describe("MoveMonitorsOffRetiredCloudMetrics", () => {
       expect(feed[0]!.displayColor).toBe(Yellow500);
       expect(feed[0]!.feedInfoInMarkdown).toBe(
         [
-          "⚠️ **This monitor reads a metric its cloud deprecates, which OneUptime no longer reads.**",
+          "⚠️ **This monitor reads a metric its cloud deprecates.**",
           "",
-          "`azure_serversidelatency_average` is left as it is: the account reported neither latency in the last 30 days, so OneUptime cannot tell whether its clients connect in direct or gateway mode. Edit the monitor to read `azure_serversidelatencydirect_average` or `azure_serversidelatencygateway_average` instead.",
+          "`azure_serversidelatency_average` is left as it is: the account reported neither latency in the last 30 days, so OneUptime cannot tell whether its clients connect in direct or gateway mode. OneUptime keeps reading it for this monitor, and moves the monitor to `azure_serversidelatencydirect_average` or `azure_serversidelatencygateway_average` once the account reports one of them.",
           "",
           "Review its criteria: its thresholds were set against the metric it read before.",
         ].join("\n"),
@@ -850,7 +850,7 @@ describe("MoveMonitorsOffRetiredCloudMetrics", () => {
       ).toEqual([MONITOR_A, MONITOR_C]);
       expect(mockedLogger.error).toHaveBeenCalled();
       expect(mockedLogger.info).toHaveBeenCalledWith(
-        "MoveMonitorsOffRetiredCloudMetrics: 2 monitor(s) moved off a metric their cloud deprecates; 0 left on one, each told what to read instead; 1 could not be read or written.",
+        "MoveMonitorsOffRetiredCloudMetrics: 2 monitor(s) moved off a metric their cloud deprecates; 0 left on one, still read for it; 1 could not be read or written.",
       );
     });
 
@@ -906,7 +906,11 @@ describe("MoveMonitorsOffRetiredCloudMetrics", () => {
       "a formula over it could not be read to divide it by 60.",
     );
     expect(say(RetiredCloudMetricKeptReason.ResponseCode)).toContain(
-      "Edit the monitor to read `pubsub.googleapis.com/topic/message_sizes_count` instead.",
+      "OneUptime keeps reading it for this monitor while its cloud publishes it: edit the monitor to read `pubsub.googleapis.com/topic/message_sizes_count` instead.",
+    );
+    // It is still read for the monitor (CloudRetiredMetricReads): never "no longer read".
+    expect(say(RetiredCloudMetricKeptReason.PointCount)).not.toContain(
+      "no longer reads",
     );
   });
 });

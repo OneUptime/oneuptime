@@ -938,12 +938,16 @@ describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
 
       await expect(result).rejects.toThrow(APIException);
       await expect(result).rejects.toThrow("HTTP 400");
-      await expect(result).rejects.toThrow(NESTED_DIAGNOSTIC_TAIL);
-      await expect(result).rejects.toThrow(INSTANCE);
-      await expect(result).rejects.toThrow("[REDACTED]");
       await expect(result).rejects.not.toThrow(NESTED_DIAGNOSTIC_SECRET);
       if (endpoint === "Chronicle") {
+        await expect(result).rejects.toThrow(NESTED_DIAGNOSTIC_TAIL);
+        await expect(result).rejects.toThrow(INSTANCE);
+        await expect(result).rejects.toThrow("[REDACTED]");
         await expect(result).rejects.toThrow('"code":400');
+      } else {
+        // Google's code, and its words up to where an error keeps them (#9983).
+        await expect(result).rejects.toThrow("(400, invalid_grant)");
+        await expect(result).rejects.toThrow("diagnostic detail");
       }
     },
   );
@@ -957,14 +961,18 @@ describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
     expect(failure.error.message).not.toContain(NESTED_DIAGNOSTIC_SECRET);
   });
 
-  test("preserves long OAuth errors while redacting an echoed assertion", async () => {
-    const description: string = `${"diagnostic ".repeat(200)}OAUTH-ERROR-TAIL`;
+  /*
+   * #9983: Google's refusal of the key is said as every Google sign-in says
+   * it (describeGoogleSignInFailure) - who was refused, Google's code and
+   * words, what to do - after the prefix the operator guidance splits on.
+   */
+  test("a refused key says Google's code, its words and what to do, never the assertion Google echoed", async () => {
     const { fetchImplementation } = makeFetch({
       token: {
         status: 400,
         body: JSON.stringify({
           error: "invalid_grant",
-          error_description: description,
+          error_description: "Invalid JWT Signature.",
           assertion: "private-assertion-value",
         }),
       },
@@ -976,18 +984,107 @@ describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
       serviceAccountJson: SERVICE_ACCOUNT_JSON,
       fetchImplementation,
     });
+    const result: Promise<FetchAlertsResult> = client.fetchDetectionAlerts({
+      startTime: WINDOW_START,
+      endTime: WINDOW_END,
+    });
 
-    await expect(
-      client.fetchDetectionAlerts({
-        startTime: WINDOW_START,
-        endTime: WINDOW_END,
+    await expect(result).rejects.toThrow(APIException);
+    await expect(result).rejects.toThrow(
+      "Google token exchange failed (HTTP 400): Google SecOps refused the service account poller@example.iam.gserviceaccount.com (400, invalid_grant) while signing in: Invalid JWT Signature. The key may have been deleted or disabled, or may have expired: create a new key and save it again.",
+    );
+    await expect(result).rejects.not.toThrow("private-assertion-value");
+    await expect(result).rejects.not.toThrow('"error"');
+  });
+
+  test("a long OAuth description is cut after its last whole sentence that fits, as every Google sign-in cuts it", async () => {
+    const description: string = `Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. ${"diagnostic ".repeat(200)}OAUTH-ERROR-TAIL`;
+    const { fetchImplementation } = makeFetch({
+      token: {
+        status: 400,
+        body: JSON.stringify({
+          error: "invalid_grant",
+          error_description: description,
+        }),
+      },
+      alerts: { status: 200, body: "[]" },
+    });
+    const client: GoogleSecOpsClient = new GoogleSecOpsClient({
+      region: "us",
+      instanceResourceName: INSTANCE,
+      serviceAccountJson: SERVICE_ACCOUNT_JSON,
+      fetchImplementation,
+    });
+    const result: Promise<FetchAlertsResult> = client.fetchDetectionAlerts({
+      startTime: WINDOW_START,
+      endTime: WINDOW_END,
+    });
+
+    await expect(result).rejects.toThrow(
+      "(400, invalid_grant) while signing in: Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. The clock of the server OneUptime runs on may be off: check that it keeps the right time.",
+    );
+    await expect(result).rejects.not.toThrow("OAUTH-ERROR-TAIL");
+  });
+
+  test("an answer that is not Google's JSON error is kept as it came, redacted: the endpoint is the key's own", async () => {
+    for (const body of [
+      "<html><body>502 Bad Gateway</body></html>",
+      "",
+      JSON.stringify({ unexpected: true }),
+    ]) {
+      const { fetchImplementation } = makeFetch({
+        token: { status: 502, body },
+        alerts: { status: 200, body: "[]" },
+      });
+      const client: GoogleSecOpsClient = new GoogleSecOpsClient({
+        region: "us",
+        instanceResourceName: INSTANCE,
+        serviceAccountJson: SERVICE_ACCOUNT_JSON,
+        fetchImplementation,
+      });
+
+      await expect(
+        client.fetchDetectionAlerts({
+          startTime: WINDOW_START,
+          endTime: WINDOW_END,
+        }),
+      ).rejects.toThrow(`Google token exchange failed (HTTP 502): ${body}`);
+    }
+  });
+
+  test("the status stays readable where a caller tells failures apart by it", () => {
+    const message: string = `Google token exchange failed (HTTP 401): ${GoogleSecOpsClient.describeTokenExchangeFailure(
+      {
+        statusCode: 401,
+        body: JSON.stringify({
+          error: "unauthorized_client",
+          error_description:
+            "Client is unauthorized to retrieve access tokens.",
+        }),
+        clientEmail: "poller@example.iam.gserviceaccount.com",
+        secrets: [],
+      },
+    )}`;
+
+    expect(GoogleSecOpsClient.readHttpStatus(new Error(message))).toBe(401);
+    expect(message).toMatch(HTTP_FAILURE_PREFIX_PATTERN);
+    expect(message).toContain(
+      "Google SecOps refused the service account poller@example.iam.gserviceaccount.com (401, unauthorized_client) while signing in: Client is unauthorized to retrieve access tokens.",
+    );
+  });
+
+  test("a Google API's error object is said by its status and message", () => {
+    expect(
+      GoogleSecOpsClient.describeTokenExchangeFailure({
+        statusCode: 500,
+        body: JSON.stringify({
+          error: { code: 500, status: "INTERNAL", message: "Internal error." },
+        }),
+        clientEmail: "poller@example.iam.gserviceaccount.com",
+        secrets: [],
       }),
-    ).rejects.toThrow(
-      `Google token exchange failed (HTTP 400): ${JSON.stringify({
-        error: "invalid_grant",
-        error_description: description,
-        assertion: "[REDACTED]",
-      })}`,
+    ).toBe(
+      "Google SecOps answered 500 (INTERNAL) while signing in: Internal error.",
     );
   });
 

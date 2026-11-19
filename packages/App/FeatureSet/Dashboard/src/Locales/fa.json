@@ -59010,5 +59010,7 @@
   "{{count}} should be running": "{{count}} باید در حال اجرا باشند",
   "{{count}} should be running_one": "{{count}} باید در حال اجرا باشد",
   "{{count}} undersized placement groups": "{{count}} Placement Group ناقص",
-  "{{count}} undersized placement groups_one": "{{count}} Placement Group ناقص"
+  "{{count}} undersized placement groups_one": "{{count}} Placement Group ناقص",
+  "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google متریک {{metric}} را منسوخ کرده است: به جای آن {{replacement}} را بخوانید، یعنی پیام‌های منتشرشده در هر دقیقه که ۶۰ برابر نرخ در ثانیه است. OneUptime تا وقتی Google آن را منتشر می‌کند، هنوز آن را برای مانیتورها و نمودارهای ذخیره‌شده می‌خواند.",
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft در حال حذف {{metric}} از Azure Monitor است: به جای آن {{direct}} یا {{gateway}} را بخوانید. OneUptime هنوز آن را برای مانیتورها و نمودارهای ذخیره‌شده می‌خواند و هر کدام را، به محض اینکه حساب یکی از این تأخیرها را گزارش کند، به همان تأخیر منتقل می‌کند."
 }

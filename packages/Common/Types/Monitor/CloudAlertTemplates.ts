@@ -17,6 +17,7 @@ import {
   getAwsStoredMetricName,
   getAzureStoredMetricName,
   getGcpReadMetrics,
+  isAzureFiveMinuteKeyMetric,
 } from "../Cloud/CloudKeyMetrics";
 import {
   CLOUD_AVAILABILITY_LOW_PERCENT,
@@ -25,6 +26,7 @@ import {
   CLOUD_BLOCKED_SHARE_WARNING_PERCENT,
   CLOUD_CPU_HIGH_PERCENT,
   CLOUD_FAILED_SHARE_WARNING_PERCENT,
+  CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
   CLOUD_HEALTH_MIN_REQUESTS,
   CLOUD_MEMORY_HIGH_PERCENT,
   CLOUD_STORAGE_FULL_PERCENT,
@@ -37,8 +39,11 @@ import {
 import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
   AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE,
+  AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE,
   CLOUD_ACCOUNT_ID_ATTRIBUTE,
   CLOUD_REGION_ATTRIBUTE,
+  ParsedAzureResourceId,
+  parseAzureResourceId,
 } from "../Cloud/CloudMonitoredResource";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
@@ -110,7 +115,11 @@ import {
  *     minute a point: a 15-minute window holds five to ten of them.
  *
  * So every AWS template reads 30 minutes, every Azure and Google Cloud one
- * 15 (CLOUD_ALERT_WINDOWS), and each is evaluated every five minutes
+ * 15 (CLOUD_ALERT_WINDOWS) - but an Azure one over a metric Azure Monitor
+ * keeps at five minutes, read every 15 minutes and 9 to 14 minutes old
+ * when read, which a 15-minute window would hold nothing of for part of
+ * every quarter hour: it reads 30 (CLOUD_FIVE_MINUTE_METRIC_WINDOW, #9981)
+ * - and each is evaluated every five minutes
  * (CLOUD_ALERT_MONITORING_INTERVAL), as often as its points can change: a
  * monitor evaluated every minute would read the same points four times out
  * of five, and cost five times the queries.
@@ -206,6 +215,16 @@ export const CLOUD_ALERT_WINDOWS: Readonly<Record<CloudProvider, RollingTime>> =
 
 // How often a recommended cloud monitor is evaluated: every five minutes.
 export const CLOUD_ALERT_MONITORING_INTERVAL: string = "*/5 * * * *";
+
+/*
+ * A template over an Azure key metric Azure Monitor keeps at five minutes
+ * (an App Service app's health check: AzureKeyMetric.grain): the last 30
+ * minutes, still evaluated every five (see WINDOWS above). Its points come
+ * in a call every 15 minutes, the newest 9 to 14 minutes old, so 30
+ * minutes hold one to five of them at every evaluation.
+ */
+export const CLOUD_FIVE_MINUTE_METRIC_WINDOW: RollingTime =
+  RollingTime.Past30Minutes;
 
 /*
  * A template over a metric its cloud publishes a few times a day, which
@@ -945,6 +964,29 @@ export function isCloudSlowMetricTemplate(data: {
   );
 }
 
+/*
+ * Whether a template reads only Azure key metrics Azure Monitor keeps at
+ * five minutes, for every type it is for (isAzureFiveMinuteKeyMetric): its
+ * window follows the metric (see WINDOWS above), as a slow AWS metric's
+ * does.
+ */
+export function isCloudFiveMinuteMetricTemplate(data: {
+  provider: CloudProvider;
+  resourceTypes: Array<string>;
+  queries: Array<CloudAlertQuery>;
+}): boolean {
+  return (
+    data.provider === CloudProvider.Azure &&
+    data.resourceTypes.length > 0 &&
+    data.queries.length > 0 &&
+    data.queries.every((query: CloudAlertQuery): boolean => {
+      return data.resourceTypes.every((type: string): boolean => {
+        return isAzureFiveMinuteKeyMetric(type, query.metric.metricName);
+      });
+    })
+  );
+}
+
 function define(spec: TemplateSpec): CloudAlertTemplate {
   const isSlow: boolean = isCloudSlowMetricTemplate(spec);
   const template: CloudAlertTemplate = {
@@ -952,7 +994,9 @@ function define(spec: TemplateSpec): CloudAlertTemplate {
     monitorType: MonitorType.Metrics,
     rollingTime: isSlow
       ? CLOUD_SLOW_METRIC_WINDOW
-      : CLOUD_ALERT_WINDOWS[spec.provider],
+      : isCloudFiveMinuteMetricTemplate(spec)
+        ? CLOUD_FIVE_MINUTE_METRIC_WINDOW
+        : CLOUD_ALERT_WINDOWS[spec.provider],
     monitoringInterval: isSlow
       ? CLOUD_SLOW_METRIC_MONITORING_INTERVAL
       : CLOUD_ALERT_MONITORING_INTERVAL,
@@ -1183,12 +1227,16 @@ function breakage(data: {
   name: string;
   summary: string;
   description: string;
+  // Critical unless it says otherwise.
+  severity?: CloudAlertTemplateSeverity | undefined;
   provider: CloudProvider;
   resourceTypes: Array<string>;
   metric: CloudAlertMetric;
   firesBelow?: boolean | undefined;
   threshold?: number | undefined;
   thresholdLabel: string;
+  // Offered only to a resource that reports its metric (requiresReading).
+  requiresReading?: boolean | undefined;
   incidentDescription: string;
   firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
@@ -1198,7 +1246,7 @@ function breakage(data: {
     summary: data.summary,
     description: data.description,
     category: "Availability",
-    severity: "Critical",
+    severity: data.severity || "Critical",
     provider: data.provider,
     resourceTypes: data.resourceTypes,
     measure: "breakage",
@@ -1209,6 +1257,7 @@ function breakage(data: {
       : FilterType.GreaterThanOrEqualTo,
     threshold: data.threshold ?? 1,
     thresholdLabel: data.thresholdLabel,
+    ...(data.requiresReading ? { requiresReading: true } : {}),
     incidentDescription: data.incidentDescription,
     firstCommand: data.firstCommand,
   });
@@ -2246,6 +2295,45 @@ function azureShareDescription(metrics: string): string {
   return `Fires when 5% or more of the requests of the past 15 minutes failed, of at least 20 requests: ${metrics}, each totalled over the window. ${READ_FROM_AZURE_MONITOR}`;
 }
 
+/*
+ * An App Service app's Health check (#9981): HealthCheckStatus, the share of
+ * its instances whose health check passes, as its health rule reads it
+ * (CloudResourceHealth). Azure counts an instance failing only once it is
+ * deemed unhealthy - 10 failed pings a minute apart by default - and takes
+ * it out of the load balancer then, so a reading under 100 is no blip: an
+ * instance is out. Under half, App Service keeps unhealthy instances in the
+ * load balancer, so requests reach them. Each fires on its first reading
+ * under its line and clears once a whole window has none - 30 minutes, as
+ * Azure Monitor keeps the metric at five (isCloudFiveMinuteMetricTemplate).
+ * Offered only to an app that reports it: one with a Health check path.
+ */
+const APP_SERVICE_HEALTH_CHECK_METRIC: CloudAlertMetric = azureMetric({
+  metricName: "HealthCheckStatus",
+  aggregation: "average",
+  aggregationType: MetricsAggregationType.Min,
+  legendUnit: "%",
+});
+
+/*
+ * Its first command, in Azure Cloud Shell: the health check of each of the
+ * app's instances over the last hour, as Azure Monitor keeps it - which
+ * instance fails. Null when the app's attributes hold no App Service ARM id.
+ */
+export function getAppServiceHealthCheckCommand(
+  attributes: Dictionary<string>,
+): string | null {
+  const resourceId: string = (
+    attributes[AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE] || ""
+  ).trim();
+  const parsed: ParsedAzureResourceId | null = parseAzureResourceId(resourceId);
+
+  if (!parsed || parsed.type.toLowerCase() !== "microsoft.web/sites") {
+    return null;
+  }
+
+  return `az monitor metrics list --resource ${quoteCloudShellArgument(resourceId)} --metric HealthCheckStatus --aggregation Average --interval PT5M --filter "Instance eq '*'" --output table`;
+}
+
 const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   breakage({
     id: "cloud-azure-vm-unavailable",
@@ -2311,6 +2399,39 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
     thresholdLabel: "1 second or more",
     incidentDescription:
       "The app's responses took a second or more on average for 15 minutes. Look at its plan's CPU and memory, and at the databases and services it calls.",
+  }),
+  breakage({
+    id: "cloud-azure-appservice-health-check-failing",
+    name: "Health Check Failing",
+    summary: "An instance of the app fails its health check.",
+    description: `Fires on the first reading of HealthCheckStatus under 100%: Azure deemed an instance of the app unhealthy - by default after 10 failed pings of its Health check path, a minute apart - and took it out of the load balancer. Clears once every instance passes for 30 minutes, the window a metric Azure Monitor keeps at five minutes needs. Offered to an app with a Health check path set. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    severity: "Warning",
+    provider: AZURE,
+    resourceTypes: ["Microsoft.Web/sites"],
+    metric: APP_SERVICE_HEALTH_CHECK_METRIC,
+    firesBelow: true,
+    threshold: 100,
+    thresholdLabel: "under 100%",
+    requiresReading: true,
+    incidentDescription:
+      "An instance of the app failed its health check and is out of the load balancer; the others take its requests. The command below names the instance: look at its application logs for what its Health check path returned. App Service replaces an instance that stays unhealthy for an hour.",
+    firstCommand: getAppServiceHealthCheckCommand,
+  }),
+  breakage({
+    id: "cloud-azure-appservice-health-check-most-failing",
+    name: "Most Instances Unhealthy",
+    summary: "Fewer than half of the app's instances pass its health check.",
+    description: `Fires on the first reading of HealthCheckStatus under ${CLOUD_HEALTH_CHECK_CRITICAL_PERCENT}%: past half of its instances failing, App Service keeps the unhealthy ones in the load balancer, so requests reach them. Clears once half or more pass for 30 minutes, the window a metric Azure Monitor keeps at five minutes needs. Offered to an app with a Health check path set. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    provider: AZURE,
+    resourceTypes: ["Microsoft.Web/sites"],
+    metric: APP_SERVICE_HEALTH_CHECK_METRIC,
+    firesBelow: true,
+    threshold: CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
+    thresholdLabel: `under ${CLOUD_HEALTH_CHECK_CRITICAL_PERCENT}%`,
+    requiresReading: true,
+    incidentDescription:
+      "Fewer than half of the app's instances pass its health check, so some requests reach an instance that fails. Look at what was deployed last, and at the databases and services its Health check path calls: when they fail together, a dependency is usually down.",
+    firstCommand: getAppServiceHealthCheckCommand,
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-appserviceplan-high-cpu",

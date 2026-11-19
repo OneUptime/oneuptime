@@ -498,7 +498,30 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     );
   });
 
-  test("a failed token exchange retains its full body with opt-in and remains bounded by default", async () => {
+  /*
+   * #9983: Google's JSON refusal is said as every Google sign-in says it,
+   * its words cut where an error keeps them (describeGoogleSignInFailure):
+   * short, so never bounded. An answer that is no such JSON keeps its body.
+   */
+  test("a token exchange Google refused in JSON says its status and words in a sentence, short of every bound", async () => {
+    const error: Error = await captureFetchAlertsError([
+      { status: 401, body: HUGE_ERROR_BODY },
+    ]);
+    const prefix: string =
+      "Google token exchange failed (HTTP 401): Google SecOps refused the service account poller@example.iam.gserviceaccount.com (401, PERMISSION_DENIED) while signing in: caller does not have permission chronicle.legacies.legacyFetchAlertsView;";
+
+    expect(error.message.startsWith(prefix)).toBe(true);
+    expect(error.message.length).toBeLessThan(
+      MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+    );
+    expect(ConnectorErrorMessage.toMessage(error)).toBe(error.message);
+  });
+
+  test("a failed token exchange that is not Google's JSON error retains its full body with opt-in and remains bounded by default", async () => {
+    const HUGE_ERROR_BODY: string = `<html><body>${repeatToLength(
+      "an upstream proxy refused the request; ",
+      4000,
+    )}</body></html>`;
     const error: Error = await captureFetchAlertsError([
       { status: 401, body: HUGE_ERROR_BODY },
     ]);

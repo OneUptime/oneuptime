@@ -59010,5 +59010,7 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google ha deprecato {{metric}}: leggi invece {{replacement}}, i messaggi pubblicati al minuto, cioè 60 volte la frequenza al secondo. OneUptime continua a leggerla per i monitor e i grafici salvati finché Google la pubblica.",
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft sta rimuovendo {{metric}} da Azure Monitor: leggi invece {{direct}} o {{gateway}}. OneUptime continua a leggerla per i monitor e i grafici salvati e sposta ciascuno sulla latenza che il suo account riporta appena ce n'è una."
 }
