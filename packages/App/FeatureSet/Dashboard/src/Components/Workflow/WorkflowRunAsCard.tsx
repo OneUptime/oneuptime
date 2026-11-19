@@ -79,6 +79,7 @@ export const WorkflowRunAsCardCopy: {
   readonly ownerWarning: string;
   readonly roleNote: string;
   readonly yourPermissions: string;
+  readonly newTriggerKeys: string;
   readonly ownerOnly: string;
   readonly noRoleToGive: string;
   readonly runsWithDefault: string;
@@ -122,6 +123,13 @@ export const WorkflowRunAsCardCopy: {
   ),
   roleNote: translationKey(
     "Its steps will be able to do what this role allows, teams included if the role may change them. Only people who have all of the role's permissions will be able to change this workflow or run it by hand.",
+  ),
+  /*
+   * The server gives a workflow new trigger keys when it is raised, or
+   * raised to something else (WorkflowService.giveNewTriggerKeys).
+   */
+  newTriggerKeys: translationKey(
+    "It also gets a new webhook URL and incoming email address, so anything that calls the old ones needs the new ones.",
   ),
   yourPermissions: translationKey(
     "It runs with your permissions: if you lose them or leave the project, it stops running until someone who has them chooses Run As again.",
@@ -413,6 +421,38 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
     setIsSaving(false);
   };
 
+  /*
+   * Whether saving `values` raises the workflow, or raises it to something
+   * else - which gives it new trigger keys (WorkflowService
+   * .changesWhatItRunsAs). Choosing the same again keeps them.
+   */
+  const givesNewTriggerKeys: (values: FormValues<JSONObject>) => boolean = (
+    values: FormValues<JSONObject>,
+  ): boolean => {
+    const picked: unknown = (values as JSONObject)[RUN_AS_KEY];
+
+    if (
+      picked !== WorkflowRunAs.ProjectOwner &&
+      picked !== WorkflowRunAs.CustomRole
+    ) {
+      return false;
+    }
+
+    if (!loaded || picked !== loaded.runAs) {
+      return true;
+    }
+
+    const pickedRole: string = String(
+      (values as JSONObject)[ROLE_KEY] || "",
+    ).toLowerCase();
+
+    return (
+      picked === WorkflowRunAs.CustomRole &&
+      Boolean(pickedRole) &&
+      pickedRole !== (loaded.roleId || "")
+    );
+  };
+
   // What the footer under the choice says of what was picked.
   const getChoiceFooter: (
     values: FormValues<JSONObject>,
@@ -453,6 +493,16 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
             data-testid="workflow-run-as-your-permissions"
           >
             {translator.translateText(WorkflowRunAsCardCopy.yourPermissions)}
+          </p>
+        ) : (
+          <></>
+        )}
+        {givesNewTriggerKeys(values) ? (
+          <p
+            className="text-sm text-gray-600"
+            data-testid="workflow-run-as-new-keys"
+          >
+            {translator.translateText(WorkflowRunAsCardCopy.newTriggerKeys)}
           </p>
         ) : (
           <></>

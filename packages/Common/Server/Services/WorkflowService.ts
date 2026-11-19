@@ -258,6 +258,10 @@ export class Service extends ProjectReferencesService<Model> {
    *   - Whoever writes its Run As or its steps while it runs as more than
    *     Default gives it their permissions: it runs with theirs from now on,
    *     as long as they hold them. Setting it back to Default forgets who.
+   *   - A Run As changed to more than Default, or to another such, gives the
+   *     workflow new trigger keys in the same write (giveNewTriggerKeys):
+   *     whoever saw its webhook URL or incoming email address before may not
+   *     hold what it runs as now.
    *
    * OneUptime's own writes are its business.
    */
@@ -296,7 +300,7 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: true,
         runAs: true,
         runAsCustomRoleId: true,
-        ...(sendsRunAs ? { graph: true } : {}),
+        ...(sendsRunAs ? { graph: true, incomingEmailSecretKey: true } : {}),
       },
     );
 
@@ -353,6 +357,17 @@ export class Service extends ProjectReferencesService<Model> {
         graph: sendsGraph ? data["graph"] : row.graph,
       });
 
+      if (
+        sendsRunAs &&
+        Service.changesWhatItRunsAs({
+          row: row,
+          runAs: nextRunAs,
+          customRoleId: next.customRoleId,
+        })
+      ) {
+        Service.giveNewTriggerKeys({ write: data, row: row });
+      }
+
       givesRunAs = true;
     }
 
@@ -369,6 +384,56 @@ export class Service extends ProjectReferencesService<Model> {
     ) {
       data["runAsGivenByUserId"] = null;
       data["runAsGivenAt"] = null;
+    }
+  }
+
+  /*
+   * Whether a Run As written to `row` makes it run as more than Default
+   * where it didn't, or as more than Default in another way: another custom
+   * role, or Project Owner instead of one. Choosing the same again - to give
+   * it your permissions once its giver has left - changes nothing it does.
+   */
+  public static changesWhatItRunsAs(data: {
+    row: Model;
+    runAs: WorkflowRunAs;
+    customRoleId: ObjectID | null;
+  }): boolean {
+    if (
+      data.runAs !== WorkflowRunAs.ProjectOwner &&
+      data.runAs !== WorkflowRunAs.CustomRole
+    ) {
+      return false;
+    }
+
+    if (readWorkflowRunAs(data.row.runAs) !== data.runAs) {
+      return true;
+    }
+
+    return (
+      data.runAs === WorkflowRunAs.CustomRole &&
+      (data.row.runAsCustomRoleId?.toString() || "") !==
+        (data.customRoleId?.toString() || "")
+    );
+  }
+
+  /*
+   * NEW TRIGGER KEYS FOR A WORKFLOW RAISED (#9695). Anyone who could edit it
+   * before - a Project Member who builds workflows, while it ran as Default
+   * - may have copied its webhook URL or incoming email address, and would
+   * otherwise go on starting it with a payload of their choosing once it
+   * runs with permissions they don't hold. So the write that raises it
+   * replaces both keys (an address only where it has one: the Incoming
+   * Email trigger gives one when it is saved), and only those who hold what
+   * it runs as read the new ones (hideTriggerKeysOfRaisedWorkflows).
+   */
+  public static giveNewTriggerKeys(data: {
+    write: Record<string, unknown>;
+    row: Model;
+  }): void {
+    data.write["webhookSecretKey"] = UUID.generate();
+
+    if (data.row.incomingEmailSecretKey) {
+      data.write["incomingEmailSecretKey"] = ObjectID.generate();
     }
   }
 

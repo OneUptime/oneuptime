@@ -57582,5 +57582,6 @@
   "a custom role": "a custom role",
   "Its steps can do exactly what one of the project's custom roles allows.": "Its steps can do exactly what one of the project's custom roles allows.",
   "Only people who have every permission in that role can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only people who have every permission in that role can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
-  "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.": "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as."
+  "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.": "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.",
+  "It also gets a new webhook URL and incoming email address, so anything that calls the old ones needs the new ones.": "It also gets a new webhook URL and incoming email address, so anything that calls the old ones needs the new ones."
 }

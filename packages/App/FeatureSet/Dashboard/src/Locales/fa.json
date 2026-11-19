@@ -57582,5 +57582,6 @@
   "a custom role": "یک نقش سفارشی",
   "Its steps can do exactly what one of the project's custom roles allows.": "گام‌های آن دقیقاً همان کاری را می‌توانند انجام دهند که یکی از نقش‌های سفارشی پروژه اجازه می‌دهد.",
   "Only people who have every permission in that role can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "فقط کسانی که همه دسترسی‌های آن نقش را دارند می‌توانند این گردش کاری را تغییر دهند یا دستی اجرا کنند. هر کسی که بتواند آن را ویرایش کند، همچنان می‌تواند آن را خاموش کند.",
-  "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.": "نقش سفارشی‌ای که این گردش کاری با آن اجرا می‌شود حذف شده است، پس اجرا نمی‌شود. هر کسی که بتواند آن را ویرایش کند می‌تواند انتخاب کند که با چه چیزی اجرا شود."
+  "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.": "نقش سفارشی‌ای که این گردش کاری با آن اجرا می‌شود حذف شده است، پس اجرا نمی‌شود. هر کسی که بتواند آن را ویرایش کند می‌تواند انتخاب کند که با چه چیزی اجرا شود.",
+  "It also gets a new webhook URL and incoming email address, so anything that calls the old ones needs the new ones.": "همچنین نشانی وب‌هوک و نشانی ایمیل ورودی تازه‌ای می‌گیرد، پس هر چیزی که نشانی‌های قبلی را فرا می‌خواند به نشانی‌های تازه نیاز دارد."
 }

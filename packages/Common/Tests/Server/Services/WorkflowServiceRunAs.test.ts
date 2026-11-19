@@ -764,4 +764,146 @@ describe("what a workflow runs as, through its writes", () => {
       expect(await readKey(OWNER_WORKFLOW_ID, ADMIN())).toBeUndefined();
     });
   });
+
+  /*
+   * Whoever could edit a workflow while it ran as Default - a Project Member
+   * who builds workflows - may have copied its webhook URL or its incoming
+   * email address. Hiding the keys once it is raised is not enough: the
+   * copies would go on starting it, with a payload of their choosing. So the
+   * write that raises it gives it new ones, which only its holders read.
+   */
+  describe("new keys for a workflow raised", () => {
+    const EMAIL_KEY: string = "97950000-0000-4000-8000-0000000000e1";
+
+    function keysOf(id: string): { webhook: string; email: string } {
+      return {
+        webhook: String(stored(id, "webhookSecretKey")),
+        email: String(stored(id, "incomingEmailSecretKey")),
+      };
+    }
+
+    test("raised from Default, it gets a new webhook URL and a new email address in the same write", async () => {
+      workflows.get(DEFAULT_WORKFLOW_ID)!["incomingEmailSecretKey"] =
+        new ObjectID(EMAIL_KEY);
+
+      await update(
+        DEFAULT_WORKFLOW_ID,
+        { runAs: WorkflowRunAs.ProjectOwner },
+        OWNER(),
+      );
+
+      const keys: { webhook: string; email: string } =
+        keysOf(DEFAULT_WORKFLOW_ID);
+
+      expect(stored(DEFAULT_WORKFLOW_ID, "runAs")).toBe(
+        WorkflowRunAs.ProjectOwner,
+      );
+      expect(keys.webhook).not.toBe("the-webhook-key");
+      expect(keys.webhook.length).toBeGreaterThan(10);
+      expect(keys.email.toLowerCase()).not.toBe(EMAIL_KEY);
+      expect(keys.email.length).toBeGreaterThan(10);
+    });
+
+    test("one with no email address gets none: its trigger gives one when it is saved", async () => {
+      givenRole();
+
+      await update(
+        SECOND_DEFAULT_WORKFLOW_ID,
+        {
+          runAs: WorkflowRunAs.CustomRole,
+          runAsCustomRoleId: ROLE_ID,
+        },
+        member([
+          Permission.IncidentAdmin,
+          Permission.EditWorkflow,
+          Permission.ReadWorkflow,
+        ]),
+      );
+
+      expect(stored(SECOND_DEFAULT_WORKFLOW_ID, "runAs")).toBe(
+        WorkflowRunAs.CustomRole,
+      );
+      expect(stored(SECOND_DEFAULT_WORKFLOW_ID, "webhookSecretKey")).not.toBe(
+        "the-webhook-key",
+      );
+      expect(
+        stored(SECOND_DEFAULT_WORKFLOW_ID, "incomingEmailSecretKey"),
+      ).toBeUndefined();
+    });
+
+    test("moved to another custom role, or from a role to Project Owner, it gets new keys again", async () => {
+      givenRole();
+
+      await update(
+        ROLE_WORKFLOW_ID,
+        {
+          runAs: WorkflowRunAs.CustomRole,
+          runAsCustomRoleId: new ObjectID(
+            "97950000-0000-4000-8000-0000000000c2",
+          ),
+        },
+        OWNER(),
+      );
+
+      const afterRole: string = keysOf(ROLE_WORKFLOW_ID).webhook;
+
+      expect(afterRole).not.toBe("the-webhook-key");
+
+      await update(
+        ROLE_WORKFLOW_ID,
+        { runAs: WorkflowRunAs.ProjectOwner },
+        OWNER(),
+      );
+
+      expect(keysOf(ROLE_WORKFLOW_ID).webhook).not.toBe(afterRole);
+    });
+
+    test("chosen the same again - by a new giver - or set back to Default, it keeps its keys", async () => {
+      const secondOwner: DatabaseCommonInteractionProps = OWNER();
+
+      await update(
+        OWNER_WORKFLOW_ID,
+        { runAs: WorkflowRunAs.ProjectOwner },
+        secondOwner,
+      );
+
+      expect(
+        String(stored(OWNER_WORKFLOW_ID, "runAsGivenByUserId")).toLowerCase(),
+      ).toBe(secondOwner.userId!.toString().toLowerCase());
+      expect(stored(OWNER_WORKFLOW_ID, "webhookSecretKey")).toBe(
+        "the-webhook-key",
+      );
+
+      await update(
+        OWNER_WORKFLOW_ID,
+        { runAs: WorkflowRunAs.Default },
+        OWNER(),
+      );
+
+      expect(stored(OWNER_WORKFLOW_ID, "webhookSecretKey")).toBe(
+        "the-webhook-key",
+      );
+    });
+
+    test("a raise that is refused changes no key, and its steps or name saved change none", async () => {
+      await refusal(
+        update(
+          DEFAULT_WORKFLOW_ID,
+          { runAs: WorkflowRunAs.ProjectOwner },
+          WORKFLOW_ADMIN(),
+        ),
+      );
+
+      expect(stored(DEFAULT_WORKFLOW_ID, "webhookSecretKey")).toBe(
+        "the-webhook-key",
+      );
+
+      await update(OWNER_WORKFLOW_ID, { graph: GRAPH }, OWNER());
+      await update(OWNER_WORKFLOW_ID, { name: "Renamed" }, OWNER());
+
+      expect(stored(OWNER_WORKFLOW_ID, "webhookSecretKey")).toBe(
+        "the-webhook-key",
+      );
+    });
+  });
 });

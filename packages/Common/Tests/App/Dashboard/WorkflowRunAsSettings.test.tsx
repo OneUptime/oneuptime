@@ -423,6 +423,12 @@ describe("Change Run As", () => {
     expect(
       within(dialog).getByTestId("workflow-run-as-your-permissions"),
     ).toHaveTextContent("It runs with your permissions");
+    // Raised, it gets new trigger keys (WorkflowService.giveNewTriggerKeys).
+    expect(
+      within(dialog).getByTestId("workflow-run-as-new-keys"),
+    ).toHaveTextContent(
+      "It also gets a new webhook URL and incoming email address, so anything that calls the old ones needs the new ones.",
+    );
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
 
@@ -434,6 +440,29 @@ describe("Change Run As", () => {
       runAs: WorkflowRunAs.ProjectOwner,
       runAsCustomRoleId: null,
     });
+  });
+
+  test("says nothing of new keys when Project Owner is chosen again, or Default", async () => {
+    stored = { runAs: WorkflowRunAs.ProjectOwner, givenBy: "Jane Doe" };
+    grant([Permission.ProjectOwner]);
+
+    await openPage();
+
+    const dialog: HTMLElement = await openTheDialog();
+
+    fireEvent.click(within(dialog).getByText("Project Owner"));
+    await flush();
+
+    expect(
+      within(dialog).queryByTestId("workflow-run-as-new-keys"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByText("Default"));
+    await flush();
+
+    expect(
+      within(dialog).queryByTestId("workflow-run-as-new-keys"),
+    ).not.toBeInTheDocument();
   });
 
   test("offers a custom role only with the roles the person could give a team", async () => {

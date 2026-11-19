@@ -57582,5 +57582,6 @@
   "a custom role": "دور مخصص",
   "Its steps can do exactly what one of the project's custom roles allows.": "يمكن لخطواته فعل ما يسمح به أحد الأدوار المخصصة للمشروع بالضبط.",
   "Only people who have every permission in that role can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "لا يستطيع تغيير سير العمل هذا أو تشغيله يدويًا إلا من يملكون كل أذونات ذلك الدور. ولا يزال بإمكان أي شخص يستطيع تعديله أن يوقفه.",
-  "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.": "حُذف الدور المخصص الذي يعمل سير العمل هذا بصفته، لذا لا يعمل. يمكن لأي شخص يستطيع تعديله أن يختار ما يعمل بصفته."
+  "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.": "حُذف الدور المخصص الذي يعمل سير العمل هذا بصفته، لذا لا يعمل. يمكن لأي شخص يستطيع تعديله أن يختار ما يعمل بصفته.",
+  "It also gets a new webhook URL and incoming email address, so anything that calls the old ones needs the new ones.": "ويحصل أيضًا على عنوان URL جديد للـ Webhook وعنوان بريد وارد جديد، لذا يحتاج كل ما يستدعي العناوين القديمة إلى العناوين الجديدة."
 }
