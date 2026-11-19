@@ -110,7 +110,7 @@ jest.mock("Common/Server/Services/IncomingCallPolicyPhoneNumberService", () => {
 jest.mock(
   "Common/Server/Services/IncomingCallPolicyEscalationRuleService",
   () => {
-    return { __esModule: true, default: { findOneBy: jest.fn() } };
+    return { __esModule: true, default: { findBy: jest.fn() } };
   },
 );
 
@@ -270,9 +270,9 @@ const policyService: {
 };
 const numberService: { findOneBy: JestMock } =
   IncomingCallPolicyPhoneNumberService as unknown as { findOneBy: JestMock };
-const ruleService: { findOneBy: JestMock } =
+const ruleService: { findBy: JestMock } =
   IncomingCallPolicyEscalationRuleService as unknown as {
-    findOneBy: JestMock;
+    findBy: JestMock;
   };
 const logService: {
   create: JestMock;
@@ -324,18 +324,6 @@ function selectColumns<T extends BaseModel>(
 
 function sameId(a: ObjectID | null | undefined, b: unknown): boolean {
   return Boolean(a) && a!.toString() === String(b);
-}
-
-// QueryHelper.greaterThan(order) is a TypeORM Raw operator.
-function greaterThanValue(operator: unknown): number {
-  const parameters: Record<string, unknown> | undefined = (
-    operator as { objectLiteralParameters?: Record<string, unknown> }
-  ).objectLiteralParameters;
-  const value: unknown = parameters ? Object.values(parameters)[0] : undefined;
-  if (typeof value !== "number") {
-    throw new Error("Expected a QueryHelper.greaterThan(order) operator");
-  }
-  return value;
 }
 
 function makeRule(
@@ -403,24 +391,31 @@ function wireDatabase(): void {
     );
   });
 
-  ruleService.findOneBy.mockImplementation((args: any) => {
-    const afterOrder: number = greaterThanValue(args.query.order);
-    const next: IncomingCallPolicyEscalationRule | undefined = store.rules
-      .filter((rule: IncomingCallPolicyEscalationRule) => {
-        return (
-          sameId(rule.incomingCallPolicyId, args.query.incomingCallPolicyId) &&
-          (rule.order || 0) > afterOrder
-        );
-      })
-      .sort(
-        (
-          a: IncomingCallPolicyEscalationRule,
-          b: IncomingCallPolicyEscalationRule,
-        ) => {
-          return (a.order || 0) - (b.order || 0);
-        },
-      )[0];
-    return Promise.resolve(next ? selectColumns(next, args.select) : null);
+  // The policy's rules, as the database reads them: by number, then by id.
+  ruleService.findBy.mockImplementation((args: any) => {
+    return Promise.resolve(
+      store.rules
+        .filter((rule: IncomingCallPolicyEscalationRule) => {
+          return sameId(
+            rule.incomingCallPolicyId,
+            args.query.incomingCallPolicyId,
+          );
+        })
+        .sort(
+          (
+            a: IncomingCallPolicyEscalationRule,
+            b: IncomingCallPolicyEscalationRule,
+          ) => {
+            return (
+              (a.order || 0) - (b.order || 0) ||
+              a.id!.toString().localeCompare(b.id!.toString())
+            );
+          },
+        )
+        .map((rule: IncomingCallPolicyEscalationRule) => {
+          return selectColumns(rule, args.select);
+        }),
+    );
   });
 
   verifiedNumberService.findOneBy.mockImplementation((args: any) => {
