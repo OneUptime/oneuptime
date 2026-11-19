@@ -1,9 +1,16 @@
 import { CIS_SCORED_CONTROLS } from "./CisKubernetesBenchmark";
+import { KubernetesComplianceFramework } from "./KubernetesComplianceFramework";
 import {
   BASELINE_CONTROLS,
   PodSecurityControl,
   RESTRICTED_ONLY_CONTROLS,
 } from "./PodSecurityStandards";
+
+export {
+  ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS,
+  KubernetesComplianceFramework,
+  isKubernetesComplianceFramework,
+} from "./KubernetesComplianceFramework";
 
 /*
  * THE FRAMEWORKS A KUBERNETES CLUSTER IS SCORED AGAINST (#9627), BESIDE THE
@@ -32,30 +39,6 @@ import {
 const translationKey: (text: string) => string = (text: string): string => {
   return text;
 };
-
-export enum KubernetesComplianceFramework {
-  PssBaseline = "PSS Baseline",
-  PssRestricted = "PSS Restricted",
-  CisKubernetes = "CIS Kubernetes",
-}
-
-export const ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS: ReadonlyArray<KubernetesComplianceFramework> =
-  [
-    KubernetesComplianceFramework.PssBaseline,
-    KubernetesComplianceFramework.PssRestricted,
-    KubernetesComplianceFramework.CisKubernetes,
-  ];
-
-export function isKubernetesComplianceFramework(
-  value: unknown,
-): value is KubernetesComplianceFramework {
-  return (
-    typeof value === "string" &&
-    (ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS as ReadonlyArray<string>).includes(
-      value,
-    )
-  );
-}
 
 export interface KubernetesComplianceFrameworkInfo {
   framework: KubernetesComplianceFramework;
