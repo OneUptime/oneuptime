@@ -8,6 +8,7 @@ There is nothing to set up: each service's telemetry is scanned every hour, unle
 - [What is read](#what-is-read): The attributes, bodies, messages and prompts of each signal.
 - [How a scan samples](#how-a-scan-samples): The newest records of each service, every hour.
 - [Scrub It](#scrub-it): Mask a finding at ingest, with one click.
+- [Drop This Metric](#drop-this-metric): Stop storing the metrics whose names hold sensitive data.
 - [What counts as scrubbed](#what-counts-as-scrubbed): When a scrub rule already covers a finding.
 :::
 
@@ -116,9 +117,20 @@ Some findings cannot be scrubbed by a rule, and **Scrub It** says why. A metric'
 - A document marking: hiding the word would not hide the document.
 - One of your own data types: add a custom scrub rule with its pattern yourself.
 - A session's own details (`sessions.*`): session replay ingest runs no scrub rules.
-- A metric's name (`name`): the code that creates the metric sets it, and a pipeline rule can only rename a metric whole. Rename the metric, and send what varies in its name as an attribute instead.
+- A metric's name (`name`): the code that creates the metric sets it, and a pipeline rule can only rename a metric whole. Rename the metric, and send what varies in its name as an attribute instead. Until then, **Drop This Metric** can stop storing those metrics.
 
 **Scrub It** makes the rule as you, under your own permissions: Project Owners and Project Admins can press it, and so can a team that may create log scrub rules, trace scrub rules for spans, exceptions and AI calls, and metric pipeline rules for metrics.
+
+## Drop This Metric
+
+No rule takes the data out of a metric's name, so until the code that names the metric is fixed, the data keeps arriving. **Drop This Metric** on a finding in a metric's name stops storing the metrics whose names hold it, at the cost of their data, so it only happens when you ask for it:
+
+- **One service's metrics.** It makes a **Drop** metric pipeline rule for the finding's service: every new data point of a metric whose name holds that data type is dropped before it is stored. Its filter is the pattern **Scrub It** uses for the type, so a type no pattern can find, such as a person's name, cannot be dropped, and the dialog says why.
+- **Said before it is done.** The dialog says that those data points are lost for good, how many of the service's metrics written in the last day have such a name, which monitors and dashboards read them and so get no new data, that what is stored already stays until its retention ends, and how to undo it. Nothing is dropped until you tick that you understand.
+- **As you, on the record.** The rule is made under your own permission to create metric pipeline rules: Project Owners and Project Admins can make it, and so can a team that may create metric pipeline rules. The audit log records who made it.
+- **Undone by deleting the rule.** The rule is named for what it drops, such as "Data Security: drop metrics named with Email address", and listed with your other metric pipeline rules under **Metrics → Settings → Pipeline Rules**. Delete it or turn it off, and those metrics are stored again from then on. What was dropped meanwhile does not come back.
+
+The finding is then marked **Dropped**, and counts as scrubbed: no more of that data is stored.
 
 ## What counts as scrubbed
 
@@ -129,6 +141,7 @@ A finding is marked scrubbed only when ingest would run an enabled rule over it 
 - **A pattern that finds the type.** A built-in **Pattern Type** finds its own data type: **Email Address** finds email addresses, **Credit Card Number** card numbers, **SSN (Social Security Number)** US Social Security numbers, **Phone Number** phone numbers and **IP Address** IP addresses. **Sensitive Attribute Keys** covers every value under a key that looks sensitive, whatever the value is.
 - **Your own custom patterns never count.** A **Custom Regex** covers a finding only when it is exactly the pattern **Scrub It** makes for its type. A finding keeps only masked samples, which no pattern can be tried on, so OneUptime could not prove that your pattern hides the data, and a finding wrongly called scrubbed is a leak nobody looks at.
 - **A metric's attribute.** A **Redact Attribute** or **Remove Attribute** metric pipeline rule of that attribute's key, for the finding's service or the whole project, covers it when it has no filter, or exactly the filter **Scrub It** makes. A filter you wrote never counts, for the same reason.
+- **A metric's name.** A **Drop** metric pipeline rule for the finding's service or the whole project covers it when it has exactly the filter **Drop This Metric** makes, or no filter at all, which stores none of the service's metrics. Such a rule with no filter covers every finding in those metrics.
 
 A rule that is turned off, or that scrubs nothing, never counts. Coverage is worked out again after every scan, so a rule you add or remove by hand changes what is marked scrubbed within the hour.
 

@@ -1168,7 +1168,7 @@ export const METRIC_DROP_UNAVAILABLE_SENTENCES: Readonly<
   Record<DataSecurityDropMetricUnavailableReason, string>
 > = {
   [DataSecurityDropMetricUnavailableReason.NotAMetricName]:
-    "Only a finding in a metric's name drops metrics. Scrub It hides the other findings in metrics.",
+    "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.",
   [DataSecurityDropMetricUnavailableReason.NoPattern]:
     "No pattern can find this data type in a metric's name, so no rule could tell those metrics apart. Rename the metrics in your code, and send what varies in their names as an attribute instead.",
   [DataSecurityDropMetricUnavailableReason.NoService]:
@@ -1205,7 +1205,7 @@ export function buildMetricDropRule(data: {
     MAX_METRIC_RULE_NAME_LENGTH,
   );
   rule.description = cut(
-    `Made by Data Security ("Drop This Metric") from a finding of ${dataTypeName} in this service's metric names. It drops every new data point of the service's metrics whose name holds ${dataTypeName.toLowerCase()} before it is stored: those points are lost for good. What is stored already stays until its retention ends. Delete this rule to keep them again.`,
+    `Made by Data Security ("Drop This Metric") from a finding of ${dataTypeName} in this service's metric names. It drops every new data point of the service's metrics whose name holds ${dataTypeName.toLowerCase()} before it is stored: those points are lost for good. What is stored already stays until its retention ends. Delete this rule to store them again.`,
     MAX_RULE_DESCRIPTION_LENGTH,
   );
   rule.ruleType = MetricPipelineRuleType.Drop;

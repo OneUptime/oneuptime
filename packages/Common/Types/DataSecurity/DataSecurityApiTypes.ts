@@ -287,10 +287,12 @@ export interface DataSecurityDropMetricImpact {
   /*
    * How many of the service's metrics written in the last day have a name
    * the rule drops - their names never leave the server - and whether there
-   * were more than were counted.
+   * were more than were counted. metricsCounted is false when they could not
+   * be read just now: metricsMatched is then no count at all.
    */
   metricsMatched: number;
   isMetricsMatchedCapped: boolean;
+  metricsCounted: boolean;
   /*
    * The monitors and dashboards that read a metric whose name the rule
    * drops (of that service, or of every service): they get no new data.

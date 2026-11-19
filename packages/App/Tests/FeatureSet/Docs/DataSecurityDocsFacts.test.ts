@@ -2430,6 +2430,8 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.scanNow("<id>"),
       DATA_SECURITY_API_ROUTES.checkNow("<id>"),
       DATA_SECURITY_API_ROUTES.scrubFinding("<id>"),
+      DATA_SECURITY_API_ROUTES.dropMetricImpact("<id>"),
+      DATA_SECURITY_API_ROUTES.dropMetric("<id>"),
       DATA_SECURITY_API_ROUTES.explainIssue("<id>"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),

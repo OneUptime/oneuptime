@@ -132,12 +132,19 @@ export function buildDroppedNameMatcher(
   };
 }
 
+interface DroppedMetricsCount {
+  matched: number;
+  isCapped: boolean;
+  // False when the names could not be read: matched is then no count.
+  isCounted: boolean;
+}
+
 async function countDroppedMetrics(data: {
   projectId: ObjectID;
   serviceId: string;
   now: Date;
   isNameDropped: (metricName: string) => boolean;
-}): Promise<{ matched: number; isCapped: boolean }> {
+}): Promise<DroppedMetricsCount> {
   try {
     const result: Results = await MetricService.executeQuery(
       buildServiceMetricNamesStatement({
@@ -160,14 +167,19 @@ async function countDroppedMetrics(data: {
       }
     }
 
-    return { matched, isCapped: rows.length > MAX_METRIC_NAMES_COUNTED };
+    return {
+      matched,
+      isCapped: rows.length > MAX_METRIC_NAMES_COUNTED,
+      isCounted: true,
+    };
   } catch (error) {
     logger.warn(
       `DataSecurity: could not count the metrics of service ${data.serviceId} a drop would drop:`,
     );
     logger.warn(error);
 
-    return { matched: 0, isCapped: false };
+    // Said as not known: "no metric has such a name" would be a guess.
+    return { matched: 0, isCapped: false, isCounted: false };
   }
 }
 
@@ -190,6 +202,7 @@ export async function getDropMetricImpact(data: {
     isAvailable: false,
     metricsMatched: 0,
     isMetricsMatchedCapped: false,
+    metricsCounted: false,
     monitors: [],
     dashboards: [],
     monitorsChecked: false,
@@ -223,26 +236,25 @@ export async function getDropMetricImpact(data: {
 
   const isNameDropped: (metricName: string) => boolean =
     buildDroppedNameMatcher(buildMetricDropFilters(data.dataTypeId) || []);
-  const [counted, users]: [
-    { matched: number; isCapped: boolean },
-    MetricUsers,
-  ] = await Promise.all([
-    countDroppedMetrics({
-      projectId: data.projectId,
-      serviceId,
-      now: data.now || OneUptimeDate.getCurrentDate(),
-      isNameDropped,
-    }),
-    findMetricUsers({
-      projectId: data.projectId,
-      serviceId,
-      isNameDropped,
-      props: data.props,
-    }),
-  ]);
+  const [counted, users]: [DroppedMetricsCount, MetricUsers] =
+    await Promise.all([
+      countDroppedMetrics({
+        projectId: data.projectId,
+        serviceId,
+        now: data.now || OneUptimeDate.getCurrentDate(),
+        isNameDropped,
+      }),
+      findMetricUsers({
+        projectId: data.projectId,
+        serviceId,
+        isNameDropped,
+        props: data.props,
+      }),
+    ]);
 
   impact.metricsMatched = counted.matched;
   impact.isMetricsMatchedCapped = counted.isCapped;
+  impact.metricsCounted = counted.isCounted;
   impact.monitors = users.monitors;
   impact.dashboards = users.dashboards;
   impact.monitorsChecked = users.monitorsChecked;

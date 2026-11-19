@@ -658,6 +658,7 @@ beforeEach(() => {
       ruleName: "Data Security: drop metrics named with Email address",
       metricsMatched: 2,
       isMetricsMatchedCapped: false,
+      metricsCounted: true,
       monitors: [],
       dashboards: [],
       monitorsChecked: true,

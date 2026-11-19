@@ -197,7 +197,7 @@ describe("the rule Drop This Metric makes", () => {
     expect(rule.description).toContain(
       "What is stored already stays until its retention ends.",
     );
-    expect(rule.description).toContain("Delete this rule to keep them again.");
+    expect(rule.description).toContain("Delete this rule to store them again.");
     expect(rule.description!.length).toBeLessThanOrEqual(500);
     expect(() => {
       validateMetricPipelineRuleFilters(rule.filters);
@@ -641,6 +641,7 @@ describe("what dropping would do, before it is asked for", () => {
       ruleName: `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${METRIC_DROP_RULE_NAME}Email address`,
       metricsMatched: 2,
       isMetricsMatchedCapped: false,
+      metricsCounted: true,
       monitors: [{ id: expect.any(String), name: "Signups of Jane" }],
       dashboards: [{ id: expect.any(String), name: "Growth" }],
       monitorsChecked: true,
@@ -710,7 +711,7 @@ describe("what dropping would do, before it is asked for", () => {
     expect(statements).toEqual([]);
   });
 
-  test("the count, when the names cannot be read, is none - and the rest is still said", async () => {
+  test("the count, when the names cannot be read, is said to be unknown - not none - and the rest is still said", async () => {
     jest
       .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
       .mockRejectedValue(new Error("Code: 60. Table does not exist."));
@@ -718,8 +719,35 @@ describe("what dropping would do, before it is asked for", () => {
 
     const impact: DataSecurityDropMetricImpact = await impactOf();
 
+    expect(impact.metricsCounted).toBe(false);
     expect(impact.metricsMatched).toBe(0);
     expect(impact.monitors).toHaveLength(1);
+  });
+
+  test("more names than are counted: the count is of those read, and says there were more", async () => {
+    const names: Array<JSONObject> = [];
+
+    for (let i: number = 0; i <= MAX_METRIC_NAMES_COUNTED; i++) {
+      names.push({
+        metricName:
+          i % 1000 === 0 ? `signups.user${i}@acme-corp.com.count` : `m.${i}`,
+      });
+    }
+
+    jest
+      .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+      .mockResolvedValue({
+        json: (): Promise<unknown> => {
+          return Promise.resolve({ data: names });
+        },
+      } as unknown as Results);
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+
+    expect(impact.metricsCounted).toBe(true);
+    expect(impact.isMetricsMatchedCapped).toBe(true);
+    // The 10,001st name is past the count: 0, 1000, ..., 9000.
+    expect(impact.metricsMatched).toBe(10);
   });
 
   test("the names' read: one service's, of the window, every value bound", () => {

@@ -8,6 +8,7 @@ import { DataSecurityScrubSignal } from "Common/Types/DataSecurity/DataSecurityA
 import {
   getScrubTarget,
   getScrubUnavailableReason,
+  isMetricNameFinding,
   ScrubTarget,
   TelemetryScrubUnavailableReason,
 } from "Common/Types/DataSecurity/TelemetryScrubTarget";
@@ -158,4 +159,50 @@ export function isScrubItOfferedAtAll(gates: ScrubItGates): boolean {
   return Object.values(gates).some((gate: PermissionGateResult): boolean => {
     return gate.isAllowed || Boolean(gate.disabledReason);
   });
+}
+
+/*
+ * DROP THIS METRIC (#9757): no rule can take the data out of a metric's
+ * name, but a metric pipeline Drop rule can keep the service's metrics named
+ * so from being stored, until the code is fixed - losing their new data
+ * points for good. So it is offered only on a finding in a metric's name,
+ * to someone who may create metric pipeline rules (a person who may not
+ * sees it locked, and why), and it opens a dialog that says what it drops
+ * before it does (DropMetricModal).
+ */
+export const DROP_METRIC: string = translationKey("Drop This Metric");
+
+// What a page says once the Drop rule is made: its name opens the pipeline rules.
+export const DROP_NOTICE: string = translationKey(
+  "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.",
+);
+
+// A finding whose metrics a Drop rule keeps from being stored.
+export const DROPPED: string = translationKey("Dropped");
+export const DROPPED_TOOLTIP: string = translationKey(
+  "A metric pipeline rule drops these metrics' new data points at ingest. What was stored before stays until its retention ends.",
+);
+
+export interface DropMetricState {
+  isShown: boolean;
+  isAllowed: boolean;
+  disabledReason?: string | undefined;
+}
+
+export function getDropMetricState(data: {
+  kind: string | null | undefined;
+  location: string | null | undefined;
+  gates: ScrubItGates;
+}): DropMetricState {
+  if (!isMetricNameFinding(data.kind, data.location)) {
+    return { isShown: false, isAllowed: false };
+  }
+
+  const gate: PermissionGateResult = data.gates.metric;
+
+  return {
+    isShown: gate.isAllowed || Boolean(gate.disabledReason),
+    isAllowed: gate.isAllowed,
+    disabledReason: gate.isAllowed ? undefined : gate.disabledReason,
+  };
 }
