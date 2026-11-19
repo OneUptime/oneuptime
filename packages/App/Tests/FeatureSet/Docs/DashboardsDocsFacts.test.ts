@@ -171,6 +171,13 @@ import DashboardVariableUrlState, {
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DataSourceValueReducer from "Common/Utils/DataSource/DataSourceValueReducer";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayAxisReading,
+  OverlayChartAxes,
+  OverlayUnitFit,
+} from "Common/Utils/Metrics/MetricQueryOverlay";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import ModelImportExport from "Common/Utils/ModelImportExport";
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "Common/Utils/Slo/SloMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
@@ -1435,10 +1442,15 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
       type: DashboardComponentType;
       settings: Array<string>;
     }> = [
+      /*
+       * A chart's added queries and formulas are drawn by Add Query and Add
+       * Formula, not under their settings' names (see "names a chart's
+       * query controls as its settings form draws them").
+       */
       {
         heading: "### Chart",
         type: DashboardComponentType.Chart,
-        settings: ["Chart Type", "Additional Queries", "Formulas"],
+        settings: ["Chart Type"],
       },
       {
         heading: "### Value",
@@ -1517,6 +1529,131 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     expect(sectionOf(page, "### Chart")).toContain(
       `draws it as a ${listOf(kinds, "or")} chart`,
     );
+  });
+
+  /*
+   * Issue #9961: the page said "Additional Queries overlay more metrics on
+   * the same axes", a setting the form never draws, of a chart that drew
+   * each added query on a chart of its own. It names the buttons and the
+   * switch as the settings form draws them, and says what the switch does.
+   */
+  it("names a chart's query controls as its settings form draws them, and what overlaying does", () => {
+    const chart: string = sectionOf(page, "### Chart");
+    const settingsForm: string = readSource(
+      `${DASHBOARD_COMPONENTS_DIR}/Canvas/ArgumentsForm.tsx`,
+    );
+    const queryConfig: string = readSource(
+      `${DASHBOARD_APP}/Components/Metrics/MetricQueryConfig.tsx`,
+    );
+
+    for (const button of ["Add Query", "Add Formula"]) {
+      expect(settingsForm).toContain(`title="${button}"`);
+      expect(chart).toContain(bold(button));
+    }
+
+    expect(queryConfig).toContain(
+      'translator.translateText("Display Settings")',
+    );
+    expect(queryConfig).toContain('title="Overlay with previous query"');
+    expect(chart).toContain(
+      `turn on ${bold("Overlay with previous query")} in its ${bold(
+        "Display Settings",
+      )}`,
+    );
+
+    // Every added query has the switch, and the first query does not.
+    expect(settingsForm).toContain(
+      "canOverlayWithPreviousQuery={index + primaryOffset > 0}",
+    );
+    expect(
+      sliceOf(
+        settingsForm,
+        "const getMetricsQueryConfigForm",
+        "type GetEntityDropdownFormFunction",
+      ),
+    ).not.toContain("canOverlayWithPreviousQuery");
+    expect(chart).toContain("Every query after the first has the switch");
+
+    // Each query its own chart, until overlaid; a chain shares one chart.
+    const chain: Array<MetricQueryConfigData> = [
+      { overlayWithPreviousQuery: undefined },
+      { overlayWithPreviousQuery: true },
+      { overlayWithPreviousQuery: true },
+    ] as unknown as Array<MetricQueryConfigData>;
+
+    expect(MetricQueryOverlay.getChartCount(chain.slice(0, 1), 0)).toBe(1);
+    expect(MetricQueryOverlay.getChartCount(chain, 0)).toBe(1);
+    expect(
+      MetricQueryOverlay.getChartCount(
+        [chain[0]!, {} as MetricQueryConfigData, chain[2]!],
+        0,
+      ),
+    ).toBe(2);
+    expect(chart).toContain("Each query draws a chart of its own");
+    expect(chart).toContain("so three or more queries can share one");
+
+    // The units, as MetricQueryOverlay reads them.
+    expect(
+      MetricQueryOverlay.readUnit({ chartUnit: "GB", queryUnit: "MB" }).fit,
+    ).toBe(OverlayUnitFit.Converted);
+    expect(
+      MetricQueryOverlay.readUnit({ chartUnit: "ms", queryUnit: "s" }).fit,
+    ).toBe(OverlayUnitFit.Converted);
+    expect(
+      MetricQueryOverlay.readUnit({ chartUnit: "%", queryUnit: "By" }).fit,
+    ).toBe(OverlayUnitFit.Different);
+    expect(chart).toContain(
+      "such as megabytes on a chart in gigabytes, or seconds on a chart in milliseconds",
+    );
+    expect(chart).toContain("such as bytes on a chart in percent");
+    expect(queryConfig).toContain(
+      "This query is in {{unit}} and the previous query's chart in {{chartUnit}}",
+    );
+
+    /*
+     * Issue #10042: a unit of another kind is drawn against a second axis,
+     * on the right, and its switch says so; the legend names each axis's
+     * unit and each series' axis; only a third kind fits neither axis.
+     */
+    const charts: string = readSource(
+      `${DASHBOARD_APP}/Components/Metrics/MetricCharts.tsx`,
+    );
+    const axes: OverlayChartAxes = MetricQueryOverlay.readChartAxes([
+      { unit: "%" },
+      { unit: "By" },
+      { unit: "ms" },
+    ]);
+
+    expect(
+      axes.readings.map((reading: OverlayAxisReading) => {
+        return reading.axis;
+      }),
+    ).toEqual([OverlayAxis.First, OverlayAxis.Second, OverlayAxis.First]);
+    expect(axes.readings[2]!.fit).toBe(OverlayUnitFit.Different);
+    expect(chart).toContain(
+      "takes its title, its chart type and its left value axis from its first query",
+    );
+    expect(chart).toContain(
+      "A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit, and the switch says so.",
+    );
+    expect(queryConfig).toContain(
+      "so it is drawn against the chart's right axis.",
+    );
+    expect(charts).toContain('"Left axis: {{unit}}"');
+    expect(charts).toContain('"Right axis: {{unit}}"');
+    expect(charts).toContain('translator.translateText("Right axis")');
+    expect(chart).toContain(
+      "The legend under the chart names each axis's unit and the axis each series is drawn against.",
+    );
+    expect(queryConfig).toContain(
+      "so its values will not read right on either axis.",
+    );
+    expect(chart).toContain(
+      "Only a third kind of unit fits neither axis: it is drawn against the left axis, and the chart and the switch both say so",
+    );
+
+    // The setting the page names no longer: no such label is drawn.
+    expect(chart).not.toContain(bold("Additional Queries"));
   });
 
   it("combines queries with the operators the formula evaluator knows, as in the page's example", () => {

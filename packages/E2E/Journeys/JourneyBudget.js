@@ -122,8 +122,8 @@ function problemsWithBudgetFile(file) {
     if (typeof journey.title !== "string" || !journey.title.trim()) {
       problems.push(`${id}: has no title`);
     }
-    if (!["manual", "guided"].includes(journey.path)) {
-      problems.push(`${id}: path must be "manual" or "guided"`);
+    if (!["manual", "guided", "ask-ai"].includes(journey.path)) {
+      problems.push(`${id}: path must be "manual", "guided" or "ask-ai"`);
     }
     if (typeof journey.startsAt !== "string" || !journey.startsAt.trim()) {
       problems.push(`${id}: has no startsAt (where the journey begins)`);

@@ -143,7 +143,7 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | `/data-store/<id>/scan-now` | **Nu scannen**: bemonstert nu de inhoud van de opslag |
 | `/data-store/<id>/check-now` | **Nu controleren**: leest de configuratie van de opslag opnieuw en voert de controles ervan uit |
 | `/data-store-finding/<id>/scrub` | **Opschonen** op een telemetriebevinding |
-| `/data-store-finding/<id>/drop-metric-impact` | Wat **Deze metriek verwerpen** zou verwerpen voor een bevinding in de naam van een metriek: hoeveel metrieken, en de monitoren en dashboards die ze lezen |
+| `/data-store-finding/<id>/drop-metric-impact` | Wat **Deze metriek verwerpen** zou verwerpen voor een bevinding in de naam van een metriek: hoeveel metrieken, en de monitoren, dashboards, SLO's en opnameregels die ze lezen |
 | `/data-store-finding/<id>/drop-metric` | **Deze metriek verwerpen**: een pipelineregel voor metrieken die de nieuwe datapunten van die metrieken van de service voorgoed verwerpt. Hij neemt `{"confirmDataLoss": true}` aan |
 | `/data-security-issue/<id>/explain` | **Uitleggen met AI** op een probleem |
 | `/data-security-issue/<id>/fix-with-ai` | **Oplossen met AI** op een probleem |

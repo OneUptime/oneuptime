@@ -229,6 +229,57 @@ export class ResourceGenerator {
     return null;
   }
 
+  /*
+   * The plan modifier that keeps the state's value once the record exists
+   * (StaticFiles/serverowned.go), for an attribute a create gives and
+   * OneUptime keeps from then on (serverOwned "after-create"): a monitor's
+   * current status. Null for every other attribute, and for one no
+   * configuration writes.
+   */
+  public static getKeepAfterCreateModifier(
+    name: string,
+    attr: TerraformAttribute,
+  ): string | null {
+    if (
+      name === "id" ||
+      attr.serverOwned !== "after-create" ||
+      !(attr.optional || attr.required)
+    ) {
+      return null;
+    }
+
+    const modifierByType: Record<string, string> = {
+      string: "StringKeepAfterCreate()",
+      bool: "BoolKeepAfterCreate()",
+      number: "NumberKeepAfterCreate()",
+      list: "ListKeepAfterCreate()",
+      set: "SetKeepAfterCreate()",
+    };
+
+    return modifierByType[attr.type] || null;
+  }
+
+  /*
+   * The attributes a create gives and OneUptime keeps from then on, by
+   * their Go field names: after a create or an update each keeps its
+   * planned value, whatever the configuration says (keepPlannedValues).
+   */
+  public static getKeptAfterCreateAttributes(
+    resource: TerraformResource,
+  ): Array<string> {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+        return (
+          ResourceGenerator.getKeepAfterCreateModifier(name, attr) !== null
+        );
+      })
+      .map(([name]: [string, TerraformAttribute]): string => {
+        return StringUtils.toPascalCase(
+          StringUtils.toTerraformAttributeName(name),
+        );
+      });
+  }
+
   private providerName: string;
 
   public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
@@ -437,6 +488,24 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     );
 
     /*
+     * What OneUptime keeps once a record exists (#9985): the plan modifiers
+     * that keep the state's value of an attribute a create gives - a
+     * monitor's status - and their tests, on their own and through the
+     * real protocol server against a fake API.
+     */
+    await this.copyStaticFile("serverowned.go", "internal/provider");
+    await this.copyStaticFile("serverowned_test.go", "internal/provider");
+    await this.copyStaticFile("serverowned_plan_test.go", "internal/provider");
+
+    /*
+     * How the Crossplane provider, which runs this provider in process,
+     * reads a field a manifest leaves out: as the record's, even one with a
+     * default - and its tests, through the real protocol server.
+     */
+    await this.copyStaticFile("crossplane.go", "internal/provider");
+    await this.copyStaticFile("crossplane_test.go", "internal/provider");
+
+    /*
      * People named by email address beside their user IDs (user_email
      * beside user_id): the lookups, plan modifiers and validators every
      * resource that names a person shares, and their tests - the lookups
@@ -481,6 +550,8 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
      * fails generation instead of silently testing nothing.
      */
     await this.copyStaticFile("client_test.go", "internal/provider");
+    // And its asking again while a name is another resource's (#9855).
+    await this.copyStaticFile("client_name_taken_test.go", "internal/provider");
 
     /*
      * The acceptance tests: the core resources through a real Terraform and
@@ -1481,6 +1552,17 @@ ${this.generateValidObjectTypesMap()}
       modifiers.push(`${modifierPackage}.RequiresReplace()`);
     }
 
+    /*
+     * Last, a value a create gives and OneUptime keeps from then on
+     * (serverowned.go): once the record exists the plan is the state's
+     * value, whatever the configuration says.
+     */
+    const keepAfterCreate: string | null =
+      ResourceGenerator.getKeepAfterCreateModifier(name, attr);
+    if (keepAfterCreate) {
+      modifiers.push(keepAfterCreate);
+    }
+
     let planModifiers: string = "";
     if (modifiers.length > 0 && modifierInterface) {
       planModifiers = `,
@@ -1691,6 +1773,9 @@ func (r *${resourceTypeName}Resource) ModifyPlan(ctx context.Context, req resour
     if req.Plan.Raw.IsNull() {
         return
     }
+
+    // Under Crossplane, what a manifest leaves out is the record's (see crossplane.go).
+    keepLeftOutUnderCrossplane(ctx, req, resp)
 ${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
       .map(([name, companion]: [string, string]): string => {
         return `\n    requireChangedTogether(ctx, req, resp, "${name}", "${companion}")\n`;
@@ -1996,6 +2081,9 @@ ${lines.join("\n")}`;
         if (name === "id" || attr.format === "binary") {
           return false;
         }
+        if (ResourceGenerator.getKeepAfterCreateModifier(name, attr)) {
+          return true;
+        }
         const flags: SchemaFlags = ResourceGenerator.getSchemaFlags(
           name,
           attr,
@@ -2048,13 +2136,30 @@ ${lines.join("\n")}`;
       return "";
     }
 
+    const keptAfterCreate: Array<string> =
+      ResourceGenerator.getKeptAfterCreateAttributes(resource);
+
     const assignments: string = fields
       .map((field: string) => {
+        if (keptAfterCreate.includes(field)) {
+          return `    if !plan.${field}.IsUnknown() {
+        data.${field} = plan.${field}
+    }`;
+        }
         return `    if config.${field}.IsNull() && !plan.${field}.IsUnknown() {
         data.${field} = plan.${field}
     }`;
       })
       .join("\n");
+
+    const afterCreateNote: string =
+      keptAfterCreate.length > 0
+        ? `
+// An attribute a create gives and OneUptime keeps from then on (${keptAfterCreate.join(", ")};
+// see serverowned.go) keeps its planned value whatever the configuration says:
+// the create's value, or the state's after it, which OneUptime may move on
+// before the write is read back.`
+        : "";
 
     return `
 // keepPlannedValues puts back, after a create or an update, the planned value
@@ -2063,7 +2168,7 @@ ${lines.join("\n")}`;
 // status a probe last reported...), so the value read back after the write can
 // already differ from the plan, and Terraform would fail the apply with
 // "Provider produced inconsistent result after apply". The next refresh reads
-// the server's value, which is never a diff for an attribute nobody configured.
+// the server's value, which is never a diff for an attribute nobody configured.${afterCreateNote}
 func (r *${resourceTypeName}Resource) keepPlannedValues(data *${resourceTypeName}ResourceModel, plan *${resourceTypeName}ResourceModel, config *${resourceTypeName}ResourceModel) {
 ${assignments}
 }

@@ -49,7 +49,11 @@ De här fyra widgetarna läser en mätvärdesfråga, byggd som mätvärdesutfors
 
 ### Diagram
 
-En tidsserie med en eller flera mätvärdesfrågor över instrumentpanelens tidsintervall. **Diagramtyp** ritar den som ett linje-, stapel-, yt-, staplat yt- eller cirkeldiagram. **Ytterligare frågor** lägger fler mätvärden på samma axlar, och **Formler** kombinerar dem med `+`, `-`, `*`, `/`, `%`, `^` och parenteser, som i `(1 - a) * 100`. Varje frågas visningsinställningar lägger till en förklaring och en enhet, en färg, varnings- och kritiska linjer och en takt per sekund för räknare som bara växer.
+En tidsserie med en eller flera mätvärdesfrågor över instrumentpanelens tidsintervall. **Diagramtyp** ritar den som ett linje-, stapel-, yt-, staplat yt- eller cirkeldiagram. **Lägg till fråga** lägger till ytterligare en mätvärdesfråga, och **Lägg till formel** en formel som kombinerar dem med `+`, `-`, `*`, `/`, `%`, `^` och parenteser, som i `(1 - a) * 100`. Varje frågas **Visningsinställningar** lägger till en förklaring och en enhet, en färg, varnings- och kritiska linjer och en takt per sekund för räknare som bara växer.
+
+Varje fråga ritar ett eget diagram, under varandra i widgeten. För att i stället rita en fråga i diagrammet för frågan före den, som fler linjer på samma axlar, slår du på **Lägg över föregående fråga** i dess **Visningsinställningar**: till exempel `mem_used` och `mem_total` i ett diagram. Alla frågor efter den första har brytaren, och varje fråga som har den påslagen hamnar i samma diagram, så att tre eller fler frågor kan dela ett. Slå av den för att ge frågan ett eget diagram igen.
+
+Ett överlagrat diagram tar sin titel, sin diagramtyp och sin vänstra värdeaxel från sin första fråga, så en fråga i det läses i den frågans enhet där det går. En fråga i en annan enhet av samma slag ritas i diagrammets enhet, som megabyte i ett diagram i gigabyte, eller sekunder i ett diagram i millisekunder. En fråga i en enhet av ett annat slag, som byte i ett diagram i procent, ritas mot en andra värdeaxel till höger i diagrammet, i sin egen enhet, och brytaren säger det. Förklaringen under diagrammet anger varje axels enhet och vilken axel varje serie ritas mot. Bara ett tredje slags enhet passar inte på någon av axlarna: den ritas mot vänster axel, och både diagrammet och brytaren säger det, så ge en sådan fråga ett eget diagram.
 
 Använd den när linjens form berättar historien: svarstid, fel, genomströmning eller ködjup.
 

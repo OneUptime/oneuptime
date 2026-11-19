@@ -7,6 +7,7 @@ Ein Host-Monitor überwacht einen einzelnen Rechner – seine CPU, seinen Arbeit
 - [Vorlagen](#fertige-warnungsvorlagen): Zehn fertige Warnungen für einen verstummten oder neu gestarteten Host, CPU, Arbeitsspeicher, Swap, Festplatte, Inodes, Last, Prozesse und fehlgeschlagene Systemd-Units.
 - [Metriken](#erfasste-metriken): Die Host-Metriken, bei denen Sie warnen können, und ihre Einheiten.
 - [Host oder Server / VM?](#host-monitor-oder-server-vm-monitor): Welchen der beiden Rechner-Monitore Sie verwenden.
+- [Mehrere Festplatten](#hosts-mit-mehreren-festplatten): Ein Monitor für alle Festplatten, ein Vorfall pro Festplatte.
 :::
 
 ## So funktioniert es
@@ -220,6 +221,26 @@ Ein Monitor, den Sie nicht aus einer Vorlage erstellen, beginnt mit zwei Kriteri
 > [!IMPORTANT]
 > Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
+## Hosts mit mehreren Festplatten
+
+Ein einziger Host-Monitor deckt jede Festplatte ab, die der Host meldet. Die Vorlagen High Filesystem Usage und Running Out of Inodes gruppieren ihre Abfrage nach `mountpoint` und `device`, daher prüft der Monitor jede Festplatte für sich und eröffnet einen Vorfall pro Festplatte: Eine zweite Festplatte, die vollläuft, verschwindet nicht hinter dem offenen Vorfall der ersten.
+
+| Wo | Was es für jede Festplatte zeigt |
+| --- | --- |
+| Die Seite **Metriken** des Monitors | Eine Linie pro Festplatte, benannt nach ihrem `mountpoint` und ihrem `device`. |
+| **Überwachungsprotokolle** | Die Spalte **Beobachtet** zählt die Reihen, die jede Prüfung gelesen hat: eine pro Festplatte. |
+| **Vorfälle** und **Warnungen** | Ein Eintrag pro Festplatte, der Mount und Gerät der Festplatte nennt. |
+| Die Karte **Dateisysteme** des Hosts | Jede Festplatte, die der Collector meldet, egal was Ihre Monitore überwachen. |
+
+Jedes Kriterium wird für jede Festplatte geprüft:
+
+- Solange der Vorfall einer Festplatte offen ist, eröffnet das Kriterium, das ihn eröffnet hat, für diese Festplatte keinen weiteren. Eine andere Festplatte, die es erfüllt, eröffnet ihren eigenen.
+- Eine Festplatte, die zwei Kriterien erfüllt, etwa eines über 98 % und eines über 90 %, erhält einen einzigen Vorfall, vom ersten der beiden in der Liste. Stellen Sie das strengere an die erste Stelle.
+- Der Vorfall einer Festplatte wird aufgelöst, sobald diese Festplatte das Kriterium, das ihn eröffnet hat, nicht mehr erfüllt, egal was die anderen Festplatten tun.
+- Der Monitor hat einen einzigen Status: Ihn legt das erste Kriterium der Liste fest, das irgendeine Festplatte erfüllt. Erfüllt keine Festplatte ein Kriterium, das auslöst, genügt dem Kriterium, das wiederherstellt, eine einzige Festplatte bei oder unter seinem Schwellenwert; auf einem Host mit einer Festplatte, die nie annähernd voll ist, greift der Abstand von 10 % für die Wiederherstellung daher nicht.
+
+Um nur einige Festplatten zu überwachen, öffnen Sie **Erweitert** und legen Sie in der Abfrage unter **Metriken auswählen** mit **Nach Attributen filtern** einen Filter auf `mountpoint` an: **ist eines von** für die zu überwachenden Festplatten oder **ist keines von** für die auszulassenden. Behalten Sie **Gruppieren nach** bei, und schreiben Sie jede Festplatte so, wie die Karte **Dateisysteme** sie zeigt, etwa `C:` oder `/var`. Um eine Festplatte gar nicht mehr zu erfassen, sodass sie auch von den Seiten des Hosts verschwindet, setzen Sie `include_mount_points` oder `exclude_mount_points` im Scraper `filesystem` des Collectors ([Host-Metriken](/docs/telemetry/host-otel-collector#host-metriken)).
+
 ## Fehlerbehebung
 
 :::details Der Host steht nicht in der Liste Host
@@ -236,6 +257,10 @@ Der Monitor beschränkt jede Abfrage auf `resource.host.name` gleich dem Host, d
 
 :::details High Filesystem Usage löst für ein Mount aus, das immer voll ist
 Schreibgeschützte Pseudo-Dateisysteme wie snap-Loop-Mounts vom Typ `squashfs` unter `/snap` oder `devfs` unter macOS sind konstruktionsbedingt zu 100 % voll und erholen sich nie. Die Konfigurationen, die OneUptime ausführt und ausgibt, lassen sie mit `exclude_fs_types` aus; eine eigene Konfiguration oder eine Collector-Konfiguration, die vorher entstanden ist, braucht dasselbe: Übernehmen Sie es aus [Host-Metriken](/docs/telemetry/host-otel-collector#host-metriken). Lassen Sie ein anderes Mount, das immer voll ist, etwa eine eingehängte `.dmg`, mit `exclude_mount_points` aus.
+:::
+
+:::details High Filesystem Usage zeigt auf einem Host mit mehreren Festplatten nur eine Reihe
+In der Abfrage ist **Gruppieren nach** nicht gesetzt. Jede Prüfung liest dann nur die vollste Festplatte, und ein einziger Vorfall steht für alle Festplatten: Die Seite **Metriken** des Monitors zeichnet eine einzige Linie, benannt nach der Abfrage, und die Spalte **Beobachtet** in **Überwachungsprotokolle** zählt Datenpunkte statt Reihen. Klicken Sie auf der Seite **Kriterien** des Monitors auf **Kriterien bearbeiten**, öffnen Sie **Erweitert** unter **Weitere Felder** und setzen Sie **Gruppieren nach** in der Abfrage unter **Metriken auswählen** auf `mountpoint` und `device`. Die Vorlage unter **Worüber benachrichtigt wird** erneut zu wählen, setzt es ebenfalls, ersetzt aber Ihre Kriterien durch die der Vorlage. Bei der nächsten Prüfung eröffnet jede Festplatte über dem Schwellenwert ihren eigenen Vorfall, und der für den ganzen Monitor offene Vorfall wird aufgelöst, wenn sein Kriterium Vorfälle automatisch auflöst.
 :::
 
 ## Nächste Schritte

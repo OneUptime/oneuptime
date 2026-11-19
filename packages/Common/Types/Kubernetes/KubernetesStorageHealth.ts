@@ -23,9 +23,12 @@ import {
  *
  *   - The lines are StorageUsage's (KUBERNETES_STORAGE_USAGE_THRESHOLDS):
  *     nearly full from 80% used, almost out of space from 90% - where the
- *     kubelet's default eviction (nodefs.available<10%) starts on a node.
- *     Nearly full needs a look (warning); almost out of space is about to
- *     break: writes fail, pods are evicted (critical).
+ *     kubelet's default nodefs eviction (nodefs.available<10%) starts on a
+ *     node. Its imagefs eviction (imagefs.available<15%) starts at 85%, on
+ *     the image disk, and on the root filesystem of a node that keeps its
+ *     images there, as most do. Nearly full needs a look (warning); almost
+ *     out of space is about to break: writes fail, pods are evicted
+ *     (critical).
  *   - Only a fresh reading counts. The kubelet measures a claim only while
  *     a pod mounts it, so the last reading of a claim nothing mounts any
  *     more stays on its row, and the lists still show it with its age; but
@@ -53,8 +56,8 @@ const translationKey: (text: string) => string = (text: string): string => {
 /*
  * The lines a Kubernetes disk is nearly full and almost out of space at: the
  * claims list's and the Nodes list's bars, the cluster's Needs attention, and
- * the PVC Almost Full and High Node Disk Usage templates, which fire at the
- * critical line.
+ * the PVC Almost Full, High Node Disk Usage and Node Image Disk Almost Full
+ * templates, which fire at the critical line.
  */
 export const KUBERNETES_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds =
   DEFAULT_STORAGE_USAGE_THRESHOLDS;
@@ -478,9 +481,10 @@ export function assessKubernetesVolumeClaimStorage(
 
 /*
  * A node's disks, from a fresh reading: its root filesystem, and its image
- * filesystem when that is a disk of its own, each at the same lines. The
- * kubelet evicts pods at 10% free by default, and fails image pulls when
- * the image filesystem fills. Null when both have room, or no fresh reading.
+ * filesystem when that is a disk of its own, each at the same lines. By
+ * default the kubelet evicts pods at 10% free on the root filesystem and
+ * 15% free on the one that holds the images, and fails image pulls when
+ * that one fills. Null when both have room, or no fresh reading.
  */
 export function assessKubernetesNodeStorage(
   row: KubernetesStorageRow,

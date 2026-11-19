@@ -26,6 +26,7 @@ import {
   buildTelemetryMetricsStatement,
   buildTelemetryOwnersStatement,
   buildTelemetrySampleStatement,
+  getMetricReadsByOwner,
   getMetricRotationPosition,
   getMetricTurn,
   getNewMetricSlots,
@@ -39,7 +40,7 @@ import {
   readMetricsToRead,
   readTelemetryRecordValues,
   TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS,
-  TELEMETRY_SCAN_MAX_METRICS_PER_OWNER,
+  TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER,
   TELEMETRY_SCAN_MAX_METRICS_PER_READ,
   TELEMETRY_SCAN_MAX_SERIES_PER_METRIC,
   TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS,
@@ -2188,13 +2189,13 @@ describe("a service's metrics", () => {
   });
 
   describe("how much a scan reads", () => {
-    test("at most a hundred metrics, ten of a service, a hundred series of each - never more than the sample size", async () => {
+    test("at most a hundred metrics - a service's ten, and the reads no other service takes - a hundred series of each, never more than the sample size", async () => {
       metricListRows = Array.from(
-        { length: 60 },
+        { length: 160 },
         (_: unknown, index: number) => {
           return {
             ownerId: CHECKOUT,
-            metricName: `app.metric.${String(index).padStart(2, "0")}`,
+            metricName: `app.metric.${String(index).padStart(3, "0")}`,
             points: String(1000 - index),
             newestMinute: newestMinuteNow(),
             newestMinutePoints: "20",
@@ -2202,7 +2203,7 @@ describe("a service's metrics", () => {
         },
       );
 
-      await scanProjectTelemetry({
+      const scans: Array<TelemetryStoreScan> = await scanProjectTelemetry({
         projectId: PROJECT_ID,
         sampleSize: 30,
         since: new Date(Date.now() - 60 * 60 * 1000),
@@ -2216,19 +2217,25 @@ describe("a service's metrics", () => {
         },
       ) as Array<string>;
 
-      expect(TELEMETRY_SCAN_MAX_METRICS_PER_OWNER).toBe(10);
+      expect(TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER).toBe(10);
       expect(TELEMETRY_SCAN_MAX_METRICS_PER_READ).toBe(100);
       expect(TELEMETRY_SCAN_MAX_SERIES_PER_METRIC).toBe(100);
-      expect(read).toHaveLength(TELEMETRY_SCAN_MAX_METRICS_PER_OWNER);
+      // The project's only service: its ten, and the ninety no other service takes (#9947).
+      expect(read).toHaveLength(TELEMETRY_SCAN_MAX_METRICS_PER_READ);
+      expect(new Set(read).size).toBe(TELEMETRY_SCAN_MAX_METRICS_PER_READ);
       // The busiest five, every scan.
       expect(read).toEqual(
         expect.arrayContaining([
-          "app.metric.00",
-          "app.metric.01",
-          "app.metric.02",
-          "app.metric.03",
-          "app.metric.04",
+          "app.metric.000",
+          "app.metric.001",
+          "app.metric.002",
+          "app.metric.003",
+          "app.metric.004",
         ]),
+      );
+      // The read log says why it read more than its ten.
+      expect(metricsStore(scans).result.readLog[0]).toContain(
+        "and others in turn, 90 of them with reads other services left unused -",
       );
       // A sample size of 30: thirty series of each metric at most.
       expect(Number(parameterAfter(sample!, LIMIT_BY))).toBe(30);
@@ -2257,18 +2264,25 @@ describe("a service's metrics", () => {
     );
     const NEW_SINCE: Date = new Date("2026-10-27T09:00:00.000Z");
 
-    // One scan's plan, from where the last one stopped.
+    /*
+     * One scan's plan, from where the last one stopped. Its total is its
+     * service's share unless the test says otherwise: a project whose other
+     * services take every other read, so what is planned is the share's
+     * own, and its bound the one that holds with no read to spare (#9947
+     * gives a service more only when others leave reads unused).
+     */
     function scanOf(data: {
       metrics: ReadonlyArray<MetricToRead>;
       turn: number;
       cursor?: number | undefined;
       newSince?: Date | undefined;
       perOwner?: number | undefined;
+      total?: number | undefined;
     }): MetricScanPlan {
       return planMetricsToRead({
         metrics: data.metrics,
         perOwner: data.perOwner ?? 10,
-        total: 100,
+        total: data.total ?? data.perOwner ?? 10,
         turn: data.turn,
         newSince: data.newSince,
         cursors:
@@ -2690,9 +2704,24 @@ describe("a service's metrics", () => {
         total: 100,
         turn: 0,
       }).metrics;
+      const readOf: Map<string, number> = new Map();
 
-      // A hundred metrics for forty services: two of each.
-      expect(planned).toHaveLength(80);
+      for (const read of planned) {
+        readOf.set(read.ownerId, (readOf.get(read.ownerId) || 0) + 1);
+      }
+
+      /*
+       * A hundred metrics for forty services: two of each, and the twenty
+       * that leaves one more each to twenty of them (#9947) - it read 80
+       * before, leaving 20 unused.
+       */
+      expect(planned).toHaveLength(100);
+      expect(readOf.size).toBe(40);
+      expect(
+        Array.from(readOf.values()).sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ).toEqual([...Array(20).fill(2), ...Array(20).fill(3)]);
 
       const manyOwners: Array<MetricToRead> = ownersOfMetrics.map(
         (planned: MetricToRead, index: number): MetricToRead => {
@@ -2794,6 +2823,585 @@ describe("a service's metrics", () => {
         },
       ]);
     });
+
+    /*
+     * #9947: the reads a scan leaves unused - a service of few metrics
+     * leaves most of its share, and a total that does not divide by the
+     * services leaves the rest - go to the services that still have
+     * metrics waiting their turn, one at a time, round after round. A
+     * service never reads fewer than its share, a scan never more than its
+     * total, and the extra reads are in-turn reads: they move a service's
+     * rotation on, and its cursor with it.
+     */
+    describe("the reads a scan leaves unused (#9947)", () => {
+      const OWNERS: Array<string> = [
+        "0192f1a0-0000-7000-8000-00000000a001",
+        "0192f1a0-0000-7000-8000-00000000a002",
+        "0192f1a0-0000-7000-8000-00000000a003",
+      ];
+      const SHARE: number = TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER;
+      const TOTAL: number = TELEMETRY_SCAN_MAX_METRICS_PER_READ;
+      const BUSIEST: number = Math.floor(SHARE / 2);
+
+      // A service's metrics, the first the busiest, none of them new.
+      function serviceOf(owner: string, count: number): Array<MetricToRead> {
+        return Array.from(
+          { length: count },
+          (_: unknown, index: number): MetricToRead => {
+            return metric(
+              `${owner.slice(-4)}.m.${String(index).padStart(4, "0")}`,
+              { ownerId: owner, points: 100_000 - index },
+            );
+          },
+        );
+      }
+
+      function readsOf(plan: MetricScanPlan): Map<string, number> {
+        const reads: Map<string, number> = new Map();
+
+        for (const read of plan.metrics) {
+          const owner: string = read.ownerId.toLowerCase();
+
+          reads.set(owner, (reads.get(owner) || 0) + 1);
+        }
+
+        return reads;
+      }
+
+      // A service's metrics, those its busiest are not, in their ring's order.
+      function ringOf(metrics: Array<MetricToRead>): Array<MetricToRead> {
+        return metrics
+          .slice(BUSIEST)
+          .sort((a: MetricToRead, b: MetricToRead): number => {
+            return (
+              getMetricRotationPosition(a.metricName) -
+              getMetricRotationPosition(b.metricName)
+            );
+          });
+      }
+
+      /*
+       * Hour after hour, a project's scans, each service going on from
+       * where it stopped: by metric, the hour it was first read and the
+       * most hours it waited between two reads; and each scan's plan.
+       */
+      function simulateProject(data: {
+        hours: number;
+        metricsAt: (hour: number) => Array<MetricToRead>;
+        newSince?: ((hour: number) => Date) | undefined;
+        total?: number | undefined;
+      }): {
+        firstRead: Map<string, number>;
+        longestWait: Map<string, number>;
+        plans: Array<MetricScanPlan>;
+      } {
+        const firstRead: Map<string, number> = new Map();
+        const lastRead: Map<string, number> = new Map();
+        const longestWait: Map<string, number> = new Map();
+        const plans: Array<MetricScanPlan> = [];
+        let cursors: Map<string, number> = new Map();
+
+        for (let hour: number = 0; hour < data.hours; hour++) {
+          const plan: MetricScanPlan = planMetricsToRead({
+            metrics: data.metricsAt(hour),
+            perOwner: SHARE,
+            total: data.total ?? TOTAL,
+            turn: NOW_HOUR + hour,
+            newSince: data.newSince?.(hour),
+            cursors,
+          });
+
+          cursors = plan.cursors;
+          plans.push(plan);
+
+          for (const read of plan.metrics) {
+            const since: number | undefined = lastRead.get(read.metricName);
+
+            if (since === undefined) {
+              firstRead.set(read.metricName, hour);
+            } else {
+              longestWait.set(
+                read.metricName,
+                Math.max(longestWait.get(read.metricName) || 0, hour - since),
+              );
+            }
+
+            lastRead.set(read.metricName, hour);
+          }
+        }
+
+        return { firstRead, longestWait, plans };
+      }
+
+      test("how many each service reads: its share, then what is left, one read at a time round the services still waiting", () => {
+        const counts: Map<string, number> = new Map([
+          ["c", 300],
+          ["a", 300],
+          ["b", 300],
+        ]);
+
+        // 30 of the shares, and 70 left: 23 more each, and the odd one in turn.
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: counts,
+            share: 10,
+            total: 100,
+            turn: 0,
+          }),
+        ).toEqual(
+          new Map([
+            ["a", 34],
+            ["b", 33],
+            ["c", 33],
+          ]),
+        );
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: counts,
+            share: 10,
+            total: 100,
+            turn: 1,
+          }),
+        ).toEqual(
+          new Map([
+            ["a", 33],
+            ["b", 34],
+            ["c", 33],
+          ]),
+        );
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: counts,
+            share: 10,
+            total: 100,
+            turn: 5,
+          }).get("c"),
+        ).toBe(34);
+
+        /*
+         * A service that runs out of metrics takes no more: the others share
+         * what it could not take.
+         */
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: new Map([
+              ["a", 3],
+              ["b", 12],
+              ["c", 400],
+            ]),
+            share: 10,
+            total: 100,
+            turn: 7,
+          }),
+        ).toEqual(
+          new Map([
+            ["a", 3],
+            ["b", 12],
+            ["c", 85],
+          ]),
+        );
+        // Every service's metrics all read: what is left stays unused.
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: new Map([
+              ["a", 3],
+              ["b", 12],
+            ]),
+            share: 10,
+            total: 100,
+            turn: 0,
+          }),
+        ).toEqual(
+          new Map([
+            ["a", 3],
+            ["b", 12],
+          ]),
+        );
+        // More services than reads: one of each, as before, and none to spare.
+        expect(
+          Array.from(
+            getMetricReadsByOwner({
+              metricsByOwner: new Map(
+                Array.from({ length: 150 }, (_: unknown, index: number) => {
+                  return [`s${index}`, 20] as [string, number];
+                }),
+              ),
+              share: 1,
+              total: 100,
+              turn: 3,
+            }).values(),
+          ),
+        ).toEqual(Array(150).fill(1));
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: new Map(),
+            share: 10,
+            total: 100,
+            turn: 0,
+          }).size,
+        ).toBe(0);
+        // A total or share that is no number reads one.
+        expect(
+          getMetricReadsByOwner({
+            metricsByOwner: new Map([["a", 5]]),
+            share: Number.NaN,
+            total: Number.NaN,
+            turn: Number.NaN,
+          }),
+        ).toEqual(new Map([["a", 1]]));
+      });
+
+      test("the issue's project: three services of 300 metrics read 100 metrics a scan, not 30 - 34, 33 and 33, the odd read going to each in turn", () => {
+        const metrics: Array<MetricToRead> = OWNERS.flatMap(
+          (owner: string): Array<MetricToRead> => {
+            return serviceOf(owner, 300);
+          },
+        );
+        const timesWithTheOddRead: Map<string, number> = new Map();
+
+        for (let hour: number = 0; hour < 6; hour++) {
+          const plan: MetricScanPlan = planMetricsToRead({
+            metrics,
+            perOwner: SHARE,
+            total: TOTAL,
+            turn: NOW_HOUR + hour,
+          });
+          const reads: Map<string, number> = readsOf(plan);
+
+          expect(plan.metrics).toHaveLength(TOTAL);
+          expect(new Set(namesOf(plan.metrics)).size).toBe(TOTAL);
+          expect(
+            Array.from(reads.values()).sort((a: number, b: number) => {
+              return a - b;
+            }),
+          ).toEqual([33, 33, 34]);
+
+          for (const owner of OWNERS) {
+            // Its own ten, and 23 or 24 of the 70 the shares left.
+            expect(plan.extraReads.get(owner)).toBe(reads.get(owner)! - SHARE);
+
+            if (reads.get(owner) === 34) {
+              timesWithTheOddRead.set(
+                owner,
+                (timesWithTheOddRead.get(owner) || 0) + 1,
+              );
+            }
+          }
+        }
+
+        // Six hours: each service got the odd read twice.
+        expect(Array.from(timesWithTheOddRead.values())).toEqual([2, 2, 2]);
+      });
+
+      test("over many scans, every metric of those three services within 11 hours, where their shares alone took 60 - their busiest every hour", () => {
+        const metrics: Array<MetricToRead> = OWNERS.flatMap(
+          (owner: string): Array<MetricToRead> => {
+            return serviceOf(owner, 300);
+          },
+        );
+        // In turn: 5 of its share, and at least 23 of the 70 left.
+        const inTurn: number = SHARE - BUSIEST + Math.floor((TOTAL - 30) / 3);
+        const bound: number = Math.ceil(300 / inTurn);
+
+        expect(inTurn).toBe(28);
+        expect(bound).toBe(11);
+
+        const shared: {
+          firstRead: Map<string, number>;
+          longestWait: Map<string, number>;
+        } = simulateProject({
+          hours: 40,
+          metricsAt: (): Array<MetricToRead> => {
+            return metrics;
+          },
+        });
+
+        expect(shared.firstRead.size).toBe(900);
+        expect(Math.max(...shared.firstRead.values())).toBeLessThan(bound);
+        expect(shared.longestWait.size).toBe(900);
+        expect(Math.max(...shared.longestWait.values())).toBeLessThanOrEqual(
+          bound,
+        );
+
+        for (const owner of OWNERS) {
+          expect(shared.longestWait.get(`${owner.slice(-4)}.m.0000`)).toBe(1);
+        }
+
+        // Their shares alone - what a project of ten such services leaves them: 60 hours.
+        const alone: { longestWait: Map<string, number> } = simulateProject({
+          hours: 130,
+          total: 3 * SHARE,
+          metricsAt: (): Array<MetricToRead> => {
+            return metrics;
+          },
+        });
+        const longest: number = Math.max(...alone.longestWait.values());
+
+        expect(longest).toBeLessThanOrEqual(Math.ceil(300 / (SHARE - BUSIEST)));
+        expect(longest).toBeGreaterThan(5 * bound);
+      });
+
+      test("a service of few metrics reads them all every scan, and the reads it leaves go to the service with more, further round its ring", () => {
+        const big: Array<MetricToRead> = serviceOf(OWNERS[2]!, 500);
+        const plan: MetricScanPlan = planMetricsToRead({
+          metrics: [
+            ...serviceOf(OWNERS[0]!, 3),
+            ...serviceOf(OWNERS[1]!, 4),
+            ...big,
+          ],
+          perOwner: SHARE,
+          total: TOTAL,
+          turn: NOW_HOUR,
+        });
+        const reads: Map<string, number> = readsOf(plan);
+
+        expect(reads.get(OWNERS[0]!)).toBe(3);
+        expect(reads.get(OWNERS[1]!)).toBe(4);
+        expect(reads.get(OWNERS[2]!)).toBe(93);
+        expect(plan.extraReads.get(OWNERS[2]!)).toBe(83);
+        expect(plan.extraReads.has(OWNERS[0]!)).toBe(false);
+        expect(plan.extraReads.has(OWNERS[1]!)).toBe(false);
+        // A service whose metrics are all read keeps its rotation where it was.
+        expect(plan.cursors.has(OWNERS[0]!)).toBe(false);
+
+        // Its busiest five, then the first 88 of its ring: its cursor is the 88th.
+        const ring: Array<MetricToRead> = ringOf(big);
+        const read: Set<string> = new Set(namesOf(plan.metrics));
+
+        expect(
+          namesOf(big.slice(0, BUSIEST)).every((name: string): boolean => {
+            return read.has(name);
+          }),
+        ).toBe(true);
+        expect(
+          namesOf(ring.slice(0, 88)).every((name: string): boolean => {
+            return read.has(name);
+          }),
+        ).toBe(true);
+        expect(read.has(ring[88]!.metricName)).toBe(false);
+        expect(plan.cursors.get(OWNERS[2]!)).toBe(
+          getMetricRotationPosition(ring[87]!.metricName),
+        );
+      });
+
+      test("over several scans, a service's cursor goes as far as the reads it got: its ring in stretches one after another, none passed over", () => {
+        const big: Array<MetricToRead> = serviceOf(OWNERS[0]!, 400);
+        const ring: Array<MetricToRead> = ringOf(big);
+        const others: Array<MetricToRead> = [
+          ...serviceOf(OWNERS[1]!, 6),
+          ...serviceOf(OWNERS[2]!, 6),
+        ];
+        const busiest: Set<string> = new Set(namesOf(big.slice(0, BUSIEST)));
+        let cursors: Map<string, number> = new Map();
+
+        for (let hour: number = 0; hour < 8; hour++) {
+          const plan: MetricScanPlan = planMetricsToRead({
+            metrics: [...big, ...others],
+            perOwner: SHARE,
+            total: TOTAL,
+            turn: NOW_HOUR + hour,
+            cursors,
+          });
+          const inTurn: Array<string> = namesOf(plan.metrics).filter(
+            (name: string): boolean => {
+              return name.startsWith("a001.") && !busiest.has(name);
+            },
+          );
+          // 100 less the others' 12: 88, of which 83 in turn.
+          const expected: Array<string> = Array.from(
+            { length: 83 },
+            (_: unknown, index: number): string => {
+              return ring[(hour * 83 + index) % ring.length]!.metricName;
+            },
+          );
+
+          expect(inTurn.sort()).toEqual(expected.sort());
+          expect(plan.cursors.get(OWNERS[0]!)).toBe(
+            getMetricRotationPosition(
+              ring[(hour * 83 + 82) % ring.length]!.metricName,
+            ),
+          );
+
+          cursors = plan.cursors;
+        }
+      });
+
+      test("no service starves, a scan never reads more than its total, and no read is left unused while a metric waits: random projects", () => {
+        const random: SeededRandom = seededRandom(9947);
+
+        for (let round: number = 0; round < 250; round++) {
+          const owners: number = 1 + random(160);
+          const counts: Map<string, number> = new Map();
+
+          for (let owner: number = 0; owner < owners; owner++) {
+            counts.set(
+              `s${String(owner).padStart(3, "0")}`,
+              1 + (random() < 0.6 ? random(12) : random(600)),
+            );
+          }
+
+          const share: number = Math.max(
+            1,
+            Math.min(SHARE, Math.floor(TOTAL / owners)),
+          );
+          const reads: Map<string, number> = getMetricReadsByOwner({
+            metricsByOwner: counts,
+            share,
+            total: TOTAL,
+            turn: random(100_000),
+          });
+          let sum: number = 0;
+          let isAnyWaiting: boolean = false;
+          const waitingExtras: Array<number> = [];
+          const extras: Array<number> = [];
+
+          for (const [owner, count] of counts) {
+            const read: number = reads.get(owner) || 0;
+            const extra: number = read - Math.min(count, share);
+
+            // Never fewer than its share, never more than it has.
+            expect(read).toBeGreaterThanOrEqual(Math.min(count, share));
+            expect(read).toBeLessThanOrEqual(count);
+            sum += read;
+            extras.push(extra);
+
+            if (read < count) {
+              isAnyWaiting = true;
+              waitingExtras.push(extra);
+            }
+          }
+
+          // Never more than the scan's total - or one of each service, when there are more.
+          expect(sum).toBeLessThanOrEqual(Math.max(TOTAL, owners));
+
+          if (isAnyWaiting) {
+            // Nothing left unused while a metric waits its turn.
+            expect(sum).toBe(Math.max(TOTAL, owners));
+
+            // Round after round: the services still waiting got as many as each other, give or take the odd one...
+            const most: number = Math.max(...waitingExtras);
+
+            expect(most - Math.min(...waitingExtras)).toBeLessThanOrEqual(1);
+            // ...and a service that ran out, no more than they did.
+            expect(Math.max(...extras)).toBeLessThanOrEqual(most);
+          }
+        }
+      });
+
+      test("the plan reads what the allotment says, of each service, with no metric twice", () => {
+        const random: SeededRandom = seededRandom(99471);
+
+        for (let round: number = 0; round < 30; round++) {
+          const owners: number = 1 + random(40);
+          const metrics: Array<MetricToRead> = [];
+          const counts: Map<string, number> = new Map();
+
+          for (let index: number = 0; index < owners; index++) {
+            const owner: string = `0192f1a0-0000-7000-8000-00000000${String(index).padStart(4, "0")}`;
+            const count: number =
+              1 + (random() < 0.5 ? random(8) : random(200));
+
+            counts.set(owner, count);
+            metrics.push(...serviceOf(owner, count));
+          }
+
+          const turn: number = NOW_HOUR + random(1000);
+          const plan: MetricScanPlan = planMetricsToRead({
+            metrics,
+            perOwner: SHARE,
+            total: TOTAL,
+            turn,
+          });
+
+          expect(readsOf(plan)).toEqual(
+            getMetricReadsByOwner({
+              metricsByOwner: counts,
+              share: Math.max(1, Math.min(SHARE, Math.floor(TOTAL / owners))),
+              total: TOTAL,
+              turn,
+            }),
+          );
+          expect(new Set(namesOf(plan.metrics)).size).toBe(plan.metrics.length);
+        }
+      });
+
+      test("new metrics take at most half of a service's in-turn reads, its extra ones among them: more of them than its share alone, and none of those passed over", () => {
+        const steady: Array<MetricToRead> = serviceOf(OWNERS[0]!, 300);
+        const deployed: Array<MetricToRead> = Array.from(
+          { length: 60 },
+          (_: unknown, index: number): MetricToRead => {
+            return metric(`a001.deployed.${String(index).padStart(2, "0")}`, {
+              ownerId: OWNERS[0]!,
+              points: 1,
+              firstMinute: new Date("2026-10-27T10:30:00.000Z"),
+            });
+          },
+        );
+        const metrics: Array<MetricToRead> = [
+          ...steady,
+          ...deployed,
+          ...serviceOf(OWNERS[1]!, 3),
+          ...serviceOf(OWNERS[2]!, 3),
+        ];
+        const newOf: (plan: MetricScanPlan) => Set<string> = (
+          plan: MetricScanPlan,
+        ): Set<string> => {
+          return new Set(
+            namesOf(plan.metrics).filter((name: string): boolean => {
+              return name.startsWith("a001.deployed.");
+            }),
+          );
+        };
+
+        for (let hour: number = 0; hour < 4; hour++) {
+          const turn: number = NOW_HOUR + hour;
+          const withExtra: MetricScanPlan = planMetricsToRead({
+            metrics,
+            perOwner: SHARE,
+            total: TOTAL,
+            turn,
+            newSince: NEW_SINCE,
+          });
+          // The same service with no read to spare: its share alone.
+          const shareAlone: MetricScanPlan = planMetricsToRead({
+            metrics: [...steady, ...deployed],
+            perOwner: SHARE,
+            total: SHARE,
+            turn,
+            newSince: NEW_SINCE,
+          });
+
+          // 100 less the others' 6: 94 reads, its busiest 5, 89 in turn.
+          expect(readsOf(withExtra).get(OWNERS[0]!)).toBe(94);
+          expect(withExtra.newMetricsRead.get(OWNERS[0]!)).toBe(
+            getNewMetricSlots(89, turn),
+          );
+          expect(shareAlone.newMetricsRead.get(OWNERS[0]!)).toBe(
+            getNewMetricSlots(SHARE - BUSIEST, turn),
+          );
+          // Half of them at most: the rotation keeps the rest.
+          expect(getNewMetricSlots(89, turn)).toBeLessThanOrEqual(45);
+          // Every new metric its share alone reads this hour, and more.
+          for (const name of newOf(shareAlone)) {
+            expect(newOf(withExtra).has(name)).toBe(true);
+          }
+
+          expect(newOf(withExtra).size).toBeGreaterThanOrEqual(
+            getNewMetricSlots(89, turn),
+          );
+          expect(newOf(withExtra).size).toBeGreaterThan(newOf(shareAlone).size);
+        }
+
+        // Extra reads never take a new metric's place: more reads in turn, never fewer slots.
+        for (let reads: number = 0; reads < 120; reads++) {
+          for (let turn: number = NOW_HOUR; turn < NOW_HOUR + 4; turn++) {
+            expect(getNewMetricSlots(reads + 1, turn)).toBeGreaterThanOrEqual(
+              getNewMetricSlots(reads, turn),
+            );
+          }
+        }
+      });
+    });
   });
 
   /*
@@ -2857,8 +3465,13 @@ describe("a service's metrics", () => {
       );
     }
 
+    /*
+     * More metrics than the scan reads in all, so even the project's only
+     * service - which gets every read no other takes (#9947) - reads some
+     * in turn.
+     */
     test("a scan says where it stopped, and the next goes on from there: every metric in turn", async () => {
-      metricListRows = listOf(25);
+      metricListRows = listOf(250);
 
       const seen: Set<string> = new Set();
       let cursor: number | undefined = undefined;
@@ -2880,11 +3493,12 @@ describe("a service's metrics", () => {
         }
       }
 
-      expect(seen.size).toBe(25);
+      // 245 others, 95 a turn: all of them in 3 scans.
+      expect(seen.size).toBe(250);
     });
 
     test("a read of its metrics that fails leaves its rotation where it was, so their turn comes again", async () => {
-      metricListRows = listOf(25);
+      metricListRows = listOf(250);
 
       const first: TelemetryStoreScan = await scanFrom(undefined);
       const cursor: number = readMetricRotationCursor(first.result.nextState)!;
@@ -2944,7 +3558,7 @@ describe("a service's metrics", () => {
 
     test("a metric the service started writing lately is read the scan it first writes, and the read log says so", async () => {
       metricListRows = [
-        ...listOf(25),
+        ...listOf(250),
         {
           ownerId: CHECKOUT,
           metricName: "app.metric.deployed",

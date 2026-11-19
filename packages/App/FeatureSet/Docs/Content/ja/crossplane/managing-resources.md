@@ -32,7 +32,7 @@ kind のフィールドは Terraform リソースの引数を camelCase にし�
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` には、OneUptime にあるとおりのレコードが `id` とともに表示されます。省略したフィールドを OneUptime が既定値などで埋めた場合、その値はレコードの作成後に `spec.forProvider` へコピーされます。そのため、次のチェックでは変更するものが見つかりません。
+`status.atProvider` には、OneUptime にあるとおりのレコードが `id` とともに表示されます。省略したフィールドを OneUptime が既定値などで埋めた場合、その値はレコードの作成後に `spec.forProvider` へコピーされます。そのため、次のチェックでは変更するものが見つかりません。ただし、OneUptime 自身が最新に保つフィールドがコピーされることはありません。[OneUptime が最新に保つフィールド](#oneuptime-が最新に保つフィールド) を参照してください。
 
 ## ほかのリソースを参照する
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-レコードの作成後にフィールドをダッシュボードに任せるには、そのフィールドを `spec.forProvider` ではなく `spec.initProvider` に書きます。この値はレコードの作成に使われ、その後は元に戻されません。レコード全体をダッシュボードに任せるには、管理ポリシーから `Update` を外します: `["Observe", "Create", "Delete", "LateInitialize"]`。
+レコードの作成後にフィールドをダッシュボードに任せるには、そのフィールドを `spec.forProvider` ではなく `spec.initProvider` に書きます。レコードはその値で作成され、プロバイダーがその値を `spec.forProvider` にコピーすることも、元に戻すこともありません。これは省略可能なフィールドならどれにでも使えます。モニターの `name` のように、レコードに必須のフィールドは `spec.forProvider` に書きます。レコード全体をダッシュボードに任せるには、管理ポリシーから `Update` を外します: `["Observe", "Create", "Delete", "LateInitialize"]`。
+
+### OneUptime が最新に保つフィールド
+
+一部のフィールドは OneUptime が最新に保つもので、プロバイダーはそれらを OneUptime に任せます。プロバイダーがそれらを `spec.forProvider` にコピーすることも、元に戻すこともありません。
+
+- テレメトリモニターが最後に実行された日時 (`telemetryMonitorLastMonitorAt`) や Kubernetes クラスターのノード数 (`nodeCount`) のように、OneUptime だけが書き込むフィールドは、`status.atProvider` にだけ表示されます。
+- モニターの `currentMonitorStatusId` やインシデントの `currentIncidentStateId` のように、レコードの初期値を指定できるフィールドは、`spec.initProvider` または `spec.forProvider` に書いてレコードの作成に使えます。その後は、モニターのチェックがそのステータスを変えるように OneUptime がその値を変えていき、現在の値は `status.atProvider` に表示されます。
+
+`kubectl explain` は、初期値を指定できる各フィールドの説明でそのことを示します。以前のバージョンのプロバイダーがこれらのフィールドを `spec.forProvider` に書き込んだリソースは、何も編集しなくても、自動的に OneUptime と競合しなくなります。
 
 ## リソースを削除する
 

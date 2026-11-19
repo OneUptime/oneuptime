@@ -4,6 +4,8 @@ import DeviceInterfacesPreview from "../../../Components/NetworkDevice/DeviceInt
 import DeviceInventoryCard from "../../../Components/NetworkDevice/DeviceInventoryCard";
 import DeviceMonitorLookupUtil, {
   DeviceMonitorContext,
+  NO_UNTIED_MONITORS,
+  UntiedMonitorsListing,
 } from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
@@ -162,6 +164,9 @@ const NetworkDeviceView: FunctionComponent<
   const [removableMonitorIds, setRemovableMonitorIds] = useState<Set<string>>(
     new Set<string>(),
   );
+  // The monitors on its address tied to no device (issue #9903).
+  const [untiedMonitors, setUntiedMonitors] =
+    useState<UntiedMonitorsListing>(NO_UNTIED_MONITORS);
 
   const readMonitorsAgain: () => void = (): void => {
     setMonitorsReadCount((count: number): number => {
@@ -177,6 +182,7 @@ const NetworkDeviceView: FunctionComponent<
         setMonitors(context.monitors);
         setIsMonitorBacked(context.isMonitorBacked);
         setRemovableMonitorIds(context.removableMonitorIds);
+        setUntiedMonitors(context.untiedMonitors);
       } catch (err) {
         setMonitorsError(API.getFriendlyMessage(err));
       }
@@ -458,6 +464,7 @@ const NetworkDeviceView: FunctionComponent<
         onMonitorAdded={readMonitorsAgain}
         removableMonitorIds={removableMonitorIds}
         onMonitorRemoved={readMonitorsAgain}
+        untiedMonitors={untiedMonitors}
       />
       {/*
        * What Security Events found about it this week - firewall and

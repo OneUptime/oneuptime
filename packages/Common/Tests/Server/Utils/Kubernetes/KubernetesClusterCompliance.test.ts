@@ -1,11 +1,19 @@
 import KubernetesClusterCompliance, {
+  KUBERNETES_TEMPLATE_KINDS,
   KubernetesComplianceObjectRow,
   KubernetesCompliancePodRow,
   MAX_COMPLIANCE_PODS,
+  MAX_COMPLIANCE_WORKLOADS,
+  getAcceptancesInForce,
   getCronJobsByJob,
+  getObjectsOnCluster,
+  getUnownedReplicaSets,
+  isAcceptanceSetting,
   isManagedControlPlane,
+  readAcceptedObject,
   summarizeNamespaces,
   toCompliancePod,
+  toComplianceTemplates,
   toPolicySnapshot,
 } from "../../../../Server/Utils/Kubernetes/KubernetesClusterCompliance";
 import DataSecurityComplianceSettingService from "../../../../Server/Services/DataSecurityComplianceSettingService";
@@ -19,11 +27,16 @@ import { JSONObject } from "../../../../Types/JSON";
 import { KubernetesObjectRef } from "../../../../Types/Kubernetes/KubernetesHealth";
 import { readPodSecurity } from "../../../../Types/Kubernetes/KubernetesPodSecurity";
 import {
+  KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
   KubernetesComplianceResponse,
 } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
+import { KubernetesComplianceRequirementResult } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceScoring";
 import { KubernetesComplianceFramework } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
-import { KubernetesCompliancePod } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceSnapshot";
+import {
+  KubernetesCompliancePod,
+  KubernetesComplianceTemplate,
+} from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceSnapshot";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -321,6 +334,251 @@ describe("the namespaces", () => {
   });
 });
 
+/*
+ * The workloads' pod templates (#9880): the one each workload's pods would
+ * be named by, a CronJob's Jobs folded into it, a Deployment's ReplicaSets
+ * its revisions.
+ */
+describe("the workloads' pod templates", () => {
+  function workloadRow(
+    kind: string,
+    namespace: string,
+    name: string,
+    options: {
+      owners?: Array<{ kind: string; name: string }>;
+      spec?: JSONObject | null;
+    } = {},
+  ): KubernetesComplianceObjectRow {
+    return {
+      kind,
+      namespaceKey: namespace,
+      name,
+      labels: null,
+      ownerReferences: options.owners
+        ? ({ items: options.owners } as unknown as JSONObject)
+        : null,
+      security:
+        options.spec === null
+          ? null
+          : JSON.parse(
+              JSON.stringify(
+                readPodSecurity(
+                  options.spec || { containers: [{ name: "c" }] },
+                ),
+              ),
+            ),
+    };
+  }
+
+  test("each workload kind that holds a template is read: the six, and OpenShift's DeploymentConfig", () => {
+    expect([...KUBERNETES_TEMPLATE_KINDS]).toEqual([
+      "Deployment",
+      "StatefulSet",
+      "DaemonSet",
+      "ReplicaSet",
+      "Job",
+      "CronJob",
+      "DeploymentConfig",
+    ]);
+    expect(MAX_COMPLIANCE_WORKLOADS).toBe(25000);
+  });
+
+  test("a CronJob's Job folds into the CronJob, and a Deployment's ReplicaSet into the Deployment", () => {
+    const templates: Array<KubernetesComplianceTemplate> =
+      toComplianceTemplates([
+        workloadRow("Deployment", "payments", "api"),
+        workloadRow("ReplicaSet", "payments", "api-7d9f8", {
+          owners: [{ kind: "Deployment", name: "api" }],
+        }),
+        workloadRow("ReplicaSet", "web", "legacy-web"),
+        workloadRow("CronJob", "ops", "backup"),
+        workloadRow("Job", "ops", "backup-29000000", {
+          owners: [{ kind: "CronJob", name: "backup" }],
+        }),
+        workloadRow("Job", "ops", "migrate"),
+        workloadRow("StatefulSet", "payments", "ledger"),
+        workloadRow("DaemonSet", "kube-system", "cilium"),
+        workloadRow("DeploymentConfig", "shop", "frontend"),
+        // Not a workload: never a template.
+        workloadRow("Namespace", "", "ops"),
+        { ...workloadRow("Deployment", "payments", "x"), name: null },
+      ]);
+
+    expect(
+      templates.map((each: KubernetesComplianceTemplate): string => {
+        return `${each.workload.kind} ${each.workload.namespace}/${each.workload.name}`;
+      }),
+    ).toEqual([
+      "Deployment payments/api",
+      "ReplicaSet web/legacy-web",
+      "CronJob ops/backup",
+      "Job ops/migrate",
+      "StatefulSet payments/ledger",
+      "DaemonSet kube-system/cilium",
+      "DeploymentConfig shop/frontend",
+    ]);
+  });
+
+  test("a template stored before it was read is kept, as not read", () => {
+    expect(
+      toComplianceTemplates([
+        workloadRow("Deployment", "payments", "api", { spec: null }),
+      ])[0]!.security,
+    ).toBeNull();
+  });
+
+  test("a ReplicaSet nothing owns names its pods; one a Deployment owns does not", () => {
+    const unowned: Set<string> = getUnownedReplicaSets([
+      workloadRow("ReplicaSet", "web", "legacy-web"),
+      workloadRow("ReplicaSet", "payments", "api-7d9f8", {
+        owners: [{ kind: "Deployment", name: "api" }],
+      }),
+      workloadRow("Deployment", "payments", "api"),
+    ]);
+
+    expect([...unowned]).toEqual(["web/legacy-web"]);
+    expect(
+      toCompliancePod(
+        podRow("web", "legacy-web-x1", {
+          owners: [{ kind: "ReplicaSet", name: "legacy-web" }],
+        }),
+        new Map(),
+        unowned,
+      )?.workload,
+    ).toEqual({ kind: "ReplicaSet", namespace: "web", name: "legacy-web" });
+    expect(
+      toCompliancePod(
+        podRow("payments", "api-7d9f8-x1", {
+          owners: [{ kind: "ReplicaSet", name: "api-7d9f8" }],
+          labels: { "pod-template-hash": "7d9f8" },
+        }),
+        new Map(),
+        unowned,
+      )?.workload,
+    ).toEqual({ kind: "Deployment", namespace: "payments", name: "api" });
+  });
+});
+
+/*
+ * An accepted finding (#9874) is a setting that names one object: read
+ * apart from the settings that turn a framework, a control or a namespace
+ * off, as the object a finding names.
+ */
+describe("an accepted finding's setting", () => {
+  function setting(
+    data: Partial<DataSecurityComplianceSetting>,
+  ): DataSecurityComplianceSetting {
+    const row: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting();
+    Object.assign(row, data);
+    return row;
+  }
+
+  test("is one that names an object", () => {
+    expect(isAcceptanceSetting(setting({ objectName: "cilium" }))).toBe(true);
+    expect(isAcceptanceSetting(setting({ objectName: " " }))).toBe(false);
+    expect(isAcceptanceSetting(setting({ namespace: "kube-system" }))).toBe(
+      false,
+    );
+  });
+
+  test("names the object as a finding does", () => {
+    expect(
+      readAcceptedObject(
+        setting({
+          objectKind: "DaemonSet",
+          objectName: "cilium",
+          namespace: "kube-system",
+        }),
+      ),
+    ).toEqual({ kind: "DaemonSet", namespace: "kube-system", name: "cilium" });
+    expect(
+      readAcceptedObject(
+        setting({
+          objectKind: "ClusterRoleBinding",
+          objectName: "break-glass",
+          namespace: "stray",
+        }),
+      ),
+    ).toEqual({
+      kind: "ClusterRoleBinding",
+      namespace: "",
+      name: "break-glass",
+    });
+    expect(
+      readAcceptedObject(
+        setting({ objectKind: "Namespace", objectName: "ops" }),
+      ),
+    ).toEqual({ kind: "Namespace", namespace: "ops", name: "ops" });
+    expect(
+      readAcceptedObject(
+        setting({ objectKind: "Secret", objectName: "token" }),
+      ),
+    ).toBeNull();
+  });
+
+  test("an expired acceptance accepts nothing", () => {
+    const entry: KubernetesComplianceAcceptanceEntry = {
+      id: "a",
+      framework: KubernetesComplianceFramework.PssBaseline,
+      requirement: null,
+      object: { kind: "DaemonSet", namespace: "kube-system", name: "cilium" },
+      note: "CNI",
+      acceptedAt: null,
+      acceptedBy: null,
+      expiresAt: null,
+      isExpired: false,
+      isOnCluster: true,
+    };
+
+    expect(
+      getAcceptancesInForce([entry, { ...entry, id: "b", isExpired: true }]),
+    ).toEqual([
+      {
+        id: "a",
+        framework: KubernetesComplianceFramework.PssBaseline,
+        requirement: "",
+        object: entry.object,
+      },
+    ]);
+  });
+
+  test("the objects on the cluster: every pod's workload, every workload and policy object, every namespace", () => {
+    const keys: Set<string> = getObjectsOnCluster({
+      pods: [
+        toCompliancePod(
+          podRow("kube-system", "cilium-a", {
+            owners: [{ kind: "DaemonSet", name: "cilium" }],
+          }),
+          new Map(),
+        )!,
+      ],
+      rows: [
+        {
+          kind: "CronJob",
+          namespaceKey: "ops",
+          name: "backup",
+          labels: null,
+        },
+        {
+          kind: "ClusterRoleBinding",
+          namespaceKey: "",
+          name: "break-glass",
+          labels: null,
+        },
+        { kind: "Namespace", namespaceKey: "", name: "ops", labels: null },
+      ],
+    });
+
+    expect([...keys].sort()).toEqual([
+      "ClusterRoleBinding||break-glass",
+      "CronJob|ops|backup",
+      "DaemonSet|kube-system|cilium",
+      "Namespace|ops|ops",
+    ]);
+  });
+});
+
 describe("reading a cluster's compliance", () => {
   let queries: Array<{ sql: string; parameters: Array<unknown> }>;
   let rows: {
@@ -372,7 +630,8 @@ describe("reading a cluster's compliance", () => {
             return rows.pods;
           }
 
-          if (sql.includes(`"kind" = 'Job'`)) {
+          // The workloads with their pod templates (#9880), the Jobs among them.
+          if (sql.includes(`AS "security"`) && sql.includes(`= ANY($3)`)) {
             return rows.jobs;
           }
 
@@ -560,6 +819,227 @@ describe("reading a cluster's compliance", () => {
       frameworkOf(response, KubernetesComplianceFramework.PssRestricted)
         .turnedOff,
     ).toEqual([]);
+  });
+
+  test("a workload that runs no pod is scored from its template, read with the workloads", async () => {
+    rows.jobs = [
+      {
+        kind: "CronJob",
+        namespaceKey: "ops",
+        name: "nightly-backup",
+        labels: null,
+        ownerReferences: null,
+        security: JSON.parse(
+          JSON.stringify(
+            readPodSecurity({
+              containers: [
+                { name: "backup", securityContext: { privileged: true } },
+              ],
+            }),
+          ),
+        ),
+      },
+    ];
+
+    const response: KubernetesComplianceResponse = await read();
+    const workloads: { sql: string; parameters: Array<unknown> } = queries.find(
+      (query: { sql: string }): boolean => {
+        return query.sql.includes(`AS "security"`) && query.sql.includes("ANY");
+      },
+    )!;
+
+    // One read of the workloads, their templates' blocks and never their whole spec.
+    expect(workloads.parameters[2]).toEqual([...KUBERNETES_TEMPLATE_KINDS]);
+    expect(workloads.parameters[3]).toBe(MAX_COMPLIANCE_WORKLOADS);
+    expect(workloads.sql.replace(/"spec"->'security'/g, "")).not.toContain(
+      `"spec"`,
+    );
+    expect(response.templateCount).toBe(1);
+
+    const privileged: KubernetesComplianceRequirementResult = frameworkOf(
+      response,
+      KubernetesComplianceFramework.PssBaseline,
+    ).requirements.find((each: KubernetesComplianceRequirementResult) => {
+      return each.requirement === "Privileged Containers";
+    })!;
+
+    // Beside kube-proxy, read from its running pod.
+    expect(privileged.findings).toEqual([
+      expect.objectContaining({
+        object: {
+          kind: "DaemonSet",
+          namespace: "kube-system",
+          name: "kube-proxy",
+        },
+        podCount: 1,
+      }),
+      {
+        object: { kind: "CronJob", namespace: "ops", name: "nightly-backup" },
+        details: [
+          {
+            container: "backup",
+            field: "securityContext.privileged",
+            value: "true",
+          },
+        ],
+        isFromTemplate: true,
+      },
+    ]);
+  });
+
+  test("an accepted finding is listed with who, when, why and until when, and turns nothing off", async () => {
+    const user: User = new User();
+    user.name = "Jane Doe" as never;
+    const accepted: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting();
+    accepted._id = "77777777-7777-4777-8777-777777777777";
+    accepted.framework = KubernetesComplianceFramework.PssBaseline;
+    accepted.requirement = "Privileged Containers";
+    accepted.namespace = "kube-system";
+    accepted.objectKind = "DaemonSet";
+    accepted.objectName = "kube-proxy";
+    accepted.isEnabled = false;
+    accepted.note = " kube-proxy programs iptables. ";
+    accepted.expiresAt = new Date("2027-05-01T00:00:00.000Z");
+    accepted.turnedOffAt = new Date("2026-11-12T09:00:00.000Z");
+    accepted.turnedOffByUser = user;
+    settings = [accepted];
+
+    const response: KubernetesComplianceResponse =
+      await KubernetesClusterCompliance.readCompliance({
+        projectId: PROJECT_ID,
+        cluster: { id: CLUSTER_ID, name: "prod-eu", provider: "EKS" },
+        now: new Date("2026-11-19T12:00:00.000Z"),
+      });
+    const baseline: KubernetesComplianceFrameworkResponse = frameworkOf(
+      response,
+      KubernetesComplianceFramework.PssBaseline,
+    );
+    const privileged: KubernetesComplianceRequirementResult =
+      baseline.requirements.find(
+        (each: KubernetesComplianceRequirementResult) => {
+          return each.requirement === "Privileged Containers";
+        },
+      )!;
+
+    // kube-system is not turned off: only kube-proxy's finding is accepted.
+    expect(baseline.turnedOffNamespaces).toEqual([]);
+    expect(baseline.turnedOff).toEqual([]);
+    expect(privileged.status).toBe(ComplianceRequirementStatus.Passing);
+    expect(privileged.accepted![0]).toMatchObject({
+      object: {
+        kind: "DaemonSet",
+        namespace: "kube-system",
+        name: "kube-proxy",
+      },
+      acceptanceId: "77777777-7777-4777-8777-777777777777",
+      podCount: 1,
+    });
+    expect(baseline.acceptances).toEqual([
+      {
+        id: "77777777-7777-4777-8777-777777777777",
+        framework: KubernetesComplianceFramework.PssBaseline,
+        requirement: "Privileged Containers",
+        object: {
+          kind: "DaemonSet",
+          namespace: "kube-system",
+          name: "kube-proxy",
+        },
+        note: "kube-proxy programs iptables.",
+        acceptedAt: "2026-11-12T09:00:00.000Z",
+        acceptedBy: "Jane Doe",
+        expiresAt: "2027-05-01T00:00:00.000Z",
+        isExpired: false,
+        isOnCluster: true,
+      },
+    ]);
+    // Read in that cluster of that project, as OneUptime.
+    expect(
+      findBy.mock.calls.some((call: Array<unknown>): boolean => {
+        const options: {
+          query: JSONObject;
+          props: JSONObject;
+          select: JSONObject;
+        } = call[0] as {
+          query: JSONObject;
+          props: JSONObject;
+          select: JSONObject;
+        };
+        return (
+          options.select["objectKind"] === true &&
+          options.query["resourceId"] === CLUSTER_ID &&
+          options.query["isEnabled"] === false &&
+          options.props["isRoot"] === true
+        );
+      }),
+    ).toBe(true);
+    expect(
+      frameworkOf(response, KubernetesComplianceFramework.PssRestricted)
+        .acceptances,
+    ).toEqual([]);
+  });
+
+  test("once its expiry passes, the finding fails again and the acceptance says it expired", async () => {
+    const accepted: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting();
+    accepted._id = "77777777-7777-4777-8777-777777777777";
+    accepted.framework = KubernetesComplianceFramework.PssBaseline;
+    accepted.requirement = "Privileged Containers";
+    accepted.namespace = "kube-system";
+    accepted.objectKind = "DaemonSet";
+    accepted.objectName = "kube-proxy";
+    accepted.isEnabled = false;
+    accepted.note = "Until the CNI moves.";
+    accepted.expiresAt = new Date("2026-11-01T00:00:00.000Z");
+    settings = [accepted];
+
+    const response: KubernetesComplianceResponse =
+      await KubernetesClusterCompliance.readCompliance({
+        projectId: PROJECT_ID,
+        cluster: { id: CLUSTER_ID, name: "prod-eu", provider: "EKS" },
+        now: new Date("2026-11-19T12:00:00.000Z"),
+      });
+    const baseline: KubernetesComplianceFrameworkResponse = frameworkOf(
+      response,
+      KubernetesComplianceFramework.PssBaseline,
+    );
+
+    expect(baseline.acceptances![0]!.isExpired).toBe(true);
+    expect(
+      baseline.requirements.find(
+        (each: KubernetesComplianceRequirementResult) => {
+          return each.requirement === "Privileged Containers";
+        },
+      )!.status,
+    ).toBe(ComplianceRequirementStatus.Failing);
+  });
+
+  test("an acceptance whose object is gone from the cluster stays listed, and says so", async () => {
+    const accepted: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting();
+    accepted._id = "77777777-7777-4777-8777-777777777777";
+    accepted.framework = KubernetesComplianceFramework.PssBaseline;
+    accepted.namespace = "kube-system";
+    accepted.objectKind = "DaemonSet";
+    accepted.objectName = "weave-net";
+    accepted.isEnabled = false;
+    accepted.note = "Weave needed host networking.";
+    settings = [accepted];
+
+    const baseline: KubernetesComplianceFrameworkResponse = frameworkOf(
+      await read(),
+      KubernetesComplianceFramework.PssBaseline,
+    );
+
+    expect(baseline.acceptances).toMatchObject([
+      {
+        requirement: null,
+        object: { kind: "DaemonSet", name: "weave-net" },
+        isOnCluster: false,
+        isExpired: false,
+      },
+    ]);
+    expect(baseline.acceptedCount).toBe(0);
   });
 
   test("says so when a cluster has more pods than one answer scores", async () => {

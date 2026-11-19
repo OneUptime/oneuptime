@@ -10,7 +10,9 @@ import {
 } from "Common/Types/DataSecurity/DataStoreResource";
 import {
   ResourceSecurityScopeJson,
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
   SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
   SecurityConnectionKind,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SECURITY_EVENT_SCOPE_QUERY_KEY } from "Common/Types/SecurityEvent/SecurityEventScope";
@@ -142,16 +144,16 @@ describe("a record's Security Events chip", () => {
   });
 
   test("a record read by its own logs, and one read both ways", () => {
-    // A serverless function's own logs are its logs: the shared words.
+    // A cloud resource's own logs are its logs: the shared words (#9779).
     const ownLogs: ActiveFilter = getResourceSecurityEventsChip(
       scopeOf({
-        kind: SecurityConnectionKind.ServerlessFunction,
+        kind: SecurityConnectionKind.CloudResource,
         values: [],
-        isSearchedByLogs: true,
+        isSearchedByLogs: false,
         scope: {
           observables: [],
-          attributeKey: "oneuptime.log.resource.id",
-          attributeValues: [ID],
+          attributeKey: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+          attributeValues: ["AWS/DocDB DBClusterIdentifier=orders"],
         },
       }),
     );
@@ -262,6 +264,59 @@ describe("a record's Security Events chip", () => {
         values: ["checkout"],
       },
     ]);
+  });
+
+  test("a serverless function's own logs are its logs and traces, by its faas.name (#9780)", () => {
+    const ARN: string =
+      "arn:aws:lambda:us-east-1:111122223333:function:checkout";
+    const ownLogs: ActiveFilter = getResourceSecurityEventsChip(
+      scopeOf({
+        kind: SecurityConnectionKind.ServerlessFunction,
+        name: "checkout",
+        values: [],
+        scope: {
+          observables: [],
+          attributeKey: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+          attributeValues: ["checkout"],
+        },
+      }),
+    );
+
+    expect(ownLogs.displayKey).toBe("Serverless Function");
+    expect(ownLogs.lockedDetail?.scopeSummary).toBe(
+      "The security events read from its own logs and traces.",
+    );
+    expect(ownLogs.lockedDetail?.scopeMatches).toEqual([
+      {
+        label: RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL,
+        description:
+          "Every security event read from its own logs and traces, whatever it names.",
+        values: ["checkout"],
+      },
+    ]);
+
+    // One its cloud's audit log names by its ARN too.
+    const both: ActiveFilter = getResourceSecurityEventsChip(
+      scopeOf({
+        kind: SecurityConnectionKind.ServerlessFunction,
+        name: "checkout",
+        values: [ARN],
+        scope: {
+          observables: [ARN],
+          attributeKey: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+          attributeValues: ["checkout"],
+        },
+      }),
+    );
+
+    expect(both.lockedDetail?.scopeSummary).toBe(
+      "The security events about it: read from its own logs and traces, or naming it.",
+    );
+    expect(both.lockedDetail?.scopeMatches?.[1]).toEqual({
+      label: RESOURCE_SECURITY_EVENTS_NAMING_LABEL,
+      description: RESOURCE_SECURITY_EVENTS_NAMING_DESCRIPTION,
+      values: [ARN],
+    });
   });
 
   test("an OpenStack cloud is read both ways, in the shared words", () => {
@@ -661,14 +716,15 @@ describe("the pages' wiring", () => {
 
 /*
  * A Docker or Podman host, an OpenStack cloud and a service have a Security
- * Events page of their own too (#9628), wired as a host's is: a page of the
+ * Events page of their own too (#9628), and so do a cloud resource and a
+ * serverless function (#9779, #9780), wired as a host's is: a page of the
  * record at :id/security-events, routed beside its Logs, crumbed under it,
  * in its menu right after Logs behind the product's gate, found by Search
  * under the menu's section, gated on Security Events, and opened by the
- * record's Security card. A cloud resource and a serverless function have
- * none: nothing ties their own events to them reliably yet.
+ * record's Security card. A cloud resource's menu has it only for a
+ * resource an event can reach.
  */
-describe("Security Events on a Docker or Podman host, an OpenStack cloud and a service", () => {
+describe("Security Events on a Docker or Podman host, an OpenStack cloud, a service, a cloud resource and a serverless function", () => {
   interface SecurityEventsWiring {
     kind: SecurityConnectionKind;
     prefix: string;
@@ -681,6 +737,13 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
     component: string;
     logsComponent: string;
     section: string;
+    // What the menu's entry is drawn behind, beside the product's gate.
+    menuGate?: string | undefined;
+    /*
+     * A page its menu draws only for some records is not offered by Search
+     * for every one (RecordPageSearchIndexCoversMenus).
+     */
+    isNotInSearch?: boolean | undefined;
   }
 
   const RECORDS: Array<SecurityEventsWiring> = [
@@ -736,6 +799,34 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
       logsComponent: "ServiceViewLogs",
       section: "Telemetry",
     },
+    {
+      kind: SecurityConnectionKind.CloudResource,
+      prefix: "CLOUD_RESOURCE_VIEW",
+      root: "cloud",
+      pathDictionary: "CloudRoutePath",
+      folder: "Cloud",
+      routes: "CloudResourceRoutes.tsx",
+      crumbs: "CloudBreadcrumbs.ts",
+      trail: ["Cloud", "View Resource"],
+      component: "CloudResourceSecurityEvents",
+      logsComponent: "CloudResourceLogs",
+      section: "Observability",
+      menuGate: "showSecurityEvents && props.hasSecurityEvents",
+      isNotInSearch: true,
+    },
+    {
+      kind: SecurityConnectionKind.ServerlessFunction,
+      prefix: "SERVERLESS_FUNCTION_VIEW",
+      root: "serverless",
+      pathDictionary: "ServerlessRoutePath",
+      folder: "Serverless",
+      routes: "ServerlessRoutes.tsx",
+      crumbs: "ServerlessBreadcrumbs.ts",
+      trail: ["Serverless Functions", "View Function"],
+      component: "ServerlessFunctionSecurityEvents",
+      logsComponent: "ServerlessFunctionLogs",
+      section: "Observability",
+    },
   ];
 
   describe.each(RECORDS)("$kind", (record: SecurityEventsWiring) => {
@@ -760,16 +851,19 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
       // However the formatter breaks the element, its route is this page's.
       expect(routes).toMatch(
         new RegExp(
-          `<${record.component} \\{\\.\\.\\.props\\} pageRoute=\\{ ?RouteMap\\[PageMap\\.${page}\\] as Route ?\\} />`,
+          `<${record.component} \\{\\.\\.\\.props\\} pageRoute=\\{ ?RouteMap\\[ ?PageMap\\.${page} ?\\] as Route ?\\} />`,
         ),
       );
       expect(routes.indexOf(`PageMap.${page}`)).toBeGreaterThan(
         routes.indexOf(`<${record.logsComponent}`),
       );
+      // The shared page, handed this kind - and, where the page has one, its own empty state.
       expect(
         readCode(`Pages/${record.folder}/View/SecurityEvents.tsx`),
-      ).toContain(
-        `<ResourceSecurityEventsPage {...props} kind={SecurityConnectionKind.${record.kind}} />`,
+      ).toMatch(
+        new RegExp(
+          `<ResourceSecurityEventsPage \\{\\.\\.\\.props\\} kind=\\{SecurityConnectionKind\\.${record.kind}\\}( />| emptyContent=\\{ ?<ResourceSecurityEventsEmptyState kind=\\{SecurityConnectionKind\\.${record.kind}\\})`,
+        ),
       );
     });
 
@@ -786,13 +880,16 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
       const logs: number = menu.indexOf(
         `RouteMap[PageMap.${record.prefix}_LOGS] as Route`,
       );
-      const entry: number = menu.indexOf(`RouteMap[PageMap.${page}] as Route`);
+      // However the formatter breaks a long page name.
+      const entry: number = menu.search(
+        new RegExp(`RouteMap\\[ ?PageMap\\.${page} ?\\] as Route`),
+      );
 
       expect(menu).toContain(
         "const showSecurityEvents: boolean = useResourceSecurityEventsMenu();",
       );
       expect(menu).toContain(
-        '{showSecurityEvents ? ( <SideMenuItem link={{ title: "Security Events",',
+        `{${record.menuGate || "showSecurityEvents"} ? ( <SideMenuItem link={{ title: "Security Events",`,
       );
       expect(logs).toBeGreaterThan(-1);
       expect(entry).toBeGreaterThan(logs);
@@ -801,11 +898,17 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
     });
 
     test("Search finds it under its menu's section, and it needs Security Events", () => {
-      expect(
-        readCode("Components/CommandPalette/RecordPageSearchIndex.ts"),
-      ).toContain(
-        `page: PageMap.${page}, section: "${record.section}", title: "Security Events",`,
+      const index: string = readCode(
+        "Components/CommandPalette/RecordPageSearchIndex.ts",
       );
+
+      if (record.isNotInSearch) {
+        expect(index).not.toContain(`page: PageMap.${page},`);
+      } else {
+        expect(index).toContain(
+          `page: PageMap.${page}, section: "${record.section}", title: "Security Events",`,
+        );
+      }
       expect(readCode("Utils/ProjectProducts/ProductOfRoute.ts")).toContain(
         `[PageMap.${page}]: ProductKey.SecurityEvents,`,
       );
@@ -822,23 +925,24 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
     });
   });
 
-  test("a cloud resource and a serverless function have no page of their own", () => {
-    const pageMap: string = readCode("Utils/PageMap.ts");
-    const model: string = readCode(
-      "Components/SecurityConnections/SecurityConnectionsModel.ts",
-    );
-    const pages: string = model.slice(
-      model.indexOf("export const RECORD_SECURITY_EVENTS_PAGES"),
-      model.indexOf(
-        "};",
-        model.indexOf("export const RECORD_SECURITY_EVENTS_PAGES"),
-      ),
-    );
+  test("a cloud resource's layout tells its menu whether an event can reach it, by the rule its page keeps", () => {
+    const layout: string = readCode("Pages/Cloud/View/Layout.tsx");
+    const page: string = readCode("Pages/Cloud/View/SecurityEvents.tsx");
 
-    expect(pageMap).not.toContain("CLOUD_RESOURCE_VIEW_SECURITY_EVENTS");
-    expect(pageMap).not.toContain("SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS");
-    expect(pages).not.toContain("SecurityConnectionKind.CloudResource]");
-    expect(pages).not.toContain("SecurityConnectionKind.ServerlessFunction]");
+    expect(layout).toContain(
+      "setHasSecurityEvents( canCloudResourceHaveSecurityEvents({ provider: item?.cloudProvider, type: item?.cloudResourceType, providerResourceId: item?.providerResourceId, cloudEndpoints: item?.cloudEndpoints, }), );",
+    );
+    expect(layout).toContain("hasSecurityEvents={hasSecurityEvents}");
+    // Opened by its address, the page says why rather than drawing an empty explorer.
+    expect(page).toContain(
+      "!canCloudResourceHaveSecurityEvents({ provider: resource.cloudProvider, type: resource.cloudResourceType, providerResourceId: resource.providerResourceId, cloudEndpoints: resource.cloudEndpoints, })",
+    );
+  });
+
+  test("a cloud resource's page is one of its view's pages", () => {
+    expect(readCode("Utils/CloudResourceViewPages.ts")).toContain(
+      "[CloudResourceViewTab.SecurityEvents]: PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,",
+    );
   });
 });
 

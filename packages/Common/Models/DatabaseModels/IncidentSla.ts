@@ -14,6 +14,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -283,6 +284,7 @@ export default class IncidentSla extends BaseModel {
     canReadOnRelationQuery: true,
     title: "SLA Rule ID",
     description: "ID of the SLA rule that was applied to this incident",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -321,6 +323,7 @@ export default class IncidentSla extends BaseModel {
     title: "Response Deadline",
     description:
       "The deadline by which the incident must be acknowledged to meet the SLA",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -356,6 +359,7 @@ export default class IncidentSla extends BaseModel {
     title: "Resolution Deadline",
     description:
       "The deadline by which the incident must be resolved to meet the SLA",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -396,6 +400,7 @@ export default class IncidentSla extends BaseModel {
     description: "Current SLA status (On Track, At Risk, Breached, Met)",
     defaultValue: IncidentSlaStatus.OnTrack,
     isDefaultValueColumn: true,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -433,6 +438,7 @@ export default class IncidentSla extends BaseModel {
     required: false,
     title: "Responded At",
     description: "The actual time when the incident was acknowledged",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -467,6 +473,7 @@ export default class IncidentSla extends BaseModel {
     required: false,
     title: "Resolved At",
     description: "The actual time when the incident was resolved",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -503,6 +510,7 @@ export default class IncidentSla extends BaseModel {
     required: false,
     title: "Last Internal Note Reminder Sent At",
     description: "The last time an internal note reminder was sent",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -537,6 +545,7 @@ export default class IncidentSla extends BaseModel {
     required: false,
     title: "Last Public Note Reminder Sent At",
     description: "The last time a public note reminder was sent",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -572,6 +581,7 @@ export default class IncidentSla extends BaseModel {
     title: "Breach Notification Sent At",
     description:
       "The time when breach notification was sent to incident owners",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -606,6 +616,7 @@ export default class IncidentSla extends BaseModel {
     title: "SLA Started At",
     description:
       "The time when SLA tracking started (usually the incident declaredAt time)",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,

@@ -47,7 +47,7 @@ Under **Berørte ressourcer** vælger du **Monitorer**, **Skift monitorstatus ti
 
 ### Beslut, om den gentages
 
-Under **Tilbagevendende** lader du **Tilbagevendende begivenhed** være slået fra for en skabelon, du bruger manuelt, eller slår den til og udfylder dens tidsplan. Klik på **Næste** for at gennemgå oversigten, og opret derefter skabelonen.
+Under **Tilbagevendende** lader du **Tilbagevendende begivenhed** være slået fra for en skabelon, du bruger manuelt, eller slår den til, vælger, hvor ofte den gentages, og dens **Tidszone**, og angiver den første begivenheds tidspunkter under **Første begivenhed**. Klik på **Næste** for at gennemgå oversigten, og opret derefter skabelonen.
 :::
 
 En skabelon spørger om **Skift monitorstatus til**, selv når den ikke nævner nogen monitorer: statussen gælder også de monitorer, du tilføjer, når du planlægger en begivenhed ud fra den. Under **Andre berørte ressourcer** tager en skabelon værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester.
@@ -83,15 +83,18 @@ Når projektet endnu ikke har nogen skabelon, siger **Opret fra skabelon** det o
 
 ## Tilbagevendende begivenheder
 
-En tilbagevendende skabelon opretter begivenheden efter en tidsplan. Du angiver, hvornår den første begivenhed oprettes, hvornår den starter, og hvornår den slutter; hver senere begivenhed holder de samme afstande, ét interval senere.
+En tilbagevendende skabelon opretter begivenheden efter en tidsplan. Du angiver, hvor ofte den gentages, hvilken tidszone den holder sig til, og hvornår den første begivenhed oprettes, hvornår den starter, og hvornår den slutter; hver senere begivenhed er den første flyttet hele intervaller frem i den tidszones kalender, på de samme klokkeslæt.
 
 | Felt                                                           | Hvad det betyder                                                                                      |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | **Tilbagevendende begivenhed**                                 | Slår tidsplanen til.                                                                                  |
+| **Hvor ofte vil du have, at denne begivenhed skal gentages?**  | Et tal og en enhed: timer, dage, uger, måneder eller år.                                              |
+| **Tidszone**                             | Den tidszone, begivenhederne holder deres klokkeslæt i. En ny skabelon starter med din.             |
 | **Første begivenhed planlagt til**                             | Hvornår OneUptime opretter den første begivenhed, og dermed hvornår dens abonnenter får at vide, at den er planlagt. |
 | **Første begivenhed starter kl.**                              | Hvornår den første begivenhed starter.                                                                |
 | **Første begivenhed slutter kl.**                              | Hvornår den første begivenhed slutter.                                                                |
-| **Hvor ofte vil du have, at denne begivenhed skal gentages?**  | Et tal og en enhed: timer, dage, uger, måneder eller år.                                              |
+
+De første tre står i trinnet **Tilbagevendende**. Den første begivenheds tidspunkter står i trinnet **Første begivenhed**, som vises, når **Tilbagevendende begivenhed** er slået til.
 
 For eksempel et ugentligt vindue, hvor den første begivenhed oprettes en mandag til lørdagen efter:
 
@@ -100,15 +103,25 @@ For eksempel et ugentligt vindue, hvor den første begivenhed oprettes en mandag
 | Den første   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Den anden    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Hver begivenhed holder den første begivenheds klokkeslæt i skabelonens tidszone, også når uret stilles om til sommertid eller vintertid: et vindue fra 02:00 til 04:00 i Berlin ligger dér fra 02:00 til 04:00 både om sommeren og om vinteren. Nogle dage falder sådan ud:
+
+- **En dag, som måneden ikke har.** En månedlig begivenhed den 29., 30. eller 31. ligger på den sidste dag i en kortere måned, for eksempel 30. april eller 28. februar, og igen på sin egen dag i de måneder, der har den. En årlig begivenhed den 29. februar ligger den 28. februar i andre år.
+- **Natten, hvor uret stilles frem.** Et tidspunkt, der ikke findes den nat, for eksempel 02:30, når 02:00 springer til 03:00, rykker frem med springet, til 03:30. En begivenhed, hvis start derved rykker forbi dens slutning, beholder den første begivenheds længde.
+- **Natten, hvor uret stilles tilbage.** Et tidspunkt, der forekommer to gange den nat, for eksempel 01:30 i New York, er det første af de to.
+- **Med få timers mellemrum.** Timer tælles, efterhånden som de går, så en skabelon, der gentages med få timers mellemrum, rykker en time på uret, når det stilles om.
+- **En tidszone uden sommertid.** En tidszone, der ikke længere stiller uret om, for eksempel British Columbias (America/Vancouver) siden november 2026, holder den samme forskel til UTC, så intet flytter sig.
+
+En skabelon, der blev oprettet, før skabeloner havde en tidszone, viser **UTC**, den tidszone, dens begivenheder blev beregnet i indtil da. Vælg den tidszone, dens tidspunkter var ment i, så holder hver begivenhed fra dens næste begivenhed den første begivenheds klokkeslæt dér.
+
 Sæt **Første begivenhed planlagt til** så langt før starten, som du vil have, at dine kunder hører om arbejdet. Alle tre tidspunkter skal ligge i fremtiden, når du opretter skabelonen, begivenheden skal oprettes, før den starter og slutter, og den skal starte, før den slutter; formularen siger, hvilken regel et tidspunkt bryder.
 
-Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons næste tidspunkt kommer, flytter det tidspunktet ét interval frem og opretter begivenheden. Skabelonlisten viser det tidspunkt i sin kolonne **Tilbagevendende begivenhed**, og **Nej** for en skabelon, der ikke gentages. En begivenhed, der er oprettet ud fra tidsplanen, er som enhver anden: dens regler kører, dens ejere tilføjes, og dens abonnenter får at vide, at den er planlagt.
+Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons næste tidspunkt kommer, opretter det begivenheden og flytter tidspunktet frem til tidsplanens næste begivenhed. Skabelonlisten viser det tidspunkt i sin kolonne **Tilbagevendende begivenhed**, og **Nej** for en skabelon, der ikke gentages. En begivenhed, der er oprettet ud fra tidsplanen, er som enhver anden: dens regler kører, dens ejere tilføjes, og dens abonnenter får at vide, at den er planlagt.
 
 ## Ændr eller stop en skabelon
 
 Åbn en skabelon fra listen for at se dens side:
 
-- **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Detaljer om vedligeholdelse**, **Statussider** og **Tilbagevendende**.
+- **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Detaljer om vedligeholdelse**, **Statussider** og **Tilbagevendende** og derefter **Første begivenhed** for en skabelon, der gentages.
 - **Berørte ressourcer** rummer dens **Monitorer**, deres **Skift monitorstatus til** og dens **Andre berørte ressourcer**, med sin egen **Rediger**.
 - **Ejere** viser de personer og teams, der ejer hver begivenhed, der planlægges ud fra den.
 
@@ -122,6 +135,10 @@ Alle tre første tidspunkter skal ligge efter nu, når du opretter den. Flyt dem
 
 :::details En tilbagevendende skabelon oprettede ingen begivenhed
 Kontrollér, at **Tilbagevendende begivenhed** stadig er slået til, og se på tidspunktet i listens kolonne **Tilbagevendende begivenhed**: begivenheden oprettes på det tidspunkt, ikke ved sin start. Jobbet kører hvert minut, så giv det et minut.
+:::
+
+:::details Begivenheder fra en tilbagevendende skabelon ligger en time for tidligt eller for sent, efter at uret er stillet om
+Åbn skabelonen, og kontrollér dens **Tidszone**: dens begivenheder holder den første begivenheds klokkeslæt i den tidszone. En skabelon, der blev oprettet, før skabeloner havde en tidszone, viser **UTC**: vælg den tidszone, dens tidspunkter var ment i. Begivenheder, der allerede er oprettet, beholder deres tidspunkter.
 :::
 
 :::details En begivenhed fra en skabelon mangler en ressource, jeg valgte

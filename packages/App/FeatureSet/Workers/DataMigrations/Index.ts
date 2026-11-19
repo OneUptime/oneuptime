@@ -129,6 +129,7 @@ import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
 import MoveMonitorsOffRetiredCloudMetrics from "./MoveMonitorsOffRetiredCloudMetrics";
+import MoveChartsAndSlosOffRetiredCloudMetrics from "./MoveChartsAndSlosOffRetiredCloudMetrics";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
@@ -143,6 +144,8 @@ import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
+import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
+import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -1498,6 +1501,40 @@ const DataMigrations: Array<DataMigrationBase> = [
    * slot just before the last one AddAuditLogMcpClientColumns keeps.
    */
   new MoveMonitorsOffRetiredCloudMetrics(),
+  /*
+   * Moves the dashboard widgets and SLOs that read one of the same two
+   * metrics as MoveMonitorsOffRetiredCloudMetrics moves monitors (#9980):
+   * a Cosmos DB account's latency by what it reported, Pub/Sub's thresholds
+   * 60 times what they were. One it cannot move stays, read for what still
+   * reads it, and is moved again every hour (MoveOffRetiredCloudMetrics).
+   * Postgres and the metric store's reads only, idempotent, a page at a
+   * time by id; after the monitors' move, before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveChartsAndSlosOffRetiredCloudMetrics(),
+  /*
+   * Records when this server was upgraded to on-call links that carry the
+   * page's own token (#10025): it changes no data, and its row says when.
+   * A link without a token acknowledges a page sent before that, for a week
+   * after it was sent (OnCallAcknowledgeLink). Independent of the moves
+   * before it; before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new RequireTokenToAcknowledgeOnCallPages(),
+  /*
+   * Keeps every Metrics monitor over a device management connection's
+   * check-ins reading the Android devices it read when it was made
+   * (oneuptime.managed_device.platform = "android"), now that an Esper
+   * connection imports its Apple devices too (#9837): an iPad checks in
+   * hours apart, and would open an alert within the hour. Postgres only,
+   * idempotent, a page of monitors at a time by id; independent of the ones
+   * before it, before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new KeepManagedDeviceCheckInMonitorsOnAndroid(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

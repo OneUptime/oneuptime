@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Project.publishTelemetryUsageMetrics): a column with a constant default,
  * which Postgres adds without rewriting the table.
  */
-export class AddTelemetryIngestionTeamLabelBudgets1809186705386
+export class AddTelemetryIngestionTeamLabelBudgets1809186905386
   implements MigrationInterface
 {
-  public name: string = "AddTelemetryIngestionTeamLabelBudgets1809186705386";
+  public name: string = "AddTelemetryIngestionTeamLabelBudgets1809186905386";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

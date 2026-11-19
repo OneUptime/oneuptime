@@ -26,6 +26,11 @@ import {
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import {
+  PUBSUB_PUBLISH_OPERATIONS_METRIC,
+  RetiredCloudMetric,
+} from "../../../../Utils/Metrics/RetiredCloudMetricMoves";
+import { getRetiredCloudMetricReads } from "../../../../Utils/Metrics/RetiredCloudMetricReads";
+import {
   AzureTypeKeyMetrics,
   getAzureKeyMetrics,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
@@ -1844,6 +1849,152 @@ describe("a deprecated metric no longer read", () => {
     expect(getAzureKeyMetricsFingerprint(cosmos)).not.toBe(
       getAzureKeyMetricsFingerprint(withRetired),
     );
+  });
+});
+
+/*
+ * #9739's gap: a monitor the move left on ServerSideLatency - an account
+ * that reported neither latency when the migration ran - keeps it read, of
+ * that account alone, until it is moved (RetiredCloudMetricReads): the
+ * read hands it to the connector as an added metric of its own.
+ */
+describe("a deprecated metric a monitor still reads", () => {
+  const COSMOS: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.DocumentDB/databaseAccounts/orders`;
+  const COSMOS_2: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.DocumentDB/databaseAccounts/carts`;
+  const COSMOS_TYPE: string = "Microsoft.DocumentDB/databaseAccounts";
+  const STILL_PUBLISHED: Array<JSONObject> = [
+    definition("ServerSideLatency", "Average", ["PT1M"], "MilliSeconds"),
+    definition("ServerSideLatencyGateway", "Average", ["PT1M"], "MilliSeconds"),
+  ];
+
+  function twoAccounts(definitions: Array<JSONObject>): FakeAzure {
+    return createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(COSMOS, COSMOS_TYPE, "orders"),
+          resource(COSMOS_2, COSMOS_TYPE, "carts"),
+        ],
+      },
+      definitions: { [COSMOS]: definitions, [COSMOS_2]: definitions },
+      refuseUnpublished: true,
+    });
+  }
+
+  function readsOf(attributes: unknown): Array<CloudAddedMetric> {
+    return getRetiredCloudMetricReads([
+      {
+        metric: RetiredCloudMetric.CosmosServerSideLatency,
+        metricVariable: "a",
+        metricName: "azure_serversidelatency_average",
+        attributes,
+      },
+      // Another cloud's read is never Azure's to ask.
+      {
+        metric: RetiredCloudMetric.PubSubPublishOperations,
+        metricVariable: "b",
+        metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        attributes: {},
+      },
+    ]);
+  }
+
+  test("is asked of the account its monitor reads, in that account's own minute call, and stored as before", async () => {
+    const fake: FakeAzure = twoAccounts(STILL_PUBLISHED);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: readsOf({ "azuremonitor.resource_id": COSMOS }),
+        },
+      ),
+    );
+
+    expect(metricNamesAsked(fake, COSMOS)).toEqual([
+      "ServerSideLatencyGateway,ServerSideLatency",
+    ]);
+    expect(metricNamesAsked(fake, COSMOS_2)).toEqual([
+      "ServerSideLatencyGateway",
+    ]);
+    expect(writtenNamesOf(result, COSMOS)).toContain(
+      "azure_serversidelatency_average",
+    );
+    expect(writtenNamesOf(result, COSMOS_2)).not.toContain(
+      "azure_serversidelatency_average",
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("is asked of every account for a monitor of every account", async () => {
+    const fake: FakeAzure = twoAccounts(STILL_PUBLISHED);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: readsOf({}) }),
+    );
+
+    for (const account of [COSMOS, COSMOS_2]) {
+      expect(metricNamesAsked(fake, account)).toEqual([
+        "ServerSideLatencyGateway,ServerSideLatency",
+      ]);
+      expect(writtenNamesOf(result, account)).toContain(
+        "azure_serversidelatency_average",
+      );
+    }
+  });
+
+  test("once Microsoft stops publishing it, the account's latency is still read: the refused call is made again without it", async () => {
+    const fake: FakeAzure = twoAccounts([
+      definition(
+        "ServerSideLatencyGateway",
+        "Average",
+        ["PT1M"],
+        "MilliSeconds",
+      ),
+    ]);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: readsOf({ "azuremonitor.resource_id": COSMOS }),
+        },
+      ),
+    );
+
+    expect(metricNamesAsked(fake, COSMOS)).toEqual([
+      "ServerSideLatencyGateway,ServerSideLatency",
+      "ServerSideLatencyGateway",
+    ]);
+    expect(writtenNamesOf(result, COSMOS)).toEqual([
+      "azure_serversidelatencygateway_average",
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a type's read its accounts no longer publish is never asked", async () => {
+    const fake: FakeAzure = twoAccounts([
+      definition(
+        "ServerSideLatencyGateway",
+        "Average",
+        ["PT1M"],
+        "MilliSeconds",
+      ),
+    ]);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: readsOf(undefined) }),
+    );
+
+    expect(metricNamesAsked(fake, COSMOS)).toEqual([
+      "ServerSideLatencyGateway",
+    ]);
+    expect(result.warnings).toEqual([]);
   });
 });
 

@@ -15,14 +15,19 @@ import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ManagedDeviceStatusPill from "./ManagedDeviceStatusPill";
+import {
+  MANAGED_DEVICE_PLATFORM_OPTIONS,
+  getManagedDeviceOperatingSystemLine,
+} from "./DeviceManagementWords";
 
 /*
- * Every Android device the project's Esper connections enroll, one row
- * each: whether it is there (online, or offline and since when, being set
- * up, disabled, removed), its group, its model and its Android version and
- * patch level. Filter by any of them - a group, a model, a patch level -
- * and open a device to see its Inventory page: its apps, its card from
- * Esper and what its apps or agent send.
+ * Every device the project's connections enroll - Android phones and
+ * kiosks, iPhones, iPads and Apple TVs - one row each: whether it is there
+ * (online, or offline and since when, being set up, disabled, removed),
+ * its group, its model and what it runs, with an Android device's patch
+ * level. Filter by any of them - a group, a model, what it runs - and open
+ * a device to see its Inventory page: its apps, its card from its service
+ * and what its apps or agent send.
  */
 
 export interface ComponentProps {
@@ -52,6 +57,9 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
         groupPath: true,
         securityPatchLevel: true,
         inventoryItemId: true,
+        platform: true,
+        details: true,
+        connection: { provider: true },
       }}
       isDeleteable={false}
       isEditable={false}
@@ -76,9 +84,9 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
       cardProps={{
         title: "Devices",
         description:
-          "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.",
+          "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.",
       }}
-      noItemsMessage="No managed devices yet. They appear a minute after you connect Esper."
+      noItemsMessage="No managed devices yet. They appear a minute after you connect a device manager."
       filters={[
         {
           field: { groupName: true },
@@ -91,9 +99,15 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
           title: "Model (hardware model)",
         },
         {
+          field: { platform: true },
+          type: FieldType.Dropdown,
+          title: "Platform",
+          filterDropdownOptions: MANAGED_DEVICE_PLATFORM_OPTIONS,
+        },
+        {
           field: { osVersion: true },
           type: FieldType.Text,
-          title: "Android Version",
+          title: "OS Version",
         },
         {
           field: { securityPatchLevel: true },
@@ -150,6 +164,8 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
                 providerState={item.providerState}
                 lastCheckInAt={item.lastCheckInAt}
                 removedAt={item.removedAt}
+                provider={item.connection?.provider}
+                platform={item.platform}
                 now={now}
                 showAge={true}
               />
@@ -191,17 +207,20 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { osVersion: true },
-          title: "Android",
+          title: "OS",
           type: FieldType.Element,
           hideOnMobile: true,
+          getLineText: drawsItsOwnLines,
           getElement: (item: ManagedDevice): ReactElement => {
-            if (!item.osVersion) {
+            const system: string = getManagedDeviceOperatingSystemLine(item);
+
+            if (!system) {
               return <TableEmptyValue />;
             }
 
             return (
               <div className="min-w-0">
-                <div className="text-sm text-gray-900">{item.osVersion}</div>
+                <IsolatedLine text={system} className="text-sm text-gray-900" />
                 {item.securityPatchLevel ? (
                   <div className="text-xs text-gray-500">
                     {translator.translateTemplate("Patch {{level}}", {

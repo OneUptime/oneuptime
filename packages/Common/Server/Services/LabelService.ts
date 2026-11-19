@@ -26,6 +26,7 @@ import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineSer
 import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
 import StatusPageMonitorRule from "../../Models/DatabaseModels/StatusPageMonitorRule";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import { pickColorForName } from "../../Utils/DistinctColor";
@@ -146,7 +147,10 @@ export class Service extends DatabaseService<Model> {
     ).toNumber();
 
     if (existingProjectWithSameNameCount > 0) {
-      throw new BadDataException(getLabelNameTakenRefusal(createBy.data.name));
+      // With its code beside its words: nothing was written (#9855).
+      throw new NameTakenException(
+        getLabelNameTakenRefusal(createBy.data.name),
+      );
     }
 
     return Promise.resolve({ createBy, carryForward: null });

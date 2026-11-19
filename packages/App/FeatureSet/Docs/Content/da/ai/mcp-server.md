@@ -343,6 +343,18 @@ Værktøjet **`get_data_table_lineage`** fortæller en agent, hvad en overvåget
 
 Værktøjet **`oneuptime_move_in_list`** flytter en række i en ordnet liste, for eksempel en alvorsgrad, en hændelsestilstand eller en monitorstatus, til en anden rækkes plads, ligesom når du trækker den i dashboardet: rækkerne imellem rykker én plads, og det svarer med hver række, hvis nummer ændrede sig. Angiv `resource` (for eksempel `Incident Severity`), rækkens `id` og `placeOfId`, id'et på den række, hvis plads den tager. Skriver du en rækkes nummer med dens `update_`-værktøj, placeres kun den række, ved siden af en række, der allerede har det nummer.
 
+## Værktøjer til at sætte ting op
+
+Serveren har også Spørg AI's opsætningshandlinger, ét kald hver: det, du sætter op, i stedet for én post ad gangen. Hver opretter de poster, som Spørg AI og de guidede opsætninger opretter for de samme svar, med de samme tjek:
+
+- **`set_up_website_monitoring`**: en monitor for et website eller en API på en adresse, som åbner en hændelse, når adressen ikke svarer eller svarer med en fejl. Den er din, og en adresse, som en monitor allerede tjekker, får ikke en anden
+- **`set_up_paging`**: i et projekt, der endnu ikke tilkalder nogen, dets første vagtpolitik, som tilkalder dig og de personer og teams, du nævner, ved hver ny hændelse og hver ny advarsel
+- **`publish_status_page`**: en offentlig statusside, der viser de monitorer, du nævner
+- **`add_monitors_to_status_page`**: monitorer sat på en statusside, som projektet har
+- **`who_is_told`**: hvem der får besked, når en monitor er nede, og hvad der ville forhindre, at nogen bliver nået. Den ændrer intet
+
+De handler som dig, logget ind med OAuth: en API-nøgle til et projekt kan ikke bruge de fire, der opretter noget. Din klient spørger dig før hver af dem, og dens svar siger, hvad der blev oprettet. Det, der mangler, for eksempel en tilladelse, en adresse eller plads i abonnementet, siges, før noget oprettes.
+
 ## Forespørgsel på telemetri
 
 Logs, metrikker, spor (spans), undtagelser, monitorlogs og de andre slags telemetri findes som skrivebeskyttede værktøjer `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og deres `count_`-modstykker). Telemetri kommer ind gennem OpenTelemetry, så der er ingen oprettelsesværktøjer.

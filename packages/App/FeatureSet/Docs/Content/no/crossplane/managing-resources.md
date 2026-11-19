@@ -32,7 +32,7 @@ Feltene til en ressurstype er Terraform-ressursens argumenter, i camelCase, unde
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` viser posten slik OneUptime har den, med `id`-en dens. Et felt du utelater, men som OneUptime fyller ut, for eksempel en standardverdi, kopieres inn i `spec.forProvider` etter at posten er opprettet, slik at neste sjekk ikke finner noe å endre.
+`status.atProvider` viser posten slik OneUptime har den, med `id`-en dens. Et felt du utelater, men som OneUptime fyller ut, for eksempel en standardverdi, kopieres inn i `spec.forProvider` etter at posten er opprettet, slik at neste sjekk ikke finner noe å endre. Et felt som OneUptime selv holder oppdatert, kopieres aldri inn: se [Felt som OneUptime holder oppdatert](#felt-som-oneuptime-holder-oppdatert).
 
 ## Referer til andre ressurser
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-For å la dashbordet bestemme over et felt etter at posten er opprettet, skriver du det i `spec.initProvider` i stedet for `spec.forProvider`: det brukes til å opprette posten og settes aldri tilbake. For å la dashbordet bestemme over hele posten utelater du `Update` fra administrasjonspolicyene dens: `["Observe", "Create", "Delete", "LateInitialize"]`.
+For å la dashbordet bestemme over et felt etter at posten er opprettet, skriver du det i `spec.initProvider` i stedet for `spec.forProvider`: posten opprettes med det, og provideren kopierer det aldri inn i `spec.forProvider` eller setter det tilbake. Dette fungerer for alle valgfrie felt; et felt som posten må ha, for eksempel `name` til en monitor, hører hjemme i `spec.forProvider`. For å la dashbordet bestemme over hele posten utelater du `Update` fra administrasjonspolicyene dens: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Felt som OneUptime holder oppdatert
+
+Noen felt holder OneUptime selv oppdatert, og provideren overlater dem til OneUptime: den kopierer dem aldri inn i `spec.forProvider` og setter dem aldri tilbake.
+
+- Et felt som bare OneUptime skriver, for eksempel når en telemetrimonitor sist kjørte (`telemetryMonitorLastMonitorAt`) eller hvor mange noder en Kubernetes-klynge har (`nodeCount`), står bare i `status.atProvider`.
+- Et felt som en post starter med, for eksempel `currentMonitorStatusId` til en monitor eller `currentIncidentStateId` til en hendelse, kan oppgis når posten opprettes, i `spec.initProvider` eller `spec.forProvider`. Deretter endrer OneUptime verdien, slik sjekkene til en monitor endrer statusen dens, og `status.atProvider` viser hvor den står nå.
+
+`kubectl explain` sier dette i beskrivelsen av hvert felt en post starter med. En ressurs der en tidligere versjon av provideren har fylt `spec.forProvider` med disse feltene, slutter av seg selv å kjempe mot OneUptime, uten at du trenger å redigere noe.
 
 ## Slett en ressurs
 

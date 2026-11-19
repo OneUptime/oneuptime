@@ -32,6 +32,7 @@ import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperD
 import {
   ResourceDataSecurityMenu,
   useResourceDataSecurityMenu,
+  useResourceSecurityEventsMenu,
 } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
@@ -51,6 +52,13 @@ export interface ComponentProps {
    * role's would only ever say there are none.
    */
   hasRecommendations?: boolean | undefined;
+  /*
+   * A resource an event can reach: one its cloud's audit log names by its
+   * own ID, with logs of its own, or answering on a name or address of its
+   * own (canCloudResourceHaveSecurityEvents). Its menu has Security
+   * Events, after Logs.
+   */
+  hasSecurityEvents?: boolean | undefined;
 }
 
 /*
@@ -66,6 +74,8 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  // Security Events inside the resource (#9779).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
   const dataSecurityMenu: ResourceDataSecurityMenu | null =
     useResourceDataSecurityMenu({
       kind: DataStoreResourceKind.CloudResource,
@@ -189,6 +199,26 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
               ),
             }}
             icon={IconProp.Terminal}
+          />
+        ) : (
+          <></>
+        )}
+        {/*
+         * The security events about this resource (#9779): what its
+         * cloud's audit log names it in, and what was read from its own
+         * logs. Only in a project that uses Security Events, for whoever may
+         * read them, and for a resource an event can reach at all.
+         */}
+        {showSecurityEvents && props.hasSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
           />
         ) : (
           <></>

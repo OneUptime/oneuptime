@@ -21,6 +21,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -379,6 +380,7 @@ export default class Host extends BaseModel {
     description:
       "Connection status of the OTel Collector reporting on this host (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -414,6 +416,7 @@ export default class Host extends BaseModel {
     description:
       "Version of the OneUptime agent reporting telemetry on this host, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -446,6 +449,7 @@ export default class Host extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When telemetry was last received from this host",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -478,6 +482,7 @@ export default class Host extends BaseModel {
     title: "OS Type",
     description: "Operating system type of the host",
     example: "linux",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -511,6 +516,7 @@ export default class Host extends BaseModel {
     title: "OS Version",
     description: "Operating system version of the host",
     example: "Ubuntu 22.04",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -545,6 +551,7 @@ export default class Host extends BaseModel {
     description:
       "Stable host identifier reported by the OTel host.id resource attribute",
     example: "ec2-instance-id-or-machine-id",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -578,6 +585,7 @@ export default class Host extends BaseModel {
     title: "Host Architecture",
     description: "CPU architecture from the OTel host.arch resource attribute",
     example: "amd64",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -612,6 +620,7 @@ export default class Host extends BaseModel {
     description:
       "Cloud-instance class reported by the OTel host.type resource attribute",
     example: "t3.medium",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -655,6 +664,7 @@ export default class Host extends BaseModel {
     description:
       "Comma-separated list of every IP address reported by the OTel host.ip resource attribute, in the order the collector reported them, deduplicated. The Hosts list shows the most routable one (IPv4, non-loopback, non-link-local) first; the host detail page groups them all by category.",
     example: "192.168.1.42, 10.0.0.5",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -687,6 +697,7 @@ export default class Host extends BaseModel {
     title: "CPU Cores",
     description:
       "Logical CPU core count, sourced from system.cpu.logical.count metric",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -719,6 +730,7 @@ export default class Host extends BaseModel {
     title: "Total Memory (Bytes)",
     description:
       "Total physical memory in bytes, sourced from system.memory.usage metric (sum of all states).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigNumber,
@@ -764,6 +776,7 @@ export default class Host extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Process Count",
     description: "Most recent process count from system.processes.count metric",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -797,6 +810,7 @@ export default class Host extends BaseModel {
     description:
       "Container runtime detected on this host, if any (e.g. docker, containerd)",
     example: "docker",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -1065,6 +1079,7 @@ export default class Host extends BaseModel {
     title: "OpenStack Cloud ID",
     description:
       "Optional FK to the OpenStack cloud this host belongs to, as a hypervisor or as a guest.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -2351,6 +2366,7 @@ export default class Host extends BaseModel {
     title: "Failed Collector Config Hash",
     description:
       "The SHA-256 of a config that did not start on this host, which OneUptime does not send it again until the config changes. Clear it to try that config again.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,

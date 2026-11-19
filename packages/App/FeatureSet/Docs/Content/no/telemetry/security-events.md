@@ -218,6 +218,7 @@ En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet 
 - Hver oppføring leses slik **Loggene dine** leser den fra en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- og Azure-regler treffer den.
 - En hendelse får tidspunktet da den lagres, med oppføringens egen tid i `oneuptime.cloud.record_time`: En revisjonslogg når OneUptime minutter for sent, og en regel leser hendelser etter tiden deres.
 - Kontoens egen lesing gir ikke mer: datahendelser, Data Access-logger og loggene til Microsoft Entra ID trenger fortsatt **Loggene dine** eller en [tilkobling](/docs/integrations/microsoft-entra-id).
+- Hver hendelse nevner skyressursene posten gjelder, ved deres egne ID-er - en ARN, en Azure-ressurs-ID, et ressursnavn fra Google Cloud - så den vises på siden **Sikkerhetshendelser** til hver av dem, og på siden til en serverløs funksjon så snart telemetrien dens setter `cloud.account.id` og `cloud.region`.
 
 ### Koble til et sikkerhetsprodukt
 

@@ -39,6 +39,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import Recurring from "../../Types/Events/Recurring";
+import Timezone from "../../Types/Timezone";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
@@ -1217,6 +1218,60 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     transformer: Recurring.getDatabaseTransformer(),
   })
   public recurringInterval?: Recurring = undefined;
+
+  /*
+   * The clock the schedule is read on (MaintenanceTemplateSchedule): every
+   * event is the first one moved on whole days, weeks, months or years of
+   * this zone's calendar, so a 02:00 window stays at 02:00 there when the
+   * clocks change. Templates saved before they had one read UTC, the clock
+   * their events were stepped on until then (migration
+   * AddScheduledMaintenanceTemplateTimezone).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    title: "Timezone",
+    description:
+      "The IANA time zone the recurring schedule is read in, such as Europe/Berlin or America/New_York. Every event keeps the first event's time of day there, also after the clocks change for daylight saving time, and a monthly event keeps its day of the month. Left out when the template is created, it is the time zone in the creator's profile, or UTC when no person creates it (an API key or a workflow). Templates created before templates had a time zone are read in UTC.",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    example: "Europe/Berlin",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: false,
+    default: Timezone.UTC,
+  })
+  public timezone?: Timezone = undefined;
 
   @ColumnAccessControl({
     create: [

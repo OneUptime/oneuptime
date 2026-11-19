@@ -32,7 +32,7 @@ Die Felder eines Ressourcentyps sind die Argumente der Terraform-Ressource, in c
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` zeigt den Datensatz so, wie OneUptime ihn hat, mit seiner `id`. Ein Feld, das Sie weglassen und das OneUptime ausfüllt, etwa mit einem Standardwert, wird nach dem Anlegen des Datensatzes in `spec.forProvider` übernommen, damit die nächste Prüfung nichts zu ändern findet.
+`status.atProvider` zeigt den Datensatz so, wie OneUptime ihn hat, mit seiner `id`. Ein Feld, das Sie weglassen und das OneUptime ausfüllt, etwa mit einem Standardwert, wird nach dem Anlegen des Datensatzes in `spec.forProvider` übernommen, damit die nächste Prüfung nichts zu ändern findet. Ein Feld, das OneUptime selbst aktuell hält, wird nie übernommen: siehe [Felder, die OneUptime aktuell hält](#felder-die-oneuptime-aktuell-hält).
 
 ## Auf andere Ressourcen verweisen
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-Um ein Feld nach dem Anlegen des Datensatzes dem Dashboard zu überlassen, schreiben Sie es in `spec.initProvider` statt in `spec.forProvider`: Es wird zum Anlegen des Datensatzes verwendet und nie zurückgesetzt. Um den ganzen Datensatz dem Dashboard zu überlassen, lassen Sie `Update` aus den Verwaltungsrichtlinien der Ressource weg: `["Observe", "Create", "Delete", "LateInitialize"]`.
+Um ein Feld nach dem Anlegen des Datensatzes dem Dashboard zu überlassen, schreiben Sie es in `spec.initProvider` statt in `spec.forProvider`: Der Datensatz wird damit angelegt, und der Provider übernimmt es nie in `spec.forProvider` und setzt es nie zurück. Das funktioniert bei jedem optionalen Feld; ein Feld, das der Datensatz braucht, etwa der `name` eines Monitors, gehört in `spec.forProvider`. Um den ganzen Datensatz dem Dashboard zu überlassen, lassen Sie `Update` aus den Verwaltungsrichtlinien der Ressource weg: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Felder, die OneUptime aktuell hält
+
+Manche Felder hält OneUptime selbst aktuell, und der Provider überlässt sie OneUptime: Er übernimmt sie nie in `spec.forProvider` und setzt sie nie zurück.
+
+- Ein Feld, das nur OneUptime schreibt, etwa wann ein Telemetrie-Monitor zuletzt lief (`telemetryMonitorLastMonitorAt`) oder wie viele Knoten ein Kubernetes-Cluster hat (`nodeCount`), steht nur in `status.atProvider`.
+- Ein Feld, mit dessen Wert ein Datensatz beginnt, etwa `currentMonitorStatusId` eines Monitors oder `currentIncidentStateId` eines Vorfalls, kann zum Anlegen des Datensatzes angegeben werden, in `spec.initProvider` oder `spec.forProvider`. Danach ändert OneUptime es, so wie die Prüfungen eines Monitors seinen Status ändern, und `status.atProvider` zeigt, wo es jetzt steht.
+
+`kubectl explain` sagt das in der Beschreibung jedes Felds, mit dessen Wert ein Datensatz beginnt. Eine Ressource, deren `spec.forProvider` eine frühere Version des Providers mit diesen Feldern gefüllt hat, hört von selbst auf, gegen OneUptime anzukämpfen, ohne dass Sie etwas bearbeiten müssen.
 
 ## Eine Ressource löschen
 

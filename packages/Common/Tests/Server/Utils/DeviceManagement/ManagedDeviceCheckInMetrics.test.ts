@@ -23,6 +23,7 @@ import {
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
 } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { EsperDeviceState } from "../../../../Types/DeviceManagement/ManagedDeviceStatus";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
@@ -363,6 +364,7 @@ describe("buildManagedDeviceCheckInRow", () => {
       group: "West",
       ageInMinutes: 75,
       isHost: false,
+      platform: ManagedDevicePlatform.Android,
     },
     asOf: AS_OF,
     retentionDate: OneUptimeDate.addRemoveDurationInDays(AS_OF, 30),
@@ -397,6 +399,15 @@ describe("buildManagedDeviceCheckInRow", () => {
       Object.keys(row["attributes"] as JSONObject).sort(),
     );
     expect(row["attributeKeys"]).toContain("oneuptime.managed_device.is_host");
+  });
+
+  // #9837: what the device runs, so a monitor can read one platform's devices.
+  test("says what the device runs", () => {
+    expect(
+      (row["attributes"] as Dictionary<string>)[
+        "oneuptime.managed_device.platform"
+      ],
+    ).toBe("android");
   });
 
   test("is stamped at the read's end, in ClickHouse's formats", () => {

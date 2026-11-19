@@ -2,6 +2,8 @@ import { ExpressRequest } from "../Express";
 import ProductKey from "../../../Types/Product/ProductKey";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import { WorkspaceChannelRecordType } from "../../../Types/Workspace/WorkspaceChannelLink";
+import { isSetupActionRunOutsideChat } from "../../../Types/AI/AISetupActions";
+import { getToolProducts } from "../AI/Toolbox/ToolProducts";
 
 /*
  * THE PRODUCTS A REQUEST ACTS ON, READ FROM THE REQUEST ALONE (#9489).
@@ -133,5 +135,19 @@ export default class ProductsOfRequest {
   // The table in the path (:ruleType): a rule's, which is its product's.
   public static ruleTable(req: RequestParts): string | null {
     return readText(req.params?.["ruleType"]) || null;
+  }
+
+  /*
+   * The products of the setup action the body names (action, #7241):
+   * Ask AI's own for the same tool (ToolProducts) - a website monitor's
+   * Monitors, paging's On-Call, a status page's Status Pages. An action
+   * that runs nowhere outside the chat names none: its handler refuses it.
+   */
+  public static setupAction(req: RequestParts): Array<ProductKey> {
+    const action: string = readText(readBody(req)["action"]);
+
+    return isSetupActionRunOutsideChat(action)
+      ? [...getToolProducts(action)]
+      : [];
   }
 }

@@ -661,8 +661,16 @@ beforeEach(() => {
       metricsCounted: true,
       monitors: [],
       dashboards: [],
+      slos: [],
+      recordingRules: [],
       monitorsChecked: true,
       dashboardsChecked: true,
+      slosChecked: true,
+      recordingRulesChecked: true,
+      monitorsHidden: 0,
+      dashboardsHidden: 0,
+      slosHidden: 0,
+      recordingRulesHidden: 0,
     });
   ownersSpy = jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")

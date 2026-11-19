@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -235,6 +236,7 @@ export default class NetworkEndpoint extends BaseModel {
     description:
       "Last IP address seen for this endpoint in ARP tables. Managed by the server.",
     example: "10.42.7.31",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

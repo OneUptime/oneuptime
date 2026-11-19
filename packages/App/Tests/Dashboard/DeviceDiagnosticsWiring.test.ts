@@ -274,6 +274,7 @@ describe("the pure view-model", () => {
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
       "../../Types/DataObservability/DataCheckRefusals",
+      "../../Types/Database/UniqueName",
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
@@ -290,6 +291,14 @@ describe("the pure view-model", () => {
           "DataCheckRefusals.ts",
         ),
       ),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
+    /*
+     * And a name another team, label, on-call policy or schedule of the
+     * project has (#9674, #9742): the refusals live beside the rule that
+     * compares names, which imports only the translation helpers as well.
+     */
+    expect(
+      importsOf(readRaw(COMMON_ROOT, "Types", "Database", "UniqueName.ts")),
     ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
     expect(
       importsOf(

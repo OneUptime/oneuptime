@@ -160,26 +160,26 @@ export interface CosmosLatencyEvidence {
   isGatewayOnly?: boolean | undefined;
 }
 
-type UnknownRecord = Record<string, unknown>;
+export type UnknownRecord = Record<string, unknown>;
 
-function asRecord(value: unknown): UnknownRecord | undefined {
+export function asRecord(value: unknown): UnknownRecord | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as UnknownRecord)
     : undefined;
 }
 
-function asArray(value: unknown): Array<unknown> {
+export function asArray(value: unknown): Array<unknown> {
   return Array.isArray(value) ? value : [];
 }
 
 // A query's filterData, the object its metric and aggregation live on.
-function getFilterData(query: unknown): UnknownRecord | undefined {
+export function getFilterData(query: unknown): UnknownRecord | undefined {
   return asRecord(
     asRecord(asRecord(query)?.["metricQueryData"])?.["filterData"],
   );
 }
 
-function getMetricVariable(config: unknown): string | undefined {
+export function getMetricVariable(config: unknown): string | undefined {
   const variable: unknown = asRecord(asRecord(config)?.["metricAliasData"])?.[
     "metricVariable"
   ];
@@ -399,7 +399,7 @@ function getComparingFilters(data: {
 }
 
 // A threshold's number, from what a filter stores: a number, or a numeric text.
-function readThreshold(value: unknown): number | null {
+export function readThreshold(value: unknown): number | null {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
   }
@@ -539,40 +539,119 @@ export function divideFormulaVariable(data: {
   );
 }
 
-// Why a Pub/Sub query of the publish operations stays as it is; null when it moves.
-function getPubSubKeptReason(data: {
-  query: UnknownRecord;
-  filters: Array<UnknownRecord>;
-  formulas: Array<UnknownRecord>;
+/*
+ * ONE READ OF A DEPRECATED METRIC, WHEREVER IT IS STORED.
+ *
+ * A monitor's query, a dashboard chart's, a table's column and an SLO's
+ * metric each hold the metric's name, its filter and the values compared
+ * with it in a shape of their own. Each is read into a RetiredCloudMetricRead
+ * - where its name is written, what it is split by and aggregated with,
+ * its legend's unit, each threshold compared with it and each formula over
+ * it - and moved by one rule (moveRetiredCloudMetricRead), so a chart moves
+ * exactly as a monitor does.
+ */
+
+// Where a value is kept: an object, and its key on it.
+export interface RetiredCloudMetricSlot {
+  holder: UnknownRecord;
+  key: string;
+}
+
+// A value compared with a read's values, in the metric's own unit.
+export interface RetiredCloudMetricThreshold extends RetiredCloudMetricSlot {
+  /*
+   * Whether its value is a threshold of the metric's (a monitor's filter of
+   * a comparing type; every threshold of a chart): only those are scaled.
+   */
+  isThreshold: boolean;
+  // A unit it was entered in, where it can be (a monitor filter's thresholdUnit).
+  unit?: RetiredCloudMetricSlot | undefined;
+}
+
+// A formula over a read's variable.
+export interface RetiredCloudMetricFormula extends RetiredCloudMetricSlot {
+  // The formula's own variable, when it has one.
+  alias: string | undefined;
+}
+
+export interface RetiredCloudMetricRead {
+  metric: RetiredCloudMetric;
   metricVariable: string | undefined;
-}): RetiredCloudMetricKeptReason | null {
-  const filterData: UnknownRecord = getFilterData(data.query)!;
-  const attributeKeys: Array<string> = Object.keys(
-    asRecord(filterData["attributes"]) || {},
-  );
-  const groupBy: Array<unknown> = asArray(
-    asRecord(data.query["metricQueryData"])?.["groupByAttributeKeys"],
-  );
+  metricName: string;
+  // Where its name is written.
+  name: RetiredCloudMetricSlot;
+  // Its filter, as stored.
+  attributes: unknown;
+  // The keys it is split by, as stored: its group-by.
+  splitBy: Array<unknown>;
+  // Its aggregation, as stored.
+  aggregation: unknown;
+  // The unit its legend or column says.
+  legendUnit?: RetiredCloudMetricSlot | undefined;
+  thresholds: Array<RetiredCloudMetricThreshold>;
+  formulas: Array<RetiredCloudMetricFormula>;
+  /*
+   * Words of its filter that name what it is split or filtered by, where
+   * they are not keys of `attributes` (an SLO's filter, written as text).
+   */
+  filterWords?: Array<string> | undefined;
+}
+
+// The read's query, as a Cosmos DB account's evidence is found by.
+export function toRetiredCloudMetricQuery(
+  read: RetiredCloudMetricRead,
+): RetiredCloudMetricQuery {
+  return {
+    metric: read.metric,
+    metricVariable: read.metricVariable,
+    metricName: read.metricName,
+    attributes: read.attributes,
+  };
+}
+
+// Whether a read is split or filtered by a response code, which the replacement has not.
+function readsResponseCode(read: RetiredCloudMetricRead): boolean {
+  const keys: Array<unknown> = [
+    ...Object.keys(asRecord(read.attributes) || {}),
+    ...read.splitBy,
+  ];
 
   if (
-    [...attributeKeys, ...groupBy].some((key: unknown): boolean => {
+    keys.some((key: unknown): boolean => {
       return (
         typeof key === "string" &&
         PUBSUB_RESPONSE_LABELS.has(key.trim().toLowerCase())
       );
     })
   ) {
+    return true;
+  }
+
+  return (read.filterWords || []).some((words: string): boolean => {
+    return Array.from(PUBSUB_RESPONSE_LABELS).some((label: string): boolean => {
+      return new RegExp(`(^|[^a-z0-9_.])${label}([^a-z0-9_]|$)`, "i").test(
+        words,
+      );
+    });
+  });
+}
+
+// Why a Pub/Sub read of the publish operations stays as it is; null when it moves.
+function getPubSubKeptReason(
+  read: RetiredCloudMetricRead,
+): RetiredCloudMetricKeptReason | null {
+  if (readsResponseCode(read)) {
     return RetiredCloudMetricKeptReason.ResponseCode;
   }
 
-  if (filterData["aggegationType"] === AggregationType.Count) {
+  if (read.aggregation === AggregationType.Count) {
     return RetiredCloudMetricKeptReason.PointCount;
   }
 
-  for (const filter of data.filters) {
-    const unit: unknown = asRecord(filter["metricMonitorOptions"])?.[
-      "thresholdUnit"
-    ];
+  for (const threshold of read.thresholds) {
+    const unit: unknown = threshold.unit
+      ? threshold.unit.holder[threshold.unit.key]
+      : undefined;
 
     if (
       typeof unit === "string" &&
@@ -584,21 +663,19 @@ function getPubSubKeptReason(data: {
     }
   }
 
-  if (data.metricVariable) {
-    for (const formula of data.formulas) {
-      const text: unknown = asRecord(formula["metricFormulaData"])?.[
-        "metricFormula"
-      ];
+  if (read.metricVariable) {
+    for (const formula of read.formulas) {
+      const text: unknown = formula.holder[formula.key];
 
       if (typeof text !== "string" || !text.trim()) {
         continue;
       }
 
       if (
-        namesVariable(text, data.metricVariable) &&
+        namesVariable(text, read.metricVariable) &&
         divideFormulaVariable({
           formula: text,
-          variable: data.metricVariable,
+          variable: read.metricVariable,
           factor: PUBSUB_PUBLISH_OPERATIONS_SCALE,
         }) === null
       ) {
@@ -608,6 +685,301 @@ function getPubSubKeptReason(data: {
   }
 
   return null;
+}
+
+function keepRead(
+  read: RetiredCloudMetricRead,
+  reason: RetiredCloudMetricKeptReason,
+): RetiredCloudMetricKept {
+  return {
+    metric: read.metric,
+    metricVariable: read.metricVariable,
+    metricName: read.metricName,
+    reason,
+    replacements: getRetiredCloudMetricReplacements(read.metricName),
+  };
+}
+
+function moveCosmosRead(
+  read: RetiredCloudMetricRead,
+  evidence: CosmosLatencyEvidence | null,
+): { moved?: RetiredCloudMetricMove; kept?: RetiredCloudMetricKept } {
+  const chosen: {
+    mode: CosmosConnectionMode;
+    alsoReported: boolean;
+  } | null = chooseCosmosConnectionMode(evidence);
+  const to: string | null = chosen
+    ? getCosmosLatencyReplacement(read.metricName, chosen.mode)
+    : null;
+
+  if (!chosen || !to) {
+    return {
+      kept: keepRead(read, RetiredCloudMetricKeptReason.ConnectionModeUnknown),
+    };
+  }
+
+  read.name.holder[read.name.key] = to;
+
+  return {
+    moved: {
+      metric: read.metric,
+      metricVariable: read.metricVariable,
+      from: read.metricName,
+      to,
+      thresholds: [],
+      formulas: [],
+      connectionMode: chosen.mode,
+      ...(chosen.alsoReported
+        ? {
+            alsoReported: getCosmosLatencyReplacement(
+              read.metricName,
+              chosen.mode === CosmosConnectionMode.Direct
+                ? CosmosConnectionMode.Gateway
+                : CosmosConnectionMode.Direct,
+            )!,
+          }
+        : {}),
+    },
+  };
+}
+
+function movePubSubRead(read: RetiredCloudMetricRead): {
+  moved?: RetiredCloudMetricMove;
+  kept?: RetiredCloudMetricKept;
+} {
+  const reason: RetiredCloudMetricKeptReason | null = getPubSubKeptReason(read);
+
+  if (reason) {
+    return { kept: keepRead(read, reason) };
+  }
+
+  const move: RetiredCloudMetricMove = {
+    metric: read.metric,
+    metricVariable: read.metricVariable,
+    from: read.metricName,
+    to: PUBSUB_MESSAGES_PUBLISHED_METRIC,
+    thresholds: [],
+    formulas: [],
+  };
+
+  read.name.holder[read.name.key] = PUBSUB_MESSAGES_PUBLISHED_METRIC;
+
+  // Its legend's per-second unit says a rate it no longer is.
+  const legendUnit: unknown = read.legendUnit
+    ? read.legendUnit.holder[read.legendUnit.key]
+    : undefined;
+
+  if (
+    read.legendUnit &&
+    typeof legendUnit === "string" &&
+    PER_SECOND_UNIT.test(legendUnit.trim())
+  ) {
+    delete read.legendUnit.holder[read.legendUnit.key];
+  }
+
+  for (const threshold of read.thresholds) {
+    const unit: unknown = threshold.unit
+      ? threshold.unit.holder[threshold.unit.key]
+      : undefined;
+
+    if (threshold.unit && typeof unit === "string" && unit.trim()) {
+      delete threshold.unit.holder[threshold.unit.key];
+    }
+
+    const value: unknown = threshold.holder[threshold.key];
+    const number: number | null = readThreshold(value);
+
+    if (number === null || !threshold.isThreshold) {
+      continue;
+    }
+
+    const scaled: number = scaleThreshold(
+      number,
+      PUBSUB_PUBLISH_OPERATIONS_SCALE,
+    );
+
+    threshold.holder[threshold.key] =
+      typeof value === "string" ? String(scaled) : scaled;
+    move.thresholds.push({ from: number, to: scaled });
+  }
+
+  if (read.metricVariable) {
+    for (const formula of read.formulas) {
+      const text: unknown = formula.holder[formula.key];
+
+      if (
+        typeof text !== "string" ||
+        !namesVariable(text, read.metricVariable)
+      ) {
+        continue;
+      }
+
+      const rewritten: string = divideFormulaVariable({
+        formula: text,
+        variable: read.metricVariable,
+        factor: PUBSUB_PUBLISH_OPERATIONS_SCALE,
+      })!;
+
+      formula.holder[formula.key] = rewritten;
+      move.formulas.push({ alias: formula.alias, from: text, to: rewritten });
+    }
+  }
+
+  return { moved: move };
+}
+
+/*
+ * One read of a deprecated metric, moved to what replaces it where that
+ * judges what it judged (see the header) - written where the read is
+ * stored - or kept, with why.
+ */
+export function moveRetiredCloudMetricRead(
+  read: RetiredCloudMetricRead,
+  evidenceOf: (query: RetiredCloudMetricQuery) => CosmosLatencyEvidence | null,
+): { moved?: RetiredCloudMetricMove; kept?: RetiredCloudMetricKept } {
+  if (read.metric === RetiredCloudMetric.CosmosServerSideLatency) {
+    return moveCosmosRead(read, evidenceOf(toRetiredCloudMetricQuery(read)));
+  }
+
+  return movePubSubRead(read);
+}
+
+// Every read's outcome, moved or kept, in order.
+export function moveRetiredCloudMetricReads(data: {
+  reads: Array<RetiredCloudMetricRead>;
+  evidenceOf: (query: RetiredCloudMetricQuery) => CosmosLatencyEvidence | null;
+}): RetiredCloudMetricOutcome {
+  const outcome: RetiredCloudMetricOutcome = { moved: [], kept: [] };
+
+  for (const read of data.reads) {
+    const result: {
+      moved?: RetiredCloudMetricMove;
+      kept?: RetiredCloudMetricKept;
+    } = moveRetiredCloudMetricRead(read, data.evidenceOf);
+
+    if (result.moved) {
+      outcome.moved.push(result.moved);
+    }
+
+    if (result.kept) {
+      outcome.kept.push(result.kept);
+    }
+  }
+
+  return outcome;
+}
+
+/*
+ * A stored query config's read (MetricQueryConfigData, as a monitor step,
+ * a chart and a value widget store one), when it reads a deprecated metric;
+ * `thresholds` and `formulas` are what compares with it where it is.
+ */
+export function readRetiredCloudMetricQueryConfig(data: {
+  query: unknown;
+  thresholds: Array<RetiredCloudMetricThreshold>;
+  formulas: Array<RetiredCloudMetricFormula>;
+}): RetiredCloudMetricRead | null {
+  const query: UnknownRecord | undefined = asRecord(data.query);
+  const filterData: UnknownRecord | undefined = getFilterData(query);
+  const metric: RetiredCloudMetric | null = getRetiredCloudMetric(
+    filterData?.["metricName"],
+  );
+
+  if (!query || !filterData || !metric) {
+    return null;
+  }
+
+  const aliasData: UnknownRecord | undefined = asRecord(
+    query["metricAliasData"],
+  );
+
+  return {
+    metric,
+    metricVariable: getMetricVariable(query),
+    metricName: String(filterData["metricName"]),
+    name: { holder: filterData, key: "metricName" },
+    attributes: filterData["attributes"],
+    splitBy: asArray(
+      asRecord(query["metricQueryData"])?.["groupByAttributeKeys"],
+    ),
+    aggregation: filterData["aggegationType"],
+    ...(aliasData
+      ? { legendUnit: { holder: aliasData, key: "legendUnit" } }
+      : {}),
+    thresholds: data.thresholds,
+    formulas: data.formulas,
+  };
+}
+
+// A formula config's formula (MetricFormulaConfigData, as a step and a chart store one).
+export function getRetiredCloudMetricFormulas(
+  formulaConfigs: Array<UnknownRecord>,
+): Array<RetiredCloudMetricFormula> {
+  const formulas: Array<RetiredCloudMetricFormula> = [];
+
+  for (const formula of formulaConfigs) {
+    const formulaData: UnknownRecord | undefined = asRecord(
+      formula["metricFormulaData"],
+    );
+
+    if (formulaData) {
+      formulas.push({
+        holder: formulaData,
+        key: "metricFormula",
+        alias: getMetricVariable(formula),
+      });
+    }
+  }
+
+  return formulas;
+}
+
+// Each read of a deprecated metric of stored monitor steps, with what compares with it.
+function getMonitorReads(
+  monitorStepsJSON: unknown,
+): Array<RetiredCloudMetricRead> {
+  const reads: Array<RetiredCloudMetricRead> = [];
+
+  for (const step of getStoredMetricSteps(monitorStepsJSON)) {
+    const formulas: Array<RetiredCloudMetricFormula> =
+      getRetiredCloudMetricFormulas(getFormulaConfigs(step.metricMonitor));
+
+    getQueryConfigs(step.metricMonitor).forEach(
+      (query: UnknownRecord, index: number): void => {
+        const read: RetiredCloudMetricRead | null =
+          readRetiredCloudMetricQueryConfig({
+            query,
+            thresholds: getComparingFilters({
+              criteriaInstances: step.criteriaInstances,
+              metricVariable: getMetricVariable(query),
+              isFirstQuery: index === 0,
+            }).map((filter: UnknownRecord): RetiredCloudMetricThreshold => {
+              const options: UnknownRecord | undefined = asRecord(
+                filter["metricMonitorOptions"],
+              );
+
+              return {
+                holder: filter,
+                key: "value",
+                isThreshold: THRESHOLD_FILTER_TYPES.has(
+                  String(filter["filterType"]),
+                ),
+                ...(options
+                  ? { unit: { holder: options, key: "thresholdUnit" } }
+                  : {}),
+              };
+            }),
+            formulas,
+          });
+
+        if (read) {
+          reads.push(read);
+        }
+      },
+    );
+  }
+
+  return reads;
 }
 
 /*
@@ -621,186 +993,57 @@ export function moveRetiredCloudMetricQueries(data: {
   monitorStepsJSON: unknown;
   evidenceOf: (query: RetiredCloudMetricQuery) => CosmosLatencyEvidence | null;
 }): RetiredCloudMetricOutcome {
-  const outcome: RetiredCloudMetricOutcome = { moved: [], kept: [] };
+  return moveRetiredCloudMetricReads({
+    reads: getMonitorReads(data.monitorStepsJSON),
+    evidenceOf: data.evidenceOf,
+  });
+}
 
-  for (const step of getStoredMetricSteps(data.monitorStepsJSON)) {
-    const queries: Array<UnknownRecord> = getQueryConfigs(step.metricMonitor);
-    const formulas: Array<UnknownRecord> = getFormulaConfigs(
-      step.metricMonitor,
-    );
+/*
+ * WHAT A PAGE SAYS OF A QUERY OF A DEPRECATED METRIC (#9739's gap, #9980).
+ *
+ * A query left on a deprecated metric is read for as long as something
+ * reads it (RetiredCloudMetricReads), and moved once it can be
+ * (MoveOffRetiredCloudMetrics): a Cosmos DB account's once it reports a
+ * latency, every hour. Until then, the monitor's Metrics card and the
+ * dashboard's chart say so, and what replaces it: each deprecated metric
+ * the queries read, once.
+ */
+export interface RetiredCloudMetricNotice {
+  metric: RetiredCloudMetric;
+  // As the queries name it.
+  metricName: string;
+  // What to read instead, by its stored name.
+  replacements: Array<string>;
+}
 
-    queries.forEach((query: UnknownRecord, index: number): void => {
-      const filterData: UnknownRecord = getFilterData(query)!;
-      const metric: RetiredCloudMetric | null = getRetiredCloudMetric(
-        filterData["metricName"],
-      );
+export function getRetiredCloudMetricNotices(
+  queryConfigs: ReadonlyArray<unknown>,
+): Array<RetiredCloudMetricNotice> {
+  const notices: Array<RetiredCloudMetricNotice> = [];
+  const seen: Set<string> = new Set<string>();
 
-      if (!metric) {
-        return;
-      }
+  for (const query of queryConfigs) {
+    const metricName: unknown = getFilterData(query)?.["metricName"];
+    const metric: RetiredCloudMetric | null = getRetiredCloudMetric(metricName);
 
-      const metricName: string = String(filterData["metricName"]);
-      const metricVariable: string | undefined = getMetricVariable(query);
-      const kept: (reason: RetiredCloudMetricKeptReason) => void = (
-        reason: RetiredCloudMetricKeptReason,
-      ): void => {
-        outcome.kept.push({
-          metric,
-          metricVariable,
-          metricName,
-          reason,
-          replacements: getRetiredCloudMetricReplacements(metricName),
-        });
-      };
+    if (!metric) {
+      continue;
+    }
 
-      if (metric === RetiredCloudMetric.CosmosServerSideLatency) {
-        const chosen: {
-          mode: CosmosConnectionMode;
-          alsoReported: boolean;
-        } | null = chooseCosmosConnectionMode(
-          data.evidenceOf({
-            metric,
-            metricVariable,
-            metricName,
-            attributes: filterData["attributes"],
-          }),
-        );
-        const to: string | null = chosen
-          ? getCosmosLatencyReplacement(metricName, chosen.mode)
-          : null;
+    const name: string = String(metricName).trim();
 
-        if (!chosen || !to) {
-          kept(RetiredCloudMetricKeptReason.ConnectionModeUnknown);
-          return;
-        }
+    if (seen.has(name.toLowerCase())) {
+      continue;
+    }
 
-        filterData["metricName"] = to;
-        outcome.moved.push({
-          metric,
-          metricVariable,
-          from: metricName,
-          to,
-          thresholds: [],
-          formulas: [],
-          connectionMode: chosen.mode,
-          ...(chosen.alsoReported
-            ? {
-                alsoReported: getCosmosLatencyReplacement(
-                  metricName,
-                  chosen.mode === CosmosConnectionMode.Direct
-                    ? CosmosConnectionMode.Gateway
-                    : CosmosConnectionMode.Direct,
-                )!,
-              }
-            : {}),
-        });
-        return;
-      }
-
-      const filters: Array<UnknownRecord> = getComparingFilters({
-        criteriaInstances: step.criteriaInstances,
-        metricVariable,
-        isFirstQuery: index === 0,
-      });
-      const reason: RetiredCloudMetricKeptReason | null = getPubSubKeptReason({
-        query,
-        filters,
-        formulas,
-        metricVariable,
-      });
-
-      if (reason) {
-        kept(reason);
-        return;
-      }
-
-      const move: RetiredCloudMetricMove = {
-        metric,
-        metricVariable,
-        from: metricName,
-        to: PUBSUB_MESSAGES_PUBLISHED_METRIC,
-        thresholds: [],
-        formulas: [],
-      };
-
-      filterData["metricName"] = PUBSUB_MESSAGES_PUBLISHED_METRIC;
-
-      // Its legend's per-second unit says a rate it no longer is.
-      const aliasData: UnknownRecord | undefined = asRecord(
-        query["metricAliasData"],
-      );
-      const legendUnit: unknown = aliasData?.["legendUnit"];
-
-      if (
-        aliasData &&
-        typeof legendUnit === "string" &&
-        PER_SECOND_UNIT.test(legendUnit.trim())
-      ) {
-        delete aliasData["legendUnit"];
-      }
-
-      for (const filter of filters) {
-        const options: UnknownRecord | undefined = asRecord(
-          filter["metricMonitorOptions"],
-        );
-        const unit: unknown = options?.["thresholdUnit"];
-
-        if (options && typeof unit === "string" && unit.trim()) {
-          delete options["thresholdUnit"];
-        }
-
-        const threshold: number | null = readThreshold(filter["value"]);
-
-        if (
-          threshold === null ||
-          !THRESHOLD_FILTER_TYPES.has(String(filter["filterType"]))
-        ) {
-          continue;
-        }
-
-        const scaled: number = scaleThreshold(
-          threshold,
-          PUBSUB_PUBLISH_OPERATIONS_SCALE,
-        );
-
-        filter["value"] =
-          typeof filter["value"] === "string" ? String(scaled) : scaled;
-        move.thresholds.push({ from: threshold, to: scaled });
-      }
-
-      if (metricVariable) {
-        for (const formula of formulas) {
-          const formulaData: UnknownRecord | undefined = asRecord(
-            formula["metricFormulaData"],
-          );
-          const text: unknown = formulaData?.["metricFormula"];
-
-          if (
-            !formulaData ||
-            typeof text !== "string" ||
-            !namesVariable(text, metricVariable)
-          ) {
-            continue;
-          }
-
-          const rewritten: string = divideFormulaVariable({
-            formula: text,
-            variable: metricVariable,
-            factor: PUBSUB_PUBLISH_OPERATIONS_SCALE,
-          })!;
-
-          formulaData["metricFormula"] = rewritten;
-          move.formulas.push({
-            alias: getMetricVariable(formula),
-            from: text,
-            to: rewritten,
-          });
-        }
-      }
-
-      outcome.moved.push(move);
+    seen.add(name.toLowerCase());
+    notices.push({
+      metric,
+      metricName: name,
+      replacements: getRetiredCloudMetricReplacements(name),
     });
   }
 
-  return outcome;
+  return notices;
 }

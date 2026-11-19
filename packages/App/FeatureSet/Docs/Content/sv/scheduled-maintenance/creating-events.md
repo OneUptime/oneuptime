@@ -65,7 +65,7 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 | **Monitorer**                        | **Berörda resurser** | Inga                          | De monitorer som inte kontrolleras medan händelsen pågår.                        |
 | **Ändra övervakningsstatus till**    | **Berörda resurser** | Ingen ändring                 | Den status monitorerna visar under händelsen. Efterfrågas så snart en monitor är vald. |
 | **Andra påverkade resurser**         | **Berörda resurser** | Inga                          | Värdar, kluster, databaser, nätverksplatser, tjänster och mer.                   |
-| **Visa händelse på dessa statussidor** | **Berörda resurser** | Inga                        | De statussidor som visar händelsen och meddelar sina prenumeranter.              |
+| **Visa händelse på dessa statussidor** | **Berörda resurser** | Inga                        | De enda statussidor som kan visa händelsen eller meddela sina prenumeranter.     |
 | **Aviseringar till prenumeranter**   | **Berörda resurser** | Publicerad direkt, alla tre tillfällen på, inga påminnelser | När händelsen visas på de sidorna, och när deras prenumeranter får veta. |
 
 Två saker fyller i formuläret åt dig medan du arbetar:
@@ -104,8 +104,9 @@ Planera arbetet så tidigt du vill, och håll det inom ditt team tills dina kund
 | Dess **Slutar den**      | Den slutar                                                            | Över                |
 
 - **Till dess hör prenumeranterna ingenting.** Påminnelser före händelsen, statusändringar och offentliga anteckningar skickas inte till dem medan händelsen väntar.
-- **Dess sida säger det.** Dess sidhuvud visar **Inte på statussidor än**, med tiden den visas från, och **Publicera nu** publicerar den direkt, efter att ha frågat. Dess **Inställningar** säger detsamma, och listan över händelser visar tiden under dess statussidor.
+- **Dess sida säger det.** Dess sidhuvud visar **Inte på statussidor än**, med tiden den visas från, och **Publicera nu** publicerar den direkt, efter att ha frågat. När ingen av dess statussidor visar underhållshändelser säger sidhuvudet det i stället för tiden. Dess **Inställningar** säger detsamma, och listan över händelser visar tiden under dess statussidor.
 - **Ändra den, eller publicera direkt.** Flytta **Publicera den** i steget **Statussidor** under **Redigera**, eller välj **Direkt**. Stäng av **Synlig på statussidan** i dess **Inställningar** för att hålla den borta från sina statussidor oavsett tid.
+- **Vad dess statussidor gör.** I samma steg säger en anteckning under statussidorna när de valda sidorna inte kommer att visa händelsen för någon eller inte meddela någon, och varför, och en anteckning under **Påminnelser före händelsen** säger vilka påminnelser som inte skickas. Kortet **Underhållsdetaljer** säger det under **Visas på statussidor** när ingen av dem visar underhållshändelser.
 
 ## Ändra en händelse senare
 

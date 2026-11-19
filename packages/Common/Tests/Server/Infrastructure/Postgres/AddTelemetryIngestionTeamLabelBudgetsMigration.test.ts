@@ -1,4 +1,4 @@
-import { AddTelemetryIngestionTeamLabelBudgets1809186705386 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186705386-AddTelemetryIngestionTeamLabelBudgets";
+import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186905386-AddTelemetryIngestionTeamLabelBudgets";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import TelemetryIngestionTeamLabelBudget from "../../../../Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -24,7 +24,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 const MIGRATION_NAME: string =
-  "AddTelemetryIngestionTeamLabelBudgets1809186705386";
+  "AddTelemetryIngestionTeamLabelBudgets1809186905386";
 const TABLE: string = "TelemetryIngestionTeamLabelBudget";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 const CREATED_COLUMN: RegExp = /(?:\(|, )"([A-Za-z_]+)" [A-Za-z]/g;
@@ -48,8 +48,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: AddTelemetryIngestionTeamLabelBudgets1809186705386 =
-    new AddTelemetryIngestionTeamLabelBudgets1809186705386();
+  const migration: AddTelemetryIngestionTeamLabelBudgets1809186905386 =
+    new AddTelemetryIngestionTeamLabelBudgets1809186905386();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -87,7 +87,7 @@ function createStatement(steps: Array<string>): string {
 
 describe("the team and label budgets migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddTelemetryIngestionTeamLabelBudgets1809186705386().name).toBe(
+    expect(new AddTelemetryIngestionTeamLabelBudgets1809186905386().name).toBe(
       MIGRATION_NAME,
     );
   });
@@ -96,19 +96,19 @@ describe("the team and label budgets migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddTelemetryIngestionTeamLabelBudgets1809186705386,
+      AddTelemetryIngestionTeamLabelBudgets1809186905386,
     );
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddTelemetryIngestionTeamLabelBudgets1809186705386;
+        return candidate === AddTelemetryIngestionTeamLabelBudgets1809186905386;
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(0);
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddTelemetryIngestionTeamLabelBudgets1809186705386),
+        timestampOf(AddTelemetryIngestionTeamLabelBudgets1809186905386),
       );
     }
   });
@@ -124,10 +124,10 @@ describe("the team and label budgets migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddTelemetryIngestionTeamLabelBudgets1809186705386)}-`,
+          `${timestampOf(AddTelemetryIngestionTeamLabelBudgets1809186905386)}-`,
         );
       }),
-    ).toEqual(["1809186705386-AddTelemetryIngestionTeamLabelBudgets.ts"]);
+    ).toEqual(["1809186905386-AddTelemetryIngestionTeamLabelBudgets.ts"]);
   });
 
   test("creates the table with every column the model stores", async () => {

@@ -5,7 +5,8 @@ O inventário é uma única lista de tudo o que o OneUptime sabe sobre o seu amb
 :::cards
 - [Como os itens chegam ao inventário](#como-os-itens-chegam-ao-inventário): Descobertos, espelhados ou adicionados por você.
 - [Como se orientar](#como-se-orientar): As páginas do inventário e as páginas próprias de cada item.
-- [Importar dispositivos do Esper](#importar-dispositivos-do-esper): Todos os dispositivos Android que o seu locatário do Esper registra, mantidos atualizados.
+- [Importar dispositivos do Esper](#importar-dispositivos-do-esper): Todos os dispositivos Android e Apple que o seu locatário do Esper registra, mantidos atualizados.
+- [Importar dispositivos do Microsoft Intune](#importar-dispositivos-do-microsoft-intune): Todos os PCs com Windows, Macs, iPhones, iPads e dispositivos Android que o Intune gerencia, mantidos atualizados.
 - [Adicionar algo manualmente](#adicionar-algo-manualmente): Uma API de terceiros, um banco de dados externo ou um appliance.
 - [Arquivar em vez de excluir](#arquivar-em-vez-de-excluir): O jeito de organizar a lista que permanece.
 :::
@@ -26,14 +27,14 @@ flowchart TB
 | Origem | Na API | De onde vem | Por quanto tempo fica |
 | --- | --- | --- | --- |
 | **Descoberto** | `discovered` | Atributos de recurso do OpenTelemetry, lidos à medida que a telemetria chega: um serviço, host, objeto do Kubernetes ou máquina virtual que envia telemetria. | Registrado de novo a cada lote. Removido depois de ficar em silêncio por mais tempo que a janela do seu tipo (veja abaixo). |
-| **Replicado** | `inventory` | Um registro que um coletor do OneUptime mantém: dispositivos de rede, recursos de nuvem, dispositivos IoT, funções serverless, aplicações RUM, hosts Docker, hosts Podman e os dispositivos Android que uma conexão do Esper importa. Copiado a cada 15 minutos. Um dispositivo do Esper, a cada leitura da conexão dele. | Enquanto o seu registro existir. Exclua o registro e o item vai junto. |
+| **Replicado** | `inventory` | Um registro que um coletor do OneUptime mantém: dispositivos de rede, recursos de nuvem, dispositivos IoT, funções serverless, aplicações RUM, hosts Docker, hosts Podman e os dispositivos que uma conexão do Esper ou do Microsoft Intune importa. Copiado a cada 15 minutos. Um dispositivo do Esper, a cada leitura da conexão dele. | Enquanto o seu registro existir. Exclua o registro e o item vai junto. |
 | **Adicionado por você** | `manual` | Adicionado por você, para algo que o OneUptime não consegue ver: uma API de terceiros, um banco de dados gerenciado por um fornecedor, um appliance em um rack. | Até você excluí-lo. Nada o faz expirar. |
 
 Um item descoberto ou espelhado não pode ser renomeado nem mudar de tipo: a sua origem sobrescreveria a mudança na próxima passagem. A página **Configurações** do item diz onde fazer uma mudança duradoura em vez disso. O que você sempre pode acrescentar a qualquer item, seja qual for a origem, são valores de campos personalizados: veja [Campos personalizados do inventário](/docs/inventory/custom-fields).
 
 ### Por quanto tempo um item silencioso fica
 
-Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o horário em que foi visto por último avança, e a coluna **Status** da lista mostra quão recente isso é. O mesmo acontece com um dispositivo Android do Esper: a cada check-in que ele faz no Esper. Os outros itens espelhados e os que você adicionou não têm pulsação, então o status deles fica em branco em vez de alarmar.
+Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o horário em que foi visto por último avança, e a coluna **Status** da lista mostra quão recente isso é. O mesmo acontece com um dispositivo do Esper ou do Intune: a cada check-in que ele faz no gerenciador de dispositivos dele. Os outros itens espelhados e os que você adicionou não têm pulsação, então o status deles fica em branco em vez de alarmar.
 
 | Status | O que significa |
 | --- | --- |
@@ -59,7 +60,7 @@ Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas página
 | --- | --- |
 | **Visão geral** | Quantos itens você tem, o que são, quantos ficaram em silêncio e o que foi adicionado mais recentemente. |
 | **Todos os itens** | Todos os itens. Pesquise por nome, descrição ou chave de identidade, filtre a lista por tipo, origem, status ou campo personalizado e adicione um item manualmente. |
-| **Dispositivos gerenciados** | As suas conexões do Esper e todos os dispositivos Android que elas importam, com o status, o grupo, o modelo e a versão do Android de cada um. |
+| **Dispositivos gerenciados** | As suas conexões do Esper e do Microsoft Intune, e todos os dispositivos que elas importam, com o status, o grupo, o modelo e o sistema operacional de cada um. |
 | **Mapa de topologia** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
 | **Em silêncio** | Os itens sem notícias há mais de um dia: itens descobertos que não enviaram telemetria e dispositivos que pararam de fazer check-in no Esper. |
 | **Por origem** | Os itens de uma origem: **Descoberto**, **Replicado** ou **Adicionado por você**. |
@@ -89,7 +90,7 @@ A página **Conexões** de um item lista os seus vizinhos nas duas direções, a
 
 ## Importar dispositivos do Esper
 
-Conecte um locatário do Esper, e todos os dispositivos Android que ele registra ficam no inventário, inclusive os dispositivos cujo aplicativo nunca foi iniciado. Cada dispositivo é um host, com o que só o Esper sabe sobre ele: o grupo, a versão do Android, a build e o nível do patch de segurança, o número de série e o IMEI, a bateria e o armazenamento, e os aplicativos instalados. O Esper não envia nada por conta própria, então o OneUptime o lê em uma programação: os dispositivos a cada 15 minutos, e os aplicativos de cada dispositivo a cada 6 horas.
+Conecte um locatário do Esper, e todos os dispositivos que ele registra ficam no inventário: os dispositivos Android, inclusive aqueles cujo aplicativo nunca foi iniciado, e os iPhones, iPads e Apple TVs. Cada dispositivo é um host, com o que só o Esper sabe sobre ele: o grupo, o sistema operacional e a build, o número de série e o IMEI, a bateria e o armazenamento, e, num dispositivo Android, o nível do patch de segurança e os aplicativos instalados. O Esper não envia nada por conta própria, então o OneUptime o lê em uma programação: os dispositivos a cada 15 minutos, e os aplicativos de cada dispositivo Android a cada 6 horas.
 
 :::steps
 ### Criar uma chave de API no Esper
@@ -98,16 +99,16 @@ No console do Esper, crie uma chave em API Key Management. O OneUptime só faz l
 
 ### Conectar o locatário
 
-Vá para **Produtos → Recursos → Inventário**, depois para **Dispositivos gerenciados**, e clique em **Conectar Esper**. Informe o **Locatário**, o nome antes de `.esper.cloud` no endereço do seu console do Esper (`acme` para `acme.esper.cloud`), e a **Chave de API**. **Mais campos** guarda o nome da conexão e com que frequência ela é lida.
+Vá para **Produtos → Recursos → Inventário**, depois para **Dispositivos gerenciados**, clique em **Conectar um gerenciador de dispositivos** e escolha **Esper**. Informe o **Locatário**, o nome antes de `.esper.cloud` no endereço do seu console do Esper (`acme` para `acme.esper.cloud`), e a **Chave de API**. **Mais campos** guarda o nome da conexão e com que frequência ela é lida.
 
 ### Conferir a primeira leitura
 
-**Conectar** testa a chave antes de salvar qualquer coisa: diz quantos dispositivos Android uma leitura vai importar, ou o que está errado e como corrigir. A primeira leitura começa em até um minuto, e a linha da conexão mostra como ela foi.
+**Conectar** testa a chave antes de salvar qualquer coisa: diz quantos dispositivos uma leitura vai importar, ou o que está errado e como corrigir. A primeira leitura começa em até um minuto, e a linha da conexão mostra como ela foi.
 :::
 
 | O que o Esper informa | Onde aparece |
 | --- | --- |
-| Modelo, fabricante, número de série, versão do Android, build e endereços IP e MAC | O cartão **Detalhes do ativo** do dispositivo e as colunas de **Todos os itens** |
+| Modelo, fabricante, número de série, sistema operacional e a versão dele, build e endereços IP e MAC | O cartão **Detalhes do ativo** do dispositivo e as colunas de **Todos os itens** |
 | Status, último check-in, grupo, nível do patch de segurança, IMEI, bateria, armazenamento e agente do Esper | O cartão **Esper** do dispositivo e a lista **Dispositivos** de **Dispositivos gerenciados** |
 | Aplicativos e as versões deles | A lista **Aplicativos instalados** do dispositivo |
 
@@ -124,15 +125,43 @@ O OneUptime encontra o item de um dispositivo pelo nome dele no Esper, depois pe
 
 ### Quando um dispositivo fica em silêncio ou sai do Esper
 
-Um dispositivo que não faz check-in há 30 minutos fica **Offline** e mostra há quanto tempo fez o último. O **Status** do item dele segue o último check-in, ou a telemetria quando ela é mais recente, então um dispositivo em silêncio por um dia aparece na página **Em silêncio**.
+Um dispositivo Android que não faz check-in há 30 minutos fica **Offline** e mostra há quanto tempo fez o último; um iPhone, iPad ou Apple TV, que faz check-in quando o serviço de push da Apple o acorda, muitas vezes com horas de intervalo, fica **Offline** depois de um dia. O **Status** do item dele segue o último check-in, ou a telemetria quando ela é mais recente, então um dispositivo em silêncio por um dia aparece na página **Em silêncio**.
 
 Um dispositivo removido do Esper é marcado como **Removido**, e o item dele é arquivado: sai da lista e fica aguardando em **Avançado → Arquivado**. Um dispositivo que volta ao Esper volta à lista. 30 dias depois de sair, o dispositivo é excluído, e o item dele também, a menos que a telemetria ou você tenham acrescentado algo a ele.
 
 ### Receber um alerta quando um dispositivo deixar de fazer check-in
 
-Em **Dispositivos gerenciados**, clique em **Configurar alertas** na linha da conexão e crie **Esper Device Stopped Checking In**. Ele abre um alerta para cada dispositivo que não faz check-in no Esper há mais de uma hora, com o nome do dispositivo, e o resolve assim que o dispositivo volta a fazer check-in.
+Em **Dispositivos gerenciados**, clique em **Configurar alertas** na linha da conexão e crie **Esper Android Device Stopped Checking In** e **Esper Apple Device Stopped Checking In**. O primeiro abre um alerta para cada dispositivo Android que não faz check-in no Esper há mais de uma hora, e o segundo para cada dispositivo Apple que não faz há mais de um dia, cada um com o nome do dispositivo e resolvido assim que ele volta a fazer check-in.
 
 Cada leitura da conexão registra há quantos minutos cada dispositivo fez o último check-in, como a métrica `oneuptime.managed_device.check_in.age`, e o monitor verifica o valor mais recente de cada dispositivo a cada 5 minutos. Um dispositivo que também executa o Android Agent fica a cargo de **Host Stopped Reporting**, então nunca alerta duas vezes, e um dispositivo removido do Esper resolve o seu alerta. Uma leitura que falha não registra nada, então nenhum alerta abre nem se resolve até a próxima. Para uma frota desligada à noite, aumente o limite do monitor.
+
+## Importar dispositivos do Microsoft Intune
+
+Conecte um locatário do Microsoft Intune, e todos os dispositivos que o Intune gerencia ficam no inventário: os PCs com Windows, Macs, iPhones, iPads, dispositivos Android e máquinas Linux. Cada dispositivo é um host, com o que o Intune sabe sobre ele: a categoria, o sistema operacional e a versão, o número de série e o IMEI, a conformidade, a propriedade e o registro, o armazenamento e os aplicativos que o Intune descobriu nele. O Intune não envia nada por conta própria, então o OneUptime o lê em uma programação: os dispositivos a cada 15 minutos, e os aplicativos de cada dispositivo a cada 6 horas.
+
+:::steps
+### Registre um aplicativo no Microsoft Entra
+
+No centro de administração do Microsoft Entra, abra `App registrations` e clique em `New registration`. Dê um nome, mantenha `Accounts in this organizational directory only` e registre o aplicativo. A página `Overview` dele mostra os dois IDs que o OneUptime pede: o `Application (client) ID` e o `Directory (tenant) ID`.
+
+### Deixe-o ler os dispositivos do Intune
+
+Em `API permissions`, clique em `Add a permission`, depois em `Microsoft Graph`, depois em `Application permissions`, e adicione `DeviceManagementManagedDevices.Read.All`. Em seguida, clique em `Grant admin consent`, o que só um administrador do locatário pode fazer. Essa única permissão é tudo de que o OneUptime precisa: ela lista os dispositivos e os aplicativos que o Intune descobriu neles, e não pode mudar nada.
+
+### Crie um segredo do cliente
+
+Em `Certificates & secrets`, clique em `New client secret` e copie o `Value` dele, não o `Secret ID`: a Microsoft mostra o valor uma única vez. Um segredo para de funcionar quando expira, então, antes disso, crie um novo e informe-o ao editar a conexão.
+
+### Conecte o locatário do Intune
+
+Vá para **Produtos → Recursos → Inventário**, depois para **Dispositivos gerenciados**, clique em **Conectar um gerenciador de dispositivos** e escolha **Microsoft Intune**. Informe o **ID do locatário**, o **ID do aplicativo (cliente)** e o **Client Secret**. Se o locatário estiver em uma nuvem do governo dos EUA, escolha-a como **Nuvem** em **Mais campos**. **Conectar** testa o registro de aplicativo antes de salvar qualquer coisa: diz quantos dispositivos uma leitura vai importar, ou o que está errado e como corrigir.
+:::
+
+Um dispositivo faz check-in no Intune mais ou menos a cada oito horas, e o último check-in dele é a última vez que fez: um dispositivo que não faz há um dia fica **Offline**. Os aplicativos dele são os que o Intune descobriu nele, que o Microsoft Graph só lista na versão beta: num dispositivo pessoal, os aplicativos que o Intune gerencia. Os grupos do Intune são grupos do Microsoft Entra, que essa permissão não lê, então o grupo de um dispositivo é a categoria de dispositivo dele. Nada sobre o usuário de um dispositivo é lido.
+
+O Intune dá a um dispositivo o nome que o dono deu, então dois dispositivos podem ter o mesmo nome: todo iPhone que ninguém renomeou se chama `iPhone`. Um nome que dois dispositivos de uma conexão compartilham não é de nenhum dos dois no inventário: cada um passa a ter o nome do número de série, e recupera o nome assim que nenhum outro dispositivo o tiver.
+
+Para receber um alerta quando um dispositivo parar de fazer check-in, clique em **Configurar alertas** na linha da conexão e crie **Intune Device Stopped Checking In**. Ele abre um alerta para cada dispositivo que não faz check-in no Intune há mais de um dia, com o nome do dispositivo. Um notebook desligado num fim de semana aparece igual, então aumente o limite do monitor se um dia for pouco para os seus.
 
 ## Adicionar algo manualmente
 

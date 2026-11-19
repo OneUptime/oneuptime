@@ -349,6 +349,9 @@ import "./Jobs/Logs/ComputeLogRecordingRules";
 // Kubernetes inventory cleanup.
 import "./Jobs/Kubernetes/CleanupStaleResources";
 
+// Kubernetes clusters' compliance summaries, for the fleet's Compliance page.
+import "./Jobs/Kubernetes/RefreshComplianceSummaries";
+
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
 
@@ -390,6 +393,8 @@ import "./Jobs/Cloud/ReadCloudConnections";
 // Azure connections' streams: their event hubs read every minute.
 import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
+// What still reads a metric its cloud deprecates, moved again every hour.
+import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";
 import "./Jobs/DataSecurity/DataSecurityJobs";
 import "./Jobs/DataObservability/DataObservabilityJobs";
 /*

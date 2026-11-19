@@ -235,7 +235,7 @@ describe("the Security card's count on a device opens the device's own page", ()
     ).toBeNull();
   });
 
-  test("a device, a host, a cluster, a container host, an OpenStack cloud and a service have a page of their own (#9547, #9628): a cloud resource still opens the Events explorer", () => {
+  test("a device, a host, a cluster, a container host, an OpenStack cloud, a service, a cloud resource and a serverless function have a page of their own (#9547, #9628, #9779, #9780): an inventory item still opens the Events explorer", () => {
     expect(Object.keys(model.RECORD_SECURITY_EVENTS_PAGES)).toEqual([
       SecurityConnectionKind.NetworkDevice,
       SecurityConnectionKind.Host,
@@ -244,6 +244,8 @@ describe("the Security card's count on a device opens the device's own page", ()
       SecurityConnectionKind.PodmanHost,
       SecurityConnectionKind.OpenStackCloud,
       SecurityConnectionKind.Service,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.ServerlessFunction,
     ]);
 
     const host: { path: string; query: Record<string, string> } = open(
@@ -278,11 +280,28 @@ describe("the Security card's count on a device opens the device's own page", ()
     expect(dockerHost.path).toBe(`${BASE}/docker/${HOST_ID}/security-events`);
     expect(dockerHost.query["search"]).toBeUndefined();
 
-    // Nothing ties a cloud resource's own events to it reliably yet.
+    // A cloud resource's own page, beside its Logs (#9779).
     const cloudResource: { path: string; query: Record<string, string> } = open(
       model.getRecordSecurityEventsRoute({
         security: {
           kind: SecurityConnectionKind.CloudResource,
+          id: HOST_ID,
+          values: ["arn:aws:ec2:us-east-1:111122223333:instance/i-0abc123"],
+          windowDays: 7,
+          isSearchedByLogs: false,
+        },
+        now,
+      }),
+    );
+
+    expect(cloudResource.path).toBe(`${BASE}/cloud/${HOST_ID}/security-events`);
+    expect(cloudResource.query["search"]).toBeUndefined();
+
+    // A record of no page of its own: the explorer, on what names it.
+    const item: { path: string; query: Record<string, string> } = open(
+      model.getRecordSecurityEventsRoute({
+        security: {
+          kind: SecurityConnectionKind.InventoryItem,
           id: HOST_ID,
           values: ["i-0abc123"],
           windowDays: 7,
@@ -292,8 +311,8 @@ describe("the Security card's count on a device opens the device's own page", ()
       }),
     );
 
-    expect(cloudResource.path).toBe(`${BASE}/security-events`);
-    expect(decodeURIComponent(cloudResource.query["search"]!)).toBe(
+    expect(item.path).toBe(`${BASE}/security-events`);
+    expect(decodeURIComponent(item.query["search"]!)).toBe(
       "observable:i-0abc123",
     );
   });

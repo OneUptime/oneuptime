@@ -23,6 +23,7 @@ import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowe
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
@@ -894,6 +895,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     description:
       "The most monitors the project may have active, from a plan bought from a reseller. Empty means the plan's own limit.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -911,6 +913,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     description:
       "The most members the project may have, from a plan bought from a reseller. Empty or 0 means no limit.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,

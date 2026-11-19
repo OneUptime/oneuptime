@@ -65,7 +65,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
 | **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
-| **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De statussider, der viser begivenheden og giver deres abonnenter besked.         |
+| **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De eneste statussider, der kan vise begivenheden eller give deres abonnenter besked. |
 | **Notifikationer til abonnenter**    | **Berørte ressourcer** | Offentliggjort med det samme, alle tre tidspunkter slået til, ingen påmindelser | Hvornår begivenheden vises på de sider, og hvornår deres abonnenter får besked. |
 
 To ting udfylder formularen for dig undervejs:
@@ -104,8 +104,9 @@ Planlæg arbejdet så tidligt, du vil, og hold det inden for dit team, indtil di
 | Dens **Slutter den**     | Den slutter                                                             | Overstået           |
 
 - **Indtil da hører abonnenterne intet.** Påmindelser før begivenheden, statusændringer og offentlige noter sendes ikke til dem, mens begivenheden venter.
-- **Dens side siger det.** Dens overskrift viser **Endnu ikke på statussider** med det tidspunkt, den vises fra, og **Offentliggør nu** offentliggør den med det samme, efter at have spurgt. Dens **Indstillinger** siger det samme, og listen over begivenheder viser tidspunktet under dens statussider.
+- **Dens side siger det.** Dens overskrift viser **Endnu ikke på statussider** med det tidspunkt, den vises fra, og **Offentliggør nu** offentliggør den med det samme, efter at have spurgt. Når ingen af dens statussider viser vedligeholdelseshændelser, siger overskriften det i stedet for tidspunktet. Dens **Indstillinger** siger det samme, og listen over begivenheder viser tidspunktet under dens statussider.
 - **Ændr den, eller offentliggør med det samme.** Flyt **Offentliggør den** i trinnet **Statussider** under **Rediger**, eller vælg **Med det samme**. Slå **Synlig på statussiden** fra i dens **Indstillinger** for at holde den væk fra dens statussider uanset tidspunktet.
+- **Hvad dens statussider gør.** I samme trin siger en note under statussiderne, når de valgte sider ikke vil vise begivenheden for nogen eller ikke vil give nogen besked, og hvorfor, og en note under **Påmindelser før begivenheden** siger, hvilke påmindelser der ikke sendes. Kortet **Detaljer om vedligeholdelse** siger det under **Vist på statussider**, når ingen af dem viser vedligeholdelseshændelser.
 
 ## Ændr en begivenhed senere
 

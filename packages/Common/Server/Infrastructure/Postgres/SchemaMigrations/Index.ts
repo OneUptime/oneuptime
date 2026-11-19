@@ -1115,7 +1115,11 @@ import { AddTeamMemberInviteeName1809186500000 } from "./1809186500000-AddTeamMe
 import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessions";
 import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-AddProjectDetectVoicemailOnCalls";
 import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
-import { AddTelemetryIngestionTeamLabelBudgets1809186705386 } from "./1809186705386-AddTelemetryIngestionTeamLabelBudgets";
+import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
+import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
+import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
+import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "./1809186905386-AddTelemetryIngestionTeamLabelBudgets";
 
 export default [
   InitialMigration,
@@ -2235,5 +2239,9 @@ export default [
   AddHostLogSessions1809186600000,
   AddProjectDetectVoicemailOnCalls1809186610000,
   BackfillSsoProviderDomains1809186620000,
-  AddTelemetryIngestionTeamLabelBudgets1809186705386,
+  AddMonitorNetworkDeviceTieSource1809186700000,
+  AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
+  AddScheduledMaintenanceTemplateTimezone1809186800000,
+  AddManagedDevicePlatform1809186810000,
+  AddTelemetryIngestionTeamLabelBudgets1809186905386,
 ];

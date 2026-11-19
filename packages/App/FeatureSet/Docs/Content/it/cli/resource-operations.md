@@ -207,6 +207,20 @@ Risponde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` Co
 > [!CAUTION]
 > `delete` rimuove il record subito. La CLI non ti chiede conferma, e non si può annullare. Accetta `--force`, per gli script scritti con esso, e `--force` non cambia nulla.
 
+### Un ruolo personalizzato con cui vengono eseguiti flussi di lavoro
+
+OneUptime elimina un ruolo personalizzato con cui vengono eseguiti flussi di lavoro solo quando l'eliminazione dice con cosa vengono eseguiti invece, e rifiuta quella che non lo dice, nominando i flussi di lavoro. Dillo con `--workflows-run-as`: `Default`, le autorizzazioni predefinite, oppure `CustomRole`, un altro ruolo personalizzato che potresti dare a un team, con il suo ID in `--workflows-run-as-custom-role-id`. Mai Project Owner: eliminare un ruolo non amplia mai ciò che un flusso di lavoro può fare.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Un'eliminazione rifiutata stampa il rifiuto di OneUptime, che nomina i flussi di lavoro, e poi i flag con cui eseguirla di nuovo. Un ruolo con cui non viene eseguito nessun flusso di lavoro non ha bisogno di nessuno dei due.
+
 ## Contare i record
 
 ```bash

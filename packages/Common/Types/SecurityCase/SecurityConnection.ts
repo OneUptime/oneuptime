@@ -58,7 +58,11 @@ export enum SecurityConnectionKind {
    * name), the names and addresses it answers on, and its logs.
    */
   CloudResource = "CloudResource",
-  // A serverless function, by its logs: it has no name an event gives.
+  /*
+   * A serverless function: by its logs and traces (its faas.name), and by
+   * its provider's ID where its telemetry says it in full (a Lambda's ARN, a
+   * Cloud Function's resource name).
+   */
   ServerlessFunction = "ServerlessFunction",
   Service = "Service",
   // A monitor, by the host, address or URL it checks.
@@ -212,7 +216,10 @@ export interface ResourceSecurityScopeJson {
   kind: SecurityConnectionKind;
   id: string;
   name: string;
-  // The record's exact identities, as searched for: names folded, public addresses its own.
+  /*
+   * The record's exact identities, as searched for: names folded, a cloud
+   * resource's own ID as its cloud writes it, public addresses its own.
+   */
   values: Array<string>;
   // Searched for by the events read from its logs alone.
   isSearchedByLogs: boolean;
@@ -243,6 +250,40 @@ export const SECURITY_LOG_DOCKER_HOST_ATTRIBUTE: string =
   "oneuptime.log.docker.host";
 export const SECURITY_LOG_PODMAN_HOST_ATTRIBUTE: string =
   "oneuptime.log.podman.host";
+
+/*
+ * The cloud resource a log line or a span is of (#9779): the resource
+ * attribute cloud.resource_id, which a cloud connection's stream stamps on
+ * every log it files under a resource - a function's or a database's log
+ * group, an Azure resource's diagnostic logs, a Google Cloud resource's
+ * entries (Types/Cloud/CloudLogGroups) - and which the resource's Logs page
+ * filters on. A log is filed under the connection's own service, so its log
+ * resource never names the cloud resource: this does, exactly as the line
+ * carried it, and every event read from such a line or span carries it.
+ */
+export const SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE: string =
+  "oneuptime.log.cloud.resource_id";
+
+/*
+ * The serverless function a log line or a span is of (#9780): the
+ * resource attribute faas.name, which ingest stamps on every row of a
+ * function's telemetry and its Serverless pages filter on. A Lambda's
+ * OpenTelemetry layer names its service after the function, and the
+ * service wins at ingest, so its log resource names that service, never the
+ * function: this does, and every event read from such a line or span
+ * carries it.
+ */
+export const SECURITY_LOG_FUNCTION_ATTRIBUTE: string =
+  "oneuptime.log.faas.name";
+
+/*
+ * Where a log or span row keeps those two, as the resource's Logs and
+ * Traces pages filter on them: the resource attributes, stored with their
+ * "resource." prefix.
+ */
+export const SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY: string =
+  "resource.cloud.resource_id";
+export const SECURITY_LOG_ROW_FUNCTION_KEY: string = "resource.faas.name";
 
 // One way a security entity meets a record.
 export interface SecurityConnectionMatch {
@@ -504,11 +545,18 @@ export interface ResourceSecurityJson {
   // What the security events were searched for: the record's exact identities.
   values: Array<string>;
   /*
-   * Searched for by the events read from its logs instead: a service, a
-   * serverless function, and a cloud resource with no ID or address of its
-   * own to search for.
+   * Searched for by the events read from its logs instead: a service, and a
+   * cloud resource with no ID or address of its own to search for.
    */
   isSearchedByLogs: boolean;
+  /*
+   * Whether the events read from its own logs are its too, beside the ones
+   * naming it: a network device's syslog, a container host's containers'
+   * logs, an OpenStack cloud's audit trail, a cloud resource's streamed
+   * logs, a function's logs and traces. Absent from an older server's
+   * answer: read as false.
+   */
+  isReadFromOwnLogs?: boolean | undefined;
   // The entity its Security Events page is opened on: its main name.
   entity: SecurityEntity | null;
   eventCount: number;

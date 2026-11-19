@@ -8,7 +8,11 @@ import React, {
   useState,
 } from "react";
 import ChartSkeleton from "../../Skeleton/ChartSkeleton";
-import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
 import AnalyticsQueryPicker from "../../TelemetryViewer/components/AnalyticsQueryPicker";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
@@ -21,8 +25,16 @@ import {
   CartesianGrid,
   AreaChart,
   Area,
+  LineChart,
+  Line,
   ReferenceArea,
 } from "recharts";
+import {
+  isAdditiveLogAnalyticsAggregation,
+  isNumericLogAnalyticsAggregation,
+  LogAnalyticsAggregation,
+  needsLogAnalyticsAggregationField,
+} from "../../../../Types/Log/LogAnalyticsAggregation";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "../../../../Types/Time/RangeStartAndEndDateTime";
@@ -69,14 +81,17 @@ import {
   useChartTimeRangeZoom,
 } from "../../Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
-import { formatChartCount } from "../../Charts/Utils/ChartCount";
+import {
+  formatChartCount,
+  formatChartValue,
+} from "../../Charts/Utils/ChartCount";
 import {
   getChartRowValues,
   getYAxisWidthForValuesInPx,
 } from "../../Charts/Utils/YAxisWidth";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
-type AnalyticsAggregation = "count" | "unique";
+type AnalyticsAggregation = LogAnalyticsAggregation;
 
 interface AnalyticsTimeseriesRow {
   time: string;
@@ -103,6 +118,16 @@ export interface LogsAnalyticsViewProps {
    */
   sessionIds?: Array<string> | undefined;
   appliedFacetFilters: Map<string, Set<string>>;
+  /*
+   * Everything the viewer's list is narrowed by but its window - the page's
+   * own scope (services, trace, span, session, attributes, entity keys),
+   * the chips kept and left out, and what the search bar typed - as the
+   * aggregate endpoints read it (the Dashboard's buildLogsAggregateScope,
+   * which the volume histogram above reads too). Given, the chart reads
+   * exactly these rows, in its own window; without it, it compiles the
+   * services, the session and the chips it knows itself.
+   */
+  requestScope?: JSONObject | undefined;
   logAttributes: Array<string>;
   /*
    * Drag-to-zoom for the timeseries chart. Without these the chart zooms
@@ -169,13 +194,62 @@ export const LOGS_ANALYTICS_CHART_OPTIONS: Array<{
   { value: "table", label: "Table" },
 ];
 
+/*
+ * What the chart measures: its logs, the unique values of a field, or the
+ * sum, average, a percentile, the minimum or the maximum of a numeric
+ * attribute (#7716) - "P95" of "duration_ms". Count is the default.
+ */
 export const LOGS_ANALYTICS_MEASURE_OPTIONS: Array<{
-  value: string;
+  value: AnalyticsAggregation;
   label: string;
 }> = [
   { value: "count", label: "Count" },
   { value: "unique", label: "Unique Count" },
+  { value: "sum", label: "Sum" },
+  { value: "avg", label: "Average" },
+  { value: "p50", label: "Median (P50)" },
+  { value: "p90", label: "P90" },
+  { value: "p95", label: "P95" },
+  { value: "p99", label: "P99" },
+  { value: "min", label: "Minimum" },
+  { value: "max", label: "Maximum" },
 ];
+
+/*
+ * What the value axis says it reads - the measure and the field it is of,
+ * "P95 of duration_ms" - as the top list's and the table's headers say it
+ * too. A sentence each, so a language words each one whole.
+ */
+export const LOGS_ANALYTICS_VALUE_LABELS: Record<AnalyticsAggregation, string> =
+  {
+    count: translationKey("Count"),
+    unique: translationKey("Unique count of {{attribute}}"),
+    sum: translationKey("Sum of {{attribute}}"),
+    avg: translationKey("Average of {{attribute}}"),
+    p50: translationKey("Median of {{attribute}}"),
+    p90: translationKey("P90 of {{attribute}}"),
+    p95: translationKey("P95 of {{attribute}}"),
+    p99: translationKey("P99 of {{attribute}}"),
+    min: translationKey("Minimum of {{attribute}}"),
+    max: translationKey("Maximum of {{attribute}}"),
+  };
+
+/*
+ * Where the chart goes while a measure that reads a field has none yet:
+ * what to pick, instead of a chart of something else.
+ */
+export const LOGS_ANALYTICS_CHOOSE_ATTRIBUTE: string = translationKey(
+  "Choose the numeric attribute to chart.",
+);
+
+export const LOGS_ANALYTICS_CHOOSE_FIELD: string = translationKey(
+  "Choose which field's unique values to count.",
+);
+
+export const LOGS_ANALYTICS_VALUE_LABEL_TEST_ID: string =
+  "logs-analytics-value-label";
+export const LOGS_ANALYTICS_CHOOSE_FIELD_TEST_ID: string =
+  "logs-analytics-choose-field";
 
 const NO_FIELD_CHOICE: { value: string; label: string } = {
   value: "",
@@ -215,10 +289,13 @@ interface PivotedTimeseriesRow {
  * Series keys stay the raw joined group values (ids for an entity
  * dimension) so two entities that share a name remain two series;
  * `seriesLabels` carries what the legend and tooltip print for each key.
+ * The one series of an ungrouped chart is named `ungroupedLabel` when
+ * given - what it measures, "P95 of duration_ms" - and "count" otherwise.
  */
 export function pivotTimeseriesData(
   rows: Array<AnalyticsTimeseriesRow>,
   entityNameMap?: TelemetryEntityNameMap | undefined,
+  ungroupedLabel?: string | undefined,
 ): {
   pivotedData: Array<PivotedTimeseriesRow>;
   seriesKeys: Array<string>;
@@ -241,7 +318,9 @@ export function pivotTimeseriesData(
     seriesKeysSet.add(groupKey);
     if (seriesLabels[groupKey] === undefined) {
       seriesLabels[groupKey] =
-        getAnalyticsSeriesLabel(groupValues, entityNameMap) || groupKey;
+        getAnalyticsSeriesLabel(groupValues, entityNameMap) ||
+        (Object.keys(groupValues).length === 0 ? ungroupedLabel : undefined) ||
+        groupKey;
     }
     pivotRow[groupKey] = ((pivotRow[groupKey] as number) || 0) + row.count;
   }
@@ -309,11 +388,38 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
   return 1440;
 }
 
+/*
+ * A value the chart measured, in the reader's digits: a count as it always
+ * was, an average or a percentile with at most two decimals ("182.25"), or
+ * three figures below one ("0.0123") so a small one does not read as 0.
+ */
+export function formatAnalyticsValue(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+
+  const magnitude: number = Math.abs(value);
+
+  return value.toLocaleString(
+    getReaderNumberLocale(),
+    magnitude > 0 && magnitude < 1
+      ? { maximumSignificantDigits: 3 }
+      : { maximumFractionDigits: 2 },
+  );
+}
+
 interface AnalyticsTooltipProps {
   active?: boolean;
   label?: string;
   // Series key -> printed label (entity names instead of ids).
   seriesLabels?: Record<string, string> | undefined;
+  /*
+   * Whether the series add up: a count's and a sum's do, and get a total.
+   * An average's, a percentile's, a minimum's or a maximum's do not - nor a
+   * unique count's - so each value is listed alone, a 0 or a negative one
+   * too.
+   */
+  isAdditive?: boolean | undefined;
   payload?: Array<{
     dataKey: string;
     value: number;
@@ -330,10 +436,17 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
     return null;
   }
 
+  const isAdditive: boolean = props.isAdditive !== false;
+
   const entries: Array<{ key: string; value: number; color: string }> =
     props.payload
       .filter((entry: { value: number }): boolean => {
-        return entry.value > 0;
+        if (typeof entry.value !== "number" || !Number.isFinite(entry.value)) {
+          return false;
+        }
+
+        // A bucket a series has nothing in reads 0 in a stack: left out.
+        return isAdditive ? entry.value > 0 : true;
       })
       .map(
         (entry: {
@@ -382,25 +495,131 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                 </span>
               </div>
               <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                {entry.value.toLocaleString(getReaderNumberLocale())}
+                {formatAnalyticsValue(entry.value)}
               </span>
             </div>
           );
         })}
       </div>
-      {entries.length > 1 && (
+      {isAdditive && entries.length > 1 && (
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
           <span className="text-xs font-medium text-gray-500">
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
-            {total.toLocaleString(getReaderNumberLocale())}
+            {formatAnalyticsValue(total)}
           </span>
         </div>
       )}
     </div>
   );
 };
+
+/*
+ * The fields of the chart's own request a scope never sets: what it
+ * charts, and the window and buckets it charts them in.
+ */
+const CHART_OWN_FIELDS: ReadonlySet<string> = new Set<string>([
+  "chartType",
+  "aggregation",
+  "aggregationField",
+  "groupBy",
+  "limit",
+  "startTime",
+  "endTime",
+  "bucketSizeInMinutes",
+]);
+
+// The viewer's scope (requestScope) onto the chart's request.
+function applyRequestScope(
+  requestData: JSONObject,
+  requestScope: JSONObject,
+): void {
+  for (const [key, value] of Object.entries(requestScope)) {
+    if (CHART_OWN_FIELDS.has(key) || value === undefined || value === null) {
+      continue;
+    }
+
+    requestData[key] = value;
+  }
+}
+
+/*
+ * The scope the view compiles itself, without a requestScope: the host's
+ * services and session, and the severity, service, resource, trace and
+ * span chips, kept and left out.
+ */
+function applyOwnScope(
+  requestData: JSONObject,
+  scope: {
+    serviceIds?: Array<string> | undefined;
+    sessionIds?: Array<string> | undefined;
+    appliedFacetFilters: Map<string, Set<string>>;
+  },
+): void {
+  if (scope.serviceIds) {
+    (requestData as Record<string, unknown>)["serviceIds"] = scope.serviceIds;
+  }
+
+  if (scope.sessionIds) {
+    (requestData as Record<string, unknown>)["sessionIds"] = scope.sessionIds;
+  }
+
+  // Apply facet filters
+  const severityValues: Set<string> | undefined =
+    scope.appliedFacetFilters.get("severityText");
+
+  if (severityValues && severityValues.size > 0) {
+    (requestData as Record<string, unknown>)["severityTexts"] =
+      Array.from(severityValues);
+  }
+
+  const serviceFilterValues: Array<string> = collectServiceFacetSelections(
+    scope.appliedFacetFilters.entries(),
+  );
+
+  if (serviceFilterValues.length > 0) {
+    (requestData as Record<string, unknown>)["serviceIds"] =
+      serviceFilterValues;
+  }
+
+  /*
+   * Host / docker / podman / Kubernetes chips ride their own field —
+   * their ids are not `primaryEntityId` values for telemetry that
+   * carries a service.name, so the server resolves them to the
+   * resource's entity key. Without this the analytics tab silently
+   * ignored a cluster the sidebar was filtering by.
+   */
+  const resourceFilters: ResourceEntityFacetSelections =
+    collectResourceEntityFacetSelections(scope.appliedFacetFilters.entries());
+
+  if (Object.keys(resourceFilters).length > 0) {
+    (requestData as Record<string, unknown>)["resourceFilters"] =
+      resourceFilters;
+  }
+
+  const traceFilterValues: Set<string> | undefined =
+    scope.appliedFacetFilters.get("traceId");
+
+  if (traceFilterValues && traceFilterValues.size > 0) {
+    (requestData as Record<string, unknown>)["traceIds"] =
+      Array.from(traceFilterValues);
+  }
+
+  const spanFilterValues: Set<string> | undefined =
+    scope.appliedFacetFilters.get("spanId");
+
+  if (spanFilterValues && spanFilterValues.size > 0) {
+    (requestData as Record<string, unknown>)["spanIds"] =
+      Array.from(spanFilterValues);
+  }
+
+  /*
+   * And what the chips leave out ("Severity is not debug"), so the
+   * analytics count the rows the list shows.
+   */
+  applyLogsFacetExclusionsToRequest(requestData, scope.appliedFacetFilters);
+}
 
 const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   props: LogsAnalyticsViewProps,
@@ -469,6 +688,22 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   const [resultGroupByFields, setResultGroupByFields] = useState<Array<string>>(
     [],
   );
+  /*
+   * The measure the data on screen was read with, for the same reason: an
+   * axis must not call a count "P95 of duration_ms" while the P95 is still
+   * on its way.
+   */
+  const [resultMeasure, setResultMeasure] = useState<{
+    aggregation: AnalyticsAggregation;
+    field: string;
+  }>({ aggregation: "count", field: "" });
+
+  /*
+   * A measure that reads a field, with none picked yet: the chart says what
+   * to pick rather than draw something else under the measure's name.
+   */
+  const isAwaitingField: boolean =
+    needsLogAnalyticsAggregationField(aggregation) && !aggregationField;
 
   /*
    * Staleness guard. A zoom, its reset and the picker can change the window
@@ -509,12 +744,73 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       return [...logFieldOptions, ...attributeOptions];
     }, [props.logAttributes, translator]);
 
+  /*
+   * What a sum, an average, a percentile, a minimum or a maximum can be of:
+   * the logs' attributes, as written. A log's own fields - its severity,
+   * service, trace and span - hold no number.
+   */
+  const numericFieldOptions: Array<{ value: string; label: string }> =
+    useMemo(() => {
+      return allDimensionOptions.filter((option: { value: string }) => {
+        return !DIMENSION_OPTIONS.some((field: { value: string }) => {
+          return field.value === option.value;
+        });
+      });
+    }, [allDimensionOptions]);
+
+  /*
+   * A measure picked: a field a unique count read that no number lives in
+   * (Severity) is let go when a number is measured, so the picker beside it
+   * offers attributes and holds none of them.
+   */
+  const onMeasureChange: (value: string) => void = (value: string): void => {
+    const next: AnalyticsAggregation = value as AnalyticsAggregation;
+
+    setAggregation(next);
+
+    if (
+      isNumericLogAnalyticsAggregation(next) &&
+      DIMENSION_OPTIONS.some((field: { value: string }) => {
+        return field.value === aggregationField;
+      })
+    ) {
+      setAggregationField("");
+    }
+  };
+
+  /*
+   * The viewer's scope, keyed by value: the viewer builds it afresh as its
+   * filters change, and an equal scope must not read the chart again. It is
+   * read back from the key, in the shape it goes out in.
+   */
+  const requestScopeKey: string = useMemo((): string => {
+    return props.requestScope ? JSON.stringify(props.requestScope) : "";
+  }, [props.requestScope]);
+
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       const requestSequence: number = ++requestSequenceRef.current;
       const isStale: () => boolean = (): boolean => {
         return requestSequence !== requestSequenceRef.current;
       };
+
+      const requestScope: JSONObject | null = requestScopeKey
+        ? (JSON.parse(requestScopeKey) as JSONObject)
+        : null;
+
+      /*
+       * Nothing to read until the measure has its field: what is on screen
+       * goes, and the chart says what to pick (isAwaitingField).
+       */
+      if (needsLogAnalyticsAggregationField(aggregation) && !aggregationField) {
+        setIsLoading(false);
+        setLoadError(undefined);
+        setTimeseriesData([]);
+        setTimeseriesBucketMs(undefined);
+        setTopListData([]);
+        setTableData([]);
+        return;
+      }
 
       try {
         setIsLoading(true);
@@ -551,7 +847,8 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           (requestData as Record<string, unknown>)["groupBy"] = requestGroupBy;
         }
 
-        if (aggregation === "unique" && aggregationField) {
+        // The field a unique count counts, or the attribute a number is of.
+        if (needsLogAnalyticsAggregationField(aggregation)) {
           (requestData as Record<string, unknown>)["aggregationField"] =
             aggregationField;
         }
@@ -560,74 +857,21 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           (requestData as Record<string, unknown>)["limit"] = topListLimit;
         }
 
-        if (props.serviceIds) {
-          (requestData as Record<string, unknown>)["serviceIds"] =
-            props.serviceIds;
-        }
-
-        if (props.sessionIds) {
-          (requestData as Record<string, unknown>)["sessionIds"] =
-            props.sessionIds;
-        }
-
-        // Apply facet filters
-        const severityValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("severityText");
-
-        if (severityValues && severityValues.size > 0) {
-          (requestData as Record<string, unknown>)["severityTexts"] =
-            Array.from(severityValues);
-        }
-
-        const serviceFilterValues: Array<string> =
-          collectServiceFacetSelections(props.appliedFacetFilters.entries());
-
-        if (serviceFilterValues.length > 0) {
-          (requestData as Record<string, unknown>)["serviceIds"] =
-            serviceFilterValues;
-        }
-
         /*
-         * Host / docker / podman / Kubernetes chips ride their own field —
-         * their ids are not `primaryEntityId` values for telemetry that
-         * carries a service.name, so the server resolves them to the
-         * resource's entity key. Without this the analytics tab silently
-         * ignored a cluster the sidebar was filtering by.
+         * The rows to read: the viewer's whole scope when it hands one over
+         * (the typed search, every chip, the page's own attributes and
+         * entity keys), else the services, the session and the chips this
+         * view compiles itself.
          */
-        const resourceFilters: ResourceEntityFacetSelections =
-          collectResourceEntityFacetSelections(
-            props.appliedFacetFilters.entries(),
-          );
-
-        if (Object.keys(resourceFilters).length > 0) {
-          (requestData as Record<string, unknown>)["resourceFilters"] =
-            resourceFilters;
+        if (requestScope) {
+          applyRequestScope(requestData, requestScope);
+        } else {
+          applyOwnScope(requestData, {
+            serviceIds: props.serviceIds,
+            sessionIds: props.sessionIds,
+            appliedFacetFilters: props.appliedFacetFilters,
+          });
         }
-
-        const traceFilterValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("traceId");
-
-        if (traceFilterValues && traceFilterValues.size > 0) {
-          (requestData as Record<string, unknown>)["traceIds"] =
-            Array.from(traceFilterValues);
-        }
-
-        const spanFilterValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("spanId");
-
-        if (spanFilterValues && spanFilterValues.size > 0) {
-          (requestData as Record<string, unknown>)["spanIds"] =
-            Array.from(spanFilterValues);
-        }
-
-        /*
-         * And what the chips leave out ("Severity is not debug"), so the
-         * analytics count the rows the list shows.
-         */
-        applyLogsFacetExclusionsToRequest(
-          requestData,
-          props.appliedFacetFilters,
-        );
 
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
@@ -655,6 +899,12 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         const data: unknown = response.data["data"] || [];
 
         setResultGroupByFields(requestGroupBy);
+        setResultMeasure({
+          aggregation,
+          field: needsLogAnalyticsAggregationField(aggregation)
+            ? aggregationField
+            : "",
+        });
 
         if (chartType === "timeseries") {
           setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
@@ -691,6 +941,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       props.serviceIds,
       props.sessionIds,
       props.appliedFacetFilters,
+      requestScopeKey,
     ]);
 
   useEffect(() => {
@@ -722,9 +973,48 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     { typeHints: entityResolutionRequest.typeHints },
   );
 
+  /*
+   * What the values on screen measure, in the reader's language: "Count",
+   * "P95 of duration_ms", "Unique count of severity". An attribute is named
+   * as written; a log's own field is a term of the sentence, worded with it.
+   */
+  const valueLabel: string = useMemo(() => {
+    const template: string =
+      LOGS_ANALYTICS_VALUE_LABELS[resultMeasure.aggregation];
+
+    if (!needsLogAnalyticsAggregationField(resultMeasure.aggregation)) {
+      return translator.translateText(template) || template;
+    }
+
+    const logField: { value: string; label: string } | undefined =
+      DIMENSION_OPTIONS.find((field: { value: string }) => {
+        return field.value === resultMeasure.field;
+      });
+
+    return translator.translateTemplate(
+      template,
+      {
+        attribute: logField
+          ? translatableTerm(logField.label, { inSentence: true })
+          : resultMeasure.field,
+      },
+      { setsValuesApart: true },
+    );
+  }, [resultMeasure, translator]);
+
+  /*
+   * A count's and a sum's groups add up: stacked, totalled, shared out. An
+   * average's, a percentile's, a minimum's, a maximum's and a unique
+   * count's do not, so their series are lines of their own and their top
+   * list has no share.
+   */
+  const isAdditive: boolean = isAdditiveLogAnalyticsAggregation(
+    resultMeasure.aggregation,
+  );
+
   const { pivotedData, seriesKeys, seriesLabels } = useMemo(() => {
-    return pivotTimeseriesData(timeseriesData, entityNameMap);
-  }, [timeseriesData, entityNameMap]);
+    return pivotTimeseriesData(timeseriesData, entityNameMap, valueLabel);
+  }, [timeseriesData, entityNameMap, valueLabel]);
 
   /*
    * The table's columns as wide as a person makes them (Table/ColumnResize),
@@ -835,24 +1125,28 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         {renderSelectControl(
           LOGS_ANALYTICS_CAPTIONS.measure,
           aggregation,
-          (val: string) => {
-            setAggregation(val as AnalyticsAggregation);
-          },
+          onMeasureChange,
           translateOptions(LOGS_ANALYTICS_MEASURE_OPTIONS),
         )}
 
-        {aggregation === "unique" && (
-          <>
-            {renderSelectControl(
-              LOGS_ANALYTICS_CAPTIONS.of,
-              aggregationField,
-              (val: string) => {
-                setAggregationField(val);
-              },
-              [...translateOptions([NO_FIELD_CHOICE]), ...allDimensionOptions],
-            )}
-          </>
-        )}
+        {/*
+         * What the measure is of: any field for a unique count, an
+         * attribute for a number ("P95" of "duration_ms").
+         */}
+        {needsLogAnalyticsAggregationField(aggregation) &&
+          renderSelectControl(
+            LOGS_ANALYTICS_CAPTIONS.of,
+            aggregationField,
+            (val: string) => {
+              setAggregationField(val);
+            },
+            [
+              ...translateOptions([NO_FIELD_CHOICE]),
+              ...(isNumericLogAnalyticsAggregation(aggregation)
+                ? numericFieldOptions
+                : allDimensionOptions),
+            ],
+          )}
 
         <div className="h-4 w-px bg-gray-200" />
 
@@ -993,37 +1287,63 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     };
 
   /*
-   * The tooltip is pinned shut for the length of a drag: it would otherwise
-   * sit over the very buckets the reader is picking. Dropping the prop hands
-   * control back to recharts once the drag ends.
-   */
-  /*
-   * The value axis writes a count as the tooltip beside it does, in the
+   * The value axis writes a figure as the tooltip beside it does, in the
    * reader's digits ("1,5K", "۱٫۵K"), and is as wide as its widest tick at
    * its 11 px - a stack's total among them - never narrower than its 52 px
-   * (#8349). One formatter while the language stays: the axis keeps its
-   * series.
+   * (#8349). A count keeps whole numbers; an average, a percentile, a
+   * minimum or a maximum of a number shows its fractions ("0.25", "182").
+   * One formatter while the language and the measure stay: the axis keeps
+   * its series.
    */
   const formatYAxisTick: (value: number) => string = useMemo(() => {
     return (value: number): string => {
-      return formatChartCount(value, translator.language);
+      return isNumericLogAnalyticsAggregation(resultMeasure.aggregation)
+        ? formatChartValue(value, translator.language)
+        : formatChartCount(value, translator.language);
     };
-  }, [translator.language]);
+  }, [translator.language, resultMeasure.aggregation]);
+
+  /*
+   * Only a count's and a sum's series stack (isAdditive): the axis of a
+   * stack reaches its total, the axis of lines its highest point.
+   */
+  const isStacked: boolean = isAdditive && seriesKeys.length !== 1;
 
   const yAxisWidth: number = useMemo(() => {
     return getYAxisWidthForValuesInPx({
       values: getChartRowValues(pivotedData, seriesKeys, {
-        isStacked: seriesKeys.length !== 1,
+        isStacked: isStacked,
       }),
       formatter: formatYAxisTick,
       minWidthInPx: 52,
       tickFontSizeInPx: 11,
     });
-  }, [pivotedData, seriesKeys, formatYAxisTick]);
+  }, [pivotedData, seriesKeys, isStacked, formatYAxisTick]);
 
+  /*
+   * The tooltip is pinned shut for the length of a drag: it would otherwise
+   * sit over the very buckets the reader is picking. Dropping the prop hands
+   * control back to recharts once the drag ends.
+   */
   const tooltipDragProps: { active?: boolean } = selection.isDragging
     ? { active: false }
     : {};
+
+  /*
+   * What the value axis reads, over it, where the axis starts: "P95 of
+   * duration_ms". The top list and the table say it in their headers.
+   */
+  const renderValueLabel: () => ReactElement = (): ReactElement => {
+    return (
+      <p
+        className="truncate pb-1 text-xs font-medium text-gray-500"
+        title={valueLabel}
+        data-testid={LOGS_ANALYTICS_VALUE_LABEL_TEST_ID}
+      >
+        {valueLabel}
+      </p>
+    );
+  };
 
   const renderTimeseries: () => ReactElement = (): ReactElement => {
     if (pivotedData.length === 0) {
@@ -1045,9 +1365,77 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
     const useAreaChart: boolean = seriesKeys.length === 1;
 
+    /*
+     * The grid, both axes and the tooltip, alike for the area, the lines
+     * and the bars. A count's whole numbers keep whole ticks; a number's
+     * axis may fall between them ("0.25").
+     */
+    const sharedAxes: ReactElement = (
+      <>
+        <CartesianGrid
+          strokeDasharray="none"
+          stroke="var(--ou-chart-grid, #f1f5f9)"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="time"
+          tickFormatter={formatTickTime}
+          tick={{
+            fontSize: 11,
+            fill: "var(--ou-chart-tick, #94a3b8)",
+          }}
+          axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
+          tickLine={false}
+          minTickGap={50}
+          interval="preserveStartEnd"
+          dy={8}
+        />
+        <YAxis
+          tick={{
+            fontSize: 11,
+            fill: "var(--ou-chart-tick, #94a3b8)",
+          }}
+          axisLine={false}
+          tickLine={false}
+          width={yAxisWidth}
+          allowDecimals={isNumericLogAnalyticsAggregation(
+            resultMeasure.aggregation,
+          )}
+          tickFormatter={formatYAxisTick}
+        />
+        <Tooltip
+          content={
+            <AnalyticsTooltip
+              seriesLabels={seriesLabels}
+              isAdditive={isAdditive}
+            />
+          }
+          cursor={
+            isStacked
+              ? { fill: "rgba(99,102,241,0.04)" }
+              : {
+                  stroke: "var(--ou-accent-muted, #c7d2fe)",
+                  strokeWidth: 1,
+                  strokeDasharray: "4 4",
+                }
+          }
+          {...tooltipDragProps}
+        />
+      </>
+    );
+
+    const chartRootProps: {
+      data: Array<PivotedTimeseriesRow>;
+      margin: { top: number; right: number; bottom: number; left: number };
+    } = {
+      data: pivotedData,
+      margin: { top: 8, right: 20, bottom: 4, left: 0 },
+    };
+
     return (
       <div className="px-2 pt-4 pb-2">
         {renderLegend()}
+        {renderValueLabel()}
         <div
           className="select-none"
           style={{
@@ -1060,8 +1448,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           <ResponsiveContainer width="100%" height="100%">
             {useAreaChart ? (
               <AreaChart
-                data={pivotedData}
-                margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                {...chartRootProps}
                 onMouseDown={selection.onMouseDown}
                 {...selection.chartRootProps}
                 onMouseMove={selection.onMouseMove}
@@ -1088,44 +1475,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="none"
-                  stroke="var(--ou-chart-grid, #f1f5f9)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="time"
-                  tickFormatter={formatTickTime}
-                  tick={{
-                    fontSize: 11,
-                    fill: "var(--ou-chart-tick, #94a3b8)",
-                  }}
-                  axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
-                  tickLine={false}
-                  minTickGap={50}
-                  interval="preserveStartEnd"
-                  dy={8}
-                />
-                <YAxis
-                  tick={{
-                    fontSize: 11,
-                    fill: "var(--ou-chart-tick, #94a3b8)",
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={yAxisWidth}
-                  allowDecimals={false}
-                  tickFormatter={formatYAxisTick}
-                />
-                <Tooltip
-                  content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
-                  cursor={{
-                    stroke: "var(--ou-accent-muted, #c7d2fe)",
-                    strokeWidth: 1,
-                    strokeDasharray: "4 4",
-                  }}
-                  {...tooltipDragProps}
-                />
+                {sharedAxes}
                 <Area
                   dataKey={seriesKeys[0] || "count"}
                   stroke={CHART_COLORS[0]!}
@@ -1142,10 +1492,9 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 />
                 {renderSelectionBand()}
               </AreaChart>
-            ) : (
+            ) : isStacked ? (
               <BarChart
-                data={pivotedData}
-                margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                {...chartRootProps}
                 barCategoryGap="20%"
                 barGap={0}
                 onMouseDown={selection.onMouseDown}
@@ -1154,40 +1503,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 onMouseUp={selection.onMouseUp}
                 {...chartRootCursorProps}
               >
-                <CartesianGrid
-                  strokeDasharray="none"
-                  stroke="var(--ou-chart-grid, #f1f5f9)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="time"
-                  tickFormatter={formatTickTime}
-                  tick={{
-                    fontSize: 11,
-                    fill: "var(--ou-chart-tick, #94a3b8)",
-                  }}
-                  axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
-                  tickLine={false}
-                  minTickGap={50}
-                  interval="preserveStartEnd"
-                  dy={8}
-                />
-                <YAxis
-                  tick={{
-                    fontSize: 11,
-                    fill: "var(--ou-chart-tick, #94a3b8)",
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={yAxisWidth}
-                  allowDecimals={false}
-                  tickFormatter={formatYAxisTick}
-                />
-                <Tooltip
-                  content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
-                  cursor={{ fill: "rgba(99,102,241,0.04)" }}
-                  {...tooltipDragProps}
-                />
+                {sharedAxes}
                 {seriesKeys.map((key: string, index: number) => {
                   return (
                     <Bar
@@ -1207,10 +1523,74 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 })}
                 {renderSelectionBand()}
               </BarChart>
+            ) : (
+              /*
+               * An average, a percentile, a minimum or a maximum per group
+               * is never stacked: three services' p95s on top of each other
+               * read as a latency nobody had. One line each.
+               */
+              <LineChart
+                {...chartRootProps}
+                onMouseDown={selection.onMouseDown}
+                {...selection.chartRootProps}
+                onMouseMove={selection.onMouseMove}
+                onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
+              >
+                {sharedAxes}
+                {seriesKeys.map((key: string, index: number) => {
+                  return (
+                    <Line
+                      key={key}
+                      dataKey={key}
+                      stroke={CHART_COLORS[index % CHART_COLORS.length]!}
+                      strokeWidth={1.75}
+                      dot={false}
+                      connectNulls={true}
+                      isAnimationActive={false}
+                    />
+                  );
+                })}
+                {renderSelectionBand()}
+              </LineChart>
             )}
           </ResponsiveContainer>
         </div>
       </div>
+    );
+  };
+
+  /*
+   * A group-by dimension's header: a log's own field in the reader's
+   * language ("Schweregrad"), an entity type by its name, an attribute's
+   * key as written.
+   */
+  const getDimensionHeader: (key: string, values: Array<string>) => string = (
+    key: string,
+    values: Array<string>,
+  ): string => {
+    const label: string = getAnalyticsDimensionLabel(
+      key,
+      values,
+      entityNameMap,
+    );
+
+    return label === key ? key : translator.translateText(label) || label;
+  };
+
+  /*
+   * How long a value's bar is: its share of the largest value on screen,
+   * by size - a minimum of -7 beside 40 is a bar, not nothing.
+   */
+  const getBarScale: (values: Array<number>) => number = (
+    values: Array<number>,
+  ): number => {
+    return (
+      Math.max(
+        ...values.map((value: number): number => {
+          return Number.isFinite(value) ? Math.abs(value) : 0;
+        }),
+      ) || 1
     );
   };
 
@@ -1219,11 +1599,10 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       return renderEmptyState();
     }
 
-    const maxCount: number = Math.max(
-      ...topListData.map((item: AnalyticsTopItem) => {
+    const barScale: number = getBarScale(
+      topListData.map((item: AnalyticsTopItem): number => {
         return item.count;
       }),
-      1,
     );
 
     const totalCount: number = topListData.reduce(
@@ -1233,11 +1612,35 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       0,
     );
 
+    const dimensionKey: string | undefined = resultGroupByFields[0];
+
     return (
       <div className="p-5">
+        {/*
+         * What the rows are and what their numbers measure: "http.route" ·
+         * "P95 of duration_ms".
+         */}
+        <div className="flex items-center justify-between gap-4 px-3 pb-2 text-xs font-medium text-gray-500">
+          <span className="min-w-0 truncate">
+            {dimensionKey
+              ? getDimensionHeader(
+                  dimensionKey,
+                  topListData.map((item: AnalyticsTopItem): string => {
+                    return item.value;
+                  }),
+                )
+              : ""}
+          </span>
+          <span
+            className="min-w-0 truncate text-right"
+            data-testid={LOGS_ANALYTICS_VALUE_LABEL_TEST_ID}
+          >
+            {valueLabel}
+          </span>
+        </div>
         <div className="space-y-1.5">
           {topListData.map((item: AnalyticsTopItem, index: number) => {
-            const percentage: number = (item.count / maxCount) * 100;
+            const percentage: number = (Math.abs(item.count) / barScale) * 100;
             const sharePercent: number =
               totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
             const color: string =
@@ -1279,11 +1682,17 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
-                    {item.count.toLocaleString(getReaderNumberLocale())}
+                    {formatAnalyticsValue(item.count)}
                   </span>
-                  <span className="w-10 text-right font-mono text-xs tabular-nums text-gray-500">
-                    {sharePercent}%
-                  </span>
+                  {/*
+                   * A share of the whole, for what adds up to one: a
+                   * route's share of the logs, not of a sum of p95s.
+                   */}
+                  {isAdditive && (
+                    <span className="w-10 text-right font-mono text-xs tabular-nums text-gray-500">
+                      {sharePercent}%
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -1302,11 +1711,10 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       tableData[0]?.groupValues || {},
     );
 
-    const maxCount: number = Math.max(
-      ...tableData.map((row: AnalyticsTableRow) => {
+    const barScale: number = getBarScale(
+      tableData.map((row: AnalyticsTableRow): number => {
         return row.count;
       }),
-      1,
     );
 
     return (
@@ -1327,12 +1735,11 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   #
                 </th>
                 {groupKeys.map((key: string, keyIndex: number) => {
-                  const label: string = getAnalyticsDimensionLabel(
+                  const label: string = getDimensionHeader(
                     key,
                     tableData.map((row: AnalyticsTableRow): string => {
                       return row.groupValues?.[key] || "";
                     }),
-                    entityNameMap,
                   );
 
                   return (
@@ -1351,22 +1758,28 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     </ResizableHeaderCell>
                   );
                 })}
+                {/*
+                 * What the numbers measure: "Count", or "P95 of
+                 * duration_ms".
+                 */}
                 <ResizableHeaderCell
                   className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500"
                   resize={resizableColumns.getResize(
                     "count",
-                    translator.translateText("Count") || "Count",
+                    valueLabel,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{translator.translateText("Count")}</span>
+                  <span data-testid={LOGS_ANALYTICS_VALUE_LABEL_TEST_ID}>
+                    {valueLabel}
+                  </span>
                 </ResizableHeaderCell>
                 <th className="w-48 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400" />
               </tr>
             </thead>
             <tbody>
               {tableData.map((row: AnalyticsTableRow, index: number) => {
-                const barWidth: number = (row.count / maxCount) * 100;
+                const barWidth: number = (Math.abs(row.count) / barScale) * 100;
                 const color: string =
                   CHART_COLORS[index % CHART_COLORS.length] || CHART_COLORS[0]!;
                 const mutedColor: string =
@@ -1396,7 +1809,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                       );
                     })}
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
-                      {row.count.toLocaleString(getReaderNumberLocale())}
+                      {formatAnalyticsValue(row.count)}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="h-5 w-full overflow-hidden rounded bg-gray-50">
@@ -1420,9 +1833,22 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     );
   };
 
-  const renderEmptyState: () => ReactElement = (): ReactElement => {
+  /*
+   * Where the chart goes when there is none to draw: the chart's icon over
+   * one line, in the reader's words.
+   */
+  const renderPlaceholder: (
+    message: string | undefined,
+    testId?: string | undefined,
+  ) => ReactElement = (
+    message: string | undefined,
+    testId?: string | undefined,
+  ): ReactElement => {
     return (
-      <div className="flex h-72 flex-col items-center justify-center gap-3">
+      <div
+        className="flex h-72 flex-col items-center justify-center gap-3 px-6 text-center"
+        data-testid={testId}
+      >
         <svg
           className="h-10 w-10 text-gray-200"
           fill="none"
@@ -1436,14 +1862,33 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
           />
         </svg>
-        <p className="text-sm text-gray-500">
-          {translator.translateText("No data available for the selected query")}
-        </p>
+        <p className="text-sm text-gray-500">{message}</p>
       </div>
     );
   };
 
+  const renderEmptyState: () => ReactElement = (): ReactElement => {
+    return renderPlaceholder(
+      translator.translateText("No data available for the selected query"),
+    );
+  };
+
   const renderChart: () => ReactElement = (): ReactElement => {
+    /*
+     * A measure that reads a field has none picked: say which to pick,
+     * rather than chart something the measure is not.
+     */
+    if (isAwaitingField) {
+      return renderPlaceholder(
+        translator.translateText(
+          isNumericLogAnalyticsAggregation(aggregation)
+            ? LOGS_ANALYTICS_CHOOSE_ATTRIBUTE
+            : LOGS_ANALYTICS_CHOOSE_FIELD,
+        ),
+        LOGS_ANALYTICS_CHOOSE_FIELD_TEST_ID,
+      );
+    }
+
     if (isLoading) {
       /*
        * A zoom refetches, and until the new window lands the loader stands

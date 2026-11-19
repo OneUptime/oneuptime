@@ -224,8 +224,12 @@ function mirroredAttributes(
           WRAPPER_COLUMN_TYPES.includes(descriptor.columnType),
         isDateTime: descriptor.kind === TerraformValueKind.DateTime,
         isPhone: descriptor.columnType === TableColumnType.Phone,
+        // A value a create starts and OneUptime keeps replaces nothing (#9985).
         forceNew:
-          descriptor.inCreateSchema && !descriptor.inUpdateSchema && hasUpdate,
+          descriptor.inCreateSchema &&
+          !descriptor.inUpdateSchema &&
+          hasUpdate &&
+          !descriptor.startsAtCreate,
       };
     })
     .concat(personEmails)

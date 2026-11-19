@@ -49,7 +49,11 @@ Disse fire widgetene leser en målingsspørring, bygget slik målingsutforskeren
 
 ### Diagram
 
-En tidsserie med én eller flere målingsspørringer over dashbordets tidsintervall. **Diagramtype** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Flere spørringer** legger flere målinger på de samme aksene, og **Formler** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings visningsinnstillinger legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
+En tidsserie med én eller flere målingsspørringer over dashbordets tidsintervall. **Diagramtype** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Legg til spørring** legger til enda en målingsspørring, og **Legg til formel** en formel som kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings **Visningsinnstillinger** legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
+
+Hver spørring tegner sitt eget diagram, under hverandre i widgeten. For å tegne en spørring i diagrammet til spørringen før den i stedet, som flere linjer på de samme aksene, slår du på **Legg over forrige spørring** i dens **Visningsinnstillinger**: for eksempel `mem_used` og `mem_total` i ett diagram. Alle spørringer etter den første har bryteren, og hver spørring som har den på, kommer i samme diagram, så tre eller flere spørringer kan dele ett. Slå den av for å gi spørringen sitt eget diagram igjen.
+
+Et overlagt diagram tar tittelen, diagramtypen og den venstre verdiaksen fra sin første spørring, så en spørring i det leses i den spørringens enhet der det går an. En spørring i en annen enhet av samme slag tegnes i diagrammets enhet, som megabyte i et diagram i gigabyte, eller sekunder i et diagram i millisekunder. En spørring i en enhet av et annet slag, som byte i et diagram i prosent, tegnes mot en ekstra verdiakse på høyre side av diagrammet, i sin egen enhet, og bryteren sier det. Forklaringen under diagrammet nevner hver akses enhet og aksen hver serie tegnes mot. Bare et tredje slag enhet passer på ingen av aksene: den tegnes mot venstre akse, og både diagrammet og bryteren sier det, så gi en slik spørring sitt eget diagram.
 
 Bruk den når formen på linjen forteller historien: ventetid, feil, gjennomstrømning eller kødybde.
 

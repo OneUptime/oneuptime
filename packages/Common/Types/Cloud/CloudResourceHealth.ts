@@ -8,6 +8,7 @@ import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AZURE_FIVE_MINUTE_GRAIN,
   AZURE_FIVE_MINUTE_READ_MINUTES,
+  AZURE_HOURLY_GRAIN,
   AZURE_KEY_METRICS,
   AwsKeyMetric,
   GCP_ALIGNMENT_PERIOD_SECONDS,
@@ -2559,10 +2560,11 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("availability", HEADLINE_AVAILABILITY, "percent"),
         headline("transactions", HEADLINE_REQUESTS, "perPeriod"),
         headline("successe2elatency", HEADLINE_LATENCY, "milliseconds"),
-        // Written once an hour: a read between two writes may not bring it.
-        headline("usedcapacity", HEADLINE_STORAGE_USED, "bytes", {
-          onlySome: true,
-        }),
+        /*
+         * Kept at an hour at its finest, and read once an hour: held
+         * between those reads, its tile says how old it is (#9982).
+         */
+        headline("usedcapacity", HEADLINE_STORAGE_USED, "bytes"),
       ],
     },
     {
@@ -2924,12 +2926,14 @@ const HEADLINES_BY_TYPE: ReadonlyMap<
  * An Azure key metric Azure Monitor keeps at five minutes (AzureKeyMetric.
  * grain: an App Service app's health check, a Cosmos DB account's storage)
  * is read in a call of its own every AZURE_FIVE_MINUTE_READ_MINUTES - in one
- * read of three - so its reading, and a rule or a tile that reads it, would
- * come and go. A read that brings no value of such a reading keeps the one
- * before while its datapoint is younger than the reading's hold, and drops
- * it after, so a metric that stops still goes stale; the resource's page
- * says how old it is. A reading every read brings is never kept: a read
- * that did not bring it says something (CloudHeadlineTiles' "Not reported").
+ * read of three - and one it keeps at an hour (a Storage account's used
+ * capacity, #9982) once an hour, so its reading, and a rule or a tile that
+ * reads it, would come and go. A read that brings no value of such a
+ * reading keeps the one before while its datapoint is younger than the
+ * reading's hold, and drops it after, so a metric that stops still goes
+ * stale; the resource's page says how old it is. A reading every read
+ * brings is never kept: a read that did not bring it says something
+ * (CloudHeadlineTiles' "Not reported").
  */
 
 // Azure Monitor's five-minute grain, as seconds a point covers.
@@ -2948,13 +2952,63 @@ export const AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS: number = 5 * 60;
 export const AZURE_FIVE_MINUTE_READING_HOLD_MS: number =
   (2 * AZURE_FIVE_MINUTE_READ_MINUTES + 10) * 60 * 1000;
 
+// Azure Monitor's hourly grain, as seconds a point covers.
+export const AZURE_HOURLY_READING_PERIOD_SECONDS: number = 60 * 60;
+
+/*
+ * How long an hourly reading is kept (#9982), by its datapoint's age. An
+ * hour's point is asked for once the hour after it has passed
+ * (CloudMetricWindows: an hourly window waits a whole period for Azure
+ * Monitor to publish it), so it is 2 hours old when it is read, and the
+ * next one comes an hour later, at the first read after it is there: up
+ * to 3 hours old then, plus the minutes between two reads of the
+ * connection - an hour at most. A bound of its own beside
+ * CLOUD_READINGS_STALE_MS, which says when a resource's readings as a whole
+ * are too old: a storage account's other readings come every read. One
+ * that stops coming is dropped after it, so its tile says "Not reported".
+ */
+export const AZURE_HOURLY_READING_HOLD_MS: number = 4 * 60 * 60 * 1000;
+
+// What a reading read less often than every read is read at, and kept for.
+interface SlowCloudReading {
+  holdMs: number;
+  periodSeconds: number;
+}
+
+const SLOW_GRAINS: ReadonlyMap<string, SlowCloudReading> = new Map<
+  string,
+  SlowCloudReading
+>([
+  [
+    AZURE_FIVE_MINUTE_GRAIN,
+    {
+      holdMs: AZURE_FIVE_MINUTE_READING_HOLD_MS,
+      periodSeconds: AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS,
+    },
+  ],
+  [
+    AZURE_HOURLY_GRAIN,
+    {
+      holdMs: AZURE_HOURLY_READING_HOLD_MS,
+      periodSeconds: AZURE_HOURLY_READING_PERIOD_SECONDS,
+    },
+  ],
+]);
+
 // "<provider>|<type>|<reading key>" of every reading read less often than every read.
-const SLOW_READINGS: ReadonlySet<string> = (() => {
-  const slow: Set<string> = new Set<string>();
+const SLOW_READINGS: ReadonlyMap<string, SlowCloudReading> = (() => {
+  const slow: Map<string, SlowCloudReading> = new Map<
+    string,
+    SlowCloudReading
+  >();
 
   for (const entry of AZURE_KEY_METRICS) {
     for (const metric of entry.metrics) {
-      if (metric.grain !== AZURE_FIVE_MINUTE_GRAIN) {
+      const reading: SlowCloudReading | undefined = metric.grain
+        ? SLOW_GRAINS.get(metric.grain)
+        : undefined;
+
+      if (!reading) {
         continue;
       }
 
@@ -2965,7 +3019,7 @@ const SLOW_READINGS: ReadonlySet<string> = (() => {
       );
 
       if (key) {
-        slow.add(`${typeKey(CloudProvider.Azure, entry.type)}|${key}`);
+        slow.set(`${typeKey(CloudProvider.Azure, entry.type)}|${key}`, reading);
       }
     }
   }
@@ -2973,27 +3027,36 @@ const SLOW_READINGS: ReadonlySet<string> = (() => {
   return slow;
 })();
 
+function getSlowCloudReading(data: {
+  provider: string;
+  type: string;
+  key: string;
+}): SlowCloudReading | undefined {
+  return SLOW_READINGS.get(
+    `${typeKey(data.provider, data.type)}|${(data.key || "").toLowerCase()}`,
+  );
+}
+
 function isSlowCloudReading(data: {
   provider: string;
   type: string;
   key: string;
 }): boolean {
-  return SLOW_READINGS.has(
-    `${typeKey(data.provider, data.type)}|${(data.key || "").toLowerCase()}`,
-  );
+  return Boolean(getSlowCloudReading(data));
 }
 
 /*
  * How long a reading is kept after the last read that brought it, by its
  * datapoint's age: AZURE_FIVE_MINUTE_READING_HOLD_MS for an Azure key metric
- * read at five minutes, null for a reading every read brings.
+ * read at five minutes, AZURE_HOURLY_READING_HOLD_MS for one read once an
+ * hour, null for a reading every read brings.
  */
 export function getCloudReadingHoldMs(data: {
   provider: string;
   type: string;
   key: string;
 }): number | null {
-  return isSlowCloudReading(data) ? AZURE_FIVE_MINUTE_READING_HOLD_MS : null;
+  return getSlowCloudReading(data)?.holdMs ?? null;
 }
 
 /*
@@ -3078,9 +3141,11 @@ export function getCloudReadingPeriodSeconds(
   type?: string | undefined,
 ): number {
   if ((provider || "").toLowerCase() !== CloudProvider.AWS) {
-    return type && isSlowCloudReading({ provider, type, key })
-      ? AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS
-      : GCP_ALIGNMENT_PERIOD_SECONDS;
+    return (
+      (type
+        ? getSlowCloudReading({ provider, type, key })?.periodSeconds
+        : undefined) || GCP_ALIGNMENT_PERIOD_SECONDS
+    );
   }
 
   const parts: Array<string> = (key || "").split("/");
