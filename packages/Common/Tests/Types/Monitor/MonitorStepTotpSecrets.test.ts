@@ -101,7 +101,7 @@ describe("a step's TOTP secrets on their way to the probe", () => {
 describe("a step written to the database", () => {
   test("never holds its TOTP secrets", () => {
     const step: MonitorStep = MonitorStep.fromJSON(
-      stepJSON({ totpSecrets: { LoginCode: LOGIN } }),
+      stepJSON({ totpSecrets: { LoginCode: { ...LOGIN } } }),
     );
 
     const stored: JSONObject = MonitorStep.getDatabaseTransformer().to(step);
@@ -116,7 +116,7 @@ describe("a step written to the database", () => {
 
   test("never holds them in a monitor's steps either", () => {
     const steps: MonitorSteps = MonitorSteps.fromJSON(
-      stepsJSON(stepJSON({ totpSecrets: { LoginCode: LOGIN } })),
+      stepsJSON(stepJSON({ totpSecrets: { LoginCode: { ...LOGIN } } })),
     );
 
     // Filled in for a probe, the steps carry the parameters...

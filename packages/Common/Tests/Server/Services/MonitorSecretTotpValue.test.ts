@@ -118,7 +118,9 @@ beforeEach(() => {
               new ObjectID(row.id),
             );
             secret.projectId = new ObjectID(PROJECT_ID);
-            secret.secretType = row.secretType;
+            if (row.secretType !== undefined) {
+              secret.secretType = row.secretType;
+            }
             return secret;
           }),
       );
