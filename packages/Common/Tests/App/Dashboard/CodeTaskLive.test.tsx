@@ -678,6 +678,47 @@ describe("a task's conversation while AI works", () => {
     expect(screen.getByTestId("code-task-steps-working")).toBeInTheDocument();
   });
 
+  /*
+   * A step that arrives rises into place, marked as it is drawn - and the
+   * conversation is drawn once for the read that brought it, so it keeps
+   * its mark. The list's ref, made anew on each drawing, set the list to
+   * nothing and back after every read: two more drawings, and the step had
+   * lost its mark before it could rise.
+   */
+  test("an announced step is drawn as arrived, and stays so after the read that brought it", async () => {
+    getTaskMock.mockResolvedValue(working() as never);
+    getTurnProgressMock.mockResolvedValue(
+      progress({
+        steps: [step(2, CodeTaskStepKind.Ran, "npm test")],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+    await screen.findByTestId("code-task-header");
+
+    await act(async () => {
+      announce();
+    });
+
+    await waitFor(() => {
+      expect(stepSubjects()).toHaveLength(3);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(
+      screen
+        .getAllByTestId("code-task-step")
+        .filter((element: HTMLElement): boolean => {
+          return element.getAttribute("data-step-arrived") === "true";
+        })
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["Ran npm test"]);
+  });
+
   test("a reply's turn is read as its own run, from its last step", async () => {
     getTaskMock.mockResolvedValue(
       working({

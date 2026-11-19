@@ -198,6 +198,20 @@ const CodeTaskConversation: FunctionComponent<
   const [turnsElement, setTurnsElement] = useState<HTMLOListElement | null>(
     null,
   );
+  /*
+   * The list's ref, one function for the page's life: a new one each
+   * drawing is called again on every drawing - with nothing, then the list
+   * - and setting the list to nothing and back drew the conversation twice
+   * more after each read, so a step that had just arrived no longer rose
+   * into place.
+   */
+  const setTurnsList: (element: HTMLOListElement | null) => void = useCallback(
+    (element: HTMLOListElement | null): void => {
+      turnsRef.current = element;
+      setTurnsElement(element);
+    },
+    [],
+  );
   // The reply box held at the bottom of the window.
   const footerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
@@ -1125,13 +1139,7 @@ const CodeTaskConversation: FunctionComponent<
         sees the page watches come in.
       */}
         <ol
-          ref={(element: HTMLOListElement | null) => {
-            turnsRef.current = element;
-
-            if (element !== turnsElement) {
-              setTurnsElement(element);
-            }
-          }}
+          ref={setTurnsList}
           data-testid="code-task-turns"
           role="log"
           aria-live="polite"
