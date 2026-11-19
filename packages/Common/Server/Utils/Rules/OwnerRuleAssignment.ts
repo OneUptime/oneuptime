@@ -318,12 +318,29 @@ export default class OwnerRuleAssignment {
 
   /*
    * Adds what one addOwners did to what earlier ones did: an engine adds the
-   * owners it notifies and the ones it adds silently in two calls.
+   * owners it notifies and the ones it adds silently in two calls. An owner
+   * skipped by both - two rules that name someone who has left, one telling
+   * its owners and one not - is listed once.
    */
   public static addUp(into: OwnersAdded, from: OwnersAdded): void {
     into.userIds.push(...from.userIds);
     into.teamIds.push(...from.teamIds);
-    into.notAdded.push(...from.notAdded);
+
+    for (const owner of from.notAdded) {
+      const isListed: boolean = into.notAdded.some(
+        (listed: OwnerNotAdded): boolean => {
+          return (
+            listed.ownerColumn === owner.ownerColumn &&
+            listed.id.toString().toLowerCase() ===
+              owner.id.toString().toLowerCase()
+          );
+        },
+      );
+
+      if (!isListed) {
+        into.notAdded.push(owner);
+      }
+    }
   }
 
   /*

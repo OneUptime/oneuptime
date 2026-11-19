@@ -1824,6 +1824,48 @@ describe("OwnerRuleAssignment.addOwners: what it added, and what it skipped and 
     ]);
   });
 
+  it("lists an owner both calls skipped once - two rules naming someone who left, one telling its owners and one not", () => {
+    const into: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+    const skippedByBoth: OwnersAdded = {
+      userIds: [],
+      teamIds: [],
+      notAdded: [
+        {
+          ownerColumn: "userId",
+          id: DEPARTED,
+          reason: OwnerAddOutcome.NotProjectMember,
+        },
+      ],
+    };
+
+    OwnerRuleAssignment.addUp(into, skippedByBoth);
+    OwnerRuleAssignment.addUp(into, {
+      ...skippedByBoth,
+      notAdded: [
+        {
+          ownerColumn: "userId",
+          // The same person, however the id is cased.
+          id: new ObjectID(DEPARTED.toString().toUpperCase()),
+          reason: OwnerAddOutcome.NotProjectMember,
+        },
+        {
+          ownerColumn: "teamId",
+          id: FOREIGN_TEAM,
+          reason: OwnerAddOutcome.NotProjectRecord,
+        },
+      ],
+    });
+
+    expect(
+      into.notAdded.map((owner: OwnersAdded["notAdded"][number]): string => {
+        return `${owner.ownerColumn}:${owner.id.toString().toLowerCase()}`;
+      }),
+    ).toEqual([
+      `userId:${DEPARTED.toString().toLowerCase()}`,
+      `teamId:${FOREIGN_TEAM.toString().toLowerCase()}`,
+    ]);
+  });
+
   it("starts every answer empty, and apart from every other", () => {
     const first: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
     const second: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
