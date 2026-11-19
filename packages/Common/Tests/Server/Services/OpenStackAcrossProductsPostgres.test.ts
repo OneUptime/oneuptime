@@ -28,6 +28,8 @@ import {
   extractInventoryResource,
 } from "../../../Types/Kubernetes/KubernetesInventoryExtractor";
 import ObjectID from "../../../Types/ObjectID";
+import ReadAudience from "../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../Helpers/ReadAudienceFixtures";
 import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusOwner,
@@ -2047,6 +2049,29 @@ describePostgres("the joins across products, on Postgres", () => {
       120000,
     );
 
+    /*
+     * Where the linked resources are in a cloud, as an investigation reads
+     * it: for the report's readers (ReadAudience, #9576) - here a project
+     * whose roles narrow nobody, so every cloud is theirs to read.
+     */
+    async function readOpenStackPlacements(
+      resources: Array<LinkedInfrastructureResource>,
+    ): Promise<Array<OpenStackPlacementOfResource> | undefined> {
+      return await (
+        LinkedInfrastructureContext as unknown as {
+          readOpenStackPlacements: (data: {
+            projectId: ObjectID;
+            resources: Array<LinkedInfrastructureResource>;
+            readAudience: ReadAudience;
+          }) => Promise<Array<OpenStackPlacementOfResource> | undefined>;
+        }
+      ).readOpenStackPlacements({
+        projectId,
+        resources,
+        readAudience: readAudienceOf({ projectId }),
+      });
+    }
+
     test("an investigation that starts at a slow service can walk down to its hypervisor", async () => {
       const resources: Array<LinkedInfrastructureResource> = [
         {
@@ -2056,14 +2081,7 @@ describePostgres("the joins across products, on Postgres", () => {
         },
       ];
       const placements: Array<OpenStackPlacementOfResource> | undefined =
-        await (
-          LinkedInfrastructureContext as unknown as {
-            readOpenStackPlacements: (data: {
-              projectId: ObjectID;
-              resources: Array<LinkedInfrastructureResource>;
-            }) => Promise<Array<OpenStackPlacementOfResource> | undefined>;
-          }
-        ).readOpenStackPlacements({ projectId, resources });
+        await readOpenStackPlacements(resources);
 
       expect(placements).toHaveLength(1);
       expect(placements?.[0]?.through).toBe('Kubernetes node "k8s-worker-1"');
@@ -2085,23 +2103,13 @@ describePostgres("the joins across products, on Postgres", () => {
 
     test("an investigation about a Kubernetes cluster can walk down from its nodes", async () => {
       const placements: Array<OpenStackPlacementOfResource> | undefined =
-        await (
-          LinkedInfrastructureContext as unknown as {
-            readOpenStackPlacements: (data: {
-              projectId: ObjectID;
-              resources: Array<LinkedInfrastructureResource>;
-            }) => Promise<Array<OpenStackPlacementOfResource> | undefined>;
-          }
-        ).readOpenStackPlacements({
-          projectId,
-          resources: [
-            {
-              type: LinkedAffectedResourceType.KubernetesCluster,
-              id: clusterId.toString(),
-              name: "prod",
-            },
-          ],
-        });
+        await readOpenStackPlacements([
+          {
+            type: LinkedAffectedResourceType.KubernetesCluster,
+            id: clusterId.toString(),
+            name: "prod",
+          },
+        ]);
       expect(placements).toHaveLength(1);
       expect(placements?.[0]?.through).toBe('node "k8s-worker-1"');
       expect(placements?.[0]?.placement.externalId).toBe(NODE_INSTANCE);

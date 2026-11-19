@@ -116,6 +116,7 @@ import {
   ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
+  ResourceAttentionText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import { ResourceAttentionDialogRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttentionDialog";
 import {
@@ -181,11 +182,11 @@ function condition(type: string, status: string, at: string): JSONObject {
 function pod(
   name: string,
   fields: {
-    namespace?: string;
+    namespace?: string | undefined;
     phase?: string;
     containers?: Array<Record<string, unknown>>;
     conditions?: Array<JSONObject>;
-    owner?: [string, string];
+    owner?: [string, string] | undefined;
     labels?: Record<string, string>;
     reason?: string;
     message?: string;
@@ -300,15 +301,13 @@ function event(
 }
 
 function textOf(item: ResourceAttentionItem): Array<string> {
-  return item.reasons.map(
-    (reason: { text: string; values?: Record<string, string> }) => {
-      let filled: string = reason.text;
-      for (const [key, value] of Object.entries(reason.values || {})) {
-        filled = filled.split(`{{${key}}}`).join(value);
-      }
-      return filled;
-    },
-  );
+  return item.reasons.map((reason: ResourceAttentionText) => {
+    let filled: string = reason.text;
+    for (const [key, value] of Object.entries(reason.values || {})) {
+      filled = filled.split(`{{${key}}}`).join(value);
+    }
+    return filled;
+  });
 }
 
 describe("which pods a count lists", () => {

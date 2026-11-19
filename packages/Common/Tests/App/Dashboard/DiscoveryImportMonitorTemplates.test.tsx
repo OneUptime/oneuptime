@@ -327,13 +327,51 @@ function registersTemplate(): MonitorTemplate {
   });
 }
 
-// Checks a URL: the read should not return it, and the step never shows it.
+/*
+ * Checks a URL (issue #9546): listed under Web templates, and each device's
+ * monitor checks it with the device's address as the host.
+ */
 function storefrontTemplate(): MonitorTemplate {
   return addressTemplate({
     id: STOREFRONT_ID,
     name: "Storefront website",
     monitorType: MonitorType.Website,
     destination: URL.fromString("https://shop.wbhq.com"),
+  });
+}
+
+const STATUS_PAGE_ID: string = "d1a2b3c4-0000-4000-8000-000000000008";
+const CERTIFICATE_ID: string = "d1a2b3c4-0000-4000-8000-000000000009";
+const SECRET_HOST_ID: string = "d1a2b3c4-0000-4000-8000-00000000000a";
+
+// A device's status page, on the port it answers on.
+function statusPageTemplate(): MonitorTemplate {
+  return addressTemplate({
+    id: STATUS_PAGE_ID,
+    name: "Device status page",
+    monitorType: MonitorType.Website,
+    destination: URL.fromString("https://device:8443/status"),
+    monitoringInterval: "*/5 * * * *",
+  });
+}
+
+// The certificate each device serves.
+function certificateTemplate(): MonitorTemplate {
+  return addressTemplate({
+    id: CERTIFICATE_ID,
+    name: "Device certificate",
+    monitorType: MonitorType.SSLCertificate,
+    destination: URL.fromString("https://device/"),
+  });
+}
+
+// A host read from a secret when the check runs: no address can take its place.
+function secretHostTemplate(): MonitorTemplate {
+  return addressTemplate({
+    id: SECRET_HOST_ID,
+    name: "Status page by secret",
+    monitorType: MonitorType.API,
+    destination: URL.fromStringLenient("https://{{monitorSecrets.host}}/"),
   });
 }
 
@@ -567,7 +605,7 @@ afterEach(() => {
 });
 
 describe("which templates the step lists (issue #5145)", () => {
-  test("Network Device templates, then the Ping, IP, Port and NTP ones, each under its heading - and nothing else", async () => {
+  test("Network Device templates, then the Ping, IP, Port and NTP ones, then the web ones, each under its heading", async () => {
     lists.templates = [
       kdsTemplate(),
       storefrontTemplate(),
@@ -590,12 +628,15 @@ describe("which templates the step lists (issue #5145)", () => {
       "Receipt printers | Checks port 9100 on each device",
       "Store time servers | Asks each device for the time",
       "Registers by IP | Pings each device's IP address",
+      // A web template, with the URL each device's monitor checks (#9546).
+      "Storefront website | Checks https://shop.wbhq.com/, with each device's address as the host",
     ]);
 
     // Each kind under a heading that says which it is, in that order.
     const headings: Array<string> = [
       "Network Device templates",
       "Ping, IP, Port and NTP templates",
+      "Web templates",
     ];
     const text: string = menu.textContent || "";
     expect(text.indexOf(headings[0]!)).toBeGreaterThanOrEqual(0);
@@ -605,9 +646,12 @@ describe("which templates the step lists (issue #5145)", () => {
     expect(text.indexOf(headings[1]!)).toBeLessThan(
       text.indexOf("WB KDS Ping Monitor Template"),
     );
-
-    // A template that checks a URL has nothing of a device's to check.
-    expect(menu).not.toHaveTextContent("Storefront website");
+    expect(text.indexOf(headings[2]!)).toBeGreaterThan(
+      text.indexOf("Registers by IP"),
+    );
+    expect(text.indexOf(headings[2]!)).toBeLessThan(
+      text.indexOf("Storefront website"),
+    );
   });
 
   test("the project's templates are read for exactly the kinds a device's monitor can be made from", async () => {
@@ -644,7 +688,7 @@ describe("which templates the step lists (issue #5145)", () => {
     expect(
       screen.getByTestId("discovery-import-template-rule"),
     ).toHaveTextContent(
-      "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device. Manage templates",
+      "Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate templates are listed. A web one's URL takes each device's address as its host. Manage templates",
     );
 
     const link: HTMLElement = screen.getByTestId(
@@ -682,6 +726,87 @@ describe("which templates the step lists (issue #5145)", () => {
       "Labels",
       "Unnamed template | Pings each device",
     ]);
+  });
+});
+
+describe("picking a web template (issue #9546)", () => {
+  test("a Website template: each device gets a Website monitor of the template's URL, with its own address as the host", async () => {
+    lists.templates = [statusPageTemplate()];
+
+    await openDialog();
+    await toMonitoring();
+    await monitorsForEachDevice();
+    await pickTemplate(/^Device status page/);
+
+    expect(
+      screen.getByTestId("discovery-import-template-lead"),
+    ).toHaveTextContent(
+      "Each device gets a Website monitor of https://device:8443/status from Store probe, with its own address as the host.",
+    );
+    expect(
+      screen.getByTestId("discovery-import-template-schedule"),
+    ).toHaveTextContent("Checked on the template's schedule: every 5 minutes.");
+    expect(
+      screen.queryByTestId("discovery-import-template-unusable"),
+    ).toBeNull();
+
+    await submitImport();
+
+    expect(lastStart()["settings"]).toEqual({
+      pollingIntervalInMinutes: 5,
+      applyVendorTemplates: true,
+      alerting: DiscoveryImportAlerting.MonitorTemplate,
+      monitorTemplateId: STATUS_PAGE_ID,
+    });
+  });
+
+  test("an SSL Certificate template says the certificate must name each device's address", async () => {
+    lists.templates = [certificateTemplate()];
+
+    await openDialog();
+    await toMonitoring();
+    await monitorsForEachDevice();
+
+    const menu: HTMLElement = await openTemplateMenu();
+    expect(optionTexts(menu)).toEqual([
+      `${RECOMMENDED_TEMPLATE_NAME} - created when you import`,
+      "Device certificate | Checks the certificate at https://device/, with each device's address as the host. It must name that address.",
+    ]);
+
+    await act(async () => {
+      fireEvent.click(
+        within(menu).getByRole("option", { name: /^Device certificate/ }),
+      );
+    });
+    await flush();
+
+    expect(
+      screen.getByTestId("discovery-import-template-lead"),
+    ).toHaveTextContent(
+      "Each device gets an SSL Certificate monitor of https://device/ from Store probe, with its own address as the host. The certificate must name that address.",
+    );
+  });
+
+  test("a web template whose URL names its host with a variable says what to change, and Import waits for it", async () => {
+    lists.templates = [secretHostTemplate()];
+
+    await openDialog();
+    await toMonitoring();
+    await monitorsForEachDevice();
+    await pickTemplate(/^Status page by secret/);
+
+    expect(
+      screen.getByTestId("discovery-import-template-unusable"),
+    ).toHaveTextContent(
+      "This template's URL names its host with a variable, which is read when the check runs, so each device's address cannot take its place. Write a host into the URL, such as https://device/, then pick it again.",
+    );
+    // Nothing is previewed for a template no monitor can be made from.
+    expect(
+      screen.queryByTestId("discovery-import-template-preview"),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /^Import \d+ devices?$/ }),
+    ).toBeDisabled();
   });
 });
 

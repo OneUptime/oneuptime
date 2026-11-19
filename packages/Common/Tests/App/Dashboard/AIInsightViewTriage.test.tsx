@@ -82,6 +82,8 @@ interface FakeServer {
   summary: string | undefined;
   run: JSONObject | null;
   events: Array<JSONObject>;
+  // The triage's first steps were left out of `events` (issue #6489).
+  hasEarlierEvents?: boolean | undefined;
 }
 
 let server: FakeServer;
@@ -184,7 +186,13 @@ describe("AI insight detail — triage activity", () => {
         return Promise.resolve(
           new HTTPResponse<JSONObject>(
             200,
-            { run: server.run, events: server.events },
+            {
+              run: server.run,
+              events: server.events,
+              ...(server.hasEarlierEvents !== undefined
+                ? { hasEarlierEvents: server.hasEarlierEvents }
+                : {}),
+            },
             {},
           ),
         );
@@ -195,6 +203,31 @@ describe("AI insight detail — triage activity", () => {
   afterEach(() => {
     cleanup();
     jest.useRealTimers();
+  });
+
+  /*
+   * Issue #6489: the read keeps a triage's newest 500 events, and says
+   * when its first ones were left out: the card says so too, rather than
+   * showing a long triage's latest steps as all of it.
+   */
+  test("a triage whose first steps were left out says so in its activity", async () => {
+    server.hasEarlierEvents = true;
+
+    await renderPage();
+
+    expect(
+      within(activityRegion()).getByTestId("activity-earlier-steps-left-out"),
+    ).toHaveTextContent(
+      /^Only the latest \d+ steps? of this run (?:is|are) shown\.$/,
+    );
+  });
+
+  test("a triage with nothing left out says nothing of it", async () => {
+    await renderPage();
+
+    expect(
+      within(activityRegion()).queryByTestId("activity-earlier-steps-left-out"),
+    ).toBeNull();
   });
 
   test.each(Object.values(AIRunStatus))(

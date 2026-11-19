@@ -78,12 +78,14 @@ import {
   CloudStreamStatusWords,
   STREAM_QUIET_SENTENCE,
   STREAM_RECEIVING_SENTENCE,
+  STREAM_OLDER_STACKS_SENTENCE,
   STREAM_REFUSED_SENTENCE,
   STREAM_WAITING_SENTENCE,
   getCloudStreamDefaultRegions,
   getCloudStreamSourceWords,
   getCloudStreamStackRegions,
   getCloudStreamStatusWords,
+  getCloudStreamUpdateWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamWords";
 import { CloudTemplate } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionWords";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
@@ -96,6 +98,7 @@ import {
   CloudStreamMetricsMode,
   STREAM_NOT_A_REGION,
   STREAM_NO_LOG_GROUP,
+  STREAM_TEMPLATE_TOO_LARGE,
 } from "../../../Types/CloudConnection/CloudStreamTemplate";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -568,6 +571,152 @@ describe("what the choices make", () => {
         oneuptimeUrl: "http://oneuptime.local",
       }).problem,
     ).toEqual({ text: NOT_HTTPS_PROBLEM, values: {} });
+  });
+
+  /*
+   * 50 log groups of the longest names AWS allows, beside every key
+   * metric's filter, make a template larger than CloudFormation takes from
+   * a command: the dialog says so before any command, as it says any
+   * other problem with the choices.
+   */
+  test("log groups whose names make the template too large stop the command", () => {
+    const longest: string = Array.from({ length: 50 })
+      .map((_value: unknown, index: number): string => {
+        return `/${String(index).padStart(2, "0")}${"x".repeat(509)}`;
+      })
+      .join("\n");
+
+    expect(
+      setup({ what: CloudStreamWhat.MetricsAndLogs, logGroupsText: longest })
+        .problem,
+    ).toEqual({ text: STREAM_TEMPLATE_TOO_LARGE, values: {} });
+    // Every metric's template has no filters, and fits them.
+    expect(
+      setup({
+        what: CloudStreamWhat.MetricsAndLogs,
+        logGroupsText: longest,
+        everyMetric: true,
+      }).problem,
+    ).toBeNull();
+    // A few long names fit beside every key metric.
+    expect(
+      setup({
+        what: CloudStreamWhat.MetricsAndLogs,
+        logGroupsText: longest.split("\n").slice(0, 5).join("\n"),
+      }).problem,
+    ).toBeNull();
+  });
+});
+
+/*
+ * A stack made before OneUptime streamed every key metric streams only the
+ * first ones, and the connection reads the rest from CloudWatch until the
+ * command is run again (CloudStreamStack): the list offers the update, and
+ * the dialog says which stacks and why.
+ */
+describe("the stacks to update", () => {
+  function summaryOf(
+    sources: Array<Record<string, unknown>>,
+    now: Date = NOW,
+  ): JSONObject {
+    return {
+      lastDeliveryAt: minutesAgo(1, now),
+      metricSources: sources.map((source: Record<string, unknown>) => {
+        return {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: minutesAgo(1, now),
+          ...source,
+        };
+      }),
+      logSources: [],
+    } as unknown as JSONObject;
+  }
+
+  test("are the Regions streaming lately from a stack of an older template, each once", () => {
+    expect(
+      getCloudStreamUpdateWords({
+        streamKeyCreatedAt: NOW,
+        streamSummary: summaryOf([
+          { region: "us-east-1" },
+          { region: "eu-west-1", templateVersion: 2, everyMetric: false },
+          { region: "ap-south-1", templateVersion: 1 },
+          { region: "us-west-2", templateVersion: 1, everyMetric: true },
+          { accountId: "210987654321", region: "us-east-1" },
+        ]),
+        now: NOW,
+      }),
+    ).toEqual({ regions: ["us-east-1", "ap-south-1"] });
+  });
+
+  test("are none once every stack is of the current template, without a key, or for another cloud", () => {
+    const current: JSONObject = summaryOf([
+      { templateVersion: 2, everyMetric: false },
+    ]);
+    const older: JSONObject = summaryOf([{}]);
+
+    expect(
+      getCloudStreamUpdateWords({
+        streamKeyCreatedAt: NOW,
+        streamSummary: current,
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(
+      getCloudStreamUpdateWords({
+        streamKeyCreatedAt: null,
+        streamSummary: older,
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(
+      getCloudStreamUpdateWords({
+        provider: CloudProvider.Azure,
+        streamKeyCreatedAt: NOW,
+        streamSummary: older,
+        now: NOW,
+      }),
+    ).toBeNull();
+    // A stream gone quiet: nothing to say until it delivers again.
+    expect(
+      getCloudStreamUpdateWords({
+        streamKeyCreatedAt: NOW,
+        streamSummary: summaryOf([{ lastAt: minutesAgo(30, NOW) }]),
+        now: NOW,
+      }),
+    ).toBeNull();
+  });
+
+  test("the dialog says which stacks and what running the command again does", () => {
+    openDialog(
+      connection({
+        streamKeyCreatedAt: new Date(),
+        streamSummary: summaryOf(
+          [{ region: "us-east-1" }, { region: "eu-west-1" }],
+          new Date(),
+        ),
+      }),
+    );
+
+    expect(part("update")).toHaveTextContent(
+      "The stacks in us-east-1, eu-west-1 were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.",
+    );
+  });
+
+  test("the dialog says nothing of it once the stacks are of the current template", () => {
+    openDialog(
+      connection({
+        streamKeyCreatedAt: new Date(),
+        streamSummary: summaryOf(
+          [{ templateVersion: 2, everyMetric: false }],
+          new Date(),
+        ),
+      }),
+    );
+
+    expect(queryPart("update")).not.toBeInTheDocument();
+    expect(STREAM_OLDER_STACKS_SENTENCE).toContain("{{regions}}");
   });
 });
 

@@ -17,6 +17,11 @@ import {
   resolveCloudMonitoredResource,
 } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CloudStreamMetricSource } from "../../../../Types/CloudConnection/CloudStream";
+import {
+  AwsStreamCoverage,
+  getAwsStreamCoverage,
+} from "../../../../Types/CloudConnection/CloudStreamStack";
 import { getAwsExternalIdForProject } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
@@ -1047,6 +1052,252 @@ describe("read", () => {
     expect(statOf("CPUCreditBalance")).toBe("Average");
     expect(statOf("EBSReadBytes")).toBe("Sum");
     expect(statOf("CPUUtilization")).toBe("Average");
+  });
+
+  /*
+   * #9564: an account that streams pays CloudWatch only for what its
+   * stream does not carry. A key metric its stack carries, of a namespace
+   * it delivered lately, is not read - but where the resource's health or
+   * headline is judged from it, so its health reads the same.
+   */
+  describe("of an account that streams", () => {
+    function metricsQueried(fake: FakeAws): Array<string> {
+      return fake.cloudWatchCalls
+        .filter((call: { action: string }): boolean => {
+          return call.action === "GetMetricData";
+        })
+        .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+          return call.body["MetricDataQueries"] as Array<JSONObject>;
+        })
+        .map((query: JSONObject): string => {
+          const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+            "Metric"
+          ] as JSONObject;
+
+          return `${metric["Namespace"] as string}/${metric["MetricName"] as string}`;
+        })
+        .sort();
+    }
+
+    function streaming(
+      sources: Array<Partial<CloudStreamMetricSource>>,
+    ): AwsStreamCoverage {
+      return getAwsStreamCoverage({
+        summary: {
+          metricSources: sources.map(
+            (
+              source: Partial<CloudStreamMetricSource>,
+            ): CloudStreamMetricSource => {
+              return {
+                accountId: FAKE_ACCOUNT_ID,
+                region: "us-east-1",
+                namespaces: ["AWS/EC2"],
+                lastAt: new Date(NOW.getTime() - 60 * 1000).toISOString(),
+                ...source,
+              };
+            },
+          ),
+          logSources: [],
+        },
+        now: NOW,
+      });
+    }
+
+    function instanceWithNewerMetrics(): Array<FakeMetric> {
+      return [
+        ...ec2("i-0aaa", [10]),
+        {
+          namespace: "AWS/EC2",
+          metricName: "CPUCreditBalance",
+          dimensions: [["InstanceId", "i-0aaa"]],
+          values: [[WINDOW_START_S, 144]],
+        },
+        {
+          namespace: "AWS/EC2",
+          metricName: "EBSReadBytes",
+          dimensions: [["InstanceId", "i-0aaa"]],
+          values: [[WINDOW_START_S, 4096]],
+        },
+      ];
+    }
+
+    test("of template 2 reads only what the instance's health and headlines are judged from", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { templateVersion: 2, everyMetric: false },
+          ]),
+        },
+      );
+
+      // CPU and network lead the instance's page; its credits and EBS bytes do not.
+      expect(metricsQueried(fake)).toEqual([
+        "AWS/EC2/CPUUtilization",
+        "AWS/EC2/NetworkIn",
+      ]);
+      // It is still found, from its listed series.
+      expect(
+        result.resources.map((found: CloudDiscoveredResource) => {
+          return found.resource.resourceType;
+        }),
+      ).toEqual(["AWS::EC2::Instance"]);
+    });
+
+    test("of a stack that says no template reads what it does not carry, as if the account did not stream", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      await connector.read(keySettings({ regions: "us-east-1" }), {
+        ...readOptions(fake),
+        awsStreamCoverage: streaming([{}]),
+      });
+
+      expect(metricsQueried(fake)).toEqual([
+        "AWS/EC2/CPUCreditBalance",
+        "AWS/EC2/CPUUtilization",
+        "AWS/EC2/EBSReadBytes",
+        "AWS/EC2/NetworkIn",
+      ]);
+    });
+
+    test("reads every key metric of a Region or namespace no stream delivered lately", async () => {
+      for (const coverage of [
+        streaming([{ region: "eu-west-1", templateVersion: 2 }]),
+        streaming([{ namespaces: ["AWS/RDS"], templateVersion: 2 }]),
+        streaming([
+          {
+            templateVersion: 2,
+            lastAt: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(),
+          },
+        ]),
+      ]) {
+        const fake: FakeAws = createFakeAws({
+          regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+        });
+
+        await connector.read(keySettings({ regions: "us-east-1" }), {
+          ...readOptions(fake),
+          awsStreamCoverage: coverage,
+        });
+
+        expect(metricsQueried(fake)).toHaveLength(4);
+      }
+    });
+
+    /*
+     * A Neptune cluster's metrics feed no reading: a stream of template 2
+     * writes them all, so nothing of the period is read - and its window
+     * is done all the same, so a stream that goes quiet is read from here,
+     * never again from the hours it wrote.
+     */
+    test("reads nothing of a period a stream writes whole, and moves its cursor on", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: {
+          "us-east-1": {
+            metrics: [
+              {
+                namespace: "AWS/Neptune",
+                metricName: "CPUUtilization",
+                dimensions: [["DBClusterIdentifier", "graph"]],
+                values: [[WINDOW_START_S, 12]],
+              },
+            ],
+          },
+        },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { namespaces: ["AWS/Neptune"], templateVersion: 2 },
+          ]),
+        },
+      );
+
+      expect(metricsQueried(fake)).toEqual([]);
+      expect(result.payloads).toEqual([]);
+      expect(result.resources).toHaveLength(1);
+      expect(result.nextState.cursors?.["300"]).toBe(
+        new Date(WINDOW_END_S * 1000).toISOString(),
+      );
+    });
+  });
+
+  /*
+   * A Network Firewall publishes ReceivedPackets for each engine that saw a
+   * packet; only its Stateless (Classic policy) or System (Next Generation
+   * policy) series counts every one. The read reads those alone, and every
+   * engine's drops.
+   */
+  test("a firewall's received packets are read from the engine that counts every packet alone", async () => {
+    const firewallSeries: (metricName: string, engine: string) => FakeMetric = (
+      metricName: string,
+      engine: string,
+    ): FakeMetric => {
+      return {
+        namespace: "AWS/NetworkFirewall",
+        metricName,
+        dimensions: [
+          ["AvailabilityZone", "us-east-1a"],
+          ["Engine", engine],
+          ["FirewallName", "edge"],
+        ],
+        values: [[WINDOW_START_S, 100]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            firewallSeries("ReceivedPackets", "System"),
+            firewallSeries("ReceivedPackets", "Firewall"),
+            firewallSeries("DroppedPackets", "Firewall"),
+            firewallSeries("DroppedPackets", "IPS"),
+          ],
+        },
+      },
+    });
+
+    await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const engines: Array<string> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): string => {
+        const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+          "Metric"
+        ] as JSONObject;
+        const engine: JSONObject | undefined = (
+          metric["Dimensions"] as Array<JSONObject>
+        ).find((dimension: JSONObject): boolean => {
+          return dimension["Name"] === "Engine";
+        });
+
+        return `${metric["MetricName"] as string} ${engine?.["Value"] as string}`;
+      })
+      .sort();
+
+    expect(engines).toEqual([
+      "DroppedPackets Firewall",
+      "DroppedPackets IPS",
+      "ReceivedPackets System",
+    ]);
   });
 
   test("S3's daily storage figures are read once a whole day has been published", async () => {

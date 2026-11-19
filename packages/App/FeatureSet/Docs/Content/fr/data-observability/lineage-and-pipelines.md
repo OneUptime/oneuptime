@@ -241,7 +241,7 @@ Power BI ne renvoie les tables d'un jeu de données qu'une fois qu'un administra
 - **Enhance admin APIs responses with detailed metadata** : les tables de chaque jeu de données.
 - **Enhance admin APIs responses with DAX and mashup expressions** : les requêtes qui les chargent, qui disent quelles tables de base de données elles lisent.
 
-Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée. Un jeu de données qui lit un dataflow est lu jusqu'au dataflow : OneUptime ne lit pas encore quelles tables un dataflow charge.
+Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée.
 
 Chaque table est associée à une table surveillée par son nom, son schéma et sa base de données, et un serveur par son nom court ou son nom complet. Une table d'un autre moteur n'est jamais associée, pas plus qu'une table d'une autre base de données : un rapport sur `Sales.dbo.Orders` n'est pas lié à `Archive.dbo.Orders` parce que seule `Archive` est surveillée.
 

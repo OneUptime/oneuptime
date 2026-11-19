@@ -35,11 +35,11 @@ export const getMarkDataOwnersToldStatement: (table: string) => string = (
   return `UPDATE "${table}" SET "isOwnerNotified" = true WHERE "isOwnerNotified" = false`;
 };
 
-export class MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000
+export class MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000
   implements MigrationInterface
 {
   public name: string =
-    "MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000";
+    "MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const table of DATA_OWNER_TABLES) {

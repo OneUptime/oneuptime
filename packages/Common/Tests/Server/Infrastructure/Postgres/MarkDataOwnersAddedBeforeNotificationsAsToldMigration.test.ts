@@ -1,8 +1,8 @@
 import {
   DATA_OWNER_TABLES,
   getMarkDataOwnersToldStatement,
-  MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184890000-MarkDataOwnersAddedBeforeNotificationsAsTold";
+  MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184930000-MarkDataOwnersAddedBeforeNotificationsAsTold";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DataAssetOwnerTeam from "../../../../Models/DatabaseModels/DataAssetOwnerTeam";
 import DataAssetOwnerUser from "../../../../Models/DatabaseModels/DataAssetOwnerUser";
@@ -39,12 +39,12 @@ import { QueryRunner } from "typeorm";
  */
 
 const MIGRATION_NAME: string =
-  "MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000";
+  "MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000";
 
 async function upStatements(): Promise<Array<string>> {
   const statements: Array<string> = [];
 
-  await new MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000().up({
+  await new MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000().up({
     query: async (statement: string): Promise<void> => {
       statements.push(statement);
     },
@@ -70,13 +70,13 @@ const OWNER_MODELS: Array<BaseModel> = [
   new DataStoreOwnerUser(),
 ];
 
-describe("MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000", () => {
+describe("MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000", () => {
   test("is registered once, under the name its class carries, after the pipeline owner tables were made", () => {
     expect(
-      new MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000().name,
+      new MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000().name,
     ).toBe(MIGRATION_NAME);
     expect(SchemaMigrations).toContain(
-      MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000,
+      MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000,
     );
 
     const names: Array<string> = registeredNames();
@@ -151,7 +151,7 @@ describe("MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000", () => {
   test("down() changes nothing", async () => {
     const statements: Array<string> = [];
 
-    await new MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000().down({
+    await new MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000().down({
       query: async (statement: string): Promise<void> => {
         statements.push(statement);
       },

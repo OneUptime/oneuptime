@@ -437,6 +437,121 @@ describe("a run tried more than once reads as its attempts", () => {
     expect(screen.getByText("Thinking…")).toBeVisible();
   });
 
+  /*
+   * Issue #6490: an attempt whose incident's context could not be built
+   * failed before the engine started it, so its end is the only event it
+   * has. The next attempt is still an attempt of its own, not more steps
+   * of the first.
+   */
+  test("an attempt that ended before it started is an attempt of its own", () => {
+    render(
+      <ChatActivityFeed
+        events={events([
+          attemptEnded(
+            {
+              outcome: AIRunAttemptOutcome.WillRetry,
+              failureKind: AIRunFailureKind.Other,
+              attempt: 1,
+              maxAttempts: 2,
+              nextAttemptAt: at("14:01:00"),
+            },
+            "14:00:00",
+          ),
+          { eventType: AIRunEventType.RunStarted, at: at("14:01:02") },
+          ...search("14:01:05"),
+          { eventType: AIRunEventType.LlmCallStarted, at: at("14:01:06") },
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Running)}
+      />,
+    );
+
+    const toggle: HTMLElement = screen.getByTestId("activity-attempt-toggle");
+    expect(toggle).toHaveTextContent(
+      "Attempt 1 of 2 · did not finish · 0 steps",
+    );
+
+    fireEvent.click(toggle);
+    expect(
+      stepTexts(
+        document.getElementById(toggle.getAttribute("aria-controls")!)!,
+      ),
+    ).toEqual([
+      "Did not finish: Something went wrong while it ran. Trying again at 14:01.",
+    ]);
+
+    // The attempt running now has its own steps.
+    expect(screen.getByTestId("activity-attempt-title")).toHaveTextContent(
+      "Attempt 2 of 2",
+    );
+    expect(screen.getByText("Searching logs")).toBeVisible();
+  });
+
+  test("two attempts that each ended before they started are two attempts", () => {
+    render(
+      <ChatActivityFeed
+        events={events([
+          attemptEnded({
+            outcome: AIRunAttemptOutcome.WillRetry,
+            failureKind: AIRunFailureKind.Other,
+            attempt: 1,
+            maxAttempts: 2,
+            nextAttemptAt: at("14:01:00"),
+          }),
+          attemptEnded(
+            {
+              outcome: AIRunAttemptOutcome.GaveUp,
+              failureKind: AIRunFailureKind.Other,
+              attempt: 2,
+              maxAttempts: 2,
+            },
+            undefined,
+            AIRunEventType.RunFailed,
+          ),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Error)}
+      />,
+    );
+
+    expect(screen.getByTestId("activity-attempt-toggle")).toHaveTextContent(
+      "Attempt 1 of 2 · did not finish",
+    );
+    expect(screen.getByTestId("activity-attempt-title")).toHaveTextContent(
+      "Attempt 2 of 2",
+    );
+    expect(screen.getByTestId("activity-attempt-end")).toHaveTextContent(
+      "Stopped: Something went wrong while it ran.",
+    );
+  });
+
+  test("a run's own RunFailed, saying nothing of an attempt, starts none", () => {
+    render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...search(),
+          attemptEnded(
+            {
+              outcome: AIRunAttemptOutcome.GaveUp,
+              failureKind: AIRunFailureKind.Other,
+              attempt: 1,
+              maxAttempts: 1,
+            },
+            undefined,
+            AIRunEventType.RunFailed,
+          ),
+          // A chat turn's own end carries no attempt's.
+          { eventType: AIRunEventType.RunFailed },
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Error)}
+      />,
+    );
+
+    expect(screen.queryByTestId("activity-attempt-toggle")).toBeNull();
+  });
+
   test("a narrow card breaks its row between how it ended and its steps, never inside either", () => {
     render(
       <ChatActivityFeed
@@ -1409,6 +1524,115 @@ describe("the run's summary: when it started, how long it took, how many steps",
 
     expect(screen.queryByTestId("activity-run-summary")).toBeNull();
   });
+
+  /*
+   * Issue #6489: the reads behind the list keep a run's newest 500 events,
+   * so a longer run's first steps are left out. A quiet line says so, with
+   * how many of its latest steps are shown, and the summary leaves out a
+   * count of steps that would count only those.
+   */
+  function longRun(): Array<AIRunEvent> {
+    return events([
+      // The run's own start is among what was left out.
+      ...search("14:00:05"),
+      ...search("14:01:05"),
+      ...tool("query_traces", "14:02:05"),
+      { eventType: AIRunEventType.RunCompleted, at: at("14:06:00") },
+    ]);
+  }
+
+  test("a run whose first steps were left out says so, with how many of its latest are shown", () => {
+    render(
+      <ChatActivityFeed
+        events={longRun()}
+        hideChrome={true}
+        showStepTimes={true}
+        hasEarlierEvents={true}
+        run={run(AIRunStatus.Completed, {
+          startedAt: new Date(at("13:00:00")),
+          completedAt: new Date(at("14:06:00")),
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("activity-earlier-steps-left-out"),
+    ).toHaveTextContent(/^Only the latest 3 steps of this run are shown\.$/);
+    // The summary keeps when it started and how long it took, not a partial count.
+    expect(summary()).toHaveTextContent(
+      /^Started 13:00 · took 1 hour and 6 minutes$/,
+    );
+    expect(summary()).not.toHaveTextContent(/steps?$/);
+  });
+
+  test("the line is under the summary, quiet, and there without step times too", () => {
+    const { rerender } = render(
+      <ChatActivityFeed
+        events={longRun()}
+        hideChrome={true}
+        showStepTimes={true}
+        hasEarlierEvents={true}
+        run={run(AIRunStatus.Completed, {
+          startedAt: new Date(at("13:00:00")),
+          completedAt: new Date(at("14:06:00")),
+        })}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(
+      "activity-earlier-steps-left-out",
+    );
+    expect(line).toHaveClass("text-xs", "text-gray-500");
+    expect(
+      summary().compareDocumentPosition(line) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    rerender(
+      <ChatActivityFeed
+        events={longRun()}
+        hideChrome={true}
+        hasEarlierEvents={true}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("activity-earlier-steps-left-out"),
+    ).toBeInTheDocument();
+  });
+
+  test("one step shown is a step", () => {
+    render(
+      <ChatActivityFeed
+        events={events(search("14:00:05"))}
+        hideChrome={true}
+        hasEarlierEvents={true}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("activity-earlier-steps-left-out"),
+    ).toHaveTextContent(/^Only the latest 1 step of this run is shown\.$/);
+  });
+
+  test("a run with nothing left out says nothing of it, and counts its steps", () => {
+    render(
+      <ChatActivityFeed
+        events={longRun()}
+        hideChrome={true}
+        showStepTimes={true}
+        run={run(AIRunStatus.Completed, {
+          startedAt: new Date(at("14:00:00")),
+          completedAt: new Date(at("14:06:00")),
+        })}
+      />,
+    );
+
+    expect(screen.queryByTestId("activity-earlier-steps-left-out")).toBeNull();
+    expect(summary()).toHaveTextContent(
+      /^Started 14:00 · took 6 minutes · 3 steps$/,
+    );
+  });
 });
 
 describe("describeElapsedTime", () => {
@@ -1424,7 +1648,8 @@ describe("describeElapsedTime", () => {
     [6 * 60_000, "6\u00A0minutes"],
     [59 * 60_000, "59\u00A0minutes"],
     [60 * 60_000, "1\u00A0hour"],
-    [150 * 60_000, "3\u00A0hours"],
+    // Hours and minutes past an hour, never rounded to "3 hours" (issue #6493).
+    [150 * 60_000, "2\u00A0hours and 30\u00A0minutes"],
   ])("%d ms is %s", (milliseconds: number, words: string) => {
     expect(describeElapsedTime(milliseconds, getGlobalTranslator())).toBe(
       words,

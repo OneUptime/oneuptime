@@ -1,5 +1,6 @@
 import AIInsightService, {
   MAX_TRIAGE_RUN_EVENTS,
+  TriageRunWithEvents,
 } from "../../../Server/Services/AIInsightService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
@@ -586,10 +587,14 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       "findOneById",
     );
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
-    expect(result).toEqual({ run: null, events: [] });
+    expect(result).toEqual({
+      run: null,
+      events: [],
+      hasEarlierEvents: false,
+    });
     expect(runFindOneById).not.toHaveBeenCalled();
   });
 
@@ -602,10 +607,14 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       "findOneById",
     );
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
-    expect(result).toEqual({ run: null, events: [] });
+    expect(result).toEqual({
+      run: null,
+      events: [],
+      hasEarlierEvents: false,
+    });
     expect(runFindOneById).not.toHaveBeenCalled();
   });
 
@@ -619,10 +628,14 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       "findBy",
     );
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
-    expect(result).toEqual({ run: null, events: [] });
+    expect(result).toEqual({
+      run: null,
+      events: [],
+      hasEarlierEvents: false,
+    });
     expect(eventsFindBy).not.toHaveBeenCalled();
   });
 
@@ -646,7 +659,7 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       .spyOn(AIRunEventService, "findBy")
       .mockResolvedValue(events);
 
-    const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+    const result: TriageRunWithEvents =
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
     expect(result.run).toBe(run);
@@ -676,7 +689,8 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       expect.objectContaining({
         query: expect.objectContaining({ aiRunId: run.id }),
         sort: expect.objectContaining({ sequence: SortOrder.Descending }),
-        limit: MAX_TRIAGE_RUN_EVENTS,
+        // One past the cap, to tell whether earlier events were left out.
+        limit: MAX_TRIAGE_RUN_EVENTS + 1,
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
@@ -689,5 +703,52 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
 
     // The cap itself is a contract: the live panel never loads unbounded rows.
     expect(MAX_TRIAGE_RUN_EVENTS).toBe(500);
+    // Three events of a run that had no more: none were left out.
+    expect(result.hasEarlierEvents).toBe(false);
+  });
+
+  /*
+   * Issue #6489: a triage with more events than the cap keeps its newest
+   * ones (issue #6437), and now says that its first ones were left out, so
+   * its card does not show the latest steps as if they were all of it.
+   */
+  function eventsNewestFirst(count: number): Array<AIRunEvent> {
+    return Array.from({ length: count }, (_: unknown, index: number) => {
+      return fakeEvent(count - index);
+    });
+  }
+
+  async function readTriage(eventCount: number): Promise<TriageRunWithEvents> {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(fakeInsight({ triageAiRunId: ObjectID.generate() }));
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(fakeRun());
+    jest
+      .spyOn(AIRunEventService, "findBy")
+      .mockResolvedValue(eventsNewestFirst(eventCount));
+
+    return AIInsightService.getLatestTriageRunWithEvents({ insightId });
+  }
+
+  test("a run with 501 events reads its newest 500, in order, and says one more exists", async () => {
+    const result: TriageRunWithEvents = await readTriage(
+      MAX_TRIAGE_RUN_EVENTS + 1,
+    );
+
+    expect(result.events).toHaveLength(MAX_TRIAGE_RUN_EVENTS);
+    // The oldest one, sequence 1, is the one left out.
+    expect(result.events[0]!.sequence).toBe(2);
+    expect(result.events[result.events.length - 1]!.sequence).toBe(
+      MAX_TRIAGE_RUN_EVENTS + 1,
+    );
+    expect(result.hasEarlierEvents).toBe(true);
+  });
+
+  test("a run with exactly 500 events reads all of them, and none were left out", async () => {
+    const result: TriageRunWithEvents = await readTriage(MAX_TRIAGE_RUN_EVENTS);
+
+    expect(result.events).toHaveLength(MAX_TRIAGE_RUN_EVENTS);
+    expect(result.events[0]!.sequence).toBe(1);
+    expect(result.hasEarlierEvents).toBe(false);
   });
 });

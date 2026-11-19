@@ -24,7 +24,7 @@ flowchart TB
 
 - **Uno stack in ogni regione.** Il comando distribuisce uno stack CloudFormation in ogni regione da cui trasmetti. Il suo flusso di metriche e i suoi filtri di sottoscrizione ai log passano tutto a due flussi Firehose, e Firehose lo consegna a OneUptime su HTTPS.
 - **La chiave del flusso dice di chi è.** Firehose invia la chiave del flusso della connessione con ogni consegna. La chiave indica la connessione, e quindi il progetto: nulla in una consegna decide dove viene scritta. OneUptime conserva solo lo SHA-256 della chiave.
-- **Le letture lasciano al flusso le metriche trasmesse.** Finché un flusso consegna un namespace di una regione, le letture della connessione smettono di scrivere le metriche di quel namespace, così nessun punto dati viene contato due volte. Continuano a scrivere le metriche principali che un flusso lascia loro, come la dimensione giornaliera di un bucket S3 e le metriche principali aggiunte dopo l'avvio dei flussi, che uno stack più vecchio non contiene. Le letture continuano a trovare le risorse, il loro stato e le loro modifiche, e riprendono un namespace dopo 15 minuti senza consegne.
+- **Le letture lasciano al flusso le metriche trasmesse.** Finché un flusso consegna un namespace di una regione, le letture della connessione smettono di leggere e scrivere ogni metrica principale di quel namespace che lo stack del flusso contiene, così CloudWatch non addebita più la lettura di ciò che il flusso invia e nessun punto dati viene contato due volte. Continuano a leggere le poche su cui si giudica lo stato di una risorsa, e a scrivere le metriche principali che un flusso lascia loro, come la dimensione giornaliera di un bucket S3 e quelle che uno stack creato prima di esse non contiene. Le letture continuano a trovare le risorse, il loro stato e le loro modifiche, e riprendono un namespace dopo 15 minuti senza consegne.
 - **Non si perde nulla mentre OneUptime non può accettarlo.** Firehose invia di nuovo un lotto rifiutato per un'ora al massimo, poi lo conserva per 30 giorni nel bucket S3 dello stack.
 
 ## Prima di iniziare
@@ -138,7 +138,7 @@ done
 Per una connessione che legge una AWS Organization, esegui il comando della finestra di dialogo nell'account di gestione: se l'organizzazione era trasmessa, elimina anche gli stack di ogni account membro e lo StackSet.
 :::
 
-Per cambiare ciò che uno stack trasmette, apri di nuovo **Trasmetti metriche e log**, scegli **Crea una nuova chiave** ed esegui il nuovo comando. La chiave che sostituisce continua a funzionare per 24 ore, così nessuna consegna viene rifiutata mentre gli stack si aggiornano. Al massimo 3 chiavi sostituite funzionano contemporaneamente.
+Per cambiare ciò che uno stack trasmette, apri di nuovo **Trasmetti metriche e log**, scegli **Crea una nuova chiave** ed esegui il nuovo comando. La chiave che sostituisce continua a funzionare per 24 ore, così nessuna consegna viene rifiutata mentre gli stack si aggiornano. Al massimo 3 chiavi sostituite funzionano contemporaneamente. Fai lo stesso quando la riga dell'account indica **Aggiorna la trasmissione**: i suoi stack sono stati creati prima che OneUptime trasmettesse ogni metrica principale e, finché non vengono aggiornati, la connessione legge da CloudWatch le metriche principali che non contengono, così non ne manca nessuna. AWS riavvia un flusso di metriche i cui filtri cambiano, e invia solo i punti dati che arrivano dopo.
 
 ## Configuralo in un altro modo
 
@@ -153,7 +153,7 @@ Assegna a ogni flusso Firehose una destinazione endpoint HTTP con questi valori,
 | Buffer | 1 MiB o 60 secondi |
 | Durata dei tentativi | 3600 secondi, con un bucket S3 per ciò che non è stato possibile consegnare |
 
-Per un OneUptime self-hosted, sostituisci `https://oneuptime.com` con l'indirizzo HTTPS del tuo OneUptime. L'endpoint delle metriche accetta anche un flusso di metriche nel formato JSON.
+Per un OneUptime self-hosted, sostituisci `https://oneuptime.com` con l'indirizzo HTTPS del tuo OneUptime. L'endpoint delle metriche accetta anche un flusso di metriche nel formato JSON. OneUptime considera che un flusso di metriche configurato così contenga solo le metriche principali con cui sono iniziati i flussi, e legge le altre da CloudWatch.
 
 OneUptime risponde a ogni consegna come Firehose si aspetta:
 

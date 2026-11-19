@@ -1468,11 +1468,12 @@ describe(`${KUBERNETES}: the template table`, () => {
     );
   });
 
+  // Twenty-five since PVC Almost Full (f82d55afccf).
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Twenty-four ready-made alerts`,
+      `(#pre-built-alert-templates): Twenty-five ready-made alerts`,
     );
-    expect(templates).toHaveLength(24);
+    expect(templates).toHaveLength(25);
   });
 
   it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {

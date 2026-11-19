@@ -40,7 +40,9 @@ import {
   ADDRESS_TEMPLATES_GROUP_TITLE,
   POLL_TEMPLATES_GROUP_TITLE,
   UNNAMED_TEMPLATE_NAME,
+  WEB_TEMPLATES_GROUP_TITLE,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportTemplateCopy";
+import URL from "Common/Types/API/URL";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -421,6 +423,8 @@ describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
     name: string;
     monitorType: MonitorType;
     ports?: Array<number | undefined>;
+    // The URL a web template's steps check, as written (#9546).
+    url?: string;
   }): MonitorTemplate {
     const statusId: ObjectID = ObjectID.generate();
     const steps: MonitorSteps = new MonitorSteps();
@@ -432,6 +436,10 @@ describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
 
           if (port) {
             step.setPort(new Port(port));
+          }
+
+          if (data.url) {
+            step.setMonitorDestination(URL.fromStringLenient(data.url));
           }
 
           return step;
@@ -536,6 +544,65 @@ describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
     ]);
   });
 
+  it("lists Website, API and SSL Certificate templates last, under Web templates, with the URL each device's monitor checks (#9546)", () => {
+    const options: Array<DropdownOption | DropdownOptionGroup> =
+      getAutoImportMonitorTemplateOptions({
+        templates: [
+          templateOf({
+            name: "Status page",
+            monitorType: MonitorType.Website,
+            url: "https://device:8443/status",
+          }),
+          templateOf({ name: "Kiosk Ping", monitorType: MonitorType.Ping }),
+          templateOf({
+            name: "Health API",
+            monitorType: MonitorType.API,
+            url: "http://device/api/health",
+          }),
+          templateOf({
+            name: "Cert",
+            monitorType: MonitorType.SSLCertificate,
+            url: "https://device/",
+          }),
+          // A web template with no URL yet still says what it checks.
+          templateOf({ name: "Bare page", monitorType: MonitorType.Website }),
+        ],
+        translator: translator,
+      });
+
+    expect(
+      options.map((option: DropdownOption | DropdownOptionGroup): string => {
+        return String(option.label);
+      }),
+    ).toEqual([ADDRESS_TEMPLATES_GROUP_TITLE, WEB_TEMPLATES_GROUP_TITLE]);
+
+    const web: DropdownOptionGroup = options[1] as DropdownOptionGroup;
+
+    expect(
+      web.options.map(
+        (option: DropdownOption): [string, string | undefined] => {
+          return [String(option.label), option.description];
+        },
+      ),
+    ).toEqual([
+      [
+        "Status page",
+        "Checks https://device:8443/status, with each device's address as the host",
+      ],
+      [
+        "Health API",
+        "Calls http://device/api/health, with each device's address as the host",
+      ],
+      [
+        "Cert",
+        "Checks the certificate at https://device/, with each device's address as the host. It must name that address.",
+      ],
+      ["Bare page", "Checks a page on each device"],
+    ]);
+    // The URL is the template's own words, drawn as written.
+    expect(web.options[0]!.isDescriptionUserContent).toBe(true);
+  });
+
   it("offers no template of a kind that cannot check a device", () => {
     const options: Array<DropdownOption> = flatten(
       getAutoImportMonitorTemplateOptions({
@@ -545,8 +612,7 @@ describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
             name: "Heartbeat",
             monitorType: MonitorType.IncomingRequest,
           }),
-          templateOf({ name: "Website", monitorType: MonitorType.Website }),
-          templateOf({ name: "Cert", monitorType: MonitorType.SSLCertificate }),
+          templateOf({ name: "DNS", monitorType: MonitorType.DNS }),
           templateOf({ name: "Logs", monitorType: MonitorType.Logs }),
           templateOf({ name: "Kiosk Ping", monitorType: MonitorType.Ping }),
         ],
@@ -588,7 +654,7 @@ describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
 
   it("the empty list says which templates work and how to make one", () => {
     expect(NO_DEVICE_MONITOR_TEMPLATE_YET).toContain(
-      "Network Device, Ping, IP, Port or NTP",
+      "Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate",
     );
     expect(NO_DEVICE_MONITOR_TEMPLATE_YET).toContain("Manage templates");
     expect(NO_DEVICE_MONITOR_TEMPLATE_YET).toMatch(/^[A-Z].*\.$/);
@@ -627,6 +693,9 @@ describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
       MonitorType.IP,
       MonitorType.Port,
       MonitorType.NTP,
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
     ]);
   });
 });

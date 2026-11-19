@@ -347,6 +347,28 @@ export default class DataBiConnection extends BaseModel {
   })
   public lineageSummary?: JSONObject = undefined;
 
+  /*
+   * What a read keeps so the next one reads less (DataBiSync): for Power BI,
+   * each workspace's last scan, when the tenant was last scanned whole, the
+   * dataflows' definitions and the exports spent of Power BI's hourly limit,
+   * and each Dataverse environment's entity set names. Never shown: it holds
+   * only names Power BI and Dataverse returned, and nothing that gets in.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Read State",
+    description:
+      "What the last read kept so the next one reads less: for Power BI, each workspace's last scan, the dataflows' definitions and when the tenant was last scanned whole.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public readState?: JSONObject = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.VeryLongText,

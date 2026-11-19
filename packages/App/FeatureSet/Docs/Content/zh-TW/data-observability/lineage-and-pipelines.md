@@ -241,7 +241,7 @@ OneUptime 從 Power BI 的中繼資料掃描中讀取每個 Power BI 資料集�
 - **Enhance admin APIs responses with detailed metadata**：每個資料集的資料表。
 - **Enhance admin APIs responses with DAX and mashup expressions**：載入這些資料表的查詢，它們說明讀取了哪些資料庫資料表。
 
-之後，資料集經過重新整理或重新發佈後，Power BI 才會描述它；僅使用 DirectQuery 的資料集，要等有人開啟以它為基礎的報表之後。它從不描述即時資料集、即時連線到 Analysis Services 的資料集、Excel 活頁簿，或共用容量上超過 1 GB 的資料集。從資料流程讀取的資料集只讀取到資料流程為止：OneUptime 尚未讀取資料流程載入了哪些資料表。
+之後，資料集經過重新整理或重新發佈後，Power BI 才會描述它；僅使用 DirectQuery 的資料集，要等有人開啟以它為基礎的報表之後。它從不描述即時資料集、即時連線到 Analysis Services 的資料集、Excel 活頁簿，或共用容量上超過 1 GB 的資料集。
 
 每張資料表依名稱、結構描述和資料庫與受監控的資料表比對，伺服器則依短名稱或完整名稱比對。其他引擎的資料表從不比對，其他資料庫中的資料表也不比對：如果只監控 `Archive`，以 `Sales.dbo.Orders` 為基礎的報表不會與 `Archive.dbo.Orders` 關聯。
 

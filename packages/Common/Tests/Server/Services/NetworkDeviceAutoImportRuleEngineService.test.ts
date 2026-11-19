@@ -1461,7 +1461,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       });
 
       expect(result.monitorFailureReasons).toEqual([
-        "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
+        "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate template.",
       ]);
       expect(monitorCreateMock).not.toHaveBeenCalled();
 

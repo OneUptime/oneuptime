@@ -241,7 +241,7 @@ O Power BI só retorna as tabelas de um conjunto de dados depois que um administ
 - **Enhance admin APIs responses with detailed metadata**: as tabelas de cada conjunto de dados.
 - **Enhance admin APIs responses with DAX and mashup expressions**: as consultas que as carregam, que dizem quais tabelas de banco de dados elas leem.
 
-O Power BI então descreve um conjunto de dados depois que ele é atualizado ou republicado; um que só usa DirectQuery, depois que alguém abre um relatório sobre ele. Ele nunca descreve conjuntos de dados em tempo real, conjuntos de dados com conexão dinâmica ao Analysis Services, pastas de trabalho do Excel nem conjuntos de dados com mais de 1 GB em capacidade compartilhada. Um conjunto de dados que lê de um fluxo de dados é lido até o fluxo de dados: o OneUptime ainda não lê quais tabelas um fluxo de dados carrega.
+O Power BI então descreve um conjunto de dados depois que ele é atualizado ou republicado; um que só usa DirectQuery, depois que alguém abre um relatório sobre ele. Ele nunca descreve conjuntos de dados em tempo real, conjuntos de dados com conexão dinâmica ao Analysis Services, pastas de trabalho do Excel nem conjuntos de dados com mais de 1 GB em capacidade compartilhada.
 
 Cada tabela é associada a uma tabela monitorada pelo nome, pelo esquema e pelo banco de dados, e um servidor pelo nome curto ou pelo nome completo. Uma tabela de outro mecanismo nunca é associada, nem uma de outro banco de dados: um relatório sobre `Sales.dbo.Orders` não é ligado a `Archive.dbo.Orders` porque só `Archive` é monitorado.
 

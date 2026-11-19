@@ -11,6 +11,7 @@ import { BiTableRef } from "../../../../Server/Utils/DataObservability/Bi/BiTabl
 import { readPowerQueryTables } from "../../../../Server/Utils/DataObservability/Bi/PowerQuery";
 import { UsageAsset } from "../../../../Server/Utils/DataObservability/TableUsageMatching";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Which watched table a BI tool's table is (#9507): never another engine's,
@@ -291,6 +292,156 @@ describe("what narrows the rest", () => {
   });
 });
 
+/*
+ * Power BI's OData connectors to Dataverse name a table by its entity set
+ * (#9554). It is the watched table whose logical name the environment
+ * itself gives that entity set - in the environment at the host the
+ * connector named - and nothing when no such name is known: an entity
+ * set's name is never read as a table's.
+ */
+describe("a Dataverse table named by its entity set", () => {
+  const DATAVERSE: BiCatalog = {
+    stores: [
+      {
+        dataStoreId: "contoso",
+        kind: DataStoreKind.Dataverse,
+        databaseName: "contoso",
+        serverAddress: "contoso.crm.dynamics.com",
+      },
+      {
+        dataStoreId: "contoso-dev",
+        kind: DataStoreKind.Dataverse,
+        databaseName: "contoso-dev",
+        serverAddress: "contoso-dev.crm.dynamics.com",
+      },
+      {
+        dataStoreId: "sql",
+        kind: DataStoreKind.SqlServer,
+        databaseName: "Sales",
+        serverAddress: "sql01",
+      },
+    ],
+    assets: [
+      {
+        dataAssetId: "contoso-account",
+        dataStoreId: "contoso",
+        schemaName: "dbo",
+        name: "account",
+      },
+      {
+        dataAssetId: "contoso-opportunity",
+        dataStoreId: "contoso",
+        schemaName: "dbo",
+        name: "opportunity",
+      },
+      {
+        dataAssetId: "dev-account",
+        dataStoreId: "contoso-dev",
+        schemaName: "dbo",
+        name: "account",
+      },
+      // A SQL Server table spelled as an entity set: never an entity set's table.
+      {
+        dataAssetId: "sql-accounts",
+        dataStoreId: "sql",
+        schemaName: "dbo",
+        name: "accounts",
+      },
+    ],
+    dataverseEntitySets: new Map([
+      [
+        "contoso",
+        new Map([
+          ["accounts", "account"],
+          ["opportunities", "opportunity"],
+          // An entity set a maker renamed: its name is not its table's plural.
+          ["deals", "cr123_deal"],
+        ]),
+      ],
+      ["contoso-dev", new Map([["accounts", "account"]])],
+    ]),
+  };
+
+  function entitySet(table: string, host: string | null): BiTableRef {
+    return ref({ table, engine: "dataverse", host, isEntitySet: true });
+  }
+
+  test("is the table whose logical name the environment gives it, at the connector's host", () => {
+    expect(
+      matchBiTable(entitySet("accounts", "contoso.crm.dynamics.com"), DATAVERSE)
+        ?.dataAssetId,
+    ).toBe("contoso-account");
+    expect(
+      matchBiTable(
+        entitySet("Opportunities", "contoso.crm.dynamics.com"),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("contoso-opportunity");
+  });
+
+  test("two environments with the same entity set: each its own table", () => {
+    expect(
+      matchBiTable(
+        entitySet("accounts", "contoso-dev.crm.dynamics.com"),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("dev-account");
+  });
+
+  test("another environment, an unknown host, a table not watched or no names known: no table", () => {
+    expect(
+      matchBiTable(
+        entitySet("accounts", "fabrikam.crm.dynamics.com"),
+        DATAVERSE,
+      ),
+    ).toBeNull();
+    expect(matchBiTable(entitySet("accounts", null), DATAVERSE)).toBeNull();
+    // The environment names the entity set, but OneUptime does not watch its table.
+    expect(
+      matchBiTable(entitySet("deals", "contoso.crm.dynamics.com"), DATAVERSE),
+    ).toBeNull();
+    // An entity set the environment never named is not guessed from its letters.
+    expect(
+      matchBiTable(
+        entitySet("contacts", "contoso.crm.dynamics.com"),
+        DATAVERSE,
+      ),
+    ).toBeNull();
+    expect(
+      matchBiTable(entitySet("accounts", "contoso.crm.dynamics.com"), {
+        stores: DATAVERSE.stores,
+        assets: DATAVERSE.assets,
+      }),
+    ).toBeNull();
+  });
+
+  test("Power BI's own M, read and matched end to end", () => {
+    const tables: Array<BiTableRef> = readPowerQueryTables(
+      'let Source = Cds.Entities("https://contoso.crm.dynamics.com/", [ReorderColumns=null, UseFormattedValue=null]), entities = Source{[Group="entities"]}[Data], accounts = entities{[EntitySetName="accounts"]}[Data] in accounts',
+    );
+
+    expect(
+      matchBiTables(tables, DATAVERSE).map((asset: UsageAsset): string => {
+        return asset.dataAssetId;
+      }),
+    ).toEqual(["contoso-account"]);
+  });
+
+  test("a table named by its logical name still matches as before", () => {
+    expect(
+      matchBiTable(
+        ref({
+          schema: "dbo",
+          table: "account",
+          engine: "dataverse",
+          host: "contoso.crm.dynamics.com",
+        }),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("contoso-account");
+  });
+});
+
 describe("matching many", () => {
   test("each watched table once, however many dashboards read it", () => {
     const refs: Array<BiTableRef> = [
@@ -318,7 +469,6 @@ describe("matching many", () => {
       });
     }
 
-    const catalog: BiCatalog = { stores: CATALOG.stores, assets };
     const refs: Array<BiTableRef> = [];
 
     for (let index: number = 0; index < 20_000; index++) {
@@ -333,10 +483,21 @@ describe("matching many", () => {
       );
     }
 
-    const started: number = Date.now();
-    const found: Array<UsageAsset> = matchBiTables(refs, catalog);
+    const timed: FastestRun<Array<UsageAsset>> = fastestRun({
+      run: (): Array<UsageAsset> => {
+        /*
+         * A new catalog each attempt: matchBiTables keeps a catalog's index
+         * and its matches by the catalog itself, so the same one would be
+         * indexed and matched only once.
+         */
+        const catalog: BiCatalog = { stores: CATALOG.stores, assets };
 
-    expect(found.length).toBe(5_000);
-    expect(Date.now() - started).toBeLessThan(5_000);
+        return matchBiTables(refs, catalog);
+      },
+      limitInMs: 5_000,
+    });
+
+    expect(timed.result.length).toBe(5_000);
+    expect(timed.inMs).toBeLessThan(5_000);
   });
 });

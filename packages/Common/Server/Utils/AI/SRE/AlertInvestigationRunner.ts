@@ -571,6 +571,7 @@ export default class AIAlertInvestigationRunner {
       const outcome: "requeued" | "finalized" | "noop" =
         await AIInvestigationQueue.failOrRequeue({
           aiRunId,
+          projectId,
           attemptCount,
           errorMessage: `Failed to build alert context: ${
             error instanceof Error ? error.message : String(error)

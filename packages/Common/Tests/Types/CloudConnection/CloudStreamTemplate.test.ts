@@ -4,12 +4,17 @@ import os from "os";
 import path from "path";
 import {
   AWS_KEY_METRICS,
+  AWS_STREAM_TEMPLATE_VERSION,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   DAILY_PERIOD_SECONDS,
   HOURLY_PERIOD_SECONDS,
   getAwsKeyMetrics,
 } from "../../../Types/Cloud/CloudKeyMetrics";
+import {
+  CLOUD_STREAM_METRICS_ATTRIBUTE,
+  CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+} from "../../../Types/CloudConnection/CloudStreamStack";
 import {
   CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
   CLOUD_STREAM_BUFFER_SIZE_MIB,
@@ -19,6 +24,7 @@ import {
 } from "../../../Types/CloudConnection/CloudStream";
 import {
   CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES,
+  CLOUDWATCH_METRIC_STREAM_MAX_FILTER_NAMES,
   CLOUD_STREAM_MAX_LOG_GROUPS,
   CLOUD_STREAM_MAX_LOG_GROUP_REGIONS,
   CLOUD_STREAM_MAX_REGIONS,
@@ -28,6 +34,7 @@ import {
   CloudStreamMetricsMode,
   CloudStreamTemplateOptions,
   STREAM_NOTHING_CHOSEN,
+  STREAM_TEMPLATE_TOO_LARGE,
   STREAM_NOT_A_LOG_GROUP,
   STREAM_NOT_A_REGION,
   STREAM_NO_LOG_GROUP,
@@ -44,6 +51,7 @@ import {
   getCloudStreamNames,
   getCloudStreamOptionsProblem,
   getCloudStreamSuffix,
+  getCloudStreamTemplateSizeProblem,
   isAwsLogGroupName,
   parseCloudStreamLogGroups,
   splitCloudStreamList,
@@ -638,9 +646,28 @@ describe("the Firehose streams and the bucket", () => {
       expect(
         (config["EndpointConfiguration"] as JSONObject)["AccessKey"],
       ).toEqual({ Ref: "StreamKey" });
-      expect(config["RequestConfiguration"]).toEqual({
-        ContentEncoding: "GZIP",
-      });
+      /*
+       * The metrics stream says, with every delivery, the template its
+       * stack is made from and what its metric stream streams
+       * (CloudStreamStack); the logs stream has nothing to say.
+       */
+      expect(config["RequestConfiguration"]).toEqual(
+        name === "MetricsDeliveryStream"
+          ? {
+              ContentEncoding: "GZIP",
+              CommonAttributes: [
+                {
+                  AttributeName: CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+                  AttributeValue: String(AWS_STREAM_TEMPLATE_VERSION),
+                },
+                {
+                  AttributeName: CLOUD_STREAM_METRICS_ATTRIBUTE,
+                  AttributeValue: CloudStreamMetricsMode.Key,
+                },
+              ],
+            }
+          : { ContentEncoding: "GZIP" },
+      );
       expect(config["BufferingHints"]).toEqual({
         SizeInMBs: CLOUD_STREAM_BUFFER_SIZE_MIB,
         IntervalInSeconds: CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
@@ -710,12 +737,11 @@ describe("the Firehose streams and the bucket", () => {
 });
 
 /*
- * What every stack of the key metrics carries, from the first: a stack is
- * made once and kept, so a metric added to these would come from new
- * stacks only, while the reads of an account with an older one stopped
- * writing it (CloudStreamedMetrics). A key metric added since is read,
- * whatever the account streams (AwsKeyMetric.isStreamed false), and these
- * stay as they are.
+ * What every stack of the key metrics has carried, from the first: the
+ * filters of template 1. A stack is made once and kept, so these stay as
+ * they are - a stack that says no template is held to them
+ * (CloudStreamStack), and the reads write every other key metric for its
+ * account.
  */
 const FILTERS_EVERY_STACK_CARRIES: Record<string, Array<string>> = {
   "AWS/EC2": ["CPUUtilization", "NetworkIn", "NetworkOut", "StatusCheckFailed"],
@@ -791,72 +817,287 @@ const FILTERS_EVERY_STACK_CARRIES: Record<string, Array<string>> = {
   "AWS/Kafka": ["ActiveControllerCount"],
 };
 
-describe("the metric stream's filters", () => {
-  test("are the ones every stack has carried since streams began: a key metric added since is read instead", () => {
-    const filters: Record<string, Array<string>> = {};
+/*
+ * What template 2 adds: every other key metric read every five minutes,
+ * those of the services read since #9567 too. Stacks of template 2 are out
+ * there once it ships, so these stay as they are as well: a key metric
+ * added to the catalog after it is streamed since template 3, with
+ * AWS_STREAM_TEMPLATE_VERSION 3 - never since 2, which no stack made
+ * before it would carry while the reads left it to the stream.
+ */
+const FILTERS_ADDED_IN_TEMPLATE_2: Record<string, Array<string>> = {
+  "AWS/EC2": ["CPUCreditBalance", "EBSReadBytes", "EBSWriteBytes"],
+  "AWS/EBS": ["VolumeReadBytes", "VolumeWriteBytes", "BurstBalance"],
+  "AWS/ELB": [
+    "HealthyHostCount",
+    "HTTPCode_ELB_5XX",
+    "SurgeQueueLength",
+    "SpilloverCount",
+  ],
+  "AWS/ApplicationELB": [
+    "HTTPCode_Target_4XX_Count",
+    "RejectedConnectionCount",
+    "TargetConnectionErrorCount",
+    "ActiveConnectionCount",
+    "ProcessedBytes",
+  ],
+  "AWS/NetworkELB": [
+    "TCP_Client_Reset_Count",
+    "TCP_Target_Reset_Count",
+    "TCP_ELB_Reset_Count",
+    "PortAllocationErrorCount",
+  ],
+  "AWS/NATGateway": [
+    "PacketsDropCount",
+    "BytesInFromDestination",
+    "ConnectionAttemptCount",
+    "IdleTimeoutCount",
+  ],
+  "AWS/TransitGateway": [
+    "BytesIn",
+    "BytesOut",
+    "PacketDropCountBlackhole",
+    "PacketDropCountNoRoute",
+  ],
+  "AWS/DX": [
+    "ConnectionState",
+    "ConnectionBpsEgress",
+    "ConnectionBpsIngress",
+    "ConnectionErrorCount",
+  ],
+  "AWS/CloudFront": ["TotalErrorRate", "BytesUploaded"],
+  "AWS/EFS": ["BurstCreditBalance", "DataReadIOBytes", "DataWriteIOBytes"],
+  "AWS/FSx": [
+    "DataReadBytes",
+    "DataWriteBytes",
+    "DataReadOperations",
+    "DataWriteOperations",
+    "FreeStorageCapacity",
+  ],
+  "AWS/ECS": ["CPUReservation", "MemoryReservation"],
+  "AWS/Lambda": ["ConcurrentExecutions", "IteratorAge", "DeadLetterErrors"],
+  "AWS/States": [
+    "ExecutionsSucceeded",
+    "ExecutionsTimedOut",
+    "ExecutionsAborted",
+    "ExecutionThrottled",
+  ],
+  "AWS/RDS": [
+    "ReadIOPS",
+    "WriteIOPS",
+    "DiskQueueDepth",
+    "NetworkReceiveThroughput",
+    "NetworkTransmitThroughput",
+    "ReplicaLag",
+  ],
+  "AWS/DocDB": ["ReadLatency", "WriteLatency", "DBInstanceReplicaLag"],
+  "AWS/Neptune": [
+    "CPUUtilization",
+    "FreeableMemory",
+    "MainRequestQueuePendingRequests",
+    "TotalServerErrorsPerSec",
+    "TotalClientErrorsPerSec",
+    "ClusterReplicaLag",
+  ],
+  "AWS/DynamoDB": [
+    "ProvisionedReadCapacityUnits",
+    "ProvisionedWriteCapacityUnits",
+  ],
+  "AWS/ElastiCache": [
+    "EngineCPUUtilization",
+    "CacheHits",
+    "CacheMisses",
+    "ReplicationLag",
+  ],
+  "AWS/MemoryDB": [
+    "CPUUtilization",
+    "EngineCPUUtilization",
+    "DatabaseMemoryUsagePercentage",
+    "CurrConnections",
+    "Evictions",
+  ],
+  "AWS/Redshift": ["HealthStatus", "ReadLatency", "WriteLatency"],
+  "AWS/ES": [
+    "ClusterStatus.yellow",
+    "ClusterIndexWritesBlocked",
+    "5xx",
+    "SearchLatency",
+    "IndexingLatency",
+    "JVMMemoryPressure",
+  ],
+  "AWS/SQS": [
+    "ApproximateNumberOfMessagesNotVisible",
+    "NumberOfMessagesDeleted",
+  ],
+  "AWS/SNS": ["NumberOfNotificationsDelivered"],
+  "AWS/Kinesis": [
+    "IncomingBytes",
+    "WriteProvisionedThroughputExceeded",
+    "ReadProvisionedThroughputExceeded",
+  ],
+  "AWS/Firehose": [
+    "IncomingBytes",
+    "ThrottledRecords",
+    "DeliveryToS3.DataFreshness",
+  ],
+  "AWS/ApiGateway": ["4XXError", "IntegrationLatency", "5xx", "4xx"],
+  "AWS/Events": ["TriggeredRules", "ThrottledRules", "DeadLetterInvocations"],
+  "AWS/AmazonMQ": [
+    "SystemCpuUtilization",
+    "MessageCount",
+    "ConnectionCount",
+    "HeapUsage",
+    "StorePercentUsage",
+    "CurrentConnectionsCount",
+  ],
+  "AWS/Kafka": [
+    "OfflinePartitionsCount",
+    "UnderReplicatedPartitions",
+    "KafkaDataLogsDiskUsed",
+    "CpuUser",
+  ],
+  "AWS/WAFV2": [
+    "AllowedRequests",
+    "BlockedRequests",
+    "CountedRequests",
+    "CaptchaRequests",
+    "ChallengeRequests",
+  ],
+  "AWS/NetworkFirewall": [
+    "ReceivedPackets",
+    "DroppedPackets",
+    "OtherDroppedPackets",
+    "InvalidDroppedPackets",
+  ],
+  "AWS/AppRunner": [
+    "CPUUtilization",
+    "Requests",
+    "5xxStatusResponses",
+    "4xxStatusResponses",
+    "RequestLatency",
+    "MemoryUtilization",
+    "ActiveInstances",
+  ],
+  "AWS/AutoScaling": [
+    "GroupInServiceInstances",
+    "GroupDesiredCapacity",
+    "GroupPendingInstances",
+    "GroupTerminatingInstances",
+  ],
+  "AWS/GlobalAccelerator": [
+    "HealthyEndpointCount",
+    "UnhealthyEndpointCount",
+    "NewFlowCount",
+    "ProcessedBytesIn",
+    "ProcessedBytesOut",
+  ],
+  "AWS/Cognito": [
+    "SignInSuccesses",
+    "SignInThrottles",
+    "TokenRefreshSuccesses",
+    "TokenRefreshThrottles",
+    "SignUpSuccesses",
+    "SignUpThrottles",
+  ],
+  "AWS/ElasticBeanstalk": ["EnvironmentHealth"],
+  "AWS/AppSync": ["Latency", "5XXError", "4XXError"],
+  "AWS/SageMaker": [
+    "Invocations",
+    "Invocation5XXErrors",
+    "Invocation4XXErrors",
+    "ModelLatency",
+  ],
+};
 
-    for (const filter of getCloudStreamKeyMetricFilters()) {
-      filters[filter.Namespace] = filter.MetricNames;
+function filtersByNamespace(
+  filters: Array<{ Namespace: string; MetricNames: Array<string> }>,
+): Record<string, Array<string>> {
+  const byNamespace: Record<string, Array<string>> = {};
+
+  for (const filter of filters) {
+    byNamespace[filter.Namespace] = filter.MetricNames;
+  }
+
+  return byNamespace;
+}
+
+describe("the metric stream's filters", () => {
+  test("of template 1 are the ones every stack has carried since streams began", () => {
+    expect(filtersByNamespace(getCloudStreamKeyMetricFilters(1))).toEqual(
+      FILTERS_EVERY_STACK_CARRIES,
+    );
+  });
+
+  test("of template 2 are template 1's and the ones it adds, pinned: a metric added since is streamed since template 3", () => {
+    const expected: Record<string, Array<string>> = {};
+
+    for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
+      const names: Array<string> = [
+        ...(FILTERS_EVERY_STACK_CARRIES[entry.namespace] || []),
+        ...(FILTERS_ADDED_IN_TEMPLATE_2[entry.namespace] || []),
+      ];
+
+      if (names.length > 0) {
+        expected[entry.namespace] = names;
+      }
     }
 
-    expect(filters).toEqual(FILTERS_EVERY_STACK_CARRIES);
+    const filters: Record<string, Array<string>> = filtersByNamespace(
+      getCloudStreamKeyMetricFilters(2),
+    );
 
-    // Every other key metric read every five minutes is the read's own.
-    for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
-      for (const metric of namespace.metrics) {
-        const carried: boolean = (
-          FILTERS_EVERY_STACK_CARRIES[namespace.namespace] || []
+    expect(Object.keys(filters)).toEqual(Object.keys(expected));
+
+    for (const [namespace, names] of Object.entries(expected)) {
+      expect({ namespace, names: new Set(filters[namespace]) }).toEqual({
+        namespace,
+        names: new Set(names),
+      });
+    }
+
+    // Every key metric a stream can carry is in template 2, and only those.
+    for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
+      for (const metric of entry.metrics as ReadonlyArray<AwsKeyMetric>) {
+        const where: string = `${entry.namespace}/${metric.metricName}`;
+        const inTemplate1: boolean = (
+          FILTERS_EVERY_STACK_CARRIES[entry.namespace] || []
+        ).includes(metric.metricName);
+        const addedIn2: boolean = (
+          FILTERS_ADDED_IN_TEMPLATE_2[entry.namespace] || []
         ).includes(metric.metricName);
 
-        if (metric.periodSeconds < HOURLY_PERIOD_SECONDS) {
-          expect({
-            namespace: namespace.namespace,
-            metric: metric.metricName,
-            isStreamed: metric.isStreamed,
-          }).toEqual({
-            namespace: namespace.namespace,
-            metric: metric.metricName,
-            isStreamed: carried,
-          });
-        }
+        expect({ where, streamedSince: metric.streamedSince }).toEqual({
+          where,
+          streamedSince: inTemplate1 ? 1 : addedIn2 ? 2 : null,
+        });
       }
     }
   });
 
-  test("are the key metrics of every namespace a stream writes, but those read less often than every five minutes", () => {
+  test("are the current template's in the key template written today, and every metric is streamed without them", () => {
+    const keyStream: JSONObject = resourcesOf(
+      getAwsCloudStreamTemplate(options()),
+    )["MetricStream"]!["Properties"] as JSONObject;
+    const allStream: JSONObject = resourcesOf(
+      getAwsCloudStreamTemplate(
+        options({ metrics: CloudStreamMetricsMode.All }),
+      ),
+    )["MetricStream"]!["Properties"] as JSONObject;
+
+    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(2);
+    expect(keyStream["IncludeFilters"]).toEqual(
+      getCloudStreamKeyMetricFilters(AWS_STREAM_TEMPLATE_VERSION),
+    );
+    expect(keyStream["IncludeFilters"]).toEqual(
+      getCloudStreamKeyMetricFilters(),
+    );
+    expect(allStream["IncludeFilters"]).toBeUndefined();
+  });
+
+  test("leave out what is read less often than every five minutes: S3's daily storage, ACM's days to expiry", () => {
     const filters: Array<{ Namespace: string; MetricNames: Array<string> }> =
       getCloudStreamKeyMetricFilters();
-    const expected: Map<string, Set<string>> = new Map();
 
-    for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
-      for (const metric of namespace.metrics) {
-        if (
-          !metric.isStreamed ||
-          metric.periodSeconds >= HOURLY_PERIOD_SECONDS
-        ) {
-          continue;
-        }
-
-        const names: Set<string> =
-          expected.get(namespace.namespace) || new Set<string>();
-        names.add(metric.metricName);
-        expected.set(namespace.namespace, names);
-      }
-    }
-
-    expect(
-      filters.map((filter: { Namespace: string }) => {
-        return filter.Namespace;
-      }),
-    ).toEqual(Array.from(expected.keys()));
-
-    for (const filter of filters) {
-      expect(new Set(filter.MetricNames)).toEqual(
-        expected.get(filter.Namespace),
-      );
-    }
-
-    // S3's daily storage, and ACM's days to expiry, published twice a day.
     for (const namespace of ["AWS/S3", "AWS/CertificateManager"]) {
       expect(
         filters.some((filter: { Namespace: string }) => {
@@ -879,20 +1120,19 @@ describe("the metric stream's filters", () => {
     ).toEqual([HOURLY_PERIOD_SECONDS]);
   });
 
-  test("are in the key template, and every metric is streamed without them", () => {
-    const keyStream: JSONObject = resourcesOf(
-      getAwsCloudStreamTemplate(options()),
-    )["MetricStream"]!["Properties"] as JSONObject;
-    const allStream: JSONObject = resourcesOf(
-      getAwsCloudStreamTemplate(
-        options({ metrics: CloudStreamMetricsMode.All }),
-      ),
-    )["MetricStream"]!["Properties"] as JSONObject;
+  /*
+   * CloudWatch takes at most 1,000 names in a metric stream's filters,
+   * namespaces and metric names together (MetricStreamFilter).
+   */
+  test("name fewer than the 1,000 namespaces and metrics a metric stream takes", () => {
+    let names: number = 0;
 
-    expect(keyStream["IncludeFilters"]).toEqual(
-      getCloudStreamKeyMetricFilters(),
-    );
-    expect(allStream["IncludeFilters"]).toBeUndefined();
+    for (const filter of getCloudStreamKeyMetricFilters()) {
+      names += 1 + filter.MetricNames.length;
+    }
+
+    expect(names).toBeLessThan(CLOUDWATCH_METRIC_STREAM_MAX_FILTER_NAMES);
+    expect(CLOUDWATCH_METRIC_STREAM_MAX_FILTER_NAMES).toBe(1000);
   });
 });
 
@@ -916,31 +1156,75 @@ describe("the stream key parameter", () => {
 });
 
 describe("the template's size", () => {
-  test("fits the body aws cloudformation deploy sends, with 50 of the longest log group names in 10 Regions", () => {
-    const longest: Array<CloudStreamLogGroup> = Array.from({
+  // Log groups named in 10 Regions, each name this long.
+  function namedLogGroups(nameLength: number): Array<CloudStreamLogGroup> {
+    return Array.from({
       length: CLOUD_STREAM_MAX_LOG_GROUPS,
     }).map((_value: unknown, index: number) => {
       return {
-        name: `/${String(index).padStart(2, "0")}${"x".repeat(509)}`,
+        name: `/${String(index).padStart(2, "0")}${"x".repeat(nameLength - 3)}`,
         region: `us-test-${index % CLOUD_STREAM_MAX_LOG_GROUP_REGIONS}`,
       };
     });
+  }
 
+  function bytesOf(templateOptions: CloudStreamTemplateOptions): number {
+    return Buffer.byteLength(
+      getAwsCloudStreamTemplateBody(templateOptions),
+      "utf8",
+    );
+  }
+
+  test("fits the body aws cloudformation deploy sends with 50 log groups of names up to 400 characters in 10 Regions, beside every key metric", () => {
     for (const metrics of [
       CloudStreamMetricsMode.Key,
       CloudStreamMetricsMode.All,
     ]) {
-      const body: string = getAwsCloudStreamTemplateBody(
-        options({
-          metrics,
-          logs: CloudStreamLogsMode.Groups,
-          logGroups: longest,
-        }),
-      );
+      const templateOptions: CloudStreamTemplateOptions = options({
+        metrics,
+        logs: CloudStreamLogsMode.Groups,
+        logGroups: namedLogGroups(400),
+      });
 
-      expect(Buffer.byteLength(body, "utf8")).toBeLessThanOrEqual(
+      expect(bytesOf(templateOptions)).toBeLessThanOrEqual(
         CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES,
       );
+      expect(getCloudStreamTemplateSizeProblem(templateOptions)).toBeNull();
+    }
+  });
+
+  test("every metric fits even 50 of the longest names AWS allows; beside every key metric, the dialog names the problem before any command", () => {
+    const every: CloudStreamTemplateOptions = options({
+      metrics: CloudStreamMetricsMode.All,
+      logs: CloudStreamLogsMode.Groups,
+      logGroups: namedLogGroups(512),
+    });
+    const key: CloudStreamTemplateOptions = options({
+      metrics: CloudStreamMetricsMode.Key,
+      logs: CloudStreamLogsMode.Groups,
+      logGroups: namedLogGroups(512),
+    });
+
+    expect(getCloudStreamTemplateSizeProblem(every)).toBeNull();
+    expect(bytesOf(key)).toBeGreaterThan(
+      CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES,
+    );
+    expect(getCloudStreamTemplateSizeProblem(key)).toEqual({
+      text: STREAM_TEMPLATE_TOO_LARGE,
+      values: {},
+    });
+  });
+
+  test("never stops metrics alone, or every log group", () => {
+    for (const metrics of [
+      CloudStreamMetricsMode.Key,
+      CloudStreamMetricsMode.All,
+    ]) {
+      for (const logs of [CloudStreamLogsMode.Off, CloudStreamLogsMode.All]) {
+        expect(
+          getCloudStreamTemplateSizeProblem(options({ metrics, logs })),
+        ).toBeNull();
+      }
     }
   });
 });

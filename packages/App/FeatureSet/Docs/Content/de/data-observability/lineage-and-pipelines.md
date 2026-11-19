@@ -241,7 +241,7 @@ Power BI gibt die Tabellen eines Datasets erst zurück, wenn ein Fabric-Administ
 - **Enhance admin APIs responses with detailed metadata**: die Tabellen jedes Datasets.
 - **Enhance admin APIs responses with DAX and mashup expressions**: die Abfragen, die sie laden und die sagen, welche Datenbanktabellen sie lesen.
 
-Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität. Ein Dataset, das aus einem Dataflow liest, wird bis zum Dataflow gelesen: Welche Tabellen ein Dataflow lädt, liest OneUptime noch nicht.
+Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität.
 
 Jede Tabelle wird einer überwachten Tabelle über ihren Namen, ihr Schema und ihre Datenbank zugeordnet, ein Server über seinen Kurznamen oder seinen vollständigen Namen. Eine Tabelle eines anderen Datenbanksystems wird nie zugeordnet, ebenso wenig eine in einer anderen Datenbank: Ein Bericht auf `Sales.dbo.Orders` wird nicht mit `Archive.dbo.Orders` verknüpft, weil nur `Archive` überwacht wird.
 

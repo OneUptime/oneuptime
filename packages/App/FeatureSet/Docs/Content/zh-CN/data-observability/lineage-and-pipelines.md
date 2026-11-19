@@ -241,7 +241,7 @@ OneUptime 从 Power BI 的元数据扫描中读取每个 Power BI 数据集，�
 - **Enhance admin APIs responses with detailed metadata**：每个数据集的表。
 - **Enhance admin APIs responses with DAX and mashup expressions**：加载这些表的查询，它们说明读取了哪些数据库表。
 
-之后，数据集经过刷新或重新发布后，Power BI 才会描述它；仅使用 DirectQuery 的数据集，要等有人打开基于它的报表之后。它从不描述实时数据集、实时连接到 Analysis Services 的数据集、Excel 工作簿，或共享容量上超过 1 GB 的数据集。从数据流读取的数据集只读取到数据流为止：OneUptime 尚未读取数据流加载了哪些表。
+之后，数据集经过刷新或重新发布后，Power BI 才会描述它；仅使用 DirectQuery 的数据集，要等有人打开基于它的报表之后。它从不描述实时数据集、实时连接到 Analysis Services 的数据集、Excel 工作簿，或共享容量上超过 1 GB 的数据集。
 
 每张表按名称、架构和数据库与受监控的表匹配，服务器则按短名称或完整名称匹配。其他引擎的表从不匹配，其他数据库中的表也不匹配：如果只监控 `Archive`，基于 `Sales.dbo.Orders` 的报表不会与 `Archive.dbo.Orders` 关联。
 

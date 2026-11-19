@@ -29,7 +29,10 @@ import KubectlWaitBudget, {
 import { describeResourceNoun } from "../../../Services/ResourceAiAccessService";
 import { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolArgs } from "../Toolbox/ToolTypes";
-import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
+import {
+  ExtraToolCall,
+  ObservabilityAssistantExtraTool,
+} from "../Chat/ObservabilityAssistant";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
   ResourceCommandJobOutcome,
@@ -111,9 +114,11 @@ export interface InfrastructureInvestigationToolkitOptions {
   /*
    * When the run's time limit ends (epoch milliseconds): an investigation's
    * or a remediation's runner passes it, since every run has one. Every
-   * command's wait is planned to end before it. Absent (an Ask AI answer,
-   * whose loop holds its own time limit between calls), commands are only
-   * bounded by their own timeouts.
+   * command's wait is planned to end before it. An Ask AI answer hands its
+   * deadline to each call instead (ExtraToolCall, issue #6496): its tools
+   * are built before its loop reads its limits, and its clock starts again
+   * when it resumes after an approval. With both, the earlier holds; with
+   * neither, commands are only bounded by their own timeouts.
    */
   runDeadlineAtMs?: number | undefined;
 }
@@ -346,8 +351,11 @@ export default class InfrastructureInvestigationToolkit {
           required: ["resourceId", "command", "rationale"],
         },
       },
-      execute: async (args: JSONObject): Promise<ToolCallOutcome> => {
-        return this.runCommand(args, maxCommands);
+      execute: async (
+        args: JSONObject,
+        call?: ExtraToolCall | undefined,
+      ): Promise<ToolCallOutcome> => {
+        return this.runCommand(args, maxCommands, call);
       },
     };
   }
@@ -355,6 +363,7 @@ export default class InfrastructureInvestigationToolkit {
   private async runCommand(
     args: JSONObject,
     maxCommands: number | undefined,
+    call?: ExtraToolCall | undefined,
   ): Promise<ToolCallOutcome> {
     if (maxCommands !== undefined && this.commandsRun >= maxCommands) {
       return this.failure(
@@ -471,7 +480,10 @@ export default class InfrastructureInvestigationToolkit {
     const budget: KubectlWaitBudgetResult = KubectlWaitBudget.plan({
       requestedTimeoutInMs,
       maxClaimTimeoutInMs: RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
-      deadlineAtMs: this.options.runDeadlineAtMs,
+      deadlineAtMs: KubectlWaitBudget.getEarlierDeadline(
+        this.options.runDeadlineAtMs,
+        call?.runDeadlineAtMs,
+      ),
     });
 
     if (!budget.ok) {

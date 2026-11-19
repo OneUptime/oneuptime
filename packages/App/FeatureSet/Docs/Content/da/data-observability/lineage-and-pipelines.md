@@ -241,7 +241,7 @@ Power BI returnerer først et datasæts tabeller, når en Fabric-administrator s
 - **Enhance admin APIs responses with detailed metadata**: hvert datasæts tabeller.
 - **Enhance admin APIs responses with DAX and mashup expressions**: de forespørgsler, der indlæser dem, og som siger, hvilke databasetabeller de læser.
 
-Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet. Et datasæt, der læser fra et dataflow, læses op til dataflowet: OneUptime læser endnu ikke, hvilke tabeller et dataflow indlæser.
+Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet.
 
 Hver tabel matches med en overvåget tabel ud fra sit navn, sit skema og sin database, og en server ud fra sit korte eller fulde navn. En tabel fra en anden databasemotor matches aldrig, og det gør en tabel i en anden database heller ikke: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi kun `Archive` overvåges.
 

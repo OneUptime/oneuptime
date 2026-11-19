@@ -241,7 +241,7 @@ Power BI geeft de tabellen van een dataset pas terug zodra een Fabric-beheerder 
 - **Enhance admin APIs responses with detailed metadata**: de tabellen van elke dataset.
 - **Enhance admin APIs responses with DAX and mashup expressions**: de query's die ze laden, die zeggen welke databasetabellen ze lezen.
 
-Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit. Een dataset die uit een gegevensstroom leest, wordt gelezen tot aan de gegevensstroom: OneUptime leest nog niet welke tabellen een gegevensstroom laadt.
+Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit.
 
 Elke tabel wordt aan een bewaakte tabel gekoppeld op naam, schema en database, en een server op zijn korte of volledige naam. Een tabel van een andere engine wordt nooit gekoppeld, en een in een andere database evenmin: een rapport op `Sales.dbo.Orders` wordt niet verbonden met `Archive.dbo.Orders`, omdat alleen `Archive` wordt bewaakt.
 

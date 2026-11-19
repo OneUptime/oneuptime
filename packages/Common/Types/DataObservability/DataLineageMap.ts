@@ -380,6 +380,38 @@ export interface DataLineageMapBiChoice {
   // The tables they need drawn that no flow draws.
   dataAssetIds: Array<string>;
   isTruncated: boolean;
+  // The cards they add: the dashboards, and the tables, datasets and data sources drawn for them.
+  nodeCount?: number | undefined;
+}
+
+// Two choices drawn together, the first's dashboards first.
+export function combineDataLineageMapBiChoices(
+  first: DataLineageMapBiChoice,
+  second: DataLineageMapBiChoice,
+): DataLineageMapBiChoice {
+  return {
+    tableDashboards: [...first.tableDashboards, ...second.tableDashboards],
+    upstreamDashboards: [
+      ...first.upstreamDashboards,
+      ...second.upstreamDashboards,
+    ],
+    dataAssetIds: Array.from(
+      new Set([...first.dataAssetIds, ...second.dataAssetIds]),
+    ).sort(),
+    isTruncated: first.isTruncated || second.isTruncated,
+    nodeCount: (first.nodeCount || 0) + (second.nodeCount || 0),
+  };
+}
+
+// The dashboards a choice draws, by id.
+export function getDataLineageMapBiDashboardIds(
+  choice: DataLineageMapBiChoice,
+): Array<string> {
+  return [...choice.tableDashboards, ...choice.upstreamDashboards].map(
+    (row: DataLineageMapDashboardRow): string => {
+      return row.dataDashboardId;
+    },
+  );
 }
 
 // How a table's card id starts (getLineageMapTableNodeId).
@@ -775,6 +807,7 @@ export function chooseDataLineageMapBiDashboards(data: {
     upstreamDashboards,
     dataAssetIds: Array.from(dataAssetIds).sort(),
     isTruncated,
+    nodeCount: data.nodeRoom - nodeRoom,
   };
 }
 

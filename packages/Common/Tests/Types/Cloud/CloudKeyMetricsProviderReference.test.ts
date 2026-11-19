@@ -502,12 +502,14 @@ const AWS: AwsReference = readReference<AwsReference>(
  * the metric with, which the read writes on it: a T instance's
  * CPUCreditBalance is "Credits (vCPU-minutes)" on the page, a VPN tunnel's
  * TunnelState "Fractional value between 0 and 1", a certificate's
- * DaysToExpiry "Integer".
+ * DaysToExpiry "Integer". AppSync's page writes its latency's unit
+ * "Millisecond", which CloudWatch spells Milliseconds.
  */
 const AWS_UNIT_AS_PUBLISHED: Record<string, Record<string, string>> = {
   "AWS/EC2": { CPUCreditBalance: "Count" },
   "AWS/VPN": { TunnelState: "None" },
   "AWS/CertificateManager": { DaysToExpiry: "None" },
+  "AWS/AppSync": { Latency: "Milliseconds" },
 };
 
 /*
@@ -525,8 +527,10 @@ const AWS_STATISTIC_KEPT: Record<string, Record<string, string>> = {
 /*
  * Metrics with no series on the namespace's identity dimensions alone,
  * read on the fewest dimensions they have (AwsCloudConnector): S3's daily
- * storage by bucket and storage type, and an MSK cluster's per-broker
- * metrics, a series per broker.
+ * storage by bucket and storage type, an MSK cluster's per-broker metrics,
+ * a series per broker, a Cognito user pool's per app client (UserPool,
+ * UserPoolClient), and a SageMaker endpoint's per production variant
+ * (EndpointName, VariantName) - series that add up to the resource's.
  */
 const AWS_READ_ON_MORE_DIMENSIONS: Record<string, Array<string>> = {
   "AWS/S3": ["BucketSizeBytes", "NumberOfObjects"],
@@ -534,6 +538,36 @@ const AWS_READ_ON_MORE_DIMENSIONS: Record<string, Array<string>> = {
     "UnderReplicatedPartitions",
     "KafkaDataLogsDiskUsed",
     "CpuUser",
+  ],
+  "AWS/Cognito": [
+    "SignInSuccesses",
+    "SignInThrottles",
+    "TokenRefreshSuccesses",
+    "TokenRefreshThrottles",
+    "SignUpSuccesses",
+    "SignUpThrottles",
+  ],
+  "AWS/SageMaker": [
+    "Invocations",
+    "Invocation5XXErrors",
+    "Invocation4XXErrors",
+    "ModelLatency",
+  ],
+};
+
+/*
+ * Metrics published only once a setting of the resource is turned on, at
+ * no charge: an Auto Scaling group's, once its group metrics collection is
+ * on ("Group metrics are available at one-minute granularity at no
+ * additional charge, but you must enable them"). A group without it
+ * publishes none, so the read never lists it and it costs nothing.
+ */
+const AWS_FREE_ONCE_TURNED_ON: Record<string, Array<string>> = {
+  "AWS/AutoScaling": [
+    "GroupInServiceInstances",
+    "GroupDesiredCapacity",
+    "GroupPendingInstances",
+    "GroupTerminatingInstances",
   ],
 };
 
@@ -669,9 +703,13 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
     }
   });
 
-  test("none needs a paid or opt-in feature turned on", () => {
+  test("none needs a paid feature turned on, and only those listed a free one", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
+        const isFreeOnceTurnedOn: boolean = (
+          AWS_FREE_ONCE_TURNED_ON[entry.namespace] || []
+        ).includes(metric.metricName);
+
         expect({
           namespace: entry.namespace,
           metric: metric.metricName,
@@ -680,9 +718,11 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
         }).toEqual({
           namespace: entry.namespace,
           metric: metric.metricName,
-          publishedBy: expect.stringMatching(
-            /^(default|only-when-nonzero|only-some-resources)$/,
-          ),
+          publishedBy: isFreeOnceTurnedOn
+            ? "free-once-turned-on"
+            : expect.stringMatching(
+                /^(default|only-when-nonzero|only-some-resources)$/,
+              ),
         });
       }
     }

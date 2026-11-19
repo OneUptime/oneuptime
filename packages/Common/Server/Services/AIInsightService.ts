@@ -1,12 +1,11 @@
 import DatabaseService from "./DatabaseService";
 import AIRunService from "./AIRunService";
-import AIRunEventService from "./AIRunEventService";
+import AIRunEventService, { LatestRunEvents } from "./AIRunEventService";
 import AIInsight from "../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import AiRunRefusalException from "../../Types/Exception/AiRunRefusalException";
 import { AiRunRefusalCode } from "../../Types/AI/AiRunRefusal";
 import AIInsightStatus, {
@@ -22,6 +21,14 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * bounds pathological rows.
  */
 export const MAX_TRIAGE_RUN_EVENTS: number = 500;
+
+// An insight's triage run and its newest events, for its card.
+export interface TriageRunWithEvents {
+  run: AIRun | null;
+  events: Array<AIRunEvent>;
+  // Whether the run had events before the newest MAX_TRIAGE_RUN_EVENTS.
+  hasEarlierEvents: boolean;
+}
 
 export class Service extends DatabaseService<AIInsight> {
   public constructor() {
@@ -242,7 +249,7 @@ export class Service extends DatabaseService<AIInsight> {
   @CaptureSpan()
   public async getLatestTriageRunWithEvents(data: {
     insightId: ObjectID;
-  }): Promise<{ run: AIRun | null; events: Array<AIRunEvent> }> {
+  }): Promise<TriageRunWithEvents> {
     const insight: AIInsight | null = await this.findOneById({
       id: data.insightId,
       select: { _id: true, triageAiRunId: true },
@@ -250,7 +257,7 @@ export class Service extends DatabaseService<AIInsight> {
     });
 
     if (!insight || !insight.triageAiRunId) {
-      return { run: null, events: [] };
+      return { run: null, events: [], hasEarlierEvents: false };
     }
 
     const run: AIRun | null = await AIRunService.findOneById({
@@ -272,18 +279,19 @@ export class Service extends DatabaseService<AIInsight> {
     });
 
     if (!run || !run.id) {
-      return { run: null, events: [] };
+      return { run: null, events: [], hasEarlierEvents: false };
     }
 
     /*
      * The newest events, in order: a long run's latest steps - and how it
      * ended - are what its card must show. Reading the oldest ones left
      * the end of a run past the cap out, and its last steps open forever
-     * (issue #6437).
+     * (issue #6437). And whether earlier ones were left out, which the
+     * card says (issue #6489).
      */
-    const events: Array<AIRunEvent> = (
-      await AIRunEventService.findBy({
-        query: { aiRunId: run.id },
+    const latest: LatestRunEvents =
+      await AIRunEventService.findLatestEventsOfRun({
+        aiRunId: run.id,
         select: {
           _id: true,
           sequence: true,
@@ -292,14 +300,14 @@ export class Service extends DatabaseService<AIInsight> {
           resultSummary: true,
           createdAt: true,
         },
-        sort: { sequence: SortOrder.Descending },
         limit: MAX_TRIAGE_RUN_EVENTS,
-        skip: 0,
-        props: { isRoot: true },
-      })
-    ).reverse();
+      });
 
-    return { run, events };
+    return {
+      run,
+      events: latest.events,
+      hasEarlierEvents: latest.hasEarlierEvents,
+    };
   }
 }
 
