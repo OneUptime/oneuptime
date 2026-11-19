@@ -114,6 +114,13 @@ export interface ResourceOverviewTile {
    * land on an overview.
    */
   description?: string | undefined;
+  /*
+   * Where to get what would give the tile its number, drawn in place of
+   * the line under it while a valueNote says what is missing ("Needs the
+   * Ops Agent"): the provider's own instructions, opened in a new tab. Its
+   * label is an English literal the tile draws in the reader's language.
+   */
+  link?: { url: string; label: string } | undefined;
 }
 
 // The status pill's colour: green, amber or gray.
@@ -457,6 +464,14 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
     drawn: valueNote,
     language: translator.language,
   });
+  const linkLabel: string | undefined = props.link
+    ? translator.translateText(props.link.label) || props.link.label
+    : undefined;
+  const linkLanguage: string | undefined = getDrawnLanguage({
+    english: props.link?.label,
+    drawn: linkLabel,
+    language: translator.language,
+  });
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -581,7 +596,25 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
               {getFigure(props.value)}
             </div>
           )}
-          {sublabel ? (
+          {props.link && linkLabel ? (
+            /*
+             * Where to get what is missing, on the provider's own site: a
+             * link of its own, lifted above the link laid over a linked
+             * tile, as the (i) is.
+             */
+            <div className="mt-1 text-xs">
+              <a
+                href={props.link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                lang={linkLanguage}
+                className="relative z-10 break-words font-medium text-indigo-600 hover:text-indigo-700"
+                data-testid="resource-overview-tile-link"
+              >
+                {linkLabel}
+              </a>
+            </div>
+          ) : sublabel ? (
             /*
              * Up to two lines, never cut on one: a phone's two columns cut
              * "broker metrics; 18 throttled" before its number, and a tap

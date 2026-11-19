@@ -261,6 +261,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       // "Not reported", where the last read brought no value: never a figure.
       valueNote: tile.valueNote,
       description: tile.description,
+      // Where to get what is missing: "Install the Ops Agent".
+      link: tile.link,
       percent: tile.percent,
       // An availability's bar is at its best full, not at its worst.
       higherIsBetter: tile.higherIsBetter,
