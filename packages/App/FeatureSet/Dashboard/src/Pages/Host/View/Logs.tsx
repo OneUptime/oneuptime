@@ -165,7 +165,9 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
           "resource.host.name": "Host",
-          [HOST_LOG_SESSION_ATTRIBUTE]: "Log Session",
+          ...(shownSession
+            ? { [HOST_LOG_SESSION_ATTRIBUTE]: "Log Session" }
+            : {}),
         }}
         attributeFilterDisplayValues={{
           "resource.host.name": host.name || host.hostIdentifier!,
