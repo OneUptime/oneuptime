@@ -31,6 +31,21 @@ const LOGS_READER: string = readRepoFile(
 const ROW_WORDS: string = readRepoFile(
   "App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityFailedCommands.ts",
 );
+const TELEMETRY_READER: string = readRepoFile(
+  "Common/Server/Utils/AI/TelemetryAi/TelemetryAiActivityReader.ts",
+);
+const OUTCOMES_READER: string = readRepoFile(
+  "Common/Server/Utils/AI/Outcomes/AiOutcomesReader.ts",
+);
+
+// The telemetry products whose AI Logs (Activity, for Logs) say how each pull request stands.
+const TELEMETRY_AI_LOGS_PAGES: Array<string> = [
+  "telemetry/profiles",
+  "telemetry/exceptions",
+  "telemetry/traces-explorer",
+  "telemetry/metrics-explorer",
+  "telemetry/logs-explorer",
+];
 
 describe("the AI Insights footnote's failed commands", () => {
   it("says the number opens them, newest first, with what each ran, how it ended, why and what for", () => {
@@ -88,6 +103,33 @@ describe("a fix pull request, as its task stands", () => {
     expect(LOGS_READER).toContain("CodeTaskListRows.readPullRequests({");
     expect(LOGS_READER).toContain(
       "FixProductionReportUtil.fromPullRequest(pullRequest)",
+    );
+  });
+
+  it.each(TELEMETRY_AI_LOGS_PAGES)(
+    "%s says a pull request stands as its task does now, a fix asked again included",
+    (telemetryPage: string) => {
+      expect(englishPage(telemetryPage)).toContain(
+        "A pull request says how its task in Code stands now: a fix asked again with Try again after it failed no longer reads as failed, and names the pull request it opened.",
+      );
+    },
+  );
+
+  it("the telemetry products' AI Logs read each pull request by its task's newest turn, and the pull request any turn opened", () => {
+    expect(TELEMETRY_READER).toContain("CodeTaskListRows.readReplies({");
+    expect(TELEMETRY_READER).toContain("CodeTaskListRows.readPullRequests({");
+    expect(TELEMETRY_READER).toContain("status: latestTurn.status,");
+  });
+
+  it("says AI Results counts a fix pull request under what its task was a fix of, whichever turn opened it", () => {
+    expect(page).toContain(
+      "A fix pull request is about what its task in Code was a fix of, whichever turn of the task opened it.",
+    );
+
+    // A later turn's pull request is read as its task's first turn.
+    expect(OUTCOMES_READER).toContain("codeTaskId: true,");
+    expect(OUTCOMES_READER).toContain(
+      "(run.codeTaskId && firstTurns.get(run.codeTaskId.toString())) || run,",
     );
   });
 });

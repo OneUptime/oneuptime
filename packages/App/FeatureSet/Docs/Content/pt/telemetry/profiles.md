@@ -364,7 +364,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Produtos → Perfis → IA → Insights** lista o código lento encontrado, cada constatação com suas evidências e **Abrir em Perfis**.
-- **Produtos → Perfis → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou.
+- **Produtos → Perfis → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou. Um pull request diz como a tarefa dele está agora no Code: uma correção pedida de novo com Tentar novamente depois de falhar não aparece mais como falha e mostra o pull request que ela abriu.
 - Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ## Retenção de dados

@@ -149,7 +149,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ### Sehen, was es getan hat
 
 - **Metriken → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Metriken öffnen**, das seine Metrik für seinen Dienst aus der Stunde öffnet, in der er gefunden wurde. Ein Dienst ohne Metriken, oder ohne Metriken für seine Anfragen, bietet stattdessen **In Traces öffnen** an: die Spans, die seine Metriken messen würden.
-- **Metriken → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
+- **Metriken → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat. Ein Pull Request sagt, wie seine Aufgabe in Code jetzt steht: Eine Korrektur, die nach einem Fehlschlag mit Erneut versuchen noch einmal angefragt wurde, gilt nicht mehr als fehlgeschlagen und nennt den Pull Request, den sie geöffnet hat.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ### Anfragemetriken ohne Codeänderung aufzeichnen
