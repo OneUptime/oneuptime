@@ -1227,6 +1227,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
     await this.addSloNotificationSettings(userId, projectId);
     await this.addDataOwnerNotificationSettings(userId, projectId);
+    await this.addResourceOwnerNotificationSettings(userId, projectId);
     await this.addIncomingCallNotificationSettings(userId, projectId);
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
@@ -1420,6 +1421,62 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION,
+    );
+  }
+
+  /*
+   * Being made an owner of a service or a piece of infrastructure, of a
+   * dashboard, a workflow or a runbook, or of an on-call policy, schedule
+   * or incoming call policy (#9700), by an owner rule whose Notify Owners is
+   * on or by a person on its Owners page: on by email, as being made the
+   * owner of a table is. The owner jobs (Workers ResourceOwnersAdded) seed
+   * each too before they send, for the members who joined before it
+   * existed.
+   */
+  public async addResourceOwnerNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
     );
   }
 

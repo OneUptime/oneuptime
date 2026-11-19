@@ -22,6 +22,7 @@ import {
   ToolImportProjectState,
 } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
 import Errors from "../../../../Server/Utils/Errors";
+import ServerSetColumns from "../../../../Server/Utils/Database/ServerSetColumns";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
@@ -511,6 +512,45 @@ describe("ToolImportApplier: a whole import", () => {
     expect(outcomeOf(report, "OnCallPolicy:escalation").outcome).toBe(
       ToolImportOutcome.Created,
     );
+  });
+
+  /*
+   * #9700: services, on-call policies and on-call schedules have owner-added
+   * jobs now, which tell every member of a team made an owner. An import
+   * reports what it made once; the owner teams it gives each record are
+   * written told, as an imported monitor's owners are, so nobody gets a
+   * message per imported record. The value is OneUptime's, marked on the
+   * row, and the row is still written as the person importing.
+   */
+  test("writes the owner teams it gives services, policies and schedules already told, as the person importing", async () => {
+    const world: ApplierWorld = new ApplierWorld();
+    await runImport({});
+
+    const ownerCreates: Array<RecordedCreate> = [
+      ...world.createsOf("ServiceOwnerTeam"),
+      ...world.createsOf("OnCallDutyPolicyOwnerTeam"),
+      ...world.createsOf("OnCallDutyPolicyScheduleOwnerTeam"),
+    ];
+
+    // A service's, a policy's and both schedules'.
+    expect(ownerCreates).toHaveLength(4);
+
+    for (const create of ownerCreates) {
+      expect({
+        service: create.service,
+        isOwnerNotified: (create.data as unknown as { isOwnerNotified: unknown })
+          .isOwnerNotified,
+        isMarked: ServerSetColumns.isMarked(create.data, "isOwnerNotified"),
+        isRoot: Boolean(create.props.isRoot),
+        userId: create.props.userId?.toString(),
+      }).toEqual({
+        service: create.service,
+        isOwnerNotified: true,
+        isMarked: true,
+        isRoot: false,
+        userId: PERSON_PROPS.userId!.toString(),
+      });
+    }
   });
 
   test("services, severities, states, roles and custom fields are created with what OneUptime needs of each", async () => {
