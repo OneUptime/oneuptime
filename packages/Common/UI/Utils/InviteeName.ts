@@ -19,9 +19,9 @@ import { translationKey } from "../../Types/Translator";
  * their own name, and the inviter learns nothing either way.
  *
  * Not offered for the person the email box's suggestions named and the
- * inviter picked (the Dashboard's InviteeEmailField): the suggestions list
- * only people the reader may see, each with the name they have, so there
- * is nothing to ask.
+ * inviter picked (InviteeEmailField, on both dashboards' forms since
+ * #9826): the suggestions list only people the reader may see, each with
+ * the name they have, so there is nothing to ask.
  */
 
 /*

@@ -63,7 +63,7 @@ Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip
 Fate clic su una riga. I suoi dettagli si aprono accanto all'elenco.
 :::
 
-La ricerca, i chip e l'intervallo di tempo restano nell'indirizzo della pagina, quindi un aggiornamento, un segnalibro o un link condiviso apre gli stessi log. Un link a una singola riga di log, come **Visualizza riga di log** di un evento di sicurezza, apre quella riga sopra l'elenco, letta con i vostri permessi.
+La ricerca, i chip e l'intervallo di tempo restano nell'indirizzo della pagina, quindi un aggiornamento, un segnalibro o un link condiviso apre gli stessi log. Un link a una singola riga di log, come **Visualizza riga di log** di un evento di sicurezza, apre quella riga sopra l'elenco, letta con i vostri permessi. **Copia link**, nei dettagli di una riga, copia un link di questo tipo, con sotto l'elenco da cui l'avete copiato, sullo stesso intervallo di tempo.
 
 ## Leggere un log
 

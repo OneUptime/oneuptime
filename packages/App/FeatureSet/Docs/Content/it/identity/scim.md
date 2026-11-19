@@ -454,7 +454,7 @@ Gli utenti che SCIM crea direttamente e gli utenti che sono membri del tuo proge
 L'indirizzo email di un account OneUptime è quello con cui la persona accede a ogni progetto di cui fa parte, ed è dove arrivano i suoi link per reimpostare la password. Quindi:
 
 - **OneUptime Cloud**: SCIM non modifica mai un indirizzo email. Una richiesta che ne modificherebbe uno va comunque a buon fine: la connessione conserva l'indirizzo inviato dal tuo provider di identità, e risponde con quello, mentre l'account mantiene l'indirizzo con cui accede. I log SCIM della connessione indicano che la modifica non è stata applicata. Chiedi all'utente di modificare il proprio indirizzo dal suo profilo OneUptime.
-- **Self-hosted**: SCIM modifica l'indirizzo email solo di un utente che è entrato in questo progetto, non appartiene a nessun altro progetto e non è un amministratore di OneUptime. Per chiunque altro, la connessione conserva il nuovo indirizzo e l'account il proprio, come su OneUptime Cloud.
+- **Self-hosted**: SCIM modifica l'indirizzo email solo di un utente che è entrato in questo progetto, non appartiene a nessun altro progetto e non è un amministratore di OneUptime. Per chiunque altro, la connessione conserva il nuovo indirizzo e l'account il proprio, come su OneUptime Cloud. Lo stesso vale per un indirizzo con cui accede già un altro account OneUptime.
 
 I nomi seguono ovunque la stessa regola: SCIM aggiorna il nome solo di un utente che è entrato in questo progetto, non appartiene a nessun altro progetto e non è un amministratore di OneUptime. Per chiunque altro il nome resta invariato e il resto della richiesta va comunque a buon fine.
 :::

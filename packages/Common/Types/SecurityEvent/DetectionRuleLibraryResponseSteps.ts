@@ -6,6 +6,7 @@ import {
   DetectionRuleResponsePhase,
   DetectionRuleResponseStep,
 } from "./DetectionRuleResponseSteps";
+import lookupTable from "../../Utils/LookupTable";
 
 /*
  * WHAT TO DO WHEN A RULE LIBRARY RULE FIRES (#9621).
@@ -39,13 +40,17 @@ const { Confirm, Contain, Fix } = DetectionRuleResponsePhase;
 // A step's id in LIBRARY_STEP_TEXTS: the test checks every one a rule names is there.
 type LibraryStepId = string;
 
+// The part of the plan a library step goes under, and its words.
+interface LibraryStepText {
+  phase: DetectionRuleResponsePhase;
+  text: string;
+}
+
 /*
  * Every step a library rule carries, by its id, with the part of the plan
  * it goes under and its words.
  */
-const LIBRARY_STEP_TEXTS: {
-  [id: string]: { phase: DetectionRuleResponsePhase; text: string };
-} = {
+const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
   // ----- Sign-ins -----
   "signin-success-after-failures": {
     phase: Confirm,
@@ -829,7 +834,7 @@ const LIBRARY_STEP_TEXTS: {
  * Each library rule's steps, by the rule's Sigma id: what to check, what to
  * contain and what to fix, in the order a responder does them.
  */
-const LIBRARY_RULE_STEPS: { [libraryRuleId: string]: Array<LibraryStepId> } = {
+const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   // Brute force from one IP address
   "acf2a37e-301a-46de-87c7-d4343f3a8445": [
     "signin-success-after-failures",
@@ -1351,14 +1356,31 @@ const LIBRARY_RULE_STEPS: { [libraryRuleId: string]: Array<LibraryStepId> } = {
   ],
 };
 
+/*
+ * The two tables above as they are read: by a rule's id a caller hands in,
+ * and by the step ids a rule names. A Map answers only for the ids it was
+ * given, never for "constructor" or any other name every object inherits
+ * (Utils/LookupTable), whatever text it is asked with.
+ */
+const STEP_TEXT_BY_ID: ReadonlyMap<LibraryStepId, LibraryStepText> =
+  lookupTable(LIBRARY_STEP_TEXTS);
+
+const STEP_IDS_BY_LIBRARY_RULE_ID: ReadonlyMap<
+  string,
+  Array<LibraryStepId>
+> = lookupTable(LIBRARY_RULE_STEPS);
+
 // Every step a library rule carries, by id: for the test that checks each one.
 export function getDetectionRuleLibraryStepCatalog(): Array<DetectionRuleResponseStep> {
-  return Object.keys(LIBRARY_STEP_TEXTS).map(
-    (id: string): DetectionRuleResponseStep => {
+  return Array.from(STEP_TEXT_BY_ID.entries()).map(
+    ([id, step]: [
+      LibraryStepId,
+      LibraryStepText,
+    ]): DetectionRuleResponseStep => {
       return {
         id,
-        phase: LIBRARY_STEP_TEXTS[id]!.phase,
-        text: LIBRARY_STEP_TEXTS[id]!.text,
+        phase: step.phase,
+        text: step.text,
       };
     },
   );
@@ -1366,34 +1388,39 @@ export function getDetectionRuleLibraryStepCatalog(): Array<DetectionRuleRespons
 
 // The library rule ids that have steps: for the test that checks each is a library rule.
 export function getDetectionRuleLibraryIdsWithSteps(): Array<string> {
-  return Object.keys(LIBRARY_RULE_STEPS);
+  return Array.from(STEP_IDS_BY_LIBRARY_RULE_ID.keys());
 }
 
 // The step ids a library rule names, as written: for the test that checks each is in the catalog.
 export function getDetectionRuleLibraryStepIdsNamed(
   libraryRuleId: string,
 ): Array<string> {
-  return [...(LIBRARY_RULE_STEPS[libraryRuleId] || [])];
+  return [...(STEP_IDS_BY_LIBRARY_RULE_ID.get(libraryRuleId) || [])];
 }
 
 /*
  * A library rule's steps, by its Sigma id: a copy for each caller, so a
- * rule built from it owns its list. None for an id the library has none for.
+ * rule built from it owns its list. None for an id the library has none
+ * for - "constructor" or any other name an object inherits included.
  */
 export function getDetectionRuleLibraryResponseSteps(
   libraryRuleId: string,
 ): Array<DetectionRuleResponseStep> {
-  return (LIBRARY_RULE_STEPS[libraryRuleId] || [])
-    .filter((id: string): boolean => {
-      return Boolean(LIBRARY_STEP_TEXTS[id]);
-    })
-    .map((id: string): DetectionRuleResponseStep => {
-      return {
+  const steps: Array<DetectionRuleResponseStep> = [];
+
+  for (const id of STEP_IDS_BY_LIBRARY_RULE_ID.get(libraryRuleId) || []) {
+    const step: LibraryStepText | undefined = STEP_TEXT_BY_ID.get(id);
+
+    if (step) {
+      steps.push({
         id,
-        phase: LIBRARY_STEP_TEXTS[id]!.phase,
-        text: LIBRARY_STEP_TEXTS[id]!.text,
-      };
-    });
+        phase: step.phase,
+        text: step.text,
+      });
+    }
+  }
+
+  return steps;
 }
 
 /*

@@ -17,6 +17,7 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import User from "../../Models/DatabaseModels/User";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
@@ -286,6 +287,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           props: {
             isRoot: true,
           },
+        });
+
+        // Someone only invited is named as the project knows them (#9823).
+        await PendingInviteeProfiles.nameInProject({
+          users: [user],
+          projectId: projectId,
         });
 
         const onCallDutyPolicyName: string | null =

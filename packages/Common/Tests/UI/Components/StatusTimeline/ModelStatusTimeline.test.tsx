@@ -867,6 +867,88 @@ describe("an entry's actions", () => {
     );
   });
 
+  /*
+   * #9752: a page that words its causes in the reader's language is handed
+   * the stored cause and the row's log - the check the change kept, whose
+   * findings it words - read together, once, when asked.
+   */
+  test("View cause hands a page's wording the cause and the log, read together", async () => {
+    const worded: Array<{ cause: string; log: unknown }> = [];
+
+    await renderMonitor({
+      wordCause: (data: { cause: string; log: unknown }): string => {
+        worded.push(data);
+        return `Ursache: ${data.cause}`;
+      },
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(entryRow(1)).getByTestId("monitor-status-timeline-view-cause"),
+      );
+    });
+
+    expect(getItemCalls).toEqual([
+      {
+        id: (rowsInStore[1] as MonitorStatusTimeline)._id!,
+        select: { rootCause: true, statusChangeLog: true },
+      },
+    ]);
+    expect(await screen.findByTestId("markdown")).toHaveTextContent(
+      "Ursache: Response status code is **503**.",
+    );
+    expect(worded).toEqual([
+      {
+        cause: "Response status code is **503**.",
+        log: { responseCode: 503 },
+      },
+    ]);
+  });
+
+  test("a page that words the cause with no log column reads the cause alone", async () => {
+    await renderMonitor({
+      logColumn: undefined,
+      wordCause: (data: { cause: string; log: unknown }): string => {
+        return `${data.cause} (${data.log === undefined ? "no log" : "log"})`;
+      },
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(entryRow(1)).getByTestId("monitor-status-timeline-view-cause"),
+      );
+    });
+
+    expect(getItemCalls[0]!.select).toEqual({ rootCause: true });
+    expect(await screen.findByTestId("markdown")).toHaveTextContent(
+      "Response status code is **503**. (no log)",
+    );
+  });
+
+  test("an event with no recorded cause is never handed to the wording: it says so", async () => {
+    const wordCause: MockFunction = getJestMockFunction();
+
+    await renderMonitor({
+      noCauseText:
+        "No root cause. This monitor status could be created manually.",
+      wordCause: wordCause as unknown as (data: {
+        cause: string;
+        log: unknown;
+      }) => string,
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(entryRow(0)).getByTestId("monitor-status-timeline-view-cause"),
+      );
+    });
+
+    expect(await screen.findByTestId("markdown")).toHaveTextContent(
+      "No root cause. This monitor status could be created manually.",
+    );
+    expect(wordCause).not.toHaveBeenCalled();
+  });
+
   test("an event with no recorded cause says so", async () => {
     await renderMonitor({
       noCauseText:

@@ -234,6 +234,13 @@ nginx:
   # options of the listening socket, such as "backlog=4096".
   listenAddress: ""
   listenOptions: ""
+  # HTTP/2 for host on the gateway's HTTPS port, which the gateway serves itself
+  # only with ssl.provision: true. OTLP over gRPC to host needs it. false turns
+  # it off there, and changes nothing else: OTLP over gRPC to host stops, while
+  # OTLP over HTTP and browsers keep working over HTTP/1.1. Turn it off when
+  # nginx fixes a vulnerability in HTTP/2 and you cannot upgrade OneUptime yet;
+  # upgrading is the fix. See /docs/self-hosted/hardening.
+  http2: true
   # Per-request access logging for the high-volume ingest locations (/otlp,
   # /telemetry, /session-replay, /kubernetes-cost, /pyroscope). "on" keeps every
   # ingest line, which is the default because per-request status and client IP

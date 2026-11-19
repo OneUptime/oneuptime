@@ -21,6 +21,12 @@ import {
 } from "./PeopleByEmail";
 import { isSecretFieldName } from "./TerraformValues";
 import { getApiSingularName } from "../ModelApiName";
+import {
+  DeleteChoice,
+  DeleteChoicesOfTable,
+  getDeleteChoiceFieldName,
+  getDeleteChoices,
+} from "./DeleteChoices";
 
 /*
  * What the OneUptime Terraform provider makes of a model, worked out in the
@@ -45,7 +51,10 @@ import { getApiSingularName } from "../ModelApiName";
  *     them by email address instead (user_email beside user_id), and then
  *     neither one is required on its own; what someone else decides
  *     (whether an invitation was accepted, whether an owner was told) is
- *     no attribute (PeopleByEmail.ts).
+ *     no attribute (PeopleByEmail.ts);
+ *   - what a resource's delete takes besides the record is an optional
+ *     attribute named for the delete (workflows_run_as_on_delete), which no
+ *     create or update sends (DeleteChoices.ts).
  *
  * Common/Tests/Utils/DeveloperDocs/TerraformProviderSchemaContract.test.ts
  * runs the real spec through the real provider parser and holds this file to
@@ -774,6 +783,49 @@ export function getTerraformAttribute(
   return getTerraformAttributes(modelType).find(
     (descriptor: TerraformAttributeDescriptor): boolean => {
       return descriptor.columnName === columnName;
+    },
+  );
+}
+
+/*
+ * What the resource's delete takes besides the record (DeleteChoices.ts,
+ * #9832): an optional string attribute named for the delete each -
+ * `workflows_run_as_on_delete` on `oneuptime_custom_role` - which no
+ * create or update sends and no read sets. They are no column, so they are
+ * not among getTerraformAttributes': generated configuration never writes
+ * one, as a record's state says nothing of its delete. Empty for a model
+ * the provider cannot delete.
+ */
+export interface TerraformDeleteChoiceAttribute {
+  // workflows_run_as_on_delete.
+  attributeName: string;
+  // Its key in the delete's miscDataProps: workflowsRunAs.
+  key: string;
+  // The values it takes; none for the ID of a record.
+  values?: ReadonlyArray<string> | undefined;
+}
+
+export function getTerraformDeleteChoiceAttributes(
+  modelType: DatabaseBaseModelType,
+): Array<TerraformDeleteChoiceAttribute> {
+  const model: DatabaseBaseModel = new modelType();
+  const choices: DeleteChoicesOfTable | null = getDeleteChoices(
+    model.tableName,
+  );
+
+  if (!choices || !getTerraformModelOperations(modelType).canDelete) {
+    return [];
+  }
+
+  return choices.choices.map(
+    (choice: DeleteChoice): TerraformDeleteChoiceAttribute => {
+      return {
+        attributeName: toTerraformSnakeCase(
+          getDeleteChoiceFieldName(choice.key),
+        ),
+        key: choice.key,
+        values: choice.values,
+      };
     },
   );
 }

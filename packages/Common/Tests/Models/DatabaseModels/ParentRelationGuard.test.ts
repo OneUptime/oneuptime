@@ -107,6 +107,18 @@ describe("records with no labels of their own", () => {
        * runs under a block.
        */
       CodeRepositoryMintedToken: ["workerId"],
+      /*
+       * The resource that turned a compliance framework off for its own
+       * stores (resourceId): a Kubernetes cluster, a container host, a
+       * database, a cloud resource or a service, which kind its
+       * resourceType column says (#9555). People read the table through
+       * its API, and a resource's settings are its own: a grant of the
+       * Data Security check setting permissions limited to labels keeps
+       * the settings of the resources that carry them, and a block with
+       * labels leaves out those of a resource that carries one - the
+       * label scope PermissionScopeNarrowing offers for those permissions.
+       */
+      DataSecurityComplianceSetting: ["resourceId"],
       InventoryItem: ["resourceId"],
       /*
        * The incident or alert an owner notification is about (resourceId),

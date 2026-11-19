@@ -243,6 +243,43 @@ else
   export BACKEND_APP_GRPC_TARGET="\$backend_app_grpc"
 fi
 
+# HTTP/2 for HOST: NGINX_HTTP2, the primary server's `http2` directive.
+#
+# With PROVISION_SSL the primary serves HOST over HTTPS on 7850, and offers
+# HTTP/2 there through ALPN. OTLP over gRPC to HOST needs it, as gRPC runs
+# over HTTP/2 only; browsers and OTLP over HTTP work over HTTP/1.1 as well.
+# Nothing else speaks HTTP/2: the status-page servers leave it off, and on
+# 7849 their default server decides for every plaintext connection.
+#
+# NGINX_HTTP2=off turns it off for HOST, and changes nothing else. It is for
+# an install that sends no OTLP over gRPC to HOST, when nginx fixes a
+# vulnerability in HTTP/2 and OneUptime cannot be upgraded yet (nginx 1.30.7
+# fixed two, CVE-2026-123007 and CVE-2026-123633: #9709, #9846). Upgrading is
+# the fix. Set in config.env or the Helm chart's nginx.http2, it lasts
+# through restarts and upgrades, where editing the rendered config did not.
+#
+# on, true, yes and 1 (in any case), or nothing, keep HTTP/2 on, as it always
+# was; off, false, no and 0 turn it off. Anything else keeps it on, and says
+# so here: the ingress has to start, and gRPC ingest must not stop on a typo.
+# The script says when it is off, so the ingress's log shows the setting took.
+nginx_http2_setting=$(printf '%s' "${NGINX_HTTP2}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+case "${nginx_http2_setting}" in
+  "" | on | true | yes | 1) export NGINX_HTTP2="on" ;;
+  off | false | no | 0) export NGINX_HTTP2="off" ;;
+  *)
+    echo "$ME: WARNING: NGINX_HTTP2 is \"${NGINX_HTTP2}\", which is neither on nor off, so HTTP/2 stays on. Set NGINX_HTTP2=off to turn it off."
+    export NGINX_HTTP2="on"
+    ;;
+esac
+
+if [ "${NGINX_HTTP2}" = "off" ]; then
+  if [ -n "${PROVISION_SSL_LISTEN_DIRECTIVE}" ]; then
+    echo "$ME: HTTP/2 is off for ${HOST_WITHOUT_PORT} (NGINX_HTTP2=off): OTLP over gRPC to it stops, and OTLP over HTTP and browsers keep working over HTTP/1.1."
+  else
+    echo "$ME: NGINX_HTTP2 is off, which changes nothing here: the ingress serves no HTTPS for HOST, and so speaks only HTTP/1.1 to it."
+  fi
+fi
+
 auto_envsubst
 
 exit 0

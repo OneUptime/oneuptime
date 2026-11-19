@@ -23,6 +23,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PendingInviteeProfiles from "../../../Utils/TeamMember/PendingInviteeProfiles";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../../Types/HeldPermissions";
@@ -349,6 +350,16 @@ export default class SortValidator {
         query: data.query,
         props: data.props,
         relationPath: data.relationPath,
+      });
+
+      /*
+       * A person's account dates say when they were last active: never an
+       * order through a relation (#9823, PendingInviteeProfiles).
+       */
+      PendingInviteeProfiles.assertMayReadThroughRelation({
+        relatedModel: relatedModel,
+        column: relatedField,
+        props: data.props,
       });
 
       if (

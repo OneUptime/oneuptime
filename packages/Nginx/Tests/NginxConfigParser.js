@@ -293,6 +293,28 @@ function primaryServerNameEnvironment(host = "") {
   };
 }
 
+/**
+ * The settings of NGINX_HTTP2 that turn HTTP/2 off for HOST, in lower case.
+ */
+const PRIMARY_HTTP2_OFF_SETTINGS = ["off", "false", "no", "0"];
+
+/**
+ * What envsubst-on-templates.sh exports for NGINX_HTTP2, which the primary
+ * server's `http2` directive reads (`http2  ${NGINX_HTTP2};`): "off" for off,
+ * false, no or 0, in any case and with spaces around; "on" for anything else,
+ * the setting unset or empty included. A value the script does not know
+ * keeps HTTP/2 on, as it always was, and the script warns of it.
+ *
+ * PrimaryServerHttp2.test.js runs the real script and holds it to this.
+ */
+function primaryHttp2Environment(setting = "") {
+  const normalized = String(setting).replace(/\s/g, "").toLowerCase();
+
+  return {
+    NGINX_HTTP2: PRIMARY_HTTP2_OFF_SETTINGS.includes(normalized) ? "off" : "on",
+  };
+}
+
 function readNginxConf() {
   return fs.readFileSync(NGINX_CONF_PATH, "utf8");
 }
@@ -306,6 +328,8 @@ module.exports = {
   ingressListenEnvironment,
   PRIMARY_SERVER_FIXED_NAMES,
   primaryServerNameEnvironment,
+  PRIMARY_HTTP2_OFF_SETTINGS,
+  primaryHttp2Environment,
   stripComments,
   findBlocks,
   getServerBlocks,

@@ -278,6 +278,60 @@ export function buildGroupExpression(data: {
   return statement;
 }
 
+// Between a group's values, as a correlation names its group ("alice / 203.0.113.7").
+export const CORRELATION_GROUP_VALUE_SEPARATOR: string = " / ";
+
+/*
+ * How the events a correlation matched are read for keeping (#9795), for
+ * every group it fired for at once: any of its steps' events - what its
+ * reads count - each under its group's value, as the correlation's reads
+ * take each group-by field (an alias by the step the event matched) and
+ * as the matcher names a group: the values, joined by " / ". A group
+ * always has every value (the reads leave out a group with an empty one),
+ * so an event that lacks one is no group's. A correlation that does not
+ * group keeps its events as one group (groupExpression null).
+ *
+ * Throws, as the reads do, for a step that is not resolved to a rule.
+ */
+export function buildCorrelationEventsRead(data: {
+  correlation: SigmaCorrelation;
+  steps: Array<SigmaCorrelationStep>;
+}): { condition: Statement; groupExpression: Statement | null } {
+  const stepConditions: Array<Statement> = data.steps.map(compileStepCondition);
+  const groups: Array<Statement> = data.correlation.groupBy.map(
+    (field: string): Statement => {
+      return buildGroupExpression({
+        field,
+        correlation: data.correlation,
+        steps: data.steps,
+        stepConditions,
+      });
+    },
+  );
+  const condition: Statement = wrap(orAll(stepConditions));
+
+  if (groups.length === 0) {
+    return { condition, groupExpression: null };
+  }
+
+  const groupExpression: Statement = SQL`arrayStringConcat([`;
+
+  groups.forEach((group: Statement, index: number): void => {
+    if (index > 0) {
+      groupExpression.append(", ");
+    }
+
+    groupExpression.append("toString(");
+    groupExpression.append(group);
+    groupExpression.append(")");
+  });
+
+  // The code's own separator, written as text: it holds no value.
+  groupExpression.append(`], '${CORRELATION_GROUP_VALUE_SEPARATOR}')`);
+
+  return { condition, groupExpression };
+}
+
 /*
  * "projectId = ? AND time >= ? AND time < ?", a setup test's own
  * restriction, and - in real time - the window as one write found it.

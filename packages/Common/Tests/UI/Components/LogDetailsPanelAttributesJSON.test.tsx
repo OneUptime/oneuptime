@@ -74,7 +74,9 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   };
 });
 
-import LogDetailsPanel from "../../../UI/Components/LogsViewer/components/LogDetailsPanel";
+import LogDetailsPanel, {
+  LOG_ATTRIBUTE_KEY_CLASS_NAME,
+} from "../../../UI/Components/LogsViewer/components/LogDetailsPanel";
 
 const SERVICE_ID: ObjectID = new ObjectID(
   "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
@@ -235,6 +237,26 @@ describe("LogDetailsPanel attributes as JSON", () => {
     expect(screen.getByTitle("Copy retry.attempt")).toBeInTheDocument();
   });
 
+  /*
+   * Regression: a key was 14rem wide at every width, so on a 390px phone
+   * its value had a letter's width and ran down the row a letter a line
+   * ("G", "E", "T"). Seen while adding Copy Link to the panel (#9794).
+   */
+  test("on a phone a key takes two fifths of the line, so its value has the rest", () => {
+    render(<LogDetailsPanel log={makeLog(LOG_ATTRIBUTES)} serviceMap={{}} />);
+
+    const key: HTMLElement = screen.getByTitle("retry.attempt");
+
+    expect(LOG_ATTRIBUTE_KEY_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["w-2/5", "sm:w-56", "flex-none", "truncate"]),
+    );
+    expect(LOG_ATTRIBUTE_KEY_CLASS_NAME.split(" ")).not.toContain("w-56");
+
+    for (const className of LOG_ATTRIBUTE_KEY_CLASS_NAME.split(" ")) {
+      expect(key).toHaveClass(className);
+    }
+  });
+
   test("a log without attributes has no attributes section", () => {
     render(<LogDetailsPanel log={makeLog(undefined)} serviceMap={{}} />);
 
@@ -269,5 +291,47 @@ describe("a log's body reads the way it is written", () => {
       "dir",
       "rtl",
     );
+  });
+
+  /*
+   * Regression: an attribute's key and value were the panel's own text, so
+   * on a Persian page "/api/w/admins" put its first slash at its end
+   * ("api/w/admins/"). Seen while adding Copy Link to the panel (#9794).
+   */
+  test("an attribute's key and value read the way they are written: a path left to right, a Persian note right to left", () => {
+    render(
+      <LogDetailsPanel
+        log={makeLog({
+          "url.path": "/api/w/admins/../../etc/passwd",
+          "user.note": "پرداخت انجام شد",
+          "http.status_code": 403,
+        })}
+        serviceMap={{}}
+      />,
+    );
+
+    const isolate: (text: string) => HTMLElement = (
+      text: string,
+    ): HTMLElement => {
+      const element: HTMLElement = screen.getByText(text);
+
+      expect(element.tagName).toBe("BDI");
+      /*
+       * Its own code font: the page sets every element's font
+       * (`* { font-family: Inter }`), so it would not take its row's.
+       */
+      expect(element).toHaveClass("font-mono");
+
+      return element;
+    };
+
+    expect(isolate("url.path")).toHaveAttribute("dir", "ltr");
+    expect(isolate("/api/w/admins/../../etc/passwd")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+    expect(isolate("پرداخت انجام شد")).toHaveAttribute("dir", "rtl");
+    // A number has no letters: the isolate reads it by itself.
+    expect(isolate("403")).not.toHaveAttribute("dir");
   });
 });

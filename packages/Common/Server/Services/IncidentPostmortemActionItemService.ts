@@ -3,6 +3,7 @@ import IncidentService from "./IncidentService";
 import MonitorService from "./MonitorService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import Model from "../../Models/DatabaseModels/IncidentPostmortemActionItem";
@@ -244,7 +245,10 @@ export class Service extends ProjectReferencesService<Model> {
         markdown: actionItemAddedMarkdown({
           title: createdItem.title || "",
           ownerName: createdItem.ownerUserId
-            ? await this.getUserName(createdItem.ownerUserId)
+            ? await this.getUserName(
+                createdItem.ownerUserId,
+                createdItem.projectId,
+              )
             : undefined,
         }),
         userId: createdItem.createdByUserId || actorUserId,
@@ -451,7 +455,7 @@ export class Service extends ProjectReferencesService<Model> {
           markdown: actionItemOwnerMarkdown({
             title,
             ownerName: ownerUserId
-              ? await this.getUserName(new ObjectID(ownerUserId))
+              ? await this.getUserName(new ObjectID(ownerUserId), projectId)
               : undefined,
           }),
           userId: actorUserId,
@@ -648,7 +652,15 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
-  private async getUserName(userId: ObjectID): Promise<string> {
+  /*
+   * A person as the project names them: someone only invited to it by the
+   * name typed for them, else their address - never their account's own
+   * name, which it does not see until they join (#9823).
+   */
+  private async getUserName(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<string> {
     const user: User | null = await UserService.findOneById({
       id: userId,
       select: {
@@ -658,6 +670,11 @@ export class Service extends ProjectReferencesService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    await PendingInviteeProfiles.nameInProject({
+      users: [user],
+      projectId: projectId,
     });
 
     return user?.name?.toString() || user?.email?.toString() || "a user";
