@@ -1,22 +1,22 @@
-import InviteSuggestionsApi from "./InviteSuggestionsApi";
-import { Yellow } from "Common/Types/BrandColors";
+import InviteSuggestionsApi from "../../Utils/InviteSuggestionsApi";
+import { Yellow } from "../../../Types/BrandColors";
 import {
   InviteSuggestion,
   InviteSuggestionStanding,
   isInviteSuggestionPickable,
-} from "Common/Types/Team/InviteSuggestions";
-import { PROJECT_MEMBER_SEARCH_MIN_LENGTH } from "Common/Types/Team/ProjectMemberSearch";
+} from "../../../Types/Team/InviteSuggestions";
+import { PROJECT_MEMBER_SEARCH_MIN_LENGTH } from "../../../Types/Team/ProjectMemberSearch";
 import {
   MenuPosition,
   SUGGESTIONS_MENU_MAX_HEIGHT_IN_PX,
   SUGGESTIONS_MENU_Z_INDEX,
   getMenuPosition,
-} from "Common/UI/Components/AutocompleteTextInput/AutocompleteTextInput";
-import Input, { InputType } from "Common/UI/Components/Input/Input";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+} from "../AutocompleteTextInput/AutocompleteTextInput";
+import Input, { InputType } from "../Input/Input";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   MutableRefObject,

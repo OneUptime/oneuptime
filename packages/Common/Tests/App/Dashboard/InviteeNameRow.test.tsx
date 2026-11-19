@@ -72,8 +72,8 @@ import {
 import {
   drawInviteeEmailField,
   getInviteeEmailError,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailFormField";
-import { INVITE_SUGGESTIONS_DEBOUNCE_IN_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailField";
+} from "../../../UI/Components/InviteeEmailField/InviteeEmailFormField";
+import { INVITE_SUGGESTIONS_DEBOUNCE_IN_MS } from "../../../UI/Components/InviteeEmailField/InviteeEmailField";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import {

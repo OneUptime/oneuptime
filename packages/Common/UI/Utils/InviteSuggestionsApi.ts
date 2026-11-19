@@ -1,15 +1,15 @@
-import { APP_API_URL } from "Common/UI/Config";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
+import API from "./API/API";
+import ModelAPI from "./ModelAPI/ModelAPI";
+import { APP_API_URL } from "../Config";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import URL from "../../Types/API/URL";
+import { JSONObject } from "../../Types/JSON";
 import {
   INVITE_SUGGESTIONS_ROUTE,
   InviteSuggestion,
   readInviteSuggestionsAnswer,
-} from "Common/Types/Team/InviteSuggestions";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+} from "../../Types/Team/InviteSuggestions";
 
 /*
  * The people an invitation's email box suggests for what was typed, as the

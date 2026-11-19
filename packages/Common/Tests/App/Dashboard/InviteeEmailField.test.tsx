@@ -86,11 +86,11 @@ import InviteeEmailField, {
   NOT_IN_THIS_PROJECT_YET_TEXT,
   getNextPickableIndex,
   getStandingWords,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailField";
+} from "../../../UI/Components/InviteeEmailField/InviteeEmailField";
 import {
   getInviteeEmailError,
   readFormTeamId,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailFormField";
+} from "../../../UI/Components/InviteeEmailField/InviteeEmailFormField";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../Types/JSON";

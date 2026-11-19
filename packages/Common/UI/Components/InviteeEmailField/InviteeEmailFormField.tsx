@@ -1,13 +1,13 @@
 import InviteeEmailField from "./InviteeEmailField";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import Email from "Common/Types/Email";
-import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
-import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import Email from "../../../Types/Email";
+import { InviteSuggestion } from "../../../Types/Team/InviteSuggestions";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import { CustomElementProps } from "../Forms/Types/Field";
+import FormValues from "../Forms/Types/FormValues";
+import { FormValidationMessage } from "../Forms/Utils/FormValidationMessages";
+import { translateValidationMessage } from "../Forms/Validation";
 import React, { ReactElement } from "react";
 
 /*
