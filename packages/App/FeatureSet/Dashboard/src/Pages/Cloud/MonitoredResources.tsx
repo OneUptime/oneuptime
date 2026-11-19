@@ -21,7 +21,10 @@ import { Gray500 } from "Common/Types/BrandColors";
 import CloudResourceStatusCell, {
   CLOUD_STATUS_COLUMN_CLASS_NAME,
 } from "../../Components/Cloud/CloudResourceStatusCell";
-import { CLOUD_HEALTH_FILTER_OPTIONS } from "../../Components/Cloud/CloudResourceAttention";
+import {
+  CLOUD_HEALTH_FILTER_OPTIONS,
+  CLOUD_RESOURCES_TABLE_ID,
+} from "../../Components/Cloud/CloudResourceAttention";
 import { getCloudProviderOptions } from "../../Components/Cloud/CloudProviderOptions";
 import { getCloudResourceTypeOptions } from "../../Components/Cloud/CloudResourceTypeOptions";
 import OneUptimeDate from "Common/Types/Date";
@@ -146,8 +149,12 @@ const CloudMonitoredResources: FunctionComponent<
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
-        id="cloud-monitored-resources-table"
-        userPreferencesKey="cloud-monitored-resources-table"
+        id={CLOUD_RESOURCES_TABLE_ID}
+        /*
+         * The name its filters are kept under in the address: the
+         * Overview's Needs attention tile links to it filtered.
+         */
+        userPreferencesKey={CLOUD_RESOURCES_TABLE_ID}
         topContent={getFirstRunTopContent({
           topContent: filterBar,
           count: firstRecordWatch.count,

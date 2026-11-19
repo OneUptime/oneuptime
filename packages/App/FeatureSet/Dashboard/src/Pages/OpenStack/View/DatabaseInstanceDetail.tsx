@@ -19,7 +19,11 @@ import {
   formatOpenStackPercent,
 } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -41,16 +45,38 @@ const WHY_NOT_KNOWN: string = translationKey(
   "The agent's exporter doesn't read why a database failed. Run openstack database instance show for this one, or collect this cloud with a probe, which reads Trove's own fault.",
 );
 
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This database"),
+  attentionDescription: translationKey(
+    "What about this database is broken or needs a look.",
+  ),
+  openTitle: translationKey("Open on this database"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this database, incidents first.",
+  ),
+  alertsTitle: translationKey("Database alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alerts that watch every database, this one included: each is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey("What Trove reports about this database."),
+};
+
 const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.DatabaseInstance,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
         const fault: string = getOpenStackFactText(row, "faultMessage");
         const task: string = getOpenStackFactText(row, "taskDescription");
@@ -147,23 +173,8 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
             alertTemplateIds={OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS}
             detailRows={detailRows}
             whyNotKnown={fault ? undefined : WHY_NOT_KNOWN}
-            words={{
-              thisOne: translationKey("This database"),
-              attentionDescription: translationKey(
-                "What about this database is broken or needs a look.",
-              ),
-              openTitle: translationKey("Open on this database"),
-              openDescription: translationKey(
-                "Unresolved incidents and alerts about this database, incidents first.",
-              ),
-              alertsTitle: translationKey("Database alerts"),
-              alertsDescription: translationKey(
-                "The cloud's alerts that watch every database, this one included: each is one monitor on the cloud.",
-              ),
-              detailsDescription: translationKey(
-                "What Trove reports about this database.",
-              ),
-            }}
+            words={WORDS}
+            attention={attention}
             tiles={
               <>
                 <GoldenMetricTile

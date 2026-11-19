@@ -1,3 +1,5 @@
+import { Translator } from "Common/Types/Translator";
+
 /*
  * The unified signal shape the rail renders: one row type for everything
  * the recording captured AND everything the backend logged, traced or
@@ -347,4 +349,9 @@ export interface ReplayTelemetryClock {
   alignment: ReplayClockAlignmentState;
   /* primaryEntityId (as a string) -> display name. Absent = show nothing. */
   serviceNameById?: Record<string, string> | undefined;
+  /*
+   * The reader's language, for the words a row's title and subtitle add to
+   * what the server recorded ("3 spans", "Exception"). English without one.
+   */
+  translator?: Translator | undefined;
 }

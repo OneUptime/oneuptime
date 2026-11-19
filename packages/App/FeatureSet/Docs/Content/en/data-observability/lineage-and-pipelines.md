@@ -132,11 +132,12 @@ Failed refreshes do not use the pipeline monitors. A dataset whose refresh faile
 
 ## Pipelines
 
-Each job, dbt project and sync appears under **Pipelines**, with its runs: when each started and ended, how long it took, which attempt it was where the scheduler says (Airflow's try number), and a failed run's error. Each pipeline learns from its own runs how long a run usually takes and how long it goes between runs on its schedule, after five runs. A pipeline's page recommends three monitors:
+Each job, dbt project and sync appears under **Pipelines**, with its runs: when each started and ended, how long it took, which attempt it was where the scheduler says (Airflow's try number), and a failed run's error. Each pipeline learns from its own runs how long a run usually takes and how long it goes between runs on its schedule, after five runs. A pipeline's page recommends four monitors:
 
 - **Pipeline Run Failed**: a run failed or was aborted.
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
+- **Pipeline Stopped by Circuit Breaker**: the circuit breaker answered stop, and the stop lasts until it answers go or a run starts.
 
 A pipeline's **Owners** tab names the people and teams who look after it, and its alerts go to them. The **Overview** and **Issues** name a failed or late pipeline's owners, or say it has **No owner**, with a way to add one.
 
@@ -204,6 +205,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 ```
 
 A request that names a pipeline is kept on it, unless it is a dry run. While the circuit breaker has stopped a pipeline, its **Circuit Breaker** page says since when and why, its **Overview** opens on the stop, and **Needs Attention** and **Issues** list it as stopped, in place of its failed or late run. The stop ends when the circuit breaker next answers go, or when a run starts after it. The same page has **Test Now**, which asks the circuit breaker without the answer being kept, and the step for curl, Airflow and dbt with the pipeline's name filled in.
+
+To hear of a stop, add **Pipeline Stopped by Circuit Breaker** from the pipeline's **Recommendations**. Its alert opens when the circuit breaker answers stop, goes to the pipeline's owners, stays open while the stop is kept, and resolves once the stop ends. It reads the pipeline's `oneuptime.data.pipeline.circuit_breaker_stopped` metric: 1 while the circuit breaker has stopped it and 0 once it has not, written as the circuit breaker answers and every five minutes after.
 
 While Data Observability is switched off on the server, the circuit breaker answers go and keeps nothing: switching a product off never stops a pipeline.
 

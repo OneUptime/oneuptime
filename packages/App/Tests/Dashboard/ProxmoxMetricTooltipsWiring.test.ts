@@ -768,3 +768,76 @@ describe("insights", () => {
     expect(network).toContain("<ProxmoxRateChart");
   });
 });
+
+/*
+ * "2/3 nodes online", "1 HA error", "Last backup failed 1" said something
+ * was wrong, never which part or why (#9594). Each count of what is wrong
+ * opens exactly the parts it counts, through the shared pill and the
+ * cluster's own rules (ProxmoxHealth.getProxmoxProblemItems).
+ */
+describe("cluster overview: counts of what is wrong open which, and why", () => {
+  const PILL_IMPORT: RegExp =
+    /import ResourceAttentionPill, \{ ComponentProps as ResourceAttentionPillProps, \} from "(\.\.\/)+(Components\/)?ResourcePart\/ResourceAttentionPill";/;
+
+  test("the Overview and the Backups card draw the shared pill, from the cluster's rules", () => {
+    expect(OVERVIEW).toMatch(PILL_IMPORT);
+    expect(BACKUPS_CARD).toMatch(PILL_IMPORT);
+    expect(OVERVIEW).toContain("getProxmoxProblemItems({");
+    expect(BACKUPS_CARD).toContain("getProxmoxProblemItems({");
+  });
+
+  test("the nodes chip and the Node Availability tile open the nodes offline, and the quorum lost", () => {
+    expect(OVERVIEW).toContain(
+      'const nodesOfflineItems: Array<ResourceAttentionItem> = problemItemsOf({ kind: "nodesOffline", });',
+    );
+    const problem: string = between(
+      OVERVIEW,
+      "const nodesProblem:",
+      "const getGuestRoute",
+    );
+    expect(problem).toContain("...quorumItems, ...nodesOfflineItems,");
+    expect(problem).toContain('hint: "Show which nodes and why"');
+
+    const chip: string = between(
+      OVERVIEW,
+      'testId: "proxmox-hero-nodes",',
+      "if (guestsTotal > 0)",
+    );
+    expect(chip).toContain("problem: nodesProblem");
+
+    const tile: string = between(
+      OVERVIEW,
+      '<GoldenMetricTile title="Node Availability"',
+      "/>",
+    );
+    expect(tile).toContain("attention={nodesProblem}");
+    // Its figure in the reader's digits, as the hero's chips write it.
+    expect(tile).toContain(
+      "`${translator.formatNumber(nodesOnline)}/${translator.formatNumber(nodesTotal)}`",
+    );
+  });
+
+  test("an HA chip in error or fence opens its resources; the calm states stay words", () => {
+    const chips: string = between(
+      OVERVIEW,
+      "{haChips.length > 0 && (",
+      "</div> )}",
+    );
+    expect(chips).toContain(
+      'chip.state === "error" || chip.state === "fence" ? problemItemsOf({ kind: "haState", state: chip.state })',
+    );
+    expect(chips).toContain("<ResourceAttentionPill");
+    // A count in the reader's digits on every chip.
+    expect(chips).toContain("{translator.formatNumber(chip.value)}");
+    expect(chips).not.toContain("{chip.value}");
+  });
+
+  test("the Backups card's failed and in-no-job counts open their guests, each a step from its page", () => {
+    expect(BACKUPS_CARD).toContain('guestsOf({ kind: "backupFailed" })');
+    expect(BACKUPS_CARD).toContain('guestsOf({ kind: "noBackupJob" })');
+    expect(BACKUPS_CARD).toContain(
+      "<ResourceAttentionPill {...stat.problem} />",
+    );
+    expect(OVERVIEW).toContain("routeFor={getPartRoute}");
+  });
+});

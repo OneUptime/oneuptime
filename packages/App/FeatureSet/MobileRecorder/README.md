@@ -128,8 +128,8 @@ await OneUptimeReplay.revokeConsent();
 ```
 
 Revocation stops capture and clears the in-memory buffer, session identifier,
-anonymous visitor identifier, and AsyncStorage outbox. A later grant starts a
-new visit.
+anonymous visitor identifier, AsyncStorage outbox, and the product analytics
+events kept unsent. A later grant starts a new visit.
 
 ## Identity, tags, events, and routes
 
@@ -202,15 +202,30 @@ in `src/ProductAnalyticsContract.ts` and held to it by `ContractParity`):
   (a `Retry-After` is honoured up to 300 seconds), at once when the app
   returns to the foreground or a `connectivity` source says the device is
   back online, and nothing is tried while it says the device is offline.
-  Events are held in memory: an app killed while offline loses the ones it
-  had not sent. A 204, 400 or 403 stops them until the next `start()`.
+  A batch sent again says when it was sent again, so its events are filed
+  when they happened. A 204, 400 or 403 stops them until the next `start()`,
+  and drops what was held.
+- **Kept across a relaunch.** What has not been sent is also kept in
+  AsyncStorage, under its own key: an app used offline (on a plane, in a
+  tunnel) and then killed, or stopped by the system in the background, sends
+  those events and metric points after its next `start()`, under the session
+  and the person they happened under, and the batch that was on its way
+  under its own id. It is written a second after a change and at once as the
+  app leaves the foreground, holds at most 500 events and 500 metric points
+  in at most 512 KB (the oldest left out first), and drops what is older
+  than the server's 3 days before sending. Nothing held before a required
+  consent is written, and `revokeConsent()` - or a policy that starts
+  requiring consent - deletes it.
 - **The context** is the one recorded sessions are filed under: `mobile`,
   or `tablet` from a shorter side of 600 points; the system the native
   module names; and the `appVersion` start option, or the binary's own.
 - **Diagnostics.** `getDiagnostics().productAnalytics` reports `state`
-  (`off`, `on`, or why they stopped), `pending` and `dropped`; the codes
-  `analytics-started`, `analytics-stopped`, `metric-analytics-off`,
-  `metric-name-refused` and `metric-value-refused` say what happened.
+  (`off`, `on`, or why they stopped), `pending` (what waits to be sent,
+  what a relaunch brought back included) and `dropped` (events dropped
+  because too many waited, or they waited longer than 3 days); the codes
+  `analytics-started`, `analytics-restored`, `analytics-store-unreadable`,
+  `analytics-stopped`, `metric-analytics-off`, `metric-name-refused` and
+  `metric-value-refused` say what happened.
 
 `metric()` sends nothing while the events are off for the application.
 
@@ -235,20 +250,33 @@ pre-roll is uploaded after a manual or JavaScript error trigger.
 ## Frustration signals of your own
 
 A RUM application can name signals of its own on its **Frustration Signals**
-page in OneUptime, and this SDK detects three kinds of them with no code change:
+page in OneUptime, and this SDK detects four kinds of them with no code change:
 
-| signal | fires when                                                                                                                         |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| page   | `setRoute()` moves to a route whose path matches the pattern (`*` stands for any characters; case, query and fragment are ignored) |
-| event  | `track()` is called with that event name (case is ignored)                                                                         |
-| error  | a JavaScript error or `captureError()` carries a message containing the given words (case is ignored)                              |
+| signal | fires when                                                                                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| tap    | a tap lands on a view whose `testID` is the one named, or starts with it when the pattern ends in `*` (`product-card-*`), or on anything inside it (case is ignored) |
+| page   | `setRoute()` moves to a route whose path matches the pattern (`*` stands for any characters; case, query and fragment are ignored)                                  |
+| event  | `track()` is called with that event name (case is ignored)                                                                                                          |
+| error  | a JavaScript error or `captureError()` carries a message containing the given words (case is ignored)                                                               |
 
 A hit is recorded as a marker carrying the signal's **name** only - never the
-route, the event's properties or the error's text, which are only compared on
-the device - and counted on the chunk. A signal that counts as frustration
-starts the upload in error-triggered mode, like an error. The same name fires
-at most once a second, and a chunk holds at most 50 markers. Nothing is
-detected while capture is paused because nobody is using the app.
+route, the event's properties, the error's text or a view's `testID`, which
+are only compared on the device - and counted on the chunk. A tap signal's
+marker also says where on the screen the tap was, as the recorded touch does,
+except on a view inside a `ReplayMask`, an image, a web view or another view
+the replay never records. A signal that counts as frustration starts the
+upload in error-triggered mode, like an error. The same name fires at most
+once a second, and a chunk holds at most 50 markers. Nothing is detected while
+capture is paused because nobody is using the app.
+
+A tap is a touch that ends within 10 points of where it started, on the view
+it started on: a finger that slides further was scrolling. Give the views you
+want to name a `testID` (`<Pressable testID="pay-button">`): the SDK reads the
+touched view's `testID` and those of the views around it from the native
+module, so a tap on a label inside a named button is a tap on the button. A
+binary built with an older version of this SDK's native code (a JavaScript-only
+over-the-air update) detects no tap signal and records everything else as
+before.
 
 Signals that react to a click on an element are CSS selectors on a web page,
 and the built-in rage, dead and error clicks and refresh rage are about a mouse

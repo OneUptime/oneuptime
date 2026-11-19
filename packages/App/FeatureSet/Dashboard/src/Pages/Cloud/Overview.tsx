@@ -11,6 +11,7 @@ import {
   CloudAttentionCounts,
   getCloudOverviewTiles,
 } from "../../Components/Cloud/CloudOverviewTiles";
+import { getCloudNeedsAttentionListRoute } from "../../Components/Cloud/CloudResourceAttention";
 import CloudSavingsCard from "../../Components/Cloud/CloudSavingsCard";
 import CLOUD_SHOWCASE from "../../Components/Cloud/CloudShowcase";
 import CloudSpendCard from "../../Components/Cloud/CloudSpendCard";
@@ -157,6 +158,9 @@ const CloudOverview: FunctionComponent<
             accounts: route(PageMap.CLOUD_ACCOUNTS),
             resources: route(PageMap.CLOUD_MONITORED_RESOURCES),
             costs: route(PageMap.CLOUD_COSTS),
+            attention: getCloudNeedsAttentionListRoute(
+              route(PageMap.CLOUD_MONITORED_RESOURCES),
+            ),
           },
         })}
       />

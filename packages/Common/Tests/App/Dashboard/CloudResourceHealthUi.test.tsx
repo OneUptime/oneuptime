@@ -340,8 +340,11 @@ describe("what a resource's page leads with", () => {
       "aws/ec2/networkin",
       "aws/ec2/networkout",
     ]);
+    // Its memory and fullest disk, from the Ops Agent on it (#9568).
     expect(getCloudHeadlineKeys("gcp", "gce_instance")).toEqual([
       "compute.googleapis.com/instance/cpu/utilization",
+      "agent.googleapis.com/memory/percent_used",
+      "agent.googleapis.com/disk/percent_used",
       "compute.googleapis.com/instance/network/received_bytes_count",
       "compute.googleapis.com/instance/network/sent_bytes_count",
     ]);

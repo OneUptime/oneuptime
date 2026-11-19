@@ -52,6 +52,23 @@ export interface HistogramRequest extends ExceptionFilters {
   bucketSizeInMinutes: number;
 }
 
+/*
+ * How many sessions the matching exceptions happened in, over a window: a
+ * mobile app's sessions a crash ended, for its crash-free share (#9588).
+ */
+export interface SessionCountRequest extends ExceptionFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+}
+
+export interface SessionCountResult {
+  // The distinct session ids; an occurrence with none ('') is no session.
+  sessions: number;
+  // Every matching occurrence, with a session or not.
+  occurrences: number;
+}
+
 export interface FacetValue {
   value: string;
   count: number;
@@ -114,6 +131,67 @@ export class ExceptionAggregationService {
         count: Number(row["cnt"] || 0),
       };
     });
+  }
+
+  /*
+   * The sessions the matching exceptions happened in, and how many
+   * occurrences matched (SessionCountResult): one row, through the same
+   * filters as the histogram, so "unhandled, ANRs left out" counts the
+   * sessions a crash ended.
+   */
+  @CaptureSpan()
+  public static async getSessionCount(
+    request: SessionCountRequest,
+  ): Promise<SessionCountResult> {
+    const statement: Statement =
+      ExceptionAggregationService.buildSessionCountStatement(request);
+
+    const dbResult: Results =
+      await ExceptionInstanceService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const row: JSONObject = (response.data || [])[0] || {};
+
+    return {
+      sessions: Number(row["sessions"] || 0),
+      occurrences: Number(row["cnt"] || 0),
+    };
+  }
+
+  /*
+   * `uniqIf`, as TraceAggregationService counts a scope's sessions, so the
+   * two counts a crash-free share divides are made the same way.
+   */
+  public static buildSessionCountStatement(
+    request: SessionCountRequest,
+  ): Statement {
+    const statement: Statement = SQL`
+      SELECT
+        uniqIf(sessionId, sessionId != '') AS sessions,
+        count() AS cnt
+      FROM ${ExceptionAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `;
+
+    statement.append(" AND retentionDate >= now()");
+
+    ExceptionAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    return statement;
   }
 
   @CaptureSpan()

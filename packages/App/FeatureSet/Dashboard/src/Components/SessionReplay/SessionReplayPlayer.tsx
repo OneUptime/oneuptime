@@ -1734,8 +1734,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       return NO_SIGNALS;
     }
 
+    // The rows' own words in the reader's language (#6516).
     return fromTimelineEvents(loader.getTimelineEvents(), {
       startTimeUnixMs: startTimeUnixMs,
+      translator: translator,
     });
     /*
      * timelineVersion, not just the fed range: the loader only advances
@@ -1743,7 +1745,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      * added no rows re-uses the adapted signals instead of rebuilding
      * every one of them. generation stays a dependency so a tab switch,
      * which hands over a different loader whose version restarts at 0,
-     * always re-adapts.
+     * always re-adapts. The language, not the translator, which
+     * useTranslator builds anew every render.
      */
   }, [
     engine,
@@ -1751,6 +1754,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     snapshot.generation,
     startTimeUnixMs,
     timelineVersion,
+    translator.language,
   ]);
 
   const allSignals: Array<ReplaySignal> = useMemo(() => {

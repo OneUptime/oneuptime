@@ -107,6 +107,8 @@ OpenTelemetry Android registrerar allt detta av sig självt. Enhetsattributen so
 
 Krascher och ANR:er når **Undantag** som ohanterade, grupperade efter sina stackspårningar, med sessionen de inträffade i. Agenten sparar en krasch till disk medan appen dör och skickar den därifrån, så en krasch som inträffar offline kommer ändå in när appen körs igen med nätverk.
 
+Applikationens sida **Översikt** läser av dessa åt dig: **Sessioner**, **Kraschfria sessioner**, **Krascher**, **ANR:er**, **Appstarter**, **Kallstart (p95)** och **Frusna bildrutor**, som var och en öppnar de undantag, spans eller händelser den räknar. Tills appen skickar appstarter eller bildrutor visar deras diagram vad som slår på dem. Dess sida **Rekommendationer** erbjuder monitorer för krascher, ANR:er, långsamma kallstarter, frusna bildrutor och en app som slutar rapportera.
+
 En session tar slut efter 15 minuter i bakgrunden, eller efter 4 timmar. En app som aldrig går till bakgrunden, som en kiosk, behåller en session i 4 timmar, så spåra varje kunds besök som ett eget span, som [Spåra dina egna arbetsflöden](#spåra-dina-egna-arbetsflöden) visar.
 
 Appens egna `android.util.Log`-anrop blir också loggar när du lägger till `android-log-library` och `android-log-agent` bredvid OkHttp-modulerna nedan: Varje anrops tagg hamnar i `android.log.tag`, och ett anrop med en throwable är ett undantag i **Undantag**. OpenTelemetry Android läser inte Logcat.

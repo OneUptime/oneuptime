@@ -3,6 +3,7 @@ import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AwsKeyMetric,
   GCP_ALIGNMENT_PERIOD_SECONDS,
+  GCP_OPS_AGENT_INSTALL_URL,
   getAwsKeyMetrics,
 } from "./CloudKeyMetrics";
 import { CloudProvider } from "./CloudPlatform";
@@ -29,9 +30,10 @@ import { CloudProvider } from "./CloudPlatform";
  *   Warning - needs a look soon:
  *     unhealthy hosts behind a load balancer, 5% or more of requests
  *     failing, throttling, a database or a cache at 95% of its CPU or
- *     memory or 90% of its storage, failed executions, runs, deliveries or
- *     connections, dead-lettered messages, a queue whose oldest message
- *     waits an hour, availability under 99.9%.
+ *     memory or 90% of its storage, a Compute Engine VM at 95% of its
+ *     memory or 90% of a disk (as its Ops Agent reports them), failed
+ *     executions, runs, deliveries or connections, dead-lettered messages,
+ *     a queue whose oldest message waits an hour, availability under 99.9%.
  *
  * What is never a problem by itself: a busy virtual machine (an instance at
  * 100% CPU is doing its work - as on a host, its status checks say when it
@@ -799,6 +801,35 @@ const AWS: CloudProvider = CloudProvider.AWS;
 const AZURE: CloudProvider = CloudProvider.Azure;
 const GCP: CloudProvider = CloudProvider.GCP;
 
+/*
+ * A Compute Engine VM's memory and disks, as the Ops Agent on it reports
+ * them (CloudKeyMetrics): the share of each in use, 0 to 100.
+ */
+export const GCP_OPS_AGENT_MEMORY_KEY: string =
+  "agent.googleapis.com/memory/percent_used";
+export const GCP_OPS_AGENT_DISK_KEY: string =
+  "agent.googleapis.com/disk/percent_used";
+
+/*
+ * Readings of a metric a resource reports as several series of one time,
+ * one for each part of it - the Ops Agent's disk use, a series for each of
+ * a VM's disks - that read as the highest of them: the fullest disk is the
+ * one its rule judges and its page leads with. Any other metric's reading
+ * is its first series of the newest time, or, split by a dimension, their
+ * sum (CloudResourceReadings).
+ */
+const CLOUD_READINGS_OF_THEIR_HIGHEST_SERIES: ReadonlySet<string> =
+  new Set<string>([`${GCP}|${GCP_OPS_AGENT_DISK_KEY}`]);
+
+export function isCloudReadingTheHighestOfItsSeries(
+  provider: string,
+  key: string,
+): boolean {
+  return CLOUD_READINGS_OF_THEIR_HIGHEST_SERIES.has(
+    `${(provider || "").toLowerCase()}|${(key || "").toLowerCase()}`,
+  );
+}
+
 export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   // ---- AWS ----------------------------------------------------------------
   {
@@ -1265,6 +1296,19 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   },
   // ---- Google Cloud -------------------------------------------------------
   {
+    /*
+     * How full a VM's memory and disks are, which only the Ops Agent on it
+     * reports: a VM without it is not judged by them. Its disks' reading is
+     * the fullest of them (CLOUD_READINGS_OF_THEIR_HIGHEST_SERIES).
+     */
+    provider: GCP,
+    types: ["gce_instance"],
+    rules: [
+      memoryHigh(GCP_OPS_AGENT_MEMORY_KEY),
+      storagePercent(GCP_OPS_AGENT_DISK_KEY),
+    ],
+  },
+  {
     provider: GCP,
     types: ["cloudsql_database"],
     rules: [
@@ -1337,6 +1381,21 @@ export type CloudHeadlineFormat =
   | "bytesPerSecond"
   | "bitsPerSecond";
 
+/*
+ * What a headline needs that its cloud does not report by itself, said in
+ * its tile while the last read did not bring it - "Needs the Ops Agent",
+ * with the provider's own instructions a click away - rather than "Not
+ * reported". English words, looked up in the reader's language.
+ */
+export interface CloudHeadlineRequirement {
+  // Drawn in place of the value.
+  note: string;
+  // The tile's (i): what it needs, and when it shows once it has it.
+  description: string;
+  // Where to get it: the provider's own instructions.
+  link: { url: string; label: string };
+}
+
 export interface CloudHeadlineReading {
   key: string;
   // The tile's title, in English: looked up in the reader's language.
@@ -1348,6 +1407,14 @@ export interface CloudHeadlineReading {
    * says nothing of it when the last read did not bring it.
    */
   onlySome?: boolean | undefined;
+  /*
+   * Readings the tile reads, in order, when the resource has none of `key`:
+   * a Cosmos DB account's latency is its direct-mode requests', else its
+   * gateway-mode ones' - each client connects one way or the other.
+   */
+  fallbackKeys?: Array<string> | undefined;
+  // What it needs to be reported at all, said while it is not.
+  needs?: CloudHeadlineRequirement | undefined;
 }
 
 interface CloudHeadlineTypeReadings {
@@ -1360,11 +1427,47 @@ function headline(
   key: string,
   label: string,
   format: CloudHeadlineFormat,
-  options: { onlySome?: boolean } = {},
+  options: {
+    onlySome?: boolean;
+    fallbackKeys?: Array<string>;
+    needs?: CloudHeadlineRequirement;
+  } = {},
 ): CloudHeadlineReading {
-  return options.onlySome
-    ? { key, label, format, onlySome: true }
-    : { key, label, format };
+  return {
+    key,
+    label,
+    format,
+    ...(options.onlySome ? { onlySome: true } : {}),
+    ...(options.fallbackKeys ? { fallbackKeys: options.fallbackKeys } : {}),
+    ...(options.needs ? { needs: options.needs } : {}),
+  };
+}
+
+// The keys a headline reads, in order: its own, then its fallbacks.
+export function getCloudHeadlineReadingKeys(
+  headlineReading: CloudHeadlineReading,
+): Array<string> {
+  return [headlineReading.key, ...(headlineReading.fallbackKeys || [])];
+}
+
+/*
+ * The reading a headline shows of a resource's readings, and its key: the
+ * first of its keys the resource has (getCloudHeadlineReadingKeys). Null when it
+ * has none of them.
+ */
+export function getCloudHeadlineReadingOf(
+  headlineReading: CloudHeadlineReading,
+  readings: CloudResourceReadings,
+): { key: string; reading: CloudResourceReading } | null {
+  for (const key of getCloudHeadlineReadingKeys(headlineReading)) {
+    const reading: CloudResourceReading | undefined = readings[key];
+
+    if (reading) {
+      return { key, reading };
+    }
+  }
+
+  return null;
 }
 
 /*
@@ -1393,6 +1496,26 @@ export function isCloudHeadlineExpected(
 ): boolean {
   return !headline.onlySome && CLOUD_LEVEL_FORMATS.has(headline.format);
 }
+
+/*
+ * A VM's memory and disk use, which Google Cloud reads only from the Ops
+ * Agent on the VM: what its tiles say while the last read brought neither.
+ */
+export const HEADLINE_NEEDS_OPS_AGENT: string = translationKey(
+  "Needs the Ops Agent",
+);
+export const HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION: string = translationKey(
+  "Google Cloud reads a VM's memory and disk use only from the Ops Agent on it. Once the agent runs, they show here within an hour.",
+);
+export const HEADLINE_INSTALL_OPS_AGENT: string = translationKey(
+  "Install the Ops Agent",
+);
+
+const NEEDS_OPS_AGENT: CloudHeadlineRequirement = {
+  note: HEADLINE_NEEDS_OPS_AGENT,
+  description: HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION,
+  link: { url: GCP_OPS_AGENT_INSTALL_URL, label: HEADLINE_INSTALL_OPS_AGENT },
+};
 
 export const HEADLINE_CPU: string = translationKey("CPU");
 export const HEADLINE_MEMORY: string = translationKey("Memory");
@@ -1866,7 +1989,16 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       readings: [
         headline("totalrequests", HEADLINE_REQUESTS, "perPeriod"),
         headline("normalizedruconsumption", HEADLINE_REQUEST_UNITS, "percent"),
-        headline("serversidelatency", HEADLINE_LATENCY, "milliseconds"),
+        /*
+         * The server's latency of its direct-mode requests - the API for
+         * NoSQL's and Table's SDKs connect directly by default - else of its
+         * gateway-mode ones, the only way MongoDB, Cassandra and Gremlin
+         * clients connect. ServerSideLatency, which Microsoft deprecates
+         * for these two, is no longer read for it.
+         */
+        headline("serversidelatencydirect", HEADLINE_LATENCY, "milliseconds", {
+          fallbackKeys: ["serversidelatencygateway"],
+        }),
       ],
     },
     {
@@ -2016,6 +2148,16 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           HEADLINE_CPU,
           "ratio",
         ),
+        /*
+         * How full its memory and its fullest disk are, from the Ops Agent
+         * on it: a VM without the agent says so in their tiles.
+         */
+        headline(GCP_OPS_AGENT_MEMORY_KEY, HEADLINE_MEMORY, "percent", {
+          needs: NEEDS_OPS_AGENT,
+        }),
+        headline(GCP_OPS_AGENT_DISK_KEY, HEADLINE_STORAGE_USED, "percent", {
+          needs: NEEDS_OPS_AGENT,
+        }),
         headline(
           "compute.googleapis.com/instance/network/received_bytes_count",
           HEADLINE_NETWORK_IN,
@@ -2140,10 +2282,15 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       provider: GCP,
       types: ["pubsub_topic"],
       readings: [
+        /*
+         * The messages published, each minute: the count of the topic's
+         * message sizes, as Google says to count them now that it
+         * deprecates topic/send_message_operation_count.
+         */
         headline(
-          "pubsub.googleapis.com/topic/send_message_operation_count",
+          "pubsub.googleapis.com/topic/message_sizes_count",
           HEADLINE_MESSAGES_IN,
-          "perSecond",
+          "perPeriod",
         ),
       ],
     },
@@ -2288,7 +2435,9 @@ export function getCloudReadingKeysForType(
   }
 
   for (const reading of getCloudHeadlineReadings(provider, type)) {
-    keys.add(reading.key);
+    for (const key of getCloudHeadlineReadingKeys(reading)) {
+      keys.add(key);
+    }
   }
 
   return keys;

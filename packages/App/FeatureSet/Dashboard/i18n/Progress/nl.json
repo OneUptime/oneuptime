@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57477,
-    "untranslated": 8109
+    "keys": 57551,
+    "untranslated": 8105
   },
   "sameAsEnglish": [
     " is",
@@ -119,6 +119,7 @@
     "Control plane",
     "Controller",
     "Controllers",
+    "Crashes",
     "Criteria",
     "CrowdStrike",
     "Cursor",

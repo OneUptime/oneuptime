@@ -77,15 +77,15 @@ OneUptime trova l'applicazione tramite `service.name`, senza distinguere maiusco
 
 | Dove | Cosa mostra |
 | --- | --- |
-| **Panoramica** | I riquadri **Caricamenti di pagina**, **Tempo di caricamento della pagina (p95)**, **Eventi**, **Tasso di errore**, **Durata degli eventi (p95)**, **Eccezioni**, **Client** e **Sessioni registrate**, e grafici di andamento sull'intervallo di tempo che scegli. |
-| **Core Web Vitals** | Una scheda nella panoramica con LCP, INP, CLS, FCP e TTFB, ciascuno valutato secondo le soglie di Google, e l'INP di ogni route di un'app a pagina singola. Vedi [Core Web Vitals](/docs/rum/web-vitals) e [App a pagina singola](/docs/rum/web-vitals#app-a-pagina-singola). |
+| **Panoramica** | Per un'app web, i riquadri **Caricamenti di pagina**, **Tempo di caricamento della pagina (p95)**, **Eventi**, **Tasso di errore**, **Durata degli eventi (p95)**, **Eccezioni**, **Client** e **Sessioni registrate**; per un'app mobile, i riquadri **Sessioni**, **Sessioni senza crash**, **Crash**, **ANR**, **Avvii dell'app**, **Avvio a freddo (p95)**, **Frame bloccati** e **Tasso di errore**; e grafici di andamento sull'intervallo di tempo che scegli. |
+| **Core Web Vitals** | Una scheda nella panoramica di un'app web con LCP, INP, CLS, FCP e TTFB, ciascuno valutato secondo le soglie di Google, e l'INP di ogni route di un'app a pagina singola. Vedi [Core Web Vitals](/docs/rum/web-vitals) e [App a pagina singola](/docs/rum/web-vitals#app-a-pagina-singola). |
 | **Metriche**, **Log**, **Tracce** | Gli explorer della telemetria, limitati a questa applicazione. |
 | **Client** | Le piattaforme browser e i modelli di dispositivo su cui l'applicazione è stata usata: un breve elenco per piattaforma, mai una riga per utente. |
 | **Analisi del prodotto** | Utenti attivi, nuovi, di ritorno e inattivi e sessioni per dispositivo, browser, paese e pagina, contati dalle sessioni registrate, e gli eventi che la tua app invia, come andamenti, funnel e fidelizzazione: vedi [Analisi del prodotto](/docs/rum/product-analytics). |
 | **Riproduzione delle sessioni** | Registrazioni di sessioni reali, accanto ai loro errori, tracce e log: vedi [Riproduzione delle sessioni](/docs/telemetry/session-replay). |
-| **Raccomandazioni** | Monitor pronti all'uso per l'applicazione: Core Web Vitals scadenti, richieste fallite, eccezioni del browser e, appena registra, budget della Session Replay. |
+| **Raccomandazioni** | Monitor pronti all'uso adatti all'applicazione: Core Web Vitals scadenti ed eccezioni del browser per un'app web; crash, ANR, avvii a freddo lenti, frame bloccati e un'app che smette di inviare dati per un'app mobile; richieste fallite per entrambe; e, appena registra, budget della Session Replay. |
 
-I conteggi derivano dagli span che la tua strumentazione invia. **Caricamenti di pagina** conta lo span `documentLoad` che la strumentazione di caricamento pagina registra a ogni caricamento completo, quindi un cambio di route dentro un'app a pagina singola non è un caricamento di pagina.
+I conteggi derivano dagli span che la tua strumentazione invia. **Caricamenti di pagina** conta lo span `documentLoad` che la strumentazione di caricamento pagina registra a ogni caricamento completo, quindi un cambio di route dentro un'app a pagina singola non è un caricamento di pagina. I riquadri di un'app mobile contano ciò che [OpenTelemetry Android](/docs/rum/android-setup) invia da solo: le sue sessioni, i crash, gli ANR, gli avvii dell'app e i frame lenti e bloccati.
 
 Un'applicazione mostra **Riceve dati** finché arriva telemetria e **Nessun traffico recente** dopo 15 minuti senza, il che è normale mentre nessuno usa l'app. Un'applicazione aggiunta a mano mostra **In attesa di dati** finché non arrivano i suoi primi dati. Il tempo in cui OneUptime stesso era fermo o stava smaltendo la sua coda di acquisizione non conta in quei 15 minuti.
 

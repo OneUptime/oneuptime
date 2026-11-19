@@ -49,23 +49,26 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 | --- | --- | --- |
 | **Hendelser** | **Hendelse opprettet**, **Hendelsestilstand endret**, **Påminnelse om hendelse**, **SLA for hendelse brutt**, **Hendelsesepisode opprettet**, **Tilstand for hendelsesepisode endret**, **Hendelse lagt til i hendelsesepisode** | **Hendelsesnotat publisert**, **Lagt til som hendelseseier**, **Tildelt en hendelse**, **Notat for hendelsesepisode publisert**, **Lagt til som hendelsesepisode-eier** |
 | **Varsler** | **Varsel opprettet**, **Varseltilstand endret**, **Påminnelse om varsel**, **Varselepisode opprettet**, **Tilstand for varselepisode endret**, **Varsel lagt til i varselepisode** | **Varselnotat publisert**, **Lagt til som varseleier**, **Notat for varselepisode publisert**, **Lagt til som varselepisode-eier** |
-| **Overvåking** | **Sondestatus endret for monitoren din**, **Monitor har ingen aktive sonder**, **SLO-status endret**, **Lagt til som SLO-eier**, **Unntak tildelt meg**, **Sondestatus endret**, **Lagt til som sonde-eier** | **Monitor opprettet**, **Monitorstatus endret**, **Lagt til som monitoreier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
+| **Overvåking** | **Sondestatus endret for monitoren din**, **Monitor har ingen aktive sonder**, **SLO-status endret**, **Lagt til som SLO-eier**, **Unntak tildelt meg**, **Sondestatus endret**, **Lagt til som sonde-eier**, **Lagt til som tabell-eier**, **Lagt til som pipeline-eier**, **Lagt til som eier av en tjeneste eller infrastruktur**, **Lagt til som dashbord-eier**, **Lagt til som arbeidsflyt-eier**, **Lagt til som runbook-eier** | **Monitor opprettet**, **Monitorstatus endret**, **Lagt til som monitoreier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
 | **Statussider** | **Mitt offentlige notat godkjent eller avvist**, og også via push: **Offentlig notat venter på min godkjenning** | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |
 | **Planlagt vedlikehold** | **Påminnelse om vedlikehold** | **Vedlikeholdshendelse opprettet**, **Vedlikeholdstilstand endret**, **Vedlikeholdsnotat publisert**, **Lagt til som vedlikeholdseier** |
-| **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vaktpolicy**, **Fjernet fra vaktpolicy**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
-| **Sikkerhet** | Også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg**, **En hunt fant sikkerhetshendelser** | Ingen |
+| **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vaktpolicy**, **Fjernet fra vaktpolicy**, **Tapt anrop**, **Lagt til som vaktpolicy-eier**, **Lagt til som vakttidsplan-eier**, **Lagt til som eier av policy for innkommende anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
+| **Sikkerhet** | **Lagt til som datalager-eier**, og også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg**, **En hunt fant sikkerhetshendelser** | Ingen |
 
 > [!IMPORTANT]
 > **Monitorstatus endret** starter slått av. Vil du vite når en overvåking du eier går ned eller kommer opp igjen, slår du den på på fanen **Overvåking**.
 
+**Lagt til som eier av en tjeneste eller infrastruktur**, på kortet **Tjenester og infrastruktur**, er én bryter for hver tjeneste, RUM-applikasjon, database, kø, vert, klynge, skyressurs og annen infrastruktur du blir eier av. Meldingen sier hvilken det er.
+
 ## Vaktene dine
 
-Fanen **Vakt** handler om deg, ikke om det du eier:
+Fanen **Vakt** handler om deg og om vaktpostene du eier:
 
 - **Du går på vakt**, **Du er neste på vakt** og **Du går av vakt** følger turene dine i vaktplanene du er med i.
 - **Lagt til i vaktpolicy** og **Fjernet fra vaktpolicy** forteller deg når en vaktpolicy begynner eller slutter å nevne deg.
 - **Før vakten min starter** sender påminnelser på tidspunktene du velger under **Brukerinnstillinger → Profil og kalender → Kalenderfeed**, og **Min kommende vakt blir tildelt noen andre** forteller deg når noen andre dekker en vakt du er blitt minnet på. Se [Kalenderfeeder](/docs/on-call/calendar-feeds#påminnelser-og-meldinger-om-ny-tildeling).
 - **Tapt anrop**, på kortet **Policyer for innkommende anrop**, forteller eierne av en policy for innkommende anrop at en som ringte, ikke nådde noen. Se [Policy for innkommende anrop](/docs/on-call/incoming-call-policy#tapte-anrop).
+- **Lagt til som vaktpolicy-eier**, **Lagt til som vakttidsplan-eier** og **Lagt til som eier av policy for innkommende anrop** forteller deg når du blir eier av en av dem, gjennom en eierregel eller av en person på siden Eiere.
 
 ## Sikkerhetssaker
 

@@ -38,11 +38,11 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   countOpenStackRows,
   fetchOpenStackStoragePoolForecast,
@@ -68,10 +68,16 @@ const VOLUMES_UNKNOWN: string = translationKey(
   "Nothing collected says which pool a volume is on, so this page can't say which volumes are here or whose they are. A probe reads it with a credential Cinder treats as an admin, and openstack volume list --long shows it.",
 );
 
-const StoragePoolOverview: FunctionComponent<{
+interface StoragePoolOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const StoragePoolOverview: FunctionComponent<StoragePoolOverviewProps> = (
+  props: StoragePoolOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -83,12 +89,6 @@ const StoragePoolOverview: FunctionComponent<{
         pool: row,
       });
     }, [part.externalId, part.refreshToken]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const percent: number | null = percentOf(
@@ -132,12 +132,9 @@ const StoragePoolOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-storage-pool-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.StoragePool}/${part.externalId}`,
-          label: translationKey("This storage pool"),
-        }}
-        description="What about this pool is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -272,11 +269,23 @@ const OpenStackCloudStoragePoolDetail: FunctionComponent<
       : Promise.resolve(0);
   }, [row?.name, row?.regionName, part.refreshToken]);
 
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.StoragePool,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
+
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <StoragePoolOverview part={part} row={row} />;
+        return (
+          <StoragePoolOverview part={part} row={row} attention={attention} />
+        );
       }}
       tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const attributes: Record<string, string> = { name: tabRow.name || "" };

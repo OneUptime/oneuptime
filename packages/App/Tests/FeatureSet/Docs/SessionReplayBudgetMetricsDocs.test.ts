@@ -28,6 +28,7 @@ import {
   MAX_SESSION_REPLAY_CHUNK_BYTES,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
+import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "Common/Types/Rum/SessionReplaySignalMetric";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import { formatBytesForCopy } from "Common/Utils/SessionReplay/SessionReplayHealth";
@@ -500,9 +501,15 @@ describe("Session replay storage budget alerts docs", (): void => {
      * a customer copies it into a metric query as written. The reserved
      * prefix itself may be named - the page says it is refused at ingest.
      */
-    it("documents no oneuptime.rum.session.replay name the sweep does not post, on either page", (): void => {
+    it("documents no oneuptime.rum.session.replay name OneUptime does not post, on either page", (): void => {
       const allowed: Set<string> = new Set<string>([
         ...ALL_METRICS,
+        /*
+         * The other series under the prefix: the sessions that hit each of
+         * an application's own signals, which the replay ingest posts
+         * (issue #6518) and its Frustration signals section documents.
+         */
+        SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
         stripTrailingDots(SESSION_REPLAY_METRIC_NAME_PREFIX),
       ]);
 

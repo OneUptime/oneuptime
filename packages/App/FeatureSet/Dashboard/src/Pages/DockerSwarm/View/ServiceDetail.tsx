@@ -19,6 +19,8 @@ import useDockerSwarmPart, {
 import { getDockerSwarmServiceRows } from "../Utils/DockerSwarmHealth";
 import { countDockerSwarmTasks } from "../Utils/DockerSwarmPartFacts";
 import { externalIdFromRouteParam } from "../Utils/DockerSwarmResourceUtils";
+import { getDockerSwarmPartAttention } from "../Utils/DockerSwarmPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 
 /*
  * A Docker Swarm service's page: its hero (its replicas by the swarm's
@@ -58,6 +60,18 @@ const DockerSwarmClusterServiceDetail: FunctionComponent<
 
   const clusterName: string = part.cluster.name;
   const routes: DockerSwarmPartRoutes = getDockerSwarmPartRoutes(modelId);
+  /*
+   * What needs attention on the service and its tasks, read once: the
+   * Overview's card lists it, the hero's status opens it.
+   */
+  const attention: ResourcePartAttention = getDockerSwarmPartAttention({
+    kind: "Service",
+    externalId: externalId,
+    row: part.row,
+    rows: part.rows,
+    routeFor: routes.getPartRoute,
+    now: part.readAt,
+  });
 
   const tabs: Array<Tab> = [
     {
@@ -78,6 +92,7 @@ const DockerSwarmClusterServiceDetail: FunctionComponent<
           externalId={externalId}
           row={part.row}
           rows={part.rows}
+          attention={attention}
           routes={routes}
           now={part.readAt}
         />
@@ -105,6 +120,7 @@ const DockerSwarmClusterServiceDetail: FunctionComponent<
             : undefined
         }
         now={part.readAt}
+        attention={attention}
       />
       <ResourcePartTabs label="Service" tabs={tabs} />
     </div>

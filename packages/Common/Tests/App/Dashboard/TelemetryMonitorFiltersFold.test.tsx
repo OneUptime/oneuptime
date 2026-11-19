@@ -524,11 +524,47 @@ describe("Trace monitor filters", () => {
       "Filter by Service",
       "Filter by Infrastructure Entity",
       "Filter by Attributes",
+      // A duration floor, such as a slow cold start's (#9589).
+      "Takes at least (ms)",
     ]);
     expect(setChips(moreFields())).toEqual([]);
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
+    expect(fieldLabel("Takes at least (ms)")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  test("a duration floor typed under More fields reaches the step, and shows folded as a chip", () => {
+    const recorder: Recorder = renderForm({ spanName: "AppStart" });
+
+    fireEvent.click(moreFields());
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: "Takes at least (ms)" }),
+      { target: { value: "5000" } },
+    );
+
+    expect(recorder.latest).toMatchObject({ spanName: "AppStart" });
+    expect(
+      MonitorStepTraceMonitorUtil.getMinimumDurationInMs(recorder.latest!),
+    ).toBe(5000);
+
+    fireEvent.click(moreFields());
+
+    expect(setChips(moreFields())).toEqual(["Takes at least (ms): 5000"]);
+  });
+
+  test("a saved duration floor scopes the spans the preview reads", () => {
+    renderForm({ spanName: "AppStart", minimumDurationInMs: 5000 });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual(["Takes at least (ms): 5000"]);
+
+    openMatching("Matching spans");
+
+    expect(mockPreviews.traces[mockPreviews.traces.length - 1]).toMatchObject({
+      spanName: "AppStart",
+      minimumDurationInMs: 5000,
+    });
   });
 
   test("an edited monitor keeps More fields folded, its filters in force shown as chips", () => {

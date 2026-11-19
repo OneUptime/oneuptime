@@ -31,6 +31,8 @@ import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetri
 import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
 import ProxmoxStorageOverview from "../../../Components/Proxmox/Part/ProxmoxStorageOverview";
 import ProxmoxPartReadError from "../../../Components/Proxmox/Part/ProxmoxPartReadError";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getProxmoxPartAttention } from "../Utils/ProxmoxPartAttention";
 import {
   ProxmoxPartRoutes,
   getProxmoxPartRoutes,
@@ -325,6 +327,13 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
   };
 
   const routes: ProxmoxPartRoutes = getProxmoxPartRoutes(modelId);
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getProxmoxPartAttention({
+    kind: "Storage",
+    externalId: externalId,
+    row: row,
+    routeFor: routes.getPartRoute,
+  });
 
   /*
    * WI-29 growth forecast — only shown when the volume is verifiably
@@ -353,6 +362,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
           clusterName={clusterName}
           externalId={externalId}
           row={row}
+          attention={attention}
           routes={routes}
           daysToFull={forecastDays}
           forecastWindowHours={PROJECTION_WINDOW_HOURS}
@@ -384,6 +394,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
         clusterName={clusterName}
         clusterRoute={routes.clusterRoute}
         getPartRoute={routes.getPartRoute}
+        attention={attention}
       />
       <Tabs label="Storage" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>

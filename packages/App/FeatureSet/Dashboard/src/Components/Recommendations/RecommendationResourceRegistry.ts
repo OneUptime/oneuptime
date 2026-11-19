@@ -82,6 +82,10 @@ import {
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  normalizeSessionReplayFrustrationSettings,
+  SessionReplayCustomSignal,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
@@ -95,6 +99,7 @@ import {
   fetchOpenStackInventorySummary,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { readRumClientKind } from "Common/Types/Rum/RumClientKind";
 
 /*
  * The App-side half of the recommendation registry.
@@ -1002,20 +1007,26 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     displayNameFieldName: "name",
   },
   /*
-   * A RUM application is offered the same recommendations as every other
-   * one, except its session replay storage budget alerts: the budget sweep
-   * only writes the series they watch for an application that has session
-   * replay on and has recorded at least one replay, and the monthly series
-   * only while it has a monthly budget (see `getRumAlertTemplates`). These
-   * three columns are that, and each is readable by exactly the roles that
-   * can read `name` — a context column a viewer cannot read would fail
-   * `ModelAPI.getItem` for them, and the page would show an error instead
-   * of any recommendation.
+   * A RUM application is offered the recommendations for its kind of app
+   * (`clientType`, #9589): a browser app the Web Vitals, a mobile app its
+   * crash, ANR, cold start, frozen frame and stopped-reporting monitors. Its
+   * session replay storage budget alerts wait for their series: the budget
+   * sweep only writes them for an application that has session replay on and
+   * has recorded at least one replay, and the monthly series only while it
+   * has a monthly budget (see `getRumAlertTemplates`). These four columns are
+   * that, and each is readable by exactly the roles that can read `name` — a
+   * context column a viewer cannot read would fail `ModelAPI.getItem` for
+   * them, and the page would show an error instead of any recommendation.
    *
    * The project's own switch (`Project.isSessionReplayAllowed`), which the
    * sweep also requires, is not read: context columns are this row's own. A
    * project that turns replay off simply stops the series, which resolves
    * any open budget alert.
+   *
+   * Its own signals that are switched on (`sessionReplayFrustrationSignals`,
+   * readable by the same roles) are each offered an alert too, once it
+   * records (issue #6518). A signal saved before signals had ids has none
+   * until the page saves the settings again, and is not offered until then.
    */
   {
     resourceType: MonitorRecommendationResourceType.RumApplication,
@@ -1023,9 +1034,11 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "_id",
     displayNameFieldName: "name",
     contextFieldNames: [
+      "clientType",
       "isSessionReplayEnabled",
       "sessionReplayLastChunkReceivedAt",
       "sessionReplayMonthlyBudgetInGB",
+      "sessionReplayFrustrationSignals",
     ],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       const record: Record<string, unknown> = model as unknown as Record<
@@ -1038,6 +1051,8 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         record["sessionReplayLastChunkReceivedAt"];
 
       return {
+        // Null until ingest has said; the browser set is offered meanwhile.
+        rumClientKind: readRumClientKind(record["clientType"]),
         // Anything but a boolean is "not known", which withholds.
         sessionReplayEnabled:
           typeof isSessionReplayEnabled === "boolean"
@@ -1055,6 +1070,21 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         sessionReplayMonthlyBudgetInGB: readSessionReplayMonthlyBudgetInGB(
           record["sessionReplayMonthlyBudgetInGB"],
         ),
+        customSignals: normalizeSessionReplayFrustrationSettings(
+          record["sessionReplayFrustrationSignals"],
+        )
+          .customSignals.filter(
+            (signal: SessionReplayCustomSignal): boolean => {
+              return signal.isEnabled && signal.id.length > 0;
+            },
+          )
+          .map(
+            (
+              signal: SessionReplayCustomSignal,
+            ): { id: string; name: string } => {
+              return { id: signal.id, name: signal.name };
+            },
+          ),
       };
     },
     /*
@@ -1098,6 +1128,19 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       if (isEnabled && !hasRecorded && hasBudget) {
         return translateTemplate(
           "The session replay budget alerts appear here once this application records its first replay.",
+        );
+      }
+
+      /*
+       * Its own signals are counted from recorded sessions only, so their
+       * alerts wait for the same: replay on, and a first replay recorded.
+       */
+      if (
+        (context.customSignals ?? []).length > 0 &&
+        !(isEnabled && hasRecorded)
+      ) {
+        return translateTemplate(
+          "Alerts on this application's own signals appear here once session replay is on for it and it records its first replay.",
         );
       }
 

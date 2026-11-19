@@ -314,6 +314,115 @@ describe("a pod's hero", () => {
     expect(chips).toHaveTextContent("QoS Burstable");
   });
 
+  /*
+   * "CrashLoopBackOff" beside the pod's name said nothing about which
+   * container or how its last run ended: that was the Overview's card
+   * (#9594). Pressed, the status opens it.
+   */
+  test("its status opens why: the pod as This pod, with its container's word", () => {
+    render(
+      <KubernetesPartHero
+        kind="Pod"
+        name="checkout-7d9f8b6c5-b2"
+        read={read}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    const status: HTMLElement = screen.getByTestId(
+      "kubernetes-pod-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("aria-haspopup", "dialog");
+
+    fireEvent.click(status);
+
+    const dialog: HTMLElement = screen.getByTestId(
+      "kubernetes-pod-hero-status-dialog",
+    );
+    // Under the card's own title and words.
+    expect(screen.getByText("Needs attention")).toBeInTheDocument();
+    expect(
+      screen.getByText("What about this pod is broken or needs a look."),
+    ).toBeInTheDocument();
+    const row: HTMLElement = within(dialog).getByTestId(
+      "kubernetes-pod-hero-status-dialog-item",
+    );
+    expect(row).toHaveAttribute("data-current", "true");
+    expect(
+      within(row).getByTestId("kubernetes-pod-hero-status-dialog-name"),
+    ).toHaveTextContent("This pod");
+    expect(
+      within(row)
+        .getAllByTestId("kubernetes-pod-hero-status-dialog-reason")
+        .map((chip: HTMLElement): string => {
+          return chip.textContent || "";
+        }),
+    ).toEqual(["CrashLoopBackOff"]);
+    // The page the reader is on: no View.
+    expect(
+      within(row).queryByTestId("kubernetes-pod-hero-status-dialog-view"),
+    ).toBeNull();
+  });
+
+  test("a workload's status opens its pod that crash-loops, a step from that pod's page", () => {
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        read={DEPLOYMENT_READ}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("kubernetes-deployment-hero-status"));
+
+    const rows: Array<HTMLElement> = within(
+      screen.getByTestId("kubernetes-deployment-hero-status-dialog"),
+    ).getAllByTestId("kubernetes-deployment-hero-status-dialog-item");
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Pod:shop/checkout-7d9f8b6c5-b2", "Deployment:shop/checkout"]);
+    expect(
+      within(rows[0]!).getByTestId(
+        "kubernetes-deployment-hero-status-dialog-view",
+      ),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining("/pods/checkout-7d9f8b6c5-b2?namespace=shop"),
+    );
+    expect(
+      within(rows[1]!).getByTestId(
+        "kubernetes-deployment-hero-status-dialog-name",
+      ),
+    ).toHaveTextContent("This Deployment");
+  });
+
+  test("a status that is fine opens nothing", () => {
+    render(
+      <KubernetesPartHero
+        kind="Pod"
+        name="checkout-7d9f8b6c5-a1"
+        read={{
+          part: HEALTHY_POD,
+          pods: [],
+          jobs: [],
+          isPodsTruncated: false,
+        }}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(screen.getByTestId("kubernetes-pod-hero-status").tagName).toBe(
+      "SPAN",
+    );
+  });
+
   test("in German the product's words are German, Kubernetes' own stay as written", async () => {
     await setLanguage("de");
 

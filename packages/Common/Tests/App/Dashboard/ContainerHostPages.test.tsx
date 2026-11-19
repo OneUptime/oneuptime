@@ -654,6 +654,42 @@ describe.each(RUNTIMES)(
       expect(screen.getByRole("tabpanel")).not.toHaveClass("ml-1");
     });
 
+    /*
+     * "Restart loop" beside the name said nothing of how often: that was
+     * Needs attention, under the tabs (#9594). Pressed, it opens it.
+     */
+    test("its Restart loop opens why: This container's restarts, and no View", async () => {
+      mockContainers = TROUBLED_HOST;
+      await openContainer("worker");
+
+      const status: HTMLElement = screen.getByTestId(
+        "container-host-container-hero-status",
+      );
+      expect(status.tagName).toBe("BUTTON");
+      expect(status).toHaveAttribute("data-tone", "danger");
+      fireEvent.click(status);
+
+      const row: HTMLElement = screen.getByTestId(
+        "container-host-container-hero-status-dialog-item",
+      );
+      expect(row).toHaveAttribute("data-key", "container:worker");
+      expect(row).toHaveAttribute("data-current", "true");
+      expect(
+        within(row).getByTestId(
+          "container-host-container-hero-status-dialog-name",
+        ),
+      ).toHaveTextContent("This container");
+      expect(row).toHaveTextContent(/6 restarts in 15\sminutes/);
+      expect(
+        within(row).queryByTestId(
+          "container-host-container-hero-status-dialog-view",
+        ),
+      ).toBeNull();
+      expect(screen.getByTestId("modal-description")).toHaveTextContent(
+        "What about this container is broken or needs a look.",
+      );
+    });
+
     test("a running container's details: image, id, Compose project and service, and its host", async () => {
       mockContainers = [
         {

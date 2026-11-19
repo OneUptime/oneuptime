@@ -228,6 +228,56 @@ describe("A Traces rule's preview", () => {
     expect(sql).toContain("POST /api/checkout");
     expect(sql).toContain("timeout_overflow_mode = 'throw'");
   });
+
+  /*
+   * A Slow Cold Start recommendation (#9589) counts the AppStart spans of
+   * 5 seconds or more: the preview counts what the check will, so its
+   * chart says how often that rule would have alerted.
+   */
+  test("counts only the spans that took at least the monitor's duration floor", async () => {
+    const captured: Array<Statement> = captureStatements(SpanService as never, [
+      { windowStart: epochSeconds("2026-10-27T11:52:31.000Z"), windowCount: 2 },
+    ]);
+
+    // As the route reads it: the step's JSON, as the form sends it.
+    await TelemetryRulePreviewService.previewSpans({
+      projectId: PROJECT_ID,
+      traceMonitor: MonitorStepTraceMonitorUtil.fromJSON(
+        MonitorStepTraceMonitorUtil.toJSON({
+          ...MonitorStepTraceMonitorUtil.getDefault(),
+          spanName: "AppStart",
+          attributes: { "start.type": "cold" },
+          minimumDurationInMs: 5000,
+          lastXSecondsOfSpans: 900,
+        }),
+      ),
+      scope: PROJECT_WIDE,
+      now: NOW,
+    });
+
+    const sql: string = inline(captured[0]!);
+    expect(sql).toContain("AppStart");
+    expect(sql).toMatch(/`durationUnixNano` >= 5000000000\b/);
+  });
+
+  test("a monitor with no duration floor counts spans of any duration", async () => {
+    const captured: Array<Statement> = captureStatements(SpanService as never, [
+      { windowStart: epochSeconds("2026-10-27T12:06:31.000Z"), windowCount: 1 },
+    ]);
+
+    await TelemetryRulePreviewService.previewSpans({
+      projectId: PROJECT_ID,
+      traceMonitor: {
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        spanName: "AppStart",
+        lastXSecondsOfSpans: 60,
+      },
+      scope: PROJECT_WIDE,
+      now: NOW,
+    });
+
+    expect(inline(captured[0]!)).not.toContain("durationUnixNano");
+  });
 });
 
 describe("An Exceptions rule's preview", () => {
