@@ -434,6 +434,23 @@
     "kind": "action"
   },
   {
+    "title": "Voicemail on On-Call Calls",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Channels"
+    ],
+    "keywords": [
+      "voicemail",
+      "detect voicemail",
+      "answering machine",
+      "answering machine detection",
+      "missed call"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#voicemail-on-on-call-calls",
+    "kind": "action"
+  },
+  {
     "title": "Custom SMTP Configs",
     "where": [
       "Project Settings",
@@ -1221,7 +1238,11 @@
       "openid connect",
       "oauth",
       "require sso for login",
-      "force sso for login"
+      "force sso for login",
+      "sso domains",
+      "email domains",
+      "test single sign on",
+      "sso link"
     ],
     "path": "/dashboard/:projectId/settings/sso",
     "kind": "page"
@@ -1247,7 +1268,7 @@
     "kind": "setting"
   },
   {
-    "title": "Test Single Sign On (SSO)",
+    "title": "SSO Sign-in Link",
     "where": [
       "Project Settings",
       "Security",
@@ -1268,6 +1289,16 @@
   },
   {
     "title": "Require SSO to Sign In",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SSO"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "setting"
+  },
+  {
+    "title": "Manage Sign-In with SSO",
     "where": [
       "Project Settings",
       "Security",
@@ -5367,6 +5398,22 @@
     "kind": "page"
   },
   {
+    "title": "Managed Devices",
+    "where": [
+      "Inventory"
+    ],
+    "keywords": [
+      "esper",
+      "mdm",
+      "device management",
+      "android devices",
+      "kiosks",
+      "connect esper"
+    ],
+    "path": "/dashboard/:projectId/inventory/managed-devices",
+    "kind": "page"
+  },
+  {
     "title": "Topology Map",
     "where": [
       "Inventory"
@@ -5385,9 +5432,10 @@
     ],
     "keywords": [
       "stale",
-      "no recent telemetry"
+      "no recent telemetry",
+      "offline devices"
     ],
-    "path": "/dashboard/:projectId/inventory/items?source=discovered&stale=true",
+    "path": "/dashboard/:projectId/inventory/items?stale=true",
     "kind": "page"
   },
   {
