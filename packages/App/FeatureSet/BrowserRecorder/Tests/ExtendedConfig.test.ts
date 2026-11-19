@@ -8,6 +8,7 @@ import {
   getDefaultSessionReplayFrustrationSettings,
   toSessionReplayFrustrationSignalsConfig,
 } from "Common/Types/Rum/SessionReplayFrustrationSignals";
+import { SESSION_REPLAY_NO_PAGE_RECORDED } from "Common/Types/Rum/SessionReplayPageRules";
 
 /*
  * The artifact-side normaliser for config fields the loader passes through
@@ -40,6 +41,10 @@ const DEFAULTS: ExtendedReplayConfig = {
   captureWebVitals: true,
   isTargeted: false,
   frustrationSignals: BUILT_IN_FRUSTRATION,
+  // Every page, as every recorder before page rules recorded (#7502).
+  pageRules: { recordOnly: [], neverRecord: [] },
+  // No property readable under Mask all text: every value masked (#7501).
+  readableEventPropertyKeys: [],
 };
 
 function configWithRaw(raw: unknown): LoaderConfig {
@@ -69,6 +74,85 @@ describe("readExtendedConfig", (): void => {
       captureWebVitals: false,
       isTargeted: true,
       frustrationSignals: BUILT_IN_FRUSTRATION,
+      pageRules: { recordOnly: [], neverRecord: [] },
+      readableEventPropertyKeys: [],
+    });
+  });
+
+  /*
+   * Page rules (issue #7502): absent is every page, as before; there but
+   * unreadable is no page, because a privacy setting this build cannot read
+   * must never record more than it would have.
+   */
+  describe("pageRules", (): void => {
+    it("reads both lists, trimmed and each pattern once", (): void => {
+      expect(
+        readExtendedConfig(
+          configWithRaw({
+            pageRules: {
+              recordOnly: ["/checkout*", " /checkout* ", "/cart"],
+              neverRecord: ["/checkout/card*"],
+            },
+          }),
+        ).pageRules,
+      ).toEqual({
+        recordOnly: ["/checkout*", "/cart"],
+        neverRecord: ["/checkout/card*"],
+      });
+    });
+
+    it("records every page when the field is absent or empty", (): void => {
+      for (const absent of [
+        {},
+        { pageRules: null },
+        { pageRules: { recordOnly: [], neverRecord: [] } },
+      ]) {
+        expect(readExtendedConfig(configWithRaw(absent)).pageRules).toEqual({
+          recordOnly: [],
+          neverRecord: [],
+        });
+      }
+    });
+
+    it("records no page when the field is there but cannot be read (fails closed)", (): void => {
+      for (const hostile of [
+        "never",
+        7,
+        true,
+        ["/admin"],
+        { neverRecord: "/admin" },
+        { recordOnly: ["/checkout", 3] },
+      ]) {
+        expect(
+          readExtendedConfig(configWithRaw({ pageRules: hostile })).pageRules,
+        ).toEqual(SESSION_REPLAY_NO_PAGE_RECORDED);
+      }
+    });
+  });
+
+  /*
+   * Readable event properties (issue #7501): none unless the server lists
+   * some, read as the traits product analytics keeps are.
+   */
+  describe("readableEventPropertyKeys", (): void => {
+    it("reads the listed keys, trimmed and each once", (): void => {
+      expect(
+        readExtendedConfig(
+          configWithRaw({
+            readableEventPropertyKeys: [" step ", "step", "setup", "", 4],
+          }),
+        ).readableEventPropertyKeys,
+      ).toEqual(["step", "setup"]);
+    });
+
+    it("is none when absent or not a list", (): void => {
+      for (const hostile of [undefined, null, "step", 1, { step: true }]) {
+        expect(
+          readExtendedConfig(
+            configWithRaw({ readableEventPropertyKeys: hostile }),
+          ).readableEventPropertyKeys,
+        ).toEqual([]);
+      }
     });
   });
 

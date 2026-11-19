@@ -26,7 +26,7 @@ Het formulier vraagt ook **Activeren bij elk nieuw incident en elke nieuwe waars
 
 Wilt u liever stap voor stap begeleid worden, van uw telefoon tot een testoproep, klik dan op **Begeleide installatie**: in de lege lijst **Bereikbaarheidsbeleid** of onder **Hoe het werkt**. Zie [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
 
-De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
+De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Eerst opgeroepen**, **Beschrijving**, **Labels** en **Eigenaren**. **Eerst opgeroepen** geeft aan wie de eerste escalatieregel van het beleid oproept: de bereikbaarheidsschema's ervan, elk met wie er nu dienst heeft, de teams ervan en de personen die de regel noemt, of **Geen escalatieregels** of **Geen ontvangers** als het beleid niemand oproept. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
 
 ## Wat een beleid uitvoert
 

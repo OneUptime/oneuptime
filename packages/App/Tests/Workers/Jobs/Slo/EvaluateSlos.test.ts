@@ -27,7 +27,13 @@ import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
-import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
+import {
+  NOTIFICATION_SMS_SENDER,
+  NOTIFICATION_SMS_TURN_OFF,
+  buildNotificationSms,
+} from "Common/Utils/Sms/NotificationSms";
+import { hasWhatsAppTemplate } from "Common/Types/WhatsApp/WhatsAppEventTemplates";
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 
 /*
  * End-to-end regression tests for the SLO evaluation worker.
@@ -2478,7 +2484,7 @@ describe("Slo:EvaluateSlos worker", () => {
       ).toHaveLength(1);
     });
 
-    test("the owners' SMS says the news in the words of every notification SMS, and WhatsApp the news alone", async () => {
+    test("the owners' SMS says the news in the words of every notification SMS", async () => {
       sloService.getDueSlos.mockResolvedValue([
         makeSlo({ sloStatus: SloStatus.AtRisk }),
       ]);
@@ -2491,20 +2497,60 @@ describe("Slo:EvaluateSlos worker", () => {
 
       const sent: {
         smsMessage: { message: string };
-        whatsAppMessage: { body: string };
       } = notificationService.sendUserNotification.mock.calls[0]![0] as {
         smsMessage: { message: string };
-        whatsAppMessage: { body: string };
       };
-      const news: string = sent.whatsAppMessage.body;
+      // "OneUptime: <news> Turn off in User Settings > Notification Settings."
+      const prefix: string = `${NOTIFICATION_SMS_SENDER}: `;
+      const suffix: string = ` ${NOTIFICATION_SMS_TURN_OFF}`;
+
+      expect(sent.smsMessage.message.startsWith(prefix)).toBe(true);
+      expect(sent.smsMessage.message.endsWith(suffix)).toBe(true);
+
+      const news: string = sent.smsMessage.message.slice(
+        prefix.length,
+        sent.smsMessage.message.length - suffix.length,
+      );
       const [said, link] = news.split(" View: ");
 
       expect(said).toContain(
         'SLO Budget Exhausted: "Checkout availability" in Acme. Error budget remaining: ',
       );
       expect(link).toBe("https://oneuptime.com/dashboard/slo/slo-1");
-      // "OneUptime: <news> Turn off in User Settings > Notification Settings."
       expect(sent.smsMessage.message).toBe(buildNotificationSms(news));
+    });
+
+    /*
+     * #9715: WhatsApp delivers only Meta-approved templates, and none is
+     * approved for an SLO's status. The plain-body message the owners were
+     * handed was refused by the notification service - a failed WhatsApp log
+     * each time - and reached nobody. Now none is handed over, so the
+     * channel is skipped, and Notification Settings offers no WhatsApp
+     * switch for the event.
+     */
+    test("the owners are handed no WhatsApp message, which no approved template could carry", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ sloStatus: SloStatus.AtRisk }),
+      ]);
+      stubExhausted();
+      stubOneOwner();
+
+      await runWorkerTick();
+
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
+
+      const sent: Record<string, unknown> = notificationService
+        .sendUserNotification.mock.calls[0]![0] as Record<string, unknown>;
+
+      expect(sent["eventType"]).toBe(
+        NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+      );
+      expect(sent["whatsAppMessage"]).toBeUndefined();
+      expect(
+        hasWhatsAppTemplate(
+          NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+        ),
+      ).toBe(false);
     });
 
     test("staying BudgetExhausted tick after tick notifies nobody", async () => {

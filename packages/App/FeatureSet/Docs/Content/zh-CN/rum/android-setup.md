@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-应用的遥测仍归属于它的 RUM 应用程序，设备也不会成为 **主机** 中的主机：应用不上报主机指标，因此那里没有可显示的内容。设备在 **资产清单** 中的页面会显示它自己的日志、追踪和异常，而 `@resource.host.name:` 可以在 **追踪** 和 **日志** 中找到它们。30 天内没有发送任何数据的设备会从 **资产清单** 中移除。
+应用的遥测仍归属于它的 RUM 应用程序，设备也不会成为 **主机** 中的主机：应用不上报主机指标，因此那里没有可显示的内容。设备在 **资产清单** 中的页面会显示它自己的日志、追踪和异常，而 `@resource.host.name:` 可以在 **追踪** 和 **日志** 中找到它们。30 天内没有发送任何数据的设备会从 **资产清单** 中移除。要查看设备本身，即它的内存、存储和重启，以及其上每个应用的崩溃，请添加 [Android 代理](/docs/telemetry/android-agent) ，并在它的 `device_name` 中使用相同的名称：这样设备也会成为 **主机** 中的一台主机，并且在 **资产清单** 中仍然只是一个条目。
 
 ### 从 MDM 配置设备群
 
@@ -287,6 +287,7 @@ OpenTelemetry Android 会自行设置 `device.model.identifier` ，所以应用�
 
 :::cards
 - [移动端设置](/docs/rum/mobile-setup): iOS、React Native 和其他平台。
+- [Android 代理](/docs/telemetry/android-agent): 监视设备本身：它的健康状况、重启、已安装的应用以及每个应用的崩溃。
 - [异常](/docs/telemetry/exceptions): 分诊你的应用上报的崩溃和 ANR。
 - [追踪浏览器](/docs/telemetry/traces-explorer): 追踪一笔订单从自助终端到厨房的全过程。
 - [管理应用程序](/docs/rum/applications): 名称、标签、所有者和保留期。

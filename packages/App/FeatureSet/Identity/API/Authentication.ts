@@ -88,6 +88,7 @@ import {
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
+import SsoManagedSignIn from "Common/Server/Utils/SsoManagedSignIn";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactorBackupCodeService";
@@ -171,6 +172,7 @@ import PublicMessageRateLimit, {
   PublicMessageSendPermit,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { URL as NodeURL } from "url";
 
 const router: ExpressRouter = Express.getRouter();
@@ -613,13 +615,27 @@ router.post(
  * address's own is { invitation: null }, so asking tells nobody else
  * anything, not even whether the address has an account.
  *
- * Not rate limited: the token is a server-minted random UUID - 122 bits -
- * so there is nothing to guess, and the answer costs a few reads by
- * indexed columns, as /signup's own claim does. Beside /signup, whose page
- * asks it; nothing is cached.
+ * The token is a server-minted random UUID - 122 bits - so there is
+ * nothing to guess, but the route is anonymous and every ask looks its
+ * token up, and a live one reads the user, their memberships and who
+ * invited them. The limiter in front of it, on a bucket of its own, bounds
+ * that work, as it does for a sign-in link's token (IdentityRateLimit's
+ * SIGN_UP_INVITATION_BUCKET). Its refusal - and its 503 while Redis is
+ * unreachable - is an answer the page takes as no invitation, so the page
+ * is the plain sign-up page. Beside /signup, whose page asks it; nothing is
+ * cached.
  */
+const signUpInvitationRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.SignUpInvitation,
+);
+
 router.post(
   SIGN_UP_INVITATION_ROUTE,
+  signUpInvitationRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1315,6 +1331,39 @@ router.post(
           isRoot: true,
         },
       });
+
+      /*
+       * Somebody whose sign-in is managed by single sign-on - everyone but a
+       * master admin, while the server requires SSO (SsoManagedSignIn,
+       * #9688) - is mailed no link: a password they set would sign them in
+       * nowhere, and would lie there until the requirement was turned off.
+       * The answer is the one every address gets.
+       *
+       * A rule that cannot be read mails them nothing either: it is logged,
+       * never told to the caller, whose answer must not differ by account.
+       * A master admin is never asked about the rule, so their way back in
+       * when the identity provider is down stays open.
+       */
+      if (alreadySavedUser?.id) {
+        let isManagedBySso: boolean = true;
+
+        try {
+          isManagedBySso = await SsoManagedSignIn.isManagedBySsoFor({
+            isMasterAdmin: alreadySavedUser.isMasterAdmin === true,
+          });
+        } catch (err) {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        }
+
+        if (isManagedBySso) {
+          logger.debug(
+            "Forgot password asked for an account whose sign-in is managed by SSO; no link sent.",
+            getLogAttributesFromRequest(req as RequestLike),
+          );
+
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+      }
 
       if (alreadySavedUser?.id && !alreadySavedUser.password) {
         /*
@@ -3583,13 +3632,21 @@ const login: LoginFunction = async (options: {
     };
 
     if (alreadySavedUser) {
+      /*
+       * No password yet: an invitation nobody has claimed, or an account a
+       * master admin made without one. Answered as a wrong password is, and
+       * after as long as a password check takes: "You have not signed up so
+       * far" told anyone who typed an address that it had an account (#9745).
+       * Its person signs up through their invitation, or asks Forgot password
+       * for the link to set their first password (#9260).
+       */
       if (!alreadySavedUser.password) {
+        await PasswordHash.spendVerificationTime(submittedPassword);
+
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "You have not signed up so far. Please go to the registration page to sign up.",
-          ),
+          new BadDataException("Email or password does not match."),
         );
       }
 
@@ -4480,6 +4537,16 @@ const login: LoginFunction = async (options: {
         );
       }
     }
+
+    /*
+     * No account has this address. Answered as a wrong password is, and
+     * after as long as checking one takes: answered at once, it told anyone
+     * timing the answer which addresses have accounts (#9745).
+     */
+    if (!alreadySavedUser) {
+      await PasswordHash.spendVerificationTime(submittedPassword);
+    }
+
     return Response.sendErrorResponse(
       req,
       res,

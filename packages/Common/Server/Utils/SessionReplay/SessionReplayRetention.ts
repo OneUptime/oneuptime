@@ -4,7 +4,7 @@ import {
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
 } from "../../../Types/Rum/SessionReplay";
 import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
-import SessionIdentity from "../../../Utils/Rum/SessionIdentity";
+import SessionReplayIngestBounds from "../../../Utils/Rum/SessionReplayIngestBounds";
 
 /*
  * Retention resolution for session replay.
@@ -54,7 +54,7 @@ function pickPositive(value: number | null | undefined): number | null {
  *  - It bounds the blast radius of a mis-set value: a typo of 900 becomes
  *    90, not two and a half years of end-user screen recordings.
  *
- * SessionIdentity.clampRetentionDays rounds UP to the next allowed value,
+ * SessionReplayIngestBounds.clampRetentionDays rounds UP to the next allowed value,
  * because silently shortening a customer's configured retention destroys
  * evidence they expected to have, whereas keeping it a little longer costs
  * only disk.
@@ -80,7 +80,7 @@ export function resolveSessionReplayRetentionInDays(
     }
   }
 
-  return SessionIdentity.clampRetentionDays(
+  return SessionReplayIngestBounds.clampRetentionDays(
     requestedDays,
     SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
     DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
@@ -105,7 +105,7 @@ export function getApplicationSessionReplayRetentionInDays(
       ? applicationRetentionInDays
       : DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS;
 
-  return SessionIdentity.clampRetentionDays(
+  return SessionReplayIngestBounds.clampRetentionDays(
     requestedDays,
     SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
     DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,

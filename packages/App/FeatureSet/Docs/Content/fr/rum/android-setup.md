@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-La télémétrie de l'application reste avec son application RUM, et l'appareil ne devient pas un hôte dans **Hôtes** : une application ne signale aucune métrique d'hôte, il n'y aurait donc rien à y montrer. La page de l'appareil dans **Inventaire** montre ses propres journaux, traces et exceptions, et `@resource.host.name:` les retrouve dans **Traces** et **Journaux**. Un appareil qui n'envoie rien pendant 30 jours quitte **Inventaire**.
+La télémétrie de l'application reste avec son application RUM, et l'appareil ne devient pas un hôte dans **Hôtes** : une application ne signale aucune métrique d'hôte, il n'y aurait donc rien à y montrer. La page de l'appareil dans **Inventaire** montre ses propres journaux, traces et exceptions, et `@resource.host.name:` les retrouve dans **Traces** et **Journaux**. Un appareil qui n'envoie rien pendant 30 jours quitte **Inventaire**. Pour voir l'appareil lui-même, sa mémoire, son stockage et ses redémarrages, ainsi que les plantages de chaque application qui y tourne, ajoutez l'[Agent Android](/docs/telemetry/android-agent) et donnez-lui le même nom dans son `device_name` : l'appareil est alors aussi un hôte dans **Hôtes**, et toujours un seul élément dans **Inventaire**.
 
 ### Configurer le parc depuis votre MDM
 
@@ -287,6 +287,7 @@ Seul un appareil dont l'application définit `host.name` est listé. Vérifiez l
 
 :::cards
 - [Configuration mobile](/docs/rum/mobile-setup): iOS, React Native et les autres plateformes.
+- [Agent Android](/docs/telemetry/android-agent): Surveiller l'appareil lui-même : son état de santé, ses redémarrages, ses applications installées et les plantages de chaque application.
 - [Exceptions](/docs/telemetry/exceptions): Trier les plantages et les ANR que signale votre application.
 - [Explorateur de traces](/docs/telemetry/traces-explorer): Suivre une commande de la borne jusqu'à la cuisine.
 - [Gérer les applications](/docs/rum/applications): Noms, étiquettes, propriétaires et rétention.

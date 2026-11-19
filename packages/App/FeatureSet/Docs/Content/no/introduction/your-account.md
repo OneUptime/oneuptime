@@ -105,24 +105,30 @@ Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan �
 
 ### Slå på tofaktorautentisering
 
-Tofaktorautentisering gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
+Tofaktorautentisering gjelder når du logger på med passordet ditt eller en lenke på e-post. Den slås først på når det andre trinnet ditt virker, så den ber aldri om et trinn du ikke har.
 
 :::steps
-### Legg til en autentiseringsapp
+### Velg det andre trinnet
 
-Åpne **Sikkerhet → Tofaktorautentisering**. Under **Autentiseringsapper** legger du til en app og gir den et navn. Skann QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriv inn den sekssifrede koden den viser, og klikk på **Bekreft og fullfør**. Vil du heller bruke en USB- eller NFC-nøkkel, legger du den til under **Sikkerhetsnøkler**.
+Åpne **Sikkerhet → Tofaktorautentisering** og klikk på **Aktiver tofaktorautentisering**. Velg **Autentiseringsapp** eller **Sikkerhetsnøkkel**, og klikk på **Fortsett**.
+
+### Sett det opp
+
+For en autentiseringsapp skanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriver inn den sekssifrede koden den viser, og klikker på **Bekreft og fullfør**. En USB- eller NFC-nøkkel gir du et navn og følger nettleserens veiledning. Tofaktorautentisering er da slått på, og kortet viser **Aktivert**. Fra neste pålogging med passord eller en lenke på e-post ber OneUptime om det andre trinnet ditt.
 
 ### Ta vare på reservekodene dine
 
 Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUptime **Reservekodene dine**. Hver kode logger deg inn én gang hvis du mister appen eller nøkkelen. Kopier eller last dem ned, kryss av for at du har tatt vare på dem, og klikk på **Ferdig**.
-
-### Slå den på
-
-Øverst på siden klikker du på **Aktiver tofaktorautentisering** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord eller en lenke på e-post ber OneUptime om det andre steget ditt.
 :::
+
+Har du allerede en app under **Autentiseringsapper** eller en nøkkel under **Sikkerhetsnøkler**, ber **Aktiver tofaktorautentisering** deg bare bekrefte. Så lenge den er slått på, kan ikke den siste appen, nøkkelen eller passnøkkelen din fjernes: Legg til en annen først, eller slå av tofaktorautentisering. Viser kortet **Oppsett mangler**, er tofaktorautentisering slått på uten at noe er satt opp, ofte fordi en administrator har krevd det: Klikk på **Fullfør oppsettet**, ellers blir du bedt om det ved neste pålogging.
 
 > [!TIP]
 > Holder reservekodene på å ta slutt? **Generer nye koder** på samme side gir deg et nytt sett, og de gamle kodene slutter å virke med en gang.
+
+### Når organisasjonen din styrer påloggingen din
+
+På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
 
 ## Prosjektene dine
 

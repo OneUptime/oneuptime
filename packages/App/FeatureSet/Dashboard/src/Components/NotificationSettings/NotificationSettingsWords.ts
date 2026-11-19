@@ -8,6 +8,7 @@ import {
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import { isNotificationChannelOfferedForEvent } from "Common/Types/WhatsApp/WhatsAppEventTemplates";
 import {
   PluralTemplate,
   composedValue,
@@ -44,6 +45,13 @@ export const NotificationSettingsWords: {
   channelForEvent: string;
   // An "All events" switch's name: its channel, for every event of its card.
   channelForEveryEvent: string;
+  /*
+   * Under an event a channel cannot send at all - WhatsApp, for an event it
+   * has no approved template for (#9715) - where its switch would be.
+   */
+  notAvailableForEvent: string;
+  // Under a card none of whose events a channel can send, which is no column of it.
+  notAvailableForEvents: string;
 } = {
   intro: translationKey(
     "Choose which updates reach you, and on which channels.",
@@ -60,6 +68,12 @@ export const NotificationSettingsWords: {
   channelForEvent: translationKey("{{channel}} for {{event}}"),
   channelForEveryEvent: translationKey(
     "{{channel}} for every event in {{section}}",
+  ),
+  notAvailableForEvent: translationKey(
+    "{{channel}} is not available for this event.",
+  ),
+  notAvailableForEvents: translationKey(
+    "{{channel}} is not available for these events.",
   ),
 };
 
@@ -98,7 +112,8 @@ export interface TabSummaryFacts {
  * An event reaches the person when a channel that can reach them is on for
  * it. A switch on a channel that cannot (no verified method, or turned off)
  * sends nothing, so it is not counted - nor is a workspace the project has
- * not connected, whose column is not offered at all.
+ * not connected, whose column is not offered at all, nor a channel that
+ * cannot send the event (WhatsApp with no approved template, #9715).
  */
 export const getTabSummaryFacts: (data: {
   eventTypes: ReadonlyArray<NotificationSettingEventType>;
@@ -131,7 +146,13 @@ export const getTabSummaryFacts: (data: {
     const row: UserNotificationSetting | undefined =
       data.rowsByEvent.get(eventType);
 
-    return Boolean(row && (row as unknown as Record<string, unknown>)[key]);
+    return (
+      Boolean(row && (row as unknown as Record<string, unknown>)[key]) &&
+      isNotificationChannelOfferedForEvent({
+        channel: key,
+        eventType: eventType,
+      })
+    );
   };
 
   const reaching: number = data.eventTypes.filter(

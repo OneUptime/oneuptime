@@ -63,7 +63,7 @@ Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzu
 Klicken Sie auf eine Zeile. Ihre Details öffnen sich neben der Liste.
 :::
 
-Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Protokolle öffnet.
+Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Protokolle öffnet. Ein Link auf eine einzelne Protokollzeile, etwa **Protokollzeile anzeigen** bei einem Sicherheitsereignis, öffnet diese Zeile über der Liste, gelesen mit Ihren eigenen Berechtigungen.
 
 ## Ein Protokoll lesen
 

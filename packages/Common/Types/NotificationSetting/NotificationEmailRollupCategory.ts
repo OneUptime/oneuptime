@@ -154,6 +154,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Monitors,
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR]:
     RollupCategory.Monitors,
+  // A monitor group is the Monitors product's (#9758).
+  [NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.Monitors,
 
   // Scheduled Maintenance
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION]:
@@ -228,6 +231,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
   [NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION]:
     RollupCategory.DashboardsAndAutomation,
   [NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DashboardsAndAutomation,
+  // And the runners that run runbooks' steps (#9758).
+  [NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION]:
     RollupCategory.DashboardsAndAutomation,
 
   /*

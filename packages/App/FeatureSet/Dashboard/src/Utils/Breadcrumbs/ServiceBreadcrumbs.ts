@@ -41,6 +41,12 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "View Service",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_SECURITY_EVENTS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Security Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_TRACES, [
       "Project",
       "Services",

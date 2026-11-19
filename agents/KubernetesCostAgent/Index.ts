@@ -1,6 +1,6 @@
 import * as http from "http";
 import Logger from "./Logger";
-import { CostEngineClient } from "./CostEngineClient";
+import { CostEngineResolver } from "./CostEngineResolver";
 import { Poller } from "./Poller";
 import { Shipper } from "./Shipper";
 import { startHealthServer } from "./Health";
@@ -13,10 +13,20 @@ const main: () => Promise<void> = async (): Promise<void> => {
     costEngineUrl: COST_ENGINE_URL,
   });
 
-  const engine: CostEngineClient = new CostEngineClient();
+  /*
+   * Which engine to read: the one cost.engine.url names, the cluster's own
+   * when it runs one, or the chart's bundled OpenCost (CostEngineResolver).
+   */
+  const engine: CostEngineResolver = CostEngineResolver.fromConfig();
+  Logger.info("cost engine mode", { mode: engine.mode() });
+
   const shipper: Shipper = new Shipper();
   const poller: Poller = new Poller(engine, shipper);
-  const healthServer: http.Server = startHealthServer({ poller, shipper });
+  const healthServer: http.Server = startHealthServer({
+    poller,
+    shipper,
+    engine,
+  });
 
   poller.start();
 

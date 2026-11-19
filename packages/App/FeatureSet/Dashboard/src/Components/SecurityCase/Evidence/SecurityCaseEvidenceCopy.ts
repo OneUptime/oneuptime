@@ -107,6 +107,7 @@ export const SECURITY_CASE_EVIDENCE_TEST_IDS: {
   added: string;
   addFile: string;
   addLink: string;
+  eventDetection: string;
 } = {
   table: "security-case-evidence-table",
   name: "security-case-evidence-name",
@@ -115,6 +116,7 @@ export const SECURITY_CASE_EVIDENCE_TEST_IDS: {
   added: "security-case-evidence-added",
   addFile: "security-case-evidence-add-file",
   addLink: "security-case-evidence-add-link",
+  eventDetection: "security-case-evidence-event-detection",
 };
 
 /*

@@ -88,6 +88,12 @@ import TableEmptyValue, {
  * and View journey, their sessions page by page on the User Flows page.
  */
 
+/*
+ * Rows a page until the reader picks another of the shared sizes (10, 20,
+ * 25, 50 or 100, DefaultItemsOnPageOptions), all inside the route's own
+ * ceiling (MAX_SESSION_REPLAY_USERS_LIMIT, 200). The picker offered this
+ * one size alone, a control that did nothing (#6565).
+ */
 export const SESSION_REPLAY_USERS_PAGE_SIZE: number = 50;
 
 export interface SessionReplayUsersTableProps {
@@ -672,14 +678,25 @@ const SessionReplayUsersTable: FunctionComponent<
    * WITH its query key and reads as 1 the moment the key moves - one
    * fetch on a range change, never a stale page 3 followed by page 1.
    */
+  /* Rows a page: the list's own size until the reader picks another. */
+  const [pageSize, setPageSize] = useState<number>(
+    SESSION_REPLAY_USERS_PAGE_SIZE,
+  );
+
+  /*
+   * The page size is part of the query: a cursor marks where a page of
+   * that size ended, so a new size starts again on page 1, and the
+   * cursors kept for the old size are dropped there (see load).
+   */
   const queryKey: string = useMemo((): string => {
     return JSON.stringify({
       app: props.rumApplicationId,
       range: props.timeRange.range,
       start: props.timeRange.startAndEndDate?.startValue.toISOString() ?? null,
       end: props.timeRange.startAndEndDate?.endValue.toISOString() ?? null,
+      size: pageSize,
     });
-  }, [props.rumApplicationId, props.timeRange]);
+  }, [props.rumApplicationId, props.timeRange, pageSize]);
 
   const [page, setPage] = useState<{ number: number; queryKey: string }>({
     number: 1,
@@ -720,7 +737,7 @@ const SessionReplayUsersTable: FunctionComponent<
           rumApplicationId: new ObjectID(props.rumApplicationId),
           startTime: range.startValue,
           endTime: range.endValue,
-          limit: SESSION_REPLAY_USERS_PAGE_SIZE,
+          limit: pageSize,
           ...(cursor ? { cursor: cursor } : {}),
         });
 
@@ -749,7 +766,7 @@ const SessionReplayUsersTable: FunctionComponent<
         }
       }
     },
-    [props.rumApplicationId, props.timeRange, pageNumber],
+    [props.rumApplicationId, props.timeRange, pageNumber, pageSize],
   );
 
   const reload: VoidFunction = useCallback((): void => {
@@ -856,14 +873,18 @@ const SessionReplayUsersTable: FunctionComponent<
         singularLabel="User"
         pluralLabel="Users"
         currentPageNumber={pageNumber}
-        totalItemsCount={
-          SESSION_REPLAY_USERS_PAGE_SIZE * (pageNumber - 1) + rows.length
-        }
-        itemsOnPage={SESSION_REPLAY_USERS_PAGE_SIZE}
-        itemsOnPageOptions={[SESSION_REPLAY_USERS_PAGE_SIZE]}
+        totalItemsCount={pageSize * (pageNumber - 1) + rows.length}
+        itemsOnPage={pageSize}
         hasMore={hasMore}
         paginationDataTestId="session-users-pagination"
-        onNavigateToPage={(next: number): void => {
+        onNavigateToPage={(next: number, itemsOnPage: number): void => {
+          if (itemsOnPage !== pageSize) {
+            /* A new size is a new query: it starts on its first page. */
+            setPageSize(itemsOnPage);
+
+            return;
+          }
+
           setPage({ number: next, queryKey: queryKey });
         }}
         sortBy={null}

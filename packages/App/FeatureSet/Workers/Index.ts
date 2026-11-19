@@ -427,6 +427,9 @@ import "./Jobs/RunbookOwners/SendOwnerAddedNotification";
 import "./Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
 import "./Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
 import "./Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
+// And of monitor groups and runners, added on their Owners pages (#9758).
+import "./Jobs/MonitorGroupOwners/SendOwnerAddedNotification";
+import "./Jobs/RunnerOwners/SendOwnerAddedNotification";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
 // ...and their devices added as network devices, when someone asks.

@@ -44,6 +44,7 @@ import {
   getNamespaceElement,
   getTotalCostElement,
 } from "../Utils/KubernetesCostTableCells";
+import KubernetesCostPricingNote from "./KubernetesCostPricingNote";
 
 /*
  * A CLUSTER OVERVIEW'S COST (#9548).
@@ -461,6 +462,12 @@ const KubernetesCostOverviewCard: FunctionComponent<ComponentProps> = (
             description={KUBERNETES_COST_OVERVIEW_DESCRIPTIONS.efficiency}
           />
         </div>
+
+        {/*
+         * Where the figures' prices come from, and the engine that priced
+         * them when it is the cluster's own (#9633, #9634).
+         */}
+        <KubernetesCostPricingNote engine={overview.engine} />
 
         {!showsLastDay && overview.newestWindowStart ? (
           <p

@@ -2274,8 +2274,8 @@ test("the Issues page lists every issue, worst first, and filters them on the se
   });
   await screenshot(page, "data-observability-issues-1440");
 
-  // Back to every issue.
-  await page.getByRole("radio", { name: "Any" }).click();
+  // Back to every issue: All, as a filter left open says.
+  await page.getByRole("radio", { name: "All", exact: true }).click();
   await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
   expect(
     new URL(page.url()).searchParams.get("data-observability-issues-filter"),

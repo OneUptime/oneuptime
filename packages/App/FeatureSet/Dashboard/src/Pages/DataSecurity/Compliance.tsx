@@ -15,10 +15,13 @@ import ComplianceFrameworkTile, {
 } from "../../Components/DataSecurity/ComplianceFrameworkTile";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import { getIssueListRoute } from "../../Components/DataSecurity/IssueListRoute";
+import { ComplianceTurnedOffList } from "../../Components/ResourceDataSecurity/ComplianceTurnedOffNote";
+import { getTurnedOffEntries } from "../../Components/ResourceDataSecurity/ResourceComplianceModel";
 import { COMPLIANCE_FRAMEWORK_INFO } from "Common/Types/DataSecurity/ComplianceFramework";
 import {
   DataSecurityComplianceFramework,
   DataSecurityComplianceResponse,
+  DataSecurityComplianceTurnedOff,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import { ComplianceRequirementResult } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import {
@@ -82,6 +85,10 @@ const MET_BY_INVENTORY: string = translationKey(
 
 const SCORE_LABEL: string = translationKey("Score");
 
+const TURNED_OFF_ON_RESOURCES: string = translationKey(
+  "Turned Off for the Whole Framework",
+);
+
 // The checks a requirement's row names before "+2 more".
 const CHECKS_SHOWN: number = 2;
 
@@ -124,12 +131,30 @@ const RequirementsTable: FunctionComponent<{
           title: "Status",
           type: FieldType.Element,
           disableSort: true,
+          // The resources that turned it off, and why, beside it (#9629).
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-xs",
           getElement: (row: ComplianceRequirementResult): ReactElement => {
+            const turnedOff: Array<DataSecurityComplianceTurnedOff> =
+              getTurnedOffEntries(props.framework, row.requirement);
+
             return (
-              <Pill
-                text={row.status}
-                tone={REQUIREMENT_STATUS_TONES[row.status] || PillTone.Neutral}
-              />
+              <div className="min-w-[8rem] space-y-2">
+                <Pill
+                  text={row.status}
+                  tone={
+                    REQUIREMENT_STATUS_TONES[row.status] || PillTone.Neutral
+                  }
+                />
+                {turnedOff.length > 0 ? (
+                  <ComplianceTurnedOffList
+                    entries={turnedOff}
+                    dataTestId={`data-security-compliance-turned-off-${row.requirement}`}
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
             );
           },
         },
@@ -309,6 +334,8 @@ const DataSecurityCompliancePage: FunctionComponent<
       framework.scope ||
       ""
     : "";
+  const wholeFrameworkTurnedOff: Array<DataSecurityComplianceTurnedOff> =
+    framework ? getTurnedOffEntries(framework, null) : [];
 
   return (
     <>
@@ -416,6 +443,27 @@ const DataSecurityCompliancePage: FunctionComponent<
                 <></>
               )}
             </div>
+            {/*
+             * The resources that turned the whole framework off, each with
+             * who, when and why (#9629): what an auditor asks to see
+             * justified.
+             */}
+            {wholeFrameworkTurnedOff.length > 0 ? (
+              <div
+                className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
+                data-testid="data-security-compliance-framework-turned-off"
+              >
+                <h4 className="mb-2 text-sm font-medium text-gray-900">
+                  {translator.translateText(TURNED_OFF_ON_RESOURCES)}
+                </h4>
+                <ComplianceTurnedOffList
+                  entries={wholeFrameworkTurnedOff}
+                  dataTestId="data-security-compliance-framework-turned-off-list"
+                />
+              </div>
+            ) : (
+              <></>
+            )}
             <RequirementsTable framework={framework} />
           </div>
         </Card>

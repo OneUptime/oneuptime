@@ -19,6 +19,7 @@ flowchart TB
 ```
 
 - Cada fila es un evento, y cada columna un canal: Correo electrónico, SMS, Llamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost y Webhook. Slack, Microsoft Teams y Mattermost solo son columnas cuando el proyecto los ha conectado. Un canal que aún no has configurado no es una columna: aparece en **Canales aún sin configurar**, encima de las pestañas, como un enlace para configurarlo.
+- WhatsApp solo entrega mensajes aprobados por Meta, y OneUptime los tiene para las novedades de incidentes, alertas, episodios, monitores, sondas, agentes de IA, páginas de estado, eventos de mantenimiento y la mayoría de los turnos de guardia. Otras novedades, como el estado de un SLO, una llamada perdida, un caso de seguridad o que te hagan propietario de un servicio, no tienen interruptor de WhatsApp, y su tarjeta dice que WhatsApp no está disponible. Te llegan por tus otros canales.
 - Un canal activado envía a cada método verificado que tengas en él en este proyecto, no solo a uno.
 - Un canal activado sin un método verificado detrás no envía nada. Su columna muestra **Configurar** bajo su nombre, y sus interruptores solo se pueden desactivar. **Tu lista de configuración** también lo indica, en **Mantenerse informado**.
 - Una novedad va a los propietarios del registro: las personas nombradas como propietarias y los miembros de sus equipos propietarios. Cuando un registro no tiene propietarios, va en cambio a los Propietarios del proyecto. A quien ya le haya llegado el aviso de guardia de un nuevo incidente, alerta o episodio no se le vuelve a notificar que se creó. Un evento sobre haber sido añadido como propietario solo va a la persona añadida. Si OneUptime se detiene mientras envía una novedad a los propietarios de un registro, las personas a las que aún no había llegado la reciben cuando OneUptime vuelve, unos minutos tarde, y nadie la recibe dos veces.
@@ -49,7 +50,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 | --- | --- | --- |
 | **Incidentes** | **Incidente creado**, **Estado del incidente cambiado**, **Recordatorio de incidente**, **SLA de incidente incumplido**, **Episodio de incidente creado**, **Estado del episodio de incidente cambiado**, **Incidente añadido al episodio de incidente** | **Nota de incidente publicada**, **Añadido como propietario del incidente**, **Asignado a un incidente**, **Nota de episodio de incidente publicada**, **Añadido como propietario del episodio de incidente** |
 | **Alertas** | **Alerta creada**, **El estado de la alerta ha cambiado**, **Recordatorio de alerta**, **Episodio de alerta creado**, **El estado del episodio de alerta ha cambiado**, **Alerta añadida al episodio de alerta** | **Nota de alerta publicada**, **Añadido como propietario de la alerta**, **Nota del episodio de alerta publicada**, **Añadido como propietario del episodio de alerta** |
-| **Monitoreo** | **El estado de la sonda cambió para tu monitor**, **El monitor no tiene sondas activas**, **El estado del SLO cambió**, **Añadido como propietario del SLO**, **Excepción asignada a mí**, **Estado de la sonda cambiado**, **Añadido como propietario de la sonda**, **Añadido como propietario de la tabla**, **Añadido como propietario de la canalización**, **Añadido como propietario de un servicio o de infraestructura**, **Añadido como propietario del panel**, **Añadido como propietario del flujo de trabajo**, **Añadido como propietario del runbook** | **Monitor creado**, **Estado del monitor cambiado**, **Añadido como propietario del monitor**, **El estado del agente de IA ha cambiado**, **Añadido como propietario del agente de IA** |
+| **Monitoreo** | **El estado de la sonda cambió para tu monitor**, **El monitor no tiene sondas activas**, **El estado del SLO cambió**, **Añadido como propietario del SLO**, **Excepción asignada a mí**, **Estado de la sonda cambiado**, **Añadido como propietario de la sonda**, **Añadido como propietario de la tabla**, **Añadido como propietario de la canalización**, **Añadido como propietario de un servicio o de infraestructura**, **Añadido como propietario del panel**, **Añadido como propietario del flujo de trabajo**, **Añadido como propietario del runbook**, **Añadido como propietario del grupo de monitores**, **Añadido como propietario del Runner** | **Monitor creado**, **Estado del monitor cambiado**, **Añadido como propietario del monitor**, **El estado del agente de IA ha cambiado**, **Añadido como propietario del agente de IA** |
 | **Páginas de estado** | **Mi nota pública aprobada o rechazada**, y también por push: **Nota pública pendiente de mi aprobación** | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
 | **Mantenimiento programado** | **Recordatorio de mantenimiento** | **Evento de mantenimiento creado**, **Estado de mantenimiento cambiado**, **Nota de mantenimiento publicada**, **Añadido como propietario del mantenimiento** |
 | **Guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, **Añadido como propietario de la política de guardia**, **Añadido como propietario de la programación de guardia**, **Añadido como propietario de la política de llamadas entrantes**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
@@ -59,6 +60,8 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 > **Estado del monitor cambiado** empieza desactivado. Para enterarte de cuándo un monitor que es tuyo cae o vuelve, actívalo en la pestaña **Monitoreo**.
 
 **Añadido como propietario de un servicio o de infraestructura**, en la tarjeta **Servicios e infraestructura**, es un solo interruptor para cada servicio, aplicación RUM, base de datos, cola, host, clúster, recurso en la nube y otra pieza de infraestructura de la que te hagan propietario. El mensaje dice de cuál se trata.
+
+**Añadido como propietario del grupo de monitores**, en la tarjeta **Monitores**, y **Añadido como propietario del Runner**, en la tarjeta **Paneles y automatización**, te avisan cuando alguien te añade como propietario de un grupo de monitores o de un Runner.
 
 ## Tus turnos
 
@@ -102,6 +105,10 @@ Consulta [Resumen de notificaciones](/docs/emails/notification-rollup).
 
 :::details Un interruptor está activado, pero no llega nada
 Comprueba que tienes un método verificado en ese canal en **Ajustes de usuario → Métodos de notificación**. Para SMS, llamadas, WhatsApp y Telegram, el proyecto también debe tener el canal activado.
+:::
+
+:::details No hay interruptor de WhatsApp para una novedad
+WhatsApp solo entrega mensajes aprobados por Meta, y OneUptime no tiene ninguno para esa novedad, así que su tarjeta dice que WhatsApp no está disponible. Elige otro canal para ella, como SMS o Push.
 :::
 
 :::details Soy propietario de un monitor, pero nunca me entero de cuándo cae

@@ -169,6 +169,36 @@ export default class GlobalConfig extends GlobalConfigModel {
   public disableUserProjectCreation?: boolean = undefined;
 
   /*
+   * Whether an invitation's email box suggests every account on this
+   * server, marked "Not in this project yet", to anyone who may invite
+   * people to the project (Project Owner, Project Admin, Invite New
+   * Members), not to its master admins alone (#9744,
+   * Server/Utils/Team/InviteSuggestions). False until a master admin turns
+   * it on in Admin Dashboard > Settings > Authentication: on a server that
+   * hosts several organizations, an MSP's customers say, it would show one
+   * organization's people to another. Never applies on OneUptime Cloud,
+   * whatever it says.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Suggest Every Account When Inviting",
+    description:
+      "When enabled, anyone who may invite people to a project is shown every account on this server, by name and email, as they type an address. Never applies on OneUptime Cloud.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public suggestServerAccountsWhenInviting?: boolean = undefined;
+
+  /*
    * How long a sign-in lasts (Types/UserSession/SessionLength.ts): the
    * session length ("Sign people out after", in whole minutes from the
    * sign-in, however active the person is; empty for no limit) and the idle

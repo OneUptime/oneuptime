@@ -165,6 +165,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a team or a label may not take a name (#9674): another one of the
+   * project has it. The server refuses in English, and the Dashboard says
+   * the refusal in the reader's language under the form's Name field.
+   */
+  {
+    directory: "packages/Common/Types/Database/UniqueName.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw
@@ -761,6 +770,28 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Cloud/CloudKeyMetricGroup.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a cloud resource did not report one of its key metrics (#9569):
+   * the catalog's conditions - "Only a replica reports it." - and the
+   * reasons and fixes its Metrics list opens to, in the reader's language.
+   * Only the words the files mark are read: a metric's name is the cloud's.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudKeyMetricCondition.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudUnreportedKeyMetrics.ts",
+    kind: "keys",
+  },
+  /*
+   * Why one of the other metrics a cloud resource publishes cannot be
+   * added (#9563), under it in the resource's More Metrics.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudPublishedMetrics.ts",
     kind: "keys",
   },
   /*

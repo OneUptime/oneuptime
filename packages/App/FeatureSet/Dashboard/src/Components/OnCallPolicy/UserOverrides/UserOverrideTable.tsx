@@ -75,7 +75,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The user overrides of one on-call policy (its User Overrides page), or the
- * project's global ones (On-Call Duty > Advanced > User Overrides), which
+ * project's global ones (On-Call > Schedules > User Overrides), which
  * apply to every policy.
  *
  * Each row reads as the override does: who is away, who covers, from when,
@@ -573,7 +573,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "On-Call Policy User Overrides"
             : "Global User Overrides",
           description: props.onCallDutyPolicyId
-            ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides."
+            ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides."
             : "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.",
         }}
         noItemsMessage={

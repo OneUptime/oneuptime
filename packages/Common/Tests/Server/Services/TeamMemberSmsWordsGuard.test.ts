@@ -337,8 +337,13 @@ describe("the notifications", () => {
     expect(slaJob).not.toContain("View incident in OneUptime Dashboard.");
     expect(slaNotice).not.toContain("View incident in OneUptime Dashboard.");
     expect(sloJob).toContain("message: buildNotificationSms(news),");
-    // WhatsApp still says the news alone.
-    expect(sloJob).toContain("body: news,");
+    /*
+     * And WhatsApp is handed nothing: it delivers only Meta-approved
+     * templates and none is approved for an SLO's status, so the plain body
+     * it was handed was refused and reached nobody (#9715).
+     */
+    expect(sloJob).not.toContain("body: news,");
+    expect(sloJob).not.toContain("whatsAppMessage:");
   });
 
   test("UserNotificationSettingService sends the SMS copy fitted, and the other copies as written", () => {

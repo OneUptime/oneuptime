@@ -48,6 +48,7 @@ import {
 } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SessionIdentity from "Common/Utils/Rum/SessionIdentity";
+import SessionReplayIngestBounds from "Common/Utils/Rum/SessionReplayIngestBounds";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import zlib from "zlib";
@@ -1256,7 +1257,7 @@ export default class SessionReplayIngestService {
         cache: sessionStartCache,
       });
 
-      const clockSkewMs: number = SessionIdentity.getClockSkewMs(
+      const clockSkewMs: number = SessionReplayIngestBounds.getClockSkewMs(
         envelope.clientSendUnixMs,
         jobData.serverReceiveUnixMs,
       );
@@ -1546,11 +1547,12 @@ export default class SessionReplayIngestService {
      * Without this every chunk uploaded more than four hours late dragged
      * its whole session to "four hours before it arrived".
      */
-    const queueDelayMs: number = SessionIdentity.getClientQueueDelayMs({
-      sessionStartUnixMs: data.envelope.sessionStartUnixMs,
-      chunkEndOffsetMs: data.envelope.chunkEndOffsetMs,
-      clientSendUnixMs: data.envelope.clientSendUnixMs,
-    });
+    const queueDelayMs: number =
+      SessionReplayIngestBounds.getClientQueueDelayMs({
+        sessionStartUnixMs: data.envelope.sessionStartUnixMs,
+        chunkEndOffsetMs: data.envelope.chunkEndOffsetMs,
+        clientSendUnixMs: data.envelope.clientSendUnixMs,
+      });
 
     const referenceUnixMs: number = Math.max(
       0,
@@ -1559,7 +1561,7 @@ export default class SessionReplayIngestService {
         queueDelayMs,
     );
 
-    const startUnixMs: number = SessionIdentity.clampSessionStart(
+    const startUnixMs: number = SessionReplayIngestBounds.clampSessionStart(
       data.envelope.sessionStartUnixMs,
       referenceUnixMs,
     );
@@ -1573,7 +1575,7 @@ export default class SessionReplayIngestService {
      */
     const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       new Date(startUnixMs),
-      SessionIdentity.clampRetentionDays(
+      SessionReplayIngestBounds.clampRetentionDays(
         data.policy.retentionInDays,
         SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
         data.policy.retentionInDays,

@@ -30,10 +30,12 @@ import {
 } from "../../../Types/DataSecurity/ComplianceScope";
 import {
   DataSecurityComplianceFramework,
+  DataSecurityComplianceTurnedOff,
   DataSecurityResourceComplianceFramework,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceRef,
   DataSecurityResourceScope,
+  MAX_COMPLIANCE_TURNED_OFF,
   MAX_RESOURCE_SCOPE_STORES,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
@@ -85,6 +87,22 @@ export interface ScopedStore {
   id: string;
   owner: DataStoreResourceRef | null;
   input: ComplianceStoreInput;
+}
+
+// A setting that turns something off, with why and by whom, before its resource is named.
+export interface TurnedOffSetting {
+  id: string;
+  resource: DataStoreResourceRef;
+  framework: ComplianceFramework;
+  requirement: string | null;
+  note: string;
+  turnedOffAt: string | null;
+  turnedOffBy: string | null;
+}
+
+// One resource as a key: its kind and its id.
+export function getResourceKey(resource: DataStoreResourceRef): string {
+  return `${resource.kind}:${resource.id}`;
 }
 
 export default class ResourceDataSecurity {
@@ -407,6 +425,282 @@ export default class ResourceDataSecurity {
       );
   }
 
+  /*
+   * What is turned off, with why and by whom (#9629): every resource's of
+   * the project, or one resource's, the latest first. Read as OneUptime -
+   * the reader's right to see the resource is asked when it is named.
+   */
+  @CaptureSpan()
+  public static async readTurnedOffSettings(data: {
+    projectId: ObjectID;
+    resource?: DataStoreResourceRef | undefined;
+  }): Promise<Array<TurnedOffSetting>> {
+    const rows: Array<DataSecurityComplianceSetting> =
+      await DataSecurityComplianceSettingService.findBy({
+        query: {
+          projectId: data.projectId,
+          isEnabled: false,
+          ...(data.resource
+            ? {
+                resourceType: data.resource.kind,
+                resourceId: new ObjectID(data.resource.id),
+              }
+            : {}),
+        },
+        select: {
+          _id: true,
+          resourceType: true,
+          resourceId: true,
+          framework: true,
+          requirement: true,
+          note: true,
+          turnedOffAt: true,
+          turnedOffByUser: { name: true, email: true },
+        },
+        sort: { updatedAt: SortOrder.Descending },
+        skip: 0,
+        limit: MAX_SETTINGS,
+        props: { isRoot: true },
+      });
+
+    const settings: Array<TurnedOffSetting> = [];
+
+    for (const row of rows) {
+      const setting: ComplianceScopeSetting | null = readComplianceScopeSetting(
+        {
+          resourceType: row.resourceType,
+          resourceId: row.resourceId?.toString(),
+          framework: row.framework,
+          requirement: row.requirement,
+          // Every row read is off: the query asked for no other.
+          isEnabled: false,
+        },
+      );
+
+      if (!setting || !row.id) {
+        continue;
+      }
+
+      settings.push({
+        id: row.id.toString(),
+        resource: setting.resource,
+        framework: setting.framework,
+        requirement: setting.requirement || null,
+        note: (row.note || "").trim(),
+        turnedOffAt: row.turnedOffAt
+          ? new Date(row.turnedOffAt).toISOString()
+          : null,
+        turnedOffBy:
+          row.turnedOffByUser?.name?.toString() ||
+          row.turnedOffByUser?.email?.toString() ||
+          null,
+      });
+    }
+
+    // The latest turned off first; one not known to have been goes last.
+    return settings.sort((a: TurnedOffSetting, b: TurnedOffSetting): number => {
+      return (b.turnedOffAt || "").localeCompare(a.turnedOffAt || "");
+    });
+  }
+
+  /*
+   * The resources settings name, as the reader may see them: each one that
+   * still exists, named when the reader may read it and by its kind alone
+   * ("") when not. One that no longer exists is left out: what it turned
+   * off turns nothing off now. Keyed by getResourceKey.
+   */
+  @CaptureSpan()
+  public static async nameResources(data: {
+    projectId: ObjectID;
+    resources: Array<DataStoreResourceRef>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, string>> {
+    const names: Map<string, string> = new Map<string, string>();
+    const idsByKind: Map<DataStoreResourceKind, Set<string>> = new Map();
+
+    for (const resource of data.resources) {
+      const ids: Set<string> = idsByKind.get(resource.kind) || new Set();
+      ids.add(resource.id);
+      idsByKind.set(resource.kind, ids);
+    }
+
+    for (const [kind, idSet] of idsByKind) {
+      const ids: Array<string> = Array.from(idSet);
+      // Which exist, as OneUptime; which the reader may read, as the reader.
+      const existing: Map<string, string> = await this.readNamesOfKind({
+        projectId: data.projectId,
+        kind,
+        ids,
+        props: { isRoot: true },
+      });
+      let readable: Map<string, string> = new Map<string, string>();
+
+      try {
+        readable = await this.readNamesOfKind({
+          projectId: data.projectId,
+          kind,
+          ids: ids.filter((id: string): boolean => {
+            return existing.has(id);
+          }),
+          props: data.props,
+        });
+      } catch {
+        // Not the reader's to read: each is named by its kind alone.
+      }
+
+      for (const id of existing.keys()) {
+        names.set(getResourceKey({ kind, id }), readable.get(id) || "");
+      }
+    }
+
+    return names;
+  }
+
+  // Some resources of one kind, by id, each with the name its pages give it.
+  private static async readNamesOfKind(data: {
+    projectId: ObjectID;
+    kind: DataStoreResourceKind;
+    ids: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, string>> {
+    const names: Map<string, string> = new Map<string, string>();
+
+    if (data.ids.length === 0) {
+      return names;
+    }
+
+    const query: { projectId: ObjectID; _id: Includes } = {
+      projectId: data.projectId,
+      _id: new Includes(
+        data.ids.map((id: string): ObjectID => {
+          return new ObjectID(id);
+        }),
+      ),
+    };
+    const page: { skip: number; limit: number } = {
+      skip: 0,
+      limit: data.ids.length,
+    };
+    const keep: (id: ObjectID | undefined | null, name: string) => void = (
+      id: ObjectID | undefined | null,
+      name: string,
+    ): void => {
+      if (id) {
+        names.set(id.toString(), name || id.toString());
+      }
+    };
+
+    switch (data.kind) {
+      case DataStoreResourceKind.KubernetesCluster:
+        for (const row of await KubernetesClusterService.findBy({
+          query: query as never,
+          select: { _id: true, name: true, clusterIdentifier: true },
+          ...page,
+          props: data.props,
+        })) {
+          keep(row.id, row.name || row.clusterIdentifier || "");
+        }
+        break;
+      case DataStoreResourceKind.DockerHost:
+        for (const row of await DockerHostService.findBy({
+          query: query as never,
+          select: { _id: true, name: true, hostIdentifier: true },
+          ...page,
+          props: data.props,
+        })) {
+          keep(row.id, row.name || row.hostIdentifier || "");
+        }
+        break;
+      case DataStoreResourceKind.PodmanHost:
+        for (const row of await PodmanHostService.findBy({
+          query: query as never,
+          select: { _id: true, name: true, hostIdentifier: true },
+          ...page,
+          props: data.props,
+        })) {
+          keep(row.id, row.name || row.hostIdentifier || "");
+        }
+        break;
+      case DataStoreResourceKind.DatabaseServer:
+        for (const row of await DatabaseServerService.findBy({
+          query: query as never,
+          select: { _id: true, name: true, serverAddress: true },
+          ...page,
+          props: data.props,
+        })) {
+          keep(row.id, row.name || row.serverAddress || "");
+        }
+        break;
+      case DataStoreResourceKind.CloudResource:
+        for (const row of await CloudResourceService.findBy({
+          query: query as never,
+          select: { _id: true, name: true, providerResourceId: true },
+          ...page,
+          props: data.props,
+        })) {
+          keep(row.id, row.name || row.providerResourceId || "");
+        }
+        break;
+      case DataStoreResourceKind.Service:
+        for (const row of await ServiceService.findBy({
+          query: query as never,
+          select: { _id: true, name: true },
+          ...page,
+          props: data.props,
+        })) {
+          keep(row.id, row.name || "");
+        }
+        break;
+      default:
+        break;
+    }
+
+    return names;
+  }
+
+  /*
+   * Each framework with what is turned off of it, named: the latest first,
+   * at most MAX_COMPLIANCE_TURNED_OFF, and none of a resource that is gone.
+   */
+  public static withTurnedOff<T extends DataSecurityComplianceFramework>(
+    frameworks: Array<T>,
+    settings: Array<TurnedOffSetting>,
+    names: Map<string, string>,
+  ): Array<T> {
+    return frameworks.map((framework: T): T => {
+      const turnedOff: Array<DataSecurityComplianceTurnedOff> = [];
+
+      for (const setting of settings) {
+        if (turnedOff.length >= MAX_COMPLIANCE_TURNED_OFF) {
+          break;
+        }
+
+        const name: string | undefined = names.get(
+          getResourceKey(setting.resource),
+        );
+
+        if (setting.framework !== framework.framework || name === undefined) {
+          continue;
+        }
+
+        turnedOff.push({
+          id: setting.id,
+          resource: {
+            kind: setting.resource.kind,
+            id: setting.resource.id,
+            name,
+          },
+          requirement: setting.requirement,
+          note: setting.note,
+          turnedOffAt: setting.turnedOffAt,
+          turnedOffBy: setting.turnedOffBy,
+        });
+      }
+
+      return { ...framework, turnedOff };
+    });
+  }
+
   // The open issues on some stores, as compliance scores them.
   @CaptureSpan()
   public static async readOpenIssues(data: {
@@ -659,6 +953,22 @@ export default class ResourceDataSecurity {
         return store.id;
       }),
     });
+    /*
+     * Why each is off, and who turned it off when (#9629): the settings of
+     * where the compliance is set, named as this page names it.
+     */
+    const turnedOff: Array<TurnedOffSetting> = await this.readTurnedOffSettings(
+      {
+        projectId: data.projectId,
+        resource: settingsResource,
+      },
+    );
+    const settingsResourceName: Map<string, string> = new Map<string, string>([
+      [
+        getResourceKey(settingsResource),
+        complianceOwner ? complianceOwner.name : name,
+      ],
+    ]);
 
     return {
       kind: data.kind,
@@ -666,36 +976,75 @@ export default class ResourceDataSecurity {
       name,
       storeCount: scoped.length,
       complianceOwner,
-      frameworks: this.scoreFrameworks({
-        stores: scoped,
-        issues,
-        settings,
-      }).map(
-        (
-          framework: DataSecurityComplianceFramework,
-        ): DataSecurityResourceComplianceFramework => {
-          const scope: ResourceFrameworkScope = getResourceFrameworkScope(
-            settingsResource,
-            framework.framework,
-            settings,
-          );
+      frameworks: this.withTurnedOff(
+        this.scoreFrameworks({
+          stores: scoped,
+          issues,
+          settings,
+        }).map(
+          (
+            framework: DataSecurityComplianceFramework,
+          ): DataSecurityResourceComplianceFramework => {
+            const scope: ResourceFrameworkScope = getResourceFrameworkScope(
+              settingsResource,
+              framework.framework,
+              settings,
+            );
 
-          return {
-            ...framework,
-            isTurnedOff: scope.isTurnedOff,
-            turnedOffRequirements: scope.turnedOffRequirements,
-          };
-        },
+            return {
+              ...framework,
+              isTurnedOff: scope.isTurnedOff,
+              turnedOffRequirements: scope.turnedOffRequirements,
+            };
+          },
+        ),
+        turnedOff,
+        settingsResourceName,
       ),
     };
   }
 
   /*
    * The project's Compliance page: every framework over every store of the
-   * project, with what each store's resource turned off.
+   * project, with what each store's resource turned off - and, for a
+   * reader, each of those settings with why and by whom, its resource
+   * named as they may see it (#9629).
    */
   @CaptureSpan()
   public static async readProjectCompliance(
+    projectId: ObjectID,
+    props?: DatabaseCommonInteractionProps | undefined,
+  ): Promise<Array<DataSecurityComplianceFramework>> {
+    const frameworks: Array<DataSecurityComplianceFramework> =
+      await this.scoreProjectCompliance(projectId);
+
+    if (!props) {
+      return frameworks;
+    }
+
+    const turnedOff: Array<TurnedOffSetting> = await this.readTurnedOffSettings(
+      { projectId },
+    );
+
+    if (turnedOff.length === 0) {
+      return this.withTurnedOff(frameworks, [], new Map<string, string>());
+    }
+
+    const names: Map<string, string> = await this.nameResources({
+      projectId,
+      resources: turnedOff.map(
+        (setting: TurnedOffSetting): DataStoreResourceRef => {
+          return setting.resource;
+        },
+      ),
+      props,
+    });
+
+    return this.withTurnedOff(frameworks, turnedOff, names);
+  }
+
+  // Every framework over every store of the project, with what each store's resource turned off.
+  private static async scoreProjectCompliance(
     projectId: ObjectID,
   ): Promise<Array<DataSecurityComplianceFramework>> {
     const stores: Array<DataStore> = await DataStoreService.findBy({

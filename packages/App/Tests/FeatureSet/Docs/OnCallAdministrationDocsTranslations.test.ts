@@ -992,11 +992,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw the Dashboard's paths from its own keys", () => {
-    expect(drawnPath("en", ["On-Call", "Advanced", "User Overrides"])).toBe(
-      "**On-Call → Advanced → User Overrides**",
+    expect(drawnPath("en", ["On-Call", "Schedules", "User Overrides"])).toBe(
+      "**On-Call → Schedules → User Overrides**",
     );
-    expect(drawnPath("de", ["On-Call", "Advanced", "User Overrides"])).toBe(
-      "**Bereitschaft → Erweitert → Benutzerüberschreibungen**",
+    expect(drawnPath("de", ["On-Call", "Schedules", "User Overrides"])).toBe(
+      "**Bereitschaft → Zeitpläne → Benutzerüberschreibungen**",
     );
     // Persian bolds each segment, joined by " > ".
     expect(drawnPath("fa", ["On-Call", "Readiness"])).toContain(" > ");

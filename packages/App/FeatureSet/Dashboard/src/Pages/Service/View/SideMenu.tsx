@@ -34,6 +34,7 @@ import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperD
 import {
   ResourceDataSecurityMenu,
   useResourceDataSecurityMenu,
+  useResourceSecurityEventsMenu,
 } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 
@@ -45,6 +46,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Security Events inside the service (#9628).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
   const dataSecurityMenu: ResourceDataSecurityMenu | null =
     useResourceDataSecurityMenu({
       kind: DataStoreResourceKind.Service,
@@ -195,6 +199,25 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Logs}
         />
+        {/*
+         * The security events about this service, beside the logs they are
+         * often read from (#9628): read from its own logs and traces, or naming it. Only
+         * in a project that uses Security Events, for whoever may read them.
+         */}
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SERVICE_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
 
         <SideMenuItem
           link={{

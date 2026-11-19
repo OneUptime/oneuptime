@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**.
+De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**. Om het apparaat zelf te zien, zijn geheugen, opslag en herstarts en de crashes van elke app erop, voeg je de [Android-agent](/docs/telemetry/android-agent) toe en geef je hem dezelfde naam in zijn `device_name`: het apparaat is dan ook een host in **Hosts**, en nog steeds één item in **Inventaris**.
 
 ### De vloot vanuit je MDM configureren
 
@@ -287,6 +287,7 @@ Alleen een apparaat waarvan de app `host.name` instelt, wordt vermeld. Controlee
 
 :::cards
 - [Mobiele configuratie](/docs/rum/mobile-setup): iOS, React Native en de andere platforms.
+- [Android-agent](/docs/telemetry/android-agent): Het apparaat zelf bewaken: zijn gezondheid, herstarts, geïnstalleerde apps en de crashes van elke app.
 - [Uitzonderingen](/docs/telemetry/exceptions): De crashes en ANR's triëren die je app meldt.
 - [Traceverkenner](/docs/telemetry/traces-explorer): Een bestelling volgen van de kiosk tot in de keuken.
 - [Applicaties beheren](/docs/rum/applications): Namen, labels, eigenaren en bewaartermijnen.

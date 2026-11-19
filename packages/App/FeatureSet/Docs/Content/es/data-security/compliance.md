@@ -68,11 +68,15 @@ El menú de un recurso tiene una sección **Seguridad**, plegada hasta que la ab
 - **Seguridad de datos** enumera esos almacenes, primero los de mayor riesgo, y los problemas abiertos en ellos. Cada uno se abre en Seguridad de datos, donde se gestiona.
 - **Cumplimiento** puntúa los marcos solo para esos almacenes. Primero aparecen los marcos que sus datos incluyen en el alcance; los desactivados, y aquellos para los que ninguno de esos almacenes contiene datos, aparecen plegados debajo.
 
-Cada marco tiene un interruptor, **Applies Here**, y también lo tiene cada uno de sus requisitos. Desactivar uno deja los almacenes del recurso fuera de ese marco, o de ese requisito, en la página del recurso y en **Seguridad de datos → Cumplimiento**, que indica cuántos almacenes se desactivaron en sus recursos. Volver a activarlo los incluye de nuevo. Cada interruptor se guarda al momento, y cada cambio queda en los [Registros de auditoría](/docs/configuration/audit-logs) del proyecto.
+Cada marco tiene un interruptor, **Se aplica aquí**, y también lo tiene cada uno de sus requisitos. Desactivar uno deja los almacenes del recurso fuera de ese marco, o de ese requisito, en la página del recurso y en **Seguridad de datos → Cumplimiento**, que indica cuántos almacenes se desactivaron en sus recursos. Volver a activarlo los incluye de nuevo. Cada interruptor se guarda al momento, y cada cambio queda en los [Registros de auditoría](/docs/configuration/audit-logs) del proyecto.
+
+Desactivar uno pregunta después, justo debajo, **¿Por qué no se aplica aquí?** El motivo es opcional: escribe uno breve y elige **Guardar motivo**, o **Ahora no** para dejarlo. A partir de entonces indica quién lo desactivó y cuándo, y el motivo, con **Añadir motivo** o **Editar motivo** para escribirlo o cambiarlo más tarde. Igual que el interruptor, el motivo queda en el registro de auditoría.
+
+**Seguridad de datos → Cumplimiento** indica lo mismo para cada recurso. Un marco elegido enumera, bajo **Desactivado para todo el marco**, los recursos que lo desactivaron por completo, y cada requisito nombra, bajo su estado, los recursos que desactivaron ese requisito: cada uno enlazado a su propia página de Cumplimiento, con quién lo desactivó, cuándo y por qué. Su **Exportar CSV** los incluye en una columna `Turned Off On`, y **Exportar JSON** en una lista `turnedOff`.
 
 Un almacén sigue los interruptores de un solo recurso. Una base de datos que se ejecuta en un clúster de Kubernetes, o en un host de Docker o Podman, sigue los de ese clúster o host: desactiva un marco para el clúster y quedará desactivado para todas las bases de datos que se ejecutan en él. La propia página de Cumplimiento de la base de datos lo indica y enlaza a la del clúster o el host, con sus interruptores bloqueados.
 
-Los Miembros de seguridad, los Administradores de seguridad, los Administradores del proyecto y los Propietarios del proyecto pueden activar y desactivar marcos y requisitos, igual que pueden ajustar una comprobación. Los Visores de seguridad ven lo que está desactivado.
+Los Miembros de seguridad, los Administradores de seguridad, los Administradores del proyecto y los Propietarios del proyecto pueden activar y desactivar marcos y requisitos, igual que pueden ajustar una comprobación. Los Visores de seguridad ven lo que está desactivado, y por qué.
 
 ## Requisitos y sus comprobaciones
 

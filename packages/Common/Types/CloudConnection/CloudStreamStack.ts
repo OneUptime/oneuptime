@@ -248,6 +248,29 @@ export function isAwsKeyMetricLeftToStream(data: {
 }
 
 /*
+ * Whether a stream of every metric delivered this account's, Region's and
+ * namespace's metrics lately: it writes every metric of the namespace, one
+ * a person added to the reads too (CloudAddedMetrics), so the read leaves
+ * such a metric to it rather than write it a second time.
+ */
+export function isAwsNamespaceStreamedWhole(data: {
+  coverage: AwsStreamCoverage;
+  accountId: string;
+  region: string;
+  namespace: string;
+}): boolean {
+  const source: AwsStreamedSource | undefined = data.coverage.get(
+    placeKey(data.accountId, data.region),
+  );
+
+  return Boolean(
+    source &&
+      source.stack.everyMetric &&
+      source.namespaces.has(data.namespace.trim().toLowerCase()),
+  );
+}
+
+/*
  * The places that stream lately from a stack of an older template, the
  * newest first, each with how many key metrics running the command again
  * would stream there in place of the read: what the connections list and

@@ -17,6 +17,9 @@ const CANDIDATE_PATHS: Array<string> = [
   "/allocation",
 ];
 
+// The Kubecost frontend serves the cost model's API under /model.
+const KUBECOST_PATH_PREFIX: string = "/model";
+
 /*
  * RFC3339 to the SECOND — no fractional part. Both engines parse the
  * `window` bound with a fixed set of layouts and none of them accept
@@ -33,12 +36,48 @@ const toEngineTimestamp: (date: Date) => string = (date: Date): string => {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 };
 
+/*
+ * The envelope OpenCost's API answers in (and Kubecost's, from the same
+ * code): {"code": 200, "data": ...}.
+ */
+interface EngineEnvelope {
+  code?: number;
+  data?: unknown;
+}
+
 export class CostEngineClient {
+  // Base URL of the engine, without a trailing slash.
+  public readonly baseUrl: string;
+
   /** Detected (or configured) allocation path; null until first success. */
-  private allocationPath: string | null = COST_ALLOCATION_PATH || null;
+  private allocationPath: string | null;
+
+  public constructor(data?: {
+    baseUrl?: string | undefined;
+    allocationPath?: string | undefined;
+  }) {
+    this.baseUrl = (data?.baseUrl ?? COST_ENGINE_URL).replace(/\/+$/, "");
+    this.allocationPath =
+      (data?.allocationPath ?? COST_ALLOCATION_PATH) || null;
+  }
 
   public detectedPath(): string | null {
     return this.allocationPath;
+  }
+
+  /*
+   * Which engine answers, read off the path its Allocation API answered on:
+   * the Kubecost frontend serves the cost model under /model, OpenCost at
+   * the root. Null until a fetch has detected the path.
+   */
+  public engineKind(): "Kubecost" | "OpenCost" | null {
+    if (!this.allocationPath) {
+      return null;
+    }
+
+    return this.allocationPath.startsWith(`${KUBECOST_PATH_PREFIX}/`)
+      ? "Kubecost"
+      : "OpenCost";
   }
 
   /**
@@ -59,7 +98,7 @@ export class CostEngineClient {
     let lastError: Error | null = null;
 
     for (const path of paths) {
-      const url: URL = new URL(`${COST_ENGINE_URL}${path}`);
+      const url: URL = new URL(`${this.baseUrl}${path}`);
       url.searchParams.set("window", window);
       url.searchParams.set("accumulate", "true");
       if (INCLUDE_IDLE) {
@@ -92,7 +131,10 @@ export class CostEngineClient {
 
         if (!this.allocationPath) {
           this.allocationPath = path;
-          Logger.info("detected cost engine allocation path", { path });
+          Logger.info("detected cost engine allocation path", {
+            path,
+            costEngineUrl: this.baseUrl,
+          });
         }
 
         const allocations: Array<EngineAllocation> = [];
@@ -115,8 +157,40 @@ export class CostEngineClient {
     throw (
       lastError ||
       new Error(
-        `Cost engine at ${COST_ENGINE_URL} did not answer any known allocation path (${CANDIDATE_PATHS.join(", ")}).`,
+        `Cost engine at ${this.baseUrl} did not answer any known allocation path (${CANDIDATE_PATHS.join(", ")}).`,
       )
     );
+  }
+
+  /*
+   * The engine's own API besides allocations, beside the Allocation API it
+   * answered on: /model/<name> on the Kubecost frontend, /<name> on
+   * OpenCost. Resolves to the envelope's data, or null when the engine does
+   * not answer it - an older engine, or a frontend that does not proxy it.
+   * Never throws: what it reads only describes the prices.
+   */
+  public async fetchApiData(name: string): Promise<unknown> {
+    const prefix: string =
+      this.engineKind() === "Kubecost" ? KUBECOST_PATH_PREFIX : "";
+
+    try {
+      const result: HttpResult = await httpGetJson(
+        new URL(`${this.baseUrl}${prefix}/${name}`),
+      );
+
+      if (result.statusCode < 200 || result.statusCode >= 300) {
+        return null;
+      }
+
+      const parsed: EngineEnvelope = JSON.parse(result.body) as EngineEnvelope;
+
+      return parsed && typeof parsed === "object" ? parsed.data ?? null : null;
+    } catch (err: unknown) {
+      Logger.debug("cost engine did not answer an API it may not have", {
+        api: name,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
   }
 }

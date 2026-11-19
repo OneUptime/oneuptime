@@ -43,7 +43,6 @@ import SloStatus, {
 } from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
-import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import {
   DisableAutomaticAlertCreation,
   DisableAutomaticIncidentCreation,
@@ -4988,10 +4987,13 @@ async function postSloRecordResolvedFeedItem(data: {
 
 /*
  * Owner notification on a transition into AtRisk / BudgetExhausted. Clones
- * the CheckSlaBreaches multi-channel envelope. WhatsApp: there is no
- * registered SLO WhatsApp template (createWhatsAppMessageFromTemplate would
- * throw for this event type), so a plain-body payload is sent instead — the
- * send path only attaches templateKey when present.
+ * the CheckSlaBreaches multi-channel envelope. No WhatsApp message: WhatsApp
+ * delivers only Meta-approved templates and none is approved for an SLO's
+ * status (Types/WhatsApp/WhatsAppEventTemplates), so none is handed over and
+ * sendUserNotification skips the channel - Notification Settings offers no
+ * WhatsApp switch for it either (#9715). The plain-body message it used to
+ * hand over was refused by the notification service, a failed WhatsApp log
+ * each time, and reached nobody.
  *
  * Returns TRUE when at least one owner notification was dispatched without
  * throwing. Errors are still swallowed (a failed notification must never abort
@@ -5142,11 +5144,6 @@ async function sendStatusChangeNotification(data: {
           requireInteraction: false,
         });
 
-      // WhatsApp says the news alone, as it did before the SMS gained its words.
-      const whatsAppMessage: WhatsAppMessagePayload = {
-        body: news,
-      };
-
       /*
        * Per-owner isolation: one owner with a broken notification setting must
        * not cost the remaining owners their notification, and only an owner that
@@ -5166,7 +5163,6 @@ async function sendStatusChangeNotification(data: {
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
-          whatsAppMessage: whatsAppMessage,
           eventType: eventType,
         });
 

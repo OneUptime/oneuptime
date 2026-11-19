@@ -19,7 +19,10 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import {
+  INVITEE_NAME_DESCRIPTION,
+  shouldAskForInviteeName,
+} from "Common/UI/Utils/InviteeName";
 import { InviteTeam } from "Common/UI/Utils/DefaultInviteTeam";
 import { JSONObject } from "Common/Types/JSON";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -128,12 +131,6 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
       team: defaultInviteTeam.id,
     } as FormValues<TeamMember>;
   }, [defaultInviteTeam]);
-
-  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
-    getRequestHeaders: () => {
-      return AdminModelAPI.getCommonHeaders();
-    },
-  });
 
   return (
     <ModelPage<Project>
@@ -493,8 +490,8 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               modelAPI: AdminModelAPI,
               id: "invite-user-form",
               /*
-               * One page, as the Dashboard's Invite User is: the email (and a
-               * name when the address has no account yet), the team - the
+               * One page, as the Dashboard's Invite User is: the email (and,
+               * once one is typed, a name for a new account), the team - the
                * members team to start with, named in its description - and
                * the master admin's auto-accept box. It was two steps (User,
                * Team), whose Invite could be pressed on the first one without
@@ -513,26 +510,26 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                   required: true,
                   placeholder: "member@company.com",
                   overrideFieldKey: "email",
-                  onChange: (value: string) => {
-                    checkEmail(value);
-                  },
                 },
                 {
                   field: {
                     user: true,
                   },
+                  /*
+                   * Asked for every address typed, as the Dashboard's forms
+                   * ask it (#9745): the server uses it only for an account
+                   * nobody has signed up to yet.
+                   */
                   title: "Name",
-                  description:
-                    "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+                  description: INVITEE_NAME_DESCRIPTION,
                   fieldType: FormFieldSchemaType.Text,
                   required: false,
                   placeholder: "John Smith",
                   overrideFieldKey: "name",
                   showIf: (values: FormValues<TeamMember>): boolean => {
-                    return (
-                      Boolean((values as JSONObject)["email"]) &&
-                      isEmailRegistered === false
-                    );
+                    return shouldAskForInviteeName({
+                      email: (values as JSONObject)["email"],
+                    });
                   },
                 },
                 {

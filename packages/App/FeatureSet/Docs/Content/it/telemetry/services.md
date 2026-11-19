@@ -57,13 +57,14 @@ Per aggiungere un servizio prima che ne arrivi la telemetria, ad esempio per def
 
 ## Le pagine di un servizio
 
-Il menu laterale di un servizio ha cinque sezioni:
+Il menu laterale di un servizio ha sei sezioni:
 
 | Sezione | Pagine |
 | --- | --- |
 | **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **SLOs**: gli SLO che misurano le sue richieste, dove puoi crearne uno che misura già il servizio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
-| **Telemetria** | I suoi **Log**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
+| **Telemetria** | I suoi **Log**, **Eventi di sicurezza**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
+| **Sicurezza** | **Sicurezza dei dati**: i dati sensibili contenuti nei suoi log, tracce ed eccezioni, e cosa correggere ([Dati sensibili nella telemetria](/docs/data-security/telemetry)). **Conformità**: come stanno quei dati rispetto a ogni framework, con un interruttore che disattiva un framework o un requisito per questo servizio ([Conformità di Sicurezza dei dati](/docs/data-security/compliance#nella-pagina-di-una-risorsa)). Compare quando Sicurezza dei dati ha scansionato la telemetria del servizio, e all'inizio è chiusa. |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
 | **Avanzato** | **Impostazioni**, **Log di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
 

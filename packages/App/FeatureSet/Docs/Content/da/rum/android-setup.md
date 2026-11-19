@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-Appens telemetri bliver hos dens RUM-applikation, og enheden bliver ikke en vært i **Værter**: En app rapporterer ingen værtsmetrikker, så der ville ikke være noget at vise der. Enhedens side i **Inventar** viser dens egne logs, spor og undtagelser, og `@resource.host.name:` finder dem i **Spor** og **Protokoller**. En enhed, der ikke sender noget i 30 dage, forsvinder fra **Inventar**.
+Appens telemetri bliver hos dens RUM-applikation, og enheden bliver ikke en vært i **Værter**: En app rapporterer ingen værtsmetrikker, så der ville ikke være noget at vise der. Enhedens side i **Inventar** viser dens egne logs, spor og undtagelser, og `@resource.host.name:` finder dem i **Spor** og **Protokoller**. En enhed, der ikke sender noget i 30 dage, forsvinder fra **Inventar**. Hvis du vil se selve enheden, dens hukommelse, lagerplads og genstarter og nedbrud i alle apps på den, så tilføj [Android-agent](/docs/telemetry/android-agent), og giv den samme navn i dens `device_name`: Enheden er så også en vært i **Værter** og stadig ét element i **Inventar**.
 
 ### Konfigurer flåden fra din MDM
 
@@ -287,6 +287,7 @@ Kun en enhed, hvis app sætter `host.name`, vises. Tjek værdien i et spans ress
 
 :::cards
 - [Mobilopsætning](/docs/rum/mobile-setup): iOS, React Native og de andre platforme.
+- [Android-agent](/docs/telemetry/android-agent): Overvåg selve enheden: dens tilstand, genstarter, installerede apps og alle apps' nedbrud.
 - [Undtagelser](/docs/telemetry/exceptions): Triager de nedbrud og ANR'er, din app rapporterer.
 - [Sporudforsker](/docs/telemetry/traces-explorer): Følg en ordre fra kiosken til køkkenet.
 - [Administrer applikationer](/docs/rum/applications): Navne, etiketter, ejere og opbevaring.

@@ -145,6 +145,42 @@ test("ships rows chunked at SHIP_BATCH_SIZE with cluster, currency and token", a
   assert.strictEqual(shipper.lastError(), null);
 });
 
+/*
+ * #9633 / #9634: every chunk says which engine priced its rows and where
+ * the engine's prices come from, so the server can stamp it on each row
+ * and the pages can say it beside the figures.
+ */
+test("every chunk says which engine priced the rows, and how", async (): Promise<void> => {
+  const shipper: Shipper = new Shipper();
+  await shipper.ship(makeRows(3), {
+    engine: "Kubecost",
+    service: "kubecost/kubecost-cost-analyzer",
+    bundledEngineUnused: true,
+    pricingSource: "list-prices",
+    pricingProvider: "AWS",
+  });
+
+  assert.strictEqual(recorded.length, 2);
+
+  for (const request of recorded) {
+    assert.deepStrictEqual(request.payload.costEngine, {
+      engine: "Kubecost",
+      service: "kubecost/kubecost-cost-analyzer",
+      bundledEngineUnused: true,
+      pricingSource: "list-prices",
+      pricingProvider: "AWS",
+    });
+  }
+});
+
+test("a shipment with no engine to name sends none, as before", async (): Promise<void> => {
+  const shipper: Shipper = new Shipper();
+  await shipper.ship(makeRows(1));
+
+  assert.strictEqual(recorded.length, 1);
+  assert.ok(!("costEngine" in recorded[0]!.payload));
+});
+
 test("retries a transient 5xx and succeeds", async (): Promise<void> => {
   statusScript = [500]; // first request fails, retry succeeds
   const shipper: Shipper = new Shipper();

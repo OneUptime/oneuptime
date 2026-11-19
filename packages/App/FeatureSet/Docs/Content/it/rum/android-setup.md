@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-La telemetria dell'app resta con la sua applicazione RUM, e il dispositivo non diventa un host in **Host**: un'app non invia metriche di host, quindi non ci sarebbe nulla da mostrare lì. La pagina del dispositivo in **Inventario** mostra i suoi log, le sue tracce e le sue eccezioni, e `@resource.host.name:` li trova in **Tracce** e **Log**. Un dispositivo che non invia nulla per 30 giorni esce da **Inventario**.
+La telemetria dell'app resta con la sua applicazione RUM, e il dispositivo non diventa un host in **Host**: un'app non invia metriche di host, quindi non ci sarebbe nulla da mostrare lì. La pagina del dispositivo in **Inventario** mostra i suoi log, le sue tracce e le sue eccezioni, e `@resource.host.name:` li trova in **Tracce** e **Log**. Un dispositivo che non invia nulla per 30 giorni esce da **Inventario**. Per vedere il dispositivo stesso, la sua memoria, lo spazio di archiviazione e i riavvii, e i crash di ogni app installata, aggiungi l'[Agent Android](/docs/telemetry/android-agent) e dagli lo stesso nome nel suo `device_name`: il dispositivo è allora anche un host in **Host**, e resta un solo elemento in **Inventario**.
 
 ### Configurare la flotta dal tuo MDM
 
@@ -287,6 +287,7 @@ Viene elencato solo un dispositivo la cui app imposta `host.name`. Controlla il 
 
 :::cards
 - [Configurazione mobile](/docs/rum/mobile-setup): iOS, React Native e le altre piattaforme.
+- [Agent Android](/docs/telemetry/android-agent): Monitorare il dispositivo stesso: il suo stato, i riavvii, le app installate e i crash di ogni app.
 - [Eccezioni](/docs/telemetry/exceptions): Smistare i crash e gli ANR che la tua app segnala.
 - [Esploratore tracce](/docs/telemetry/traces-explorer): Seguire un ordine dal chiosco alla cucina.
 - [Gestire le applicazioni](/docs/rum/applications): Nomi, etichette, proprietari e conservazione.

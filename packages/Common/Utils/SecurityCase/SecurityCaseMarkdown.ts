@@ -732,12 +732,18 @@ export function evidenceRemovedMarkdown(data: { name: string }): MarkdownText {
 export function eventsAddedMarkdown(data: {
   count: number;
   huntName?: string | undefined;
+  // The detection on the case the events were matched by (#9622).
+  detectionName?: string | undefined;
 }): MarkdownText {
   const events: string =
     data.count === 1 ? "1 security event" : `${data.count} security events`;
 
-  return data.huntName
-    ? mdText`🔖 Kept ${events} found by the hunt **${data.huntName}** as evidence.`
+  if (data.huntName) {
+    return mdText`🔖 Kept ${events} found by the hunt **${data.huntName}** as evidence.`;
+  }
+
+  return data.detectionName
+    ? mdText`🔖 Kept ${events} matched by **${data.detectionName}** as evidence.`
     : mdText`🔖 Kept ${events} as evidence.`;
 }
 

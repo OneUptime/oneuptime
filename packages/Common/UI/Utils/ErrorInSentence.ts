@@ -19,6 +19,7 @@ import {
 } from "../../Types/Exception/RefusalWithValues";
 import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/DataCheckRefusals";
+import { NAME_TAKEN_REFUSALS } from "../../Types/Database/UniqueName";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -116,6 +117,8 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
   MONITOR_TYPE_MISMATCH_REFUSAL,
   // Why a data check could not be written from a sentence (#7530).
   ...DATA_CHECK_REFUSALS_WITH_VALUES,
+  // A team's or a label's name another one of the project has (#9674).
+  ...NAME_TAKEN_REFUSALS,
 ];
 
 /*
