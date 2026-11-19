@@ -178,9 +178,9 @@ Der er fem måder, en hændelse skifter tilstand på:
 
 | Måde                | Hvor                                                                                        | Hvad den spørger om                                                                                                                                                                                          |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knapper i hovedet** | Hændelsens hoved: **Bekræft** og **Løs**, og **Skift tilstand til** i dens menu **⋯**         | En kort bekræftelse — **Bekræft hændelse** eller **Løs hændelse** — med **Underret statussideabonnenter** og, foldet sammen under **Tilføj en offentlig note**, den valgfri **Offentlig note** med vælgeren **Vælg noteskabelon** (når projektet har noteskabeloner). |
+| **Knapper i hovedet** | Hændelsens hoved: **Bekræft** og **Løs**, og **Skift tilstand til** i dens menu **⋯**         | En kort bekræftelse — **Bekræft hændelse** eller **Løs hændelse** — med **Underret statussideabonnenter** og, foldet sammen under **Tilføj en offentlig note**, den valgfri **Offentlig note** med vælgeren **Vælg noteskabelon** (når projektet har noteskabeloner). En løsning folder også en valgfri grundårsag sammen under **Tilføj grundårsagen**. |
 | **Tilstandstidslinje** | **Tilstandstidslinje** i hændelsens sidemenu                                             | En række, der tilføjes i hånden, med **Hændelsesstatus**, **Begynder den** og **Underret statussideabonnenter**.                                                                                            |
-| **Listens række** | Menuen **⋯** på en hændelses række i listen over hændelser: **Bekræft**, **Løs** og **Skift tilstand** | Hovedets bekræftelse, der nævner hændelsen. En hændelse, som en anden ændring har flyttet imens, lades urørt, og dialogen siger hvorfor. |
+| **Listens række** | Menuen **⋯** på en hændelses række i listen over hændelser: **Bekræft**, **Løs** og **Skift tilstand** | Hovedets bekræftelse, der nævner hændelsen. En hændelse, som en anden ændring har flyttet imens, lades urørt, og dialogen siger hvorfor. Den beder ikke om grundårsagen. |
 | **Masseændring**    | **Bekræft**, **Løs** eller **Skift tilstand** på et udvalg i listen over hændelser                                     | Én side med tilstanden, **Underret statussideabonnenter** og den samme sammenfoldede **Tilføj en offentlig note**.                                                                                           |
 | **Automatisk**      | Et monitorkriterium eller din egen kode                                                     | Et kriterium med **Løs hændelse automatisk** slået til løser sin hændelse, når kriteriet ikke længere er opfyldt. API'et ændrer tilstanden ved at oprette en række på `/api/incident-state-timeline`.         |
 
@@ -208,6 +208,12 @@ En hændelse er løst, når den går fra en tilstand over din løste tilstand in
 - **Markerer SLA'en som løst** og skriver, når OneUptime AI's postmortem-udkast er slået til, et udkast til en postmortem.
 
 At gå videre fra **Løst** til en senere tilstand — **Closed** for eksempel — er ikke en anden løsning: intet af dette kører igen, og ingen ny SLA starter. En hændelse, der blev erklæret, før OneUptime begyndte at registrere dette, giver sine monitorer fri ved sin næste løsning, som før.
+
+## Skriv grundårsagen, når du løser
+
+Når hændelsens hoved løser den, med **Løs** eller med **Skift tilstand til** en løst tilstand, folder bekræftelsen en valgfri **Grundårsag** sammen under **Tilføj grundårsagen**: hvorfor den skete. Det, du skriver der, bliver hændelsens grundårsag, som om du havde skrevet det på dens side **Grundårsag**, og OneUptime AI's undersøgelse af hændelsen holdes op mod det (se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig)). Lader du det stå tomt, løses hændelsen som før og beholder den grundårsag, den har.
+
+At skrive den kræver tilladelse til at redigere hændelsen, ud over tilladelsen til at skifte dens tilstand: den, der ikke har den, får ikke tilbudt **Tilføj grundårsagen**, og et tilstandsskift, vedkommende sender med en grundårsag, afvises helt, så hændelsen beholder sin tilstand. Via API'et sender du den med rækken, du opretter på `/api/incident-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tilstandstidslinjen
 

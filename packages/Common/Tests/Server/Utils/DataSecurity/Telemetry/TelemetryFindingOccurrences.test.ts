@@ -527,8 +527,9 @@ describe("the statement", () => {
       /substringUTF8\(body, 1, \{p\d+:Int32\}\) AS readBody/,
     );
     expect(statement.query).toContain(" AND body != ''");
+    // The line's own id too, which opens that very line (#9793).
     expect(statement.query).toContain(
-      "traceId AS readTraceId, spanId AS readSpanId, severityText AS readSeverity",
+      "traceId AS readTraceId, spanId AS readSpanId, severityText AS readSeverity, _id AS readLogId",
     );
     expect(statement.query).toContain("primaryEntityType = ''");
     expect(parameterValues(statement)).toContain(8192);
@@ -826,6 +827,64 @@ describe("reading the rows", () => {
       severity: "Error",
       maskedValue: "**** **** **** 6467",
     });
+  });
+
+  test("a log line names its own id, which opens that very line (#9793); anything that is not an id is left out", () => {
+    const LOG_ID: string = "0192f1a0-0000-7000-8000-00000009793a";
+    const occurrences: Array<DataSecurityFindingOccurrence> = read({
+      kind: DataStoreKind.TelemetryLogs,
+      location: "body",
+      dataTypeId: "credit-card-number",
+      rows: [
+        rowAt(1, {
+          readLogId: LOG_ID,
+          readSeverity: "Error",
+          readBody: `Charge failed for ${CARD}`,
+        }),
+        rowAt(2, {
+          readLogId: "not-an-id",
+          readBody: `Charge failed again for ${CARD}`,
+        }),
+      ],
+    }).occurrences;
+
+    expect(occurrences[0]?.logId).toBe(LOG_ID);
+    expect(occurrences[1]?.logId).toBeUndefined();
+
+    // A RUM application's line names its id too.
+    expect(
+      read({
+        kind: DataStoreKind.TelemetrySessionReplays,
+        location: "logs.attributes.email",
+        dataTypeId: "email-address",
+        ownerId: WEB_APP,
+        rows: [
+          rowAt(1, {
+            ownerId: WEB_APP,
+            readLogId: LOG_ID,
+            readSessionId: "session-1",
+            readAttributes: [["email", EMAIL]],
+          }),
+        ],
+      }).occurrences[0]?.logId,
+    ).toBe(LOG_ID);
+
+    // A span is no line: an id beside it is never taken for one.
+    expect(
+      read({
+        kind: DataStoreKind.TelemetryTraces,
+        location: "attributes.user.email",
+        dataTypeId: "email-address",
+        rows: [
+          rowAt(1, {
+            readLogId: LOG_ID,
+            readTraceId: "trace-1",
+            readSpanId: "span-1",
+            readAttributes: [["user.email", EMAIL]],
+          }),
+        ],
+      }).occurrences[0]?.logId,
+    ).toBeUndefined();
   });
 
   test("an exception: its group and its type", () => {
@@ -1374,6 +1433,48 @@ describe("where a finding's records are read", () => {
     expect(
       getOccurrenceReadLimit(planned, new Array(500).fill(KEPT_FIRST)),
     ).toBe(OCCURRENCE_RECORDS_PER_READ);
+  });
+
+  test("a log line kept with its id is looked up as that very line; one kept before ids, by its millisecond as before", () => {
+    const LOG_ID: string = "0192f1a0-0000-7000-8000-00000009793a";
+    const planned: OccurrencePlan = plan(DataStoreKind.TelemetryLogs, "body");
+    const statement: Statement = buildTelemetryOccurrenceStatement({
+      projectId: PROJECT_ID,
+      since: new Date(KEPT_SECOND.time),
+      until: new Date(Date.parse(KEPT_FIRST.time) + 1),
+      plan: planned,
+      ownerId: SERVICE,
+      limit: getOccurrenceReadLimit(planned, [KEPT_FIRST, KEPT_SECOND]),
+      caps: CAPS,
+      records: [{ ...KEPT_FIRST, logId: LOG_ID }, KEPT_SECOND],
+    });
+    const lookups: RegExpMatchArray = statement.query.match(
+      /AND \(\(_id = \{(p\d+):String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\}\) OR \(time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\}\)\)/,
+    )!;
+
+    expect(lookups).not.toBeNull();
+    // Bound, never written into the query.
+    expect(statement.query_params[lookups[1]!]).toBe(LOG_ID);
+    expect(statement.query).not.toContain(LOG_ID);
+
+    // A trace's records never look a line's id up.
+    const spans: OccurrencePlan = plan(
+      DataStoreKind.TelemetryTraces,
+      "attributes.user.email",
+    );
+
+    expect(
+      buildTelemetryOccurrenceStatement({
+        projectId: PROJECT_ID,
+        since: new Date(KEPT_SECOND.time),
+        until: new Date(Date.parse(KEPT_FIRST.time) + 1),
+        plan: spans,
+        ownerId: SERVICE,
+        limit: getOccurrenceReadLimit(spans, [KEPT_FIRST]),
+        caps: CAPS,
+        records: [{ ...KEPT_FIRST, logId: LOG_ID }],
+      }).query,
+    ).not.toContain("_id =");
   });
 
   test("a search asks the database only for records whose value could hold the type", () => {

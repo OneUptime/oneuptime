@@ -49,7 +49,7 @@ Stel in **Te bewaken uitzonderingen** de velden **Bericht bevat**, **Uitzonderin
 
 ### Verder verfijnen (optioneel)
 
-Open **Meer velden** om te filteren op telemetrieservice of infrastructuurentiteit, of om ook opgeloste en gearchiveerde uitzonderingen te tellen.
+Open **Meer velden** om te filteren op telemetrieservice of infrastructuurentiteit, om alleen niet-afgehandelde uitzonderingen te tellen of sommige typen uit te sluiten, of om ook opgeloste en gearchiveerde uitzonderingen te tellen.
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
@@ -74,6 +74,8 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Tijdvenster** (in **Wanneer waarschuwen**) | Uitzonderingen van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
 | **Filteren op service** (onder **Meer velden**) | Uitzonderingen van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Uitzonderingen van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
+| **Alleen niet-afgehandelde uitzonderingen** (onder **Meer velden**) | Alleen de uitzonderingen die niet zijn opgevangen, zoals een crash: de uitzonderingen die de uitzonderingenverkenner als **Niet-afgehandeld** markeert. Een uitzondering die niet aangeeft of ze is opgevangen, telt als afgehandeld. | Uit |
+| **Uitzonderingstypen uitsluiten** (onder **Meer velden**) | Niet de uitzonderingen van deze typen, gescheiden door komma's, zoals `ANR, Hang`. De typenaam moet precies overeenkomen. Een type dat hier staat, wordt uitgesloten, zelfs als **Uitzonderingstypen** het ook noemt. | Leeg: er wordt geen type uitgesloten |
 | **Opgeloste uitzonderingen opnemen** (onder **Meer velden**) | Ook uitzonderingen tellen die als opgelost zijn gemarkeerd. | Uit |
 | **Gearchiveerde uitzonderingen opnemen** (onder **Meer velden**) | Ook gearchiveerde uitzonderingen tellen. | Uit |
 
@@ -103,6 +105,17 @@ Wanneer u de monitor via de API maakt, stelt u `environments` in de `exceptionMo
 }
 ```
 
+Via de API is **Alleen niet-afgehandelde uitzonderingen** `unhandledOnly` en **Uitzonderingstypen uitsluiten** `excludedExceptionTypes`, een lijst met typenamen. De aanbeveling **App Crashes** van een mobiele app stelt beide in, om de crashes te tellen en niet de vastlopers:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een uitzonderingen-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
@@ -116,7 +129,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Aantal uitzonderingen**, het aantal uitzonderingen dat in het venster overeenkwam, en **Nieuwe uitzonderingen**, **Opnieuw opgetreden uitzonderingen** en **Toename van uitzonderingen (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben zes soorten **Filtertype**: **Aantal uitzonderingen**, het aantal uitzonderingen dat in het venster overeenkwam, en **Nieuwe uitzonderingen**, **Opnieuw opgetreden uitzonderingen**, **Toename van uitzonderingen (in %)**, **Sessies met uitzonderingen (in %)** en **Sessies**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -160,6 +173,17 @@ Naast hoeveel uitzonderingen er waren, kan een uitzonderingen-monitor waarschuwe
 | **Toename van uitzonderingen (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
 
 Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderingstype, omgeving en bericht, en ook op infrastructuurentiteit: een uitzondering telt mee wanneer een van haar voorvallen in het venster van een van de gekozen entiteiten kwam.
+
+## Een aandeel van de sessies
+
+Een app op duizenden telefoons heeft altijd wel wat crashes, dus wat het team wil horen, is dat het percentage stijgt. Voor een app waarvan de spans `session.id` dragen, zoals een mobiele app, kan een uitzonderingen-monitor waarschuwen bij het aandeel van de sessies waarin een uitzondering optrad. Beide worden alleen gelezen wanneer een criterium ze controleert.
+
+| Filtertype | Wat het leest in het venster |
+| --- | --- |
+| **Sessies met uitzonderingen (in %)** | Het aandeel van de sessies in het venster waarin een overeenkomende uitzondering optrad. Zonder sessie in het venster is er geen aandeel, en komt geen criterium erop overeen. |
+| **Sessies** | De sessies in het venster: de verschillende `session.id` van de spans van de services van de monitor. Combineer dit filtertype met het aandeel, zodat een aandeel van een paar sessies geen waarschuwing geeft. |
+
+Met **Alleen niet-afgehandelde uitzonderingen** aan en de typen `ANR` en `Hang` uitgesloten, is het aandeel het crashpercentage van een mobiele app. De aanbeveling **App Crash Rate** van een mobiele app waarschuwt wanneer meer dan 1,09% van de sessies van een uur crasht, het percentage dat Android vitals slecht gedrag noemt, zodra het uur minstens 250 sessies heeft. **App ANR Rate** telt alleen `ANR` en `Hang`, boven 0,47%. Om zelf zo'n regel te schrijven, kiest u **Een aandeel van de sessies** onder **Waarschuwen bij** in **Wanneer waarschuwen**.
 
 ## Pieken ten opzichte van wat normaal is
 

@@ -18,8 +18,10 @@ import {
   describeSubject,
   findBoundRole,
   getGrantedRequests,
+  getNodesProxyReasons,
   getWildcardFields,
   isBuiltInRbacObject,
+  isOneUptimeAgentObject,
 } from "./KubernetesRbac";
 import { KubernetesVersion } from "./KubernetesVersion";
 import {
@@ -387,24 +389,34 @@ function accessFindings(
     );
 
     if (granted.length > 0) {
-      findings.push(
-        bindingFinding(binding, [
-          {
-            field: "verbs",
-            value: Array.from(
-              new Set(
-                granted.map((request: KubernetesRbacRequest): string => {
-                  const resource: string = request.subresource
-                    ? `${request.resource}/${request.subresource}`
-                    : request.resource;
+      const finding: KubernetesComplianceFinding = bindingFinding(binding, [
+        {
+          field: "verbs",
+          value: Array.from(
+            new Set(
+              granted.map((request: KubernetesRbacRequest): string => {
+                const resource: string = request.subresource
+                  ? `${request.resource}/${request.subresource}`
+                  : request.resource;
 
-                  return `${request.verb} ${resource}`;
-                }),
-              ),
-            ).join(", "),
-          },
-        ]),
-      );
+                return `${request.verb} ${resource}`;
+              }),
+            ),
+          ).join(", "),
+        },
+      ]);
+
+      /*
+       * The OneUptime agent's own binding: the page says so, and why its
+       * role grants nodes/proxy, as the role's label says (#9878).
+       */
+      if (isOneUptimeAgentObject(binding)) {
+        finding.oneUptimeAgent = {
+          nodesProxyReasons: getNodesProxyReasons(role),
+        };
+      }
+
+      findings.push(finding);
     }
   }
 

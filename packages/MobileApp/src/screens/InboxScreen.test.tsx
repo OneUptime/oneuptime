@@ -30,7 +30,7 @@ import {
 } from "../__tests__/windowSize";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { withAlpha } from "../utils/color";
-import { PaneProvider } from "../layout/WindowLayout";
+import { PaneProvider } from "../layout/WindowLayoutProvider";
 
 /*
  * The Inbox holds incidents and alerts side by side. The category tabs are

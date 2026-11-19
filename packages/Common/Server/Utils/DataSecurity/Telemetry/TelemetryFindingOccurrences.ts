@@ -47,6 +47,7 @@ import {
   getTelemetrySource,
   readTelemetryRecordValues,
   readText,
+  SOURCES_WITH_LOG_IDS,
   SourceDefinition,
   tableOf,
   TELEMETRY_SCAN_MAX_EVENT_NAME_LENGTH,
@@ -525,8 +526,9 @@ function appendRecordKeys(statement: Statement, plan: OccurrencePlan): void {
   switch (source) {
     case TelemetrySampleSource.Logs:
     case TelemetrySampleSource.RumLogs:
+      // The line's own id opens that very line in the logs explorer (#9793).
       statement.append(
-        ", traceId AS readTraceId, spanId AS readSpanId, severityText AS readSeverity",
+        ", traceId AS readTraceId, spanId AS readSpanId, severityText AS readSeverity, _id AS readLogId",
       );
       break;
     case TelemetrySampleSource.Traces:
@@ -850,14 +852,18 @@ export function buildOccurrenceExcerptReader(data: {
  * Only the records written in one of the kept records' milliseconds: each
  * a range of the primary key's own column, so the read is a lookup - for a
  * metric's point kept with its metric, of that metric, which the metrics
- * table is keyed by before the time.
+ * table is keyed by before the time; for a log line kept with its own id,
+ * that very line, never a neighbour of the same millisecond (#9793).
  */
 function appendRecordTimes(
   statement: Statement,
   timeColumn: string,
   records: ReadonlyArray<FindingSampleRecord>,
-  isMetric: boolean = false,
+  source: TelemetrySampleSource,
 ): void {
+  const isMetric: boolean = source === TelemetrySampleSource.Metrics;
+  const isLogLine: boolean = SOURCES_WITH_LOG_IDS.has(source);
+
   statement.append(" AND (");
 
   records.forEach((record: FindingSampleRecord, index: number): void => {
@@ -870,6 +876,15 @@ function appendRecordTimes(
         SQL`name = ${{
           type: TableColumnType.Text,
           value: record.metricName,
+        }} AND `,
+      );
+    }
+
+    if (isLogLine && record.logId) {
+      statement.append(
+        SQL`_id = ${{
+          type: TableColumnType.Text,
+          value: record.logId,
         }} AND `,
       );
     }
@@ -926,7 +941,7 @@ export function buildTelemetryOccurrenceStatement(
       statement,
       source.timeColumn,
       data.records,
-      data.plan.source === TelemetrySampleSource.Metrics,
+      data.plan.source,
     );
   }
 
@@ -1057,6 +1072,13 @@ function occurrenceOf(data: {
     if (value) {
       (occurrence as unknown as Record<string, string>)[field] = value;
     }
+  }
+
+  // A log line's own id, which opens that very line: an id, or nothing.
+  const logId: string = readText(data.row["readLogId"]).trim();
+
+  if (SOURCES_WITH_LOG_IDS.has(data.source) && ObjectID.isValidUUID(logId)) {
+    occurrence.logId = logId;
   }
 
   // A metric's point: its metric, masked where it holds data, and its key.

@@ -72,7 +72,18 @@ import LlmConversationService, {
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
-import SpanService from "Common/Server/Services/SpanService";
+import SpanService, {
+  SpanAttributeGroupCountResult,
+} from "Common/Server/Services/SpanService";
+import Span from "Common/Models/AnalyticsModels/Span";
+import {
+  TRACE_GROUP_EXPECTED_LIMIT,
+  TRACE_GROUP_EXPECTED_LOOKBACK_DAYS,
+  TraceGroupBreakdown,
+  TraceGroupExpectedCache,
+  mergeQuietGroups,
+  traceStepCountsQuietGroups,
+} from "Common/Server/Utils/Monitor/TraceGroupAbsence";
 import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   KubernetesAffectedResource,
@@ -1820,6 +1831,21 @@ export const monitorTrace: MonitorTraceFunction = async (data: {
 
   query.projectId = data.projectId;
 
+  const groupByAttributes: Array<string> =
+    MonitorStepTraceMonitorUtil.getGroupByAttributes(traceQuery);
+
+  if (groupByAttributes.length > 0) {
+    return monitorTraceGroups({
+      monitorStep: data.monitorStep,
+      traceQuery: traceQuery,
+      query: query as unknown as Query<Span>,
+      groupByAttributes: groupByAttributes,
+      monitorId: data.monitorId,
+      projectId: data.projectId,
+      evaluateUntil: evaluateUntil,
+    });
+  }
+
   const countTraces: PositiveNumber = await SpanService.countBy({
     query: query,
     limit: LIMIT_PER_PROJECT,
@@ -1835,6 +1861,127 @@ export const monitorTrace: MonitorTraceFunction = async (data: {
     spanQuery: query,
     monitorId: data.monitorId,
     evaluatedUntil: evaluateUntil,
+  };
+};
+
+/*
+ * The grouped half of monitorTrace (#9711): one span count per combination
+ * of the step's group-by attributes' values - one per install of a mobile
+ * app - so the criteria raise one alert per group, as a grouped Logs
+ * monitor's do (monitorLogGroups).
+ *
+ * When a criteria can match a group with no span ("fewer than 1"), the
+ * groups the monitor's spans were in over the week before the window and
+ * not in it are counted too, as 0 (TraceGroupAbsence): a device that
+ * stopped reporting has no span to make a group of. Those come first, so
+ * the per-evaluation cap never cuts one for a busy group. And when none of
+ * the groups sent a span, the whole app went quiet: no group is judged,
+ * and the monitor keeps its status until spans arrive (isQuietWindow).
+ */
+const monitorTraceGroups: (data: {
+  monitorStep: MonitorStep;
+  traceQuery: MonitorStepTraceMonitor;
+  query: Query<Span>;
+  groupByAttributes: Array<string>;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil: Date;
+}) => Promise<TraceMonitorResponse> = async (data: {
+  monitorStep: MonitorStep;
+  traceQuery: MonitorStepTraceMonitor;
+  query: Query<Span>;
+  groupByAttributes: Array<string>;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil: Date;
+}): Promise<TraceMonitorResponse> => {
+  const counted: SpanAttributeGroupCountResult =
+    await SpanService.countByAttributeGroups({
+      query: data.query,
+      groupByAttributes: data.groupByAttributes,
+      limit: MaxEntitiesPerCriteria,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  let expectedGroups: Array<Array<string>> = [];
+
+  if (traceStepCountsQuietGroups(data.monitorStep)) {
+    const windowSeconds: number =
+      data.traceQuery.lastXSecondsOfSpans &&
+      data.traceQuery.lastXSecondsOfSpans > 0
+        ? data.traceQuery.lastXSecondsOfSpans
+        : 60;
+    const windowStart: Date = OneUptimeDate.addRemoveSeconds(
+      data.evaluateUntil,
+      -windowSeconds,
+    );
+    const since: Date = OneUptimeDate.addRemoveDays(
+      windowStart,
+      -TRACE_GROUP_EXPECTED_LOOKBACK_DAYS,
+    );
+
+    // The monitor's own filters, over the week before its window.
+    const lookbackQuery: Query<Span> = { ...data.query };
+    delete lookbackQuery.startTime;
+
+    expectedGroups = await TraceGroupExpectedCache.read({
+      key: JSON.stringify({
+        monitorId: data.monitorId.toString(),
+        groupByAttributes: data.groupByAttributes,
+        query: JSONFunctions.anyObjectToJSONObject(lookbackQuery),
+      }),
+      now: data.evaluateUntil,
+      load: (): Promise<Array<Array<string>>> => {
+        return SpanService.findRecentAttributeGroups({
+          query: lookbackQuery,
+          groupByAttributes: data.groupByAttributes,
+          since: since,
+          until: windowStart,
+          limit: TRACE_GROUP_EXPECTED_LIMIT,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
+  }
+
+  const merged: TraceGroupBreakdown = mergeQuietGroups({
+    groupByAttributes: data.groupByAttributes,
+    windowGroups: counted.groups,
+    windowGroupCount: counted.totalGroupCount,
+    expectedGroups: expectedGroups,
+    limit: MaxEntitiesPerCriteria,
+  });
+
+  // Nothing it expects sent a span: the whole app went quiet, not one device.
+  const isQuietWindow: boolean =
+    counted.totalCount === 0 && merged.quietGroupCount > 0;
+
+  if (merged.totalGroupCount > merged.groups.length && !isQuietWindow) {
+    logger.warn(
+      `${data.monitorId.toString()} - Traces monitor grouped by ${data.groupByAttributes.join(
+        ", ",
+      )} had ${merged.totalGroupCount} groups (${merged.quietGroupCount} of them quiet), above the ${MaxEntitiesPerCriteria} per-evaluation cap. Only ${merged.groups.length} groups are evaluated, the quiet ones first; narrow the monitor's filters to cover the rest.`,
+      {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      },
+    );
+  }
+
+  return {
+    projectId: data.projectId,
+    spanCount: counted.totalCount,
+    spanQuery: data.query,
+    monitorId: data.monitorId,
+    evaluatedUntil: data.evaluateUntil,
+    groupByAttributes: data.groupByAttributes,
+    groupBreakdown: isQuietWindow ? [] : merged.groups,
+    totalGroupCount: merged.totalGroupCount,
+    ...(isQuietWindow ? { isQuietWindow: true } : {}),
   };
 };
 

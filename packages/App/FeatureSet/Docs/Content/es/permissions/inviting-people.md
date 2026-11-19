@@ -43,7 +43,7 @@ Haga clic en **Invitar usuario**. Se abre el diálogo **Invitar a un nuevo usuar
 
 ### Escribir su dirección de correo
 
-Escriba su dirección en **Correo electrónico**. Mientras escribe, **Correo electrónico** sugiere a las personas del proyecto por nombre o dirección, e indica quién está **Invitado** y quién **Ya está en este equipo**: haga clic en una para rellenar su dirección. En un servidor autoalojado, a un administrador maestro también se le ofrecen las demás cuentas del servidor, marcadas como **Aún no está en este proyecto**, y también a quien pueda invitar a personas, una vez que un administrador maestro lo permita en el Admin Dashboard. Para una dirección que escriba usted, el diálogo también pide un **Nombre**, que es opcional: si esa persona aún no tiene cuenta de OneUptime, se creará con ese nombre.
+Escriba su dirección en **Correo electrónico**. Mientras escribe, **Correo electrónico** sugiere a las personas del proyecto por nombre o dirección, e indica quién está **Invitado** y quién **Ya está en este equipo**: haga clic en una para rellenar su dirección. En un servidor autoalojado, a un administrador maestro también se le ofrecen las demás cuentas del servidor, marcadas como **Aún no está en este proyecto**, y también a quien pueda invitar a personas, una vez que un administrador maestro lo permita en el Admin Dashboard. Para una dirección que escriba usted, el diálogo también pide un **Nombre**, que es opcional: si esa persona aún no tiene cuenta de OneUptime, se creará con ese nombre. Hasta que acepte, el proyecto la muestra con ese nombre, o solo con su dirección, nunca con el nombre ni la foto de su propia cuenta. Los formularios de invitación del Admin Dashboard sugieren personas de la misma manera.
 
 ### Elegir su equipo
 
@@ -61,9 +61,9 @@ En un servidor autoalojado que aún no puede enviar correos electrónicos, no sa
 
 ## Aceptar una invitación
 
-El correo de invitación nombra el proyecto y a quien la invitó. Su botón es **Create Your Account** para quien aún no tiene cuenta de OneUptime y **Sign In to OneUptime** para quien ya tiene una.
+El correo de invitación nombra el proyecto y a quien la invitó. Su botón es **Create Your Account** para quien aún no tiene cuenta de OneUptime y **Sign In to OneUptime** para quien ya tiene una. Cuando el SSO vaya a gestionar su inicio de sesión, porque el proyecto gestiona el inicio de sesión de sus personas con SSO y también todos los demás proyectos a los que pertenece, o porque todo el servidor exige SSO, el correo lo dice en su lugar, y su botón es **Sign In with SSO**.
 
-**Create Your Account** abre la página de registro con su dirección y el nombre que usted escribió ya rellenados, y dice qué proyecto la invitó y quién. Registrarse allí la une al proyecto, sin nada más que aceptar.
+**Create Your Account** abre la página de registro con su dirección y el nombre que usted escribió ya rellenados, y dice qué proyecto la invitó y quién. Registrarse allí la une al proyecto, sin nada más que aceptar. **Sign In with SSO** abre la misma página, que ofrece inicio de sesión único en lugar de una contraseña: iniciar sesión allí con uno de los proveedores de identidad del proyecto la une al proyecto.
 
 En un servidor autoalojado que aún no puede enviar correos electrónicos, nadie recibe un correo: el enlace de invitación que recibe en su lugar abre la misma página de registro, o la página de inicio de sesión para quien ya tiene una cuenta.
 
@@ -82,7 +82,7 @@ Al aceptar entra en el proyecto al instante, con los permisos de su equipo y la 
 
 | Columna | Qué muestra |
 | --- | --- |
-| **Usuario** | Su nombre y su dirección de correo. |
+| **Usuario** | Su nombre y su dirección de correo. Hasta que acepte, el nombre que usted escribió para esa persona, si lo hay. |
 | **Equipos** | Cada equipo del proyecto del que forma parte, o al que está invitada. |
 | **Estado** | **Miembro** una vez que se unió, con el número de invitaciones a otros equipos que aún no aceptó. **Invitación enviada** hasta entonces, o **Correo no enviado** cuando el servicio de correo rechazó su último correo de invitación. En un servidor autoalojado que aún no puede enviar correos electrónicos, **Invitado** en su lugar: la invitación se crea, pero no se envía ningún correo. |
 

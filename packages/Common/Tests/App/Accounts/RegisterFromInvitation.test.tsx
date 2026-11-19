@@ -101,7 +101,15 @@ type InvitationAnswer =
   | "none"
   | "error"
   | "throws"
-  | "held";
+  | "held"
+  // #9819: every project they would be in manages sign-in with SSO.
+  | "sso"
+  | "sso-accepted"
+  | "sso-two-providers"
+  | "sso-no-provider";
+
+const OKTA_ID: string = "74300000-0000-4000-8000-000000000001";
+const ENTRA_ID: string = "74300000-0000-4000-8000-000000000002";
 
 let answer: InvitationAnswer = "pending";
 let asked: Array<{ url: string; data: unknown }> = [];
@@ -112,13 +120,31 @@ function invitationAnswer(): JSONObject {
     return { invitation: null };
   }
 
+  const ssoProviders: Array<JSONObject> | null =
+    answer === "sso" || answer === "sso-accepted"
+      ? [{ type: "ProjectSSO", id: OKTA_ID, name: "Okta", description: "" }]
+      : answer === "sso-two-providers"
+        ? [
+            { type: "ProjectSSO", id: OKTA_ID, name: "Okta", description: "" },
+            {
+              type: "ProjectOIDC",
+              id: ENTRA_ID,
+              name: "Entra ID",
+              description: "Use your Walk Co account",
+            },
+          ]
+        : answer === "sso-no-provider"
+          ? []
+          : null;
+
   return {
     invitation: {
       projectId: PROJECT_ID,
       projectName: "Walk Co",
       inviterName: answer === "no-inviter" ? null : "Ada Walker",
       name: "Grace Member",
-      isAccepted: answer === "accepted",
+      isAccepted: answer === "accepted" || answer === "sso-accepted",
+      ssoSignIn: ssoProviders ? { providers: ssoProviders } : null,
     },
   };
 }
@@ -437,6 +463,7 @@ describe("the ask itself", () => {
       inviterName: "Ada Walker",
       name: "Grace Member",
       isAccepted: false,
+      ssoSignIn: null,
     });
   });
 });
@@ -513,5 +540,136 @@ describe("the words, in every language", () => {
         }
       }
     }
+  });
+});
+
+/*
+ * AN INVITATION WHOSE SIGN-IN IS SINGLE SIGN-ON (#9819).
+ *
+ * When every project the person would be in manages sign-in with SSO, a
+ * password is nothing they can set: claiming the account with one is
+ * refused. The page their invitation opens offered a password field all
+ * the same, so they typed one and only then learned to sign in with SSO.
+ * It now offers the project's providers under the same header, says why
+ * there is no password, and starts the provider's sign-in.
+ */
+describe("opened from an invitation whose sign-in is single sign-on", () => {
+  async function renderSsoPage(): Promise<void> {
+    render(
+      <MemoryRouter>
+        <RegisterPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { level: 1, name: "Join Walk Co" });
+  }
+
+  test("offers the project's provider, says why there is no password, and asks for none", async () => {
+    answer = "sso";
+
+    await renderSsoPage();
+
+    expect(screen.getByTestId("register-invitation")).toHaveTextContent(
+      "Ada Walker invited you to join this project on OneUptime. It signs you in with your organization's single sign-on (SSO), so there is no password to create.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Sign in with Okta" }),
+    ).toBeInTheDocument();
+    // No sign-up form: no password, no name, no Sign Up.
+    expect(screen.queryByTestId("password")).toBeNull();
+    expect(screen.queryByTestId("confirmPassword")).toBeNull();
+    expect(screen.queryByTestId("name")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: english.register.joinButton }),
+    ).toBeNull();
+  });
+
+  test("picking the provider starts its sign-in for this project", async () => {
+    answer = "sso";
+
+    await renderSsoPage();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Sign in with Okta" }),
+      );
+    });
+
+    expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    expect(
+      String(jest.mocked(Navigation.navigate).mock.calls[0]![0]),
+    ).toContain(`/sso/${PROJECT_ID}/${OKTA_ID}`);
+    // Nothing was signed up.
+    expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
+  });
+
+  test("two providers are both offered, each as the sign-in pages draw one", async () => {
+    answer = "sso-two-providers";
+
+    await renderSsoPage();
+
+    expect(
+      screen.getByRole("button", { name: /Sign in with Okta/ }),
+    ).toBeInTheDocument();
+    // A provider its admin described is named, the description under it.
+    expect(
+      screen.getByRole("button", { name: /Entra ID/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Use your Walk Co account")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Entra ID/ }));
+    });
+
+    expect(
+      String(jest.mocked(Navigation.navigate).mock.calls[0]![0]),
+    ).toContain(`/oidc/${PROJECT_ID}/${ENTRA_ID}`);
+  });
+
+  test("someone added already is told so, in the same words about SSO", async () => {
+    answer = "sso-accepted";
+
+    await renderSsoPage();
+
+    expect(screen.getByTestId("register-invitation")).toHaveTextContent(
+      "Ada Walker added you to this project on OneUptime. It signs you in with your organization's single sign-on (SSO), so there is no password to create.",
+    );
+  });
+
+  test("a project with no provider turned on says whom to ask, and still offers no password", async () => {
+    answer = "sso-no-provider";
+
+    await renderSsoPage();
+
+    expect(screen.getByTestId("register-sso-no-provider")).toHaveTextContent(
+      english.register.ssoNoProvider,
+    );
+    expect(screen.queryByTestId("password")).toBeNull();
+  });
+
+  test("reads in the reader's language, the names set apart", async () => {
+    answer = "sso";
+    await i18n.changeLanguage("fa");
+
+    await renderSsoPage().catch(() => {
+      // The title is Persian too: found below by its test id instead.
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("register-invitation")).toHaveTextContent(
+        fa.register.ssoInvitedBy.replace("{{inviter}}", "Ada Walker"),
+      );
+    });
+    expect(
+      screen.getByTestId("register-invitation").querySelector("bdi"),
+    ).toHaveTextContent("Ada Walker");
+  });
+
+  test("an ordinary invitation is the sign-up page it always was", async () => {
+    answer = "pending";
+
+    await renderPage();
+
+    expect(screen.getByTestId("password")).toBeInTheDocument();
+    expect(screen.queryByTestId("register-sso-providers")).toBeNull();
   });
 });

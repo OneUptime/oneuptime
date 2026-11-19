@@ -288,8 +288,11 @@ describe("the announcement forms", () => {
     const source: string = readSource(VIEW_FILE);
 
     expect(source).toContain(compact("formSteps={ANNOUNCEMENT_FORM_STEPS}"));
+    // Handed the announcement it edits, which it asks the server about (#9775).
     expect(source).toContain(
-      compact("return getAnnouncementFormFields(AnnouncementFormKind.Edit);"),
+      compact(
+        "return getAnnouncementFormFields(AnnouncementFormKind.Edit, { announcementId: modelId, });",
+      ),
     );
     expect(source).toContain(compact("formFields={formFields}"));
   });
@@ -549,27 +552,53 @@ describe("the announcement forms", () => {
     );
   });
 
-  test("fold their fields with the shared sections, built once", () => {
+  test("fold their fields with the shared sections, one per form", () => {
     const source: string = readSource(FIELDS_FILE);
 
-    for (const [constant, builtWith] of [
-      ["advancedSection", "getAdvancedFormSection<StatusPageAnnouncement>()"],
-      [
-        "createScheduleSection",
-        "getAnnouncementScheduleSection<StatusPageAnnouncement>(AnnouncementFormKind.Create)",
-      ],
-      [
-        "editScheduleSection",
-        "getAnnouncementScheduleSection<StatusPageAnnouncement>(AnnouncementFormKind.Edit)",
-      ],
-    ] as Array<[string, string]>) {
-      const declaration: string = compact(
-        `const ${constant}: FormFieldCollapsibleSection<StatusPageAnnouncement> = ${builtWith};`,
-      );
+    expect(source).toContain(
+      compact(
+        "const advancedSection: FormFieldCollapsibleSection<StatusPageAnnouncement> = getAdvancedFormSection<StatusPageAnnouncement>();",
+      ),
+    );
 
-      expect(`${constant}: ${source.includes(declaration)}`).toBe(
-        `${constant}: true`,
-      );
+    /*
+     * The schedule's section is the rules' (AnnouncementForm), built once
+     * per form for the announcement it asks about (#9775): every field of
+     * it carries the one section, whose line is drawn by a component that
+     * asks the server what the status pages picked do.
+     */
+    expect(source).toContain(
+      compact(
+        "...getAnnouncementScheduleSection<StatusPageAnnouncement>(data.kind),",
+      ),
+    );
+    expect(source).toContain(
+      compact(
+        "const scheduleSection: FormFieldCollapsibleSection<StatusPageAnnouncement> = getScheduleSection({ kind: kind, announcementId: announcementId });",
+      ),
+    );
+
+    for (const fields of [CREATE_FIELDS, EDIT_FIELDS]) {
+      const sections: Array<unknown> = fields
+        .filter((field: ModelField<StatusPageAnnouncement>): boolean => {
+          return Boolean(
+            field.collapsibleSection &&
+              SCHEDULE_SECTIONS.includes(field.collapsibleSection.title),
+          );
+        })
+        .map((field: ModelField<StatusPageAnnouncement>): unknown => {
+          return field.collapsibleSection;
+        });
+
+      expect(sections.length).toBeGreaterThan(1);
+      expect(new Set(sections).size).toBe(1);
+      expect(
+        typeof (
+          sections[0] as {
+            getSummaryElement?: unknown;
+          }
+        ).getSummaryElement,
+      ).toBe("function");
     }
 
     // The section always starts folded: its line says what is set.

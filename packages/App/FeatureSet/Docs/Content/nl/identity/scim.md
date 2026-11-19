@@ -454,7 +454,7 @@ Gebruikers die SCIM zelf aanmaakt en gebruikers die lid zijn van uw project word
 Met het e-mailadres van een OneUptime-account meldt die persoon zich aan bij elk project waartoe deze behoort, en op dat adres komen de links voor het opnieuw instellen van het wachtwoord binnen. Daarom:
 
 - **OneUptime Cloud**: SCIM wijzigt nooit een e-mailadres. Een verzoek dat er een zou wijzigen, slaagt toch: de verbinding houdt het adres dat uw identiteitsprovider stuurde en antwoordt ermee, terwijl het account het adres houdt waarmee de persoon zich aanmeldt. De SCIM-logboeken van de verbinding vermelden dat de wijziging niet is toegepast. Vraag de gebruiker het adres zelf te wijzigen via het eigen OneUptime-profiel.
-- **Zelf gehost**: SCIM wijzigt het e-mailadres alleen van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen houdt de verbinding het nieuwe adres en het account zijn eigen adres, zoals op OneUptime Cloud.
+- **Zelf gehost**: SCIM wijzigt het e-mailadres alleen van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen houdt de verbinding het nieuwe adres en het account zijn eigen adres, zoals op OneUptime Cloud. Hetzelfde geldt voor een adres waarmee een ander OneUptime-account zich al aanmeldt.
 
 Voor namen geldt overal dezelfde regel: SCIM werkt de naam alleen bij van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen blijft de naam zoals hij is, en de rest van het verzoek slaagt gewoon.
 :::

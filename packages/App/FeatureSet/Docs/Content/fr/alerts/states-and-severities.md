@@ -129,9 +129,9 @@ Archivez un état ou une gravité que votre équipe ne doit plus utiliser, au li
 
 | Moyen                      | Où                                                                                        | Ce qui est demandé                                                                                                                   |
 | -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Boutons de l'en-tête**   | L'en-tête de l'alerte : **Prendre en compte**, **Résoudre**, et **Changer l'état en** dans son menu **⋯** | Une courte confirmation, **Prendre en compte l'alerte**, **Résoudre l'alerte** ou **Marquer l'alerte comme {{state}}**, avec une note facultative sous **Ajouter une note privée**. |
+| **Boutons de l'en-tête**   | L'en-tête de l'alerte : **Prendre en compte**, **Résoudre**, et **Changer l'état en** dans son menu **⋯** | Une courte confirmation, **Prendre en compte l'alerte**, **Résoudre l'alerte** ou **Marquer l'alerte comme {{state}}**, avec une note facultative sous **Ajouter une note privée**. Une résolution replie aussi une cause racine facultative sous **Ajouter la cause racine**. |
 | **Chronologie d'état**         | **Chronologie d'état** dans le menu latéral de l'alerte                                   | Une ligne que vous ajoutez à la main, avec **Statut de l'alerte** et **Commence le**.                                                 |
-| **Ligne de la liste** | Le menu **⋯** sur la ligne d'une alerte dans la liste des alertes : **Prendre en compte**, **Résoudre** et **Modifier l'état** | La confirmation de l'en-tête, qui nomme l'alerte. Une alerte qu'un autre changement a déjà fait avancer est laissée telle quelle, et la boîte de dialogue dit pourquoi. |
+| **Ligne de la liste** | Le menu **⋯** sur la ligne d'une alerte dans la liste des alertes : **Prendre en compte**, **Résoudre** et **Modifier l'état** | La confirmation de l'en-tête, qui nomme l'alerte. Une alerte qu'un autre changement a déjà fait avancer est laissée telle quelle, et la boîte de dialogue dit pourquoi. Elle ne demande pas la cause racine. |
 | **Changement groupé**      | **Prendre en compte**, **Résoudre** ou **Modifier l'état** sur une sélection dans la liste des alertes                           | L'état, et une note privée ajoutée à chaque alerte. Les alertes déjà dans cet état ou au-delà sont ignorées.                          |
 | **Automatiquement**        | Un moniteur, un épisode, un incident lié ou votre propre code                             | **Résoudre automatiquement l'alerte** dans les critères d'un moniteur, le changement d'état d'un épisode, les interrupteurs d'incident de [Alertes liées](/docs/incidents/linked-alerts), ou une ligne créée sur `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Une alerte est résolue quand elle passe dans votre état résolu, ou dans n'imp
 - **Son moniteur peut lever une nouvelle alerte.** Un critère garde une seule alerte ouverte à la fois ; une fois celle-ci résolue, la correspondance suivante en ouvre une autre.
 
 Passer de **Résolu** à un état suivant, « Fermé » par exemple, ne change rien à tout cela : l'alerte était déjà résolue.
+
+## Saisir la cause racine en résolvant
+
+Quand l'en-tête de l'alerte la résout, avec **Résoudre** ou avec **Changer l'état en** un état résolu, la confirmation replie une **Cause racine** facultative sous **Ajouter la cause racine** : pourquoi elle s'est produite. Ce que vous y écrivez devient la cause racine de l'alerte, comme si vous l'aviez saisi sur sa page **Cause racine**, et l'investigation de l'alerte par OneUptime AI est évaluée par rapport à elle (voir [Comment OneUptime AI s'en sort](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort)). Si vous la laissez vide, l'alerte est résolue comme avant et garde la cause racine qu'elle a.
+
+La saisir demande la permission de modifier l'alerte, en plus de celle de changer son état : à qui ne l'a pas, **Ajouter la cause racine** n'est pas proposé, et un changement d'état qu'il envoie avec une cause racine est refusé en entier, si bien que l'alerte garde son état. Par l'API, envoyez-la avec la ligne que vous créez à `/api/alert-state-timeline`, en tant que `writtenRootCause` dans `miscDataProps`.
 
 ## La chronologie d'état
 

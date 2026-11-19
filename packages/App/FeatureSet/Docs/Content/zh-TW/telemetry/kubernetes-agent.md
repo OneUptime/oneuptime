@@ -9,6 +9,7 @@ OneUptime Kubernetes 代理程式是一個 Helm chart，它會收集叢集的指
 - [安裝代理程式](#安裝代理程式): 使用 Helm 的四個步驟。
 - [作為 Amazon EKS 附加元件安裝](#作為-amazon-eks-附加元件安裝): 從 EKS 主控台安裝，不需要 Helm。
 - [OpenShift](#openshift): 預設集、它建立的安全性內容限制，以及 OpenShift 本身的警示。
+- [叢集強化](#叢集強化): Pod 安全性標準和 CIS Benchmark 分數，以及代理程式本身的權限。
 - [設定選項](#設定選項): 篩選器、取樣、控制平面、服務網格、成本和標籤。
 - [Kubernetes AI 代理程式](#kubernetes-ai-代理程式): 供 OneUptime AI 使用的唯讀 `kubectl`，以及在你允許時進行的修正。
 - [減少傳送量](#減少收集的資料量): 依影響大小排列的調整手段。
@@ -267,6 +268,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | Kubernetes 事件 | 來自每個命名空間、每種物件的每個事件（Warning 和 Normal）：請參閱 [Kubernetes 事件](#kubernetes-事件) |
 | Pod 日誌 | 每個容器的 stdout 和 stderr（標準叢集上透過 `hostPath`，Autopilot 和 Fargate 上透過 Kubernetes API） |
 | OpenShift 物件（OpenShift 預設集） | ClusterOperator、ClusterVersion、Route、DeploymentConfig 和 Service：請參閱 [OpenShift](#openshift) |
+| RBAC、服務帳戶和 NetworkPolicy | Role、ClusterRole 及其繫結、ServiceAccount 和 NetworkPolicy，唯讀，每隔 `resourceSpecs.interval` 讀取一次，用於為叢集強化評分：請參閱 [叢集強化](#叢集強化)。從不讀取任何 Secret |
 | 應用程式追蹤（eBPF，預設開啟） | 來自每個 Pod 的 HTTP、gRPC、SQL 和 Redis Span，不需 SDK 或修改程式碼 |
 | HTTP RED 指標（eBPF） | 每個服務的 `http.server.request.duration`，以及要求和回應的本文大小 |
 | 服務圖（eBPF） | 呼叫端到被呼叫端的要求速率、延遲和錯誤邊，用於繪製服務地圖 |
@@ -311,6 +313,49 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.namespace.name` | `default` |
 
 可以在 **日誌** 中搜尋它們，或用捨棄過濾器捨棄不需要的事件。要在事件發生時收到通知，請在叢集的 **建議** 頁面開啟 **Warning Events**，或在其 **事件** 頁面底部選取 **開啟警告警示**：這是一個針對叢集警告的 [日誌監測器](/docs/monitor/logs-monitor)，每個物件和原因一則警示，5 分鐘內沒有新的相關警告即自動解決。只想收到部分原因的通知時，請在其篩選條件中加入 `k8s.event.reason`。
+
+## 叢集強化
+
+叢集的 **合規性** 頁面（在 **安全性** 下）會在其 **叢集強化** 區段中依據三個框架為叢集本身評分。它讀取的是代理程式已經傳送的資料：叢集的 Pod 和命名空間，以及用於 CIS Benchmark 的 RBAC、服務帳戶和 NetworkPolicy。只要代理程式回報了叢集的 Pod，叢集的選單中就會顯示此頁面，無論叢集上是否執行著資料庫。
+
+| 框架 | 評分對象 |
+| --- | --- |
+| **Pod 安全性標準：Baseline** | 叢集上執行的每個工作負載，依據叢集 Kubernetes 版本的 Baseline 策略評估：特權容器、主機的命名空間、連接埠和路徑、新增的 capability，以及該策略列出的其他所有欄位，皆從每個 Pod 的規格中讀取 |
+| **Pod 安全性標準：Restricted** | 同樣的工作負載，依據 Restricted 策略評估：Baseline 的各項控制項，外加只使用它允許的磁碟區類型、以非 root 使用者執行、禁止權限提升、使用 seccomp 設定檔，以及移除所有 capability |
+| **CIS Kubernetes Benchmark v2.0** | 第 5 節中 Kubernetes API 能夠判斷的 27 個控制項：授予 cluster-admin、Secret、`nodes/proxy` 以及其控制項列出的其他權限的角色繫結、含萬用字元的角色、預設服務帳戶、每個命名空間中的 Pod Security Admission 或策略引擎、NetworkPolicy，以及每個 Pod 執行的內容 |
+
+每個框架的圖塊會顯示其分數，以及它評估了多少個工作負載、其中有多少個未通過。其控制項會先列出未通過的項目：每一項都會說明發現了什麼問題以及如何修正，並列出未通過該項的工作負載、角色、角色繫結、服務帳戶或命名空間，每一個都連結到其頁面，並具體到容器或磁碟區以及欄位，例如 `securityContext.privileged`。如果資料安全為叢集上執行的資料庫評分，這些資料庫仍會顯示在下方的 **此叢集上的資料庫** 中。
+
+Pod 安全性標準會依叢集本身的 Kubernetes 版本評分，也就是叢集中最新的 kubelet 的版本，最高到 OneUptime 已知的最新版本。較新版本新增的控制項只從該版本起計入，頁面也會說明評分所依據的版本。
+
+該基準的其餘 104 個控制項檢查的是節點的檔案和 kubelet，或控制平面的命令列旗標，或者需要人工審查。沒有任何 API 能判斷它們，因此它們會依原因分組列在 **不在此處評分** 下，既不算通過，也不算未通過。在 EKS、GKE 或 AKS 等代管控制平面上，頁面會說明這些控制項以供應商的基準為準。
+
+### 關閉框架、控制項或命名空間
+
+關閉不適用於叢集的項目。每個開關都只屬於該叢集，關閉時會詢問原因，頁面會記錄是誰、在何時、因何關閉的：
+
+- 框架的 **適用於此處** 開關會將叢集排除在該框架之外。該框架會摺疊到 **已關閉** 下，並附有重新開啟它的開關。
+- 控制項的開關會將該控制項排除在叢集的分數之外。
+- 每個框架下的命名空間開關會將該命名空間中的所有內容排除在該框架之外，就像 Pod Security Admission 豁免命名空間一樣。
+
+### 匯出框架
+
+**匯出 CSV** 和 **匯出 JSON** 會下載框架的報告：每個控制項、是否通過、哪些物件未通過以及如何修正，還有評分所依據的 Kubernetes 版本。
+
+### 代理程式為此讀取的內容
+
+`resourceSpecs.compliance`（預設開啟）每隔 `resourceSpecs.interval` 讀取一次 Role、ClusterRole 及其繫結、ServiceAccount 和 NetworkPolicy，對它們只使用 `get`、`list` 和 `watch`，別無其他。它從不讀取任何 Secret：ServiceAccount 只會列出其權杖 Secret 的名稱，而 OneUptime 連這些名稱也會捨棄。關閉它（`--set resourceSpecs.compliance=false`）後，該基準的 RBAC、服務帳戶和 NetworkPolicy 控制項會顯示為 *未評估*，而 Pod 安全性標準仍會根據 Pod 評分。
+
+### 代理程式本身的權限
+
+代理程式會透過 kubelet 為其各個路徑授權時所用的子資源讀取每個 kubelet：統計資料用 `nodes/stats`，cAdvisor 用 `nodes/metrics`，節點的 Pod 清單用 `nodes/pods`（kubelet 從 Kubernetes 1.33 起才允許這樣讀取）。`nodes/proxy` 可以存取整個 kubelet API，而 CIS 5.1.10 會判定授予它的角色繫結未通過，因此代理程式只在更窄的權限都行不通時才授予它：
+
+| 值 | 代理程式何時授予 `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto`（預設）會在叢集執行早於 1.36 的 Kubernetes 時授予它，因為這類叢集的 kubelet 可能早於 1.33，只有憑 `nodes/proxy` 才能列出節點的 Pod。所有節點都執行 1.33 或更新版本後，請設為 `false`；對於關閉了 `KubeletFineGrainedAuthz` 的 kubelet，請設為 `true` |
+| `cost.prometheus.nodesProxy` | `auto`（預設）只在 `eks-fargate` 預設集上授予它：該預設集上沒有 Pod 能存取節點的 kubelet，用於成本的 Prometheus 會透過 API 伺服器讀取 cAdvisor。在其他所有地方，它會透過連接埠 10250 讀取每個節點的 kubelet |
+
+當代理程式本身的角色繫結未通過 5.1.10 時，頁面會說明該角色繫結屬於代理程式、它為什麼授予 `nodes/proxy`，以及移除它的值。
 
 ## 設定選項
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 請不要使用 `--reuse-values`：它也會保留你升級前那個 chart 的預設值，因此新 chart 的預設值（包括其 eBPF 映像檔）永遠不會生效。當某個發行版本使用的是舊 chart 的預設值時，Helm 在安裝或升級後輸出的說明最後會出現一則警告，以及修正它的指令。
 
 如果升級以 `namespaces "<name>" not found` 失敗，表示 `aiAgent.remediation.namespaces`（或較舊的 `aiAccess.remediation.namespaces`）列出了一個不存在（或已不再存在）的命名空間：chart 會在每個列出的命名空間中放置一個 RoleBinding，但從不建立命名空間。請建立該命名空間，或用移除該命名空間的清單進行升級（`--set "aiAgent.remediation.namespaces={web}"`），或使用 `--set-json 'aiAgent.remediation.namespaces=[]'` 恢復為整個叢集範圍的繫結。在 `--reuse-values` 下，`--set aiAgent.remediation.namespaces=null` 不會重設已儲存的清單，因此會以同樣的錯誤失敗。
+
+> **CIS Benchmark 的 RBAC 控制項需要升級後的代理程式。** `resourceSpecs.compliance` 推出之前的代理程式不會傳送 RBAC、服務帳戶或 NetworkPolicy，因此叢集的 **合規性** 頁面會顯示該基準的 RBAC、服務帳戶和 NetworkPolicy 控制項為 *未評估*，並說明如何解決。請在開啟 `resourceSpecs.compliance` 的情況下升級代理程式（它預設即為開啟）：這需要 Collector 0.125.0 或更新版本。升級後，在沒有節點需要 `nodes/proxy` 的地方也不再授予它：請參閱 [代理程式本身的權限](#代理程式本身的權限)。
 
 > **eBPF Span 指標有了新名稱。** `ebpf.features.spanMetrics` 現在會傳送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），而不是 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：同樣的序列，使用 OBI 保留的名稱（它已淘汰舊名稱）。以舊名稱為基礎的儀表板、圖表或指標監測器在升級後不會再收到新資料，也不會報錯——請將它改用新名稱，並更新任何引用舊名稱的 `filters.metrics` 項目。
 

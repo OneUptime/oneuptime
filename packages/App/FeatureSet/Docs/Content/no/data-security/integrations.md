@@ -143,6 +143,8 @@ Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er e
 | `/data-store/<id>/scan-now` | **Skann nå**: tar stikkprøver av innholdet i datalageret nå |
 | `/data-store/<id>/check-now` | **Kontroller nå**: leser konfigurasjonen til datalageret på nytt og kjører kontrollene |
 | `/data-store-finding/<id>/scrub` | **Rens** på et telemetrifunn |
+| `/data-store-finding/<id>/drop-metric-impact` | Hva **Forkast denne målingen** ville forkaste for et funn i navnet til en måling: hvor mange målinger, og monitorene og dashbordene som leser dem |
+| `/data-store-finding/<id>/drop-metric` | **Forkast denne målingen**: en pipelineregel for målinger som for godt forkaster de nye datapunktene fra disse målingene til tjenesten. Den tar `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Forklar med AI** på et problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Fiks med AI** på et problem |
 | `/data-store/<id>/response-actions` | Hvilke responshandlinger datalageret kan utføre nå, og hvorfor ikke |

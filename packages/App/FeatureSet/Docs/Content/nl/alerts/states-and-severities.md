@@ -129,9 +129,9 @@ Archiveer een status of ernst die uw team niet meer moet gebruiken, in plaats va
 
 | Manier               | Waar                                                                                      | Wat er wordt gevraagd                                                                                                                |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knoppen in de kop** | De kop van de waarschuwing: **Bevestigen**, **Oplossen** en **Status wijzigen naar** in het menu **⋯** | Een korte bevestiging, **Waarschuwing bevestigen**, **Waarschuwing oplossen** of **Waarschuwing markeren als {{state}}**, met een optionele notitie onder **Privénotitie toevoegen**. |
+| **Knoppen in de kop** | De kop van de waarschuwing: **Bevestigen**, **Oplossen** en **Status wijzigen naar** in het menu **⋯** | Een korte bevestiging, **Waarschuwing bevestigen**, **Waarschuwing oplossen** of **Waarschuwing markeren als {{state}}**, met een optionele notitie onder **Privénotitie toevoegen**. Bij oplossen is ook een optionele hoofdoorzaak ingeklapt onder **Hoofdoorzaak toevoegen**. |
 | **Statustijdlijn**   | **Statustijdlijn** in het zijmenu van de waarschuwing                                     | Een rij die je met de hand toevoegt, met **Waarschuwingsstatus** en **Begint op**.                                                    |
-| **Rij in de lijst** | Het menu **⋯** op de rij van een waarschuwing in de lijst met waarschuwingen: **Bevestigen**, **Oplossen** en **Status wijzigen** | De bevestiging uit de kop, met de naam van de waarschuwing. Een waarschuwing die een andere wijziging intussen verder heeft gezet, blijft zoals ze is, en het venster zegt waarom. |
+| **Rij in de lijst** | Het menu **⋯** op de rij van een waarschuwing in de lijst met waarschuwingen: **Bevestigen**, **Oplossen** en **Status wijzigen** | De bevestiging uit de kop, met de naam van de waarschuwing. Een waarschuwing die een andere wijziging intussen verder heeft gezet, blijft zoals ze is, en het venster zegt waarom. Die vraagt niet om de hoofdoorzaak. |
 | **Bulkwijziging**    | **Bevestigen**, **Oplossen** of **Status wijzigen** op een selectie in de lijst met waarschuwingen                        | De status, en één privénotitie die aan elke waarschuwing wordt toegevoegd. Waarschuwingen die al in of na die status staan, worden overgeslagen. |
 | **Automatisch**      | Een monitor, een episode, een gekoppeld incident of je eigen code                         | **Waarschuwing automatisch oplossen** in de criteria van een monitor, een statuswijziging van een episode, de incidentschakelaars op [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts) of een rij die wordt aangemaakt via `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Een waarschuwing is opgelost wanneer ze naar je opgeloste status gaat, of naar e
 - **Haar monitor kan een nieuwe waarschuwing aanmaken.** Een criterium houdt één open waarschuwing tegelijk aan; zodra die is opgelost, opent de volgende overeenkomst een nieuwe.
 
 Doorgaan van **Opgelost** naar een status daarna, "Gesloten" bijvoorbeeld, verandert hier niets aan: de waarschuwing was al opgelost.
+
+## De hoofdoorzaak invullen bij het oplossen
+
+Wanneer de kop van de waarschuwing haar oplost, met **Oplossen** of met **Status wijzigen naar** een opgeloste status, klapt de bevestiging een optionele **Hoofdoorzaak** in onder **Hoofdoorzaak toevoegen**: waarom het gebeurde. Wat je daar schrijft, wordt de hoofdoorzaak van de waarschuwing, alsof je het op haar pagina **Hoofdoorzaak** had ingevuld, en het onderzoek van OneUptime AI naar de waarschuwing wordt eraan getoetst (zie [Hoe goed OneUptime AI het doet](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet)). Laat je het leeg, dan wordt de waarschuwing opgelost zoals voorheen en houdt ze de hoofdoorzaak die ze heeft.
+
+Om hem in te vullen heb je toestemming nodig om de waarschuwing te bewerken, naast die om haar status te wijzigen: wie die niet heeft, krijgt **Hoofdoorzaak toevoegen** niet aangeboden, en een statuswijziging die zo iemand met een hoofdoorzaak verstuurt, wordt helemaal geweigerd, zodat de waarschuwing haar status houdt. Via de API stuur je hem mee met de rij die je aanmaakt op `/api/alert-state-timeline`, als `writtenRootCause` in `miscDataProps`.
 
 ## De statustijdlijn
 

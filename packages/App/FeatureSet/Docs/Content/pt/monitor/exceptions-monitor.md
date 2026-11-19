@@ -49,7 +49,7 @@ Em **Exceções a observar**, defina **A mensagem contém**, **Tipos de exceçã
 
 ### Refinar (opcional)
 
-Abra **Mais campos** para filtrar por serviço de telemetria ou entidade de infraestrutura, ou para contar também as exceções resolvidas e arquivadas.
+Abra **Mais campos** para filtrar por serviço de telemetria ou entidade de infraestrutura, para contar somente as exceções não tratadas ou deixar alguns tipos de fora, ou para contar também as exceções resolvidas e arquivadas.
 
 ### Dizer quando alertar
 
@@ -74,6 +74,8 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Janela de tempo** (em **Quando alertar**) | Exceções dos últimos 5 segundos até as últimas 24 horas. | **Últimos 5 minutos** |
 | **Filtrar por serviço** (em **Mais campos**) | Exceções de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Exceções de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
+| **Somente exceções não tratadas** (em **Mais campos**) | Só as exceções que nada capturou, como uma falha: as que o explorador de exceções marca como **Não tratado**. Uma exceção que não diz se foi capturada conta como tratada. | Desativado |
+| **Deixar de fora tipos de exceção** (em **Mais campos**) | Todas as exceções, menos as destes tipos, separados por vírgulas, como `ANR, Hang`. O nome do tipo precisa corresponder exatamente. Um tipo listado aqui fica de fora mesmo quando **Tipos de exceção** também o lista. | Vazio: nenhum tipo fica de fora |
 | **Incluir Exceções Resolvidas** (em **Mais campos**) | Contar também as exceções marcadas como resolvidas. | Desativado |
 | **Incluir Exceções Arquivadas** (em **Mais campos**) | Contar também as exceções arquivadas. | Desativado |
 
@@ -103,6 +105,17 @@ Ao criar o monitor pela API, defina `environments` no `exceptionMonitor` da etap
 }
 ```
 
+Pela API, **Somente exceções não tratadas** é `unhandledOnly` e **Deixar de fora tipos de exceção** é `excludedExceptionTypes`, uma lista de nomes de tipo. A recomendação **App Crashes** de um aplicativo móvel define os dois, para contar as falhas dele e não os travamentos:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Como ele é avaliado
 
 - **A cada minuto.** Um monitor de exceções não é verificado por sondas, por isso não tem intervalo para configurar nem página **Sondas e intervalo**.
@@ -116,7 +129,7 @@ Cada mudança de status, com o motivo, fica registrada na **Linha do tempo de st
 
 ## Critérios
 
-Os critérios de um monitor de exceções têm quatro opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **Exceções novas**, **Exceções com regressão** e **Aumento de exceções (em %)**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
+Os critérios de um monitor de exceções têm seis opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **Exceções novas**, **Exceções com regressão**, **Aumento de exceções (em %)**, **Sessões com exceções (em %)** e **Sessões**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
 
 | Condição do filtro | Corresponde quando a contagem de exceções está… |
 | --- | --- |
@@ -160,6 +173,17 @@ Além de quantas exceções aconteceram, um monitor de exceções pode alertar s
 | **Aumento de exceções (em %)** | Quanto o número de exceções correspondentes está acima do habitual: o dia anterior à janela, por janela da mesma duração, no mínimo uma. Dez exceções depois de um dia calmo dão 900%. |
 
 Exceções novas e que voltaram são filtradas por serviço, tipo de exceção, ambiente e mensagem, e também por entidade de infraestrutura: uma exceção conta quando uma das suas ocorrências na janela veio de uma das entidades escolhidas.
+
+## Uma parcela das sessões
+
+Um aplicativo em milhares de celulares sempre tem algumas falhas, então o que a equipe dele quer saber é quando a taxa sobe. Para um aplicativo cujos spans trazem `session.id`, como um aplicativo móvel, um monitor de exceções pode alertar sobre a parcela das sessões em que aconteceu uma exceção. Os dois tipos de filtro só são lidos quando um critério os verifica.
+
+| Tipo de filtro | O que ele lê na janela |
+| --- | --- |
+| **Sessões com exceções (em %)** | A parcela das sessões da janela em que aconteceu uma exceção correspondente. Sem nenhuma sessão na janela não há parcela, e nenhum critério sobre ela corresponde. |
+| **Sessões** | As sessões da janela: os `session.id` distintos dos spans dos serviços do monitor. Combine este filtro com a parcela, para que a parcela de poucas sessões não alerte. |
+
+Com **Somente exceções não tratadas** ativado e os tipos `ANR` e `Hang` deixados de fora, a parcela é a taxa de falhas de um aplicativo móvel. A recomendação **App Crash Rate** de um aplicativo móvel alerta quando mais de 1,09% das sessões de uma hora têm uma falha, a taxa que o Android vitals considera mau comportamento, desde que a hora tenha pelo menos 250 sessões. **App ANR Rate** conta só `ANR` e `Hang`, acima de 0,47%. Para escrever uma regra assim você mesmo, escolha **Uma parcela das sessões** em **Alertar sobre** de **Quando alertar**.
 
 ## Picos em relação ao normal
 

@@ -96,7 +96,13 @@ import {
   WHY_OPENED_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
 import { RESPONSE_STEPS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsCopy";
-import { SECURITY_DETECTION_MATCHED_EVENTS_MAX } from "Common/Types/SecurityCase/SecurityDetectionMatchedEvents";
+import {
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
+  SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+  getSecurityDetectionMatchedEventsShare,
+} from "Common/Types/SecurityCase/SecurityDetectionMatchedEvents";
+import { DETECTION_MAX_GROUPS_PER_EVALUATION } from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import { THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
@@ -707,6 +713,23 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(work).toContain(
       `A detection keeps up to ${SECURITY_DETECTION_MATCHED_EVENTS_MAX} of the events it matched when it fires, and lists those, even once they are past their retention`,
+    );
+    /*
+     * One firing's budget, shared by every group it fires for (#9795): the
+     * most groups a run or a feed's check opens each keep their share.
+     */
+    const fewest: number = Math.min(
+      getSecurityDetectionMatchedEventsShare(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      ).maxEvents,
+      getSecurityDetectionMatchedEventsShare(
+        THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION,
+      ).maxEvents,
+    );
+
+    expect(SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX).toBe(1000);
+    expect(work).toContain(
+      `A rule that fires for many groups at once, a correlation rule too, keeps events for every one of them: at most 1,000 in all, so each keeps at least ${fewest}, and up to ${SECURITY_DETECTION_MATCHED_EVENTS_MAX} as it fires again.`,
     );
     expect(work).toContain(
       "the log line it came from opens in the Logs explorer at that line",

@@ -178,9 +178,9 @@ Det finns fem sätt som en incident byter tillstånd på:
 
 | Sätt                | Var                                                                                         | Vad det frågar efter                                                                                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knappar i rubriken** | Incidentens rubrik: **Bekräfta** och **Lös**, och **Ändra tillstånd till** i dess meny **⋯**  | En kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällt under **Lägg till en offentlig anteckning**, den valfria **Offentlig anteckning** med väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). |
+| **Knappar i rubriken** | Incidentens rubrik: **Bekräfta** och **Lös**, och **Ändra tillstånd till** i dess meny **⋯**  | En kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällt under **Lägg till en offentlig anteckning**, den valfria **Offentlig anteckning** med väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). En lösning fäller även ihop en valfri rotorsak under **Lägg till rotorsaken**. |
 | **Tillståndstidslinje** | **Tillståndstidslinje** i incidentens sidomeny                                          | En rad som läggs till för hand, med **Incidentstatus**, **Börjar den** och **Meddela statussideprenumeranter**.                                                                                             |
-| **Rad i listan** | Menyn **⋯** på en incidents rad i listan över incidenter: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med incidentens namn. En incident som en annan ändring har flyttat under tiden lämnas som den är, och dialogen säger varför. |
+| **Rad i listan** | Menyn **⋯** på en incidents rad i listan över incidenter: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med incidentens namn. En incident som en annan ändring har flyttat under tiden lämnas som den är, och dialogen säger varför. Den frågar inte efter rotorsaken. |
 | **Massändring**     | **Bekräfta**, **Lös** eller **Ändra tillstånd** på ett urval i listan över incidenter                                   | En sida med tillståndet, **Meddela statussideprenumeranter** och samma hopfällda **Lägg till en offentlig anteckning**.                                                                                     |
 | **Automatiskt**     | Ett monitorkriterium eller din egen kod                                                     | Ett kriterium med **Lös incident automatiskt** påslaget löser sin incident när kriteriet inte längre uppfylls. API:t ändrar tillståndet genom att skapa en rad på `/api/incident-state-timeline`.            |
 
@@ -208,6 +208,12 @@ En incident är löst när den går från ett tillstånd ovanför ditt lösta ti
 - **Markerar SLA:n som löst** och skriver, när OneUptime AI:s utkast till efteranalyser är påslagna, ett utkast till en efteranalys.
 
 Att gå vidare från **Löst** till ett senare tillstånd — **Closed** till exempel — är inte en andra lösning: inget av detta körs igen, och ingen ny SLA startar. En incident som deklarerades innan OneUptime började registrera detta släpper sina monitorer vid sin nästa lösning, som tidigare.
+
+## Ange rotorsaken när du löser
+
+När incidentens rubrik löser den, med **Lös** eller med **Ändra tillstånd till** ett löst tillstånd, fäller bekräftelsen ihop en valfri **Rotorsak** under **Lägg till rotorsaken**: varför den inträffade. Det du skriver där blir incidentens rotorsak, som om du hade skrivit det på dess sida **Rotorsak**, och OneUptime AI:s utredning av incidenten jämförs med det (se [Hur bra OneUptime AI klarar sig](/docs/ai/ai-sre#hur-bra-oneuptime-ai-klarar-sig)). Lämnar du det tomt löses incidenten som tidigare och behåller den rotorsak den har.
+
+Att ange den kräver behörighet att redigera incidenten, utöver behörigheten att ändra dess tillstånd: den som saknar den erbjuds inte **Lägg till rotorsaken**, och en tillståndsändring som den personen skickar med en rotorsak avvisas helt, så incidenten behåller sitt tillstånd. Via API:et skickar du den med raden du skapar på `/api/incident-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tillståndstidslinjen
 

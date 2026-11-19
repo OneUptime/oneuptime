@@ -638,6 +638,25 @@ kubeletstats:
   # you do not watch PVC disk space.
   volumeMetrics:
     enabled: true
+  # Whether the agent's ClusterRole grants nodes/proxy, for the receiver to
+  # read each node's pod list from its kubelet (/pods): each container's
+  # ID, each volume's claim, and the requests and limits the utilization
+  # metrics above divide by. A kubelet that refuses the list gets nothing
+  # sent from its node at all.
+  #
+  # A kubelet from Kubernetes 1.33 on lets the receiver read the list with
+  # nodes/pods, which the ClusterRole always grants. An older one asks for
+  # nodes/proxy, which reaches the whole kubelet API - running commands in
+  # the node's containers included - and fails CIS Kubernetes Benchmark
+  # 5.1.10, as the cluster's Compliance page says.
+  #
+  #   auto  (the default) grant it while the cluster runs Kubernetes older
+  #         than 1.36, as Helm reads its version: a kubelet may be three
+  #         minor versions older than the API server, so only from 1.36 is
+  #         every kubelet 1.33 or later.
+  #   false never: once every node runs Kubernetes 1.33 or later.
+  #   true  always: kubelets that run with KubeletFineGrainedAuthz off.
+  nodesProxy: auto
 
 # Scrape the kubelet's cAdvisor endpoint (`/metrics/cadvisor`) for the
 # container-level metrics that the kubeletstats receiver doesn't
@@ -893,12 +912,26 @@ cost:
   # Minimal Prometheus for the bundled engine — OpenCost hard-requires a
   # PromQL endpoint for usage/price history; this one exists solely for
   # that. Single replica, short retention, scrapes exactly two targets
-  # (cAdvisor via the API-server node proxy, keeping only the series in
+  # (cAdvisor from each node's kubelet, keeping only the series in
   # cadvisorMetricsAllowlist below, and OpenCost itself — which emits its
   # own KSM-style request metrics, so no kube-state-metrics is needed).
   # Deployed only alongside the bundled engine; never scraped into
   # OneUptime and never reachable outside the cluster.
   prometheus:
+    # How it reads each node's cAdvisor. From the node's kubelet
+    # (https://<node>:10250/metrics/cadvisor), the kubelet authorizes it as
+    # nodes/metrics. Through the API server's node proxy, it needs
+    # nodes/proxy, which reaches the whole kubelet API and fails CIS
+    # Kubernetes Benchmark 5.1.10.
+    #
+    #   auto  (the default) through the API server on the eks-fargate
+    #         preset, where no pod reaches a node's kubelet; from the
+    #         kubelet everywhere else.
+    #   true  through the API server: where the network keeps pods from
+    #         the nodes' port 10250, or on an EKS cluster that runs some of
+    #         its pods on Fargate, whose usage is read no other way.
+    #   false from the kubelet.
+    nodesProxy: auto
     image:
       repository: quay.io/prometheus/prometheus
       # Prometheus 3. Its scrape config and flags (templates/prometheus-cost.yaml)

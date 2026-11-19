@@ -42,7 +42,7 @@ Todo o resto está no painel.
 :::
 
 :::details Posso confirmar um acionamento pela notificação?
-Não. Toque na notificação: o aplicativo abre o incidente, o alerta, o episódio ou o caso de segurança de que ela trata, no projeto certo, e você o confirma ali. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
+Sim. Toque e segure a notificação no iPhone, ou expanda-a no Android: um acionamento de plantão oferece **Acknowledge** e **Escalate**, um acionamento que só mantém você informado oferece **I've seen it**, e um acionamento de teste oferece **Acknowledge test page**. Cada ação abre o aplicativo no registro assim que o celular é desbloqueado e faz o que o próprio botão do registro faz; antes de escalar, pergunta. Ao tocar na própria notificação, o aplicativo abre o incidente, o alerta, o episódio ou o caso de segurança de que ela trata, no projeto certo. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
 :::
 
 :::details O meu login está seguro no celular?
@@ -109,7 +109,7 @@ O aplicativo não conseguiu chegar a `https://<your-oneuptime>/api/status`. Veri
 :::
 
 :::details “No SSO configuration found for the email”
-Nenhum dos projetos de que esse e-mail participa tem login único configurado, ou o e-mail não tem conta neste OneUptime. Verifique o e-mail, ou entre com a sua senha. Os provedores que o seu administrador configurou para toda a instalação aparecem antes do campo de e-mail.
+Nenhum projeto deste OneUptime oferece ainda login único para o domínio desse e-mail: um administrador do projeto adiciona o domínio ao provedor de SSO dele, seja de quem for o e-mail. Verifique o e-mail, ou entre com a sua senha. Os provedores que o seu administrador configurou para toda a instalação aparecem antes do campo de e-mail.
 :::
 
 :::details Uma chave de segurança é o seu único segundo fator

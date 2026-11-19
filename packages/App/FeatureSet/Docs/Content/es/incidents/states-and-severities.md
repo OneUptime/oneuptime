@@ -178,9 +178,9 @@ Un incidente cambia de estado de cinco formas:
 
 | Forma                       | Dónde                                                                                       | Qué pide                                                                                                                                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Botones de la cabecera**  | La cabecera del incidente: **Reconocer** y **Resolver**, y **Cambiar el estado a** en su menú **⋯** | Una breve confirmación —**Reconocer incidente** o **Resolver incidente**— con **Notificar a suscriptores de la página de estado** y, plegada en **Añadir una nota pública**, la **Nota pública** opcional y su selector **Seleccionar plantilla de nota** (cuando el proyecto tiene plantillas de notas). |
+| **Botones de la cabecera**  | La cabecera del incidente: **Reconocer** y **Resolver**, y **Cambiar el estado a** en su menú **⋯** | Una breve confirmación —**Reconocer incidente** o **Resolver incidente**— con **Notificar a suscriptores de la página de estado** y, plegada en **Añadir una nota pública**, la **Nota pública** opcional y su selector **Seleccionar plantilla de nota** (cuando el proyecto tiene plantillas de notas). Al resolver, también se pliega una causa raíz opcional en **Añadir la causa raíz**. |
 | **Cronología de estados**   | **Cronología de estados** en el menú lateral del incidente                                  | Una fila añadida a mano, con **Estado del incidente**, **Comienza en** y **Notificar a suscriptores de la página de estado**.                                                                                |
-| **Fila de la lista** | El menú **⋯** de la fila de un incidente en la lista de incidentes: **Reconocer**, **Resolver** y **Cambiar estado** | La confirmación de la cabecera, con el nombre del incidente. Un incidente que otro cambio ya movió se deja como está, y el diálogo dice por qué. |
+| **Fila de la lista** | El menú **⋯** de la fila de un incidente en la lista de incidentes: **Reconocer**, **Resolver** y **Cambiar estado** | La confirmación de la cabecera, con el nombre del incidente. Un incidente que otro cambio ya movió se deja como está, y el diálogo dice por qué. No pide la causa raíz. |
 | **Cambio masivo**           | **Reconocer**, **Resolver** o **Cambiar estado** sobre una selección en la lista de incidentes                            | Una página con el estado, **Notificar a suscriptores de la página de estado** y el mismo **Añadir una nota pública** plegado.                                                                               |
 | **Automáticamente**         | Un criterio de monitor, o tu propio código                                                  | Un criterio con **Resolver incidente automáticamente** activado resuelve su incidente cuando el criterio deja de cumplirse. La API cambia el estado creando una fila en `/api/incident-state-timeline`.      |
 
@@ -208,6 +208,12 @@ Un incidente se resuelve cuando pasa de un estado por encima de tu estado resuel
 - **Marca el SLA como resuelto** y, cuando los borradores de post mortem de OneUptime AI están activados, redacta un post mortem.
 
 Pasar de **Resuelto** a un estado posterior —**Closed**, por ejemplo— no es una segunda resolución: nada de esto vuelve a ejecutarse, y no empieza ningún SLA nuevo. Un incidente declarado antes de que OneUptime empezara a registrar esto devuelve sus monitores en su próxima resolución, como antes.
+
+## Escribir la causa raíz al resolver
+
+Al resolver el incidente desde su cabecera, con **Resolver** o con **Cambiar el estado a** un estado resuelto, la confirmación pliega una **Causa raíz** opcional en **Añadir la causa raíz**: por qué ocurrió. Lo que escribas ahí pasa a ser la causa raíz del incidente, como si lo hubieras escrito en su página **Causa raíz**, y la investigación del incidente que hace OneUptime AI se califica según ella (consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai)). Si lo dejas vacío, el incidente se resuelve como antes y conserva la causa raíz que tiene.
+
+Escribirla requiere permiso para editar el incidente, aparte del permiso para cambiar su estado: a quien no lo tiene no se le ofrece **Añadir la causa raíz**, y un cambio de estado que envíe con una causa raíz se rechaza entero, así que el incidente conserva su estado. Por la API, envíala con la fila que creas en `/api/incident-state-timeline`, como `writtenRootCause` en `miscDataProps`.
 
 ## La cronología de estados
 

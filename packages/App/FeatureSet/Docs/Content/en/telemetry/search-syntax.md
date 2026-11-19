@@ -129,7 +129,7 @@ Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are th
 
 ### Traces
 
-Trace fields take a plain value or an any-of list such as `status:(ok OR unset)`, and `duration` also takes `>` and `<`. Wildcards, `~`, `!` and a leading `-` work only on attributes here.
+Trace fields take a plain value or an any-of list such as `status:(ok OR unset)`, and `duration` also takes `>`, `>=`, `<` and `<=`. Wildcards, `~`, `!` and a leading `-` work only on attributes here.
 
 | Field | Notes |
 | --- | --- |
@@ -137,7 +137,7 @@ Trace fields take a plain value or an any-of list such as `status:(ok OR unset)`
 | `name` | Span name. A single value matches any part of it. Bare words search this too |
 | `status` | `ok`, `error`, `unset` (unset = no error status set, the OpenTelemetry default) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Milliseconds: `duration:>500`, `duration:<200` or an exact value |
+| `duration` | Milliseconds: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` or an exact value |
 | `statusMessage` | Status message text. A single value matches any part of it |
 | `hasException` | `true` or `false` |
 | `trace`, `span` | IDs |

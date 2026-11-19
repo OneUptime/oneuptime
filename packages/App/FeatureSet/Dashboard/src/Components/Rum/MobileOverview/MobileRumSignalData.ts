@@ -13,7 +13,7 @@ import {
   FROZEN_FRAME_THRESHOLD,
   SLOW_FRAME_THRESHOLD,
 } from "Common/Types/Rum/MobileAppTelemetry";
-import { ANR_EXCEPTION_TYPE } from "Common/Utils/Telemetry/MobileAppFaults";
+import { APP_NOT_RESPONDING_EXCEPTION_TYPES } from "Common/Utils/Telemetry/MobileAppFaults";
 import { parseBucketTimeMs } from "../../TelemetryResource/telemetryFormat";
 
 /*
@@ -26,11 +26,13 @@ import { parseBucketTimeMs } from "../../TelemetryResource/telemetryFormat";
  *   - App starts: the AppStart spans, split by start.type - the whole
  *     range's count and percentiles per type (one table read), and a count
  *     and a p95 per interval per type (two timeseries reads).
- *   - Sessions: the distinct session ids of the app's spans, beside the
- *     spans read (POST /telemetry/traces/session-count).
+ *   - Sessions: the distinct session ids of the app's spans, and their
+ *     distinct app.installation.id, beside the spans read (POST
+ *     /telemetry/traces/session-count).
  *   - Crashes and ANRs: the exception histogram twice - unhandled with the
- *     type ANR left out (a crash, as MobileAppFaults files one), and the
- *     type ANR alone - and the sessions each happened in.
+ *     types ANR and Hang left out (a crash, as MobileAppFaults files one),
+ *     and those two types alone (an Android ANR, an iOS hang) - and the
+ *     sessions and installs each happened in.
  *   - Slow and frozen frames: app.jank.frame_count added up per threshold
  *     and interval (one event stands for several frames), and per screen.
  *
@@ -97,27 +99,37 @@ export function buildAppStartSeriesBody(
   };
 }
 
+// The installs too (#9716): the distinct app.installation.id of the spans.
 export function buildSessionCountBody(scope: MobileSignalScope): JSONObject {
-  return windowOf(scope);
+  return { ...windowOf(scope), countInstalls: true };
 }
 
 /*
- * A crash: an unhandled exception that is not an ANR. Since #9533 a crash
+ * The sessions a crash or a freeze happened in, and the installs: the
+ * exception histogram's filters, with the installs asked for.
+ */
+export function buildFaultSessionCountBody(filterBody: JSONObject): JSONObject {
+  return { ...filterBody, countInstalls: true };
+}
+
+/*
+ * A crash: an unhandled exception that is not a freeze. Since #9533 a crash
  * event becomes an unhandled exception (MobileAppFaults), and so does an
- * ANR, under the type ANR.
+ * ANR, under the type ANR, and an iOS hang, under the type Hang.
  */
 export function buildCrashFilterBody(scope: MobileSignalScope): JSONObject {
   return {
     ...windowOf(scope),
     escaped: true,
-    excludedExceptionTypes: [ANR_EXCEPTION_TYPE],
+    excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
   };
 }
 
+// A freeze: an Android ANR or an iOS hang.
 export function buildAnrFilterBody(scope: MobileSignalScope): JSONObject {
   return {
     ...windowOf(scope),
-    exceptionTypes: [ANR_EXCEPTION_TYPE],
+    exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
   };
 }
 
@@ -319,18 +331,39 @@ export interface MobileSessions {
   sessions: number;
   // Every span read: spans and no sessions mean no session.id is set.
   spans: number;
+  /*
+   * Distinct app.installation.id of the app's spans in the range; null
+   * when the answer did not say. Spans and no installs mean the SDK sets
+   * none, as opentelemetry-swift's releases do not.
+   */
+  installs: number | null;
   failed: boolean;
 }
 
+function readAnswer(data: unknown): JSONObject {
+  return data && typeof data === "object" && !Array.isArray(data)
+    ? (data as JSONObject)
+    : {};
+}
+
+// A count the answer may leave out: null when it does.
+function readOptionalCount(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const count: number = Number(value);
+
+  return Number.isFinite(count) ? count : null;
+}
+
 export function readSessionCount(data: unknown): MobileSessions {
-  const answer: JSONObject =
-    data && typeof data === "object" && !Array.isArray(data)
-      ? (data as JSONObject)
-      : {};
+  const answer: JSONObject = readAnswer(data);
 
   return {
     sessions: toNumber(answer["sessions"]),
     spans: toNumber(answer["spans"]),
+    installs: readOptionalCount(answer["installs"]),
     failed: false,
   };
 }
@@ -340,6 +373,12 @@ export interface MobileFaultCount {
   series: Array<TimePoint>;
   // The sessions it happened in; null when that read failed.
   sessions: number | null;
+  /*
+   * The installs it happened on; null when that read failed, or when an
+   * occurrence named no install (one stored before installs were kept, or
+   * from an SDK that sets none), so their number cannot be told.
+   */
+  installs: number | null;
   failed: boolean;
 }
 
@@ -372,9 +411,26 @@ export function summarizeFaultBuckets(buckets: unknown): {
 
 // The sessions an exception session-count answer names.
 export function readFaultSessions(data: unknown): number {
-  return data && typeof data === "object" && !Array.isArray(data)
-    ? toNumber((data as JSONObject)["sessions"])
-    : 0;
+  return toNumber(readAnswer(data)["sessions"]);
+}
+
+/*
+ * The installs an exception session-count answer names, or null when it
+ * cannot be told: the answer did not count them, or an occurrence named no
+ * install.
+ */
+export function readFaultInstalls(data: unknown): number | null {
+  const answer: JSONObject = readAnswer(data);
+  const installs: number | null = readOptionalCount(answer["installs"]);
+  const withInstall: number | null = readOptionalCount(
+    answer["occurrencesWithInstall"],
+  );
+
+  if (installs === null || withInstall === null) {
+    return null;
+  }
+
+  return withInstall < toNumber(answer["occurrences"]) ? null : installs;
 }
 
 export interface ScreenFrames {

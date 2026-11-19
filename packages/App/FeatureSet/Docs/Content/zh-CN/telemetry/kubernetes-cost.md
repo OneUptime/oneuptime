@@ -16,7 +16,7 @@
 
 ```mermaid title="成本数字从何而来"
 flowchart TB
-    cadvisor["cAdvisor，经由<br/>API 服务器节点代理"] --> prometheus["内置的 Prometheus"]
+    cadvisor["cAdvisor，来自<br/>各节点的 kubelet"] --> prometheus["内置的 Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["云厂商公开价格，<br/>或你的费率卡"] --> opencost
     opencost -->|"每次一个<br/>已结束的小时"| poller["成本轮询器"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**：开源成本引擎（Apache-2.0，CNCF；也是 Kubecost 所基于的 [cost-model](https://github.com/kubecost/cost-model)）。它监视集群，为你的节点、卷和负载均衡器定价，并算出每个工作负载的成本。
-2. **一个小型 Prometheus**：OpenCost 需要它来保存用量和价格历史。它运行一个副本，保留 7 天的历史，并且只抓取两个目标：通过 API 服务器节点代理访问的 cAdvisor（只保留 OpenCost 读取的序列），以及 OpenCost 本身（它会发出自己的资源 request 指标，因此不涉及 kube-state-metrics）。它从不暴露到集群之外，其数据也从不离开集群。
+2. **一个小型 Prometheus**：OpenCost 需要它来保存用量和价格历史。它运行一个副本，保留 7 天的历史，并且只抓取两个目标：每个节点 kubelet 上的 cAdvisor（在 `eks-fargate` 预设上，由于没有 Pod 能访问 kubelet，改为通过 API 服务器节点代理访问；只保留 OpenCost 读取的序列），以及 OpenCost 本身（它会发出自己的资源 request 指标，因此不涉及 kube-state-metrics）。它从不暴露到集群之外，其数据也从不离开集群。
 3. **成本轮询器**（`cost.agent`）。每个小时结束后，它读取一次 OpenCost 的 Allocation API，并为每个工作负载向 OneUptime 发送一行成本：CPU、内存、GPU、卷、网络、负载均衡器和空闲，以及效率。每个小时只发送一次；服务器会跳过它已经有的小时，因此重启不会把支出计算两次。OneUptime 还会根据这些行写入 [成本指标](#针对成本发出警报)。
 4. **一项成本指标抓取**（`cost.metrics`）。代理的 Collector 会抓取 OpenCost 的价格指标，即每个节点、卷和负载均衡器每小时的成本，并与集群的其余指标一起发送。
 

@@ -109,8 +109,26 @@ function isNothingToList(error: unknown): boolean {
 
 function typesFor(region: string, homeRegion: string): Array<AwsInventoryType> {
   return AWS_INVENTORY_TYPES.filter((type: AwsInventoryType): boolean => {
+    // A Region of another partition, whose credentials it would refuse: none.
+    if (
+      type.metricsRegion &&
+      getAwsPartition(type.metricsRegion) !== getAwsPartition(homeRegion)
+    ) {
+      return false;
+    }
+
     return type.isGlobal ? region === homeRegion : true;
   });
+}
+
+// Where a type's resources and their metrics live: their own Region, else the one listed.
+function contextFor(
+  type: AwsInventoryType,
+  context: AwsInventoryContext,
+): AwsInventoryContext {
+  return type.metricsRegion
+    ? { ...context, region: type.metricsRegion }
+    : context;
 }
 
 async function listRegion(data: {
@@ -220,7 +238,7 @@ async function listRegion(data: {
         const item: CloudInventoryItem | null = buildAwsInventoryItem(
           type,
           resource,
-          context,
+          contextFor(type, context),
         );
 
         if (item) {

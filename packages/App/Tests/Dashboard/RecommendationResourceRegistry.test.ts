@@ -1702,10 +1702,15 @@ describe("RecommendationResourceRegistry", () => {
       expect(mobile).toEqual([
         "rum-app-crashes",
         "rum-app-not-responding",
+        // The crash and ANR rates (#9716).
+        "rum-app-crash-rate",
+        "rum-app-anr-rate",
         "rum-failed-user-operations",
         "rum-slow-cold-start",
         "rum-frozen-frames",
         "rum-app-stopped-reporting",
+        // One alert per device that goes quiet (#9711).
+        "rum-device-stopped-reporting",
         "rum-session-replay-daily-budget-nearly-spent",
         "rum-session-replay-daily-budget-spent",
         "rum-session-replay-monthly-budget-nearly-spent",

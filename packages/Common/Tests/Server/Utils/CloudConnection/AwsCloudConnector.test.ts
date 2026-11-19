@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
 import { storedAttributesOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
@@ -235,6 +243,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  jest.restoreAllMocks();
 });
 
 function giveOneUptimeAnAwsIdentity(): void {
@@ -785,6 +794,8 @@ describe("read", () => {
   });
 
   test("throttling is waited out and retried", async () => {
+    // The jitter at its most: each wait is its whole backoff (AwsRetry).
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
     const fake: FakeAws = createFakeAws({
       regions: {
         "us-east-1": {
@@ -812,13 +823,49 @@ describe("read", () => {
     expect(result.pointsWritten).toBe(2);
   });
 
+  test("a 503 from CloudWatch for a moment is asked again, as the AWS SDKs ask, and the read goes on", async () => {
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: ec2("i-0aaa", [10]),
+          getMetricDataAnswers: [
+            awsError(503, "ServiceUnavailable", "Please try again"),
+          ],
+        },
+      },
+    });
+    const waits: Array<number> = [];
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(fake),
+        sleep: async (milliseconds: number) => {
+          waits.push(milliseconds);
+        },
+      },
+    );
+
+    // A failure for now waits 50 ms at most before its first retry.
+    expect(waits).toEqual([50]);
+    expect(result.warnings).toEqual([]);
+    expect(result.pointsWritten).toBe(2);
+    expect(result.nextState.cursors?.["300"]).toBeDefined();
+  });
+
   test("a Region whose metrics fail keeps the whole window for the next read, so nothing is written twice", async () => {
+    // Every try fails: the failure is not one a retry gets past.
+    const failure: { status: number; body: string } = {
+      status: 500,
+      body: "Internal failure",
+    };
     const fake: FakeAws = createFakeAws({
       regions: {
         "us-east-1": { metrics: ec2("i-0aaa", [10]) },
         "eu-west-1": {
           metrics: ec2("i-0bbb", [20]),
-          getMetricDataAnswers: [{ status: 500, body: "Internal failure" }],
+          getMetricDataAnswers: [failure, failure, failure],
         },
       },
     });
@@ -1154,6 +1201,90 @@ describe("read", () => {
       ).toEqual(["AWS::EC2::Instance"]);
     });
 
+    /*
+     * #9690: where the stream's readings of an account and Region are
+     * fresh (CloudStreamReadings), the instance's health and headlines are
+     * judged from them: nothing its stack carries is read at all.
+     */
+    test("of template 2 whose streamed readings are fresh reads nothing it carries, health and headlines included", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { templateVersion: 2, everyMetric: false },
+          ]),
+          awsStreamedReadingSources: new Set<string>([
+            `${FAKE_ACCOUNT_ID}|us-east-1`,
+          ]),
+        },
+      );
+
+      expect(metricsQueried(fake)).toEqual([]);
+      expect(result.warnings).toEqual([]);
+      // Still found from its listed series, and its window done.
+      expect(result.resources).toHaveLength(1);
+      expect(result.nextState.cursors?.["300"]).toBe(
+        new Date(WINDOW_END_S * 1000).toISOString(),
+      );
+    });
+
+    test("of template 2 whose streamed readings are not fresh reads health and headlines from CloudWatch, and says so", async () => {
+      for (const fresh of [
+        new Set<string>(),
+        // Another Region's readings are fresh, not this one's.
+        new Set<string>([`${FAKE_ACCOUNT_ID}|eu-west-1`]),
+      ]) {
+        const fake: FakeAws = createFakeAws({
+          regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+        });
+
+        const result: CloudReadResult = await connector.read(
+          keySettings({ regions: "us-east-1" }),
+          {
+            ...readOptions(fake),
+            awsStreamCoverage: streaming([
+              { templateVersion: 2, everyMetric: false },
+            ]),
+            awsStreamedReadingSources: fresh,
+          },
+        );
+
+        expect(metricsQueried(fake)).toEqual([
+          "AWS/EC2/CPUUtilization",
+          "AWS/EC2/NetworkIn",
+        ]);
+        expect(result.warnings).toEqual([
+          "The streams sent no resource health from us-east-1 lately, so it was read from CloudWatch.",
+        ]);
+      }
+    });
+
+    test("of a stack that carries none of the health metrics, fresh readings or not, reads them as before", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          // Delivering another namespace: the instance's metrics are not its.
+          awsStreamCoverage: streaming([
+            { namespaces: ["AWS/RDS"], templateVersion: 2 },
+          ]),
+          awsStreamedReadingSources: new Set<string>(),
+        },
+      );
+
+      expect(metricsQueried(fake)).toHaveLength(4);
+      expect(result.warnings).toEqual([]);
+    });
+
     test("of a stack that says no template reads what it does not carry, as if the account did not stream", async () => {
       const fake: FakeAws = createFakeAws({
         regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
@@ -1303,6 +1434,176 @@ describe("read", () => {
       "DroppedPackets IPS",
       "ReceivedPackets System",
     ]);
+  });
+
+  /*
+   * #9691: a Glue job's own metrics are its JobRunId ALL series; each run's
+   * series has as many dimensions and would be read beside it, and its
+   * values added to the job's.
+   */
+  test("a Glue job is read from its JobRunId ALL series alone, never a run's", async () => {
+    const glueSeries: (
+      metricName: string,
+      run: string,
+      value: number,
+    ) => FakeMetric = (
+      metricName: string,
+      run: string,
+      value: number,
+    ): FakeMetric => {
+      return {
+        namespace: "Glue",
+        metricName,
+        dimensions: [
+          ["JobName", "nightly-orders"],
+          ["JobRunId", run],
+          ["Type", "count"],
+        ],
+        values: [[WINDOW_START_S, value]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            glueSeries("glue.driver.aggregate.numCompletedTasks", "ALL", 40),
+            glueSeries(
+              "glue.driver.aggregate.numCompletedTasks",
+              "jr_0a1b2c3d",
+              40,
+            ),
+            glueSeries("glue.driver.aggregate.numFailedTasks", "ALL", 2),
+            glueSeries(
+              "glue.driver.aggregate.numFailedTasks",
+              "jr_0a1b2c3d",
+              2,
+            ),
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const runs: Array<string> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): string => {
+        const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+          "Metric"
+        ] as JSONObject;
+        const run: JSONObject | undefined = (
+          metric["Dimensions"] as Array<JSONObject>
+        ).find((dimension: JSONObject): boolean => {
+          return dimension["Name"] === "JobRunId";
+        });
+
+        return `${metric["MetricName"] as string} ${run?.["Value"] as string}`;
+      })
+      .sort();
+
+    expect(runs).toEqual([
+      "glue.driver.aggregate.numCompletedTasks ALL",
+      "glue.driver.aggregate.numFailedTasks ALL",
+    ]);
+    expect(
+      result.resources.map((entry: CloudDiscoveredResource): string => {
+        return `${entry.resource.resourceType} ${entry.resource.name}`;
+      }),
+    ).toContain("AWS::Glue::Job nightly-orders");
+  });
+
+  /*
+   * #9691: an Athena workgroup's queries are counted, not timed: Athena
+   * publishes a query's TotalExecutionTime once, as it ends, so its
+   * SampleCount is how many ended - read with that statistic, a series per
+   * query state and type, and written in the read's own shape.
+   */
+  test("an Athena workgroup's queries are read as the SampleCount of TotalExecutionTime, of each state", async () => {
+    const athenaSeries: (state: string, count: number) => FakeMetric = (
+      state: string,
+      count: number,
+    ): FakeMetric => {
+      return {
+        namespace: "AWS/Athena",
+        metricName: "TotalExecutionTime",
+        dimensions: [
+          ["QueryState", state],
+          ["QueryType", "DML"],
+          ["WorkGroup", "analytics"],
+        ],
+        values: [[WINDOW_START_S, count]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            {
+              namespace: "AWS/Athena",
+              metricName: "ProcessedBytes",
+              dimensions: [["WorkGroup", "analytics"]],
+              values: [[WINDOW_START_S, 1_048_576]],
+            },
+            athenaSeries("SUCCEEDED", 12),
+            athenaSeries("FAILED", 3),
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const queries: Array<JSONObject> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): JSONObject => {
+        return query["MetricStat"] as JSONObject;
+      });
+    const statOf: (metricName: string) => Array<string> = (
+      metricName: string,
+    ): Array<string> => {
+      return queries
+        .filter((stat: JSONObject): boolean => {
+          return (
+            ((stat["Metric"] as JSONObject)["MetricName"] as string) ===
+            metricName
+          );
+        })
+        .map((stat: JSONObject): string => {
+          return stat["Stat"] as string;
+        });
+    };
+
+    expect(statOf("TotalExecutionTime")).toEqual([
+      "SampleCount",
+      "SampleCount",
+    ]);
+    expect(statOf("ProcessedBytes")).toEqual(["Sum"]);
+
+    // Written under the metric's own name, as every key metric is.
+    expect(JSON.stringify(result.payloads)).toContain(
+      "amazonaws.com/AWS/Athena/TotalExecutionTime",
+    );
+    expect(
+      result.resources.map((entry: CloudDiscoveredResource): string => {
+        return `${entry.resource.resourceType} ${entry.resource.name}`;
+      }),
+    ).toContain("AWS::Athena::WorkGroup analytics");
   });
 
   test("S3's daily storage figures are read once a whole day has been published", async () => {

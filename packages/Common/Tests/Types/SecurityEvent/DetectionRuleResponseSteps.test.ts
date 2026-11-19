@@ -123,6 +123,31 @@ describe("checking the steps a form or the API saves", () => {
     expect(check.steps).toEqual([step()]);
   });
 
+  /*
+   * A rule's steps are put in order on its form (#9796): the list is saved
+   * in the order sent, every step's id as it was, and read back so, so the
+   * plan shows them in that order and a case's ticks stay with them.
+   */
+  test("saves and reads the steps in the order they are sent, each with its id", () => {
+    const reordered: Array<DetectionRuleResponseStep> = [
+      step({ id: "rotate-key", text: "Rotate the key in Vault." }),
+      step({ id: "lock-account", text: "Lock the account." }),
+      step({ id: "page-payments" }),
+    ];
+
+    const check: DetectionRuleResponseStepsCheck =
+      checkDetectionRuleResponseSteps(reordered);
+
+    expect(check.problem).toBeNull();
+    expect(check.steps).toEqual(reordered);
+    expect(readDetectionRuleResponseSteps(check.steps)).toEqual(reordered);
+    expect(
+      check.steps.map((saved: DetectionRuleResponseStep): string => {
+        return getDetectionRuleResponseStepKey(saved.id);
+      }),
+    ).toEqual(["rule:rotate-key", "rule:lock-account", "rule:page-payments"]);
+  });
+
   test("says why it cannot save what is not a list of steps", () => {
     expect(checkDetectionRuleResponseSteps("Page them").problem).toMatch(
       /list of steps/,

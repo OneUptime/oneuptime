@@ -444,6 +444,27 @@
         "ModelLatency": {"exists": true, "exactName": "ModelLatency", "unit": "Microseconds", "statistics": ["Average", "Sum", "Minimum", "Maximum", "SampleCount"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sagemaker/latest/dg/monitoring-cloudwatch.html"}
       }
     },
+    "Glue": {
+      "pages": ["https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"],
+      "metrics": {
+        "glue.driver.aggregate.numCompletedTasks": {"exists": true, "exactName": "glue.driver.aggregate.numCompletedTasks", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.numFailedTasks": {"exists": true, "exactName": "glue.driver.aggregate.numFailedTasks", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.numKilledTasks": {"exists": true, "exactName": "glue.driver.aggregate.numKilledTasks", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.recordsRead": {"exists": true, "exactName": "glue.driver.aggregate.recordsRead", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.bytesRead": {"exists": true, "exactName": "glue.driver.aggregate.bytesRead", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors": {"exists": true, "exactName": "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors", "unit": "Count", "statistics": ["Average"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors": {"exists": true, "exactName": "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors", "unit": "Count", "statistics": ["Maximum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/Athena": {
+      "pages": ["https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html", "https://docs.aws.amazon.com/athena/latest/ug/athena-cloudwatch-metrics-enable.html"],
+      "metrics": {
+        "ProcessedBytes": {"exists": true, "exactName": "ProcessedBytes", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"},
+        "TotalExecutionTime": {"exists": true, "exactName": "TotalExecutionTime", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"},
+        "EngineExecutionTime": {"exists": true, "exactName": "EngineExecutionTime", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"},
+        "QueryQueueTime": {"exists": true, "exactName": "QueryQueueTime", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"}
+      }
+    },
     "AWS/CertificateManager": {
       "pages": ["https://docs.aws.amazon.com/acm/latest/userguide/cloudwatch-metrics.html"],
       "metrics": {

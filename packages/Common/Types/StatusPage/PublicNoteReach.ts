@@ -72,6 +72,16 @@ export enum PublicNoteNothingSentReason {
   NotificationsOff = "NotificationsOff",
 }
 
+/*
+ * The two reasons the status pages themselves give, whatever the event: no
+ * page shows it, or every page that does sends its subscribers nothing
+ * (PublicNoteReachBuilder.getStatusPagesReason). An announcement has no
+ * other reason (Types/StatusPage/AnnouncementReach).
+ */
+export type StatusPagesNothingSentReason =
+  | PublicNoteNothingSentReason.NoStatusPages
+  | PublicNoteNothingSentReason.NotificationsOff;
+
 export interface PublicNoteReachResult {
   // Null when a note posted now notifies a status page's subscribers.
   nothingSentReason: PublicNoteNothingSentReason | null;

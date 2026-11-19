@@ -9,11 +9,12 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import { useNow } from "../hooks/useNow";
 import QueryErrorNotice from "../components/QueryErrorNotice";
+import RecordOwnersAndLabels from "../components/RecordOwnersAndLabels";
 import {
   useMonitorDetail,
   useMonitorStatusTimeline,
@@ -435,6 +436,11 @@ export default function MonitorDetailScreen({
         <ResponseInfoRow
           label="Created"
           value={formatDateTime(monitor.createdAt)}
+        />
+        <RecordOwnersAndLabels
+          list="monitors"
+          projectId={projectId}
+          recordId={monitorId}
         />
       </ResponseSection>
       {timelineError ? (

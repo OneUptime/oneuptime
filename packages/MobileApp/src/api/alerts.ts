@@ -1,5 +1,6 @@
 import type { AxiosResponse } from "axios";
 import apiClient from "./client";
+import { postFilteredList, type ListFilter } from "./recordFilters";
 import { getUnresolvedStateIds, toStateIdsQuery } from "../utils/resolvedState";
 import type {
   ListResponse,
@@ -11,9 +12,15 @@ import type {
 
 export async function fetchAlerts(
   projectId: string,
-  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+  options: {
+    skip?: number;
+    limit?: number;
+    unresolvedOnly?: boolean;
+    // The list's filters, asked of the server (api/recordFilters.ts).
+    filter?: ListFilter;
+  } = {},
 ): Promise<ListResponse<AlertItem>> {
-  const { skip = 0, limit = 20, unresolvedOnly = false } = options;
+  const { skip = 0, limit = 20, unresolvedOnly = false, filter } = options;
 
   const query: Record<string, unknown> = {};
   if (unresolvedOnly) {
@@ -27,28 +34,44 @@ export async function fetchAlerts(
     );
   }
 
-  const response: AxiosResponse = await apiClient.post(
-    `/api/alert/get-list?skip=${skip}&limit=${limit}`,
-    {
-      query,
-      select: {
-        _id: true,
-        title: true,
-        alertNumber: true,
-        alertNumberWithPrefix: true,
-        description: true,
-        rootCause: true,
-        createdAt: true,
-        currentAlertState: { _id: true, name: true, color: true },
-        alertSeverity: { _id: true, name: true, color: true },
-        monitor: { _id: true, name: true },
+  const post: (listQuery: Record<string, unknown>) => Promise<AxiosResponse> = (
+    listQuery: Record<string, unknown>,
+  ): Promise<AxiosResponse> => {
+    return apiClient.post(
+      `/api/alert/get-list?skip=${skip}&limit=${limit}`,
+      {
+        query: listQuery,
+        select: {
+          _id: true,
+          title: true,
+          alertNumber: true,
+          alertNumberWithPrefix: true,
+          description: true,
+          rootCause: true,
+          createdAt: true,
+          currentAlertState: { _id: true, name: true, color: true },
+          alertSeverity: { _id: true, name: true, color: true },
+          monitor: { _id: true, name: true },
+        },
+        sort: { createdAt: "DESC" },
       },
-      sort: { createdAt: "DESC" },
-    },
-    {
-      headers: { tenantid: projectId },
-    },
-  );
+      {
+        headers: { tenantid: projectId },
+      },
+    );
+  };
+
+  const response: AxiosResponse = filter
+    ? await postFilteredList({
+        projectId: projectId,
+        list: "alerts",
+        filters: filter.filters,
+        owners: filter.owners,
+        baseQuery: query,
+        post: post,
+        limit: limit,
+      })
+    : await post(query);
   return response.data;
 }
 

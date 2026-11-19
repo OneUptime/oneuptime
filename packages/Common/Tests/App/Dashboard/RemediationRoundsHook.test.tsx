@@ -556,6 +556,23 @@ describe("useRemediationRounds, refused as reading too often", () => {
     expect(
       getRemediationRoundBackoffMs(tooMany({ "retry-after": "soon" })),
     ).toBe(REMEDIATION_ROUND_BACKOFF_MIN_MS);
+    /*
+     * Read as RFC 9110 writes it (Common's RetryAfter): an exponent or a
+     * sign is no wait, though Number() read a thousand seconds and two
+     * minutes in them, and an HTTP-date is the time until it.
+     */
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "1e3" })),
+    ).toBe(REMEDIATION_ROUND_BACKOFF_MIN_MS);
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "+120" })),
+    ).toBe(REMEDIATION_ROUND_BACKOFF_MIN_MS);
+    jest.setSystemTime(new Date("2026-11-19T12:00:00Z"));
+    expect(
+      getRemediationRoundBackoffMs(
+        tooMany({ "retry-after": "Thu, 19 Nov 2026 12:10:00 GMT" }),
+      ),
+    ).toBe(10 * 60 * 1000);
     expect(REMEDIATION_ROUND_BACKOFF_MIN_MS).toBe(60 * 1000);
     expect(REMEDIATION_ROUND_BACKOFF_MAX_MS).toBe(15 * 60 * 1000);
 

@@ -262,14 +262,22 @@ describe("the variables the sign-up sets", () => {
     .readFileSync(AUTHENTICATION_PATH, "utf8")
     .replace(WHITESPACE_RUN, " ");
 
+  /*
+   * The ready welcome: a sign-up on a server that cannot prove the address
+   * by email signs its new account straight in (#9816).
+   */
   const readyBranch: string = authentication.slice(
     authentication.indexOf(
-      "if (!didClaimInvitedAccount && !isEmailVerificationRequired) {",
+      "const signUpWithoutProvingTheAddress: SignUpWithoutProvingTheAddressFunction =",
     ),
     authentication.indexOf(
-      "if (!didClaimInvitedAccount && isEmailVerificationRequired) {",
+      "const signInNewAccount: SignInNewAccountFunction =",
     ),
   );
+
+  test("the ready welcome's branch is found", () => {
+    expect(readyBranch.length).toBeGreaterThan(0);
+  });
 
   test("the ready welcome is sent where no verification is required", () => {
     expect(readyBranch).toContain(
@@ -290,18 +298,33 @@ describe("the variables the sign-up sets", () => {
     expect(readyBranch).toContain("new Route(AdminDashboardRoute.toString())");
   });
 
-  test("the verify welcome stays OneUptime Cloud's", () => {
-    const verifyBranch: string = authentication.slice(
-      authentication.indexOf(
-        "if (!didClaimInvitedAccount && isEmailVerificationRequired) {",
-      ),
-    );
+  test("the verify welcome is a sign-up's that proves its address by email", () => {
+    /*
+     * OneUptime Cloud's, and a self-hosted server's that can send email
+     * (#9816): sent after the answer every address gets, by
+     * Identity/Utils/EmailProvedSignUp.
+     */
+    const emailProvedSignUp: string = fs
+      .readFileSync(
+        Path.resolve(
+          AUTHENTICATION_PATH,
+          "..",
+          "..",
+          "Utils",
+          "EmailProvedSignUp.ts",
+        ),
+        "utf8",
+      )
+      .replace(WHITESPACE_RUN, " ");
 
-    expect(verifyBranch).toContain(
+    expect(emailProvedSignUp).toContain(
       "templateType: EmailTemplateType.SignupWelcomeEmail,",
     );
-    expect(verifyBranch).toContain(
+    expect(emailProvedSignUp).toContain(
       "subject: `Welcome to ${ProductBrandingText.getProductName()}. Please verify your email.`,",
+    );
+    expect(authentication).not.toContain(
+      "templateType: EmailTemplateType.SignupWelcomeEmail,",
     );
   });
 });

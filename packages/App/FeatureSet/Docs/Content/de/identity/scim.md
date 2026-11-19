@@ -454,7 +454,7 @@ Benutzer, die SCIM selbst erstellt, und Benutzer, die Mitglieder Ihres Projekts 
 Die E-Mail-Adresse eines OneUptime-Kontos ist das, womit sich die Person anmeldet, in jedem Projekt, zu dem sie gehört, und wohin ihre Links zum Zurücksetzen des Passworts gehen. Daher gilt:
 
 - **OneUptime Cloud**: SCIM ändert nie eine E-Mail-Adresse. Eine Anfrage, die eine ändern würde, gelingt trotzdem: Die Verbindung behält die Adresse, die Ihr Identitätsanbieter gesendet hat, und antwortet mit ihr, während das Konto die Adresse behält, mit der sich die Person anmeldet. Die SCIM-Protokolle der Verbindung vermerken, dass die Änderung nicht übernommen wurde. Bitten Sie den Benutzer, seine Adresse in seinem eigenen OneUptime-Profil zu ändern.
-- **Selbst gehostet**: SCIM ändert die E-Mail-Adresse nur bei einem Benutzer, der diesem Projekt beigetreten ist, zu keinem anderen Projekt gehört und kein OneUptime-Administrator ist. Bei allen anderen behält die Verbindung die neue Adresse und das Konto seine eigene, wie auf OneUptime Cloud.
+- **Selbst gehostet**: SCIM ändert die E-Mail-Adresse nur bei einem Benutzer, der diesem Projekt beigetreten ist, zu keinem anderen Projekt gehört und kein OneUptime-Administrator ist. Bei allen anderen behält die Verbindung die neue Adresse und das Konto seine eigene, wie auf OneUptime Cloud. Dasselbe gilt für eine Adresse, mit der sich schon ein anderes OneUptime-Konto anmeldet.
 
 Für Namen gilt überall dieselbe Regel: SCIM aktualisiert den Namen nur bei einem Benutzer, der diesem Projekt beigetreten ist, zu keinem anderen Projekt gehört und kein OneUptime-Administrator ist. Bei allen anderen bleibt der Name, wie er ist, und der Rest der Anfrage gelingt trotzdem.
 :::

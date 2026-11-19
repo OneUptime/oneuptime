@@ -1,6 +1,6 @@
-import DetectionRuleEvaluator, {
-  CORRELATION_MATCHED_EVENTS_MAX_GROUPS,
-} from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import DetectionRuleEvaluator from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import { getCorrelationRollingWindow } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationQueries";
+import { DETECTION_MAX_GROUPS_PER_EVALUATION } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
 import ThreatIntelMatcher from "../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
@@ -28,7 +28,6 @@ import {
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
-import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser, {
   detectionRuleHeader,
 } from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
@@ -39,8 +38,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * Each detection source keeps the events a detection matched as it fires
  * (#9619), read as it read them: a rule's run - its condition, its window,
  * its exceptions and its bounds - for every group it opens; a correlation's
- * steps for its first groups; a feed's indicator; a product's alert, or a
- * threat in the logs, as it was stored.
+ * steps, by its own group-by, for every group it fires for at once (#9795);
+ * a feed's indicator; a product's alert, or a threat in the logs, as it was
+ * stored.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -292,57 +292,287 @@ describe("a detection rule's run", () => {
     ).toBe(0);
     expect(readForGroups).not.toHaveBeenCalled();
   });
+});
 
-  test("a correlation reads the rules it reads naming each group, from as far back as it looks, for its first groups", async () => {
-    const readForGroups: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
-      SecurityDetectionMatchedEventsReader,
-      "readForGroups",
-    ).mockImplementation((async () => {
-      return new Map([["", kept("event-c")]]);
-    }) as never);
-    const definition: DetectionRuleDefinition =
-      SigmaRuleSetParser.parse(CORRELATION_YAML);
-    const parsedRule: SigmaRule = detectionRuleHeader(definition);
-    const groups: Array<DetectionMatchGroup> = Array.from(
-      { length: CORRELATION_MATCHED_EVENTS_MAX_GROUPS + 3 },
+/*
+ * A correlation that fires for many groups at once (#9795) keeps the events
+ * of every one of them, in one read grouped by its own group-by, where it
+ * used to read its first ten groups one read at a time and keep nothing for
+ * the rest.
+ */
+describe("a correlation's run", () => {
+  // The most groups a run opens, well past the ten it used to keep.
+  const MANY: number = DETECTION_MAX_GROUPS_PER_EVALUATION;
+
+  function correlation(yaml: string): DetectionRuleDefinition {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(yaml);
+
+    expect(definition.kind).toBe("correlation");
+
+    return definition;
+  }
+
+  function addresses(count: number): Array<DetectionMatchGroup> {
+    return Array.from(
+      { length: count },
       (_: unknown, index: number): DetectionMatchGroup => {
-        return group(`203.0.113.${index}`);
+        return group(`203.0.${Math.floor(index / 250)}.${index % 250}`);
       },
     );
+  }
 
-    const read: Map<string, SecurityDetectionMatchedEvents> =
-      await DetectionRuleEvaluator.readMatchedEvents({
+  // The reader, answering each group it is asked for, as the real one does.
+  function readEveryGroup(): ReturnType<typeof getJestSpyOn> {
+    return getJestSpyOn(
+      SecurityDetectionMatchedEventsReader,
+      "readForGroups",
+    ).mockImplementation((async (read: MatchedEventsRead) => {
+      return new Map(
+        (read.groupExpression ? read.groupValues : [""]).map(
+          (value: string): [string, SecurityDetectionMatchedEvents] => {
+            return [value, kept(`event-of-${value}`)];
+          },
+        ),
+      );
+    }) as never);
+  }
+
+  async function readFor(data: {
+    definition: DetectionRuleDefinition;
+    groups: Array<DetectionMatchGroup>;
+  }): Promise<Map<string, SecurityDetectionMatchedEvents>> {
+    return DetectionRuleEvaluator.readMatchedEvents({
+      rule: rule(""),
+      definition: data.definition,
+      parsedRule: detectionRuleHeader(data.definition),
+      matchedGroups: data.groups,
+      startTime: START,
+      endTime: END,
+      restrictTo: undefined,
+      exceptionsFilter: null,
+    });
+  }
+
+  test("reads every group it fires for in one read, by its own group-by, from as far back as its sequence looks", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+    const definition: DetectionRuleDefinition = correlation(CORRELATION_YAML);
+    const groups: Array<DetectionMatchGroup> = addresses(MANY);
+
+    const read: Map<string, SecurityDetectionMatchedEvents> = await readFor({
+      definition,
+      groups,
+    });
+
+    // One read, however many groups: never one per group.
+    expect(readForGroups).toHaveBeenCalledTimes(1);
+
+    const asked: MatchedEventsRead = lastRead(readForGroups);
+
+    expect(asked.projectId).toEqual(PROJECT_ID);
+    expect(asked.groupValues).toEqual(
+      groups.map((matchGroup: DetectionMatchGroup): string => {
+        return matchGroup.groupValue;
+      }),
+    );
+    // Its events, grouped as its own reads group them: by principalIp.
+    expect(asked.groupExpression!.query).toBe(
+      "arrayStringConcat([toString(principalIp)], ' / ')",
+    );
+    // Any of its steps' events: the failed sign-ins and the successful ones.
+    expect(asked.condition.query).toContain(" OR ");
+    expect(asked.condition.query_params).toEqual(
+      expect.objectContaining({ p1: "failure", p3: "success" }),
+    );
+    // Not the events naming an address anywhere, as before.
+    expect(asked.condition.query).not.toContain("hasAny(observables");
+    // Ten minutes it looks across before the run's window.
+    expect(asked.start).toEqual(new Date(START.getTime() - 10 * 60 * 1000));
+    expect(asked.end).toEqual(END);
+
+    // Every group keeps its events: the eleventh and the hundredth too.
+    expect(read.size).toBe(MANY);
+    expect(read.get(groups[10]!.groupValue)).toEqual(
+      kept(`event-of-${groups[10]!.groupValue}`),
+    );
+    expect(read.get(groups[MANY - 1]!.groupValue)).toEqual(
+      kept(`event-of-${groups[MANY - 1]!.groupValue}`),
+    );
+  });
+
+  test("so every group's case signal carries what that group matched", async () => {
+    readEveryGroup();
+    const definition: DetectionRuleDefinition = correlation(CORRELATION_YAML);
+    const groups: Array<DetectionMatchGroup> = addresses(MANY);
+
+    const signals: Array<SecurityDetectionSignal> =
+      DetectionRuleEvaluator.buildCaseSignals({
         rule: rule(""),
-        definition,
-        parsedRule,
+        parsedRule: detectionRuleHeader(definition),
         matchedGroups: groups,
+        findingEventUids: new Map(),
+        matchedEvents: await readFor({ definition, groups }),
         startTime: START,
         endTime: END,
-        restrictTo: undefined,
-        exceptionsFilter: null,
       });
 
-    expect(readForGroups).toHaveBeenCalledTimes(
-      CORRELATION_MATCHED_EVENTS_MAX_GROUPS,
+    expect(signals).toHaveLength(MANY);
+
+    for (const [index, signal] of signals.entries()) {
+      expect(signal.matchedEvents).toEqual(
+        kept(`event-of-${groups[index]!.groupValue}`),
+      );
+    }
+  });
+
+  test("a correlation by two fields reads each group by both values, joined as its case names the group", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+
+    await readFor({
+      definition: correlation(
+        CORRELATION_YAML.replace(
+          "  group-by:\n    - principalIp",
+          "  group-by:\n    - principalUser\n    - principalIp",
+        ),
+      ),
+      groups: [group("alice / 203.0.113.7"), group("bob / 198.51.100.9")],
+    });
+
+    const asked: MatchedEventsRead = lastRead(readForGroups);
+
+    expect(asked.groupExpression!.query).toBe(
+      "arrayStringConcat([toString(principalUser), toString(principalIp)], ' / ')",
     );
-    expect(read.size).toBe(CORRELATION_MATCHED_EVENTS_MAX_GROUPS);
-    expect(read.has("203.0.113.0")).toBe(true);
-    expect(read.has(`203.0.113.${CORRELATION_MATCHED_EVENTS_MAX_GROUPS}`)).toBe(
-      false,
+    expect(asked.groupValues).toEqual([
+      "alice / 203.0.113.7",
+      "bob / 198.51.100.9",
+    ]);
+  });
+
+  test("a field each step names its own way is read by the step the event matched", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+
+    await readFor({
+      definition: correlation(
+        CORRELATION_YAML.replace(
+          "  group-by:\n    - principalIp\n  timespan: 10m",
+          "  group-by:\n    - address\n  timespan: 10m\n  aliases:\n    address:\n      failed_sign_in: principalIp\n      successful_sign_in: targetIp",
+        ),
+      ),
+      groups: [group("203.0.113.7")],
+    });
+
+    const query: string = lastRead(readForGroups).groupExpression!.query;
+
+    expect(query).toContain("multiIf(");
+    expect(query).toContain("principalIp");
+    expect(query).toContain("targetIp");
+  });
+
+  test("a burst is read from its rolling window, and a new value from the run's own window, never its history", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+    const burst: DetectionRuleDefinition =
+      correlation(`title: Many failed sign-ins
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 5m
+  condition:
+    gte: 10
+---
+${CORRELATION_YAML.split("---")[0]!.trim()}`);
+
+    await readFor({ definition: burst, groups: addresses(3) });
+
+    expect(lastRead(readForGroups).start).toEqual(
+      getCorrelationRollingWindow({
+        timespanInSeconds: 5 * 60,
+        startTime: START,
+      }).readFrom,
     );
 
-    const first: MatchedEventsRead = readForGroups.mock
-      .calls[0]![0] as MatchedEventsRead;
+    const newAddress: DetectionRuleDefinition =
+      correlation(`title: New address for an account
+correlation:
+  type: new_value
+  rules: [successful_sign_in]
+  group-by: [principalUser]
+  timespan: 14d
+  condition:
+    field: principalIp
+---
+${CORRELATION_YAML.split("---")[1]!.trim()}`);
 
-    // Ten minutes it looks across before the run's window.
-    expect(first.start).toEqual(new Date(START.getTime() - 10 * 60 * 1000));
-    expect(first.end).toEqual(END);
-    expect(first.groupExpression).toBeNull();
-    expect(first.condition.query).toContain(" OR ");
-    expect(first.condition.query).toContain("hasAny(observables");
-    expect(JSON.stringify(first.condition.query_params)).toContain(
-      "203.0.113.0",
+    await readFor({ definition: newAddress, groups: [group("alice")] });
+
+    expect(lastRead(readForGroups).start).toEqual(START);
+    expect(lastRead(readForGroups).groupExpression!.query).toBe(
+      "arrayStringConcat([toString(principalUser)], ' / ')",
     );
+  });
+
+  test("a correlation that does not group keeps its events as one group", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+
+    const read: Map<string, SecurityDetectionMatchedEvents> = await readFor({
+      definition: correlation(`title: Many failed sign-ins anywhere
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  timespan: 5m
+  condition:
+    gte: 100
+---
+${CORRELATION_YAML.split("---")[0]!.trim()}`),
+      groups: [group("")],
+    });
+
+    expect(lastRead(readForGroups).groupExpression).toBeNull();
+    expect(read.get("")).toEqual(kept("event-of-"));
+  });
+
+  test("reads as its run read: its exceptions, the events it was handed, up to where a write's events came in", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+    const definition: DetectionRuleDefinition = correlation(CORRELATION_YAML);
+
+    await DetectionRuleEvaluator.readMatchedEvents({
+      rule: rule(""),
+      definition,
+      parsedRule: detectionRuleHeader(definition),
+      matchedGroups: addresses(2),
+      startTime: START,
+      endTime: END,
+      restrictTo: SQL`setupTestMarker = 1`,
+      exceptionsFilter: SQL`NOT (exceptionMarker = 1)`,
+      arrival: {
+        candidateIds: ["0192f000-0000-7000-8000-000000000009"],
+        firstId: "0192f000-0000-7000-8000-000000000009",
+        lastId: "0192f000-0000-7000-8000-000000000009",
+        candidateStartTime: START,
+        candidateEndTime: END,
+      },
+    });
+
+    const read: MatchedEventsRead = lastRead(readForGroups);
+
+    expect(read.condition.query).toContain("setupTestMarker = 1");
+    expect(read.condition.query).toContain("NOT (exceptionMarker = 1)");
+    expect(read.condition.query).toContain("_id <= ");
+  });
+
+  test("a step it cannot read keeps nothing, and never fails the run", async () => {
+    const readForGroups: ReturnType<typeof getJestSpyOn> = readEveryGroup();
+    // Its rules are neither in the file nor among the project's.
+    const definition: DetectionRuleDefinition =
+      correlation(`title: Failures then success
+correlation:
+  type: temporal_ordered
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalUser]
+  timespan: 10m`);
+
+    expect((await readFor({ definition, groups: addresses(3) })).size).toBe(0);
+    expect(readForGroups).not.toHaveBeenCalled();
   });
 });
 

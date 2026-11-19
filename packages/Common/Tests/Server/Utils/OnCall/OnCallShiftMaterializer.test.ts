@@ -8,6 +8,9 @@ import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallD
 import OnCallDutyPolicyUserOverrideService from "../../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import UserService from "../../../../Server/Services/UserService";
 import logger from "../../../../Server/Utils/Logger";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -45,6 +48,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * OnCallShiftMaterializer: resolver segments -> MaterializedShift[].
@@ -1497,6 +1501,176 @@ describe("OnCallShiftMaterializer", () => {
 
       expect(result.shifts).toEqual([]);
       expect(result.schedules).toEqual([]);
+    });
+  });
+
+  /*
+   * A project sees only what it invited of someone who has not accepted
+   * yet: the name typed for them, else their address - never their
+   * account's own name (#9823). Per project, as a feed can span projects.
+   */
+  describe("someone only invited to a schedule's project", () => {
+    const OTHER_PROJECT: string = "project-2";
+
+    function pendingIn(
+      pendingByProject: Record<string, Record<string, string | null>>,
+    ): SpyInstance<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > {
+      return jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockImplementation(
+          async (data: {
+            userIds: Array<string>;
+            projectId: ObjectID;
+          }): Promise<Map<string, WithheldProfile>> => {
+            const pending: Record<string, string | null> =
+              pendingByProject[data.projectId.toString()] || {};
+
+            return new Map<string, WithheldProfile>(
+              data.userIds
+                .filter((userId: string): boolean => {
+                  return userId in pending;
+                })
+                .map((userId: string): [string, WithheldProfile] => {
+                  return [
+                    userId.toLowerCase(),
+                    { inviteeName: pending[userId] || null },
+                  ];
+                }),
+            );
+          },
+        );
+    }
+
+    function namesOf(
+      shifts: Array<MaterializedShift>,
+      scheduleId: string,
+    ): Record<string, string> {
+      const names: Record<string, string> = {};
+
+      for (const shift of shifts) {
+        if (shift.scheduleId === scheduleId && !shift.policyVariantOf) {
+          names[shift.userId] = shift.userName;
+        }
+      }
+
+      return names;
+    }
+
+    test("is named by the name typed for them, else their address; a member by their own name", async () => {
+      pendingIn({ [PROJECT]: { C: "Carol (invited)", A: null } });
+
+      const result: MaterializeResult =
+        await materializeSchedule(multiLayerDb());
+
+      expect(namesOf(result.shifts, SCHEDULE)).toEqual({
+        A: "alice@example.com",
+        B: "bob@example.com",
+        C: "Carol (invited)",
+      });
+    });
+
+    test("an override names whom it covers for as the project knows them", async () => {
+      pendingIn({ [PROJECT]: { A: "Al (invited)", B: "Bo (invited)" } });
+
+      const db: FakeDb = multiLayerDb();
+      db.overrides.push(
+        makeOverride({
+          id: "ov-pending",
+          projectId: PROJECT,
+          overrideUserId: "C",
+          routeAlertsToUserId: "E",
+          startsAt: at("2026-03-03T01:00:00Z"),
+          endsAt: at("2026-03-03T03:00:00Z"),
+        }),
+      );
+
+      const result: MaterializeResult = await materializeSchedule(db);
+
+      const covered: MaterializedShift | undefined = result.shifts.find(
+        (shift: MaterializedShift) => {
+          return shift.override?.originalUserId === "C";
+        },
+      );
+
+      expect(covered?.userName).toBe("Erin");
+      expect(covered?.override?.originalUserName).toBe("Carol");
+
+      jest.restoreAllMocks();
+      jest.spyOn(logger, "error").mockImplementation((): void => {
+        return undefined;
+      });
+      pendingIn({ [PROJECT]: { C: null, E: "Erin (invited)" } });
+
+      const pendingResult: MaterializeResult = await materializeSchedule(db);
+
+      const pendingCovered: MaterializedShift | undefined =
+        pendingResult.shifts.find((shift: MaterializedShift) => {
+          return shift.override?.originalUserId === "C";
+        });
+
+      expect(pendingCovered?.userName).toBe("Erin (invited)");
+      expect(pendingCovered?.override?.originalUserName).toBe(
+        "carol@example.com",
+      );
+    });
+
+    test("each project names its own people: invited to one, joined in another", async () => {
+      const db: FakeDb = multiLayerDb();
+      db.schedules.push(
+        makeSchedule({
+          id: SCHEDULE_2,
+          projectId: OTHER_PROJECT,
+          name: "Checkout",
+          timezone: UTC,
+        }),
+      );
+      db.layers.push(
+        makeLayer({
+          id: "layer-other",
+          scheduleId: SCHEDULE_2,
+          projectId: OTHER_PROJECT,
+          name: "Solo",
+          startsAt: at("2026-01-01T00:00:00Z"),
+          handOffTime: at("2026-01-01T00:00:00Z"),
+          rotation: rotation(EventInterval.Day, 1),
+        }),
+      );
+      db.layerUsers.push(
+        makeLayerUser({
+          id: "lu-other-c",
+          scheduleId: SCHEDULE_2,
+          layerId: "layer-other",
+          projectId: OTHER_PROJECT,
+          userId: "C",
+        }),
+      );
+      installFakeDb(db);
+
+      const withheldIn: SpyInstance<
+        typeof PendingInviteeProfiles.readWithheldProfilesInProject
+      > = pendingIn({ [PROJECT]: { C: "Carol (invited)" } });
+
+      const result: MaterializeResult =
+        await OnCallShiftMaterializer.materializeForSchedules({
+          scheduleIds: [oid(SCHEDULE), oid(SCHEDULE_2)],
+          windowStart: WINDOW_START,
+          windowEnd: WINDOW_END,
+          now: NOW,
+        });
+
+      expect(namesOf(result.shifts, SCHEDULE)["C"]).toBe("Carol (invited)");
+      expect(namesOf(result.shifts, SCHEDULE_2)).toEqual({ C: "Carol" });
+
+      // One read per project, never one per person.
+      expect(
+        withheldIn.mock.calls
+          .map((call: [{ userIds: Array<string>; projectId: ObjectID }]) => {
+            return call[0].projectId.toString();
+          })
+          .sort(),
+      ).toEqual([PROJECT, OTHER_PROJECT]);
     });
   });
 });

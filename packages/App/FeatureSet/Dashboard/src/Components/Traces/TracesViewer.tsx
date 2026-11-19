@@ -104,8 +104,6 @@ import {
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
-import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import LessThan from "Common/Types/BaseDatabase/LessThan";
 import TracesAnalyticsView, {
   formatDurationMsInLanguage,
   TraceAnalyticsState,
@@ -117,9 +115,11 @@ import TraceRecordingRuleDefinition, {
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import {
+  DURATION_FACET_KEY,
   SpanQueryScope,
   SpanScopeChip,
   buildSpanQueryScope,
+  describeDurationBounds,
   describeNotCarriedFilter,
 } from "../../Utils/SpanQueryScope";
 import SpanUtil from "../../Utils/SpanUtil";
@@ -173,11 +173,13 @@ import {
   TraceDurationFilter,
   TraceExclusions,
   TraceSearchChip,
+  applyTraceDurationToPayload,
   applyTraceExclusionsToPayload,
   applyTraceExclusionsToQuery,
   compileTraceAttributeFilters,
   getTraceChipFacetKey,
   getTraceChosenFacetKeys,
+  hasTraceDurationFilter,
   isTraceFieldOfFacet,
   parseTraceSearch,
   readTraceExclusions,
@@ -186,6 +188,7 @@ import {
   toSpanKind,
   toSpanStatusCode,
   toTraceDurationFilter,
+  toTraceDurationQueryValue,
 } from "./TracesSearchCompile";
 import {
   FacetChoiceState,
@@ -348,7 +351,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "duration:>N",
-    description: "Duration in milliseconds (also <)",
+    description: "Duration in milliseconds (also >=, <, <=)",
     example: "duration:>500",
   },
   {
@@ -1146,6 +1149,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
+     * A Traces monitor's "Takes at least (ms)" floor: the same comparison it
+     * counted with, so the list holds only the slow spans behind the alert.
+     * A typed `duration:` token below replaces it, as on every column.
+     */
+    if (spanScope.duration) {
+      const scopedDuration: unknown = toTraceDurationQueryValue(
+        spanScope.duration,
+      );
+
+      if (scopedDuration !== undefined) {
+        (query as Record<string, unknown>)[DURATION_FACET_KEY] = scopedDuration;
+      }
+    }
+
+    /*
      * A single stored name is a SUBSTRING match, exactly as a single chip
      * value is (TEXT_CHIP_FIELDS below) — a monitor stores `new Search(...)`,
      * and exact-matching a fragment against a full span name returns nothing.
@@ -1356,23 +1374,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
       const values: Array<string> = fieldFilters[key]!;
 
-      if (key === "durationUnixNano") {
+      if (key === DURATION_FACET_KEY) {
         /*
          * The bounds are read by the shared parser the aggregation payload
-         * uses, so `duration:>500` cannot mean one thing in the list and
-         * another in the chart above it.
+         * uses, so `duration:>500` (or `>=500`) cannot mean one thing in the
+         * list and another in the chart above it.
          */
-        const duration: TraceDurationFilter = toTraceDurationFilter(values[0]!);
-        if (duration.minDurationNano !== undefined) {
-          (query as Record<string, unknown>)[key] = new GreaterThan(
-            duration.minDurationNano,
-          );
-        } else if (duration.maxDurationNano !== undefined) {
-          (query as Record<string, unknown>)[key] = new LessThan(
-            duration.maxDurationNano,
-          );
-        } else if (duration.exactDurationNano !== undefined) {
-          (query as Record<string, unknown>)[key] = duration.exactDurationNano;
+        const durationValue: unknown = toTraceDurationQueryValue(
+          toTraceDurationFilter(values[0]!),
+        );
+        if (durationValue !== undefined) {
+          (query as Record<string, unknown>)[key] = durationValue;
         }
         continue;
       }
@@ -2099,23 +2111,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           }
         }
 
-        if (
-          groups["durationUnixNano"] &&
-          groups["durationUnixNano"].length > 0
-        ) {
-          // Read by the same parser baseQuery uses — one reading, two renderings.
-          const duration: TraceDurationFilter = toTraceDurationFilter(
-            groups["durationUnixNano"][0]!,
-          );
-          if (duration.minDurationNano !== undefined) {
-            payload["minDurationNano"] = duration.minDurationNano;
-          }
-          if (duration.maxDurationNano !== undefined) {
-            payload["maxDurationNano"] = duration.maxDurationNano;
-          }
-          if (duration.exactDurationNano !== undefined) {
-            payload["exactDurationNano"] = duration.exactDurationNano;
-          }
+        /*
+         * Read by the same parser baseQuery uses — one reading, two
+         * renderings — and with its precedence: a typed `duration:` token
+         * replaces the stored scope's floor, which applies otherwise.
+         */
+        const typedDuration: TraceDurationFilter | null =
+          groups[DURATION_FACET_KEY] && groups[DURATION_FACET_KEY].length > 0
+            ? toTraceDurationFilter(groups[DURATION_FACET_KEY][0]!)
+            : null;
+        const duration: TraceDurationFilter | null = hasTraceDurationFilter(
+          typedDuration,
+        )
+          ? typedDuration
+          : spanScope.duration;
+        if (duration) {
+          applyTraceDurationToPayload(payload, duration);
         }
 
         /*
@@ -3004,6 +3015,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         readOnly: true,
       });
 
+      /*
+       * A duration floor reads "Duration: ≥ 5 s", its durations worded in
+       * the reader's language (its seed says milliseconds in English).
+       */
+      if (chip.facetKey === DURATION_FACET_KEY && spanScope.duration) {
+        resolved.displayValue = describeDurationBounds(
+          spanScope.duration,
+          (milliseconds: number): string => {
+            return formatDurationMsInLanguage(milliseconds, translator);
+          },
+        );
+      }
+
       base.push({
         ...resolved,
         lockedDetail: describeStoredQueryChip(resolved),
@@ -3068,6 +3092,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     activeFilters,
     submittedSearch,
     resolveChipDisplay,
+    translator,
   ]);
 
   /*

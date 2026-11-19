@@ -190,7 +190,7 @@ Et repositorium sier hvordan det bygges og testes, i en `AGENTS.md` i roten, fil
 
 | Hvor AI jobber | Hva den gjør med repositoriets bygg og tester |
 | --- | --- |
-| En av dine Runnere | Bygger og tester endringen sin før pull requesten åpnes, retter det som feiler og sjekker igjen, og sier i sammendraget hvilke sjekker den kjørte. Hver kommando den kjører, får 2 minutter, eller opptil 10 for en treg installasjon, bygging eller testpakke, uten Runnerens egne påloggingsopplysninger i miljøet. |
+| En av dine Runnere | Bygger og tester endringen sin før pull requesten åpnes, retter det som feiler og sjekker igjen, og sier i sammendraget hvilke sjekker den kjørte. Hver kommando den kjører, får 2 minutter, eller opptil 10 for en treg installasjon, bygging eller testpakke, uten Runnerens egne påloggingsopplysninger i miljøet. **Tidsgrense per kommando (minutter)** i prosjektets **Grenser per kjøring** lar en kommando kjøre i opptil 120 minutter, aldri lenger enn kjøringens tidsgrense. |
 | **Global Runner** | Kjører ingen kommando: den skriver endringen og åpner pull requesten, og repositoriets egen CI sjekker den. |
 
 Ingenting fra en pull request som kommer fra en fork, leses noen gang som repositoriets instruksjoner: en revisjon avviser en slik pull request, og en gjennomgang leser basisbranchen.

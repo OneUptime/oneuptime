@@ -129,9 +129,9 @@ Archive un estado o una gravedad que su equipo ya no deba usar, en lugar de elim
 
 | Forma                       | Dónde                                                                                     | Qué pregunta                                                                                                                         |
 | --------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Botones de la cabecera**  | La cabecera de la alerta: **Reconocer**, **Resolver** y **Cambiar el estado a** en su menú **⋯** | Una breve confirmación, **Reconocer alerta**, **Resolver alerta** o **Marcar alerta como {{state}}**, con una nota opcional en **Añadir una nota privada**. |
+| **Botones de la cabecera**  | La cabecera de la alerta: **Reconocer**, **Resolver** y **Cambiar el estado a** en su menú **⋯** | Una breve confirmación, **Reconocer alerta**, **Resolver alerta** o **Marcar alerta como {{state}}**, con una nota opcional en **Añadir una nota privada**. Al resolver, también se pliega una causa raíz opcional en **Añadir la causa raíz**. |
 | **Cronología de estados**   | **Cronología de estados** en el menú lateral de la alerta                                 | Una fila que añades a mano, con **Estado de la alerta** y **Comienza en**.                                                            |
-| **Fila de la lista** | El menú **⋯** de la fila de una alerta en la lista de alertas: **Reconocer**, **Resolver** y **Cambiar estado** | La confirmación de la cabecera, con el nombre de la alerta. Una alerta que otro cambio ya movió se deja como está, y el diálogo dice por qué. |
+| **Fila de la lista** | El menú **⋯** de la fila de una alerta en la lista de alertas: **Reconocer**, **Resolver** y **Cambiar estado** | La confirmación de la cabecera, con el nombre de la alerta. Una alerta que otro cambio ya movió se deja como está, y el diálogo dice por qué. No pide la causa raíz. |
 | **Cambio masivo**           | **Reconocer**, **Resolver** o **Cambiar estado** sobre una selección en la lista de alertas                              | El estado y una nota privada que se añade a cada alerta. Las alertas que ya están en ese estado o después se omiten.                  |
 | **Automáticamente**         | Un monitor, un episodio, un incidente vinculado o tu propio código                        | **Resolver alerta automáticamente** en los criterios de un monitor, el cambio de estado de un episodio, los interruptores de incidente de [Alertas vinculadas](/docs/incidents/linked-alerts) o una fila creada en `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Una alerta está resuelta cuando pasa a tu estado resuelto o a cualquier estado 
 - **Su monitor puede generar una alerta nueva.** Un criterio mantiene una sola alerta abierta a la vez; una vez resuelta, la siguiente coincidencia abre otra.
 
 Pasar de **Resuelto** a un estado posterior, "Cerrado" por ejemplo, no cambia nada de esto: la alerta ya estaba resuelta.
+
+## Escribir la causa raíz al resolver
+
+Al resolver la alerta desde su cabecera, con **Resolver** o con **Cambiar el estado a** un estado resuelto, la confirmación pliega una **Causa raíz** opcional en **Añadir la causa raíz**: por qué ocurrió. Lo que escribas ahí pasa a ser la causa raíz de la alerta, como si lo hubieras escrito en su página **Causa raíz**, y la investigación de la alerta que hace OneUptime AI se califica según ella (consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai)). Si lo dejas vacío, la alerta se resuelve como antes y conserva la causa raíz que tiene.
+
+Escribirla requiere permiso para editar la alerta, aparte del permiso para cambiar su estado: a quien no lo tiene no se le ofrece **Añadir la causa raíz**, y un cambio de estado que envíe con una causa raíz se rechaza entero, así que la alerta conserva su estado. Por la API, envíala con la fila que creas en `/api/alert-state-timeline`, como `writtenRootCause` en `miscDataProps`.
 
 ## La cronología de estados
 

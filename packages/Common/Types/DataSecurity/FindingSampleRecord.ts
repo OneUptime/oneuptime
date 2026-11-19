@@ -1,3 +1,5 @@
+import ObjectID from "../ObjectID";
+
 /*
  * THE RECORDS A TELEMETRY SCAN FOUND A FINDING'S DATA IN.
  *
@@ -12,9 +14,11 @@
  * A reference is when the record was written, to the millisecond - the
  * primary key's own column, so the read is a lookup, not a search - and the
  * keys that tell it from its neighbours of the same millisecond: its trace
- * and span, its session, or - for a metric's data point - the metric it is
- * a point of, which the metrics table is keyed by before the time. Never a
- * value: what the record holds is read from the telemetry itself, by
+ * and span, its session, a log line's own id (issue #9793: the logs
+ * explorer opens that very line by it), or - for a metric's data point -
+ * the metric it is a point of, which the metrics table is keyed by before
+ * the time. Never a value: what the record holds is read from the
+ * telemetry itself, by
  * someone who may read that telemetry. A metric's name is kept only where
  * it is the record's key and not the data: never for a finding in the
  * name itself, nor when a detector finds sensitive data in the name (a
@@ -39,6 +43,8 @@ export interface FindingSampleRecord {
   traceId?: string | undefined;
   spanId?: string | undefined;
   sessionId?: string | undefined;
+  // A log line: its own id (the Log row's _id), a UUID.
+  logId?: string | undefined;
   // A metric's data point: the metric it is a point of.
   metricName?: string | undefined;
 }
@@ -50,6 +56,21 @@ const ID_KEYS: ReadonlyArray<SampleRecordIdKey> = [
   "spanId",
   "sessionId",
 ];
+
+/*
+ * A log line's id as the Log table writes it: a UUID, which is what the
+ * logs explorer opens a line by, kept exactly as written since a lookup
+ * matches it so. Anything else is no id.
+ */
+function readLogId(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed: string = value.trim();
+
+  return ObjectID.isValidUUID(trimmed) ? trimmed : "";
+}
 
 function readId(value: unknown): string {
   if (typeof value !== "string") {
@@ -84,14 +105,15 @@ function readTime(value: unknown): Date | null {
 
 /*
  * A record as a reference: its time (a Date, milliseconds since the epoch,
- * or ISO text), the ids it has and the metric it is a point of. Null
- * without a time it was written.
+ * or ISO text), the ids it has - a log line's own among them - and the
+ * metric it is a point of. Null without a time it was written.
  */
 export function toFindingSampleRecord(data: {
   time: unknown;
   traceId?: unknown;
   spanId?: unknown;
   sessionId?: unknown;
+  logId?: unknown;
   metricName?: unknown;
 }): FindingSampleRecord | null {
   const time: Date | null =
@@ -113,6 +135,12 @@ export function toFindingSampleRecord(data: {
     }
   }
 
+  const logId: string = readLogId(data.logId);
+
+  if (logId) {
+    record.logId = logId;
+  }
+
   const metricName: string = readMetricName(data.metricName);
 
   if (metricName) {
@@ -130,6 +158,7 @@ export function getFindingSampleRecordKey(record: FindingSampleRecord): string {
     record.spanId || "",
     record.sessionId || "",
     record.metricName || "",
+    record.logId || "",
   ].join("|");
 }
 
@@ -165,6 +194,7 @@ export function readFindingSampleRecords(
       traceId: entry["traceId"],
       spanId: entry["spanId"],
       sessionId: entry["sessionId"],
+      logId: entry["logId"],
       metricName: entry["metricName"],
     });
 

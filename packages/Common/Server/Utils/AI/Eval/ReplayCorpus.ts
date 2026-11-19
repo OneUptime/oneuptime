@@ -16,6 +16,7 @@ import AIRunRecordingService from "../../../Services/AIRunRecordingService";
 import IncidentService from "../../../Services/IncidentService";
 import AlertService from "../../../Services/AlertService";
 import PostedRootCause from "../SRE/PostedRootCause";
+import InvestigationGrader from "../SRE/InvestigationGrader";
 import { GoldenCaseSubjectType } from "./EvalCorpus";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -37,7 +38,10 @@ export interface ReplayCase {
   subjectType: GoldenCaseSubjectType;
   subjectId: string;
   completedAt?: string | undefined;
-  // The root cause people wrote for the incident or alert; null: none yet.
+  /*
+   * The root cause people wrote for the incident or alert; null: none yet,
+   * or only the one OneUptime wrote when it opened it (getRootCause).
+   */
   rootCause: string | null;
   original: {
     autoGrade?: AIRunAutoGrade | undefined;
@@ -174,26 +178,38 @@ export default class ReplayCorpus {
     });
   }
 
+  /*
+   * The record's root cause, unless it is still what OneUptime wrote when it
+   * opened it - the criteria a monitor matched, the line naming who opened
+   * it (InvestigationGrader.isWrittenByOneUptime): graded against that, a
+   * right analysis reads as a miss, so a replay is not graded against it
+   * either, and is skipped as having no root cause yet. Written over -
+   * under "Add the root cause" as it was resolved (#7765), or on its Root
+   * Cause page - it is people's.
+   */
   private static async getRootCause(
     subjectType: GoldenCaseSubjectType,
     subjectId: ObjectID,
   ): Promise<string | null> {
-    if (subjectType === "Incident") {
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: subjectId,
-        select: { rootCause: true },
-        props: { isRoot: true },
-      });
+    const record: Incident | Alert | null =
+      subjectType === "Incident"
+        ? await IncidentService.findOneById({
+            id: subjectId,
+            select: { rootCause: true },
+            props: { isRoot: true },
+          })
+        : await AlertService.findOneById({
+            id: subjectId,
+            select: { rootCause: true },
+            props: { isRoot: true },
+          });
 
-      return incident?.rootCause?.trim() || null;
+    const rootCause: string | undefined = record?.rootCause?.trim();
+
+    if (!rootCause || InvestigationGrader.isWrittenByOneUptime(rootCause)) {
+      return null;
     }
 
-    const alert: Alert | null = await AlertService.findOneById({
-      id: subjectId,
-      select: { rootCause: true },
-      props: { isRoot: true },
-    });
-
-    return alert?.rootCause?.trim() || null;
+    return rootCause;
   }
 }

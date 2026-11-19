@@ -129,9 +129,9 @@ Arkiver en status eller alvorsgrad, som dit team ikke længere skal bruge, i ste
 
 | Måde                 | Hvor                                                                                      | Hvad den spørger om                                                                                                                  |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knapper i hovedet** | Advarslens hoved: **Bekræft**, **Løs** og **Skift tilstand til** i dens menu **⋯**          | En kort bekræftelse, **Bekræft advarsel**, **Løs advarsel** eller **Markér advarsel som {{state}}**, med en valgfri note under **Tilføj en privat note**. |
+| **Knapper i hovedet** | Advarslens hoved: **Bekræft**, **Løs** og **Skift tilstand til** i dens menu **⋯**          | En kort bekræftelse, **Bekræft advarsel**, **Løs advarsel** eller **Markér advarsel som {{state}}**, med en valgfri note under **Tilføj en privat note**. En løsning folder også en valgfri grundårsag sammen under **Tilføj grundårsagen**. |
 | **Tilstandstidslinje**   | **Tilstandstidslinje** i advarslens sidemenu                                              | En række, du tilføjer i hånden, med **Advarselsstatus** og **Begynder den**.                                                          |
-| **Listens række** | Menuen **⋯** på en advarsels række i listen over advarsler: **Bekræft**, **Løs** og **Skift tilstand** | Hovedets bekræftelse, der nævner advarslen. En advarsel, som en anden ændring har flyttet imens, lades urørt, og dialogen siger hvorfor. |
+| **Listens række** | Menuen **⋯** på en advarsels række i listen over advarsler: **Bekræft**, **Løs** og **Skift tilstand** | Hovedets bekræftelse, der nævner advarslen. En advarsel, som en anden ændring har flyttet imens, lades urørt, og dialogen siger hvorfor. Den beder ikke om grundårsagen. |
 | **Masseskift**       | **Bekræft**, **Løs** eller **Skift tilstand** på et udvalg i listen over advarsler                                   | Tilstanden og én privat note, der føjes til hver advarsel. Advarsler, der allerede er i eller efter tilstanden, springes over.        |
 | **Automatisk**       | En monitor, en episode, en tilknyttet hændelse eller din egen kode                        | **Løs advarsel automatisk** i en monitors kriterier, en episodes tilstandsskift, hændelseskontakterne på [Tilknyttede advarsler](/docs/incidents/linked-alerts) eller en række oprettet på `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ En advarsel er løst, når den flytter til din løste tilstand eller til en tils
 - **Dens monitor kan udløse en ny advarsel.** Et kriterium holder én åben advarsel ad gangen; når den er løst, åbner det næste match en ny.
 
 At gå videre fra **Løst** til en tilstand efter den, for eksempel "Lukket", ændrer intet af dette: Advarslen var allerede løst.
+
+## Skriv grundårsagen, når du løser
+
+Når advarslens hoved løser den, med **Løs** eller med **Skift tilstand til** en løst tilstand, folder bekræftelsen en valgfri **Grundårsag** sammen under **Tilføj grundårsagen**: hvorfor den skete. Det, du skriver der, bliver advarslens grundårsag, som om du havde skrevet det på dens side **Grundårsag**, og OneUptime AI's undersøgelse af advarslen holdes op mod det (se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig)). Lader du det stå tomt, løses advarslen som før og beholder den grundårsag, den har.
+
+At skrive den kræver tilladelse til at redigere advarslen, ud over tilladelsen til at skifte dens tilstand: den, der ikke har den, får ikke tilbudt **Tilføj grundårsagen**, og et tilstandsskift, vedkommende sender med en grundårsag, afvises helt, så advarslen beholder sin tilstand. Via API'et sender du den med rækken, du opretter på `/api/alert-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tilstandstidslinjen
 

@@ -9,6 +9,7 @@ El agente de Kubernetes de OneUptime es un chart de Helm que recopila las métri
 - [Instala el agente](#instala-el-agente): Cuatro pasos con Helm.
 - [Instálalo como complemento de Amazon EKS](#instálalo-como-complemento-de-amazon-eks): Desde la consola de EKS, sin Helm.
 - [OpenShift](#openshift): El preset, las restricciones de contexto de seguridad que crea y las alertas propias de OpenShift.
+- [Refuerzo de seguridad del clúster](#refuerzo-de-seguridad-del-clúster): Puntuaciones de los Estándares de seguridad de pods y del CIS Benchmark, y los permisos propios del agente.
 - [Opciones de configuración](#opciones-de-configuración): Filtros, muestreo, plano de control, malla de servicios, costos y etiquetas.
 - [Agente de IA de Kubernetes](#agente-de-ia-de-kubernetes): `kubectl` de solo lectura para OneUptime AI, y correcciones cuando las permitas.
 - [Envía menos](#reducir-el-volumen-de-datos-recopilados): Las palancas, por orden de impacto.
@@ -267,6 +268,7 @@ Para recuperarlos, pasa a `openshift` con `--set preset=openshift` en una actual
 | Eventos de Kubernetes | Cada evento, Warning y Normal, de cada espacio de nombres y tipo de objeto: consulta [Eventos de Kubernetes](#eventos-de-kubernetes) |
 | Logs de pods | stdout y stderr de cada contenedor (a través de `hostPath` en clústeres estándar, a través de la API de Kubernetes en Autopilot y Fargate) |
 | Objetos de OpenShift (los presets de OpenShift) | ClusterOperators, la ClusterVersion, Routes, DeploymentConfigs y Services: consulta [OpenShift](#openshift) |
+| RBAC, cuentas de servicio y NetworkPolicies | Roles, ClusterRoles y sus vinculaciones, ServiceAccounts y NetworkPolicies, con acceso de solo lectura, cada `resourceSpecs.interval`, para puntuar el refuerzo de seguridad del clúster: consulta [Refuerzo de seguridad del clúster](#refuerzo-de-seguridad-del-clúster). Nunca se lee ningún Secret |
 | Trazas de aplicación (eBPF, activadas por defecto) | Spans HTTP, gRPC, SQL y Redis de cada pod, sin SDK ni cambios de código |
 | Métricas RED de HTTP (eBPF) | `http.server.request.duration` y los tamaños del cuerpo de solicitud y respuesta, por servicio |
 | Grafo de servicios (eBPF) | Aristas de tasa de solicitudes, latencia y errores entre llamador y llamado, que dibujan el mapa de servicios |
@@ -311,6 +313,49 @@ Cada evento también es un registro. Una advertencia se guarda con la gravedad *
 | `k8s.namespace.name` | `default` |
 
 Búscalos en **Registros**, o descarta los que no quieras con un filtro de descarte. Para enterarte cuando ocurra uno, activa **Warning Events** en la página **Recomendaciones** del clúster, o selecciona **Activar alertas de advertencias** al pie de su página **Eventos**: un [monitor de registros](/docs/monitor/logs-monitor) sobre las advertencias del clúster que genera una alerta por objeto y motivo, y la resuelve cuando pasan 5 minutos sin una nueva advertencia sobre él. Para enterarte solo de algunos motivos, añade `k8s.event.reason` a su filtro.
+
+## Refuerzo de seguridad del clúster
+
+La página **Cumplimiento** de un clúster, en **Seguridad**, puntúa el propio clúster en su sección **Refuerzo de seguridad del clúster**, frente a tres marcos. Lee lo que el agente ya envía: los pods del clúster, sus espacios de nombres y, para el CIS Benchmark, su RBAC, sus cuentas de servicio y sus NetworkPolicies. El menú del clúster muestra la página en cuanto el agente informa de los pods del clúster, ejecute o no el clúster una base de datos.
+
+| Marco | Qué puntúa |
+| --- | --- |
+| **Estándares de seguridad de pods: Baseline** | Cada carga de trabajo que se ejecuta en el clúster, frente a la política Baseline de la versión de Kubernetes del clúster: contenedores privilegiados, espacios de nombres, puertos y rutas del host, capacidades añadidas y todos los demás campos que nombra la política, leídos de la especificación de cada pod |
+| **Estándares de seguridad de pods: Restricted** | Las mismas cargas de trabajo, frente a la política Restricted: los controles de Baseline y, además, solo los tipos de volumen que permite, la ejecución como un usuario distinto de root, ninguna escalada de privilegios, un perfil seccomp y todas las capacidades eliminadas |
+| **CIS Kubernetes Benchmark v2.0** | Los 27 controles de la sección 5 que la API de Kubernetes puede responder: vinculaciones que conceden cluster-admin, acceso a Secrets, `nodes/proxy` y los demás derechos que nombran sus controles, roles con comodines, las cuentas de servicio predeterminadas, Pod Security Admission o un motor de políticas en cada espacio de nombres, NetworkPolicies y lo que ejecuta cada pod |
+
+El mosaico de cada marco muestra su puntuación, y cuántas cargas de trabajo evaluó y cuántas no lo cumplen. Sus controles enumeran primero los incumplidos: cada uno indica qué encuentra mal y cómo corregirlo, y enumera las cargas de trabajo, roles, vinculaciones, cuentas de servicio o espacios de nombres que no lo cumplen, cada uno enlazado a su página, hasta el contenedor o el volumen y el campo, como `securityContext.privileged`. Donde Seguridad de datos puntúa las bases de datos que se ejecutan en el clúster, estas siguen debajo, en **Bases de datos de este clúster**.
+
+Los Estándares de seguridad de pods se puntúan para la propia versión de Kubernetes del clúster: la de su kubelet más reciente, hasta la versión más reciente que conoce OneUptime. Un control que añadió una versión posterior solo cuenta a partir de esa versión, y la página indica según qué versión puntuó.
+
+Los otros 104 controles del benchmark comprueban los archivos y los kubelets de los nodos o los flags del plano de control, o necesitan la revisión de una persona. Ninguna API puede responderlos, así que aparecen en **Sin puntuar aquí**, agrupados por motivo, y nunca se dan por cumplidos ni por incumplidos. En un plano de control gestionado, como EKS, GKE o AKS, la página indica que corresponden al benchmark del proveedor.
+
+### Desactivar un marco, un control o un espacio de nombres
+
+Desactiva lo que no se aplica a un clúster. Cada interruptor es propio del clúster y pregunta el motivo, y la página guarda quién lo desactivó, cuándo y por qué:
+
+- El interruptor **Se aplica aquí** de un marco deja el clúster fuera de él. El marco se pliega en **Desactivados**, con su interruptor para volver a activarlo.
+- El interruptor de un control deja ese control fuera de la puntuación del clúster.
+- El interruptor de un espacio de nombres, en cada marco, deja fuera de ese marco todo lo que hay en el espacio de nombres, igual que Pod Security Admission exime a un espacio de nombres.
+
+### Exportar un marco
+
+**Exportar CSV** y **Exportar JSON** descargan el informe de un marco: cada control, si se cumple, qué lo incumple y cómo corregirlo, y la versión de Kubernetes según la que se puntuó.
+
+### Qué lee el agente para ello
+
+`resourceSpecs.compliance` (activado por defecto) lee Roles, ClusterRoles y sus vinculaciones, ServiceAccounts y NetworkPolicies cada `resourceSpecs.interval`, con `get`, `list` y `watch` sobre ellos y nada más. Nunca se lee ningún Secret: una ServiceAccount solo nombra sus Secrets de token, y OneUptime descarta incluso los nombres. Con él desactivado (`--set resourceSpecs.compliance=false`), los controles de RBAC, cuentas de servicio y NetworkPolicies del benchmark figuran como *no evaluados*, y los Estándares de seguridad de pods se siguen puntuando a partir de los pods.
+
+### Los permisos propios del agente
+
+El agente lee cada kubelet a través de los subrecursos con los que el kubelet autoriza sus rutas: `nodes/stats` para sus estadísticas, `nodes/metrics` para cAdvisor y `nodes/pods` para la lista de pods de un nodo, algo que un kubelet permite a partir de Kubernetes 1.33. `nodes/proxy` da acceso a toda la API del kubelet, y el control CIS 5.1.10 da por incumplida toda vinculación que lo conceda, así que el agente solo lo concede donde nada más restringido funciona:
+
+| Valor | Cuándo concede el agente `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (el valor predeterminado) lo concede mientras el clúster ejecute una versión de Kubernetes anterior a la 1.36, cuyos kubelets pueden ser anteriores a la 1.33 y permitir listar los pods de un nodo solo con `nodes/proxy`. Establece `false` cuando todos los nodos ejecuten la 1.33 o posterior, o `true` para kubelets con `KubeletFineGrainedAuthz` desactivado |
+| `cost.prometheus.nodesProxy` | `auto` (el valor predeterminado) lo concede solo con el preset `eks-fargate`, donde ningún pod llega al kubelet de un nodo y el Prometheus de costos lee cAdvisor a través del API server. En todos los demás casos, lee el kubelet de cada nodo en el puerto 10250 |
+
+Donde la propia vinculación del agente incumple el 5.1.10, la página indica que la vinculación es del agente, por qué concede `nodes/proxy` y el valor que lo retira.
 
 ## Opciones de configuración
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 No uses `--reuse-values`: también conserva los valores predeterminados del chart desde el que actualizas, así que los valores predeterminados de un chart más nuevo (incluida su imagen de eBPF) nunca se aplican. Cuando una release se ejecuta con los valores predeterminados de un chart más antiguo, las notas que Helm imprime tras la instalación o la actualización terminan con una advertencia y el comando que lo soluciona.
 
 Si la actualización falla con `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (o el antiguo `aiAccess.remediation.namespaces`) enumera un namespace que no existe (o que ya no existe): el chart pone un RoleBinding en cada namespace enumerado y nunca crea uno. Crea el namespace, o actualiza con la lista sin ese namespace (`--set "aiAgent.remediation.namespaces={web}"`), o con `--set-json 'aiAgent.remediation.namespaces=[]'` para volver a la vinculación en todo el clúster. `--set aiAgent.remediation.namespaces=null` no restablece una lista guardada con `--reuse-values`, así que falla con el mismo error.
+
+> **Los controles de RBAC del CIS Benchmark necesitan un agente actualizado.** Un agente anterior a `resourceSpecs.compliance` no envía RBAC, cuentas de servicio ni NetworkPolicies, así que la página **Cumplimiento** del clúster muestra los controles de RBAC, cuentas de servicio y NetworkPolicies del benchmark como *no evaluados*, e indica cómo solucionarlo. Actualiza el agente con `resourceSpecs.compliance` activado, como lo está por defecto: necesita el colector 0.125.0 o posterior. La actualización también deja de conceder `nodes/proxy` donde ningún nodo lo necesita: consulta [Los permisos propios del agente](#los-permisos-propios-del-agente).
 
 > **Las métricas de spans de eBPF tienen nombres nuevos.** `ebpf.features.spanMetrics` ahora envía `traces.span.metrics.calls` y `traces.span.metrics.duration` (segundos) en lugar de `traces_spanmetrics_calls_total` y `traces_spanmetrics_latency`: las mismas series, con los nombres que mantiene OBI (que dejó obsoletos los antiguos). Un dashboard, un gráfico o un monitor de métricas sobre un nombre antiguo no recibe datos nuevos después de la actualización, sin ningún error — pásalo al nombre nuevo y actualiza cualquier entrada `filters.metrics` que nombre uno antiguo.
 

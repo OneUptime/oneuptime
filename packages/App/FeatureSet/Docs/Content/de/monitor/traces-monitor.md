@@ -48,7 +48,7 @@ Legen Sie in **Zu überwachende Spans** die Felder **Span-Status** und **Span-Na
 
 ### Weiter eingrenzen (optional)
 
-Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern oder um nur die Spans zu zählen, die mindestens eine bestimmte Zeit gedauert haben.
+Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern, um nur die Spans zu zählen, die mindestens eine bestimmte Zeit gedauert haben, oder um mit **Gruppieren nach Attributen** eine Warnung pro Wert eines Attributs auszulösen.
 
 ### Festlegen, wann alarmiert wird
 
@@ -77,8 +77,9 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Spans, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
 | **Dauert mindestens (ms)** (unter **Weitere Felder**) | Spans, die so lange oder länger gedauert haben, in Millisekunden, etwa 5000 für einen Kaltstart von fünf Sekunden. | Leer: beliebige Dauer |
+| **Gruppieren nach Attributen** (unter **Weitere Felder**) | Kein Filter: eine Zählung und eine Warnung oder ein Vorfall pro Kombination der Werte dieser Attribute. Siehe [Eine Warnung pro Gruppe](#eine-warnung-pro-gruppe). | Leer: Alle passenden Spans werden gemeinsam gezählt |
 
-Alle Filter, die Sie festlegen, müssen passen, damit ein Span gezählt wird.
+Alle Filter, die Sie festlegen, müssen passen, damit ein Span gezählt wird. Die Spans hinter einer Warnung oder einem Vorfall des Monitors werden mit denselben Filtern aufgelistet, **Dauert mindestens (ms)** eingeschlossen als Filter **Dauer**, es sind also genau die Spans, die er gezählt hat.
 
 ### Span-Statuscodes
 
@@ -99,6 +100,14 @@ Wenn erfolgreiche Anfragen als OK angezeigt werden sollen, fügen Sie unter **Tr
 - **Kriterien von oben nach unten.** Das erste passende Kriterium entscheidet; stellen Sie also das schwerwiegendste nach oben.
 
 Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monitors festgehalten.
+
+## Eine Warnung pro Gruppe
+
+Ist **Gruppieren nach Attributen** gesetzt, zählt der Monitor die passenden Spans pro Kombination der Werte der Attribute, und für jede Gruppe wird eine eigene Warnung oder ein eigener Vorfall ausgelöst und auch für sich behoben. Die Empfehlung **Device Stopped Reporting** einer mobilen App gruppiert nach `resource.app.installation.id`, eine Gruppe pro Installation der App.
+
+Ein Gerät, das keine Spans mehr sendet, hinterlässt im Fenster keinen Span, aus dem eine Gruppe entstehen könnte. Deshalb zählt ein gruppierter Monitor, dessen Regel auch bei null Spans zutreffen kann, etwa **Weniger als** `1`, auch jede Gruppe, die in der Woche vor dem Fenster Spans gesendet hat und darin keine, als 0. Eine Gruppe, die länger als diese Woche still ist, fällt heraus, und ihre Warnung wird behoben.
+
+Sendet keine der Gruppen einen Span, ist die ganze App verstummt, nicht ein einzelnes Gerät: Keine Gruppe alarmiert, und die offenen Warnungen bleiben offen, bis Spans ankommen. Ein ungruppierter Monitor wie **App Stopped Reporting** alarmiert in diesem Fall. Höchstens 100 Gruppen werden in einer Prüfung bewertet, die stillen zuerst.
 
 ## Kriterien
 

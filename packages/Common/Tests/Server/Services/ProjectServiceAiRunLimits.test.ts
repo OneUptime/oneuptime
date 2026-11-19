@@ -76,6 +76,8 @@ const ERRORS: Record<ProjectAiRunLimitColumn, string> = {
     "The limit of tokens per run must be a whole number from 1,000 to 2,000,000,000. Leave it empty for no limit.",
   aiRunTimeLimitInMinutes:
     "The time limit per run must be a whole number from 1 to 1,440. Leave it empty for the default.",
+  aiRunCommandTimeLimitInMinutes:
+    "The time limit per command must be a whole number from 1 to 120. Leave it empty for the default.",
 };
 
 function userProps(): DatabaseCommonInteractionProps {
@@ -298,6 +300,7 @@ describe.each(INSTALLS)("a new project, on $name", (install: Install) => {
     expect(created.aiRunMaxToolCalls).toBeUndefined();
     expect(created.aiRunMaxTokens).toBeUndefined();
     expect(created.aiRunTimeLimitInMinutes).toBeUndefined();
+    expect(created.aiRunCommandTimeLimitInMinutes).toBeUndefined();
   });
 
   it("refuses an invalid limit before the project is set up", async () => {

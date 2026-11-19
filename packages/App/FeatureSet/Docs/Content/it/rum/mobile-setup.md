@@ -5,6 +5,7 @@ Strumenta un'app Android, iOS o React Native con OpenTelemetry in modo che si pr
 :::cards
 - [Cosa serve a OneUptime](#cosa-serve-a-oneuptime): Due attributi di risorsa, inviati con una chiave Server.
 - [Configurare la piattaforma](#configurare-la-piattaforma): Android, iOS, React Native e tutte le altre.
+- [Crash e blocchi su iOS](#crash-e-blocchi-su-ios): I diagnostici di MetricKit in Eccezioni e nella panoramica.
 - [Verificare che arrivi](#verificare-che-arrivi): Provare la chiave, poi trovare l'app.
 - [Session Replay su mobile](#session-replay-su-mobile): Registrazioni per le app React Native.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 L'SDK aggiunge da sé `/v1/traces`, `/v1/metrics` e `/v1/logs` all'endpoint.
 :::
+
+## Crash e blocchi su iOS
+
+opentelemetry-swift 2.3 e successivi segnalano i crash e i blocchi di un'app iOS tramite la sua strumentazione MetricKit, che consegna ciascuno dei diagnostici di Apple a OpenTelemetry come record di log. OneUptime li archivia come archivia i crash e gli ANR di OpenTelemetry Android, quindi compaiono in **Eccezioni** e nella **Panoramica** dell'applicazione:
+
+| Diagnostico di Apple | Nome dell'evento | In Eccezioni |
+| --- | --- | --- |
+| Un crash | `metrickit.diagnostic.crash` | Un'eccezione non gestita, il cui tipo è ciò che ha terminato l'app: l'eccezione Objective-C su iOS 17 e successivi, altrimenti l'eccezione Mach (`EXC_BAD_ACCESS`), altrimenti il segnale (`SIGSEGV`) |
+| Un blocco | `metrickit.diagnostic.hang` | Un'eccezione non gestita di tipo **Hang**, l'equivalente iOS di un ANR, che conserva quanto è durato il blocco |
+
+Il riquadro **Crash** della panoramica conta i crash, e il suo riquadro **ANR** conta i blocchi insieme agli ANR di Android. Ogni stack trace viene disegnato come i thread di un crash report, a partire dal thread che è andato in crash o si è bloccato. I frame non sono simbolizzati: ognuno nomina il suo binario e il punto al suo interno in cui si trovava il codice, e **Binary Images** elenca l'UUID di ogni binario, che indica con il dSYM di quale build simbolizzarlo.
+
+:::steps
+### Esportare i log oltre agli span
+
+MetricKit segnala i diagnostici come record di log, quindi registra un provider dei logger accanto al provider dei tracer, con la stessa risorsa, lo stesso endpoint e la stessa intestazione:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Registrare la strumentazione MetricKit
+
+Aggiungi il prodotto `MetricKitInstrumentation` di opentelemetry-swift e registralo presso MetricKit dopo aver registrato il provider dei logger:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Registrare le sessioni
+
+I riquadri **Sessioni** e **Sessioni senza crash** contano il `session.id` dei tuoi span. Il prodotto `Sessions` di opentelemetry-swift lo imposta: aggiungi `SessionSpanProcessor` al provider dei tracer e racchiudi il processore dei log in `SessionLogRecordProcessor`, così anche i diagnostici portano una sessione. Le sue versioni non impostano ancora alcun `app.installation.id`, quindi il riquadro **Sessioni senza crash** di un'app iOS indica quante sessioni sono andate in crash anziché le sue installazioni senza crash.
+:::
+
+> [!NOTE]
+> Apple consegna i diagnostici di MetricKit all'app a un avvio successivo, subito su iOS 15 e successivi e una volta al giorno nelle versioni precedenti, quindi un crash o un blocco può arrivare minuti o un giorno dopo che è avvenuto, e viene contato quando arriva. «0 crash nell'ultima ora» nella panoramica di un'app iOS non è ancora una buona notizia. Un diagnostico porta la sessione che lo ha segnalato, non quella che ha interrotto.
+
+opentelemetry-swift non registra alcuno span all'avvio dell'app, quindi i riquadri **Avvii dell'app** e **Avvio a freddo (p95)** restano vuoti finché la tua app non ne registra uno: uno span chiamato `AppStart`, con `start.type` impostato su `cold`, `warm` o `hot`, dall'avvio del processo a quando la prima schermata è pronta.
 
 ## Verificare che arrivi
 
