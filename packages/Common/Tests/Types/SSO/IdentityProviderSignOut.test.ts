@@ -3,7 +3,6 @@ import {
   getPostLogoutRedirectUri,
   IDENTITY_PROVIDER_SIGN_OUT_ENCRYPTED_FIELDS,
   IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD,
-  IdentityProviderSignOutRecord,
   isSamlIdentityProviderSignOutRecord,
   isUsableEndSessionEndpoint,
   isUsableIdentityProviderSignOutUrl,
@@ -14,6 +13,7 @@ import {
   MAX_ID_TOKEN_LENGTH,
   MAX_IDENTITY_PROVIDER_SIGN_OUT_URL_LENGTH,
   MAX_SAML_SIGN_OUT_VALUE_LENGTH,
+  OidcIdentityProviderSignOutRecord,
   readIdentityProviderSignOutRecord,
   SamlIdentityProviderSignOutRecord,
 } from "../../../Types/SSO/IdentityProviderSignOut";
@@ -32,7 +32,7 @@ import { describe, expect, test } from "@jest/globals";
 const ID_TOKEN: string =
   "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyLTEiLCJhdWQiOiJvbmV1cHRpbWUifQ.c2lnbmF0dXJl";
 
-const RECORD: IdentityProviderSignOutRecord = {
+const RECORD: OidcIdentityProviderSignOutRecord = {
   providerType: SsoProviderType.GlobalOIDC,
   providerId: "8a8a8a8a-8a8a-4a8a-8a8a-8a8a8a8a8a8a",
   endSessionEndpoint: "https://idp.example.com/oauth2/v1/logout",
