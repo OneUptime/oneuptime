@@ -26,15 +26,22 @@ function agentFile(relativePath: string): string {
   return fs.readFileSync(path.join(AGENT, relativePath), "utf8");
 }
 
+const RESTRICTION: RegExp = /<restriction\b([\s\S]*?)\/>/g;
+const RESTRICTION_KEY: RegExp = /android:key="([^"]+)"/;
+const RESTRICTION_DEFAULT: RegExp = /android:defaultValue="([^"]+)"/;
+// A row of the page's settings table: | `key` | what it sets | default |
+const SETTINGS_ROW: RegExp = /^\| `([a-z_]+)` \| [^|]+ \| ([^|]+) \|$/;
+const APPLICATION_ID: RegExp = /applicationId = "([^"]+)"/;
+
 // The keys app_restrictions.xml declares, in order, with their defaults.
 function restrictions(): Array<{ key: string; defaultValue?: string }> {
   const xml: string = agentFile("app/src/main/res/xml/app_restrictions.xml");
-  return Array.from(xml.matchAll(/<restriction\b([\s\S]*?)\/>/g)).map(
+  return Array.from(xml.matchAll(RESTRICTION)).map(
     (match: RegExpMatchArray) => {
       const body: string = match[1]!;
-      const key: string = /android:key="([^"]+)"/.exec(body)![1]!;
+      const key: string = RESTRICTION_KEY.exec(body)![1]!;
       const defaultValue: string | undefined =
-        /android:defaultValue="([^"]+)"/.exec(body)?.[1];
+        RESTRICTION_DEFAULT.exec(body)?.[1];
       return { key, defaultValue };
     },
   );
@@ -44,8 +51,7 @@ function restrictions(): Array<{ key: string; defaultValue?: string }> {
 function settingsTable(): Map<string, string> {
   const rows: Map<string, string> = new Map();
   for (const line of markdown.split("\n")) {
-    const match: RegExpExecArray | null =
-      /^\| `([a-z_]+)` \| [^|]+ \| ([^|]+) \|$/.exec(line);
+    const match: RegExpExecArray | null = SETTINGS_ROW.exec(line);
     if (match) {
       rows.set(match[1]!, match[2]!.trim());
     }
@@ -139,7 +145,7 @@ describe("Android Agent docs: the settings are the agent's", () => {
 describe("Android Agent docs: what to run and where to look", () => {
   it("grants READ_LOGS to the agent's own package", () => {
     const build: string = agentFile("app/build.gradle.kts");
-    const applicationId: string = /applicationId = "([^"]+)"/.exec(build)![1]!;
+    const applicationId: string = APPLICATION_ID.exec(build)![1]!;
 
     expect(markdown).toContain(
       `adb shell pm grant ${applicationId} android.permission.READ_LOGS`,
