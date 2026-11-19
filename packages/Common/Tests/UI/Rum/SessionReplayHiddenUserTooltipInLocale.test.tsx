@@ -306,9 +306,11 @@ describe("the hidden user's hover is the header's request", () => {
     }
   });
 
-  test.each(LANGUAGES.map((language: string) => {
-    return [language];
-  }))(
+  test.each(
+    LANGUAGES.map((language: string) => {
+      return [language];
+    }),
+  )(
     "%s: every language words the request, naming the grant by its placeholder",
     (language: string) => {
       const worded: string = LOCALES[language]?.[REQUEST] || "";
@@ -323,18 +325,18 @@ describe("the hidden user's hover is the header's request", () => {
 });
 
 describe("the session list", () => {
-  test.each(LANGUAGES.map((language: string) => {
-    return [language];
-  }))(
+  test.each(
+    LANGUAGES.map((language: string) => {
+      return [language];
+    }),
+  )(
     "%s: hovering a hidden user names Watch Session Replays and what to do",
     async (language: string) => {
       await readIn(language);
       await renderSessionList(hiddenSessionRow());
 
       // With a digest, the user is a button that narrows the list to them.
-      const button: HTMLElement = screen.getByTestId(
-        "session-row-user-filter",
-      );
+      const button: HTMLElement = screen.getByTestId("session-row-user-filter");
       const hover: string = withoutIsolateMarks(
         button.getAttribute("title") || "",
       );
@@ -377,9 +379,9 @@ describe("the session list", () => {
       fireEvent.mouseEnter(cell);
 
       await waitFor(() => {
-        expect(
-          withoutIsolateMarks(document.body.textContent || ""),
-        ).toContain(wordedRequest(language));
+        expect(withoutIsolateMarks(document.body.textContent || "")).toContain(
+          wordedRequest(language),
+        );
       });
     },
   );
@@ -397,9 +399,11 @@ describe("the session list", () => {
 });
 
 describe("the Users page", () => {
-  test.each(LANGUAGES.map((language: string) => {
-    return [language];
-  }))(
+  test.each(
+    LANGUAGES.map((language: string) => {
+      return [language];
+    }),
+  )(
     "%s: hovering a hidden user names Watch Session Replays and what to do",
     async (language: string) => {
       await readIn(language);
