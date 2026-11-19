@@ -87,8 +87,8 @@ Open **Bereikbaarheid** via het menu **Producten** in de bovenste balk. Het open
 | Sectie | Pagina's |
 | --- | --- |
 | **Beleidsregels** | **Bereikbaarheidsbeleid**, **Gereedheid**: wie je beleid echt bereikt, en **Beleid inkomende gesprekken**: een telefoonnummer dat overgaat bij wie dienst heeft |
-| **Schema's** | **Bereikbaarheidsschema's**, **Tijdlijn van bereikbaarheidsschema's** en **Agendafeeds** |
-| **Geavanceerd** | **Gebruikersoverschrijvingen**, **Uitvoeringslogboeken** en **Gearchiveerde beleidsregels** |
+| **Schema's** | **Bereikbaarheidsschema's**, **Tijdlijn van bereikbaarheidsschema's**, **Gebruikersoverschrijvingen**: wie iemand vervangt terwijl die afwezig is, en **Agendafeeds** |
+| **Geavanceerd** | **Uitvoeringslogboeken** en **Gearchiveerde beleidsregels** |
 | **Rapporten** | **Bereikbaarheidstijd gebruiker**: hoe lang elke persoon dienst had |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
 | **Instellingen** | **Aangepaste velden**, **Labelregels** en **Eigenaarsregels** |
@@ -109,7 +109,7 @@ Open **Bereikbaarheid → Gereedheid** en klik op **Dekking** in de rij van die 
 :::
 
 :::details Iemand op vakantie wordt nog steeds opgeroepen
-Voeg een gebruikersoverschrijving toe met die persoon onder **Wie is afwezig?**. Een overschrijving onder **Bereikbaarheid → Geavanceerd → Gebruikersoverschrijvingen** geldt voor elk beleid; een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Voeg een gebruikersoverschrijving toe met die persoon onder **Wie is afwezig?**. Een overschrijving onder **Bereikbaarheid → Schema's → Gebruikersoverschrijvingen** geldt voor elk beleid; een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 :::
 
 ## Volgende stappen

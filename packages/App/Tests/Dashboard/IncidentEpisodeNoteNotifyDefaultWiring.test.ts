@@ -245,6 +245,7 @@ describePublicNotesTab({
     INCIDENT_QUIET_DESCRIPTION_REFERENCE,
   ],
   canBePrivate: true,
+  statusPageReachApiPath: "/incident-episode",
 });
 
 describeSharedPublicNoteWiring();

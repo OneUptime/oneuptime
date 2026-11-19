@@ -40,7 +40,7 @@ flowchart TB
 
 ![Die Liste „Ingestion-Schlüssel“, „Ingestion-Schlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
-Der neue Schlüssel öffnet sich auf einer eigenen Seite. Kopieren Sie den Wert unter **Geheimer Schlüssel**: Das ist das Token, das das SDK als `x-oneuptime-token` sendet.
+Der neue Schlüssel öffnet sich auf einer eigenen Seite. Kopieren Sie den Wert unter **Geheimer Schlüssel**: Das ist das Token, das das SDK als `x-oneuptime-token` sendet. Ein Browser-Schlüssel ist dafür gedacht, öffentlich zu sein: Er funktioniert nur von den Ursprüngen aus, die Sie angeben, sendet nur Browser-Telemetrie und Sitzungswiedergaben und hat eine Obergrenze für Anfragen. Legen Sie nie einen Server-Schlüssel in eine Seite.
 
 ![Die Seite eines Telemetrie-Ingestion-Schlüssels mit seinem geheimen Schlüssel](/docs/static/images/TelemetryIngestionKeyView.png)
 

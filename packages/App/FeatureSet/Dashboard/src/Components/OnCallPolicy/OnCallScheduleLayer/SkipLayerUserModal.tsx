@@ -54,9 +54,9 @@ import React, {
  *
  * The override applies to every on-call policy (none is named): somebody on
  * holiday is away from all of them. It is listed with the others under
- * On-Call Duty > Advanced > User Overrides, where it can be deleted to bring
- * them back early. Advanced is a folded section of that menu, so the way
- * there names it. So it takes a permission to add overrides over the whole
+ * On-Call > Schedules > User Overrides, where it can be deleted to bring
+ * them back early. The way there names the section it is in, as a menu
+ * path does (#9701 moved it there from the folded Advanced section). So it takes a permission to add overrides over the whole
  * project (GlobalUserOverrideLock).
  *
  * A reader whose permission covers only some policies is handed the
@@ -336,7 +336,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
    * policies ticked below.
    */
   let description: string = translationKey(
-    "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.",
+    "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.",
   );
 
   if (policies.length === 1) {

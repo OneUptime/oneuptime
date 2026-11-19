@@ -803,9 +803,26 @@ describe("the notification settings matrix and custom channels", () => {
       });
 
       for (const table of screen.getAllByRole("table")) {
-        expect({ tabName, headers: headersOf(table) }).toEqual({
+        /*
+         * WhatsApp is a column only of a card with an event it can send
+         * (#9715, NotificationSettingsWhatsAppOnlyWhereSent): every other
+         * column, Custom Channels last, is on every card.
+         */
+        expect({
           tabName,
-          headers: [...COLUMNS_WITHOUT_CUSTOM_CHANNELS, "Custom Channels"],
+          headers: headersOf(table).filter((header: string): boolean => {
+            return header !== "WhatsApp";
+          }),
+        }).toEqual({
+          tabName,
+          headers: [
+            ...COLUMNS_WITHOUT_CUSTOM_CHANNELS.filter(
+              (header: string): boolean => {
+                return header !== "WhatsApp";
+              },
+            ),
+            "Custom Channels",
+          ],
         });
       }
     }

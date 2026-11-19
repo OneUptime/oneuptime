@@ -11,7 +11,6 @@ import ObjectID from "Common/Types/ObjectID";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
-import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ServiceLevelObjectiveOwnerTeamService from "Common/Server/Services/ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "Common/Server/Services/ServiceLevelObjectiveOwnerUserService";
@@ -206,15 +205,6 @@ async function notifyOwnersAdded(data: {
           });
 
         /*
-         * WhatsApp: there is no registered WhatsApp template for any SLO event
-         * type, so createWhatsAppMessageFromTemplate would throw here. A plain
-         * body payload is sent instead — the same thing Slo/EvaluateSlos does.
-         */
-        const whatsAppMessage: WhatsAppMessagePayload = {
-          body: sms.message,
-        };
-
-        /*
          * A send that fails is the owner's alone: tell() says so and goes
          * on to the next owner, who is told all the same.
          */
@@ -238,7 +228,13 @@ async function notifyOwnersAdded(data: {
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
-          whatsAppMessage: whatsAppMessage,
+          /*
+           * No WhatsApp message: WhatsApp delivers only Meta-approved
+           * templates and none is approved for an SLO's new owners
+           * (Types/WhatsApp/WhatsAppEventTemplates), so none is handed over
+           * and the channel is skipped. The plain body it used to hand over
+           * was refused, a failed WhatsApp log each time (#9715).
+           */
           eventType: eventType,
         });
       });

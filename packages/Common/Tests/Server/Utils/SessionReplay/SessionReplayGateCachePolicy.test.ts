@@ -676,3 +676,85 @@ describe("SessionReplayGateCache retention is the one usage billing prices", ():
     },
   );
 });
+
+/*
+ * The page rules (#7502) and readable event properties (#7501) reach the
+ * policy the config endpoint serves - and a damaged row records no page
+ * rather than every page, and reads no property as readable.
+ */
+describe("SessionReplayGateCache page rules and readable event properties", (): void => {
+  beforeEach((): void => {
+    jest.clearAllMocks();
+    projectFindOneByMock.mockResolvedValue(projectRow());
+  });
+
+  const policyFor: (
+    overrides: Record<string, unknown>,
+  ) => Promise<SessionReplayGatePolicy | null> = async (
+    overrides: Record<string, unknown>,
+  ): Promise<SessionReplayGatePolicy | null> => {
+    appFindOneByMock.mockResolvedValue(appRow(overrides));
+
+    return await SessionReplayGateCache.getPolicy({
+      projectId: PROJECT_ID,
+      appIdentifier: "checkout-web",
+    });
+  };
+
+  it("selects the three columns", async (): Promise<void> => {
+    await policyFor({});
+
+    const select: Record<string, unknown> = (
+      appFindOneByMock.mock.calls[0]?.[0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["sessionReplayRecordOnlyPages"]).toBe(true);
+    expect(select["sessionReplayNeverRecordPages"]).toBe(true);
+    expect(select["sessionReplayReadableEventProperties"]).toBe(true);
+  });
+
+  it("maps them onto the policy", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await policyFor({
+      sessionReplayRecordOnlyPages: ["/checkout*"],
+      sessionReplayNeverRecordPages: ["/checkout/card*", "/admin*"],
+      sessionReplayReadableEventProperties: ["step", " setup "],
+    });
+
+    expect(policy?.pageRules).toEqual({
+      recordOnly: ["/checkout*"],
+      neverRecord: ["/checkout/card*", "/admin*"],
+    });
+    expect(policy?.readableEventPropertyKeys).toEqual(["step", "setup"]);
+  });
+
+  it("an application that never set them records every page and reads no property", async (): Promise<void> => {
+    for (const unset of [
+      {},
+      {
+        sessionReplayRecordOnlyPages: [],
+        sessionReplayNeverRecordPages: [],
+        sessionReplayReadableEventProperties: [],
+      },
+      {
+        sessionReplayRecordOnlyPages: null,
+        sessionReplayNeverRecordPages: null,
+        sessionReplayReadableEventProperties: null,
+      },
+    ]) {
+      const policy: SessionReplayGatePolicy | null = await policyFor(unset);
+
+      expect(policy?.pageRules).toEqual({ recordOnly: [], neverRecord: [] });
+      expect(policy?.readableEventPropertyKeys).toEqual([]);
+    }
+  });
+
+  it("a damaged page list records no page, and a damaged key list reads none", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await policyFor({
+      sessionReplayNeverRecordPages: "/admin*",
+      sessionReplayReadableEventProperties: { step: true },
+    });
+
+    expect(policy?.pageRules).toEqual({ recordOnly: [], neverRecord: ["*"] });
+    expect(policy?.readableEventPropertyKeys).toEqual([]);
+  });
+});

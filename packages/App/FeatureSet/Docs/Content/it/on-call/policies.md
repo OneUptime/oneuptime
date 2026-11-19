@@ -26,7 +26,7 @@ Il modulo chiede anche **Attivarla per ogni nuovo incidente e ogni nuovo avviso*
 
 Per farvi guidare passo dopo passo, dal telefono fino a una chiamata di prova, fate clic su **Configurazione guidata**: nell'elenco vuoto **Policy di reperibilità** o in **Come funziona**. Vedi [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
-L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
+L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Chiamati per primi**, **Descrizione**, **Etichette** e **Proprietari**. **Chiamati per primi** indica chi viene avvisato dalla prima regola di escalation della policy: le sue pianificazioni, ciascuna con chi vi è reperibile in questo momento, i suoi team e le persone che nomina, oppure **Nessuna regola di escalation** o **Nessun destinatario** quando non avvisa nessuno. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
 
 ## Che cosa esegue una policy
 

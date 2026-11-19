@@ -71,6 +71,13 @@ export function getIncidentPublicNoteKind(data: {
         <SubscriberAudienceSummary
           request={{ incidentId: incidentId }}
           dataTestId="incident-public-note-audience"
+          /*
+           * The composer says above it why nothing is sent - a hidden
+           * incident, pages that send nothing (PublicNoteReachCopy) - so
+           * the summary leaves those out, and names who is told, and the
+           * pages the incident's scope keeps from being told.
+           */
+          isNothingSentSaidAbove={true}
         />
       ),
       /*
@@ -145,6 +152,13 @@ export function getIncidentPublicNoteKind(data: {
     isPrivateEvent: data.isPrivate === true,
     approval: {
       apiPath: "/incident-public-note",
+    },
+    /*
+     * Whether a status page shows the incident, and whether a note notifies
+     * anyone: worked out as its notification preview works it out.
+     */
+    statusPageReach: {
+      apiPath: "/incident",
     },
   };
 }

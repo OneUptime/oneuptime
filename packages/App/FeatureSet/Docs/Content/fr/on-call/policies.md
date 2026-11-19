@@ -26,7 +26,7 @@ Le formulaire demande aussi **La déclencher pour chaque nouvel incident et chaq
 
 Pour être guidé pas à pas à la place, de votre téléphone jusqu'à une alerte de test, cliquez sur **Configuration guidée** : sur la liste **Politiques d'astreinte** vide, ou sous **Fonctionnement**. Voir [Être alerté par appel, SMS ou push](/docs/guides/paging).
 
-La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Description**, **Étiquettes** et **Propriétaires**. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
+La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Alertés en premier**, **Description**, **Étiquettes** et **Propriétaires**. **Alertés en premier** indique qui est alerté par la première règle d'escalade de la politique : ses plannings, chacun avec la personne qui y est d'astreinte en ce moment, ses équipes et les personnes qu'elle nomme, ou **Aucune règle d'escalade** ou **Aucun intervenant** quand elle n'alerte personne. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
 
 ## Ce qui exécute une politique
 

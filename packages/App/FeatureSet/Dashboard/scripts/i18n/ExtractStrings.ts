@@ -165,6 +165,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a team or a label may not take a name (#9674): another one of the
+   * project has it. The server refuses in English, and the Dashboard says
+   * the refusal in the reader's language under the form's Name field.
+   */
+  {
+    directory: "packages/Common/Types/Database/UniqueName.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw

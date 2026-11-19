@@ -61,6 +61,12 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
    * created, and who they would add: the review step of the create forms.
    */
   "/owner-rule-preview",
+  /*
+   * Whether a public note posted now on an incident, an episode or a
+   * maintenance event is on a status page, and notifies anyone: what the
+   * note composer says (#9735).
+   */
+  "/public-note-reach",
 ];
 
 /*
@@ -148,6 +154,15 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "OwnersOnCreate", "OwnerRulePreviewApi.ts"],
     routePrefix: "/owner-rule-preview",
+  },
+  /*
+   * The note composer, a note being edited and the delete dialog ask where
+   * a public note is shown - each event through its own API - through this
+   * one hook.
+   */
+  {
+    page: ["Components", "EventNotes", "usePublicNoteReach.ts"],
+    routePrefix: "/public-note-reach",
   },
 ];
 

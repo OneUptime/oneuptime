@@ -536,7 +536,7 @@ describe("an override booked from the Add User Override form", () => {
     expect(await pagedBySchedule(OTHER_POLICY)).toBe(ALEX);
   });
 
-  test("from On-Call Duty > Advanced > User Overrides, it covers every policy", async () => {
+  test("from On-Call > Schedules > User Overrides, it covers every policy", async () => {
     const saved: OnCallDutyPolicyUserOverride = await addOverride({
       signedInAs: ALEX,
       whoCovers: SAM,

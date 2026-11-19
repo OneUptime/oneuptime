@@ -87,8 +87,8 @@ Ouvrez **Astreinte** depuis le menu **Produits** de la barre supérieure. Il s'o
 | Section | Pages |
 | --- | --- |
 | **Politiques** | **Politiques d'astreinte**, **Disponibilité** : qui vos politiques peuvent réellement joindre, et **Politiques d'appels entrants** : un numéro de téléphone qui fait sonner la personne d'astreinte |
-| **Plannings** | **Plannings d'astreinte**, **Chronologie des astreintes** et **Flux de calendrier** |
-| **Avancé** | **Remplacements d'utilisateur**, **Journaux d'exécution** et **Politiques archivées** |
+| **Plannings** | **Plannings d'astreinte**, **Chronologie des astreintes**, **Remplacements d'utilisateur** : qui remplace quelqu'un pendant son absence, et **Flux de calendrier** |
+| **Avancé** | **Journaux d'exécution** et **Politiques archivées** |
 | **Rapports** | **Temps d'astreinte de l'utilisateur** : combien de temps chaque personne a été d'astreinte |
 | **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost** : des règles qui publient les événements d'astreinte dans un canal |
 | **Paramètres** | **Champs personnalisés**, **Règles d'étiquettes** et **Règles de propriétaire** |
@@ -109,7 +109,7 @@ Ouvrez **Astreinte → Disponibilité** et cliquez sur **Couverture** sur sa lig
 :::
 
 :::details Une personne en congé est toujours alertée
-Ajoutez un remplacement d'utilisateur avec elle sous **Qui est absent ?**. Un remplacement sous **Astreinte → Avancé → Remplacements d'utilisateur** couvre toutes les politiques ; un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
+Ajoutez un remplacement d'utilisateur avec elle sous **Qui est absent ?**. Un remplacement sous **Astreinte → Plannings → Remplacements d'utilisateur** couvre toutes les politiques ; un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 :::
 
 ## Étapes suivantes
