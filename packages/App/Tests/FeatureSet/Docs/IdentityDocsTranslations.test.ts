@@ -404,10 +404,18 @@ const LOOKED_UP_TEXT: ReadonlyArray<SourceText> = [
 /*
  * The Admin Dashboard's labels, by page: it shows a label as its locale
  * words the whole text, or in English. Settings and Single Sign-On come
- * from its top bar's and side menu's own keys (ADMIN_KEYS).
+ * from its top bar's and side menu's own keys, and a user's Authentication
+ * page and its cards from that page's (ADMIN_KEYS).
  */
 const ADMIN_LABELS: Record<string, Array<string>> = {
-  [SSO]: ["Settings", "Single Sign-On", "Require SSO to Sign In"],
+  [SSO]: [
+    "Settings",
+    "Single Sign-On",
+    "Require SSO to Sign In",
+    // Where a server admin clears what SSO-managed people saved (#9762).
+    "Authentication",
+    "Clear Sign-In Settings",
+  ],
   [GLOBAL_SSO]: [
     "Settings",
     "Single Sign-On",
@@ -416,6 +424,16 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Master admin sign-in",
     // Its button for people still signed in without SSO (#6116).
     "Sign them out",
+    /*
+     * Its button for what they still have saved, and a user's Authentication
+     * page under Users, with the same button and the two password cards
+     * (#9762).
+     */
+    "Clear Sign-In Settings",
+    "Authentication",
+    "Users",
+    "Set Password",
+    "Send Password Reset Link",
     // The providers' tables: their Add buttons, and a row's Test Sign-in.
     "Add SAML Provider",
     "Add OIDC Provider",
@@ -458,6 +476,9 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
 const ADMIN_KEYS: Record<string, string> = {
   Settings: "navbar.settings",
   "Single Sign-On": "sideMenu.settingsSso",
+  Authentication: "sideMenu.authentication",
+  "Set Password": "pages.userAuthentication.setPasswordCardTitle",
+  "Send Password Reset Link": "pages.userAuthentication.resetLinkCardTitle",
 };
 
 /*
@@ -476,7 +497,11 @@ const USER_MENU_LABELS: Record<string, Record<string, string>> = {
 
 // The sign-in pages' labels, keys of the Accounts locale.
 const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
-  [SSO]: { "Sign in with SSO": "sso.title" },
+  [SSO]: {
+    "Sign in with SSO": "sso.title",
+    // The link that emails no reset link to SSO-managed people (#9763).
+    "Forgot password?": "login.forgotPassword",
+  },
 };
 
 /*
@@ -581,6 +606,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Copy Okta's SAML values",
     "Give Okta OneUptime's URLs",
     "Assign people",
+    // Managing your people's sign-in with SSO: who it reaches (#9763).
+    "Someone in a project that does not manage sign-in",
+    "Projects with different providers",
+    "Master admins",
+    "What people set up before",
   ],
   [GLOBAL_SSO]: [
     "instance administrator",
@@ -1101,6 +1131,8 @@ describe("the lists this test keeps", () => {
       "Require SSO",
       "Master admin sign-in",
       "Sign them out",
+      "Clear Sign-In Settings",
+      "Users",
       "Add SAML Provider",
       "Add OIDC Provider",
       "Test Sign-in",
