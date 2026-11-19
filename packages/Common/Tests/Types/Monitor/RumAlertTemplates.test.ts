@@ -1,12 +1,27 @@
+import { traceStepCountsQuietGroups } from "../../../Server/Utils/Monitor/TraceGroupAbsence";
+import SeriesContextEnricher from "../../../Server/Utils/Monitor/SeriesContextEnricher";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import {
+  DEVICE_SILENCE_WINDOW_SECONDS,
+  EXCEPTION_CLI_RESOURCE,
+  MOBILE_ANR_RATE_PERCENT,
+  MOBILE_CRASH_RATE_PERCENT,
+  MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+  MOBILE_FAULT_RATE_WINDOW_SECONDS,
   RumAlertTemplate,
   RumAlertTemplateArgs,
   RumAlertTemplateContext,
   RumAlertTemplateRequirement,
   getAllRumAlertTemplates,
+  getMobileFaultDebugCommand,
   getRumAlertTemplateById,
   getRumAlertTemplates,
 } from "../../../Types/Monitor/RumAlertTemplates";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  CliResource,
+  getCliResources,
+} from "../../../Utils/DeveloperDocs/CliResources";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -28,14 +43,21 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepTraceMonitor";
-import MonitorStepExceptionMonitor from "../../../Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepExceptionMonitor";
 import MonitorStepLogMonitor from "../../../Types/Monitor/MonitorStepLogMonitor";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import {
-  MOBILE_APP_FAULT_EVENT_NAMES,
-  MobileAppFaultKind,
+  ANR_EXCEPTION_TYPE,
+  APP_NOT_RESPONDING_EXCEPTION_TYPES,
+  HANG_EXCEPTION_TYPE,
 } from "../../../Utils/Telemetry/MobileAppFaults";
-import { EXCESSIVE_APP_START_MS } from "../../../Types/Rum/MobileAppTelemetry";
+import {
+  APP_INSTALLATION_ID_ATTRIBUTE,
+  EXCESSIVE_APP_START_MS,
+} from "../../../Types/Rum/MobileAppTelemetry";
 import {
   ServiceAlertTemplate,
   getAllServiceAlertTemplates,
@@ -165,10 +187,19 @@ const SEVERITY_CASES: Array<{
    */
   { id: "rum-app-crashes", category: "Errors", severity: "Critical" },
   { id: "rum-app-not-responding", category: "Errors", severity: "Critical" },
+  // Their rates (#9716): the same two core vitals, read over sessions.
+  { id: "rum-app-crash-rate", category: "Errors", severity: "Critical" },
+  { id: "rum-app-anr-rate", category: "Errors", severity: "Critical" },
   { id: "rum-slow-cold-start", category: "Performance", severity: "Warning" },
   { id: "rum-frozen-frames", category: "Performance", severity: "Warning" },
   {
     id: "rum-app-stopped-reporting",
+    category: "Availability",
+    severity: "Warning",
+  },
+  // One device of a fleet gone quiet (#9711): a Warning, as the whole app's.
+  {
+    id: "rum-device-stopped-reporting",
     category: "Availability",
     severity: "Warning",
   },
@@ -294,19 +325,25 @@ const CORE_TEMPLATE_IDS: Array<string> = [
 const MOBILE_TEMPLATE_IDS: Array<string> = [
   "rum-app-crashes",
   "rum-app-not-responding",
+  "rum-app-crash-rate",
+  "rum-app-anr-rate",
   "rum-failed-user-operations",
   "rum-slow-cold-start",
   "rum-frozen-frames",
   "rum-app-stopped-reporting",
+  "rum-device-stopped-reporting",
 ];
 
 // Only a mobile app sends what these read.
 const MOBILE_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-app-crashes",
   "rum-app-not-responding",
+  "rum-app-crash-rate",
+  "rum-app-anr-rate",
   "rum-slow-cold-start",
   "rum-frozen-frames",
   "rum-app-stopped-reporting",
+  "rum-device-stopped-reporting",
 ];
 
 // Only a browser sends what these read.
@@ -319,8 +356,8 @@ const BROWSER_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-unhandled-exceptions",
 ];
 
-// Every template there is: 5 web vitals, 2 shared, 5 mobile, 4 budgets.
-const ALL_TEMPLATE_COUNT: number = 16;
+// Every template there is: 5 web vitals, 2 shared, 8 mobile, 4 budgets.
+const ALL_TEMPLATE_COUNT: number = 19;
 
 const DAILY_TEMPLATE_IDS: Array<string> = [
   "rum-session-replay-daily-budget-nearly-spent",
@@ -419,11 +456,14 @@ describe("RumAlertTemplates", () => {
       }),
       "rum-app-crashes",
       "rum-app-not-responding",
+      "rum-app-crash-rate",
+      "rum-app-anr-rate",
       "rum-failed-user-operations",
       "rum-unhandled-exceptions",
       "rum-slow-cold-start",
       "rum-frozen-frames",
       "rum-app-stopped-reporting",
+      "rum-device-stopped-reporting",
       "rum-session-replay-daily-budget-nearly-spent",
       "rum-session-replay-daily-budget-spent",
       "rum-session-replay-monthly-budget-nearly-spent",
@@ -1367,61 +1407,103 @@ describe("RumAlertTemplates - mobile apps", () => {
     });
   }
 
-  test("App Crashes counts the crash event OpenTelemetry Android sends, over five minutes", () => {
+  function exceptionMonitorOf(id: string): MonitorStepExceptionMonitor {
+    const step: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+    const exceptionMonitor: MonitorStepExceptionMonitor | undefined =
+      step.data?.exceptionMonitor;
+
+    expect(exceptionMonitor).toBeDefined();
+
+    return exceptionMonitor!;
+  }
+
+  /*
+   * #9713: App Crashes is an Exceptions monitor, unhandled only with the
+   * freezes left out - what the Overview's Crashes tile counts - so it
+   * counts every SDK's crash (app.crash, device.crash, an iOS app's
+   * MetricKit crash) and its alert opens the exception.
+   */
+  test("App Crashes counts the unhandled exceptions that are no freeze, over five minutes", () => {
     const template: RumAlertTemplate = getTemplate("rum-app-crashes");
-    const logMonitor: MonitorStepLogMonitor = logMonitorOf("rum-app-crashes");
+    const exceptionMonitor: MonitorStepExceptionMonitor =
+      exceptionMonitorOf("rum-app-crashes");
 
     expect(template.name).toBe("App Crashes");
-    expect(template.monitorType).toBe(MonitorType.Logs);
-    expect(logMonitor.attributes).toEqual({ "event.name": "app.crash" });
-    // The event ingest files as a crash (MobileAppFaults), current name first.
-    expect(logMonitor.attributes["event.name"]).toBe(
-      MOBILE_APP_FAULT_EVENT_NAMES[MobileAppFaultKind.Crash][0],
+    expect(template.monitorType).toBe(MonitorType.Exceptions);
+    expect(exceptionMonitor.unhandledOnly).toBe(true);
+    expect(exceptionMonitor.excludedExceptionTypes).toEqual([
+      ANR_EXCEPTION_TYPE,
+      HANG_EXCEPTION_TYPE,
+    ]);
+    expect(exceptionMonitor.exceptionTypes).toEqual([]);
+    expect(exceptionMonitor.message).toBe("");
+    expect(exceptionMonitor.includeResolved).toBe(false);
+    expect(exceptionMonitor.includeArchived).toBe(false);
+    expect(exceptionMonitor.lastXSecondsOfExceptions).toBe(300);
+    expect(
+      exceptionMonitor.telemetryServiceIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([RUM_APPLICATION_ID.toString()]);
+  });
+
+  test("App Crashes counts exactly what the Overview's Crashes tile counts", () => {
+    const query: JSONObject = JSONFunctions.anyObjectToJSONObject(
+      MonitorStepExceptionMonitorUtil.toAnalyticsQuery(
+        exceptionMonitorOf("rum-app-crashes"),
+      ) as unknown as JSONObject,
     );
-    expect(logMonitor.severityTexts).toEqual([]);
-    expect(logMonitor.body).toBe("");
-    expect(logMonitor.lastXSecondsOfLogs).toBe(300);
-    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+
+    // The tile's read: escaped, and every freeze type left out.
+    expect(query["escaped"]).toBe(true);
+    expect(query["exceptionType"]).toEqual({
+      _type: "IncludesNone",
+      value: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    });
   });
 
-  test("App Crashes names the event it reads and the earlier one it does not", () => {
-    const description: string = getTemplate("rum-app-crashes").description;
-
-    expect(description).toContain("app.crash");
-    expect(description).toContain("device.crash");
-  });
-
-  test("App Not Responding counts the ANR event, never a crash", () => {
+  test("App Not Responding counts the ANRs and an iOS app's hangs, never a crash", () => {
     const template: RumAlertTemplate = getTemplate("rum-app-not-responding");
-    const logMonitor: MonitorStepLogMonitor = logMonitorOf(
+    const exceptionMonitor: MonitorStepExceptionMonitor = exceptionMonitorOf(
       "rum-app-not-responding",
     );
 
     expect(template.name).toBe("App Not Responding (ANR)");
-    expect(template.monitorType).toBe(MonitorType.Logs);
-    expect(logMonitor.attributes).toEqual({ "event.name": "device.anr" });
-    expect(logMonitor.attributes["event.name"]).toBe(
-      MOBILE_APP_FAULT_EVENT_NAMES[MobileAppFaultKind.Anr][0],
-    );
-    expect(logMonitor.lastXSecondsOfLogs).toBe(300);
-    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+    expect(template.monitorType).toBe(MonitorType.Exceptions);
+    expect(exceptionMonitor.exceptionTypes).toEqual([
+      ANR_EXCEPTION_TYPE,
+      HANG_EXCEPTION_TYPE,
+    ]);
+    expect(exceptionMonitor.excludedExceptionTypes).toBeUndefined();
+    expect(exceptionMonitor.lastXSecondsOfExceptions).toBe(300);
+    expect(
+      exceptionMonitor.telemetryServiceIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([RUM_APPLICATION_ID.toString()]);
   });
 
-  /*
-   * An Exceptions monitor would count both, and the network failures the
-   * app records as exceptions too: a crash and an ANR are told apart by
-   * their events, so an ANR never pages as a crash.
-   */
-  test("a crash and an ANR are counted by different events, so neither pages twice", () => {
-    const crash: MonitorStepLogMonitor = logMonitorOf("rum-app-crashes");
-    const anr: MonitorStepLogMonitor = logMonitorOf("rum-app-not-responding");
+  // One freeze never pages twice: what one counts, the other leaves out.
+  test("a crash and a freeze are counted by types the other leaves out", () => {
+    const crash: MonitorStepExceptionMonitor =
+      exceptionMonitorOf("rum-app-crashes");
+    const anr: MonitorStepExceptionMonitor = exceptionMonitorOf(
+      "rum-app-not-responding",
+    );
 
-    expect(crash.attributes["event.name"]).not.toBe(
-      anr.attributes["event.name"],
-    );
-    expect(getTemplate("rum-app-crashes").monitorType).not.toBe(
-      MonitorType.Exceptions,
-    );
+    for (const freezeType of anr.exceptionTypes) {
+      expect(crash.excludedExceptionTypes).toContain(freezeType);
+    }
+  });
+
+  test("App Crashes and App Not Responding name what reports them on each platform", () => {
+    const crashes: string = getTemplate("rum-app-crashes").description;
+    const anrs: string = getTemplate("rum-app-not-responding").description;
+
+    expect(crashes).toContain("OpenTelemetry Android");
+    expect(crashes).toContain("MetricKit");
+    expect(anrs).toContain("hang");
+    expect(anrs).toContain("MetricKit");
   });
 
   test("Slow Cold Start counts cold AppStart spans of 5 seconds or more, over fifteen minutes", () => {
@@ -1507,8 +1589,8 @@ describe("RumAlertTemplates - mobile apps", () => {
   });
 
   test.each([
-    ["rum-app-crashes", CheckOn.LogCount],
-    ["rum-app-not-responding", CheckOn.LogCount],
+    ["rum-app-crashes", CheckOn.ExceptionCount],
+    ["rum-app-not-responding", CheckOn.ExceptionCount],
     ["rum-slow-cold-start", CheckOn.SpanCount],
     ["rum-frozen-frames", CheckOn.LogCount],
   ])(
@@ -1583,14 +1665,22 @@ describe("RumAlertTemplates - mobile apps", () => {
     );
   });
 
-  test("log and trace monitor steps keep the application scope through serialization", () => {
+  test("log, trace and exception monitor steps keep the application scope through serialization", () => {
     for (const id of MOBILE_ONLY_TEMPLATE_IDS) {
       const original: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
       const restored: MonitorStep = MonitorStep.fromJSON(original.toJSON());
-      const monitor: MonitorStepLogMonitor | MonitorStepTraceMonitor = (restored
-        .data?.logMonitor || restored.data?.traceMonitor)!;
+      const monitor:
+        | MonitorStepLogMonitor
+        | MonitorStepTraceMonitor
+        | MonitorStepExceptionMonitor = (restored.data?.logMonitor ||
+        restored.data?.traceMonitor ||
+        restored.data?.exceptionMonitor)!;
 
-      expect(serviceIdsOf(monitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+      expect(
+        monitor.telemetryServiceIds.map((serviceId: ObjectID) => {
+          return serviceId.toString();
+        }),
+      ).toEqual([RUM_APPLICATION_ID.toString()]);
     }
 
     const restored: MonitorStep = MonitorStep.fromJSON(
@@ -1598,6 +1688,17 @@ describe("RumAlertTemplates - mobile apps", () => {
     );
 
     expect(restored.data?.traceMonitor?.minimumDurationInMs).toBe(5000);
+
+    // App Crashes' two filters survive a save and a load.
+    const crashes: MonitorStep = MonitorStep.fromJSON(
+      getTemplate("rum-app-crashes").getMonitorStep(buildArgs()).toJSON(),
+    );
+
+    expect(crashes.data?.exceptionMonitor?.unhandledOnly).toBe(true);
+    expect(crashes.data?.exceptionMonitor?.excludedExceptionTypes).toEqual([
+      ANR_EXCEPTION_TYPE,
+      HANG_EXCEPTION_TYPE,
+    ]);
   });
 });
 
@@ -1620,4 +1721,317 @@ describe("getRumAlertTemplateById", () => {
       expect(template?.category).toBe("Session Replay");
     },
   );
+});
+
+/*
+ * #9716: a mobile app's crash and ANR rates - the share of the hour's
+ * sessions a crash, or a freeze, happened in - for an app on thousands of
+ * phones, which always has some crashes and wants to hear the rate rise.
+ */
+describe("the crash and ANR rate templates", () => {
+  const RATE_CASES: Array<{
+    id: string;
+    percent: number;
+    title: string;
+  }> = [
+    {
+      id: "rum-app-crash-rate",
+      percent: MOBILE_CRASH_RATE_PERCENT,
+      title: "[RUM] App crash rate - Storefront",
+    },
+    {
+      id: "rum-app-anr-rate",
+      percent: MOBILE_ANR_RATE_PERCENT,
+      title: "[RUM] App ANR rate - Storefront",
+    },
+  ];
+
+  test("Android vitals' bad-behaviour rates, judged on an hour of at least 250 sessions", () => {
+    expect(MOBILE_CRASH_RATE_PERCENT).toBe(1.09);
+    expect(MOBILE_ANR_RATE_PERCENT).toBe(0.47);
+    expect(MOBILE_FAULT_RATE_WINDOW_SECONDS).toBe(3600);
+    expect(MOBILE_FAULT_RATE_MINIMUM_SESSIONS).toBe(250);
+    // One session alone stays under both rates, so it never reads as one.
+    expect((1 / MOBILE_FAULT_RATE_MINIMUM_SESSIONS) * 100).toBeLessThan(
+      MOBILE_ANR_RATE_PERCENT,
+    );
+  });
+
+  test("the crash rate counts what App Crashes counts, over an hour", () => {
+    const step: MonitorStep =
+      getTemplate("rum-app-crash-rate").getMonitorStep(buildArgs());
+    const crashes: MonitorStep =
+      getTemplate("rum-app-crashes").getMonitorStep(buildArgs());
+
+    expect(step.data?.exceptionMonitor).toEqual({
+      ...crashes.data?.exceptionMonitor,
+      lastXSecondsOfExceptions: 3600,
+    });
+  });
+
+  test("the ANR rate counts what App Not Responding counts, over an hour", () => {
+    const step: MonitorStep =
+      getTemplate("rum-app-anr-rate").getMonitorStep(buildArgs());
+    const anrs: MonitorStep = getTemplate(
+      "rum-app-not-responding",
+    ).getMonitorStep(buildArgs());
+
+    expect(step.data?.exceptionMonitor).toEqual({
+      ...anrs.data?.exceptionMonitor,
+      lastXSecondsOfExceptions: 3600,
+    });
+    expect(step.data?.exceptionMonitor?.exceptionTypes).toEqual([
+      ...APP_NOT_RESPONDING_EXCEPTION_TYPES,
+    ]);
+  });
+
+  test.each(RATE_CASES)(
+    "$id alerts above its rate with enough sessions, and is healthy under it or with too few",
+    ({ id, percent }: { id: string; percent: number }) => {
+      const template: RumAlertTemplate = getTemplate(id);
+      const [breach, recovery]: Array<MonitorCriteriaInstance> = getCriteria(
+        template.getMonitorStep(buildArgs()),
+      );
+
+      expect(template.monitorType).toBe(MonitorType.Exceptions);
+      expect(template.clients).toEqual(["mobile"]);
+
+      expect(breach?.data?.filterCondition).toBe(FilterCondition.All);
+      expect(breach?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.SessionsWithExceptionsPercent,
+          filterType: FilterType.GreaterThan,
+          value: percent,
+        },
+        {
+          checkOn: CheckOn.SessionCount,
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 250,
+        },
+      ]);
+
+      expect(recovery?.data?.filterCondition).toBe(FilterCondition.Any);
+      expect(recovery?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.SessionsWithExceptionsPercent,
+          filterType: FilterType.LessThanOrEqualTo,
+          value: percent,
+        },
+        {
+          checkOn: CheckOn.SessionCount,
+          filterType: FilterType.LessThan,
+          value: 250,
+        },
+      ]);
+      expect(recovery?.data?.incidents).toEqual([]);
+      expect(recovery?.data?.alerts).toEqual([]);
+    },
+  );
+
+  test.each(RATE_CASES)(
+    "$id titles its incident and alert",
+    ({ id, title }: { id: string; title: string }) => {
+      const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+        getTemplate(id).getMonitorStep(buildArgs()),
+      );
+
+      expect(breach?.data?.incidents[0]?.title).toBe(title);
+      expect(breach?.data?.alerts[0]?.title).toBe(title);
+    },
+  );
+
+  test("the crash rate hands the engineer a first command: the app's open crashes, newest first", () => {
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-app-crash-rate").getMonitorStep(buildArgs()),
+    );
+    const command: string = getMobileFaultDebugCommand({
+      rumApplicationId: RUM_APPLICATION_ID.toString(),
+    });
+
+    expect(command).toBe(
+      `oneuptime exception list --query '{"primaryEntityId":"${RUM_APPLICATION_ID.toString()}","unhandled":true,"isResolved":false,"isArchived":false}' --sort '{"lastSeenAt":"DESC"}' --fields exceptionType,message,occuranceCount,lastSeenInRelease,lastSeenAt`,
+    );
+
+    for (const description of [
+      breach?.data?.incidents[0]?.description,
+      breach?.data?.alerts[0]?.description,
+    ]) {
+      expect(description).toContain(`\`\`\`\n${command}\n\`\`\``);
+    }
+  });
+
+  test("the ANR rate's command lists the app's ANRs and hangs alone", () => {
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-app-anr-rate").getMonitorStep(buildArgs()),
+    );
+    const command: string = getMobileFaultDebugCommand({
+      rumApplicationId: RUM_APPLICATION_ID.toString(),
+      exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    });
+
+    expect(command).toContain(
+      `"exceptionType":{"_type":"Includes","value":["ANR","Hang"]}`,
+    );
+    expect(command).not.toContain('"unhandled"');
+    expect(breach?.data?.incidents[0]?.description).toContain(command);
+  });
+
+  test("the command's query is the JSON the API reads, and each argument is quoted once", () => {
+    const command: string = getMobileFaultDebugCommand({
+      rumApplicationId: RUM_APPLICATION_ID.toString(),
+      exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    });
+    const query: string = command.split("--query '")[1]!.split("'")[0]!;
+
+    expect(JSON.parse(query)).toEqual({
+      primaryEntityId: RUM_APPLICATION_ID.toString(),
+      exceptionType: { _type: "Includes", value: ["ANR", "Hang"] },
+      isResolved: false,
+      isArchived: false,
+    });
+    // Two single-quoted arguments: nothing in them ends a quote early.
+    expect(command.split("'")).toHaveLength(5);
+    // Read-only: a list, nothing that changes a record.
+    expect(command.startsWith("oneuptime exception list ")).toBe(true);
+  });
+
+  test("the command names the CLI's own resource for exception groups", () => {
+    const resource: CliResource | undefined = getCliResources().find(
+      (candidate: CliResource): boolean => {
+        return candidate.tableName === "TelemetryException";
+      },
+    );
+
+    expect(resource?.name).toBe(EXCEPTION_CLI_RESOURCE);
+    expect(resource?.operations).toContain("list");
+  });
+
+  test("Device Stopped Reporting is offered to a mobile app, after App Stopped Reporting", () => {
+    const ids: Array<string> = offeredIds({ clientKind: "mobile" });
+
+    expect(ids.indexOf("rum-device-stopped-reporting")).toBe(
+      ids.indexOf("rum-app-stopped-reporting") + 1,
+    );
+    expect(offeredIds({ clientKind: "browser" })).not.toContain(
+      "rum-device-stopped-reporting",
+    );
+  });
+
+  test("the rates leave the first-occurrence templates, for small fleets, as they were", () => {
+    const [crashBreach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-app-crashes").getMonitorStep(buildArgs()),
+    );
+
+    expect(crashBreach?.data?.filters).toHaveLength(1);
+    expect(crashBreach?.data?.filters[0]?.checkOn).toBe(CheckOn.ExceptionCount);
+  });
+});
+
+/*
+ * #9711: one device of a mobile fleet gone quiet while the others report -
+ * a Traces monitor grouped by the install OpenTelemetry Android names, one
+ * alert per install, a quiet install counted as 0 (TraceGroupAbsence).
+ */
+describe("Device Stopped Reporting", () => {
+  const template: RumAlertTemplate = getTemplate(
+    "rum-device-stopped-reporting",
+  );
+  const step: MonitorStep = template.getMonitorStep(buildArgs());
+
+  test("counts each install's spans of the app over an hour", () => {
+    expect(template.monitorType).toBe(MonitorType.Traces);
+    expect(template.category).toBe("Availability");
+    expect(template.clients).toEqual(["mobile"]);
+    expect(DEVICE_SILENCE_WINDOW_SECONDS).toBe(3600);
+
+    expect(step.data?.traceMonitor).toEqual({
+      attributes: {},
+      spanName: "",
+      spanStatuses: [],
+      telemetryServiceIds: [RUM_APPLICATION_ID],
+      entityKeys: [],
+      lastXSecondsOfSpans: 3600,
+      groupByAttributes: ["resource.app.installation.id"],
+    });
+  });
+
+  test("groups by the install OpenTelemetry Android names on its resource, never a device.id", () => {
+    expect(
+      MonitorStepTraceMonitorUtil.getGroupByAttributes(step.data?.traceMonitor),
+    ).toEqual([`resource.${APP_INSTALLATION_ID_ATTRIBUTE}`]);
+    expect(JSON.stringify(step.data?.traceMonitor)).not.toContain("device.id");
+  });
+
+  test("alerts on an install with no span, and is healthy once it sends one", () => {
+    const [breach, recovery]: Array<MonitorCriteriaInstance> =
+      getCriteria(step);
+
+    expect(breach?.data?.filters).toEqual([
+      expect.objectContaining({
+        checkOn: CheckOn.SpanCount,
+        filterType: FilterType.LessThan,
+        value: 1,
+      }),
+    ]);
+    expect(recovery?.data?.filters).toEqual([
+      expect.objectContaining({
+        checkOn: CheckOn.SpanCount,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+      }),
+    ]);
+    expect(breach?.data?.incidents[0]?.title).toBe(
+      "[RUM] Device stopped reporting - Storefront",
+    );
+    expect(breach?.data?.alerts[0]?.autoResolveAlert).toBe(true);
+  });
+
+  test("its criteria count the quiet installs, as only a rule that can match 0 does", () => {
+    expect(traceStepCountsQuietGroups(step)).toBe(true);
+    expect(
+      traceStepCountsQuietGroups(
+        getTemplate("rum-slow-cold-start").getMonitorStep(buildArgs()),
+      ),
+    ).toBe(false);
+  });
+
+  test("its alert names the install, in the title and in the description, with its first command", () => {
+    const install: string = "1b4e28ba-2fa1-11d2-883f-0016d3cca427";
+    const seriesLabels: JSONObject = {
+      "resource.app.installation.id": install,
+    };
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(step);
+
+    expect(
+      SeriesLabelDisplay.isKnownLabelKey("resource.app.installation.id"),
+    ).toBe(true);
+    expect(
+      SeriesLabelDisplay.getFriendlyLabelName("resource.app.installation.id"),
+    ).toBe("Install");
+    expect(
+      SeriesContextEnricher.enrichTitle({
+        title: breach!.data!.alerts[0]!.title,
+        seriesLabels,
+      }),
+    ).toContain(install);
+
+    const description: string = SeriesContextEnricher.enrichDescription({
+      description: breach!.data!.alerts[0]!.description,
+      seriesLabels,
+      monitorType: MonitorType.Traces,
+    });
+
+    expect(description).toContain(install);
+    expect(description).toContain(
+      `oneuptime span list --query '{"attributes":{"resource.app.installation.id":"${install}"}}' --sort '{"startTime":"DESC"}' --limit 5 --fields startTime,name,attributes`,
+    );
+  });
+
+  test("the command names the CLI's own resource for spans", () => {
+    expect(
+      getCliResources().find((candidate: CliResource): boolean => {
+        return candidate.name === "span";
+      })?.operations,
+    ).toContain("list");
+  });
 });

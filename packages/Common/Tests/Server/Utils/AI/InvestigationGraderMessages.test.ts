@@ -145,9 +145,11 @@ describe("gradeInvestigationOnResolve sends exactly those messages", () => {
       enableAi: true,
     } as unknown as Project);
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    // Declared by a person: the root cause it holds is people's (#7765).
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
       id: incidentId,
       rootCause: "  The connection pool was exhausted.\n",
+      createdByUserId: ObjectID.generate(),
     } as unknown as Incident);
     jest
       .spyOn(PostedRootCause, "getForInvestigation")

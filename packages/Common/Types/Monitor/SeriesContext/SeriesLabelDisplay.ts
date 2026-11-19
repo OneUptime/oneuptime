@@ -231,6 +231,15 @@ const FriendlyLabelNames: Record<string, string> = {
   "device.name": "Device",
 
   /*
+   * --- Mobile apps ---
+   *
+   * The install OpenTelemetry Android names on its resource (#9711): what a
+   * mobile app's Device Stopped Reporting groups by, one per phone or
+   * kiosk the app is installed on.
+   */
+  "app.installation.id": "Install",
+
+  /*
    * --- Network events ---
    *
    * What a device's syslog and its standard traps are read into
@@ -310,6 +319,12 @@ const FriendlyLabelNames: Record<string, string> = {
   "http.route": "Route",
   "browser.name": "Browser",
   "os.name": "OS",
+  /*
+   * An Android device's API level, which the OneUptime Android agent sends
+   * and the Android host templates group by: the device's Android version in
+   * the alert, and the sign that its first commands are adb's (#9802).
+   */
+  "android.os.api_level": "Android API Level",
   region: "Region",
   "cloud.region": "Region",
   "cloud.availability_zone": "Zone",
@@ -355,6 +370,7 @@ const LabelPriority: Record<string, number> = {
   host: 30,
   "device.id": 25,
   "device.name": 25,
+  "app.installation.id": 25,
   /*
    * Network events: what the event happened to (the interface, the
    * tunnel, the neighbour) first, then the device that reported it.
@@ -496,6 +512,8 @@ const LabelPriority: Record<string, number> = {
   "iot.fleet.name": 80,
   "k8s.pod.uid": 95,
   "container.id": 95,
+  // After the device's name: a version, never what names the device.
+  "android.os.api_level": 90,
 };
 
 const DefaultLabelPriority: number = 70;

@@ -6,9 +6,12 @@ import { BenchmarkScenario, BenchmarkToolResponse } from "./BenchmarkScenario";
 /*
  * Answers a benchmark investigation's tool calls from its scenario's
  * scripted telemetry (BenchmarkScenario.responses), in the toolbox's own
- * format, so the model reads what it would read from a real project. Pure:
- * the same call always gets the same answer, which is also how the scorer
- * tells which of the answer's citations were the fault's own evidence.
+ * format, so the model reads what it would read from a real project: the
+ * notes the real tool writes before its rows, then its rows or text through
+ * the toolbox's serializer, with the redactions the serializer made counted
+ * as a real result counts them (#7766). Pure: the same call always gets the
+ * same answer, which is also how the scorer tells which of the answer's
+ * citations were the fault's own evidence.
  */
 export default class ScenarioTools {
   // The response that answers a call, or null when none is scripted for it.
@@ -44,15 +47,20 @@ export default class ScenarioTools {
     const serialized: SerializedResult = response
       ? this.serialize(response)
       : Serializer.serializeRows([]);
+    // The notes go around the rows, as the tool writes them: not redacted.
+    const after: Array<string> = response?.notesAfterRows || [];
+    const text: string = `${(response?.notes || []).join("")}${serialized.text}${
+      after.length > 0 ? `\n${after.join(" ")}` : ""
+    }`;
 
     return {
       success: true,
-      textForLlm: serialized.text,
+      textForLlm: text,
       result: {
-        dataForLlm: serialized.text,
+        dataForLlm: text,
         rowCount: serialized.rowCount,
         citationLabel: response?.citationLabel || toolName,
-        redactionCount: 0,
+        redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
       },
     };

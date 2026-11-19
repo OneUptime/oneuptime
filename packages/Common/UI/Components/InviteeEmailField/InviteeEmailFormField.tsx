@@ -1,23 +1,24 @@
 import InviteeEmailField from "./InviteeEmailField";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import Email from "Common/Types/Email";
-import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
-import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import Email from "../../../Types/Email";
+import { InviteSuggestion } from "../../../Types/Team/InviteSuggestions";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import { CustomElementProps } from "../Forms/Types/Field";
+import FormValues from "../Forms/Types/FormValues";
+import { FormValidationMessage } from "../Forms/Utils/FormValidationMessages";
+import { translateValidationMessage } from "../Forms/Validation";
 import React, { ReactElement } from "react";
 
 /*
- * THE EMAIL ROW OF THE TWO INVITATION FORMS (#9701): Invite New Team
- * Member on a team's Members page and Invite New User on Users. Each form
- * keeps its row where it was, under its "email" key, and draws it with
- * InviteeEmailField - the form's text box, which suggests people as it is
- * typed in. Drawn by the form as its own element, the row is checked here
- * as an email row always was: an address that is not one is said under the
- * box, in the reader's language.
+ * THE EMAIL ROW OF THE INVITATION FORMS (#9701): Invite New Team Member on
+ * a team's Members page and Invite New User on Users - and their twins on
+ * the Admin Dashboard's project pages (#9826), which name their project.
+ * Each form keeps its row where it was, under its "email" key, and draws it
+ * with InviteeEmailField - the form's text box, which suggests people as it
+ * is typed in. Drawn by the form as its own element, the row is checked
+ * here as an email row always was: an address that is not one is said
+ * under the box, in the reader's language.
  */
 
 // The address typed, as the form holds it under the row's key.
@@ -74,11 +75,17 @@ export const readFormTeamId: (value: unknown) => string | null = (
 export const drawInviteeEmailField: (data: {
   customProps: CustomElementProps;
   teamId: string | null;
+  /*
+   * The project the invitation is to, from a page that works in no
+   * project (the Admin Dashboard's forms). The Dashboard's leave it out.
+   */
+  projectId?: string | null | undefined;
   // A suggestion picked: someone with an account, whose name is known.
   onPick?: ((suggestion: InviteSuggestion) => void) | undefined;
 }) => ReactElement = (data: {
   customProps: CustomElementProps;
   teamId: string | null;
+  projectId?: string | null | undefined;
   onPick?: ((suggestion: InviteSuggestion) => void) | undefined;
 }): ReactElement => {
   return (
@@ -98,6 +105,7 @@ export const drawInviteeEmailField: (data: {
       ariaLabelledby={data.customProps.ariaLabelledby}
       ariaDescribedby={data.customProps.ariaDescribedby}
       teamId={data.teamId}
+      projectId={data.projectId}
       onPick={data.onPick}
       dataTestId="invitee-email"
     />

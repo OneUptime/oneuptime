@@ -46,11 +46,19 @@ export default interface ExceptionMonitorResponse {
    *   (ExceptionMonitorEvaluation.getIncreasePercent);
    * - exceptionLearnedBaselines: what is normal for this hour of the week,
    *   one per baseline window the criteria ask for. A window missing here
-   *   reads as still learning: nothing to compare with, so nothing alerts.
+   *   reads as still learning: nothing to compare with, so nothing alerts;
+   * - sessionCount: the window's sessions, the distinct session.id of the
+   *   spans of the monitor's services;
+   * - sessionsWithExceptionsCount: those a matching exception happened in;
+   * - sessionsWithExceptionsPercent: their share, or null without a session
+   *   to take it of - which no criteria on it matches.
    */
   newExceptionCount?: number | undefined;
   regressedExceptionCount?: number | undefined;
   exceptionCountBaseline?: number | undefined;
   exceptionCountIncreasePercent?: number | undefined;
   exceptionLearnedBaselines?: Array<ExceptionLearnedBaseline> | undefined;
+  sessionCount?: number | undefined;
+  sessionsWithExceptionsCount?: number | undefined;
+  sessionsWithExceptionsPercent?: number | null | undefined;
 }

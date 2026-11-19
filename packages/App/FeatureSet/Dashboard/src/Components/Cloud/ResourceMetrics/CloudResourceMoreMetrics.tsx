@@ -243,6 +243,7 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
             {listing.metrics.length > CLOUD_MORE_METRICS_SEARCH_FROM ? (
               <div className="mb-3 max-w-md">
                 <Input
+                  isSearchOrFilter={true}
                   value={search}
                   onChange={setSearch}
                   placeholder="Search metrics"

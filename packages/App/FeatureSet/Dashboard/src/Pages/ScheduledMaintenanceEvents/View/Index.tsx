@@ -96,6 +96,14 @@ import {
 import getPublishAtFormField from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields";
 import { getColumnChoiceField } from "../../../Utils/Form/ColumnChoiceField";
 import ScheduledMaintenancePublishingNotice from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingNotice";
+import {
+  MaintenanceReachQuestion,
+  MaintenanceReachRecord,
+  getMaintenanceReachQuestion,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import useScheduledMaintenanceReach, {
+  ScheduledMaintenanceReachState,
+} from "../../../Components/ScheduledMaintenance/useScheduledMaintenanceReach";
 import ScheduledMaintenancePublication from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import useRecordChannelLinks, {
   getOpenInChatActions,
@@ -543,6 +551,26 @@ const ScheduledMaintenanceView: FunctionComponent<
       : undefined,
   });
 
+  /*
+   * Kept to the team until its publish time, the header's band says its
+   * subscribers are told it is scheduled then only when one of the status
+   * pages it is on shows maintenance events and notifies them (#9920): the
+   * server answers for the pages, asked only while the band is shown, as
+   * the event's Edit would save them.
+   */
+  const publishingReachQuestion: MaintenanceReachQuestion | null =
+    isCurrentEventLoaded && getWaitingPublishAt(loadedEvent?.item)
+      ? getMaintenanceReachQuestion({
+          values: {
+            statusPages: loadedEvent?.item?.statusPages,
+            _id: modelIdString,
+          },
+          record: MaintenanceReachRecord.Event,
+        })
+      : null;
+  const publishingReach: ScheduledMaintenanceReachState =
+    useScheduledMaintenanceReach(publishingReachQuestion);
+
   if (!isCurrentEventLoaded) {
     if (loadedModelId === modelIdString && loadError) {
       return (
@@ -678,6 +706,9 @@ const ScheduledMaintenanceView: FunctionComponent<
               publishAt={waitingPublishAt}
               areSubscribersTold={areSubscribersToldWhenPublished(
                 scheduledMaintenance,
+                publishingReach.reach
+                  ? publishingReach.reach.nothingSentReason
+                  : undefined,
               )}
               onPublished={() => {
                 // Its details, and the subscriber notification it now sends.

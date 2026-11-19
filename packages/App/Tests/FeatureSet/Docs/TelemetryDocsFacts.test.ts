@@ -572,18 +572,27 @@ describe("Search Syntax", () => {
       );
     });
 
-    it("reads duration in milliseconds, with > and < bounds", () => {
+    it("reads duration in milliseconds, with >, >=, < and <= bounds", () => {
       expect(toTraceDurationFilter(">500")).toEqual({
         minDurationNano: 500 * 1_000_000,
       });
+      expect(toTraceDurationFilter(">=500")).toEqual({
+        atLeastDurationNano: 500 * 1_000_000,
+      });
       expect(toTraceDurationFilter("<200")).toEqual({
         maxDurationNano: 200 * 1_000_000,
+      });
+      expect(toTraceDurationFilter("<=200")).toEqual({
+        atMostDurationNano: 200 * 1_000_000,
       });
       expect(toTraceDurationFilter("500")).toEqual({
         exactDurationNano: 500 * 1_000_000,
       });
       expect(page).toContain(
-        "Milliseconds: `duration:>500`, `duration:<200` or an exact value",
+        "Milliseconds: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` or an exact value",
+      );
+      expect(page).toContain(
+        "and `duration` also takes `>`, `>=`, `<` and `<=`.",
       );
     });
 

@@ -15,6 +15,7 @@ import {
   withPrivateRecordGateOptions,
 } from "Common/UI/Utils/PrivateRecordScope";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
+import Alert from "Common/Models/DatabaseModels/Alert";
 import React, {
   Fragment,
   FunctionComponent,
@@ -34,7 +35,10 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
-import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  getStateChangeFormFields,
+  getStateChangeRootCauseFields,
+} from "../EventView/StateChangeFormFields";
 import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import {
   BulkStateChangeNoteType,
@@ -673,21 +677,36 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             id: "create-alert-state-timeline",
             /*
              * Nothing else decides an alert's state change: just the private
-             * note, folded under "Add a private note"
-             * (EventView/StateChangeFormFields).
+             * note, folded under "Add a private note", and - when the change
+             * resolves the alert - its root cause, folded under "Add the
+             * root cause" (EventView/StateChangeFormFields, #7765).
              */
-            fields: getStateChangeFormFields<AlertStateTimeline>({
-              noteType: BulkStateChangeNoteType.Private,
-              noteDescription: translationKey(
-                "Add an optional private note about this state change. Only people who can see this alert can read it.",
+            fields: [
+              ...getStateChangeFormFields<AlertStateTimeline>({
+                noteType: BulkStateChangeNoteType.Private,
+                noteDescription: translationKey(
+                  "Add an optional private note about this state change. Only people who can see this alert can read it.",
+                ),
+                noteTemplates: alertNoteTemplates.map(
+                  toBulkStateChangeNoteTemplate,
+                ),
+                // Offered only to someone who may post a private note.
+                noteModel: new AlertInternalNote(),
+                noteGateOptions: privateRecordOptions,
+              }),
+              // Offered only to someone who may edit the alert.
+              ...getStateChangeRootCauseFields<AlertStateTimeline>(
+                isResolveTarget
+                  ? {
+                      description: translationKey(
+                        "Why did this alert happen? It is saved as the alert's root cause, and OneUptime AI's investigation is graded against it.",
+                      ),
+                      recordModel: new Alert(),
+                      recordGateOptions: privateRecordOptions,
+                    }
+                  : undefined,
               ),
-              noteTemplates: alertNoteTemplates.map(
-                toBulkStateChangeNoteTemplate,
-              ),
-              // Offered only to someone who may post a private note.
-              noteModel: new AlertInternalNote(),
-              noteGateOptions: privateRecordOptions,
-            }),
+            ],
             formType: FormType.Create,
           }}
         />

@@ -35,6 +35,13 @@ import com.oneuptime.androidagent.otlp.millisToNanos
  *   android.battery.plugged        gauge, 1 when on external power, 0 when on battery
  *   android.thermal.status         gauge, PowerManager's thermal status, 0 (none) to 6 (shutdown)
  *   android.thermal.headroom       gauge, 1.0 when the device starts throttling
+ *   android.boot.recent_count      gauge, {boot}, the boots in the last hour, this one included:
+ *                                  3 or more is a restart loop (the Restart Loop template)
+ *
+ * system.cpu.utilization comes from /proc/stat with every state where
+ * Android lets an app read it, and from HardwarePropertiesManager when the
+ * agent is the device owner: there a core's active time is one figure, sent
+ * as `user`, with the rest as `idle` (CoreUtilization).
  *
  * Memory "used" is what is not available (MemTotal less MemAvailable):
  * Android keeps the page cache full on purpose, and counting it would put
@@ -225,6 +232,16 @@ object HostMetrics {
                     listOf(fraction(headroom)),
                 )
             }
+        }
+
+        // Sent every collection, 0 too: a monitor reads a steady device as healthy, not as no data.
+        snapshot.bootsInLastHour?.takeIf { it >= 0 }?.let { boots ->
+            gauge(
+                "android.boot.recent_count",
+                "{boot}",
+                "The device's boots in the last hour: 3 or more is a restart loop.",
+                listOf(NumberPoint(NumberValue.Whole(boots.toLong()), time)),
+            )
         }
 
         return metrics

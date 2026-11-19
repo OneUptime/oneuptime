@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The agent as a device owner (admin/AgentDeviceAdminReceiver.kt) asks for
+    no policy: it never locks, wipes or restricts the device. Being the
+    device owner is what lets it read the device's CPU use on Android 8 and
+    later.
+-->
+<device-admin>
+    <uses-policies />
+</device-admin>

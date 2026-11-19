@@ -143,6 +143,8 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-store/<id>/scan-now` | **Skanna nu**: tar prov på datalagrets innehåll nu |
 | `/data-store/<id>/check-now` | **Kontrollera nu**: läser datalagrets konfiguration igen och kör dess kontroller |
 | `/data-store-finding/<id>/scrub` | **Rensa** på ett telemetrifynd |
+| `/data-store-finding/<id>/drop-metric-impact` | Vad **Kassera det här mätvärdet** skulle kassera för ett fynd i ett mätvärdes namn: hur många mätvärden, och de monitorer och instrumentpaneler som läser dem |
+| `/data-store-finding/<id>/drop-metric` | **Kassera det här mätvärdet**: en pipelineregel för mätvärden som för gott kasserar de nya datapunkterna från tjänstens mätvärden med ett sådant namn. Den tar `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Förklara med AI** på ett problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Åtgärda med AI** på ett problem |
 | `/data-store/<id>/response-actions` | Vilka responsåtgärder datalagret kan utföra nu, och varför inte |

@@ -38,7 +38,8 @@ import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArra
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getSubscriberNotificationSummary } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { MaintenanceSubscriberNotificationsLine } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
+import { MaintenanceReachRecord } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReach";
 import { getTemplateNextEventAt } from "../../../Utils/ScheduledMaintenanceTemplateSchedule";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -181,7 +182,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             /*
              * The line the form's folded Subscriber Notifications section
-             * shows, so the page and the form say it the same way.
+             * shows, so the page and the form say it the same way: what is
+             * true for the template's status pages and its switches (#9920).
              */
             {
               field: {
@@ -194,11 +196,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ): ReactElement => {
                 return (
                   <p data-testid="template-subscriber-notifications-summary">
-                    {getSubscriberNotificationSummary(item)
-                      .map((sentence: string): string => {
-                        return translator.translateText(sentence) || sentence;
-                      })
-                      .join(" ")}
+                    <MaintenanceSubscriberNotificationsLine
+                      values={item}
+                      record={MaintenanceReachRecord.Template}
+                    />
                   </p>
                 );
               },

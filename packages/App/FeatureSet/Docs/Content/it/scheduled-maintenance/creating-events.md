@@ -43,7 +43,7 @@ Fate clic su **Avanti** per arrivare a **Risorse interessate**. Scegliete i **Mo
 
 ### Scegliere chi lo viene a sapere
 
-Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **Notifiche agli iscritti**, chiuso, dice in una riga quando l'evento vi compare e chi viene avvisato e quando; apritelo per scegliere **A una data e un'ora** in **Pubblica sulle pagine di stato**, o per cambiare **Quando l'evento viene pianificato**, **Quando l'evento inizia**, **Quando l'evento termina** o **Promemoria prima dell'evento**.
+Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **Notifiche agli iscritti**, chiuso, dice in una riga quando l'evento vi compare e chi viene avvisato e quando; apritelo per scegliere **A una data e un'ora** in **Pubblica sulle pagine di stato**, o per cambiare **Quando l'evento viene pianificato**, **Quando l'evento inizia**, **Quando l'evento termina** o **Promemoria prima dell'evento**. La riga segue le pagine di stato selezionate: se nessuna è selezionata, se nessuna di esse mostra eventi di manutenzione o se quelle che li mostrano non inviano nulla ai loro iscritti, lo dice invece di dire chi viene avvisato.
 
 ### Crearlo
 

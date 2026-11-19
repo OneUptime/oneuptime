@@ -418,8 +418,25 @@ describe("a metric pipeline rule", () => {
       ),
     ).toBe(false);
 
+    // A Drop rule is read (#9757), but with a person's own filter covers no attribute.
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.Drop,
+          addAttributeKey: "user.email",
+          filters: [
+            {
+              checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+              conditionType: MetricPipelineRuleFilterConditionType.StartsWith,
+              value: "debug.",
+            },
+          ],
+        }),
+        metricFinding("attributes.user.email"),
+      ),
+    ).toBe(false);
+
     for (const ruleType of [
-      MetricPipelineRuleType.Drop,
       MetricPipelineRuleType.Filter,
       MetricPipelineRuleType.RenameAttribute,
       MetricPipelineRuleType.AddAttribute,
@@ -1108,10 +1125,20 @@ describe("a project's coverage", () => {
           addAttributeKey: "user.email",
           serviceId: CHECKOUT,
         }),
-        // Not a rule that hides an attribute, nor one that names none.
+        /*
+         * A Drop rule with a person's own filter: read, but it covers no
+         * attribute (#9757); nor a rule that names no key.
+         */
         savedMetricRule({
           name: "Drop debug metrics",
           ruleType: MetricPipelineRuleType.Drop,
+          filters: [
+            {
+              checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+              conditionType: MetricPipelineRuleFilterConditionType.StartsWith,
+              value: "debug.",
+            },
+          ],
         }),
         savedMetricRule({
           name: "No key",
@@ -1139,6 +1166,7 @@ describe("a project's coverage", () => {
       ["Emails", "log", "both"],
       ["Keys", "trace", "name"],
       ["Hide checkout's user emails", "metric", "attributes"],
+      ["Drop debug metrics", "metric", "name"],
     ]);
     expect(
       isFindingScrubbed(coverage, metricFinding("attributes.user.email")),

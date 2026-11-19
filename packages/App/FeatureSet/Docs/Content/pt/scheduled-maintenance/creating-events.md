@@ -43,7 +43,7 @@ Clique em **Próximo** para chegar a **Recursos afetados**. Escolha os **Monitor
 
 ### Escolher quem fica sabendo
 
-Escolha as páginas de status em **Mostrar evento nestas páginas de status**. **Notificações aos assinantes**, recolhido, diz em uma linha quando o evento aparece nelas e quem é avisado e quando; abra-o para escolher **Em uma data e hora** em **Publicar nas páginas de status**, ou para mudar **Quando o evento é agendado**, **Quando o evento começa**, **Quando o evento termina** ou **Lembretes antes do evento**.
+Escolha as páginas de status em **Mostrar evento nestas páginas de status**. **Notificações aos assinantes**, recolhido, diz em uma linha quando o evento aparece nelas e quem é avisado e quando; abra-o para escolher **Em uma data e hora** em **Publicar nas páginas de status**, ou para mudar **Quando o evento é agendado**, **Quando o evento começa**, **Quando o evento termina** ou **Lembretes antes do evento**. A linha acompanha as páginas de status selecionadas: quando nenhuma está selecionada, nenhuma delas mostra eventos de manutenção ou as que mostram não enviam nada aos seus assinantes, ela diz isso em vez de dizer quem é avisado.
 
 ### Criá-lo
 

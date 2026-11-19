@@ -7,7 +7,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
 } from "../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
-import { translationKey, Translator } from "../../Types/Translator";
+import { Translator } from "../../Types/Translator";
 import FeedMarkdown, { mdText } from "../Markdown/FeedMarkdown";
 import { RootCauseFinding } from "./MonitorRootCauseWording";
 import {
@@ -22,6 +22,13 @@ import {
 } from "./ProbeFailureReading";
 import { getRequestFailureDescriptionText } from "./RequestFailureDescriptions";
 import { wordRootCauseFact } from "./RootCauseFacts";
+import {
+  STATUS_CHANGED_BY_MAINTENANCE,
+  STATUS_CHANGED_BY_NEW_INCIDENT,
+  STATUS_CHANGED_BY_UPDATED_INCIDENT,
+  STATUS_CHANGED_BY_USER,
+  wordStatusChangeNote,
+} from "./StatusChangeNotes";
 
 /*
  * WHY A MONITOR IS IN ITS STATUS, IN A FEW LINES (#9592).
@@ -136,21 +143,15 @@ export const REASON_FACTS_SHOWN: number = 6;
 
 /*
  * The sentences OneUptime itself writes as a status event's root cause when
- * no criteria changed the status, by their English as stored, and in the
- * reader's words (each a key).
+ * no criteria changed the status are read, and worded, by StatusChangeNotes,
+ * which View Cause shares; re-exported for the readers of this file.
  */
-export const STATUS_CHANGED_BY_USER: string = translationKey(
-  "Changed by {{user}}",
-);
-export const STATUS_CHANGED_BY_NEW_INCIDENT: string = translationKey(
-  "Changed because incident {{incident}} was created.",
-);
-export const STATUS_CHANGED_BY_UPDATED_INCIDENT: string = translationKey(
-  "Changed because incident {{incident}} was updated.",
-);
-export const STATUS_CHANGED_BY_MAINTENANCE: string = translationKey(
-  "Changed by a maintenance event.",
-);
+export {
+  STATUS_CHANGED_BY_MAINTENANCE,
+  STATUS_CHANGED_BY_NEW_INCIDENT,
+  STATUS_CHANGED_BY_UPDATED_INCIDENT,
+  STATUS_CHANGED_BY_USER,
+};
 
 // "**Label**" or "**Label**: rest" (MonitorRootCauseWording's own reading).
 const BOLD_LABEL_LINE: RegExp = /^\*\*([^*\n]{1,80})\*\*(:?)(.*)$/;
@@ -167,14 +168,6 @@ const MARKDOWN_LINK: RegExp = /\[([^\]\n]{0,500})\]\([^()\s]{0,2000}\)/g;
 // "**words**" and "`code`": emphasis, read as its words.
 const MARKDOWN_BOLD: RegExp = /\*\*([^*\n]{1,500})\*\*/g;
 const MARKDOWN_CODE: RegExp = /`([^`\n]{1,500})`/g;
-
-const MANUAL_CHANGE: RegExp = /^Monitor status created by (.{1,500})$/;
-const NEW_INCIDENT: RegExp =
-  /^Status was changed because Incident (.{1,200}) was created\.$/;
-const UPDATED_INCIDENT: RegExp =
-  /^Status was changed because Incident (.{1,200}) was updated\.$/;
-const MAINTENANCE_CHANGE: RegExp =
-  /^Changed because of maintenance event: (.{1,200})$/;
 
 /*
  * Markdown as the words it shows: a link as its words, emphasis and code
@@ -296,51 +289,6 @@ const wordFactValue: (data: {
       translator: translator,
     }) ?? data.value
   );
-};
-
-// One of OneUptime's own notes, in the reader's words; null for any other.
-const wordNote: (text: string, translator: Translator) => string | null = (
-  text: string,
-  translator: Translator,
-): string | null => {
-  const manual: RegExpExecArray | null = MANUAL_CHANGE.exec(text);
-
-  if (manual) {
-    return translator.translateTemplate(
-      STATUS_CHANGED_BY_USER,
-      { user: manual[1] as string },
-      { setsValuesApart: true },
-    );
-  }
-
-  const created: RegExpExecArray | null = NEW_INCIDENT.exec(text);
-
-  if (created) {
-    return translator.translateTemplate(
-      STATUS_CHANGED_BY_NEW_INCIDENT,
-      { incident: created[1] as string },
-      { setsValuesApart: true },
-    );
-  }
-
-  const updated: RegExpExecArray | null = UPDATED_INCIDENT.exec(text);
-
-  if (updated) {
-    return translator.translateTemplate(
-      STATUS_CHANGED_BY_UPDATED_INCIDENT,
-      { incident: updated[1] as string },
-      { setsValuesApart: true },
-    );
-  }
-
-  if (MAINTENANCE_CHANGE.test(text)) {
-    return (
-      translator.translateText(STATUS_CHANGED_BY_MAINTENANCE) ||
-      STATUS_CHANGED_BY_MAINTENANCE
-    );
-  }
-
-  return null;
 };
 
 export const readMonitorStatusReason: (data: {
@@ -484,7 +432,7 @@ export const readMonitorStatusReason: (data: {
   return {
     findings: [],
     facts: [],
-    note: wordNote(text, translator) ?? text,
+    note: wordStatusChangeNote(text, translator) ?? text,
   };
 };
 

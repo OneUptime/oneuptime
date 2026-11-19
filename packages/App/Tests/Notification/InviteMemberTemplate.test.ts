@@ -408,3 +408,80 @@ describe("InviteMember.hbs - the branch variable", () => {
     }
   });
 });
+
+/*
+ * An invitation into a project that manages sign-in with single sign-on
+ * (#9819): when every project the person would be in does - or the server
+ * requires SSO - they have no password to create, so the email offers SSO
+ * and links to where it starts (`ssoSignInLink`: the sign-up page their
+ * invitation opens, which then offers the project's providers, or Sign in
+ * with SSO for someone signed up already).
+ */
+describe("InviteMember.hbs - an invitation whose sign-in is single sign-on", () => {
+  const SSO_SIGN_IN_LINK: string = "https://oneuptime.test/accounts/sso";
+
+  test.each([
+    ["an invitation to accept", "false", "Invited to Acme Production"],
+    ["one accepted for them", "true", "Been Added to Acme Production"],
+  ])(
+    "%s offers SSO, never an account to create or a password",
+    (_case: string, isInvitationAccepted: string, headline: string) => {
+      for (const isNewUser of ["true", "false"]) {
+        const html: string = render({
+          isInvitationAccepted: isInvitationAccepted,
+          isNewUser: isNewUser,
+          isSsoSignIn: "true",
+          ssoSignInLink: SSO_SIGN_IN_LINK,
+        });
+
+        expect(html).toContain(headline);
+        expect(html).toContain("Sign In with SSO");
+        expect(html).toContain(
+          "It signs you in with your organization's single sign-on (SSO), so there is no password to create.",
+        );
+        expect(html).toContain(`href="${SSO_SIGN_IN_LINK}"`);
+        expect(html).not.toContain("Create Your Account");
+        expect(html).not.toContain(`href="${SIGN_IN_LINK}"`);
+        expect(html).not.toContain("accounts/register");
+      }
+    },
+  );
+
+  test("names who invited them, as words", () => {
+    const html: string = render({
+      isInvitationAccepted: "false",
+      isNewUser: "true",
+      isSsoSignIn: "true",
+      ssoSignInLink: SSO_SIGN_IN_LINK,
+      inviterLabel: "Ada <Walker> (ada@walk.co)",
+    });
+
+    expect(html).toContain(
+      "Ada &lt;Walker&gt; (ada@walk.co) invited you to join Acme Production",
+    );
+  });
+
+  test.each([["false"], [undefined]])(
+    "isSsoSignIn %p: the invitation it always was",
+    (isSsoSignIn: string | undefined) => {
+      const html: string = render({
+        isInvitationAccepted: "false",
+        isNewUser: "true",
+        ...(isSsoSignIn === undefined ? {} : { isSsoSignIn: isSsoSignIn }),
+        ssoSignInLink: SSO_SIGN_IN_LINK,
+      });
+
+      expect(html).toContain("Create Your Account");
+      expect(html).not.toContain("Sign In with SSO");
+    },
+  );
+
+  test("TeamMemberService sets the variables this branch reads", () => {
+    const serviceSource: string = fs.readFileSync(TEAM_MEMBER_SERVICE_PATH, {
+      encoding: "utf8",
+    });
+
+    expect(serviceSource).toContain("isSsoSignIn:");
+    expect(serviceSource).toContain("ssoSignInLink:");
+  });
+});

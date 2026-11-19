@@ -454,7 +454,7 @@ Brugere, som SCIM selv opretter, og brugere, der er medlemmer af dit projekt, ti
 En OneUptime-kontos e-mailadresse er den, personen logger ind med i alle de projekter, vedkommende er medlem af, og den, links til nulstilling af adgangskoden sendes til. Derfor:
 
 - **OneUptime Cloud**: SCIM ændrer aldrig en e-mailadresse. En anmodning, der ville ændre en, lykkes alligevel: forbindelsen beholder den adresse, din identitetsudbyder sendte, og svarer med den, mens kontoen beholder den adresse, personen logger ind med. Forbindelsens SCIM-logge viser, at ændringen ikke blev udført. Bed brugeren om selv at ændre adressen fra sin egen OneUptime-profil.
-- **Selvhostet**: SCIM ændrer kun e-mailadressen for en bruger, der er blevet medlem af dette projekt, ikke tilhører noget andet projekt og ikke er OneUptime-administrator. For alle andre beholder forbindelsen den nye adresse og kontoen sin egen, som på OneUptime Cloud.
+- **Selvhostet**: SCIM ændrer kun e-mailadressen for en bruger, der er blevet medlem af dette projekt, ikke tilhører noget andet projekt og ikke er OneUptime-administrator. For alle andre beholder forbindelsen den nye adresse og kontoen sin egen, som på OneUptime Cloud. Det samme gælder en adresse, som en anden OneUptime-konto allerede logger ind med.
 
 Navne følger den samme regel overalt: SCIM opdaterer kun navnet for en bruger, der er blevet medlem af dette projekt, ikke tilhører noget andet projekt og ikke er OneUptime-administrator. For alle andre forbliver navnet uændret, og resten af anmodningen lykkes stadig.
 :::

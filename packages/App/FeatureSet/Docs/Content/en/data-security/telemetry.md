@@ -8,6 +8,7 @@ There is nothing to set up: each service's telemetry is scanned every hour, unle
 - [What is read](#what-is-read): The attributes, bodies, messages and prompts of each signal.
 - [How a scan samples](#how-a-scan-samples): The newest records of each service, every hour.
 - [Scrub It](#scrub-it): Mask a finding at ingest, with one click.
+- [Drop This Metric](#drop-this-metric): Stop storing the metrics whose names hold sensitive data.
 - [What counts as scrubbed](#what-counts-as-scrubbed): When a scrub rule already covers a finding.
 :::
 
@@ -42,8 +43,9 @@ Numbered keys are folded into one location: `gen_ai.prompt.3.content` is `gen_ai
 
 A metric's attributes are its series' labels. They are the same on every data point of a series, so a metric that writes a thousand points a minute may hold three values, and a label that leaks a user's email adds a series, not a point. So a metric is sampled by its series, not by its points:
 
-- **Its newest minute.** Each metric is read at the newest minute it wrote in the last hour: up to 100 of that minute's data points, which for a metric sent once a minute, as OpenTelemetry sends by default, is a point of each series. A value is classified once, however many points repeat it, so a finding counts the distinct values at its place.
-- **The busiest first, the rest in turn.** Which metrics a service wrote comes from the per-minute rollup the metrics table keeps, never from its points. Each scan reads a service's busiest metrics, the likeliest to have many series, and some of its others, the next ones each hour, so every metric gets its turn.
+- **A point of each series.** Each metric is read at the newest minute it wrote in the last hour: one data point of each of up to 100 of that minute's series, however often the metric is sent, so a busy series never crowds out a quiet one. A value is classified once, however many series repeat it, so a finding counts the distinct values at its place.
+- **New metrics first, then the rest in turn.** Which metrics a service wrote, and when each first wrote in the last day, comes from the per-minute rollup the metrics table keeps, never from its points. Each scan reads a service's busiest metrics, the likeliest to have many series. Then come the metrics it started writing in the last 2 hours, since new code is where a new leak usually comes from, and then the next of its other metrics, in a fixed order, from where the last scan stopped. New metrics take at most half of those turns, so the others always keep theirs.
+- **Every metric within a set time.** A service of M metrics, read 10 a scan, has each of them read at least once every M ÷ 5 hours, rounded up: 60 hours for a service of 300 metrics. While it keeps starting new metrics every hour, it is at most twice that.
 - **Each metric's own range.** The metrics are read together, each by its own range of the table's primary key. A metric whose newest minute holds more than 16,384 points, such as one labeled with each user's email, is read on its own, and the read stops at its first points, so it costs no more than any other metric.
 
 A finding names the attribute, such as `attributes.user.email`, or `name` for data in a metric's name. Its records are the data points it was found in: each shows its metric and the attribute's value, masked, and opens in **Metrics** on that metric, grouped by that attribute. Where a metric's name holds sensitive data, the name is masked too, and the record opens the service's metrics instead.
@@ -73,8 +75,9 @@ Every hour, each signal's newest records of the last hour are read, and classifi
 | Attributes of one record | 128; 64 for an AI call |
 | Events of one span, and attributes of one event | 16 and 32 |
 | Locations of one store | 500 |
-| Metrics read in one scan | 100 shared between the services, at least one of each; at most 10 of one service, half its busiest and half its others in turn |
-| Data points of one metric | Its newest minute's, at most 100 |
+| Metrics read in one scan | 100 shared between the services, at least one of each; at most 10 of one service, half its busiest and half its new and other metrics in turn |
+| A new metric | One whose first point of the last 24 hours came in the last 2 hours |
+| Series of one metric | A data point of each, of its newest minute, at most 100 |
 
 Every value is cut short in the database, so no long value leaves it, and each read stops after 30 seconds. A read that fails is a warning on the stores it was for; the scan goes on with the next one.
 
@@ -114,9 +117,20 @@ Some findings cannot be scrubbed by a rule, and **Scrub It** says why. A metric'
 - A document marking: hiding the word would not hide the document.
 - One of your own data types: add a custom scrub rule with its pattern yourself.
 - A session's own details (`sessions.*`): session replay ingest runs no scrub rules.
-- A metric's name (`name`): the code that creates the metric sets it, and a pipeline rule can only rename a metric whole. Rename the metric, and send what varies in its name as an attribute instead.
+- A metric's name (`name`): the code that creates the metric sets it, and a pipeline rule can only rename a metric whole. Rename the metric, and send what varies in its name as an attribute instead. Until then, **Drop This Metric** can stop storing those metrics.
 
 **Scrub It** makes the rule as you, under your own permissions: Project Owners and Project Admins can press it, and so can a team that may create log scrub rules, trace scrub rules for spans, exceptions and AI calls, and metric pipeline rules for metrics.
+
+## Drop This Metric
+
+No rule takes the data out of a metric's name, so until the code that names the metric is fixed, the data keeps arriving. **Drop This Metric** on a finding in a metric's name stops storing the metrics whose names hold it, at the cost of their data, so it only happens when you ask for it:
+
+- **One service's metrics.** It makes a **Drop** metric pipeline rule for the finding's service: every new data point of a metric whose name holds that data type is dropped before it is stored. Its filter is the pattern **Scrub It** uses for the type, so a type no pattern can find, such as a person's name, cannot be dropped, and the dialog says why.
+- **Said before it is done.** The dialog says that those data points are lost for good, how many of the service's metrics written in the last day have such a name, which monitors and dashboards read them and so get no new data, that what is stored already stays until its retention ends, and how to undo it. Nothing is dropped until you tick that you understand.
+- **As you, on the record.** The rule is made under your own permission to create metric pipeline rules: Project Owners and Project Admins can make it, and so can a team that may create metric pipeline rules. The audit log records who made it.
+- **Undone by deleting the rule.** The rule is named for what it drops, such as "Data Security: drop metrics named with Email address", and listed with your other metric pipeline rules under **Metrics → Settings → Pipeline Rules**. Delete it or turn it off, and those metrics are stored again from then on. What was dropped meanwhile does not come back.
+
+The finding is then marked **Dropped**, and counts as scrubbed: no more of that data is stored.
 
 ## What counts as scrubbed
 
@@ -127,6 +141,7 @@ A finding is marked scrubbed only when ingest would run an enabled rule over it 
 - **A pattern that finds the type.** A built-in **Pattern Type** finds its own data type: **Email Address** finds email addresses, **Credit Card Number** card numbers, **SSN (Social Security Number)** US Social Security numbers, **Phone Number** phone numbers and **IP Address** IP addresses. **Sensitive Attribute Keys** covers every value under a key that looks sensitive, whatever the value is.
 - **Your own custom patterns never count.** A **Custom Regex** covers a finding only when it is exactly the pattern **Scrub It** makes for its type. A finding keeps only masked samples, which no pattern can be tried on, so OneUptime could not prove that your pattern hides the data, and a finding wrongly called scrubbed is a leak nobody looks at.
 - **A metric's attribute.** A **Redact Attribute** or **Remove Attribute** metric pipeline rule of that attribute's key, for the finding's service or the whole project, covers it when it has no filter, or exactly the filter **Scrub It** makes. A filter you wrote never counts, for the same reason.
+- **A metric's name.** A **Drop** metric pipeline rule for the finding's service or the whole project covers it when it has exactly the filter **Drop This Metric** makes, or no filter at all, which stores none of the service's metrics. Such a rule with no filter covers every finding in those metrics.
 
 A rule that is turned off, or that scrubs nothing, never counts. Coverage is worked out again after every scan, so a rule you add or remove by hand changes what is marked scrubbed within the hour.
 

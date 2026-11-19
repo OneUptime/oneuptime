@@ -100,16 +100,17 @@ updates the tag, the version label, the resource's digest, the release stage,
 image on Docker Hub:
 
 ```bash
-node Scripts/IronBank/PinRelease.js --project Probe --version 14.0.102
+node Scripts/IronBank/PinRelease.js --project Probe --version 16.0.0
 ```
 
 It refuses, pinning and with `--check`, a release whose own start command
 runs another file than the project's Dockerfile does. The App's, the Probe's
-and the Runner's Dockerfiles start `Index.js`, which only releases built since
-the images compile their JavaScript ship; earlier releases started `Index.ts`
-through ts-node, so they cannot be pinned under these Dockerfiles. Until such a
-release is published, the Preflight's pin of the latest release fails with
-that message, and the committed pins wait for one.
+and the Runner's Dockerfiles start `Index.js`, which releases ship from 16.0.0
+on, since the images compile their JavaScript; earlier releases started
+`Index.ts` through ts-node, so they cannot be pinned under these Dockerfiles.
+A pull request's preflight checks and builds the committed pins, so when a
+change to the Dockerfiles needs a newer release than they name, move all four
+projects to it as soon as it is published.
 
 ## What CI does: the Iron Bank Preflight workflow
 

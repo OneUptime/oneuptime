@@ -29,6 +29,10 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OpenStackBlastRadius } from "../../Types/OpenStack/OpenStackBlastRadius";
 import {
+  OPENSTACK_BARE_METAL_RESOURCE_CLASS_MAX_LENGTH,
+  OpenStackBareMetalResourceClass,
+} from "../../Types/OpenStack/OpenStackBareMetal";
+import {
   getOpenStackListSeekSort,
   isOpenStackListSeek,
 } from "../../Types/OpenStack/OpenStackListSeek";
@@ -86,6 +90,11 @@ import ProductKey from "../../Types/Product/ProductKey";
  *   POST /openstack-resource/bare-metal-classes/:cloudId   { regionName? }
  *     How many nodes there are of each resource class, and how many could take an instance,
  *     from one statement over the nodes' rows. Needs read access to the cloud.
+ *
+ *   POST /openstack-resource/bare-metal-failed-nodes/:cloudId   { resourceClass, regionName? }
+ *     The nodes of one resource class that failed - the very nodes the class's "Failed: N"
+ *     counts - by name, with why where a probe read it (#9751). resourceClass is null for the
+ *     nodes with none. Needs read access to the cloud.
  *
  *   POST /openstack-resource/needs-attention/:cloudId   { regionName? }
  *     The rows that may need someone, for the Overview's Needs attention and health
@@ -277,6 +286,20 @@ export default class OpenStackResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getBareMetalClasses(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/bare-metal-failed-nodes/:cloudId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getBareMetalFailedNodes(req, res);
         } catch (err) {
           next(err);
         }
@@ -1471,6 +1494,53 @@ export default class OpenStackResourceAPI extends BaseAPI<
         regionName: this.readRegionName(req),
       })) as unknown as JSONObject,
     });
+  }
+
+  private async getBareMetalFailedNodes(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
+
+    const read: { rows: Array<JSONObject>; isTruncated: boolean } =
+      await this.service.getBareMetalFailedNodes({
+        projectId,
+        openStackCloudId,
+        resourceClass: OpenStackResourceAPI.readResourceClass(req.body),
+        regionName: this.readRegionName(req),
+      });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      rows: read.rows as unknown as JSONObject,
+      isTruncated: read.isTruncated,
+    });
+  }
+
+  /*
+   * The resource class a request names: text, or null for the nodes with none, which the
+   * class count groups apart from an empty string. Anything else is refused, never read as
+   * every class.
+   */
+  public static readResourceClass(
+    body: JSONObject | undefined,
+  ): OpenStackBareMetalResourceClass {
+    const value: unknown = body ? body["resourceClass"] : undefined;
+
+    if (value === null) {
+      return null;
+    }
+
+    if (
+      typeof value !== "string" ||
+      value.length > OPENSTACK_BARE_METAL_RESOURCE_CLASS_MAX_LENGTH
+    ) {
+      throw new BadDataException(
+        "Name the resource class to list the failed nodes of, or null for the nodes with none.",
+      );
+    }
+
+    return value;
   }
 
   private async getInventorySummary(

@@ -45,6 +45,7 @@ const {
   getDirectives,
   getServerBlocks,
   ingressListenEnvironment,
+  primaryHttp2Environment,
   primaryServerNameEnvironment,
   readNginxConf,
   readTemplate,
@@ -304,10 +305,11 @@ function namesListedTwice(names) {
 /*
  * The template rendered for `host` with envsubst, from the script's exports
  * as NginxConfigParser models them (the listens of `listens`, the primary's
- * names). With PROVISION_SSL on, the script writes the primary's certificate
- * under /etc/nginx/certs, which only the image allows, so the PROVISION_SSL
- * listens are rendered from the model here. IngressListensOnIpv6.test.js and
- * the script test below hold the model to the script.
+ * names, HTTP/2 at its default). With PROVISION_SSL on, the script writes
+ * the primary's certificate under /etc/nginx/certs, which only the image
+ * allows, so the PROVISION_SSL listens are rendered from the model here.
+ * IngressListensOnIpv6.test.js, PrimaryServerHttp2.test.js and the script
+ * test below hold the model to the script.
  */
 function renderModelled(host, listens, overrides = {}) {
   const environment = {
@@ -318,6 +320,7 @@ function renderModelled(host, listens, overrides = {}) {
     PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
     ...ingressListenEnvironment(listens),
     ...primaryServerNameEnvironment(host),
+    ...primaryHttp2Environment(),
     ...overrides,
   };
   // The script's own removals, for the settings left unset here.

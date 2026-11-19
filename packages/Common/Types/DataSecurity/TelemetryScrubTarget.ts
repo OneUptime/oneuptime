@@ -197,6 +197,21 @@ export function getScrubTarget(
 }
 
 /*
+ * Whether a finding sits in a metric's name: no rule can scrub it, but the
+ * service's metrics named so can be dropped at ingest until the code that
+ * names them is fixed (Drop This Metric, #9757).
+ */
+export function isMetricNameFinding(
+  kind: DataStoreKind | string | null | undefined,
+  location: string | null | undefined,
+): boolean {
+  return (
+    kind === DataStoreKind.TelemetryMetrics &&
+    (location || "").trim() === METRIC_NAME_LOCATION
+  );
+}
+
+/*
  * Why no rule reaches a finding's place, or null when one does: what a page
  * says instead of offering Scrub It.
  */
@@ -217,7 +232,7 @@ export function getScrubUnavailableReason(
     return TelemetryScrubUnavailableReason.SessionDetails;
   }
 
-  if (kind === DataStoreKind.TelemetryMetrics && at === METRIC_NAME_LOCATION) {
+  if (isMetricNameFinding(kind, at)) {
     return TelemetryScrubUnavailableReason.MetricName;
   }
 

@@ -128,6 +128,7 @@ import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAnd
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import MoveMonitorsOffRetiredCloudMetrics from "./MoveMonitorsOffRetiredCloudMetrics";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
@@ -1477,21 +1478,36 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new LinkMonitorsToTheirNetworkDevices(),
   /*
+   * What a workflow's step ran as, and with whose permissions (#9766): adds
+   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
+   * the four beside it). Metadata-only and idempotent; rows written before
+   * it read NULL. After AddAuditLogWorkflowColumns; before the last slot
+   * AddAuditLogMcpClientColumns keeps, and before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before it (the two are independent).
+   */
+  new AddAuditLogWorkflowRunAsColumns(),
+  /*
+   * Moves the Metrics monitors that read a metric its cloud deprecates -
+   * a Pub/Sub topic's send_message_operation_count, a Cosmos DB account's
+   * ServerSideLatency - to what replaces it, which the cloud connections
+   * read since #9565, as they stop reading the old ones (#9739); a monitor
+   * left on one is told in its feed what to read instead. Postgres and the
+   * metric store's reads only, idempotent, a page of monitors at a time by
+   * id; before BackfillIncidentCallTranscriptSignInAccount, which keeps the
+   * slot just before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveMonitorsOffRetiredCloudMetrics(),
+  /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams
    * (IncidentVideoCall.transcriptSignInAccountId, #9289), and marks for
    * deletion those read through a sign-in Zoom already removed. After the
-   * schema migration that adds the column; before the last slot
-   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   * schema migration that adds the column; idempotent. It keeps the slot
+   * just before the last one, which AddAuditLogMcpClientColumns asserts for
+   * itself: a migration added after it goes before it.
    */
   new BackfillIncidentCallTranscriptSignInAccount(),
-  /*
-   * What a workflow's step ran as, and with whose permissions (#9766): adds
-   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
-   * the four beside it). Metadata-only and idempotent; rows written before
-   * it read NULL. Before the last slot AddAuditLogMcpClientColumns keeps.
-   */
-  new AddAuditLogWorkflowRunAsColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

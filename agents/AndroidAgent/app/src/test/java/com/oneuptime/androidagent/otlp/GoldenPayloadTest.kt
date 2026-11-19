@@ -8,6 +8,7 @@ import com.oneuptime.androidagent.boot.BootEvent
 import com.oneuptime.androidagent.boot.BootInfo
 import com.oneuptime.androidagent.boot.BootTracker
 import com.oneuptime.androidagent.boot.PreviousShutdown
+import com.oneuptime.androidagent.boot.RebootFacts
 import com.oneuptime.androidagent.collect.BatteryReading
 import com.oneuptime.androidagent.collect.DeviceSnapshot
 import com.oneuptime.androidagent.collect.FilesystemReading
@@ -17,6 +18,11 @@ import com.oneuptime.androidagent.collect.NetworkReading
 import com.oneuptime.androidagent.collect.ThermalReading
 import com.oneuptime.androidagent.config.ConfigSource
 import com.oneuptime.androidagent.config.DeviceIdentity
+import com.oneuptime.androidagent.dropbox.DropBoxDecoder
+import com.oneuptime.androidagent.dropbox.DropBoxEntry
+import com.oneuptime.androidagent.dropbox.DropBoxFinding
+import com.oneuptime.androidagent.dropbox.DropBoxFixtures
+import com.oneuptime.androidagent.dropbox.DropBoxState
 import com.oneuptime.androidagent.logs.EventLogDecoder
 import com.oneuptime.androidagent.logs.LogcatCollector
 import com.oneuptime.androidagent.logs.LogcatLine
@@ -77,7 +83,12 @@ class GoldenPayloadTest {
             network = NetworkReading(5_000_000_000L, 800_000_000L, 4_000_000L, 1_500_000L),
             battery = BatteryReading(charge = 1.0, state = "full", plugged = "ac", temperatureCelsius = 31.5),
             thermal = ThermalReading(status = 0, headroom = 0.42),
+            bootsInLastHour = 1,
         )
+
+    // A DropBox entry as the agent reads it: its text, filed at a time just before now.
+    private fun dropBoxFault(tag: String, text: String, offsetMillis: Long): LogRecord =
+        (DropBoxDecoder.decode(DropBoxEntry(tag, now - offsetMillis, text), millisToNanos(now)) as DropBoxFinding.Fault).record
 
     private fun metricsRequest(): JsonObject = OtlpJson.metricsRequest(resource, scope, HostMetrics.from(snapshot))
 
@@ -85,11 +96,16 @@ class GoldenPayloadTest {
         val observed: Long = millisToNanos(now)
         val records: List<LogRecord> =
             listOf(
-                AgentEvents.started(now, "17.0.12", ConfigSource.MANAGED, LogcatState.CRASHES_AND_ANRS),
+                AgentEvents.started(now, "17.0.12", ConfigSource.MANAGED, LogcatState.CRASHES_AND_ANRS, DropBoxState.READING),
                 BootTracker.record(
                     BootEvent(BootInfo("e7a7ab81-d18d-41ea-9dbb-27082631f948", 42, boot), 86_400L, 125L, PreviousShutdown.CLEAN, 1),
                     now,
+                    RebootFacts("reboot,userrequested", null, listOf("[86400.100000] reboot: Restarting system with command 'userrequested'")),
                 ),
+                // Every app's crashes from DropBox, with their stacks: these group by stack in Exceptions.
+                dropBoxFault("data_app_crash", DropBoxFixtures.JAVA_CRASH, 3_000),
+                dropBoxFault("data_app_anr", DropBoxFixtures.ANR, 2_000),
+                dropBoxFault("data_app_native_crash", DropBoxFixtures.NATIVE_CRASH, 1_000),
                 EventLogDecoder.decode(
                     LogcatLine(1_795_076_857_467_000_000L, "1000", 580, 1029, 'I', "am_crash", "[4242,0,com.example.kiosk,550026820,java.lang.IllegalStateException,Printer offline,Printer.kt,88,0]"),
                     observed,
@@ -102,6 +118,13 @@ class GoldenPayloadTest {
                     LogcatLine(1_795_076_857_600_000_000L, "10143", 4242, 4250, 'W', "KioskApp", "Receipt printer offline, retrying"),
                     "main",
                     observed,
+                ) { uid -> if (uid == 10143) "com.example.kiosk" else null },
+                // A line read in a log session OneUptime asked for, tagged with the session.
+                LogcatCollector.textRecord(
+                    LogcatLine(1_795_076_857_700_000_000L, "10143", 4242, 4250, 'I', "KioskApp", "Payment terminal handshake started"),
+                    "main",
+                    observed,
+                    logSessionId = "9f8e7d6c-5b4a-4321-8765-0123456789ab",
                 ) { uid -> if (uid == 10143) "com.example.kiosk" else null },
                 AppInventoryTracker.inventoryRecord(
                     InstalledApp("com.example.kiosk", "4.2.0", 420, false, false, true, "io.shoonya.shoonyadpc", 1_790_000_000_000L, 1_794_000_000_000L),

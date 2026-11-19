@@ -16,6 +16,7 @@ import AIInsightService from "../../../../Server/Services/AIInsightService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
+import HostLogSessionService from "../../../../Server/Services/HostLogSessionService";
 import { RealtimeReader } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
 import DatabaseModels from "../../../../Models/DatabaseModels/Index";
 import AnalyticsModels from "../../../../Models/AnalyticsModels/Index";
@@ -420,6 +421,8 @@ describe("every model that sends live updates is read the way its service reads 
      */
     MonitorService,
     ScheduledMaintenanceService,
+    // An Android device moving a log session on shows on its host's Logs page at once (#9806).
+    HostLogSessionService,
   ] as unknown as Array<DatabaseService<BaseModel>>;
 
   const ANALYTICS_SERVICES: Array<

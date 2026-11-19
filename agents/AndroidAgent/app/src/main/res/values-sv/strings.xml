@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Swedish. Every string of values/strings.xml, in the same order; keys, permission names and adb commands stay as they are. -->
+<resources>
+
+    <string name="notification_channel_name">Agentstatus</string>
+    <string name="notification_channel_description">Visar om den här enheten rapporterar till OneUptime.</string>
+
+    <string name="notification_requests_channel_name">Förfrågningar från OneUptime</string>
+    <string name="notification_requests_channel_description">När OneUptime ber om att få läsa enhetens loggar för felsökning.</string>
+    <string name="notification_request_title">OneUptime ber om enhetens loggar</string>
+
+    <string name="status_not_set_up">Inte konfigurerad ännu</string>
+    <string name="status_not_set_up_detail">Ange intagningsnyckeln eller skicka den från din enhetshantering som oneuptime_token.</string>
+    <string name="status_unreachable">Kan inte nå OneUptime</string>
+    <string name="status_unreachable_detail">Kontrollera enhetens nätverk. Agenten försöker igen av sig själv.</string>
+    <string name="status_key_refused">OneUptime avvisade intagningsnyckeln</string>
+    <string name="status_key_refused_detail">Använd en server-intagningsnyckel som är påslagen och inte har gått ut (HTTP %1$d).</string>
+    <string name="status_not_found">Ingen OneUptime på den här adressen</string>
+    <string name="status_not_found_detail">Kontrollera OneUptime-URL:en: %1$s.</string>
+    <string name="status_server_error">OneUptime tar inte emot telemetri just nu</string>
+    <string name="status_server_error_detail">OneUptime svarade %1$d. Agenten försöker igen av sig själv.</string>
+    <string name="status_server_error_unknown_detail">OneUptime svarade med ett fel. Agenten försöker igen av sig själv.</string>
+    <string name="status_sending_failed">Det gick inte att skicka</string>
+    <string name="status_retrying">Agenten försöker igen av sig själv.</string>
+    <string name="status_kept">Telemetrin sparas på enheten tills den kan skickas.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">Rapporterar till OneUptime</string>
+    <string name="status_as_device">Som %1$s</string>
+    <string name="status_starting">Startar</string>
+    <string name="status_starting_detail">Som %1$s. Den första rapporten skickas inom en minut.</string>
+
+    <string name="address_empty">Ange din OneUptime-URL.</string>
+    <string name="address_not_a_url">OneUptime-URL:en är inte en webbadress.</string>
+    <string name="address_not_https">OneUptime-URL:en måste börja med https:// så att intagningsnyckeln aldrig skickas okrypterad.</string>
+    <string name="address_query_or_fragment">Ta bort delen med ? eller # från OneUptime-URL:en.</string>
+    <string name="address_credentials">Ta bort användarnamnet och lösenordet från OneUptime-URL:en.</string>
+
+    <string name="setup_subtitle">Rapporterar enhetens hälsa, omstarter, appar och loggar till OneUptime.</string>
+    <string name="setup_last_report">Senaste rapporten skickades %1$s</string>
+    <string name="setup_no_report_yet">Inget skickat ännu</string>
+    <string name="setup_waiting">%1$s väntar på att skickas</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: din enhetshantering skickade %2$s som den är, utan att fylla i den.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s kan inte användas, så standardvärdet gäller.</string>
+    <string name="setup_connection">Anslutning</string>
+    <string name="setup_managed_notice">Din organisations enhetshantering styr de inställningar som visas som låsta.</string>
+    <string name="setup_url_label">OneUptime-URL</string>
+    <string name="setup_url_help">Ändra den bara om du själv hostar OneUptime.</string>
+    <string name="setup_token_label">Intagningsnyckel</string>
+    <string name="setup_token_hint">Klistra in en server-intagningsnyckel</string>
+    <string name="setup_token_stored_hint">Sparad. Klistra in en ny nyckel för att ersätta den.</string>
+    <string name="setup_token_help">I OneUptime: Projektinställningar, Telemetri och APM, Intagningsnycklar. Använd en servernyckel.</string>
+    <string name="setup_token_unreadable">Den sparade nyckeln kan inte längre läsas på den här enheten. Klistra in den igen.</string>
+    <string name="setup_device_name_label">Enhetsnamn</string>
+    <string name="setup_device_name_help">Så visas enheten under Värdar och i Inventarie.</string>
+    <string name="setup_set_by_organization">Anges av din organisation</string>
+    <string name="setup_save">Spara och anslut</string>
+    <string name="setup_saved">Sparat. Agenten skickar en rapport nu.</string>
+    <string name="setup_token_required">Klistra in intagningsnyckeln.</string>
+    <string name="setup_save_failed">Den här enheten kunde inte lagra nyckeln säkert: %1$s</string>
+    <string name="setup_readings">Vad den här enheten låter agenten läsa</string>
+    <string name="setup_reading_yes">Ja</string>
+    <string name="setup_reading_cpu">CPU-användning</string>
+    <string name="setup_reading_cpu_device_owner">Ja, som enhetsägare</string>
+    <string name="setup_reading_cpu_not_device_owner">Bara när agenten är enhetsägare</string>
+    <string name="setup_reading_cpu_not_supported">Inte på den här enheten: Android rapporterar ingen CPU-användning här</string>
+    <string name="setup_reading_memory">Minne, lagring och nätverk</string>
+    <string name="setup_reading_battery">Batteri</string>
+    <string name="setup_reading_no_battery">Inget batteri</string>
+    <string name="setup_reading_thermal">Temperatur och strypning</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 och senare</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">Stack traces från krascher och orsaker till omstart</string>
+    <string name="setup_reading_crash_details_yes">Ja, för alla appar</string>
+    <string name="setup_reading_crash_details_not_granted">Av: READ_LOGS har inte beviljats</string>
+    <string name="setup_reading_crash_details_no_usage_access">Av: användningsåtkomst är inte tillåten</string>
+    <string name="setup_reading_apps">Installerade appar</string>
+    <string name="setup_reading_off_by_manager">Av: avstängt i din enhetshantering</string>
+    <string name="setup_reading_unknown">Efter den första rapporten</string>
+    <string name="setup_grants">För att skicka andra appars loggar och stack traces från krascher behöver du bevilja de här behörigheterna en gång, med adb eller med fjärr-ADB i din enhetshantering:</string>
+    <string name="setup_usage_access">Tillåt användningsåtkomst</string>
+
+    <string name="logcat_not_started">Inte startat</string>
+    <string name="logcat_not_granted">Av: READ_LOGS har inte beviljats</string>
+    <string name="logcat_crashes_and_anrs">Krascher och ANR:er från alla appar</string>
+    <string name="logcat_full">Loggar, krascher och ANR:er från alla appar</string>
+
+    <string name="log_session_title">Loggar för felsökning</string>
+    <string name="log_session_request_by">%1$s ber i OneUptime om loggar från alla appar på den här enheten i %2$s, på nivå %3$s och högre.</string>
+    <string name="log_session_request">OneUptime ber om loggar från alla appar på den här enheten i %1$s, på nivå %2$s och högre.</string>
+    <string name="log_session_android_prompt">Sedan frågar Android om du vill ge åtkomst till alla enhetsloggar. Välj Tillåt där också.</string>
+    <string name="log_session_allow">Tillåt</string>
+    <string name="log_session_decline">Avböj</string>
+    <string name="log_session_stop">Sluta skicka</string>
+    <string name="log_session_starting">Ge åtkomst till alla enhetsloggar i Androids dialogruta.</string>
+    <string name="log_session_collecting_until">Skickar loggar från alla appar fram till %1$s.</string>
+    <string name="log_session_collecting">Skickar loggar från alla appar.</string>
+    <string name="log_session_declined_here">Avböjt. Inget mer skickas.</string>
+    <string name="log_session_declined_by_android">Åtkomst till alla enhetsloggar gavs inte, så inget mer skickas.</string>
+    <string name="log_session_no_answer">Ingen svarade i Androids dialogruta, så inget mer skickas.</string>
+    <string name="log_session_time_up">Klart: loggar från alla appar skickades under hela den begärda tiden.</string>
+    <string name="log_session_stopped">Stoppat. Inget mer skickas.</string>
+    <string name="log_session_agent_restarted">Avslutades när agenten startade om.</string>
+    <string name="log_session_logcat_stopped">Avslutades: Logcat slutade läsa.</string>
+    <string name="log_session_logcat_disabled">Den här enheten kan inte skicka dem: din enhetshantering har stängt av Logcat.</string>
+    <string name="log_session_not_granted">Den här enheten kan inte skicka dem: READ_LOGS har inte beviljats.</string>
+    <string name="log_session_expired">Ingen tillät det i tid.</string>
+    <string name="log_session_cancelled">Avbröts i OneUptime.</string>
+    <string name="log_session_ended">Avslutat.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minut</item>
+        <item quantity="other">%d minuter</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d timme</item>
+        <item quantity="other">%d timmar</item>
+    </plurals>
+
+    <string name="device_admin_description">Låter agenten läsa enhetens CPU-användning som enhetsägare. Den låser, raderar eller begränsar aldrig enheten.</string>
+
+    <string name="restriction_url_title">OneUptime-URL</string>
+    <string name="restriction_url_description">Vart telemetrin ska skickas. Låt den vara https://oneuptime.com om du inte själv hostar OneUptime.</string>
+    <string name="restriction_token_title">Intagningsnyckel</string>
+    <string name="restriction_token_description">En server-intagningsnyckel från Projektinställningar, Telemetri och APM, Intagningsnycklar.</string>
+    <string name="restriction_device_name_title">Enhetsnamn</string>
+    <string name="restriction_device_name_description">Enhetens namn i OneUptime, till exempel ${esper.deviceName}. Använd samma namn som host.name i din app så att båda visas som en enhet.</string>
+    <string name="restriction_device_serial_title">Serienummer</string>
+    <string name="restriction_device_serial_description">Enhetens serienummer, till exempel ${esper.serialNumber}. Android ger det inte själv till appar.</string>
+    <string name="restriction_device_type_title">Enhetstyp</string>
+    <string name="restriction_device_type_description">Vad enheten är: kiosk, POS-terminal, handdator, digital skylt.</string>
+    <string name="restriction_device_location_title">Plats</string>
+    <string name="restriction_device_location_description">Var enheten finns, till exempel ett butiksnummer.</string>
+    <string name="restriction_labels_title">Etiketter</string>
+    <string name="restriction_labels_description">Etiketter för enheten i OneUptime, som namn=värde-par åtskilda med kommatecken: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">Insamlingsintervall (sekunder)</string>
+    <string name="restriction_interval_description">Hur ofta agenten rapporterar, från 30 till 600 sekunder. 60 som standard.</string>
+    <string name="restriction_logcat_enabled_title">Skicka Logcat</string>
+    <string name="restriction_logcat_enabled_description">Skicka andra appars krascher, ANR:er och loggar, och tillåt de loggsessioner som OneUptime ber om. Kräver READ_LOGS, beviljat med adb.</string>
+    <string name="restriction_logcat_level_title">Lägsta Logcat-nivå</string>
+    <string name="restriction_logcat_level_description">De minst allvarliga Logcat-raderna som skickas, på Android 12 och tidigare. Varning som standard.</string>
+    <string name="restriction_apps_enabled_title">Skicka installerade appar</string>
+    <string name="restriction_apps_enabled_description">Skicka de installerade apparna och deras versioner en gång om dagen, och varje installation, uppdatering och borttagning.</string>
+    <string name="logcat_level_verbose">Utförlig</string>
+    <string name="logcat_level_debug">Felsökning</string>
+    <string name="logcat_level_info">Info</string>
+    <string name="logcat_level_warn">Varning</string>
+    <string name="logcat_level_error">Fel</string>
+    <string name="logcat_level_fatal">Fatalt</string>
+</resources>

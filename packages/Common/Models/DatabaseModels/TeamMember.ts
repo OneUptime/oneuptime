@@ -7,6 +7,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AllowUserQueryWithoutTenant from "../../Types/Database/AllowUserQueryWithoutTenant";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import CurrentUserCanAccessRecordBy from "../../Types/Database/CurrentUserCanAccessRecordBy";
@@ -485,4 +486,49 @@ export default class TeamMember extends BaseModel {
     unique: false,
   })
   public invitationAcceptedAt?: Date = undefined;
+
+  /*
+   * THE NAME THE INVITER TYPED (#9823). Until the person accepts, the
+   * project sees what it invited - the address, and this name if one was
+   * typed - and never the profile of an account the address may already
+   * have (PendingInviteeProfiles reads it in place of the account's own
+   * name). Kept on the membership, not the account: an inviter of one
+   * project names nobody's account. Written by OneUptime from the invite
+   * forms' optional Name (TeamMemberService.onBeforeCreate), and from the
+   * name an identity provider sends with a SCIM user.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.InviteProjectTeamMembers,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ProjectUser,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+      Permission.CurrentUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Invitee Name",
+    description:
+      "The name typed when the person was invited, shown in place of their own until they accept.",
+    example: "Ada Walker",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public inviteeName?: string = undefined;
 }

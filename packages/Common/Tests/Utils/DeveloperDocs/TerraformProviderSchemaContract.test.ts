@@ -6,10 +6,12 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import {
   getTerraformAttributes,
+  getTerraformDeleteChoiceAttributes,
   getTerraformModelOperations,
   getTerraformTypeName,
   isRequiredInTerraform,
   TerraformAttributeDescriptor,
+  TerraformDeleteChoiceAttribute,
   TerraformValueKind,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
@@ -182,6 +184,23 @@ function mirroredAttributes(
       };
     });
 
+  // What the delete takes (workflows_run_as_on_delete): never sent but by it.
+  const deleteChoices: Array<MirroredAttribute> =
+    getTerraformDeleteChoiceAttributes(modelType).map(
+      (choice: TerraformDeleteChoiceAttribute): MirroredAttribute => {
+        return {
+          name: choice.attributeName,
+          type: "string",
+          required: false,
+          default: null,
+          isComplexObject: false,
+          isDateTime: false,
+          isPhone: false,
+          forceNew: false,
+        };
+      },
+    );
+
   return descriptors
     .map((descriptor: TerraformAttributeDescriptor): MirroredAttribute => {
       const providerType: string | undefined = provider.find(
@@ -210,6 +229,7 @@ function mirroredAttributes(
       };
     })
     .concat(personEmails)
+    .concat(deleteChoices)
     .sort((a: MirroredAttribute, b: MirroredAttribute): number => {
       return a.name.localeCompare(b.name);
     });

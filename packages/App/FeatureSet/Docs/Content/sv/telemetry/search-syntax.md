@@ -129,7 +129,7 @@ Fältnamn skiljer inte på versaler och gemener: `statusMessage:` och `statusmes
 
 ### Spår
 
-Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och `duration` tar även `>` och `<`. Jokertecken, `~`, `!` och ett `-` först fungerar här bara på attribut.
+Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och `duration` tar även `>`, `>=`, `<` och `<=`. Jokertecken, `~`, `!` och ett `-` först fungerar här bara på attribut.
 
 | Fält | Anteckningar |
 | --- | --- |
@@ -137,7 +137,7 @@ Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och
 | `name` | Span-namn. Ett enda värde matchar vilken del av det som helst. Lösa ord söker också i det |
 | `status` | `ok`, `error`, `unset` (unset = Ingen felstatus angiven, OpenTelemetry-standarden) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Millisekunder: `duration:>500`, `duration:<200` eller ett exakt värde |
+| `duration` | Millisekunder: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` eller ett exakt värde |
 | `statusMessage` | Statusmeddelandets text. Ett enda värde matchar vilken del av den som helst |
 | `hasException` | `true` eller `false` |
 | `trace`, `span` | ID:n |

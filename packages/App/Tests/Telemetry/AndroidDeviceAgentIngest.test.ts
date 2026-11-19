@@ -60,8 +60,10 @@ import LogExceptionExtractor, {
   ExtractedLogException,
 } from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import {
+  ANDROID_TEMPLATE_GROUP_BY,
   HostAlertTemplate,
   getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
 } from "Common/Types/Monitor/HostAlertTemplates";
 import {
   InventoryAssetDetails,
@@ -339,6 +341,8 @@ describe("An Android device running the agent is a Host", () => {
     });
     expect(updateLastSeenSpy.mock.calls[0]![1]).toMatchObject({
       osType: "linux",
+      // What makes the Host keep android as its OS (HostOperatingSystem, #9804).
+      osName: "Android",
       osVersion: "Android Version 14 (Build UP1A.231005.007 API level 34)",
       hostId: "3f2a9c1b7d4e5a60",
       hostArch: "arm64",
@@ -424,6 +428,8 @@ describe("An Android device running the agent is one Inventory item", () => {
       "Android Version 14 (Build UP1A.231005.007 API level 34)",
     );
     expect(value(InventoryAssetField.OsVersion)).toBe("14");
+    // The security patch level the agent reads (#9800).
+    expect(value(InventoryAssetField.SecurityPatch)).toBe("2024-06-05");
     expect(value(InventoryAssetField.DeviceType)).toBe("kiosk");
     expect(value(InventoryAssetField.Location)).toBe("Store 0412");
   });
@@ -465,14 +471,38 @@ describe("The agent's Logcat records", () => {
   }
 
   test("another app's crash is an unhandled exception, named after the app", () => {
-    const exception: ExtractedLogException | null = extract(
-      recordFor("app.crash"),
-    );
+    // Logcat's crash, DropBox's (with its stack, its card and email redacted) and a native crash.
+    const crashes: Array<[string, string, boolean]> = LOG_RECORDS.filter(
+      (item: JSONObject) => {
+        return eventName(item) === "app.crash";
+      },
+    ).map((record: JSONObject): [string, string, boolean] => {
+      const exception: ExtractedLogException | null = extract(record);
+      expect(exception).not.toBeNull();
+      return [
+        exception!.exceptionType,
+        exception!.message,
+        Boolean(exception!.escaped),
+      ];
+    });
 
-    expect(exception).not.toBeNull();
-    expect(exception!.exceptionType).toBe("java.lang.IllegalStateException");
-    expect(exception!.message).toBe("com.example.kiosk: Printer offline");
-    expect(exception!.escaped).toBe(true);
+    expect(crashes).toEqual([
+      [
+        "java.lang.IllegalStateException",
+        "com.example.kiosk: Card [card number] declined for [email]",
+        true,
+      ],
+      [
+        "SIGSEGV",
+        "com.example.kiosk: SIGSEGV (SEGV_MAPERR) in libprinter.so (print_job(Job*)+52)",
+        true,
+      ],
+      [
+        "java.lang.IllegalStateException",
+        "com.example.kiosk: Printer offline",
+        true,
+      ],
+    ]);
   });
 
   test("an ANR is an unhandled exception of the type ANR", () => {
@@ -488,7 +518,7 @@ describe("The agent's Logcat records", () => {
     expect(exception!.escaped).toBe(true);
   });
 
-  test("a warning line, a boot, an app in the inventory and the agent's start are plain logs", () => {
+  test("Logcat's lines, a boot, an app in the inventory and the agent's start are plain logs", () => {
     const plain: Array<JSONObject> = LOG_RECORDS.filter(
       (record: JSONObject) => {
         const name: string | undefined = eventName(record);
@@ -496,7 +526,7 @@ describe("The agent's Logcat records", () => {
       },
     );
 
-    expect(plain.length).toBe(4);
+    expect(plain.length).toBe(5);
     plain.forEach((record: JSONObject) => {
       expect(extract(record)).toBeNull();
     });
@@ -577,4 +607,51 @@ describe("The Hosts product's alert templates", () => {
       }
     },
   );
+});
+
+describe("The Android templates (#9802)", () => {
+  const RESOURCE: JSONObject = TelemetryUtil.getAttributes({
+    items: RESOURCE_ATTRIBUTES,
+    prefixKeysWithString: "",
+  }) as JSONObject;
+
+  test.each(
+    getAndroidHostAlertTemplates().map((template: HostAlertTemplate) => {
+      return [template.id, template];
+    }) as Array<[string, HostAlertTemplate]>,
+  )(
+    "%s reads only metrics the agent sends",
+    (_id: string, template: HostAlertTemplate) => {
+      const step: string = JSON.stringify(
+        template.getMonitorStep({
+          hostIdentifier: DEVICE_NAME,
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: DEVICE_NAME,
+        }),
+      );
+      const names: Array<string> = Array.from(
+        step.matchAll(/"metricName":"([^"]+)"/g),
+      ).map((match: RegExpMatchArray) => {
+        return match[1]!;
+      });
+
+      expect(names.length).toBeGreaterThan(0);
+      for (const name of names) {
+        expect(
+          METRIC_LIST.some((candidate: JSONObject) => {
+            return candidate["name"] === name;
+          }),
+        ).toBe(true);
+      }
+    },
+  );
+
+  test("the device's name and API level, which they group by, are on its resource", () => {
+    for (const key of ANDROID_TEMPLATE_GROUP_BY) {
+      expect(RESOURCE[key.replace(/^resource\./, "")]).toBeDefined();
+    }
+  });
 });

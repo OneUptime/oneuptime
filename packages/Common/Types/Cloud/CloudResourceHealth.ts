@@ -6,10 +6,14 @@ import {
 } from "../../Utils/Storage/StorageUsage";
 import {
   AWS_DEFAULT_PERIOD_SECONDS,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
+  AZURE_KEY_METRICS,
   AwsKeyMetric,
   GCP_ALIGNMENT_PERIOD_SECONDS,
   GCP_OPS_AGENT_INSTALL_URL,
   getAwsKeyMetrics,
+  getAzureStoredMetricName,
 } from "./CloudKeyMetrics";
 import { CloudProvider } from "./CloudPlatform";
 
@@ -96,6 +100,16 @@ export const CLOUD_BLOCKED_SHARE_WARNING_PERCENT: number = 50;
 export const CLOUD_AVAILABILITY_DOWN_PERCENT: number = 90;
 // A queue's oldest message, or a stream's consumers, this far behind.
 export const CLOUD_BACKLOG_AGE_SECONDS: number = 60 * 60;
+/*
+ * An App Service app's Health check, as Azure Monitor reports it
+ * (HealthCheckStatus): the share of its instances whose health check
+ * passes. Under 100 an instance was deemed unhealthy, and is out of the
+ * load balancer; under half, App Service keeps unhealthy instances in it
+ * (WEBSITE_HEALTHCHECK_MAXUNHEALTHYWORKERPERCENT, 50 by default), so some
+ * requests reach one: critical.
+ */
+export const APP_SERVICE_HEALTH_CHECK_KEY: string = "healthcheckstatus";
+export const CLOUD_HEALTH_CHECK_CRITICAL_PERCENT: number = 50;
 
 export enum CloudHealthSeverity {
   Critical = "critical",
@@ -1439,6 +1453,19 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
         total: "requests",
         reason: REASON_REQUESTS_FAILED,
       }),
+      /*
+       * Its Health check (#9740): the share of its instances whose health
+       * check passes, 100 while all do. Azure counts an instance failing
+       * only once it is deemed unhealthy - by default 10 failed pings, a
+       * minute apart - and takes it out of the load balancer then, up to
+       * half of them: past half, unhealthy instances still take requests.
+       */
+      percentBelow({
+        key: APP_SERVICE_HEALTH_CHECK_KEY,
+        reason: REASON_HEALTH_CHECK_FAILING,
+        warnBelow: 100,
+        criticalBelow: CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
+      }),
     ],
   },
   {
@@ -1924,6 +1951,10 @@ export const HEADLINE_PACKETS_RECEIVED: string =
 export const HEADLINE_PACKETS_DROPPED: string =
   translationKey("Packets dropped");
 export const HEADLINE_SIGN_INS: string = translationKey("Sign-ins");
+// A Cosmos DB account's storage: its data, its indexes, its documents.
+export const HEADLINE_DATA_SIZE: string = translationKey("Data size");
+export const HEADLINE_INDEX_SIZE: string = translationKey("Index size");
+export const HEADLINE_DOCUMENTS: string = translationKey("Documents");
 
 /*
  * What each type's page leads with, in the order its tiles are drawn: what
@@ -2410,6 +2441,14 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("requests", HEADLINE_REQUESTS, "count"),
         headline("httpresponsetime", HEADLINE_RESPONSE_TIME, "seconds"),
         headline("http5xx", HEADLINE_ERRORS, "perPeriod"),
+        /*
+         * The share of its instances its Health check finds healthy, every
+         * 5 minutes (#9740). Only an app with a Health check path set
+         * reports it.
+         */
+        headline(APP_SERVICE_HEALTH_CHECK_KEY, HEADLINE_HEALTH, "percent", {
+          onlySome: true,
+        }),
         headline("memoryworkingset", HEADLINE_MEMORY, "bytes"),
         // Only a function app runs functions.
         headline("functionexecutioncount", HEADLINE_INVOCATIONS, "perPeriod", {
@@ -2481,6 +2520,15 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       provider: AZURE,
       types: ["Microsoft.DocumentDB/databaseAccounts"],
       readings: [
+        /*
+         * What it stores, first (#9740): its data, its indexes and its
+         * documents, every container's together - DataUsageV2, IndexUsageV2
+         * and DocumentCountV2, which Azure Monitor keeps at five minutes,
+         * kept between their reads.
+         */
+        headline("datausagev2", HEADLINE_DATA_SIZE, "bytes"),
+        headline("indexusagev2", HEADLINE_INDEX_SIZE, "bytes"),
+        headline("documentcountv2", HEADLINE_DOCUMENTS, "count"),
         headline("totalrequests", HEADLINE_REQUESTS, "perPeriod"),
         headline("normalizedruconsumption", HEADLINE_REQUEST_UNITS, "percent"),
         /*
@@ -2868,17 +2916,171 @@ const HEADLINES_BY_TYPE: ReadonlyMap<
 })();
 
 /*
+ * ---------------------------------------------------------------------------
+ * Readings read less often than every read (#9740)
+ * ---------------------------------------------------------------------------
+ *
+ * A resource's readings are what its last read brought (CloudResourceReadings).
+ * An Azure key metric Azure Monitor keeps at five minutes (AzureKeyMetric.
+ * grain: an App Service app's health check, a Cosmos DB account's storage)
+ * is read in a call of its own every AZURE_FIVE_MINUTE_READ_MINUTES - in one
+ * read of three - so its reading, and a rule or a tile that reads it, would
+ * come and go. A read that brings no value of such a reading keeps the one
+ * before while its datapoint is younger than the reading's hold, and drops
+ * it after, so a metric that stops still goes stale; the resource's page
+ * says how old it is. A reading every read brings is never kept: a read
+ * that did not bring it says something (CloudHeadlineTiles' "Not reported").
+ */
+
+// Azure Monitor's five-minute grain, as seconds a point covers.
+export const AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS: number = 5 * 60;
+
+/*
+ * How long a five-minute reading is kept: twice the 15 minutes between its
+ * calls, and the 10 minutes its newest point is old when it is read. A
+ * call reads once its window holds 15 minutes, so a connection read every
+ * 5 or 15 minutes brings it every 15, one read every 10 every 20 minutes;
+ * its newest point is 9 to 14 minutes old when it is read (Azure Monitor's
+ * 4 minutes behind, on a whole period), so up to 34 minutes old before the
+ * next call. Under CLOUD_READINGS_STALE_MS: a kept reading never outlives
+ * the resource's readings.
+ */
+export const AZURE_FIVE_MINUTE_READING_HOLD_MS: number =
+  (2 * AZURE_FIVE_MINUTE_READ_MINUTES + 10) * 60 * 1000;
+
+// "<provider>|<type>|<reading key>" of every reading read less often than every read.
+const SLOW_READINGS: ReadonlySet<string> = (() => {
+  const slow: Set<string> = new Set<string>();
+
+  for (const entry of AZURE_KEY_METRICS) {
+    for (const metric of entry.metrics) {
+      if (metric.grain !== AZURE_FIVE_MINUTE_GRAIN) {
+        continue;
+      }
+
+      // Its key leaves its aggregation out, so any one makes it.
+      const key: string | null = getCloudReadingKey(
+        CloudProvider.Azure,
+        getAzureStoredMetricName(metric.name, "average"),
+      );
+
+      if (key) {
+        slow.add(`${typeKey(CloudProvider.Azure, entry.type)}|${key}`);
+      }
+    }
+  }
+
+  return slow;
+})();
+
+function isSlowCloudReading(data: {
+  provider: string;
+  type: string;
+  key: string;
+}): boolean {
+  return SLOW_READINGS.has(
+    `${typeKey(data.provider, data.type)}|${(data.key || "").toLowerCase()}`,
+  );
+}
+
+/*
+ * How long a reading is kept after the last read that brought it, by its
+ * datapoint's age: AZURE_FIVE_MINUTE_READING_HOLD_MS for an Azure key metric
+ * read at five minutes, null for a reading every read brings.
+ */
+export function getCloudReadingHoldMs(data: {
+  provider: string;
+  type: string;
+  key: string;
+}): number | null {
+  return isSlowCloudReading(data) ? AZURE_FIVE_MINUTE_READING_HOLD_MS : null;
+}
+
+/*
+ * A resource's readings as a read writes them: what the read brought, and of
+ * the readings it had, each one read less often than every read that this
+ * read did not bring, while its datapoint is younger than its hold - with
+ * its own time, so its page says how old it is. Of a reading both have, the
+ * newer.
+ */
+export function withHeldCloudReadings(data: {
+  provider: string;
+  type: string;
+  // What the resource's row held before this read.
+  previous: CloudResourceReadings;
+  // What this read brought.
+  current: CloudResourceReadings;
+  now: Date;
+}): CloudResourceReadings {
+  const readings: CloudResourceReadings = { ...data.current };
+
+  for (const [key, reading] of Object.entries(data.previous)) {
+    const holdMs: number | null = getCloudReadingHoldMs({
+      provider: data.provider,
+      type: data.type,
+      key,
+    });
+    const timeMs: number = Date.parse(reading.time);
+
+    if (holdMs === null || !Number.isFinite(timeMs)) {
+      continue;
+    }
+
+    const known: CloudResourceReading | undefined = readings[key];
+
+    if (known) {
+      // A read's own reading stands, unless the one kept is newer.
+      if (Date.parse(known.time) < timeMs) {
+        readings[key] = reading;
+      }
+
+      continue;
+    }
+
+    if (data.now.getTime() - timeMs < holdMs) {
+      readings[key] = reading;
+    }
+  }
+
+  return readings;
+}
+
+/*
+ * How old a reading read less often than every read is, for its page to
+ * say: null for one every read brings, whose age is the read's.
+ */
+export function getCloudReadingAgeMs(data: {
+  provider: string;
+  type: string;
+  key: string;
+  reading: CloudResourceReading;
+  now: Date;
+}): number | null {
+  const timeMs: number = Date.parse(data.reading.time);
+
+  if (!isSlowCloudReading(data) || !Number.isFinite(timeMs)) {
+    return null;
+  }
+
+  return Math.max(0, data.now.getTime() - timeMs);
+}
+
+/*
  * The seconds one datapoint of a reading covers: the period its metric is
  * read at (CloudKeyMetrics) - five minutes for most of CloudWatch's, a day
- * for S3's storage, a minute on Google Cloud and Azure. A sum over that
- * period is drawn per minute.
+ * for S3's storage, a minute on Google Cloud and Azure, but five for an
+ * Azure key metric read at five minutes (with its resource's type). A sum
+ * over that period is drawn per minute.
  */
 export function getCloudReadingPeriodSeconds(
   provider: string,
   key: string,
+  type?: string | undefined,
 ): number {
   if ((provider || "").toLowerCase() !== CloudProvider.AWS) {
-    return GCP_ALIGNMENT_PERIOD_SECONDS;
+    return type && isSlowCloudReading({ provider, type, key })
+      ? AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS
+      : GCP_ALIGNMENT_PERIOD_SECONDS;
   }
 
   const parts: Array<string> = (key || "").split("/");

@@ -31,7 +31,10 @@ import {
 import {
   HostAlertTemplate,
   getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
+  getHostAlertTemplatesFor,
 } from "../HostAlertTemplates";
+import HostOperatingSystem from "../../../Utils/Host/HostOperatingSystem";
 import {
   IoTAlertTemplate,
   getAllIoTAlertTemplates,
@@ -342,8 +345,10 @@ function getAllKubernetesRecommendations(): Array<MonitorRecommendation> {
   return [...getKubernetesRecommendations(), ...getOpenShiftRecommendations()];
 }
 
-function getHostRecommendations(): Array<MonitorRecommendation> {
-  return getAllHostAlertTemplates().map((template: HostAlertTemplate) => {
+function getHostRecommendationsFrom(
+  templates: Array<HostAlertTemplate>,
+): Array<MonitorRecommendation> {
+  return templates.map((template: HostAlertTemplate) => {
     return normalize({
       resourceType: MonitorRecommendationResourceType.Host,
       monitorType: MonitorType.Host,
@@ -360,6 +365,28 @@ function getHostRecommendations(): Array<MonitorRecommendation> {
       },
     });
   });
+}
+
+/*
+ * A server is offered every host template; an Android device the ones it
+ * answers and its own (#9802), its CPU one only once it reports CPU use.
+ */
+function getHostRecommendationsFor(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getHostRecommendationsFrom(
+    getHostAlertTemplatesFor({
+      isAndroid: HostOperatingSystem.isAndroid(context?.hostOsType),
+      reportsCpu: context?.hostReportsCpu,
+    }),
+  );
+}
+
+function getAllHostRecommendations(): Array<MonitorRecommendation> {
+  return getHostRecommendationsFrom([
+    ...getAllHostAlertTemplates(),
+    ...getAndroidHostAlertTemplates(),
+  ]);
 }
 
 function getDockerRecommendations(): Array<MonitorRecommendation> {
@@ -913,6 +940,7 @@ function normalizeCloudTemplate(
         readings: context?.cloudReadings,
         allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
         connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+        resourceName: context?.cloudResourceName,
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         defaultIncidentSeverityId: args.defaultIncidentSeverityId,
@@ -1115,7 +1143,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       resourceLabel: "Host",
       identifierFieldName: "hostIdentifier",
       icon: IconProp.Server,
-      getRecommendations: getHostRecommendations,
+      getRecommendations: getHostRecommendationsFor,
+      getAllPossibleRecommendations: getAllHostRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.Docker,

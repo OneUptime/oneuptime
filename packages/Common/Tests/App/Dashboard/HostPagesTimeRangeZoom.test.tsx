@@ -1126,6 +1126,13 @@ function unitRows(window: TimeWindow): Array<Record<string, unknown>> {
 async function renderUnit(): Promise<void> {
   lastParamMock.mockReturnValue("nginx.service");
   getListMock.mockImplementation((request: unknown) => {
+    // The unit's journal (#9748) is read apart from the page's range.
+    if (
+      (request as { modelType?: { name?: string } }).modelType?.name === "Log"
+    ) {
+      return Promise.resolve({ data: [] });
+    }
+
     return Promise.resolve({
       data: unitRows((request as ListCall).query.time),
     });

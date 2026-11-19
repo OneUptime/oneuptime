@@ -168,9 +168,9 @@ RUM のテレメトリは通常のログ、メトリクス、トレースなの�
 | グループ | 推奨事項 |
 | --- | --- |
 | Core Web Vitals | Web アプリ向け: Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint、Slow Time to First Byte。 [Core Web Vitals](/docs/rum/web-vitals) を参照してください。 |
-| エラー | モバイルアプリ向けの App Crashes と App Not Responding (ANR)、両方向けの Failed User Operations、Web アプリ向けの Unhandled Browser Exceptions。 |
+| エラー | モバイルアプリ向けの App Crashes と App Not Responding (ANR)、毎時数百のセッションがあるアプリ向けのそれらの割合である App Crash Rate と App ANR Rate、両方向けの Failed User Operations、Web アプリ向けの Unhandled Browser Exceptions。 |
 | パフォーマンス | モバイルアプリ向け: コールドスタートに 5 秒以上かかったとき（Android vitals が過剰とみなす長さ）の Slow Cold Start と、フレームの描画に 700 ms より長くかかったときの Frozen Frames。 |
-| 可用性 | モバイルアプリ向け: アプリから 30 分間スパンが届かないときの App Stopped Reporting。 |
+| 可用性 | モバイルアプリ向け: アプリから 30 分間スパンが届かないときの App Stopped Reporting と、過去一週間にスパンを送っていたデバイスのいずれかから一時間スパンが届かないときの Device Stopped Reporting。 |
 | セッションリプレイ | 四つの [ストレージ予算のアラート](/docs/telemetry/session-replay#ストレージ予算のアラート) で、プロジェクトの日次の上限やアプリケーションの月間予算を使い切る前に警告します。アプリケーションがリプレイを録画すると提案され、月間のペアは月間予算も設定されると提案されます。 |
 
 独自のモニターを作るには、そのシグナルを読むモニターを選びます。
