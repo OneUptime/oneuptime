@@ -128,6 +128,7 @@ import MetricQueryConfigData, {
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { Chart } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
+import { ComponentProps as LineChartProps } from "../../../UI/Components/Charts/Line/LineChart";
 import ChartReferenceLineProps from "../../../UI/Components/Charts/Types/ReferenceLineProps";
 import ExemplarPoint from "../../../UI/Components/Charts/Types/ExemplarPoint";
 import { SecondYAxis } from "../../../UI/Components/Charts/Types/YAxis/YAxis";
@@ -314,11 +315,8 @@ function expectClose(actual: Array<number>, expected: Array<number>): void {
   });
 }
 
-function written(value: number, unit: string, metricName?: string): string {
-  return ValueFormatter.formatValue(value, unit, {
-    metricName: metricName,
-    language: "en",
-  });
+function written(value: number, unit: string): string {
+  return ValueFormatter.formatValue(value, unit, { language: "en" });
 }
 
 // The same, as a page's text reads it: its spaces, whichever, as one.
@@ -872,7 +870,7 @@ describe("the legend says which axis each series uses", () => {
     ]);
 
     act(() => {
-      chart!.props.onBucketClick!(
+      (chart!.props as LineChartProps).onBucketClick!(
         WINDOW_START,
         new Date(WINDOW_START.getTime() + 10 * 60 * 1000),
         { cpu: 20, mem_used: 4e9 },
