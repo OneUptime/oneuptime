@@ -1,9 +1,16 @@
 import { FIRST_PROBE_VERSION_WITH_TOTP_CODES } from "../../../Types/Probe/ProbeCapability";
 import ProbeReportedVersionUtil, {
+  FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
   MAX_REPORTED_PROBE_VERSION_LENGTH,
+  PROBE_FEATURE_FIRST_RELEASES,
+  ProbeFeature,
+  ProbeFeatureSupport,
   ProbeOneTimeCodes,
+  ProbeReleaseComparison,
+  ProbeReleaseStatus,
   ProbeVersionReport,
 } from "../../../Types/Probe/ProbeReportedVersion";
+import VersionUtil from "../../../Utils/VersionUtil";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -152,7 +159,6 @@ describe("ProbeReportedVersionUtil.getOneTimeCodes", () => {
     ["an older minor release", "16.9.99"],
     ["an older major release", "16.0.0"],
     ["a far older release", "9.4.2"],
-    ["a pre-release of the release before them", "17.0.0-rc.3"],
   ])(
     "a custom probe on %s is too old to make them",
     (_label: string, reportedVersion: string) => {
@@ -163,6 +169,38 @@ describe("ProbeReportedVersionUtil.getOneTimeCodes", () => {
           lastAlive: CONNECTED_AT,
         }),
       ).toBe(ProbeOneTimeCodes.TooOld);
+    },
+  );
+
+  /*
+   * A test or pre-release build carries the number of the release it leads
+   * up to, not of the code it was built from. Main's test builds said
+   * 17.0.0-test after one-time codes merged, and made them - the 17.0.0
+   * release does not (#9778). And a probe says its release only from the
+   * change that made codes: the 17.0.0 release branch says none. So such a
+   * build is not flagged; the server still hands it a step that needs a
+   * code only if its request declares it can make one.
+   */
+  test.each([
+    ["main's test build while main was numbered 17.0.0", "17.0.0-test"],
+    ["a release candidate of the release before them", "17.0.0-rc.3"],
+    ["a pre-release of an older major release", "16.0.0-beta.2"],
+  ])(
+    "a custom probe on %s cannot be told, so it is never flagged",
+    (_label: string, reportedVersion: string) => {
+      expect(
+        ProbeReportedVersionUtil.getOneTimeCodes({
+          isGlobalProbe: false,
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+        }),
+      ).toBe(ProbeOneTimeCodes.Unknown);
+      expect(
+        ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+        }),
+      ).toBe(false);
     },
   );
 
@@ -248,4 +286,245 @@ describe("ProbeReportedVersionUtil.getOneTimeCodes", () => {
       ).toBe(false);
     }
   });
+});
+
+describe("the features a probe has from some release on", () => {
+  test("each has a first release, and the first that says one is the first that makes codes", () => {
+    for (const feature of Object.values(ProbeFeature)) {
+      expect([
+        feature,
+        VersionUtil.isValid(PROBE_FEATURE_FIRST_RELEASES[feature]),
+      ]).toEqual([feature, true]);
+    }
+
+    expect(PROBE_FEATURE_FIRST_RELEASES[ProbeFeature.OneTimeCodes]).toBe(
+      FIRST_PROBE_VERSION_WITH_TOTP_CODES,
+    );
+    // Both came in one change: a probe says its release from 17.0.1 on.
+    expect(FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE).toBe(
+      FIRST_PROBE_VERSION_WITH_TOTP_CODES,
+    );
+  });
+
+  test.each([
+    ["its first release", "17.0.1", ProbeFeatureSupport.Supported],
+    ["a later release", "17.1.0", ProbeFeatureSupport.Supported],
+    [
+      "a pre-release of its first release",
+      "17.0.1-rc.2",
+      ProbeFeatureSupport.Supported,
+    ],
+    [
+      "a test build of a later release",
+      "17.1.0-test",
+      ProbeFeatureSupport.Supported,
+    ],
+    ["an older release", "16.0.0", ProbeFeatureSupport.TooOld],
+    [
+      "a test build of an older release",
+      "17.0.0-test",
+      ProbeFeatureSupport.Unknown,
+    ],
+    ["a build that is no release", "unknown", ProbeFeatureSupport.Unknown],
+  ])(
+    "one-time codes on %s",
+    (_label: string, reportedVersion: string, support: ProbeFeatureSupport) => {
+      expect(
+        ProbeReportedVersionUtil.getFeatureSupport(
+          { reportedVersion, lastAlive: CONNECTED_AT },
+          ProbeFeature.OneTimeCodes,
+        ),
+      ).toBe(support);
+    },
+  );
+
+  test("a probe that connected and says no release lacks them, one that never connected cannot be told, a global probe has them", () => {
+    expect(
+      ProbeReportedVersionUtil.getFeatureSupport(
+        { reportedVersion: null, lastAlive: CONNECTED_AT },
+        ProbeFeature.OneTimeCodes,
+      ),
+    ).toBe(ProbeFeatureSupport.TooOld);
+    expect(
+      ProbeReportedVersionUtil.getFeatureSupport(
+        { reportedVersion: null, lastAlive: null },
+        ProbeFeature.OneTimeCodes,
+      ),
+    ).toBe(ProbeFeatureSupport.Unknown);
+    expect(
+      ProbeReportedVersionUtil.getFeatureSupport(
+        { isGlobalProbe: true, reportedVersion: null, lastAlive: CONNECTED_AT },
+        ProbeFeature.OneTimeCodes,
+      ),
+    ).toBe(ProbeFeatureSupport.Supported);
+  });
+
+  test("what a probe misses until it is updated: every feature it is too old for", () => {
+    expect(
+      ProbeReportedVersionUtil.getMissedFeatures({
+        reportedVersion: null,
+        lastAlive: CONNECTED_AT,
+      }),
+    ).toEqual([ProbeFeature.OneTimeCodes]);
+    expect(
+      ProbeReportedVersionUtil.getMissedFeatures({
+        reportedVersion: "16.0.0",
+        lastAlive: CONNECTED_AT,
+      }),
+    ).toEqual([ProbeFeature.OneTimeCodes]);
+
+    for (const probe of [
+      { reportedVersion: "17.0.1", lastAlive: CONNECTED_AT },
+      { reportedVersion: "17.0.0-test", lastAlive: CONNECTED_AT },
+      { reportedVersion: "unknown", lastAlive: CONNECTED_AT },
+      { reportedVersion: null, lastAlive: null },
+      { isGlobalProbe: true, reportedVersion: null, lastAlive: CONNECTED_AT },
+    ]) {
+      expect([
+        probe,
+        ProbeReportedVersionUtil.getMissedFeatures(probe),
+      ]).toEqual([probe, []]);
+    }
+  });
+});
+
+describe("ProbeReportedVersionUtil.getReleaseStatus", () => {
+  const SERVER: string = "17.2.0";
+
+  function statusOf(
+    reportedVersion: string | null,
+    serverVersion: unknown = SERVER,
+  ): ProbeReleaseComparison {
+    return ProbeReportedVersionUtil.getReleaseStatus({
+      isGlobalProbe: false,
+      reportedVersion,
+      lastAlive: CONNECTED_AT,
+      serverVersion,
+    });
+  }
+
+  test.each([
+    ["an older patch", "17.1.9"],
+    ["an older minor release", "17.0.1"],
+    ["an older major release", "16.0.0"],
+    ["a test build of an older release", "17.1.0-test"],
+    ["a release candidate of an older release", "17.1.0-rc.4"],
+  ])(
+    "a custom probe on %s is older than this OneUptime, and is told the release to update to",
+    (_label: string, reportedVersion: string) => {
+      expect(statusOf(reportedVersion)).toEqual({
+        status: ProbeReleaseStatus.Outdated,
+        serverRelease: SERVER,
+      });
+      expect(
+        ProbeReportedVersionUtil.isOutdated({
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+          serverVersion: SERVER,
+        }),
+      ).toBe(true);
+    },
+  );
+
+  test.each([
+    ["this OneUptime's release", "17.2.0"],
+    ["a test build of this OneUptime's release", "17.2.0-test"],
+    ["a release candidate of this OneUptime's release", "17.2.0-rc.1"],
+    // A self-hosted server older than the image the probe was started from.
+    ["a later patch", "17.2.1"],
+    ["a later major release", "18.0.0"],
+  ])(
+    "a custom probe on %s is up to date",
+    (_label: string, reportedVersion: string) => {
+      expect(statusOf(reportedVersion)).toEqual({
+        status: ProbeReleaseStatus.UpToDate,
+        serverRelease: null,
+      });
+    },
+  );
+
+  test("compares releases as numbers, never as text", () => {
+    // As text, "17.10.0" sorts before "17.9.0".
+    expect(statusOf("17.9.0", "17.10.0").status).toBe(
+      ProbeReleaseStatus.Outdated,
+    );
+    expect(statusOf("17.10.0", "17.9.0").status).toBe(
+      ProbeReleaseStatus.UpToDate,
+    );
+  });
+
+  test("names this OneUptime's release as it is written canonically", () => {
+    expect(statusOf("17.0.1", " v17.2.0+build.42 ")).toEqual({
+      status: ProbeReleaseStatus.Outdated,
+      serverRelease: "17.2.0",
+    });
+  });
+
+  test("a custom probe that connected and says no release is older than any OneUptime from the first release that says one", () => {
+    expect(statusOf(null)).toEqual({
+      status: ProbeReleaseStatus.Outdated,
+      serverRelease: SERVER,
+    });
+    expect(statusOf("   ", FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE)).toEqual({
+      status: ProbeReleaseStatus.Outdated,
+      serverRelease: FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
+    });
+    // Older than 17.0.1 against a 17.0.0 server: either may be newer.
+    expect(statusOf(null, "17.0.0").status).toBe(ProbeReleaseStatus.Unknown);
+    // A page reads the stamp as the API sends it: a string.
+    expect(
+      ProbeReportedVersionUtil.getReleaseStatus({
+        reportedVersion: null,
+        lastAlive: CONNECTED_AT.toISOString(),
+        serverVersion: SERVER,
+      }).status,
+    ).toBe(ProbeReleaseStatus.Outdated);
+  });
+
+  test("a custom probe that never connected, or runs a build that is no release, cannot be told", () => {
+    expect(
+      ProbeReportedVersionUtil.getReleaseStatus({
+        reportedVersion: null,
+        lastAlive: null,
+        serverVersion: SERVER,
+      }),
+    ).toEqual({ status: ProbeReleaseStatus.Unknown, serverRelease: null });
+    expect(statusOf("unknown").status).toBe(ProbeReleaseStatus.Unknown);
+    expect(statusOf("17.0").status).toBe(ProbeReleaseStatus.Unknown);
+  });
+
+  test("a global probe is never flagged: OneUptime updates its own probes", () => {
+    for (const reportedVersion of [null, "9.0.0", "16.0.0", "unknown"]) {
+      expect(
+        ProbeReportedVersionUtil.getReleaseStatus({
+          isGlobalProbe: true,
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+          serverVersion: SERVER,
+        }),
+      ).toEqual({ status: ProbeReleaseStatus.Unknown, serverRelease: null });
+    }
+  });
+
+  test.each([
+    ["a test build", "17.2.0-test"],
+    ["a release candidate", "17.3.0-rc.1"],
+    ["no release of its own", ""],
+    ["a build that is no release", "unknown"],
+    // statusOf's own default stands in for undefined, so null.
+    ["nothing at all", null],
+  ])(
+    "nothing is flagged while this OneUptime runs %s",
+    (_label: string, serverVersion: unknown) => {
+      for (const reportedVersion of [null, "9.0.0", "17.0.1", "17.2.0-test"]) {
+        expect([
+          reportedVersion,
+          statusOf(reportedVersion, serverVersion),
+        ]).toEqual([
+          reportedVersion,
+          { status: ProbeReleaseStatus.Unknown, serverRelease: null },
+        ]);
+      }
+    },
+  );
 });

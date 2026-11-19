@@ -1,6 +1,9 @@
 package com.oneuptime.androidagent.ui
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Typeface
@@ -8,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.text.format.DateUtils
 import android.text.format.Formatter
 import android.view.Gravity
@@ -22,13 +26,16 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.oneuptime.androidagent.BuildConfig
 import com.oneuptime.androidagent.R
-import com.oneuptime.androidagent.agent.AgentEvents
 import com.oneuptime.androidagent.agent.AgentRuntime
 import com.oneuptime.androidagent.agent.AgentStarter
 import com.oneuptime.androidagent.agent.AgentStatus
 import com.oneuptime.androidagent.agent.AgentStatusText
+import com.oneuptime.androidagent.agent.ContextStrings
 import com.oneuptime.androidagent.agent.Health
+import com.oneuptime.androidagent.agent.StringSource
 import com.oneuptime.androidagent.collect.CollectorCapabilities
+import com.oneuptime.androidagent.collect.CpuSource
+import com.oneuptime.androidagent.collect.CpuUnavailable
 import com.oneuptime.androidagent.config.AgentConfig
 import com.oneuptime.androidagent.config.ConfigProblem
 import com.oneuptime.androidagent.config.EndpointParser
@@ -36,8 +43,13 @@ import com.oneuptime.androidagent.config.EndpointResult
 import com.oneuptime.androidagent.config.LocalSettings
 import com.oneuptime.androidagent.config.ManagedConfigKeys
 import com.oneuptime.androidagent.device.DefaultDeviceName
+import com.oneuptime.androidagent.dropbox.AndroidDropBoxAccess
+import com.oneuptime.androidagent.dropbox.DropBoxState
 import com.oneuptime.androidagent.logs.LogcatCollector
 import com.oneuptime.androidagent.logs.LogcatState
+import com.oneuptime.androidagent.logsession.LogSessionManager
+import com.oneuptime.androidagent.logsession.LogSessionStatus
+import com.oneuptime.androidagent.logsession.LogSessionView
 
 /**
  * The agent's screen: is the device reporting, the three settings someone
@@ -63,8 +75,15 @@ class SetupActivity : Activity() {
     private lateinit var save: Button
     private lateinit var saveMessage: TextView
     private lateinit var readings: LinearLayout
-    private lateinit var logcatGrant: TextView
-    private lateinit var logcatCommand: TextView
+    private lateinit var grants: TextView
+    private lateinit var grantCommands: TextView
+    private lateinit var usageAccess: Button
+    private lateinit var logSessionCard: View
+    private lateinit var logSessionText: TextView
+    private lateinit var logSessionPrompt: TextView
+    private lateinit var logSessionAnswer: View
+    private lateinit var logSessionStop: Button
+    private val strings: StringSource by lazy { ContextStrings(this) }
 
     private val refresher: Runnable =
         object : Runnable {
@@ -94,8 +113,14 @@ class SetupActivity : Activity() {
         save = findViewById(R.id.save)
         saveMessage = findViewById(R.id.save_message)
         readings = findViewById(R.id.readings)
-        logcatGrant = findViewById(R.id.logcat_grant)
-        logcatCommand = findViewById(R.id.logcat_command)
+        grants = findViewById(R.id.grants)
+        grantCommands = findViewById(R.id.grant_commands)
+        usageAccess = findViewById(R.id.usage_access)
+        logSessionCard = findViewById(R.id.log_session_card)
+        logSessionText = findViewById(R.id.log_session_text)
+        logSessionPrompt = findViewById(R.id.log_session_prompt)
+        logSessionAnswer = findViewById(R.id.log_session_answer)
+        logSessionStop = findViewById(R.id.log_session_stop)
         findViewById<TextView>(R.id.version).text = getString(R.string.setup_version, BuildConfig.VERSION_NAME)
 
         layOutEdgeToEdge()
@@ -103,6 +128,10 @@ class SetupActivity : Activity() {
         token.typeface = Typeface.DEFAULT
         fillForm(runtime.configRepository.load())
         save.setOnClickListener { saveSettings() }
+        usageAccess.setOnClickListener { openUsageAccessSettings() }
+        findViewById<Button>(R.id.log_session_allow).setOnClickListener { answerLogSession { id -> runtime.logSessions.allow(id) } }
+        findViewById<Button>(R.id.log_session_decline).setOnClickListener { answerLogSession { id -> runtime.logSessions.decline(id) } }
+        logSessionStop.setOnClickListener { answerLogSession { id -> runtime.logSessions.stop(id) } }
 
         // Opening the app starts the agent: the first launch after a device manager installs it is what lets it start at boot.
         AgentStarter.start(this)
@@ -110,7 +139,30 @@ class SetupActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // Back from Android's prompt to allow access to all device logs, when one was shown.
+        runtime.logSessions.onScreenResumed()
         handler.post(refresher)
+    }
+
+    /*
+     * Allow, Decline and Stop act at once, on this thread, while the screen
+     * is in front: on Android 13 and later that is what lets the session's
+     * logcat start, and Android ask the person here. The agent then runs a
+     * cycle, which tells OneUptime.
+     */
+    private fun answerLogSession(action: (String) -> Unit) {
+        val id: String = runtime.logSessions.current()?.request?.id ?: return
+        action(id)
+        renderLogSession()
+        AgentStarter.start(this, collectNow = true)
+    }
+
+    private fun openUsageAccessSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+        } catch (_: ActivityNotFoundException) {
+            // A device without the screen: the adb command above it does the same.
+        }
     }
 
     override fun onPause() {
@@ -164,7 +216,7 @@ class SetupActivity : Activity() {
         if (url.isEnabled && urlText.isNotEmpty()) {
             val parsed: EndpointResult = EndpointParser.parse(urlText)
             if (parsed is EndpointResult.Invalid) {
-                url.error = AgentStatusText.addressProblem(parsed.problem)
+                url.error = AgentStatusText.addressProblem(strings, parsed.problem)
                 url.requestFocus()
                 return
             }
@@ -200,7 +252,7 @@ class SetupActivity : Activity() {
     private fun render() {
         val config: AgentConfig = runtime.configRepository.load()
         val pending: Long = runtime.outbox.totalBytes()
-        val status: AgentStatus = AgentStatusText.of(config, runtime.uploader.status, pending)
+        val status: AgentStatus = AgentStatusText.of(strings, config, runtime.uploader.status, pending)
 
         statusHeadline.text = status.headline
         statusDetail.text = status.detail
@@ -239,7 +291,24 @@ class SetupActivity : Activity() {
         configProblems.text = problems.joinToString("\n")
         configProblems.visibility = if (problems.isEmpty()) View.GONE else View.VISIBLE
 
+        renderLogSession()
         renderReadings(config)
+    }
+
+    private fun renderLogSession() {
+        runtime.logSessions.tick()
+        val view: LogSessionView? = runtime.logSessions.current()
+        logSessionCard.visibility = if (view == null) View.GONE else View.VISIBLE
+        if (view == null) {
+            return
+        }
+        logSessionText.text = LogSessionText.state(strings, view, LogSessionText.timeFormatter(this))
+        val waiting: Boolean = view.status == LogSessionStatus.AWAITING_APPROVAL || view.status == LogSessionStatus.REQUESTED
+        logSessionAnswer.visibility = if (waiting) View.VISIBLE else View.GONE
+        // Android's own prompt comes after Allow on Android 13 and later: say so before, so it is expected.
+        logSessionPrompt.visibility = if (waiting && Build.VERSION.SDK_INT >= LogSessionManager.ANDROID_13) View.VISIBLE else View.GONE
+        logSessionStop.visibility =
+            if (view.status == LogSessionStatus.COLLECTING || view.status == LogSessionStatus.STARTING) View.VISIBLE else View.GONE
     }
 
     private fun renderReadings(config: AgentConfig) {
@@ -252,9 +321,11 @@ class SetupActivity : Activity() {
         addReading(
             getString(R.string.setup_reading_cpu),
             when {
-                collected && capabilities.cpuUtilization -> yes
-                collected || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> getString(R.string.setup_reading_cpu_unavailable)
-                else -> unknown
+                !collected -> unknown
+                capabilities.cpuSource == CpuSource.PROC_STAT -> yes
+                capabilities.cpuSource == CpuSource.HARDWARE_PROPERTIES -> getString(R.string.setup_reading_cpu_device_owner)
+                capabilities.cpuUnavailable == CpuUnavailable.NOT_SUPPORTED -> getString(R.string.setup_reading_cpu_not_supported)
+                else -> getString(R.string.setup_reading_cpu_not_device_owner)
             },
         )
         addReading(getString(R.string.setup_reading_memory), if (collected) yes else unknown)
@@ -279,17 +350,40 @@ class SetupActivity : Activity() {
                 Build.VERSION.SDK_INT >= LogcatCollector.ANDROID_13 -> LogcatState.CRASHES_AND_ANRS
                 else -> LogcatState.FULL
             }
-        addReading(getString(R.string.setup_reading_logcat), AgentStatusText.logcat(logcat))
+        addReading(getString(R.string.setup_reading_logcat), AgentStatusText.logcat(strings, logcat))
+
+        val dropBox: DropBoxState = runtime.dropBox.peekState(config.logcatEnabled)
+        addReading(
+            getString(R.string.setup_reading_crash_details),
+            when (dropBox) {
+                DropBoxState.READING -> getString(R.string.setup_reading_crash_details_yes)
+                DropBoxState.DISABLED -> getString(R.string.setup_reading_off_by_manager)
+                DropBoxState.NOT_GRANTED -> getString(R.string.setup_reading_crash_details_not_granted)
+                DropBoxState.NO_USAGE_ACCESS -> getString(R.string.setup_reading_crash_details_no_usage_access)
+            },
+        )
         addReading(
             getString(R.string.setup_reading_apps),
-            if (config.installedAppsEnabled) yes else getString(R.string.setup_reading_apps_off),
+            if (config.installedAppsEnabled) yes else getString(R.string.setup_reading_off_by_manager),
         )
 
-        val showGrant: Boolean = logcat == LogcatState.NOT_GRANTED
-        logcatGrant.visibility = if (showGrant) View.VISIBLE else View.GONE
-        logcatCommand.visibility = if (showGrant) View.VISIBLE else View.GONE
-        logcatCommand.text = AgentEvents.GRANT_COMMAND
+        val usageAccessGranted: Boolean = AndroidDropBoxAccess(this).usageAccessGranted()
+        val commands: List<String> =
+            GrantCommands.missing(
+                logcatEnabled = config.logcatEnabled,
+                readLogsGranted = granted,
+                readDropBoxDataMissing =
+                    AndroidDropBoxAccess.readDropBoxDataExists(this) && !hasPermission(AndroidDropBoxAccess.READ_DROPBOX_DATA),
+                usageAccessGranted = usageAccessGranted,
+            )
+        grants.visibility = if (commands.isEmpty()) View.GONE else View.VISIBLE
+        grantCommands.visibility = if (commands.isEmpty()) View.GONE else View.VISIBLE
+        grantCommands.text = commands.joinToString("\n")
+        // Usage access is the one grant the person at the device can give themselves, in Settings.
+        usageAccess.visibility = if (config.logcatEnabled && !usageAccessGranted) View.VISIBLE else View.GONE
     }
+
+    private fun hasPermission(permission: String): Boolean = checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
     private fun addReading(label: String, value: String) {
         val row = LinearLayout(this)

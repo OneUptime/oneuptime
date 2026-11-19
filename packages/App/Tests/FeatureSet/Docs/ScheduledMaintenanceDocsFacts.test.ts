@@ -446,6 +446,10 @@ const STATUS_PAGES_FIELD_COPY: string = readDashboardSource(
 const FORM_MODULE: string = readDashboardSource(
   "Components/ScheduledMaintenance/ScheduledMaintenanceForm.ts",
 );
+// What the Subscriber Notifications line says, for the pages picked (#9920).
+const REACH_MODULE: string = readDashboardSource(
+  "Components/ScheduledMaintenance/ScheduledMaintenanceReach.ts",
+);
 const EVENT_OVERVIEW_PAGE: string = readDashboardSource(
   "Pages/ScheduledMaintenanceEvents/View/Index.tsx",
 );
@@ -2149,7 +2153,12 @@ describe("the create form", () => {
       }
 
       if (field === "Subscriber Notifications") {
-        expect(FORM_MODULE).toContain('title: "Subscriber Notifications",');
+        expect(FORM_MODULE).toContain(
+          'SUBSCRIBER_NOTIFICATIONS_SECTION_TITLE: string = translationKey(\n  "Subscriber Notifications",',
+        );
+        expect(REACH_MODULE).toContain(
+          "title: SUBSCRIBER_NOTIFICATIONS_SECTION_TITLE,",
+        );
         expect(
           stepOf(fieldObject(CREATE_PAGE, "When the event is scheduled")),
         ).toBe("resources-affected");
@@ -2267,11 +2276,22 @@ describe("the create form", () => {
     expect(CREATE_PAGE).toContain(
       "const eventSubscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =\n  getEventSubscriberNotificationsSection<ScheduledMaintenance>();",
     );
-    expect(FORM_MODULE).toContain(
-      "getPublishingSummary(values),\n        ...getSubscriberNotificationSummary(values),",
+    /*
+     * When it shows, then who is told - for the status pages picked, which
+     * the line follows (#9920): it promises nothing of pages that hide
+     * maintenance events or send nothing.
+     */
+    expect(REACH_MODULE).toContain(
+      "getPublishingSummary(values, now),\n    ...getWhoIsToldSentences({",
+    );
+    expect(REACH_MODULE).toContain(
+      'MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED: string = translationKey(\n  "None of the status pages picked shows maintenance events.",',
     );
     expect(creating).toContain(
       "**Subscriber Notifications**, folded, says in one line when the event shows on them and who is told when; open it to pick **At a date and time** under **Publish on Status Pages**, or to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.",
+    );
+    expect(creating).toContain(
+      "The line follows the status pages picked: when none is picked, none of them shows maintenance events, or the ones that do send their subscribers nothing, it says so instead of saying who is told.",
     );
     expect(fieldsTable).toContain(
       "Published right away, all three moments on, no reminders",

@@ -9,7 +9,11 @@ import AnnouncementReach, {
   AnnouncementNothingSentReason,
   AnnouncementReachResult,
 } from "Common/Types/StatusPage/AnnouncementReach";
+import AnnouncementUpdateNotification, {
+  AnnouncementUpdateNotSentReason,
+} from "Common/Types/StatusPage/AnnouncementUpdateNotification";
 import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
+import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
@@ -492,6 +496,98 @@ export const getAnnouncementNotifyBoxReason: (data: {
 
   return ANNOUNCEMENT_NOTHING_SENT[data.reach.nothingSentReason];
 };
+
+/*
+ * THE EDIT'S "NOTIFY SUBSCRIBERS ABOUT THIS UPDATE" (#9921).
+ *
+ * Ticked, it queues an update notification, which the update job skips for
+ * the announcement's own state before it reads a status page
+ * (Common/Types/StatusPage/AnnouncementUpdateNotification): while the
+ * announcement's own notification has not gone out - that notification
+ * carries the edit - and while Start Showing Announcement At is still to
+ * come, when it is on no status page for an update to point at. An
+ * announcement that has ended still gets it: it stays on its status page
+ * at its own link.
+ *
+ * So under the ticked box the note says that first, and only then why the
+ * status pages picked would tell nobody. The start is the form's, as the
+ * Edit will save it; where the announcement's own notification stands is
+ * the server's to say (AnnouncementReach.originalNotificationStatus), and
+ * while it is not known nothing is said of it. A start still to come is
+ * named whatever its notification says: it is what the editor can change.
+ */
+export const ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET: string = translationKey(
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.",
+);
+
+export const ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET: string = translationKey(
+  "The notification about this announcement has not gone out yet, so this update is not sent.",
+);
+
+export const getAnnouncementUpdateBoxReason: (data: {
+  values: unknown;
+  reach: AnnouncementReachResult | null | undefined;
+  now?: Date | undefined;
+}) => string | null = (data: {
+  values: unknown;
+  reach: AnnouncementReachResult | null | undefined;
+  now?: Date | undefined;
+}): string | null => {
+  // An Edit's box starts unticked every time, and is ticked only by a yes.
+  if (
+    readRecord(data.values)[SubscriberUpdateNotification.miscDataKey] !== true
+  ) {
+    return null;
+  }
+
+  const showAnnouncementAt: unknown = readRecord(data.values)[
+    ANNOUNCEMENT_STARTS_AT_KEY
+  ];
+
+  // The form's clock, as its schedule line reads it.
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+
+  const notSentReason: AnnouncementUpdateNotSentReason | null =
+    AnnouncementUpdateNotification.getNotSentReason({
+      originalStatus: data.reach?.originalNotificationStatus,
+      showAnnouncementAt: showAnnouncementAt,
+      now: now,
+    });
+
+  if (notSentReason) {
+    const startsAt: Date | null = toMaintenanceDate(showAnnouncementAt);
+
+    if (
+      startsAt &&
+      AnnouncementUpdateNotification.isNotShownYet(startsAt, now)
+    ) {
+      return translateTemplate(ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET, {
+        time: formatTime(startsAt),
+      });
+    }
+
+    return ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET;
+  }
+
+  return getAnnouncementNotifyBoxReason({
+    values: data.values,
+    fieldKey: SubscriberUpdateNotification.miscDataKey,
+    isTickedByDefault: false,
+    reach: data.reach,
+  });
+};
+
+/*
+ * AN ANNOUNCEMENT TEMPLATE'S NOTIFY STATUS PAGE SUBSCRIBERS (#9921): what
+ * ticking it asks for, as Create's switch says it - whether anyone is told
+ * is the status pages' to say, which Create Announcement does for an
+ * announcement made from it. It said "Subscribers of these status pages
+ * are told when an announcement made from this template starts showing."
+ * whatever the template's pages send.
+ */
+export const ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION: string = translationKey(
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
+);
 
 /*
  * MONITORS AFFECTED, WITH NONE PICKED.

@@ -216,8 +216,12 @@ next, and how to change it last.
   Notes page. Enforced by
   [FeedNotesUseNotesComposerGuard](../../packages/App/Tests/Dashboard/FeedNotesUseNotesComposerGuard.test.ts).
 - **An outdated agent says so where its version is shown,** with how to upgrade it one click away.
-  Enforced by
-  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts).
+  So does a custom probe older than the OneUptime it reports to: Custom Probes says "Update
+  available" under its release, and its page says what it misses until it is updated, both linked
+  to Update a probe (#9815). Enforced by
+  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts)
+  and
+  [ProbeVersionDisplayGuard](../../packages/App/Tests/Dashboard/ProbeVersionDisplayGuard.test.ts).
 
 ### Settings and danger
 
@@ -1408,7 +1412,10 @@ then `npm run i18n:validate` from the root.
   showed (#9735). It now asks the server what is true for the event, says why not when nothing
   will be, and promises nothing while it does not know (`PublicNoteReachCopy`). Create Announcement
   said "Subscribers are notified when it starts showing." whatever status pages were picked, and
-  asks the same of the pages picked now (`useAnnouncementReach`, #9775). Enforced by
+  asks the same of the pages picked now (`useAnnouncementReach`, #9775). Schedule Maintenance Event
+  said subscribers are notified whatever pages were picked; it asks too now, and names only the
+  moments that will be sent (`useScheduledMaintenanceReach`, #9920). An announcement's Edit says
+  when an update is skipped for the announcement's own state (#9921). Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
 - **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the

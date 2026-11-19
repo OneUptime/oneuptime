@@ -7,6 +7,7 @@ The OneUptime Android agent reports an Android device your organization owns, su
 - [Deploy it with Esper](#deploy-it-with-esper): Upload the APK, push its settings, start it once.
 - [Settings](#settings): Every key of its managed configuration.
 - [Read other apps' logs](#read-other-apps-logs): Grant READ_LOGS once, with adb or your device manager.
+- [Log sessions](#log-sessions): Every app's logs for a while, allowed by the person at the device.
 :::
 
 ## How it works
@@ -93,6 +94,8 @@ The agent reads these keys from its managed configuration. A device without one 
 
 A placeholder your device manager did not fill in, such as `${esper.deviceName}` sent as it is, is ignored, and the agent's screen says so. Keep `device_name` the same once a device reports: a new name is a new host.
 
+The agent's screen, its notifications and the titles and descriptions your device manager shows for these keys are in the device's language, in every language OneUptime's Dashboard speaks.
+
 ## Read other apps' logs
 
 Android lets an app read other apps' logs only with the READ_LOGS permission, and only adb can grant it: not the app itself, and not a device policy. Grant it once on each device, and it stays granted through restarts and updates:
@@ -105,10 +108,51 @@ With Esper, run that command over **Secure Remote ADB**: turn on ADB access for 
 
 What the agent then reads depends on the Android version:
 
-- Android 13 and later: every app's crashes and ANRs. Android shows other apps' log lines only to an app that is on screen, after the person at the device allows it, so an agent running in the background cannot read them.
+- Android 13 and later: every app's crashes and ANRs. Android shows other apps' log lines only to an app that is on screen, after the person at the device allows it, so an agent running in the background cannot read them. Ask for them for a while with a [log session](#log-sessions).
 - Android 12 and earlier: every app's crashes and ANRs, and every app's log lines at `logcat_min_level` and above.
 
 Without READ_LOGS, the agent reports everything else, and its screen and the device's logs say how to grant it.
+
+### Crash stacks and reboot reasons
+
+Android keeps the full report of every app crash, native crash and ANR, and the reason for each reboot, in its DropBox. The agent reads them for every app when it has READ_LOGS and usage access, and on Android 15 and later READ_DROPBOX_DATA. Grant them once with adb, as READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+The first command is for Android 15 and later; usage access can also be turned on in the device's **Settings → Usage access**. A device policy cannot grant these, and the agent's screen lists the commands still to run. With them, each crash in **Exceptions** has its whole stack trace, a native crash its signal and the library it crashed in, an ANR its main thread's stack, and a restart in **Logs** the reason Android gives for it. Card numbers, email addresses, tokens and passwords in what the agent reads are replaced with `[card number]`, `[email]`, `[token]` and `[redacted]` before it is sent.
+
+### CPU use
+
+Android 8 and later keep a device's CPU use from apps. Only a device owner app can read it, and only on devices whose hardware reports it. The agent reads it when it is the device owner, which you set with adb on a device that has no accounts and no other device owner:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+A device that your device manager already owns cannot have a second owner, so its CPU use is not available, and the agent's screen says so. Its CPU use is then left out of the Hosts list, and the **High CPU Utilization** template is not offered for it.
+
+## Log sessions
+
+A log session sends every app's logs from a device for a while, to troubleshoot it. On Android 13 and later it is the only way to read other apps' log lines, because Android shows them only to an app that is on screen, after the person at the device allows it.
+
+:::steps
+### Request one
+
+Open the device in **Hosts**, then **Logs**, and click **Request Log Session** in **Log Sessions**. Choose how long the device sends its logs, from 15 minutes to 4 hours, and the lowest level it sends: **Info**, **Debug** or **Verbose**.
+
+### Allow it at the device
+
+Within a minute, the device shows a notification that someone asked for its logs, with their name. The person at the device opens the agent and taps **Allow**. On Android 13 and later Android then asks to allow access to all device logs, and they allow that too.
+
+### Read the lines
+
+The session reads **Collecting**, and every app's lines arrive in the device's logs. Click **Show Lines** to see the session's lines on their own. The session ends when its time is up, or when someone stops it on the device or cancels it in OneUptime.
+:::
+
+A session needs READ_LOGS and `logcat_enabled`; without them it reads **Unavailable**. One session at a time runs on a device. A request nobody allows within an hour expires, and a session the device restarts during ends with it, since Android's permission ends with the agent's process. Asking for a session takes permission to edit the host, and the host's **Audit Logs** keep who asked, and when.
 
 ## What it reports
 
@@ -117,14 +161,15 @@ Without READ_LOGS, the agent reports everything else, and its screen and the dev
 | Memory, storage, network and uptime | The device's page in **Hosts**: the same metrics a server's collector sends, so the host alert templates work |
 | Battery charge and temperature, and whether the device is on external power | The metrics `hw.battery.charge`, `hw.temperature` and `android.battery.plugged` |
 | Thermal state | The metrics `android.thermal.status` and `android.thermal.headroom` |
-| Restarts | **Logs**, with `@event.name:device.boot`: how long the device had been up, whether it shut down cleanly, how long it was off, and restart loops |
+| CPU use | The metric `system.cpu.utilization`: on Android 7, and on Android 8 and later when the agent is the [device owner](#cpu-use) |
+| Restarts | **Logs**, with `@event.name:device.boot`: how long the device had been up, whether it shut down cleanly, how long it was off, why it rebooted, and restart loops |
 | Installed apps | **Logs**, with `@event.name:android.package.inventory` once a day, and each install, update and removal |
-| Crashes and ANRs of every app | **Exceptions**, as unhandled, named after the app |
-| Make, model, serial number, OS version and firmware | The device's item in **Inventory** |
+| Crashes and ANRs of every app | **Exceptions**, as unhandled, named after the app, with their stacks when the agent reads [DropBox](#crash-stacks-and-reboot-reasons) |
+| Make, model, serial number, OS version, security patch level and firmware | The device's item in **Inventory** |
 
-Android 8 and later keep the device's CPU use from apps, so the agent reports CPU use only on Android 7, and on builds that allow it.
+In **Hosts**, the device's OS reads Android, with Android's mark.
 
-The host alert templates that fit a device are Host Stopped Reporting, High Memory Utilization, High Filesystem Usage and Host Restarted. A device that keeps restarting logs a warning at each boot, with `android.boot.recent_count` set to its boots in the last hour.
+The device's boots in the last hour are the metric `android.boot.recent_count`, and a device that keeps restarting logs a warning at each boot. In **Hosts**, an Android device is offered alert templates of its own: Device Unplugged, Low Battery, Device Overheating, Restart Loop and Storage Nearly Full, with Host Stopped Reporting, Host Restarted and High Memory Utilization, and High CPU Utilization once it reports CPU use. Each alert's first debug commands are adb commands. See [Host Monitor](/docs/monitor/host-monitor#android-devices).
 
 ## Troubleshooting
 
@@ -137,7 +182,11 @@ Use a **Server** key that is turned on and not expired. A **Browser** key is ref
 :::
 
 :::details No logs from other apps
-Grant READ_LOGS, as [Read other apps' logs](#read-other-apps-logs) says. On Android 13 and later only other apps' crashes and ANRs are read.
+Grant READ_LOGS, as [Read other apps' logs](#read-other-apps-logs) says. On Android 13 and later only other apps' crashes and ANRs are read, unless a [log session](#log-sessions) runs.
+:::
+
+:::details A log session stays on Waiting for Approval
+Nobody at the device has allowed it yet. Someone has to open the agent on the device and tap **Allow**, and on Android 13 and later allow Android's prompt too, while the agent is on screen. A session Android's prompt declined reads **Declined**: request another one.
 :::
 
 :::details Two devices show up as one host

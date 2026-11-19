@@ -49,6 +49,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 import DashboardWidgetLine from "./DashboardWidgetLine";
 import { formatHostCpuMemory, formatHostLastSeen } from "./HostListFigures";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostListComponent;
@@ -224,7 +225,8 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
           details: [
             {
               label: "OS",
-              value: `${osType}${osVersion ? ` ${osVersion}` : ""}`,
+              // "Android Version 14 (...)" rather than "android Android Version 14 (...)" (#9804).
+              value: HostOperatingSystem.describe({ osType, osVersion }) || "",
             },
             { label: "CPU / Mem", value: cpuMem },
             {
@@ -309,7 +311,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
           </span>
         </td>
         <ResourceListNameCell
-          name={osVersion ? `${osType} ${osVersion}` : osType}
+          name={HostOperatingSystem.describe({ osType, osVersion })}
           className="px-3 py-2 text-xs text-gray-500 truncate"
         />
         {/*

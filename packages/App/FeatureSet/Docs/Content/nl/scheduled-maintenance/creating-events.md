@@ -43,7 +43,7 @@ Klik op **Volgende** om bij **Getroffen middelen** te komen. Kies de **Monitoren
 
 ### Kiezen wie ervan hoort
 
-Kies de statuspagina's onder **Gebeurtenis weergeven op deze statuspagina's**. **Meldingen aan abonnees**, ingeklapt, zegt in één regel wanneer de gebeurtenis erop verschijnt en wie wanneer bericht krijgt; open het om **Op een datum en tijd** te kiezen onder **Publiceren op statuspagina's**, of om **Wanneer de gebeurtenis wordt gepland**, **Wanneer de gebeurtenis begint**, **Wanneer de gebeurtenis eindigt** of **Herinneringen vóór de gebeurtenis** te wijzigen.
+Kies de statuspagina's onder **Gebeurtenis weergeven op deze statuspagina's**. **Meldingen aan abonnees**, ingeklapt, zegt in één regel wanneer de gebeurtenis erop verschijnt en wie wanneer bericht krijgt; open het om **Op een datum en tijd** te kiezen onder **Publiceren op statuspagina's**, of om **Wanneer de gebeurtenis wordt gepland**, **Wanneer de gebeurtenis begint**, **Wanneer de gebeurtenis eindigt** of **Herinneringen vóór de gebeurtenis** te wijzigen. De regel volgt de geselecteerde statuspagina's: als er geen is geselecteerd, geen ervan onderhoudsgebeurtenissen toont of de pagina's die ze tonen hun abonnees niets sturen, zegt ze dat in plaats van wie een melding krijgt.
 
 ### Haar maken
 

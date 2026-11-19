@@ -1,8 +1,9 @@
 import { JSONObject } from "../JSON";
-import PublicNoteReach, {
-  PublicNoteNothingSentReason,
-  StatusPagesNothingSentReason,
-} from "./PublicNoteReach";
+import PickedStatusPagesReach, {
+  PickedStatusPagesReachResult,
+} from "./PickedStatusPagesReach";
+import { StatusPagesNothingSentReason } from "./PublicNoteReach";
+import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
 
 /*
  * WHAT AN ANNOUNCEMENT ON THE STATUS PAGES PICKED DOES (#9775).
@@ -29,12 +30,18 @@ import PublicNoteReach, {
  *
  * So an announcement on the pages picked shows when one of them shows
  * announcements, and notifies someone when one that does sends
- * notifications. The server works it out (AnnouncementReachBuilder) by the
- * same rule a public note's composer is answered by
- * (PublicNoteReachBuilder.getStatusPagesReason, #9735), with the reasons by
- * the same names. Every page picked that is the project's counts, whether
- * the reader may read it or not, and the answer names none: it is one
- * reason, or none.
+ * notifications - the answer every form that picks status pages is given
+ * (PickedStatusPagesReach), worked out by the same rule a public note's
+ * composer is answered by (PublicNoteReachBuilder.getStatusPagesReason,
+ * #9735), with the reasons by the same names. Every page picked that is
+ * the project's counts, whether the reader may read it or not, and the
+ * answer names none: it is one reason, or none.
+ *
+ * On the announcement's Edit the answer says one thing more: where the
+ * announcement's own notification stands (#9921). The update job skips an
+ * update while that notification has not gone out
+ * (AnnouncementUpdateNotification), so "Notify subscribers about this
+ * update" says so. It is the announcement's own, which the editor may read.
  *
  * Shared by the server, which answers, and the dashboard, which says it.
  */
@@ -42,60 +49,95 @@ import PublicNoteReach, {
 // Why an announcement on the pages picked notifies nobody: the pages' own reasons.
 export type AnnouncementNothingSentReason = StatusPagesNothingSentReason;
 
-export interface AnnouncementReachResult {
+export interface AnnouncementReachResult extends PickedStatusPagesReachResult {
   /*
-   * NoStatusPages: none of the pages picked shows announcements, so it
-   * shows nowhere. NotificationsOff: the ones that show it send their
-   * subscribers nothing. Null when a page that shows it notifies.
+   * On an Edit, the announcement's own notification
+   * (subscriberNotificationStatus): Pending until it goes out. Left out on
+   * Create, and when it cannot be read.
    */
-  nothingSentReason: AnnouncementNothingSentReason | null;
+  originalNotificationStatus?:
+    | StatusPageSubscriberNotificationStatus
+    | null
+    | undefined;
 }
+
+const ORIGINAL_NOTIFICATION_STATUS_KEY: string = "originalNotificationStatus";
 
 export default class AnnouncementReach {
   // Under the announcement's API: POST /status-page-announcement/reach.
-  public static readonly routePath: string = "/reach";
+  public static readonly routePath: string = PickedStatusPagesReach.routePath;
 
   // How many status pages one request may name.
-  public static readonly maxStatusPagesPerRequest: number = 1000;
+  public static readonly maxStatusPagesPerRequest: number =
+    PickedStatusPagesReach.maxStatusPagesPerRequest;
 
   // Whether a status page picked shows the announcement.
   public static isShownOnAStatusPage(result: AnnouncementReachResult): boolean {
-    return PublicNoteReach.isShownOnAStatusPage(result);
+    return PickedStatusPagesReach.isShownOnAStatusPage(result);
   }
 
   // Whether a status page picked tells its subscribers about it.
   public static isNotifying(result: AnnouncementReachResult): boolean {
-    return PublicNoteReach.isNotifying(result);
+    return PickedStatusPagesReach.isNotifying(result);
   }
 
   public static toJSON(result: AnnouncementReachResult): JSONObject {
-    return PublicNoteReach.toJSON(result);
+    const json: JSONObject = PickedStatusPagesReach.toJSON(result);
+
+    // Only an Edit's answer carries it.
+    if (result.originalNotificationStatus !== undefined) {
+      json[ORIGINAL_NOTIFICATION_STATUS_KEY] =
+        result.originalNotificationStatus;
+    }
+
+    return json;
   }
 
   /*
    * The server's answer as the dashboard receives it, or null when it cannot
    * be read - a missing field, or a reason an announcement never has. Null
    * says nothing: the form then promises nothing, where reading it as
-   * "notifies" would make the promise this is here to keep honest.
+   * "notifies" would make the promise this is here to keep honest. A status
+   * the form does not know is left out: the pages' answer still stands, and
+   * the update box then says only what it knows.
    */
   public static fromJSON(json: unknown): AnnouncementReachResult | null {
-    const read: ReturnType<typeof PublicNoteReach.fromJSON> =
-      PublicNoteReach.fromJSON(json);
+    const read: PickedStatusPagesReachResult | null =
+      PickedStatusPagesReach.fromJSON(json);
 
     if (!read) {
       return null;
     }
 
-    const reason: PublicNoteNothingSentReason | null = read.nothingSentReason;
+    const record: JSONObject = json as JSONObject;
 
     if (
-      reason !== null &&
-      reason !== PublicNoteNothingSentReason.NoStatusPages &&
-      reason !== PublicNoteNothingSentReason.NotificationsOff
+      !Object.prototype.hasOwnProperty.call(
+        record,
+        ORIGINAL_NOTIFICATION_STATUS_KEY,
+      )
     ) {
-      return null;
+      return read;
     }
 
-    return { nothingSentReason: reason };
+    const status: unknown = record[ORIGINAL_NOTIFICATION_STATUS_KEY];
+
+    if (status === null) {
+      return { ...read, originalNotificationStatus: null };
+    }
+
+    const statuses: Array<string> = Object.values(
+      StatusPageSubscriberNotificationStatus,
+    );
+
+    if (typeof status !== "string" || !statuses.includes(status)) {
+      return read;
+    }
+
+    return {
+      ...read,
+      originalNotificationStatus:
+        status as StatusPageSubscriberNotificationStatus,
+    };
   }
 }

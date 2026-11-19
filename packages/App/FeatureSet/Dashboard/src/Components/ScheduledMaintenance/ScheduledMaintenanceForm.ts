@@ -6,11 +6,9 @@ import {
   isMaintenanceWindowInOrder,
   toMaintenanceDate,
 } from "Common/Types/ScheduledMaintenance/MaintenanceWindow";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { getPublishingSummary } from "./ScheduledMaintenancePublishing";
 
 /*
  * SCHEDULING MAINTENANCE IN TWO SHORT STEPS.
@@ -34,7 +32,9 @@ import { getPublishingSummary } from "./ScheduledMaintenancePublishing";
  *      picked, the Other Affected Resources, Show event on these status
  *      pages, then Subscriber Notifications folded to the one line that
  *      says what happens ("... notified when it is scheduled, when it
- *      starts and when it ends").
+ *      starts and when it ends") - what is true for the status pages
+ *      picked and the event's own settings (ScheduledMaintenanceReach,
+ *      #9920).
  *
  * and the review step after them. Only the title has to be typed: every
  * other field has a default or is optional, so Next walks the other steps
@@ -108,9 +108,12 @@ export const readSubscriberNotificationSettings: (
 };
 
 /*
- * One whole sentence for each combination of the three switches, so a
+ * One whole sentence for each combination of the three moments, so a
  * locale translates a sentence rather than words glued together. Keyed by
- * which of scheduled / started / ended are on, in that order.
+ * which of scheduled / started / ended tell someone, in that order: the
+ * switches that are on, and only while a status page picked notifies and
+ * the event is shown by then (ScheduledMaintenanceReach.getMomentsSummary).
+ * With every switch off, the last one is true whatever the pages.
  */
 export const SUBSCRIBER_NOTIFICATION_SUMMARIES: Readonly<
   Record<string, string>
@@ -141,102 +144,47 @@ export const SUBSCRIBER_NOTIFICATION_SUMMARIES: Readonly<
   ),
 };
 
-// Added after the sentence above when the event has any reminder.
+/*
+ * Added after the sentence above while the event gets any reminder before
+ * it starts.
+ */
 export const SUBSCRIBER_REMINDERS_SUMMARY: string = translationKey(
   "They get reminders before it starts.",
 );
 
 /*
- * The line a folded Subscriber Notifications section shows: who is told,
- * and when. English sentences, each a translation key.
- */
-export const getSubscriberNotificationSummary: (
-  values: unknown,
-) => Array<string> = (values: unknown): Array<string> => {
-  const settings: SubscriberNotificationSettings =
-    readSubscriberNotificationSettings(values);
-
-  const moments: Array<string> = [];
-
-  if (settings.whenScheduled) {
-    moments.push("scheduled");
-  }
-
-  if (settings.whenStarted) {
-    moments.push("started");
-  }
-
-  if (settings.whenEnded) {
-    moments.push("ended");
-  }
-
-  const sentences: Array<string> = [
-    SUBSCRIBER_NOTIFICATION_SUMMARIES[moments.join(",")]!,
-  ];
-
-  if (settings.hasReminders) {
-    sentences.push(SUBSCRIBER_REMINDERS_SUMMARY);
-  }
-
-  return sentences;
-};
-
-/*
- * The section the three switches and the reminders are folded into. It is
+ * THE SECTION the three switches and the reminders are folded into. It is
  * not an Advanced section: it opens by itself when what it holds is not the
  * default (an event made from a template that keeps subscribers quiet, a
  * template with reminders), so nothing set away from the default is hidden.
- * Folded, it says in a line what will happen.
+ * Folded, it says in a line what will happen - for the status pages picked
+ * and the event's own settings, which the server and the jobs decide
+ * (#9920): ScheduledMaintenanceReach works the line out, and
+ * ScheduledMaintenanceReachLines builds the section that draws it
+ * (getEventSubscriberNotificationsSection, getSubscriberNotificationsSection).
+ *
+ * On Create Maintenance Event the section first asks when the event is
+ * published on its status pages (#5249) - which is when their subscribers
+ * are told it is scheduled - then the switches and the reminders, and its
+ * line starts with when the event shows: "Shown on its status pages as
+ * soon as it is saved. Subscribers of the event's status pages are
+ * notified when it is scheduled, when it starts and when it ends."
+ * (ScheduledMaintenancePublishing). A template, which is published
+ * nowhere, asks only the switches and the reminders.
  */
-export const getSubscriberNotificationsSection: <
-  TEntity,
->() => FormFieldCollapsibleSection<TEntity> = <
-  TEntity,
->(): FormFieldCollapsibleSection<TEntity> => {
-  return {
-    id: SUBSCRIBER_NOTIFICATIONS_SECTION_ID,
-    title: "Subscriber Notifications",
-    description:
-      "When the subscribers of the event's status pages hear about it.",
-    getSummary: (values: FormValues<TEntity>): Array<string> => {
-      return getSubscriberNotificationSummary(values);
-    },
-  };
-};
+export const SUBSCRIBER_NOTIFICATIONS_SECTION_TITLE: string = translationKey(
+  "Subscriber Notifications",
+);
 
-/*
- * The same section on Create Maintenance Event, where it first
- * asks when the event is published on its status pages (#5249) - which is
- * when their subscribers are told it is scheduled - then the switches and
- * the reminders. Folded, its line starts with when the event shows:
- * "Shown on its status pages as soon as it is saved. Subscribers of the
- * event's status pages are notified when it is scheduled, when it starts
- * and when it ends." (ScheduledMaintenancePublishing). A template, which is
- * published nowhere, keeps the section above.
- */
 export const EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION: string =
   translationKey(
     "When the event shows on its status pages, and when their subscribers hear about it.",
   );
 
-export const getEventSubscriberNotificationsSection: <
-  TEntity,
->() => FormFieldCollapsibleSection<TEntity> = <
-  TEntity,
->(): FormFieldCollapsibleSection<TEntity> => {
-  return {
-    id: SUBSCRIBER_NOTIFICATIONS_SECTION_ID,
-    title: "Subscriber Notifications",
-    description:
-      "When the event shows on its status pages, and when their subscribers hear about it.",
-    getSummary: (values: FormValues<TEntity>): Array<string> => {
-      return [
-        getPublishingSummary(values),
-        ...getSubscriberNotificationSummary(values),
-      ];
-    },
-  };
-};
+export const TEMPLATE_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION: string =
+  translationKey(
+    "When the subscribers of the event's status pages hear about it.",
+  );
 
 /*
  * THE MAINTENANCE WINDOW: when a new event starts and ends before anyone

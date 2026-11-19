@@ -582,6 +582,7 @@ import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import HostLogSessionService from "./HostLogSessionService";
 import HostCollectorConfigService from "./HostCollectorConfigService";
 import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
@@ -1204,6 +1205,7 @@ const services: Array<BaseService> = [
   HostOwnerRuleService,
   HostOwnerTeamService,
   HostOwnerUserService,
+  HostLogSessionService,
   HostCollectorConfigService,
   HostCollectorConfigVersionService,
   IncomingCallPolicyService,

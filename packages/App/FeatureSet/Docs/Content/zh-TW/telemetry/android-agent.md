@@ -7,6 +7,7 @@ OneUptime Android 代理程式會把你的組織擁有的 Android 裝置（例�
 - [使用 Esper 部署](#使用-esper-部署): 上傳 APK、推送設定、啟動一次。
 - [設定](#設定): 其受管理設定中的每個鍵。
 - [讀取其他應用程式的日誌](#讀取其他應用程式的日誌): 透過 adb 或你的裝置管理服務授予一次 READ_LOGS。
+- [日誌工作階段](#日誌工作階段): 一段時間內每個應用程式的日誌，由裝置前的人允許。
 :::
 
 ## 運作方式
@@ -93,6 +94,8 @@ flowchart TB
 
 裝置管理服務沒有填入的預留位置（例如原樣傳來的 `${esper.deviceName}` ）會被忽略，代理程式的畫面也會說明這一點。裝置開始回報後，請保持 `device_name` 不變：新的名稱就是一台新的主機。
 
+代理程式的畫面、它的通知，以及你的裝置管理服務為這些鍵顯示的標題和說明，都會以裝置的語言顯示，涵蓋 OneUptime 儀表板支援的每一種語言。
+
 ## 讀取其他應用程式的日誌
 
 Android 只允許擁有 READ_LOGS 權限的應用程式讀取其他應用程式的日誌，而且只有 adb 能授予這個權限：應用程式本身不行，裝置原則也不行。在每台裝置上授予一次，它就會在重新啟動和更新後一直保持授予狀態：
@@ -105,10 +108,51 @@ adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 
 之後代理程式讀取的內容取決於 Android 版本：
 
-- Android 13 及更新版本：每個應用程式的當機和 ANR。Android 只會向顯示在螢幕上的應用程式顯示其他應用程式的日誌行，而且要經過裝置前的人允許，因此在背景執行的代理程式無法讀取它們。
+- Android 13 及更新版本：每個應用程式的當機和 ANR。Android 只會向顯示在螢幕上的應用程式顯示其他應用程式的日誌行，而且要經過裝置前的人允許，因此在背景執行的代理程式無法讀取它們。可以用 [日誌工作階段](#日誌工作階段) 在一段時間內要求取得它們。
 - Android 12 及更早版本：每個應用程式的當機和 ANR，以及每個應用程式在 `logcat_min_level` 及以上層級的日誌行。
 
 沒有 READ_LOGS 時，代理程式仍會回報其他所有內容，它的畫面和裝置的日誌會說明如何授予這個權限。
+
+### 當機堆疊和重新啟動原因
+
+Android 會把每個應用程式當機、原生當機和 ANR 的完整報告，以及每次重新啟動的原因，保存在它的 DropBox 中。當代理程式擁有 READ_LOGS 和使用狀況存取權，並在 Android 15 及更新版本上擁有 READ_DROPBOX_DATA 時，它會讀取每個應用程式的這些內容。與 READ_LOGS 一樣，以 adb 授予一次：
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+第一個命令適用於 Android 15 及更新版本；使用狀況存取權也可以在裝置的 **設定 → 使用狀況存取權** 中開啟。裝置原則無法授予這些權限，代理程式的畫面會列出仍需執行的命令。授予之後， **例外** 中的每個當機都有完整的堆疊追蹤，原生當機有其訊號和當機所在的程式庫，ANR 有其主執行緒的堆疊， **日誌** 中的重新啟動則有 Android 提供的原因。代理程式讀取的內容中的卡號、電子郵件地址、權杖和密碼會在傳送前被替換為 `[card number]` 、 `[email]` 、 `[token]` 和 `[redacted]` 。
+
+### CPU 使用率
+
+Android 8 及更新版本不會向應用程式提供裝置的 CPU 使用率。只有裝置擁有者應用程式才能讀取它，而且只在硬體會回報它的裝置上可行。代理程式在成為裝置擁有者時讀取它；你可以用 adb 在沒有任何帳戶、也沒有其他裝置擁有者的裝置上進行設定：
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+已由你的裝置管理服務擁有的裝置不能再有第二個擁有者，因此無法取得其 CPU 使用率，代理程式的畫面也會說明這一點。此時它的 CPU 使用率不會出現在主機清單中，也不會為它提供 **High CPU Utilization** 範本。
+
+## 日誌工作階段
+
+日誌工作階段會在一段時間內傳送裝置上每個應用程式的日誌，用於排解裝置的問題。在 Android 13 及更新版本上，這是讀取其他應用程式日誌行的唯一方法，因為 Android 只會向顯示在螢幕上的應用程式顯示它們，而且要經過裝置前的人允許。
+
+:::steps
+### 提出要求
+
+在 **主機** 中開啟裝置，再開啟 **日誌** ，然後在 **日誌工作階段** 中按一下 **要求日誌工作階段** 。選擇裝置傳送日誌的時間長度（15 分鐘到 4 小時），以及它傳送的最低層級： **資訊** 、 **偵錯** 或 **詳細** 。
+
+### 在裝置上允許
+
+一分鐘內，裝置會顯示一則通知，說明有人要求了它的日誌，並附上此人的名稱。裝置前的人開啟代理程式並輕觸 **允許** 。在 Android 13 及更新版本上，Android 接著會詢問是否允許存取所有裝置記錄，此人也要允許。
+
+### 查看日誌行
+
+工作階段會顯示為 **收集中** ，每個應用程式的日誌行都會進入裝置的日誌。按一下 **顯示日誌行** 即可單獨查看該工作階段的日誌行。工作階段會在時間到時結束，或在有人於裝置上停止它、或在 OneUptime 中取消它時結束。
+:::
+
+工作階段需要 READ_LOGS 和 `logcat_enabled` ；缺少它們時會顯示為 **無法使用** 。一台裝置上同一時間只會執行一個工作階段。一小時內無人允許的要求會過期；裝置在工作階段期間重新啟動時，工作階段會隨之結束，因為 Android 的權限會隨代理程式的處理程序一起結束。要求工作階段需要編輯該主機的權限，主機的 **稽核日誌** 會記錄是誰、在何時提出了要求。
 
 ## 回報的內容
 
@@ -117,14 +161,15 @@ adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 | 記憶體、儲存空間、網路和運行時間 | **主機** 中該裝置的頁面：與伺服器的收集器傳送的指標相同，因此主機警示範本同樣適用 |
 | 電池電量和溫度，以及裝置是否接上外部電源 | 指標 `hw.battery.charge` 、 `hw.temperature` 和 `android.battery.plugged` |
 | 熱狀態 | 指標 `android.thermal.status` 和 `android.thermal.headroom` |
-| 重新啟動 | **日誌** ，以 `@event.name:device.boot` 查找：裝置之前運行了多久、是否正常關機、關機了多久，以及重新啟動循環 |
+| CPU 使用率 | 指標 `system.cpu.utilization` ：在 Android 7 上，以及在代理程式是 [裝置擁有者](#cpu-使用率) 的 Android 8 及更新版本上 |
+| 重新啟動 | **日誌** ，以 `@event.name:device.boot` 查找：裝置之前運行了多久、是否正常關機、關機了多久、為什麼重新啟動，以及重新啟動循環 |
 | 已安裝的應用程式 | **日誌** ，以 `@event.name:android.package.inventory` 查找：每天一次，以及每次安裝、更新和移除 |
-| 每個應用程式的當機和 ANR | **例外** ，作為未處理的例外，以應用程式命名 |
-| 廠牌、型號、序號、作業系統版本和韌體 | 該裝置在 **資產清單** 中的項目 |
+| 每個應用程式的當機和 ANR | **例外** ，作為未處理的例外，以應用程式命名；代理程式讀取 [DropBox](#當機堆疊和重新啟動原因) 時附帶其堆疊 |
+| 廠牌、型號、序號、作業系統版本、安全性修補程式等級和韌體 | 該裝置在 **資產清單** 中的項目 |
 
-Android 8 及更新版本不會向應用程式提供裝置的 CPU 使用量，因此代理程式只會在 Android 7 以及允許這麼做的組建上回報 CPU 使用量。
+在 **主機** 中，裝置的作業系統會顯示為 Android，並帶有 Android 的標誌。
 
-適用於裝置的主機警示範本有 Host Stopped Reporting、High Memory Utilization、High Filesystem Usage 和 Host Restarted。不斷重新啟動的裝置會在每次開機時記錄一筆警告日誌，並把 `android.boot.recent_count` 設為它在過去一小時內的開機次數。
+裝置在過去一小時內的開機次數是指標 `android.boot.recent_count` ，不斷重新啟動的裝置會在每次開機時記錄一筆警告日誌。在 **主機** 中，Android 裝置會獲得自己的警示範本：Device Unplugged、Low Battery、Device Overheating、Restart Loop 和 Storage Nearly Full，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，並在回報 CPU 使用率後獲得 High CPU Utilization。每個警示最先提供的偵錯命令都是 adb 命令。請參閱 [主機監控](/docs/monitor/host-monitor#android-裝置) 。
 
 ## 疑難排解
 
@@ -137,7 +182,11 @@ Android 8 及更新版本不會向應用程式提供裝置的 CPU 使用量，�
 :::
 
 :::details 沒有來自其他應用程式的日誌
-依照 [讀取其他應用程式的日誌](#讀取其他應用程式的日誌) 中的說明授予 READ_LOGS。在 Android 13 及更新版本上，只會讀取其他應用程式的當機和 ANR。
+依照 [讀取其他應用程式的日誌](#讀取其他應用程式的日誌) 中的說明授予 READ_LOGS。在 Android 13 及更新版本上，除非有 [日誌工作階段](#日誌工作階段) 正在執行，否則只會讀取其他應用程式的當機和 ANR。
+:::
+
+:::details 日誌工作階段一直停留在等待核准
+裝置前還沒有人允許它。必須有人在裝置上開啟代理程式並輕觸 **允許** ，在 Android 13 及更新版本上，還要在代理程式顯示在螢幕上時允許 Android 的提示。被 Android 的提示拒絕的工作階段會顯示為 **已拒絕** ：請重新要求一個。
 :::
 
 :::details 兩台裝置顯示為一台主機

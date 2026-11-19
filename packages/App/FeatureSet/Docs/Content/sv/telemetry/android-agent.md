@@ -7,6 +7,7 @@ OneUptimes Android-agent rapporterar till OneUptime om en Android-enhet som din 
 - [Distribuera den med Esper](#distribuera-den-med-esper): Ladda upp APK:n, skicka ut inställningarna, starta den en gång.
 - [Inställningar](#inställningar): Varje nyckel i dess hanterade konfiguration.
 - [Läs andra appars loggar](#läs-andra-appars-loggar): Bevilja READ_LOGS en gång, med adb eller din MDM.
+- [Loggsessioner](#loggsessioner): Alla appars loggar under en tid, tillåtet av personen vid enheten.
 :::
 
 ## Så fungerar det
@@ -93,6 +94,8 @@ Agenten läser de här nycklarna från sin hanterade konfiguration. En enhet uta
 
 En platshållare som din MDM inte fyllde i, till exempel `${esper.deviceName}` som skickas som den är, ignoreras, och agentens skärm säger det. Behåll samma `device_name` när en enhet väl rapporterar: Ett nytt namn är en ny värd.
 
+Agentens skärm, dess aviseringar och de titlar och beskrivningar som din MDM visar för de här nycklarna är på enhetens språk, på alla språk som OneUptimes instrumentpanel finns på.
+
 ## Läs andra appars loggar
 
 Android låter en app läsa andra appars loggar bara med behörigheten READ_LOGS, och bara adb kan bevilja den: inte appen själv, och inte en enhetspolicy. Bevilja den en gång på varje enhet, så förblir den beviljad genom omstarter och uppdateringar:
@@ -105,10 +108,51 @@ Med Esper kör du kommandot över **Secure Remote ADB**: Slå på ADB-åtkomst f
 
 Vad agenten sedan läser beror på Android-versionen:
 
-- Android 13 och senare: alla appars krascher och ANR:er. Android visar andra appars loggrader bara för en app som syns på skärmen, efter att personen vid enheten har tillåtit det, så en agent som körs i bakgrunden kan inte läsa dem.
+- Android 13 och senare: alla appars krascher och ANR:er. Android visar andra appars loggrader bara för en app som syns på skärmen, efter att personen vid enheten har tillåtit det, så en agent som körs i bakgrunden kan inte läsa dem. Be om dem under en tid med en [loggsession](#loggsessioner).
 - Android 12 och tidigare: alla appars krascher och ANR:er, och alla appars loggrader på `logcat_min_level` och högre.
 
 Utan READ_LOGS rapporterar agenten allt annat, och både dess skärm och enhetens loggar talar om hur du beviljar behörigheten.
+
+### Stack traces från krascher och orsaker till omstart
+
+Android sparar den fullständiga rapporten om varje appkrasch, varje native krasch och varje ANR, och orsaken till varje omstart, i sin DropBox. Agenten läser dem för alla appar när den har READ_LOGS och åtkomst till användningsdata, och på Android 15 och senare READ_DROPBOX_DATA. Bevilja dem en gång med adb, precis som READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+Det första kommandot gäller Android 15 och senare; åtkomst till användningsdata kan också slås på i enhetens **Inställningar → Åtkomst till användningsdata**. En enhetspolicy kan inte bevilja dessa, och agentens skärm listar de kommandon som återstår att köra. Med dem har varje krasch i **Undantag** hela sin stack trace, en native krasch sin signal och biblioteket den kraschade i, en ANR sin huvudtråds stack, och en omstart i **Loggar** den orsak som Android anger för den. Kortnummer, e-postadresser, token och lösenord i det som agenten läser ersätts med `[card number]`, `[email]`, `[token]` och `[redacted]` innan det skickas.
+
+### CPU-användning
+
+Från och med Android 8 döljer Android en enhets CPU-användning för appar. Bara en app som är enhetsägare kan läsa den, och bara på enheter vars hårdvara rapporterar den. Agenten läser den när den är enhetsägare, vilket du ställer in med adb på en enhet som saknar konton och inte har någon annan enhetsägare:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+En enhet som din MDM redan äger kan inte ha en andra ägare, så dess CPU-användning är inte tillgänglig, och agentens skärm säger det. Dess CPU-användning utelämnas då från värdlistan, och mallen **High CPU Utilization** erbjuds inte för den.
+
+## Loggsessioner
+
+En loggsession skickar alla appars loggar från en enhet under en tid, för felsökning. På Android 13 och senare är det det enda sättet att läsa andra appars loggrader, eftersom Android bara visar dem för en app som syns på skärmen, efter att personen vid enheten har tillåtit det.
+
+:::steps
+### Begär en loggsession
+
+Öppna enheten i **Värdar**, sedan **Loggar**, och klicka på **Begär loggsession** i **Loggsessioner**. Välj hur länge enheten skickar sina loggar, från 15 minuter till 4 timmar, och den lägsta nivå som den skickar: **Info**, **Felsökning** eller **Utförlig**.
+
+### Tillåt den på enheten
+
+Inom en minut visar enheten en avisering om att någon har bett om dess loggar, med personens namn. Personen vid enheten öppnar agenten och trycker på **Tillåt**. På Android 13 och senare frågar Android sedan om åtkomst till alla enhetsloggar ska tillåtas, och det tillåter personen också.
+
+### Läs raderna
+
+Sessionen står på **Samlar in**, och alla appars rader kommer in i enhetens loggar. Klicka på **Visa rader** för att se sessionens rader för sig. Sessionen slutar när tiden är ute, eller när någon stoppar den på enheten eller avbryter den i OneUptime.
+:::
+
+En session behöver READ_LOGS och `logcat_enabled`; utan dem står den på **Otillgänglig**. En session i taget körs på en enhet. En begäran som ingen tillåter inom en timme går ut, och en session som enheten startar om under slutar med den, eftersom Androids behörighet upphör med agentens process. Att be om en session kräver behörighet att redigera värden, och värdens **Granskningsloggar** sparar vem som bad om den, och när.
 
 ## Vad den rapporterar
 
@@ -117,14 +161,15 @@ Utan READ_LOGS rapporterar agenten allt annat, och både dess skärm och enheten
 | Minne, lagring, nätverk och drifttid | Enhetens sida i **Värdar**: samma mätvärden som en servers insamlare skickar, så att larmmallarna för värdar fungerar |
 | Batterinivå och batteritemperatur, och om enheten är ansluten till extern ström | Mätvärdena `hw.battery.charge`, `hw.temperature` och `android.battery.plugged` |
 | Termiskt tillstånd | Mätvärdena `android.thermal.status` och `android.thermal.headroom` |
-| Omstarter | **Loggar**, med `@event.name:device.boot`: hur länge enheten hade varit igång, om den stängdes av korrekt, hur länge den var avstängd, och omstartsloopar |
+| CPU-användning | Mätvärdet `system.cpu.utilization`: på Android 7, och på Android 8 och senare när agenten är [enhetsägare](#cpu-användning) |
+| Omstarter | **Loggar**, med `@event.name:device.boot`: hur länge enheten hade varit igång, om den stängdes av korrekt, hur länge den var avstängd, varför den startade om, och omstartsloopar |
 | Installerade appar | **Loggar**, med `@event.name:android.package.inventory` en gång om dagen, och varje installation, uppdatering och borttagning |
-| Alla appars krascher och ANR:er | **Undantag**, som ohanterade, namngivna efter appen |
-| Märke, modell, serienummer, OS-version och firmware | Enhetens post i **Inventarie** |
+| Alla appars krascher och ANR:er | **Undantag**, som ohanterade, namngivna efter appen, med sina stackar när agenten läser [DropBox](#stack-traces-från-krascher-och-orsaker-till-omstart) |
+| Märke, modell, serienummer, OS-version, säkerhetspatchnivå och firmware | Enhetens post i **Inventarie** |
 
-Från och med Android 8 döljer Android enhetens CPU-användning för appar, så agenten rapporterar CPU-användning bara på Android 7, och på byggen som tillåter det.
+I **Värdar** står enhetens OS som Android, med Androids logotyp.
 
-Larmmallarna för värdar som passar en enhet är Host Stopped Reporting, High Memory Utilization, High Filesystem Usage och Host Restarted. En enhet som fortsätter att starta om loggar en varning vid varje uppstart, med `android.boot.recent_count` satt till antalet uppstarter under den senaste timmen.
+Antalet uppstarter under den senaste timmen är mätvärdet `android.boot.recent_count`, och en enhet som fortsätter att starta om loggar en varning vid varje uppstart. I **Värdar** erbjuds en Android-enhet egna larmmallar: Device Unplugged, Low Battery, Device Overheating, Restart Loop och Storage Nearly Full, tillsammans med Host Stopped Reporting, Host Restarted och High Memory Utilization, och High CPU Utilization när den rapporterar CPU-användning. Varje larms första felsökningskommandon är adb-kommandon. Se [Värdövervakning](/docs/monitor/host-monitor#android-enheter).
 
 ## Felsökning
 
@@ -137,7 +182,11 @@ Använd en **Server**-nyckel som är påslagen och inte har gått ut. En **Webbl
 :::
 
 :::details Inga loggar från andra appar
-Bevilja READ_LOGS, som [Läs andra appars loggar](#läs-andra-appars-loggar) beskriver. På Android 13 och senare läses bara andra appars krascher och ANR:er.
+Bevilja READ_LOGS, som [Läs andra appars loggar](#läs-andra-appars-loggar) beskriver. På Android 13 och senare läses bara andra appars krascher och ANR:er, om inte en [loggsession](#loggsessioner) körs.
+:::
+
+:::details En loggsession står kvar på Väntar på godkännande
+Ingen vid enheten har tillåtit den ännu. Någon måste öppna agenten på enheten och trycka på **Tillåt**, och på Android 13 och senare även tillåta Androids dialogruta, medan agenten syns på skärmen. En session som Androids dialogruta avböjde står på **Avböjd**: Begär en ny.
 :::
 
 :::details Två enheter visas som en värd

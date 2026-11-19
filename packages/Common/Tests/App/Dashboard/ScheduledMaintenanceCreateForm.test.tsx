@@ -131,7 +131,26 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import ScheduledMaintenanceCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Create";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import { getSubscriberNotificationSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID,
+  MAINTENANCE_REMINDERS_REASON_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
+import {
+  MAINTENANCE_NOTIFICATIONS_DEPEND_ON_PAGES,
+  MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED,
+  MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY,
+  MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import MaintenanceStatusPagesCopy from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy";
+import {
+  MAINTENANCE_NOTIFIES,
+  ScheduledMaintenanceReachAnswer,
+  ScheduledMaintenanceReachAsk,
+  answerScheduledMaintenanceReach,
+  maintenanceNothingSent,
+} from "./ScheduledMaintenanceReachAnswers";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
+import userEvent from "@testing-library/user-event";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -167,7 +186,18 @@ const ALL_ON_SUMMARY: string =
 const RIGHT_AWAY_SUMMARY: string =
   "Shown on its status pages as soon as it is saved.";
 
+// With a status page picked that shows maintenance events and notifies.
 const SECTION_LINE: string = `${RIGHT_AWAY_SUMMARY} ${ALL_ON_SUMMARY}`;
+
+// With no status page picked: what a new event starts with (#9920).
+const NO_PAGE_LINE: string = `${MaintenanceStatusPagesCopy.notShownWarning} ${MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED}`;
+
+/*
+ * What the server answers about the pages picked (#9920), and what it was
+ * asked: a page that notifies, unless a test says otherwise.
+ */
+let reachAnswer: ScheduledMaintenanceReachAnswer = MAINTENANCE_NOTIFIES;
+let reachAsks: Array<ScheduledMaintenanceReachAsk> = [];
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route(
@@ -243,6 +273,7 @@ function makeTemplate(): ScheduledMaintenanceTemplate {
   template.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
     true;
   template.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded = true;
+  template.statusPages = [makeStatusPage()];
   return template;
 }
 
@@ -377,6 +408,34 @@ function sectionHeader(title: string): HTMLElement {
   return screen.getByRole("button", { name: title });
 }
 
+// Picks the status page in the picker, as a person does.
+async function pickStatusPage(): Promise<void> {
+  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+  await user.click(
+    screen.getByRole("combobox", {
+      name: new RegExp(inPageLanguage("Show event on these status pages")),
+    }),
+  );
+  await user.click(
+    await screen.findByRole("option", { name: /Acme Public Status/ }),
+  );
+}
+
+// The folded section's line, as drawn.
+function sectionLine(): string {
+  return (
+    screen.getByTestId("collapsible-section-summary").textContent || ""
+  ).trim();
+}
+
+// The line, once the server's answer about the pages picked is drawn.
+async function lineBecomes(line: string): Promise<void> {
+  await waitFor(() => {
+    expect(sectionLine()).toBe(line);
+  });
+}
+
 // What a folded section holds: the body its header controls.
 function sectionBody(header: HTMLElement): HTMLElement {
   return document.getElementById(header.getAttribute("aria-controls")!)!;
@@ -430,6 +489,13 @@ beforeEach(() => {
 
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
   OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+  reachAnswer = MAINTENANCE_NOTIFIES;
+  reachAsks = answerScheduledMaintenanceReach(
+    (): ScheduledMaintenanceReachAnswer => {
+      return reachAnswer;
+    },
+  );
 
   jest
     .spyOn(Navigation, "getQueryStringByName")
@@ -660,12 +726,17 @@ describe("Create Maintenance Event", () => {
       "Subscriber Notifications",
     );
 
+    /*
+     * A new event starts on no status page: the line says so, and that
+     * nobody is told - there is nothing to ask the server yet (#9920).
+     */
     expect(notifications).toHaveAttribute("aria-expanded", "false");
-    expect(notifications).toHaveAccessibleDescription(SECTION_LINE);
+    expect(notifications).toHaveAccessibleDescription(NO_PAGE_LINE);
     expect(screen.getByTestId("collapsible-section-summary")).toBeVisible();
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
-      SECTION_LINE,
+      NO_PAGE_LINE,
     );
+    expect(reachAsks).toEqual([]);
     // Folded, the switches are out of sight and out of the tab order.
     expect(
       screen.getByRole("checkbox", {
@@ -715,6 +786,8 @@ describe("Create Maintenance Event", () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
+    await pickStatusPage();
+    await lineBecomes(SECTION_LINE);
 
     const notifications: HTMLElement = sectionHeader(
       "Subscriber Notifications",
@@ -771,6 +844,8 @@ describe("Create Maintenance Event", () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
+    await pickStatusPage();
+    await lineBecomes(SECTION_LINE);
     await goToNextStep("Summary");
 
     for (const heading of ["Maintenance Details", "Resources Affected"]) {
@@ -826,9 +901,15 @@ describe("Create Maintenance Event", () => {
 
     fireEvent.click(notifications);
 
-    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
-      "Subscribers of the event's status pages are notified when it starts and when it ends.",
-    );
+    // The template's status page shows maintenance events and notifies.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("collapsible-section-summary"),
+      ).toHaveTextContent(
+        "Subscribers of the event's status pages are notified when it starts and when it ends.",
+      );
+    });
+    expect(reachAsks[0]!.statusPageIds).toEqual([STATUS_PAGE_ID]);
   });
 
   /*
@@ -909,7 +990,11 @@ describe("Create Maintenance Event", () => {
       expect(currentStepTitle()).toBe(german_("Resources Affected"));
     });
 
-    const summary: string = getSubscriberNotificationSummary({})
+    // No page picked yet: that it appears on none, and nobody is told.
+    const summary: string = [
+      MaintenanceStatusPagesCopy.notShownWarning,
+      MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED,
+    ]
       .map((sentence: string): string => {
         return german_(sentence);
       })
@@ -938,10 +1023,13 @@ describe("Create Maintenance Event: when it is published", () => {
   const BEFORE_THE_START: string = "2026-10-03T09:45";
   const AFTER_THE_START: string = "2026-10-03T10:30";
 
+  // With a status page picked that shows maintenance events and notifies.
   async function openSubscriberNotifications(): Promise<HTMLElement> {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
+    await pickStatusPage();
+    await lineBecomes(SECTION_LINE);
 
     const notifications: HTMLElement = sectionHeader(
       "Subscriber Notifications",
@@ -1177,10 +1265,13 @@ describe("Create Maintenance Event: when it is published", () => {
     await waitFor(() => {
       expect(currentStepTitle()).toBe(german_("Resources Affected"));
     });
+    await pickStatusPage();
 
-    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
-      german_(RIGHT_AWAY_SUMMARY),
-    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("collapsible-section-summary"),
+      ).toHaveTextContent(german_(RIGHT_AWAY_SUMMARY));
+    });
     expect(german_(RIGHT_AWAY_SUMMARY)).not.toBe(RIGHT_AWAY_SUMMARY);
 
     fireEvent.click(
@@ -1202,5 +1293,158 @@ describe("Create Maintenance Event: when it is published", () => {
         name: german_("At a date and time"),
       }),
     ).not.toBeChecked();
+  });
+});
+
+/*
+ * #9920: the line, the review step and the notes under the boxes say what
+ * the status pages picked and the event's own settings will do - asked of
+ * the server for the pages (POST /scheduled-maintenance/reach), worked out
+ * from the form's values for the rest. That each answer is what the jobs
+ * do is App/Tests/Workers/Jobs/ScheduledMaintenance
+ * /SubscriberNotificationsAsTheFormSays's; here, that the form draws it.
+ */
+describe("Create Maintenance Event: what the status pages picked will do", () => {
+  async function toResourcesAffected(): Promise<void> {
+    await renderPage();
+    await typeTitle("Database upgrade");
+    await goToNextStep("Resources Affected");
+  }
+
+  function openSection(): void {
+    fireEvent.click(sectionHeader("Subscriber Notifications"));
+  }
+
+  test("a page picked is asked about once, by its id, with the project's header, as a new event", async () => {
+    await toResourcesAffected();
+    await pickStatusPage();
+    await lineBecomes(SECTION_LINE);
+
+    expect(reachAsks).toHaveLength(1);
+    expect(reachAsks[0]!.route).toBe("/scheduled-maintenance/reach");
+    expect(reachAsks[0]!.statusPageIds).toEqual([STATUS_PAGE_ID]);
+    expect(reachAsks[0]!.recordId).toBeNull();
+  });
+
+  test("the pages picked hide maintenance events: the line says so in place of when it shows, and the note under the boxes says why", async () => {
+    reachAnswer = maintenanceNothingSent(
+      PublicNoteNothingSentReason.NoStatusPages,
+    );
+
+    await toResourcesAffected();
+    await pickStatusPage();
+    await lineBecomes(
+      `${MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED} ${MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED}`,
+    );
+
+    openSection();
+
+    expect(
+      await screen.findByTestId(MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID),
+    ).toHaveTextContent(MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED);
+  });
+
+  test("the pages picked send nothing: when it shows, then that they send nothing; the note says it too", async () => {
+    reachAnswer = maintenanceNothingSent(
+      PublicNoteNothingSentReason.NotificationsOff,
+    );
+
+    await toResourcesAffected();
+    await pickStatusPage();
+    await lineBecomes(
+      `${RIGHT_AWAY_SUMMARY} ${MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY}`,
+    );
+
+    openSection();
+
+    expect(
+      await screen.findByTestId(MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID),
+    ).toHaveTextContent(MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY);
+  });
+
+  test("the review step says the same of the pages picked, read from the answer the step before it was given", async () => {
+    reachAnswer = maintenanceNothingSent(
+      PublicNoteNothingSentReason.NotificationsOff,
+    );
+
+    await toResourcesAffected();
+    await pickStatusPage();
+    await lineBecomes(
+      `${RIGHT_AWAY_SUMMARY} ${MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY}`,
+    );
+    await goToNextStep("Summary");
+
+    expect(
+      within(form()).getByTestId("form-summary-section-summary"),
+    ).toHaveTextContent(
+      `${RIGHT_AWAY_SUMMARY} ${MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY}`,
+    );
+    expect(
+      within(form()).getByTestId("form-summary-section-summary"),
+    ).not.toHaveTextContent(ALL_ON_SUMMARY);
+    // Asked once: the review read what the step before it was answered.
+    expect(reachAsks).toHaveLength(1);
+  });
+
+  test("not known yet: no promise either way", async () => {
+    reachAnswer = "never";
+
+    await toResourcesAffected();
+    await pickStatusPage();
+    await lineBecomes(
+      `${RIGHT_AWAY_SUMMARY} ${MAINTENANCE_NOTIFICATIONS_DEPEND_ON_PAGES}`,
+    );
+    expect(sectionLine()).not.toContain(ALL_ON_SUMMARY);
+
+    openSection();
+
+    expect(
+      screen.queryByTestId(MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("no page picked: the note under the boxes says the event will not appear on any status page", async () => {
+    await toResourcesAffected();
+    openSection();
+
+    expect(
+      screen.getByTestId(MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID),
+    ).toHaveTextContent(MaintenanceStatusPagesCopy.notShownWarning);
+    expect(reachAsks).toEqual([]);
+  });
+
+  test("a page that notifies: no note under the boxes", async () => {
+    await toResourcesAffected();
+    await pickStatusPage();
+    await lineBecomes(SECTION_LINE);
+    openSection();
+    await act(async () => {});
+
+    expect(
+      screen.queryByTestId(MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(MAINTENANCE_REMINDERS_REASON_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("the form is saved all the same: the answer is advisory", async () => {
+    reachAnswer = maintenanceNothingSent(
+      PublicNoteNothingSentReason.NoStatusPages,
+    );
+
+    await toResourcesAffected();
+    await pickStatusPage();
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      (createdModel().statusPages || []).map((page: StatusPage): string => {
+        return String(page._id || page);
+      }),
+    ).toEqual([STATUS_PAGE_ID]);
   });
 });

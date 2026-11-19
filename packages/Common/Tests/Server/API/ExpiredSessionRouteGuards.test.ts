@@ -10,6 +10,7 @@ import IncidentEpisodeAPI from "../../../Server/API/IncidentEpisodeAPI";
 import NotificationRouter from "../../../Server/API/NotificationAPI";
 import ProjectAPI from "../../../Server/API/ProjectAPI";
 import ScheduledMaintenanceAPI from "../../../Server/API/ScheduledMaintenanceAPI";
+import ScheduledMaintenanceTemplateAPI from "../../../Server/API/ScheduledMaintenanceTemplateAPI";
 import StatusPageAnnouncementAPI from "../../../Server/API/StatusPageAnnouncementAPI";
 import TeamMemberAPI from "../../../Server/API/TeamMemberAPI";
 import UserCallAPI from "../../../Server/API/UserCallAPI";
@@ -377,6 +378,22 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     uri: "/status-page-announcement/reach",
     registeredBy: "StatusPageAnnouncementAPI",
   },
+
+  /*
+   * Whether a maintenance event, or an event made from a maintenance
+   * template, on the status pages picked on its form shows and notifies
+   * anyone: what their Subscriber Notifications line says (#9920).
+   */
+  {
+    method: "POST",
+    uri: "/scheduled-maintenance/reach",
+    registeredBy: "ScheduledMaintenanceAPI",
+  },
+  {
+    method: "POST",
+    uri: "/scheduled-maintenance-template/reach",
+    registeredBy: "ScheduledMaintenanceTemplateAPI",
+  },
 ];
 
 type RecordedRoute = ReturnType<typeof mockRouter.match>;
@@ -439,6 +456,7 @@ beforeAll(() => {
   new AlertAPI();
   new AlertEpisodeAPI();
   new ScheduledMaintenanceAPI();
+  new ScheduledMaintenanceTemplateAPI();
   new StatusPageAnnouncementAPI();
 
   capture.mockRestore();

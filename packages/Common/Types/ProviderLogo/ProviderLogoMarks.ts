@@ -78,6 +78,7 @@ export const PROVIDER_LOGO_MARK_BOXES: Readonly<
   [ProviderLogo.FluentBit]: "0 3.516 24 16.967",
   [ProviderLogo.Fluentd]: "0 2.194 24 19.611",
   [ProviderLogo.Kubernetes]: "0 0.356 24.001 23.289",
+  [ProviderLogo.Android]: "0 5.008 24 13.982",
   [ProviderLogo.NodeJs]: "1.358 -0.001 21.283 24.001",
   [ProviderLogo.Python]: "-0.06 0 24.121 24",
   [ProviderLogo.Go]: "-0.001 7.516 24.002 8.967",

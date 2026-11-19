@@ -248,6 +248,17 @@ export interface TerraformAttribute {
    * Terraform created; an imported one has none.
    */
   shownOnce?: boolean;
+  /*
+   * The attribute whose new value a change of this one needs in the same
+   * apply (the spec's x-oneuptime-changes-only-with): a monitor secret's
+   * secret_type changes only together with a new secret_value, which
+   * OneUptime reads for the new type. The parser reads the API's name of
+   * that attribute and resolves it to its Terraform name once the
+   * resource's schema is known; the resource's ModifyPlan then refuses a
+   * plan that changes this attribute and keeps that one, before anything
+   * is written (StaticFiles/changestogether.go, #9814).
+   */
+  changesOnlyWith?: string | undefined;
   forceNew?: boolean;
   default?: any;
   apiFieldName?: string; // Original OpenAPI field name for API requests
