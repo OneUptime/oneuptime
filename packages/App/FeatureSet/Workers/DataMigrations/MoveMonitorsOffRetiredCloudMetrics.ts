@@ -7,6 +7,7 @@ import DatabaseService from "Common/Server/Services/DatabaseService";
 import MonitorFeedService from "Common/Server/Services/MonitorFeedService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import CloudResourceMetrics from "Common/Server/Utils/CloudConnection/CloudResourceMetrics";
+import CloudRetiredMetricReads from "Common/Server/Utils/CloudConnection/CloudRetiredMetricReads";
 import logger from "Common/Server/Utils/Logger";
 import { Gray500, Yellow500 } from "Common/Types/BrandColors";
 import {
@@ -64,8 +65,14 @@ import {
  * Each monitor moved says what changed in its feed, and asks for a review.
  * A query left as it is - one of a response code, a count of points, a
  * threshold in a unit of its own, a formula it could not read, an account
- * that reported neither latency - says in its feed what to read instead:
- * it reads nothing new from this release.
+ * that reported neither latency - says in its feed what to read instead.
+ * It is not left with nothing to judge: the connection keeps reading the
+ * deprecated metric of the resources such a query reads, for as long as
+ * one does (CloudRetiredMetricReads), and its Metrics card says so. Every
+ * hour the same move is tried again (moveAll, from the job
+ * MoveOffRetiredCloudMetrics), with the same rules and the same compare-
+ * and-set: a Cosmos DB account that reported neither latency when this
+ * ran - idle, or new - moves once it reports one, and its feed says so.
  *
  * Postgres and the metric store's reads only. A row is written only while
  * it still holds what was read, so a save made meanwhile is never
@@ -108,7 +115,7 @@ export type CosmosLatencyEvidenceFinder = (data: {
 }) => Promise<CosmosLatencyEvidence | null>;
 
 // The rows an `UPDATE ... RETURNING` touched, however the driver shapes them.
-function countWrittenRows(result: unknown): number {
+export function countWrittenRows(result: unknown): number {
   if (!Array.isArray(result)) {
     return 0;
   }
@@ -259,6 +266,17 @@ export default class MoveMonitorsOffRetiredCloudMetrics extends DataMigrationBas
   }
 
   public override async migrate(): Promise<void> {
+    await MoveMonitorsOffRetiredCloudMetrics.moveAll({ tellKept: true });
+  }
+
+  /*
+   * Every Metrics monitor still on a deprecated metric, moved where it can
+   * be. `tellKept`: whether a monitor none of whose queries moved is told
+   * it stays (the migration, once); the hourly job tells only a move.
+   */
+  public static async moveAll(options: {
+    tellKept: boolean;
+  }): Promise<{ moved: number; kept: number; failed: number }> {
     const repository: ModelRepository = (
       MonitorService as unknown as DatabaseService<BaseModel>
     ).getRepository();
@@ -296,6 +314,7 @@ export default class MoveMonitorsOffRetiredCloudMetrics extends DataMigrationBas
               repository,
               tableName,
               row,
+              tellKept: options.tellKept,
             });
 
           if (outcome) {
@@ -322,11 +341,15 @@ export default class MoveMonitorsOffRetiredCloudMetrics extends DataMigrationBas
       lastId = rows[rows.length - 1]!._id;
     }
 
-    logger.info(
-      `MoveMonitorsOffRetiredCloudMetrics: ${moved} monitor(s) moved off a metric their cloud deprecates; ${kept} left on one, each told what to read instead${
-        failed ? `; ${failed} could not be read or written` : ""
-      }.`,
-    );
+    if (options.tellKept || moved > 0 || failed > 0) {
+      logger.info(
+        `MoveMonitorsOffRetiredCloudMetrics: ${moved} monitor(s) moved off a metric their cloud deprecates; ${kept} left on one, still read for it${
+          failed ? `; ${failed} could not be read or written` : ""
+        }.`,
+      );
+    }
+
+    return { moved, kept, failed };
   }
 
   public override async rollback(): Promise<void> {
@@ -345,6 +368,7 @@ export default class MoveMonitorsOffRetiredCloudMetrics extends DataMigrationBas
     repository: ModelRepository;
     tableName: string;
     row: MonitorRow;
+    tellKept: boolean;
   }): Promise<RetiredCloudMetricOutcome | null> {
     const stored: JSONObject | null = MoveMonitorsOffRetiredCloudMetrics.parse(
       data.row.monitorSteps,
@@ -419,6 +443,14 @@ export default class MoveMonitorsOffRetiredCloudMetrics extends DataMigrationBas
       if (countWrittenRows(written) === 0) {
         return null;
       }
+
+      // Its connections stop reading the deprecated metric for it at their next read.
+      CloudRetiredMetricReads.forget(projectId);
+    }
+
+    // The hourly job tells a move; that a query stays was told once.
+    if (!data.tellKept && outcome.moved.length === 0) {
+      return outcome;
     }
 
     try {
@@ -469,7 +501,7 @@ export default class MoveMonitorsOffRetiredCloudMetrics extends DataMigrationBas
 
     const heading: MarkdownText =
       outcome.kept.length > 0
-        ? mdText`⚠️ **This monitor reads a metric its cloud deprecates, which OneUptime no longer reads.**`
+        ? mdText`⚠️ **This monitor reads a metric its cloud deprecates.**`
         : mdText`📊 **This monitor now reads what replaces a metric its cloud deprecates.**`;
 
     return mdText`${heading}
@@ -525,7 +557,11 @@ Review its criteria: its thresholds were set against the metric it read before.`
     );
     const why: string = MoveMonitorsOffRetiredCloudMetrics.whyKept(kept.reason);
 
-    return mdText`${FeedMarkdown.code(kept.metricName)} is left as it is: ${why}. Edit the monitor to read ${replacements} instead.`;
+    if (kept.reason === RetiredCloudMetricKeptReason.ConnectionModeUnknown) {
+      return mdText`${FeedMarkdown.code(kept.metricName)} is left as it is: ${why}. OneUptime keeps reading it for this monitor, and moves the monitor to ${replacements} once the account reports one of them.`;
+    }
+
+    return mdText`${FeedMarkdown.code(kept.metricName)} is left as it is: ${why}. OneUptime keeps reading it for this monitor while its cloud publishes it: edit the monitor to read ${replacements} instead.`;
   }
 
   private static whyKept(reason: RetiredCloudMetricKeptReason): string {
