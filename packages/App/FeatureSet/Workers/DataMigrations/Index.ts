@@ -1465,7 +1465,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   /*
    * Ties the Ping, IP, Port, NTP, Website, API and SSL Certificate monitors
    * people made before issue #9545 to the network device they check
-   * (Monitor.networkDeviceId, added by AddMonitorNetworkDevice1809184736000),
+   * (Monitor.networkDeviceId, added by AddMonitorNetworkDeviceId1809184736000),
    * when exactly one device in the project is at the address every step
    * checks - the rule a monitor created today is tied by. Postgres only,
    * idempotent, a page of monitors at a time by id; before the last slot

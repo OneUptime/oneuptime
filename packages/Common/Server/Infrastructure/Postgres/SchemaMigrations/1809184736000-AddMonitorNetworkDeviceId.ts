@@ -11,15 +11,15 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration. A nullable column with
  * no default: adding it rewrites nothing and reads no row. Its index and
  * foreign key are built online, apart, in
- * AddMonitorNetworkDeviceIndexAndKey1809184736100: "Monitor" is written by
+ * AddMonitorNetworkDeviceIdIndexAndKey1809184736100: "Monitor" is written by
  * every probe result, so neither may block its writers
  * (Docs/migrations/README.md). Existing monitors are tied once by the
  * LinkMonitorsToTheirNetworkDevices data migration.
  */
-export class AddMonitorNetworkDevice1809184736000
+export class AddMonitorNetworkDeviceId1809184736000
   implements MigrationInterface
 {
-  public name: string = "AddMonitorNetworkDevice1809184736000";
+  public name: string = "AddMonitorNetworkDeviceId1809184736000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "Monitor" ADD "networkDeviceId" uuid`);
