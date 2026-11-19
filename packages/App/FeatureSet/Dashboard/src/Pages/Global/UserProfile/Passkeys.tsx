@@ -10,7 +10,12 @@ import { LocalSignInSettings } from "../../../Components/UserProfile/SignInManag
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Passkeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
+/*
+ * The person's passkeys, and the backup codes the first one comes with.
+ * Drawn only for somebody who manages their own sign-in, so nothing of it is
+ * read for somebody whose organization manages theirs (#9688).
+ */
+const PasskeySettings: FunctionComponent = (): ReactElement => {
   const [enrolmentBackupCodes, setEnrolmentBackupCodes] = React.useState<
     Array<string>
   >([]);
@@ -31,27 +36,35 @@ const Passkeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   return (
+    <>
+      <WebAuthnCredentials
+        isPasskey={true}
+        onBackupCodes={setEnrolmentBackupCodes}
+        onRegistered={refreshSetup}
+        onDeleted={refreshSetup}
+        getDeleteDisabledReason={(item: UserWebAuthn) => {
+          return getSecondStepDeleteDisabledReason({
+            setup: twoFactorAuth.setup,
+            isVerified: item.isVerified,
+          });
+        }}
+      />
+      <BackupCodes
+        hideCard={true}
+        codesFromEnrolment={enrolmentBackupCodes}
+        onEnrolmentCodesAcknowledged={() => {
+          setEnrolmentBackupCodes([]);
+        }}
+      />
+    </>
+  );
+};
+
+const Passkeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return (
     <div className="w-full min-w-0">
       <LocalSignInSettings>
-        <WebAuthnCredentials
-          isPasskey={true}
-          onBackupCodes={setEnrolmentBackupCodes}
-          onRegistered={refreshSetup}
-          onDeleted={refreshSetup}
-          getDeleteDisabledReason={(item: UserWebAuthn) => {
-            return getSecondStepDeleteDisabledReason({
-              setup: twoFactorAuth.setup,
-              isVerified: item.isVerified,
-            });
-          }}
-        />
-        <BackupCodes
-          hideCard={true}
-          codesFromEnrolment={enrolmentBackupCodes}
-          onEnrolmentCodesAcknowledged={() => {
-            setEnrolmentBackupCodes([]);
-          }}
-        />
+        <PasskeySettings />
       </LocalSignInSettings>
     </div>
   );
