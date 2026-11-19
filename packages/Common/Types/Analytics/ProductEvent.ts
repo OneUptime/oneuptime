@@ -78,6 +78,11 @@ export enum ProductEventName {
   // Ask AI.
   AskAiQuestionAsked = "ask_ai/question_asked",
   AskAiAnswerRated = "ask_ai/answer_rated",
+  /*
+   * An answer said "The docs do not cover this." (#7064): a docs page to
+   * write. Never the question: the docs pages it read.
+   */
+  AskAiDocsNotCovered = "ask_ai/docs_not_covered",
 
   // Ask AI sets things up (#6829): a plan proposed, approved, then tested.
   AskAiSetupProposed = "ask_ai/setup_proposed",
@@ -400,8 +405,21 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.AskAiAnswerRated,
     description:
-      "An Ask AI answer was rated helpful or not helpful, or its rating was cleared.",
-    properties: [token("rating")],
+      "An Ask AI answer was rated helpful or not helpful, or its rating was cleared, and what kind of answer it was (kind: docs, data, docs_and_data, setup, none), read from the tools it ran (#7064).",
+    properties: [token("rating"), token("kind")],
+  },
+  {
+    name: ProductEventName.AskAiDocsNotCovered,
+    description:
+      'An Ask AI answer written while the person watched said "The docs do not cover this.", in any language (#7064): the docs page it read first (page, its address under /docs/ without its language), and how many it read (page_count). Never the question or the answer.',
+    properties: [
+      {
+        name: "page",
+        isToken: true,
+        maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
+      },
+      { name: "page_count" },
+    ],
   },
   {
     name: ProductEventName.AskAiSetupProposed,
@@ -462,7 +480,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.DocsLinkOpened,
     description:
-      'A docs page was opened from the product: a "Learn more" link (source learn_more), a list\'s View Documentation (view_documentation) or a docs result of Search (search). The page is its address under /docs/, without its language or anchor.',
+      'A docs page was opened from the product: a "Learn more" link (source learn_more), a list\'s View Documentation (view_documentation), a docs result of Search (search) or one Ask AI showed for a question it could not answer (ask_ai_unavailable, #7063). The page is its address under /docs/, without its language or anchor.',
     properties: [
       {
         name: "page",

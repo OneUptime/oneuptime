@@ -55,6 +55,8 @@ function outcomes(overrides: Partial<AiOutcomes> = {}): AiOutcomes {
     remediationFixes: null,
     pullRequestFixes: null,
     rootCauses: null,
+    // Counted by model since #7762: none unless a test gives some.
+    models: null,
     weeks: [],
     isPartial: false,
     ...overrides,

@@ -207,9 +207,12 @@ the table in the run's summary. It runs only once a maintainer adds the model's 
   anything for a request no setup action answers, proposes `set_up_paging` in a project that pages people already,
   asks a question in place of a plan, or asks for a phone number.
 - **How-do-I questions** (`packages/App/Tests/FeatureSet/Docs/AskAiHowDoIQuestions.ts`, #7066): the English ones,
-  the German and Persian ones, and three the docs do not cover. A question passes when the answer cites the docs page
-  that answers it (or another the list names) and, when it is done on a Dashboard page, ends with that page's **Go
-  to** button. A question the docs do not cover passes when the answer says "The docs do not cover this."
+  the German and Persian ones, three the docs do not cover, and ten asked on a page (#7062, #7065), each with the
+  context that page sends: a status page, a monitor, an on-call policy, Home, a settings page, On-Call, Status Pages
+  and Create Monitor. A question passes when the answer cites the docs page that answers it (or another the list
+  names) and, when it is done on a Dashboard page, ends with that page's **Go to** button. Asked on a record, the
+  button must open that record's own page, such as this status page's **Custom Domains**. A question the docs do not
+  cover passes when the answer says "The docs do not cover this."
 
 Nothing reads a database and no action runs: the setup actions' checks before the card read the project from the
 eval, the docs tools read the docs in this repository, and a plan stops at its card (`AskAiEvalTurn`).

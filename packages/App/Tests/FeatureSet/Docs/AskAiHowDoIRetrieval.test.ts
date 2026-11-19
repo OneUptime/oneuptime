@@ -3,17 +3,31 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   ASK_AI_HOW_DO_I_QUESTIONS,
   ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
+  ASK_AI_PAGE_CONTEXT_QUESTIONS,
   ASK_AI_QUESTIONS_BY_LANGUAGE,
   ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
   ASK_AI_WEBSITE_QUESTIONS,
   AskAiHowDoIQuestion,
   AskAiHowDoIQuestionTranslated,
+  AskAiPageContextQuestion,
 } from "./AskAiHowDoIQuestions";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  getPageContextPage,
+  PageContextPage,
+  RECORD_KIND_OF_PAGE_CONTEXT,
+} from "Common/Server/Utils/AI/Chat/PageContextPage";
 import { AIDocsSearchHit } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DashboardPageFinder, {
   AIDashboardPage,
 } from "Common/Server/Utils/AI/Docs/DashboardPageFinder";
+import DashboardRecordPageFinder from "Common/Server/Utils/AI/Docs/DashboardRecordPageFinder";
+import { AIChatPageContextHelper } from "Common/Types/AI/AIChatPageContext";
+import {
+  AskAiRecordKind,
+  AskAiRecordPage,
+} from "Common/Types/AI/AskAiRecordPages";
+import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, jest, test } from "@jest/globals";
 import path from "path";
 
@@ -100,7 +114,11 @@ describe("Ask AI's how-do-I list", () => {
   test("holds about forty questions, each with a docs page that is in the docs", () => {
     expect(ASK_AI_HOW_DO_I_QUESTIONS.length).toBeGreaterThanOrEqual(40);
 
-    for (const entry of [...ASK_AI_HOW_DO_I_QUESTIONS, ...TRANSLATED]) {
+    for (const entry of [
+      ...ASK_AI_HOW_DO_I_QUESTIONS,
+      ...TRANSLATED,
+      ...ASK_AI_PAGE_CONTEXT_QUESTIONS,
+    ]) {
       for (const page of answeringPages(entry)) {
         expect(NAV_PAGES.has(page)).toBe(true);
       }
@@ -243,6 +261,148 @@ describe("Ask AI's how-do-I list", () => {
       if (dashboardPath) {
         expect(found?.path.split(/[?#]/)[0]).toBe(dashboardPath);
       }
+    },
+  );
+});
+
+/*
+ * QUESTIONS ASKED ON A PAGE (#7062, #7065), OFFLINE.
+ *
+ * Each is asked with the context its page sends. The server takes that
+ * context as it is and names its page from its own catalogs, the docs
+ * search finds the page that answers the question once the page's subject
+ * is in its words, and the Go to button opens the page it should: on a
+ * record, that record's own page.
+ */
+
+// The record kind a context's page is of, when it is one record's page.
+const recordKindOf: (
+  entry: AskAiPageContextQuestion,
+) => AskAiRecordKind | undefined = (
+  entry: AskAiPageContextQuestion,
+): AskAiRecordKind | undefined => {
+  return RECORD_KIND_OF_PAGE_CONTEXT[entry.pageContext.type];
+};
+
+describe("Ask AI's questions asked on a page", () => {
+  test("ask on records, setup pages and a create form, each question once", () => {
+    const questions: Array<string> = ASK_AI_PAGE_CONTEXT_QUESTIONS.map(
+      (entry: AskAiPageContextQuestion): string => {
+        return `${entry.where} ${entry.question}`;
+      },
+    );
+
+    expect(new Set<string>(questions).size).toBe(questions.length);
+    expect(
+      ASK_AI_PAGE_CONTEXT_QUESTIONS.filter(
+        (entry: AskAiPageContextQuestion): boolean => {
+          return Boolean(recordKindOf(entry));
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      ASK_AI_PAGE_CONTEXT_QUESTIONS.filter(
+        (entry: AskAiPageContextQuestion): boolean => {
+          return !recordKindOf(entry);
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(5);
+  });
+
+  test.each(
+    ASK_AI_PAGE_CONTEXT_QUESTIONS.map(
+      (entry: AskAiPageContextQuestion): [string, AskAiPageContextQuestion] => {
+        return [entry.where, entry];
+      },
+    ),
+  )(
+    "on %s, the context is one the server keeps whole, and it names the page as its menu does",
+    (_where: string, entry: AskAiPageContextQuestion) => {
+      // As the Dashboard sends it, through the API's own sanitizer.
+      expect(
+        AIChatPageContextHelper.sanitize(
+          JSON.parse(JSON.stringify(entry.pageContext)) as JSONObject,
+        ),
+      ).toEqual({
+        type: entry.pageContext.type,
+        page: entry.pageContext.page,
+        ...(entry.pageContext.entityId
+          ? { entityId: entry.pageContext.entityId }
+          : {}),
+        ...(entry.pageContext.entityTitle
+          ? { entityTitle: entry.pageContext.entityTitle }
+          : {}),
+      });
+
+      const page: PageContextPage | null = getPageContextPage(
+        entry.pageContext,
+      );
+
+      expect(page?.menuPath).toBe(entry.onPage);
+    },
+  );
+
+  test.each(
+    ASK_AI_PAGE_CONTEXT_QUESTIONS.map(
+      (entry: AskAiPageContextQuestion): [string, string, string] => {
+        return [entry.where, entry.question, entry.searchWords];
+      },
+    ),
+  )(
+    'on %s, search_docs shows a page that answers "%s" (searched as "%s")',
+    async (_where: string, question: string, searchWords: string) => {
+      const entry: AskAiPageContextQuestion =
+        ASK_AI_PAGE_CONTEXT_QUESTIONS.find(
+          (candidate: AskAiPageContextQuestion): boolean => {
+            return candidate.question === question;
+          },
+        )!;
+      const shown: Array<string> = await shownPages(searchWords, "en");
+
+      expect(
+        shown.filter((page: string): boolean => {
+          return answeringPages(entry).includes(page);
+        }),
+      ).not.toEqual([]);
+    },
+  );
+
+  test.each(
+    ASK_AI_PAGE_CONTEXT_QUESTIONS.filter(
+      (entry: AskAiPageContextQuestion): boolean => {
+        return Boolean(entry.dashboardPage);
+      },
+    ).map((entry: AskAiPageContextQuestion): [string, string, string] => {
+      return [entry.where, entry.dashboardPage!, entry.dashboardPath || ""];
+    }),
+  )(
+    'on %s, find_dashboard_page opens "%s"',
+    (where: string, dashboardPage: string, dashboardPath: string) => {
+      const entry: AskAiPageContextQuestion =
+        ASK_AI_PAGE_CONTEXT_QUESTIONS.find(
+          (candidate: AskAiPageContextQuestion): boolean => {
+            return candidate.where === where;
+          },
+        )!;
+      const kind: AskAiRecordKind | undefined = recordKindOf(entry);
+
+      // On a record, its own page: the one its menu names so.
+      const found: AskAiRecordPage | AIDashboardPage | undefined = kind
+        ? DashboardRecordPageFinder.find({
+            kind,
+            query: dashboardPage,
+            limit: 1,
+          })[0]
+        : DashboardPageFinder.find({
+            query: dashboardPage,
+            limit: 1,
+            isBillingEnabled: true,
+          })[0];
+
+      expect({ title: found?.title, path: found?.path }).toEqual({
+        title: dashboardPage,
+        path: dashboardPath,
+      });
     },
   );
 });

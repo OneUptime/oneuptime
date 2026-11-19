@@ -30,7 +30,7 @@ En mode **Lecture seule**, les actions ne sont jamais proposées au modèle : la
 
 Demander à l'IA répond aussi aux questions sur OneUptime lui-même : « Comment recevoir un SMS quand mon site tombe ? », « Qu'est-ce qu'un épisode ? », « Où ajouter un deuxième numéro de téléphone ? ». Ses réponses viennent de cette documentation, la copie que sert votre OneUptime : cela fonctionne sans accès à Internet et n'envoie rien à un nouvel endroit. Il lit une page dans votre langue quand elle est traduite, cite la page et la section de chaque étape, et dit que la documentation ne couvre pas un point plutôt que de deviner.
 
-Une réponse à « comment faire » se termine par un bouton qui ouvre la page de votre projet où vous le faites, comme **Créer un moniteur** ou **Méthodes de notification**. Il n'ouvre que des pages qu'OneUptime possède : celles que trouve la recherche (`Ctrl` + `K`).
+Une réponse à « comment faire » se termine par un bouton qui ouvre la page de votre projet où vous le faites, comme **Créer un moniteur** ou **Méthodes de notification**. Il n'ouvre que des pages qu'OneUptime possède : celles que trouve la recherche (`Ctrl` + `K`). Pour une question sur un seul élément, comme une page de statut, il ouvre la page propre à cet élément, comme ses **Domaines personnalisés**, et seulement pour un élément que vous pouvez ouvrir.
 
 ## Ouvrir Demander à l'IA
 
@@ -60,7 +60,7 @@ Demander à l'IA lit votre projet avec vos propres autorisations : il voit ce qu
 
 ## Contexte de la page
 
-Demander à l'IA sait depuis quelle page vous l'avez ouvert. Sur la page d'un incident, « pourquoi est-ce arrivé ? » désigne cet incident : la zone de saisie montre une puce avec le sujet de la page, et les questions qu'il suggère sont celles de cette page. Retirez la puce pour poser une question sur tout le projet, et remettez-la de la même façon. Ouvrez Demander à l'IA sur une autre page et le contexte vous suit. La conversation retient aussi son premier sujet sur le serveur, si bien qu'une relance des jours plus tard comprend toujours « cet incident ».
+Demander à l'IA sait depuis quelle page vous l'avez ouvert. Sur la page d'un incident, « pourquoi est-ce arrivé ? » désigne cet incident : la zone de saisie montre une puce avec le sujet de la page, et les questions qu'il suggère sont celles de cette page. Retirez la puce pour poser une question sur tout le projet, et remettez-la de la même façon. Ouvrez Demander à l'IA sur une autre page et le contexte vous suit. La conversation retient aussi son premier sujet sur le serveur, si bien qu'une relance des jours plus tard comprend toujours « cet incident ». Demander à l'IA connaît aussi les pages où vous configurez un projet : **Accueil**, **Paramètres du projet**, **Paramètres utilisateur**, **Astreinte**, **Pages de statut** et les formulaires qui créent quelque chose, si bien que « comment en ajouter un ici ? » reçoit une réponse pour la page où vous êtes.
 
 Sur un incident, une alerte, un moniteur ou un événement de maintenance, les questions suivent aussi l'état de cet enregistrement, lu chaque fois que Demander à l'IA s'ouvre dessus. Un incident résolu demande comment s'est déroulée la réponse et ce qui empêcherait qu'il se reproduise, une alerte résolue si c'était un vrai problème et à quelle fréquence des alertes comme elle se déclenchent, et un moniteur qui n'est pas opérationnel demande pourquoi. Un événement de maintenance qui n'a pas commencé demande si ses moniteurs sont sains avant son début, et un événement terminé s'ils sont revenus à la normale.
 
@@ -147,7 +147,7 @@ Demander à l'IA compte dans les limites quotidiennes d'IA propres au projet qua
 ## Dépannage
 
 :::details Demander à l'IA dit que l'IA n'est pas disponible
-Demander à l'IA dit pourquoi avant que vous ne tapiez : l'offre du projet n'inclut pas l'IA, **Activer l'IA** est coupé, ou le projet n'a aucun fournisseur LLM. Chaque avis renvoie à la page où cela se change.
+Demander à l'IA dit pourquoi avant que vous ne tapiez : l'offre du projet n'inclut pas l'IA, **Activer l'IA** est coupé, ou le projet n'a aucun fournisseur LLM. Chaque avis renvoie à la page où cela se change. Au-dessus de l'avis, Demander à l'IA cherche quand même votre question dans cette documentation. Une réponse qui échoue, à cause d'une limite quotidienne ou d'un fournisseur indisponible, affiche aussi en dessous les pages de la documentation sur sa question.
 :::
 
 :::details Une action a été refusée

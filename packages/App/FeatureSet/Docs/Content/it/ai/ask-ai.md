@@ -30,7 +30,7 @@ In modalità **Sola lettura** le azioni non vengono mai offerte al modello, quin
 
 Chiedi all'IA risponde anche a domande su OneUptime stesso: «Come ricevo un SMS quando il mio sito va giù?», «Che cos'è un episodio?», «Dove aggiungo un secondo numero di telefono?». Risponde da questa documentazione, la copia servita dal tuo OneUptime: funziona senza accesso a Internet e non invia nulla in posti nuovi. Legge una pagina nella tua lingua quando è tradotta, cita pagina e sezione per ogni passaggio e, invece di tirare a indovinare, dice quando la documentazione non tratta qualcosa.
 
-Una risposta a un «come faccio» termina con un pulsante che apre la pagina del tuo progetto in cui lo fai, come **Crea monitor** o **Metodi di notifica**. Apre solo pagine che OneUptime ha: quelle che trova la ricerca (`Ctrl` + `K`).
+Una risposta a un «come faccio» termina con un pulsante che apre la pagina del tuo progetto in cui lo fai, come **Crea monitor** o **Metodi di notifica**. Apre solo pagine che OneUptime ha: quelle che trova la ricerca (`Ctrl` + `K`). Se chiedi di un singolo record, come una pagina di stato, apre la pagina di quel record, come i suoi **Domini personalizzati**, e solo per un record che puoi aprire.
 
 ## Aprire Chiedi all'IA
 
@@ -60,7 +60,7 @@ Chiedi all'IA legge il progetto con i tuoi permessi, quindi vede ciò che puoi v
 
 ## Contesto della pagina
 
-Chiedi all'IA sa da quale pagina l'hai aperta. Sulla pagina di un incidente, "perché è successo?" significa quell'incidente: l'area di scrittura mostra un chip con l'oggetto della pagina, e le domande che suggerisce sono quelle di quella pagina. Rimuovi il chip per chiedere di tutto il progetto, e rimettilo allo stesso modo. Apri Chiedi all'IA su un'altra pagina e il contesto ti segue. La conversazione ricorda anche il suo primo oggetto sul server, così una domanda di giorni dopo capisce ancora "questo incidente".
+Chiedi all'IA sa da quale pagina l'hai aperta. Sulla pagina di un incidente, "perché è successo?" significa quell'incidente: l'area di scrittura mostra un chip con l'oggetto della pagina, e le domande che suggerisce sono quelle di quella pagina. Rimuovi il chip per chiedere di tutto il progetto, e rimettilo allo stesso modo. Apri Chiedi all'IA su un'altra pagina e il contesto ti segue. La conversazione ricorda anche il suo primo oggetto sul server, così una domanda di giorni dopo capisce ancora "questo incidente". Conosce anche le pagine in cui configuri un progetto: **Home**, **Impostazioni del progetto**, **Impostazioni utente**, **Reperibilità**, **Pagine di stato** e i moduli che creano qualcosa, così «come ne aggiungo uno qui?» ha una risposta per la pagina in cui sei.
 
 Su un incidente, un avviso, un monitor o un evento di manutenzione, le domande seguono anche lo stato di quel record, letto ogni volta che Chiedi all'IA si apre su di esso. Un incidente risolto chiede com'è andata la risposta e cosa impedirebbe che si ripeta, un avviso risolto se era un problema reale e quanto spesso scattano avvisi come quello, e un monitor non operativo chiede perché. Un evento di manutenzione non ancora iniziato chiede se i suoi monitor sono sani prima che inizi, e uno terminato se sono tornati alla normalità.
 
@@ -147,7 +147,7 @@ Chiedi all'IA conta nei limiti giornalieri di IA del progetto quando il progetto
 ## Risoluzione dei problemi
 
 :::details Chiedi all'IA dice che l'IA non è disponibile
-Chiedi all'IA dice il motivo prima che tu scriva: il piano del progetto non include l'IA, **Abilita IA** è spenta, oppure il progetto non ha un provider LLM. Ogni avviso rimanda alla pagina in cui si cambia.
+Chiedi all'IA dice il motivo prima che tu scriva: il piano del progetto non include l'IA, **Abilita IA** è spenta, oppure il progetto non ha un provider LLM. Ogni avviso rimanda alla pagina in cui si cambia. Sopra l'avviso, Chiedi all'IA cerca comunque la tua domanda in questa documentazione. Una risposta che non riesce, per un limite giornaliero o perché il provider non risponde, mostra sotto anche le pagine della documentazione sulla sua domanda.
 :::
 
 :::details Un'azione è stata rifiutata

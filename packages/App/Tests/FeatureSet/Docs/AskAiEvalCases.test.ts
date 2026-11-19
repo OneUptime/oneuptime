@@ -9,8 +9,14 @@ import {
   ASK_AI_HOW_DO_I_QUESTIONS,
   ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
   ASK_AI_NOT_COVERED_QUESTIONS,
+  ASK_AI_PAGE_CONTEXT_QUESTIONS,
 } from "./AskAiHowDoIQuestions";
-import { AskAiEvalProjectKind } from "Common/Server/Utils/AI/Eval/AskAi/AskAiEvalProject";
+import {
+  AskAiEvalNamedRecord,
+  AskAiEvalProject,
+  AskAiEvalProjectKind,
+  getAskAiEvalProject,
+} from "Common/Server/Utils/AI/Eval/AskAi/AskAiEvalProject";
 import { AskAiEvalSuite } from "Common/Server/Utils/AI/Eval/AskAi/AskAiEvalReport";
 import { EvalUsageError } from "Common/Server/Utils/AI/Eval/EvalCommandLine";
 import { ASK_AI_SETUP_REQUESTS } from "Common/Tests/Server/Utils/AI/AskAiSetupRequests";
@@ -57,14 +63,17 @@ describe("the cases the eval asks", () => {
     ]);
   });
 
-  test("every how-do-I question: in English, in German and Persian, and the ones the docs do not cover", () => {
+  test("every how-do-I question: in English, in German and Persian, the ones the docs do not cover, and the ones asked on a page", () => {
     const cases: Array<AskAiEvalCase> = getHowDoICases();
 
     expect(cases).toHaveLength(
       ASK_AI_HOW_DO_I_QUESTIONS.length +
         ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED.length +
-        ASK_AI_NOT_COVERED_QUESTIONS.length,
+        ASK_AI_NOT_COVERED_QUESTIONS.length +
+        ASK_AI_PAGE_CONTEXT_QUESTIONS.length,
     );
+    // The ones before them keep their ids: how-do-i-1 is still the first question.
+    expect(cases[0]!.asked).toBe(ASK_AI_HOW_DO_I_QUESTIONS[0]!.question);
     expect(
       cases.filter((evalCase: AskAiEvalCase) => {
         return evalCase.howDoI!.notCovered;
@@ -77,6 +86,55 @@ describe("the cases the eval asks", () => {
         }),
       ),
     ).toEqual(new Set(["en", "de", "fa"]));
+  });
+
+  test("a question asked on a page carries its page, in the project whose records it names, and on a record expects that record's own button (#7062, #7065)", () => {
+    const onAPage: Array<AskAiEvalCase> = getHowDoICases().filter(
+      (evalCase: AskAiEvalCase) => {
+        return Boolean(evalCase.howDoI!.pageContext);
+      },
+    );
+
+    expect(onAPage).toHaveLength(ASK_AI_PAGE_CONTEXT_QUESTIONS.length);
+
+    for (const evalCase of onAPage) {
+      const howDoI: NonNullable<AskAiEvalCase["howDoI"]> = evalCase.howDoI!;
+      const project: AskAiEvalProject = getAskAiEvalProject(
+        howDoI.projectKind!,
+      );
+      const records: Array<AskAiEvalNamedRecord> = [
+        ...project.statusPages,
+        ...project.monitors,
+        ...project.policies,
+        ...project.services,
+      ];
+      const entityId: string | undefined = howDoI.pageContext!.entityId;
+
+      expect(evalCase.context).toMatch(/^en, on /);
+
+      if (entityId) {
+        // The record is one of the project's, and its button is the record's.
+        expect(
+          records.some((record: AskAiEvalNamedRecord): boolean => {
+            return record.id === entityId;
+          }),
+        ).toBe(true);
+        expect(howDoI.dashboardRecordId).toBe(entityId);
+      } else {
+        expect(howDoI.dashboardRecordId).toBeUndefined();
+      }
+    }
+
+    // The ones not asked on a page carry none.
+    expect(
+      getHowDoICases()
+        .slice(0, -ASK_AI_PAGE_CONTEXT_QUESTIONS.length)
+        .filter((evalCase: AskAiEvalCase) => {
+          return (
+            evalCase.howDoI!.pageContext || evalCase.howDoI!.dashboardRecordId
+          );
+        }),
+    ).toEqual([]);
   });
 
   test("each page a question expects is a page of the docs, in English at least", () => {
