@@ -10,6 +10,7 @@ import {
   API_KEYS_GET_PART_TEMPLATE,
   APPLIED_PERMISSION_COUNT_TEMPLATE,
   doesApiKeyMissPartOfRole,
+  doesRoleReachAnything,
   EVERY_API_KEY_HAS_ROLE_TOOLTIP,
   EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP,
   EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP,
@@ -32,6 +33,7 @@ import {
   isRoleGivenToAnyone,
   NO_PERMISSION_APPLIES_TO_KEY,
   NO_PERMISSIONS_YET,
+  ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE,
   PEOPLE_COUNT_TEMPLATE,
   PERMISSION_COUNT_TEMPLATE,
   ROLE_DELETE_REACHES_NO_ONE,
@@ -40,6 +42,7 @@ import {
   ROLE_GIVEN_TO_NOTHING,
   TEAM_COUNT_TEMPLATE,
   TemplatedSentence,
+  WORKFLOWS_RUN_AS_ROLE_TEMPLATE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCopy";
 import { PERMISSION_SCOPE_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -99,6 +102,16 @@ const GERMAN_WORDS: Record<string, string> = {
     "Berechtigungen mit dem Geltungsbereich „{{scope}}“ gelten nicht für einen API-Schlüssel: Ein Schlüssel besitzt nichts.",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.":
     "Diese API-Schlüssel erhalten {{applied}} der {{count}} Berechtigungen dieser Rolle: Die mit dem Geltungsbereich „{{scope}}“ gelten nicht für einen Schlüssel.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.":
+    "Vergeben an {{reach}}, und {{workflows}}. Eine Änderung hier ändert sofort, was sie tun können.",
+  "{{count}} workflows run as it":
+    "{{count}} Arbeitsabläufe laufen als diese Rolle",
+  "{{count}} workflows run as it_one":
+    "{{count}} Arbeitsablauf läuft als diese Rolle",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.":
+    "{{count}} Arbeitsabläufe laufen als diese Rolle. Eine Änderung hier ändert sofort, was sie tun können.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one":
+    "{{count}} Arbeitsablauf läuft als diese Rolle. Eine Änderung hier ändert sofort, was er tun kann.",
 };
 
 const GERMAN: Translator = createTranslator(
@@ -402,6 +415,238 @@ describe("who a role reaches, API keys counted", () => {
     ).toBe(
       "Gerade hat kein Team und kein API-Schlüssel diese Rolle, also verliert niemand Zugriff.",
     );
+  });
+});
+
+/*
+ * THE WORKFLOWS THAT RUN AS A ROLE (#9831). A change to the role changes
+ * what their steps can do at once, as it does for the teams and keys given
+ * it, so the role's page counts them in the line above its permissions -
+ * for a reader who may read the project's workflows. The Delete dialog
+ * lists them itself, so the line it says never counts them.
+ */
+describe("who a role reaches, workflows counted", () => {
+  test("names the workflows after the teams and keys given it", () => {
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 2,
+        memberCount: 5,
+        apiKeyCount: 3,
+        workflowCount: 4,
+      }),
+    ).toBe(
+      "Given to 2 teams (5 people) and 3 API keys, and 4 workflows run as it. A change here changes what they can do at once.",
+    );
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 1,
+        memberCount: null,
+        workflowCount: 1,
+      }),
+    ).toBe(
+      "Given to 1 team, and 1 workflow runs as it. A change here changes what they can do at once.",
+    );
+  });
+
+  test("a role only workflows run as says so in a sentence of its own", () => {
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+        workflowCount: 2,
+      }),
+    ).toBe(
+      "2 workflows run as this role. A change here changes what they can do at once.",
+    );
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: null,
+        workflowCount: 1,
+      }),
+    ).toBe(
+      "1 workflow runs as this role. A change here changes what it can do at once.",
+    );
+  });
+
+  test("says nothing of workflows when none runs as it, or the reader may not read them", () => {
+    for (const workflowCount of [0, null, undefined, -1]) {
+      expect(
+        getRoleReachSentence(ENGLISH, {
+          teamCount: 2,
+          memberCount: 5,
+          apiKeyCount: 3,
+          workflowCount: workflowCount,
+        }),
+      ).toBe(
+        "Given to 2 teams (5 people) and 3 API keys. A change here changes what they can do at once.",
+      );
+      expect(
+        getRoleReachSentence(ENGLISH, {
+          teamCount: 0,
+          memberCount: 0,
+          apiKeyCount: 0,
+          workflowCount: workflowCount,
+        }),
+      ).toBe(ROLE_GIVEN_TO_NOTHING);
+    }
+  });
+
+  test("deleting the role says who loses access: the dialog lists the workflows itself", () => {
+    expect(
+      getRoleDeleteReachSentence(ENGLISH, {
+        teamCount: 1,
+        memberCount: 2,
+        workflowCount: 3,
+      }),
+    ).toBe("It is given to 1 team (2 people) right now.");
+    expect(
+      getRoleDeleteReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+        workflowCount: 3,
+      }),
+    ).toBe(ROLE_DELETE_REACHES_NOTHING);
+  });
+
+  test("whether a change reaches anything: a team, a key or a workflow", () => {
+    expect(
+      doesRoleReachAnything({
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+        workflowCount: 1,
+      }),
+    ).toBe(true);
+    expect(
+      doesRoleReachAnything({ teamCount: 1, memberCount: 0, workflowCount: 0 }),
+    ).toBe(true);
+    expect(
+      doesRoleReachAnything({ teamCount: 0, memberCount: 0, apiKeyCount: 2 }),
+    ).toBe(true);
+
+    for (const workflowCount of [0, null, undefined]) {
+      expect(
+        doesRoleReachAnything({
+          teamCount: 0,
+          memberCount: 0,
+          apiKeyCount: 0,
+          workflowCount: workflowCount,
+        }),
+      ).toBe(false);
+    }
+
+    // A workflow runs as the role: nobody is given it.
+    expect(
+      isRoleGivenToAnyone({
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+        workflowCount: 5,
+      }),
+    ).toBe(false);
+  });
+
+  test("is one sentence in the reader's language, the workflow count in it too", () => {
+    expect(WORKFLOWS_RUN_AS_ROLE_TEMPLATE).toEqual({
+      one: "{{count}} workflow runs as it",
+      other: "{{count}} workflows run as it",
+    });
+    expect(
+      getRoleReachSentence(GERMAN, {
+        teamCount: 2,
+        memberCount: 5,
+        apiKeyCount: 3,
+        workflowCount: 1,
+      }),
+    ).toBe(
+      "Vergeben an 2 Teams (5 Personen) und 3 API-Schlüssel, und 1 Arbeitsablauf läuft als diese Rolle. Eine Änderung hier ändert sofort, was sie tun können.",
+    );
+    expect(
+      getRoleReachSentence(GERMAN, {
+        teamCount: 0,
+        memberCount: 0,
+        workflowCount: 3,
+      }),
+    ).toBe(
+      "3 Arbeitsabläufe laufen als diese Rolle. Eine Änderung hier ändert sofort, was sie tun können.",
+    );
+  });
+
+  test("a language that has not worded the sentence reads it whole in English", () => {
+    const halfGerman: Translator = createTranslator(
+      (key: string): string | undefined => {
+        // The pieces, but not the sentence they go into.
+        return key.startsWith("Given to {{reach}}, and")
+          ? undefined
+          : GERMAN_WORDS[key];
+      },
+      "de",
+    );
+
+    expect(
+      getRoleReachSentence(halfGerman, {
+        teamCount: 2,
+        memberCount: 5,
+        workflowCount: 2,
+      }),
+    ).toBe(
+      "Given to 2 teams (5 people), and 2 workflows run as it. A change here changes what they can do at once.",
+    );
+  });
+
+  test("each sentence is in every locale file, worded in each language", () => {
+    const localesDirectory: string = path.join(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Locales",
+    );
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(localesDirectory, "en.json"), "utf-8"),
+    ) as Record<string, string>;
+    const keys: Array<string> = [
+      "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.",
+      WORKFLOWS_RUN_AS_ROLE_TEMPLATE.other,
+      `${WORKFLOWS_RUN_AS_ROLE_TEMPLATE.other}_one`,
+      ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE.other,
+      `${ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE.other}_one`,
+    ];
+
+    expect(english[`${WORKFLOWS_RUN_AS_ROLE_TEMPLATE.other}_one`]).toBe(
+      WORKFLOWS_RUN_AS_ROLE_TEMPLATE.one,
+    );
+    expect(english[`${ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE.other}_one`]).toBe(
+      ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE.one,
+    );
+
+    const languages: Array<string> = fs
+      .readdirSync(localesDirectory)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      });
+
+    expect(languages.length).toBeGreaterThanOrEqual(17);
+
+    for (const file of languages) {
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(localesDirectory, file), "utf-8"),
+      ) as Record<string, string>;
+
+      for (const key of keys) {
+        expect({ file, key, worded: Boolean(locale[key]) }).toEqual({
+          file,
+          key,
+          worded: true,
+        });
+        expect({ file, key, isEnglish: locale[key] === english[key] }).toEqual({
+          file,
+          key,
+          isEnglish: false,
+        });
+      }
+    }
   });
 });
 

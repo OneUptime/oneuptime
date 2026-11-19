@@ -1,10 +1,12 @@
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
+  RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import type {
   ParameterObject,
   ReferenceObject,
+  SchemaObject,
 } from "@asteasolutions/zod-to-openapi/dist/types";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
@@ -20,6 +22,11 @@ import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
 import { getApiSingularName } from "../../Utils/ModelApiName";
+import {
+  DeleteChoicesOfTable,
+  getDeleteChoiceApiName,
+  getDeleteChoices,
+} from "../../Utils/DeveloperDocs/DeleteChoices";
 import {
   ListOrderFacts,
   getListOrderFacts,
@@ -776,13 +783,26 @@ export default class OpenAPIUtil {
       return;
     }
 
+    /*
+     * What a delete of it says besides the record (DeleteChoices): a custom
+     * role that workflows run as says what they run as instead. Most
+     * deletes take none, and document no body.
+     */
+    const deleteChoices: DeleteChoicesOfTable | null =
+      getDeleteChoices(tableName);
+
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
       operationId: `delete${tableName}`,
       summary: `Delete ${singularModelName}`,
-      description: `Endpoint to delete a ${singularModelName}`,
+      description: deleteChoices
+        ? `Endpoint to delete a ${singularModelName}. ${deleteChoices.whenNeeded}`
+        : `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],
+      ...(deleteChoices
+        ? { requestBody: this.getDeleteRequestBody(deleteChoices) }
+        : {}),
       parameters: [
         ...OpenAPIUtil.getDefaultApiHeaders(),
         {
@@ -804,6 +824,80 @@ export default class OpenAPIUtil {
         ...this.getNotFoundResponseSchema(),
       },
     });
+  }
+
+  /*
+   * The body of a DELETE that takes choices (DeleteChoices): miscDataProps,
+   * each choice with its values or, for the ID of a record, its format.
+   * Optional as a whole: a delete that needs none of them takes none. A
+   * choice another one goes with says so (x-oneuptime-required-with), as
+   * JSON Schema cannot.
+   */
+  public static getDeleteRequestBody(
+    deleteChoices: DeleteChoicesOfTable,
+  ): NonNullable<RouteConfig["requestBody"]> {
+    const properties: Record<string, SchemaObject> = {};
+
+    for (const choice of deleteChoices.choices) {
+      // The record an ID names, as every other relation is marked.
+      const related: DatabaseBaseModel | null = choice.relatedTableName
+        ? this.getModelOfTable(choice.relatedTableName)
+        : null;
+
+      properties[choice.key] = {
+        type: "string",
+        description: choice.describe(getDeleteChoiceApiName),
+        ...(choice.values ? { enum: [...choice.values] } : {}),
+        ...(choice.relatedTableName ? { format: "uuid" } : {}),
+        ...(related && choice.relatedTableName
+          ? {
+              "x-oneuptime-relation": {
+                tag: getApiSingularName(related) || choice.relatedTableName,
+                tableName: choice.relatedTableName,
+              },
+            }
+          : {}),
+        ...(choice.requiredWith
+          ? {
+              "x-oneuptime-required-with": {
+                key: choice.requiredWith.key,
+                value: choice.requiredWith.value,
+              },
+            }
+          : {}),
+      };
+    }
+
+    return {
+      required: false,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              miscDataProps: {
+                type: "object",
+                description: deleteChoices.whenNeeded,
+                properties: properties,
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  // A model of `tableName`, or null when no model has that table.
+  private static getModelOfTable(tableName: string): DatabaseBaseModel | null {
+    for (const ModelClass of Models) {
+      const model: DatabaseBaseModel = new ModelClass();
+
+      if (model.tableName === tableName) {
+        return model;
+      }
+    }
+
+    return null;
   }
 
   private static registerModelSchemas(
