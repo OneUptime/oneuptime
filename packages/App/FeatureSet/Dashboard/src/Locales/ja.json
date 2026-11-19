@@ -58700,7 +58700,7 @@
   "{{count}} new devices: {{names}}_one": "新しいデバイス {{count}} 台：{{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
   "{{count}} selected devices already have a monitor, so they are left out._one": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} はこのデバイスに表示されなくなり、今後発生するものはこのデバイスに関連付けられません。インポートと自動インポートルールはこのモニターを数えなくなるため、このデバイスに同様のモニターを付けることがあります。モニター自体は変わらずチェックを続けます。",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} はこのデバイスから外れます。今後発生するものはこのデバイスに関連付けられず、インポートで同様のモニターが追加されることがあります。モニターはチェックを続けます。",
   "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "このルールがケースを開いたときに行うこと。各ステップは、選んだ区分の下でケースの対応計画の一般的なステップより前に表示されます。",
   "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored metrics do not change.": "OneUptime は、サービスの新しいメトリクスのこの属性にあるこの種類のデータを秘匿化するメトリクスのパイプラインルールを追加します。保存済みのメトリクスは変更されません。"
 }

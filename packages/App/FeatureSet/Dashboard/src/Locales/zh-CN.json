@@ -58700,7 +58700,7 @@
   "{{count}} new devices: {{names}}_one": "{{count}} 台新设备：{{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "所选设备中有 {{count}} 台已有监视器，因此被排除。",
   "{{count}} selected devices already have a monitor, so they are left out._one": "所选设备中有 {{count}} 台已有监视器，因此被排除。",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} 将不再列在此设备上，它今后触发的内容也不会关联到此设备。导入和自动导入规则不再将它计入，因此可能为此设备提供一个同类监视器。监视器本身会继续检查，不做任何更改。",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} 将从此设备移除：它触发的内容不再关联到此设备，导入可能会添加一个同类监视器。监视器会继续检查。",
   "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "此规则打开案例时要做的事。每个步骤都会显示在案例响应计划中你所选的部分下，位于通用步骤之前。",
   "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored metrics do not change.": "OneUptime 会添加一条指标管道规则，对该服务新指标的此属性中的这类数据进行脱敏。已存储的指标不会改变。"
 }
