@@ -29,6 +29,7 @@ import ResourceMetricsTab from "../../Infrastructure/ResourceMetricsTab";
 import { OPENSTACK_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/OpenStackMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
 import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
@@ -131,6 +132,11 @@ const SERVICE_OF_FAMILY: Record<string, string> = {
 export interface ComponentProps {
   part: OpenStackPart;
   row: OpenStackResource;
+}
+
+export interface OpenStackServiceOverviewProps extends ComponentProps {
+  // What its page read once (useOpenStackServiceAttention).
+  serviceAttention: OpenStackServiceAttention;
 }
 
 /*
@@ -276,53 +282,77 @@ function getWorkerQueries(
   ];
 }
 
-const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
-  const listClassName: string = useCardRuledListClassName();
-  const { part, row } = props;
-  const now: Date = OneUptimeDate.getCurrentDate();
-
-  const isApi: boolean = row.kind === OpenStackResourceKind.Api;
-  const family: string = getOpenStackWorkerFamily(row);
-  const service: string = isApi
+// The service a worker answers for: an API's own name, a worker's by its family.
+function getServiceOf(row: OpenStackResource): string {
+  return row.kind === OpenStackResourceKind.Api
     ? row.name || ""
-    : SERVICE_OF_FAMILY[family] || "";
+    : SERVICE_OF_FAMILY[getOpenStackWorkerFamily(row)] || "";
+}
+
+const API_ATTENTION_DESCRIPTION: string = translationKey(
+  "What is wrong with this API and the workers it answers for, the most urgent first.",
+);
+const WORKER_ATTENTION_DESCRIPTION: string = translationKey(
+  "What is wrong with this worker, by the same rules as the cloud's.",
+);
+
+/*
+ * What needs attention on an API's or a worker's page, read by the page
+ * once: the region's services and hosts (the rules judge one by how many
+ * like it are up), the API a worker answers for, and from them the list
+ * its Needs attention card draws and its hero's status opens (#9594).
+ */
+export interface OpenStackServiceAttention {
+  read: OpenStackRead<OpenStackAttentionAnswer>;
+  // The API that answers for a worker: when it is down, what the worker says is old.
+  api: OpenStackRead<OpenStackResource | null>;
+  // The workers of its service in its region.
+  workers: Array<OpenStackResource>;
+  // The hypervisor on a nova-compute's host: Nova names the two differently.
+  hypervisor: OpenStackResource | undefined;
+  attention: ResourcePartAttention;
+}
+
+export function useOpenStackServiceAttention(
+  part: OpenStackPart,
+): OpenStackServiceAttention {
+  const row: OpenStackResource | null = part.row;
+  const isApi: boolean = row?.kind === OpenStackResourceKind.Api;
+  const service: string = row ? getServiceOf(row) : "";
 
   // The region's services and hosts, which the rules need to judge any one of them.
-  const attention: OpenStackRead<OpenStackAttentionAnswer> =
+  const read: OpenStackRead<OpenStackAttentionAnswer> =
     useOpenStackRead<OpenStackAttentionAnswer>(() => {
-      return fetchOpenStackAttention({
-        openStackCloudId: part.openStackCloudId,
-        regionName: row.regionName,
-      });
-    }, [part.openStackCloudId.toString(), row.regionName, part.refreshToken]);
+      return row
+        ? fetchOpenStackAttention({
+            openStackCloudId: part.openStackCloudId,
+            regionName: row.regionName,
+          })
+        : Promise.resolve({ rows: [], totalsByKind: {}, leftOut: [] });
+    }, [
+      part.openStackCloudId.toString(),
+      row?.regionName,
+      part.refreshToken,
+      Boolean(row),
+    ]);
 
-  // The API that answers for a worker: when it is down, what the worker says is old.
   const api: OpenStackRead<OpenStackResource | null> =
     useOpenStackRead<OpenStackResource | null>(() => {
-      return isApi || !service
-        ? Promise.resolve(isApi ? row : null)
+      return !row || isApi || !service
+        ? Promise.resolve(row && isApi ? row : null)
         : fetchOpenStackRow({
             openStackCloudId: part.openStackCloudId,
             kind: OpenStackResourceKind.Api,
             externalId: `${row.regionName || "default"}/${service}`,
           });
-    }, [part.openStackCloudId.toString(), row.externalId, part.refreshToken]);
+    }, [
+      part.openStackCloudId.toString(),
+      row?.externalId,
+      part.refreshToken,
+      Boolean(row),
+    ]);
 
-  // A host the Hosts product hears from under the same name.
-  const machine: string = isApi ? "" : getOpenStackWorkerMachine(row);
-  const host: OpenStackRead<Host | null> = useOpenStackRead<Host | null>(() => {
-    return machine
-      ? fetchOpenStackHostOf({
-          openStackCloudId: part.openStackCloudId,
-          machineName: machine,
-        })
-      : Promise.resolve(null);
-  }, [part.openStackCloudId.toString(), machine]);
-
-  const rows: Array<OpenStackResource> = attention.data?.rows || [];
+  const rows: Array<OpenStackResource> = read.data?.rows || [];
   const workers: Array<OpenStackResource> = rows.filter(
     (candidate: OpenStackResource): boolean => {
       return (
@@ -334,7 +364,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
 
   // The hypervisor on this nova-compute's host: Nova names the two differently.
   const hypervisor: OpenStackResource | undefined =
-    row.name === "nova-compute"
+    row && row.name === "nova-compute"
       ? rows.find((candidate: OpenStackResource): boolean => {
           return (
             candidate.kind === OpenStackResourceKind.Hypervisor &&
@@ -346,28 +376,81 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
         })
       : undefined;
 
-  const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [
-      ...(api.data ? [api.data] : []),
-      ...workers,
-      ...(hypervisor ? [hypervisor] : []),
-    ],
-    now: now,
-    routeFor: part.routes.routeFor,
-    nameFor: getOpenStackAttentionName,
-  }).filter((item: ResourceAttentionItem): boolean => {
-    /*
-     * An API's page lists what is wrong with it and everything it answers for. A
-     * worker's lists itself, and every worker like it when none of them is left.
-     */
-    if (isApi) {
-      return true;
-    }
-    return (
-      item.key === `${row.kind}/${row.externalId}` ||
-      item.key === `every-${row.regionName || ""}-${row.name || ""}`
-    );
-  });
+  const items: Array<ResourceAttentionItem> = row
+    ? getOpenStackAttentionItems({
+        rows: [
+          ...(api.data ? [api.data] : []),
+          ...workers,
+          ...(hypervisor ? [hypervisor] : []),
+        ],
+        now: OneUptimeDate.getCurrentDate(),
+        routeFor: part.routes.routeFor,
+        nameFor: getOpenStackAttentionName,
+      }).filter((item: ResourceAttentionItem): boolean => {
+        /*
+         * An API's page lists what is wrong with it and everything it answers for. A
+         * worker's lists itself, and every worker like it when none of them is left.
+         */
+        if (isApi) {
+          return true;
+        }
+        return (
+          item.key === `${row.kind}/${row.externalId}` ||
+          item.key === `every-${row.regionName || ""}-${row.name || ""}`
+        );
+      })
+    : [];
+
+  return {
+    read: read,
+    api: api,
+    workers: workers,
+    hypervisor: hypervisor,
+    attention: {
+      items: items,
+      description: isApi
+        ? API_ATTENTION_DESCRIPTION
+        : WORKER_ATTENTION_DESCRIPTION,
+      current: row
+        ? {
+            key: `${row.kind}/${row.externalId}`,
+            label: isApi ? THIS_API : THIS_SERVICE,
+          }
+        : undefined,
+    },
+  };
+}
+
+const OpenStackServiceOverview: FunctionComponent<
+  OpenStackServiceOverviewProps
+> = (props: OpenStackServiceOverviewProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const listClassName: string = useCardRuledListClassName();
+  const { part, row } = props;
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  const isApi: boolean = row.kind === OpenStackResourceKind.Api;
+  const family: string = getOpenStackWorkerFamily(row);
+  const service: string = getServiceOf(row);
+  // What the page read once for this card and its hero (#9594).
+  const attention: OpenStackRead<OpenStackAttentionAnswer> =
+    props.serviceAttention.read;
+  const api: OpenStackRead<OpenStackResource | null> =
+    props.serviceAttention.api;
+  const workers: Array<OpenStackResource> = props.serviceAttention.workers;
+  const hypervisor: OpenStackResource | undefined =
+    props.serviceAttention.hypervisor;
+
+  // A host the Hosts product hears from under the same name.
+  const machine: string = isApi ? "" : getOpenStackWorkerMachine(row);
+  const host: OpenStackRead<Host | null> = useOpenStackRead<Host | null>(() => {
+    return machine
+      ? fetchOpenStackHostOf({
+          openStackCloudId: part.openStackCloudId,
+          machineName: machine,
+        })
+      : Promise.resolve(null);
+  }, [part.openStackCloudId.toString(), machine]);
 
   const closedWords: string | null =
     isApi && row.status === OPENSTACK_API_STATUS_CLOSED
@@ -637,16 +720,9 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
       ) : (
         <NeedsAttentionCard
           testId="openstack-service-attention"
-          items={items}
-          current={{
-            key: `${row.kind}/${row.externalId}`,
-            label: isApi ? THIS_API : THIS_SERVICE,
-          }}
-          description={
-            isApi
-              ? "What is wrong with this API and the workers it answers for, the most urgent first."
-              : "What is wrong with this worker, by the same rules as the cloud's."
-          }
+          items={props.serviceAttention.attention.items}
+          current={props.serviceAttention.attention.current}
+          description={props.serviceAttention.attention.description}
         />
       )}
 
