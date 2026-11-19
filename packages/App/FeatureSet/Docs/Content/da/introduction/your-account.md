@@ -41,7 +41,7 @@ Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt**
 
 Klik på **Rediger Bruger**, og ret det, du har brug for:
 
-- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, bekræfter du den nye adresse igen.
+- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme.
 - **Fulde navn**: det navn, dit team ser overalt i OneUptime.
 - **Tidszone**: den tidszone, dashboardet viser og læser tider i, og den, der bruges til tiderne i notifikationer til dig.
 - **Sprog**: sproget i dashboardet i alle browsere, du logger ind i, og i dine vagttilkald. Ikke valgt: dine tilkald er på engelsk, og dashboardet følger din browser.
@@ -184,6 +184,14 @@ Dit tema gemmes i din browser, så indstil det igen i en anden browser eller på
 
 :::details Jeg har ikke fået e-mailen til at bekræfte min adresse
 Logger du ind igen, sendes et nyt link: tjek også din spam-mappe. Kan du ikke logge ind, så brug **Glemt adgangskode?** på loginsiden. Nulstillingslinket bekræfter også din adresse.
+:::
+
+:::details Tilmeldingen sendte mig en e-mail om, at jeg allerede har en konto
+Den adresse har allerede en OneUptime-konto, så tilmeldingen oprettede og ændrede intet. Log ind med den, eller brug **Glemt adgangskode?** på loginsiden, hvis du ikke kan huske din adgangskode. Tilmeldingssiden siger det samme for alle adresser, så den fortæller ingen, hvilke adresser der har en konto.
+:::
+
+:::details Min e-mailadresse er ikke ændret
+Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, så ændr din e-mail igen for at få et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
 :::
 
 :::details Jeg har mistet min godkendelsesapp

@@ -41,7 +41,7 @@ Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent m
 
 Klik op **Gebruiker bewerken** en wijzig wat u nodig hebt:
 
-- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, verifieert u het nieuwe adres opnieuw.
+- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen.
 - **Volledige naam**: de naam die uw team overal in OneUptime ziet.
 - **Tijdzone**: de tijdzone waarin het dashboard tijden toont en leest, en die van de tijden in meldingen aan u.
 - **Taal**: de taal van het dashboard in elke browser waarin u inlogt, en van uw oproepen voor dienst. Niet ingesteld: uw oproepen zijn in het Engels en het dashboard volgt uw browser.
@@ -184,6 +184,14 @@ Open **Gevarenzone → Account verwijderen**. U kunt uw account pas verwijderen 
 
 :::details Ik heb de e-mail om mijn adres te verifiëren niet ontvangen
 Opnieuw inloggen stuurt een nieuwe link: kijk ook in uw spammap. Kunt u niet inloggen, gebruik dan **Wachtwoord vergeten?** op de inlogpagina. De resetlink verifieert uw adres ook.
+:::
+
+:::details Na het registreren kreeg ik een e-mail dat ik al een account heb
+Dat adres heeft al een OneUptime-account, dus het registreren heeft niets aangemaakt en niets gewijzigd. Log ermee in, of gebruik **Wachtwoord vergeten?** op de inlogpagina als u uw wachtwoord niet meer weet. De registratiepagina zegt voor elk adres hetzelfde, en vertelt dus niemand welke adressen een account hebben.
+:::
+
+:::details Mijn e-mailadres is niet gewijzigd
+Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, wijzig uw e-mail dan opnieuw om een nieuwe te krijgen. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
 :::
 
 :::details Ik ben mijn authenticator-app kwijt
