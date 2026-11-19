@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * AiActivityFailedCommands (#9749): what an AI Insights page's "N failed"
@@ -62,7 +63,10 @@ function jobId(index: number): ObjectID {
   );
 }
 
-function job(index: number, overrides: Partial<RunnerJob> = {}): RunnerJob {
+function job(
+  index: number,
+  overrides: Record<string, unknown> = {},
+): RunnerJob {
   const value: RunnerJob = new RunnerJob();
   value.id = jobId(index);
   value.status = RunnerJobStatus.Failed;
@@ -177,8 +181,8 @@ describe("AiActivityFailedCommands.toFailedCommand", () => {
 });
 
 describe("AiActivityFailedCommands.read", () => {
-  let find: jest.SpiedFunction<typeof RunnerJobService.findBy>;
-  let count: jest.SpiedFunction<typeof RunnerJobService.countBy>;
+  let find: SpyInstance<typeof RunnerJobService.findBy>;
+  let count: SpyInstance<typeof RunnerJobService.countBy>;
   // What the reader may read: the jobs, and what each ran.
   let readable: Array<RunnerJob>;
   let canReadJobs: boolean;
@@ -212,7 +216,7 @@ describe("AiActivityFailedCommands.read", () => {
           Object.assign(copy, value);
 
           if (!args.select["payload"]) {
-            copy.payload = undefined;
+            (copy as unknown as Record<string, unknown>)["payload"] = undefined;
           }
 
           return copy;

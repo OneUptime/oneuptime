@@ -477,7 +477,8 @@ describe("TelemetryAiActivityReader.toEntry", () => {
 
   test("a pull request recorded without a state reads as open, as Code reads it", () => {
     const stateless: AIAgentTaskPullRequest = pullRequest(ASKED_AGAIN_TURN);
-    stateless.pullRequestState = undefined;
+    (stateless as unknown as Record<string, unknown>)["pullRequestState"] =
+      undefined;
 
     const entry: TelemetryAiLogEntryJSON = TelemetryAiActivityReader.toEntry({
       run: run({
