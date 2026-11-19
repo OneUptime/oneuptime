@@ -303,7 +303,8 @@ export const getAnnouncementFormFields: (
     /*
      * Folded to one line that says what happens: it shows now and stays
      * until someone ends it (and, on Create, its subscribers are told when
-     * it starts showing - the model's defaults).
+     * it starts showing - the model's defaults), as far as the status pages
+     * picked show announcements and send notifications (#9775).
      */
     {
       field: {
