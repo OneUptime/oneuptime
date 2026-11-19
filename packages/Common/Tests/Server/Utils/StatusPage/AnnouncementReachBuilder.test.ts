@@ -410,10 +410,10 @@ describe("an announcement on the status pages picked, as its job sends", () => {
   });
 
   test("by the one rule a public note's composer is answered by", async () => {
-    const rule: jest.SpyInstance = jest.spyOn(
+    const rule: jest.Mock = jest.spyOn(
       PublicNoteReachBuilder,
       "getStatusPagesReason",
-    );
+    ) as unknown as jest.Mock;
 
     setPages(
       page(SITE_1, { showAnnouncements: false }),

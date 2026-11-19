@@ -1178,7 +1178,7 @@ describe("who may ask, decided for the event", () => {
     // The note's column that names its event.
     eventColumn: string;
     checkCallerMayCreate: () => jest.Mock;
-    findNote: () => jest.SpyInstance;
+    findNote: () => jest.Mock;
     setUp: () => void;
   }
 
@@ -1190,8 +1190,11 @@ describe("who may ask, decided for the event", () => {
       checkCallerMayCreate: (): jest.Mock => {
         return IncidentPublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
       },
-      findNote: (): jest.SpyInstance => {
-        return jest.spyOn(IncidentPublicNoteService, "findOneBy");
+      findNote: (): jest.Mock => {
+        return jest.spyOn(
+          IncidentPublicNoteService,
+          "findOneBy",
+        ) as unknown as jest.Mock;
       },
       setUp: (): void => {
         setIncident();
@@ -1204,8 +1207,11 @@ describe("who may ask, decided for the event", () => {
       checkCallerMayCreate: (): jest.Mock => {
         return IncidentEpisodePublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
       },
-      findNote: (): jest.SpyInstance => {
-        return jest.spyOn(IncidentEpisodePublicNoteService, "findOneBy");
+      findNote: (): jest.Mock => {
+        return jest.spyOn(
+          IncidentEpisodePublicNoteService,
+          "findOneBy",
+        ) as unknown as jest.Mock;
       },
       setUp: (): void => {
         setIncident();
@@ -1219,8 +1225,11 @@ describe("who may ask, decided for the event", () => {
       checkCallerMayCreate: (): jest.Mock => {
         return ScheduledMaintenancePublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
       },
-      findNote: (): jest.SpyInstance => {
-        return jest.spyOn(ScheduledMaintenancePublicNoteService, "findOneBy");
+      findNote: (): jest.Mock => {
+        return jest.spyOn(
+          ScheduledMaintenancePublicNoteService,
+          "findOneBy",
+        ) as unknown as jest.Mock;
       },
       setUp: (): void => {
         setMaintenance();
@@ -1251,7 +1260,7 @@ describe("who may ask, decided for the event", () => {
   }
 
   // The event's notes the caller may update: its query, marked as narrowed.
-  function updatableNotesAre(): jest.SpyInstance {
+  function updatableNotesAre(): jest.Mock {
     return jest
       .spyOn(ModelPermission, "getUpdatableQuery")
       .mockImplementation((async (
@@ -1259,7 +1268,7 @@ describe("who may ask, decided for the event", () => {
         query: JSONObject,
       ): Promise<JSONObject> => {
         return { ...query, ownedByTheCallersTeams: true };
-      }) as never);
+      }) as never) as unknown as jest.Mock;
   }
 
   describe.each(NOTE_EVENTS)(
@@ -1289,7 +1298,7 @@ describe("who may ask, decided for the event", () => {
       });
 
       test("one who may post one is answered, and asked nothing about editing", async () => {
-        const updatable: jest.SpyInstance = updatableNotesAre();
+        const updatable: jest.Mock = updatableNotesAre();
 
         await reach(noteEvent.event, noteEvent.eventId);
 
@@ -1304,8 +1313,8 @@ describe("who may ask, decided for the event", () => {
               'This permission only lets you create public notes on records labelled "staging".',
             ) as never,
           );
-        const updatable: jest.SpyInstance = updatableNotesAre();
-        const findNote: jest.SpyInstance = noteEvent
+        const updatable: jest.Mock = updatableNotesAre();
+        const findNote: jest.Mock = noteEvent
           .findNote()
           .mockResolvedValue(new IncidentPublicNote() as never);
 
@@ -1359,7 +1368,7 @@ describe("who may ask, decided for the event", () => {
         jest
           .spyOn(ModelPermission, "getUpdatableQuery")
           .mockRejectedValue(new NotAuthorizedException("No.") as never);
-        const findNote: jest.SpyInstance = noteEvent.findNote();
+        const findNote: jest.Mock = noteEvent.findNote();
 
         await expect(reach(noteEvent.event, noteEvent.eventId)).rejects.toThrow(
           "public notes are shown. You need a permission that lets you post or edit them.",
