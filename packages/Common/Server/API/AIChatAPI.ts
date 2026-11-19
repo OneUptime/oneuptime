@@ -1080,8 +1080,7 @@ router.post(
       }
 
       const widgets: Array<AIChatWidget> = message.widgets || [];
-      const offer: AIChatTestPageOffer | null =
-        getAnswerTestPageOffer(widgets);
+      const offer: AIChatTestPageOffer | null = getAnswerTestPageOffer(widgets);
 
       if (!offer) {
         throw new BadDataException("This answer offers no test page.");
@@ -1109,7 +1108,8 @@ router.post(
 
       const sent: AIChatTestPageSent = {
         executionLogId: executionLogId.toString(),
-        sentAt: result.startedAt || OneUptimeDate.getCurrentDate().toISOString(),
+        sentAt:
+          result.startedAt || OneUptimeDate.getCurrentDate().toISOString(),
       };
 
       // Root write: message columns are deliberately not user-writable.

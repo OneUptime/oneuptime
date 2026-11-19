@@ -841,8 +841,9 @@ describe("ChatAgentRunner.runTurn — history replay", () => {
       }),
     );
     expect(
-      (getResult.mock.calls[0]?.[0] as { executionLogId: ObjectID })
-        .executionLogId.toString(),
+      (
+        getResult.mock.calls[0]?.[0] as { executionLogId: ObjectID }
+      ).executionLogId.toString(),
     ).toBe(runId);
 
     const llmRequest: AILogRequest = spies.executeWithLogging.mock

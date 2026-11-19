@@ -169,7 +169,9 @@ function writtenWidgets(): Array<AIChatWidget> {
     AIConversationMessageService.updateOneById as unknown as jest.Mock
   ).mock.calls[0]![0] as UpdateByID<AIConversationMessage>;
 
-  return (update.data as JSONObject)["widgets"] as unknown as Array<AIChatWidget>;
+  return (update.data as JSONObject)[
+    "widgets"
+  ] as unknown as Array<AIChatWidget>;
 }
 
 describe("POST /ai-chat/message-test-page", () => {

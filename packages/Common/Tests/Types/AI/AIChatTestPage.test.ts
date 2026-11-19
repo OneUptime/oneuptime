@@ -148,19 +148,23 @@ describe("a test page sent from it, kept on the answer", () => {
   });
 
   test("only a run's id and a date are read back as one", () => {
-    expect(readTestPageSent({ executionLogId: RUN_ID, sentAt: SENT_AT })).toEqual(
-      { executionLogId: RUN_ID, sentAt: SENT_AT },
-    );
-    expect(readTestPageSent({ executionLogId: "1; drop", sentAt: SENT_AT })).toBe(
-      null,
-    );
+    expect(
+      readTestPageSent({ executionLogId: RUN_ID, sentAt: SENT_AT }),
+    ).toEqual({ executionLogId: RUN_ID, sentAt: SENT_AT });
+    expect(
+      readTestPageSent({ executionLogId: "1; drop", sentAt: SENT_AT }),
+    ).toBe(null);
     expect(readTestPageSent({ executionLogId: RUN_ID, sentAt: "" })).toBeNull();
     expect(readTestPageSent({ executionLogId: RUN_ID })).toBeNull();
     expect(readTestPageSent("x")).toBeNull();
     expect(readTestPageSent(null)).toBeNull();
     // Nothing but the two is kept.
     expect(
-      readTestPageSent({ executionLogId: RUN_ID, sentAt: SENT_AT, html: "<b>" }),
+      readTestPageSent({
+        executionLogId: RUN_ID,
+        sentAt: SENT_AT,
+        html: "<b>",
+      }),
     ).toEqual({ executionLogId: RUN_ID, sentAt: SENT_AT });
   });
 });
@@ -231,7 +235,10 @@ describe("the run recorded is the test page the answer offers", () => {
     expect(
       isTestPageOfOffer({
         offer: { kind: "self" },
-        result: result({ kind: OnCallTestPageKind.Policy, policyId: POLICY_ID }),
+        result: result({
+          kind: OnCallTestPageKind.Policy,
+          policyId: POLICY_ID,
+        }),
         userId: ME,
       }),
     ).toBe(false);

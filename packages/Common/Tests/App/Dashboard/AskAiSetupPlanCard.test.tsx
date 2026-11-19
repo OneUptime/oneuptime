@@ -544,7 +544,10 @@ describe("a test page sent from an answer, kept on it", () => {
     resultsToRead = [ACKNOWLEDGED_TEST_PAGE];
 
     render(
-      <AskAiTestPageOffer widgets={[sentPolicyCard()]} messageId={MESSAGE_ID} />,
+      <AskAiTestPageOffer
+        widgets={[sentPolicyCard()]}
+        messageId={MESSAGE_ID}
+      />,
     );
 
     const line: HTMLElement = await screen.findByTestId(
@@ -610,7 +613,10 @@ describe("a test page sent from an answer, kept on it", () => {
     resultsToRead = [];
 
     render(
-      <AskAiTestPageOffer widgets={[sentPolicyCard()]} messageId={MESSAGE_ID} />,
+      <AskAiTestPageOffer
+        widgets={[sentPolicyCard()]}
+        messageId={MESSAGE_ID}
+      />,
     );
 
     await act(async (): Promise<void> => {

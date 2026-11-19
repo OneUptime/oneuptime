@@ -215,22 +215,22 @@ describe("the notes of a conversation's answers", () => {
   test("are read as the person asking, for answers a test page was sent from", async () => {
     const getResult: jest.SpiedFunction<
       typeof OnCallTestPageService.getResult
-    > = jest.spyOn(OnCallTestPageService, "getResult").mockResolvedValue(
-      testPageResult({ status: OnCallTestPageStatus.Ended }),
-    );
+    > = jest
+      .spyOn(OnCallTestPageService, "getResult")
+      .mockResolvedValue(
+        testPageResult({ status: OnCallTestPageStatus.Ended }),
+      );
     const tested: AIConversationMessage = answer(SENT);
     const untested: AIConversationMessage = answer();
     const question: AIConversationMessage = new AIConversationMessage();
 
     question.role = AIChatMessageRole.User;
 
-    const notes: Map<AIConversationMessage, string> = await readTestPageNotes(
-      {
-        messages: [question, tested, untested],
-        projectId: PROJECT_ID,
-        props: PROPS,
-      },
-    );
+    const notes: Map<AIConversationMessage, string> = await readTestPageNotes({
+      messages: [question, tested, untested],
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
 
     expect(getResult).toHaveBeenCalledTimes(1);
     expect(getResult.mock.calls[0]![0].props).toBe(PROPS);
@@ -250,9 +250,11 @@ describe("the notes of a conversation's answers", () => {
       .mockRejectedValue(new BadDataException("Test page not found."));
 
     const tested: AIConversationMessage = answer(SENT);
-    const notes: Map<AIConversationMessage, string> = await readTestPageNotes(
-      { messages: [tested], projectId: PROJECT_ID, props: PROPS },
-    );
+    const notes: Map<AIConversationMessage, string> = await readTestPageNotes({
+      messages: [tested],
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
 
     expect(notes.get(tested)).toBe(buildUnreadableTestPageNote(SENT));
     expect(notes.get(tested)).toBe(
@@ -272,9 +274,11 @@ describe("the notes of a conversation's answers", () => {
       answers.push(answer(SENT));
     }
 
-    const notes: Map<AIConversationMessage, string> = await readTestPageNotes(
-      { messages: answers, projectId: PROJECT_ID, props: PROPS },
-    );
+    const notes: Map<AIConversationMessage, string> = await readTestPageNotes({
+      messages: answers,
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
 
     expect(getResult).toHaveBeenCalledTimes(MAX_TEST_PAGE_NOTES);
     expect(notes.size).toBe(MAX_TEST_PAGE_NOTES);

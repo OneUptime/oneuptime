@@ -55,7 +55,10 @@
  *                    parts leave their cards and the test page offer;
  *                    setup-busy, the same in a busy project, which pages
  *                    people already and has a status page: a website
- *                    monitor, and that monitor put on the page
+ *                    monitor, and that monitor put on the page;
+ *                    setup-tested, the setup's answer once run, with the
+ *                    policy's test page sent from it and kept on it, read
+ *                    again as the page opens (issue #7249)
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -195,6 +198,7 @@ const threadKind = [
   "readcards",
   "setup",
   "setup-busy",
+  "setup-tested",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -234,6 +238,9 @@ window.__askAiFixture = {
     feedback: [],
     cancelled: 0,
     deleted: [],
+    // POST /ai-chat/message-test-page, and GET /on-call-test-page/result/:id (#7249).
+    testPagesRecorded: [],
+    testPageResultReads: [],
     unhandled: [],
   },
 };
@@ -870,6 +877,57 @@ function setupBusyCards(data) {
   return toSetupCards(cards);
 }
 
+/*
+ * The policy's test page, sent from the answer and kept on its card
+ * (?thread=setup-tested, issue #7249): its run, and what became of it as
+ * the test page's own result route answers - Ana Lopez acknowledged it by
+ * SMS.
+ */
+const SETUP_TEST_PAGE_RUN_ID = "70000000-0000-4000-8000-0000000000aa";
+
+function setupTestPageResult() {
+  return {
+    executionLogId: SETUP_TEST_PAGE_RUN_ID,
+    kind: "Policy",
+    policyId: SETUP_POLICY_ID,
+    policyName: SETUP_POLICY_NAME,
+    recordKind: "Incident",
+    severityName: "Critical Incident",
+    walksEscalation: false,
+    status: "Acknowledged",
+    statusMessage: "",
+    startedAt: minutesAgo(1).toISOString(),
+    endsAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    acknowledgedByName: "Ana Lopez",
+    acknowledgedChannel: "SMS",
+    acknowledgedAfterSeconds: 14,
+    steps: [],
+  };
+}
+
+// The cards the run plan left, the policy's test page sent from them.
+function setupTestedCards() {
+  return setupCards({ monitor: true, paging: true }).map((card) => {
+    if (card.data.testPage?.kind !== "policy") {
+      return card;
+    }
+
+    return {
+      ...card,
+      data: {
+        ...card.data,
+        testPage: {
+          ...card.data.testPage,
+          sent: {
+            executionLogId: SETUP_TEST_PAGE_RUN_ID,
+            sentAt: minutesAgo(1).toISOString(),
+          },
+        },
+      },
+    };
+  });
+}
+
 // The cards the approved parts leave, each offering its test page.
 function setupCards(data) {
   const cards = [];
@@ -964,6 +1022,8 @@ let codeConversation = null;
 let setupConversation = null;
 // The same in a project that pages people already (?thread=setup-busy).
 let setupBusyConversation = null;
+// The setup's answer once run, its policy's test page sent (?thread=setup-tested).
+let setupTestedConversation = null;
 // The conversation that looked monitors up (?thread=monitors).
 let monitorsConversation = null;
 
@@ -1545,6 +1605,33 @@ function seedHistory() {
     );
   }
 
+  if (threadKind === "setup-tested") {
+    setupTestedConversation = conversationOf(
+      "Monitor example.com and text me",
+      2,
+    );
+    messageOf(setupTestedConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: SETUP_QUESTION,
+      createdAt: minutesAgo(3),
+    });
+    messageOf(
+      setupTestedConversation.id.toString(),
+      AIChatMessageRole.Assistant,
+      {
+        contentInMarkdown:
+          "example.com is checked every minute, and the Default on-call policy pages you for every new incident and alert. Texts reach you once you add and verify your phone number in Notification Methods. Send yourself a test page to be sure it works.",
+        status: AIChatMessageStatus.Completed,
+        toolActions: setupActions(
+          AIChatToolActionStatus.Executed,
+          AIChatToolActionStatus.Executed,
+        ),
+        widgets: setupTestedCards(),
+        aiRunId: runOf({ toolCallCount: 4, totalTokens: 7310 }).id,
+        createdAt: minutesAgo(3),
+      },
+    );
+  }
+
   if (threadKind === "actions") {
     actionsConversation = conversationOf("Update the status page", 5);
     messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
@@ -1613,6 +1700,7 @@ fixture.conversationIds = {
   readcards: readCardsConversation?.id.toString(),
   setup: setupConversation?.id.toString(),
   "setup-busy": setupBusyConversation?.id.toString(),
+  "setup-tested": setupTestedConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -2082,12 +2170,25 @@ API.post = async (options) => {
     return new HTTPResponse(200, {}, {});
   }
 
+  if (path.endsWith("/ai-chat/message-test-page")) {
+    state.testPagesRecorded.push(JSON.parse(JSON.stringify(data)));
+    return new HTTPResponse(200, {}, {});
+  }
+
   state.unhandled.push(`POST ${path}`);
   return new HTTPResponse(200, {}, {});
 };
 
 API.get = async (options) => {
-  state.unhandled.push(`GET ${pathOf(options)}`);
+  const path = pathOf(options);
+  const testPageResult = path.match(/\/on-call-test-page\/result\/([^/?]+)$/);
+
+  if (testPageResult && testPageResult[1] === SETUP_TEST_PAGE_RUN_ID) {
+    state.testPageResultReads.push(testPageResult[1]);
+    return new HTTPResponse(200, setupTestPageResult(), {});
+  }
+
+  state.unhandled.push(`GET ${path}`);
   return new HTTPResponse(200, {}, {});
 };
 
