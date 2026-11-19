@@ -200,6 +200,7 @@ import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufactur
 import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledgedBeforeFirstSteps";
 import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
 import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
+import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1461,6 +1462,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillProductAnalyticsFromKeptSessions(),
+  /*
+   * Ties the Ping, IP, Port, NTP, Website, API and SSL Certificate monitors
+   * people made before issue #9545 to the network device they check
+   * (Monitor.networkDeviceId, added by AddMonitorNetworkDevice1809184736000),
+   * when exactly one device in the project is at the address every step
+   * checks - the rule a monitor created today is tied by. Postgres only,
+   * idempotent, a page of monitors at a time by id; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new LinkMonitorsToTheirNetworkDevices(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
