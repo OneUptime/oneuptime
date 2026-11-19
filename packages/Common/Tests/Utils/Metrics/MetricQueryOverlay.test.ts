@@ -9,6 +9,10 @@ import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayAxisReading,
+  OverlayChartAxes,
+  OverlayChartQueryUnit,
   OverlayUnitFit,
   OverlayUnitReading,
 } from "../../../Utils/Metrics/MetricQueryOverlay";
@@ -400,6 +404,283 @@ describe("readUnit: how an overlaid query's values read on the chart's axis", ()
         self: OverlayUnitFit.Same,
       });
     }
+  });
+});
+
+/*
+ * Issue #10042: the first overlaid query in a unit of another kind gives the
+ * chart a second value axis, on its right, in its unit. Each query of a chart
+ * is read against one axis: the first (its lead's unit) when it can be, else
+ * the second, and a third kind of unit, which neither axis can say, against
+ * the first as it is, and said.
+ */
+describe("readChartAxes: which axis each query of a chart is read against", () => {
+  function axesOf(
+    ...units: Array<string | { unit: string; metricName: string }>
+  ): OverlayChartAxes {
+    return MetricQueryOverlay.readChartAxes(
+      units.map(
+        (
+          unit: string | { unit: string; metricName: string },
+        ): OverlayChartQueryUnit => {
+          return typeof unit === "string" ? { unit } : unit;
+        },
+      ),
+    );
+  }
+
+  function sides(axes: OverlayChartAxes): Array<string> {
+    return axes.readings.map((reading: OverlayAxisReading): string => {
+      return `${reading.axis}:${reading.fit}`;
+    });
+  }
+
+  test("a chart of one query has one axis, the first", () => {
+    const axes: OverlayChartAxes = axesOf("%");
+
+    expect(sides(axes)).toEqual(["First:Same"]);
+    expect(axes.secondAxisLeadIndex).toBeNull();
+  });
+
+  test("no queries: no readings and no second axis", () => {
+    const axes: OverlayChartAxes = axesOf();
+
+    expect(axes.readings).toEqual([]);
+    expect(axes.secondAxisLeadIndex).toBeNull();
+  });
+
+  test("units of one kind share the first axis, converted into the lead's", () => {
+    const axes: OverlayChartAxes = axesOf("GB", "MB", "GB", "By");
+
+    expect(sides(axes)).toEqual([
+      "First:Same",
+      "First:Converted",
+      "First:Same",
+      "First:Converted",
+    ]);
+    expect(axes.readings[1]!.factor).toBeCloseTo(0.001, 12);
+    expect(axes.secondAxisLeadIndex).toBeNull();
+  });
+
+  test("bytes on a chart in percent: the bytes get the second axis, as they are", () => {
+    const axes: OverlayChartAxes = axesOf("%", "By");
+
+    expect(sides(axes)).toEqual(["First:Same", "Second:Same"]);
+    expect(axes.readings[1]!.factor).toBe(1);
+    expect(axes.secondAxisLeadIndex).toBe(1);
+  });
+
+  test("percent on a chart in bytes: the other way round, the percent on the right", () => {
+    const axes: OverlayChartAxes = axesOf("By", "%");
+
+    expect(sides(axes)).toEqual(["First:Same", "Second:Same"]);
+    expect(axes.secondAxisLeadIndex).toBe(1);
+  });
+
+  test("later queries of the second axis's kind are converted into its unit", () => {
+    const axes: OverlayChartAxes = axesOf("%", "GB", "MB", "GB");
+
+    expect(sides(axes)).toEqual([
+      "First:Same",
+      "Second:Same",
+      "Second:Converted",
+      "Second:Same",
+    ]);
+    // Megabytes read on an axis in gigabytes.
+    expect(axes.readings[2]!.factor).toBeCloseTo(0.001, 12);
+    expect(axes.secondAxisLeadIndex).toBe(1);
+  });
+
+  test("queries of the first axis's kind stay on it after the second axis is given", () => {
+    const axes: OverlayChartAxes = axesOf("ms", "By", "s", "KB");
+
+    expect(sides(axes)).toEqual([
+      "First:Same",
+      "Second:Same",
+      "First:Converted",
+      "Second:Converted",
+    ]);
+    expect(axes.readings[2]!.factor).toBe(1000);
+    expect(axes.readings[3]!.factor).toBe(1000);
+  });
+
+  test("a third kind of unit fits neither axis: drawn against the first, as it is", () => {
+    const axes: OverlayChartAxes = axesOf("%", "By", "ms", "s");
+
+    expect(sides(axes)).toEqual([
+      "First:Same",
+      "Second:Same",
+      "First:Different",
+      "First:Different",
+    ]);
+    expect(axes.readings[2]!.factor).toBe(1);
+    expect(axes.readings[3]!.factor).toBe(1);
+    // The second axis stays the first other kind's.
+    expect(axes.secondAxisLeadIndex).toBe(1);
+  });
+
+  test("a count beside a unit: the count's chart gives the unit the second axis", () => {
+    const axes: OverlayChartAxes = axesOf("{requests}", "ms", "{errors}");
+
+    expect(sides(axes)).toEqual(["First:Same", "Second:Same", "First:Same"]);
+  });
+
+  test("no unit known reads as it is, on the first axis, whatever the lead's", () => {
+    expect(sides(axesOf("%", ""))).toEqual(["First:Same", "First:Same"]);
+    expect(sides(axesOf("", "By", "%"))).toEqual([
+      "First:Same",
+      "First:Same",
+      "First:Same",
+    ]);
+  });
+
+  test("a 0-1 fraction is percent, by its metric's name", () => {
+    const axes: OverlayChartAxes = axesOf(
+      "By",
+      { unit: "1", metricName: "system.cpu.utilization" },
+      "%",
+    );
+
+    expect(sides(axes)).toEqual([
+      "First:Same",
+      "Second:Same",
+      "Second:Converted",
+    ]);
+    // A percent read on an axis of a 0-1 fraction.
+    expect(axes.readings[2]!.factor).toBeCloseTo(0.01, 12);
+
+    // A "1" on a metric that is no fraction is a count, read bare.
+    expect(
+      sides(axesOf("{requests}", { unit: "1", metricName: "http.requests" })),
+    ).toEqual(["First:Same", "First:Same"]);
+  });
+
+  /*
+   * Over a seeded sweep of charts of two to five queries: the lead is on
+   * the first axis as it is; the second axis, when there is one, is led by
+   * the first query the first axis cannot read, which is on it as it is;
+   * every other query is read against its axis's lead exactly as readUnit
+   * reads the pair, and a query on neither axis is one that neither lead
+   * can read.
+   */
+  test("a sweep of charts reads each query against its axis's lead, as readUnit does", () => {
+    const units: Array<string> = [
+      "",
+      "1",
+      "{requests}",
+      "%",
+      "percent",
+      "By",
+      "MB",
+      "GB",
+      "ms",
+      "s",
+      "bit",
+      "req/s",
+    ];
+    const random: SeededRandom = seededRandom(10042);
+
+    for (let draw: number = 0; draw < 1500; draw++) {
+      const chart: Array<string> = [];
+      const size: number = 2 + random(4);
+
+      for (let index: number = 0; index < size; index++) {
+        chart.push(units[random(units.length)]!);
+      }
+
+      const axes: OverlayChartAxes = axesOf(...chart);
+      const firstOtherKind: number = chart.findIndex(
+        (unit: string, index: number): boolean => {
+          return (
+            index > 0 && read(chart[0]!, unit).fit === OverlayUnitFit.Different
+          );
+        },
+      );
+
+      expect({ chart, lead: axes.readings[0] }).toEqual({
+        chart,
+        lead: { axis: OverlayAxis.First, fit: OverlayUnitFit.Same, factor: 1 },
+      });
+      expect({ chart, second: axes.secondAxisLeadIndex }).toEqual({
+        chart,
+        second: firstOtherKind === -1 ? null : firstOtherKind,
+      });
+
+      chart.forEach((unit: string, index: number): void => {
+        if (index === 0) {
+          return;
+        }
+
+        const reading: OverlayAxisReading = axes.readings[index]!;
+        const onFirst: OverlayUnitReading = read(chart[0]!, unit);
+
+        if (onFirst.fit !== OverlayUnitFit.Different) {
+          expect({ chart, index, reading }).toEqual({
+            chart,
+            index,
+            reading: { ...onFirst, axis: OverlayAxis.First },
+          });
+          return;
+        }
+
+        const onSecond: OverlayUnitReading = read(chart[firstOtherKind]!, unit);
+
+        expect({ chart, index, reading }).toEqual({
+          chart,
+          index,
+          reading:
+            onSecond.fit === OverlayUnitFit.Different
+              ? {
+                  axis: OverlayAxis.First,
+                  fit: OverlayUnitFit.Different,
+                  factor: 1,
+                }
+              : { ...onSecond, axis: OverlayAxis.Second },
+        });
+      });
+    }
+  });
+});
+
+describe("getChartQueriesBefore: the chart a query joins, as far as it", () => {
+  test("the first query joins no chart", () => {
+    expect(MetricQueryOverlay.getChartQueriesBefore([query("a")], 0)).toEqual(
+      [],
+    );
+  });
+
+  test("the second query joins the first's chart: the first alone", () => {
+    const queries: Array<MetricQueryConfigData> = [query("a"), query("b")];
+
+    expect(MetricQueryOverlay.getChartQueriesBefore(queries, 1)).toEqual([
+      queries[0],
+    ]);
+  });
+
+  test("a chain: the lead and every query overlaid on it before this one", () => {
+    const queries: Array<MetricQueryConfigData> = [
+      query("a"),
+      query("b"),
+      query("c", { overlay: true }),
+      query("d", { overlay: true }),
+      query("e", { overlay: true }),
+    ];
+
+    expect(MetricQueryOverlay.getChartQueriesBefore(queries, 4)).toEqual([
+      queries[1],
+      queries[2],
+      queries[3],
+    ]);
+    expect(MetricQueryOverlay.getChartQueriesBefore(queries, 2)).toEqual([
+      queries[1],
+    ]);
+  });
+
+  test("an index the list does not have joins no chart", () => {
+    const queries: Array<MetricQueryConfigData> = [query("a"), query("b")];
+
+    expect(MetricQueryOverlay.getChartQueriesBefore(queries, 2)).toEqual([]);
+    expect(MetricQueryOverlay.getChartQueriesBefore(queries, -1)).toEqual([]);
   });
 });
 

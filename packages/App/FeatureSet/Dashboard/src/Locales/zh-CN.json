@@ -59123,5 +59123,13 @@
   "{{count}} workload runs no pod now, so it is scored from its pod template.": "{{count}} workload runs no pod now, so it is scored from its pod template.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates.": "{{count}} workloads run no pod now, so they are scored from their pod templates.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates._one": "{{count}} workload runs no pod now, so it is scored from its pod template.",
-  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time."
+  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.",
+  "Left axis": "左轴",
+  "Left axis: {{unit}}": "左轴：{{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "更多指标查询，每个查询绘制在各自的图表上，除非叠加到上一个查询的图表",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "单位为 {{units}} 的查询不适用于此图表的任何坐标轴（{{axisUnits}}），因此按左轴绘制，数值可能无法直接比较。",
+  "Right axis": "右轴",
+  "Right axis: {{unit}}": "右轴：{{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "此查询的单位为 {{unit}}，上一个查询的图表单位为 {{chartUnit}}，因此此查询按图表的右轴绘制。",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "此查询的单位为 {{unit}}，上一个查询的图表坐标轴单位为 {{chartUnit}} 和 {{secondUnit}}，因此无法在任一坐标轴上正确读出此查询的数值。"
 }

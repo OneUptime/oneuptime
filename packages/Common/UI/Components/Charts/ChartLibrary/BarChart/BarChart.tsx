@@ -53,6 +53,13 @@ import { Translator } from "../../../../Utils/TranslateTemplate";
 import useTranslator from "../../../../Utils/UseTranslator";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import {
+  ChartSecondYAxis,
+  SECOND_Y_AXIS_ID,
+  getCategoryValueFormatter,
+  getCategoryYAxisProps,
+  getMarkYAxisProps,
+} from "../Utils/SecondYAxis";
+import {
   PreparedTooltipEntries,
   prepareTooltipEntries,
 } from "../Utils/TooltipEntries";
@@ -589,6 +596,14 @@ interface ChartTooltipProps {
   payload: PayloadItem[];
   label: string;
   valueFormatter: (value: number) => string;
+  /*
+   * How a category's value is written when it is not as valueFormatter
+   * writes it: a series on the chart's second axis, in that axis's unit
+   * (SecondYAxis).
+   */
+  categoryValueFormatter?:
+    | ((category: string) => (value: number) => string)
+    | undefined;
 }
 
 const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
@@ -596,6 +611,7 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
   payload,
   label,
   valueFormatter,
+  categoryValueFormatter,
 }: ChartTooltipProps): React.ReactElement | null => {
   const translator: Translator = useTranslator();
 
@@ -672,7 +688,9 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
                       "text-gray-900",
                     )}
                   >
-                    {valueFormatter(value)}
+                    {(categoryValueFormatter
+                      ? categoryValueFormatter(category)
+                      : valueFormatter)(value)}
                   </p>
                 </div>
               );
@@ -753,6 +771,21 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * drag-to-select produced, on this chart or a neighbouring one.
    */
   onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * A second value axis, on the right, for the categories it names, each
+   * bar of which is drawn against it (SecondYAxis, issue #10042). Read by a
+   * horizontal chart of values only: a vertical one draws its values along
+   * the bottom, and one of shares (percent) every bar as a share of 100%.
+   */
+  secondYAxis?: ChartSecondYAxis | undefined;
+  /*
+   * How the tooltip writes a category's value, by category, for a series
+   * whose unit is neither axis's. Left out, a category's value is written
+   * as the axis it is drawn against writes its ticks.
+   */
+  categoryValueFormatters?:
+    | Record<string, (value: number) => string>
+    | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -799,8 +832,18 @@ const BarChart: React.ForwardRefExoticComponent<
       referenceLines,
       onTimeRangeSelect,
       onTimeRangeReset,
+      categoryValueFormatters,
       ...other
     } = props;
+    /*
+     * Values run along the bottom of a vertical chart, and a chart of shares
+     * (percent) draws every bar as a share of its bucket's whole: neither has
+     * a second axis on the right.
+     */
+    const secondYAxis: ChartSecondYAxis | undefined =
+      layout !== "vertical" && type !== "percent"
+        ? props.secondYAxis
+        : undefined;
     const CustomTooltip: React.ComponentType<any> | undefined = customTooltip;
     const paddingValue: number =
       (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
@@ -887,6 +930,26 @@ const BarChart: React.ForwardRefExoticComponent<
       minValue,
       maxValue,
     );
+    const secondYAxisDomain: AxisDomain = secondYAxis
+      ? getYAxisDomain(
+          secondYAxis.autoMinValue,
+          secondYAxis.minValue,
+          secondYAxis.maxValue,
+        )
+      : [0, "auto"];
+    // Each category's value in the tooltip, in the unit of the axis it is on.
+    const categoryValueFormatter: (
+      category: string,
+    ) => (value: number) => string = (
+      category: string,
+    ): ((value: number) => string) => {
+      return getCategoryValueFormatter({
+        category: category,
+        valueFormatter: valueFormatter,
+        secondYAxis: secondYAxis,
+        categoryValueFormatters: categoryValueFormatters,
+      });
+    };
     const hasOnValueChange: boolean = Boolean(onValueChange);
     const stacked: boolean = type === "stacked" || type === "percent";
 
@@ -1148,6 +1211,32 @@ const BarChart: React.ForwardRefExoticComponent<
                   </Label>
                 )}
               </YAxis>
+              {secondYAxis ? (
+                /*
+                 * The second value axis, on the right, written in its own
+                 * unit: its ticks sit just off the plot, as the first's do.
+                 */
+                <YAxis
+                  yAxisId={SECOND_Y_AXIS_ID}
+                  orientation="right"
+                  width={secondYAxis.width}
+                  axisLine={false}
+                  tickLine={false}
+                  fill=""
+                  stroke=""
+                  className={cx("tabular-nums", "fill-gray-500")}
+                  tick={{
+                    transform: "translate(4, 0)",
+                    fontSize: 10,
+                    fontWeight: 500,
+                    fill: "var(--ou-chart-tick)",
+                  }}
+                  type="number"
+                  domain={secondYAxisDomain}
+                  tickFormatter={secondYAxis.valueFormatter}
+                  allowDecimals={allowDecimals}
+                />
+              ) : null}
               <Tooltip
                 wrapperStyle={{ outline: "none", zIndex: 10 }}
                 isAnimationActive={true}
@@ -1199,6 +1288,7 @@ const BarChart: React.ForwardRefExoticComponent<
                         payload={cleanPayload}
                         label={label}
                         valueFormatter={valueFormatter}
+                        categoryValueFormatter={categoryValueFormatter}
                       />
                     )
                   ) : null;
@@ -1246,6 +1336,10 @@ const BarChart: React.ForwardRefExoticComponent<
                   category,
                 ) as ChartColorValue;
                 const isCustomColor: boolean = isHexColorValue(barColor);
+                const axisProps: { yAxisId?: string } = getCategoryYAxisProps(
+                  category,
+                  secondYAxis,
+                );
                 return (
                   <Bar
                     className={cx(
@@ -1256,7 +1350,16 @@ const BarChart: React.ForwardRefExoticComponent<
                     name={category}
                     type="linear"
                     dataKey={category}
-                    {...(stacked ? { stackId: "stack" } : {})}
+                    {...axisProps}
+                    /*
+                     * Bars stack only with bars on their own axis: a value in
+                     * bytes is never piled on one in percent.
+                     */
+                    {...(stacked
+                      ? {
+                          stackId: axisProps.yAxisId ? "stack-second" : "stack",
+                        }
+                      : {})}
                     isAnimationActive={false}
                     /*
                      * Custom hex → apply the color inline (Tailwind has no class
@@ -1278,10 +1381,21 @@ const BarChart: React.ForwardRefExoticComponent<
                   return (
                     <React.Fragment key={`ref-${refIndex}`}>
                       {shade ? (
-                        <ReferenceArea {...shade} stroke="none" />
+                        <ReferenceArea
+                          {...shade}
+                          {...getMarkYAxisProps(
+                            refLine.isOnSecondYAxis,
+                            secondYAxis,
+                          )}
+                          stroke="none"
+                        />
                       ) : null}
                       <ReferenceLine
                         y={refLine.value}
+                        {...getMarkYAxisProps(
+                          refLine.isOnSecondYAxis,
+                          secondYAxis,
+                        )}
                         stroke={refLine.color}
                         strokeDasharray={refLine.strokeDasharray || "4 4"}
                         strokeWidth={1.5}

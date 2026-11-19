@@ -59123,5 +59123,13 @@
   "{{count}} workload runs no pod now, so it is scored from its pod template.": "{{count}} حمل عمل لا يشغّل أي pod الآن، لذا يُقيَّم من قالب الـ pod الخاص به.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates.": "{{count}} من أحمال العمل لا تشغّل أي pod الآن، لذا تُقيَّم من قوالب الـ pod الخاصة بها.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates._one": "{{count}} حمل عمل لا يشغّل أي pod الآن، لذا يُقيَّم من قالب الـ pod الخاص به.",
-  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "يُدرج {{object}} مقبولًا ويُحسب مستوفى. يظل كل كائن آخر قيد التقييم، ويمكنك إلغاء القبول في أي وقت."
+  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "يُدرج {{object}} مقبولًا ويُحسب مستوفى. يظل كل كائن آخر قيد التقييم، ويمكنك إلغاء القبول في أي وقت.",
+  "Left axis": "المحور الأيسر",
+  "Left axis: {{unit}}": "المحور الأيسر: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "مزيد من استعلامات المقاييس، كلٌّ منها على مخطط خاص به ما لم يُراكَب على مخطط الاستعلام السابق",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "لا تناسب الاستعلامات بوحدة {{units}} أيًّا من محوري هذا المخطط ({{axisUnits}})، لذا تُرسم مقابل المحور الأيسر وقد لا تكون قابلة للمقارنة مباشرة.",
+  "Right axis": "المحور الأيمن",
+  "Right axis: {{unit}}": "المحور الأيمن: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا يُرسم مقابل المحور الأيمن للمخطط.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "هذا الاستعلام بوحدة {{unit}}، ومحورا مخطط الاستعلام السابق بوحدتي {{chartUnit}} و{{secondUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على أيٍّ من المحورين."
 }

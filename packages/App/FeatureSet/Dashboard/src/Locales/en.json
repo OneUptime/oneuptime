@@ -59123,5 +59123,13 @@
   "{{count}} workload runs no pod now, so it is scored from its pod template.": "{{count}} workload runs no pod now, so it is scored from its pod template.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates.": "{{count}} workloads run no pod now, so they are scored from their pod templates.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates._one": "{{count}} workload runs no pod now, so it is scored from its pod template.",
-  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time."
+  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.",
+  "Left axis": "Left axis",
+  "Left axis: {{unit}}": "Left axis: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.",
+  "Right axis": "Right axis",
+  "Right axis: {{unit}}": "Right axis: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis."
 }

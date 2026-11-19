@@ -59123,5 +59123,13 @@
   "{{count}} workload runs no pod now, so it is scored from its pod template.": "{{count}} workload runs no pod now, so it is scored from its pod template.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates.": "{{count}} workloads run no pod now, so they are scored from their pod templates.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates._one": "{{count}} workload runs no pod now, so it is scored from its pod template.",
-  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time."
+  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.",
+  "Left axis": "左軸",
+  "Left axis: {{unit}}": "左軸: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "追加のメトリクスクエリ。前のクエリのチャートに重ねない限り、それぞれ独自のチャートに描かれます",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "{{units}} のクエリはこのチャートのどの軸（{{axisUnits}}）にも合わないため、左軸に対して描かれ、値を直接比較できない場合があります。",
+  "Right axis": "右軸",
+  "Right axis: {{unit}}": "右軸: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリはチャートの右軸に対して描かれます。",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "このクエリの単位は {{unit}} で、前のクエリのチャートの軸の単位は {{chartUnit}} と {{secondUnit}} のため、このクエリの値はどちらの軸でも正しく読み取れません。"
 }

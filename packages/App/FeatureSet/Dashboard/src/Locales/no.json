@@ -59123,5 +59123,13 @@
   "{{count}} workload runs no pod now, so it is scored from its pod template.": "{{count}} workload runs no pod now, so it is scored from its pod template.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates.": "{{count}} workloads run no pod now, so they are scored from their pod templates.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates._one": "{{count}} workload runs no pod now, so it is scored from its pod template.",
-  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time."
+  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.",
+  "Left axis": "Venstre akse",
+  "Left axis: {{unit}}": "Venstre akse: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Flere spørringer etter målinger, hver tegnet i sitt eget diagram, med mindre den legges over diagrammet til forrige spørring",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Spørringer i {{units}} passer ikke på noen av aksene i dette diagrammet ({{axisUnits}}), så de tegnes mot venstre akse og er kanskje ikke direkte sammenlignbare.",
+  "Right axis": "Høyre akse",
+  "Right axis: {{unit}}": "Høyre akse: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Denne spørringen er i {{unit}} og diagrammet til forrige spørring i {{chartUnit}}, så den tegnes mot diagrammets høyre akse.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Denne spørringen er i {{unit}}, og diagrammet til forrige spørring har akser i {{chartUnit}} og {{secondUnit}}, så verdiene kan ikke leses riktig på noen av aksene."
 }

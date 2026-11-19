@@ -59123,5 +59123,13 @@
   "{{count}} workload runs no pod now, so it is scored from its pod template.": "{{count}} workload runs no pod now, so it is scored from its pod template.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates.": "{{count}} workloads run no pod now, so they are scored from their pod templates.",
   "{{count}} workloads run no pod now, so they are scored from their pod templates._one": "{{count}} workload runs no pod now, so it is scored from its pod template.",
-  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time."
+  "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.": "{{object}} is listed as accepted and counts as passing. Every other object is still scored, and you can revoke it at any time.",
+  "Left axis": "Linke Achse",
+  "Left axis: {{unit}}": "Linke Achse: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Weitere Metrikabfragen, jede in einem eigenen Diagramm, sofern sie nicht mit dem Diagramm der vorherigen Abfrage überlagert wird",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Abfragen in {{units}} passen auf keine Achse dieses Diagramms ({{axisUnits}}), daher werden sie an der linken Achse gezeichnet und sind nicht unbedingt direkt vergleichbar.",
+  "Right axis": "Rechte Achse",
+  "Right axis: {{unit}}": "Rechte Achse: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Diese Abfrage ist in {{unit}} und das Diagramm der vorherigen Abfrage in {{chartUnit}}, daher wird sie an der rechten Achse des Diagramms gezeichnet.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Diese Abfrage ist in {{unit}}, und das Diagramm der vorherigen Abfrage hat Achsen in {{chartUnit}} und {{secondUnit}}, daher lassen sich ihre Werte auf keiner der beiden Achsen richtig ablesen."
 }
