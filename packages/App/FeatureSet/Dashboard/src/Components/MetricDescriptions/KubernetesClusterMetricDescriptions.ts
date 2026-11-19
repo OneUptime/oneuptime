@@ -101,7 +101,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "Pods placed on a node with their containers running or starting. A pod whose container cannot run is counted under that problem instead, such as CrashLoopBackOff. Running does not mean healthy - a container can still be failing its readiness check.",
   ),
   podsCannotRun: translationKey(
-    "Pods with a container that cannot run: it keeps crashing (CrashLoopBackOff), its image cannot be pulled (ImagePullBackOff) or its configuration is wrong. Kubernetes keeps retrying, but nothing changes until the cause is fixed. Any such pod marks the cluster Unhealthy.",
+    "Pods with a container that cannot run: it keeps crashing (CrashLoopBackOff), its image cannot be pulled (ImagePullBackOff) or its configuration is wrong. Retrying changes nothing until the cause is fixed. Any such pod marks the cluster Unhealthy.",
   ),
   podsPending: translationKey(
     "Pods the cluster has accepted but not started yet - usually waiting for a node with enough free CPU or memory, for an image to download, or for a volume. A pod pending for more than five minutes marks the cluster Degraded.",
@@ -140,7 +140,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   ),
 
   podHealth: translationKey(
-    "Pods in the latest inventory, each counted once as kubectl shows it: Running, Can't run (a container that keeps crashing or cannot start), Pending (not started yet), Failed (stopped with an error) and Succeeded (all containers finished without error, such as completed jobs). Not tied to the time range.",
+    "Pods in the latest inventory, each counted once as kubectl shows it: Running, Can't run (a container keeps crashing or cannot start), Pending (not started yet), Failed (stopped with an error) and Succeeded (finished without error). Not tied to the time range.",
   ),
 
   // Top consumers - each pod's latest minute from the past hour.
