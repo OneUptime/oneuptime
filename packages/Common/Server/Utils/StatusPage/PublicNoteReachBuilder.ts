@@ -8,8 +8,10 @@ import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/Sched
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ScheduledMaintenancePublication, {
@@ -19,13 +21,22 @@ import PublicNoteReach, {
   PublicNoteNothingSentReason,
   PublicNoteReachEvent,
   PublicNoteReachResult,
+  StatusPagesNothingSentReason,
 } from "../../../Types/StatusPage/PublicNoteReach";
 import StatusPageVisibility from "../../../Types/StatusPage/StatusPageVisibility";
 import { isSendingSubscriberNotifications } from "../../../Types/StatusPage/SubscriberNotificationsSwitch";
+import DatabaseService from "../../Services/DatabaseService";
+import IncidentEpisodePublicNoteService from "../../Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeService from "../../Services/IncidentEpisodeService";
+import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
+import IncidentService from "../../Services/IncidentService";
+import ScheduledMaintenancePublicNoteService from "../../Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import StatusPageSubscriberService from "../../Services/StatusPageSubscriberService";
-import CallerPermission from "../Permission/CallerPermission";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../Types/Database/Permissions/Index";
+import Query from "../../Types/Database/Query";
+import Select from "../../Types/Database/Select";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "./IncidentStatusPageScope";
@@ -61,7 +72,15 @@ import SubscriberNotificationPreviewBuilder from "./SubscriberNotificationPrevie
  * same people. The event itself is read with the caller's own permissions,
  * inside the caller's project: another project's event, and one the caller
  * may not read, are not found.
+ *
+ * Who may ask is whoever may write the event's public notes - post one on
+ * it, or edit one of its own - decided for that event, as posting or
+ * editing a note through the API decides it (assertCallerMayWriteNotesOn).
+ * The route refuses first, before it reads the body, a caller who may
+ * write none of that kind of note anywhere in the project
+ * (assertCallerMayAsk).
  */
+
 export default class PublicNoteReachBuilder {
   // The public note each event's composer writes.
   public static getNoteModel(event: PublicNoteReachEvent): BaseModel {
@@ -76,36 +95,213 @@ export default class PublicNoteReachBuilder {
   }
 
   /*
-   * Who may ask: whoever may write the event's public notes - post one, or
-   * edit one - since the answer is what the composer says to them. Read the
-   * way every permission check reads it (CallerPermission): a team's block
-   * is no grant.
+   * The route's first refusal, before it reads the body: a caller who may
+   * neither create nor update the event's kind of public note anywhere in
+   * the project - the part of a create or an update permission check that
+   * depends on no record, asked as the CRUD path asks it first
+   * (ModelPermission.checkTableWritePermission): an allow row, a block with
+   * no labels taking it away, a credential that may write. It never lets
+   * anyone through by itself: whether the caller may write this event's
+   * notes is the event's own to decide (assertCallerMayWriteNotesOn, asked
+   * by build), since a permission limited to some labels, or to what the
+   * caller's teams own, reaches only some events
+   * (Tests/Server/Utils/Permission/TableHalfWriteGuard).
    */
   public static assertCallerMayAsk(data: {
     props: DatabaseCommonInteractionProps;
     event: PublicNoteReachEvent;
   }): void {
-    if (data.props.isMasterAdmin) {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
       return;
     }
 
-    const note: BaseModel = this.getNoteModel(data.event);
+    const noteType: { new (): BaseModel } = this.getNoteModel(data.event)
+      .constructor as { new (): BaseModel };
 
-    const mayWrite: boolean =
-      CallerPermission.holdsModelPermission(data.props, {
-        model: note,
-        operation: "create",
-      }) ||
-      CallerPermission.holdsModelPermission(data.props, {
-        model: note,
-        operation: "update",
-      });
+    for (const type of [
+      DatabaseRequestType.Create,
+      DatabaseRequestType.Update,
+    ] as Array<DatabaseRequestType.Create | DatabaseRequestType.Update>) {
+      try {
+        ModelPermission.checkTableWritePermission(noteType, data.props, type);
+        return;
+      } catch (error) {
+        if (!this.isRefusal(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw new NotAuthorizedException(this.getRefusalMessage(data.event));
+  }
+
+  /*
+   * Whether the caller may write this event's public notes: post one on it,
+   * or edit one it has - decided with the event's own row, as the API
+   * decides a note's create and update, never by the table's permissions
+   * alone. A permission to post incident notes limited to the "staging"
+   * label does not reach an incident labelled "production", one limited to
+   * what the caller's teams own does not reach an incident nobody on them
+   * owns, and a private incident is reached only by its own people:
+   *
+   *   - posting one is asked as a create of a note on the event is, without
+   *     writing it (DatabaseService.checkCallerMayCreate): the table and
+   *     its blocks, the event the note goes under and the caller's read of
+   *     it, and what the caller's create permission reaches (the event's
+   *     labels, its owners);
+   *   - editing one, when posting is refused: a note of the event that the
+   *     caller's update permission reaches, by the query an update of the
+   *     notes is narrowed to (ModelPermission.getUpdatableQuery), found as
+   *     root - as DatabaseService.findOneUpdatableById finds a record.
+   *
+   * Asked once the caller has been shown to read the event. Root and a
+   * master admin pass; anything else is refused with the composer's own
+   * sentence (NotAuthorizedException). A failure that is no refusal - the
+   * database not answering - is thrown as it came.
+   */
+  public static async assertCallerMayWriteNotesOn(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    event: PublicNoteReachEvent;
+    eventId: ObjectID;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    let mayWrite: boolean = false;
+
+    switch (data.event) {
+      case PublicNoteReachEvent.Incident: {
+        const note: IncidentPublicNote = new IncidentPublicNote();
+        note.projectId = data.projectId;
+        note.incidentId = data.eventId;
+
+        mayWrite = await this.mayWriteNotesOf<IncidentPublicNote>({
+          service: IncidentPublicNoteService,
+          modelType: IncidentPublicNote,
+          draft: note,
+          notesOfEvent: {
+            projectId: data.projectId,
+            incidentId: data.eventId,
+          },
+          props: data.props,
+        });
+        break;
+      }
+      case PublicNoteReachEvent.IncidentEpisode: {
+        const note: IncidentEpisodePublicNote = new IncidentEpisodePublicNote();
+        note.projectId = data.projectId;
+        note.incidentEpisodeId = data.eventId;
+
+        mayWrite = await this.mayWriteNotesOf<IncidentEpisodePublicNote>({
+          service: IncidentEpisodePublicNoteService,
+          modelType: IncidentEpisodePublicNote,
+          draft: note,
+          notesOfEvent: {
+            projectId: data.projectId,
+            incidentEpisodeId: data.eventId,
+          },
+          props: data.props,
+        });
+        break;
+      }
+      case PublicNoteReachEvent.ScheduledMaintenance: {
+        const note: ScheduledMaintenancePublicNote =
+          new ScheduledMaintenancePublicNote();
+        note.projectId = data.projectId;
+        note.scheduledMaintenanceId = data.eventId;
+
+        mayWrite = await this.mayWriteNotesOf<ScheduledMaintenancePublicNote>({
+          service: ScheduledMaintenancePublicNoteService,
+          modelType: ScheduledMaintenancePublicNote,
+          draft: note,
+          notesOfEvent: {
+            projectId: data.projectId,
+            scheduledMaintenanceId: data.eventId,
+          },
+          props: data.props,
+        });
+        break;
+      }
+    }
 
     if (!mayWrite) {
-      throw new NotAuthorizedException(
-        `You do not have permission to see where this ${this.getEventName(data.event)}'s public notes are shown. You need a permission that lets you post or edit them.`,
-      );
+      throw new NotAuthorizedException(this.getRefusalMessage(data.event));
     }
+  }
+
+  // Post a note on the event (as its create decides), or edit one of its notes.
+  private static async mayWriteNotesOf<TNote extends BaseModel>(data: {
+    service: DatabaseService<TNote>;
+    modelType: { new (): TNote };
+    // A note on the event, as the composer would post it: its project and event.
+    draft: TNote;
+    // The event's notes, in its project.
+    notesOfEvent: Query<TNote>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    try {
+      await data.service.checkCallerMayCreate({
+        data: data.draft,
+        props: data.props,
+      });
+
+      return true;
+    } catch (error) {
+      if (!this.isRefusal(error)) {
+        throw error;
+      }
+    }
+
+    let updatableNotes: Query<TNote>;
+
+    try {
+      updatableNotes = await ModelPermission.getUpdatableQuery(
+        data.modelType,
+        data.notesOfEvent,
+        data.props,
+      );
+    } catch (error) {
+      if (!this.isRefusal(error)) {
+        throw error;
+      }
+
+      return false;
+    }
+
+    const note: TNote | null = await data.service.findOneBy({
+      query: updatableNotes,
+      select: {
+        _id: true,
+      } as Select<TNote>,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(note);
+  }
+
+  /*
+   * A permission check saying no, as opposed to failing: the permission
+   * checks refuse with these (a reference the caller may not read is a
+   * BadDataException, a plan that does not sell the write a
+   * PaymentRequiredException).
+   */
+  private static isRefusal(error: unknown): boolean {
+    return (
+      error instanceof NotAuthorizedException ||
+      error instanceof NotAuthenticatedException ||
+      error instanceof NotFoundException ||
+      error instanceof BadDataException ||
+      error instanceof PaymentRequiredException
+    );
+  }
+
+  // What a caller who may write none of the event's public notes is told.
+  private static getRefusalMessage(event: PublicNoteReachEvent): string {
+    return `You do not have permission to see where this ${this.getEventName(event)}'s public notes are shown. You need a permission that lets you post or edit them.`;
   }
 
   // The request body: {eventId}.
@@ -155,13 +351,17 @@ export default class PublicNoteReachBuilder {
    * none shows it, NotificationsOff when every one that does is switched
    * off, null when one tells its subscribers. Another project's page is
    * never told, so it does not count.
+   *
+   * The one rule for the pages' part of every answer of this kind: an
+   * episode's and a maintenance event's notes here, and an announcement on
+   * the status pages picked on its form (AnnouncementReachBuilder, #9775).
    */
   public static getStatusPagesReason(data: {
     projectId: ObjectID;
     statusPages: Array<StatusPage>;
     // Whether a page shows this kind of event at all.
     showsEvent: (statusPage: StatusPage) => boolean;
-  }): PublicNoteNothingSentReason | null {
+  }): StatusPagesNothingSentReason | null {
     const projectId: string = data.projectId.toString().toLowerCase();
 
     const showingPages: Array<StatusPage> = data.statusPages.filter(
@@ -187,15 +387,38 @@ export default class PublicNoteReachBuilder {
 
   /*
    * An incident: its notification preview's answer for a public note, from
-   * the same audience. The audience reads the incident with the caller's
-   * permissions first, and works the pages out from every page the
-   * incident reaches (IncidentSubscriberAudienceBuilder).
+   * the same audience. The incident is read with the caller's permissions
+   * first, and whether they may write its notes is decided before anything
+   * is read as root; the audience then works the pages out from every page
+   * the incident reaches (IncidentSubscriberAudienceBuilder).
    */
   private static async buildForIncident(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
     eventId: ObjectID;
   }): Promise<PublicNoteReachResult> {
+    const incident: Incident | null = await IncidentService.findOneBy({
+      query: {
+        _id: data.eventId,
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+      },
+      props: data.props,
+    });
+
+    if (!incident) {
+      throw new NotFoundException("Incident not found.");
+    }
+
+    await this.assertCallerMayWriteNotesOn({
+      projectId: data.projectId,
+      props: data.props,
+      event: PublicNoteReachEvent.Incident,
+      eventId: data.eventId,
+    });
+
     const withStatusPages: IncidentSubscriberAudienceWithStatusPages =
       await IncidentSubscriberAudienceBuilder.buildWithStatusPages({
         projectId: data.projectId,
@@ -246,6 +469,13 @@ export default class PublicNoteReachBuilder {
     if (!episode) {
       throw new NotFoundException("Episode not found.");
     }
+
+    await this.assertCallerMayWriteNotesOn({
+      projectId: data.projectId,
+      props: data.props,
+      event: PublicNoteReachEvent.IncidentEpisode,
+      eventId: data.eventId,
+    });
 
     const incidents: Array<Incident> =
       await IncidentStatusPageScope.getEpisodeMemberIncidents(data.eventId);
@@ -310,6 +540,13 @@ export default class PublicNoteReachBuilder {
     if (!readable) {
       throw new NotFoundException("Maintenance event not found.");
     }
+
+    await this.assertCallerMayWriteNotesOn({
+      projectId: data.projectId,
+      props: data.props,
+      event: PublicNoteReachEvent.ScheduledMaintenance,
+      eventId: data.eventId,
+    });
 
     /*
      * Read as root, now that the caller has been shown to read the event:
