@@ -1750,6 +1750,12 @@ const listProjectScimUsers: (data: {
      * A member of the project the connection has not written is its user
      * by the account's address - as long as the connection keeps no record
      * of the account under another userName.
+     *
+     * The project is asked about the account the same way whether or not
+     * any account has the address: for none, about an id no account has.
+     * An identity provider asks this before every create, and how long the
+     * answer took must not say whether the address has an account
+     * somewhere on the server (#9825).
      */
     if (text.length <= 320 && Email.isValid(text)) {
       const account: User | null = await UserService.findOneBy({
@@ -1767,16 +1773,17 @@ const listProjectScimUsers: (data: {
         },
       );
 
-      if (account?.id && !alreadyListed) {
-        const user: ProjectScimUser | null = await findProjectScimUser({
-          projectId: data.projectId,
-          projectScimId: data.projectScimId,
-          userId: account.id.toString(),
-        });
+      const memberToLookUp: ObjectID =
+        account?.id && !alreadyListed ? account.id : ObjectID.generate();
 
-        if (user && !user.record) {
-          candidates.push(user);
-        }
+      const user: ProjectScimUser | null = await findProjectScimUser({
+        projectId: data.projectId,
+        projectScimId: data.projectScimId,
+        userId: memberToLookUp.toString(),
+      });
+
+      if (user && !user.record) {
+        candidates.push(user);
       }
     }
   } else if (isScimAttribute(first.attribute, "externalId")) {
