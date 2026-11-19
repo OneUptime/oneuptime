@@ -163,19 +163,21 @@ Een handige verdeling: geef een supportmedewerker `ReadRumApplication` en `ReadR
 
 ## Waarschuwingen op RUM-gegevens
 
-RUM-telemetrie bestaat uit gewone logs, metrieken en traces, dus er is geen aparte RUM-monitor: de gebruikelijke monitors werken ermee. De snelste start is de pagina **Aanbevelingen** van de applicatie, die monitors aanbiedt die al tot de applicatie beperkt zijn:
+RUM-telemetrie bestaat uit gewone logs, metrieken en traces, dus er is geen aparte RUM-monitor: de gebruikelijke monitors werken ermee. De snelste start is de pagina **Aanbevelingen** van de applicatie, die monitors aanbiedt die al tot de applicatie beperkt zijn, de monitors die bij een web-app of een mobiele app passen:
 
 | Groep | Aanbevelingen |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint en Slow Time to First Byte. Zie [Core Web Vitals](/docs/rum/web-vitals). |
-| Fouten | Failed User Operations en Unhandled Browser Exceptions. |
+| Core Web Vitals | Voor een web-app: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint en Slow Time to First Byte. Zie [Core Web Vitals](/docs/rum/web-vitals). |
+| Fouten | App Crashes en App Not Responding (ANR) voor een mobiele app, Failed User Operations voor beide, en Unhandled Browser Exceptions voor een web-app. |
+| Prestaties | Voor een mobiele app: Slow Cold Start, wanneer een koude start 5 seconden of langer duurt, wat Android vitals als buitensporig lang beschouwt, en Frozen Frames, wanneer het renderen van een frame langer dan 700 ms duurt. |
+| Beschikbaarheid | Voor een mobiele app: App Stopped Reporting, wanneer de app 30 minuten lang geen spans verstuurt. |
 | Sessieherhaling | De vier [waarschuwingen voor het opslagbudget](/docs/telemetry/session-replay#waarschuwingen-voor-het-opslagbudget), die waarschuwen voordat de daglimiet van het project of het maandbudget van de applicatie op is. Ze worden aangeboden zodra de applicatie een herhaling heeft opgenomen, en het maandpaar wanneer ze ook een maandbudget heeft. |
 
 Om je eigen monitor te maken kies je de monitor die het signaal leest:
 
 - [Metrics-monitor](/docs/monitor/metrics-monitor): een Core Web Vital, of een andere metriek die je app verstuurt.
-- [Traces-monitor](/docs/monitor/traces-monitor): foutpercentage of latentie aan de clientkant.
-- [Logs-monitor](/docs/monitor/logs-monitor): een patroon in browserlogs.
+- [Traces-monitor](/docs/monitor/traces-monitor): foutpercentage of latentie aan de clientkant, of app-starts die trager zijn dan een duur die je instelt.
+- [Logs-monitor](/docs/monitor/logs-monitor): een patroon in browserlogs, of de gebeurtenissen `app.crash`, `device.anr` en `app.jank` van een mobiele app.
 - [Uitzonderingen-monitor](/docs/monitor/exceptions-monitor): nieuwe of sterk stijgende uitzonderingen aan de clientkant.
 
 Beperk elke monitor die je maakt tot de applicatie, zodat een backend-service met een vergelijkbare signatuur hem niet laat afgaan.

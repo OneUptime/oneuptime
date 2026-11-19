@@ -1,4 +1,5 @@
 import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -93,6 +94,72 @@ describe("MonitorStepTraceMonitorUtil", () => {
       expect((query.name as Search<string>).value).toBe("GET /checkout");
     });
 
+    test("a duration floor keeps only the spans at least that long, in nanoseconds", () => {
+      const query: Query<Span> = MonitorStepTraceMonitorUtil.toQuery({
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        spanName: "AppStart",
+        attributes: { "start.type": "cold" },
+        minimumDurationInMs: 5000,
+        lastXSecondsOfSpans: 0,
+      });
+
+      expect(query.durationUnixNano).toBeInstanceOf(GreaterThanOrEqual);
+      expect((query.durationUnixNano as GreaterThanOrEqual<number>).value).toBe(
+        5_000_000_000,
+      );
+      // The floor narrows the other filters, never replaces them.
+      expect((query.name as Search<string>).value).toBe("AppStart");
+      expect(query.attributes).toEqual({ "start.type": "cold" });
+    });
+
+    test("a fractional floor is rounded to a whole nanosecond", () => {
+      const query: Query<Span> = MonitorStepTraceMonitorUtil.toQuery({
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        minimumDurationInMs: 1.5,
+        lastXSecondsOfSpans: 0,
+      });
+
+      expect((query.durationUnixNano as GreaterThanOrEqual<number>).value).toBe(
+        1_500_000,
+      );
+    });
+
+    test("a step saved without a floor counts spans of any duration", () => {
+      const query: Query<Span> = MonitorStepTraceMonitorUtil.toQuery({
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        spanName: "AppStart",
+        lastXSecondsOfSpans: 0,
+      });
+
+      expect(query.durationUnixNano).toBeUndefined();
+    });
+
+    test.each([[0], [-5], [NaN], [Infinity], [""], ["  "], ["fast"], [null]])(
+      "a floor of %j is no floor",
+      (minimumDurationInMs: unknown) => {
+        const query: Query<Span> = MonitorStepTraceMonitorUtil.toQuery({
+          ...MonitorStepTraceMonitorUtil.getDefault(),
+          minimumDurationInMs: minimumDurationInMs as number,
+          lastXSecondsOfSpans: 0,
+        });
+
+        expect(query.durationUnixNano).toBeUndefined();
+        expect(
+          MonitorStepTraceMonitorUtil.getMinimumDurationInMs({
+            minimumDurationInMs: minimumDurationInMs as number,
+          }),
+        ).toBeNull();
+      },
+    );
+
+    test("a floor written as text through the API still counts", () => {
+      expect(
+        MonitorStepTraceMonitorUtil.getMinimumDurationInMs({
+          minimumDurationInMs: "2500" as unknown as number,
+        }),
+      ).toBe(2500);
+    });
+
     test("builds a trailing time window from lastXSecondsOfSpans", () => {
       const query: Query<Span> = MonitorStepTraceMonitorUtil.toQuery({
         ...MonitorStepTraceMonitorUtil.getDefault(),
@@ -132,6 +199,36 @@ describe("MonitorStepTraceMonitorUtil", () => {
       expect(roundTripped.telemetryServiceIds.map(String)).toEqual(
         original.telemetryServiceIds.map(String),
       );
+      expect(roundTripped.minimumDurationInMs).toBeUndefined();
+    });
+
+    test("round-trips a duration floor", () => {
+      const original: MonitorStepTraceMonitor = {
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        spanName: "AppStart",
+        minimumDurationInMs: 5000,
+      };
+
+      const json: ReturnType<typeof MonitorStepTraceMonitorUtil.toJSON> =
+        MonitorStepTraceMonitorUtil.toJSON(original);
+
+      expect(json["minimumDurationInMs"]).toBe(5000);
+      expect(
+        MonitorStepTraceMonitorUtil.fromJSON(json).minimumDurationInMs,
+      ).toBe(5000);
+    });
+
+    test("a step with no floor is stored without the key, as before it existed", () => {
+      const json: ReturnType<typeof MonitorStepTraceMonitorUtil.toJSON> =
+        MonitorStepTraceMonitorUtil.toJSON({
+          ...MonitorStepTraceMonitorUtil.getDefault(),
+          minimumDurationInMs: 0,
+        });
+
+      expect(Object.keys(json)).not.toContain("minimumDurationInMs");
+      expect(
+        Object.keys(MonitorStepTraceMonitorUtil.fromJSON(json)),
+      ).not.toContain("minimumDurationInMs");
     });
   });
 });

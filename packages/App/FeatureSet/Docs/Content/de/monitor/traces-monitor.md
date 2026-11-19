@@ -48,7 +48,7 @@ Legen Sie in **Zu überwachende Spans** die Felder **Span-Status** und **Span-Na
 
 ### Weiter eingrenzen (optional)
 
-Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern.
+Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern oder um nur die Spans zu zählen, die mindestens eine bestimmte Zeit gedauert haben.
 
 ### Festlegen, wann alarmiert wird
 
@@ -76,6 +76,7 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Nach Dienst filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Spans, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
+| **Dauert mindestens (ms)** (unter **Weitere Felder**) | Spans, die so lange oder länger gedauert haben, in Millisekunden, etwa 5000 für einen Kaltstart von fünf Sekunden. | Leer: beliebige Dauer |
 
 Alle Filter, die Sie festlegen, müssen passen, damit ein Span gezählt wird.
 
