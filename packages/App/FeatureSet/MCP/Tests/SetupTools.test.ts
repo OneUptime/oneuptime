@@ -46,9 +46,8 @@ import ObjectID from "Common/Types/ObjectID";
 
 jest.mock("../Utils/MCPLogger");
 
-type ApiCallSpy = jest.SpiedFunction<
-  typeof OneUptimeApiService.makeAuthenticatedApiCall
->;
+// Bare SpyInstance keeps the annotation compatible across @types/jest versions.
+type ApiCallSpy = jest.SpyInstance;
 
 const WRITES: Array<string> = [
   "set_up_website_monitoring",
@@ -375,8 +374,9 @@ describe("their arguments are Ask AI's", () => {
 
       expect(
         [
-          ...(((mcp.inputSchema as JSONObject)["required"] as Array<string>) ||
-            []),
+          ...(((mcp.inputSchema as unknown as JSONObject)[
+            "required"
+          ] as Array<string>) || []),
         ].sort(),
       ).toEqual(
         [...((askAi!.inputSchema["required"] as Array<string>) || [])].sort(),
