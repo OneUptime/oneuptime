@@ -476,6 +476,10 @@
         "vpa": {
           "type": "boolean",
           "description": "Enable VPA collection (requires VPA CRDs installed in the cluster)"
+        },
+        "compliance": {
+          "type": "boolean",
+          "description": "Read RBAC (Roles, ClusterRoles and their bindings), ServiceAccounts and NetworkPolicies, read-only, to score the cluster against the CIS Kubernetes Benchmark on its Compliance page"
         }
       },
       "additionalProperties": false
