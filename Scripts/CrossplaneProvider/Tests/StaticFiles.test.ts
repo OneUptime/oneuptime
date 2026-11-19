@@ -6,6 +6,7 @@ import {
   STATIC_FILES_DIR,
 } from "../Core/CrossplaneProviderGenerator";
 import { renderReferencesGo } from "../Core/References";
+import { renderServerOwnedGo } from "../Core/ServerOwned";
 
 const read: (file: string) => string = (file: string): string => {
   return fs.readFileSync(path.join(STATIC_FILES_DIR, file), "utf-8");
@@ -86,6 +87,37 @@ describe("the provider's hand-written Go", () => {
   test("config reads the references the generator writes", () => {
     expect(renderReferencesGo({})).toContain("var generatedReferences =");
     expect(read("config/provider.go")).toContain("range generatedReferences");
+  });
+
+  test("config reads the fields OneUptime keeps that the generator writes", () => {
+    expect(renderServerOwnedGo({})).toContain("var generatedServerOwned =");
+    expect(read("config/lateinit.go")).toContain(
+      "range generatedServerOwned[terraformName]",
+    );
+  });
+
+  /*
+   * #9985: what late initialization and spec.initProvider leave to
+   * OneUptime, and a create that records the external name itself.
+   */
+  test("every resource's defaults configure late initialization, spec.initProvider and creates in the reconcile", () => {
+    const provider: string = read("config/provider.go");
+    for (const line of [
+      "r.UseAsync = false",
+      "lateInitialization(r)",
+      "r.TerraformConfigurationInjector = initProviderAtCreateOnly(r)",
+      "r.ExternalName.SetIdentifierArgumentFn = identifyByExternalName",
+    ]) {
+      expect([line, provider.includes(line)]).toEqual([line, true]);
+    }
+    expect(goFiles).toEqual(
+      expect.arrayContaining([
+        "config/lateinit.go",
+        "config/lateinit_test.go",
+        "config/serverowned_test.go",
+        "config/fakeapi_test.go",
+      ]),
+    );
   });
 });
 
