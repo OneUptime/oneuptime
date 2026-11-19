@@ -32,8 +32,12 @@ import {
 } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Green500 } from "../../../Types/BrandColors";
+import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import PostmortemActionItemStatus from "../../../Types/Incident/PostmortemActionItemStatus";
 import { JSONObject } from "../../../Types/JSON";
@@ -327,6 +331,57 @@ describe("adding an action item", () => {
     ]);
     // Open: nobody closed it.
     expect(columnWrites).toEqual([]);
+  });
+
+  /*
+   * An action item's owner can be someone invited to the project who has
+   * not accepted: the project sees only what it invited of them - the name
+   * typed for them, else their address - never their own name (#9823).
+   */
+  test("its owner only invited to the project: named by the name typed for them, else their address", async () => {
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockImplementation(async (args: unknown) => {
+        const user: User = new User();
+        user._id = (args as { id: ObjectID }).id.toString();
+        user.name = "Ana Account" as never;
+        user.email = new Email("ana@example.com");
+        return user;
+      });
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            ANA_ID.toString().toLowerCase(),
+            { inviteeName: "Ana from Platform" },
+          ],
+        ]),
+      );
+
+    await hooks.onCreateSuccess(
+      onCreate(item()),
+      created({ ownerUserId: ANA_ID, createdByUserId: MAYA_ID }),
+    );
+
+    withheldIn.mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [ANA_ID.toString().toLowerCase(), { inviteeName: null }],
+      ]),
+    );
+
+    await hooks.onCreateSuccess(
+      onCreate(item()),
+      created({ ownerUserId: ANA_ID, createdByUserId: MAYA_ID }),
+    );
+
+    expect(feedTexts()).toEqual([
+      "📝 Added the action item **Alert on pool usage**, owned by **Ana from Platform**.",
+      "📝 Added the action item **Alert on pool usage**, owned by **ana@example.com**.",
+    ]);
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
   });
 
   test("tracked from the note: said once for all of them, not on its own", async () => {
