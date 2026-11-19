@@ -15,6 +15,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as React from "react";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import StateChangeCauseModal, {
   useWordStateChangeCause,
   wordStateChangeCause,
@@ -198,7 +199,7 @@ describe("View Cause's dialog", () => {
   });
 
   test("Close closes it", () => {
-    const onClose: jest.Mock = jest.fn();
+    const onClose: MockFunction = getJestMockFunction();
 
     render(
       <StateChangeCauseModal

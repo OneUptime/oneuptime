@@ -98,7 +98,10 @@ import CephClusterHealthPill, {
   CephClusterHealthSubject,
   loadCephClusterAttention,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Ceph/CephClusterHealthPill";
-import { ResourceAttentionItem } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionText,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import { ResourceAttentionDialogRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttentionDialog";
 import {
   CLOUD_ENVIRONMENT_STATUS_LABELS,
@@ -228,7 +231,7 @@ describe("a Ceph cluster's ERR or WARN on the Clusters list", () => {
 
     // Ceph's own codes, as Ceph names them, the error first.
     expect(
-      cluster.reasons.map((reason: { values?: Record<string, string> }) => {
+      cluster.reasons.map((reason: ResourceAttentionText) => {
         return reason.values?.["check"];
       }),
     ).toEqual(["OSD_DOWN", "PG_DEGRADED"]);
