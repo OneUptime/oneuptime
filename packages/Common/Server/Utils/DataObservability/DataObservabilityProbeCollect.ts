@@ -48,6 +48,7 @@ import {
   MAX_SEGMENTS_PER_CHECK,
 } from "../../../Types/DataObservability/DataCheckType";
 import { MAX_CUSTOM_SQL_LENGTH } from "./DataCheckSql";
+import { MAX_RESTARTED_AFTER_LENGTH } from "./DataCheckRestart";
 import ObjectID from "../../../Types/ObjectID";
 import {
   readSkippedTables,
@@ -319,15 +320,28 @@ export function readCheckResults(value: unknown): Array<DataCheckRunResult> {
       }
     }
 
+    const error: string | null =
+      typeof item["error"] === "string" && item["error"].length > 0
+        ? item["error"].slice(0, MAX_CHECK_ERROR_LENGTH)
+        : null;
+    const restartedAfter: unknown = item["restartedAfter"];
+
     results.push({
       checkId,
       values,
-      error:
-        typeof item["error"] === "string" && item["error"].length > 0
-          ? item["error"].slice(0, MAX_CHECK_ERROR_LENGTH)
-          : null,
+      error,
       ...(Array.isArray(item["failingRows"])
         ? { failingRows: readFailingRows(item["failingRows"]) }
+        : {}),
+      // Why a check that ran at its second try failed its first (#9679); an older probe says nothing.
+      ...(!error &&
+      typeof restartedAfter === "string" &&
+      restartedAfter.trim().length > 0
+        ? {
+            restartedAfter: restartedAfter
+              .trim()
+              .slice(0, MAX_RESTARTED_AFTER_LENGTH),
+          }
         : {}),
     });
   }
