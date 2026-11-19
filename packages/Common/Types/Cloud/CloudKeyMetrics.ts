@@ -2999,6 +2999,19 @@ export function getGcpKeyMetricTypes(): Array<
 }
 
 /*
+ * How many deprecated metrics a Google Cloud type is still read for, beside
+ * its key metrics (GcpTypeKeyMetrics.retired): each a time series a
+ * resource a read, which the cost estimate counts.
+ */
+export function getGcpRetiredMetricCount(resourceType: string): number {
+  return (
+    GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
+      return entry.resourceType === resourceType;
+    })?.retired?.length || 0
+  );
+}
+
+/*
  * The resource types a metric is listed under, by the name it is stored
  * under (a metric type, for all but a distribution's count), in the
  * catalog's order - a deprecated one still read among them.

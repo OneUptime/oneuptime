@@ -2,6 +2,7 @@ import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
   AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  getGcpRetiredMetricCount,
   getKeyMetricCount,
   hasAzureFiveMinuteKeyMetrics,
 } from "../Cloud/CloudKeyMetrics";
@@ -25,7 +26,11 @@ import { CloudConnectionTypeCount } from "./CloudConnectionTest";
  *     AZURE_FIVE_MINUTE_READ_MINUTES (getAzureFiveMinuteReadsPerMonth).
  *   - Google Cloud: Cloud Monitoring's first 1,000,000 time series read a
  *     month per billing account are free, then $0.50 per million. Each key
- *     metric of each resource is one time series per read.
+ *     metric of each resource is one time series per read, and so is each
+ *     deprecated one still read for the monitors built on it (a Pub/Sub
+ *     topic's publish operations, countRetiredMetrics). A VM's Ops Agent
+ *     metrics are not counted: whether a VM runs the agent is not known
+ *     before its first read, and one that does not costs nothing.
  *
  * Shown before a connection is made (the test) and on the docs page, which
  * a test holds to these figures.
@@ -86,6 +91,29 @@ export function countKeyMetrics(data: {
   return metrics;
 }
 
+/*
+ * The deprecated metrics read per read for these resources beside their key
+ * metrics, for the monitors built on them: on Google Cloud, each a time
+ * series a resource (GcpTypeKeyMetrics.retired). An Azure type's ride in
+ * its resource's one call, which costs the same with them.
+ */
+export function countRetiredMetrics(data: {
+  provider: CloudProvider;
+  resourceTypes: Array<CloudConnectionTypeCount>;
+}): number {
+  if (data.provider !== CloudProvider.GCP) {
+    return 0;
+  }
+
+  let metrics: number = 0;
+
+  for (const entry of data.resourceTypes) {
+    metrics += entry.count * getGcpRetiredMetricCount(entry.type);
+  }
+
+  return metrics;
+}
+
 export function estimateCloudConnectionCost(data: {
   provider: CloudProvider;
   resourceTypes: Array<CloudConnectionTypeCount>;
@@ -135,7 +163,8 @@ export function estimateCloudConnectionCost(data: {
     };
   }
 
-  const units: number = countKeyMetrics(data) * reads;
+  const units: number =
+    (countKeyMetrics(data) + countRetiredMetrics(data)) * reads;
 
   return {
     monthlyUnits: units,

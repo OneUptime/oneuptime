@@ -7,6 +7,7 @@ import {
   GCP_FREE_TIME_SERIES_PER_MONTH,
   GCP_USD_PER_MILLION_TIME_SERIES,
   countKeyMetrics,
+  countRetiredMetrics,
   estimateCloudConnectionCost,
   getAzureFiveMinuteReadsPerMonth,
   getReadsPerMonth,
@@ -218,6 +219,50 @@ describe("the monthly estimate", () => {
         GCP_USD_PER_MILLION_TIME_SERIES,
       6,
     );
+  });
+
+  /*
+   * A Pub/Sub topic's publish operations are deprecated (#9565) but still
+   * read, so a monitor built on them keeps working: a time series a topic
+   * a read beside its 3 key metrics, which the estimate counts too.
+   */
+  test("Google Cloud: a deprecated metric still read for its monitors is a series a read too", () => {
+    const topics: Array<{ type: string; count: number }> = [
+      { type: "pubsub_topic", count: 10 },
+    ];
+
+    expect(
+      countKeyMetrics({ provider: CloudProvider.GCP, resourceTypes: topics }),
+    ).toBe(10 * 3);
+    expect(
+      countRetiredMetrics({
+        provider: CloudProvider.GCP,
+        resourceTypes: topics,
+      }),
+    ).toBe(10);
+    expect(
+      estimateCloudConnectionCost({
+        provider: CloudProvider.GCP,
+        resourceTypes: topics,
+        readIntervalInMinutes: 5,
+      }).monthlyUnits,
+    ).toBe(10 * (3 + 1) * 8640);
+
+    // A type with none adds nothing; Azure's ride in their resource's call.
+    expect(
+      countRetiredMetrics({
+        provider: CloudProvider.GCP,
+        resourceTypes: [{ type: "gce_instance", count: 10 }],
+      }),
+    ).toBe(0);
+    expect(
+      countRetiredMetrics({
+        provider: CloudProvider.Azure,
+        resourceTypes: [
+          { type: "Microsoft.DocumentDB/databaseAccounts", count: 10 },
+        ],
+      }),
+    ).toBe(0);
   });
 });
 
