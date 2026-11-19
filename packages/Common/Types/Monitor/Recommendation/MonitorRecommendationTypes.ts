@@ -189,6 +189,16 @@ export interface MonitorRecommendationContext {
    */
   sessionReplayMonthlyBudgetInGB?: number | null | undefined;
   /*
+   * Its own signals that are switched on, from its
+   * `sessionReplayFrustrationSignals` (issue #6518): each is offered as an
+   * alert of its own once the application records (see
+   * `getRumAlertTemplates`). Absent, none are.
+   */
+  customSignals?:
+    | ReadonlyArray<{ id: string; name: string }>
+    | null
+    | undefined;
+  /*
    * A storage array's platform — its `storageSystem`, a StorageSystem value
    * such as "purestorage.flasharray". It selects the templates whose metrics
    * that platform exports (`getStorageArrayAlertTemplatesForSystem`): a

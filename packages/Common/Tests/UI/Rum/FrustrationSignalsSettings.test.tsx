@@ -28,6 +28,7 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { Gray500, Yellow } from "../../../Types/BrandColors";
 import { getPillColors } from "../../../UI/Components/Pill/PillColors";
+import Navigation from "../../../UI/Utils/Navigation";
 
 /*
  * The Frustration Signals page (issue #6443), driven the way a person uses
@@ -41,6 +42,7 @@ import { getPillColors } from "../../../UI/Components/Pill/PillColors";
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const isMasterAdminMock: MockFunction = getJestMockFunction();
+const navigateMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -151,12 +153,48 @@ function switchOf(testId: string): HTMLElement {
   return within(screen.getByTestId(testId)).getByRole("switch");
 }
 
+// A signal row's ⋯, opened.
+function openRowMenu(rowTestId: string): HTMLElement {
+  fireEvent.click(
+    within(screen.getByTestId(rowTestId)).getByTestId(
+      "row-actions-more-button",
+    ),
+  );
+
+  return screen.getByRole("menu");
+}
+
+function menuItemNames(menu: HTMLElement): Array<string> {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
+
+// What the page handed Navigation.navigate on its nth call.
+function navigatedHref(call: number = 0): string {
+  return (
+    navigateMock.mock.calls[call]![0] as { toString: () => string }
+  ).toString();
+}
+
+function navigatedTo(call: number = 0): URL {
+  return new URL(navigatedHref(call), "https://dash.example.com");
+}
+
 beforeEach(() => {
   getItemMock.mockReset();
   updateByIdMock.mockReset();
   isMasterAdminMock.mockReset();
+  navigateMock.mockReset();
   isMasterAdminMock.mockReturnValue(true);
   updateByIdMock.mockResolvedValue({});
+  jest
+    .spyOn(Navigation, "navigate")
+    .mockImplementation((...args: Array<unknown>): void => {
+      navigateMock(...args);
+    });
 });
 
 afterEach(() => {
@@ -265,7 +303,9 @@ describe("a new application", () => {
     ).not.toHaveAttribute("aria-disabled", "true");
     expect(
       screen.getByTestId("frustration-signals-mobile-note"),
-    ).toHaveTextContent("The React Native recorder detects your page");
+    ).toHaveTextContent(
+      "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
+    );
   });
 
   test("keeps every rule folded away under Change the rule", async () => {
@@ -920,6 +960,80 @@ describe("signals of the application's own", () => {
     expect(screen.getByTestId("custom-signal-form")).toBeInTheDocument();
   });
 
+  /*
+   * A tap on a view of a React Native app (issue #6517): the dialog's fifth
+   * choice, after the click, asking for the view's testID in its own words.
+   */
+  test("adds a tap signal, named by the view's testID", async () => {
+    await renderPage(null);
+    await openAdd();
+
+    const options: Array<string> = within(
+      screen.getByTestId("custom-signal-trigger"),
+    )
+      .getAllByRole("radio")
+      .map((option: HTMLElement): string => {
+        return option.getAttribute("data-testid") || "";
+      });
+
+    expect(options).toEqual([
+      "card-select-option-click",
+      "card-select-option-tap",
+      "card-select-option-page",
+      "card-select-option-event",
+      "card-select-option-error",
+    ]);
+    expect(screen.getByTestId("card-select-option-tap")).toHaveTextContent(
+      "A tap on a viewSomeone taps a view of your app you name by its testID. React Native recorder only.",
+    );
+
+    fireEvent.change(screen.getByTestId("custom-signal-name"), {
+      target: { value: "Pay tapped" },
+    });
+    fireEvent.click(screen.getByTestId("card-select-option-tap"));
+
+    expect(within(dialog()).getByLabelText("View testID")).toHaveAttribute(
+      "placeholder",
+      "pay-button",
+    );
+    expect(dialog()).toHaveTextContent(
+      "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.",
+    );
+
+    /* A star anywhere but at the end is refused here, before it is sent. */
+    fireEvent.change(screen.getByTestId("custom-signal-match"), {
+      target: { value: "*-button" },
+    });
+    pressSave();
+
+    expect(
+      await within(dialog()).findByText(
+        "Put * only at the end, after the start of the testID, such as product-card-*.",
+      ),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByTestId("custom-signal-match"), {
+      target: { value: " pay-button " },
+    });
+    pressSave();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: SessionReplayCustomSignal | undefined =
+      savedSettings().customSignals[0];
+
+    expect(saved).toMatchObject({
+      name: "Pay tapped",
+      trigger: "tap",
+      match: "pay-button",
+      isFrustration: true,
+      isEnabled: true,
+    });
+  });
+
   test("lists each signal with its kind and what sets it off", async () => {
     await renderPage(
       settingsWith([
@@ -943,6 +1057,13 @@ describe("signals of the application's own", () => {
           trigger: "error",
           match: "card declined",
           isEnabled: false,
+        }),
+        signal({
+          id: "signal-5",
+          name: "Pay tapped",
+          trigger: "tap",
+          match: "pay-button",
+          isFrustration: false,
         }),
       ]),
     );
@@ -984,6 +1105,9 @@ describe("signals of the application's own", () => {
     );
     expect(screen.getByTestId("custom-signal-signal-4")).toHaveTextContent(
       "An error containing card declined",
+    );
+    expect(screen.getByTestId("custom-signal-signal-5")).toHaveTextContent(
+      "Pay tappedMarkerA tap on pay-button",
     );
     expect(
       screen.getByRole("switch", { name: "Card declined" }),
@@ -1146,6 +1270,205 @@ describe("signals of the application's own", () => {
   });
 });
 
+/*
+ * See sessions (issue #6515): each signal of the application's own leads
+ * to the sessions it fired in, the application's session list filtered to
+ * its exact name - what the list's filter form would have needed typed,
+ * case included.
+ */
+describe("a signal's sessions", () => {
+  test("See sessions comes first in a signal's ⋯, then Set up an alert, ahead of Edit and Delete", async () => {
+    await renderPage(settingsWith([signal({})]));
+
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
+      "See sessions",
+      "Set up an alert",
+      "Edit",
+      "Delete",
+    ]);
+  });
+
+  test("opens the application's session list on the signal's name, and saves nothing", async () => {
+    await renderPage(settingsWith([signal({})]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const target: URL = navigatedTo();
+
+    expect(
+      target.pathname.endsWith(`/rum/${APP_ID.toString()}/session-replay`),
+    ).toBe(true);
+    // The signal, and nothing else: the list keeps its own window and sort.
+    expect(Array.from(target.searchParams.keys())).toEqual(["signalName"]);
+    expect(target.searchParams.get("signalName")).toBe("Payment failed");
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("carries the exact name, encoded, whatever it holds", async () => {
+    const name: string = "Card déclinée & retried #2 / 100%?";
+
+    await renderPage(settingsWith([signal({ name: name })]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    const href: string = navigatedHref();
+
+    // Nothing of the name breaks out of its parameter.
+    expect(href.split("?")).toHaveLength(2);
+    expect(href).not.toContain("#");
+    expect(href).not.toContain(" ");
+    expect(navigatedTo().searchParams.get("signalName")).toBe(name);
+  });
+
+  test("a signal that is switched off keeps it, for the sessions recorded while it was on", async () => {
+    await renderPage(settingsWith([signal({ isEnabled: false })]));
+
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
+      "See sessions",
+      "Edit",
+      "Delete",
+    ]);
+  });
+
+  test("each signal leads to its own sessions", async () => {
+    await renderPage(
+      settingsWith([
+        signal({}),
+        signal({
+          id: "signal-2",
+          name: "Support chat opened",
+          trigger: "click",
+          match: "#open-chat",
+          isFrustration: false,
+        }),
+      ]),
+    );
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-2")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    expect(navigatedTo().searchParams.get("signalName")).toBe(
+      "Support chat opened",
+    );
+  });
+
+  test("is there while a save is on its way, since it changes nothing", async () => {
+    let finishSave: (value: unknown) => void = (): void => {};
+
+    updateByIdMock.mockImplementation((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void): void => {
+        finishSave = resolve;
+      });
+    });
+
+    await renderPage(settingsWith([signal({})]));
+
+    fireEvent.click(screen.getByRole("switch", { name: "Payment failed" }));
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const seeSessions: HTMLElement = within(
+      openRowMenu("custom-signal-signal-1"),
+    ).getByRole("menuitem", { name: "See sessions" });
+
+    expect(seeSessions).not.toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(seeSessions);
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finishSave({});
+    });
+  });
+});
+
+/*
+ * Set up an alert (issue #6518): the application's Recommendations page,
+ * on the signal's own "Sessions hit" alert - ticked, found by its quoted
+ * name, and shown whether still to create or already created. Only for a
+ * signal that is switched on: one switched off fires no more.
+ */
+describe("an alert on a signal", () => {
+  test("opens the Recommendations page on the signal's own alert, ticked", async () => {
+    await renderPage(settingsWith([signal({})]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "Set up an alert",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const target: URL = navigatedTo();
+
+    expect(
+      target.pathname.endsWith(`/rum/${APP_ID.toString()}/recommendations`),
+    ).toBe(true);
+    expect(target.searchParams.get("select")).toBe(
+      "RumApplication:rum-custom-signal-signal-1",
+    );
+    expect(target.searchParams.get("search")).toBe('"Payment failed"');
+    expect(target.searchParams.get("status")).toBe("All");
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("is not offered for a signal that is switched off, or one saved before signals had ids", async () => {
+    await renderPage(
+      settingsWith([
+        signal({ isEnabled: false }),
+        signal({ id: "", name: "Legacy", match: "/legacy" }),
+      ]),
+    );
+
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).not.toContain(
+      "Set up an alert",
+    );
+  });
+
+  test("carries each signal's own id and name", async () => {
+    await renderPage(
+      settingsWith([
+        signal({}),
+        signal({
+          id: "signal-2",
+          name: "Card & co #1",
+          trigger: "event",
+          match: "card",
+        }),
+      ]),
+    );
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-2")).getByRole("menuitem", {
+        name: "Set up an alert",
+      }),
+    );
+
+    expect(navigatedTo().searchParams.get("select")).toBe(
+      "RumApplication:rum-custom-signal-signal-2",
+    );
+    expect(navigatedTo().searchParams.get("search")).toBe('"Card & co #1"');
+  });
+});
+
 describe("a reader who may not edit the application", () => {
   test("sees every setting, every control locked, and why", async () => {
     isMasterAdminMock.mockReturnValue(false);
@@ -1166,9 +1489,32 @@ describe("a reader who may not edit the application", () => {
     ).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Change the rule")).toBeNull();
     expect(screen.queryByRole("button", { name: "Add signal" })).toBeNull();
-    expect(screen.queryByTestId("row-actions-more-button")).toBeNull();
+    /*
+     * A signal's ⋯ holds only what changes nothing here: See sessions, and
+     * the way to its alert, whose page says whether they may create it.
+     */
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
+      "See sessions",
+      "Set up an alert",
+    ]);
 
     fireEvent.click(switchOf("frustration-signal-rageClick"));
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("may still open a signal's sessions, which changes nothing", async () => {
+    isMasterAdminMock.mockReturnValue(false);
+
+    await renderPage(settingsWith([signal({ isEnabled: false })]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "See sessions",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo().searchParams.get("signalName")).toBe("Payment failed");
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 

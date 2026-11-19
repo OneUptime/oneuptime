@@ -6,9 +6,11 @@ import {
   seededRandom,
 } from "../../../../Common/Tests/Helpers/SeededRandom";
 import {
+  isSessionReplayTapPatternUsable,
   matchesSessionReplayErrorText,
   matchesSessionReplayEventName,
   matchesSessionReplayPagePattern,
+  matchesSessionReplayTapTarget,
   readSessionReplayFrustrationSignalsConfig,
   SESSION_REPLAY_CUSTOM_SIGNAL_COOLDOWN_MS as COMMON_CUSTOM_SIGNAL_COOLDOWN_MS,
   SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH as COMMON_MAX_EVENT_NAME_LENGTH,
@@ -159,9 +161,11 @@ import {
   VISIBILITY_CUSTOM_EVENT_TAG,
 } from "../src/Contract";
 import {
+  isTapPatternUsable,
   matchesErrorText,
   matchesEventName,
   matchesPagePattern,
+  matchesTapTarget,
   readCustomSignals,
   readPathAsWritten,
 } from "../src/CustomSignals";
@@ -354,7 +358,7 @@ describe("published SDK wire contract", () => {
       expect(isSessionReplayCustomSignalPayload(marker)).toBe(true);
     });
 
-    test("reads a config's signals as Common does, less the clicks", () => {
+    test("reads a config's signals as Common does, less the clicks, taps included", () => {
       const random: SeededRandom = seededRandom(6443);
       const names: Array<unknown> = [
         "Checkout error",
@@ -368,6 +372,7 @@ describe("published SDK wire contract", () => {
       ];
       const triggers: Array<unknown> = [
         "click",
+        "tap",
         "page",
         "event",
         "error",
@@ -381,6 +386,10 @@ describe("published SDK wire contract", () => {
         " help_opened ",
         "card declined",
         "button.pay",
+        "pay-button",
+        "product-card-*",
+        "*",
+        "a*b",
         "",
         "e".repeat(64),
         "e".repeat(65),
@@ -426,6 +435,58 @@ describe("published SDK wire contract", () => {
 
       expect(readCustomSignals(null)).toEqual([]);
       expect(readCustomSignals({ customSignals: {} })).toEqual([]);
+    });
+
+    /*
+     * Tap signals (issue #6517): this recorder is the one that detects
+     * them, so its reading of a pattern and its match of a testID are
+     * Common's, input for input.
+     */
+    test("matches a tap's testIDs exactly as Common does", () => {
+      const random: SeededRandom = seededRandom(6517);
+      const patternAlphabet: string = "ab-AB**_ ";
+      const testIdAlphabet: string = "ab-AB*_";
+
+      const text: (alphabet: string, maxLength: number) => string = (
+        alphabet: string,
+        maxLength: number,
+      ): string => {
+        let value: string = "";
+        const length: number = random(maxLength + 1);
+        for (let index: number = 0; index < length; index++) {
+          value += alphabet.charAt(random(alphabet.length));
+        }
+        return value;
+      };
+
+      for (let iteration: number = 0; iteration < 3000; iteration++) {
+        const pattern: string = text(patternAlphabet, 7);
+        const testId: string = text(testIdAlphabet, 8);
+
+        expect([pattern, isTapPatternUsable(pattern)]).toEqual([
+          pattern,
+          isSessionReplayTapPatternUsable(pattern),
+        ]);
+        expect([pattern, testId, matchesTapTarget(pattern, testId)]).toEqual([
+          pattern,
+          testId,
+          matchesSessionReplayTapTarget(pattern, testId),
+        ]);
+      }
+
+      for (const [pattern, testId] of [
+        ["pay-button", "pay-button"],
+        ["Pay-Button", "pay-button"],
+        ["product-card-*", "product-card-42"],
+        ["product-card-*", "product-list"],
+        ["*", "anything"],
+        ["a*b", "a*b"],
+        [" pay ", "pay"],
+      ] as Array<[string, string]>) {
+        expect(matchesTapTarget(pattern, testId)).toBe(
+          matchesSessionReplayTapTarget(pattern, testId),
+        );
+      }
     });
 
     test("matches pages, events and errors exactly as Common does", () => {

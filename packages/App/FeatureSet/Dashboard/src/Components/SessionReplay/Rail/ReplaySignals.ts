@@ -225,6 +225,7 @@ export const CUSTOM_SIGNAL_TRIGGER_SUBTITLES: Record<
   string
 > = {
   click: "Your signal: a click",
+  tap: "Your signal: a tap",
   page: "Your signal: a page",
   event: "Your signal: an event",
   error: "Your signal: an error",
