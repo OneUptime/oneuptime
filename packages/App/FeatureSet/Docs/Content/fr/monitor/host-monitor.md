@@ -125,6 +125,21 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 - **Nombre de processus** compare le plus grand état de processus (`running`, `sleeping`, …), pas le total de l'hôte, il ne correspondra donc pas à une liste de processus. Le scraper de processus remonte des données sous Linux, macOS et BSD, pas sous Windows.
 - **Systemd Unit Failed** ouvre une alerte par service systemd à l'état `failed`, à partir du receiver `systemd` du collecteur, que la configuration par défaut de OneUptime lit sur les hôtes Linux avec systemd. Elle se résout quand l'unité tourne de nouveau, ou une fois que `systemctl reset-failed` l'efface.
 
+## Appareils Android
+
+Un hôte dont l'OS est Android, comme une borne ou un terminal de point de vente qui exécute l'[agent Android](/docs/telemetry/android-agent), se voit proposer ses propres modèles, qui lisent ce que l'agent envoie, avec Host Stopped Reporting, Host Restarted et High Memory Utilization. Les modèles qui portent sur ce qu'un appareil n'envoie jamais, comme le swap, les inodes, la charge ou les unités systemd, ne lui sont pas proposés.
+
+| Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | Avertissement | `android.battery.plugged`, Max, 10 dernières minutes | L'appareil fonctionne sur sa batterie pendant toute la fenêtre | Il est de nouveau sur secteur |
+| Low Battery | Avertissement | `hw.battery.charge`, Min, en pourcentage, 5 dernières minutes | Sous 20 % | À 20 % ou plus |
+| Device Overheating | Avertissement | `android.thermal.status`, Max, 5 dernières minutes | 3 (sévère) ou pire | Sous 3 |
+| Restart Loop | Critique | `android.boot.recent_count`, Max, dernière heure | Une valeur est à 3 ou plus | Chaque valeur est sous 3 |
+| Storage Nearly Full | Critique | `system.filesystem.utilization`, Max par `mountpoint`, en pourcentage, 5 dernières minutes | Au-dessus de 90 % | À 90 % ou moins |
+| High CPU Utilization | Avertissement | `system.cpu.utilization` pour l'état `idle`, occupé calculé comme 1 moins inactif, en pourcentage, 5 dernières minutes | Au-dessus de 80 % | À 80 % ou moins |
+
+High CPU Utilization est proposé dès que l'appareil signale son utilisation du processeur, ce qui, sous Android 8 et versions ultérieures, exige que l'agent soit le propriétaire de l'appareil. Une alerte d'un appareil Android commence par des commandes adb à lancer d'abord, comme `adb shell dumpsys battery` ou `adb shell getprop sys.boot.reason`, plutôt que par les commandes shell d'un serveur.
+
 ## Métriques collectées
 
 La liste **Métrique d'hôte** propose ces métriques. Chacune porte `resource.host.name`, par lequel le moniteur limite ses requêtes à un hôte. Choisi là, le CPU compte l'état `user`, l'utilisation de la mémoire et des systèmes de fichiers l'état `used`, et les systèmes de fichiers et les processus donnent une série par point de montage et par statut.
