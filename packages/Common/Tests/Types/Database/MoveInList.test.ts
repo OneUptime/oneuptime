@@ -1,4 +1,6 @@
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import MoveInListUtil, {
+  CONTIGUOUS_ORDER_TABLES,
   ListPlace,
   MOVE_IN_LIST_ROUTE,
   MoveInListChanges,
@@ -507,5 +509,204 @@ describe("MoveInListUtil", () => {
       expect(getMoveInListRoute(id("a"))).toBe(`/${id("a")}/move`);
       expect(new ObjectID(id("a")).toString()).toBe(id("a"));
     });
+  });
+});
+
+/*
+ * Two drag-ordered lists (@ListOrderColumn, issue #9609) count down: the top
+ * is the highest number - network site assignment and device naming rules,
+ * where the higher priority wins. A move reads them highest first, twins
+ * still by id, and numbers them n..1 from the top.
+ */
+describe("a list whose top is its highest number", () => {
+  // The letters top first, as a list that counts down reads them.
+  function readDescending(
+    rows: Array<ListPlace>,
+    changes: MoveInListChanges,
+  ): Array<string> {
+    if (changes.kind !== "moved") {
+      throw new Error(`no move: ${changes.kind}`);
+    }
+
+    const orders: Map<string, number | null | undefined> = new Map();
+
+    for (const row of rows) {
+      orders.set(row.id, row.order);
+    }
+
+    for (const changed of changes.changedRows) {
+      orders.set(changed.id, changed.order);
+    }
+
+    return MoveInListUtil.sort(
+      rows.map((row: ListPlace): ListPlace => {
+        return { id: row.id, order: orders.get(row.id) };
+      }),
+      SortOrder.Descending,
+    ).map((row: ListPlace): string => {
+      return String.fromCharCode(parseInt(row.id.slice(-2), 16));
+    });
+  }
+
+  test("is read highest first, twins by id, rows without a number last", () => {
+    expect(
+      MoveInListUtil.sort(
+        places([
+          ["c", 1],
+          ["n", null],
+          ["b", 5],
+          ["a", 5],
+          ["d", 9],
+        ]),
+        SortOrder.Descending,
+      ).map((row: ListPlace): string => {
+        return row.id;
+      }),
+    ).toEqual([id("d"), id("a"), id("b"), id("c"), id("n")]);
+  });
+
+  test("a row moved up takes the top row's place, and the list is numbered n..1", () => {
+    const rows: Array<ListPlace> = places([
+      ["a", 3],
+      ["b", 2],
+      ["c", 1],
+    ]);
+
+    const changes: MoveInListChanges = MoveInListUtil.getChanges({
+      rows: rows,
+      rowId: id("c"),
+      placeOfId: id("a"),
+      sortOrder: SortOrder.Descending,
+    });
+
+    expect(changes).toEqual({
+      kind: "moved",
+      changedRows: [
+        { id: id("c"), order: 3 },
+        { id: id("a"), order: 2 },
+        { id: id("b"), order: 1 },
+      ],
+    });
+    expect(readDescending(rows, changes)).toEqual(["c", "a", "b"]);
+  });
+
+  test("a list with gaps comes out numbered n..1, the bottom row at 1", () => {
+    const rows: Array<ListPlace> = places([
+      ["a", 100],
+      ["b", 50],
+      ["c", -7],
+    ]);
+
+    const changes: MoveInListChanges = MoveInListUtil.getChanges({
+      rows: rows,
+      rowId: id("a"),
+      placeOfId: id("c"),
+      sortOrder: SortOrder.Descending,
+    });
+
+    expect(readDescending(rows, changes)).toEqual(["b", "c", "a"]);
+    expect(changes).toEqual({
+      kind: "moved",
+      changedRows: [
+        { id: id("b"), order: 3 },
+        { id: id("c"), order: 2 },
+        { id: id("a"), order: 1 },
+      ],
+    });
+  });
+
+  test("every move in every list of up to five rows lands where it was dropped", () => {
+    const letters: Array<string> = ["a", "b", "c", "d", "e"];
+
+    for (let size: number = 1; size <= letters.length; size++) {
+      for (const arrangement of permutations(letters.slice(0, size))) {
+        // Top first: the highest number first.
+        const rows: Array<ListPlace> = arrangement.map(
+          (letter: string, index: number): ListPlace => {
+            return { id: id(letter), order: size - index };
+          },
+        );
+
+        for (let from: number = 0; from < size; from++) {
+          for (let to: number = 0; to < size; to++) {
+            const changes: MoveInListChanges = MoveInListUtil.getChanges({
+              rows: rows,
+              rowId: rows[from]!.id,
+              placeOfId: rows[to]!.id,
+              sortOrder: SortOrder.Descending,
+            });
+
+            const expected: Array<string> = [...arrangement];
+            const [moved] = expected.splice(from, 1);
+            expected.splice(to, 0, moved!);
+
+            expect(readDescending(rows, changes)).toEqual(expected);
+          }
+        }
+      }
+    }
+  });
+
+  test("getNumberAt numbers from the top: 1..n, or n..1 counting down", () => {
+    expect(
+      [0, 1, 2].map((position: number) => {
+        return MoveInListUtil.getNumberAt({ position, count: 3 });
+      }),
+    ).toEqual([1, 2, 3]);
+    expect(
+      [0, 1, 2].map((position: number) => {
+        return MoveInListUtil.getNumberAt({
+          position,
+          count: 3,
+          sortOrder: SortOrder.Descending,
+        });
+      }),
+    ).toEqual([3, 2, 1]);
+  });
+});
+
+describe("which lists have the move", () => {
+  test("every drag-ordered list and the five numbered lists, and no other", () => {
+    expect(
+      MoveInListUtil.hasMoveRequest({
+        tableName: "IncidentSeverity",
+        getListOrder: (): unknown => {
+          return { column: "order" };
+        },
+      }),
+    ).toBe(true);
+
+    for (const table of CONTIGUOUS_ORDER_TABLES) {
+      expect(
+        MoveInListUtil.hasMoveRequest({
+          tableName: table,
+          getListOrder: (): unknown => {
+            return null;
+          },
+        }),
+      ).toBe(true);
+    }
+
+    expect(
+      MoveInListUtil.hasMoveRequest({
+        tableName: "Monitor",
+        getListOrder: (): unknown => {
+          return null;
+        },
+      }),
+    ).toBe(false);
+    expect(MoveInListUtil.hasMoveRequest({ tableName: null })).toBe(false);
+  });
+
+  test("the five are the lists ContiguousOrder keeps", () => {
+    expect([...CONTIGUOUS_ORDER_TABLES].sort()).toEqual(
+      [
+        "OnCallDutyPolicyEscalationRule",
+        "OnCallDutyPolicyScheduleLayer",
+        "OnCallDutyPolicyScheduleLayerUser",
+        "StatusPageGroup",
+        "StatusPageResource",
+      ].sort(),
+    );
   });
 });

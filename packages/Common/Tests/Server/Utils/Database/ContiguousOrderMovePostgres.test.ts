@@ -2,6 +2,7 @@ import Entities from "../../../../Models/DatabaseModels/Index";
 import ContiguousOrder, {
   ListColumnValue,
 } from "../../../../Server/Utils/Database/ContiguousOrder";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -30,7 +31,12 @@ import { DataSource, EntityManager, QueryRunner } from "typeorm";
  *   - a write of one row's order that lands while a move holds the list
  *     waits for it, then lands as written - the placement wins, as it was
  *     made last;
- *   - a row deleted by the time the move holds the list is not found.
+ *   - a row deleted by the time the move holds the list is not found;
+ *   - on the drag-ordered lists (@ListOrderColumn, issue #9609) the same
+ *     move runs by the list's own column - `sortOrder` and `priority` too -
+ *     numbering a list whose top is its highest number n..1, and holding a
+ *     list named by a text column (a public note approval step's event
+ *     type) to it as it is.
  *
  * Opt in with RUN_POSTGRES_CONTIGUOUS_ORDER_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
@@ -75,6 +81,50 @@ const TABLES: Array<ListTable> = [
   {
     table: "StatusPageResource",
     listColumns: ["statusPageId", "statusPageGroupId"],
+  },
+];
+
+/*
+ * The drag-ordered lists (@ListOrderColumn) whose columns differ from the
+ * five's: one numbered by `order` in its project alone, one by `sortOrder`
+ * under a parent, one by `priority` with the highest number on top, and one
+ * split by a text column.
+ */
+interface DragTable {
+  table: string;
+  orderColumn: string;
+  sortOrder: SortOrder;
+  // The columns naming a row's list besides its project: an id, or a text.
+  listColumns: Array<{ column: string; text?: string | undefined }>;
+  // Values a row must be given that no synthetic value fits (a color).
+  values?: Record<string, unknown> | undefined;
+}
+
+const DRAG_TABLES: Array<DragTable> = [
+  {
+    table: "IncidentSeverity",
+    orderColumn: "order",
+    sortOrder: SortOrder.Ascending,
+    listColumns: [],
+    values: { color: "#E74C3C" },
+  },
+  {
+    table: "LogPipelineProcessor",
+    orderColumn: "sortOrder",
+    sortOrder: SortOrder.Ascending,
+    listColumns: [{ column: "logPipelineId" }],
+  },
+  {
+    table: "NetworkSiteAssignmentRule",
+    orderColumn: "priority",
+    sortOrder: SortOrder.Descending,
+    listColumns: [],
+  },
+  {
+    table: "PublicNoteApprovalStep",
+    orderColumn: "order",
+    sortOrder: SortOrder.Ascending,
+    listColumns: [{ column: "eventType", text: "Incident" }],
   },
 ];
 
@@ -310,7 +360,7 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
 
-    for (const listTable of TABLES) {
+    for (const listTable of [...TABLES, ...DRAG_TABLES]) {
       await database.query(
         `CREATE TABLE "${schema}"."${listTable.table}" (LIKE public."${listTable.table}" INCLUDING ALL)`,
       );
@@ -685,4 +735,272 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
     // C, moved to the top; B, stepped down; A, at the number written last.
     expect(await ordersOf(listTable.table, seeded.ids)).toEqual([7, 3, 1]);
   });
+  describe.each(DRAG_TABLES)(
+    "on $table, a drag-ordered list (issue #9609)",
+    (dragTable: DragTable) => {
+      // The number of the row at `position` (1 = the top) of a list of `count`.
+      const numberAt: (position: number, count: number) => number = (
+        position: number,
+        count: number,
+      ): number => {
+        return dragTable.sortOrder === SortOrder.Descending
+          ? count - position + 1
+          : position;
+      };
+
+      /*
+       * A list of `count` rows, top first, numbered from scratch - in a
+       * project of its own unless one is named: a list of a project alone
+       * is every row of it.
+       */
+      const seedDragList: (data: {
+        count: number;
+        projectId?: string;
+        listValues?: Record<string, string>;
+      }) => Promise<{
+        ids: Array<string>;
+        list: Array<ListColumnValue>;
+        projectId: string;
+      }> = async (data: {
+        count: number;
+        projectId?: string;
+        listValues?: Record<string, string>;
+      }): Promise<{
+        ids: Array<string>;
+        list: Array<ListColumnValue>;
+        projectId: string;
+      }> => {
+        const projectId: string =
+          data.projectId || ObjectID.generate().toString();
+        const listValues: Record<string, string> = {};
+
+        for (const entry of dragTable.listColumns) {
+          listValues[entry.column] =
+            data.listValues?.[entry.column] ||
+            entry.text ||
+            ObjectID.generate().toString();
+        }
+
+        const ids: Array<string> = [];
+
+        for (let position: number = 1; position <= data.count; position++) {
+          ids.push(
+            await insert(dragTable.table, {
+              ...(dragTable.values || {}),
+              projectId: projectId,
+              ...listValues,
+              [dragTable.orderColumn]: numberAt(position, data.count),
+            }),
+          );
+        }
+
+        return {
+          ids: ids,
+          projectId: projectId,
+          list: [
+            ...dragTable.listColumns.map(
+              (entry: { column: string; text?: string }): ListColumnValue => {
+                return {
+                  column: entry.column,
+                  value: listValues[entry.column]!,
+                  isId: entry.text === undefined,
+                };
+              },
+            ),
+            { column: "projectId", value: projectId, isId: true },
+          ],
+        };
+      };
+
+      const numbersOf: (ids: Array<string>) => Promise<Array<number>> = async (
+        ids: Array<string>,
+      ): Promise<Array<number>> => {
+        const rows: Array<Record<string, unknown>> = await database.query(
+          `SELECT "_id", "${dragTable.orderColumn}" AS "number" FROM "${schema}"."${dragTable.table}" WHERE "_id" = ANY($1::uuid[])`,
+          [ids],
+        );
+
+        return ids.map((id: string): number => {
+          return Number(
+            rows.find((row: Record<string, unknown>): boolean => {
+              return row["_id"] === id;
+            })?.["number"],
+          );
+        });
+      };
+
+      const dragMove: (data: {
+        list: Array<ListColumnValue>;
+        rowId: string;
+        placeOfId: string;
+      }) => Promise<Array<{ id: string; order: number }>> = async (data: {
+        list: Array<ListColumnValue>;
+        rowId: string;
+        placeOfId: string;
+      }): Promise<Array<{ id: string; order: number }>> => {
+        return (
+          await database.transaction(
+            async (
+              manager: EntityManager,
+            ): Promise<{
+              changedRows: Array<{ id: string; order: number }>;
+            }> => {
+              return await ContiguousOrder.moveWithinTransaction({
+                manager: manager,
+                tableName: dragTable.table,
+                list: data.list,
+                rowId: new ObjectID(data.rowId),
+                placeOfId: new ObjectID(data.placeOfId),
+                name: "row",
+                orderColumn: dragTable.orderColumn,
+                sortOrder: dragTable.sortOrder,
+              });
+            },
+          )
+        ).changedRows;
+      };
+
+      test("the fourth row moved to the second's place: numbered from scratch by the list's own column, only the rows passed written", async () => {
+        const seeded: { ids: Array<string>; list: Array<ListColumnValue> } =
+          await seedDragList({ count: 5 });
+        const [a, b, c, d, e] = seeded.ids as [
+          string,
+          string,
+          string,
+          string,
+          string,
+        ];
+        const before: Array<number> = await versionsOf(
+          dragTable.table,
+          seeded.ids,
+        );
+
+        const changed: Array<{ id: string; order: number }> = await dragMove({
+          list: seeded.list,
+          rowId: d,
+          placeOfId: b,
+        });
+
+        // Top first: A, D, B, C, E.
+        expect(await numbersOf([a, d, b, c, e])).toEqual(
+          [1, 2, 3, 4, 5].map((position: number) => {
+            return numberAt(position, 5);
+          }),
+        );
+        expect(
+          changed
+            .map((row: { id: string }): string => {
+              return row.id;
+            })
+            .sort(),
+        ).toEqual([b, c, d].sort());
+
+        const after: Array<number> = await versionsOf(
+          dragTable.table,
+          seeded.ids,
+        );
+
+        expect(after[0]).toBe(before[0]);
+        expect(after[4]).toBe(before[4]);
+        expect(after[1]).toBe(before[1]! + 1);
+        expect(after[2]).toBe(before[2]! + 1);
+        expect(after[3]).toBe(before[3]! + 1);
+      });
+
+      test("a list with gaps and twins is read top first, twins by id, and numbered from scratch", async () => {
+        const seeded: { ids: Array<string>; list: Array<ListColumnValue> } =
+          await seedDragList({ count: 3 });
+        const sorted: Array<string> = [...seeded.ids].sort();
+        const descending: boolean =
+          dragTable.sortOrder === SortOrder.Descending;
+
+        // The first two by id share the top number; the third is far below.
+        await database.query(
+          `UPDATE "${schema}"."${dragTable.table}" SET "${dragTable.orderColumn}" = $2 WHERE "_id" = ANY($1::uuid[])`,
+          [[sorted[0], sorted[1]], descending ? 50 : 10],
+        );
+        await database.query(
+          `UPDATE "${schema}"."${dragTable.table}" SET "${dragTable.orderColumn}" = $2 WHERE "_id" = $1::uuid`,
+          [sorted[2], descending ? -40 : 90],
+        );
+
+        await dragMove({
+          list: seeded.list,
+          rowId: sorted[2]!,
+          placeOfId: sorted[1]!,
+        });
+
+        expect(await numbersOf([sorted[0]!, sorted[2]!, sorted[1]!])).toEqual(
+          [1, 2, 3].map((position: number) => {
+            return numberAt(position, 3);
+          }),
+        );
+      });
+
+      test("no row of another list - another parent, another project, another kind - is read or written", async () => {
+        const seeded: {
+          ids: Array<string>;
+          list: Array<ListColumnValue>;
+          projectId: string;
+        } = await seedDragList({ count: 3 });
+        const sameValues: Record<string, string> = {};
+
+        for (const entry of seeded.list) {
+          if (entry.column !== "projectId" && entry.value) {
+            sameValues[entry.column] = entry.value;
+          }
+        }
+
+        // The same list's columns in another project.
+        const otherProject: { ids: Array<string> } = await seedDragList({
+          count: 3,
+          listValues: sameValues,
+        });
+
+        // Another list of the same project: another parent, or another kind.
+        const otherValues: Record<string, string> = {};
+
+        for (const entry of dragTable.listColumns) {
+          otherValues[entry.column] =
+            entry.text !== undefined
+              ? "ScheduledMaintenance"
+              : ObjectID.generate().toString();
+        }
+
+        const otherList: { ids: Array<string> } | null =
+          dragTable.listColumns.length > 0
+            ? await seedDragList({
+                count: 3,
+                projectId: seeded.projectId,
+                listValues: otherValues,
+              })
+            : null;
+
+        const untouched: Array<string> = [
+          ...otherProject.ids,
+          ...(otherList?.ids || []),
+        ];
+        const before: Array<number> = await versionsOf(
+          dragTable.table,
+          untouched,
+        );
+
+        await dragMove({
+          list: seeded.list,
+          rowId: seeded.ids[2]!,
+          placeOfId: seeded.ids[0]!,
+        });
+
+        expect(await versionsOf(dragTable.table, untouched)).toEqual(before);
+
+        await expect(
+          dragMove({
+            list: seeded.list,
+            rowId: seeded.ids[0]!,
+            placeOfId: otherProject.ids[0]!,
+          }),
+        ).rejects.toThrow("is not in the same list");
+      });
+    },
+  );
 });

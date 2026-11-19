@@ -1,5 +1,7 @@
+import BaseAPI from "../../../Server/API/BaseAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import MoveInListAPI from "../../../Server/API/MoveInListAPI";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import StatusPageGroupService, {
   Service as StatusPageGroupServiceType,
@@ -13,6 +15,10 @@ import Response from "../../../Server/Utils/Response";
 import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
 import { mockRouter } from "./Helpers";
 import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -308,5 +314,182 @@ describe("the numbered lists' APIs", () => {
       `newMoveInListAPI<${model},${model}ServiceType>(${model},${model}Service,)`,
     );
     expect(compact).not.toContain(`newBaseAPI<${model},${model}ServiceType>`);
+  });
+});
+
+/*
+ * Every drag-ordered list (@ListOrderColumn) has the move too (issue
+ * #9609), through BaseAPI itself - whichever API class serves it
+ * (ArchivableValueAPI, CustomFieldDefinitionAPI...): a write of its number
+ * places the row alone now, so the Dashboard's drag sends the move.
+ */
+describe("every drag-ordered list's API", () => {
+  type ModelType = { new (): BaseModel; name: string };
+
+  // Every model marked @ListOrderColumn.
+  const LIST_ORDER_MODELS: Array<ModelType> = (
+    AllModelTypes as unknown as Array<ModelType>
+  ).filter((modelType: ModelType): boolean => {
+    return Boolean(new modelType().getListOrder());
+  });
+
+  /*
+   * A service the routes are registered for: registering a route asks
+   * nothing of it, and a move hands it the request (moveInList).
+   */
+  const serviceFor: (moveInList?: jest.Mock) => DatabaseService<BaseModel> = (
+    moveInList?: jest.Mock,
+  ): DatabaseService<BaseModel> => {
+    return {
+      moveInList: moveInList || jest.fn(),
+    } as unknown as DatabaseService<BaseModel>;
+  };
+
+  const routesOf: (api: () => void) => Array<string> = (
+    api: () => void,
+  ): Array<string> => {
+    mockRouter.routes.length = 0;
+    api();
+
+    return mockRouter.routes.map(
+      (route: { method: string; uri: string }): string => {
+        return `${route.method} ${route.uri}`;
+      },
+    );
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("there are drag-ordered lists to check", () => {
+    expect(LIST_ORDER_MODELS.length).toBeGreaterThan(30);
+  });
+
+  it.each(
+    LIST_ORDER_MODELS.map((modelType: ModelType) => {
+      return [modelType.name, modelType] as [string, ModelType];
+    }),
+  )(
+    "%s has the move beside its CRUD routes, behind a signed-in caller",
+    (_name: string, modelType: ModelType) => {
+      const path: string = `${new modelType()
+        .getCrudApiPath()!
+        .toString()}/:id/move`;
+
+      const uris: Array<string> = routesOf((): void => {
+        new BaseAPI(modelType, serviceFor());
+      });
+
+      expect(
+        uris.filter((uri: string) => {
+          return uri === `POST ${path}`;
+        }),
+      ).toHaveLength(1);
+
+      const route: { middlewares: Array<unknown> } = mockRouter.routes.find(
+        (candidate: { method: string; uri: string }): boolean => {
+          return candidate.method === "POST" && candidate.uri === path;
+        },
+      ) as unknown as { middlewares: Array<unknown> };
+
+      expect(route.middlewares).toEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    },
+  );
+
+  it("a table that is no list kept in order has none", () => {
+    const uris: Array<string> = routesOf((): void => {
+      new BaseAPI(Monitor, serviceFor());
+    });
+
+    expect(uris).toContain("POST /monitor/get-list");
+    expect(
+      uris.some((uri: string) => {
+        return uri.endsWith("/move");
+      }),
+    ).toBe(false);
+  });
+
+  it("hands a drag-ordered list's move to its own service, and answers the rows given another number", async () => {
+    const moveInList: jest.Mock = jest.fn(async () => {
+      return {
+        changedRows: [
+          { id: GROUP_ID, order: 1 },
+          { id: PLACE_OF_ID, order: 2 },
+        ],
+      };
+    });
+
+    mockRouter.routes.length = 0;
+    new BaseAPI(IncidentSeverity, serviceFor(moveInList));
+
+    const props: DatabaseCommonInteractionProps = {
+      tenantId: PROJECT_ID,
+      userId: new ObjectID(USER_ID),
+      userType: UserType.User,
+    };
+
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props as never);
+    const productIsOn: jest.SpyInstance = jest
+      .spyOn(ServerProducts, "assertRecordTableIsOn")
+      .mockResolvedValue(undefined as never);
+
+    const request: OneUptimeRequest = {
+      headers: {},
+      params: { id: GROUP_ID },
+      body: { placeOfId: PLACE_OF_ID },
+    } as unknown as OneUptimeRequest;
+    const response: OneUptimeResponse = {
+      send: jest.fn(),
+      json: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    } as unknown as OneUptimeResponse;
+    const next: jest.Mock = jest.fn();
+
+    await mockRouter
+      .match("post", "/incident-severity/:id/move")
+      .handlerFunction(request, response, next as unknown as NextFunction);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(productIsOn).toHaveBeenCalledWith("IncidentSeverity");
+    expect(moveInList).toHaveBeenCalledTimes(1);
+
+    const asked: { id: ObjectID; placeOfId: ObjectID; props: unknown } =
+      moveInList.mock.calls[0]![0] as {
+        id: ObjectID;
+        placeOfId: ObjectID;
+        props: unknown;
+      };
+
+    expect(asked.id.toString()).toBe(GROUP_ID);
+    expect(asked.placeOfId.toString()).toBe(PLACE_OF_ID);
+    expect(asked.props).toBe(props);
+    expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+      request,
+      response,
+      {
+        changedRows: [
+          { _id: GROUP_ID, order: 1 },
+          { _id: PLACE_OF_ID, order: 2 },
+        ],
+      },
+    );
+  });
+
+  it("MoveInListAPI adds the move once, for a drag-ordered list as for the five", () => {
+    const uris: Array<string> = routesOf((): void => {
+      new MoveInListAPI(IncidentSeverity, serviceFor());
+    });
+
+    expect(
+      uris.filter((uri: string) => {
+        return uri === "POST /incident-severity/:id/move";
+      }),
+    ).toHaveLength(1);
   });
 });
