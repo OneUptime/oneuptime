@@ -227,6 +227,12 @@ export enum RemediationRoundTryAgainRefusal {
   AlertTokenLimitUsedUp = "AlertTokenLimitUsedUp",
   // The queue did not take it, for no reason it could name.
   NotStarted = "NotStarted",
+  /*
+   * The person pressed Try again - this one or the record's - more often
+   * than its limit allows in a few minutes (AutoRemediationRoundRateLimit,
+   * #6525).
+   */
+  TooManyTries = "TooManyTries",
 }
 
 export const REMEDIATION_ROUND_TRY_AGAIN_REFUSALS: Readonly<
@@ -264,7 +270,17 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSALS: Readonly<
     getRecordAiTokenLimitMessage("alert"),
   [RemediationRoundTryAgainRefusal.NotStarted]:
     "The fix could not start again. Try again in a few minutes.",
+  [RemediationRoundTryAgainRefusal.TooManyTries]:
+    "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
 };
+
+/*
+ * What a read of a round says when the person read rounds too often
+ * (AutoRemediationRoundRateLimit, #6525). The Remediation step never shows
+ * it: it waits the Retry-After the answer carries, then reads again.
+ */
+export const REMEDIATION_ROUND_READ_TOO_OFTEN: string =
+  "The rounds of AI fixes were read too often in the last few minutes. Wait a few minutes, then read them again.";
 
 export function getRemediationRoundTryAgainRefusal(
   refusal: RemediationRoundTryAgainRefusal,

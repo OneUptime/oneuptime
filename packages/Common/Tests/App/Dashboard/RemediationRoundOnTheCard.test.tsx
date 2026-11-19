@@ -48,6 +48,7 @@ import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/Auto
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
   REMEDIATION_ROUND_PATH,
+  REMEDIATION_ROUND_READ_TOO_OFTEN,
   REMEDIATION_ROUND_TRY_AGAIN_PATH,
   REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
   RemediationRoundTryAgainRefusal,
@@ -538,6 +539,77 @@ describe("a fix whose round stopped before it found one", () => {
     expect(postsTo(ROUND_URL).length).toBeGreaterThan(roundReads);
     // Still stopped: nothing started.
     expect(planTitle()).toBe("Stopped before it found a fix");
+  });
+
+  /*
+   * Try again pressed more often than the limit allows (#6525): the server
+   * answers 429, and the refusal is said where its other refusals are,
+   * under the button, in the sentence every locale words.
+   */
+  test("a press refused as one too many says so under the button, and nothing starts", async () => {
+    roundServed = unfinishedRound(true);
+    await renderStep([
+      kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable),
+    ]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Stopped before it found a fix");
+    });
+    const details: HTMLElement = openPlan();
+    const refusal: string =
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[
+        RemediationRoundTryAgainRefusal.TooManyTries
+      ];
+    tryAgainServed = () => {
+      return new HTTPErrorResponse(
+        429,
+        { message: refusal },
+        { "retry-after": "300" },
+      );
+    };
+
+    await act(async () => {
+      fireEvent.click(
+        within(details).getByRole("button", { name: "Try again" }),
+      );
+    });
+
+    const error: HTMLElement = await screen.findByTestId(
+      "remediation-round-failure-try-again-error",
+    );
+
+    expect(error).toHaveTextContent(
+      "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
+    );
+    expect(error).toHaveAttribute("role", "alert");
+    // Under the button, still offered: the person may press it later.
+    expect(
+      within(details).getByRole("button", { name: "Try again" }),
+    ).toBeVisible();
+    expect(planTitle()).toBe("Stopped before it found a fix");
+  });
+
+  test("a read of the round refused as one too many shows nothing for it: the step keeps what its row says", async () => {
+    roundServed = new HTTPErrorResponse(
+      429,
+      { message: REMEDIATION_ROUND_READ_TOO_OFTEN },
+      { "retry-after": "120" },
+    );
+    await renderStep([
+      kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable, {
+        rationaleMarkdown: "No runbook applies to this incident.",
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(postsTo(ROUND_URL)).toHaveLength(1);
+    });
+
+    // No error, no notice: the fix reads as its row says.
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(document.body).not.toHaveTextContent(
+      REMEDIATION_ROUND_READ_TOO_OFTEN,
+    );
+    expect(planTitle()).not.toBe("Stopped before it found a fix");
   });
 
   test("a press that could not reach the server says what stopped it", async () => {

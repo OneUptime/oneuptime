@@ -410,6 +410,9 @@ describe("Try again's refusals", () => {
       AlertTokenLimitUsedUp:
         "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
       NotStarted: "The fix could not start again. Try again in a few minutes.",
+      // #6525: pressed more often than AutoRemediationRoundRateLimit allows.
+      TooManyTries:
+        "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
     });
   });
 
