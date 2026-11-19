@@ -17,7 +17,7 @@ import ProjectSsoDiscovery, {
   PROJECT_OIDC_DOMAINS_JOIN,
   PROJECT_SSO_DOMAINS_JOIN,
   ProviderDomainsJoin,
-} from "../../../FeatureSet/Identity/Utils/ProjectSsoDiscovery";
+} from "Common/Server/Utils/ProjectSsoDiscovery";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import {
@@ -41,7 +41,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * GET /service-provider-login (SAML) and /service-provider-login-oidc (OIDC)
  * answer, for an address, the providers that are on and list one of their
  * project's VERIFIED domains with exactly the address's domain
- * (Identity/Utils/ProjectSsoDiscovery). These run both routes against an
+ * (Common/Server/Utils/ProjectSsoDiscovery). These run both routes against an
  * in-memory stand-in of the domains and providers (SsoDiscoveryDatabase),
  * which answers the reads the way Postgres would.
  *

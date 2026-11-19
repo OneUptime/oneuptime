@@ -16,7 +16,6 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
-import ProjectSsoDiscovery from "../Utils/ProjectSsoDiscovery";
 import ProjectSsoIdentityBinding, {
   PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
   PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
@@ -65,6 +64,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import ProjectSsoDiscovery from "Common/Server/Utils/ProjectSsoDiscovery";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
@@ -85,7 +85,7 @@ const router: ExpressRouter = Express.getRouter();
 /*
  * The project SAML providers "Sign in with SSO" offers an address: those
  * that list a verified domain of their project with the address's domain
- * (Utils/ProjectSsoDiscovery). No account is read, so the answer, the empty
+ * (Common/Server/Utils/ProjectSsoDiscovery). No account is read, so the answer, the empty
  * list included, says nothing about whether the address has one (#9745,
  * #9824). The page and the mobile app read an empty list as "no single
  * sign-on for this address".

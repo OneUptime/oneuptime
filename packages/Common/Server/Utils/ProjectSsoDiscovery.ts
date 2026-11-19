@@ -1,26 +1,27 @@
-import Domain from "Common/Models/DatabaseModels/Domain";
-import Project from "Common/Models/DatabaseModels/Project";
-import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
-import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
-import DatabaseService from "Common/Server/Services/DatabaseService";
-import DomainService from "Common/Server/Services/DomainService";
-import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
-import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
-import Query from "Common/Server/Types/Database/Query";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import Select from "Common/Server/Types/Database/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import DomainType from "Common/Types/Domain";
-import Email from "Common/Types/Email";
-import ObjectID from "Common/Types/ObjectID";
+import Domain from "../../Models/DatabaseModels/Domain";
+import Project from "../../Models/DatabaseModels/Project";
+import ProjectOIDC from "../../Models/DatabaseModels/ProjectOidc";
+import ProjectSSO from "../../Models/DatabaseModels/ProjectSso";
+import DatabaseService from "../Services/DatabaseService";
+import DomainService from "../Services/DomainService";
+import ProjectOidcService from "../Services/ProjectOidcService";
+import ProjectSSOService from "../Services/ProjectSsoService";
+import Query from "../Types/Database/Query";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import DomainType from "../../Types/Domain";
+import Email from "../../Types/Email";
+import ObjectID from "../../Types/ObjectID";
 
 /*
  * "SIGN IN WITH SSO" FINDS A PROJECT'S PROVIDERS BY THE ADDRESS'S DOMAIN
  * (#9824).
  *
  * The sign-in page and the mobile app ask GET /service-provider-login (SAML)
- * and /service-provider-login-oidc (OIDC) which providers sign an address in,
+ * and /service-provider-login-oidc (OIDC) - App/FeatureSet/Identity/API/SSO.ts
+ * and OIDC.ts - which providers sign an address in,
  * with nobody signed in. They used to look up the account with the address,
  * its projects (invitations included) and those projects' providers - so
  * anyone could ask whether an address has an account, and which

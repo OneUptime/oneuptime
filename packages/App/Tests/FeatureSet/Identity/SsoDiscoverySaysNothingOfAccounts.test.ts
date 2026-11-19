@@ -44,7 +44,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  * Now the answer is read from the address's domain alone: the providers that
  * list a verified domain of their project with that name
- * (Identity/Utils/ProjectSsoDiscovery, SsoDiscoveryByDomain.test.ts). No
+ * (Common/Server/Utils/ProjectSsoDiscovery, SsoDiscoveryByDomain.test.ts). No
  * account, membership or invitation is read at all, so two addresses at one
  * domain get the same answer after the same reads, whoever has an account.
  * ---------------------------------------------------------------------------

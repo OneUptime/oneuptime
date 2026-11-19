@@ -2,7 +2,6 @@ import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
-import ProjectSsoDiscovery from "../Utils/ProjectSsoDiscovery";
 import SsoTeamMembership, {
   SSO_NO_ROOM_ERROR,
   SSO_NO_ROOM_MESSAGE,
@@ -56,6 +55,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import ProjectSsoDiscovery from "Common/Server/Utils/ProjectSsoDiscovery";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
@@ -84,7 +84,7 @@ const getOidcStateCookieName: (projectOidcId: ObjectID) => string = (
 /*
  * The project OIDC providers "Sign in with SSO" offers an address: those
  * that list a verified domain of their project with the address's domain
- * (Utils/ProjectSsoDiscovery). No account is read, so the answer, the empty
+ * (Common/Server/Utils/ProjectSsoDiscovery). No account is read, so the answer, the empty
  * list included, says nothing about whether the address has one (#9745,
  * #9824). The page and the mobile app read an empty list as "no single
  * sign-on for this address".

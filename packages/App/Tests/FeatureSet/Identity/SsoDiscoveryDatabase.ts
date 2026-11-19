@@ -11,12 +11,12 @@ import {
   PROJECT_OIDC_DOMAINS_JOIN,
   PROJECT_SSO_DOMAINS_JOIN,
   ProviderDomainsJoin,
-} from "../../../FeatureSet/Identity/Utils/ProjectSsoDiscovery";
+} from "Common/Server/Utils/ProjectSsoDiscovery";
 
 /*
  * The project domains and SSO providers "Sign in with SSO" reads, in memory:
  * DomainService.findBy and the two provider services' findBy answer the
- * queries Identity/Utils/ProjectSsoDiscovery makes the way Postgres would,
+ * queries Common/Server/Utils/ProjectSsoDiscovery makes the way Postgres would,
  * reading the SQL of their Raw conditions:
  *
  *   - a domain's name, case-insensitively (LOWER(domain) = :name), and

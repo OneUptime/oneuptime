@@ -509,7 +509,7 @@ export default class ProjectOIDC extends BaseModel {
   /*
    * The project's verified domains this provider serves: "Sign in with SSO"
    * offers it to an address on one of them, whoever types it, and never
-   * reads an account to decide (Identity/Utils/ProjectSsoDiscovery, #9824).
+   * reads an account to decide (Server/Utils/ProjectSsoDiscovery, #9824).
    * A provider with none is offered to nobody by email. Each must be a
    * domain of the provider's own project (ProjectOidcService's reference
    * check).

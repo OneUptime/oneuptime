@@ -74,7 +74,7 @@ const SOURCES: Record<string, string> = {
   ssoApi: `${IDENTITY}/API/SSO.ts`,
   oidcApi: `${IDENTITY}/API/OIDC.ts`,
   // How Sign in with SSO finds a project's providers: by the email's domain.
-  ssoDiscovery: `${IDENTITY}/Utils/ProjectSsoDiscovery.ts`,
+  ssoDiscovery: "packages/Common/Server/Utils/ProjectSsoDiscovery.ts",
   ssoUtil: `${IDENTITY}/Utils/SSO.ts`,
   ssoOneTimeUse: `${IDENTITY}/Utils/SamlAssertionOneTimeUse.ts`,
   ssoServiceProvider: `${IDENTITY}/Utils/SamlServiceProvider.ts`,
