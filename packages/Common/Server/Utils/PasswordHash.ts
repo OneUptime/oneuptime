@@ -262,33 +262,18 @@ export default class PasswordHash {
     );
 
     if (!parsed) {
-      const matchesSelectedLegacyScheme: boolean =
-        await HashedString.verifyValue({
-          plainValue: data.plainValue,
-          hashedValue: data.storedValue,
-          encryptionSecret: EncryptionSecret,
-          salt: data.salt || null,
-        });
-
-      if (matchesSelectedLegacyScheme || !data.salt) {
-        return matchesSelectedLegacyScheme;
-      }
-
       /*
-       * Rolling-deploy compatibility. A pod running the pre-salt write path
-       * can replace a password with the original bare SHA-256 digest while a
-       * salt written by a newer pod remains on the row. A bare digest carries
-       * no scheme marker, so trying only the salted-SHA construction would
-       * lock that resource out permanently. Fall back to the original scheme
-       * when a supplied salt does not match; the successful caller upgrades
-       * the row to scrypt immediately afterwards.
+       * A SHA-256 hash is checked in microseconds, a scrypt one in tens of
+       * milliseconds: a scrypt derivation is spent as well, so a sign-in
+       * for an account that has not signed in since scrypt came in takes as
+       * long as any other (see spendVerificationTime).
        */
-      return await HashedString.verifyValue({
-        plainValue: data.plainValue,
-        hashedValue: data.storedValue,
-        encryptionSecret: EncryptionSecret,
-        salt: null,
-      });
+      const matchesLegacyScheme: boolean =
+        await PasswordHash.verifyLegacy(data);
+
+      await PasswordHash.spendVerificationTime(data.plainValue);
+
+      return matchesLegacyScheme;
     }
 
     /*
@@ -309,6 +294,67 @@ export default class PasswordHash {
     });
 
     return HashedString.isEqual(derivedKey, parsed.derivedKey);
+  }
+
+  // The two SHA-256 schemes that came before scrypt (see verify).
+  private static async verifyLegacy(data: {
+    plainValue: string;
+    storedValue: string;
+    salt?: string | null | undefined;
+  }): Promise<boolean> {
+    const matchesSelectedLegacyScheme: boolean = await HashedString.verifyValue(
+      {
+        plainValue: data.plainValue,
+        hashedValue: data.storedValue,
+        encryptionSecret: EncryptionSecret,
+        salt: data.salt || null,
+      },
+    );
+
+    if (matchesSelectedLegacyScheme || !data.salt) {
+      return matchesSelectedLegacyScheme;
+    }
+
+    /*
+     * Rolling-deploy compatibility. A pod running the pre-salt write path
+     * can replace a password with the original bare SHA-256 digest while a
+     * salt written by a newer pod remains on the row. A bare digest carries
+     * no scheme marker, so trying only the salted-SHA construction would
+     * lock that resource out permanently. Fall back to the original scheme
+     * when a supplied salt does not match; the successful caller upgrades
+     * the row to scrypt immediately afterwards.
+     */
+    return await HashedString.verifyValue({
+      plainValue: data.plainValue,
+      hashedValue: data.storedValue,
+      encryptionSecret: EncryptionSecret,
+      salt: null,
+    });
+  }
+
+  /**
+   * Spend what checking a password costs, and check nothing: for a sign-in
+   * with no password to check it against - an address no account has, or
+   * an account nobody has set a password on yet (an invitation not claimed).
+   *
+   * Without it, such a sign-in was answered in the time a database read
+   * takes, and a wrong password for a real account in the time a scrypt
+   * derivation takes (tens of milliseconds), so how long "Email or password
+   * does not match." took said which addresses have accounts (#9745). This
+   * derives a key from what was typed, at today's parameters, with a fresh
+   * salt, and throws it away. Nothing typed, nothing spent: an empty
+   * password is refused before any account is read.
+   */
+  public static async spendVerificationTime(plainValue: string): Promise<void> {
+    if (!plainValue) {
+      return;
+    }
+
+    await PasswordHash.derive({
+      plainValue: plainValue,
+      salt: PasswordHash.generateSalt(),
+      params: CURRENT_PARAMS,
+    });
   }
 
   /**

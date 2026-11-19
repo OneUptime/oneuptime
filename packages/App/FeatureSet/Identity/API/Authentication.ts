@@ -172,6 +172,7 @@ import PublicMessageRateLimit, {
   PublicMessageSendPermit,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { URL as NodeURL } from "url";
 
 const router: ExpressRouter = Express.getRouter();
@@ -3617,13 +3618,21 @@ const login: LoginFunction = async (options: {
     };
 
     if (alreadySavedUser) {
+      /*
+       * No password yet: an invitation nobody has claimed, or an account a
+       * master admin made without one. Answered as a wrong password is, and
+       * after as long as a password check takes: "You have not signed up so
+       * far" told anyone who typed an address that it had an account (#9745).
+       * Its person signs up through their invitation, or asks Forgot password
+       * for the link to set their first password (#9260).
+       */
       if (!alreadySavedUser.password) {
+        await PasswordHash.spendVerificationTime(submittedPassword);
+
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "You have not signed up so far. Please go to the registration page to sign up.",
-          ),
+          new BadDataException("Email or password does not match."),
         );
       }
 
@@ -4514,6 +4523,16 @@ const login: LoginFunction = async (options: {
         );
       }
     }
+
+    /*
+     * No account has this address. Answered as a wrong password is, and
+     * after as long as checking one takes: answered at once, it told anyone
+     * timing the answer which addresses have accounts (#9745).
+     */
+    if (!alreadySavedUser) {
+      await PasswordHash.spendVerificationTime(submittedPassword);
+    }
+
     return Response.sendErrorResponse(
       req,
       res,
