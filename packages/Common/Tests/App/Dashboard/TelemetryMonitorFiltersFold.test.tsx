@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -677,16 +678,85 @@ describe("Exception monitor filters", () => {
     ).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    // The first four by name, the resolved and archived switches as "2 more".
     expect(listedNames(moreFields())).toEqual([
       "Filter by Service",
       "Filter by Infrastructure Entity",
-      "Include Resolved Exceptions",
-      "Include Archived Exceptions",
+      "Only Unhandled Exceptions",
+      "Leave Out Exception Types",
     ]);
+    expect(
+      within(moreFields()).getByTestId("folded-section-more"),
+    ).toHaveTextContent("2 more");
     expect(setChips(moreFields())).toEqual([]);
     expect(fieldLabel("Filter by Service")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  /*
+   * #9713: unhandled only, and the types to leave out, fold with the other
+   * filters: an App Crashes monitor opened for editing shows both as
+   * chips, and the preview counts what the check counts.
+   */
+  test("App Crashes' two filters stay folded, shown as chips, and narrow the preview", () => {
+    renderForm({
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR", "Hang"],
+    });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual([
+      "Only Unhandled Exceptions: On",
+      "Leave Out Exception Types: ANR, Hang",
+    ]);
+
+    openMatching("Matching exceptions");
+
+    const previewQuery: JSONObject | undefined =
+      mockPreviews.exceptions[mockPreviews.exceptions.length - 1];
+
+    expect(previewQuery?.["escaped"]).toBe(true);
+    expect(previewQuery?.["exceptionType"]).toEqual({
+      _type: "IncludesNone",
+      value: ["ANR", "Hang"],
+    });
+  });
+
+  test("switching unhandled only on, and typing types to leave out, reach the step", () => {
+    const recorder: Recorder = renderForm({ exceptionTypes: ["TypeError"] });
+
+    fireEvent.click(moreFields());
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Only Unhandled Exceptions" }),
+    );
+    fireEvent.change(screen.getByPlaceholderText("ANR, Hang"), {
+      target: { value: "ANR, , Hang, ANR" },
+    });
+
+    expect(recorder.latest).toMatchObject({
+      exceptionTypes: ["TypeError"],
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR", "Hang"],
+    });
+  });
+
+  test("cleared, both leave the step as a monitor without them is", () => {
+    const recorder: Recorder = renderForm({
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR"],
+    });
+
+    fireEvent.click(moreFields());
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Only Unhandled Exceptions" }),
+    );
+    fireEvent.change(screen.getByPlaceholderText("ANR, Hang"), {
+      target: { value: "" },
+    });
+
+    expect(recorder.latest).not.toHaveProperty("unhandledOnly");
+    expect(recorder.latest).not.toHaveProperty("excludedExceptionTypes");
   });
 
   test("its list of matching exceptions asks for nothing until it is opened", async () => {

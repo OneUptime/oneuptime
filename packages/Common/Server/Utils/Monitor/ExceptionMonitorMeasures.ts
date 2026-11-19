@@ -120,6 +120,11 @@ export default class ExceptionMonitorMeasureReader {
     ) => Promise<number> = async (
       condition: DatabaseQuery<TelemetryException>,
     ): Promise<number> => {
+      // Every type it keeps is one it leaves out: no group can match.
+      if (MonitorStepExceptionMonitorUtil.keepsNoType(data.config)) {
+        return 0;
+      }
+
       const groupFingerprints: Array<string> | undefined = await fingerprints;
 
       // No matching occurrence in the window: no group to count.
@@ -267,8 +272,28 @@ export default class ExceptionMonitorMeasureReader {
       query.primaryEntityId = new Includes(data.config.telemetryServiceIds);
     }
 
-    if (data.config.exceptionTypes?.length > 0) {
-      query.exceptionType = new Includes(data.config.exceptionTypes);
+    /*
+     * The types the occurrence query keeps (MonitorStepExceptionMonitorUtil
+     * .toAnalyticsQuery), as the group's type: the kept ones, else every
+     * type but the ones left out. A group with no type is no type left out.
+     * A step that keeps no type at all counts no group: read() never asks.
+     */
+    const keptTypes: Array<string> =
+      MonitorStepExceptionMonitorUtil.getKeptExceptionTypes(data.config);
+    const excludedTypes: Array<string> =
+      MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+        data.config.excludedExceptionTypes,
+      );
+
+    if (keptTypes.length > 0) {
+      query.exceptionType = new Includes(keptTypes);
+    } else if (excludedTypes.length > 0) {
+      query.exceptionType = QueryHelper.notInOrNull(excludedTypes);
+    }
+
+    // The group's flag: at least one of its occurrences was unhandled.
+    if (MonitorStepExceptionMonitorUtil.isUnhandledOnly(data.config)) {
+      query.unhandled = true;
     }
 
     const environments: Array<string> =

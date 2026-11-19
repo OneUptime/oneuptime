@@ -12,6 +12,7 @@ import {
   MonitorRecommendationResourceType,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorStepExceptionMonitor from "../../../../Types/Monitor/MonitorStepExceptionMonitor";
 import {
   REPRESENTATIVE_CONTEXTS,
   getAllRepresentativeRecommendations,
@@ -974,5 +975,64 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
         args: args,
       }).size,
     ).toBe(0);
+  });
+
+  /*
+   * #9713: a monitor that counts only unhandled exceptions, or leaves types
+   * out, counts something else than one that counts every exception, so
+   * neither covers the other; unset, the filters change nothing.
+   */
+  test("the unhandled-only and left-out-types filters are part of what a monitor watches", () => {
+    const args: MonitorRecommendationArgs = buildArgs();
+
+    const serviceRecommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.Service,
+      );
+
+    const unhandledExceptions: MonitorRecommendation | undefined =
+      serviceRecommendations.find((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId === "service-unhandled-exceptions";
+      });
+
+    expect(unhandledExceptions).toBeDefined();
+
+    const buildExceptionMonitor: (
+      filters: Partial<MonitorStepExceptionMonitor>,
+    ) => ExistingRecommendationMonitor = (
+      filters: Partial<MonitorStepExceptionMonitor>,
+    ): ExistingRecommendationMonitor => {
+      const monitor: ExistingRecommendationMonitor = buildMonitorFor(
+        [unhandledExceptions!],
+        args,
+      );
+      const step: MonitorStep = monitor.monitorSteps[0]!;
+
+      step.setExceptionMonitor({
+        ...step.data!.exceptionMonitor!,
+        ...filters,
+      });
+
+      return monitor;
+    };
+
+    const coveredBy: (
+      filters: Partial<MonitorStepExceptionMonitor>,
+    ) => number = (filters: Partial<MonitorStepExceptionMonitor>): number => {
+      return MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+        recommendations: [unhandledExceptions!],
+        existingMonitors: [buildExceptionMonitor(filters)],
+        args: args,
+      }).size;
+    };
+
+    // Unset or empty: the monitor watches what it always did.
+    expect(coveredBy({})).toBe(1);
+    expect(
+      coveredBy({ unhandledOnly: false, excludedExceptionTypes: [] }),
+    ).toBe(1);
+
+    expect(coveredBy({ unhandledOnly: true })).toBe(0);
+    expect(coveredBy({ excludedExceptionTypes: ["ANR"] })).toBe(0);
   });
 });

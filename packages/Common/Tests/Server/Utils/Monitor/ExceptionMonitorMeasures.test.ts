@@ -195,6 +195,64 @@ describe("ExceptionMonitorMeasureReader.read", () => {
     );
   });
 
+  /*
+   * #9713: the groups new exceptions are counted among carry the monitor's
+   * new filters too, so App Crashes' New exceptions count only crashes.
+   */
+  test("unhandled only reads the groups an unhandled occurrence was filed under", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount], { unhandledOnly: true });
+
+    expect(groupCalls[0]!.query["unhandled"]).toBe(true);
+  });
+
+  test("without it, a group's unhandled flag is not asked about", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount]);
+
+    expect(groupCalls[0]!.query["unhandled"]).toBeUndefined();
+  });
+
+  test("types left out are kept out of the groups, and a group with no type stays in", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount], {
+      exceptionTypes: [],
+      excludedExceptionTypes: ["ANR", "Hang"],
+    });
+
+    // QueryHelper.notInOrNull: a Raw condition, NOT IN or IS NULL.
+    const exceptionType: unknown = groupCalls[0]!.query["exceptionType"];
+    expect(exceptionType).toBeDefined();
+    expect(exceptionType).not.toBeInstanceOf(Includes);
+    expect(JSON.stringify(exceptionType)).toContain("ANR");
+    expect(JSON.stringify(exceptionType)).toContain("Hang");
+  });
+
+  test("kept types less the ones left out are the groups' types", async () => {
+    groupCounts = [1];
+    await read([CheckOn.NewExceptionCount], {
+      exceptionTypes: ["TypeError", "ANR"],
+      excludedExceptionTypes: ["ANR"],
+    });
+
+    expect(groupCalls[0]!.query["exceptionType"]).toEqual(
+      new Includes(["TypeError"]),
+    );
+  });
+
+  test("a monitor that keeps no type counts no new or regressed group, and reads none", async () => {
+    const measures: ExceptionMonitorMeasures = await read(
+      [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+      { exceptionTypes: ["ANR"], excludedExceptionTypes: ["ANR"] },
+    );
+
+    expect(measures).toEqual({
+      newExceptionCount: 0,
+      regressedExceptionCount: 0,
+    });
+    expect(groupCalls).toHaveLength(0);
+  });
+
   test("regressed exceptions: groups that came back in the window and are still open", async () => {
     groupCounts = [1];
     const measures: ExceptionMonitorMeasures = await read(

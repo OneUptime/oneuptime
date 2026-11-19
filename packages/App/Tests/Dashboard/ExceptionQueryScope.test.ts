@@ -260,6 +260,97 @@ describe("a real exception monitor's stored query", () => {
   });
 });
 
+/*
+ * #9713: an App Crashes alert's exceptions - unhandled only, ANR and Hang
+ * left out. Both filters ride the instance query as stored, so the list is
+ * as narrow as the count, and each is drawn as a chip.
+ */
+describe("unhandled only, and the types left out", () => {
+  const crashes: Query<ExceptionInstance> = exceptionMonitorQuery({
+    telemetryServiceIds: [new ObjectID(SERVICE_ID_A)],
+    unhandledOnly: true,
+    excludedExceptionTypes: ["ANR", "Hang"],
+    lastXSecondsOfExceptions: 300,
+  });
+
+  test("the monitor stores both on their columns", () => {
+    expect(Object.keys(crashes).sort()).toEqual([
+      "escaped",
+      "exceptionType",
+      "primaryEntityId",
+      "time",
+    ]);
+  });
+
+  test("both ride the instance query as stored, whether or not the page deserialized it", () => {
+    for (const shape of [roundTrip(crashes), storedOnly(crashes)]) {
+      const scope: ExceptionQueryScope = buildExceptionQueryScope(
+        shape as Query<ExceptionInstance>,
+      );
+      const columnQuery: JSONObject = JSONFunctions.anyObjectToJSONObject(
+        scope.instanceScope.columnQuery as unknown as JSONObject,
+      );
+
+      expect(scope.hasScope).toBe(true);
+      expect(columnQuery["escaped"]).toBe(true);
+      expect(columnQuery["exceptionType"]).toEqual({
+        _type: "IncludesNone",
+        value: ["ANR", "Hang"],
+      });
+      // Never read as the types to keep: that would invert the filter.
+      expect(scope.instanceScope.columnPredicates["exceptionType"]).toBe(
+        undefined,
+      );
+    }
+  });
+
+  test("they are drawn as chips: unhandled, and a type left out each", () => {
+    const scope: ExceptionQueryScope = buildExceptionQueryScope(
+      roundTrip(crashes),
+    );
+
+    expect(
+      scope.chips.filter((chip: ExceptionScopeChip): boolean => {
+        return chip.facetKey !== "primaryEntityId";
+      }),
+    ).toEqual([
+      {
+        facetKey: "escaped",
+        value: "true",
+        displayKey: "Unhandled",
+        displayValue: "Yes",
+      },
+      {
+        facetKey: "!exceptionType",
+        value: "ANR",
+        displayKey: "Type",
+        displayValue: "ANR",
+      },
+      {
+        facetKey: "!exceptionType",
+        value: "Hang",
+        displayKey: "Type",
+        displayValue: "Hang",
+      },
+    ]);
+  });
+
+  test("kept types less the ones left out stay the types to keep", () => {
+    const scope: ExceptionQueryScope = buildExceptionQueryScope(
+      roundTrip(
+        exceptionMonitorQuery({
+          exceptionTypes: ["TypeError", "ANR"],
+          excludedExceptionTypes: ["ANR"],
+        }),
+      ),
+    );
+
+    expect(scope.instanceScope.columnPredicates["exceptionType"]).toEqual([
+      "TypeError",
+    ]);
+  });
+});
+
 describe("nothing is dropped", () => {
   test("an unreadable value is forwarded verbatim on the raw fragment", () => {
     /*

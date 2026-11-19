@@ -72,6 +72,8 @@ interface RecommendationMonitorStepConfig {
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans?: number | undefined;
   exceptionTypes?: Array<string> | undefined;
+  excludedExceptionTypes?: Array<string> | undefined;
+  unhandledOnly?: boolean | undefined;
   environments?: Array<string> | undefined;
   message?: string | undefined;
   includeResolved?: boolean | undefined;
@@ -694,6 +696,27 @@ export default class MonitorRecommendationUtil {
           config.lastXSecondsOfExceptions ?? "",
         )}`,
       );
+
+      /*
+       * Unhandled only, and the types left out (#9713): a monitor that
+       * counts every exception does not cover App Crashes, which counts the
+       * unhandled ones less ANRs and hangs. Written only when set, so every
+       * step without them fingerprints exactly as before.
+       */
+      const excludedExceptionTypes: Array<string> =
+        MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+          config.excludedExceptionTypes,
+        );
+
+      if (excludedExceptionTypes.length > 0) {
+        values.push(
+          `excludedExceptionTypes=${excludedExceptionTypes.sort().join(",")}`,
+        );
+      }
+
+      if (MonitorStepExceptionMonitorUtil.isUnhandledOnly(config)) {
+        values.push("unhandledOnly=true");
+      }
     }
 
     /*

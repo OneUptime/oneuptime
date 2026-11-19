@@ -49,7 +49,7 @@ In **Exceptions to watch**, set **Message contains**, **Exception Types** and **
 
 ### Narrow them down (optional)
 
-Open **More fields** to filter by telemetry service or infrastructure entity, or to count resolved and archived exceptions too.
+Open **More fields** to filter by telemetry service or infrastructure entity, to count only unhandled exceptions or leave some types out, or to count resolved and archived exceptions too.
 
 ### Say when to alert
 
@@ -74,6 +74,8 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Time window** (in **When to alert**) | Exceptions from the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
 | **Filter by Service** (under **More fields**) | Exceptions from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Exceptions from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
+| **Only Unhandled Exceptions** (under **More fields**) | Only the exceptions nothing caught, such as a crash: the ones the Exceptions explorer marks **Unhandled**. An exception that does not say whether it was caught counts as handled. | Off |
+| **Leave Out Exception Types** (under **More fields**) | Not the exceptions of these types, separated by commas, such as `ANR, Hang`. The type name must match exactly. A type listed here is left out even when **Exception Types** lists it too. | Empty: no type is left out |
 | **Include Resolved Exceptions** (under **More fields**) | Also count exceptions marked as resolved. | Off |
 | **Include Archived Exceptions** (under **More fields**) | Also count exceptions that are archived. | Off |
 
@@ -99,6 +101,17 @@ When creating the monitor through the API, set `environments` on the step's `exc
     "includeResolved": false,
     "includeArchived": false,
     "lastXSecondsOfExceptions": 300
+  }
+}
+```
+
+Through the API, **Only Unhandled Exceptions** is `unhandledOnly` and **Leave Out Exception Types** is `excludedExceptionTypes`, a list of type names. A mobile app's **App Crashes** recommendation sets both, to count its crashes and not its freezes:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
   }
 }
 ```

@@ -15,9 +15,8 @@ import {
   RumClientKind,
   readRumClientKind,
 } from "../Rum/RumClientKind";
+import { APP_NOT_RESPONDING_EXCEPTION_TYPES } from "../../Utils/Telemetry/MobileAppFaults";
 import {
-  APP_ANR_EVENT_NAME,
-  APP_CRASH_EVENT_NAME,
   APP_JANK_EVENT_NAME,
   APP_JANK_THRESHOLD_ATTRIBUTE,
   APP_START_SPAN_NAME,
@@ -543,18 +542,16 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
  * THE MOBILE APP TEMPLATES (#9589).
  *
  * What a mobile team pages on, read from what OpenTelemetry Android sends on
- * its own (Rum/MobileAppTelemetry): a crash, an ANR, a slow cold start, a
- * frozen frame, and an app that has gone quiet. A browser app is never
- * offered them (none of these spans or events comes from a browser), and a
- * mobile app is never offered the Web Vitals, which only a browser reports.
+ * its own (Rum/MobileAppTelemetry), and an iOS app's MetricKit: a crash, an
+ * ANR or a hang, a slow cold start, a frozen frame, and an app that has gone
+ * quiet. A browser app is never offered them (none of these spans or events
+ * comes from a browser), and a mobile app is never offered the Web Vitals,
+ * which only a browser reports.
  *
- * Crashes and ANRs are counted from their own log events rather than as
- * Exceptions monitors. An Exceptions monitor counts every exception the app
- * records - a failed network call's included - and counts an ANR as one too,
- * so App Crashes would page on both, twice for an ANR. The events tell them
- * apart exactly. Like the Web Vitals, each template names the one name it
- * reads, and the earlier name where there is one, so retargeting is one
- * visible edit.
+ * Crashes and freezes are Exceptions monitors that leave each other out
+ * (buildMobileFaultTemplate, #9713): an Exceptions monitor that counted
+ * every exception would count the app's handled ones - a failed network
+ * call's included - and an ANR as a crash too.
  *
  * Every threshold is the first occurrence, on the Failed User Operations
  * pattern: a kiosk fleet, the case these were written for (#9533), has few
@@ -629,42 +626,122 @@ function buildMobileLogEventTemplate(
   };
 }
 
-const appCrashesTemplate: RumAlertTemplate = buildMobileLogEventTemplate({
+/*
+ * A crash and a freeze are Exceptions monitors (#9713): ingest files every
+ * crash, ANR and hang as an unhandled exception (MobileAppFaults), whatever
+ * SDK and version reported it, so counting exceptions counts exactly what
+ * the Overview's Crashes and ANRs tiles count, and the alert opens the
+ * exception - its stack trace, its group's resolved or archived state. A
+ * crash is an unhandled exception that is no freeze (ANR and Hang left out),
+ * a freeze one of those two types, so one freeze never pages as a crash too.
+ */
+interface MobileFaultTemplateData {
+  id: string;
+  name: string;
+  description: string;
+  // What it counts, beside the application and the five minutes.
+  filter: {
+    unhandledOnly?: boolean;
+    exceptionTypes?: Array<string>;
+    excludedExceptionTypes?: Array<string>;
+  };
+  unhealthyName: string;
+  unhealthyDescription: string;
+  // What goes between "[RUM] " and " - <application>" in the titles.
+  incidentHeadline: string;
+  incidentDescription: string;
+}
+
+function buildMobileFaultTemplate(
+  data: MobileFaultTemplateData,
+): RumAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    category: "Errors",
+    /*
+     * A crash ends the person's use of the app, as an unhandled browser
+     * exception may not, and a freeze is as final to a kiosk: Critical, the
+     * severity Android vitals gives both rates as core vitals.
+     */
+    severity: "Critical",
+    monitorType: MonitorType.Exceptions,
+    clients: MOBILE_ONLY,
+    getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Exceptions,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setExceptionMonitor({
+        telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+        entityKeys: [],
+        exceptionTypes: [...(data.filter.exceptionTypes || [])],
+        ...(data.filter.excludedExceptionTypes
+          ? { excludedExceptionTypes: [...data.filter.excludedExceptionTypes] }
+          : {}),
+        ...(data.filter.unhandledOnly ? { unhandledOnly: true } : {}),
+        message: "",
+        includeResolved: false,
+        includeArchived: false,
+        lastXSecondsOfExceptions: 300,
+      });
+
+      step.setMonitorCriteria(
+        buildCriteria({
+          args: args,
+          checkOn: CheckOn.ExceptionCount,
+          unhealthyFilterType: FilterType.GreaterThan,
+          healthyFilterType: FilterType.LessThanOrEqualTo,
+          threshold: 0,
+          unhealthyName: data.unhealthyName,
+          unhealthyDescription: data.unhealthyDescription,
+          incidentTitle: `[RUM] ${data.incidentHeadline} - ${args.monitorName}`,
+          incidentDescription: data.incidentDescription,
+        }),
+      );
+
+      return step;
+    },
+  };
+}
+
+const appCrashesTemplate: RumAlertTemplate = buildMobileFaultTemplate({
   id: "rum-app-crashes",
   name: "App Crashes",
-  description: `Alert when the app crashes: any ${APP_CRASH_EVENT_NAME} event in five minutes, which OpenTelemetry Android 1.5 and later send for every crash. An app on an earlier version sends device.crash; change the monitor's filter to that name.`,
-  category: "Errors",
-  /*
-   * A crash ends the person's use of the app, as an unhandled browser
-   * exception may not: Critical, the severity Android vitals gives the
-   * crash rate as a core vital.
-   */
-  severity: "Critical",
-  attributes: { [EVENT_NAME_ATTRIBUTE]: APP_CRASH_EVENT_NAME },
-  lastXSecondsOfLogs: 300,
+  description:
+    "Alert when the app crashes: any unhandled exception other than an ANR or a hang in five minutes, as the Overview's Crashes tile counts them. OpenTelemetry Android reports every crash, and MetricKit an iOS app's on a later launch.",
+  filter: {
+    unhandledOnly: true,
+    excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+  },
   unhealthyName: "App crash reported",
   unhealthyDescription:
     "Triggers when the app reports at least one crash in five minutes.",
   incidentHeadline: "App crash",
   incidentDescription:
-    "The app crashed for at least one person. Open Exceptions for the crash's stack trace, release and device, and the session it ended.",
+    "The app crashed for at least one person. Open the exception for its stack trace, release and device, and the session it was in.",
 });
 
-const appNotRespondingTemplate: RumAlertTemplate = buildMobileLogEventTemplate({
+const appNotRespondingTemplate: RumAlertTemplate = buildMobileFaultTemplate({
   id: "rum-app-not-responding",
   name: "App Not Responding (ANR)",
-  description: `Alert when the app stops responding: any ${APP_ANR_EVENT_NAME} event in five minutes, which OpenTelemetry Android sends once the app's main thread has been blocked for five seconds.`,
-  category: "Errors",
-  // A core vital beside the crash rate in Android vitals, and as final to a kiosk.
-  severity: "Critical",
-  attributes: { [EVENT_NAME_ATTRIBUTE]: APP_ANR_EVENT_NAME },
-  lastXSecondsOfLogs: 300,
+  description:
+    "Alert when the app stops responding: any ANR, or an iOS app's hang, in five minutes. OpenTelemetry Android reports an ANR once the app's main thread has been blocked for five seconds, and MetricKit a hang on a later launch.",
+  filter: {
+    exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+  },
   unhealthyName: "ANR reported",
   unhealthyDescription:
-    "Triggers when the app reports at least one ANR in five minutes.",
+    "Triggers when the app reports at least one ANR or hang in five minutes.",
   incidentHeadline: "App not responding",
   incidentDescription:
-    "The app's main thread was blocked for five seconds or more, so it stopped responding to input. Open Exceptions filtered to the type ANR for the main thread's stack, which shows what it was waiting on.",
+    "The app's main thread was blocked, so it stopped responding to input. Open the exception for the main thread's stack, which shows what it was waiting on.",
 });
 
 const SLOW_COLD_START_MS: number = EXCESSIVE_APP_START_MS[APP_START_TYPE_COLD];

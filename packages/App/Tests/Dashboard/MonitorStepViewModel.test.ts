@@ -1082,6 +1082,67 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
     }
   });
 
+  /*
+   * #9713: an Exceptions monitor's two newer filters are named on its
+   * summary as on its form: App Crashes reads "Only Unhandled Exceptions:
+   * Yes" and "Leave Out Exception Types: ANR, Hang".
+   */
+  it("names unhandled only and the types left out, as the form does", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        exceptionMonitor: {
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          unhandledOnly: true,
+          excludedExceptionTypes: ["ANR", "Hang"],
+        },
+      }),
+      monitorType: MonitorType.Exceptions,
+    });
+
+    const rowOf: (key: string) => MonitorStepViewRow | undefined = (
+      key: string,
+    ): MonitorStepViewRow | undefined => {
+      return rows.find((row: MonitorStepViewRow) => {
+        return row.key === key;
+      });
+    };
+
+    expect(rowOf("unhandledOnly")).toEqual(
+      expect.objectContaining({
+        title: "Only Unhandled Exceptions",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: true,
+      }),
+    );
+    expect(rowOf("excludedExceptionTypes")).toEqual(
+      expect.objectContaining({
+        title: "Leave Out Exception Types",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: ["ANR", "Hang"],
+      }),
+    );
+  });
+
+  it("an exception monitor without them says No, and lists no type left out", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        exceptionMonitor: MonitorStepExceptionMonitorUtil.getDefault(),
+      }),
+      monitorType: MonitorType.Exceptions,
+    });
+
+    expect(
+      rows.find((row: MonitorStepViewRow) => {
+        return row.key === "unhandledOnly";
+      })?.value,
+    ).toBe(false);
+    expect(
+      rows.find((row: MonitorStepViewRow) => {
+        return row.key === "excludedExceptionTypes";
+      }),
+    ).toBeUndefined();
+  });
+
   it("shows the network device the monitor alerts on, which used to render nothing", () => {
     const row: MonitorStepViewRow | undefined = getRow(
       MonitorType.NetworkDevice,

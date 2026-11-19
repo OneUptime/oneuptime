@@ -28,12 +28,16 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepTraceMonitor";
-import MonitorStepExceptionMonitor from "../../../Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepExceptionMonitor";
 import MonitorStepLogMonitor from "../../../Types/Monitor/MonitorStepLogMonitor";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import {
-  MOBILE_APP_FAULT_EVENT_NAMES,
-  MobileAppFaultKind,
+  ANR_EXCEPTION_TYPE,
+  APP_NOT_RESPONDING_EXCEPTION_TYPES,
+  HANG_EXCEPTION_TYPE,
 } from "../../../Utils/Telemetry/MobileAppFaults";
 import { EXCESSIVE_APP_START_MS } from "../../../Types/Rum/MobileAppTelemetry";
 import {
@@ -1367,61 +1371,103 @@ describe("RumAlertTemplates - mobile apps", () => {
     });
   }
 
-  test("App Crashes counts the crash event OpenTelemetry Android sends, over five minutes", () => {
+  function exceptionMonitorOf(id: string): MonitorStepExceptionMonitor {
+    const step: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+    const exceptionMonitor: MonitorStepExceptionMonitor | undefined =
+      step.data?.exceptionMonitor;
+
+    expect(exceptionMonitor).toBeDefined();
+
+    return exceptionMonitor!;
+  }
+
+  /*
+   * #9713: App Crashes is an Exceptions monitor, unhandled only with the
+   * freezes left out - what the Overview's Crashes tile counts - so it
+   * counts every SDK's crash (app.crash, device.crash, an iOS app's
+   * MetricKit crash) and its alert opens the exception.
+   */
+  test("App Crashes counts the unhandled exceptions that are no freeze, over five minutes", () => {
     const template: RumAlertTemplate = getTemplate("rum-app-crashes");
-    const logMonitor: MonitorStepLogMonitor = logMonitorOf("rum-app-crashes");
+    const exceptionMonitor: MonitorStepExceptionMonitor =
+      exceptionMonitorOf("rum-app-crashes");
 
     expect(template.name).toBe("App Crashes");
-    expect(template.monitorType).toBe(MonitorType.Logs);
-    expect(logMonitor.attributes).toEqual({ "event.name": "app.crash" });
-    // The event ingest files as a crash (MobileAppFaults), current name first.
-    expect(logMonitor.attributes["event.name"]).toBe(
-      MOBILE_APP_FAULT_EVENT_NAMES[MobileAppFaultKind.Crash][0],
+    expect(template.monitorType).toBe(MonitorType.Exceptions);
+    expect(exceptionMonitor.unhandledOnly).toBe(true);
+    expect(exceptionMonitor.excludedExceptionTypes).toEqual([
+      ANR_EXCEPTION_TYPE,
+      HANG_EXCEPTION_TYPE,
+    ]);
+    expect(exceptionMonitor.exceptionTypes).toEqual([]);
+    expect(exceptionMonitor.message).toBe("");
+    expect(exceptionMonitor.includeResolved).toBe(false);
+    expect(exceptionMonitor.includeArchived).toBe(false);
+    expect(exceptionMonitor.lastXSecondsOfExceptions).toBe(300);
+    expect(
+      exceptionMonitor.telemetryServiceIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([RUM_APPLICATION_ID.toString()]);
+  });
+
+  test("App Crashes counts exactly what the Overview's Crashes tile counts", () => {
+    const query: JSONObject = JSONFunctions.anyObjectToJSONObject(
+      MonitorStepExceptionMonitorUtil.toAnalyticsQuery(
+        exceptionMonitorOf("rum-app-crashes"),
+      ) as unknown as JSONObject,
     );
-    expect(logMonitor.severityTexts).toEqual([]);
-    expect(logMonitor.body).toBe("");
-    expect(logMonitor.lastXSecondsOfLogs).toBe(300);
-    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+
+    // The tile's read: escaped, and every freeze type left out.
+    expect(query["escaped"]).toBe(true);
+    expect(query["exceptionType"]).toEqual({
+      _type: "IncludesNone",
+      value: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    });
   });
 
-  test("App Crashes names the event it reads and the earlier one it does not", () => {
-    const description: string = getTemplate("rum-app-crashes").description;
-
-    expect(description).toContain("app.crash");
-    expect(description).toContain("device.crash");
-  });
-
-  test("App Not Responding counts the ANR event, never a crash", () => {
+  test("App Not Responding counts the ANRs and an iOS app's hangs, never a crash", () => {
     const template: RumAlertTemplate = getTemplate("rum-app-not-responding");
-    const logMonitor: MonitorStepLogMonitor = logMonitorOf(
+    const exceptionMonitor: MonitorStepExceptionMonitor = exceptionMonitorOf(
       "rum-app-not-responding",
     );
 
     expect(template.name).toBe("App Not Responding (ANR)");
-    expect(template.monitorType).toBe(MonitorType.Logs);
-    expect(logMonitor.attributes).toEqual({ "event.name": "device.anr" });
-    expect(logMonitor.attributes["event.name"]).toBe(
-      MOBILE_APP_FAULT_EVENT_NAMES[MobileAppFaultKind.Anr][0],
-    );
-    expect(logMonitor.lastXSecondsOfLogs).toBe(300);
-    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+    expect(template.monitorType).toBe(MonitorType.Exceptions);
+    expect(exceptionMonitor.exceptionTypes).toEqual([
+      ANR_EXCEPTION_TYPE,
+      HANG_EXCEPTION_TYPE,
+    ]);
+    expect(exceptionMonitor.excludedExceptionTypes).toBeUndefined();
+    expect(exceptionMonitor.lastXSecondsOfExceptions).toBe(300);
+    expect(
+      exceptionMonitor.telemetryServiceIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([RUM_APPLICATION_ID.toString()]);
   });
 
-  /*
-   * An Exceptions monitor would count both, and the network failures the
-   * app records as exceptions too: a crash and an ANR are told apart by
-   * their events, so an ANR never pages as a crash.
-   */
-  test("a crash and an ANR are counted by different events, so neither pages twice", () => {
-    const crash: MonitorStepLogMonitor = logMonitorOf("rum-app-crashes");
-    const anr: MonitorStepLogMonitor = logMonitorOf("rum-app-not-responding");
+  // One freeze never pages twice: what one counts, the other leaves out.
+  test("a crash and a freeze are counted by types the other leaves out", () => {
+    const crash: MonitorStepExceptionMonitor =
+      exceptionMonitorOf("rum-app-crashes");
+    const anr: MonitorStepExceptionMonitor = exceptionMonitorOf(
+      "rum-app-not-responding",
+    );
 
-    expect(crash.attributes["event.name"]).not.toBe(
-      anr.attributes["event.name"],
-    );
-    expect(getTemplate("rum-app-crashes").monitorType).not.toBe(
-      MonitorType.Exceptions,
-    );
+    for (const freezeType of anr.exceptionTypes) {
+      expect(crash.excludedExceptionTypes).toContain(freezeType);
+    }
+  });
+
+  test("App Crashes and App Not Responding name what reports them on each platform", () => {
+    const crashes: string = getTemplate("rum-app-crashes").description;
+    const anrs: string = getTemplate("rum-app-not-responding").description;
+
+    expect(crashes).toContain("OpenTelemetry Android");
+    expect(crashes).toContain("MetricKit");
+    expect(anrs).toContain("hang");
+    expect(anrs).toContain("MetricKit");
   });
 
   test("Slow Cold Start counts cold AppStart spans of 5 seconds or more, over fifteen minutes", () => {
@@ -1507,8 +1553,8 @@ describe("RumAlertTemplates - mobile apps", () => {
   });
 
   test.each([
-    ["rum-app-crashes", CheckOn.LogCount],
-    ["rum-app-not-responding", CheckOn.LogCount],
+    ["rum-app-crashes", CheckOn.ExceptionCount],
+    ["rum-app-not-responding", CheckOn.ExceptionCount],
     ["rum-slow-cold-start", CheckOn.SpanCount],
     ["rum-frozen-frames", CheckOn.LogCount],
   ])(
@@ -1583,14 +1629,22 @@ describe("RumAlertTemplates - mobile apps", () => {
     );
   });
 
-  test("log and trace monitor steps keep the application scope through serialization", () => {
+  test("log, trace and exception monitor steps keep the application scope through serialization", () => {
     for (const id of MOBILE_ONLY_TEMPLATE_IDS) {
       const original: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
       const restored: MonitorStep = MonitorStep.fromJSON(original.toJSON());
-      const monitor: MonitorStepLogMonitor | MonitorStepTraceMonitor = (restored
-        .data?.logMonitor || restored.data?.traceMonitor)!;
+      const monitor:
+        | MonitorStepLogMonitor
+        | MonitorStepTraceMonitor
+        | MonitorStepExceptionMonitor = (restored.data?.logMonitor ||
+        restored.data?.traceMonitor ||
+        restored.data?.exceptionMonitor)!;
 
-      expect(serviceIdsOf(monitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+      expect(
+        monitor.telemetryServiceIds.map((serviceId: ObjectID) => {
+          return serviceId.toString();
+        }),
+      ).toEqual([RUM_APPLICATION_ID.toString()]);
     }
 
     const restored: MonitorStep = MonitorStep.fromJSON(
@@ -1598,6 +1652,17 @@ describe("RumAlertTemplates - mobile apps", () => {
     );
 
     expect(restored.data?.traceMonitor?.minimumDurationInMs).toBe(5000);
+
+    // App Crashes' two filters survive a save and a load.
+    const crashes: MonitorStep = MonitorStep.fromJSON(
+      getTemplate("rum-app-crashes").getMonitorStep(buildArgs()).toJSON(),
+    );
+
+    expect(crashes.data?.exceptionMonitor?.unhandledOnly).toBe(true);
+    expect(crashes.data?.exceptionMonitor?.excludedExceptionTypes).toEqual([
+      ANR_EXCEPTION_TYPE,
+      HANG_EXCEPTION_TYPE,
+    ]);
   });
 });
 
