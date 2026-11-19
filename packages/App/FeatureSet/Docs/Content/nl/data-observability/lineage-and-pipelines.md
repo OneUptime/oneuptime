@@ -32,7 +32,7 @@ Elke weergave van de herkomst - het tabblad **Herkomst** van een tabel, dat van 
 - **Services** die tabellen schrijven en lezen, uit de databasespans in uw traces: een span die zijn tabel (`db.collection.name`, of het oudere `db.sql.table`) en zijn instructie (`db.operation.name`) noemt, zoals een `INSERT` of een `SELECT`.
 - **Tabellen** die uit andere tabellen zijn opgebouwd, uit alle bronnen hierboven.
 - **Pipelines** die een tabel laden uit data die OneUptime niet bewaakt, zoals een Fivetran-synchronisatie. Een pipeline die data tussen twee bewaakte tabellen verplaatst, wordt genoemd op de pijl ertussen.
-- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd.
+- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd, ook als niets anders die tabellen raakt. Een Power BI-rapport dat op geen enkele door OneUptime bewaakte tabel is gebouwd, wordt getekend met de datasets die het weergeeft en de gegevensbronnen waaruit ze laden; als geen van de dashboards van een BI-tool op een bewaakte tabel staat, zegt de kaart waarom ([Herkomst in Power BI](#herkomst-in-power-bi)).
 
 Elke pijl is iets wat OneUptime heeft vastgelegd, nooit een gok. Kaarten staan van links naar rechts in de richting waarin data stromen en tonen hun toestand zoals op het diagram van een tabel: rood voor een late tabel, een openstaande melding of een mislukte uitvoering. Een pijl is turkoois waar de traces van een service hem hebben gezien.
 
@@ -99,7 +99,7 @@ De echte impact van slechte gegevens is het dashboard dat iemand opent. Voeg ond
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken, met de twee tenantinstellingen voor metadata uit [Herkomst in Power BI](#herkomst-in-power-bi) aangezet voor de tabellen achter elk rapport. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (of `eu`) |
 
@@ -154,6 +154,30 @@ De kaart **Gegevens** van de oorzaak toont haar **Impact stroomafwaarts**: elke 
 Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Ligt de oorzaak bij een pipeline die op een pijl is getekend, dan staat op die pijl **Oorzaak** onder de naam van de pipeline. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. Een waarschuwing uit een controle op één kolom, zoals een controle Percentage NULL op `customer_id`, opent met die kolom gevolgd naast deze wegen, zoals op het tabblad **Herkomst** van de tabel: waar ze vandaan komt en waar ze naartoe gaat, genoemd op elke tabel. Kies daar een andere kolom van de tabel, of wis haar om alleen de wegen te zien. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline. Een veroorzaakte waarschuwing bij een pipeline die op een pijl is getekend, zegt daar op dezelfde manier **Gevolg**, en de kolomkiezer biedt eerst de kolom van de controle aan, daarna de andere kolommen van de tabel in haar eigen volgorde.
 
 Wie de waarschuwing die haar veroorzaakte niet mag zien, krijgt geen kaart **Gegevens** en geen herkomst, en een veroorzaakte waarschuwing die diegene niet mag zien, wordt niet gemarkeerd en niet meegeteld.
+
+## Herkomst in Power BI
+
+**Gekoppelde tabellen** zegt bij elke BI-tool op hoeveel bewaakte tabellen de dashboards ervan zijn gebouwd, en daaronder het eerste wat de rest tegenhoudt om gekoppeld te worden. **See Why** somt op wat de laatste lezing vond en wat u kunt doen: databases die uw dashboards lezen en die niet met OneUptime zijn verbonden, elk maar één **Connect Database** verwijderd, met het soort en het adres al ingevuld; tabellen die een verbonden database niet bewaakt, die mogelijk buiten de scan ervan vallen of nog niet zijn verzameld; en bronnen die geen database zijn, zoals bestanden en webpagina's. Voor Power BI noemt het ook een tenantinstelling die uit staat, datasets die uit gegevensstromen lezen en datasets die Power BI niet kan beschrijven. **Gebaseerd op** zegt bij elk dashboard welke datasets het weergeeft en waar hun gegevens vandaan komen, zoals Power BI het zegt.
+
+OneUptime leest elke Power BI-dataset uit de metadatascan van Power BI, met de Power Query achter elk van de tabellen ervan:
+
+- **De database die een connector noemt**: SQL Server en Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena en Microsoft Dataverse, en het schema en de tabel die de navigatie ervan kiest.
+- **SQL die een query uitvoert**: de optie **SQL statement** van een connector, `Value.NativeQuery` en `Odbc.Query`, en de tabellen na elke `FROM` en `JOIN`.
+- **Parameters en gedeelde query's**: een parameter geldt overal waar hij wordt genoemd, en een tabel die een stagingquery leest, leest wat die query leest.
+- **Samengestelde modellen** geven de tabellen weer van de datasets waarop ze zijn gebouwd.
+
+Een rapport geeft de tabellen van zijn dataset weer, en een dashboard die van de datasets van zijn tegels. Waar de gegevens vandaan komen - de server en naam van een database, het pad van een bestand, een webadres - komt uit de gegevensbronnen van de scan, die niets nodig hebben buiten de beheer-API-toegang hierboven.
+
+Power BI geeft de tabellen van een dataset pas terug zodra een Fabric-beheerder twee tenantinstellingen aanzet in de beheerportal, onder **Tenant settings > Admin API settings**, voor de beveiligingsgroep waarin de service principal zit:
+
+- **Enhance admin APIs responses with detailed metadata**: de tabellen van elke dataset.
+- **Enhance admin APIs responses with DAX and mashup expressions**: de query's die ze laden, die zeggen welke databasetabellen ze lezen.
+
+Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit. Een dataset die uit een gegevensstroom leest, wordt gelezen tot aan de gegevensstroom: OneUptime leest nog niet welke tabellen een gegevensstroom laadt.
+
+Elke tabel wordt aan een bewaakte tabel gekoppeld op naam, schema en database, en een server op zijn korte of volledige naam. Een tabel van een andere engine wordt nooit gekoppeld, en een in een andere database evenmin: een rapport op `Sales.dbo.Orders` wordt niet verbonden met `Archive.dbo.Orders`, omdat alleen `Archive` wordt bewaakt.
+
+[Vernieuwingen](#weergaven-en-vernieuwingen-in-power-bi) worden los van de tabellen gelezen: een melding dat de vernieuwingen van sommige datasets niet gelezen konden worden, zegt niets over hun tabellen.
 
 ## Voordat een wijziging wordt gemerged
 
