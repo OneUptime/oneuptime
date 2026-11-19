@@ -60,6 +60,8 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Storage
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { chartWordsInReadersLanguage } from "../Metrics/Utils/ChartWordsInReadersLanguage";
+import ResourceStorageCard from "../ResourcePart/ResourceStorageCard";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 
 export interface ComponentProps {
   kind: StorageArrayResourceKind;
@@ -81,6 +83,25 @@ export interface ComponentProps {
   metricsTitleTemplate: string;
   // The Metrics card's description.
   description: string;
+  /*
+   * How full the part is, for a part that holds data against a size - a
+   * bucket's quota, a file system's provisioned size - drawn in a Storage
+   * card under Needs attention (#9647). readings carries what the
+   * inventory has no column for (a file system's available share).
+   */
+  storage?:
+    | {
+        description: string;
+        getUsage: (
+          row: StorageArrayResource,
+          readings: { availableRatio: number | null },
+        ) => StorageUsage | null;
+        // English: why there is no reading ("No quota", "Not reported").
+        getNoUsageText?:
+          | ((row: StorageArrayResource) => string | undefined)
+          | undefined;
+      }
+    | undefined;
 }
 
 /*
@@ -438,6 +459,22 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
           current={attention.current}
           description={attention.description}
         />
+
+        {props.storage ? (
+          <ResourceStorageCard
+            testId="storage-array-part-storage"
+            description={props.storage.description}
+            usage={props.storage.getUsage(row, readings)}
+            noUsageText={props.storage.getNoUsageText?.(row)}
+            measuredAt={
+              row.metricsUpdatedAt
+                ? new Date(row.metricsUpdatedAt as Date)
+                : undefined
+            }
+          />
+        ) : (
+          <></>
+        )}
 
         <ResourcePartOpenEventsCard
           testId="storage-array-part-open"

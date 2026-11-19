@@ -14,6 +14,19 @@ import React, {
  */
 export const DROPDOWN_MENU_PORTAL_SELECTOR: string = ".ou-select__menu-portal";
 
+/*
+ * So does every tooltip (Tooltip's TooltipLayer), so that nothing its
+ * trigger is in can cut it off (#9769). A press in a tooltip whose trigger
+ * is inside the component - on a link in it, or selecting its words - is a
+ * press inside that component. Tippy keeps the tooltip's instance, and so
+ * its trigger, on the tooltip's own element.
+ */
+export const TOOLTIP_ROOT_SELECTOR: string = "[data-tippy-root]";
+
+type TooltipRootElement = Element & {
+  _tippy?: { reference?: Element | undefined } | undefined;
+};
+
 export function isInsideComponent(
   component: Element | null | undefined,
   target: EventTarget | null,
@@ -29,7 +42,20 @@ export function isInsideComponent(
   const element: Element | null =
     target instanceof Element ? target : target.parentElement;
 
-  return Boolean(element?.closest(DROPDOWN_MENU_PORTAL_SELECTOR));
+  if (element?.closest(DROPDOWN_MENU_PORTAL_SELECTOR)) {
+    return true;
+  }
+
+  const tooltipRoot: TooltipRootElement | null =
+    element?.closest<Element>(TOOLTIP_ROOT_SELECTOR) || null;
+  const tooltipTrigger: Element | undefined = tooltipRoot?._tippy?.reference;
+
+  return Boolean(
+    tooltipRoot &&
+      tooltipTrigger &&
+      !tooltipRoot.contains(tooltipTrigger) &&
+      isInsideComponent(component, tooltipTrigger),
+  );
 }
 
 type UseComponentOutsideClickFunction = (isVisible: boolean) => {
