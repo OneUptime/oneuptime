@@ -130,7 +130,7 @@ data:
             interval: {{ .Values.resourceSpecs.interval }}
       {{- end }}
 
-      {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
+      {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") }}
       # Scrape metrics via Prometheus endpoints (control plane, service
       # mesh, CSI drivers, CoreDNS, kube-state-metrics, cost engine)
       prometheus:
@@ -380,7 +380,7 @@ data:
                   regex: "^({{ join "|" .Values.kubeStateMetrics.metricsAllowlist }})$"
                   action: keep
             {{- end }}
-            {{- if and .Values.cost.enabled .Values.cost.metrics.enabled }}
+            {{- if eq (include "kubernetes-agent.costMetricsEnabled" .) "true" }}
             {{- /* Resolution order: the explicit metrics endpoint, else
                    <engine URL>/metrics, the engine being the external one or the
                    bundled OpenCost. The engine URL is a base URL, so a path of
@@ -884,7 +884,7 @@ data:
             # path to OneUptime.
             - otlp
             {{- end }}
-            {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
+            {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") }}
             - prometheus
             {{- end }}
           processors:

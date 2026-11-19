@@ -53,6 +53,7 @@ import { getApplicationSessionReplayRetentionInDays } from "../Utils/SessionRepl
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import { PRODUCT_ANALYTICS_DERIVED_METRICS } from "../../Types/Rum/ProductAnalyticsEvents";
+import { KUBERNETES_COST_METRICS } from "../../Types/Kubernetes/KubernetesCostMetrics";
 import TelemetryIngestionBudgetMetricTypeUtil from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import {
   AverageSpanRowSizeInBytes,
@@ -149,11 +150,18 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * and only the event pipeline can write them
  * (isProductAnalyticsDerivedMetricName). The application's own metric()
  * points are ordinary metrics and are billed like any other.
+ *
+ * So are the Kubernetes cost metrics (oneuptime.kubernetes.cost.*, issue
+ * #9548): the cost ingest works them out from the allocation rows a cluster
+ * already sent, and only it can write them (isKubernetesCostMetricName).
+ * The cost engine's own metrics the agent's collector scrapes
+ * (node_total_hourly_cost and the rest) are ordinary metrics.
  */
 export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> = [
   ...SessionReplayBudgetMetricTypeUtil.getAll(),
   ...TelemetryIngestionBudgetMetricTypeUtil.getAll(),
   ...PRODUCT_ANALYTICS_DERIVED_METRICS,
+  ...KUBERNETES_COST_METRICS,
 ];
 
 /*

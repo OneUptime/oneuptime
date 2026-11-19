@@ -35,6 +35,7 @@ flowchart LR
 | Collector di nodo | DaemonSet | Log dei pod da `/var/log/pods`, metriche di kubelet e cAdvisor, e le metriche del sistema operativo del nodo. | Sì |
 | Instrumentazione eBPF (OBI) | DaemonSet | Tracce HTTP, gRPC, SQL e Redis e metriche delle richieste di ogni pod, e la mappa dei servizi. | Sì |
 | Agente IA di Kubernetes | Deployment | Consente a OneUptime AI di eseguire `kubectl` in sola lettura mentre indaga su un incidente o un avviso di questo cluster. | Sì |
+| Motore dei costi e poller | Deployments | Quanto costa ogni namespace e ogni workload: OpenCost, il piccolo Prometheus che gli serve e l'agente dei costi che invia ciò che calcolano. | Sì, tranne con i preset `gke-autopilot` ed `eks-fargate` |
 | Lettore di log | Deployment | Log dei pod tramite l'API di Kubernetes, dove il collector di nodo non può leggerli. | Con i preset `gke-autopilot`, `eks-fargate` e `openshift-restricted` |
 | Profiler eBPF | DaemonSet | Flame graph continui della CPU di ogni processo. | No |
 | kube-state-metrics | Deployment | Fasi dei pod, motivi di attesa dei container e quote di risorse. | No |
@@ -364,7 +365,7 @@ La profilazione richiede **Linux 5.10** o successivo, e un pod privilegiato con 
 | `csi.enabled` | disattivo | Le metriche dei driver di storage CSI, dai pod etichettati `app=csi-driver` o `app.kubernetes.io/component=csi-driver`: tempi di collegamento e scollegamento dei volumi, errori di provisioning, IOPS. |
 | `coreDns.enabled` | disattivo | Le metriche di CoreDNS su `:9153/metrics`: frequenza delle query, latenza, hit della cache ed errori. |
 | `controlPlane.enabled` | disattivo | Il server API, al suo indirizzo all'interno del cluster, ed etcd, lo scheduler e il controller manager agli endpoint indicati ([Attivare il monitoraggio del piano di controllo](/docs/telemetry/kubernetes-agent#attivare-il-monitoraggio-del-piano-di-controllo)). Solo cluster autogestiti: quelli gestiti non li espongono. |
-| `cost.enabled` | disattivo | Quanto costa ogni workload. Vedi [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Quanto costa ogni namespace e ogni workload, con capacità inutilizzata ed efficienza, anche come metriche su cui generare avvisi: attivo, tranne con i preset `gke-autopilot` ed `eks-fargate`; `false` lo disattiva. Vedi [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost). |
 
 ## Opzioni comuni
 

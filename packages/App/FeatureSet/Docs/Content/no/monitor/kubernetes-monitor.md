@@ -5,7 +5,7 @@ En Kubernetes-monitor varsler på målingene som OneUptimes Kubernetes-agent sen
 :::cards
 - [Installer agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando tar klyngen inn i OneUptime.
 - [Opprett monitoren](#opprett-en-kubernetes-monitor): Velg klyngen, og deretter en mal, en måling eller en spørring.
-- [Varslingsmaler](#ferdige-varslingsmaler): Tjueen ferdige varsler, fra en taus klynge til etcd.
+- [Varslingsmaler](#ferdige-varslingsmaler): Tjuefire ferdige varsler, fra en taus klynge til etcd.
 - [Kriterier](#overvåkingskriterier): Statiske terskler og avviksdeteksjon.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - OneUptimes Kubernetes-agent kjører i klyngen. Se [Kubernetes-agent (Helm-installasjon)](/docs/monitor/kubernetes-agent); klyngen vises under **Kubernetes** noen minutter etter installasjonen.
 - For kontrollplanmalene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens innsamling fra kontrollplanet, `controlPlane.enabled`, som leser API-serveren uten videre; etcd og scheduleren trenger i tillegg at endepunktene deres er oppgitt (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så der mottar de monitorene aldri data.
+- For kostnadsmalene (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): agentens kostnadsovervåking, som er på som standard unntatt med presetene `gke-autopilot` og `eks-fargate` (se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost)).
 
 ## Opprett en Kubernetes-monitor
 
@@ -91,6 +92,7 @@ Fanen **Custom Metric** tilbyr disse målingene, gruppert etter ressurstype:
 | Arbeidsbelastning | Deploymentens tilgjengelige replikaer, Deploymentens ønskede replikaer, DaemonSetets ønskede noder, DaemonSetets feilplanlagte noder, DaemonSetets klare noder, StatefulSetets ønskede replikaer, StatefulSetets klare replikaer, Jobbens mislykkede poder, Jobbens mislykkede poder (økning), Jobbens vellykkede poder |
 | HPA | HPA-ens gjeldende replikaer, HPA-ens ønskede replikaer, HPA-ens maksimale replikaer, HPA-ens minimale replikaer |
 | Kontrollplan | etcd har en leder, API-serverens pågående forespørsler, Planleggerens ventende poder |
+| Kostnad | Klyngens kostnad, Inaktiv kostnad, Arbeidsbelastningens kostnad, Arbeidsbelastningens kostnadseffektivitet |
 
 > [!NOTE]
 > **Podens CPU-forbruk** og **Nodens CPU-forbruk** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Podens fase (kode)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmålinger kommer bare når agentens innsamling fra kontrollplanet er slått på. **Nodens Ready-betingelse** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1. **Containerens omstarter** er containerens løpende omstartteller; **Containerens omstarter (økning)** er det agenten sender med hver måling: omstartene siden dens forrige måling av containeren, så summen over et vindu er omstartene i det. Den bærer det **Containerens omstarter** bærer, også navnene på arbeidsbelastningene til containerens pod, men ikke containerens ID, som endres ved hver omstart. **Jobbens mislykkede poder** er en Jobs løpende teller for mislykkede poder; **Jobbens mislykkede poder (økning)** er det agenten sender med hver måling: Jobbens poder som har mislyktes siden dens forrige måling av Jobben, så summen over et vindu er feilene i det. Den bærer det **Jobbens mislykkede poder** bærer: Jobbens navn og navnerom.
@@ -155,8 +157,13 @@ Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kate
 | HPA Saturated at Max Replicas | Arbeidsbelastning | En HPA skalert over sin `minReplicas` kjører på 90 % eller mer av sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbeidsbelastning | En pod bruker mer enn 90 % av minnegrensen til containerne sine | Kritisk |
 | Pod CPU Saturating Container Limit | Arbeidsbelastning | En pod bruker mer enn 90 % av CPU-grensen til containerne sine | Advarsel |
+| Cluster Daily Cost Over Budget | Kostnad | Klyngens kostnad det siste døgnet passerer 100, et budsjett du setter selv | Advarsel |
+| Namespace Daily Cost Over Budget | Kostnad | Kostnaden til et navnerom det siste døgnet passerer 20, et budsjett du setter selv | Advarsel |
+| High Idle Spend | Kostnad | Mer enn 40 % av klyngens kostnad det siste døgnet gikk til ledig kapasitet | Advarsel |
 
 Maler på målinger per objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for seg, slik at en klynge med flere usunne poder får én hendelse per pod i stedet for én for hele klyngen.
+
+Kostnadsmalene leser målingene OneUptime skriver ut fra agentens kostnadsrader per time, ett punkt i timen, så de summerer det siste døgnet; budsjettene deres er i klyngens valuta, USD som standard.
 
 **High Node CPU Request Commitment** og **High Node Memory Request Commitment** teller bare requests fra pods som ikke er ferdige, slik scheduleren gjør. Klyngen fortsetter å rapportere requests fra en pod som er Succeeded eller Failed, for eksempel fra en ferdig Job, til poden slettes: de telles ikke med.
 

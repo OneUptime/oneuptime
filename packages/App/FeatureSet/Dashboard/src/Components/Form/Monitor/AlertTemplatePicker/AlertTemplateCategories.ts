@@ -63,6 +63,11 @@ export const KUBERNETES_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     label: "Scheduling",
     icon: IconProp.Clock,
   },
+  {
+    category: "Cost",
+    label: "Cost",
+    icon: IconProp.Billing,
+  },
 ];
 
 /*

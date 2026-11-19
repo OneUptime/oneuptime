@@ -32,7 +32,7 @@ flowchart TB
 | eBPF-Instrumentierung (OBI) | DaemonSet | HTTP-, gRPC-, SQL- und Redis-Traces und Request-Metriken aller Pods sowie die Service-Map. | Standardmäßig, außer auf GKE Autopilot und EKS Fargate |
 | Kubernetes-KI-Agent | Deployment | Lesendes `kubectl` für OneUptime AI, während sie einen Vorfall oder eine Warnung untersucht. | Standardmäßig |
 | Log-Tailer | Deployment | Pod-Logs über die Kubernetes-API, wo der Node-Collector sie nicht lesen kann. | Mit den Presets `gke-autopilot`, `eks-fargate` und `openshift-restricted` |
-| Kosten-Engine und Poller | Deployments | Ausgaben pro Namespace, Workload und Pod. | Mit `cost.enabled=true` |
+| Kosten-Engine und Poller | Deployments | Ausgaben pro Namespace, Workload und Pod. | Standardmäßig, außer auf GKE Autopilot und EKS Fargate |
 
 Jedes Agent-Image ist nur für Linux, daher ist jeder Workload an Linux-Knoten gebunden.
 
@@ -199,7 +199,8 @@ Setzen Sie sie in den **Optional configuration settings** der EKS-Konsole oder m
 - `oneuptime.labels`: Projektlabels für alles, was dieser Cluster sendet, etwa `{"team": "payments"}`.
 - `preset`: `eks-fargate` für einen Cluster, der nur auf Fargate läuft, sonst `standard`, der Standardwert.
 - `logs.enabled`, `ebpf.enabled` und `aiAgent.enabled`: Pod-Logs, eBPF-Traces und der [Kubernetes-KI-Agent](#kubernetes-ki-agent), jeweils standardmäßig aktiv.
-- `kubeStateMetrics.enabled` und `cost.enabled`: kube-state-metrics und [Kosten-Observability](/docs/telemetry/kubernetes-cost), jeweils standardmäßig aus.
+- `kubeStateMetrics.enabled`: kube-state-metrics, standardmäßig aus.
+- `cost.enabled`: [Kosten-Observability](/docs/telemetry/kubernetes-cost), standardmäßig `auto`: an, außer mit dem Preset `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ Um all das zurückzubekommen, wechseln Sie als cluster-admin bei einem Upgrade m
 | Service-Graph (eBPF) | Request-Rate, Latenz und Fehlerkanten zwischen Aufrufer und Aufgerufenem, die die Service-Map zeichnen |
 | Netzwerkflussmetriken (eBPF) | Byte- und Paketzähler für TCP und UDP von Pod zu Pod, mit Kubernetes-Metadaten |
 | TCP-Statistiken (eBPF) | Zähler für Round-Trip-Zeit, fehlgeschlagene Verbindungen und Neuübertragungen pro Knoten |
-| Workload-Kosten (optional, `cost.enabled=true`) | Ausgaben pro Namespace, Workload und Pod, mit Leerlauf und Effizienz, sowie stündliche Kosten von Knoten und Volumes: siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost) |
+| Workload-Kosten (standardmäßig aktiv, außer auf GKE Autopilot und EKS Fargate) | Ausgaben pro Namespace, Workload und Pod, mit Leerlauf und Effizienz, auch als Metriken für Warnungen, sowie stündliche Kosten von Knoten und Volumes: siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes-Ereignisse
 
@@ -594,7 +595,7 @@ Einige Diagramme zeigen Metriken, für die der Agent keinen Scrape hat: **kube-p
 
 ### Kosten-Observability aktivieren
 
-Sehen Sie auf der Seite **Kosten** des Clusters, was jeder Namespace, jeder Workload und jeder Pod kostet, mit Leerlaufkapazität und dem genutzten Anteil jedes Requests:
+Die Kosten-Observability ist standardmäßig eingeschaltet: Die Übersicht des Clusters und seine Seite **Kosten** zeigen, was jeder Namespace, jeder Workload und jeder Pod kostet, mit Leerlaufkapazität und dem genutzten Anteil jedes Requests, und Sie können die Kostenmetriken in Diagrammen darstellen und bei ihnen alarmieren. Standardmäßig aus ist sie mit den Presets `gke-autopilot` und `eks-fargate`, deren Plattformen jeden Pod nach dem abrechnen, was er anfordert, und bei einem Agent, der installiert wurde, bevor sie standardmäßig eingeschaltet war. Schalten Sie sie dort ein:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Das allein ist eine vollständige Installation: Das Chart bringt die Open-Source-Engine [OpenCost](https://opencost.io) mit (samt dem kleinen Prometheus, das sie braucht) und bepreist Ihre Knoten und Volumes ohne Zugangsdaten anhand der öffentlichen Listenpreise Ihres Cloud-Anbieters. Es kommen zwei kleine Pods hinzu, und die ersten Kosten erscheinen nach der ersten abgeschlossenen Stunde. Betreiben Sie bereits Kubecost oder OpenCost? Fügen Sie stattdessen `--set cost.engine.url=<its service URL>` hinzu, dann wird nichts mitgeliefert. On-Prem-Cluster können mit `cost.opencost.customPricing` eine Preistabelle festlegen. Die vollständige Anleitung, mit On-Prem-Preisen und Fehlerbehebung, ist [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost).
+Das allein ist eine vollständige Installation: Das Chart bringt die Open-Source-Engine [OpenCost](https://opencost.io) mit (samt dem kleinen Prometheus, das sie braucht) und bepreist Ihre Knoten und Volumes ohne Zugangsdaten anhand der öffentlichen Listenpreise Ihres Cloud-Anbieters. Es kommen drei kleine Pods hinzu, und die ersten Kosten erscheinen nach der ersten abgeschlossenen Stunde. Um sie auszuschalten, setzen Sie auf dieselbe Weise `--set cost.enabled=false`. Betreiben Sie bereits Kubecost oder OpenCost? Fügen Sie stattdessen `--set cost.engine.url=<its service URL>` hinzu, dann wird nichts mitgeliefert. On-Prem-Cluster können mit `cost.opencost.customPricing` eine Preistabelle festlegen. Die vollständige Anleitung, mit On-Prem-Preisen und Fehlerbehebung, ist [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost).
 
 ### Automatisch mit Projektlabels versehen
 
@@ -990,7 +991,8 @@ Diese sind standardmäßig aus, weil sie Last hinzufügen. Schalten Sie eine nur
 | `kubeStateMetrics.enabled` | Metriken zu CrashLoop, ImagePull und Scheduling-Gründen (fügt ein Deployment kube-state-metrics und einen Scrape hinzu) |
 | `ebpf.features.networkInterZoneMetrics` | Verdoppelt die Netzwerkflussserien |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Weitere Prometheus-Scrape-Jobs |
-| `cost.enabled` | Workload-Kosten (bringt OpenCost und ein kleines Prometheus mit; stündliche Kostenzeilen und ein streng begrenzter Metrik-Scrape; mäßige Ingestion, zwei Pods mehr) |
+
+Die Kosten-Observability (`cost.enabled`) ist dagegen standardmäßig eingeschaltet: drei kleine Pods, eine stündliche Kostenzeile pro Container und ein Scrape einer Preisserie pro Knoten, Volume und Load Balancer. Schalten Sie sie mit `--set cost.enabled=false` aus, wenn Sie sie nicht nutzen.
 
 ### Traces sampeln statt verwerfen
 

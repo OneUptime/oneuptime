@@ -1,9 +1,10 @@
 # Kubernetes Cost Observability
 
-See what every Kubernetes workload costs — spend per namespace, workload and pod, idle capacity, and how much of each request is used — next to the metrics, logs and traces the [Kubernetes Agent](/docs/telemetry/kubernetes-agent) already collects. One Helm value turns it on, with no cloud credentials, and the cluster's **Costs** page then tells you which requests to shrink.
+See what every Kubernetes workload costs — spend per namespace, workload and pod, idle capacity, and how much of each request is used — next to the metrics, logs and traces the [Kubernetes Agent](/docs/telemetry/kubernetes-agent) already collects. It is on by default, with no cloud credentials: the cluster's overview says what it costs, its **Costs** page tells you which requests to shrink, and the cost metrics can be charted and alerted on like any other.
 
 :::cards
-- [Turn it on](#turn-on-cost-observability): One `helm upgrade`.
+- [Turn it on](#turn-on-cost-observability): On by default; one `helm upgrade` where it is not.
+- [Alerting on cost](#alerting-on-cost): Cost per cluster, namespace and workload, as metrics.
 - [Bring your own engine](#already-running-kubecost-or-opencost): Point the agent at Kubecost or OpenCost.
 - [Right-sizing](#right-sizing): Request recommendations, and how they are made.
 - [Troubleshooting](#troubleshooting): Empty pages, missing recommendations.
@@ -11,7 +12,7 @@ See what every Kubernetes workload costs — spend per namespace, workload and p
 
 ## How it works
 
-With `cost.enabled=true` the chart runs four things beside the agent:
+With cost monitoring on, as it is by default (`cost.enabled: auto`), the chart runs four things beside the agent:
 
 ```mermaid title="Where the cost numbers come from"
 flowchart TB
@@ -25,16 +26,20 @@ flowchart TB
 ```
 
 1. **OpenCost**, the open-source cost engine (Apache-2.0, CNCF; the [cost-model](https://github.com/kubecost/cost-model) that also powers Kubecost). It watches the cluster, prices your nodes, volumes and load balancers, and works out what each workload costs.
-2. **A small Prometheus**, which OpenCost needs for usage and price history. It runs one replica, keeps 7 days of history, and scrapes exactly two targets: cAdvisor through the API server's node proxy, and OpenCost itself (which emits its own resource-request metrics, so kube-state-metrics is not involved). It is never exposed outside the cluster, and its data never leaves it.
-3. **The cost poller** (`cost.agent`). Once per closed hour it reads OpenCost's Allocation API and sends one cost row per workload to OneUptime: CPU, memory, GPU, volumes, network, load balancers and idle, with efficiency. Each hour is sent once; the server skips an hour it already has, so a restart cannot count spend twice.
-4. **A cost metrics scrape** (`cost.metrics`). The agent's collector scrapes OpenCost's cost metrics and sends them with the rest of the cluster's metrics.
+2. **A small Prometheus**, which OpenCost needs for usage and price history. It runs one replica, keeps 7 days of history, and scrapes exactly two targets: cAdvisor through the API server's node proxy, keeping only the series OpenCost reads, and OpenCost itself (which emits its own resource-request metrics, so kube-state-metrics is not involved). It is never exposed outside the cluster, and its data never leaves it.
+3. **The cost poller** (`cost.agent`). Once per closed hour it reads OpenCost's Allocation API and sends one cost row per workload to OneUptime: CPU, memory, GPU, volumes, network, load balancers and idle, with efficiency. Each hour is sent once; the server skips an hour it already has, so a restart cannot count spend twice. OneUptime also writes the [cost metrics](#alerting-on-cost) from these rows.
+4. **A cost metrics scrape** (`cost.metrics`). The agent's collector scrapes OpenCost's price metrics, what each node, volume and load balancer costs an hour, and sends them with the rest of the cluster's metrics.
 
-OpenCost prices nodes from your cloud provider's public list prices (AWS, Google Cloud, Azure) with no credentials. Clusters with no cloud list price set a [rate card](#on-prem-and-bare-metal-pricing) instead.
+OpenCost prices nodes from your cloud provider's public list prices (AWS, Google Cloud, Azure) with no credentials. Elsewhere it uses its default rates, which a [rate card](#on-prem-and-bare-metal-pricing) of your own replaces.
+
+The three pods request about 150m of CPU and 450Mi of memory between them. Cost monitoring is off by default on the `gke-autopilot` and `eks-fargate` presets: those platforms bill every pod by what it requests, so the cost pods would add to the bill they measure, and OpenCost prices nodes, which is not how either platform charges.
 
 ## Turn on cost observability
 
+A new install needs nothing: cost monitoring is on by default. Upgrade an agent installed before it was, or turn it on with the `gke-autopilot` or `eks-fargate` preset:
+
 :::steps
-### Upgrade the agent with cost.enabled
+### Upgrade the agent
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -43,7 +48,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-That is a complete install: two small extra pods, OpenCost and its Prometheus. If you installed the agent under another release name or namespace, use yours (`helm list -A | grep kubernetes-agent` shows them).
+That is a complete install: three small extra pods, OpenCost, its Prometheus and the cost agent. If you installed the agent under another release name or namespace, use yours (`helm list -A | grep kubernetes-agent` shows them). To turn cost monitoring off, set `--set cost.enabled=false` the same way.
 
 ### Wait for the first closed hour
 
@@ -52,6 +57,7 @@ The first costs appear after the first full hour closes, and OpenCost needs a fe
 ### Open the Costs pages
 
 - **Products → Infrastructure → Kubernetes → Costs** shows spend across every cluster in the project.
+- On a cluster, the overview shows its spend over the last 24 hours, a monthly run-rate, idle spend, efficiency and its costliest namespaces and workloads.
 - On a cluster, **Costs** shows its spend trend, **Spend by Namespace** with the CPU, memory and storage split, **Spend by Workload**, idle spend, efficiency, and the **Right-Sizing** card.
 :::
 
@@ -98,6 +104,7 @@ All optional; the chart's `values.yaml` has the full list:
 
 ```yaml title="values.yaml"
 cost:
+  enabled: auto           # on, except with the gke-autopilot and eks-fargate presets
   agent:
     windowSeconds: 3600   # allocation window length (hourly = native)
     includeIdle: true     # ship the engine's __idle__ allocation
@@ -148,7 +155,18 @@ A Prometheus outage never stops spend collection: peaks are an extra, and an hou
 
 ## Alerting on cost
 
-The cost metrics are ordinary metrics, so a [metrics monitor](/docs/monitor/metrics-monitor) can alert on them like anything else: for example, when the average `node_total_hourly_cost` rises above a budget, or when `pv_hourly_cost` appears for a volume class that should not exist in a cluster.
+OneUptime writes four metrics from the cost rows of every hour, priced and named for what they are, so cost can be charted, put on a dashboard and alerted on in a [Kubernetes monitor](/docs/monitor/kubernetes-monitor) or a [metrics monitor](/docs/monitor/metrics-monitor):
+
+| Metric | What it is | Attributes |
+| --- | --- | --- |
+| `oneuptime.kubernetes.cost.total` | What the cluster cost in each hour, idle capacity included | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.idle` | The part of it no workload used: idle and unallocated capacity | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.workload` | What each workload cost in each hour; summed by namespace, what the namespace cost | `k8s.cluster.name`, `k8s.namespace.name`, and the workload's name under its kind, such as `k8s.deployment.name` |
+| `oneuptime.kubernetes.cost.efficiency` | How much of its requested CPU and memory each workload used, in percent, weighted by cost | The workload's, as above |
+
+Each point is one hour's cost, in the agent's currency (USD by default), stamped at the start of the hour and written about an hour after it ends: sum the points over a window of hours, and a day's add up to the day's cost. They come from what the cluster already sent, so they are not billed as ingested metrics, and they are kept as long as the cluster's other metrics.
+
+The Kubernetes monitor has three templates for them: Cluster Daily Cost Over Budget, Namespace Daily Cost Over Budget and High Idle Spend, each with a budget to set to your own. OpenCost's price metrics are ordinary metrics too: a metrics monitor can alert when the average `node_total_hourly_cost` rises above a budget, or when `pv_hourly_cost` appears for a volume class that should not exist in a cluster.
 
 ## Data model and retention
 
@@ -157,7 +175,7 @@ Cost rows are stored in ClickHouse, one per cluster, window, namespace, controll
 ## Troubleshooting
 
 :::details The Costs pages are empty
-Read the cost poller's logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. (The deployment is `<release>-kubernetes-agent-cost` when the release name does not contain `kubernetes-agent`; `kubectl get deploy -n oneuptime-agent` lists them.) `HTTP 401` means OneUptime refused the ingestion key. `did not answer any known allocation path` means the engine is not up yet (the bundled OpenCost needs a few minutes to price its first hours) or `cost.engine.url` is wrong.
+On the `gke-autopilot` and `eks-fargate` presets cost monitoring is off by default: turn it on with `--set cost.enabled=true`. Otherwise, read the cost poller's logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. (The deployment is `<release>-kubernetes-agent-cost` when the release name does not contain `kubernetes-agent`; `kubectl get deploy -n oneuptime-agent` lists them.) `HTTP 401` means OneUptime refused the ingestion key. `did not answer any known allocation path` means the engine is not up yet (the bundled OpenCost needs a few minutes to price its first hours) or `cost.engine.url` is wrong.
 :::
 
 :::details The bundled OpenCost is not ready

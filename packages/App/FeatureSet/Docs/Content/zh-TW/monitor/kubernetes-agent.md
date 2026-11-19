@@ -35,6 +35,7 @@ flowchart LR
 | 節點收集器 | DaemonSet | 來自 `/var/log/pods` 的 Pod 日誌、kubelet 和 cAdvisor 指標，以及節點的作業系統指標。 | 是 |
 | eBPF 檢測(OBI) | DaemonSet | 來自每個 Pod 的 HTTP、gRPC、SQL 和 Redis 追蹤與請求指標，以及服務地圖。 | 是 |
 | Kubernetes AI 代理程式 | Deployment | 讓 OneUptime AI 在調查此叢集上的事件或警示時執行唯讀的 `kubectl`。 | 是 |
+| 成本引擎和輪詢器 | Deployments | 每個命名空間和工作負載的成本：OpenCost、它所需的小型 Prometheus，以及傳送它們計算結果的成本代理程式。 | 是，但 `gke-autopilot` 和 `eks-fargate` 預設組合除外 |
 | 日誌追蹤器 | Deployment | 在節點收集器無法讀取的地方，透過 Kubernetes API 取得 Pod 日誌。 | 在 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 預設組合中 |
 | eBPF 剖析器 | DaemonSet | 每個處理程序的持續 CPU 火焰圖。 | 否 |
 | kube-state-metrics | Deployment | Pod 階段、容器等待原因和資源配額。 | 否 |
@@ -364,7 +365,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `csi.enabled` | 關閉 | 來自帶有 `app=csi-driver` 或 `app.kubernetes.io/component=csi-driver` 標籤之 Pod 的 CSI 儲存驅動程式指標：磁碟區掛接和卸離時間、佈建失敗、IOPS。 |
 | `coreDns.enabled` | 關閉 | `:9153/metrics` 上的 CoreDNS 指標：查詢速率、延遲、快取命中和錯誤。 |
 | `controlPlane.enabled` | 關閉 | API 伺服器（在其叢集內位址上），以及 etcd、排程器和控制器管理員（在你列出的端點上）（[啟用控制平面監控](/docs/telemetry/kubernetes-agent#啟用控制平面監控)）。僅限自行管理的叢集：受管理的叢集不會公開這些元件。 |
-| `cost.enabled` | 關閉 | 每個工作負載的成本。請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。 |
+| `cost.enabled` | `auto` | 每個命名空間和工作負載的成本，含閒置容量和效率，也以可設定警示的指標形式提供：除 `gke-autopilot` 和 `eks-fargate` 預設組合外皆為開啟；設為 `false` 即可關閉。請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。 |
 
 ## 常用選項
 
