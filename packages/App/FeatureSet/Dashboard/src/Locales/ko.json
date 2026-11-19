@@ -58668,5 +58668,9 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "온콜 일정 {{count}}개가 다른 일정과 이름이 같아 선택기에서 구분할 수 없습니다. 레이어를 비교한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
+  "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with {{setting}}.": "Kubernetes 1.33보다 오래된 kubelet은 에이전트가 노드의 파드를 nodes/proxy를 통해서만 읽도록 허용합니다. 모든 노드가 1.33 이상을 실행하면 {{setting}} 설정으로 에이전트를 업그레이드하세요.",
+  "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with {{setting}}.": "에이전트가 비용 계산에 쓰는 Prometheus는 EKS Fargate에서 필요하듯이 각 노드의 cAdvisor를 API 서버를 통해 읽습니다. 파드가 각 노드의 kubelet에 도달할 수 있는 곳에서는 {{setting}} 설정으로 에이전트를 업그레이드하세요.",
+  "This binding is the OneUptime Kubernetes agent's own.": "이 역할 바인딩은 OneUptime Kubernetes 에이전트 자체의 것입니다.",
+  "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.": "에이전트를 업그레이드하세요. 새 버전은 노드의 kubelet에 필요한 경우에만 nodes/proxy를 부여합니다."
 }

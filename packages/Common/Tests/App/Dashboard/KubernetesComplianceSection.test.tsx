@@ -772,6 +772,146 @@ describe("the CIS benchmark", () => {
     // A CIS control is named by its number.
     expect(listedControls()).toContain("5.2.2");
   });
+
+  /*
+   * The OneUptime agent's own binding fails 5.1.10 where its role still grants
+   * nodes/proxy (#9878): the page says the binding is the agent's, why it
+   * asks, as the role's label says, and the value that drops it.
+   */
+  function agentSnapshot(options: {
+    reasons?: string;
+    isAgents?: boolean;
+  }): KubernetesComplianceSnapshot {
+    const agentLabels: Record<string, string> = {
+      "helm.sh/chart": "kubernetes-agent-16.2.0",
+      "app.kubernetes.io/part-of": "oneuptime",
+    };
+
+    return {
+      ...snapshotOf(),
+      hasPolicyObjects: true,
+      roles: [
+        {
+          kind: "ClusterRole",
+          namespace: "",
+          name: "oneuptime-agent",
+          labels:
+            options.reasons === undefined
+              ? agentLabels
+              : {
+                  ...agentLabels,
+                  "oneuptime.com/nodes-proxy": options.reasons,
+                },
+          spec: {
+            rules: [
+              {
+                apiGroups: [""],
+                resources: ["nodes/proxy"],
+                verbs: ["get"],
+              },
+            ],
+          },
+        },
+      ],
+      bindings: [
+        {
+          kind: "ClusterRoleBinding",
+          namespace: "",
+          name: "oneuptime-agent",
+          labels: options.isAgents === false ? {} : agentLabels,
+          spec: {
+            roleRef: { kind: "ClusterRole", name: "oneuptime-agent" },
+            subjects: [
+              {
+                kind: "ServiceAccount",
+                name: "oneuptime-agent",
+                namespace: "oneuptime-agent",
+              },
+            ],
+          },
+        },
+      ],
+    };
+  }
+
+  async function drawAgentFinding(
+    snapshot: KubernetesComplianceSnapshot,
+  ): Promise<HTMLElement> {
+    complianceSpy.mockResolvedValue(
+      answerOf({ snapshot, extra: { hasPolicyObjects: true } }),
+    );
+
+    await drawSection();
+    await pick(CIS);
+
+    return screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-5.1.10`,
+    );
+  }
+
+  test("the OneUptime agent's own binding says whose it is, why its role grants nodes/proxy and the value that drops it", async () => {
+    const findings: HTMLElement = await drawAgentFinding(
+      agentSnapshot({ reasons: "kubelet-pods" }),
+    );
+    const note: HTMLElement = within(findings).getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`,
+    );
+
+    expect(note).toHaveTextContent(
+      "This binding is the OneUptime Kubernetes agent's own.",
+    );
+    expect(note).toHaveTextContent(
+      "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with --set kubeletstats.nodesProxy=false.",
+    );
+    // The value is code, drawn as written in every language.
+    expect(
+      within(note).getByText("--set kubeletstats.nodesProxy=false").tagName,
+    ).toBe("CODE");
+    expect(note).not.toHaveTextContent("cost Prometheus");
+    expect(note).not.toHaveTextContent("newer versions");
+  });
+
+  test("names the cost Prometheus too when the role says it needs nodes/proxy", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(
+        agentSnapshot({ reasons: "kubelet-pods.cost-prometheus" }),
+      ),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(
+      within(note).getByText("--set kubeletstats.nodesProxy=false"),
+    ).toBeInTheDocument();
+    expect(note).toHaveTextContent(
+      "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with --set cost.prometheus.nodesProxy=false.",
+    );
+  });
+
+  test("a role from a chart before the label says upgrading the agent drops it", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(agentSnapshot({})),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(note).toHaveTextContent(
+      "This binding is the OneUptime Kubernetes agent's own.",
+    );
+    expect(note).toHaveTextContent(
+      "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.",
+    );
+    expect(within(note).queryByText(/--set/)).not.toBeInTheDocument();
+  });
+
+  test("a binding someone else made says nothing of the agent", async () => {
+    const findings: HTMLElement = await drawAgentFinding(
+      agentSnapshot({ reasons: "kubelet-pods", isAgents: false }),
+    );
+
+    expect(findings).toHaveTextContent("get nodes/proxy");
+    expect(
+      within(findings).queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`,
+      ),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("what it cannot say yet", () => {

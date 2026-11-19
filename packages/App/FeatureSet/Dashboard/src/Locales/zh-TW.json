@@ -58668,5 +58668,9 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "有 {{count}} 個待命排程與另一個排程同名，在選擇器中無法區分。請比較它們的層，然後重新命名其中一個。",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。"
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
+  "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with {{setting}}.": "早於 Kubernetes 1.33 的 kubelet 只允許代理程式透過 nodes/proxy 讀取其節點上的 Pod。待所有節點都執行 1.33 或更新版本後，請使用 {{setting}} 升級代理程式。",
+  "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with {{setting}}.": "代理程式用於成本的 Prometheus 依 EKS Fargate 的需要，透過 API 伺服器讀取每個節點的 cAdvisor。在 Pod 能夠存取每個節點 kubelet 的環境中，請使用 {{setting}} 升級代理程式。",
+  "This binding is the OneUptime Kubernetes agent's own.": "此角色繫結屬於 OneUptime Kubernetes 代理程式本身。",
+  "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.": "請升級代理程式：較新的版本只在節點的 kubelet 需要時才授予 nodes/proxy。"
 }
