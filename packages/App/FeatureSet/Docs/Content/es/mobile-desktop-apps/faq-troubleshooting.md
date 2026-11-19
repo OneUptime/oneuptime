@@ -42,7 +42,7 @@ Todo lo demás está en el panel.
 :::
 
 :::details ¿Puedo reconocer un aviso desde la notificación?
-No. Toque la notificación: la aplicación abre el incidente, la alerta, el episodio o el caso de seguridad del que se trata, en el proyecto correcto, y lo reconoce allí. Si la aplicación está bloqueada o usted no ha iniciado sesión, abre el aviso en cuanto entra.
+Sí. Mantenga pulsada la notificación en un iPhone, o despliéguela en Android: un aviso de guardia ofrece **Acknowledge** y **Escalate**, un aviso que solo le mantiene informado ofrece **I've seen it**, y un aviso de prueba ofrece **Acknowledge test page**. Cada acción abre la aplicación en el registro en cuanto el teléfono está desbloqueado y hace lo mismo que el botón del propio registro; antes de escalar, pregunta. Si toca la notificación en sí, la aplicación abre el incidente, la alerta, el episodio o el caso de seguridad del que se trata, en el proyecto correcto. Si la aplicación está bloqueada o usted no ha iniciado sesión, abre el aviso en cuanto entra.
 :::
 
 :::details ¿Mi inicio de sesión está seguro en el teléfono?

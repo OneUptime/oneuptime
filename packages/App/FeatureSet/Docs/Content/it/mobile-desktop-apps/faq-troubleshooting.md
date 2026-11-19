@@ -42,7 +42,7 @@ Tutto il resto è nella dashboard.
 :::
 
 :::details Posso confermare un avviso dalla notifica?
-No. Tocca la notifica: l'app apre l'incidente, l'avviso, l'episodio o il caso di sicurezza a cui si riferisce, nel progetto giusto, e lo confermi lì. Se l'app è bloccata o non hai effettuato l'accesso, apre l'avviso appena entri.
+Sì. Tieni premuta la notifica su un iPhone, o espandila su Android: un avviso di reperibilità offre **Acknowledge** ed **Escalate**, un avviso che ti tiene solo informato offre **I've seen it**, e un avviso di prova offre **Acknowledge test page**. Ogni azione apre l'app sul record appena il telefono è sbloccato e fa ciò che fa il pulsante del record stesso; prima di inoltrare al livello successivo, chiede conferma. Se tocchi la notifica stessa, l'app apre l'incidente, l'avviso, l'episodio o il caso di sicurezza a cui si riferisce, nel progetto giusto. Se l'app è bloccata o non hai effettuato l'accesso, apre l'avviso appena entri.
 :::
 
 :::details Il mio accesso è al sicuro sul telefono?
