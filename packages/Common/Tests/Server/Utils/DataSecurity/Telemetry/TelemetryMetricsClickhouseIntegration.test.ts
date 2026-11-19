@@ -131,8 +131,9 @@ async function rowsOf(
 
   const result: { json: () => Promise<unknown> } = await client.query({
     query,
-    query_params:
-      typeof statement === "string" ? undefined : statement.query_params,
+    ...(typeof statement === "string"
+      ? {}
+      : { query_params: statement.query_params }),
     query_id: id,
     format: "JSON",
   });

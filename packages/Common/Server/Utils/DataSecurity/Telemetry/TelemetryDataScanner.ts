@@ -98,11 +98,12 @@ import {
  * attributes are its series' labels, the same on every point of a series,
  * so a thousand points every minute may carry three values, and the ones
  * that leak (a user's email, an IP) are new series, not new points. So a
- * metric's sample is the points of its newest minute - one of each series
- * that reported then, from every pod of the service - at most
- * TELEMETRY_SCAN_MAX_POINTS_PER_METRIC of them, and a value is classified
- * once however many points repeat it: what a location's findings count is
- * its distinct values, its cardinality, not the points that carried them.
+ * metric's sample is the points of its newest minute, at most
+ * TELEMETRY_SCAN_MAX_POINTS_PER_METRIC of them - for a metric sent once a
+ * minute, OpenTelemetry's default, a point of each series that reported
+ * then, whichever pod sent it - and a value is classified once however
+ * many points repeat it: what a location's findings count is its distinct
+ * values, its cardinality, not the points that carried them.
  *
  * What a metric costs is the table's granules its newest minute sits in:
  * the table is ordered by (projectId, name, primaryEntityId, time), so the
@@ -200,9 +201,9 @@ export const TELEMETRY_SCAN_MAX_METRICS_LISTED_PER_OWNER: number = 1_000;
 export const TELEMETRY_SCAN_MAX_METRICS_LISTED: number = 20_000;
 
 /*
- * The data points of one metric read - of its newest minute, one per
- * series that reported then, so the series it has, not its volume. Never
- * more than the scan's sample size either.
+ * The data points of one metric read, of its newest minute - for a metric
+ * sent once a minute, one per series that reported then, so the series it
+ * has, not its volume. Never more than the scan's sample size either.
  */
 export const TELEMETRY_SCAN_MAX_POINTS_PER_METRIC: number = 100;
 
