@@ -174,6 +174,17 @@ function ownerTooltip(page: Page): Locator {
 }
 
 /*
+ * The pointer to the middle of an element where it is now. Not
+ * Locator.hover(), which may first scroll the page or the list to bring
+ * the element into view, and move the very edge a test put it at.
+ */
+async function pointAt(page: Page, locator: Locator): Promise<void> {
+  const box: Box = await boxOf(locator);
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+/*
  * Hovers the first row's owner and waits for its tooltip. Once over first:
  * the fixture's Tailwind writes a class's rule only as an element with it
  * first appears, so a tooltip's first showing is placed before its width
@@ -183,13 +194,13 @@ function ownerTooltip(page: Page): Locator {
 async function showOwnerTooltip(page: Page): Promise<Locator> {
   const avatar: Locator = firstRowOwner(page);
 
-  await avatar.hover();
+  await pointAt(page, avatar);
   await expect(ownerTooltip(page)).toBeVisible();
-  // Away to the list's own title, where nothing has a tooltip.
+  // Away to the page's margin, where nothing has a tooltip.
   await page.mouse.move(1, (await boxOf(avatar)).y + 200);
   await expect(ownerTooltip(page)).toHaveCount(0);
 
-  await avatar.hover();
+  await pointAt(page, avatar);
   await expect(ownerTooltip(page)).toBeVisible();
   await finishAnimations(page);
 
@@ -336,6 +347,29 @@ test.describe("an owner's tooltip in the first row of a list is whole (#9769)", 
     await expect(tooltip).toContainText("Team");
 
     await screenshot(page, "owner-tooltip-first-row-1280");
+
+    /*
+     * Tooltip.css ships with it: once Popper says its trigger has scrolled
+     * out of sight (Tippy marks the box), the tooltip goes, rather than
+     * float over whatever is there now - at the end of the box's own
+     * transition, which Tippy times.
+     */
+    const tooltipBox: Locator = tooltip.locator(".tippy-box");
+    const visibility: () => Promise<string> = async (): Promise<string> => {
+      return await tooltipBox.evaluate((box: HTMLElement): string => {
+        return getComputedStyle(box).visibility;
+      });
+    };
+
+    await tooltipBox.evaluate((box: HTMLElement) => {
+      box.setAttribute("data-reference-hidden", "");
+    });
+    await expect.poll(visibility).toBe("hidden");
+
+    await tooltipBox.evaluate((box: HTMLElement) => {
+      box.removeAttribute("data-reference-hidden");
+    });
+    await expect.poll(visibility).toBe("visible");
   });
 
   test("while the list scrolls sideways, it reaches past the list's top edge whole, and follows its avatar", async ({
@@ -358,21 +392,33 @@ test.describe("an owner's tooltip in the first row of a list is whole (#9769)", 
 
     await screenshot(page, "owner-tooltip-list-scrolls-sideways-1150");
 
-    // The list scrolls 8px sideways under the pointer: the tooltip goes with its avatar.
-    await list.evaluate((element: HTMLElement) => {
-      element.scrollLeft += 8;
-    });
+    /*
+     * The list scrolls 8px sideways under the pointer - whichever way it
+     * has room: hovering may already have scrolled the avatar into view -
+     * and the tooltip goes with its avatar.
+     */
+    const scrolledBy: number = await list.evaluate(
+      (element: HTMLElement): number => {
+        const roomToTheRight: number =
+          element.scrollWidth - element.clientWidth - element.scrollLeft;
+        const by: number = roomToTheRight >= 8 ? 8 : -8;
+
+        element.scrollLeft += by;
+        return by;
+      },
+    );
     await expect
       .poll(async (): Promise<number> => {
         return Math.abs(
-          (await boxOf(firstRowOwner(page))).x - (shown.avatar.x - 8),
+          (await boxOf(firstRowOwner(page))).x - (shown.avatar.x - scrolledBy),
         );
       })
       .toBeLessThanOrEqual(1);
     await expect
       .poll(async (): Promise<number> => {
         return Math.abs(
-          (await boxOf(tooltip.locator(".tippy-box"))).x - (shown.box.x - 8),
+          (await boxOf(tooltip.locator(".tippy-box"))).x -
+            (shown.box.x - scrolledBy),
         );
       })
       .toBeLessThanOrEqual(1);
@@ -417,7 +463,11 @@ test.describe("an owner's tooltip in the first row of a list is whole (#9769)", 
     const tooltip: Locator = await showOwnerTooltip(page);
     const shown: Shown = await expectWhole(page, tooltip);
 
-    expect(shown.placement).toBe("bottom");
+    // No room above the avatar for the tooltip: it opened below it.
+    expect(
+      shown.placement,
+      `the tooltip's side, its avatar ${shown.avatar.y}px from the window's top`,
+    ).toBe("bottom");
 
     await screenshot(page, "owner-tooltip-window-top-edge");
   });
