@@ -66,7 +66,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
     props.monitorType,
     props.monitorStep,
   );
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [signal, setSignal] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
     if (!target) {
@@ -75,7 +75,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
 
     let isCurrent: boolean = true;
 
-    setState({ kind: "loading" });
+    setSignal({ kind: "loading" });
 
     ModelAPI.getItem<RumApplication>({
       modelType: RumApplication,
@@ -88,7 +88,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
         }
 
         if (!application) {
-          setState({ kind: "unreadable" });
+          setSignal({ kind: "unreadable" });
           return;
         }
 
@@ -99,11 +99,11 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           target.signalId,
         );
 
-        setState(name ? { kind: "found", name: name } : { kind: "gone" });
+        setSignal(name ? { kind: "found", name: name } : { kind: "gone" });
       })
       .catch((): void => {
         if (isCurrent) {
-          setState({ kind: "unreadable" });
+          setSignal({ kind: "unreadable" });
         }
       });
 
@@ -112,11 +112,11 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
     };
   }, [target?.rumApplicationId, target?.signalId]);
 
-  if (!target || state.kind === "unreadable") {
+  if (!target || signal.kind === "unreadable") {
     return null;
   }
 
-  if (state.kind === "gone") {
+  if (signal.kind === "gone") {
     return (
       <p
         className="mt-5 flex items-start gap-2 text-sm text-gray-600"
@@ -132,10 +132,10 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
   }
 
   const route: Route | null =
-    state.kind === "found"
+    signal.kind === "found"
       ? RouteUtil.getPageRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY, {
           modelId: target.rumApplicationId,
-          query: buildCustomSignalSessionsQuery(state.name),
+          query: buildCustomSignalSessionsQuery(signal.name),
         })
       : null;
 
@@ -153,8 +153,8 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           template={SIGNAL_MONITOR_SENTENCE}
           slots={{
             name:
-              state.kind === "found" ? (
-                <bdi className="font-medium text-gray-900">{state.name}</bdi>
+              signal.kind === "found" ? (
+                <bdi className="font-medium text-gray-900">{signal.name}</bdi>
               ) : (
                 <InlineValueSkeleton widthClassName="w-24" />
               ),
