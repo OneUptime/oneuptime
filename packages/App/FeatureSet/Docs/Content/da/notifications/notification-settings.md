@@ -19,6 +19,7 @@ flowchart TB
 ```
 
 - Hver række er en begivenhed, og hver kolonne en kanal: E-mail, SMS, Opkald, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er kun kolonner, når projektet har forbundet dem. En kanal, du ikke har sat op endnu, er ikke en kolonne: Den står over fanerne under **Kanaler, der ikke er sat op endnu**, som et link til at sætte den op.
+- WhatsApp leverer kun beskeder, som Meta har godkendt, og OneUptime har dem til opdateringer om hændelser, advarsler, episoder, monitorer, sonder, AI-agenter, statussider, vedligeholdelseshændelser og de fleste vagter. Andre opdateringer, som en SLO's status, et mistet opkald, en sikkerhedssag eller at blive ejer af en tjeneste, har ingen WhatsApp-kontakt, og deres kort siger, at WhatsApp ikke er tilgængelig. De når dig via dine andre kanaler.
 - En kanal, der er slået til, sender til hver bekræftet metode, du har på den i dette projekt, ikke kun til én.
 - En kanal, der er slået til uden en bekræftet metode bagved, sender intet. Dens kolonne viser **Konfigurer** under navnet, og dens kontakter kan kun slås fra. **Your setup checklist** siger det også, under **Staying informed**.
 - En nyhed går til tingens ejere: de personer, der er angivet som ejere, og medlemmerne af dens ejerteams. Har en ting ingen ejere, går den i stedet til Projektejere. Den, som vagttilkaldet for en ny hændelse, advarsel eller episode allerede har nået, får ikke besked igen om, at den er oprettet. En begivenhed om at være blevet tilføjet som ejer går kun til den person, der blev tilføjet. Hvis OneUptime stopper, mens den sender en nyhed til en tings ejere, får de personer, den endnu ikke var nået til, den, når OneUptime er tilbage, et par minutter forsinket, og ingen får den to gange.
@@ -49,7 +50,7 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 | --- | --- | --- |
 | **Hændelser** | **Hændelse oprettet**, **Hændelsestilstand ændret**, **Påmindelse om hændelse**, **Hændelsens SLA overskredet**, **Hændelsesepisode oprettet**, **Tilstand for hændelsesepisode ændret**, **Hændelse tilføjet til hændelsesepisode** | **Hændelsesnote oprettet**, **Tilføjet som hændelsesejer**, **Tildelt en hændelse**, **Note til hændelsesepisode oprettet**, **Tilføjet som ejer af hændelsesepisode** |
 | **Advarsler** | **Advarsel oprettet**, **Advarselstilstand ændret**, **Påmindelse om advarsel**, **Advarselsepisode oprettet**, **Tilstand for advarselsepisode ændret**, **Advarsel tilføjet til advarselsepisode** | **Advarselsnote offentliggjort**, **Tilføjet som advarselsejer**, **Note til advarselsepisode offentliggjort**, **Tilføjet som ejer af advarselsepisode** |
-| **Overvågning** | **Sondestatus ændret for din monitor**, **Monitor har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer**, **Tilføjet som tabelejer**, **Tilføjet som pipelineejer**, **Tilføjet som ejer af en tjeneste eller infrastruktur**, **Tilføjet som dashboardejer**, **Tilføjet som ejer af arbejdsgang**, **Tilføjet som runbookejer** | **Monitor oprettet**, **Monitorstatus ændret**, **Tilføjet som monitorejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
+| **Overvågning** | **Sondestatus ændret for din monitor**, **Monitor har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer**, **Tilføjet som tabelejer**, **Tilføjet som pipelineejer**, **Tilføjet som ejer af en tjeneste eller infrastruktur**, **Tilføjet som dashboardejer**, **Tilføjet som ejer af arbejdsgang**, **Tilføjet som runbookejer**, **Tilføjet som monitorgruppeejer**, **Tilføjet som Runner-ejer** | **Monitor oprettet**, **Monitorstatus ændret**, **Tilføjet som monitorejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
 | **Statussider** | **Min offentlige note godkendt eller afvist**, og også via push: **Offentlig note venter på min godkendelse** | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
 | **Planlagt vedligeholdelse** | **Påmindelse om vedligeholdelse** | **Vedligeholdelseshændelse oprettet**, **Vedligeholdelsestilstand ændret**, **Vedligeholdelsesnote oprettet**, **Tilføjet som vedligeholdelsesejer** |
 | **Vagt** | **Du går på vagt**, **Du er den næste på vagt**, **Du går af vagt**, **Tilføjet til vagtordningspolitik**, **Fjernet fra vagtordningspolitik**, **Ubesvaret opkald**, **Tilføjet som ejer af vagtpolitik**, **Tilføjet som ejer af vagttidsplan**, **Tilføjet som ejer af indgående opkaldspolitik**, og også via push: **Før min vagt starter**, **Min kommende vagt bliver tildelt en anden** | Ingen |
@@ -59,6 +60,8 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 > **Monitorstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.
 
 **Tilføjet som ejer af en tjeneste eller infrastruktur**, på kortet **Tjenester og infrastruktur**, er én kontakt for hver tjeneste, RUM-applikation, database, kø, vært, klynge, cloud-ressource og anden infrastruktur, du bliver ejer af. Beskeden siger, hvilken det er.
+
+**Tilføjet som monitorgruppeejer**, på kortet **Monitorer**, og **Tilføjet som Runner-ejer**, på kortet **Dashboards og automatisering**, fortæller dig, når nogen tilføjer dig som ejer af en monitorgruppe eller en Runner.
 
 ## Dine vagter
 
@@ -102,6 +105,10 @@ Se [Notifikationsoversigt](/docs/emails/notification-rollup).
 
 :::details En kontakt er slået til, men intet kommer frem
 Tjek, at du har en bekræftet metode på den kanal under **Brugerindstillinger → Notifikationsmetoder**. For sms, opkald, WhatsApp og Telegram skal projektet også have slået kanalen til.
+:::
+
+:::details Der er ingen WhatsApp-kontakt til en opdatering
+WhatsApp leverer kun beskeder, som Meta har godkendt, og OneUptime har ingen til den opdatering, så dens kort siger, at WhatsApp ikke er tilgængelig. Vælg en anden kanal til den, som sms eller Push.
 :::
 
 :::details Jeg ejer en monitor, men hører aldrig, når den går ned

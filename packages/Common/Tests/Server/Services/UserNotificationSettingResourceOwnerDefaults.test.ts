@@ -26,11 +26,12 @@ import {
 
 /*
  * BEING MADE AN OWNER OF A SERVICE, INFRASTRUCTURE, A DASHBOARD, A
- * WORKFLOW, A RUNBOOK OR AN ON-CALL RECORD (#9700).
+ * WORKFLOW, A RUNBOOK OR AN ON-CALL RECORD (#9700), OR OF A MONITOR GROUP OR
+ * A RUNNER (#9758).
  *
  * The owner-added jobs of these records (Workers ResourceOwnersAdded) send
  * through the person's setting for each event, and sendUserNotification
- * sends nothing without one. So a new member gets all seven by email when
+ * sends nothing without one. So a new member gets all nine by email when
  * they join (addDefaultNotificationSettingsForUser), and a member who
  * joined before the events existed gets each the first time a job tells
  * them (ensureSettingExistsForUser, which the jobs call before they send).
@@ -51,6 +52,8 @@ const RESOURCE_OWNER_EVENTS: Array<NotificationSettingEventType> = [
   NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
   NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
   NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+  NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+  NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
 ];
 
 describe("the resource owner settings' defaults", () => {
@@ -105,7 +108,7 @@ describe("the resource owner settings' defaults", () => {
     },
   );
 
-  test("addResourceOwnerNotificationSettings seeds exactly the seven, each once", async () => {
+  test("addResourceOwnerNotificationSettings seeds exactly the nine, each once", async () => {
     await UserNotificationSettingService.addResourceOwnerNotificationSettings(
       USER_ID,
       PROJECT_ID,
@@ -116,7 +119,10 @@ describe("the resource owner settings' defaults", () => {
     );
 
     expect([...store.keys()].sort()).toEqual([...RESOURCE_OWNER_EVENTS].sort());
-    expect(UserNotificationSettingService.create).toHaveBeenCalledTimes(7);
+    expect(UserNotificationSettingService.create).toHaveBeenCalledTimes(
+      RESOURCE_OWNER_EVENTS.length,
+    );
+    expect(RESOURCE_OWNER_EVENTS).toHaveLength(9);
   });
 
   test.each(RESOURCE_OWNER_EVENTS)(

@@ -2441,6 +2441,57 @@ describe("notification settings", () => {
     );
   });
 
+  /*
+   * #9715: WhatsApp delivers only Meta-approved templates, and an update
+   * with none has no WhatsApp switch: its card says WhatsApp is not
+   * available, from the map the server sends by.
+   */
+  it("says WhatsApp is offered only for the updates it can send, as the matrix draws it", () => {
+    const matrix: string = readDashboardSource(
+      "Components/NotificationSettings/NotificationMatrix.tsx",
+    );
+    const words: string = readDashboardSource(
+      "Components/NotificationSettings/NotificationSettingsWords.ts",
+    );
+
+    expect(matrix).toContain(
+      'import { isNotificationChannelOfferedForEvent } from "Common/Types/WhatsApp/WhatsAppEventTemplates";',
+    );
+    expect(words).toContain('"{{channel}} is not available for these events."');
+    expect(words).toContain('"{{channel}} is not available for this event."');
+    expect(settings).toContain(
+      "- WhatsApp delivers only messages Meta has approved, and OneUptime has them for updates about incidents, alerts, episodes, monitors, probes, AI agents, status pages, maintenance events and most on-call shifts. Other updates, such as an SLO's status, a missed call, a security case or being made an owner of a service, have no WhatsApp switch, and their card says WhatsApp is not available.",
+    );
+    expect(settings).toContain(
+      ":::details There is no WhatsApp switch for an update",
+    );
+  });
+
+  // #9758: a monitor group's and a Runner's new owners are told, each on its card.
+  it("names the monitor group's and the Runner's owner switches, on the cards the page puts them on", () => {
+    const labels: Record<string, string> = eventLabels();
+
+    expect(labels["SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION"]).toBe(
+      "Added as monitor group owner",
+    );
+    expect(labels["SEND_RUNNER_OWNER_ADDED_NOTIFICATION"]).toBe(
+      "Added as Runner owner",
+    );
+    expect(
+      tabSections("monitoring").find((card: SettingsSection): boolean => {
+        return card.title === "Monitors";
+      })?.eventTypes,
+    ).toContain("SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION");
+    expect(
+      tabSections("monitoring").find((card: SettingsSection): boolean => {
+        return card.title === "Dashboards & Automation";
+      })?.eventTypes,
+    ).toContain("SEND_RUNNER_OWNER_ADDED_NOTIFICATION");
+    expect(settings).toContain(
+      "**Added as monitor group owner**, on the **Monitors** card, and **Added as Runner owner**, on the **Dashboards & Automation** card, tell you when someone adds you as an owner of a monitor group or a Runner.",
+    );
+  });
+
   it("tells a record's owners, members of its owner teams included, or the project's owners when it has none, but tells only the person added that they were", () => {
     const jobs: string = path.join(PACKAGES_DIR, "App/FeatureSet/Workers/Jobs");
 
