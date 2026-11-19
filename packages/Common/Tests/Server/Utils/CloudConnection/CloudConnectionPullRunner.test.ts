@@ -37,6 +37,7 @@ import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProvi
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
+import { AwsStreamCoverage } from "../../../../Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -820,6 +821,93 @@ describe("the namespaces the connection's streams deliver", () => {
 
     expect(imported).toHaveLength(1);
     expect(imported[0]!.payload).toBe(PAYLOAD);
+  });
+
+  /*
+   * #9564: what each stack carries decides what the read reads and writes.
+   * The connector is handed it, and a key metric added since streams began
+   * is the stream's only from a stack of template 2.
+   */
+  test("hands the connector what each stack carries, and leaves to a stack of template 2 the key metrics added since streams began", async () => {
+    const credits: JSONObject = {
+      resourceMetrics: [
+        {
+          resource: (
+            (PAYLOAD["resourceMetrics"] as Array<JSONObject>)[0] as JSONObject
+          )["resource"],
+          scopeMetrics: [
+            {
+              metrics: [
+                {
+                  name: "amazonaws.com/AWS/EC2/CPUCreditBalance",
+                  gauge: { dataPoints: [point("AWS/EC2")] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as JSONObject;
+
+    for (const [stack, written] of [
+      [{}, 1],
+      [{ templateVersion: 1 }, 1],
+      [{ templateVersion: 2, everyMetric: false }, 0],
+      [{ templateVersion: 1, everyMetric: true }, 0],
+    ] as Array<[JSONObject, number]>) {
+      imported.length = 0;
+      readCalls.length = 0;
+      connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+      connection.streamSummary = {
+        metricSources: [
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespaces: ["AWS/EC2"],
+            lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+            ...stack,
+          },
+        ],
+        logSources: [],
+      };
+      readResult = async () => {
+        return result({ payloads: [credits], pointsWritten: 1 });
+      };
+
+      await run();
+
+      const coverage: AwsStreamCoverage = readCalls[0]!.awsStreamCoverage!;
+
+      expect(Array.from(coverage.keys())).toEqual(["123456789012|us-east-1"]);
+      expect(coverage.get("123456789012|us-east-1")!.stack).toEqual({
+        templateVersion: (stack["templateVersion"] as number) || 1,
+        everyMetric: stack["everyMetric"] === true,
+      });
+      expect(imported).toHaveLength(written);
+    }
+  });
+
+  test("hands the connector nothing streamed while the connection has no stream key", async () => {
+    connection.streamSummary = {
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+          templateVersion: 2,
+          everyMetric: false,
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD] });
+    };
+
+    await run();
+
+    expect(readCalls[0]!.awsStreamCoverage!.size).toBe(0);
   });
 
   test("another account's or Region's stream leaves this one's metrics to the read", async () => {

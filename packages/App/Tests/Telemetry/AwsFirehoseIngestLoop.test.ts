@@ -486,9 +486,10 @@ describe("streamed metrics, through the real metrics ingest", () => {
   });
 
   /*
-   * A key metric the connection's read writes whether the account streams
-   * or not (AwsKeyMetric.isStreamed false) stores nothing from a stream:
-   * its one series is the read's gauge.
+   * A key metric the delivering stack does not carry - one added since
+   * streams began, from a stack that says no template - is the connection's
+   * read's to write, and stores nothing from a stream: its one series is
+   * the read's gauge.
    */
   test("a key metric the read writes stores no row from a stream of every metric", async () => {
     await ingest(
