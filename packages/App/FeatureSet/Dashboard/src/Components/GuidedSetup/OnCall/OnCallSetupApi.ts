@@ -92,6 +92,7 @@ import { announceModelSwitchSaved } from "Common/UI/Components/ModelSwitch/Model
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { createWithFreeName } from "Common/Types/Database/UniqueName";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -506,13 +507,28 @@ export default class OnCallSetupApi {
         data.translator.language;
     }
 
-    const id: string = createdId(
-      await ModelAPI.create<OnCallDutyPolicy>({
-        model: policy,
-        modelType: OnCallDutyPolicy,
-        miscDataProps: miscDataProps,
-      }),
-    );
+    /*
+     * A policy's name is one policy's (#9742): while another has it - an
+     * archived one, or one this person may not see - the policy is made
+     * numbered, as Duplicate numbers a copy ("Default on-call policy 2").
+     */
+    const { created } = await createWithFreeName<unknown>({
+      name: policy.name || "",
+      create: async (name: string): Promise<unknown> => {
+        policy.name = name;
+
+        return await ModelAPI.create<OnCallDutyPolicy>({
+          model: policy,
+          modelType: OnCallDutyPolicy,
+          miscDataProps: miscDataProps,
+        });
+      },
+      readRefusal: (error: unknown): string => {
+        return API.getFriendlyMessage(error);
+      },
+    });
+
+    const id: string = createdId(created);
 
     if (!id) {
       throw new Error("The on-call policy was made, but it can't be shown.");

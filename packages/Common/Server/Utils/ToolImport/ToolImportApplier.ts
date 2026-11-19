@@ -41,6 +41,7 @@ import {
   ToolImportNote,
   ToolImportNoteCode,
 } from "../../../Types/ToolImport/ToolImportNote";
+import { createWithFreeName } from "../../../Types/Database/UniqueName";
 import {
   ToolImportAction,
   ToolImportOutcome,
@@ -1084,9 +1085,17 @@ class ApplyRun {
       team.description = source.description;
     }
 
-    const created: Team = await TeamService.create({
-      data: team,
-      props: this.input.props,
+    const { created } = await this.createNamed<Team>({
+      name: source.name,
+      notes: notes,
+      create: async (name: string): Promise<Team> => {
+        team.name = name;
+
+        return await TeamService.create({
+          data: team,
+          props: this.input.props,
+        });
+      },
     });
 
     const teamId: string = created.id!.toString();
@@ -1347,11 +1356,18 @@ class ApplyRun {
         schedule.description = source.description;
       }
 
-      const created: OnCallDutyPolicySchedule =
-        await OnCallDutyPolicyScheduleService.create({
-          data: schedule,
-          props: this.input.props,
-        });
+      const { created } = await this.createNamed<OnCallDutyPolicySchedule>({
+        name: schedule.name,
+        notes: notes,
+        create: async (name: string): Promise<OnCallDutyPolicySchedule> => {
+          schedule.name = name;
+
+          return await OnCallDutyPolicyScheduleService.create({
+            data: schedule,
+            props: this.input.props,
+          });
+        },
+      });
 
       const scheduleId: string = created.id!.toString();
       scheduleIds.push(scheduleId);
@@ -1554,9 +1570,17 @@ class ApplyRun {
       policy.description = source.description;
     }
 
-    const created: OnCallDutyPolicy = await OnCallDutyPolicyService.create({
-      data: policy,
-      props: this.input.props,
+    const { created } = await this.createNamed<OnCallDutyPolicy>({
+      name: source.name,
+      notes: notes,
+      create: async (name: string): Promise<OnCallDutyPolicy> => {
+        policy.name = name;
+
+        return await OnCallDutyPolicyService.create({
+          data: policy,
+          props: this.input.props,
+        });
+      },
     });
 
     const policyId: string = created.id!.toString();
@@ -1771,6 +1795,39 @@ class ApplyRun {
     }
 
     return teams;
+  }
+
+  /*
+   * A team's, a schedule's and a policy's name is one record's in its
+   * project (#9674, #9742), and another tool may call two alike: two
+   * escalation policies "Primary", each with its own levels. Matching the
+   * second to the first would drop its levels and page the first's people
+   * in its place, so it is made numbered instead - "Primary 2", as
+   * Duplicate numbers a copy - and so is one named as an archived policy or
+   * as a record the person may not see. The note says the name it was made
+   * with; the name it had in the tool is the item's own.
+   */
+  private async createNamed<T>(data: {
+    name: string;
+    notes: Array<ToolImportNote>;
+    create: (name: string) => Promise<T>;
+  }): Promise<{ created: T; name: string }> {
+    const result: { created: T; name: string } = await createWithFreeName<T>({
+      name: data.name,
+      create: data.create,
+      readRefusal: toErrorMessage,
+      maxLength: TOOL_IMPORT_MAX_NAME_LENGTH,
+    });
+
+    if (result.name !== data.name) {
+      data.notes.push(
+        makeToolImportNote(ToolImportNoteCode.NameNumbered, {
+          name: result.name,
+        }),
+      );
+    }
+
+    return result;
   }
 
   /*
