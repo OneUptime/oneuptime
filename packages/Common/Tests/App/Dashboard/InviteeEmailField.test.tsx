@@ -36,7 +36,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - typing any address works as before: every key reaches the form, and
  *     a failed read suggests nobody;
  *   - the error under the box is the form's, and the box is named by its
- *     label and described by its help.
+ *     label and described by its help;
+ *   - it asks in the Dashboard's current project, by its tenant header, or
+ *     - drawn by the Admin Dashboard, which works in no project (#9826) -
+ *     in the project the page names, through the master admins' route.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -99,10 +102,15 @@ import {
   INVITE_SUGGESTIONS_ROUTE,
   InviteSuggestion,
   InviteSuggestionStanding,
+  getInviteSuggestionsInProjectRoute,
   toInviteSuggestionsAnswerJSON,
 } from "../../../Types/Team/InviteSuggestions";
 
 const TEAM_ID: string = "22222222-2222-4222-8222-222222222222";
+// The Dashboard's current project, as its tenant header names it (mocked above).
+const CURRENT_PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
+// The project an Admin Dashboard page is about.
+const ADMIN_PAGE_PROJECT_ID: string = "33333333-3333-4333-8333-333333333333";
 
 const ADA: InviteSuggestion = {
   userId: "aaaaaaaa-0000-4000-8000-000000000001",
@@ -151,7 +159,11 @@ interface Rendered {
 }
 
 function renderField(
-  props: { teamId?: string | null; error?: string } = {},
+  props: {
+    teamId?: string | null;
+    projectId?: string | null;
+    error?: string;
+  } = {},
 ): Rendered {
   const onChange: MockFunction = getJestMockFunction();
   const onEnterPress: MockFunction = getJestMockFunction();
@@ -172,6 +184,7 @@ function renderField(
           onPick(suggestion);
         }}
         teamId={props.teamId === undefined ? TEAM_ID : props.teamId}
+        projectId={props.projectId}
         error={props.error}
         placeholder="member@company.com"
         ariaLabelledby="email-label"
@@ -237,6 +250,99 @@ describe("what it asks", () => {
 
     expect(request.url.toString()).toContain(INVITE_SUGGESTIONS_ROUTE);
     expect(request.data).toEqual({ text: "ad", teamId: TEAM_ID });
+  });
+
+  test("in the Dashboard: in the current project, named by its tenant header", async () => {
+    const { input } = renderField();
+
+    await type(input, "ad");
+
+    const request: {
+      url: { toString: () => string };
+      headers: JSONObject;
+    } = postMock.mock.calls[0]![0] as {
+      url: { toString: () => string };
+      headers: JSONObject;
+    };
+
+    expect(request.url.toString().endsWith(INVITE_SUGGESTIONS_ROUTE)).toBe(
+      true,
+    );
+    expect(request.headers).toEqual({ tenantid: CURRENT_PROJECT_ID });
+  });
+
+  /*
+   * #9826: the Admin Dashboard works in no project. Its forms name the
+   * project their page is about, and ask the master admins' route, which
+   * takes it from its path - never as the request's tenant.
+   */
+  test("from a page that works in no project: the project it names, in the path of the master admins' route, with no tenant", async () => {
+    const { input } = renderField({ projectId: ADMIN_PAGE_PROJECT_ID });
+
+    await type(input, " ad ");
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+
+    const request: {
+      url: { toString: () => string };
+      data: JSONObject;
+      headers: JSONObject;
+    } = postMock.mock.calls[0]![0] as {
+      url: { toString: () => string };
+      data: JSONObject;
+      headers: JSONObject;
+    };
+
+    expect(
+      request.url
+        .toString()
+        .endsWith(getInviteSuggestionsInProjectRoute(ADMIN_PAGE_PROJECT_ID)),
+    ).toBe(true);
+    expect(request.data).toEqual({ text: "ad", teamId: TEAM_ID });
+    expect(request.headers).toEqual({});
+  });
+
+  test("a page that names another project asks about that one from then on", async () => {
+    const OTHER_PROJECT_ID: string = "44444444-4444-4444-8444-444444444444";
+
+    const draw: (projectId: string) => React.ReactElement = (
+      projectId: string,
+    ): React.ReactElement => {
+      return (
+        <InviteeEmailField
+          onChange={() => {
+            return undefined;
+          }}
+          teamId={TEAM_ID}
+          projectId={projectId}
+          dataTestId="invitee-email"
+        />
+      );
+    };
+
+    const { rerender } = render(draw(ADMIN_PAGE_PROJECT_ID));
+    const input: HTMLInputElement = screen.getByTestId(
+      "invitee-email",
+    ) as HTMLInputElement;
+
+    await type(input, "ad");
+
+    rerender(draw(OTHER_PROJECT_ID));
+
+    await type(input, "ada");
+
+    expect(
+      postMock.mock.calls.map((call: Array<any>): string => {
+        return String((call[0] as { url: unknown }).url);
+      }),
+    ).toEqual([
+      expect.stringContaining(
+        getInviteSuggestionsInProjectRoute(ADMIN_PAGE_PROJECT_ID),
+      ),
+      expect.stringContaining(
+        getInviteSuggestionsInProjectRoute(OTHER_PROJECT_ID),
+      ),
+    ]);
   });
 
   test("no team known: for the project", async () => {

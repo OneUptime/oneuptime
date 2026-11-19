@@ -59,6 +59,10 @@ import { createPortal } from "react-dom";
  * behind it), and the list is portalled over the dialog, as the other
  * suggestion lists are (AutocompleteTextInput), so a dialog's scroll never
  * clips it.
+ *
+ * The Admin Dashboard's two invitation forms draw it too (#9826), naming
+ * the project their page is about (projectId): the Admin Dashboard works in
+ * no project, and its reader is a master admin.
  */
 
 // How long the box waits after a key before it asks the server.
@@ -153,6 +157,12 @@ export interface ComponentProps {
   // The team the invitation is for, when the form knows it.
   teamId?: string | null | undefined;
   /*
+   * The project the invitation is to, from a page that works in no project
+   * (the Admin Dashboard). Left out, the current project's people are
+   * suggested (the Dashboard's).
+   */
+  projectId?: string | null | undefined;
+  /*
    * A suggestion picked, after its address is filled in: someone with an
    * account the reader may see, so the form has no name to ask for
    * (Common/UI/Utils/InviteeName).
@@ -215,7 +225,11 @@ const InviteeEmailField: FunctionComponent<ComponentProps> = (
       }
 
       debounceRef.current = setTimeout(() => {
-        InviteSuggestionsApi.suggest({ text: trimmed, teamId: props.teamId })
+        InviteSuggestionsApi.suggest({
+          text: trimmed,
+          teamId: props.teamId,
+          projectId: props.projectId,
+        })
           .then((found: Array<InviteSuggestion>): void => {
             if (latestTextRef.current !== trimmed) {
               return;
@@ -231,7 +245,7 @@ const InviteeEmailField: FunctionComponent<ComponentProps> = (
           });
       }, INVITE_SUGGESTIONS_DEBOUNCE_IN_MS);
     },
-    [props.teamId],
+    [props.teamId, props.projectId],
   );
 
   const pick: (suggestion: InviteSuggestion) => void = (
