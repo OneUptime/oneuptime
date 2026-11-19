@@ -10,6 +10,7 @@ import IncidentEpisodeAPI from "../../../Server/API/IncidentEpisodeAPI";
 import NotificationRouter from "../../../Server/API/NotificationAPI";
 import ProjectAPI from "../../../Server/API/ProjectAPI";
 import ScheduledMaintenanceAPI from "../../../Server/API/ScheduledMaintenanceAPI";
+import StatusPageAnnouncementAPI from "../../../Server/API/StatusPageAnnouncementAPI";
 import TeamMemberAPI from "../../../Server/API/TeamMemberAPI";
 import UserCallAPI from "../../../Server/API/UserCallAPI";
 import UserEmailAPI from "../../../Server/API/UserEmailAPI";
@@ -366,6 +367,16 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     uri: "/scheduled-maintenance/public-note-reach",
     registeredBy: "ScheduledMaintenanceAPI",
   },
+
+  /*
+   * Whether an announcement on the status pages picked on its form shows
+   * and notifies anyone: what Create Announcement's line says (#9775).
+   */
+  {
+    method: "POST",
+    uri: "/status-page-announcement/reach",
+    registeredBy: "StatusPageAnnouncementAPI",
+  },
 ];
 
 type RecordedRoute = ReturnType<typeof mockRouter.match>;
@@ -428,6 +439,7 @@ beforeAll(() => {
   new AlertAPI();
   new AlertEpisodeAPI();
   new ScheduledMaintenanceAPI();
+  new StatusPageAnnouncementAPI();
 
   capture.mockRestore();
 });
