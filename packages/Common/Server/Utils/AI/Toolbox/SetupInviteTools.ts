@@ -29,7 +29,9 @@ import {
   InviteTeamPermissionRow,
   pickDefaultInviteTeam,
 } from "../../../../Types/Team/DefaultInviteTeamRule";
-import TeamMemberService from "../../../Services/TeamMemberService";
+import TeamMemberService, {
+  SCIM_PUSH_GROUPS_INVITE_MESSAGE,
+} from "../../../Services/TeamMemberService";
 import TeamPermissionService from "../../../Services/TeamPermissionService";
 import TeamService from "../../../Services/TeamService";
 import logger from "../../Logger";
@@ -422,7 +424,13 @@ export const InvitePeopleTool: ObservabilityTool = {
       if (refusal) {
         return {
           toldModel: `Nothing proposed: the project does not allow it now. ${refusal} Tell the person what is needed, in these words.`,
-          refusal: AIToolRefusal.Plan,
+          /*
+           * The seats are the plan's; SCIM is how the project manages its
+           * people, which no plan changes.
+           */
+          ...(refusal === SCIM_PUSH_GROUPS_INVITE_MESSAGE
+            ? {}
+            : { refusal: AIToolRefusal.Plan }),
         };
       }
     } catch {
