@@ -1,5 +1,8 @@
 import { Command, Option } from "commander";
-import { getCustomRoleDeleteWorkflowEditRefusedMessage, getCustomRoleDeleteWorkflowsMessage } from "Common/Types/Workflow/WorkflowRunAs";
+import {
+  getCustomRoleDeleteWorkflowEditRefusedMessage,
+  getCustomRoleDeleteWorkflowsMessage,
+} from "Common/Types/Workflow/WorkflowRunAs";
 import { getDeleteChoices } from "Common/Utils/DeveloperDocs/DeleteChoices";
 import { ResourceInfo } from "../Types/CLITypes";
 
@@ -370,24 +373,24 @@ describe("oneuptime custom-role delete", () => {
         ],
         'Error: --workflows-run-as-custom-role-id names the custom role being deleted. Name another custom role, or set --workflows-run-as to "Default".',
       ],
-    ])(
-      "%j",
-      async (flags: Array<string>, expected: string) => {
-        const run: CliRun = await deleteRole(...flags);
+    ])("%j", async (flags: Array<string>, expected: string) => {
+      const run: CliRun = await deleteRole(...flags);
 
-        expect(run.exitCode).toBe(1);
-        expect(run.errors).toEqual([expected]);
-        expect(mockExecuteApiRequest).not.toHaveBeenCalled();
-      },
-    );
+      expect(run.exitCode).toBe(1);
+      expect(run.errors).toEqual([expected]);
+      expect(mockExecuteApiRequest).not.toHaveBeenCalled();
+    });
 
     test("before it needs a key", async () => {
       clearTestCredentials();
 
-      const run: CliRun = await deleteRole("--workflows-run-as", "ProjectOwner");
+      const run: CliRun = await deleteRole(
+        "--workflows-run-as",
+        "ProjectOwner",
+      );
 
       expect(run.exitCode).toBe(1);
-      expect(run.errors[0]).toContain("can't be \"ProjectOwner\"");
+      expect(run.errors[0]).toContain('can\'t be "ProjectOwner"');
       expect(mockExecuteApiRequest).not.toHaveBeenCalled();
     });
 
