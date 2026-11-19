@@ -18,6 +18,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import Response from "../../../Server/Utils/Response";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Hostname from "../../../Types/API/Hostname";
@@ -95,14 +96,26 @@ type RouterFunction = (
   next: NextFunction,
 ) => void | Promise<void>;
 
-async function callRoute(uri: string, query: JSONObject = {}): Promise<void> {
-  const handler: RouterFunction = mockRouter.match("GET", uri)
-    .handlerFunction as RouterFunction;
+/*
+ * The page opened from a test message's link, with the page's own token
+ * every link OneUptime sends carries - or, for the acknowledge address, its
+ * button pressed: a form that posts the token (#10025).
+ */
+async function callRoute(uri: string, query?: JSONObject): Promise<void> {
+  const pageToken: string = OnCallPageLinkToken.sign({
+    userOnCallLogTimelineId: ITEM,
+  });
+  const isPress: boolean = uri === ACKNOWLEDGE_ROUTE;
+  const handler: RouterFunction = mockRouter.match(
+    isPress ? "POST" : "GET",
+    uri,
+  ).handlerFunction as RouterFunction;
 
   await handler(
     {
       params: { itemId: ITEM.toString() },
-      query: query,
+      query: isPress ? {} : query || { pageToken: pageToken },
+      body: isPress ? { pageToken: pageToken } : {},
     } as unknown as ExpressRequest,
     {} as unknown as ExpressResponse,
     ((err: unknown) => {
@@ -211,8 +224,17 @@ describe("a test page's link", () => {
       title: ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
       message: ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
       acknowledgeText: ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+      // Where its button posts, with the link's token in the form (#10025).
       acknowledgeUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/${ITEM.toString()}`,
+      pageTokenParam: "pageToken",
+      pageToken: expect.any(String),
     });
+    expect(
+      OnCallPageLinkToken.isValid({
+        token: variables["pageToken"],
+        userOnCallLogTimelineId: ITEM,
+      }),
+    ).toBe(true);
     expect(ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE).toBe("Acknowledge test page");
     expect(ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE).toBe(
       "This is a test page. Nothing is wrong: acknowledge it to show that on-call pages reach you.",

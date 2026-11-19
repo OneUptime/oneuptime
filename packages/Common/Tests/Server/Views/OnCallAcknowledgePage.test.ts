@@ -163,7 +163,7 @@ describe("the acknowledge page's alert context", () => {
     expect(html).toContain("ALT-42");
   });
 
-  test("still renders the acknowledge button and its link", () => {
+  test("still renders the acknowledge button, and where it posts", () => {
     /*
      * The context is an addition, not a replacement. Whatever else the page
      * shows, the reason the engineer opened it must still be there.
@@ -175,7 +175,7 @@ describe("the acknowledge page's alert context", () => {
 
     expect(html).toContain("Acknowledge Alert");
     expect(html).toContain(
-      'href="https://oneuptime.example.com/api/user-on-call-log-timeline/acknowledge/1"',
+      '<form method="POST" action="https://oneuptime.example.com/api/user-on-call-log-timeline/acknowledge/1"',
     );
   });
 
@@ -457,7 +457,10 @@ describe("the acknowledge page's View Incident button", () => {
     viewDetailsUrl: "https://oneuptime.example.com/dashboard/1/incidents/2",
   };
 
-  // The <a> a data-testid names, as rendered.
+  /*
+   * The <a> - or, for Acknowledge, the <button> of its form - a data-testid
+   * names, as rendered.
+   */
   const anchor: (html: string, testId: string) => string = (
     html: string,
     testId: string,
@@ -468,9 +471,15 @@ describe("the acknowledge page's View Incident button", () => {
       return "";
     }
 
-    const start: number = html.lastIndexOf("<a ", at);
+    const anchorStart: number = html.lastIndexOf("<a ", at);
+    const buttonStart: number = html.lastIndexOf("<button ", at);
+    const isButton: boolean = buttonStart > anchorStart;
+    const close: string = isButton ? "</button>" : "</a>";
 
-    return html.slice(start, html.indexOf("</a>", at) + "</a>".length);
+    return html.slice(
+      isButton ? buttonStart : anchorStart,
+      html.indexOf(close, at) + close.length,
+    );
   };
 
   test("links the record, under the Acknowledge button", () => {
@@ -671,5 +680,94 @@ describe("the page once it no longer offers Acknowledge", () => {
 
     expect(html).not.toContain("<script>x</script>");
     expect(html).toContain("&lt;script&gt;x&lt;/script&gt;");
+  });
+});
+
+/*
+ * ACKNOWLEDGE IS A FORM, NOT A LINK (#10025). Mail scanners - Outlook Safe
+ * Links and the like - and chat link unfurlers open every link in a
+ * message, and some follow the links on the page it opens: a link that
+ * acknowledged on a GET took a page nobody had seen, and paging stopped.
+ * The button posts, with the page's token in the form, which only the
+ * person's own press sends.
+ */
+describe("the acknowledge page's button", () => {
+  const TOKEN: string =
+    "eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoib24tY2FsbC1wYWdlIn0.sig";
+
+  const formOf: (html: string) => string = (html: string): string => {
+    const start: number = html.indexOf("<form");
+
+    return start < 0 ? "" : html.slice(start, html.indexOf("</form>", start));
+  };
+
+  test("is a form that posts, and no link a scanner could follow acknowledges anything", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      ...ALERT_CONTEXT,
+      pageTokenParam: "pageToken",
+      pageToken: TOKEN,
+    });
+    const form: string = formOf(html);
+
+    expect(form).toContain(
+      '<form method="POST" action="https://oneuptime.example.com/api/user-on-call-log-timeline/acknowledge/1">',
+    );
+    expect(form).toContain('<button type="submit" data-testid="acknowledge"');
+    expect(form).toContain("Acknowledge Alert");
+    expect(html).not.toContain('href="https://oneuptime.example.com/api/');
+  });
+
+  test("sends the page's token, hidden in the form - not in the address", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      pageTokenParam: "pageToken",
+      pageToken: TOKEN,
+    });
+
+    expect(formOf(html)).toContain(
+      `<input type="hidden" name="pageToken" value="${TOKEN}">`,
+    );
+    expect(html).not.toContain(`acknowledge/1?`);
+  });
+
+  test("a link sent before links carried a token sends none", () => {
+    for (const variables of [
+      { ...ACKNOWLEDGE_BASE, pageTokenParam: "pageToken", pageToken: "" },
+      // A page drawn from the locals it always took.
+      ACKNOWLEDGE_BASE,
+    ]) {
+      const form: string = formOf(render(ACKNOWLEDGE_VIEW, variables));
+
+      expect(form).toContain('data-testid="acknowledge"');
+      expect(form).not.toContain('type="hidden"');
+    }
+  });
+
+  test("stays the page's yellow button, one tap away on a phone", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      pageTokenParam: "pageToken",
+      pageToken: TOKEN,
+    });
+    const form: string = formOf(html);
+    const button: string = form.slice(form.indexOf("<button"));
+
+    expect(button).toContain("w-full");
+    expect(button).toContain("bg-yellow-600");
+    expect(button).toContain("text-white");
+  });
+
+  test("escapes the token and the address it is handed", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      acknowledgeUrl: 'https://oneuptime.example.com/x" onsubmit="alert(1)',
+      pageTokenParam: "pageToken",
+      pageToken: '"><script>alert(1)</script>',
+    });
+
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).not.toContain('onsubmit="alert(1)"');
+    expect(html).toContain("&lt;script&gt;");
   });
 });
