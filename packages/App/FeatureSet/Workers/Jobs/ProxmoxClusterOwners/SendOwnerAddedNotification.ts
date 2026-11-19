@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<ProxmoxCluster>({
   jobName: "ProxmoxClusterOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.ProxmoxClusterOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "ProxmoxClusterOwnerUser",
   recordIdColumn: "proxmoxClusterId",
   teamService: ProxmoxClusterOwnerTeamService,
@@ -25,7 +26,13 @@ runResourceOwnerAddedJob<ProxmoxCluster>({
   recordService: ProxmoxClusterService,
   noun: "Proxmox cluster",
   title: "Proxmox Cluster",
-  getLink: (projectId: ObjectID, proxmoxCluster: ProxmoxCluster): Promise<URL> => {
-    return ProxmoxClusterService.getProxmoxClusterLinkInDashboard(projectId, proxmoxCluster.id!);
+  getLink: (
+    projectId: ObjectID,
+    proxmoxCluster: ProxmoxCluster,
+  ): Promise<URL> => {
+    return ProxmoxClusterService.getProxmoxClusterLinkInDashboard(
+      projectId,
+      proxmoxCluster.id!,
+    );
   },
 });

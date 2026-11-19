@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<OnCallDutyPolicySchedule>({
   jobName: "OnCallDutyPolicyScheduleOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.OnCallDutyPolicyScheduleOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "OnCallDutyPolicyScheduleOwnerUser",
   recordIdColumn: "onCallDutyPolicyScheduleId",
   teamService: OnCallDutyPolicyScheduleOwnerTeamService,
@@ -28,7 +29,10 @@ runResourceOwnerAddedJob<OnCallDutyPolicySchedule>({
   recordService: OnCallDutyPolicyScheduleService,
   noun: "on-call schedule",
   title: "On-Call Schedule",
-  getLink: (projectId: ObjectID, onCallDutyPolicySchedule: OnCallDutyPolicySchedule): Promise<URL> => {
+  getLink: (
+    projectId: ObjectID,
+    onCallDutyPolicySchedule: OnCallDutyPolicySchedule,
+  ): Promise<URL> => {
     return getRecordLinkInDashboard(
       projectId,
       `on-call-duty/schedules/${onCallDutyPolicySchedule.id!.toString()}`,

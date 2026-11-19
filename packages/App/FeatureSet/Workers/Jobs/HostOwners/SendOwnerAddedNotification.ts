@@ -16,7 +16,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<Host>({
   jobName: "HostOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.HostOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "HostOwnerUser",
   recordIdColumn: "hostId",
   teamService: HostOwnerTeamService,

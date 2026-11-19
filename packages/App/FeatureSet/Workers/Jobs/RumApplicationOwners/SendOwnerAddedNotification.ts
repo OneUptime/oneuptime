@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<RumApplication>({
   jobName: "RumApplicationOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.RumApplicationOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "RumApplicationOwnerUser",
   recordIdColumn: "rumApplicationId",
   teamService: RumApplicationOwnerTeamService,
@@ -28,7 +29,10 @@ runResourceOwnerAddedJob<RumApplication>({
   recordService: RumApplicationService,
   noun: "RUM application",
   title: "RUM Application",
-  getLink: (projectId: ObjectID, rumApplication: RumApplication): Promise<URL> => {
+  getLink: (
+    projectId: ObjectID,
+    rumApplication: RumApplication,
+  ): Promise<URL> => {
     return getRecordLinkInDashboard(
       projectId,
       `rum/${rumApplication.id!.toString()}`,

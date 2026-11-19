@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<MessageQueue>({
   jobName: "MessageQueueOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.MessageQueueOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "MessageQueueOwnerUser",
   recordIdColumn: "messageQueueId",
   teamService: MessageQueueOwnerTeamService,
@@ -26,6 +27,9 @@ runResourceOwnerAddedJob<MessageQueue>({
   noun: "queue",
   title: "Queue",
   getLink: (projectId: ObjectID, messageQueue: MessageQueue): Promise<URL> => {
-    return MessageQueueService.getMessageQueueLinkInDashboard(projectId, messageQueue.id!);
+    return MessageQueueService.getMessageQueueLinkInDashboard(
+      projectId,
+      messageQueue.id!,
+    );
   },
 });

@@ -603,12 +603,18 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerUserService", () => {
 jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleService", () => {
   return mockAnyService();
 });
-jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService", () => {
-  return mockAnyService();
-});
-jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService", () => {
-  return mockAnyService();
-});
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService",
+  () => {
+    return mockAnyService();
+  },
+);
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService",
+  () => {
+    return mockAnyService();
+  },
+);
 jest.mock("Common/Server/Services/IncomingCallPolicyService", () => {
   return mockAnyService();
 });

@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<DockerHost>({
   jobName: "DockerHostOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.DockerHostOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "DockerHostOwnerUser",
   recordIdColumn: "dockerHostId",
   teamService: DockerHostOwnerTeamService,
@@ -26,6 +27,9 @@ runResourceOwnerAddedJob<DockerHost>({
   noun: "Docker host",
   title: "Docker Host",
   getLink: (projectId: ObjectID, dockerHost: DockerHost): Promise<URL> => {
-    return DockerHostService.getDockerHostLinkInDashboard(projectId, dockerHost.id!);
+    return DockerHostService.getDockerHostLinkInDashboard(
+      projectId,
+      dockerHost.id!,
+    );
   },
 });

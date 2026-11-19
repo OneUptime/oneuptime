@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<DatabaseServer>({
   jobName: "DatabaseServerOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.DatabaseServerOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "DatabaseServerOwnerUser",
   recordIdColumn: "databaseServerId",
   teamService: DatabaseServerOwnerTeamService,
@@ -25,7 +26,13 @@ runResourceOwnerAddedJob<DatabaseServer>({
   recordService: DatabaseServerService,
   noun: "database",
   title: "Database",
-  getLink: (projectId: ObjectID, databaseServer: DatabaseServer): Promise<URL> => {
-    return DatabaseServerService.getDatabaseServerLinkInDashboard(projectId, databaseServer.id!);
+  getLink: (
+    projectId: ObjectID,
+    databaseServer: DatabaseServer,
+  ): Promise<URL> => {
+    return DatabaseServerService.getDatabaseServerLinkInDashboard(
+      projectId,
+      databaseServer.id!,
+    );
   },
 });

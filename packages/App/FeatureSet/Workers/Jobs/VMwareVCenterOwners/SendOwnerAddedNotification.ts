@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<VMwareVCenter>({
   jobName: "VMwareVCenterOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.VMwareVCenterOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "VMwareVCenterOwnerUser",
   recordIdColumn: "vmwareVCenterId",
   teamService: VMwareVCenterOwnerTeamService,
@@ -25,7 +26,13 @@ runResourceOwnerAddedJob<VMwareVCenter>({
   recordService: VMwareVCenterService,
   noun: "VMware vCenter",
   title: "VMware vCenter",
-  getLink: (projectId: ObjectID, vmwareVCenter: VMwareVCenter): Promise<URL> => {
-    return VMwareVCenterService.getVMwareVCenterLinkInDashboard(projectId, vmwareVCenter.id!);
+  getLink: (
+    projectId: ObjectID,
+    vmwareVCenter: VMwareVCenter,
+  ): Promise<URL> => {
+    return VMwareVCenterService.getVMwareVCenterLinkInDashboard(
+      projectId,
+      vmwareVCenter.id!,
+    );
   },
 });

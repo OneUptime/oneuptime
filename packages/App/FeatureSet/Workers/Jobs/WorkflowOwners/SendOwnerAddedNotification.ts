@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<Workflow>({
   jobName: "WorkflowOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.WorkflowOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "WorkflowOwnerUser",
   recordIdColumn: "workflowId",
   teamService: WorkflowOwnerTeamService,

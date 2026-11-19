@@ -163,9 +163,9 @@ describe("the ResourceOwnerAdded email", () => {
   });
 
   test("leaves a record with no description without a Description row", () => {
-    expect(
-      detailFields(render(hostVars({ resourceDescription: "" }))),
-    ).toEqual({ "Host:": "web-1" });
+    expect(detailFields(render(hostVars({ resourceDescription: "" })))).toEqual(
+      { "Host:": "web-1" },
+    );
   });
 
   test("links to the record's page, by its button and as a link to copy", () => {

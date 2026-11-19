@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<IoTFleet>({
   jobName: "IoTFleetOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.IoTFleetOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "IoTFleetOwnerUser",
   recordIdColumn: "iotFleetId",
   teamService: IoTFleetOwnerTeamService,

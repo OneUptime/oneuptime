@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<DockerSwarmCluster>({
   jobName: "DockerSwarmClusterOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.DockerSwarmClusterOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "DockerSwarmClusterOwnerUser",
   recordIdColumn: "dockerSwarmClusterId",
   teamService: DockerSwarmClusterOwnerTeamService,
@@ -25,7 +26,13 @@ runResourceOwnerAddedJob<DockerSwarmCluster>({
   recordService: DockerSwarmClusterService,
   noun: "Docker Swarm cluster",
   title: "Docker Swarm Cluster",
-  getLink: (projectId: ObjectID, dockerSwarmCluster: DockerSwarmCluster): Promise<URL> => {
-    return DockerSwarmClusterService.getDockerSwarmClusterLinkInDashboard(projectId, dockerSwarmCluster.id!);
+  getLink: (
+    projectId: ObjectID,
+    dockerSwarmCluster: DockerSwarmCluster,
+  ): Promise<URL> => {
+    return DockerSwarmClusterService.getDockerSwarmClusterLinkInDashboard(
+      projectId,
+      dockerSwarmCluster.id!,
+    );
   },
 });

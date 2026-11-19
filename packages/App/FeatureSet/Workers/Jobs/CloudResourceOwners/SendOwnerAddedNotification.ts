@@ -25,7 +25,8 @@ import {
 runResourceOwnerAddedJob<CloudResource>({
   jobName: "CloudResourceOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.CloudResourceOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "CloudResourceOwnerUser",
   recordIdColumn: "cloudResourceId",
   teamService: CloudResourceOwnerTeamService,
@@ -36,12 +37,17 @@ runResourceOwnerAddedJob<CloudResource>({
     cloudResourceKind: true,
   },
   noun: (cloudResource: CloudResource): string => {
-    return getCloudResourceKindNoun(cloudResource.cloudResourceKind).toLowerCase();
+    return getCloudResourceKindNoun(
+      cloudResource.cloudResourceKind,
+    ).toLowerCase();
   },
   title: (cloudResource: CloudResource): string => {
     return getCloudResourceKindNoun(cloudResource.cloudResourceKind);
   },
-  getLink: (projectId: ObjectID, cloudResource: CloudResource): Promise<URL> => {
+  getLink: (
+    projectId: ObjectID,
+    cloudResource: CloudResource,
+  ): Promise<URL> => {
     return getRecordLinkInDashboard(
       projectId,
       getCloudResourceDashboardPath({

@@ -370,7 +370,10 @@ describe("the docs on owners told after a stop part way", () => {
      * once for all of them.
      */
     const sharedJob: string = fs.readFileSync(
-      path.join(PACKAGES_ROOT, "App/FeatureSet/Workers/Utils/ResourceOwnersAdded.ts"),
+      path.join(
+        PACKAGES_ROOT,
+        "App/FeatureSet/Workers/Utils/ResourceOwnersAdded.ts",
+      ),
       "utf8",
     );
 

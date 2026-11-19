@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<PodmanHost>({
   jobName: "PodmanHostOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.PodmanHostOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "PodmanHostOwnerUser",
   recordIdColumn: "podmanHostId",
   teamService: PodmanHostOwnerTeamService,
@@ -26,6 +27,9 @@ runResourceOwnerAddedJob<PodmanHost>({
   noun: "Podman host",
   title: "Podman Host",
   getLink: (projectId: ObjectID, podmanHost: PodmanHost): Promise<URL> => {
-    return PodmanHostService.getPodmanHostLinkInDashboard(projectId, podmanHost.id!);
+    return PodmanHostService.getPodmanHostLinkInDashboard(
+      projectId,
+      podmanHost.id!,
+    );
   },
 });

@@ -327,12 +327,18 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerTeamService", () => {
 jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerUserService", () => {
   return mockOwnerRowService();
 });
-jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService", () => {
-  return mockOwnerRowService();
-});
-jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService", () => {
-  return mockOwnerRowService();
-});
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService",
+  () => {
+    return mockOwnerRowService();
+  },
+);
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService",
+  () => {
+    return mockOwnerRowService();
+  },
+);
 jest.mock("Common/Server/Services/IncomingCallPolicyOwnerTeamService", () => {
   return mockOwnerRowService();
 });
@@ -1199,10 +1205,13 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
   },
   {
     job: "DockerSwarmClusterOwner:SendOwnerAddedNotification",
-    teamService: DockerSwarmClusterOwnerTeamService as unknown as RowServiceMock,
-    userService: DockerSwarmClusterOwnerUserService as unknown as RowServiceMock,
+    teamService:
+      DockerSwarmClusterOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      DockerSwarmClusterOwnerUserService as unknown as RowServiceMock,
     resourceIdColumn: "dockerSwarmClusterId",
-    resourceService: DockerSwarmClusterService as unknown as ResourceServiceMock,
+    resourceService:
+      DockerSwarmClusterService as unknown as ResourceServiceMock,
   },
   {
     job: "PodmanHostOwner:SendOwnerAddedNotification",
@@ -1262,10 +1271,13 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
   },
   {
     job: "ServerlessFunctionOwner:SendOwnerAddedNotification",
-    teamService: ServerlessFunctionOwnerTeamService as unknown as RowServiceMock,
-    userService: ServerlessFunctionOwnerUserService as unknown as RowServiceMock,
+    teamService:
+      ServerlessFunctionOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      ServerlessFunctionOwnerUserService as unknown as RowServiceMock,
     resourceIdColumn: "serverlessFunctionId",
-    resourceService: ServerlessFunctionService as unknown as ResourceServiceMock,
+    resourceService:
+      ServerlessFunctionService as unknown as ResourceServiceMock,
   },
   {
     job: "DashboardOwner:SendOwnerAddedNotification",
@@ -1297,17 +1309,23 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
   },
   {
     job: "OnCallDutyPolicyScheduleOwner:SendOwnerAddedNotification",
-    teamService: OnCallDutyPolicyScheduleOwnerTeamService as unknown as RowServiceMock,
-    userService: OnCallDutyPolicyScheduleOwnerUserService as unknown as RowServiceMock,
+    teamService:
+      OnCallDutyPolicyScheduleOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      OnCallDutyPolicyScheduleOwnerUserService as unknown as RowServiceMock,
     resourceIdColumn: "onCallDutyPolicyScheduleId",
-    resourceService: OnCallDutyPolicyScheduleService as unknown as ResourceServiceMock,
+    resourceService:
+      OnCallDutyPolicyScheduleService as unknown as ResourceServiceMock,
   },
   {
     job: "IncomingCallPolicyOwner:SendOwnerAddedNotification",
-    teamService: IncomingCallPolicyOwnerTeamService as unknown as RowServiceMock,
-    userService: IncomingCallPolicyOwnerUserService as unknown as RowServiceMock,
+    teamService:
+      IncomingCallPolicyOwnerTeamService as unknown as RowServiceMock,
+    userService:
+      IncomingCallPolicyOwnerUserService as unknown as RowServiceMock,
     resourceIdColumn: "incomingCallPolicyId",
-    resourceService: IncomingCallPolicyService as unknown as ResourceServiceMock,
+    resourceService:
+      IncomingCallPolicyService as unknown as ResourceServiceMock,
   },
 ];
 

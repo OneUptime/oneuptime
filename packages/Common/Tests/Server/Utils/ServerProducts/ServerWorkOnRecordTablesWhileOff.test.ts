@@ -201,8 +201,12 @@ describe("the owner rows the resource owner jobs tell of (#9700)", () => {
       jest.restoreAllMocks();
       switchOff(products);
 
-      const off: { product: ProductKey; reason: ServerProductOffReason } | null =
-        await ServerProducts.getOffProductOfServerWorkTable(`${owner}User`);
+      const off: {
+        product: ProductKey;
+        reason: ServerProductOffReason;
+      } | null = await ServerProducts.getOffProductOfServerWorkTable(
+        `${owner}User`,
+      );
 
       expect(off).not.toBeNull();
       expect(products).toContain(off!.product);

@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<StorageArray>({
   jobName: "StorageArrayOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.StorageArrayOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "StorageArrayOwnerUser",
   recordIdColumn: "storageArrayId",
   teamService: StorageArrayOwnerTeamService,
@@ -26,6 +27,9 @@ runResourceOwnerAddedJob<StorageArray>({
   noun: "storage array",
   title: "Storage Array",
   getLink: (projectId: ObjectID, storageArray: StorageArray): Promise<URL> => {
-    return StorageArrayService.getStorageArrayLinkInDashboard(projectId, storageArray.id!);
+    return StorageArrayService.getStorageArrayLinkInDashboard(
+      projectId,
+      storageArray.id!,
+    );
   },
 });

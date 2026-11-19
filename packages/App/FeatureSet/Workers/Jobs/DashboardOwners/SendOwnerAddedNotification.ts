@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<Dashboard>({
   jobName: "DashboardOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.DashboardOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "DashboardOwnerUser",
   recordIdColumn: "dashboardId",
   teamService: DashboardOwnerTeamService,

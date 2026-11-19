@@ -212,7 +212,10 @@ export interface ResourceOwnerAddedJob<TRecord extends OwnedRecord> {
   ownershipNote?: string | undefined;
 }
 
-function wordsOf<TRecord>(words: RecordWords<TRecord>, record: TRecord): string {
+function wordsOf<TRecord>(
+  words: RecordWords<TRecord>,
+  record: TRecord,
+): string {
   return typeof words === "string" ? words : words(record);
 }
 

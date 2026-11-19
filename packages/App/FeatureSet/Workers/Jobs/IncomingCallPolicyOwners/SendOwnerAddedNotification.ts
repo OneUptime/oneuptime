@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<IncomingCallPolicy>({
   jobName: "IncomingCallPolicyOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.IncomingCallPolicyOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "IncomingCallPolicyOwnerUser",
   recordIdColumn: "incomingCallPolicyId",
   teamService: IncomingCallPolicyOwnerTeamService,
@@ -28,7 +29,10 @@ runResourceOwnerAddedJob<IncomingCallPolicy>({
   recordService: IncomingCallPolicyService,
   noun: "incoming call policy",
   title: "Incoming Call Policy",
-  getLink: (projectId: ObjectID, incomingCallPolicy: IncomingCallPolicy): Promise<URL> => {
+  getLink: (
+    projectId: ObjectID,
+    incomingCallPolicy: IncomingCallPolicy,
+  ): Promise<URL> => {
     return getRecordLinkInDashboard(
       projectId,
       `on-call-duty/incoming-call-policies/${incomingCallPolicy.id!.toString()}`,

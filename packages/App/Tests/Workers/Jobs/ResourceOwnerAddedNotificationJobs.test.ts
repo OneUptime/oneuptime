@@ -287,7 +287,8 @@ const CASES: Array<JobCase> = [
     record: "Service",
     jobName: "ServiceOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.ServiceOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "ServiceOwnerUser",
     recordIdColumn: "serviceId",
     teamService: ServiceOwnerTeamService,
@@ -301,7 +302,8 @@ const CASES: Array<JobCase> = [
     record: "DatabaseServer",
     jobName: "DatabaseServerOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.DatabaseServerOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "DatabaseServerOwnerUser",
     recordIdColumn: "databaseServerId",
     teamService: DatabaseServerOwnerTeamService,
@@ -315,7 +317,8 @@ const CASES: Array<JobCase> = [
     record: "MessageQueue",
     jobName: "MessageQueueOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.MessageQueueOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "MessageQueueOwnerUser",
     recordIdColumn: "messageQueueId",
     teamService: MessageQueueOwnerTeamService,
@@ -329,7 +332,8 @@ const CASES: Array<JobCase> = [
     record: "RumApplication",
     jobName: "RumApplicationOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.RumApplicationOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "RumApplicationOwnerUser",
     recordIdColumn: "rumApplicationId",
     teamService: RumApplicationOwnerTeamService,
@@ -343,7 +347,8 @@ const CASES: Array<JobCase> = [
     record: "Host",
     jobName: "HostOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.HostOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "HostOwnerUser",
     recordIdColumn: "hostId",
     teamService: HostOwnerTeamService,
@@ -357,7 +362,8 @@ const CASES: Array<JobCase> = [
     record: "KubernetesCluster",
     jobName: "KubernetesClusterOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.KubernetesClusterOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "KubernetesClusterOwnerUser",
     recordIdColumn: "kubernetesClusterId",
     teamService: KubernetesClusterOwnerTeamService,
@@ -371,7 +377,8 @@ const CASES: Array<JobCase> = [
     record: "DockerHost",
     jobName: "DockerHostOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.DockerHostOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "DockerHostOwnerUser",
     recordIdColumn: "dockerHostId",
     teamService: DockerHostOwnerTeamService,
@@ -385,7 +392,8 @@ const CASES: Array<JobCase> = [
     record: "DockerSwarmCluster",
     jobName: "DockerSwarmClusterOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.DockerSwarmClusterOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "DockerSwarmClusterOwnerUser",
     recordIdColumn: "dockerSwarmClusterId",
     teamService: DockerSwarmClusterOwnerTeamService,
@@ -399,7 +407,8 @@ const CASES: Array<JobCase> = [
     record: "PodmanHost",
     jobName: "PodmanHostOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.PodmanHostOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "PodmanHostOwnerUser",
     recordIdColumn: "podmanHostId",
     teamService: PodmanHostOwnerTeamService,
@@ -413,7 +422,8 @@ const CASES: Array<JobCase> = [
     record: "ProxmoxCluster",
     jobName: "ProxmoxClusterOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.ProxmoxClusterOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "ProxmoxClusterOwnerUser",
     recordIdColumn: "proxmoxClusterId",
     teamService: ProxmoxClusterOwnerTeamService,
@@ -427,7 +437,8 @@ const CASES: Array<JobCase> = [
     record: "OpenStackCloud",
     jobName: "OpenStackCloudOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.OpenStackCloudOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "OpenStackCloudOwnerUser",
     recordIdColumn: "openStackCloudId",
     teamService: OpenStackCloudOwnerTeamService,
@@ -441,7 +452,8 @@ const CASES: Array<JobCase> = [
     record: "VMwareVCenter",
     jobName: "VMwareVCenterOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.VMwareVCenterOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "VMwareVCenterOwnerUser",
     recordIdColumn: "vmwareVCenterId",
     teamService: VMwareVCenterOwnerTeamService,
@@ -455,7 +467,8 @@ const CASES: Array<JobCase> = [
     record: "CephCluster",
     jobName: "CephClusterOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.CephClusterOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "CephClusterOwnerUser",
     recordIdColumn: "cephClusterId",
     teamService: CephClusterOwnerTeamService,
@@ -469,7 +482,8 @@ const CASES: Array<JobCase> = [
     record: "StorageArray",
     jobName: "StorageArrayOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.StorageArrayOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "StorageArrayOwnerUser",
     recordIdColumn: "storageArrayId",
     teamService: StorageArrayOwnerTeamService,
@@ -483,7 +497,8 @@ const CASES: Array<JobCase> = [
     record: "IoTFleet",
     jobName: "IoTFleetOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.IoTFleetOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "IoTFleetOwnerUser",
     recordIdColumn: "iotFleetId",
     teamService: IoTFleetOwnerTeamService,
@@ -497,7 +512,8 @@ const CASES: Array<JobCase> = [
     record: "CloudResource",
     jobName: "CloudResourceOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.CloudResourceOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "CloudResourceOwnerUser",
     recordIdColumn: "cloudResourceId",
     teamService: CloudResourceOwnerTeamService,
@@ -512,7 +528,8 @@ const CASES: Array<JobCase> = [
     record: "ServerlessFunction",
     jobName: "ServerlessFunctionOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.ServerlessFunctionOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "ServerlessFunctionOwnerUser",
     recordIdColumn: "serverlessFunctionId",
     teamService: ServerlessFunctionOwnerTeamService,
@@ -526,7 +543,8 @@ const CASES: Array<JobCase> = [
     record: "Dashboard",
     jobName: "DashboardOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.DashboardOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
     ownerTable: "DashboardOwnerUser",
     recordIdColumn: "dashboardId",
     teamService: DashboardOwnerTeamService,
@@ -540,7 +558,8 @@ const CASES: Array<JobCase> = [
     record: "Workflow",
     jobName: "WorkflowOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.WorkflowOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
     ownerTable: "WorkflowOwnerUser",
     recordIdColumn: "workflowId",
     teamService: WorkflowOwnerTeamService,
@@ -554,7 +573,8 @@ const CASES: Array<JobCase> = [
     record: "Runbook",
     jobName: "RunbookOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.RunbookOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
     ownerTable: "RunbookOwnerUser",
     recordIdColumn: "runbookId",
     teamService: RunbookOwnerTeamService,
@@ -568,7 +588,8 @@ const CASES: Array<JobCase> = [
     record: "OnCallDutyPolicy",
     jobName: "OnCallDutyPolicyOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.OnCallDutyPolicyOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
     ownerTable: "OnCallDutyPolicyOwnerUser",
     recordIdColumn: "onCallDutyPolicyId",
     teamService: OnCallDutyPolicyOwnerTeamService,
@@ -584,7 +605,8 @@ const CASES: Array<JobCase> = [
     record: "OnCallDutyPolicySchedule",
     jobName: "OnCallDutyPolicyScheduleOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.OnCallDutyPolicyScheduleOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
     ownerTable: "OnCallDutyPolicyScheduleOwnerUser",
     recordIdColumn: "onCallDutyPolicyScheduleId",
     teamService: OnCallDutyPolicyScheduleOwnerTeamService,
@@ -598,7 +620,8 @@ const CASES: Array<JobCase> = [
     record: "IncomingCallPolicy",
     jobName: "IncomingCallPolicyOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.IncomingCallPolicyOwnerAdded,
-    eventType: NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
     ownerTable: "IncomingCallPolicyOwnerUser",
     recordIdColumn: "incomingCallPolicyId",
     teamService: IncomingCallPolicyOwnerTeamService,
@@ -1050,8 +1073,12 @@ describe("the Workers", () => {
         return jobCase.jobName;
       }).sort(),
     );
-    expect(new Set(CASES.map((jobCase: JobCase) => jobCase.kind)).size).toBe(
-      23,
-    );
+    expect(
+      new Set(
+        CASES.map((jobCase: JobCase) => {
+          return jobCase.kind;
+        }),
+      ).size,
+    ).toBe(23);
   });
 });

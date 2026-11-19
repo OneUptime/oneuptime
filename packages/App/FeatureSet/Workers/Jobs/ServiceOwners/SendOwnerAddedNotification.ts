@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<Service>({
   jobName: "ServiceOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.ServiceOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "ServiceOwnerUser",
   recordIdColumn: "serviceId",
   teamService: ServiceOwnerTeamService,

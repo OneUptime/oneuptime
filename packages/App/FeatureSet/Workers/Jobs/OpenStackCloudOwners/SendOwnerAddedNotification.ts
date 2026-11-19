@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<OpenStackCloud>({
   jobName: "OpenStackCloudOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.OpenStackCloudOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "OpenStackCloudOwnerUser",
   recordIdColumn: "openStackCloudId",
   teamService: OpenStackCloudOwnerTeamService,
@@ -25,7 +26,13 @@ runResourceOwnerAddedJob<OpenStackCloud>({
   recordService: OpenStackCloudService,
   noun: "OpenStack cloud",
   title: "OpenStack Cloud",
-  getLink: (projectId: ObjectID, openStackCloud: OpenStackCloud): Promise<URL> => {
-    return OpenStackCloudService.getOpenStackCloudLinkInDashboard(projectId, openStackCloud.id!);
+  getLink: (
+    projectId: ObjectID,
+    openStackCloud: OpenStackCloud,
+  ): Promise<URL> => {
+    return OpenStackCloudService.getOpenStackCloudLinkInDashboard(
+      projectId,
+      openStackCloud.id!,
+    );
   },
 });

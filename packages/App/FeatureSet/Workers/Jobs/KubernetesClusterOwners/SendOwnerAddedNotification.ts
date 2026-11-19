@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<KubernetesCluster>({
   jobName: "KubernetesClusterOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.KubernetesClusterOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "KubernetesClusterOwnerUser",
   recordIdColumn: "kubernetesClusterId",
   teamService: KubernetesClusterOwnerTeamService,
@@ -25,7 +26,13 @@ runResourceOwnerAddedJob<KubernetesCluster>({
   recordService: KubernetesClusterService,
   noun: "Kubernetes cluster",
   title: "Kubernetes Cluster",
-  getLink: (projectId: ObjectID, kubernetesCluster: KubernetesCluster): Promise<URL> => {
-    return KubernetesClusterService.getKubernetesClusterLinkInDashboard(projectId, kubernetesCluster.id!);
+  getLink: (
+    projectId: ObjectID,
+    kubernetesCluster: KubernetesCluster,
+  ): Promise<URL> => {
+    return KubernetesClusterService.getKubernetesClusterLinkInDashboard(
+      projectId,
+      kubernetesCluster.id!,
+    );
   },
 });

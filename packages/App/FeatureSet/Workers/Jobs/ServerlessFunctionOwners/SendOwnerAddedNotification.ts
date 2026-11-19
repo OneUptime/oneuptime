@@ -20,7 +20,8 @@ import {
 runResourceOwnerAddedJob<ServerlessFunction>({
   jobName: "ServerlessFunctionOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.ServerlessFunctionOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "ServerlessFunctionOwnerUser",
   recordIdColumn: "serverlessFunctionId",
   teamService: ServerlessFunctionOwnerTeamService,
@@ -28,7 +29,10 @@ runResourceOwnerAddedJob<ServerlessFunction>({
   recordService: ServerlessFunctionService,
   noun: "serverless function",
   title: "Serverless Function",
-  getLink: (projectId: ObjectID, serverlessFunction: ServerlessFunction): Promise<URL> => {
+  getLink: (
+    projectId: ObjectID,
+    serverlessFunction: ServerlessFunction,
+  ): Promise<URL> => {
     return getRecordLinkInDashboard(
       projectId,
       `serverless/${serverlessFunction.id!.toString()}`,

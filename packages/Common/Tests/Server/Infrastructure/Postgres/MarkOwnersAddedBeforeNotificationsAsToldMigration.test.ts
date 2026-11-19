@@ -206,9 +206,9 @@ describe("AddServiceOwnerIsOwnerNotified1809185000000", () => {
 
 describe("MarkOwnersAddedBeforeNotificationsAsTold1809185010000", () => {
   test("is registered once, under the name its class carries, after the service owner column and before its indexes", () => {
-    expect(new MarkOwnersAddedBeforeNotificationsAsTold1809185010000().name).toBe(
-      MIGRATION_NAME,
-    );
+    expect(
+      new MarkOwnersAddedBeforeNotificationsAsTold1809185010000().name,
+    ).toBe(MIGRATION_NAME);
     expect(SchemaMigrations).toContain(
       MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
     );
@@ -236,7 +236,9 @@ describe("MarkOwnersAddedBeforeNotificationsAsTold1809185010000", () => {
     );
     // After the data owners' own backfill, which it never repeats.
     expect(names.indexOf(MIGRATION_NAME)).toBeGreaterThan(
-      names.indexOf("MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000"),
+      names.indexOf(
+        "MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000",
+      ),
     );
   });
 
@@ -324,8 +326,16 @@ describe("AddServiceOwnerIsOwnerNotifiedIndexes1809185020000", () => {
 
   test("OnlineDdl reads each build as one it can run concurrently, on its table's column", () => {
     for (const [statement, table, name] of [
-      [INDEX_STATEMENTS[0]!, "ServiceOwnerTeam", "IDX_a74b37f8142004dcdd4584c4fe"],
-      [INDEX_STATEMENTS[1]!, "ServiceOwnerUser", "IDX_bafacc1ebabdeea91791639fb0"],
+      [
+        INDEX_STATEMENTS[0]!,
+        "ServiceOwnerTeam",
+        "IDX_a74b37f8142004dcdd4584c4fe",
+      ],
+      [
+        INDEX_STATEMENTS[1]!,
+        "ServiceOwnerUser",
+        "IDX_bafacc1ebabdeea91791639fb0",
+      ],
     ]) {
       const index: OnlineIndex = OnlineDdl.parseCreateIndex(statement!);
 
@@ -344,7 +354,8 @@ describe("AddServiceOwnerIsOwnerNotifiedIndexes1809185020000", () => {
           (index: IndexMetadataArgs): boolean => {
             return (
               index.target === target &&
-              JSON.stringify(index.columns) === JSON.stringify(["isOwnerNotified"])
+              JSON.stringify(index.columns) ===
+                JSON.stringify(["isOwnerNotified"])
             );
           },
         );

@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<CephCluster>({
   jobName: "CephClusterOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.CephClusterOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "CephClusterOwnerUser",
   recordIdColumn: "cephClusterId",
   teamService: CephClusterOwnerTeamService,
@@ -26,6 +27,9 @@ runResourceOwnerAddedJob<CephCluster>({
   noun: "Ceph cluster",
   title: "Ceph Cluster",
   getLink: (projectId: ObjectID, cephCluster: CephCluster): Promise<URL> => {
-    return CephClusterService.getCephClusterLinkInDashboard(projectId, cephCluster.id!);
+    return CephClusterService.getCephClusterLinkInDashboard(
+      projectId,
+      cephCluster.id!,
+    );
   },
 });

@@ -17,7 +17,8 @@ import { runResourceOwnerAddedJob } from "../../Utils/ResourceOwnersAdded";
 runResourceOwnerAddedJob<OnCallDutyPolicy>({
   jobName: "OnCallDutyPolicyOwner:SendOwnerAddedNotification",
   kind: OwnerNotificationKind.OnCallDutyPolicyOwnerAdded,
-  eventType: NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+  eventType:
+    NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
   ownerTableName: "OnCallDutyPolicyOwnerUser",
   recordIdColumn: "onCallDutyPolicyId",
   teamService: OnCallDutyPolicyOwnerTeamService,
@@ -25,8 +26,14 @@ runResourceOwnerAddedJob<OnCallDutyPolicy>({
   recordService: OnCallDutyPolicyService,
   noun: "on-call policy",
   title: "On-Call Policy",
-  getLink: (projectId: ObjectID, onCallDutyPolicy: OnCallDutyPolicy): Promise<URL> => {
-    return OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId, onCallDutyPolicy.id!);
+  getLink: (
+    projectId: ObjectID,
+    onCallDutyPolicy: OnCallDutyPolicy,
+  ): Promise<URL> => {
+    return OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+      projectId,
+      onCallDutyPolicy.id!,
+    );
   },
   ownershipNote:
     "You are told when a page this on-call policy sends cannot reach someone the way they asked to be reached.",

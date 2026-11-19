@@ -538,8 +538,9 @@ describe("ToolImportApplier: a whole import", () => {
     for (const create of ownerCreates) {
       expect({
         service: create.service,
-        isOwnerNotified: (create.data as unknown as { isOwnerNotified: unknown })
-          .isOwnerNotified,
+        isOwnerNotified: (
+          create.data as unknown as { isOwnerNotified: unknown }
+        ).isOwnerNotified,
         isMarked: ServerSetColumns.isMarked(create.data, "isOwnerNotified"),
         isRoot: Boolean(create.props.isRoot),
         userId: create.props.userId?.toString(),
