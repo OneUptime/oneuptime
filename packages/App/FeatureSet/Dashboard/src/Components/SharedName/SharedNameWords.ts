@@ -49,7 +49,7 @@ export const SHARED_NAME_WORDS: Record<SharedNameKind, SharedNameWords> = {
   [SharedNameKind.OnCallPolicy]: {
     pill: translationKey("Same name as another policy"),
     pillTooltip: translationKey(
-      "Another on-call policy in this project has this name, so pickers can't tell them apart. It may be archived. Compare their escalation rules, then rename one.",
+      "Another on-call policy in this project has this name, so pickers can't tell them apart. Compare their escalation rules, then rename one.",
     ),
     note: {
       one: translationKey(

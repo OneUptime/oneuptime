@@ -215,16 +215,27 @@ export default class UniqueNameInProject {
     projectId: ObjectID;
     // The reader's own: the records of each group they may read.
     props: DatabaseCommonInteractionProps;
+    /*
+     * Count only the records in service: an archived on-call policy is
+     * offered in no picker, so a policy named as one is drawn alike with
+     * nothing. Its name stays taken (a create or rename onto it is still
+     * refused), and unarchived it is counted again.
+     */
+    leaveOutArchived?: boolean | undefined;
   }): Promise<Array<Array<string>>> {
     const nameKey: string = getNameKeySql({
       textSql: `"name"`,
       patternSql: "$2",
     });
 
+    const inService: string = data.leaveOutArchived
+      ? ` AND "isArchived" = false`
+      : "";
+
     const rows: Array<{ id: string; nameKey: string }> = await data.service
       .getRepository()
       .query(
-        `SELECT "id", "nameKey" FROM (SELECT "_id" AS "id", ${nameKey} AS "nameKey", COUNT(*) OVER (PARTITION BY ${nameKey}) AS "count" FROM "${data.service.getRepository().metadata.tableName}" WHERE "projectId" = $1 AND "deletedAt" IS NULL) AS "named" WHERE "count" > 1 ORDER BY "nameKey", "id"`,
+        `SELECT "id", "nameKey" FROM (SELECT "_id" AS "id", ${nameKey} AS "nameKey", COUNT(*) OVER (PARTITION BY ${nameKey}) AS "count" FROM "${data.service.getRepository().metadata.tableName}" WHERE "projectId" = $1 AND "deletedAt" IS NULL${inService}) AS "named" WHERE "count" > 1 ORDER BY "nameKey", "id"`,
         [data.projectId.toString(), NAME_WHITE_SPACE_RUN_PATTERN],
       );
 

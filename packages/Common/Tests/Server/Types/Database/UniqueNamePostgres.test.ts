@@ -67,7 +67,7 @@ const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
  *     one, naming a policy in service first;
  *   - the teams that share a name, as their list marks them (#9746), are
  *     found as Postgres reads names, deleted ones and other projects' left
- *     out.
+ *     out, and on-call policies only while in service.
  *
  * Needs only a bare Postgres: each model's table is made from its own column
  * metadata in a schema of its own, dropped afterwards. CI's Common test job
@@ -678,5 +678,57 @@ describePostgres("a name as it reads, on Postgres", () => {
       [platformA],
       sorted([tenantsA, tenantsB]),
     ]);
+  });
+
+  test("on-call policies share a name only while in service: an archived namesake is in no picker", async () => {
+    const primary: string = await onCallPolicy("Primary");
+    await onCallPolicy("primary", { isArchived: true });
+    const weekends: string = await onCallPolicy("Weekends");
+    const weekendsTwin: string = await onCallPolicy(" WEEKENDS");
+
+    jest
+      .spyOn(OnCallDutyPolicyService, "findBy")
+      .mockImplementation(
+        async (findBy: {
+          query: Record<string, unknown>;
+        }): Promise<Array<OnCallDutyPolicy>> => {
+          const ids: Array<unknown> = Object.values(
+            (
+              findBy.query["_id"] as {
+                objectLiteralParameters: Record<string, unknown>;
+              }
+            ).objectLiteralParameters,
+          )[0] as Array<unknown>;
+
+          return ids.map((id: unknown): OnCallDutyPolicy => {
+            return new OnCallDutyPolicy(new ObjectID(String(id)));
+          });
+        },
+      );
+
+    const inService: Array<Array<string>> =
+      await UniqueNameInProject.findRecordsSharingName({
+        service: OnCallDutyPolicyService,
+        projectId: PROJECT_ID,
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+        leaveOutArchived: true,
+      });
+
+    expect(
+      inService.map((group: Array<string>): Array<string> => {
+        return [...group].sort();
+      }),
+    ).toEqual([[weekends, weekendsTwin].sort()]);
+    expect(inService.flat()).not.toContain(primary);
+
+    // Counted with the archived ones, Primary has its namesake.
+    const withArchived: Array<Array<string>> =
+      await UniqueNameInProject.findRecordsSharingName({
+        service: OnCallDutyPolicyService,
+        projectId: PROJECT_ID,
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+      });
+
+    expect(withArchived.flat()).toContain(primary);
   });
 });

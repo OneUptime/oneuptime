@@ -167,13 +167,21 @@ describe("GET /shared-names/:kind", () => {
     ]);
   });
 
+  /*
+   * An archived on-call policy is offered in no picker, so policies count
+   * only while in service; a team and a schedule have no archive.
+   */
   test.each([
-    [SharedNameKind.Team, TeamService],
-    [SharedNameKind.OnCallPolicy, OnCallDutyPolicyService],
-    [SharedNameKind.OnCallSchedule, OnCallDutyPolicyScheduleService],
+    [SharedNameKind.Team, TeamService, false],
+    [SharedNameKind.OnCallPolicy, OnCallDutyPolicyService, true],
+    [SharedNameKind.OnCallSchedule, OnCallDutyPolicyScheduleService, false],
   ])(
     "for %s, answers the groups its own service finds, read with the caller's own props, uncached",
-    async (kind: SharedNameKind, service: unknown) => {
+    async (
+      kind: SharedNameKind,
+      service: unknown,
+      leavesOutArchived: boolean,
+    ) => {
       const result: RouteCallResult = await callRoute(kind);
 
       expect(result.nextCallCount).toBe(0);
@@ -183,9 +191,11 @@ describe("GET /shared-names/:kind", () => {
         service: unknown;
         projectId: ObjectID;
         props: DatabaseCommonInteractionProps;
+        leaveOutArchived?: boolean;
       } = findSpy.mock.calls[0]![0];
 
       expect(call.service).toBe(service);
+      expect(Boolean(call.leaveOutArchived)).toBe(leavesOutArchived);
       expect(call.projectId.toString()).toBe(projectId.toString());
       expect(call.props.userId?.toString()).toBe(userId.toString());
       expect(call.props.isRoot).toBeFalsy();

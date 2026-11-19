@@ -41,13 +41,31 @@ import ObjectID from "../../Types/ObjectID";
 
 const router: ExpressRouter = Express.getRouter();
 
-// The service whose records each kind is.
-const SERVICE_OF_KIND: Record<SharedNameKind, DatabaseService<BaseModel>> = {
-  [SharedNameKind.Team]: TeamService as unknown as DatabaseService<BaseModel>,
-  [SharedNameKind.OnCallPolicy]:
-    OnCallDutyPolicyService as unknown as DatabaseService<BaseModel>,
-  [SharedNameKind.OnCallSchedule]:
-    OnCallDutyPolicyScheduleService as unknown as DatabaseService<BaseModel>,
+interface SharedNamesOfKind {
+  service: DatabaseService<BaseModel>;
+  /*
+   * Records in service only: an archived on-call policy is offered in no
+   * picker, so a policy named as one is drawn alike with nothing, and its
+   * list (which leaves archived policies out) marks it for nothing.
+   */
+  leaveOutArchived: boolean;
+}
+
+// The service whose records each kind is, and which of them count.
+const OF_KIND: Record<SharedNameKind, SharedNamesOfKind> = {
+  [SharedNameKind.Team]: {
+    service: TeamService as unknown as DatabaseService<BaseModel>,
+    leaveOutArchived: false,
+  },
+  [SharedNameKind.OnCallPolicy]: {
+    service: OnCallDutyPolicyService as unknown as DatabaseService<BaseModel>,
+    leaveOutArchived: true,
+  },
+  [SharedNameKind.OnCallSchedule]: {
+    service:
+      OnCallDutyPolicyScheduleService as unknown as DatabaseService<BaseModel>,
+    leaveOutArchived: false,
+  },
 };
 
 router.get(
@@ -75,9 +93,10 @@ router.get(
 
       const groups: Array<Array<string>> =
         await UniqueNameInProject.findRecordsSharingName({
-          service: SERVICE_OF_KIND[kind],
+          service: OF_KIND[kind].service,
           projectId: projectId,
           props: props,
+          leaveOutArchived: OF_KIND[kind].leaveOutArchived,
         });
 
       Response.setNoCacheHeaders(res);

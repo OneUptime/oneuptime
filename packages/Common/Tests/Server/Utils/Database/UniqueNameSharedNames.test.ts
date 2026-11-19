@@ -122,7 +122,28 @@ describe("the records of a project that share a name", () => {
     expect(query.sql).toContain(`"projectId" = $1`);
     expect(query.sql).toContain(`"deletedAt" IS NULL`);
     expect(query.sql).toContain(`WHERE "count" > 1`);
+    // Archived records count unless left out: a team has no archive.
+    expect(query.sql).not.toContain(`"isArchived"`);
     expect(query.parameters).toEqual([
+      PROJECT_ID.toString(),
+      NAME_WHITE_SPACE_RUN_PATTERN,
+    ]);
+  });
+
+  test("leaves archived records out when asked: an archived policy is in no picker", async () => {
+    const { service, queries } = fakeService({ rows: [], readableIds: [] });
+
+    await UniqueNameInProject.findRecordsSharingName({
+      service: service,
+      projectId: PROJECT_ID,
+      props: READER_PROPS,
+      leaveOutArchived: true,
+    });
+
+    expect(queries[0]!.sql).toContain(
+      `WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isArchived" = false)`,
+    );
+    expect(queries[0]!.parameters).toEqual([
       PROJECT_ID.toString(),
       NAME_WHITE_SPACE_RUN_PATTERN,
     ]);
