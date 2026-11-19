@@ -113,7 +113,11 @@ export const getPagedFirstChip: (
     return {
       icon: IconProp.Forward,
       text: formatInline(
-        [responder.name, translator.translateText(NEXT_IN_ROTATION_TEXT)],
+        [
+          responder.name,
+          translator.translateText(NEXT_IN_ROTATION_TEXT) ||
+            NEXT_IN_ROTATION_TEXT,
+        ],
         translator,
       ),
       tone: PillTone.Neutral,
@@ -125,11 +129,16 @@ export const getPagedFirstChip: (
     return {
       icon: IconProp.Alert,
       text: formatInline(
-        [responder.name, translator.translateText(NO_ONE_ON_CALL_TEXT)],
+        [
+          responder.name,
+          translator.translateText(NO_ONE_ON_CALL_TEXT) || NO_ONE_ON_CALL_TEXT,
+        ],
         translator,
       ),
       tone: PillTone.Warning,
-      tooltip: translator.translateText(NO_ONE_ON_CALL_TOOLTIP),
+      tooltip:
+        translator.translateText(NO_ONE_ON_CALL_TOOLTIP) ||
+        NO_ONE_ON_CALL_TOOLTIP,
     };
   }
 
@@ -174,11 +183,14 @@ export const getPagedFirstExportText: (
   }
 
   if (pagedFirst.kind === PagedFirstKind.NoEscalationRules) {
-    return translator.translateText(NO_ESCALATION_RULES_TEXT);
+    return (
+      translator.translateText(NO_ESCALATION_RULES_TEXT) ||
+      NO_ESCALATION_RULES_TEXT
+    );
   }
 
   if (pagedFirst.kind === PagedFirstKind.NoResponders) {
-    return translator.translateText(NO_RESPONDERS_TEXT);
+    return translator.translateText(NO_RESPONDERS_TEXT) || NO_RESPONDERS_TEXT;
   }
 
   return pagedFirst.responders
@@ -188,9 +200,10 @@ export const getPagedFirstExportText: (
       }
 
       const pages: string = responder.isNextInRotation
-        ? translator.translateText(NEXT_IN_ROTATION_TEXT)
+        ? translator.translateText(NEXT_IN_ROTATION_TEXT) ||
+          NEXT_IN_ROTATION_TEXT
         : responder.onCallUserName === null
-          ? translator.translateText(NO_ONE_ON_CALL_TEXT)
+          ? translator.translateText(NO_ONE_ON_CALL_TEXT) || NO_ONE_ON_CALL_TEXT
           : responder.onCallUserName || "";
 
       return pages ? `${responder.name} (${pages})` : responder.name;
