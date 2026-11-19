@@ -182,6 +182,7 @@ export class OpenAPIParser {
       );
       this.keepWhatOthersDecideReadOnly(resource);
       resource.schema = this.generateResourceSchema(resource.operationSchemas);
+      this.resolveChangesOnlyWith(resource);
       this.resolveRelations(resource.schema);
       for (const operationSchema of Object.values(resource.operationSchemas)) {
         this.resolveRelations(operationSchema || {});
@@ -1181,6 +1182,77 @@ export class OpenAPIParser {
   }
 
   /*
+   * An attribute that changes only together with a new value of another
+   * (the spec's x-oneuptime-changes-only-with) names that one by its
+   * Terraform name: a monitor secret's secret_type names secret_value. The
+   * resource's ModifyPlan refuses a plan that changes it and keeps that one
+   * (StaticFiles/changestogether.go, #9814), and its documentation says so.
+   *
+   * Both have to change in place, in the update's request: one that cannot
+   * is replaced instead (forceNew), and a companion no update writes could
+   * never come with it. Such a declaration is dropped with a warning, since
+   * the spec and the resource disagree.
+   */
+  private resolveChangesOnlyWith(resource: TerraformResource): void {
+    const updateSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.update || {};
+
+    const changesInPlace: (name: string) => boolean = (
+      name: string,
+    ): boolean => {
+      return (
+        Object.prototype.hasOwnProperty.call(updateSchema, name) &&
+        !resource.schema[name]?.forceNew
+      );
+    };
+
+    for (const [name, attribute] of Object.entries(resource.schema)) {
+      const companionApiName: string | undefined = attribute.changesOnlyWith;
+
+      if (!companionApiName) {
+        continue;
+      }
+
+      const companion: string | undefined = Object.keys(resource.schema).find(
+        (candidate: string): boolean => {
+          return (
+            candidate !== name &&
+            (resource.schema[candidate]?.apiFieldName || candidate) ===
+              companionApiName
+          );
+        },
+      );
+
+      if (!companion || !changesInPlace(name) || !changesInPlace(companion)) {
+        delete attribute.changesOnlyWith;
+        this.warnings.push(
+          `${resource.name}.${name} changes only together with ${companionApiName}, but an update cannot write both, so the plan does not check them together.`,
+        );
+        continue;
+      }
+
+      attribute.changesOnlyWith = companion;
+      attribute.description = [
+        attribute.description || "",
+        OpenAPIParser.describeChangesOnlyWith(name, companion),
+      ]
+        .join(" ")
+        .trim();
+    }
+  }
+
+  /*
+   * What the documentation adds to such an attribute: that a plan changing
+   * it alone fails, and how to change it.
+   */
+  public static describeChangesOnlyWith(
+    attribute: string,
+    companion: string,
+  ): string {
+    return `A plan that changes \`${attribute}\` and keeps \`${companion}\` fails before anything is written: give \`${companion}\` its new value in the same change.`;
+  }
+
+  /*
    * Fields every model carries for the server's own bookkeeping, which say
    * nothing about a live resource: the soft-delete pair (always empty on
    * anything Terraform can read) and the optimistic-locking counter. Shown,
@@ -1435,6 +1507,12 @@ export class OpenAPIParser {
      * answer instead.
      */
     const isShownOnce: boolean = prop["x-oneuptime-shown-once"] === true;
+    /*
+     * Changes only together with a new value of another attribute
+     * (ModelSchema's x-oneuptime-changes-only-with), named here by its API
+     * name: resolveChangesOnlyWith names it by its Terraform name.
+     */
+    const changesOnlyWith: unknown = prop["x-oneuptime-changes-only-with"];
 
     const base: TerraformAttribute = {
       type: "string",
@@ -1455,6 +1533,9 @@ export class OpenAPIParser {
         : {}),
       ...(isSecret ? { sensitive: true } : {}),
       ...(isShownOnce ? { shownOnce: true } : {}),
+      ...(typeof changesOnlyWith === "string" && changesOnlyWith
+        ? { changesOnlyWith }
+        : {}),
     };
 
     /*
