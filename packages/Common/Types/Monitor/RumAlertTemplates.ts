@@ -535,7 +535,8 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
  * pattern: a kiosk fleet, the case these were written for (#9533), has few
  * devices and wants to hear about each crash and each slow start. The
  * performance pair is a Warning, as an app with a large audience on old
- * phones will see some of both; its description says how to raise the bar.
+ * phones will see some of both; such an app raises the count in the
+ * monitor's criteria. A rate over sessions is #9716.
  */
 interface MobileLogEventTemplateData {
   id: string;
