@@ -31,7 +31,9 @@ import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
-import UserMiddleware from "../Middleware/UserAuthorization";
+import UserMiddleware, {
+  RequestSession,
+} from "../Middleware/UserAuthorization";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import LocalSignInClearing from "../Utils/LocalSignInClearing";
 import {
@@ -547,7 +549,8 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const userId: ObjectID = UserAPI.getUserIdFromParams(req);
-          const clearedByUserId: ObjectID = UserAPI.getCurrentUserId(req);
+          const clearedByUserId: ObjectID =
+            await UserAPI.getMasterAdminSessionUserId(req);
 
           const isMasterAdminConfirmed: unknown =
             req.body?.["isMasterAdminConfirmed"];
@@ -676,6 +679,27 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     }
 
     return userId;
+  }
+
+  /*
+   * The master admin a master-admin route was asked by, as their session
+   * names them (UserMiddleware.readRequestSession, as MasterAdminAuthorization
+   * read it before the handler, which sets no userAuthorization for the
+   * handler to read): never an id from the request.
+   */
+  private static async getMasterAdminSessionUserId(
+    req: ExpressRequest,
+  ): Promise<ObjectID> {
+    const session: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    if (session.kind !== "user" || !session.session.userId) {
+      throw new NotAuthenticatedException(
+        "Sign in as a master admin to clear someone's sign-in settings.",
+      );
+    }
+
+    return new ObjectID(session.session.userId.toString());
   }
 
   private static getUserIdFromParams(req: ExpressRequest): ObjectID {

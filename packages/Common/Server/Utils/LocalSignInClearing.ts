@@ -133,7 +133,15 @@ export default class LocalSignInClearing {
     clearedByUserId: ObjectID;
     isMasterAdminConfirmed: boolean;
   }): Promise<ClearLocalSignInAnswer> {
-    if (data.userId.toString() === data.clearedByUserId.toString()) {
+    /*
+     * However the id is spelled: an id is a UUID, which Postgres compares
+     * without regard to case, so "ABC" in the path is the same account as
+     * the session's "abc".
+     */
+    if (
+      data.userId.toString().toLowerCase() ===
+      data.clearedByUserId.toString().toLowerCase()
+    ) {
       throw new BadDataException(CLEAR_OWN_SIGN_IN_MESSAGE);
     }
 

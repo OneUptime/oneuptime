@@ -351,9 +351,13 @@ export default class GlobalConfigAPI extends BaseAPI<
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const clearedByUserId: ObjectID | undefined = (
-            req as OneUptimeRequest
-          ).userAuthorization?.userId;
+          /*
+           * The master admin as their session names them: the middleware
+           * read the session, and sets no userAuthorization for a handler
+           * to read.
+           */
+          const clearedByUserId: ObjectID | null =
+            await GlobalConfigAPI.getSessionUserId(req);
 
           if (!clearedByUserId) {
             throw new NotAuthenticatedException(

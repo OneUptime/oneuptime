@@ -116,7 +116,8 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
 
   // Their own settings are in User Profile, and never cleared from here.
   const isOwnAccount: boolean =
-    UserUtil.getUserId().toString() === modelId.toString();
+    UserUtil.getUserId().toString().toLowerCase() ===
+    modelId.toString().toLowerCase();
 
   const loadStatus: () => Promise<void> = async (): Promise<void> => {
     setIsStatusLoading(true);
