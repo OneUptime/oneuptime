@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "تم التحقق من بريدك الإلكتروني.",
     "successDescription": "شكرًا لك على التحقق من بريدك الإلكتروني. يمكنك الآن تسجيل الدخول إلى OneUptime.",
+    "emailChangedTitle": "تم تغيير عنوان بريدك الإلكتروني.",
+    "emailChangedDescription": "من الآن فصاعدًا، سجّل الدخول إلى OneUptime بعنوان بريدك الإلكتروني الجديد.",
     "errorTitle": "لم يتم التحقق من بريدك الإلكتروني.",
     "alreadyVerifiedPrompt": "تحققت من بريدك الإلكتروني بالفعل؟",
     "loginLink": "سجّل الدخول.",

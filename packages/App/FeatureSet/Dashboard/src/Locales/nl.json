@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Deze beurt is niet in Code gevraagd, dus kan niet opnieuw worden gevraagd. Antwoord in plaats daarvan met wat AI moet doen.",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} taken konden niet opnieuw worden geprobeerd: elke taak zegt hieronder waarom.",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} taak kon niet opnieuw worden geprobeerd: die zegt hieronder waarom.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} heeft OneUptime AI gevraagd het opnieuw te proberen."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} heeft OneUptime AI gevraagd het opnieuw te proberen.",
+  "Cancel Change": "Wijziging annuleren",
+  "Email address change cancelled.": "Wijziging van e-mailadres geannuleerd.",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "Wacht tot u {{email}} bevestigt. Open de link die we naar dat adres hebben gestuurd om het wijzigen van uw e-mailadres af te ronden. Tot die tijd meldt u zich aan met het huidige adres.",
+  "Your email address changes once you open the link we email to the new one.": "Uw e-mailadres verandert zodra u de link opent die we naar het nieuwe adres sturen."
 }

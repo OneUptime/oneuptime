@@ -1867,6 +1867,126 @@ router.post(
   },
 );
 
+/*
+ * What a link that confirms a new address answers once the address is
+ * another account's (#9821). Only its mailbox's owner holds the link.
+ */
+const EMAIL_CHANGE_ADDRESS_TAKEN_MESSAGE: string =
+  "This email address now belongs to another account, so your email address was not changed. Change it again to a different address.";
+
+/*
+ * A link that confirms a new address (#9821): the account it was minted
+ * for is waiting for exactly this address (`newUnverifiedTemporaryEmail`),
+ * so it moves to it - verified, as the link proves the mailbox - and the
+ * link is spent. True once it has answered: the account moved, or another
+ * account took the address meanwhile. False for a link that is not one, or
+ * whose change was cancelled or replaced by a newer one, which the caller
+ * refuses as any link that does not work. The new address's write ends the
+ * reset and sign-in links sent to the old one
+ * (UserService.expirePasswordResetTokensForEmailChange).
+ */
+type ConfirmEmailChangeFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  token: EmailVerificationToken;
+}) => Promise<boolean>;
+
+const confirmEmailChange: ConfirmEmailChangeFunction = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  token: EmailVerificationToken;
+}): Promise<boolean> => {
+  const { req, res, token } = data;
+
+  if (!CredentialGuard.isPresent(token.userId) || !token.email) {
+    return false;
+  }
+
+  const account: User | null = await UserService.findOneById({
+    id: token.userId!,
+    select: {
+      _id: true,
+      newUnverifiedTemporaryEmail: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const pendingAddress: string = account?.newUnverifiedTemporaryEmail
+    ? account.newUnverifiedTemporaryEmail.toString().toLowerCase()
+    : "";
+
+  if (
+    !account?.id ||
+    !pendingAddress ||
+    pendingAddress !== token.email.toString().toLowerCase()
+  ) {
+    return false;
+  }
+
+  try {
+    await UserService.updateOneById({
+      id: account.id,
+      data: {
+        email: token.email,
+        isEmailVerified: true,
+        newUnverifiedTemporaryEmail: null!,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  } catch (err) {
+    /*
+     * Another account took the address between the read above and this
+     * write (the address's unique index refused it): said as it is said
+     * when it was taken before, to the one person who holds the link.
+     */
+    const holder: User | null = await UserService.findOneBy({
+      query: { email: token.email },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (!holder) {
+      throw err;
+    }
+
+    Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException(EMAIL_CHANGE_ADDRESS_TAKEN_MESSAGE),
+    );
+
+    return true;
+  }
+
+  // Spent: the same link changes nothing a second time.
+  await EmailVerificationTokenService.deleteOneBy({
+    query: { _id: token._id! },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  logger.info("Email address changed", {
+    ...getLogAttributesFromRequest(req as RequestLike),
+    userId: account.id.toString(),
+  });
+
+  /*
+   * In the misc data the verify page's request already reads (ModelAPI keeps
+   * `_miscData` beside the token it parses), so the page can say the address
+   * changed rather than that it was verified.
+   */
+  Response.sendEntityResponse(req, res, null, EmailVerificationToken, {
+    miscData: { emailChanged: true },
+  });
+
+  return true;
+};
+
 router.post(
   "/verify-email",
   async (
@@ -1940,13 +2060,41 @@ router.post(
         },
       });
 
+      /*
+       * No account has the address yet: a link that confirms a new address
+       * its own account is waiting for (#9821, EmailChangeConfirmation)
+       * moves the account to it.
+       */
       if (!user) {
+        if (await confirmEmailChange({ req, res, token: alreadySavedToken })) {
+          return;
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
             "Invalid link. Please sign in and we will send you a new link to verify your email.",
           ),
+        );
+      }
+
+      /*
+       * The address belongs to another account than the link's: a change of
+       * address whose address another account has taken since its link was
+       * sent. That account is not verified on this link's strength, and
+       * nothing changes.
+       */
+      if (
+        alreadySavedToken.userId &&
+        user.id &&
+        user.id.toString().toLowerCase() !==
+          alreadySavedToken.userId.toString().toLowerCase()
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(EMAIL_CHANGE_ADDRESS_TAKEN_MESSAGE),
         );
       }
 

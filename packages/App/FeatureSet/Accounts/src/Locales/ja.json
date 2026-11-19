@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "メールが確認されました。",
     "successDescription": "メールを確認していただきありがとうございます。OneUptimeにログインできるようになりました。",
+    "emailChangedTitle": "メールアドレスが変更されました。",
+    "emailChangedDescription": "今後は新しいメールアドレスでOneUptimeにログインしてください。",
     "errorTitle": "メールアドレスは確認されませんでした。",
     "alreadyVerifiedPrompt": "メールアドレスの確認はお済みですか？",
     "loginLink": "ログイン。",

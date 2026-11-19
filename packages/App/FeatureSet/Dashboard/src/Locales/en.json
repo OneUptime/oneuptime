@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} tasks could not be tried again: each says why below.",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} task could not be tried again: it says why below.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} asked OneUptime AI to try again."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} asked OneUptime AI to try again.",
+  "Cancel Change": "Cancel Change",
+  "Email address change cancelled.": "Email address change cancelled.",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.",
+  "Your email address changes once you open the link we email to the new one.": "Your email address changes once you open the link we email to the new one."
 }

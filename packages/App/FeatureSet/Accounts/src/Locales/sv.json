@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "Din e-post är verifierad.",
     "successDescription": "Tack för att du verifierade din e-post. Du kan nu logga in på OneUptime.",
+    "emailChangedTitle": "Din e-postadress har ändrats.",
+    "emailChangedDescription": "Logga in på OneUptime med din nya e-postadress från och med nu.",
     "errorTitle": "Din e-postadress verifierades inte.",
     "alreadyVerifiedPrompt": "Har du redan verifierat din e-postadress?",
     "loginLink": "Logga in.",

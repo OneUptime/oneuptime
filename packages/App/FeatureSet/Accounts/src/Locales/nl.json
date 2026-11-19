@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "Uw e-mail is geverifieerd.",
     "successDescription": "Bedankt voor het verifiëren van uw e-mail. U kunt nu inloggen bij OneUptime.",
+    "emailChangedTitle": "Uw e-mailadres is gewijzigd.",
+    "emailChangedDescription": "Log voortaan in bij OneUptime met uw nieuwe e-mailadres.",
     "errorTitle": "Je e-mailadres is niet geverifieerd.",
     "alreadyVerifiedPrompt": "Heb je je e-mailadres al bevestigd?",
     "loginLink": "Inloggen.",

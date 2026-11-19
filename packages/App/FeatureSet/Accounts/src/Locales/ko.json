@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "이메일이 확인되었습니다.",
     "successDescription": "이메일을 확인해 주셔서 감사합니다. 이제 OneUptime에 로그인할 수 있습니다.",
+    "emailChangedTitle": "이메일 주소가 변경되었습니다.",
+    "emailChangedDescription": "이제부터 새 이메일 주소로 OneUptime에 로그인하세요.",
     "errorTitle": "이메일이 인증되지 않았습니다.",
     "alreadyVerifiedPrompt": "이미 이메일을 인증하셨나요?",
     "loginLink": "로그인.",

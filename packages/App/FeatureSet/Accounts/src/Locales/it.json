@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "La tua e-mail è verificata.",
     "successDescription": "Grazie per aver verificato la tua e-mail. Ora puoi accedere a OneUptime.",
+    "emailChangedTitle": "Il tuo indirizzo email è stato cambiato.",
+    "emailChangedDescription": "D'ora in poi accedi a OneUptime con il tuo nuovo indirizzo email.",
     "errorTitle": "La tua email non è stata verificata.",
     "alreadyVerifiedPrompt": "Hai già verificato la tua email?",
     "loginLink": "Accedi.",

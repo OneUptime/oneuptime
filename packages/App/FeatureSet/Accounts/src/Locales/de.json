@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "Ihre E-Mail ist bestätigt.",
     "successDescription": "Vielen Dank für die Bestätigung Ihrer E-Mail. Sie können sich jetzt bei OneUptime anmelden.",
+    "emailChangedTitle": "Ihre E-Mail-Adresse wurde geändert.",
+    "emailChangedDescription": "Melden Sie sich ab jetzt mit Ihrer neuen E-Mail-Adresse bei OneUptime an.",
     "errorTitle": "Ihre E-Mail-Adresse wurde nicht bestätigt.",
     "alreadyVerifiedPrompt": "Haben Sie Ihre E-Mail-Adresse bereits bestätigt?",
     "loginLink": "Anmelden.",

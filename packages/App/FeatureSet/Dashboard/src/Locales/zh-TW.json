@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "此回合不是在 Code 中提出的，因此無法再次提出。請改為回覆您希望 AI 做什麼。",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} 個任務無法重試：各自的原因見下方。",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 個任務無法重試：各自的原因見下方。",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。"
+  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。",
+  "Cancel Change": "取消變更",
+  "Email address change cancelled.": "已取消變更電子郵件地址。",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "正在等待您確認 {{email}}。請開啟我們寄送到該地址的連結，以完成電子郵件地址的變更。在此之前，您仍使用目前的地址登入。",
+  "Your email address changes once you open the link we email to the new one.": "開啟我們寄送到新地址的連結後，您的電子郵件地址才會變更。"
 }

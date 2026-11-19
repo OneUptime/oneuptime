@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "आपका ईमेल सत्यापित हो गया है।",
     "successDescription": "अपना ईमेल सत्यापित करने के लिए धन्यवाद। अब आप OneUptime में लॉग इन कर सकते हैं।",
+    "emailChangedTitle": "आपका ईमेल पता बदल दिया गया है।",
+    "emailChangedDescription": "अब से अपने नए ईमेल पते से OneUptime में लॉग इन करें।",
     "errorTitle": "आपका ईमेल सत्यापित नहीं हुआ।",
     "alreadyVerifiedPrompt": "क्या आपने अपना ईमेल पहले ही सत्यापित कर लिया है?",
     "loginLink": "लॉग इन करें।",

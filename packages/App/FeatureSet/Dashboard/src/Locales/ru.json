@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Этот ход не был запрошен в Code, поэтому его нельзя запросить снова. Вместо этого ответьте, что должен сделать ИИ.",
   "{{count}} tasks could not be tried again: each says why below.": "Не удалось повторить задачи ({{count}}): у каждой ниже сказано почему.",
   "{{count}} tasks could not be tried again: each says why below._one": "Не удалось повторить {{count}} задачу: ниже сказано почему.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} попросил(а) OneUptime AI повторить попытку."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} попросил(а) OneUptime AI повторить попытку.",
+  "Cancel Change": "Отменить изменение",
+  "Email address change cancelled.": "Смена адреса электронной почты отменена.",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "Ожидаем, что вы подтвердите {{email}}. Откройте ссылку, которую мы отправили на этот адрес, чтобы завершить смену адреса электронной почты. До тех пор вы входите с текущим адресом.",
+  "Your email address changes once you open the link we email to the new one.": "Адрес электронной почты сменится, как только вы откроете ссылку, которую мы отправим на новый адрес."
 }

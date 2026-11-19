@@ -18,6 +18,12 @@ enum EmailTemplateType {
    * address's owner is told, and the page that signed up is not.
    */
   AccountAlreadyExists = "AccountAlreadyExists.hbs",
+  /*
+   * A person's own change of address, to the new address (#9821): a link to
+   * confirm a free one, or word that one another account has cannot be used.
+   */
+  ConfirmEmailChange = "ConfirmEmailChange.hbs",
+  EmailChangeAddressTaken = "EmailChangeAddressTaken.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",

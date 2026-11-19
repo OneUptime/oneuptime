@@ -1,0 +1,39 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="This Address Already Has an Account" }}
+
+{{!--
+  Sent to the new address when someone asks to make it their account's and
+  another account already uses it (#9821, Common's EmailChangeConfirmation).
+  The page that asked says only that it is waiting for a confirmation, as it
+  says for every address, so the person who typed it learns nothing from it;
+  this email, to the address itself, is where it is said. Nothing changed,
+  and there is no link to confirm.
+--}}
+
+{{> InfoBlock info=(concat "Someone asked to use this email address for another " (brandNameHtml) " account. This address already has an account, so it cannot be used for a second one, and nothing was changed.")}}
+
+{{> InfoBlock info="If you asked for this, sign in with this address instead, or use a different address for the other account."}}
+
+{{> ButtonBlock buttonUrl=signInLink buttonText="Sign In"}}
+
+{{> VerticalSpace this}}
+
+{{#if requestedAt}}
+{{> InfoBlock info="Details of the request:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Requested at:" plainText=requestedAt }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+{{/if}}
+
+{{> InfoBlock info="<strong>Didn't ask for this?</strong> You can safely ignore this email. Your account is unchanged, and whoever typed your address was not told that it has an account."}}
+
+{{> SupportBlock this }}
+
+{{> Footer this}}
+
+{{> End this}}

@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Den här turen begärdes inte i Code, så den kan inte begäras igen. Svara i stället med vad du vill att AI ska göra.",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} uppgifter kunde inte försökas igen: Var och en säger varför nedan.",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} uppgift kunde inte försökas igen: Den säger varför nedan.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} bad OneUptime AI att försöka igen."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} bad OneUptime AI att försöka igen.",
+  "Cancel Change": "Avbryt ändring",
+  "Email address change cancelled.": "Bytet av e-postadress avbröts.",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "Väntar på att du bekräftar {{email}}. Öppna länken vi mejlade dit för att slutföra bytet av din e-postadress. Tills dess loggar du in med den nuvarande.",
+  "Your email address changes once you open the link we email to the new one.": "Din e-postadress ändras när du öppnar länken vi mejlar till den nya."
 }

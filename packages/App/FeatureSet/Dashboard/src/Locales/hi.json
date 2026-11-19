@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "यह बारी Code में नहीं माँगी गई थी, इसलिए इसे फिर से नहीं माँगा जा सकता। इसके बजाय जवाब में बताएँ कि आप AI से क्या करवाना चाहते हैं।",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} कार्य फिर से नहीं आज़माए जा सके: हर एक नीचे कारण बताता है।",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} कार्य फिर से नहीं आज़माया जा सका: वह नीचे कारण बताता है।",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} ने OneUptime AI से फिर से प्रयास करने को कहा।"
+  "{{name}} asked OneUptime AI to try again.": "{{name}} ने OneUptime AI से फिर से प्रयास करने को कहा।",
+  "Cancel Change": "बदलाव रद्द करें",
+  "Email address change cancelled.": "ईमेल पता बदलना रद्द कर दिया गया।",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "आपके {{email}} की पुष्टि करने की प्रतीक्षा है। अपना ईमेल पता बदलना पूरा करने के लिए उस पते पर भेजा गया लिंक खोलें। तब तक, आप मौजूदा पते से साइन इन करते हैं।",
+  "Your email address changes once you open the link we email to the new one.": "नए पते पर हमारे भेजे गए लिंक को खोलते ही आपका ईमेल पता बदल जाता है।"
 }

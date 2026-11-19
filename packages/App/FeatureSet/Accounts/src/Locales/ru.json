@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "Ваша электронная почта подтверждена.",
     "successDescription": "Спасибо за подтверждение вашей электронной почты. Теперь вы можете войти в OneUptime.",
+    "emailChangedTitle": "Ваш адрес электронной почты изменён.",
+    "emailChangedDescription": "Теперь входите в OneUptime с новым адресом электронной почты.",
     "errorTitle": "Ваш адрес электронной почты не подтверждён.",
     "alreadyVerifiedPrompt": "Уже подтвердили адрес электронной почты?",
     "loginLink": "Войти.",

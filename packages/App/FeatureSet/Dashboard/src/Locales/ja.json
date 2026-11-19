@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "このターンは Code で依頼されたものではないため、もう一度依頼することはできません。代わりに、AI にしてほしいことを返信してください。",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} 件のタスクを再試行できませんでした: それぞれの理由は下に表示されています。",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 件のタスクを再試行できませんでした: それぞれの理由は下に表示されています。",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} さんが OneUptime AI に再試行を依頼しました。"
+  "{{name}} asked OneUptime AI to try again.": "{{name}} さんが OneUptime AI に再試行を依頼しました。",
+  "Cancel Change": "変更をキャンセル",
+  "Email address change cancelled.": "メールアドレスの変更をキャンセルしました。",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "{{email}} の確認を待っています。メールアドレスの変更を完了するには、そのアドレスに送信したリンクを開いてください。それまでは、現在のメールアドレスでサインインします。",
+  "Your email address changes once you open the link we email to the new one.": "新しいアドレスに送信するリンクを開くと、メールアドレスが変更されます。"
 }

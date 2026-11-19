@@ -246,6 +246,8 @@
   "verifyEmail": {
     "successTitle": "您的電子郵件已驗證。",
     "successDescription": "感謝您驗證您的電子郵件。您現在可以登入 OneUptime。",
+    "emailChangedTitle": "您的電子郵件地址已變更。",
+    "emailChangedDescription": "從現在起，請使用新的電子郵件地址登入 OneUptime。",
     "errorTitle": "您的電子郵件地址未通過驗證。",
     "alreadyVerifiedPrompt": "已經驗證過電子郵件？",
     "loginLink": "登入。",

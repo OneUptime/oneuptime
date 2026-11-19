@@ -58188,5 +58188,9 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "این نوبت در Code درخواست نشده بود، پس نمی‌توان دوباره آن را درخواست کرد. به جای آن، پاسخ دهید که می‌خواهید هوش مصنوعی چه کند.",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: هر کدام در پایین می‌گوید چرا.",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: در پایین می‌گوید چرا.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} از OneUptime AI خواست دوباره تلاش کند."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} از OneUptime AI خواست دوباره تلاش کند.",
+  "Cancel Change": "انصراف از تغییر",
+  "Email address change cancelled.": "تغییر نشانی ایمیل لغو شد.",
+  "Waiting for you to confirm {{email}}. Open the link we emailed there to finish changing your email address. Until then, you sign in with this one.": "در انتظار تأیید {{email}} از سوی شما. پیوندی را که به این نشانی ایمیل کرده‌ایم باز کنید تا تغییر نشانی ایمیلتان کامل شود. تا آن زمان، با نشانی کنونی وارد می‌شوید.",
+  "Your email address changes once you open the link we email to the new one.": "نشانی ایمیل شما زمانی تغییر می‌کند که پیوندی را که به نشانی جدید می‌فرستیم باز کنید."
 }
