@@ -739,7 +739,6 @@ describe("Ceph OSD list", () => {
 
   test.each([
     ['title: "In / Out", key: "in"', "osdInOutColumn"],
-    ['title: "Used / Total", key: "used"', "osdUsedColumn"],
     ['title: "PGs", key: "pgs"', "osdPgsColumn"],
     ['title: "Apply / Commit Latency", key: "latency"', "osdLatencyColumn"],
   ] as Array<[string, CephMetric]>)(
@@ -750,6 +749,16 @@ describe("Ceph OSD list", () => {
       );
     },
   );
+
+  // The shared Used and Free columns (#9646), each with its own (i).
+  test("the shared storage columns carry their descriptions", () => {
+    expect(code).toContain(
+      "storageUsageColumns={{ usedDescription: CEPH_METRIC_DESCRIPTIONS.osdUsedColumn, freeDescription: CEPH_METRIC_DESCRIPTIONS.osdFreeColumn, }}",
+    );
+    expect(segment(code, 'title: "Capacity",', "},")).toContain(
+      'foldInto: "storageUsage",',
+    );
+  });
 
   test("the built-in Status column is explained, and Class is not a metric", () => {
     expect(code).toContain(
@@ -833,7 +842,6 @@ describe("Ceph OSD list", () => {
     expect(code).not.toMatch(/row\.(statBytes|pgCount|applyLatencyMs)\b/);
     expect(CEPH_READINGS_STALE_MS).toBe(15 * 60 * 1000);
     for (const key of [
-      "osdUsedColumn",
       "osdPgsColumn",
       "osdLatencyColumn",
     ] as Array<CephMetric>) {
@@ -841,6 +849,10 @@ describe("Ceph OSD list", () => {
         "has not reported in the last 15 minutes",
       );
     }
+    // Used says it in words where a figure would be a dash.
+    expect(CEPH_METRIC_DESCRIPTIONS.osdUsedColumn).toContain(
+      "Not reported when the OSD sent nothing for 15 minutes",
+    );
   });
 
   // A row's status, and its cells' colours, are the rules'.
@@ -848,7 +860,8 @@ describe("Ceph OSD list", () => {
     expect(code).toContain(
       "assessCephOsd(row, { now: now, newestSeenAt: newestSeenAt }),",
     );
-    expect(code).toContain("return getCephOsdUsedTone(");
+    // How full it is: the shared reading at Ceph's ratios (CephPartFacts).
+    expect(code).toContain("usage: getCephOsdStorageUsage(readings),");
     expect(code).toContain("return getCephOsdLatencyTone(");
   });
 });
@@ -857,9 +870,6 @@ describe("Ceph pool list", () => {
   const code: string = readCode(PAGES["cephPools"]!);
 
   test.each([
-    ['title: "Used", key: "usedPercent"', "poolUsedColumn"],
-    ['title: "Stored", key: "stored"', "poolStoredColumn"],
-    ['title: "Max Avail", key: "maxAvail"', "poolMaxAvailColumn"],
     ['title: "PGs", key: "pgs"', "poolPgsColumn"],
     ['title: "Objects", key: "objects"', "poolObjectsColumn"],
     ['title: "Read IOPS", key: "readIops"', "poolReadIopsColumn"],
@@ -873,6 +883,13 @@ describe("Ceph pool list", () => {
     },
   );
 
+  // The shared Used and Free columns (#9646): STORED used, MAX AVAIL free.
+  test("the shared storage columns carry their descriptions", () => {
+    expect(code).toContain(
+      "storageUsageColumns={{ usedDescription: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn, freeDescription: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn, }}",
+    );
+  });
+
   test("the built-in Status column is explained, and the list draws no Age", () => {
     expect(code).toContain(
       "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.poolStatusColumn, }}",
@@ -885,12 +902,9 @@ describe("Ceph pool list", () => {
    * Folded under the name, Objects left a long pool name a column too
    * narrow to read ("cephfs_metad" / "ata") and cut its own count.
    */
-  test("Max Avail and Objects fold under Stored, and nothing folds under the name", () => {
-    expect(segment(code, 'title: "Max Avail",', "},")).toContain(
-      'foldInto: "stored",',
-    );
+  test("Objects folds under how full the pool is, and nothing folds under the name", () => {
     expect(segment(code, 'title: "Objects",', "},")).toContain(
-      'foldInto: "stored",',
+      'foldInto: "storageUsage",',
     );
     expect(code).not.toContain('foldInto: "name"');
   });
@@ -907,7 +921,7 @@ describe("Ceph pool list", () => {
       "assessCephPool(row, { now: now, newestSeenAt: newestSeenAt, pgStates: pgStates, }),",
     );
     expect(code).toContain("loadCephPgStates(clusterName)");
-    expect(code).toContain("return getCephPoolUsedTone(");
+    expect(code).toContain("usage: getCephPoolStorageUsage(readings),");
   });
 });
 

@@ -62,7 +62,6 @@ export type CephMetric =
   | "osdLatencyTile"
   // Pool list (Pages/Ceph/View/Pools.tsx)
   | "poolStatusColumn"
-  | "poolStoredColumn"
   | "poolMaxAvailColumn"
   | "poolUsedColumn"
   | "poolPgsColumn"
@@ -174,9 +173,6 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   ),
   poolStatusColumn: translationKey(
     "Available while the pool reports; amber past 85% of its writable space or with degraded or undersized placement groups, red past 95% or with inactive ones, with why under it. Stopped reporting, in grey, for a pool Ceph no longer lists: it was deleted.",
-  ),
-  poolStoredColumn: translationKey(
-    "Data stored in the pool, by Ceph's STORED figure: what clients wrote, before replication copies. Shows a dash if the pool has not reported in the last 15 minutes.",
   ),
   poolMaxAvailColumn: translationKey(
     "How much more data Ceph estimates can be written to the pool, allowing for its replication and for the fullest OSDs it uses.",
