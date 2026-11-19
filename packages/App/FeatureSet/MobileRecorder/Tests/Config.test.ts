@@ -322,6 +322,34 @@ describe("mobile recorder configuration", () => {
     ).toBe(false);
   });
 
+  /*
+   * Readable event properties (issue #7501): none unless the policy lists
+   * some, read as the traits product analytics keeps are; a policy that
+   * fails closed lists none.
+   */
+  test("reads the readable event property keys, and none unless the policy lists them", () => {
+    expect(
+      normalizeReplayConfig(enabledConfig()).readableEventPropertyKeys,
+    ).toEqual([]);
+    expect(
+      normalizeReplayConfig(
+        enabledConfig({
+          readableEventPropertyKeys: [" step ", "step", "setup", "", 3],
+        }),
+      ).readableEventPropertyKeys,
+    ).toEqual(["step", "setup"]);
+
+    for (const hostile of ["step", 1, { step: true }, null]) {
+      expect(
+        normalizeReplayConfig(
+          enabledConfig({ readableEventPropertyKeys: hostile }),
+        ).readableEventPropertyKeys,
+      ).toEqual([]);
+    }
+
+    expect(normalizeReplayConfig(null).readableEventPropertyKeys).toEqual([]);
+  });
+
   test("always collapses server masking to strict mobile wireframes", () => {
     const config: ResolvedReplayConfig = normalizeReplayConfig(enabledConfig());
     expect(config.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
@@ -598,6 +626,31 @@ describe("remembered policy for offline launches", () => {
     expect(
       (await loadCachedReplayConfig(storage, NAMESPACE, NOW))?.productAnalytics,
     ).toEqual({ enabled: false, userPropertyKeys: [] });
+  });
+
+  test("remembers the readable event property keys, and a policy from before them reads none", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+    const withKeys: ResolvedReplayConfig = normalizeReplayConfig(
+      enabledConfig({ readableEventPropertyKeys: ["step"] }),
+    );
+
+    await saveReplayConfig(storage, NAMESPACE, withKeys, NOW);
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))
+        ?.readableEventPropertyKeys,
+    ).toEqual(["step"]);
+
+    const remembered: Record<string, unknown> = { ...withKeys };
+    delete remembered["readableEventPropertyKeys"];
+
+    storage.values.set(
+      replayConfigCacheKey(NAMESPACE),
+      JSON.stringify({ savedAtUnixMs: NOW, config: remembered }),
+    );
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))
+        ?.readableEventPropertyKeys,
+    ).toEqual([]);
   });
 
   test("forgets on request, and never throws when storage does", async () => {

@@ -164,9 +164,11 @@ describe("bundle hygiene", (): void => {
      * after, 99229 before), 103 KB since product analytics events
      * (2026-11-10, issue #6444: 104156 gzip after, 101329 before), 105 KB
      * since Retry-After is read as RFC 9110 writes it (2026-11-16, issue
-     * #8928: 106276 gzip after, 105353 before); esbuild.config.js carries
-     * the measurements and the itemised reasons. Asserted here as well as
-     * there on purpose - see the loader note below.
+     * #8928: 106276 gzip after, 105353 before), and held there through the
+     * replay policy's page rules and readable event properties (2026-11-19,
+     * issues #7502, #7501, #8019: 106688 gzip after, 106391 before);
+     * esbuild.config.js carries the measurements and the itemised reasons.
+     * Asserted here as well as there on purpose - see the loader note below.
      */
     expect(recorderGzip).toBeLessThanOrEqual(105 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
@@ -249,8 +251,11 @@ describe("bundle hygiene", (): void => {
      * Token and a twice-escaped address, and a page pattern reads "/café"
      * (2026-11-15, issues #8384, #8385, #8195: 352794 bytes after, 352562
      * before), 348 KB since Retry-After is read as RFC 9110 writes it
-     * (2026-11-16, issue #8928: 354855 bytes after, 352802 before);
-     * esbuild.config.js carries the measurements and the reasons.
+     * (2026-11-16, issue #8928: 354855 bytes after, 352802 before), and
+     * held there through the replay policy's page rules and readable event
+     * properties, which the code the recorder no longer carries paid for
+     * (2026-11-19, issues #7502, #7501, #8019: 356274 bytes after, 355297
+     * before); esbuild.config.js carries the measurements and the reasons.
      */
     expect(recorderBundle.length).toBeLessThan(348 * 1024);
   });

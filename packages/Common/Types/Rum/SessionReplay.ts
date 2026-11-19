@@ -5,6 +5,7 @@ import {
   SessionReplayCustomSignalCount,
   SessionReplayFrustrationSignalsConfig,
 } from "./SessionReplayFrustrationSignals";
+import { SessionReplayPageRules } from "./SessionReplayPageRules";
 
 /*
  * Wire contract between the browser (and later mobile) recorder and the
@@ -228,7 +229,7 @@ export const SESSION_REPLAY_MAX_FLUSH_FAILURES: number = 3;
  * clientSendUnixMs minus its end is how long it sat in that queue, measured
  * on the device's own clock, and ingest allows exactly that much extra
  * lateness before it stops trusting the recording's start time (see
- * SessionIdentity.getClientQueueDelayMs). Without it every chunk that
+ * SessionReplayIngestBounds.getClientQueueDelayMs). Without it every chunk that
  * arrived more than four hours after it was recorded was pinned to "four
  * hours before it arrived".
  *
@@ -1019,6 +1020,27 @@ export interface SessionReplayConfigResponse {
     enabled: boolean;
     userPropertyKeys: Array<string>;
   };
+
+  /*
+   * The pages of a website a recording may hold (issue #7502): the
+   * policy's Record only these pages and Never record these pages, as
+   * patterns of paths (SessionReplayPageRules). The browser recorder pauses
+   * on a page they keep out - at load, and the moment the address changes,
+   * before the router draws the page - and names it nowhere: not as a
+   * route, not as the page a chunk was sent from. Optional like the fields
+   * above: absent, every page is recorded, as before; there but unreadable,
+   * none is. The server always sends it.
+   */
+  pageRules?: SessionReplayPageRules;
+
+  /*
+   * Readable event properties (issue #7501): the track() property and
+   * metric() attribute keys whose values stay as written under every
+   * masking mode while they are short tokens
+   * (SessionReplayReadableProperties). Optional: absent, every value is
+   * masked as before. Never a trait: identify() traits stay masked.
+   */
+  readableEventPropertyKeys?: Array<string>;
 
   respectDoNotTrack: boolean;
 
