@@ -6,6 +6,11 @@ import {
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
 import { BiReadKeptStateError } from "../../../../Server/Utils/DataObservability/Bi/BiReadState";
 import {
+  MAX_POWER_BI_READ_STATE_LENGTH,
+  PowerBiReadState,
+  readPowerBiReadState,
+} from "../../../../Server/Utils/DataObservability/Bi/PowerBiReadState";
+import {
   BiTableRef,
   getBiTableName,
 } from "../../../../Server/Utils/DataObservability/Bi/BiTables";
@@ -15,8 +20,10 @@ import {
   getPowerBiUpstream,
   PowerBiDataset,
   PowerBiScanRead,
+  PowerBiWorkspaceRead,
   readPowerBiDatasource,
   readPowerBiScan,
+  readPowerBiWorkspaces,
   readSafeLocation,
 } from "../../../../Server/Utils/DataObservability/Bi/PowerBiScan";
 import { DataBiSource } from "../../../../Types/DataObservability/DataBiLineage";
@@ -1355,6 +1362,368 @@ describe("Power BI's reader, scanning only what changed", () => {
 
     expect(listing(fake)).not.toContain("modifiedSince");
     expect(fake.scanned).toEqual([["sales"]]);
+  });
+
+  // Every listing a read asked for: the whole tenant's, then the changes', where it asked both.
+  function listings(fake: Tenant): Array<string> {
+    return fake.requests
+      .filter((url: string): boolean => {
+        return url.includes("/admin/workspaces/modified");
+      })
+      .map((url: string): string => {
+        return url.includes("modifiedSince=")
+          ? decodeURIComponent(url.split("modifiedSince=")[1]!.split("&")[0]!)
+          : "whole";
+      });
+  }
+
+  /*
+   * The daily read scanned every workspace again (#9901). It lists the
+   * whole tenant still, which drops what is gone, and asks what changed:
+   * it scans that, what is new, and the seventh of the rest whose scans
+   * are oldest, and every other workspace keeps its last scan.
+   */
+  test("the daily read lists the whole tenant and what changed: it scans what changed, what is new and the oldest seventh, and drops a deleted workspace (#9901)", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+      workspaceOf("hr", ["Headcount"]),
+      workspaceOf("ops", ["Uptime"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined, true);
+
+    fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast"]),
+    );
+    fake.workspaces.delete("hr");
+    fake.workspaces.set("legal", workspaceOf("legal", ["Contracts"]));
+    fake.changed = ["finance", "legal"];
+
+    const daily: Date = new Date(START.getTime() + 24 * HOUR);
+    const read: BiToolRead = await readAt(fake, daily, first.readState, true);
+
+    expect(listings(fake)).toEqual([
+      "whole",
+      new Date(START.getTime() - 30 * 60 * 1000).toISOString(),
+    ]);
+    // Not hr, which is gone, nor ops, which keeps its scan; sales is the oldest seventh of the two unchanged.
+    expect(fake.scanned).toEqual([["finance", "legal", "sales"]]);
+    expect(reportNames(read)).toEqual([
+      "Pipeline",
+      "Budget",
+      "Forecast",
+      "Uptime",
+      "Contracts",
+    ]);
+    expect(read.readState).toMatchObject({
+      fullScanAt: daily.toISOString(),
+      hasEveryWorkspace: true,
+    });
+
+    // The next hour is an hourly read again: only what changed.
+    fake.changed = [];
+
+    await readAt(fake, new Date(daily.getTime() + HOUR), read.readState, true);
+
+    expect(listings(fake)).toEqual([
+      new Date(daily.getTime() - 30 * 60 * 1000).toISOString(),
+    ]);
+    expect(fake.scanned).toEqual([]);
+  });
+
+  test("the daily read picks up the scan the hour before left running: unchanged since, its result is read and no scan starts for it; changed since, it is scanned anew (#9901)", async () => {
+    const setUp: () => Promise<{
+      fake: Tenant;
+      waited: BiToolRead;
+    }> = async (): Promise<{ fake: Tenant; waited: BiToolRead }> => {
+      const fake: Tenant = tenant([
+        workspaceOf("sales", ["Pipeline"]),
+        workspaceOf("finance", ["Budget"]),
+      ]);
+      const first: BiToolRead = await readAt(fake, START, undefined, true);
+
+      fake.workspaces.set(
+        "finance",
+        workspaceOf("finance", ["Budget", "Forecast"]),
+      );
+      fake.changed = ["finance"];
+      fake.slow.add("finance");
+
+      const waited: BiToolRead = await readAt(
+        fake,
+        new Date(START.getTime() + 23 * HOUR),
+        first.readState,
+        true,
+      );
+
+      fake.slow.clear();
+
+      return { fake, waited };
+    };
+    const daily: Date = new Date(START.getTime() + 24 * HOUR);
+    const unchanged: { fake: Tenant; waited: BiToolRead } = await setUp();
+
+    expect(unchanged.waited.readState).toMatchObject({
+      pendingScans: [{ scanId: "scan-2", workspaceIds: ["finance"] }],
+    });
+
+    unchanged.fake.changed = [];
+
+    const picked: BiToolRead = await readAt(
+      unchanged.fake,
+      daily,
+      unchanged.waited.readState,
+      true,
+    );
+
+    // Before, the daily read scanned finance again and left this result unread.
+    expect(asked(unchanged.fake, "/scanResult/")).toContain("scan-2");
+    expect(unchanged.fake.scanned).toEqual([["sales"]]);
+    expect(reportNames(picked)).toEqual(["Pipeline", "Budget", "Forecast"]);
+    expect(picked.readState).toMatchObject({ pendingScans: [] });
+
+    // Changed again since the scan started: scanned anew, the old scan followed to its end and left unread.
+    const changedAgain: { fake: Tenant; waited: BiToolRead } = await setUp();
+
+    changedAgain.fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast", "Cash"]),
+    );
+    changedAgain.fake.changed = ["finance"];
+
+    const rescanned: BiToolRead = await readAt(
+      changedAgain.fake,
+      daily,
+      changedAgain.waited.readState,
+      true,
+    );
+
+    expect(changedAgain.fake.scanned).toEqual([["finance", "sales"]]);
+    expect(asked(changedAgain.fake, "/scanStatus/")).toContain("scan-2");
+    expect(asked(changedAgain.fake, "/scanResult/")).not.toContain("scan-2");
+    expect(reportNames(rescanned)).toEqual([
+      "Pipeline",
+      "Budget",
+      "Forecast",
+      "Cash",
+    ]);
+  });
+
+  test("a read whose wait runs out starts no scan beside the 16 still running: the workspaces left are scanned first by the next read (#9901)", async () => {
+    const fake: Tenant = tenant(
+      Array.from({ length: 1_700 }, (_: unknown, index: number): JSONObject => {
+        return workspaceOf(`w${String(index).padStart(4, "0")}`, [
+          `Report ${index}`,
+        ]);
+      }),
+    );
+
+    fake.slow = new Set(fake.workspaces.keys());
+
+    let kept: BiReadKeptStateError | null = null;
+
+    try {
+      await readAt(fake, START, undefined, true);
+    } catch (error) {
+      kept = error as BiReadKeptStateError;
+    }
+
+    // Before, every chunk left was started as the wait ran out: 17 at once.
+    expect(fake.scanned).toHaveLength(16);
+    expect(kept).toBeInstanceOf(BiReadKeptStateError);
+
+    const left: Array<string> = Array.from(fake.workspaces.keys()).slice(1_600);
+
+    expect(kept!.readState).toMatchObject({ pendingWorkspaceIds: left });
+    expect((kept!.readState!["pendingScans"] as Array<JSONObject>).length).toBe(
+      16,
+    );
+
+    fake.slow.clear();
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      kept!.readState,
+      true,
+    );
+
+    expect(fake.scanned).toEqual([left]);
+    expect(next.dashboards).toHaveLength(1_700);
+  });
+
+  /*
+   * A tenant whose state was past 8,000,000 characters kept nothing: it
+   * was scanned whole at every read, and its scans still running were
+   * dropped with the rest (#9901). 24 workspaces of 2,000 reports each
+   * are past it; a read shows 2,000.
+   */
+  test("a tenant too big to keep whole keeps its workspaces trimmed and its scans still running: the next read picks them up, and the dashboards shown stay while they run (#9901)", async () => {
+    const names: (id: string) => Array<string> = (
+      id: string,
+    ): Array<string> => {
+      return Array.from({ length: 2_000 }, (_: unknown, index: number) => {
+        return `${id} report ${String(index).padStart(4, "0")}`;
+      });
+    };
+    const big: Array<string> = Array.from(
+      { length: 24 },
+      (_: unknown, index: number): string => {
+        return `big${String(index).padStart(2, "0")}`;
+      },
+    );
+    const fake: Tenant = tenant(
+      big.map((id: string): JSONObject => {
+        return workspaceOf(id, names(id));
+      }),
+    );
+    // Kept whole, the tenant is past the length: about 10 MB.
+    expect(
+      JSON.stringify(
+        readPowerBiWorkspaces([
+          { workspaces: Array.from(fake.workspaces.values()) },
+        ]),
+      ).length,
+    ).toBeGreaterThan(MAX_POWER_BI_READ_STATE_LENGTH);
+
+    const first: BiToolRead = await readAt(fake, START, undefined, true);
+    const firstState: PowerBiReadState = readPowerBiReadState(first.readState)!;
+
+    expect(JSON.stringify(first.readState).length).toBeLessThanOrEqual(
+      MAX_POWER_BI_READ_STATE_LENGTH,
+    );
+    expect(firstState.hasEveryWorkspace).toBe(true);
+    // The first workspace's 2,000 reports are those shown: it is kept whole, the others trimmed.
+    expect(
+      firstState.workspaces.map((each: PowerBiWorkspaceRead): boolean => {
+        return Boolean(each.trimmed);
+      }),
+    ).toEqual([false, ...Array(23).fill(true)]);
+    expect(first.dashboards).toHaveLength(2_000);
+
+    // The shown workspace changes, and its scan outlasts the wait.
+    fake.workspaces.set(
+      "big00",
+      workspaceOf("big00", ["Fresh", ...names("big00").slice(1)]),
+    );
+    fake.changed = ["big00"];
+    fake.slow.add("big00");
+
+    const waited: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    // Still a read of what changed, and the dashboards shown stay as they were read.
+    expect(listings(fake)).toHaveLength(1);
+    expect(listings(fake)[0]).not.toBe("whole");
+    expect(waited.dashboards).toHaveLength(2_000);
+    expect(waited.dashboards[0]!.name).toBe("big00 report 0000");
+    expect(readPowerBiReadState(waited.readState)).toMatchObject({
+      hasEveryWorkspace: true,
+      pendingScans: [{ scanId: "scan-2", workspaceIds: ["big00"] }],
+    });
+
+    // Power BI finishes it after the read stopped waiting: the next read reads it, and starts no scan.
+    fake.slow.clear();
+    fake.changed = [];
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 2 * HOUR),
+      waited.readState,
+      true,
+    );
+
+    expect(fake.scanned).toEqual([]);
+    expect(asked(fake, "/scanResult/")).toEqual(["scan-2"]);
+    expect(next.dashboards[0]!.name).toBe("Fresh");
+    expect(readPowerBiReadState(next.readState)!.pendingScans).toEqual([]);
+  });
+
+  /*
+   * The last step a state too big to keep lets go by keeps no workspace,
+   * only the scans still running (#9901): the next read lists the tenant
+   * whole and scans each workspace, but those a scan it picks up gives.
+   */
+  test("a state that keeps no workspace lists the tenant whole and picks up its scans, and a read that could read nothing changes no dashboard (#9901)", async () => {
+    const partialState: JSONObject = {
+      version: 2,
+      scannedFrom: START.toISOString(),
+      fullScanAt: START.toISOString(),
+      hasEveryWorkspace: false,
+      workspaces: [],
+      pendingWorkspaceIds: [],
+      pendingScans: [
+        {
+          scanId: "scan-1",
+          workspaceIds: ["sales"],
+          startedAt: START.toISOString(),
+        },
+      ],
+      dataflows: {},
+      dataflowExports: [],
+    };
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+
+    fake.scans.set("scan-1", ["sales"]);
+
+    const read: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      partialState,
+      false,
+    );
+
+    expect(listings(fake)).toEqual([
+      "whole",
+      new Date(START.getTime() - 30 * 60 * 1000).toISOString(),
+    ]);
+    // sales comes from the scan picked up; finance, which nothing kept, is scanned.
+    expect(fake.scanned).toEqual([["finance"]]);
+    expect(asked(fake, "/scanResult/")).toEqual(["scan-1", "scan-2"]);
+    expect(reportNames(read)).toEqual(["Pipeline", "Budget"]);
+    expect(read.readState).toMatchObject({ hasEveryWorkspace: true });
+
+    // Neither could be read this time: the read fails, so no dashboard is deleted, and keeps the scans.
+    const slowFake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+
+    slowFake.scans.set("scan-1", ["sales"]);
+    slowFake.slow = new Set(["sales", "finance"]);
+
+    let kept: BiReadKeptStateError | null = null;
+
+    try {
+      await readAt(
+        slowFake,
+        new Date(START.getTime() + HOUR),
+        partialState,
+        true,
+      );
+    } catch (error) {
+      kept = error as BiReadKeptStateError;
+    }
+
+    expect(kept).toBeInstanceOf(BiReadKeptStateError);
+    expect(kept!.message).toBe(
+      "Power BI was still scanning 2 workspaces when the read stopped waiting after 20 minutes. The next read reads those scans once Power BI has finished them, and until then the workspaces show what was read before.",
+    );
+    expect(
+      (kept!.readState!["pendingScans"] as Array<JSONObject>).map(
+        (scan: JSONObject): unknown => {
+          return scan["scanId"];
+        },
+      ),
+    ).toEqual(["scan-1", "scan-2"]);
   });
 });
 
