@@ -604,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Questo da solo è un'installazione completa: il chart include il motore open source [OpenCost](https://opencost.io) (con il piccolo Prometheus che gli serve) e calcola il prezzo dei tuoi nodi e volumi dai prezzi di listino pubblici del tuo provider cloud, senza credenziali. Aggiunge tre piccoli pod, e i primi costi compaiono dopo la prima ora chiusa. Per disattivarla, imposta `--set cost.enabled=false` allo stesso modo. Usi già Kubecost o OpenCost? Aggiungi invece `--set cost.engine.url=<its service URL>`, e non viene incluso nulla. I cluster on-premise possono impostare un listino prezzi con `cost.opencost.customPricing`. La guida completa, con i prezzi on-premise e la risoluzione dei problemi, è [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost).
+Questo da solo è un'installazione completa: il chart include il motore open source [OpenCost](https://opencost.io) (con il piccolo Prometheus che gli serve) e calcola il prezzo dei tuoi nodi e volumi dai prezzi di listino pubblici del tuo provider cloud, senza credenziali. Aggiunge tre piccoli pod, e i primi costi compaiono dopo la prima ora chiusa. Per disattivarla, imposta `--set cost.enabled=false` allo stesso modo. Usi già Kubecost o OpenCost? L'agent dei costi lo trova e lo legge al posto di quello incluso; aggiungi `--set cost.engine.url=auto` per non includere più un secondo motore. I cluster on-premise possono impostare un listino prezzi con `cost.opencost.customPricing`. La guida completa, con i prezzi on-premise e la risoluzione dei problemi, è [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost).
 
 ### Etichettatura automatica con le etichette di progetto
 

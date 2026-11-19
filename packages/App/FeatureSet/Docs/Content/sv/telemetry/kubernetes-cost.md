@@ -5,7 +5,7 @@ Se vad varje Kubernetes-arbetsbelastning kostar — utgifter per namespace, arbe
 :::cards
 - [Slå på det](#slå-på-kostnadsobserverbarhet): På som standard; en enda `helm upgrade` där det inte är det.
 - [Larm på kostnader](#larm-på-kostnader): Kostnad per kluster, namespace och arbetsbelastning, som mätvärden.
-- [Använd din egen motor](#kör-du-redan-kubecost-eller-opencost): Peka agenten mot Kubecost eller OpenCost.
+- [Din egen motor](#kör-du-redan-kubecost-eller-opencost): Kubecost eller OpenCost som du redan kör hittas och läses.
 - [Right-sizing](#right-sizing): Rekommendationer för requests, och hur de tas fram.
 - [Felsökning](#felsökning): Tomma sidor, saknade rekommendationer.
 :::
@@ -63,28 +63,33 @@ De första kostnaderna visas efter att den första hela timmen har avslutats, oc
 
 Kostnadsmätvärdena (`node_total_hourly_cost`, `pv_hourly_cost` och resten) är vanliga mätvärden: de finns i mätvärdesutforskaren, på anpassade instrumentpaneler och i mätvärdesmonitorer. För en färdig instrumentpanel går du till **Produkter → Instrumentpaneler**, väljer **Skapa instrumentpanel** och väljer **Kubernetes Cost Dashboard**: trender för nodernas timkostnad, enhetskostnader för CPU och minne, och utgifter för volymer och lastbalanserare.
 
+Under siffrorna visar översikten och sidan **Kostnader** var priserna kommer ifrån: en molnleverantörs listpriser, din prislista eller OpenCosts standardpriser. Effektivitet är en och samma siffra överallt, effektivitetsmätvärdet inräknat: hur stor del av den begärda CPU:n och det begärda minnet som användes, där varje containers timme viktas efter vad dess CPU och minne kostar, så att ett billigt jobb som inte använder något inte kan dra ned ett välutnyttjat kluster, och ledig kapacitet räknas inte med.
+
 ## Kör du redan Kubecost eller OpenCost?
 
-Peka agenten mot din egen motor i stället, så medföljer ingenting:
+Kostnadsagenten hittar din motor och läser den i stället för den medföljande OpenCost, så att klustret prissätts så som du har konfigurerat det: med din prislista, eller med din molnfaktura som Kubecost är kopplat till. Den letar när den startar, och sedan varje timme, via Kubernetes-API:t efter de Services som motorernas egna charts skapar i valfritt namespace (Kubecosts `cost-analyzer` eller `frontend`, OpenCosts chart och den Service `opencost` som OpenCosts manifest skapar), med Kubecost först. Den hoppar över en motor som inte svarar, kräver inloggning eller svarar för flera kluster, och läser då den medföljande.
+
+Klustrets översikt namnger sedan din motor och säger att den medföljande OpenCost inte behövs. Sluta köra den:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+Med `cost.engine.url=auto` medföljer ingenting, och agenten läser din motor var den än körs; utan någon installerad motor prissätts ingenting. Chartet kan inte själv leta efter en motor: Helms funktion `lookup` ser ingenting under `helm template`, Argo CD eller en provkörning. För att behålla den medföljande OpenCost bredvid din egen motor sätter du `cost.engine.preferExisting=false`; för att ange vilken motor som ska läsas sätter du `cost.engine.url` till dess Service:
 
 | Motor | Vanlig tjänst-URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Sökvägen till Allocation API hittas av sig själv (`/model/allocation` för Kubecost, `/allocation/compute` eller `/allocation` för OpenCost). Sätt `cost.engine.allocationPath` bara för en ovanlig installation. För minnesrekommendationer sätter du också `cost.engine.prometheusUrl` (se [Data bakom](#data-bakom)).
+Sökvägen till Allocation API hittas av sig själv (`/model/allocation` för Kubecost, `/allocation/compute` eller `/allocation` för OpenCost). Sätt `cost.engine.allocationPath` bara för en ovanlig installation. Med `auto` eller en URL medföljer ingenting, så för minnesrekommendationer sätter du också `cost.engine.prometheusUrl` (se [Data bakom](#data-bakom)).
 
 ## Prissättning för lokala kluster och bare metal
 
-Kluster vars noder inte har något offentligt listpris i molnet kan sätta en prislista. OpenCost prissätter då varje resurs utifrån dessa siffror, alla i USD per resurstimme:
+Kluster vars noder inte har något offentligt listpris i molnet kan sätta en prislista. Utan prislista prissätter OpenCost dem efter sina standardpriser (lokala kluster, bare metal, kind, k3s), som kan ligga långt från vad din hårdvara kostar, och det säger klustrets översikt och sidan **Kostnader** också; i ett moln som den känner igen behåller en nod sitt listpris, och en prislista prissätter bara det som listan saknar. Med en prislista prissätter OpenCost då varje resurs utifrån dessa siffror, alla i USD per resurstimme:
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+Det här är OpenCosts egna standardpriser: fyll i dina egna siffror, annars säger sidan **Kostnader** fortfarande att klustret prissätts efter OpenCosts standardpriser.
 
 ## Inställningar som är värda att känna till
 
@@ -148,7 +155,7 @@ Utöver utgifterna samlar pollern in det som en rekommendation behöver: varje c
 Minne behöver en källa till. Allocation API rapporterar bara ett genomsnitt över varje fönster, och ett timgenomsnitt döljer den topp som OOM-dödar en container, så att dimensionera minne utifrån det vore farligt. Pollern läser i stället varje containers minnestopp från Prometheus, kopplat på `(namespace, pod, container)`:
 
 - Med den medföljande motorn (standard) använder den chartets egen Prometheus. Inget att ställa in.
-- Med din egen motor (`cost.engine.url`) pekar du `cost.engine.prometheusUrl` mot en Prometheus som skrapar cAdvisor, och sätter `cost.engine.prometheusCadvisorJob` om dess skrapjobb inte heter `kubernetes-nodes-cadvisor`.
+- När `cost.engine.url` är satt (`auto` eller din motors URL) pekar du `cost.engine.prometheusUrl` mot en Prometheus som skrapar cAdvisor, och sätter `cost.engine.prometheusCadvisorJob` om dess skrapjobb inte heter `kubernetes-nodes-cadvisor`.
 - Utan Prometheus fungerar CPU-rekommendationer fortfarande, utifrån de lagrade timgenomsnitten, och minnesrekommendationer utelämnas i stället för att gissas.
 
 Ett avbrott i Prometheus stoppar aldrig insamlingen av utgifter: toppar är ett tillägg, och en timme skickas utan dem. CPU använder medvetet inte Prometheus: en för stor CPU-request stryper bara, medan en för liten minnesrequest dödar, så timgenomsnitten är säkra för CPU, och att fråga efter CPU-frekvensen för varje container i ett helt kluster är tungt nog för att välta en liten Prometheus.
@@ -180,6 +187,14 @@ Med presetarna `gke-autopilot` och `eks-fargate` är kostnadsövervakningen avst
 
 :::details Den medföljande OpenCost är inte redo
 Läs dess loggar: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`. De säger vilken molnleverantör den identifierade och om dess prisdata lästes in.
+:::
+
+:::details Översikten säger att den medföljande OpenCost inte behövs
+Klustret kör sin egen Kubecost eller OpenCost, och kostnadsagenten läser den, så den OpenCost och Prometheus som medföljde chartet prissätter ingenting. Uppgradera med `--set cost.engine.url=auto` för att sluta köra dem, eller sätt `cost.engine.preferExisting=false` för att läsa den medföljande motorn i stället.
+:::
+
+:::details Kostnadsagenten läser inte din motor
+Kostnadsagentens logg säger vilken motor den läser, och varför den hoppade över de andra: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Den hoppar över en motor som inte svarar (till exempel på grund av en NetworkPolicy mellan namespacen), kräver inloggning eller svarar för flera kluster, som en Kubecost som federerar andra kluster gör. Ange vilken motor som ska läsas med `cost.engine.url`.
 :::
 
 :::details OpenCost-loggen säger mkdir /var/configs: permission denied

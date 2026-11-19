@@ -5,11 +5,16 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import GroupBy from "Common/Server/Types/Database/GroupBy";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import ObjectID from "Common/Types/ObjectID";
+import { KubernetesCostEngineInfo } from "Common/Types/Kubernetes/KubernetesCostPricing";
+import { fetchKubernetesCostEngine } from "./KubernetesCostEngine";
 import {
+  CostEfficiencyReads,
   FetchCostParams,
   buildAggregateBy,
+  fetchCostEfficiencyReads,
   isSentinelNamespace,
   runAggregate,
+  toCostEfficiencies,
 } from "./KubernetesCostUtils";
 
 /*
@@ -22,8 +27,9 @@ import {
  * page's range - figures that compare from one visit to the next:
  *
  *   - the last 24 hours: spend (idle included), idle spend and its share,
- *     the cost-weighted efficiency of the workloads, and the namespaces and
- *     workloads that cost the most;
+ *     the workloads' efficiency, weighted by what their CPU and memory cost
+ *     as the Costs pages weigh it (fetchCostEfficiencyReads), and the
+ *     namespaces and workloads that cost the most;
  *   - the last 7 days, hour by hour: the monthly run-rate, the average
  *     hourly spend over the hours that have cost data times the hours in an
  *     average month. Hours with no data are left out rather than counted as
@@ -33,9 +39,9 @@ import {
  * Cost arrives about an hour after each hour closes, so "the last 24 hours"
  * holds about 23 hours of it.
  *
- * Four aggregate reads, all at once: spend per namespace, spend and
- * efficiency per workload, and spend per hour. React-free, so it is tested
- * without a page.
+ * Five aggregate reads, all at once: spend per namespace and per workload,
+ * the cluster's two efficiency sums, and spend per hour. React-free, so it
+ * is tested without a page.
  */
 
 export const COST_OVERVIEW_SPEND_WINDOW_HOURS: number = 24;
@@ -71,9 +77,10 @@ export interface KubernetesCostOverview {
   // lastDayIdleSpend's share of lastDaySpend, 0-100, or null for no spend.
   idlePercent: number | null;
   /*
-   * How much of what the workloads reserved they used, 0-1 and above, as
-   * each workload's own figure weighted by what it cost; null when no
-   * workload cost anything.
+   * How much of the CPU and memory the workloads reserved they used, 0-1
+   * and above, each container's hour weighted by what its CPU and memory
+   * cost - the figure the Costs pages show for any range; null when no
+   * workload's CPU or memory cost anything.
    */
   efficiency: number | null;
   // What a month would cost at the last 7 days' hourly rate, or null.
@@ -88,6 +95,11 @@ export interface KubernetesCostOverview {
    * capacity, as the Costs page's Spend by Workload measures it.
    */
   lastDayWorkloadSpend: number;
+  /*
+   * Which engine priced the newest hour and where its prices come from
+   * (KubernetesCostEngine), or null when the agent says nothing.
+   */
+  engine: KubernetesCostEngineInfo | null;
 }
 
 function finite(value: unknown): number {
@@ -113,14 +125,16 @@ function workloadKey(item: {
 }
 
 /*
- * The overview from what the four reads returned. Pure: the reads are made
+ * The overview from what the five reads returned. Pure: the reads are made
  * by fetchKubernetesCostOverview, and the tests hand it rows.
  */
 export function buildKubernetesCostOverview(data: {
   namespaceSpend: AggregatedResult;
   workloadSpend: AggregatedResult;
-  workloadEfficiency: AggregatedResult;
+  // The last day's efficiency sums, for the whole cluster (no grouping).
+  efficiency: CostEfficiencyReads;
   hourlySpend: AggregatedResult;
+  engine?: KubernetesCostEngineInfo | null | undefined;
 }): KubernetesCostOverview {
   let lastDaySpend: number = 0;
   let lastDayIdleSpend: number = 0;
@@ -188,46 +202,20 @@ export function buildKubernetesCostOverview(data: {
     }
   }
 
-  const efficiencies: Map<string, number> = new Map<string, number>();
+  let lastDayWorkloadSpend: number = 0;
 
-  for (const item of data.workloadEfficiency.data) {
-    const value: number = Number(item.value);
-
-    if (!Number.isFinite(value)) {
-      continue;
-    }
-
-    efficiencies.set(
-      workloadKey({
-        namespace: groupValue(item, "namespace"),
-        controllerKind: groupValue(item, "controllerKind"),
-        controllerName: groupValue(item, "controllerName"),
-      }),
-      value,
-    );
+  for (const workload of workloads.values()) {
+    lastDayWorkloadSpend += workload.totalCost;
   }
 
   /*
-   * Each workload's efficiency counts by what the workload cost, so a
+   * Every container's hour counts by what its CPU and memory cost, so a
    * sidecar-sized Job at 5% cannot pull a cluster of well-used services
-   * down to its figure - the same weighting the efficiency metric uses.
+   * down to its figure. The Costs pages and the efficiency metric weigh it
+   * the same way, so the card and the Costs page agree for the same hours.
    */
-  let weightedEfficiency: number = 0;
-  let efficiencyWeight: number = 0;
-  let lastDayWorkloadSpend: number = 0;
-
-  for (const [key, workload] of workloads) {
-    lastDayWorkloadSpend += workload.totalCost;
-
-    const efficiency: number | undefined = efficiencies.get(key);
-
-    if (efficiency === undefined || workload.totalCost <= 0) {
-      continue;
-    }
-
-    weightedEfficiency += efficiency * workload.totalCost;
-    efficiencyWeight += workload.totalCost;
-  }
+  const efficiency: number | null =
+    toCostEfficiencies(data.efficiency, []).get("") ?? null;
 
   const topWorkloads: Array<CostOverviewWorkload> = Array.from(
     workloads.values(),
@@ -270,14 +258,14 @@ export function buildKubernetesCostOverview(data: {
     lastDayIdleSpend: lastDayIdleSpend,
     idlePercent:
       lastDaySpend > 0 ? (lastDayIdleSpend / lastDaySpend) * 100 : null,
-    efficiency:
-      efficiencyWeight > 0 ? weightedEfficiency / efficiencyWeight : null,
+    efficiency: efficiency,
     monthlyRunRate:
       runRateHours > 0 ? (runRateSpend / runRateHours) * HOURS_PER_MONTH : null,
     runRateHours: runRateHours,
     topNamespaces: topNamespaces,
     topWorkloads: topWorkloads,
     lastDayWorkloadSpend: lastDayWorkloadSpend,
+    engine: data.engine ?? null,
   };
 }
 
@@ -309,7 +297,7 @@ export const fetchKubernetesCostOverview: (data: {
     endDate: data.now,
   };
 
-  const [namespaceSpend, workloadSpend, workloadEfficiency, hourlySpend] =
+  const [namespaceSpend, workloadSpend, efficiency, hourlySpend, engine] =
     await Promise.all([
       runAggregate(
         buildAggregateBy({
@@ -329,15 +317,7 @@ export const fetchKubernetesCostOverview: (data: {
           aggregationInterval: AggregationInterval.Total,
         }),
       ),
-      runAggregate(
-        buildAggregateBy({
-          params: lastDay,
-          aggregateColumnName: "totalEfficiency",
-          aggregationType: AggregationType.Avg,
-          groupBy: WORKLOAD_GROUP_BY,
-          aggregationInterval: AggregationInterval.Total,
-        }),
-      ),
+      fetchCostEfficiencyReads({ params: lastDay }),
       runAggregate(
         buildAggregateBy({
           params: lastWeek,
@@ -346,12 +326,19 @@ export const fetchKubernetesCostOverview: (data: {
           aggregationInterval: AggregationInterval.Hour,
         }),
       ),
+      // The newest hour of the week says how it was priced.
+      fetchKubernetesCostEngine({
+        kubernetesClusterId: data.kubernetesClusterId,
+        startDate: lastWeek.startDate,
+        endDate: lastWeek.endDate,
+      }),
     ]);
 
   return buildKubernetesCostOverview({
     namespaceSpend,
     workloadSpend,
-    workloadEfficiency,
+    efficiency,
     hourlySpend,
+    engine,
   });
 };

@@ -6,6 +6,13 @@ import OTelIngestService, {
 import KubernetesCostAllocation from "../../Models/AnalyticsModels/KubernetesCostAllocation";
 import OneUptimeDate from "../../Types/Date";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
+import { OnCreate } from "../Types/AnalyticsDatabase/Hooks";
+import {
+  KubernetesCostEfficiencyRow,
+  getKubernetesCostEfficiencyWeight,
+  getKubernetesCostWeightedEfficiency,
+} from "../../Types/Kubernetes/KubernetesCostEfficiency";
 
 export class KubernetesCostAllocationService extends AnalyticsDatabaseService<KubernetesCostAllocation> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
@@ -13,6 +20,35 @@ export class KubernetesCostAllocationService extends AnalyticsDatabaseService<Ku
       modelType: KubernetesCostAllocation,
       database: clickhouseDatabase,
     });
+  }
+
+  /*
+   * A row's efficiency weight and weighted efficiency are worked out from
+   * its own namespace, costs and efficiency, as ingest works them out
+   * (Types/Kubernetes/KubernetesCostEfficiency), whatever a caller sent: a
+   * row created through the API weighs in every efficiency exactly as an
+   * ingested one does.
+   */
+  protected override async onBeforeCreate(
+    createBy: CreateBy<KubernetesCostAllocation>,
+  ): Promise<OnCreate<KubernetesCostAllocation>> {
+    KubernetesCostAllocationService.setEfficiencyColumns(createBy.data);
+
+    return { createBy: createBy, carryForward: null };
+  }
+
+  public static setEfficiencyColumns(
+    allocation: KubernetesCostAllocation,
+  ): void {
+    const row: KubernetesCostEfficiencyRow = {
+      namespace: allocation.namespace,
+      cpuCost: allocation.cpuCost,
+      ramCost: allocation.ramCost,
+      totalEfficiency: allocation.totalEfficiency,
+    };
+
+    allocation.efficiencyWeight = getKubernetesCostEfficiencyWeight(row);
+    allocation.weightedEfficiency = getKubernetesCostWeightedEfficiency(row);
   }
 
   /*

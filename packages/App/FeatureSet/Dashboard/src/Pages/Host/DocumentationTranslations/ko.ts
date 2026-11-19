@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "기본으로 켜지기 전에 설치한 에이전트라면 업그레이드하세요:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **끄기:** 같은 업그레이드에 `--set cost.enabled=false`를 추가하세요.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **이미 Kubecost나 OpenCost를 쓰고 있나요?** 대신 에이전트가 그것을 가리키게 하면 아무것도 함께 설치되지 않습니다. `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`(또는 사용 중인 Kubecost 서비스)을 추가하세요.",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **이미 Kubecost나 OpenCost를 쓰고 있나요?** 에이전트가 그것을 찾아 함께 설치되는 엔진 대신 읽으며, 클러스터의 개요에도 그렇게 표시됩니다. 두 번째 엔진을 함께 설치하지 않으려면 `--set cost.engine.url=auto`를 추가하세요.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **온프레미스나 베어 메탈인가요?** `--set cost.opencost.customPricing.enabled=true`로 요금표를 설정하세요(리소스 시간당 USD, chart의 `values.yaml` 참조).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":
