@@ -9,6 +9,7 @@ The OneUptime Kubernetes agent is a Helm chart that collects your cluster's metr
 - [Install the agent](#install-the-agent): Four steps with Helm.
 - [Install as an Amazon EKS add-on](#install-as-an-amazon-eks-add-on): From the EKS console, with no Helm.
 - [OpenShift](#openshift): The preset, the security context constraints it creates, and OpenShift's own alerts.
+- [Cluster hardening](#cluster-hardening): Pod Security Standards and CIS Benchmark scores, and the agent's own permissions.
 - [Configuration options](#configuration-options): Filters, sampling, control plane, service mesh, costs and labels.
 - [Kubernetes AI agent](#kubernetes-ai-agent): Read-only `kubectl` for OneUptime AI, and fixes when you allow them.
 - [Reduce what you send](#reducing-the-volume-of-data-collected): The levers, in order of impact.
@@ -267,6 +268,7 @@ To get them back, move to `openshift` with `--set preset=openshift` on an upgrad
 | Kubernetes events | Every event, Warning and Normal, of every namespace and kind of object: see [Kubernetes events](#kubernetes-events) |
 | Pod logs | The stdout and stderr of every container (through `hostPath` on standard clusters, through the Kubernetes API on Autopilot and Fargate) |
 | OpenShift objects (the OpenShift presets) | ClusterOperators, the ClusterVersion, Routes, DeploymentConfigs and Services: see [OpenShift](#openshift) |
+| RBAC, service accounts and NetworkPolicies | Roles, ClusterRoles and their bindings, ServiceAccounts and NetworkPolicies, read-only, every `resourceSpecs.interval`, to score the cluster's hardening: see [Cluster hardening](#cluster-hardening). No Secret is ever read |
 | Application traces (eBPF, on by default) | HTTP, gRPC, SQL and Redis spans from every pod, with no SDK or code changes |
 | HTTP RED metrics (eBPF) | `http.server.request.duration`, and request and response body sizes, per service |
 | Service graph (eBPF) | Caller-to-callee request rate, latency and error edges, which draw the service map |
@@ -311,6 +313,49 @@ Every event is also a log. A warning is stored with the **Warning** severity, an
 | `k8s.namespace.name` | `default` |
 
 Search them in **Logs**, or drop the ones you do not want with a drop filter. To be told when one happens, turn on **Warning Events** on the cluster's **Recommendations** page, or select **Turn on warning alerts** at the foot of its **Events** page: a [Logs monitor](/docs/monitor/logs-monitor) on the cluster's warnings that raises one alert per object and reason, and resolves it once 5 minutes pass without a new warning about it. To be told about some reasons only, add `k8s.event.reason` to its filter.
+
+## Cluster hardening
+
+A cluster's **Compliance** page, under **Security**, scores the cluster itself in its **Cluster Hardening** section, against three frameworks. It reads what the agent already sends: the cluster's pods, its namespaces and, for the CIS Benchmark, its RBAC, service accounts and NetworkPolicies. The cluster's menu shows the page as soon as the agent reports the cluster's pods, whether or not the cluster runs a database.
+
+| Framework | What it scores |
+| --- | --- |
+| **Pod Security Standards: Baseline** | Every workload running on the cluster, against the Baseline policy of the cluster's Kubernetes version: privileged containers, the host's namespaces, ports and paths, added capabilities and every other field the policy names, read from each pod's spec |
+| **Pod Security Standards: Restricted** | The same workloads, against the Restricted policy: Baseline's controls, and only the volume types it allows, running as a user other than root, no privilege escalation, a seccomp profile and every capability dropped |
+| **CIS Kubernetes Benchmark v2.0** | The 27 controls of section 5 the Kubernetes API can answer: bindings that grant cluster-admin, Secrets, `nodes/proxy` and the other rights its controls name, roles with wildcards, the default service accounts, Pod Security Admission or a policy engine in each namespace, NetworkPolicies, and what each pod runs |
+
+Each framework's tile shows its score, and how many workloads it evaluated and how many fail. Its controls list the failing ones first: each says what it finds wrong and how to fix it, and lists the workloads, roles, bindings, service accounts or namespaces that fail it, each linked to its page, down to the container or volume and the field, such as `securityContext.privileged`. Where Data Security scores the databases running on the cluster, they stay below, under **Databases on This Cluster**.
+
+The Pod Security Standards are scored for the cluster's own Kubernetes version: its newest kubelet's, up to the newest version OneUptime knows. A control that a later version added counts only from that version on, and the page says which version it scored against.
+
+The benchmark's other 104 controls check the nodes' files and kubelets or the control plane's flags, or need a person's review. No API answers them, so they are listed under **Not Scored Here**, grouped by why, and are never passing or failing. On a managed control plane, such as EKS, GKE or AKS, the page says they are the provider's benchmark's.
+
+### Turn a framework, a control or a namespace off
+
+Turn off what does not apply to a cluster. Each switch is the cluster's own and asks why, and the page keeps who turned it off, when and why:
+
+- A framework's **Applies Here** switch leaves the cluster out of it. The framework folds away under **Turned Off**, with its switch to turn it on again.
+- A control's switch leaves that control out of the cluster's score.
+- A namespace's switch, under each framework, leaves everything in the namespace out of that framework, as Pod Security Admission exempts a namespace.
+
+### Export a framework
+
+**Export CSV** and **Export JSON** download a framework's report: every control, whether it passes, what fails it and how to fix it, and the Kubernetes version it was scored against.
+
+### What the agent reads for it
+
+`resourceSpecs.compliance` (on by default) reads Roles, ClusterRoles and their bindings, ServiceAccounts and NetworkPolicies every `resourceSpecs.interval`, with `get`, `list` and `watch` on them and nothing more. No Secret is ever read: a ServiceAccount only names its token Secrets, and OneUptime drops even the names. With it off (`--set resourceSpecs.compliance=false`), the benchmark's RBAC, service account and NetworkPolicy controls are *not evaluated*, and the Pod Security Standards are still scored from the pods.
+
+### The agent's own permissions
+
+The agent reads each kubelet through the subresources the kubelet authorizes its paths as: `nodes/stats` for its stats, `nodes/metrics` for cAdvisor, and `nodes/pods` for a node's pod list, which a kubelet allows from Kubernetes 1.33. `nodes/proxy` reaches the whole kubelet API, and CIS 5.1.10 fails a binding that grants it, so the agent grants it only where nothing narrower works:
+
+| Value | When the agent grants `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (the default) grants it while the cluster runs Kubernetes older than 1.36, whose kubelets may be older than 1.33 and list a node's pods only for `nodes/proxy`. Set `false` once every node runs 1.33 or later, or `true` for kubelets with `KubeletFineGrainedAuthz` off |
+| `cost.prometheus.nodesProxy` | `auto` (the default) grants it on the `eks-fargate` preset only, where no pod reaches a node's kubelet and the cost Prometheus reads cAdvisor through the API server. Everywhere else it reads each node's kubelet on port 10250 |
+
+Where the agent's own binding fails 5.1.10, the page says the binding is the agent's, why it grants `nodes/proxy`, and the value that drops it.
 
 ## Configuration options
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 Don't use `--reuse-values`: it also keeps the defaults of the chart you upgrade from, so a newer chart's defaults (its eBPF image among them) never apply. When a release runs on an older chart's defaults, the notes Helm prints after the install or upgrade end with a warning and the command that fixes it.
 
 If the upgrade fails with `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set "aiAgent.remediation.namespaces={web}"`), or with `--set-json 'aiAgent.remediation.namespaces=[]'` to go back to the cluster-wide binding. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`, so it fails with the same error.
+
+> **The CIS Benchmark's RBAC controls need an upgraded agent.** An agent from before `resourceSpecs.compliance` sends no RBAC, service accounts or NetworkPolicies, so the cluster's **Compliance** page says the benchmark's RBAC, service account and NetworkPolicy controls are *not evaluated*, and how to fix that. Upgrade the agent with `resourceSpecs.compliance` on, as it is by default: it needs collector 0.125.0 or later. The upgrade also stops granting `nodes/proxy` where no node needs it: see [The agent's own permissions](#the-agents-own-permissions).
 
 > **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 

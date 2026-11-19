@@ -9,6 +9,7 @@ De OneUptime Kubernetes-agent is een Helm-chart die de metrics, events en podlog
 - [De agent installeren](#de-agent-installeren): Vier stappen met Helm.
 - [Installeren als Amazon EKS-add-on](#installeren-als-amazon-eks-add-on): Vanuit de EKS-console, zonder Helm.
 - [OpenShift](#openshift): De preset, de security context constraints die hij aanmaakt, en de eigen waarschuwingen van OpenShift.
+- [Clusterhardening](#clusterhardening): Scores voor de Pod Security Standards en de CIS Benchmark, en de eigen rechten van de agent.
 - [Configuratieopties](#configuratieopties): Filters, sampling, controlevlak, service mesh, kosten en labels.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Alleen-lezen `kubectl` voor OneUptime AI, en correcties als je die toestaat.
 - [Minder versturen](#het-volume-van-verzamelde-gegevens-verminderen): De hefbomen, op volgorde van effect.
@@ -267,6 +268,7 @@ Om ze terug te krijgen, stap je bij een upgrade als cluster-admin over op `opens
 | Kubernetes-events | Elk event, Warning en Normal, uit elke namespace en van elk soort object: zie [Kubernetes-events](#kubernetes-events) |
 | Podlogs | De stdout en stderr van elke container (via `hostPath` op standaardclusters, via de Kubernetes-API op Autopilot en Fargate) |
 | OpenShift-objecten (de OpenShift-presets) | ClusterOperators, de ClusterVersion, Routes, DeploymentConfigs en Services: zie [OpenShift](#openshift) |
+| RBAC, serviceaccounts en NetworkPolicies | Roles, ClusterRoles en hun rolbindingen, ServiceAccounts en NetworkPolicies, alleen-lezen, elke `resourceSpecs.interval`, om de hardening van het cluster te beoordelen: zie [Clusterhardening](#clusterhardening). Er wordt nooit een Secret gelezen |
 | Applicatietraces (eBPF, standaard aan) | HTTP-, gRPC-, SQL- en Redis-spans van elke pod, zonder SDK of codewijzigingen |
 | HTTP RED-metrics (eBPF) | `http.server.request.duration`, en de groottes van request- en responsebody's, per service |
 | Servicegraaf (eBPF) | Randen met requestrate, latentie en fouten tussen aanroeper en aangeroepene, die de servicemap tekenen |
@@ -311,6 +313,49 @@ Elk event is ook een log. Een waarschuwing wordt opgeslagen met de ernst **Waars
 | `k8s.namespace.name` | `default` |
 
 Doorzoek ze in **Logboeken**, of laat de events die je niet wilt vallen met een drop-filter. Om bericht te krijgen wanneer er een gebeurt, schakel je **Warning Events** in op de pagina **Aanbevelingen** van het cluster, of kies je **Meldingen voor waarschuwingen inschakelen** onderaan zijn pagina **Gebeurtenissen**: een [logmonitor](/docs/monitor/logs-monitor) op de waarschuwingen van het cluster die één melding per object en reden geeft, en die oplost zodra er 5 minuten zonder nieuwe waarschuwing over voorbij zijn. Om alleen over sommige redenen bericht te krijgen, voeg je `k8s.event.reason` toe aan het filter.
+
+## Clusterhardening
+
+De pagina **Compliance** van een cluster, onder **Beveiliging**, toetst in de sectie **Clusterhardening** het cluster zelf aan drie kaders. Ze leest wat de agent al verstuurt: de pods van het cluster, zijn namespaces en, voor de CIS Benchmark, zijn RBAC, serviceaccounts en NetworkPolicies. Het menu van het cluster toont de pagina zodra de agent de pods van het cluster meldt, of er op het cluster nu een database draait of niet.
+
+| Kader | Wat het beoordeelt |
+| --- | --- |
+| **Pod Security Standards: Baseline** | Elke workload die op het cluster draait, getoetst aan het Baseline-beleid van de Kubernetes-versie van het cluster: geprivilegieerde containers, de namespaces, poorten en paden van de host, toegevoegde mogelijkheden en elk ander veld dat het beleid noemt, gelezen uit de specificatie van elke pod |
+| **Pod Security Standards: Restricted** | Dezelfde workloads, getoetst aan het Restricted-beleid: de controles van Baseline, en alleen de volumetypen die het toestaat, draaien als een andere gebruiker dan root, geen escalatie van privileges, een seccomp-profiel en alle mogelijkheden verwijderd |
+| **CIS Kubernetes Benchmark v2.0** | De 27 controles uit sectie 5 die de Kubernetes-API kan beantwoorden: rolbindingen die cluster-admin, Secrets, `nodes/proxy` en de andere rechten toekennen die zijn controles noemen, rollen met wildcards, de standaardserviceaccounts, Pod Security Admission of een beleidsengine in elke namespace, NetworkPolicies, en wat elke pod draait |
+
+De tegel van elk kader toont de score, en hoeveel workloads het heeft geëvalueerd en hoeveel er niet aan voldoen. Bij de controles staan de falende bovenaan: elke controle zegt wat ze fout vindt en hoe je dat oplost, en somt de workloads, rollen, rolbindingen, serviceaccounts of namespaces op die er niet aan voldoen, elk met een link naar de eigen pagina, tot op de container of het volume en het veld, zoals `securityContext.privileged`. Waar Gegevensbeveiliging de databases scoort die op het cluster draaien, blijven die eronder staan, onder **Databases op dit cluster**.
+
+De Pod Security Standards worden beoordeeld voor de eigen Kubernetes-versie van het cluster: die van zijn nieuwste kubelet, maar hooguit de nieuwste versie die OneUptime kent. Een controle die in een latere versie is toegevoegd, telt pas vanaf die versie mee, en de pagina vermeldt aan welke versie ze heeft getoetst.
+
+De andere 104 controles van de benchmark gaan over de bestanden en kubelets van de nodes of de flags van het controlevlak, of moeten door een persoon worden nagekeken. Geen enkele API beantwoordt ze, dus staan ze onder **Hier niet beoordeeld**, gegroepeerd naar de reden, en slagen of falen ze nooit. Bij een beheerd controlevlak, zoals bij EKS, GKE of AKS, vermeldt de pagina dat ze onder de benchmark van de provider vallen.
+
+### Een kader, een controle of een namespace uitschakelen
+
+Schakel uit wat niet op een cluster van toepassing is. Elke schakelaar hoort alleen bij dat cluster en vraagt waarom, en de pagina houdt bij wie hem heeft uitgeschakeld, wanneer en waarom:
+
+- De schakelaar **Hier van toepassing** van een kader laat het cluster buiten dat kader. Het kader wordt dan ingeklapt onder **Uitgeschakeld**, met zijn schakelaar om het weer in te schakelen.
+- De schakelaar van een controle laat die controle buiten de score van het cluster.
+- De schakelaar van een namespace, onder elk kader, laat alles in die namespace buiten dat kader, zoals Pod Security Admission een namespace uitzondert.
+
+### Een kader exporteren
+
+**CSV exporteren** en **JSON exporteren** downloaden het rapport van een kader: elke controle, of ze slaagt, wat er niet aan voldoet en hoe je dat oplost, en de Kubernetes-versie waaraan is getoetst.
+
+### Wat de agent ervoor leest
+
+`resourceSpecs.compliance` (standaard aan) leest elke `resourceSpecs.interval` Roles, ClusterRoles en hun rolbindingen, ServiceAccounts en NetworkPolicies, met alleen `get`, `list` en `watch` daarop. Er wordt nooit een Secret gelezen: een ServiceAccount noemt alleen de namen van zijn token-Secrets, en OneUptime laat zelfs die namen weg. Staat het uit (`--set resourceSpecs.compliance=false`), dan zijn de RBAC-, serviceaccount- en NetworkPolicy-controles van de benchmark *niet geëvalueerd*, en worden de Pod Security Standards nog steeds op basis van de pods beoordeeld.
+
+### De eigen rechten van de agent
+
+De agent leest elke kubelet via de subresources waarop de kubelet zijn paden bij autorisatie afbeeldt: `nodes/stats` voor zijn statistieken, `nodes/metrics` voor cAdvisor, en `nodes/pods` voor de podlijst van een node, die een kubelet vanaf Kubernetes 1.33 toestaat. Via `nodes/proxy` is de hele kubelet-API bereikbaar, en een rolbinding die deze subresource toekent, voldoet niet aan CIS 5.1.10, dus kent de agent die alleen toe waar geen beperktere toegang volstaat:
+
+| Waarde | Wanneer de agent `nodes/proxy` toekent |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (de standaard) kent het recht toe zolang het cluster Kubernetes ouder dan 1.36 draait, waarvan de kubelets ouder dan 1.33 kunnen zijn en de pods van een node alleen met `nodes/proxy` opsommen. Zet `false` zodra elke node 1.33 of later draait, of `true` voor kubelets waarop `KubeletFineGrainedAuthz` uit staat |
+| `cost.prometheus.nodesProxy` | `auto` (de standaard) kent het recht alleen toe bij de preset `eks-fargate`, waar geen pod de kubelet van een node bereikt en de kosten-Prometheus cAdvisor via de API-server leest. Overal elders leest die de kubelet van elke node op poort 10250 |
+
+Waar de eigen rolbinding van de agent niet aan 5.1.10 voldoet, vermeldt de pagina dat het de rolbinding van de agent is, waarom die `nodes/proxy` toekent, en met welke waarde dat vervalt.
 
 ## Configuratieopties
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 Gebruik geen `--reuse-values`: dat behoudt ook de standaardwaarden van de chart waarvandaan je upgradet, dus de standaardwaarden van een nieuwere chart (waaronder de eBPF-image) gaan nooit gelden. Als een release op de standaardwaarden van een oudere chart draait, eindigen de notities die Helm na de installatie of upgrade afdrukt met een waarschuwing en het commando dat het oplost.
 
 Mislukt de upgrade met `namespaces "<name>" not found`, dan noemt `aiAgent.remediation.namespaces` (of het oudere `aiAccess.remediation.namespaces`) een namespace die niet (meer) bestaat: de chart zet een RoleBinding in elke genoemde namespace en maakt er nooit een aan. Maak de namespace aan, of upgrade met de lijst zonder die namespace (`--set "aiAgent.remediation.namespaces={web}"`), of met `--set-json 'aiAgent.remediation.namespaces=[]'` om terug te gaan naar de binding voor het hele cluster. `--set aiAgent.remediation.namespaces=null` reset een opgeslagen lijst niet onder `--reuse-values` en mislukt dus met dezelfde fout.
+
+> **De RBAC-controles van de CIS Benchmark vereisen een geüpgradede agent.** Een agent van vóór `resourceSpecs.compliance` verstuurt geen RBAC, serviceaccounts of NetworkPolicies, dus vermeldt de pagina **Compliance** van het cluster dat de RBAC-, serviceaccount- en NetworkPolicy-controles van de benchmark *niet geëvalueerd* zijn, en hoe je dat oplost. Upgrade de agent met `resourceSpecs.compliance` aan, zoals standaard het geval is: daarvoor is collector 0.125.0 of later nodig. Na de upgrade kent de agent `nodes/proxy` ook niet meer toe waar geen enkele node het nodig heeft: zie [De eigen rechten van de agent](#de-eigen-rechten-van-de-agent).
 
 > **eBPF-spanmetrics hebben nieuwe namen.** `ebpf.features.spanMetrics` stuurt nu `traces.span.metrics.calls` en `traces.span.metrics.duration` (seconden) in plaats van `traces_spanmetrics_calls_total` en `traces_spanmetrics_latency`: dezelfde series, onder de namen die OBI behoudt (de oude heeft hij verouderd verklaard). Een dashboard, grafiek of metricmonitor op een oude naam krijgt na de upgrade geen nieuwe gegevens meer, zonder fout — zet hem over op de nieuwe naam, en werk elke `filters.metrics`-vermelding bij die een oude naam noemt.
 

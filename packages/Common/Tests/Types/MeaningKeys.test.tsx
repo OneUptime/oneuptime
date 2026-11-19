@@ -111,11 +111,12 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space and a mobile app's screen, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen and a Pod Security control's Linux capabilities, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
         "Call (phone call)",
+        "Capabilities (Linux capabilities)",
         "Change (schema change)",
         "Created (import result)",
         "Deleted (invoice status)",
@@ -192,6 +193,14 @@ describe("the keys that name their meaning", () => {
       "Not fetched yet",
     );
     expect(getWordOfMeaningKey("Expired")).toBeUndefined();
+    /*
+     * #9877: a Pod Security Standards control's Linux capabilities, apart
+     * from what a Runner or a recording can do.
+     */
+    expect(getWordOfMeaningKey("Capabilities (Linux capabilities)")).toBe(
+      "Capabilities",
+    );
+    expect(getWordOfMeaningKey("Capabilities")).toBeUndefined();
   });
 
   test("are no other text, not even one shaped like them: it reads as it is written", () => {

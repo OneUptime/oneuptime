@@ -9,6 +9,7 @@ OneUptime の Kubernetes エージェントは Helm チャートで、クラス�
 - [エージェントをインストールする](#エージェントをインストールする): Helm で 4 ステップ。
 - [Amazon EKS アドオンとしてインストールする](#amazon-eks-アドオンとしてインストールする): EKS コンソールから、Helm なしで。
 - [OpenShift](#openshift): プリセット、プリセットが作成する Security Context Constraints、OpenShift 自身のアラート。
+- [クラスターのセキュリティ強化](#クラスターのセキュリティ強化): Pod セキュリティ標準と CIS Benchmark のスコア、およびエージェント自身の権限。
 - [設定オプション](#設定オプション): フィルター、サンプリング、コントロールプレーン、サービスメッシュ、コスト、ラベル。
 - [Kubernetes AI エージェント](#kubernetes-ai-エージェント): OneUptime AI 用の読み取り専用の `kubectl` と、許可した場合の修正。
 - [送信量を減らす](#収集するデータ量を減らす): 効果の大きい順に並べた調整手段。
@@ -267,6 +268,7 @@ SCC の作成には cluster-admin 権限が必要です。プリセットなし�
 | Kubernetes イベント | すべての Namespace とあらゆる種類のオブジェクトのすべてのイベント (Warning と Normal): [Kubernetes イベント](#kubernetes-イベント) を参照 |
 | Pod のログ | すべてのコンテナの stdout と stderr (標準のクラスターでは `hostPath` 経由、Autopilot と Fargate では Kubernetes API 経由) |
 | OpenShift のオブジェクト (OpenShift プリセット) | ClusterOperator、ClusterVersion、Route、DeploymentConfig、Service: [OpenShift](#openshift) を参照 |
+| RBAC、サービスアカウント、NetworkPolicy | Role、ClusterRole とそのバインディング、ServiceAccount、NetworkPolicy (読み取り専用、`resourceSpecs.interval` ごと)。クラスターのセキュリティ強化のスコア算出に使います: [クラスターのセキュリティ強化](#クラスターのセキュリティ強化) を参照。Secret は一切読み取りません |
 | アプリケーションのトレース (eBPF、デフォルトで有効) | すべての Pod からの HTTP、gRPC、SQL、Redis のスパン (SDK もコードの変更も不要) |
 | HTTP の RED メトリクス (eBPF) | サービスごとの `http.server.request.duration`、およびリクエストとレスポンスのボディサイズ |
 | サービスグラフ (eBPF) | 呼び出し元から呼び出し先へのリクエストレート、レイテンシ、エラーのエッジ。これがサービスマップを描きます |
@@ -311,6 +313,49 @@ SCC の作成には cluster-admin 権限が必要です。プリセットなし�
 | `k8s.namespace.name` | `default` |
 
 **ログ** で検索したり、不要なものを破棄フィルターで破棄したりできます。発生時に通知を受け取るには、クラスターの **推奨事項** ページで **Warning Events** をオンにするか、**イベント** ページの下部にある **警告のアラートをオンにする** を選択します。これはクラスターの警告に対する [ログモニター](/docs/monitor/logs-monitor) で、オブジェクトと理由ごとに 1 つのアラートを出し、その警告が新たに出ないまま 5 分経つと解決します。一部の理由だけ通知を受け取るには、フィルターに `k8s.event.reason` を追加します。
+
+## クラスターのセキュリティ強化
+
+クラスターの **コンプライアンス** ページ (**セキュリティ** の下) にある **クラスターのセキュリティ強化** セクションでは、3 つのフレームワークを基準に、クラスターそのもののスコアを算出します。使うのはエージェントがすでに送信しているデータで、クラスターの Pod と Namespace、そして CIS Benchmark についてはクラスターの RBAC、サービスアカウント、NetworkPolicy です。このページは、エージェントがクラスターの Pod を報告するとすぐにクラスターのメニューに表示されます。クラスターでデータベースが動作しているかどうかは関係ありません。
+
+| フレームワーク | スコアの対象 |
+| --- | --- |
+| **Pod セキュリティ標準: Baseline** | クラスターで実行中のすべてのワークロード。クラスターの Kubernetes バージョンの Baseline ポリシーを基準に、特権コンテナ、ホストの名前空間・ポート・パス、追加された capability など、ポリシーが定めるすべてのフィールドを各 Pod の仕様から読み取って評価します |
+| **Pod セキュリティ標準: Restricted** | 同じワークロード。Restricted ポリシーを基準に、Baseline のコントロールに加えて、許可されたボリュームタイプだけを使っていること、root 以外のユーザーで実行していること、権限昇格がないこと、seccomp プロファイルがあること、すべての capability を削除していることを評価します |
+| **CIS Kubernetes Benchmark v2.0** | セクション 5 のコントロールのうち、Kubernetes API で判断できる 27 個。cluster-admin、Secret、`nodes/proxy` など、コントロールが挙げる権限を付与するバインディング、ワイルドカードを含むロール、デフォルトのサービスアカウント、各 Namespace の Pod Security Admission またはポリシーエンジン、NetworkPolicy、各 Pod が実行する内容を評価します |
+
+各フレームワークのタイルには、スコアと、評価したワークロードの数、そのうち不合格の数が表示されます。コントロールは不合格のものから順に並びます。各コントロールには、何が問題でどう修正するかが示され、不合格のワークロード、ロール、バインディング、サービスアカウント、Namespace が、それぞれのページへのリンク付きで、コンテナやボリューム、`securityContext.privileged` のようなフィールドの単位まで一覧表示されます。データセキュリティがクラスター上で動作しているデータベースのスコアを算出している場合、それらは引き続きその下の **このクラスター上のデータベース** に表示されます。
+
+Pod セキュリティ標準のスコアは、クラスター自身の Kubernetes バージョン、つまりクラスターで最も新しい kubelet のバージョンを基準に算出されます (上限は OneUptime が把握している最新のバージョンです)。後のバージョンで追加されたコントロールはそのバージョンからのみ数えられ、ページにはどのバージョンを基準にスコアを算出したかが表示されます。
+
+ベンチマークの残り 104 個のコントロールは、ノードのファイルと kubelet、またはコントロールプレーンのフラグを確認するもの、あるいは人による確認が必要なものです。どの API でも判断できないため、理由ごとにまとめて **ここではスコア対象外** の下に表示され、合格にも不合格にもなりません。EKS、GKE、AKS などのマネージドなコントロールプレーンでは、これらがプロバイダーのベンチマークの対象であることがページに表示されます。
+
+### フレームワーク、コントロール、Namespace をオフにする
+
+クラスターに当てはまらないものはオフにします。スイッチはどれもそのクラスターだけのもので、オフにするときに理由を尋ねます。ページには、誰が、いつ、なぜオフにしたかが記録されます:
+
+- フレームワークの **ここに適用** スイッチは、クラスターをそのフレームワークの対象から外します。フレームワークは **オフ** の下に折りたたまれ、そこにあるスイッチで再びオンにできます。
+- コントロールのスイッチは、そのコントロールをクラスターのスコアから外します。
+- 各フレームワークの下にある Namespace のスイッチは、Pod Security Admission が Namespace を除外するのと同じように、その Namespace 内のすべてをそのフレームワークの対象から外します。
+
+### フレームワークをエクスポートする
+
+**CSV をエクスポート** と **JSON をエクスポート** で、フレームワークのレポートをダウンロードできます。レポートには、すべてのコントロールについて、合格かどうか、何が不合格でどう修正するか、そしてスコアの算出に使った Kubernetes バージョンが含まれます。
+
+### エージェントが読み取るもの
+
+`resourceSpecs.compliance` (デフォルトで有効) は、Role、ClusterRole とそのバインディング、ServiceAccount、NetworkPolicy を `resourceSpecs.interval` ごとに読み取ります。これらに対する権限は `get`、`list`、`watch` だけで、それ以上はありません。Secret は一切読み取りません。ServiceAccount はトークンの Secret の名前を示すだけで、OneUptime はその名前さえ破棄します。オフにすると (`--set resourceSpecs.compliance=false`)、ベンチマークの RBAC、サービスアカウント、NetworkPolicy のコントロールは *未評価* になり、Pod セキュリティ標準のスコアは引き続き Pod から算出されます。
+
+### エージェント自身の権限
+
+エージェントは、kubelet が各パスへのアクセスを認可するときのサブリソースを通じて、各 kubelet を読み取ります。統計には `nodes/stats`、cAdvisor には `nodes/metrics`、ノードの Pod の一覧には `nodes/pods` を使います (kubelet がこれを許可するのは Kubernetes 1.33 以降です)。`nodes/proxy` では kubelet API 全体にアクセスでき、CIS 5.1.10 はそれを付与するバインディングを不合格とするため、エージェントは、より限定的な権限では足りない場合にだけ付与します:
+
+| 値 | エージェントが `nodes/proxy` を付与する条件 |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (既定) では、クラスターが 1.36 より古い Kubernetes を実行している間は付与します。そうしたクラスターの kubelet は 1.33 より古い場合があり、ノードの Pod の一覧を `nodes/proxy` に対してしか返さないためです。すべてのノードが 1.33 以降になったら `false` を、`KubeletFineGrainedAuthz` がオフの kubelet には `true` を設定します |
+| `cost.prometheus.nodesProxy` | `auto` (既定) では、`eks-fargate` プリセットでのみ付与します。このプリセットではノードの kubelet に到達できる Pod がなく、コスト用 Prometheus は cAdvisor を API サーバー経由で読み取ります。それ以外では、各ノードの kubelet をポート 10250 で読み取ります |
+
+エージェント自身のバインディングが 5.1.10 で不合格になった場合、ページには、そのバインディングがエージェントのものであること、`nodes/proxy` を付与している理由、それを外すための値が表示されます。
 
 ## 設定オプション
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 `--reuse-values` は使わないでください。アップグレード元のチャートの既定値も維持されるため、新しいチャートの既定値 (eBPF のイメージを含む) が適用されなくなります。リリースが古いチャートの既定値で動いている場合、インストールやアップグレードのあとに Helm が表示するノートの最後に、警告とそれを修正するコマンドが表示されます。
 
 アップグレードが `namespaces "<name>" not found` で失敗する場合は、`aiAgent.remediation.namespaces` (または古い `aiAccess.remediation.namespaces`) に存在しない (またはもう存在しない) namespace が含まれています。チャートは列挙された各 namespace に RoleBinding を置きますが、namespace 自体は作成しません。その namespace を作成するか、その namespace を除いたリストでアップグレードするか (`--set "aiAgent.remediation.namespaces={web}"`)、`--set-json 'aiAgent.remediation.namespaces=[]'` でクラスター全体へのバインドに戻してください。`--reuse-values` では `--set aiAgent.remediation.namespaces=null` で保存済みのリストはリセットされないため、同じエラーで失敗します。
+
+> **CIS Benchmark の RBAC のコントロールには、アップグレードしたエージェントが必要です**。`resourceSpecs.compliance` 導入前のエージェントは RBAC、サービスアカウント、NetworkPolicy を送信しないため、クラスターの **コンプライアンス** ページには、ベンチマークの RBAC、サービスアカウント、NetworkPolicy のコントロールが *未評価* であることと、その解決方法が表示されます。`resourceSpecs.compliance` を有効にして (デフォルトで有効です) エージェントをアップグレードしてください。これには Collector 0.125.0 以降が必要です。また、このアップグレードにより、`nodes/proxy` を必要とするノードがない環境では、その付与も停止します:[エージェント自身の権限](#エージェント自身の権限) を参照してください。
 
 > **eBPF のスパンメトリクスの名前が変わりました**。`ebpf.features.spanMetrics` は、`traces_spanmetrics_calls_total` と `traces_spanmetrics_latency` の代わりに `traces.span.metrics.calls` と `traces.span.metrics.duration` (秒) を送信するようになりました。同じ系列で、OBI が維持する名前になっています (古い名前は OBI で非推奨になりました)。古い名前を使うダッシュボード、グラフ、メトリクスモニターは、アップグレード後にエラーなしで新しいデータを受け取らなくなります。新しい名前に移し、古い名前を指定している `filters.metrics` のエントリも更新してください。
 
