@@ -157,6 +157,25 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     formula: "((capacity_disk - free_disk) / capacity_disk) * 100",
   },
   /*
+   * A node's image disk fill (#9843) — Avg/Avg, one series per running
+   * container, every one of a node the same filesystem (the one its
+   * writable layer lives on), from the same kubeletstats container scrape.
+   * Used is capacity minus available, as the root filesystem's.
+   */
+  {
+    id: "k8s-node-image-disk-almost-full",
+    numerator: "container.filesystem.available",
+    denominator: "container.filesystem.capacity",
+    numAlias: "free_image_disk",
+    denAlias: "capacity_image_disk",
+    resultAlias: "image_disk_usage",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 90,
+    groupBy: ["resource.k8s.node.name"],
+    formula:
+      "((capacity_image_disk - free_image_disk) / capacity_image_disk) * 100",
+  },
+  /*
    * A claim's fill — Avg/Avg, one series per pod that mounts the claim,
    * every one the same filesystem, from the same kubeletstats volume scrape.
    * Used is capacity minus available, as the claims list reads it.
@@ -2427,7 +2446,11 @@ describe("KubernetesAlertTemplates - PVC Almost Full", () => {
  * 90 of its own would drift the day the line moved.
  */
 describe("KubernetesAlertTemplates - the storage templates fire at the shared line", () => {
-  test.each(["k8s-pvc-almost-full", "k8s-high-disk-usage"])(
+  test.each([
+    "k8s-pvc-almost-full",
+    "k8s-high-disk-usage",
+    "k8s-node-image-disk-almost-full",
+  ])(
     "%s fires above the critical line and recovers below it, past the shared dead band",
     (id: string) => {
       const line: number = KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent;
@@ -2479,5 +2502,186 @@ describe("KubernetesAlertTemplates - the storage templates fire at the shared li
     for (const name of metricNames) {
       expect(AGENT_EMITTED_METRIC_NAMES.has(name)).toBe(true);
     }
+  });
+
+  test("High Node Disk Usage says where the kubelet's line is on a disk that also holds the images, and which template watches an image disk of its own", () => {
+    const template: KubernetesAlertTemplate = getKubernetesAlertTemplateById(
+      "k8s-high-disk-usage",
+    )!;
+
+    expect(template.description).toContain("nodefs.available<10%");
+    expect(template.description).toContain("imagefs.available<15%");
+    expect(template.description).toContain("Node Image Disk Almost Full");
+    // The kubelet's lines are no longer said to be this monitor's.
+    expect(template.description).not.toContain("which is this monitor's line");
+    expect(getIncidentDescription("k8s-high-disk-usage")).toContain(
+      "or 15% when this disk also holds the node's container images",
+    );
+  });
+});
+
+/*
+ * A node's image disk filling up (#9843). The kubeletstats receiver exports
+ * no image filesystem of the node's own (collector 0.165.0), so the template
+ * reads what the kubelet reports as each running container's root
+ * filesystem, as the Nodes list's Image Disk column does, and says plainly
+ * where that is another disk, or none.
+ */
+describe("KubernetesAlertTemplates - Node Image Disk Almost Full", () => {
+  const ID: string = "k8s-node-image-disk-almost-full";
+  const gib: number = 1024 * 1024 * 1024;
+
+  function imageDisk(
+    usedGiB: number,
+    capacityGiB: number = 100,
+  ): SamplesByAlias {
+    return {
+      free_image_disk: Array(5).fill((capacityGiB - usedGiB) * gib),
+      capacity_image_disk: Array(5).fill(capacityGiB * gib),
+    };
+  }
+
+  test("is a Storage warning the picker and the cluster's recommendations offer next to High Node Disk Usage", () => {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById(ID);
+
+    expect(template?.name).toBe("Node Image Disk Almost Full");
+    expect(template?.category).toBe("Storage");
+    expect(template?.severity).toBe("Warning");
+    expect(template?.summary).toBe(
+      "A node's image disk is more than 90% full.",
+    );
+
+    const ids: Array<string> = getAllKubernetesAlertTemplates().map(
+      (candidate: KubernetesAlertTemplate): string => {
+        return candidate.id;
+      },
+    );
+    expect(ids.indexOf(ID)).toBe(ids.indexOf("k8s-high-disk-usage") + 1);
+  });
+
+  test("reads the containers' filesystems, which the agent sends by default, per node and with no filter", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep(ID),
+    );
+    const queries: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+
+    expect(
+      queries.map((query: any): string => {
+        return query.metricQueryData.filterData.metricName;
+      }),
+    ).toEqual([
+      "container.filesystem.available",
+      "container.filesystem.capacity",
+    ]);
+    for (const query of queries) {
+      const metricName: string = query.metricQueryData.filterData.metricName;
+      expect(AGENT_EMITTED_METRIC_NAMES.has(metricName)).toBe(true);
+      expect(getKubernetesMetricByMetricName(metricName)?.unit).toBe("bytes");
+      // Every container of the node: no attribute singles one out.
+      expect(query.metricQueryData.filterData.attributes || {}).toEqual({});
+    }
+    expect(monitor.resourceScope).toBe(KubernetesResourceScope.Node);
+    expect(monitor.rollingTime).toBe(RollingTime.Past5Minutes);
+  });
+
+  test("an image disk more than 90% full fires, and one with room does not", async () => {
+    expect(await evaluate(ID, imageDisk(95))).toEqual({
+      breached: true,
+      healthy: false,
+    });
+    expect(await evaluate(ID, imageDisk(50))).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("at exactly 90% it does not fire, and it recovers only well below", async () => {
+    expect((await evaluate(ID, imageDisk(90))).breached).toBe(false);
+    // Between the recovery line and the firing one, neither: no flapping.
+    expect(await evaluate(ID, imageDisk(85))).toEqual({
+      breached: false,
+      healthy: false,
+    });
+    expect((await evaluate(ID, imageDisk(80))).healthy).toBe(true);
+  });
+
+  test("the kubelet's image garbage collection band, 80% to 85%, is not an alert on its own", async () => {
+    for (const used of [80, 83, 85]) {
+      expect((await evaluate(ID, imageDisk(used))).breached).toBe(false);
+    }
+  });
+
+  test("weighs a disk by its own size: 20 GiB free is plenty on 100 GiB and nothing on 500", async () => {
+    expect((await evaluate(ID, imageDisk(480, 500))).breached).toBe(true);
+    expect((await evaluate(ID, imageDisk(80, 100))).breached).toBe(false);
+  });
+
+  test("one minute over the line is not five", async () => {
+    const samples: SamplesByAlias = {
+      free_image_disk: [50, 50, 50, 50, 5].map((free: number): number => {
+        return free * gib;
+      }),
+      capacity_image_disk: Array(5).fill(100 * gib),
+    };
+
+    expect((await evaluate(ID, samples)).breached).toBe(false);
+  });
+
+  test("says what the kubelet does as the disk fills, at its default lines", () => {
+    const description: string = getKubernetesAlertTemplateById(ID)!.description;
+
+    expect(description).toContain("deletes unused images once it is 85% full");
+    expect(description).toContain("imagefs.available<15%");
+    expect(description).toContain("for five minutes");
+  });
+
+  test("says plainly where its reading is another disk, or none", () => {
+    const description: string = getKubernetesAlertTemplateById(ID)!.description;
+
+    expect(description).toContain(
+      "(container.filesystem.capacity - container.filesystem.available) / container.filesystem.capacity x 100",
+    );
+    expect(description).toContain(
+      "The agent's collector does not report the node's image filesystem itself",
+    );
+    // Images on the root filesystem: the root disk, which the other template watches.
+    expect(description).toContain(
+      "on a node that keeps its images on its root filesystem, as most nodes do, it reads that root filesystem, which High Node Disk Usage watches too, so both fire",
+    );
+    // The kubelet's split image filesystem: the containers' disk, not the images'.
+    expect(description).toContain("KubeletSeparateDiskGC");
+    expect(description).toContain(
+      "it reads the disk the containers write to, not the images' disk",
+    );
+    // Nothing to read without a container.
+    expect(description).toContain(
+      "a node running no container reports nothing",
+    );
+    // And where to see the real thing.
+    expect(description).toContain("Image Disk column");
+    expect(description).toContain(
+      "kubectl get --raw /api/v1/nodes/<node>/proxy/stats/summary",
+    );
+    expect(description).toContain("node.runtime.imageFs");
+  });
+
+  test("tells the on-call engineer what to do about it", () => {
+    const incident: string = getIncidentDescription(ID);
+
+    expect(incident).toContain("images no pod uses");
+    expect(incident).toContain("bigger image disk");
+    expect(incident).toContain("High Node Disk Usage");
+    expect(incident).toContain('"Affected resource"');
+    expect(incident).toContain('"Start here"');
+
+    const [offline] = getCriteriaInstances(ID);
+    expect(offline.data.incidents[0].title).toBe(
+      "[K8s] Node Image Disk Almost Full (>90%) - Test Monitor",
+    );
+    expect(offline.data.alerts[0].title).toBe(
+      "[K8s] Node Image Disk Almost Full (>90%) - Test Monitor",
+    );
   });
 });

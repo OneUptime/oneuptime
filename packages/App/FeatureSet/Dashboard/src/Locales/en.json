@@ -58373,11 +58373,9 @@
   "Full in less than an hour": "Full in less than an hour",
   "How much can still be written to this node's root filesystem, as the kubelet last measured it.": "How much can still be written to this node's root filesystem, as the kubelet last measured it.",
   "How much of node {{nodeName}}'s root filesystem is still free to write.": "How much of node {{nodeName}}'s root filesystem is still free to write.",
-  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. The kubelet starts evicting pods at 90% by default.": "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. The kubelet starts evicting pods at 90% by default.",
   "How much of the disk node {{nodeName}} keeps its container images on is still free to write.": "How much of the disk node {{nodeName}} keeps its container images on is still free to write.",
   "How much of the disk node {{nodeName}} keeps its container images on is used, as a share of its capacity.": "How much of the disk node {{nodeName}} keeps its container images on is used, as a share of its capacity.",
   "How much of this node's disk is used and free, as the kubelet last measured it.": "How much of this node's disk is used and free, as the kubelet last measured it.",
-  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.": "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.",
   "Image Disk": "Image Disk",
   "Image Disk Capacity and Free Space": "Image Disk Capacity and Free Space",
   "Image Disk Used (%)": "Image Disk Used (%)",
@@ -58397,7 +58395,6 @@
   "Root filesystem": "Root filesystem",
   "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.": "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.",
   "The size of the disk node {{nodeName}} keeps its container images on, and how much of it is still free to write.": "The size of the disk node {{nodeName}} keeps its container images on, and how much of it is still free to write.",
-  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.": "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.",
   "The size of this node's root filesystem, as the kubelet measures it.": "The size of this node's root filesystem, as the kubelet measures it.",
   "{{percent}} used, {{free}} free": "{{percent}} used, {{free}} free",
   "/proc Mount Type": "/proc Mount Type",
@@ -58978,5 +58975,12 @@
   "Esper Connection": "Esper Connection",
   "Get an alert when one of its devices stops checking in.": "Get an alert when one of its devices stops checking in.",
   "Model (hardware model)": "Model (hardware model)",
-  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step."
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.",
+  "Container Filesystem Available": "Container Filesystem Available",
+  "Container Filesystem Capacity": "Container Filesystem Capacity",
+  "Free bytes on the filesystem a container writes its own files to, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Every container on a node reports the same disk. Falling is bad, so alert with a 'less than' threshold.": "Free bytes on the filesystem a container writes its own files to, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Every container on a node reports the same disk. Falling is bad, so alert with a 'less than' threshold.",
+  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. By default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the node's container images.": "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. By default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the node's container images.",
+  "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.": "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.",
+  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.": "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.",
+  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.": "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images."
 }

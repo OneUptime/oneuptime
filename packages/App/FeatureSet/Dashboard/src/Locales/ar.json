@@ -58373,11 +58373,9 @@
   "Full in less than an hour": "يمتلئ خلال أقل من ساعة",
   "How much can still be written to this node's root filesystem, as the kubelet last measured it.": "كم لا يزال يمكن كتابته على نظام الملفات الجذر لهذه العقدة، وفق آخر قياس للـ kubelet.",
   "How much of node {{nodeName}}'s root filesystem is still free to write.": "كم من نظام الملفات الجذر للعقدة {{nodeName}} لا يزال متاحًا للكتابة.",
-  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. The kubelet starts evicting pods at 90% by default.": "كم من نظام الملفات الجذر للعقدة {{nodeName}} مستخدَم، كنسبة من سعته. ويبدأ kubelet افتراضيًا بإخلاء الـ pods عند 90%.",
   "How much of the disk node {{nodeName}} keeps its container images on is still free to write.": "كم من القرص الذي تحفظ عليه العقدة {{nodeName}} صور حاوياتها لا يزال متاحًا للكتابة.",
   "How much of the disk node {{nodeName}} keeps its container images on is used, as a share of its capacity.": "كم من القرص الذي تحفظ عليه العقدة {{nodeName}} صور حاوياتها مستخدَم، كنسبة من سعته.",
   "How much of this node's disk is used and free, as the kubelet last measured it.": "كم من قرص هذه العقدة مستخدَم ومتاح، وفق آخر قياس للـ kubelet.",
-  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.": "كم من نظام الملفات الجذر لهذه العقدة مستخدَم، وفق آخر قياس للـ kubelet: سجلات الـ pods فيها، ووحدات تخزين emptyDir، وصور الحاويات ما لم يكن لها قرص خاص بها. كهرماني من امتلاء 80%، وأحمر من 90%، حيث يبدأ kubelet افتراضيًا بإخلاء الـ pods.",
   "Image Disk": "قرص الصور",
   "Image Disk Capacity and Free Space": "سعة قرص الصور والمساحة المتاحة",
   "Image Disk Used (%)": "المستخدَم من قرص الصور (%)",
@@ -58397,7 +58395,6 @@
   "Root filesystem": "نظام الملفات الجذر",
   "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.": "حجم نظام الملفات الجذر للعقدة {{nodeName}}، وكم منه لا يزال متاحًا للكتابة.",
   "The size of the disk node {{nodeName}} keeps its container images on, and how much of it is still free to write.": "حجم القرص الذي تحفظ عليه العقدة {{nodeName}} صور حاوياتها، وكم منه لا يزال متاحًا للكتابة.",
-  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.": "حجم نظام الملفات الجذر للعقدة بالبايت، كما يقيسه kubelet. والمستخدَم هو هذه القيمة مطروحًا منها «المساحة المتاحة في نظام ملفات العقد»؛ ويبدأ kubelet بإخلاء الـ pods عندما يقل المتاح منه عن 10%.",
   "The size of this node's root filesystem, as the kubelet measures it.": "حجم نظام الملفات الجذر لهذه العقدة، كما يقيسه الـ kubelet.",
   "{{percent}} used, {{free}} free": "استُخدم {{percent}}، والمتاح {{free}}",
   "/proc Mount Type": "نوع تحميل /proc",
@@ -58978,5 +58975,12 @@
   "Esper Connection": "اتصال Esper",
   "Get an alert when one of its devices stops checking in.": "تلقي تنبيه عندما يتوقف أحد أجهزته عن إرسال إشارة الحضور.",
   "Model (hardware model)": "الطراز",
-  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "المراقبات التي يوصي بها OneUptime للأجهزة التي يستوردها هذا الاتصال، بناءً على المدة المنقضية منذ آخر إشارة حضور لكل منها. اختر ما تريده منها وأنشئها في خطوة واحدة."
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "المراقبات التي يوصي بها OneUptime للأجهزة التي يستوردها هذا الاتصال، بناءً على المدة المنقضية منذ آخر إشارة حضور لكل منها. اختر ما تريده منها وأنشئها في خطوة واحدة.",
+  "Container Filesystem Available": "المساحة المتاحة في نظام ملفات الحاوية",
+  "Container Filesystem Capacity": "سعة نظام ملفات الحاوية",
+  "Free bytes on the filesystem a container writes its own files to, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Every container on a node reports the same disk. Falling is bad, so alert with a 'less than' threshold.": "البايتات الحرة في نظام الملفات الذي تكتب فيه الحاوية ملفاتها الخاصة، كما يقيسها kubelet: وهو في معظم العقد القرص الذي تحفظ عليه العقدة صور حاوياتها. وتبلّغ كل حاويات العقدة عن القرص نفسه. الانخفاض سيئ، لذا نبّه بعتبة «أصغر من».",
+  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. By default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the node's container images.": "كم من نظام الملفات الجذر للعقدة {{nodeName}} مستخدَم، كنسبة من سعته. ويبدأ kubelet افتراضيًا بإخلاء الـ pods عند 90%، أو عند 85% عندما يحمل هذا القرص أيضًا صور حاويات العقدة.",
+  "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.": "حجم نظام الملفات الذي تكتب فيه الحاوية ملفاتها الخاصة بالبايت، كما يقيسه kubelet: وهو في معظم العقد القرص الذي تحفظ عليه العقدة صور حاوياتها. والمستخدَم هو هذه القيمة مطروحًا منها «المساحة المتاحة في نظام ملفات الحاوية».",
+  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.": "حجم نظام الملفات الجذر للعقدة بالبايت، كما يقيسه kubelet. والمستخدَم هو هذه القيمة مطروحًا منها «المساحة المتاحة في نظام ملفات العقد»؛ ويبدأ kubelet افتراضيًا بإخلاء الـ pods عندما يقل المتاح منه عن 10%، أو عن 15% عندما يحمل أيضًا صور حاويات العقدة.",
+  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.": "كم من نظام الملفات الجذر لهذه العقدة مستخدَم، وفق آخر قياس للـ kubelet: سجلات الـ pods فيها، ووحدات تخزين emptyDir، وصور الحاويات ما لم يكن لها قرص خاص بها. كهرماني من امتلاء 80% وأحمر من 90%؛ ويبدأ kubelet افتراضيًا بإخلاء الـ pods عند 90%، أو عند 85% عندما يحمل هذا القرص أيضًا صور الحاويات."
 }

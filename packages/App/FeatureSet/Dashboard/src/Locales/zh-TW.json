@@ -58373,11 +58373,9 @@
   "Full in less than an hour": "一小時內寫滿",
   "How much can still be written to this node's root filesystem, as the kubelet last measured it.": "依 kubelet 最近一次的量測，此節點根檔案系統還能寫入多少。",
   "How much of node {{nodeName}}'s root filesystem is still free to write.": "節點 {{nodeName}} 的根檔案系統中仍可寫入的空間。",
-  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. The kubelet starts evicting pods at 90% by default.": "節點 {{nodeName}} 的根檔案系統已用空間占其容量的比例。kubelet 預設在 90% 時開始逐出 Pod。",
   "How much of the disk node {{nodeName}} keeps its container images on is still free to write.": "節點 {{nodeName}} 存放容器映像的磁碟中仍可寫入的空間。",
   "How much of the disk node {{nodeName}} keeps its container images on is used, as a share of its capacity.": "節點 {{nodeName}} 存放容器映像的磁碟已用空間占其容量的比例。",
   "How much of this node's disk is used and free, as the kubelet last measured it.": "依 kubelet 最近一次的量測，此節點磁碟的已用與可用空間。",
-  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.": "依 kubelet 最近一次的量測，此節點根檔案系統已用多少：包括其 Pod 的日誌、emptyDir 磁碟區，以及容器映像（除非映像有專用磁碟）。占用 80% 起顯示為琥珀色，90% 起顯示為紅色，kubelet 預設從 90% 開始逐出 Pod。",
   "Image Disk": "映像專用磁碟",
   "Image Disk Capacity and Free Space": "映像專用磁碟容量與可用空間",
   "Image Disk Used (%)": "映像專用磁碟已用（%）",
@@ -58397,7 +58395,6 @@
   "Root filesystem": "根檔案系統",
   "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.": "節點 {{nodeName}} 的根檔案系統大小，以及其中仍可寫入的空間。",
   "The size of the disk node {{nodeName}} keeps its container images on, and how much of it is still free to write.": "節點 {{nodeName}} 存放容器映像的磁碟大小，以及其中仍可寫入的空間。",
-  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.": "kubelet 量測的節點根檔案系統大小（位元組）。已用量為此值減去「節點檔案系統可用空間」；可用空間低於 10% 時，kubelet 開始逐出 Pod。",
   "The size of this node's root filesystem, as the kubelet measures it.": "kubelet 量測的此節點根檔案系統大小。",
   "{{percent}} used, {{free}} free": "已用 {{percent}}，可用 {{free}}",
   "/proc Mount Type": "/proc 掛載類型",
@@ -58978,5 +58975,12 @@
   "Esper Connection": "Esper 連線",
   "Get an alert when one of its devices stops checking in.": "其中某台裝置停止簽入時收到警示。",
   "Model (hardware model)": "型號",
-  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "OneUptime 根據每台裝置距上次簽入的時間，為此連線匯入的裝置建議的監測器。選擇需要的監測器，一個步驟即可建立。"
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "OneUptime 根據每台裝置距上次簽入的時間，為此連線匯入的裝置建議的監測器。選擇需要的監測器，一個步驟即可建立。",
+  "Container Filesystem Available": "容器檔案系統可用空間",
+  "Container Filesystem Capacity": "容器檔案系統容量",
+  "Free bytes on the filesystem a container writes its own files to, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Every container on a node reports the same disk. Falling is bad, so alert with a 'less than' threshold.": "kubelet 量測的、容器寫入自身檔案的檔案系統上的可用位元組數：在大多數節點上，就是節點存放容器映像的磁碟。節點上的每個容器都回報同一個磁碟。下降是壞事，因此請使用「小於」閾值來發出警示。",
+  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. By default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the node's container images.": "節點 {{nodeName}} 的根檔案系統已用空間占其容量的比例。kubelet 預設在 90% 時開始逐出 Pod，若此磁碟還存放節點的容器映像，則在 85% 時開始。",
+  "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.": "kubelet 量測的、容器寫入自身檔案的檔案系統大小（位元組）：在大多數節點上，就是節點存放容器映像的磁碟。已用量為此值減去「容器檔案系統可用空間」。",
+  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.": "kubelet 量測的節點根檔案系統大小（位元組）。已用量為此值減去「節點檔案系統可用空間」；預設情況下，可用空間低於 10% 時 kubelet 開始逐出 Pod，若它還存放節點的容器映像，則低於 15% 時開始。",
+  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.": "依 kubelet 最近一次的量測，此節點根檔案系統已用多少：包括其 Pod 的日誌、emptyDir 磁碟區，以及容器映像（除非映像有專用磁碟）。占用 80% 起顯示為琥珀色，90% 起顯示為紅色；kubelet 預設在 90% 時開始逐出 Pod，若此磁碟還存放容器映像，則在 85% 時開始。"
 }

@@ -58373,11 +58373,9 @@
   "Full in less than an hour": "1 時間以内に満杯",
   "How much can still be written to this node's root filesystem, as the kubelet last measured it.": "kubelet が最後に測定した、このノードのルートファイルシステムにまだ書き込める量です。",
   "How much of node {{nodeName}}'s root filesystem is still free to write.": "ノード {{nodeName}} のルートファイルシステムで、まだ書き込める空き容量。",
-  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. The kubelet starts evicting pods at 90% by default.": "ノード {{nodeName}} のルートファイルシステムの使用量 (容量に対する割合)。kubelet はデフォルトで 90% から Pod の退避を始めます。",
   "How much of the disk node {{nodeName}} keeps its container images on is still free to write.": "ノード {{nodeName}} がコンテナイメージを置いているディスクで、まだ書き込める空き容量。",
   "How much of the disk node {{nodeName}} keeps its container images on is used, as a share of its capacity.": "ノード {{nodeName}} がコンテナイメージを置いているディスクの使用量 (容量に対する割合)。",
   "How much of this node's disk is used and free, as the kubelet last measured it.": "kubelet が最後に測定した、このノードのディスクの使用量と空き容量。",
-  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.": "kubelet が最後に測定した、このノードのルートファイルシステムの使用量です。Pod のログ、emptyDir ボリューム、そしてコンテナイメージ専用のディスクがない場合はコンテナイメージも含まれます。80% 以上で黄、kubelet がデフォルトで Pod の退避を始める 90% 以上で赤になります。",
   "Image Disk": "イメージ用ディスク",
   "Image Disk Capacity and Free Space": "イメージ用ディスクの容量と空き容量",
   "Image Disk Used (%)": "イメージ用ディスク使用率 (%)",
@@ -58397,7 +58395,6 @@
   "Root filesystem": "ルートファイルシステム",
   "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.": "ノード {{nodeName}} のルートファイルシステムのサイズと、そのうちまだ書き込める空き容量。",
   "The size of the disk node {{nodeName}} keeps its container images on, and how much of it is still free to write.": "ノード {{nodeName}} がコンテナイメージを置いているディスクのサイズと、そのうちまだ書き込める空き容量。",
-  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.": "kubelet が測定する、ノードのルートファイルシステムのサイズ (バイト単位) です。使用量はこの値から「ノードファイルシステム空き容量」を引いたもので、空きが 10% を下回ると kubelet は Pod の退避を始めます。",
   "The size of this node's root filesystem, as the kubelet measures it.": "kubelet が測定する、このノードのルートファイルシステムのサイズです。",
   "{{percent}} used, {{free}} free": "使用率 {{percent}}、空き {{free}}",
   "/proc Mount Type": "/proc のマウントタイプ",
@@ -58978,5 +58975,12 @@
   "Esper Connection": "Esper 接続",
   "Get an alert when one of its devices stops checking in.": "いずれかのデバイスがチェックインしなくなったらアラートを受け取る。",
   "Model (hardware model)": "モデル",
-  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "この接続がインポートするデバイスについて、各デバイスの最終チェックインからの経過時間に基づいて OneUptime が推奨するモニター。必要なものを選び、1 ステップで作成できます。"
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "この接続がインポートするデバイスについて、各デバイスの最終チェックインからの経過時間に基づいて OneUptime が推奨するモニター。必要なものを選び、1 ステップで作成できます。",
+  "Container Filesystem Available": "コンテナファイルシステム空き容量",
+  "Container Filesystem Capacity": "コンテナファイルシステム容量",
+  "Free bytes on the filesystem a container writes its own files to, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Every container on a node reports the same disk. Falling is bad, so alert with a 'less than' threshold.": "kubelet が測定する、コンテナが自身のファイルを書き込むファイルシステムの空きバイト数です。ほとんどのノードでは、ノードがコンテナイメージを置いているディスクです。ノード上のすべてのコンテナが同じディスクを報告します。減少は悪い兆候なので、「より小さい」のしきい値でアラートを設定してください。",
+  "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. By default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the node's container images.": "ノード {{nodeName}} のルートファイルシステムの使用量 (容量に対する割合)。kubelet はデフォルトで 90% から Pod の退避を始めます。このディスクにノードのコンテナイメージも置かれている場合は 85% からです。",
+  "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.": "kubelet が測定する、コンテナが自身のファイルを書き込むファイルシステムのサイズ (バイト単位) です。ほとんどのノードでは、ノードがコンテナイメージを置いているディスクです。使用量はこの値から「コンテナファイルシステム空き容量」を引いたものです。",
+  "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.": "kubelet が測定する、ノードのルートファイルシステムのサイズ (バイト単位) です。使用量はこの値から「ノードファイルシステム空き容量」を引いたもので、kubelet はデフォルトで、空きが 10% を下回ると Pod の退避を始めます。ノードのコンテナイメージも置かれている場合は 15% です。",
+  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.": "kubelet が最後に測定した、このノードのルートファイルシステムの使用量です。Pod のログ、emptyDir ボリューム、そしてコンテナイメージ専用のディスクがない場合はコンテナイメージも含まれます。80% 以上で黄、90% 以上で赤になり、kubelet はデフォルトで 90% から Pod の退避を始め、このディスクにコンテナイメージも置かれている場合は 85% からです。"
 }

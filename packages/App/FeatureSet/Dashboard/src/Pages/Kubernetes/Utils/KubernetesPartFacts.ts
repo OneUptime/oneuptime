@@ -927,6 +927,7 @@ export const KUBERNETES_PART_ALERT_TEMPLATE_IDS: Record<
     "k8s-high-cpu",
     "k8s-high-memory",
     "k8s-high-disk-usage",
+    "k8s-node-image-disk-almost-full",
     "k8s-node-cpu-request-utilization",
     "k8s-node-memory-request-utilization",
   ],
