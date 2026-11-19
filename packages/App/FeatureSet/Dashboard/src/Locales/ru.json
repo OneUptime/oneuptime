@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "Сколько хранит бакет до сокращения данных, относительно его квоты.",
   "{{free}} free of {{total}}": "Свободно {{free}} из {{total}}",
   "{{percent}} of its quota used": "Занято {{percent}} квоты",
-  "{{size}} reserved for root": "{{size}} зарезервировано для root"
+  "{{size}} reserved for root": "{{size}} зарезервировано для root",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Насколько заполнен диск, на котором Docker хранит локальные тома узла: они все делят его. Жёлтым с 80 % и красным с 90 %.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "Место, которое занимают файлы тома, по замеру Docker, не чаще раза в час. Docker измеряет только локальные тома."
 }

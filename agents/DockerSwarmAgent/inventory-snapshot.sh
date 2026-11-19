@@ -35,6 +35,16 @@
 # the metrics line with the time of its first reading.
 # Tests/Ops/swarm-agent-inventory-behaviour.sh holds the collector to both.
 #
+# Each local volume carries its size and the disk it lives on (#9648): its
+# size as Docker measures it (GET /system/df?type=volume, the sizes of
+# `docker system df -v`), at most every DOCKER_VOLUME_USAGE_INTERVAL_SECONDS
+# (an hour; 0 never) because Docker walks every volume's files to measure
+# them, kept between measurements so every snapshot carries the last one; and
+# the disk Docker keeps local volumes on, by `df` on this poller's own
+# swarm-inventory volume, which is one of them. A volume of another driver,
+# or a local one mounted from elsewhere (an NFS or tmpfs `type` option), has
+# neither: Docker measures only the local driver's.
+#
 # `--once` takes one snapshot of each and exits, for a check by hand (and for
 # the tests).
 
@@ -47,6 +57,8 @@ INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"
 METRICS_INTERVAL="${DOCKER_INVENTORY_METRICS_INTERVAL_SECONDS:-60}"
 # Failed or rejected tasks this recent count toward a service's crash loop.
 FAILED_TASK_WINDOW_SECONDS="${DOCKER_INVENTORY_FAILED_TASK_WINDOW_SECONDS:-3600}"
+# How often each local volume's size is measured (see the top of the file).
+VOLUME_USAGE_INTERVAL="${DOCKER_VOLUME_USAGE_INTERVAL_SECONDS:-3600}"
 API_VERSION="${DOCKER_API_VERSION:-}"
 
 # Follow the collector's DOCKER_API_VERSION, which is empty unless someone
@@ -66,6 +78,7 @@ TMP_DIR="$(dirname "${LOG_PATH}")"
 SERVICES_JSON="${TMP_DIR}/.oneuptime-swarm-services.json"
 NODES_JSON="${TMP_DIR}/.oneuptime-swarm-nodes.json"
 TASKS_JSON="${TMP_DIR}/.oneuptime-swarm-tasks.json"
+VOLUME_USAGE_JSON="${TMP_DIR}/.oneuptime-swarm-volume-usage.json"
 METRICS_TMP_DIR="$(dirname "${METRICS_PATH}")"
 METRICS_SERVICES_JSON="${METRICS_TMP_DIR}/.oneuptime-swarm-metrics-services.json"
 METRICS_NODES_JSON="${METRICS_TMP_DIR}/.oneuptime-swarm-metrics-nodes.json"
@@ -78,6 +91,38 @@ fetch() {
 # A random id for this snapshot: the kernel's, else the time and this shell's.
 snapshot_id() {
     cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "$(date -u +%s)-$$"
+}
+
+# Each local volume's size as Docker measures it, {"measuredAt": s, "sizes":
+# {name: bytes}}, measured again once the last measurement is
+# VOLUME_USAGE_INTERVAL old. Docker sets Size to -1 for a volume it cannot
+# measure; those are left out. A read that fails keeps the last measurement.
+volume_usage() {
+    case "${VOLUME_USAGE_INTERVAL}" in
+        ''|*[!0-9]*) VOLUME_USAGE_INTERVAL=3600 ;;
+    esac
+    [ -f "${VOLUME_USAGE_JSON}" ] || echo '{"measuredAt":0,"sizes":{}}' > "${VOLUME_USAGE_JSON}"
+    if [ "${VOLUME_USAGE_INTERVAL}" -eq 0 ]; then
+        echo '{"measuredAt":0,"sizes":{}}' > "${VOLUME_USAGE_JSON}"
+        return 0
+    fi
+    now="$(date -u +%s)"
+    measured="$(jq -r '.measuredAt // 0' "${VOLUME_USAGE_JSON}" 2>/dev/null || echo 0)"
+    case "${measured}" in
+        ''|*[!0-9]*) measured=0 ;;
+    esac
+    if [ $((now - measured)) -lt "${VOLUME_USAGE_INTERVAL}" ]; then
+        return 0
+    fi
+    fetch "/system/df?type=volume" | jq -ce --argjson now "${now}" '
+        select(type == "object" and has("Volumes"))
+        | {measuredAt: $now,
+           sizes: ([(.Volumes // [])[]
+                    | select((.UsageData.Size // -1) >= 0)
+                    | {key: .Name, value: .UsageData.Size}] | from_entries)}' \
+        > "${VOLUME_USAGE_JSON}.tmp" 2>/dev/null \
+        && mv "${VOLUME_USAGE_JSON}.tmp" "${VOLUME_USAGE_JSON}" \
+        || rm -f "${VOLUME_USAGE_JSON}.tmp"
 }
 
 snapshot() {
@@ -220,9 +265,21 @@ snapshot() {
       >> "${LOG_PATH}.tmp" 2>/dev/null \
       || echo "oneuptime-swarm-inventory: failed to emit Config" >&2
 
-    # Volumes (local to the manager node this agent runs on).
-    fetch "/volumes" | jq -c --arg node "${NODE_HOSTNAME}" '.Volumes[]?
-        | {"oneuptime.dockerswarm.kind":"Volume","data":{Name: .Name, Driver: .Driver, Scope: .Scope, Mountpoint: .Mountpoint, Node: $node}}' \
+    # Volumes (local to the manager node this agent runs on), each local one
+    # with its size and the disk it lives on (see the top of the file): df in
+    # KiB on this poller's own volume, which Docker keeps beside the others.
+    volume_usage || echo "oneuptime-swarm-inventory: failed to measure volumes" >&2
+    VOLUMES_DISK_KIB="$(df -P -k "${TMP_DIR}" 2>/dev/null | awk 'NR == 2 { print $2 " " $4 }')"
+    fetch "/volumes" | jq -c --arg node "${NODE_HOSTNAME}" \
+        --arg disk "${VOLUMES_DISK_KIB}" \
+        --slurpfile usage "${VOLUME_USAGE_JSON}" '
+        ($disk | split(" ") | map(tonumber? // null)) as $kib
+        | .Volumes[]?
+        | ((.Driver == "local") and (((.Options // {}) | has("type") or has("device")) | not)) as $here
+        | {"oneuptime.dockerswarm.kind":"Volume","data":{Name: .Name, Driver: .Driver, Scope: .Scope, Mountpoint: .Mountpoint, Node: $node,
+            SizeBytes: (if $here then ($usage[0].sizes[.Name] // null) else null end),
+            DiskTotalBytes: (if $here and ($kib[0] != null) then $kib[0] * 1024 else null end),
+            DiskAvailableBytes: (if $here and ($kib[1] != null) then $kib[1] * 1024 else null end)}}' \
       >> "${LOG_PATH}.tmp" 2>/dev/null \
       || echo "oneuptime-swarm-inventory: failed to emit Volume" >&2
 

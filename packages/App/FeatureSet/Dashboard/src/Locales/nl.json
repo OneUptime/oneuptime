@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "Wat de bucket opslaat, vóór datareductie, afgezet tegen het quotum.",
   "{{free}} free of {{total}}": "{{free}} vrij van {{total}}",
   "{{percent}} of its quota used": "{{percent}} van het quotum gebruikt",
-  "{{size}} reserved for root": "{{size}} gereserveerd voor root"
+  "{{size}} reserved for root": "{{size}} gereserveerd voor root",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Hoe vol de schijf is waarop Docker de lokale volumes van de node bewaart: ze delen hem allemaal. Oranje vanaf 80% en rood vanaf 90%.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "Ruimte die de bestanden van het volume innemen, zoals Docker die meet, hooguit eens per uur. Docker meet alleen lokale volumes."
 }

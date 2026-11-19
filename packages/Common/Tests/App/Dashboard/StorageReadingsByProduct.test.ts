@@ -68,6 +68,12 @@ import {
   getCloudResourceStorage,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { ResourceAttentionSeverity } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
+import {
+  DOCKER_SWARM_VOLUME_NOT_REPORTED,
+  getDockerSwarmVolumeStorage,
+  withDockerSwarmVolumeStorage,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmVolumeStorage";
+import { InfrastructureResource } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
 
 /*
  * HOW FULL EACH PRODUCT'S STORES ARE, ONE READING, EACH AT ITS OWN LINES
@@ -624,5 +630,52 @@ describe("cloud stores", () => {
         readings: {},
       }),
     ).toBe(null);
+  });
+});
+
+/*
+ * A Swarm volume (#9648): its own size, and how full the disk Docker keeps
+ * the node's local volumes on is - a local volume has no limit of its own.
+ */
+describe("Docker Swarm volumes", () => {
+  test("a local volume reads its size and its disk, at the default lines", () => {
+    expect(
+      getDockerSwarmVolumeStorage({
+        sizeBytes: 10 * GIB,
+        diskTotalBytes: 100 * GIB,
+        diskAvailableBytes: 8 * GIB,
+      }),
+    ).toMatchObject({
+      sizeBytes: 10 * GIB,
+      disk: {
+        used: 92 * GIB,
+        free: 8 * GIB,
+        level: StorageUsageLevel.Critical,
+      },
+    });
+  });
+
+  test("a volume Docker cannot measure, or an older agent's, reads neither, and says so", () => {
+    expect(getDockerSwarmVolumeStorage({ scope: "local" })).toEqual({
+      sizeBytes: null,
+      disk: null,
+    });
+
+    const resource: InfrastructureResource = {
+      name: "media",
+      namespace: "mgr-1",
+      cpuUtilization: null,
+      memoryUsageBytes: null,
+      memoryLimitBytes: null,
+      status: "",
+      age: "",
+      additionalAttributes: {},
+    };
+    withDockerSwarmVolumeStorage(resource, null);
+    expect(resource.storageUsage).toEqual({
+      usage: null,
+      noUsageText: DOCKER_SWARM_VOLUME_NOT_REPORTED,
+    });
+    expect(resource.additionalAttributes["sizeBytes"]).toBeUndefined();
   });
 });

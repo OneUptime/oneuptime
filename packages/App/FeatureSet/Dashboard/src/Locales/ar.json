@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "ما تخزّنه الحاوية قبل تقليل البيانات، مقارنةً بحصتها.",
   "{{free}} free of {{total}}": "{{free}} حرة من {{total}}",
   "{{percent}} of its quota used": "استُخدم {{percent}} من حصته",
-  "{{size}} reserved for root": "{{size}} محجوزة لـ root"
+  "{{size}} reserved for root": "{{size}} محجوزة لـ root",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "مدى امتلاء القرص الذي يحفظ عليه Docker وحدات التخزين المحلية للعقدة: تتشاركه جميعها. كهرماني عند 80% وأحمر عند 90%.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "المساحة التي تشغلها ملفات وحدة التخزين، كما يقيسها Docker، مرة في الساعة على الأكثر. ولا يقيس Docker إلا وحدات التخزين المحلية."
 }

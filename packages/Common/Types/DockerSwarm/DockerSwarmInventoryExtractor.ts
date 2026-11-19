@@ -479,6 +479,14 @@ function parseVolume(
   r.attributes = {
     scope: readString(data, "Scope"),
     mountpoint: readString(data, "Mountpoint"),
+    /*
+     * From files 0.161.4 on (#9648): a local volume's size as Docker
+     * measures it (/system/df), and the disk Docker keeps local volumes on
+     * (df on the poller's own volume). Null where Docker cannot measure it.
+     */
+    sizeBytes: readCount(data, "SizeBytes"),
+    diskTotalBytes: readCount(data, "DiskTotalBytes"),
+    diskAvailableBytes: readCount(data, "DiskAvailableBytes"),
   };
   return r;
 }

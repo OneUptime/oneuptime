@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "Was der Bucket vor der Datenreduktion speichert, gemessen an seinem Kontingent.",
   "{{free}} free of {{total}}": "{{free}} frei von {{total}}",
   "{{percent}} of its quota used": "{{percent}} seines Kontingents belegt",
-  "{{size}} reserved for root": "{{size}} für root reserviert"
+  "{{size}} reserved for root": "{{size}} für root reserviert",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Wie voll die Festplatte ist, auf der Docker die lokalen Volumes des Knotens ablegt: Sie teilen sie alle. Gelb ab 80 % und rot ab 90 %.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "Platz, den die Dateien des Volumes belegen, wie Docker ihn misst, höchstens einmal pro Stunde. Docker misst nur lokale Volumes."
 }

@@ -737,6 +737,44 @@ describe("DockerSwarmInventoryExtractor - the real agent's map body", () => {
   test("a map with no name is still nothing, as a flat body with none is", () => {
     expect(extract("Volume", otlpMap({ Driver: "local" }))).toBeNull();
   });
+
+  /*
+   * Files 0.161.4 on (#9648): a local volume's size as Docker measures it,
+   * and the disk Docker keeps local volumes on, as the real collector sends
+   * them - int64s in a map.
+   */
+  test("a local volume keeps its size and the disk it lives on", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Volume",
+        otlpMap({
+          Name: "shop_data",
+          Driver: "local",
+          Node: "mgr-1",
+          SizeBytes: 10920104,
+          DiskTotalBytes: 536870912000,
+          DiskAvailableBytes: 107374182400,
+        }),
+      ),
+    );
+
+    expect(r.attributes?.["sizeBytes"]).toBe(10920104);
+    expect(r.attributes?.["diskTotalBytes"]).toBe(536870912000);
+    expect(r.attributes?.["diskAvailableBytes"]).toBe(107374182400);
+  });
+
+  test("a volume Docker cannot measure, or older files, keep none of them", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Volume",
+        envelope("Volume", { Name: "media", Driver: "nfs", SizeBytes: -1 }),
+      ),
+    );
+
+    expect(r.attributes?.["sizeBytes"]).toBeNull();
+    expect(r.attributes?.["diskTotalBytes"]).toBeNull();
+    expect(r.attributes?.["diskAvailableBytes"]).toBeNull();
+  });
 });
 
 describe("DockerSwarmInventoryExtractor - kind/payload routing", () => {

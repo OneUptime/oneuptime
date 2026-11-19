@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "آنچه باکت پیش از کاهش داده نگه می‌دارد، در برابر سهمیه‌اش.",
   "{{free}} free of {{total}}": "{{free}} آزاد از {{total}}",
   "{{percent}} of its quota used": "{{percent}} از سهمیه‌اش استفاده‌شده",
-  "{{size}} reserved for root": "{{size}} رزروشده برای root"
+  "{{size}} reserved for root": "{{size}} رزروشده برای root",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "دیسکی که Docker حجم‌های محلی این گره را روی آن نگه می‌دارد چقدر پر است: همه آن را با هم به اشتراک می‌گذارند. از ۸۰٪ کهربایی و از ۹۰٪ قرمز.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "فضایی که فایل‌های این حجم می‌گیرند، همان‌طور که Docker اندازه می‌گیرد، حداکثر ساعتی یک بار. Docker فقط حجم‌های محلی را اندازه می‌گیرد."
 }

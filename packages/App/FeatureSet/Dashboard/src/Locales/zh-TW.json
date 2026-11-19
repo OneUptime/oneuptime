@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "儲存貯體在資料縮減前儲存的量，相對於其配額。",
   "{{free}} free of {{total}}": "{{total}} 中可用 {{free}}",
   "{{percent}} of its quota used": "已用配額的 {{percent}}",
-  "{{size}} reserved for root": "保留給 root 的 {{size}}"
+  "{{size}} reserved for root": "保留給 root 的 {{size}}",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Docker 存放該節點本機磁碟區的磁碟使用率：所有本機磁碟區共用此磁碟。達到 80% 時為黃色，達到 90% 時為紅色。",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "磁碟區檔案占用的空間，由 Docker 測量，最多每小時一次。Docker 只測量本機磁碟區。"
 }

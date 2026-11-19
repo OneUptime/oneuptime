@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "Det bucketen lagrer, før datareduksjon, målt mot kvoten.",
   "{{free}} free of {{total}}": "{{free}} ledig av {{total}}",
   "{{percent}} of its quota used": "{{percent}} av kvoten brukt",
-  "{{size}} reserved for root": "{{size}} reservert for root"
+  "{{size}} reserved for root": "{{size}} reservert for root",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Hvor full disken er som Docker lagrer nodens lokale volumer på: de deler den alle. Gul fra 80 % og rød fra 90 %.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "Plass volumets filer tar, slik Docker måler den, høyst én gang i timen. Docker måler bare lokale volumer."
 }

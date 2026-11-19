@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "डेटा रिडक्शन से पहले बकेट कितना रखता है, उसके कोटा के मुकाबले।",
   "{{free}} free of {{total}}": "{{total}} में से {{free}} खाली",
   "{{percent}} of its quota used": "कोटा का {{percent}} इस्तेमाल",
-  "{{size}} reserved for root": "{{size}} root के लिए आरक्षित"
+  "{{size}} reserved for root": "{{size}} root के लिए आरक्षित",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "जिस डिस्क पर Docker नोड के लोकल वॉल्यूम रखता है वह कितनी भरी है: सभी लोकल वॉल्यूम उसे साझा करते हैं। 80% पर पीला और 90% पर लाल।",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "वॉल्यूम की फ़ाइलें कितनी जगह लेती हैं, जैसा Docker मापता है, ज़्यादा से ज़्यादा घंटे में एक बार। Docker सिर्फ़ लोकल वॉल्यूम मापता है।"
 }

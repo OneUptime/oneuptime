@@ -58128,5 +58128,7 @@
   "What the bucket stores, before data reduction, against its quota.": "데이터 축소 전에 버킷이 저장한 양을 할당량과 비교한 값입니다.",
   "{{free}} free of {{total}}": "{{total}} 중 {{free}} 여유",
   "{{percent}} of its quota used": "할당량의 {{percent}} 사용",
-  "{{size}} reserved for root": "{{size}} root용 예약"
+  "{{size}} reserved for root": "{{size}} root용 예약",
+  "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Docker가 노드의 로컬 볼륨을 두는 디스크의 사용률이며, 모든 로컬 볼륨이 이 디스크를 공유합니다. 80%에서 노란색, 90%에서 빨간색이 됩니다.",
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "볼륨의 파일이 차지하는 공간으로, Docker가 최대 한 시간에 한 번 측정합니다. Docker는 로컬 볼륨만 측정합니다."
 }
