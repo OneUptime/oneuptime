@@ -128,6 +128,7 @@ import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAnd
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import MoveMonitorsOffRetiredCloudMetrics from "./MoveMonitorsOffRetiredCloudMetrics";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
@@ -1492,6 +1493,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * it read NULL. Before the last slot AddAuditLogMcpClientColumns keeps.
    */
   new AddAuditLogWorkflowRunAsColumns(),
+  /*
+   * Moves the Metrics monitors that read a metric its cloud deprecates -
+   * a Pub/Sub topic's send_message_operation_count, a Cosmos DB account's
+   * ServerSideLatency - to what replaces it, which the cloud connections
+   * read since #9565, as they stop reading the old ones (#9739); a monitor
+   * left on one is told in its feed what to read instead. Postgres and the
+   * metric store's reads only, idempotent, a page of monitors at a time by
+   * id; before the last slot AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveMonitorsOffRetiredCloudMetrics(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -12,6 +12,7 @@ import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
+import MetricService from "../../../../Server/Services/MetricService";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import CloudResourceMetrics, {
@@ -1229,6 +1230,91 @@ describe("the read of when each name last reported", () => {
     expect(values).toContain("westeurope");
     expect(values).toContain("azuremonitor.resource_id");
     expect(JSON.stringify(values)).toContain("azure_percentage_cpu_average");
+  });
+
+  /*
+   * #9739: a Cosmos DB monitor of the ServerSideLatency Microsoft retires
+   * moves to the latency its account reported most: the same read, its
+   * points counted.
+   */
+  test("how many points each reported: the same read, counted", () => {
+    const data: Parameters<
+      typeof CloudResourceMetrics.buildReportedPointsStatement
+    >[0] = {
+      projectId: PROJECT,
+      attributes: { "azuremonitor.resource_id": SITE },
+      names: [
+        "azure_serversidelatencydirect_average",
+        "AZURE_SERVERSIDELATENCYGATEWAY_AVERAGE",
+      ],
+      since: new Date("2026-10-20T12:00:00.000Z"),
+      until: NOW,
+    };
+    const counted: Statement =
+      CloudResourceMetrics.buildReportedPointsStatement(data);
+    const last: Statement =
+      CloudResourceMetrics.buildLastReportedStatement(data);
+
+    expect(counted.query).toContain(
+      "SELECT name, count() AS points FROM Metric",
+    );
+    // Everything after what is read of each name is the last-reported read's.
+    expect(counted.query.slice(counted.query.indexOf(" FROM "))).toBe(
+      last.query.slice(last.query.indexOf(" FROM ")),
+    );
+    expect(Object.values(counted.query_params)).toEqual(
+      Object.values(last.query_params),
+    );
+    expect(JSON.stringify(Object.values(counted.query_params))).toContain(
+      "azure_serversidelatencygateway_average",
+    );
+  });
+
+  test("the points are read back by name, a name with none left out", async () => {
+    const executeQuery: jest.SpiedFunction<typeof MetricService.executeQuery> =
+      jest.spyOn(MetricService, "executeQuery").mockResolvedValue({
+        json: async () => {
+          return {
+            data: [
+              { name: "AZURE_SERVERSIDELATENCYDIRECT_AVERAGE", points: "4200" },
+              { name: "azure_serversidelatencygateway_average", points: 0 },
+              { name: "", points: 3 },
+            ],
+          };
+        },
+      } as never);
+
+    try {
+      const points: Map<string, number> =
+        await CloudResourceMetrics.findReportedPoints({
+          projectId: PROJECT,
+          attributes: { "azuremonitor.resource_id": SITE },
+          names: [
+            "azure_serversidelatencydirect_average",
+            "azure_serversidelatencygateway_average",
+          ],
+          since: new Date("2026-10-20T12:00:00.000Z"),
+          until: NOW,
+        });
+
+      expect(Array.from(points.entries())).toEqual([
+        ["azure_serversidelatencydirect_average", 4200],
+      ]);
+      expect(executeQuery).toHaveBeenCalledTimes(1);
+      // No names, no read.
+      expect(
+        await CloudResourceMetrics.findReportedPoints({
+          projectId: PROJECT,
+          attributes: {},
+          names: [],
+          since: new Date("2026-10-20T12:00:00.000Z"),
+          until: NOW,
+        }),
+      ).toEqual(new Map());
+      expect(executeQuery).toHaveBeenCalledTimes(1);
+    } finally {
+      executeQuery.mockRestore();
+    }
   });
 });
 
