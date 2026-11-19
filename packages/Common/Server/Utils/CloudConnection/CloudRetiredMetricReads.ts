@@ -1,6 +1,5 @@
 import { CloudAddedMetric } from "../../../Types/Cloud/CloudAddedMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
-import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { findRetiredCloudMetricQueriesOfDashboard } from "../../../Utils/Metrics/RetiredCloudMetricChartMoves";
 import {
@@ -8,8 +7,11 @@ import {
   findRetiredCloudMetricQueries,
 } from "../../../Utils/Metrics/RetiredCloudMetricMoves";
 import { getRetiredCloudMetricReads } from "../../../Utils/Metrics/RetiredCloudMetricReads";
-import DashboardService from "../../Services/DashboardService";
-import MonitorService from "../../Services/MonitorService";
+import {
+  SavedMetricQueryRow,
+  SavedMetricQueryRows,
+  findSavedMetricQueryRows,
+} from "./CloudSavedMetricQueries";
 
 /*
  * WHICH DEPRECATED METRICS A PROJECT'S CONNECTIONS STILL READ, AND OF WHAT
@@ -20,7 +22,8 @@ import MonitorService from "../../Services/MonitorService";
  * moves could not move yet - keeps the metric read of the resources it
  * reads, so it is never left with nothing new to judge or draw. Found from
  * the project's monitors and dashboards whose stored queries name one (a
- * LIKE on their JSON, then the queries themselves), at most
+ * LIKE on their JSON, then the queries themselves: CloudSavedMetricQueries,
+ * as what an added metric is read by is found, #9807), at most
  * CLOUD_RETIRED_READ_SOURCES_MAX of each, and kept for
  * CLOUD_RETIRED_READS_MEMO_MS: a connection read every few minutes asks
  * Postgres once in that time, and a monitor moved or saved is read as it is
@@ -61,18 +64,6 @@ interface MemoEntry {
 
 const memo: Map<string, MemoEntry> = new Map<string, MemoEntry>();
 
-function readJSON(value: unknown): unknown {
-  if (typeof value !== "string") {
-    return value;
-  }
-
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
 /*
  * Every query of a deprecated metric in the project's Metrics monitors and
  * dashboards: the ones not deleted whose stored JSON names one.
@@ -80,41 +71,21 @@ function readJSON(value: unknown): unknown {
 export async function findRetiredCloudMetricQueriesOfProject(data: {
   projectId: ObjectID;
 }): Promise<Array<RetiredCloudMetricQuery>> {
-  const monitors: Array<{ monitorSteps: unknown }> =
-    (await MonitorService.getRepository().manager.query(
-      `SELECT "monitorSteps" FROM "Monitor" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "monitorType" = $2 AND "monitorSteps" IS NOT NULL AND ("monitorSteps"::text ILIKE $3 OR "monitorSteps"::text ILIKE $4) LIMIT $5`,
-      [
-        data.projectId.toString(),
-        MonitorType.Metrics,
-        NAMES_RETIRED_PUBSUB_METRIC,
-        NAMES_RETIRED_COSMOS_METRIC,
-        CLOUD_RETIRED_READ_SOURCES_MAX,
-      ],
-    )) as Array<{ monitorSteps: unknown }>;
-  const dashboards: Array<{ dashboardViewConfig: unknown }> =
-    (await DashboardService.getRepository().manager.query(
-      `SELECT "dashboardViewConfig" FROM "Dashboard" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "dashboardViewConfig" IS NOT NULL AND ("dashboardViewConfig"::text ILIKE $2 OR "dashboardViewConfig"::text ILIKE $3) LIMIT $4`,
-      [
-        data.projectId.toString(),
-        NAMES_RETIRED_PUBSUB_METRIC,
-        NAMES_RETIRED_COSMOS_METRIC,
-        CLOUD_RETIRED_READ_SOURCES_MAX,
-      ],
-    )) as Array<{ dashboardViewConfig: unknown }>;
+  const rows: SavedMetricQueryRows = await findSavedMetricQueryRows({
+    projectId: data.projectId,
+    namePatterns: [NAMES_RETIRED_PUBSUB_METRIC, NAMES_RETIRED_COSMOS_METRIC],
+    limit: CLOUD_RETIRED_READ_SOURCES_MAX,
+  });
 
   return [
-    ...(monitors || []).flatMap(
-      (row: { monitorSteps: unknown }): Array<RetiredCloudMetricQuery> => {
-        return findRetiredCloudMetricQueries(readJSON(row.monitorSteps));
+    ...rows.monitors.flatMap(
+      (row: SavedMetricQueryRow): Array<RetiredCloudMetricQuery> => {
+        return findRetiredCloudMetricQueries(row.json);
       },
     ),
-    ...(dashboards || []).flatMap(
-      (row: {
-        dashboardViewConfig: unknown;
-      }): Array<RetiredCloudMetricQuery> => {
-        return findRetiredCloudMetricQueriesOfDashboard(
-          readJSON(row.dashboardViewConfig),
-        );
+    ...rows.dashboards.flatMap(
+      (row: SavedMetricQueryRow): Array<RetiredCloudMetricQuery> => {
+        return findRetiredCloudMetricQueriesOfDashboard(row.json);
       },
     ),
   ];
