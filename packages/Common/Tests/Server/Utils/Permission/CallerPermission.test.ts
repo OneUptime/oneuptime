@@ -278,7 +278,9 @@ describe("CallerPermission.getTeamGrants", () => {
     isBlock?: boolean,
   ): UserPermission => {
     return {
-      ...row(Permission.ManageTeamOnCallDutyPolicyUserOverride, { isBlock }),
+      ...row(Permission.ManageTeamOnCallDutyPolicyUserOverride, {
+        isBlock: Boolean(isBlock),
+      }),
       teamId: teamId,
     };
   };
