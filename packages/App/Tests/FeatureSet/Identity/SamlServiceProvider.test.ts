@@ -45,6 +45,8 @@ describe("the values each kind of provider is known by", () => {
       entityId: `${SERVER}/${PROJECT_ID}/${PROVIDER_ID}`,
       replyUrl: `${SERVER}/identity/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
       serverAddress: SERVER,
+      // Where the identity provider answers a sign-out, and sends its own (#9603).
+      singleLogoutUrl: `${SERVER}/identity/idp-logout/${PROJECT_ID}/${PROVIDER_ID}`,
     });
   });
 
@@ -68,6 +70,7 @@ describe("the values each kind of provider is known by", () => {
       entityId: `${SERVER}/global-sso/${PROVIDER_ID}`,
       replyUrl: `${SERVER}/identity/global-idp-login/${PROVIDER_ID}`,
       serverAddress: SERVER,
+      singleLogoutUrl: `${SERVER}/identity/global-idp-logout/${PROVIDER_ID}`,
     });
   });
 

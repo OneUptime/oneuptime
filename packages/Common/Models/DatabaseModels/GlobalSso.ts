@@ -214,6 +214,60 @@ export default class GlobalSSO extends BaseModel {
   })
   public restrictToAttachedProjects?: boolean = undefined;
 
+  /*
+   * Where the identity provider signs people out: its SAML
+   * SingleLogoutService, HTTP-Redirect binding (#9603). OneUptime does not
+   * read SAML metadata, so the admin enters it, as they enter the Sign On
+   * URL. Needed only to sign people out of the provider too.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongURL,
+    title: "Sign Out URL",
+    description:
+      "Sign out URL (SAML SingleLogoutService, HTTP-Redirect binding) of this SSO provider. Signing out of OneUptime sends people there when Sign Out of the Identity Provider Too is on.",
+    example: "https://example.com/saml/slo",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongURL,
+    transformer: URL.getDatabaseTransformer(),
+  })
+  public singleLogoutURL?: URL = undefined;
+
+  /*
+   * Whether signing out of OneUptime signs the person out of this provider
+   * too (Types/SSO/IdentityProviderSignOut, #9603): SAML Single Logout, for
+   * shared computers. Off by default, since on a single-user laptop it also
+   * signs the person out of every other app that uses the provider. Turning
+   * it on is refused without a Sign Out URL
+   * (Utils/IdentityProviderSignOutCheck).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Sign Out of the Identity Provider Too",
+    description:
+      "When enabled, signing out of OneUptime also signs the person out of this identity provider (SAML Single Logout), so the next person on a shared computer signs in as themselves. It also signs them out of every other app that uses the provider. The provider must have a Sign Out URL, and know OneUptime's Single Logout URL and signing certificate.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public signOutOfIdentityProvider?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

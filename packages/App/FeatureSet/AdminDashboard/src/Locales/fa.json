@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
   "Suggest every account on this server?": "همه حساب‌های این سرور پیشنهاد شوند؟",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "هر کسی که می‌تواند افراد را دعوت کند، هنگام تایپ نام و ایمیل همه حساب‌ها را می‌بیند. فقط وقتی این را روشن کنید که همه حساب‌های اینجا متعلق به یک سازمان باشند.",
-  "Suggest Every Account": "پیشنهاد همه حساب‌ها"
+  "Suggest Every Account": "پیشنهاد همه حساب‌ها",
+  "Sign Out URL": "نشانی خروج",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "نشانی خروج یکپارچهٔ ارائه‌دهندهٔ هویت شما. برای خارج کردن افراد از آن هم لازم است.",
+  "Single Logout URL:": "نشانی خروج یکپارچه (Single Logout):",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "برای اینکه افراد از ارائه‌دهندهٔ هویت هم خارج شوند، نشانی خروج یکپارچه و گواهی امضای OneUptime را هم به آن بدهید.",
+  "Download Signing Certificate": "دانلود گواهی امضا"
 }
