@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 import Dictionary from "../../../Types/Dictionary";
 import TotpCodeIssuer, {
   MAX_TOTP_SECRETS_PER_STEP,
-  REDACTED_TOTP_CODE,
+  maskTotpCode,
   TotpCodeAnswer,
   TotpSecrets,
   callsTotpCodeFunction,
@@ -41,6 +41,9 @@ const BILLING: TotpParameters = {
   digits: 8,
   periodInSeconds: 30,
 };
+
+// What a 6-digit code is taken out as: as long as the code.
+const SIX: string = "******";
 
 // The start of a 30-second period: RFC 6238's 1111111109 s falls in it.
 const PERIOD_START: number = 1111111080000;
@@ -148,13 +151,9 @@ describe("taking codes out of what a check reports", () => {
         "Entered 492039. otp=492039&next=1 [492039] code:492039",
         ["492039"],
       ),
-    ).toBe(
-      `Entered ${REDACTED_TOTP_CODE}. otp=${REDACTED_TOTP_CODE}&next=1 [${REDACTED_TOTP_CODE}] code:${REDACTED_TOTP_CODE}`,
-    );
-    expect(redactTotpCodes("492039", ["492039"])).toBe(REDACTED_TOTP_CODE);
-    expect(redactTotpCodes("492039 492039", ["492039"])).toBe(
-      `${REDACTED_TOTP_CODE} ${REDACTED_TOTP_CODE}`,
-    );
+    ).toBe(`Entered ${SIX}. otp=${SIX}&next=1 [${SIX}] code:${SIX}`);
+    expect(redactTotpCodes("492039", ["492039"])).toBe(SIX);
+    expect(redactTotpCodes("492039 492039", ["492039"])).toBe(`${SIX} ${SIX}`);
   });
 
   test("leaves a longer number that only holds the same digits", () => {
@@ -165,8 +164,17 @@ describe("taking codes out of what a check reports", () => {
 
   test("takes out every code it is given", () => {
     expect(redactTotpCodes("a 111111 b 22222222", ["111111", "22222222"])).toBe(
-      `a ${REDACTED_TOTP_CODE} b ${REDACTED_TOTP_CODE}`,
+      "a ****** b ********",
     );
+  });
+
+  test("never makes a text longer: a code is masked by as many characters", () => {
+    const text: string = "screenshot after 492039 and 12345678";
+    const redacted: string = redactTotpCodes(text, ["492039", "12345678"]);
+
+    expect(redacted).toBe("screenshot after ****** and ********");
+    expect(redacted.length).toBe(text.length);
+    expect(maskTotpCode("07081804")).toBe("********");
   });
 
   test("ignores what is no code", () => {
@@ -185,20 +193,24 @@ describe("taking codes out of what a check reports", () => {
 
     expect(redactTotpCodesInValue(value, ["492039"])).toEqual({
       data: {
-        entered: REDACTED_TOTP_CODE,
-        asNumber: REDACTED_TOTP_CODE,
-        list: [`x ${REDACTED_TOTP_CODE}`, 7],
+        entered: SIX,
+        asNumber: SIX,
+        list: [`x ${SIX}`, 7],
       },
-      [`shot-${REDACTED_TOTP_CODE}`]: "kept",
+      [`shot-${SIX}`]: "kept",
       nothing: null,
       when: 1700000492039,
     });
     expect(JSON.stringify(value)).toBe(copy);
   });
 
-  test("takes out a code returned as a number that lost its leading zero", () => {
-    expect(redactTotpCodesInValue({ code: 81804 }, ["081804"])).toEqual({
-      code: REDACTED_TOTP_CODE,
+  test("matches a number only by exactly a code's digits, never a short number a leading zero would match", () => {
+    // 000123 as a number is 123: every 123 ms timing would go with it.
+    expect(
+      redactTotpCodesInValue({ took: 123, code: "000123" }, ["000123"]),
+    ).toEqual({ took: 123, code: SIX });
+    expect(redactTotpCodesInValue({ code: 492039 }, ["492039"])).toEqual({
+      code: SIX,
     });
   });
 });
@@ -260,11 +272,22 @@ describe("a check's codes", () => {
     // Four seconds left of the period.
     clock.nowInMs = PERIOD_START + 26_000;
 
-    const issued: string = await issuer().getCode("LoginCode");
+    const codes: TotpCodeIssuer = issuer();
+    const issued: string = await codes.getCode("LoginCode");
 
     expect(clock.sleeps).toEqual([4_000]);
     expect(issued).toBe(code(LOGIN, PERIOD_START + 30_000));
     expect(issued).not.toBe(code(LOGIN, PERIOD_START));
+    // Time waited on OneUptime, kept out of how long the check took.
+    expect(codes.getWaitedInMs()).toBe(4_000);
+  });
+
+  test("have waited nothing while every code had time left", async () => {
+    const codes: TotpCodeIssuer = issuer();
+
+    await codes.getCode("LoginCode");
+
+    expect(codes.getWaitedInMs()).toBe(0);
   });
 
   test("do not wait with exactly five seconds left", async () => {
@@ -331,8 +354,8 @@ describe("a check's codes", () => {
         error: `Expected ${second} to be accepted`,
       }),
     ).toEqual({
-      log: [`typed ${REDACTED_TOTP_CODE}`, `then ${REDACTED_TOTP_CODE}`],
-      error: `Expected ${REDACTED_TOTP_CODE} to be accepted`,
+      log: [`typed ${SIX}`, `then ${SIX}`],
+      error: `Expected ${SIX} to be accepted`,
     });
   });
 
@@ -451,10 +474,13 @@ describe("a code asked for by a runtime that cannot wait", () => {
     expect(answer).toEqual({ code: code(LOGIN, clock.nowInMs) });
   });
 
-  test("says how long to wait when it is about to expire", () => {
+  test("says how long to wait when it is about to expire, and counts the wait", () => {
     clock.nowInMs = PERIOD_START + 28_500;
 
-    expect(issuer().tryGetCode("LoginCode")).toEqual({ waitInMs: 1_500 });
+    const codes: TotpCodeIssuer = issuer();
+
+    expect(codes.tryGetCode("LoginCode")).toEqual({ waitInMs: 1_500 });
+    expect(codes.getWaitedInMs()).toBe(1_500);
   });
 
   test("says what is wrong with the name", () => {

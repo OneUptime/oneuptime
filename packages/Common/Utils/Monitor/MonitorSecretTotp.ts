@@ -49,8 +49,17 @@ export const MONITOR_SECRETS_REFERENCE_PREFIX: string = "monitorSecrets.";
 // The function a script asks a fresh code with: oneuptime.getTotpCode("NAME").
 export const TOTP_CODE_FUNCTION_NAME: string = "getTotpCode";
 
-// What stands in for a code a check made, wherever the check reports it.
-export const REDACTED_TOTP_CODE: string = "[REDACTED]";
+/*
+ * What stands in for a code a check made, wherever the check reports it:
+ * an asterisk for each digit. It is exactly as long as the code, so taking
+ * codes out never makes a log, a screenshot's name or a metric longer than
+ * the limits it was already checked against.
+ */
+export const TOTP_CODE_MASK_CHARACTER: string = "*";
+
+export function maskTotpCode(code: string): string {
+  return TOTP_CODE_MASK_CHARACTER.repeat(code.length);
+}
 
 /*
  * How many times a moment is put off for a code about to expire. Once is
@@ -189,7 +198,7 @@ export function redactTotpCodes(
     redacted = redacted.replace(
       new RegExp(`(^|\\D)${code}(?=\\D|$)`, "g"),
       (_whole: string, before: string): string => {
-        return `${before}${REDACTED_TOTP_CODE}`;
+        return `${before}${maskTotpCode(code)}`;
       },
     );
   }
@@ -199,9 +208,12 @@ export function redactTotpCodes(
 
 /*
  * A value - a script's returned data, a log, a header - with every code
- * taken out: in its strings, its object keys, and a number that is a code
- * (which becomes the redaction mark). Plain objects and arrays are copied;
- * the value given is never changed.
+ * taken out: in its strings, its object keys, and a number written with
+ * exactly a code's digits (which becomes the code's mask, a string). A code that
+ * starts with a zero is never matched as a number - 000123 would take out
+ * every 123 - so a script that turns a code into a number has that number
+ * left. Plain objects and arrays are copied; the value given is never
+ * changed.
  */
 export function redactTotpCodesInValue<T>(
   value: T,
@@ -210,10 +222,6 @@ export function redactTotpCodesInValue<T>(
   if (codes.length === 0) {
     return value;
   }
-
-  const numericCodes: Array<number> = codes.map((code: string): number => {
-    return Number(code);
-  });
 
   const redact: (item: unknown, depth: number) => unknown = (
     item: unknown,
@@ -224,7 +232,7 @@ export function redactTotpCodesInValue<T>(
     }
 
     if (typeof item === "number") {
-      return numericCodes.includes(item) ? REDACTED_TOTP_CODE : item;
+      return codes.includes(String(item)) ? maskTotpCode(String(item)) : item;
     }
 
     if (depth >= MAX_REDACTION_DEPTH) {
@@ -278,6 +286,7 @@ export default class TotpCodeIssuer {
   private readonly issuedCodes: Set<string> = new Set();
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
+  private waitedInMs: number = 0;
 
   public constructor(options: TotpCodeIssuerOptions) {
     const secrets: TotpSecrets = readTotpSecrets(options.secrets);
@@ -315,6 +324,15 @@ export default class TotpCodeIssuer {
   }
 
   /*
+   * How long this check has waited for codes that were about to expire,
+   * here or - told to by tryGetCode - in a script's runtime. Time spent
+   * waiting on OneUptime is no part of how long the check took.
+   */
+  public getWaitedInMs(): number {
+    return this.waitedInMs;
+  }
+
+  /*
    * A fresh code for one secret, for oneuptime.getTotpCode: made now, or at
    * the start of the next period when the current code is about to expire.
    */
@@ -346,6 +364,7 @@ export default class TotpCodeIssuer {
     );
 
     if (waitInMs > 0) {
+      this.waitedInMs += waitInMs;
       return { waitInMs };
     }
 
@@ -441,6 +460,7 @@ export default class TotpCodeIssuer {
       }
 
       await this.sleep(waitInMs);
+      this.waitedInMs += waitInMs;
 
       // Never before the period it waited for, even if the timer was early.
       moment = Math.max(this.now(), moment + waitInMs);
