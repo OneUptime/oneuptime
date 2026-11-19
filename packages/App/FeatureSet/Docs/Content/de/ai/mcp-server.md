@@ -341,6 +341,8 @@ Das Tool **`get_data_table_freshness`** sagt einem Agenten, ob eine Tabelle, die
 
 Das Tool **`get_data_table_lineage`** sagt einem Agenten, woraus eine überwachte Tabelle erstellt wird und was aus ihr erstellt wird, bevor er die Tabelle ändert oder ihren Daten vertraut: die vor- und nachgelagerten Tabellen, die verspätet oder gelöscht sind, offene Alerts haben oder deren Pipeline beim letzten Lauf fehlgeschlagen ist, die nächsten zuerst, jede mit der Zahl der Schritte bis zu ihr, dann die übrigen, die Pipelines, die ihre Quellen von außerhalb laden, und die BI-Dashboards, die auf ihr aufbauen. Es geht drei Schritte in jede Richtung, mit `depth` bis zu fünf. Übergeben Sie `table` wie für `get_data_table_freshness`. Es ändert nichts.
 
+Das Tool **`oneuptime_move_in_list`** verschiebt eine Zeile einer geordneten Liste, etwa einen Schweregrad, einen Vorfallstatus oder einen Monitorstatus, an die Stelle einer anderen Zeile, wie es das Ziehen im Dashboard tut: Die Zeilen dazwischen rücken um eine Stelle, und es antwortet mit jeder Zeile, deren Nummer sich geändert hat. Übergeben Sie `resource` (etwa `Incident Severity`), die `id` der Zeile und `placeOfId`, die ID der Zeile, deren Stelle sie einnimmt. Wer die Nummer einer Zeile mit ihrem `update_`-Tool schreibt, platziert nur diese Zeile, neben jeder Zeile, die diese Nummer schon hat.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.

@@ -341,6 +341,8 @@ De tool **`get_data_table_freshness`** vertelt een agent of een tabel die Data O
 
 De tool **`get_data_table_lineage`** vertelt een agent waaruit een bewaakte tabel is opgebouwd en wat er uit haar is opgebouwd, voordat hij de tabel wijzigt of op de gegevens vertrouwt: de stroomopwaartse en stroomafwaartse tabellen die te laat zijn, verwijderd zijn, open waarschuwingen hebben of waarvan de pipeline bij de laatste run mislukte, de dichtstbijzijnde eerst, elk met hoeveel stappen ze verwijderd is, dan de overige, de pipelines die haar bronnen van buiten laden en de BI-dashboards die erop zijn gebouwd. Hij gaat drie stappen in elke richting, of tot vijf met `depth`. Geef `table` op zoals voor `get_data_table_freshness`. Hij verandert niets.
 
+De tool **`oneuptime_move_in_list`** verplaatst een rij van een geordende lijst, zoals een ernstniveau, een incidentstatus of een monitorstatus, naar de plaats van een andere rij, zoals slepen in het dashboard doet: de rijen ertussen schuiven één plaats op, en hij antwoordt met elke rij waarvan het nummer veranderde. Geef `resource` op (zoals `Incident Severity`), de `id` van de rij en `placeOfId`, de ID van de rij waarvan hij de plaats inneemt. Het nummer van een rij schrijven met zijn `update_`-tool plaatst alleen die rij, naast elke rij die dat nummer al heeft.
+
 ## Telemetrie opvragen
 
 Logs, metrieken, traces (spans), uitzonderingen, monitorlogs en de andere soorten telemetrie komen als alleen-lezen-tools `list_` en `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` en hun `count_`-tegenhangers). Telemetrie komt binnen via OpenTelemetry, dus er zijn geen aanmaaktools.
