@@ -868,7 +868,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
         },
       )}\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
-      } to the event:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}`;
+      } to the event:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: scheduledMaintenance.projectId })}${inheritedNote}`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id,

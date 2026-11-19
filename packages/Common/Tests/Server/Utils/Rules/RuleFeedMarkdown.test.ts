@@ -1,10 +1,14 @@
 import RuleFeedMarkdown from "../../../../Server/Utils/Rules/RuleFeedMarkdown";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import Team from "../../../../Models/DatabaseModels/Team";
 import User from "../../../../Models/DatabaseModels/User";
 import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
+import ObjectID from "../../../../Types/ObjectID";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * RuleFeedMarkdown writes the lines a rule engine puts into a feed: which
@@ -175,6 +179,73 @@ describe("RuleFeedMarkdown.ownersList", () => {
         teams: [],
       }).toString(),
     ).toBe("- 👤 Ada \\*Love\\*");
+  });
+
+  /*
+   * An owner rule can name someone invited to the project who has not
+   * accepted: the project sees only what it invited of them - the name
+   * typed for them, else their address - never their own name (#9823).
+   */
+  test("lists someone only invited by the name typed for them, else their address", async () => {
+    const pending: User = user({
+      name: "Grace Hopper",
+      email: "grace@example.com",
+    });
+    pending.id = new ObjectID("0194d4ba-0000-4000-8000-00000000e101");
+
+    const pendingUnnamed: User = user({
+      name: "Alan Turing",
+      email: "alan@example.com",
+    });
+    pendingUnnamed.id = new ObjectID("0194d4ba-0000-4000-8000-00000000e102");
+
+    const member: User = user({
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+    });
+    member.id = new ObjectID("0194d4ba-0000-4000-8000-00000000e103");
+
+    const projectId: ObjectID = new ObjectID(
+      "0194d4ba-0000-4000-8000-00000000e100",
+    );
+
+    const withheldIn: jest.SpiedFunction<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [pending.id.toString(), { inviteeName: "Grace from Payments" }],
+          [pendingUnnamed.id.toString(), { inviteeName: null }],
+        ]),
+      );
+
+    try {
+      const list: string = (
+        await RuleFeedMarkdown.readOwnersList({
+          users: [pending, pendingUnnamed, member],
+          teams: [team("Platform")],
+          projectId: projectId,
+        })
+      ).toString();
+
+      expect(list).toBe(
+        "- 👤 Grace from Payments\n- 👤 alan@example.com\n- 👤 Ada Lovelace\n- 👥 Platform",
+      );
+
+      // One read for every owner listed, in the project.
+      expect(withheldIn).toHaveBeenCalledTimes(1);
+      expect(withheldIn.mock.calls[0]![0]).toEqual({
+        userIds: [
+          pending.id.toString(),
+          pendingUnnamed.id.toString(),
+          member.id.toString(),
+        ],
+        projectId: projectId,
+      });
+    } finally {
+      withheldIn.mockRestore();
+    }
   });
 
   test("a team's name cannot start a new bullet of its own", () => {
