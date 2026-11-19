@@ -54,7 +54,7 @@ Ajoutez une balise script à chaque page que vous voulez enregistrer.
 :::steps
 ### Créer une clé Navigateur
 
-Sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**, cliquez sur **Créer une clé d'ingestion**, choisissez **Navigateur** comme **Type de clé** et listez les origines de votre site dans **Origines autorisées**. Copiez ensuite la **Clé secrète** de la clé. [Configuration navigateur](/docs/rum/browser-setup#mise-en-place) montre chaque écran.
+Sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**, cliquez sur **Créer une clé d'ingestion**, choisissez **Navigateur** comme **Type de clé** et listez les origines de votre site dans **Origines autorisées**. Copiez ensuite la **Clé secrète** de la clé. Une clé Navigateur est faite pour être publique : elle ne fonctionne que depuis les origines que vous listez, n'envoie que la télémétrie du navigateur et les relectures de session, et son nombre de requêtes est limité. Ne mettez jamais une clé Serveur dans une page. [Configuration navigateur](/docs/rum/browser-setup#mise-en-place) montre chaque écran.
 
 ### Ajouter la balise script
 

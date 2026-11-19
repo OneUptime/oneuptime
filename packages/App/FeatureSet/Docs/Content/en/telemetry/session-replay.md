@@ -54,7 +54,7 @@ Add one script tag to every page you want to record.
 :::steps
 ### Create a Browser key
 
-Under **Project Settings → Telemetry & APM → Ingestion Keys**, click **Create Ingestion Key**, pick **Browser** as the **Key Type** and list your site's origins in **Allowed Origins**. Then copy the key's **Secret Key**. [Browser Setup](/docs/rum/browser-setup#set-it-up) shows each screen.
+Under **Project Settings → Telemetry & APM → Ingestion Keys**, click **Create Ingestion Key**, pick **Browser** as the **Key Type** and list your site's origins in **Allowed Origins**. Then copy the key's **Secret Key**. A Browser key is meant to be public: it works only from the origins you list, sends only browser telemetry and session replays, and is rate-limited. Never put a Server key in a page. [Browser Setup](/docs/rum/browser-setup#set-it-up) shows each screen.
 
 ### Add the script tag
 

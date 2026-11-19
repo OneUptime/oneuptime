@@ -54,7 +54,7 @@ Voeg één scripttag toe aan elke pagina die je wilt opnemen.
 :::steps
 ### Een Browser-sleutel aanmaken
 
-Klik onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** op **Ingestiesleutel aanmaken**, kies **Browser** als **Sleuteltype** en geef de origins van je site op onder **Toegestane origins**. Kopieer daarna de **Geheime sleutel** van de sleutel. [Browserconfiguratie](/docs/rum/browser-setup#instellen) toont elk scherm.
+Klik onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** op **Ingestiesleutel aanmaken**, kies **Browser** als **Sleuteltype** en geef de origins van je site op onder **Toegestane origins**. Kopieer daarna de **Geheime sleutel** van de sleutel. Een Browser-sleutel is bedoeld om openbaar te zijn: hij werkt alleen vanaf de origins die je opgeeft, verstuurt alleen browsertelemetrie en sessieherhalingen en heeft een limiet op het aantal verzoeken. Zet nooit een Server-sleutel in een pagina. [Browserconfiguratie](/docs/rum/browser-setup#instellen) toont elk scherm.
 
 ### De scripttag toevoegen
 

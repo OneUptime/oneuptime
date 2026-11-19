@@ -40,7 +40,7 @@ flowchart TB
 
 ![“摄取密钥”列表，“创建摄取密钥”已框出](screen:ingestion-keys)
 
-新密钥会在它自己的页面中打开。复制它的 **密钥** ：这就是 SDK 以 `x-oneuptime-token` 发送的令牌。
+新密钥会在它自己的页面中打开。复制它的 **密钥** ：这就是 SDK 以 `x-oneuptime-token` 发送的令牌。Browser 密钥本来就是公开的：它只在你列出的来源上有效，只能发送浏览器遥测和会话回放，并且有请求速率限制。切勿将服务器密钥放进页面。
 
 ![遥测摄取密钥的页面，显示其密钥](/docs/static/images/TelemetryIngestionKeyView.png)
 

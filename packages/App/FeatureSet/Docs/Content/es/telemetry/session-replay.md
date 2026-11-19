@@ -54,7 +54,7 @@ Añade una etiqueta script a cada página que quieras grabar.
 :::steps
 ### Crear una clave Navegador
 
-En **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**, haz clic en **Crear clave de ingesta**, elige **Navegador** como **Tipo de clave** e indica los orígenes de tu sitio en **Orígenes permitidos**. Después copia la **Clave secreta** de la clave. [Configuración para navegadores](/docs/rum/browser-setup#configurarlo) muestra cada pantalla.
+En **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**, haz clic en **Crear clave de ingesta**, elige **Navegador** como **Tipo de clave** e indica los orígenes de tu sitio en **Orígenes permitidos**. Después copia la **Clave secreta** de la clave. Una clave Navegador está pensada para ser pública: solo funciona desde los orígenes que indiques, solo envía telemetría del navegador y reproducciones de sesiones, y tiene un límite de solicitudes. No pongas nunca una clave de Servidor en una página. [Configuración para navegadores](/docs/rum/browser-setup#configurarlo) muestra cada pantalla.
 
 ### Añadir la etiqueta script
 

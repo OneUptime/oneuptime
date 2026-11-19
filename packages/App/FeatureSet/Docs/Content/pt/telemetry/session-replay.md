@@ -54,7 +54,7 @@ Adicione uma tag script a cada página que você quer gravar.
 :::steps
 ### Criar uma chave Browser
 
-Em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**, clique em **Criar chave de ingestão**, escolha **Navegador** como **Tipo de chave** e liste as origens do seu site em **Origens permitidas**. Depois copie a **Chave secreta** da chave. [Configuração para navegadores](/docs/rum/browser-setup#configurar) mostra cada tela.
+Em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**, clique em **Criar chave de ingestão**, escolha **Navegador** como **Tipo de chave** e liste as origens do seu site em **Origens permitidas**. Depois copie a **Chave secreta** da chave. Uma chave Browser foi feita para ser pública: só funciona a partir das origens que você lista, só envia telemetria do navegador e reproduções de sessão, e tem um limite de requisições. Nunca coloque uma chave Servidor em uma página. [Configuração para navegadores](/docs/rum/browser-setup#configurar) mostra cada tela.
 
 ### Adicionar a tag script
 

@@ -54,7 +54,7 @@ Tilføj ét script-tag til hver side, du vil optage.
 :::steps
 ### Opret en Browser-nøgle
 
-Under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** skal du klikke på **Opret indtagelsesnøgle**, vælge **Browser** som **Nøgletype** og angive dit sites oprindelser under **Tilladte oprindelser**. Kopiér derefter nøglens **Hemmelig nøgle**. [Browseropsætning](/docs/rum/browser-setup#sæt-det-op) viser hver skærm.
+Under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** skal du klikke på **Opret indtagelsesnøgle**, vælge **Browser** som **Nøgletype** og angive dit sites oprindelser under **Tilladte oprindelser**. Kopiér derefter nøglens **Hemmelig nøgle**. En Browser-nøgle er beregnet til at være offentlig: Den virker kun fra de oprindelser, du angiver, sender kun browsertelemetri og sessionsafspilninger og har en grænse for antal forespørgsler. Læg aldrig en Server-nøgle i en side. [Browseropsætning](/docs/rum/browser-setup#sæt-det-op) viser hver skærm.
 
 ### Tilføj script-tagget
 

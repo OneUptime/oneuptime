@@ -40,7 +40,7 @@ flowchart TB
 
 ![‘수집 키’ 목록, ‘수집 키 생성’ 강조 표시됨](screen:ingestion-keys)
 
-새 키는 자체 페이지에서 열립니다. **시크릿 키**를 복사하세요. SDK가 `x-oneuptime-token`으로 보내는 토큰입니다.
+새 키는 자체 페이지에서 열립니다. **시크릿 키**를 복사하세요. SDK가 `x-oneuptime-token`으로 보내는 토큰입니다. Browser 키는 공개되는 것을 전제로 한 키입니다. 지정한 출처에서만 작동하고, 브라우저 텔레메트리와 세션 리플레이만 보낼 수 있으며, 요청 수에도 한도가 있습니다. 서버 키는 절대 페이지에 넣지 마세요.
 
 ![텔레메트리 수집 키 페이지와 그 시크릿 키](/docs/static/images/TelemetryIngestionKeyView.png)
 

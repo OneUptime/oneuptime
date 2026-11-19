@@ -54,7 +54,7 @@ Legg til én skript-tagg på hver side du vil ta opp.
 :::steps
 ### Opprett en Browser-nøkkel
 
-Under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** klikker du på **Opprett inntaksnøkkel**, velger **Nettleser** som **Nøkkeltype** og oppgir nettstedets opprinnelser under **Tillatte opprinnelser**. Kopier deretter nøkkelens **Hemmelig nøkkel**. [Nettleseroppsett](/docs/rum/browser-setup#sett-det-opp) viser hvert skjermbilde.
+Under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** klikker du på **Opprett inntaksnøkkel**, velger **Nettleser** som **Nøkkeltype** og oppgir nettstedets opprinnelser under **Tillatte opprinnelser**. Kopier deretter nøkkelens **Hemmelig nøkkel**. En Browser-nøkkel er ment å være offentlig: Den virker bare fra opprinnelsene du oppgir, sender bare nettlesertelemetri og øktavspillinger og har en grense for antall forespørsler. Legg aldri en Server-nøkkel i en side. [Nettleseroppsett](/docs/rum/browser-setup#sett-det-opp) viser hvert skjermbilde.
 
 ### Legg til skript-taggen
 
