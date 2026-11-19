@@ -87,8 +87,8 @@ Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udl
 | Sektion | Sider |
 | --- | --- |
 | **Politikker** | **Vagtpolitikker**, **Parathed**: hvem dine politikker faktisk kan nå, og **Indgående opkaldspolitikker**: et telefonnummer, der ringer til den, der har vagt |
-| **Tidsplaner** | **Vagtplaner**, **Tidslinje for vagtplaner** og **Kalenderfeeds** |
-| **Avanceret** | **Brugertilsidesættelser**, **Udførelseslogs** og **Arkiverede politikker** |
+| **Tidsplaner** | **Vagtplaner**, **Tidslinje for vagtplaner**, **Brugertilsidesættelser**: hvem der dækker for nogen, mens de er fraværende, og **Kalenderfeeds** |
+| **Avanceret** | **Udførelseslogs** og **Arkiverede politikker** |
 | **Rapporter** | **Brugerens vagttid**: hvor længe hver person havde vagt |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: regler, der sender vagthændelser til en kanal |
 | **Indstillinger** | **Brugerdefinerede felter**, **Etiketregler** og **Ejerregler** |
@@ -109,7 +109,7 @@ Når du har vagt for en politik, viser klokken øverst til højre det. Klik på 
 :::
 
 :::details En person på ferie bliver stadig tilkaldt
-Tilføj en brugertilsidesættelse med personen under **Hvem er fraværende?**. En under **Vagt → Avanceret → Brugertilsidesættelser** gælder for alle politikker; en på en politiks egen side **Brugertilsidesættelser** gælder kun for den politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Tilføj en brugertilsidesættelse med personen under **Hvem er fraværende?**. En under **Vagt → Tidsplaner → Brugertilsidesættelser** gælder for alle politikker; en på en politiks egen side **Brugertilsidesættelser** gælder kun for den politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 :::
 
 ## Næste trin

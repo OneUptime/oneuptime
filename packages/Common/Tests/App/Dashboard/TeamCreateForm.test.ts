@@ -12,6 +12,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamCreateForm";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Team from "../../../Models/DatabaseModels/Team";
+import {
+  TEAMS_RENAMED_TOGETHER_REFUSAL,
+  getTeamNameTakenRefusal,
+} from "../../../Types/Database/UniqueName";
 import Permission from "../../../Types/Permission";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
@@ -157,6 +161,27 @@ describe("the Create Team form", () => {
     expect(name.fieldType).toBe(FormFieldSchemaType.Text);
     expect(name.validation?.minLength).toBe(2);
     expect(name.placeholder).toBe("Team Name");
+  });
+
+  test("a name another team of the project has is said under Name, not above the form (#9674)", () => {
+    const name: ModelField<Team> = fields()[0]!;
+
+    expect(name.ownsServerError).toBeDefined();
+    expect(name.ownsServerError!(getTeamNameTakenRefusal("Tenants"))).toBe(
+      true,
+    );
+    expect(name.ownsServerError!(TEAMS_RENAMED_TOGETHER_REFUSAL)).toBe(true);
+
+    // Any other refusal stays above the form, where it was.
+    expect(
+      name.ownsServerError!(
+        "You do not have permission to create a team in this project.",
+      ),
+    ).toBe(false);
+
+    for (const field of fields().slice(1)) {
+      expect(field.ownsServerError).toBeUndefined();
+    }
   });
 
   test("the description stays optional and long", () => {
