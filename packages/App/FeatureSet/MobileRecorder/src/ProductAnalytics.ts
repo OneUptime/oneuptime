@@ -19,6 +19,7 @@ import {
   toProductAnalyticsEventName,
 } from "./ProductAnalyticsContract";
 import RetryAfter from "./RetryAfter";
+import { byteLength } from "./Sanitize";
 import { generateReplayId, ReplayStorage } from "./Storage";
 
 /*
@@ -54,6 +55,15 @@ import { generateReplayId, ReplayStorage } from "./Storage";
  *   - Which session the device last announced is kept in the app's storage,
  *     not a browser's: a session that carries on across a relaunch (the
  *     replay's own session store) is announced once.
+ *   - What it has not sent yet is kept in the app's storage too (issue
+ *     #9577), as the replay outbox keeps unsent chunks: an app used offline
+ *     and then killed, or stopped by the system in the background, sends
+ *     those events and metric points on its next start(), under the session
+ *     and the person they happened under. A tab that closes loses its
+ *     unsent ones; a phone is much more often offline for a while and then
+ *     stopped. Nothing held before consent is written - it has no session
+ *     yet - and withdrawing consent, or a policy that starts waiting for
+ *     it, removes what was written.
  *
  * Property, attribute and user property values arrive masked, as the
  * recorder masks all text (the host's toProperties and traits): event
@@ -73,6 +83,117 @@ const REPLAY_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/u;
 /* Where the device keeps the session it last announced, per namespace. */
 export function productAnalyticsSessionKey(namespace: string): string {
   return `@oneuptime/replay/${namespace}/analytics-session`;
+}
+
+/*
+ * Where the device keeps what has not been sent yet, per namespace (issue
+ * #9577): the events and metric points held, and the batch on its way.
+ */
+export function productAnalyticsQueueKey(namespace: string): string {
+  return `@oneuptime/replay/${namespace}/analytics-queue`;
+}
+
+/* The stored queue's layout. A value of any other is read as nothing. */
+export const PRODUCT_ANALYTICS_STORED_QUEUE_VERSION: number = 1;
+
+/*
+ * The most the stored queue takes, as UTF-8 bytes. AsyncStorage's database
+ * on Android is 6 MB by default, shared with the app and with the replay
+ * outbox (3 MB), and a value past 2 MB cannot be read back there at all.
+ * The cap of 500 events and 500 metric points is reached long before this
+ * with ordinary events; with very large ones the oldest are left out of the
+ * stored copy - still sent while the app runs, lost only if it is killed.
+ */
+export const PRODUCT_ANALYTICS_MAX_STORED_BYTES: number = 512 * 1024;
+
+/*
+ * How long a change waits before it is written, so a burst of track()
+ * calls is one write. The app leaving the foreground, when the system may
+ * stop it, writes at once.
+ */
+export const PRODUCT_ANALYTICS_STORE_DELAY_MS: number = 1000;
+
+/*
+ * The writes to each stored key, in order, per storage: a channel that
+ * starts while the one before it is still writing what it held (a policy
+ * refresh, a restart of the recorder) reads only after that write.
+ */
+const storeWrites: WeakMap<
+  ReplayStorage,
+  Map<string, Promise<void>>
+> = new WeakMap<ReplayStorage, Map<string, Promise<void>>>();
+
+function writesOf(storage: ReplayStorage): Map<string, Promise<void>> {
+  let writes: Map<string, Promise<void>> | undefined = storeWrites.get(storage);
+
+  if (!writes) {
+    writes = new Map<string, Promise<void>>();
+    storeWrites.set(storage, writes);
+  }
+
+  return writes;
+}
+
+function enqueueStoreWrite(
+  storage: ReplayStorage,
+  key: string,
+  write: () => Promise<void>,
+): Promise<void> {
+  const writes: Map<string, Promise<void>> = writesOf(storage);
+  const run: () => Promise<void> = async (): Promise<void> => {
+    try {
+      await write();
+    } catch {
+      /* Storage full or unavailable: the items are still held in memory. */
+    }
+  };
+  const next: Promise<void> = (writes.get(key) ?? Promise.resolve()).then(
+    run,
+    run,
+  );
+
+  writes.set(key, next);
+
+  return next;
+}
+
+/* Resolves once every write to the key queued so far has been made. */
+async function storeWritesSettled(
+  storage: ReplayStorage,
+  key: string,
+): Promise<void> {
+  try {
+    await writesOf(storage).get(key);
+  } catch {
+    /* The writes never reject; nothing to wait for. */
+  }
+}
+
+/*
+ * Consent withdrawn, or a policy that now waits for consent: what the device
+ * kept for product analytics is removed, whether or not a channel is
+ * running - one a previous launch left behind included.
+ */
+export async function clearStoredProductAnalytics(
+  storage: ReplayStorage,
+  namespace: string,
+): Promise<void> {
+  await Promise.all([
+    enqueueStoreWrite(
+      storage,
+      productAnalyticsQueueKey(namespace),
+      async (): Promise<void> => {
+        await storage.removeItem(productAnalyticsQueueKey(namespace));
+      },
+    ),
+    enqueueStoreWrite(
+      storage,
+      productAnalyticsSessionKey(namespace),
+      async (): Promise<void> => {
+        await storage.removeItem(productAnalyticsSessionKey(namespace));
+      },
+    ),
+  ]);
 }
 
 /* React Native's AppState, as the channel listens to it. */
@@ -161,6 +282,358 @@ interface HeldItem {
   metric?: ProductAnalyticsWireMetric;
 }
 
+/*
+ * The queue as the device keeps it: each distinct scope once, each item
+ * pointing at its scope, and the batch on its way, which goes again under
+ * its own id - the server files a batch id once.
+ */
+interface StoredQueue {
+  v: number;
+  scopes: Array<ProductAnalyticsScope>;
+  items: Array<StoredItem>;
+  pending: ProductAnalyticsWireBatch | null;
+}
+
+interface StoredItem {
+  s: number;
+  e?: ProductAnalyticsWireEvent;
+  m?: ProductAnalyticsWireMetric;
+}
+
+/* What a stored queue holds, once read back and checked. */
+interface RestoredQueue {
+  items: Array<HeldItem>;
+  pending: ProductAnalyticsWireBatch | null;
+}
+
+const EVENT_KINDS: ReadonlyArray<string> = [
+  ProductAnalyticsEventKind.Session,
+  ProductAnalyticsEventKind.Page,
+  ProductAnalyticsEventKind.Custom,
+];
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStringMap(value: unknown): value is Record<string, string> {
+  return (
+    isPlainRecord(value) &&
+    Object.keys(value).every((key: string): boolean => {
+      return typeof value[key] === "string";
+    })
+  );
+}
+
+function isFiniteTime(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/* Read back from the device: a value of the shape this file writes, or null. */
+function readStoredEvent(value: unknown): ProductAnalyticsWireEvent | null {
+  if (
+    !isPlainRecord(value) ||
+    typeof value["kind"] !== "string" ||
+    EVENT_KINDS.indexOf(value["kind"]) === -1 ||
+    typeof value["name"] !== "string" ||
+    !isFiniteTime(value["at"]) ||
+    (value["page"] !== undefined && typeof value["page"] !== "string") ||
+    (value["properties"] !== undefined && !isStringMap(value["properties"]))
+  ) {
+    return null;
+  }
+
+  const event: ProductAnalyticsWireEvent = {
+    kind: value["kind"] as ProductAnalyticsEventKind,
+    name: value["name"],
+    at: value["at"],
+  };
+
+  if (typeof value["page"] === "string") {
+    event.page = value["page"];
+  }
+
+  if (isStringMap(value["properties"])) {
+    event.properties = value["properties"];
+  }
+
+  return event;
+}
+
+function readStoredMetric(value: unknown): ProductAnalyticsWireMetric | null {
+  if (
+    !isPlainRecord(value) ||
+    !isProductAnalyticsMetricName(value["name"]) ||
+    !isFiniteTime(value["value"]) ||
+    !isFiniteTime(value["at"]) ||
+    (value["attributes"] !== undefined && !isStringMap(value["attributes"]))
+  ) {
+    return null;
+  }
+
+  const metric: ProductAnalyticsWireMetric = {
+    name: value["name"],
+    value: value["value"],
+    at: value["at"],
+  };
+
+  if (isStringMap(value["attributes"])) {
+    metric.attributes = value["attributes"];
+  }
+
+  return metric;
+}
+
+function readStoredScope(value: unknown): ProductAnalyticsScope | null {
+  if (
+    !isPlainRecord(value) ||
+    typeof value["sessionId"] !== "string" ||
+    !REPLAY_ID_PATTERN.test(value["sessionId"]) ||
+    typeof value["userRef"] !== "string" ||
+    (value["userProperties"] !== null && !isStringMap(value["userProperties"]))
+  ) {
+    return null;
+  }
+
+  return {
+    sessionId: value["sessionId"],
+    userRef: value["userRef"],
+    userProperties: value["userProperties"] as Record<string, string> | null,
+  };
+}
+
+function readStoredBatch(value: unknown): ProductAnalyticsWireBatch | null {
+  if (
+    !isPlainRecord(value) ||
+    value["v"] !== PRODUCT_ANALYTICS_WIRE_VERSION ||
+    typeof value["batchId"] !== "string" ||
+    !REPLAY_ID_PATTERN.test(value["batchId"]) ||
+    typeof value["sessionId"] !== "string" ||
+    !REPLAY_ID_PATTERN.test(value["sessionId"]) ||
+    typeof value["visitorId"] !== "string" ||
+    typeof value["consentState"] !== "string" ||
+    !isFiniteTime(value["sentAt"]) ||
+    !isStringMap(value["context"]) ||
+    !Array.isArray(value["events"]) ||
+    !Array.isArray(value["metrics"]) ||
+    value["events"].length > PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH ||
+    value["metrics"].length > PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH ||
+    (value["userRef"] !== undefined && typeof value["userRef"] !== "string") ||
+    (value["userProperties"] !== undefined &&
+      !isStringMap(value["userProperties"]))
+  ) {
+    return null;
+  }
+
+  const events: Array<ProductAnalyticsWireEvent> = [];
+  const metrics: Array<ProductAnalyticsWireMetric> = [];
+
+  for (const entry of value["events"] as Array<unknown>) {
+    const event: ProductAnalyticsWireEvent | null = readStoredEvent(entry);
+
+    if (!event) {
+      return null;
+    }
+
+    events.push(event);
+  }
+
+  for (const entry of value["metrics"] as Array<unknown>) {
+    const metric: ProductAnalyticsWireMetric | null = readStoredMetric(entry);
+
+    if (!metric) {
+      return null;
+    }
+
+    metrics.push(metric);
+  }
+
+  const context: Record<string, string> = value["context"];
+  const batch: ProductAnalyticsWireBatch = {
+    v: PRODUCT_ANALYTICS_WIRE_VERSION,
+    batchId: value["batchId"],
+    sessionId: value["sessionId"],
+    visitorId: value["visitorId"],
+    consentState: value["consentState"],
+    sentAt: value["sentAt"],
+    context: {
+      deviceType: context["deviceType"] ?? "",
+      browserName: context["browserName"] ?? "",
+      osName: context["osName"] ?? "",
+      appVersion: context["appVersion"] ?? "",
+    },
+    events: events,
+    metrics: metrics,
+  };
+
+  if (typeof value["userRef"] === "string") {
+    batch.userRef = value["userRef"];
+    batch.userProperties = isStringMap(value["userProperties"])
+      ? value["userProperties"]
+      : {};
+  }
+
+  return batch;
+}
+
+/*
+ * The stored queue read back, or null when there is none or it is not one
+ * this file wrote - a damaged value is never half-read: an item whose scope
+ * or shape is wrong is left out alone, a layout of another version is
+ * nothing at all.
+ */
+function readStoredQueue(raw: string | null): RestoredQueue | null {
+  if (!raw) {
+    return null;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (
+    !isPlainRecord(parsed) ||
+    parsed["v"] !== PRODUCT_ANALYTICS_STORED_QUEUE_VERSION ||
+    !Array.isArray(parsed["scopes"]) ||
+    !Array.isArray(parsed["items"])
+  ) {
+    return null;
+  }
+
+  const scopes: Array<ProductAnalyticsScope | null> = (
+    parsed["scopes"] as Array<unknown>
+  ).map(readStoredScope);
+  const items: Array<HeldItem> = [];
+
+  for (const entry of parsed["items"] as Array<unknown>) {
+    if (!isPlainRecord(entry) || typeof entry["s"] !== "number") {
+      continue;
+    }
+
+    const scope: ProductAnalyticsScope | null | undefined = scopes[entry["s"]];
+
+    if (!scope) {
+      continue;
+    }
+
+    if (entry["e"] !== undefined) {
+      const event: ProductAnalyticsWireEvent | null = readStoredEvent(
+        entry["e"],
+      );
+
+      if (event) {
+        items.push({ scope: scope, event: event });
+      }
+
+      continue;
+    }
+
+    const metric: ProductAnalyticsWireMetric | null = readStoredMetric(
+      entry["m"],
+    );
+
+    if (metric) {
+      items.push({ scope: scope, metric: metric });
+    }
+  }
+
+  return {
+    items: items,
+    pending:
+      parsed["pending"] === null || parsed["pending"] === undefined
+        ? null
+        : readStoredBatch(parsed["pending"]),
+  };
+}
+
+function scopeKey(scope: ProductAnalyticsScope): string {
+  return JSON.stringify([scope.sessionId, scope.userRef, scope.userProperties]);
+}
+
+/*
+ * The queue as the device keeps it, or null when there is nothing to keep:
+ * the batch on its way, then the newest items that fit under
+ * PRODUCT_ANALYTICS_MAX_STORED_BYTES, in the order they were held. An item
+ * with no session yet - held for a consent not given - is never written.
+ */
+function buildStoredQueue(
+  items: ReadonlyArray<HeldItem>,
+  pending: ProductAnalyticsWireBatch | null,
+): string | null {
+  const named: Array<HeldItem> = items.filter((item: HeldItem): boolean => {
+    return item.scope.sessionId !== "";
+  });
+
+  if (named.length === 0 && !pending) {
+    return null;
+  }
+
+  const build: (from: number) => string = (from: number): string => {
+    const scopes: Array<ProductAnalyticsScope> = [];
+    const scopeIndex: Map<string, number> = new Map<string, number>();
+    const stored: Array<StoredItem> = [];
+
+    for (const item of named.slice(from)) {
+      const key: string = scopeKey(item.scope);
+      let index: number | undefined = scopeIndex.get(key);
+
+      if (index === undefined) {
+        index = scopes.length;
+        scopes.push(item.scope);
+        scopeIndex.set(key, index);
+      }
+
+      if (item.event) {
+        stored.push({ s: index, e: item.event });
+      } else if (item.metric) {
+        stored.push({ s: index, m: item.metric });
+      }
+    }
+
+    const queue: StoredQueue = {
+      v: PRODUCT_ANALYTICS_STORED_QUEUE_VERSION,
+      scopes: scopes,
+      items: stored,
+      pending: pending,
+    };
+
+    return JSON.stringify(queue);
+  };
+
+  let from: number = 0;
+  let value: string = build(from);
+
+  if (byteLength(value) <= PRODUCT_ANALYTICS_MAX_STORED_BYTES) {
+    return value;
+  }
+
+  /*
+   * Too large: the fewest of the oldest left out until it fits, found by
+   * halving - a handful of builds, however many items are held.
+   */
+  let low: number = 1;
+  let high: number = named.length;
+
+  while (low < high) {
+    const middle: number = Math.floor((low + high) / 2);
+
+    if (byteLength(build(middle)) <= PRODUCT_ANALYTICS_MAX_STORED_BYTES) {
+      high = middle;
+    } else {
+      low = middle + 1;
+    }
+  }
+
+  from = low;
+  value = build(from);
+
+  return byteLength(value) <= PRODUCT_ANALYTICS_MAX_STORED_BYTES ? value : null;
+}
+
 function itemAt(item: HeldItem): number {
   return item.event ? item.event.at : item.metric?.at ?? 0;
 }
@@ -240,6 +713,14 @@ export default class MobileProductAnalytics {
   private appStateSubscription: { remove(): void } | null = null;
   private unsubscribeConnectivity: (() => void) | null = null;
 
+  /*
+   * The stored queue (issue #9577). Written only once what a previous run
+   * left there has been read back, so a channel that never got that far
+   * can never overwrite it with nothing.
+   */
+  private restored: boolean = false;
+  private storeTimer: ReturnType<typeof setTimeout> | null = null;
+
   public constructor(
     host: MobileProductAnalyticsHost,
     config: ProductAnalyticsRecorderConfig,
@@ -259,6 +740,11 @@ export default class MobileProductAnalytics {
     }
 
     let stored: string | null = null;
+    let storedQueue: string | null = null;
+    const queueKey: string = productAnalyticsQueueKey(this.host.namespace);
+
+    /* What a channel before this one is still writing comes first. */
+    await storeWritesSettled(this.host.storage, queueKey);
 
     try {
       stored = await this.host.storage.getItem(
@@ -266,6 +752,12 @@ export default class MobileProductAnalytics {
       );
     } catch {
       stored = null;
+    }
+
+    try {
+      storedQueue = await this.host.storage.getItem(queueKey);
+    } catch {
+      storedQueue = null;
     }
 
     if (this.started || this.stopReason) {
@@ -277,6 +769,13 @@ export default class MobileProductAnalytics {
         ? stored
         : null;
     this.started = true;
+    this.restored = true;
+
+    /* Consent withdrawn while the queue was being read: nothing comes back. */
+    if (!this.revoked) {
+      this.restoreQueue(storedQueue, this.host.now());
+    }
+
     this.enterCurrentSession(this.host.now(), false);
 
     this.flushTimer = setInterval((): void => {
@@ -404,6 +903,8 @@ export default class MobileProductAnalytics {
       this.dropOldest("metric");
     }
 
+    this.scheduleStore();
+
     if (this.metricCount >= PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH) {
       this.flush(false);
     }
@@ -451,6 +952,7 @@ export default class MobileProductAnalytics {
   public forget(): void {
     this.revoked = true;
     this.clear();
+    this.forgetStoredQueue();
     this.forgetAnnouncedSession();
   }
 
@@ -461,6 +963,7 @@ export default class MobileProductAnalytics {
    */
   public reset(): void {
     this.clear();
+    this.forgetStoredQueue();
     this.forgetAnnouncedSession();
   }
 
@@ -469,6 +972,7 @@ export default class MobileProductAnalytics {
     this.revoked = false;
     this.retryAtUnixMs = 0;
     this.enterCurrentSession(this.host.now(), false);
+    this.scheduleStore();
     this.flush(false);
   }
 
@@ -483,15 +987,33 @@ export default class MobileProductAnalytics {
     }
 
     this.enterCurrentSession(this.host.now(), false);
+    this.scheduleStore();
     this.flush(false);
   }
 
   public stop(reason: ProductAnalyticsStopReason = "stopped"): void {
+    const isFirstStop: boolean = !this.stopReason;
+
     if (!this.stopReason) {
       this.stopReason = reason;
     }
 
+    /*
+     * Stopped by the app or a restart of the recorder: what is held is
+     * written, for the next start() to send. Stopped by the server - the
+     * application has product analytics off, or will not take this app's
+     * batches - it would only refuse them again, so they go.
+     */
+    if (isFirstStop && this.restored) {
+      if (reason === "stopped") {
+        this.storeNow();
+      } else {
+        this.forgetStoredQueue();
+      }
+    }
+
     this.clear();
+    this.cancelStoreTimer();
 
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
@@ -680,6 +1202,7 @@ export default class MobileProductAnalytics {
       this.eventCount++;
       this.announce(sessionId);
       this.trimEvents();
+      this.scheduleStore();
     }
 
     /* The screen the app shows is this new session's first page view. */
@@ -696,6 +1219,7 @@ export default class MobileProductAnalytics {
       });
       this.eventCount++;
       this.trimEvents();
+      this.scheduleStore();
     }
 
     return sessionId;
@@ -708,6 +1232,7 @@ export default class MobileProductAnalytics {
     this.items.push({ scope: scope, event: event });
     this.eventCount++;
     this.trimEvents();
+    this.scheduleStore();
 
     if (this.eventCount >= PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH) {
       this.flush(false);
@@ -831,6 +1356,7 @@ export default class MobileProductAnalytics {
     this.items.splice(0, count);
     this.eventCount -= batch.events.length;
     this.metricCount -= batch.metrics.length;
+    this.scheduleStore();
 
     return batch;
   }
@@ -853,7 +1379,143 @@ export default class MobileProductAnalytics {
       }
     }
 
+    if (kept.length !== this.items.length) {
+      this.scheduleStore();
+    }
+
     this.items = kept;
+  }
+
+  /*
+   * What a previous run left in the device's storage (issue #9577), taken
+   * back before anything new: the items under the sessions and people they
+   * happened under, the batch that was on its way under its own id. What
+   * the server would no longer keep (PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS) is
+   * left out, and the caps apply as to anything held: past them the oldest
+   * events go, counted in the diagnostics' dropped.
+   */
+  private restoreQueue(raw: string | null, now: number): void {
+    if (!raw) {
+      return;
+    }
+
+    const queue: RestoredQueue | null = readStoredQueue(raw);
+
+    if (!queue) {
+      this.host.onDiagnostic("analytics-store-unreadable");
+      this.forgetStoredQueue();
+      return;
+    }
+
+    const oldest: number = now - PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS;
+    const droppedBefore: number = this.droppedEvents;
+    let tooOld: number = 0;
+
+    /* The batch on its way goes again, unless everything in it is too old. */
+    const pending: ProductAnalyticsWireBatch | null = queue.pending;
+
+    if (pending) {
+      const isLive: boolean = [...pending.events, ...pending.metrics].some(
+        (item: { at: number }): boolean => {
+          return item.at >= oldest;
+        },
+      );
+
+      if (isLive) {
+        this.pending = pending;
+      } else {
+        this.droppedEvents += pending.events.length;
+        tooOld += pending.events.length + pending.metrics.length;
+      }
+    }
+
+    this.items = queue.items.filter((item: HeldItem): boolean => {
+      if (itemAt(item) >= oldest) {
+        return true;
+      }
+
+      if (item.event) {
+        this.droppedEvents++;
+      }
+
+      tooOld++;
+      return false;
+    });
+    this.eventCount = this.items.filter((item: HeldItem): boolean => {
+      return Boolean(item.event);
+    }).length;
+    this.metricCount = this.items.length - this.eventCount;
+
+    const droppedTooOld: number = this.droppedEvents - droppedBefore;
+
+    this.trimEvents();
+
+    while (this.metricCount > PRODUCT_ANALYTICS_MAX_PENDING_EVENTS) {
+      this.dropOldest("metric");
+    }
+
+    this.host.onDiagnostic("analytics-restored", {
+      events: this.eventCount + (this.pending?.events.length ?? 0),
+      metrics: this.metricCount + (this.pending?.metrics.length ?? 0),
+      droppedTooOld: droppedTooOld,
+      droppedOverCap: this.droppedEvents - droppedBefore - droppedTooOld,
+    });
+
+    /* What was left out is left out of the stored copy too. */
+    if (tooOld > 0 || this.items.length < queue.items.length) {
+      this.scheduleStore();
+    }
+  }
+
+  /* A change to what is held: written once the burst it belongs to is over. */
+  private scheduleStore(): void {
+    if (!this.restored || this.stopReason || this.storeTimer) {
+      return;
+    }
+
+    this.storeTimer = setTimeout((): void => {
+      this.storeTimer = null;
+      this.storeNow();
+    }, PRODUCT_ANALYTICS_STORE_DELAY_MS);
+  }
+
+  /* What is held, written now, in the order the writes were asked for. */
+  private storeNow(): void {
+    this.cancelStoreTimer();
+
+    if (!this.restored || this.revoked) {
+      return;
+    }
+
+    const storage: ReplayStorage = this.host.storage;
+    const key: string = productAnalyticsQueueKey(this.host.namespace);
+    const value: string | null = buildStoredQueue(this.items, this.pending);
+
+    void enqueueStoreWrite(storage, key, async (): Promise<void> => {
+      if (value === null) {
+        await storage.removeItem(key);
+      } else {
+        await storage.setItem(key, value);
+      }
+    });
+  }
+
+  private forgetStoredQueue(): void {
+    this.cancelStoreTimer();
+
+    const storage: ReplayStorage = this.host.storage;
+    const key: string = productAnalyticsQueueKey(this.host.namespace);
+
+    void enqueueStoreWrite(storage, key, async (): Promise<void> => {
+      await storage.removeItem(key);
+    });
+  }
+
+  private cancelStoreTimer(): void {
+    if (this.storeTimer) {
+      clearTimeout(this.storeTimer);
+      this.storeTimer = null;
+    }
   }
 
   private send(batch: ProductAnalyticsWireBatch): void {
@@ -862,13 +1524,20 @@ export default class MobileProductAnalytics {
       typeof AbortController === "undefined" ? null : new AbortController();
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
+    /*
+     * sentAt is when this request goes, not when the batch was first built:
+     * the server moves every time in the batch by the gap between it and
+     * its own clock (receivedAt - sentAt), so a batch sent again after a
+     * back-off, an hour offline or a relaunch, under the old sentAt, would
+     * be filed as if it all happened at the moment it finally arrived.
+     */
     const init: NonNullable<Parameters<ReplayFetch>[1]> = {
       method: "POST",
       headers: {
         ...this.host.headers,
         "Content-Type": PRODUCT_ANALYTICS_CONTENT_TYPE,
       },
-      body: JSON.stringify(batch),
+      body: JSON.stringify({ ...batch, sentAt: this.host.now() }),
     };
 
     if (controller) {
@@ -928,6 +1597,7 @@ export default class MobileProductAnalytics {
     if (status === 202 || status === 200) {
       this.pending = null;
       this.failures = 0;
+      this.scheduleStore();
 
       if (this.items.length > 0) {
         this.flush(false);
@@ -939,6 +1609,7 @@ export default class MobileProductAnalytics {
     if (status === 413) {
       /* Never sendable; the next batch is smaller. */
       this.pending = null;
+      this.scheduleStore();
       return;
     }
 
@@ -1017,6 +1688,11 @@ export default class MobileProductAnalytics {
             }
 
             this.flush(true);
+            /*
+             * In the background the system may stop the app at any moment:
+             * what was not sent is written now, not after the usual wait.
+             */
+            this.storeNow();
           },
         );
       } catch {

@@ -68,6 +68,7 @@ import {
 } from "./NativeViewTree";
 import ReplayOutbox from "./Outbox";
 import MobileProductAnalytics, {
+  clearStoredProductAnalytics,
   ProductAnalyticsDiagnostics,
   ProductAnalyticsIdentity,
 } from "./ProductAnalytics";
@@ -978,6 +979,7 @@ export default class MobileReplayRecorder {
     await this.outbox?.clear();
     await this.sessionStore?.clear();
     await this.forgetCachedConfig();
+    await this.forgetStoredProductAnalytics();
     this.identity = null;
     this.userRef = null;
     this.traits = {};
@@ -2641,6 +2643,21 @@ export default class MobileReplayRecorder {
     }
   }
 
+  /*
+   * The product analytics events and metric points the device kept unsent
+   * (issue #9577) go with consent too, as the outbox's chunks do - a
+   * channel running now drops its own (forget(), reset()), and this
+   * removes them whether one runs or not, a previous launch's included.
+   */
+  private async forgetStoredProductAnalytics(): Promise<void> {
+    if (this.options) {
+      await clearStoredProductAnalytics(
+        this.storage,
+        getReplayStorageNamespace(this.options),
+      );
+    }
+  }
+
   private mayPersistUnder(config: ResolvedReplayConfig): boolean {
     return (
       !config.enabled ||
@@ -3152,6 +3169,7 @@ export default class MobileReplayRecorder {
         await this.outbox?.clear();
         await this.sessionStore?.clear();
         await this.forgetCachedConfig();
+        await this.forgetStoredProductAnalytics();
         if (!this.running || !this.isCurrentGeneration(generation)) {
           return false;
         }
