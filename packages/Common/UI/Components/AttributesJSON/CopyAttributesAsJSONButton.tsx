@@ -25,6 +25,7 @@ import {
 } from "../../../Utils/Telemetry/AttributesJSON";
 import Clipboard from "../../Utils/Clipboard";
 import Icon from "../Icon/Icon";
+import LayeredPopover from "../Tooltip/LayeredPopover";
 import {
   ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS,
   ATTRIBUTES_JSON_FORMAT_LABELS,
@@ -42,6 +43,15 @@ import BracesGlyph from "./BracesGlyph";
  * focused log row) on the document. Those keys belong to this control while
  * it has focus, so they are stopped here instead of also closing the panel
  * the user is copying from.
+ *
+ * The picker is drawn over the page from the caret (LayeredPopover), not
+ * under it in place: an expanded log row sits in a list that scrolls
+ * sideways (which clips up and down too) inside a card, and a span's
+ * attributes in a panel that scrolls, and either cut off the picker's foot
+ * when the caret was near its end (#9861). It opens above the caret where
+ * the window has no room under it. Its keys stay its own - the arrows move
+ * between the shapes, Escape closes it and hands the focus back to the
+ * caret, Tab goes on from the caret - and a press outside closes it.
  */
 
 export interface ComponentProps {
@@ -129,31 +139,6 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
       }
     };
   }, []);
-
-  // A click anywhere outside the control closes the menu.
-  useEffect(() => {
-    if (!isMenuOpen) {
-      return undefined;
-    }
-
-    const handlePointerDown: (event: MouseEvent) => void = (
-      event: MouseEvent,
-    ): void => {
-      if (
-        wrapperRef.current &&
-        event.target instanceof Node &&
-        !wrapperRef.current.contains(event.target)
-      ) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [isMenuOpen]);
 
   // Opening the menu puts focus on the format currently in use.
   useEffect(() => {
@@ -439,99 +424,112 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
       </div>
 
       {isMenuOpen && (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label={translator.translateText("Copy attributes as")}
-          aria-orientation="vertical"
-          className={`absolute top-full z-50 mt-1.5 w-72 rounded-lg bg-white p-1 text-left shadow-lg ring-1 ring-gray-900/10 ${
-            menuAlign === "right"
-              ? "right-0 origin-top-right"
-              : "left-0 origin-top-left"
-          }`}
+        /*
+         * A click anywhere outside the control closes the menu, and its
+         * keys - here, on the control - still hear what is pressed in it.
+         */
+        <LayeredPopover
+          anchorRef={caretButtonRef}
+          ownerRef={wrapperRef}
+          align={menuAlign === "right" ? "end" : "start"}
+          gap={6}
+          onClose={() => {
+            setIsMenuOpen(false);
+          }}
         >
-          <div className="px-2.5 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-            {translator.translateTemplate("Copy {{subject}} as", {
-              subject: translatableTerm(subject),
-            })}
-          </div>
-          {ATTRIBUTES_JSON_FORMATS.map(
-            (itemFormat: AttributesJSONFormat, index: number): ReactElement => {
-              const isSelected: boolean = itemFormat === format;
+          <div
+            id={menuId}
+            role="menu"
+            aria-label={translator.translateText("Copy attributes as")}
+            aria-orientation="vertical"
+            className="w-72 max-w-[calc(100vw-1rem)] rounded-lg bg-white p-1 text-start shadow-lg ring-1 ring-gray-900/10"
+          >
+            <div className="px-2.5 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              {translator.translateTemplate("Copy {{subject}} as", {
+                subject: translatableTerm(subject),
+              })}
+            </div>
+            {ATTRIBUTES_JSON_FORMATS.map(
+              (
+                itemFormat: AttributesJSONFormat,
+                index: number,
+              ): ReactElement => {
+                const isSelected: boolean = itemFormat === format;
 
-              return (
-                <button
-                  key={itemFormat}
-                  ref={(element: HTMLButtonElement | null) => {
-                    itemRefs.current[index] = element;
-                  }}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={isSelected}
-                  tabIndex={-1}
-                  data-format={itemFormat}
-                  className="group flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-100 hover:bg-gray-50 focus:bg-indigo-50 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300"
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    chooseFormat(itemFormat);
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-md ring-1 ring-inset transition-colors duration-100 ${
-                      isSelected
-                        ? "bg-indigo-50 text-indigo-600 ring-indigo-200"
-                        : "bg-gray-50 text-gray-500 ring-gray-200 group-hover:bg-white group-hover:text-indigo-600 group-focus:bg-white group-focus:text-indigo-600"
-                    }`}
+                return (
+                  <button
+                    key={itemFormat}
+                    ref={(element: HTMLButtonElement | null) => {
+                      itemRefs.current[index] = element;
+                    }}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected}
+                    tabIndex={-1}
+                    data-format={itemFormat}
+                    className="group flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-100 hover:bg-gray-50 focus:bg-indigo-50 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300"
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      chooseFormat(itemFormat);
+                    }}
                   >
-                    {itemFormat === "flat" ? (
-                      <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-                    ) : (
-                      <BracesGlyph className="h-3.5 w-3.5" />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-gray-900">
-                        {translator.translateTemplate("{{format}} JSON", {
-                          format: translatableTerm(
-                            ATTRIBUTES_JSON_FORMAT_LABELS[itemFormat],
-                          ),
-                        })}
-                      </span>
-                      {isSelected && (
-                        <Icon
-                          icon={IconProp.Check}
-                          className="h-3.5 w-3.5 flex-none text-indigo-600"
-                        />
-                      )}
-                    </span>
-                    <span className="block text-xs leading-4 text-gray-500">
-                      {translator.translateText(
-                        ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[itemFormat],
-                      )}
-                    </span>
-                    <code
-                      className="mt-1.5 block truncate rounded bg-gray-50 px-1.5 py-1 font-mono text-xs leading-4 text-gray-600 ring-1 ring-inset ring-gray-100"
-                      title={previews[itemFormat]}
+                    <span
+                      aria-hidden="true"
+                      className={`mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-md ring-1 ring-inset transition-colors duration-100 ${
+                        isSelected
+                          ? "bg-indigo-50 text-indigo-600 ring-indigo-200"
+                          : "bg-gray-50 text-gray-500 ring-gray-200 group-hover:bg-white group-hover:text-indigo-600 group-focus:bg-white group-focus:text-indigo-600"
+                      }`}
                     >
-                      {previews[itemFormat]}
-                    </code>
-                  </span>
-                </button>
-              );
-            },
-          )}
-          <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-xs text-gray-500">
-            <span className="whitespace-nowrap tabular-nums">
-              {translator.translatePlural(ATTRIBUTE_COUNT, count)}
-            </span>
-            <span className="truncate">
-              {translator.translateText("Values keep their types")}
-            </span>
+                      {itemFormat === "flat" ? (
+                        <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
+                      ) : (
+                        <BracesGlyph className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-gray-900">
+                          {translator.translateTemplate("{{format}} JSON", {
+                            format: translatableTerm(
+                              ATTRIBUTES_JSON_FORMAT_LABELS[itemFormat],
+                            ),
+                          })}
+                        </span>
+                        {isSelected && (
+                          <Icon
+                            icon={IconProp.Check}
+                            className="h-3.5 w-3.5 flex-none text-indigo-600"
+                          />
+                        )}
+                      </span>
+                      <span className="block text-xs leading-4 text-gray-500">
+                        {translator.translateText(
+                          ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[itemFormat],
+                        )}
+                      </span>
+                      <code
+                        className="mt-1.5 block truncate rounded bg-gray-50 px-1.5 py-1 font-mono text-xs leading-4 text-gray-600 ring-1 ring-inset ring-gray-100"
+                        title={previews[itemFormat]}
+                      >
+                        {previews[itemFormat]}
+                      </code>
+                    </span>
+                  </button>
+                );
+              },
+            )}
+            <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-xs text-gray-500">
+              <span className="whitespace-nowrap tabular-nums">
+                {translator.translatePlural(ATTRIBUTE_COUNT, count)}
+              </span>
+              <span className="truncate">
+                {translator.translateText("Values keep their types")}
+              </span>
+            </div>
           </div>
-        </div>
+        </LayeredPopover>
       )}
 
       <span className="sr-only" role="status" aria-live="polite">

@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -14,7 +21,12 @@ jest.mock("../../../../UI/Components/Glossary/LazyDefinedTerm", () => {
 
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import FacetSectionHeader from "../../../../UI/Components/TelemetryViewer/components/FacetSectionHeader";
-import { DEFINED_TERM_TEST_ID } from "../../../../UI/Components/Glossary/DefinedTerm";
+import {
+  DEFINED_TERM_DEFINITION_TEST_ID,
+  DEFINED_TERM_POPOVER_TEST_ID,
+  DEFINED_TERM_READ_MORE_TEST_ID,
+  DEFINED_TERM_TEST_ID,
+} from "../../../../UI/Components/Glossary/DefinedTerm";
 import { FacetHelp } from "../../../../UI/Components/TelemetryViewer/FacetHelp";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
@@ -133,5 +145,114 @@ describe("a facet title that is a defined term", () => {
     expect(
       screen.getByRole("button", { name: "Span Type" }),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * ITS DEFINITION IS NEVER CUT OFF BY THE FACET LIST (#9863).
+ *
+ * The facets sit in a list that scrolls (TelemetryFacetSidebar), 224px wide
+ * by default, and the definition is 288px wide: drawn after the title, inside
+ * that list, Popper slid it along but could not fit it, and its end was cut
+ * off. It is drawn on the page's body now, as every tooltip is
+ * (TooltipLayer), and placed against the window.
+ */
+describe("a facet title's definition, in the facet list", () => {
+  const SPAN: unknown = {
+    lang: "en",
+    entries: [
+      {
+        id: "span",
+        term: "Span",
+        definition:
+          "One operation inside a trace: a request, a query or a step, with when it started and how long it took.",
+      },
+    ],
+  };
+
+  function renderInFacetList(): void {
+    (globalThis as Record<string, unknown>)["fetch"] = jest.fn(() => {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: (): Promise<unknown> => {
+          return Promise.resolve(SPAN);
+        },
+      });
+    });
+
+    render(
+      // The sidebar's facet list, as TelemetryFacetSidebar draws it.
+      <div
+        data-testid="facet-list"
+        className="flex-1 overflow-y-auto"
+        style={{ width: 224, overflowY: "auto" }}
+      >
+        <FacetSectionHeader
+          title="Span Type"
+          activeCount={0}
+          isExpanded={true}
+          controlsId="span-type-body"
+          onToggle={getJestMockFunction() as any}
+          titleGlossaryTerm={GlossaryTerm.Span}
+        />
+      </div>,
+    );
+  }
+
+  async function openDefinition(): Promise<HTMLElement> {
+    fireEvent.click(screen.getByTestId(DEFINED_TERM_TEST_ID));
+
+    return waitFor((): HTMLElement => {
+      const popover: HTMLElement = screen.getByTestId(
+        DEFINED_TERM_POPOVER_TEST_ID,
+      );
+
+      expect(
+        within(popover).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+      ).toBeInTheDocument();
+
+      return popover;
+    });
+  }
+
+  test("is drawn on the page's body, outside the list and the title", async () => {
+    renderInFacetList();
+
+    const popover: HTMLElement = await openDefinition();
+
+    expect(screen.getByTestId("facet-list")).not.toContainElement(popover);
+    expect(
+      screen.getByTestId("facet-section-defined-title"),
+    ).not.toContainElement(popover);
+    expect(
+      popover.closest<HTMLElement>("[data-tippy-root]")?.parentElement,
+    ).toBe(document.body);
+  });
+
+  test("still reads in its own type, not in the title's small capitals", async () => {
+    renderInFacetList();
+
+    const popover: HTMLElement = await openDefinition();
+
+    expect(popover.closest(".uppercase")).toBeNull();
+    expect(popover).toHaveClass("normal-case", "tracking-normal");
+  });
+
+  test("still says what the word is, and links the Glossary, for the word that opened it", async () => {
+    renderInFacetList();
+
+    const popover: HTMLElement = await openDefinition();
+
+    expect(
+      within(popover).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+    ).toHaveTextContent("One operation inside a trace");
+    expect(
+      within(popover).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
+    ).toHaveAttribute("href", expect.stringContaining("span"));
+    // A dialog named by its word, wherever it is drawn.
+    expect(screen.getByRole("dialog", { name: "Span Type" })).toContainElement(
+      popover,
+    );
   });
 });

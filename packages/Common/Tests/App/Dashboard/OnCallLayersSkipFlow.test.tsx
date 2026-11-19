@@ -384,8 +384,7 @@ async function renderLayers(): Promise<void> {
 
   /*
    * And the page at rest before anything is clicked: what its first draw
-   * set going in effects - the place a heading's definition is drawn in
-   * (DefinitionsDrawnAfter) - drawn too. The layers' people come with the
+   * set going in effects drawn too. The layers' people come with the
    * page's own read, so the list can show before those effects are.
    */
   await act(async (): Promise<void> => {
@@ -650,7 +649,8 @@ describe("Skip until... on the Layers page", () => {
  * them is held here too. "Rotation layers" is a defined term, and its
  * definition - a dialog named by its word - was drawn inside the heading:
  * while it showed, the heading was named "Rotation layers Rotation layers".
- * It is drawn right after the heading now (Glossary/DefinitionsDrawnAfter).
+ * It is drawn on the page's body now, as every tooltip is (TooltipLayer),
+ * never inside the heading.
  */
 describe("the Rotation layers heading, with its word's definition open", () => {
   const originalFetch: unknown = (globalThis as Record<string, unknown>)[
@@ -662,7 +662,7 @@ describe("the Rotation layers heading, with its word's definition open", () => {
     clearGlossaryReads();
   });
 
-  test("holds its words alone: the definition is drawn right after it", async () => {
+  test("holds its words alone: the definition is drawn on the page's body", async () => {
     // The glossary answers its read; the rest of the network is stubbed above.
     (globalThis as Record<string, unknown>)["fetch"] = (
       url: unknown,
@@ -714,6 +714,9 @@ describe("the Rotation layers heading, with its word's definition open", () => {
       "Rotation layers",
     );
     expect(heading).not.toContainElement(open);
-    expect(heading.nextElementSibling).toContainElement(open);
+    // On the page's body (TooltipLayer), outside whatever holds the heading.
+    expect(open.closest<HTMLElement>("[data-tippy-root]")?.parentElement).toBe(
+      document.body,
+    );
   });
 });

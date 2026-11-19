@@ -3,9 +3,16 @@ import LogTimeRangePicker, {
 } from "../../../UI/Components/LogsViewer/components/LogTimeRangePicker";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
 import {
   afterEach,
@@ -66,6 +73,37 @@ function hasClass(element: HTMLElement, className: string): boolean {
   return element.classList.contains(className);
 }
 
+/*
+ * The edge of the button the dropdown hangs from, as the picker decided it
+ * (data-align): "left" is the line's start, "right" its end. The dropdown
+ * is drawn over the page from the button (LayeredPopover), not positioned
+ * by classes inside the picker any more (#9859).
+ */
+function isAligned(element: HTMLElement, edge: "left" | "right"): boolean {
+  return element.getAttribute("data-align") === edge;
+}
+
+// The layer's element the dropdown is drawn in: Tippy's root, on the body.
+function layerOf(element: HTMLElement): HTMLElement {
+  const layer: HTMLElement | null = element.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(layer).not.toBeNull();
+
+  return layer as HTMLElement;
+}
+
+// Where Popper placed the dropdown, once its first placement has run.
+async function placementOf(element: HTMLElement): Promise<string | null> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  return layerOf(element).getAttribute("data-popper-placement");
+}
+
 describe("LogTimeRangePicker", () => {
   beforeEach(() => {
     setViewportWidth(1440);
@@ -83,8 +121,8 @@ describe("LogTimeRangePicker", () => {
       range: TimeRange.PAST_ONE_HOUR,
     });
 
-    expect(hasClass(dropdown, "left-0")).toBe(true);
-    expect(hasClass(dropdown, "right-0")).toBe(false);
+    expect(isAligned(dropdown, "left")).toBe(true);
+    expect(isAligned(dropdown, "right")).toBe(false);
     expect(dropdown.getAttribute("data-align")).toBe("left");
   });
 
@@ -95,8 +133,8 @@ describe("LogTimeRangePicker", () => {
       range: TimeRange.PAST_ONE_HOUR,
     });
 
-    expect(hasClass(dropdown, "right-0")).toBe(true);
-    expect(hasClass(dropdown, "left-0")).toBe(false);
+    expect(isAligned(dropdown, "right")).toBe(true);
+    expect(isAligned(dropdown, "left")).toBe(false);
     expect(dropdown.getAttribute("data-align")).toBe("right");
   });
 
@@ -105,7 +143,7 @@ describe("LogTimeRangePicker", () => {
     stubTriggerRect(12, 128);
 
     expect(
-      hasClass(openDropdown({ range: TimeRange.PAST_ONE_HOUR }), "left-0"),
+      isAligned(openDropdown({ range: TimeRange.PAST_ONE_HOUR }), "left"),
     ).toBe(true);
   });
 
@@ -125,16 +163,35 @@ describe("LogTimeRangePicker", () => {
     ).toBe(true);
   });
 
-  test("keeps the panel anchored below the trigger", () => {
+  test("keeps the panel anchored below the trigger, drawn over the page", async () => {
+    const dropdown: HTMLElement = openDropdown({
+      range: TimeRange.PAST_ONE_HOUR,
+    });
+    const layer: HTMLElement = layerOf(dropdown);
+
+    /*
+     * On the page's body, where no card it is in can cut it off - a logs
+     * viewer with no filter bar draws its toolbar inside the list's card
+     * (#9859) - placed under its button, from the edge it picked.
+     */
+    expect(layer.parentElement).toBe(document.body);
+    expect(
+      (layer as HTMLElement & { _tippy?: { reference: Element } })._tippy
+        ?.reference,
+    ).toBe(screen.getByTestId(BUTTON_TEST_ID));
+    expect(await placementOf(dropdown)).toBe("bottom-start");
+    expect(hasClass(dropdown, "absolute")).toBe(false);
+  });
+
+  test("hangs from the button's end when it picked it", async () => {
+    stubTriggerRect(1310, 1430);
+
     const dropdown: HTMLElement = openDropdown({
       range: TimeRange.PAST_ONE_HOUR,
     });
 
-    expect(hasClass(dropdown, "absolute")).toBe(true);
-    expect(hasClass(dropdown, "top-full")).toBe(true);
-    expect(
-      dropdown.parentElement?.classList.contains("relative") ?? false,
-    ).toBe(true);
+    expect(isAligned(dropdown, "right")).toBe(true);
+    expect(await placementOf(dropdown)).toBe("bottom-end");
   });
 
   test("keeps the date fields out of the narrow dropdown panel", () => {
