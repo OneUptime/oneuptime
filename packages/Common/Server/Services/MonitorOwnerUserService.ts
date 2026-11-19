@@ -7,6 +7,7 @@ import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import MonitorService from "./MonitorService";
@@ -68,6 +69,12 @@ export class Service extends ProjectReferencesService<Model> {
           props: {
             isRoot: true,
           },
+        });
+
+        // Someone only invited is named as the project knows them (#9823).
+        await PendingInviteeProfiles.nameInProject({
+          users: [user],
+          projectId: projectId,
         });
 
         const monitorName: string = await MonitorService.getMonitorName({

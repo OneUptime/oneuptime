@@ -10,6 +10,7 @@ import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Email from "../../../../Types/Email";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
@@ -802,6 +803,47 @@ describe("what a project calls someone OneUptime read for it", () => {
         withheld: withheld,
       }),
     ).toBe("");
+  });
+
+  test("people read as OneUptime are named in place as the project knows them, in one read", async () => {
+    const pending: User = personRead(PENDING_ID);
+    pending.email = new Email("grace@example.com");
+    const named: User = personRead(OTHER_PROJECT_ID);
+    const member: User = personRead(MEMBER_ID);
+
+    const withheldIn: jest.SpiedFunction<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(withheld);
+
+    try {
+      await PendingInviteeProfiles.nameInProject({
+        users: [pending, null, named, member],
+        projectId: new ObjectID(PROJECT_ID),
+      });
+
+      // The name typed for them, and no picture.
+      expect(pending.name?.toString()).toBe("Grace from Payments");
+      expect(pending.profilePictureId).toBeUndefined();
+
+      // No name typed and no address read: no name at all, never their own.
+      expect(named.name).toBeUndefined();
+      expect(named.profilePictureId).toBeUndefined();
+
+      // A member as read.
+      expect(member.name?.toString()).toBe("Their Own Name");
+      expect(member.profilePictureId).toBeDefined();
+
+      expect(withheldIn).toHaveBeenCalledTimes(1);
+      expect(withheldIn.mock.calls[0]![0].userIds).toEqual([
+        PENDING_ID,
+        OTHER_PROJECT_ID,
+        MEMBER_ID,
+      ]);
+    } finally {
+      withheldIn.mockRestore();
+    }
   });
 
   test("a person's entry is found however their id is spelled", () => {
