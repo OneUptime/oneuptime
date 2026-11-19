@@ -763,14 +763,18 @@ export class Service extends ProjectReferencesService<Model> {
     return changes;
   }
 
-  // An import's new values: written in batches, each audited as a create.
+  /*
+   * An import's new values: written in batches, each committed on its own,
+   * and each batch audited as creates are as soon as it is written - before
+   * the next one. A batch that fails fails the import, and the values the
+   * batches before it wrote stay on the list: they are in the audit log,
+   * which used to be written only once every batch was (#9616).
+   */
   private async insertImportedValues(data: {
     watchlist: SecurityWatchlist;
     values: Array<SecurityWatchlistImportValue>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const created: Array<Model> = [];
-
     for (
       let start: number = 0;
       start < data.values.length;
@@ -810,19 +814,24 @@ export class Service extends ProjectReferencesService<Model> {
         if (identifier && identifier["_id"]) {
           row._id = String(identifier["_id"]);
         }
-
-        created.push(row);
       });
-    }
 
-    // Each new value in the audit log, as a value added by hand would be.
+      await this.recordImportedValues({ rows: batch, props: data.props });
+    }
+  }
+
+  // Each value an import wrote in the audit log, as a value added by hand would be.
+  private async recordImportedValues(data: {
+    rows: Array<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
     for (
       let start: number = 0;
-      start < created.length;
+      start < data.rows.length;
       start += IMPORT_AUDIT_CONCURRENCY
     ) {
       await Promise.all(
-        created
+        data.rows
           .slice(start, start + IMPORT_AUDIT_CONCURRENCY)
           .map(async (row: Model): Promise<void> => {
             await AuditLogService.recordCreate({

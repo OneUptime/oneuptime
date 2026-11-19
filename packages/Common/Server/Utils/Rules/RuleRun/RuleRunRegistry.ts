@@ -33,6 +33,10 @@ import DataAssetLabelRule from "../../../../Models/DatabaseModels/DataAssetLabel
 import DataAssetOwnerRule from "../../../../Models/DatabaseModels/DataAssetOwnerRule";
 import DataAssetOwnerTeam from "../../../../Models/DatabaseModels/DataAssetOwnerTeam";
 import DataAssetOwnerUser from "../../../../Models/DatabaseModels/DataAssetOwnerUser";
+import DataPipeline from "../../../../Models/DatabaseModels/DataPipeline";
+import DataPipelineOwnerRule from "../../../../Models/DatabaseModels/DataPipelineOwnerRule";
+import DataPipelineOwnerTeam from "../../../../Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerUser from "../../../../Models/DatabaseModels/DataPipelineOwnerUser";
 import DataStoreLabelRule from "../../../../Models/DatabaseModels/DataStoreLabelRule";
 import DataStoreOwnerRule from "../../../../Models/DatabaseModels/DataStoreOwnerRule";
 import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
@@ -211,6 +215,9 @@ import DataAssetLabelRuleService from "../../../Services/DataAssetLabelRuleServi
 import DataAssetOwnerRuleEngineService from "../../../Services/DataAssetOwnerRuleEngineService";
 import DataAssetOwnerRuleService from "../../../Services/DataAssetOwnerRuleService";
 import DataAssetService from "../../../Services/DataAssetService";
+import DataPipelineOwnerRuleEngineService from "../../../Services/DataPipelineOwnerRuleEngineService";
+import DataPipelineOwnerRuleService from "../../../Services/DataPipelineOwnerRuleService";
+import DataPipelineService from "../../../Services/DataPipelineService";
 import DataStoreLabelRuleEngineService from "../../../Services/DataStoreLabelRuleEngineService";
 import DataStoreLabelRuleService from "../../../Services/DataStoreLabelRuleService";
 import DataStoreOwnerRuleEngineService from "../../../Services/DataStoreOwnerRuleEngineService";
@@ -537,6 +544,14 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: DataAssetService,
     engine: DataAssetOwnerRuleEngineService,
     ownerModelTypes: [DataAssetOwnerUser, DataAssetOwnerTeam],
+  }),
+  [RuleRunType.DataPipelineOwnerRule]: defineRuleRun({
+    ruleModelType: DataPipelineOwnerRule,
+    resourceModelType: DataPipeline,
+    ruleService: DataPipelineOwnerRuleService,
+    resourceService: DataPipelineService,
+    engine: DataPipelineOwnerRuleEngineService,
+    ownerModelTypes: [DataPipelineOwnerUser, DataPipelineOwnerTeam],
   }),
   [RuleRunType.DataStoreLabelRule]: defineRuleRun({
     ruleModelType: DataStoreLabelRule,

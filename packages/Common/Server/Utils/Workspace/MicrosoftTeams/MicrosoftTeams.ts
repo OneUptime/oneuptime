@@ -83,6 +83,7 @@ import {
 import { ExpressRequest, ExpressResponse } from "../../Express";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
+import MicrosoftTeamsCutChatIds from "./MicrosoftTeamsCutChatIds";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsAccountNotLinkedException,
@@ -7102,6 +7103,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         },
         select: {
           _id: true,
+          projectId: true,
           miscData: true,
         },
         limit: LIMIT_MAX,
@@ -7115,6 +7117,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const miscData: MicrosoftTeamsMiscData = {
         ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
       } as MicrosoftTeamsMiscData;
+
+      const isNewlyListed: boolean = !miscData.availableChats?.[data.chat.id];
 
       miscData.availableChats = {
         ...(miscData.availableChats || {}),
@@ -7130,6 +7134,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           isRoot: true,
         },
       });
+
+      /*
+       * A chat the connection did not list until now - the app removed from
+       * the chat and added again, or a connection made after the upgrade -
+       * may have pages asked for in it before #9284, kept with its id cut to
+       * 100 characters, that the upgrade could not put back: it puts back
+       * only the chats listed then. They reach the chat again from the next
+       * change of their run (#9330). A chat already listed (a re-capture,
+       * a staleness refresh) had its places put back at the upgrade, so
+       * nothing is done for it: this is the bot's activity path.
+       */
+      if (isNewlyListed && projectAuth.projectId) {
+        await MicrosoftTeamsCutChatIds.restoreKeptMessages({
+          projectId: projectAuth.projectId,
+          chatId: data.chat.id,
+          availableChats: miscData.availableChats,
+        });
+      }
     }
   }
 

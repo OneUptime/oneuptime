@@ -12,6 +12,11 @@ import { IncomingCallStatusMessage } from "Common/Types/IncomingCall/MissedIncom
 import { getIncomingCallRingSeconds } from "Common/Types/IncomingCall/IncomingCallRingTime";
 import { getIncomingCallPolicyRepeatsAllowed } from "Common/Types/IncomingCall/IncomingCallPolicyRepeat";
 import {
+  IncomingCallRuleDialled,
+  getIncomingCallRulesToTry,
+} from "Common/Types/IncomingCall/IncomingCallEscalationOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import {
   DEFAULT_INCOMING_CALL_GREETING_MESSAGE,
   DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE,
   DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
@@ -21,7 +26,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IncomingCallLogService from "Common/Server/Services/IncomingCallLogService";
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
@@ -307,7 +311,7 @@ router.post(
       } | null = await getNextRuleWithAvailableUser(
         new ObjectID(policyId),
         policy.projectId!,
-        0,
+        null,
       );
 
       if (!firstResolved) {
@@ -330,9 +334,10 @@ router.post(
 
       /*
        * Persist the order of the rule we're actually dialing (gap-safe; may be
-       * greater than 1 if earlier rules had no available user).
+       * greater than 1 if earlier rules had no available user, or any number
+       * a rule was given through the API).
        */
-      if (firstRule.order && firstRule.order !== 1) {
+      if (typeof firstRule.order === "number" && firstRule.order !== 1) {
         await IncomingCallLogService.updateOneById({
           id: createdCallLog.id!,
           data: {
@@ -534,6 +539,7 @@ router.post(
             _id: true,
             incomingCallLogId: true,
             userId: true,
+            incomingCallPolicyEscalationRuleId: true,
           },
           props: {
             isRoot: true,
@@ -649,8 +655,10 @@ router.post(
 
       /*
        * Call was not answered. Advance to the next escalation rule that has an
-       * available user. Skips rules whose user is momentarily unavailable and
-       * is gap-safe (does not assume contiguous order values).
+       * available user: the first after the rule just dialled, in the
+       * policy's order - a rule that shares its number is not skipped, and a
+       * gap changes nothing (IncomingCallEscalationOrder). Skips rules whose
+       * user is momentarily unavailable.
        */
       const nextResolved: {
         rule: IncomingCallPolicyEscalationRule;
@@ -658,7 +666,10 @@ router.post(
       } | null = await getNextRuleWithAvailableUser(
         callLog.incomingCallPolicyId!,
         policy.projectId!,
-        callLog.currentEscalationRuleOrder || 0,
+        {
+          ruleId: callLogItem.incomingCallPolicyEscalationRuleId || null,
+          ruleOrder: callLog.currentEscalationRuleOrder ?? null,
+        },
       );
 
       if (nextResolved) {
@@ -701,7 +712,7 @@ router.post(
         } | null = await getNextRuleWithAvailableUser(
           callLog.incomingCallPolicyId!,
           policy.projectId!,
-          0,
+          null,
         );
 
         if (repeatResolved) {
@@ -890,61 +901,62 @@ async function getUserToCall(
 }
 
 /*
- * Finds the next escalation rule (strictly after `afterOrder`, ascending) that
- * currently has an available user to call. Rules whose user cannot be resolved
- * right now (empty schedule, or user without a verified incoming-call number)
- * are skipped rather than dead-ending the call. Gap-safe: does not assume
- * `order` values are contiguous.
+ * Finds the next escalation rule that currently has an available user to
+ * call: the first after the rule `dialled` names in the policy's order (by
+ * number, the older of two rules at one number first, as the policy's page
+ * lists them), or the first of the policy for a call that dials none yet
+ * (IncomingCallEscalationOrder). Rules whose user cannot be resolved right
+ * now (empty schedule, or user without a verified incoming-call number) are
+ * skipped rather than dead-ending the call. Never assumes the numbers are
+ * contiguous, unique, or above 0.
  */
 async function getNextRuleWithAvailableUser(
   incomingCallPolicyId: ObjectID,
   projectId: ObjectID,
-  afterOrder: number,
+  dialled: IncomingCallRuleDialled | null,
 ): Promise<{
   rule: IncomingCallPolicyEscalationRule;
   user: UserToCall;
 } | null> {
-  let currentAfterOrder: number = afterOrder;
+  const rules: Array<IncomingCallPolicyEscalationRule> =
+    await IncomingCallPolicyEscalationRuleService.findBy({
+      query: {
+        incomingCallPolicyId: incomingCallPolicyId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        order: true,
+        escalateAfterSeconds: true,
+        onCallDutyPolicyScheduleId: true,
+        userId: true,
+        createdAt: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+        createdAt: SortOrder.Ascending,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
 
-  /*
-   * Each iteration strictly increases currentAfterOrder, so this terminates
-   * once there are no more rules with a higher order.
-   */
-  for (;;) {
-    const rule: IncomingCallPolicyEscalationRule | null =
-      await IncomingCallPolicyEscalationRuleService.findOneBy({
-        query: {
-          incomingCallPolicyId: incomingCallPolicyId,
-          order: QueryHelper.greaterThan(currentAfterOrder),
-        },
-        select: {
-          _id: true,
-          name: true,
-          order: true,
-          escalateAfterSeconds: true,
-          onCallDutyPolicyScheduleId: true,
-          userId: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!rule) {
-      return null;
-    }
-
+  for (const rule of getIncomingCallRulesToTry({
+    rules: rules,
+    dialled: dialled,
+  })) {
     const user: UserToCall | null = await getUserToCall(rule, projectId);
+
     if (user) {
       return { rule: rule, user: user };
     }
 
     // This rule has no available user right now; skip to the next one.
-    currentAfterOrder = rule.order!;
   }
+
+  return null;
 }
 
 // Helper function to generate greeting and dial TwiML

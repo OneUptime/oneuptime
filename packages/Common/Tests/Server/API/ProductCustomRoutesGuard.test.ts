@@ -1699,6 +1699,14 @@ describe("what the decisions stand on", () => {
    * the columns its runs moved (#6854), each answering only about what its
    * caller may read (#9526) - reads all the same, left working.
    */
+  /*
+   * And a pipeline's circuit breaker (#6548): a pipeline step outside
+   * OneUptime asks it before it runs - what already runs keeps running -
+   * and it decides from what is known, so it is a read. While the product
+   * is off it answers go and keeps nothing (DataCircuitBreaker), so
+   * switching Data Observability off never stops a pipeline. How a
+   * pipeline's breaker stands, for its page, only reads.
+   */
   test.each([
     ["attentionCount"],
     ["issues"],
@@ -1707,6 +1715,8 @@ describe("what the decisions stand on", () => {
     ["tableLineage"],
     ["lineageExpand"],
     ["tableLineageAnswer"],
+    ["circuitBreaker"],
+    ['pipelineCircuitBreaker(":id")'],
   ])(
     "packages/Common/Server/API/DataObservabilityAPI.ts: %s is a read, left working while the product is off",
     (route: string) => {

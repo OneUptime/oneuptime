@@ -63,6 +63,8 @@ describe("the order things are told in", () => {
     expect(DATA_ATTENTION_KIND_ORDER).toEqual([
       DataAttentionKind.CollectionFailed,
       DataAttentionKind.PipelineFailed,
+      // Held back by its circuit breaker (#6548): what it writes waits, as a failed run's does.
+      DataAttentionKind.PipelineStopped,
       DataAttentionKind.CheckFailing,
       DataAttentionKind.ReconciliationDrifted,
       DataAttentionKind.DataProductLate,
@@ -83,6 +85,7 @@ describe("the order things are told in", () => {
       item(DataAttentionKind.DataProductLate, "Finance dashboard"),
       item(DataAttentionKind.PipelineFailed, "nightly_load"),
       item(DataAttentionKind.CheckFailing, "no duplicate orders"),
+      item(DataAttentionKind.PipelineStopped, "orders_daily"),
     ]);
 
     expect(
@@ -92,6 +95,7 @@ describe("the order things are told in", () => {
     ).toEqual([
       "warehouse",
       "nightly_load",
+      "orders_daily",
       "no duplicate orders",
       "Finance dashboard",
       "public.orders",

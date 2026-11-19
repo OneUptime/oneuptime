@@ -1,6 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import WorkspaceLiveMessageService from "Common/Server/Services/WorkspaceLiveMessageService";
-import { WORKSPACE_STORED_ID_MAX_LENGTH } from "Common/Server/Utils/Workspace/WorkspaceStoredValue";
+import MicrosoftTeamsCutChatIds from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCutChatIds";
 import logger from "Common/Server/Utils/Logger";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 
@@ -33,7 +33,9 @@ export interface ProjectChatsRow {
  * prefix two of its chats share says neither, and is left as it is, as is
  * a cut id whose chat the connection no longer lists: no chat can be told
  * for it, and none would take the update. Names are left as written; they
- * are only shown.
+ * are only shown. Which ids, and the statements, are
+ * MicrosoftTeamsCutChatIds': the same restore runs for one chat when a
+ * connection lists it only after the upgrade (#9330).
  *
  * One statement per project and table, each finding the project's rows by
  * its index. Idempotent, and safe to run twice at once: a restored id is no
@@ -41,106 +43,11 @@ export interface ProjectChatsRow {
  * cannot be restored is logged and costs the others nothing.
  */
 export default class RestoreCutMicrosoftTeamsChatIds extends DataMigrationBase {
-  // The width the ids were cut to.
-  public static readonly CUT_LENGTH: number = 100;
-
-  // The tables whose channel ids were cut, each with its own statement.
-  public static readonly TABLES: ReadonlyArray<string> = [
-    "WorkspaceLiveMessage",
-    "WorkspaceNotificationLog",
-  ];
-
   // Every Microsoft Teams connection that lists chats, with its project.
   public static readonly READ_CHATS: string = `SELECT "projectId", "miscData"->'availableChats' AS "availableChats" FROM "WorkspaceProjectAuthToken" WHERE "workspaceType" = $1 AND jsonb_typeof("miscData"->'availableChats') = 'object'`;
 
   public constructor() {
     super("RestoreCutMicrosoftTeamsChatIds");
-  }
-
-  /*
-   * The statement that puts back one project's cut ids in one table: $1 the
-   * project, $2 the cut ids, $3 the whole id of each, $4 Microsoft Teams.
-   */
-  public static getRestoreStatement(table: string): string {
-    return `UPDATE "${table}" AS "row" SET "channelId" = "chat"."id" FROM unnest($2::text[], $3::text[]) AS "chat"("cutId", "id") WHERE "row"."projectId" = $1 AND "row"."workspaceType" = $4 AND "row"."channelId" = "chat"."cutId"`;
-  }
-
-  /*
-   * The ids of a connection's chats: each chat's key and the id it holds,
-   * which are the same.
-   */
-  public static getChatIds(availableChats: unknown): Set<string> {
-    const chatIds: Set<string> = new Set<string>();
-
-    if (
-      !availableChats ||
-      typeof availableChats !== "object" ||
-      Array.isArray(availableChats)
-    ) {
-      return chatIds;
-    }
-
-    for (const [key, chat] of Object.entries(
-      availableChats as Record<string, unknown>,
-    )) {
-      if (key) {
-        chatIds.add(key);
-      }
-
-      const id: unknown =
-        chat && typeof chat === "object" && !Array.isArray(chat)
-          ? (chat as Record<string, unknown>)["id"]
-          : undefined;
-
-      if (typeof id === "string" && id) {
-        chatIds.add(id);
-      }
-    }
-
-    return chatIds;
-  }
-
-  /*
-   * The whole id each id cut to 100 characters stands for, by that cut id,
-   * among one project's chats: those whose id is longer than 100
-   * characters, and no longer than a column now keeps whole. A cut id two
-   * chats share is left out.
-   */
-  public static getCutChatIds(chatIds: Iterable<string>): Map<string, string> {
-    const wholeIdsByCutId: Map<string, Set<string>> = new Map<
-      string,
-      Set<string>
-    >();
-
-    for (const chatId of chatIds) {
-      if (
-        chatId.length <= RestoreCutMicrosoftTeamsChatIds.CUT_LENGTH ||
-        chatId.length > WORKSPACE_STORED_ID_MAX_LENGTH
-      ) {
-        continue;
-      }
-
-      // Cut as it was cut: String.prototype.substring.
-      const cutId: string = chatId.substring(
-        0,
-        RestoreCutMicrosoftTeamsChatIds.CUT_LENGTH,
-      );
-      const wholeIds: Set<string> =
-        wholeIdsByCutId.get(cutId) || new Set<string>();
-
-      wholeIds.add(chatId);
-      wholeIdsByCutId.set(cutId, wholeIds);
-    }
-
-    const restorable: Map<string, string> = new Map<string, string>();
-
-    for (const [cutId, wholeIds] of wholeIdsByCutId) {
-      if (wholeIds.size === 1) {
-        restorable.set(cutId, Array.from(wholeIds)[0]!);
-      }
-    }
-
-    return restorable;
   }
 
   /*
@@ -164,7 +71,7 @@ export default class RestoreCutMicrosoftTeamsChatIds extends DataMigrationBase {
       const chatIds: Set<string> =
         chatIdsByProject.get(row.projectId) || new Set<string>();
 
-      for (const chatId of RestoreCutMicrosoftTeamsChatIds.getChatIds(
+      for (const chatId of MicrosoftTeamsCutChatIds.getChatIds(
         row.availableChats,
       )) {
         chatIds.add(chatId);
@@ -180,7 +87,7 @@ export default class RestoreCutMicrosoftTeamsChatIds extends DataMigrationBase {
 
     for (const [projectId, chatIds] of chatIdsByProject) {
       const cutChatIds: Map<string, string> =
-        RestoreCutMicrosoftTeamsChatIds.getCutChatIds(chatIds);
+        MicrosoftTeamsCutChatIds.getCutChatIds(chatIds);
 
       if (cutChatIds.size > 0) {
         cutChatIdsByProject.set(projectId, cutChatIds);
@@ -212,10 +119,10 @@ export default class RestoreCutMicrosoftTeamsChatIds extends DataMigrationBase {
         return cutChatIds.get(cutId)!;
       });
 
-      for (const table of RestoreCutMicrosoftTeamsChatIds.TABLES) {
+      for (const table of MicrosoftTeamsCutChatIds.TABLES) {
         try {
           await manager.query(
-            RestoreCutMicrosoftTeamsChatIds.getRestoreStatement(table),
+            MicrosoftTeamsCutChatIds.getRestoreStatement(table),
             [projectId, cutIds, wholeIds, WorkspaceType.MicrosoftTeams],
           );
         } catch (err) {

@@ -23,6 +23,7 @@ import ForbiddenException from "../../../../Types/Exception/ForbiddenException";
 import ObjectID from "../../../../Types/ObjectID";
 import ProductKey from "../../../../Types/Product/ProductKey";
 import Permission, { UserPermission } from "../../../../Types/Permission";
+import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import UserType from "../../../../Types/UserType";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts";
 import {
@@ -60,10 +61,19 @@ const MEMBER: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
 };
 
-// A Project Owner: may write everything in the project, but for a product that is off.
+/*
+ * A Project Owner: may write everything in the project, but for a product
+ * that is off. With the project's plan, as a request carries it wherever
+ * billing is on (CommonAPI reads it, CallerPlan.withPlan): a write by id
+ * reads the plan before its row check only for props that carry none
+ * (CallerPlan.withPlanFor), so props without it would ask the database for
+ * the plan before the write reaches the refusal.
+ */
 const OWNER: DatabaseCommonInteractionProps = {
   userId: USER_ID,
   tenantId: PROJECT_ID,
+  currentPlan: PlanType.Enterprise,
+  isSubscriptionUnpaid: false,
   userType: UserType.User,
   userTenantAccessPermission: {
     [PROJECT_ID.toString()]: {

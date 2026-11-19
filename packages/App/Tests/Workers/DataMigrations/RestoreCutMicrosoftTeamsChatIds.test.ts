@@ -2,6 +2,7 @@ import RestoreCutMicrosoftTeamsChatIds, {
   ProjectChatsRow,
 } from "../../../FeatureSet/Workers/DataMigrations/RestoreCutMicrosoftTeamsChatIds";
 import WorkspaceLiveMessageService from "Common/Server/Services/WorkspaceLiveMessageService";
+import MicrosoftTeamsCutChatIds from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCutChatIds";
 import logger from "Common/Server/Utils/Logger";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import fs from "fs";
@@ -31,7 +32,10 @@ import {
  *      keeps last;
  *   2. a cut id is the first 100 characters of exactly one of the project's
  *      chats, and only one longer than 100 that a column now keeps whole; a
- *      prefix two chats share is left as it is;
+ *      prefix two chats share is left as it is - the rules and statements
+ *      of MicrosoftTeamsCutChatIds (pinned in Common's
+ *      MicrosoftTeamsCutChatIds.test.ts), which also put back a chat a
+ *      connection lists only after the upgrade (#9330);
  *   3. projects are kept apart - one project's chat never restores another
  *      project's rows - and a project's connections are read together;
  *   4. it reads the Microsoft Teams connections that list chats, and writes
@@ -178,86 +182,6 @@ describe("RestoreCutMicrosoftTeamsChatIds", () => {
   });
 });
 
-describe("Which cut ids stand for which chat", () => {
-  test("a personal chat's id stands for its first 100 characters", () => {
-    expect(
-      RestoreCutMicrosoftTeamsChatIds.getCutChatIds([AMIT_CHAT, JANE_CHAT]),
-    ).toEqual(
-      new Map([
-        [cut(AMIT_CHAT), AMIT_CHAT],
-        [cut(JANE_CHAT), JANE_CHAT],
-      ]),
-    );
-  });
-
-  test("a chat whose id was never cut - 100 characters or fewer - stands for nothing", () => {
-    const exactly100: string = `a:1${"h".repeat(97)}`;
-
-    expect(exactly100).toHaveLength(100);
-    expect(
-      RestoreCutMicrosoftTeamsChatIds.getCutChatIds([
-        GROUP_CHAT,
-        MEETING_CHAT,
-        exactly100,
-      ]).size,
-    ).toBe(0);
-  });
-
-  test("a chat longer than a column keeps whole is not put back: it would not fit", () => {
-    const tooLong: string = `a:1${"x".repeat(500)}`;
-
-    expect(RestoreCutMicrosoftTeamsChatIds.getCutChatIds([tooLong]).size).toBe(
-      0,
-    );
-  });
-
-  test("a cut id two chats share says neither, and is left as it is", () => {
-    const twin: string = `${cut(AMIT_CHAT)}-another-chat-that-starts-the-same-way`;
-
-    expect(
-      RestoreCutMicrosoftTeamsChatIds.getCutChatIds([
-        AMIT_CHAT,
-        twin,
-        JANE_CHAT,
-      ]),
-    ).toEqual(new Map([[cut(JANE_CHAT), JANE_CHAT]]));
-  });
-
-  test("a connection's chats are read by their keys and by the id each holds", () => {
-    expect(
-      Array.from(
-        RestoreCutMicrosoftTeamsChatIds.getChatIds({
-          [AMIT_CHAT]: chat(AMIT_CHAT, "Amit"),
-          "legacy-key": chat(JANE_CHAT, "Jane"),
-        }),
-      ).sort(),
-    ).toEqual([AMIT_CHAT, JANE_CHAT, "legacy-key"].sort());
-  });
-
-  test.each([
-    ["nothing", undefined],
-    ["null", null],
-    ["a list", [AMIT_CHAT]],
-    ["text", AMIT_CHAT],
-  ])(
-    "a connection whose chats are %s lists none",
-    (_label: string, value: unknown) => {
-      expect(RestoreCutMicrosoftTeamsChatIds.getChatIds(value).size).toBe(0);
-    },
-  );
-
-  test("a chat that is not an object is read by its key alone", () => {
-    expect(
-      Array.from(
-        RestoreCutMicrosoftTeamsChatIds.getChatIds({
-          [AMIT_CHAT]: null,
-          [JANE_CHAT]: "Jane",
-        }),
-      ).sort(),
-    ).toEqual([AMIT_CHAT, JANE_CHAT].sort());
-  });
-});
-
 describe("Project by project", () => {
   test("each project's cut ids come from its own chats only", () => {
     const byProject: Map<
@@ -315,6 +239,38 @@ describe("Project by project", () => {
       ]).size,
     ).toBe(0);
   });
+
+  test("a project's cut ids are the ones MicrosoftTeamsCutChatIds tells from its chats - as a chat listed after the upgrade has its own told (#9330)", () => {
+    const nitinChat: string = `a:1nitin${"N".repeat(123)}`;
+    const twin: string = `${cut(AMIT_CHAT)}-another-chat-that-starts-the-same-way`;
+    // A chat no column keeps whole still makes the prefix it shares ambiguous.
+    const tooLongTwin: string = `${cut(JANE_CHAT)}${"x".repeat(450)}`;
+    const listed: Record<string, unknown> = chats(
+      AMIT_CHAT,
+      twin,
+      JANE_CHAT,
+      tooLongTwin,
+      nitinChat,
+      GROUP_CHAT,
+    );
+
+    const byProject: Map<
+      string,
+      Map<string, string>
+    > = RestoreCutMicrosoftTeamsChatIds.getCutChatIdsByProject([
+      { projectId: PROJECT_A, availableChats: listed },
+    ]);
+
+    expect(nitinChat).toHaveLength(131);
+    expect(byProject.get(PROJECT_A)).toEqual(
+      new Map([[cut(nitinChat), nitinChat]]),
+    );
+    expect(byProject.get(PROJECT_A)).toEqual(
+      MicrosoftTeamsCutChatIds.getCutChatIds(
+        MicrosoftTeamsCutChatIds.getChatIds(listed),
+      ),
+    );
+  });
 });
 
 describe("What it reads and writes", () => {
@@ -342,7 +298,7 @@ describe("What it reads and writes", () => {
 
     expect(queries.slice(1)).toEqual([
       {
-        statement: RestoreCutMicrosoftTeamsChatIds.getRestoreStatement(
+        statement: MicrosoftTeamsCutChatIds.getRestoreStatement(
           "WorkspaceLiveMessage",
         ),
         parameters: [
@@ -353,7 +309,7 @@ describe("What it reads and writes", () => {
         ],
       },
       {
-        statement: RestoreCutMicrosoftTeamsChatIds.getRestoreStatement(
+        statement: MicrosoftTeamsCutChatIds.getRestoreStatement(
           "WorkspaceNotificationLog",
         ),
         parameters: [
@@ -364,7 +320,7 @@ describe("What it reads and writes", () => {
         ],
       },
       {
-        statement: RestoreCutMicrosoftTeamsChatIds.getRestoreStatement(
+        statement: MicrosoftTeamsCutChatIds.getRestoreStatement(
           "WorkspaceLiveMessage",
         ),
         parameters: [
@@ -375,7 +331,7 @@ describe("What it reads and writes", () => {
         ],
       },
       {
-        statement: RestoreCutMicrosoftTeamsChatIds.getRestoreStatement(
+        statement: MicrosoftTeamsCutChatIds.getRestoreStatement(
           "WorkspaceNotificationLog",
         ),
         parameters: [
@@ -389,13 +345,13 @@ describe("What it reads and writes", () => {
   });
 
   test("each statement is scoped to its project and to Microsoft Teams, and matches a cut id exactly", () => {
-    for (const table of RestoreCutMicrosoftTeamsChatIds.TABLES) {
-      expect(RestoreCutMicrosoftTeamsChatIds.getRestoreStatement(table)).toBe(
+    for (const table of MicrosoftTeamsCutChatIds.TABLES) {
+      expect(MicrosoftTeamsCutChatIds.getRestoreStatement(table)).toBe(
         `UPDATE "${table}" AS "row" SET "channelId" = "chat"."id" FROM unnest($2::text[], $3::text[]) AS "chat"("cutId", "id") WHERE "row"."projectId" = $1 AND "row"."workspaceType" = $4 AND "row"."channelId" = "chat"."cutId"`,
       );
     }
 
-    expect(RestoreCutMicrosoftTeamsChatIds.TABLES).toEqual([
+    expect(MicrosoftTeamsCutChatIds.TABLES).toEqual([
       "WorkspaceLiveMessage",
       "WorkspaceNotificationLog",
     ]);
