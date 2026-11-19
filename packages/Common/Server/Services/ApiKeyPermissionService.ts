@@ -24,6 +24,7 @@ import Permission, {
 } from "../../Types/Permission";
 import {
   getApiKeyRoleCopyChangeRefusedMessage,
+  getPermissionTitleForSentence,
   getTenantPermissionProblem,
   PermissionHolder,
 } from "../../Types/Team/CustomRole";
@@ -46,6 +47,24 @@ const PERMISSIONS_TTL_MS: number = 60 * 1000;
 export const API_KEY_PERMISSIONS_GENERATION_NAMESPACE: string =
   "api-key-permissions-generation";
 const GENERATION_TTL_SECONDS: number = 24 * 60 * 60;
+
+/*
+ * Why someone may not reset an API key (assertCallerCanTakeKey): the key's
+ * new value would give them a permission they could not give it themselves.
+ */
+export const getApiKeyTakeRefusedMessage: (data: {
+  apiKeyName: string;
+  permission: Permission;
+}) => string = (data: {
+  apiKeyName: string;
+  permission: Permission;
+}): string => {
+  const key: string = data.apiKeyName
+    ? `the API key "${data.apiKeyName}"`
+    : "this API key";
+
+  return `You can't reset ${key}: it has ${getPermissionTitleForSentence(data.permission)}, and your own access doesn't include that permission at the same or a broader scope. Resetting a key hands you everything it can do, so ask someone who has all of its permissions, such as a Project Owner, to reset it.`;
+};
 
 const API_KEY_REFERENCE_KEYS: Array<string> = ["apiKeyId", "apiKey"];
 const PROJECT_REFERENCE_KEYS: Array<string> = ["projectId", "project"];
@@ -540,6 +559,71 @@ export class Service extends ProjectReferencesService<Model> {
       throw new NotAuthorizedException(
         "You cannot grant an API key permission beyond your own authority",
       );
+    }
+  }
+
+  /*
+   * Refuses `props` taking the key `apiKeyId` - resetting it, which answers
+   * them its new value (ApiKeyService.onUpdatePermitted) - unless they
+   * could give it every permission it allows: its own and its custom
+   * roles' copies alike, at their labels, as when each was given
+   * (assertCallerCanGrantPermission). Its blocks only take away, and ask
+   * nothing. The refusal names the key and the first permission they lack.
+   */
+  @CaptureSpan()
+  public async assertCallerCanTakeKey(data: {
+    apiKeyId: ObjectID;
+    apiKeyName: string;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    const allows: Array<Model> = await this.findBy({
+      query: {
+        apiKeyId: data.apiKeyId,
+        projectId: data.projectId,
+        isBlockPermission: false,
+      },
+      select: {
+        permission: true,
+        labels: {
+          _id: true,
+        },
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const allow of allows) {
+      if (!allow.permission) {
+        continue;
+      }
+
+      try {
+        this.assertCallerCanGrantPermission({
+          permission: allow.permission,
+          labels: allow.labels,
+          projectId: data.projectId,
+          props: data.props,
+        });
+      } catch (err) {
+        if (err instanceof NotAuthorizedException) {
+          throw new NotAuthorizedException(
+            getApiKeyTakeRefusedMessage({
+              apiKeyName: data.apiKeyName,
+              permission: allow.permission,
+            }),
+          );
+        }
+
+        throw err;
+      }
     }
   }
 

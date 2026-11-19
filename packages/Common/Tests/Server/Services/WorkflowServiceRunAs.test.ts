@@ -17,8 +17,8 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import {
+  WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE,
   WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE,
-  WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE,
   WORKFLOW_RUN_AS_UNKNOWN_MESSAGE,
   WorkflowRunAs,
 } from "../../../Types/Workflow/WorkflowRunAs";
@@ -42,11 +42,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * WorkflowService.
  *
  *   - Anyone who may create or edit a workflow sets it to Default, as ever.
- *   - Raised permissions are given only by a person who holds them, and
- *     they are recorded as the giver; who and when is never a request's.
+ *   - Raised permissions are given only by a person or a project API key
+ *     (#9765) that holds them, and they are recorded as the giver - one of
+ *     the two; who and when is never a request's.
  *   - A raised workflow is changed, archived and deleted only by such a
- *     person, who becomes its giver when they save its steps or its Run As;
- *     anyone who may edit it may still turn it off.
+ *     person or key, who becomes its giver when they save its steps or its
+ *     Run As; anyone who may edit it may still turn it off.
  *   - A raised workflow names no global variable.
  *   - Its trigger keys are read only by who may change it.
  */
@@ -134,12 +135,13 @@ function member(
 // An API key of the project holding `permissions`.
 function apiKey(
   permissions: Array<Permission>,
+  apiKeyId: ObjectID = ObjectID.generate(),
 ): DatabaseCommonInteractionProps {
   return {
     ...ON_HIGHEST_PLAN,
     tenantId: PROJECT_ID,
     userType: UserType.API,
-    apiKeyId: ObjectID.generate(),
+    apiKeyId: apiKeyId,
     apiKeyName: "Terraform",
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
@@ -165,6 +167,18 @@ const WORKFLOW_ADMIN: () => DatabaseCommonInteractionProps =
   (): DatabaseCommonInteractionProps => {
     return member([Permission.WorkflowAdmin]);
   };
+
+// The server's master API key: its master admin, named as the key.
+function masterKey(): DatabaseCommonInteractionProps {
+  return {
+    ...member([Permission.ProjectOwner]),
+    userType: UserType.MasterAdmin,
+    isMasterAdmin: true,
+    apiKeyName: "Master API Key",
+  };
+}
+
+const KEY_ID: ObjectID = new ObjectID("97950000-0000-4000-8000-0000000000b1");
 
 // The project's custom role ROLE_ID, holding Incident Admin.
 function givenRole(): void {
@@ -378,16 +392,95 @@ describe("what a workflow runs as, through its writes", () => {
       expect(workflows.inserts).toEqual([]);
     });
 
-    test("an API key holding Project Owner may not: only a person gives a workflow raised permissions", async () => {
+    test("an API key holding Project Owner creates one that runs as Project Owner, and the key - no person - is recorded as having given it", async () => {
+      const inserted: StoredRow = await create(
+        { runAs: WorkflowRunAs.ProjectOwner },
+        apiKey([Permission.ProjectOwner], KEY_ID),
+      );
+
+      expect(inserted["runAs"]).toBe(WorkflowRunAs.ProjectOwner);
+      expect(String(inserted["runAsGivenByApiKeyId"]).toLowerCase()).toBe(
+        KEY_ID.toString().toLowerCase(),
+      );
+      expect(inserted["runAsGivenByUserId"]).toBeNull();
+      expect(inserted["runAsGivenAt"]).toBeInstanceOf(Date);
+    });
+
+    test("an API key holding less may not: a key never raises a workflow beyond itself, and nothing is saved", async () => {
+      for (const props of [
+        apiKey([Permission.ProjectAdmin]),
+        apiKey([Permission.WorkflowAdmin]),
+        apiKey([Permission.CreateWorkflow, Permission.ReadWorkflow]),
+      ]) {
+        const error: Error = await refusal(
+          create({ runAs: WorkflowRunAs.ProjectOwner }, props),
+        );
+
+        expect(error.message).toBe(WORKFLOW_RUN_AS_OWNER_REFUSED_MESSAGE);
+      }
+
+      expect(workflows.inserts).toEqual([]);
+    });
+
+    test("the master API key may not, whatever its master admin holds: it has no permissions of its own in a project", async () => {
       const error: Error = await refusal(
-        create(
-          { runAs: WorkflowRunAs.ProjectOwner },
-          apiKey([Permission.ProjectOwner]),
+        create({ runAs: WorkflowRunAs.ProjectOwner }, masterKey()),
+      );
+
+      expect(error.message).toBe(WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE);
+      expect(workflows.inserts).toEqual([]);
+    });
+
+    test("an API key gives a custom role it holds, and no other", async () => {
+      givenRole();
+
+      const inserted: StoredRow = await create(
+        { runAs: WorkflowRunAs.CustomRole, runAsCustomRoleId: ROLE_ID },
+        apiKey(
+          [
+            Permission.IncidentAdmin,
+            Permission.CreateWorkflow,
+            Permission.ReadWorkflow,
+          ],
+          KEY_ID,
         ),
       );
 
-      expect(error.message).toBe(WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE);
-      expect(workflows.inserts).toEqual([]);
+      expect(inserted["runAs"]).toBe(WorkflowRunAs.CustomRole);
+      expect(String(inserted["runAsGivenByApiKeyId"]).toLowerCase()).toBe(
+        KEY_ID.toString().toLowerCase(),
+      );
+
+      const error: Error = await refusal(
+        create(
+          { runAs: WorkflowRunAs.CustomRole, runAsCustomRoleId: ROLE_ID },
+          apiKey([Permission.CreateWorkflow, Permission.ReadWorkflow]),
+        ),
+      );
+
+      expect(error.message).toContain("the role has Incident Admin");
+    });
+
+    test("which key gave it is never the request's to say either: a key sent is dropped", async () => {
+      const someKey: ObjectID = ObjectID.generate();
+
+      const plain: StoredRow = await create(
+        { runAsGivenByApiKeyId: someKey },
+        member([Permission.ProjectMember]),
+      );
+
+      expect(plain["runAsGivenByApiKeyId"]).toBeUndefined();
+
+      const owner: DatabaseCommonInteractionProps = OWNER();
+      const raised: StoredRow = await create(
+        { runAs: WorkflowRunAs.ProjectOwner, runAsGivenByApiKeyId: someKey },
+        owner,
+      );
+
+      expect(raised["runAsGivenByApiKeyId"]).toBeNull();
+      expect(String(raised["runAsGivenByUserId"]).toLowerCase()).toBe(
+        owner.userId!.toString().toLowerCase(),
+      );
     });
 
     test("who gave it is never the request's to say: another person's id is replaced, or dropped for Default", async () => {
@@ -614,16 +707,126 @@ describe("what a workflow runs as, through its writes", () => {
       ).toBe(FIRST_GIVER_ID);
     });
 
-    test("an API key holding Project Owner may not change it: it is no person", async () => {
-      const error: Error = await refusal(
-        update(
-          OWNER_WORKFLOW_ID,
-          { graph: GRAPH },
-          apiKey([Permission.ProjectOwner]),
-        ),
+    test("an API key holding Project Owner saves its steps, and gives it its permissions from then on: the person is forgotten", async () => {
+      await update(
+        OWNER_WORKFLOW_ID,
+        { graph: GRAPH },
+        apiKey([Permission.ProjectOwner], KEY_ID),
       );
 
-      expect(error.message).toContain(WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE);
+      expect(
+        String(stored(OWNER_WORKFLOW_ID, "runAsGivenByApiKeyId")).toLowerCase(),
+      ).toBe(KEY_ID.toString().toLowerCase());
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenByUserId")).toBeNull();
+      expect(
+        (stored(OWNER_WORKFLOW_ID, "runAsGivenAt") as Date).toISOString(),
+      ).not.toBe("2026-11-01T10:00:00.000Z");
+    });
+
+    test("an API key holding less may not change it - its steps, its Run As, its name - nor archive or delete it", async () => {
+      for (const data of [
+        { graph: GRAPH },
+        { runAs: WorkflowRunAs.Default },
+        { name: "Mine now" },
+        { isArchived: true },
+      ]) {
+        const error: Error = await refusal(
+          update(
+            OWNER_WORKFLOW_ID,
+            data,
+            apiKey([Permission.ProjectAdmin, Permission.WorkflowAdmin]),
+          ),
+        );
+
+        expect(error.message).toBe(
+          "This workflow runs as Project Owner, so only Project Owners can change it. You can still turn it off.",
+        );
+      }
+
+      const deleted: Error = await refusal(
+        WorkflowService.deleteOneById({
+          id: new ObjectID(OWNER_WORKFLOW_ID),
+          props: apiKey([Permission.ProjectAdmin, Permission.WorkflowAdmin]),
+        }),
+      );
+
+      expect(deleted.message).toBe(
+        "This workflow runs as Project Owner, so only Project Owners can change it. You can still turn it off.",
+      );
+      expect(stored(OWNER_WORKFLOW_ID, "name")).toBe(
+        "Give new teams their role",
+      );
+      expect(
+        String(stored(OWNER_WORKFLOW_ID, "runAsGivenByUserId")).toLowerCase(),
+      ).toBe(FIRST_GIVER_ID);
+    });
+
+    test("the master API key may not change it, and is told why", async () => {
+      const error: Error = await refusal(
+        update(OWNER_WORKFLOW_ID, { graph: GRAPH }, masterKey()),
+      );
+
+      expect(error.message).toBe(
+        `This workflow runs as Project Owner, so only Project Owners can change it. You can still turn it off. ${WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE}`,
+      );
+    });
+
+    test("an API key with Edit Workflow alone may still turn it off, and gives it nothing", async () => {
+      await update(
+        OWNER_WORKFLOW_ID,
+        { isEnabled: false },
+        apiKey([Permission.EditWorkflow, Permission.ReadWorkflow]),
+      );
+
+      expect(stored(OWNER_WORKFLOW_ID, "isEnabled")).toBe(false);
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenByApiKeyId")).toBeUndefined();
+    });
+
+    test("a Project Owner who saves one a key gave its permissions to becomes its giver, and the key is forgotten", async () => {
+      workflows.get(OWNER_WORKFLOW_ID)!["runAsGivenByUserId"] = null;
+      workflows.get(OWNER_WORKFLOW_ID)!["runAsGivenByApiKeyId"] =
+        KEY_ID.toString();
+
+      const owner: DatabaseCommonInteractionProps = OWNER();
+
+      await update(OWNER_WORKFLOW_ID, { graph: GRAPH }, owner);
+
+      expect(
+        String(stored(OWNER_WORKFLOW_ID, "runAsGivenByUserId")).toLowerCase(),
+      ).toBe(owner.userId!.toString().toLowerCase());
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenByApiKeyId")).toBeNull();
+    });
+
+    test("an API key sets it back to Default, and who gave it - key or person - is forgotten", async () => {
+      workflows.get(OWNER_WORKFLOW_ID)!["runAsGivenByApiKeyId"] =
+        KEY_ID.toString();
+
+      await update(
+        OWNER_WORKFLOW_ID,
+        { runAs: WorkflowRunAs.Default },
+        apiKey([Permission.ProjectOwner], KEY_ID),
+      );
+
+      expect(stored(OWNER_WORKFLOW_ID, "runAs")).toBe(WorkflowRunAs.Default);
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenByUserId")).toBeNull();
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenByApiKeyId")).toBeNull();
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenAt")).toBeNull();
+    });
+
+    test("a key sent as its giver in an update is dropped: the server names the giver", async () => {
+      const someKey: ObjectID = ObjectID.generate();
+      const owner: DatabaseCommonInteractionProps = OWNER();
+
+      await update(
+        OWNER_WORKFLOW_ID,
+        { graph: GRAPH, runAsGivenByApiKeyId: someKey },
+        owner,
+      );
+
+      expect(stored(OWNER_WORKFLOW_ID, "runAsGivenByApiKeyId")).toBeNull();
+      expect(
+        String(stored(OWNER_WORKFLOW_ID, "runAsGivenByUserId")).toLowerCase(),
+      ).toBe(owner.userId!.toString().toLowerCase());
     });
 
     test("another Project Owner who saves its steps gives it their permissions from then on", async () => {

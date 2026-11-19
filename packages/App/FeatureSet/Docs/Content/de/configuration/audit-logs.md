@@ -67,10 +67,10 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 | **Wann** | Wie lange es her ist, mit Datum und Uhrzeit. |
 | **Aktion** | `Create`, `Update` oder `Delete`, `Download` für eine Paketmitschnitt-Datei, die jemand heruntergeladen hat, oder `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` oder `Session Revoked` für eine Anmeldung oder eine Sitzung. |
 | **Ressource** | Der Name der Ressource, der sie öffnet, solange es sie gibt, und ihr Typ. |
-| **Akteur** | Wer die Änderung vorgenommen hat: eine Person, ein API-Schlüssel, ein Workflow oder `System` für eine Änderung, die OneUptime selbst vorgenommen hat. Kam die Änderung einer Person über einen MCP-Client, nennt der Eintrag ihn. |
+| **Akteur** | Wer die Änderung vorgenommen hat: eine Person, ein API-Schlüssel, ein Workflow oder `System` für eine Änderung, die OneUptime selbst vorgenommen hat. Kam die Änderung einer Person über einen MCP-Client, nennt der Eintrag ihn. Die Änderung eines Workflows sagt, womit er lief und mit wessen Berechtigungen. |
 | **Änderungen** | Wie viele Felder sich geändert haben, oder bei einem Anlegen oder Löschen erfasst wurden. Bei einer Anmeldung oder einer Sitzung, wie die Anmeldung erfolgte, warum sie fehlschlug oder warum die Sitzung endete. Klicken Sie darauf, um jedes Feld zu sehen. |
 
-Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
+Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail**, **Arbeitsablauf ausgeführt als**, **Berechtigungen des Arbeitsablaufs gegeben von** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
 Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook, die Telefonnummer einer Richtlinie für eingehende Anrufe nach der Nummer und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
 

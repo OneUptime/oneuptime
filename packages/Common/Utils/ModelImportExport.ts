@@ -74,6 +74,15 @@ const EXCLUDED_COLUMNS_BY_TABLE: Dictionary<Array<string>> = {
     "telemetryMonitorNextMonitorAt",
     "telemetryMonitorLastMonitorAt",
   ],
+  /*
+   * What a workflow runs as stays with it (#9695): an export - like a
+   * Duplicate - starts its copy on Default. Exported, a Project Owner
+   * workflow imported by a Project Owner ran as Project Owner again, and a
+   * custom role one could not be imported at all: its role's id is a
+   * reference, which no export carries. Whoever imports it chooses its Run
+   * As again, as its giver.
+   */
+  Workflow: ["runAs"],
 };
 
 export default class ModelImportExport {

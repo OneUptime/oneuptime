@@ -1097,7 +1097,9 @@ import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100
 import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
 import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
 import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
-import { AddProjectManageSignInWithSso1809185400000 } from "./1809185400000-AddProjectManageSignInWithSso";
+import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
+import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
+import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
 
 export default [
   InitialMigration,
@@ -2199,5 +2201,7 @@ export default [
   AddCloudConnectionAddedMetrics1809185310000,
   AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
   AddSuggestServerAccountsWhenInviting1809185347450,
-  AddProjectManageSignInWithSso1809185400000,
+  AddWorkflowRunAsApiKey1809185400000,
+  AddWorkflowRunAsApiKeyKey1809185400100,
+  AddProjectManageSignInWithSso1809185500000,
 ];

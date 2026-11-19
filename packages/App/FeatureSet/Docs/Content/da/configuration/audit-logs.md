@@ -67,10 +67,10 @@ En ændring af disse indstillinger træder i kraft inden for et minut.
 | **Hvornår** | Hvor længe siden, med dato og klokkeslæt. |
 | **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopsamlingsfil, som nogen har downloadet, eller `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` eller `Session Revoked` for et login eller en session. |
 | **Ressource** | Ressourcens navn, som åbner den, så længe den findes, og dens type. |
-| **Aktør** | Hvem der foretog ændringen: en person, en API-nøgle, en arbejdsgang eller `System` for en ændring, OneUptime selv foretog. En persons ændring via en MCP-klient nævner hvilken. |
+| **Aktør** | Hvem der foretog ændringen: en person, en API-nøgle, en arbejdsgang eller `System` for en ændring, OneUptime selv foretog. En persons ændring via en MCP-klient nævner hvilken. En arbejdsgangs ændring siger, hvad den kørte som, og med hvis tilladelser. |
 | **Ændringer** | Hvor mange felter der blev ændret, eller registreret ved en oprettelse eller sletning. For et login eller en session, hvordan der blev logget ind, hvorfor det mislykkedes, eller hvorfor sessionen sluttede. Klik for at se hvert felt. |
 
-Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
+Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail**, **Arbejdsgang kørt som**, **Arbejdsgangens tilladelser givet af** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
 
 En ressource uden sit eget navn får navn efter det, der navngiver den i OneUptime: en undtagelse efter sin type og begyndelsen af sin meddelelse, med id'er, adresser og alt, der ligner en hemmelighed, maskeret, en kørsel af en runbook efter sin runbook, telefonnummeret på en politik for indgående opkald efter nummeret, og en skabelon eller et domæne efter sit eget navn.
 

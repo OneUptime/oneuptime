@@ -5,10 +5,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * also manages its people's sign-in with it. Off for every project, so
  * nothing changes until a project turns it on.
  */
-export class AddProjectManageSignInWithSso1809185400000
+export class AddProjectManageSignInWithSso1809185500000
   implements MigrationInterface
 {
-  public name = "AddProjectManageSignInWithSso1809185400000";
+  public name = "AddProjectManageSignInWithSso1809185500000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
