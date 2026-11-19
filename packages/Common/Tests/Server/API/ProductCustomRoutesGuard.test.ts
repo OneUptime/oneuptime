@@ -1046,7 +1046,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "The project, its people and its settings - Users, Teams and Project Settings, which are always on.",
       {
         "packages/Common/Server/API/ApiKeyAPI.ts": 1,
-        "packages/Common/Server/API/ProjectAPI.ts": 8,
+        /*
+         * #9820: a project's owners counting and clearing the sign-in
+         * settings its people saved before it managed sign-in with SSO.
+         */
+        "packages/Common/Server/API/ProjectAPI.ts": 9,
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
