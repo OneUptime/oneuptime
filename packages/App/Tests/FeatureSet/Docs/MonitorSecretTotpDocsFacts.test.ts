@@ -2,6 +2,9 @@ import { describe, expect, it } from "@jest/globals";
 import { readPage } from "./DocsContentSupport";
 import MonitorSecretType from "Common/Types/Monitor/MonitorSecretType";
 import { maskTotpCode } from "Common/Utils/Monitor/MonitorSecretTotp";
+import { FIRST_PROBE_VERSION_WITH_TOTP_CODES } from "Common/Types/Probe/ProbeCapability";
+import { ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE } from "../../../FeatureSet/Telemetry/Utils/TotpProbeGate";
+import { UPDATE_A_PROBE_DOCS_PATH } from "../../../FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbes";
 import {
   TOTP_ALGORITHMS,
   TOTP_DEFAULT_ALGORITHM,
@@ -192,5 +195,111 @@ describe("oneuptime.getTotpCode", () => {
         "(/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code)",
       );
     }
+  });
+});
+
+/*
+ * Issue #9759: a custom probe too old to make one-time codes. The docs name
+ * the release that first makes them, what a check that needs a code does
+ * on an older probe, where the product names such a probe, and how to
+ * update one - held to the code that does each.
+ */
+describe("a probe too old to make one-time codes", () => {
+  const CUSTOM_PROBE_PAGE: string = readPage("en", "probe/custom-probe");
+
+  it("names the first release that makes them, as the probe and the server read it", () => {
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+    expect(section()).toContain(
+      "so a custom probe needs OneUptime 17.0.1 or later.",
+    );
+    expect(CUSTOM_PROBE_PAGE).toContain(
+      "A probe older than 17.0.1 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code)",
+    );
+  });
+
+  it("says a check that needs a code does not run on an older probe, and fails saying to update it", () => {
+    expect(ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE).toBe(
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+    );
+    expect(section()).toContain(
+      "On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe;",
+    );
+    expect(SECRETS_PAGE).toContain(
+      ":::details The check says the probe is too old to make one-time codes\nThe probe runs a release older than OneUptime 17.0.1, which cannot make one-time codes, so the check did not run on it.",
+    );
+  });
+
+  it("says where the product names such a probe: the monitor's form and the probe's page", () => {
+    expect(section()).toContain(
+      "the monitor's form and the probe's page name a probe that is too old",
+    );
+    expect(
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorProbeView.tsx",
+      ),
+    ).toContain("<ProbeVersionElement probe={item} />");
+    expect(
+      readRepoFile("App/FeatureSet/Dashboard/src/Pages/Monitor/Create.tsx"),
+    ).toContain("<OneTimeCodeProbesWarning");
+    // Under Probe Status, as the page's card is titled.
+    expect(CUSTOM_PROBE_PAGE).toContain(
+      "The probe's page shows the release it runs, under **Probe Status**.",
+    );
+    expect(
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorProbeView.tsx",
+      ),
+    ).toContain('title: "Probe Status",');
+  });
+
+  it("links the section the product links, which says how to update a probe", () => {
+    expect(UPDATE_A_PROBE_DOCS_PATH).toBe("/probe/custom-probe#update-a-probe");
+    expect(CUSTOM_PROBE_PAGE).toContain("\n## Update a probe\n");
+    expect(section()).toContain(
+      "[Update a probe](/docs/probe/custom-probe#update-a-probe)",
+    );
+
+    const update: string = CUSTOM_PROBE_PAGE.slice(
+      CUSTOM_PROBE_PAGE.indexOf("\n## Update a probe\n"),
+      CUSTOM_PROBE_PAGE.indexOf("\n## Connecting through a proxy\n"),
+    );
+
+    // From the image every install command runs.
+    expect(update).toContain("`oneuptime/probe:release`");
+    expect(CUSTOM_PROBE_PAGE).toContain("-d oneuptime/probe:release");
+    expect(update).toContain("docker pull oneuptime/probe:release");
+    expect(update).toContain("docker compose pull oneuptime-probe");
+    expect(update).toContain(
+      "kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>",
+    );
+    // The names the install commands give the container and the Deployment.
+    expect(CUSTOM_PROBE_PAGE).toContain("docker run --name oneuptime-probe");
+    expect(CUSTOM_PROBE_PAGE).toContain("  name: oneuptime-probe\n");
+    expect(CUSTOM_PROBE_PAGE).toContain("        - name: oneuptime-probe\n");
+  });
+});
+
+/*
+ * Issue #9760: a secret's type changes together with a new value, in
+ * Update Secret Value.
+ */
+describe("changing a secret's type", () => {
+  it("is said where the docs say how to rotate a secret, as the dialog and the server do it", () => {
+    expect(SECRETS_PAGE).toContain(
+      "The same button changes what the secret holds, **Text** or **One-time code (TOTP)**, together with a new value, and monitors that use the secret take the new type at their next check.",
+    );
+    expect(MONITOR_SECRET_TYPE_TITLES[MonitorSecretType.Text]).toBe("Text");
+
+    const dialog: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorSecrets.tsx",
+    );
+
+    expect(dialog).toContain('title={"Update Secret Value"}');
+    expect(dialog).toContain(
+      "description: MONITOR_SECRET_TYPE_UPDATE_DESCRIPTION,",
+    );
+    expect(
+      readRepoFile("Common/Server/Services/MonitorSecretService.ts"),
+    ).toContain("export const TYPE_CHANGE_NEEDS_VALUE_MESSAGE: string =");
   });
 });
