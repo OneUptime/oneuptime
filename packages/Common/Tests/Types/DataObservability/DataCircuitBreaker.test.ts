@@ -18,6 +18,7 @@ import {
   readDataCircuitBreakerRequest,
 } from "../../../Types/DataObservability/DataCircuitBreaker";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 
 /*
  * A CIRCUIT BREAKER'S RULE (#6548): should a pipeline run, given the tables
@@ -389,12 +390,12 @@ describe("the rule", () => {
 });
 
 describe("the answer in words", () => {
-  test("how late, as a sentence says it", () => {
-    expect(describeLateness(30)).toBe("1 minute");
-    expect(describeLateness(60 * 12)).toBe("12 minutes");
-    expect(describeLateness(3_600)).toBe("1 hour");
-    expect(describeLateness(3_600 * 6)).toBe("6 hours");
-    expect(describeLateness(86_400 * 3)).toBe("3 days");
+  test("how late, as a sentence says it, the figure held to its word", () => {
+    expect(describeLateness(30)).toBe(`1${NO_BREAK_SPACE}minute`);
+    expect(describeLateness(60 * 12)).toBe(`12${NO_BREAK_SPACE}minutes`);
+    expect(describeLateness(3_600)).toBe(`1${NO_BREAK_SPACE}hour`);
+    expect(describeLateness(3_600 * 6)).toBe(`6${NO_BREAK_SPACE}hours`);
+    expect(describeLateness(86_400 * 3)).toBe(`3${NO_BREAK_SPACE}days`);
   });
 
   test("a reason in a sentence, with its database", () => {
@@ -421,7 +422,7 @@ describe("the answer in words", () => {
         dataCheckId: null,
         lateBySeconds: 7_200,
       }),
-    ).toBe("public.customers is late by 2 hours.");
+    ).toBe(`public.customers is late by 2${NO_BREAK_SPACE}hours.`);
   });
 
   test("a stop says so first, then every reason", () => {
