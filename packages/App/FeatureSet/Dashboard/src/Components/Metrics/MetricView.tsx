@@ -1624,17 +1624,31 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                       ? "pt-4 mt-2 border-t border-gray-200 flex flex-col flex-1 w-full"
                       : "grid grid-cols-1 gap-4"
                   }${isMetricResultsLoading ? " opacity-75 transition-opacity" : ""}`}
-                  style={{
-                    /*
-                     * Give each chart ~20rem of height (matching the chart's
-                     * previous fixed h-80 / 320px height). Per chart, not per
-                     * result: two overlaid queries draw one chart, which a
-                     * height per result stretched to twice its height, and
-                     * three to three times (issue #9961).
-                     */
-                    minHeight:
-                      Math.min(chartCount, metricResults.length) * 20 + "rem",
-                  }}
+                  style={
+                    props.hideCardInCharts
+                      ? {
+                          /*
+                           * Charts without their cards stack one under
+                           * another and share this panel evenly, so it gives
+                           * each ~20rem of height (the chart's old fixed h-80,
+                           * 320px). Per chart, not per result: two overlaid
+                           * queries draw one chart, which a height per result
+                           * stretched to twice its height (issue #9961).
+                           *
+                           * Charts in cards keep no such floor: each card's
+                           * plot keeps its own 20rem (ChartGroup's min-h-80),
+                           * and from lg up the cards sit two to a row. A
+                           * height per chart counted every chart as a row of
+                           * its own, so two charts side by side were
+                           * stretched to 40rem each, and three to 30rem
+                           * (issue #10043).
+                           */
+                          minHeight:
+                            Math.min(chartCount, metricResults.length) * 20 +
+                            "rem",
+                        }
+                      : undefined
+                  }
                 >
                   <MetricCharts
                     hideCard={props.hideCardInCharts}
