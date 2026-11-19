@@ -92,6 +92,19 @@ export function getRulesRoute(signal: DataSecurityScrubSignal): Route {
   );
 }
 
+/*
+ * The kind of rule a scrub made, as its notice speaks of it: one the page
+ * has no words for - an answer from a newer server - reads as a log's, as
+ * its link does (getRulesRoute). Taken once, where the notice is made, so
+ * the notice draws its sentence and its link's words straight from
+ * SCRUB_NOTICES and VIEW_RULES: a sentence, then a link of its own.
+ */
+export function getScrubNoticeSignal(
+  signal: DataSecurityScrubSignal,
+): DataSecurityScrubSignal {
+  return Object.keys(SCRUB_NOTICES).includes(signal) ? signal : "log";
+}
+
 // Whether the reader may create each kind of rule, read once for a page.
 export type ScrubItGates = Readonly<
   Record<DataSecurityScrubSignal, PermissionGateResult>

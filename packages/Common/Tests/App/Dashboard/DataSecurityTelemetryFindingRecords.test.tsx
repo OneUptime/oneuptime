@@ -36,6 +36,7 @@ import {
   getRulesRoute,
   getScrubItGates,
   getScrubItState,
+  getScrubNoticeSignal,
   isScrubItOfferedAtAll,
   SCRUB_NOTICES,
   SCRUB_UNAVAILABLE_SENTENCES,
@@ -57,6 +58,7 @@ import {
   DataSecurityOccurrenceExcerptPartKind,
   DataSecurityOccurrenceRecordKind,
   DataSecurityOccurrencesSource,
+  DataSecurityScrubSignal,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
@@ -444,6 +446,15 @@ describe("Scrub It's rule, gate and reason, by where a finding sits", () => {
     expect(SCRUB_NOTICES.metric).toBe(
       "The metric pipeline rule {{name}} now redacts this data in new metrics.",
     );
+  });
+
+  test("a scrub of a kind the page has no words for reads as a log's", () => {
+    expect(getScrubNoticeSignal("metric")).toBe("metric");
+    expect(getScrubNoticeSignal("trace")).toBe("trace");
+    expect(getScrubNoticeSignal("log")).toBe("log");
+    expect(
+      getScrubNoticeSignal("profile" as unknown as DataSecurityScrubSignal),
+    ).toBe("log");
   });
 });
 
