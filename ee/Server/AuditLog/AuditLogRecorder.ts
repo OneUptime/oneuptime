@@ -70,6 +70,10 @@ import TableColumnType from "Common/Types/Database/TableColumnType";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserType from "Common/Types/UserType";
+import {
+  WorkflowRunAsAuditColumns,
+  getWorkflowRunAsAuditColumns,
+} from "Common/Types/Workflow/WorkflowRunAs";
 import OneUptimeDate from "Common/Types/Date";
 import {
   describeLargeJson,
@@ -1047,6 +1051,38 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     }
     if (params.props.workflowName) {
       auditLog.workflowName = params.props.workflowName;
+    }
+
+    /*
+     * WHAT that workflow ran as, and WITH WHOSE PERMISSIONS (#9766): Default,
+     * Project Owner or a custom role by its name, and for the last two the
+     * person or project API key that gave them - as the run checked them
+     * when it started (WorkflowPrincipal.getRunAsAudit). Only on a
+     * workflow's entry: the record rides beside its workflowId.
+     */
+    if (params.props.workflowId) {
+      const ranAs: WorkflowRunAsAuditColumns | null =
+        getWorkflowRunAsAuditColumns(params.props.workflowRunAsAudit);
+
+      if (ranAs) {
+        auditLog.workflowRunAs = ranAs.workflowRunAs;
+
+        if (ranAs.workflowRunAsCustomRoleName) {
+          auditLog.workflowRunAsCustomRoleName =
+            ranAs.workflowRunAsCustomRoleName;
+        }
+        if (ranAs.workflowRunAsGivenByUserId) {
+          auditLog.workflowRunAsGivenByUserId =
+            ranAs.workflowRunAsGivenByUserId;
+        }
+        if (ranAs.workflowRunAsGivenByApiKeyId) {
+          auditLog.workflowRunAsGivenByApiKeyId =
+            ranAs.workflowRunAsGivenByApiKeyId;
+        }
+        if (ranAs.workflowRunAsGivenByName) {
+          auditLog.workflowRunAsGivenByName = ranAs.workflowRunAsGivenByName;
+        }
+      }
     }
 
     auditLog.changes = params.changes;

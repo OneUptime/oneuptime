@@ -725,6 +725,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,
         '"/code-task/get/:taskId"': READ,
+        '"/code-task/turns/:taskId"': READ,
         '"/code-task/progress/:taskId"': READ,
         '"/code-task/summaries"': READ,
         '"/code-task/source-links"': READ,

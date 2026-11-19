@@ -217,15 +217,19 @@ De forma predeterminada, un flujo de trabajo se ejecuta con los permisos anterio
 
 Se ejecute como se ejecute, un paso nunca lee configuraciones que contienen credenciales, nunca ve incidentes, alertas ni episodios privados y nunca cambia claves de API, el inicio de sesión único ni los ajustes de SCIM. Cuando da a un equipo un permiso o un rol, solo puede dar lo que tiene él mismo, y si le falta algo, el registro de la ejecución nombra el permiso.
 
-Un flujo de trabajo que se ejecuta con más que los permisos predeterminados se ejecuta con los permisos de la persona que se los dio: quien eligió por última vez su **Run As** o guardó sus pasos o sus variables. Para que nadie obtenga a través de él más de lo que tiene:
+Un flujo de trabajo que se ejecuta con más que los permisos predeterminados se ejecuta con los permisos de quien se los dio: la persona o la clave de API del proyecto que eligió por última vez su **Run As** o guardó sus pasos o sus variables. Para que nadie obtenga a través de él más de lo que tiene:
 
 - Solo las personas que tienen esos permisos pueden cambiarlo a él o sus variables, archivarlo o eliminarlo, ejecutarlo a él o uno de sus pasos manualmente, o ver su URL de webhook y su dirección de correo entrante. Cualquiera que pueda editarlo puede seguir desactivándolo. Cuando pasa a ejecutarse con más que los permisos predeterminados, o cambia cómo se ejecuta, recibe una nueva URL de webhook y una nueva dirección de correo entrante, así que las copias de las anteriores ya no lo inician.
-- Solo una persona puede darlos, nunca una clave de API.
-- Cada ejecución comprueba primero que la persona que los dio todavía los tiene. Si no, la ejecución se detiene antes de su primer paso, y su registro dice por qué y quién puede volver a darlos.
+- Una persona o una de las claves de API del proyecto puede darlos, y solo lo que tiene: los permisos de una clave, incluidos sus roles personalizados, se miden como los de una persona. Los pasos de un flujo de trabajo y la clave de API maestra no pueden darlos, y restablecer una clave requiere todos los permisos que tiene la clave.
+- Cada ejecución comprueba primero que quien los dio todavía los tiene: una persona que sigue en el proyecto, o una clave que todavía existe, no ha caducado y no los ha perdido. Si no, la ejecución se detiene antes de su primer paso, y su registro dice por qué y quién puede volver a darlos.
 - No lee las variables globales del proyecto, que puede cambiar cualquiera que pueda editar variables de flujos de trabajo.
 - El paso **Ejecutar otro flujo de trabajo** de otro flujo de trabajo solo puede iniciarlo si ese flujo de trabajo se ejecuta con los mismos permisos o más.
 
-Cada ejecución registra cómo se ejecutó y con los permisos de quién, lo que se ve en la ventana de la ejecución y en un registro descargado, y el [registro de auditoría](/docs/configuration/audit-logs) registra quién cambió el **Run As** de un flujo de trabajo.
+Un flujo de trabajo exportado, importado o duplicado se ejecuta con los permisos predeterminados, sea cual sea el del original: alguien que tiene más vuelve a elegir su **Run As**.
+
+Cada ejecución registra cómo se ejecutó y con los permisos de quién, lo que se ve en la ventana de la ejecución y en un registro descargado. El [registro de auditoría](/docs/configuration/audit-logs) registra quién cambió el **Run As** de un flujo de trabajo, una persona o una clave de API por su nombre, y cada cambio que hace un paso de un flujo de trabajo dice cómo se ejecutó el paso y con los permisos de quién. Los filtros **Flujo de trabajo ejecutado como** y **Permisos del flujo de trabajo dados por** del registro de auditoría encuentran esos cambios.
+
+Eliminar un rol personalizado con el que se ejecutan flujos de trabajo los detendría, así que la eliminación los enumera y pregunta con qué se ejecutan a partir de ahora: **Permisos predeterminados**, u otro rol personalizado que usted podría dar a un equipo. Quien no puede editar flujos de trabajo no puede eliminar el rol hasta que se cambie su Run As. A través de la API, eliminar un rol así se rechaza a menos que la solicitud diga con qué se ejecutan en su lugar: `miscDataProps` con `workflowsRunAs` en `Default`, o en `CustomRole` con el id del rol en `workflowsRunAsCustomRoleId`.
 
 ## Límites del plan
 

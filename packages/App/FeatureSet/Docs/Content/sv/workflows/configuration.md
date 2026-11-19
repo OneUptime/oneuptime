@@ -217,15 +217,19 @@ Som standard körs ett arbetsflöde med behörigheterna ovan, och de flesta arbe
 
 Oavsett vad arbetsflödet körs som läser ett steg aldrig inställningar som innehåller autentiseringsuppgifter, ser aldrig privata incidenter, larm eller episoder och ändrar aldrig API-nycklar, enkel inloggning eller SCIM-inställningar. När det ger ett team en behörighet eller en roll kan det bara ge det som det själv har, och saknas något nämner körningens logg behörigheten.
 
-Ett arbetsflöde som körs med mer än standardbehörigheterna körs med behörigheterna hos den person som gav det dem: den som senast valde dess **Run As** eller sparade dess steg eller variabler. Så att ingen får mer genom det än de själva har:
+Ett arbetsflöde som körs med mer än standardbehörigheterna körs med behörigheterna hos den som gav det dem: den person eller den API-nyckel i projektet som senast valde dess **Run As** eller sparade dess steg eller variabler. Så att ingen får mer genom det än de själva har:
 
 - Bara personer som har de behörigheterna kan ändra det eller dess variabler, arkivera eller ta bort det, köra det eller ett av dess steg manuellt, eller se dess webhook-URL och inkommande e-postadress. Alla som får redigera det kan fortfarande stänga av det. När det börjar köras med mer än standardbehörigheterna, eller det ändras vad det körs som, får det en ny webhook-URL och en ny inkommande e-postadress, så att kopior av de gamla inte längre startar det.
-- Bara en person kan ge dem, aldrig en API-nyckel.
-- Varje körning kontrollerar först att den person som gav dem fortfarande har dem. Om inte stannar körningen före sitt första steg, och dess logg säger varför och vem som kan ge dem igen.
+- En person eller en av projektets API-nycklar kan ge dem, och bara det de själva har: en nyckels behörigheter, dess anpassade roller inräknade, vägs som en persons. Ett arbetsflödes steg och master-API-nyckeln kan inte ge dem, och att återställa en nyckel kräver varje behörighet nyckeln har.
+- Varje körning kontrollerar först att den som gav dem fortfarande har dem: en person som fortfarande är med i projektet, eller en nyckel som fortfarande finns, inte har gått ut och inte har förlorat dem. Om inte stannar körningen före sitt första steg, och dess logg säger varför och vem som kan ge dem igen.
 - Det läser inte projektets globala variabler, som alla som får redigera arbetsflödesvariabler kan ändra.
 - Ett annat arbetsflödes **Kör ett annat arbetsflöde**-steg kan bara starta det om det arbetsflödet körs med samma behörigheter eller fler.
 
-Varje körning registrerar vad den kördes som och med vems behörigheter, vilket syns i körningens fönster och i en nedladdad logg, och [granskningsloggen](/docs/configuration/audit-logs) registrerar vem som ändrade ett arbetsflödes **Run As**.
+Ett exporterat, importerat eller duplicerat arbetsflöde körs med standardbehörigheterna, oavsett vad originalet kördes som: den som har mer väljer dess **Run As** igen.
+
+Varje körning registrerar vad den kördes som och med vems behörigheter, vilket syns i körningens fönster och i en nedladdad logg. [Granskningsloggen](/docs/configuration/audit-logs) registrerar vem som ändrade ett arbetsflödes **Run As**, en person eller en API-nyckel med namn, och varje ändring som ett steg i ett arbetsflöde gör säger vad steget kördes som och med vems behörigheter. Granskningsloggens filter **Arbetsflöde kört som** och **Arbetsflödets behörigheter givna av** hittar de ändringarna.
+
+Att ta bort en anpassad roll som arbetsflöden körs som skulle stoppa dem, så borttagningen listar dem och frågar vad de ska köras som från och med nu: **Standardbehörigheter** eller en annan anpassad roll du kunde ge ett team. Den som inte kan redigera arbetsflöden kan inte ta bort rollen förrän deras Run As har ändrats. Via API:t nekas borttagning av en sådan roll om inte begäran säger vad de ska köras som i stället: `miscDataProps` med `workflowsRunAs` satt till `Default`, eller till `CustomRole` med rollens id i `workflowsRunAsCustomRoleId`.
 
 ## Plangränser
 

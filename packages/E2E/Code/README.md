@@ -92,7 +92,27 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   (Turn 1, then Turn 9); a Log link to a turn the page does not show
   (Turn 5) opening that turn, listed at its place with a line either side,
   and one to another task's run showing the task's first turn and saying
-  so (issue #7130); German;
+  so (issue #7130); German; Show earlier turns under the line (#7128,
+  `?long=2`: 260 turns) reading the 50 just before the oldest shown and
+  drawing them under the line, which stays with the smaller count - the
+  page not moving, the button keeping the focus - until none is left and
+  turn 2 takes its place, the Log page's picker then listing every turn,
+  and a read that fails (`?fail=earlier`) said under the line; the task
+  opening at its top, with Jump to newest above the reply box while the
+  newest turn is out of view, taking the reader there and coming back when
+  they scroll up (#7129);
+- fixes OneUptime started that failed (`?fixes=1`, #6509): Try again on
+  one that wrote nothing asking it again with what it started from - a
+  turn of its own, "Ada Lovelace asked OneUptime AI to try again." - that
+  AI works to its pull request, and one that opened a pull request saying
+  why it is not asked again where Try again would be, in German too;
+- Code's own list across repositories (`?fixes=1`, #6508): Try again and a
+  box to pick only on the rows the reader may try again (not a fix that
+  opened a pull request, not a request in a repository GitHub no longer
+  reaches), picked and tried again together; and tasks that changed after
+  the list was read (`window.__fixture.tryAgainElsewhere(taskId)`,
+  `window.__fixture.disconnect(repositoryId)`) each said not tried again,
+  with why, on its own row;
 - each step reaching the page as it is announced (`?live=1`): read as its
   turn's new steps, never the whole task until the turn is done, rising
   into place, in a conversation a screen reader follows as a log; a turn
@@ -151,7 +171,9 @@ What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
 `lists`, `reviewLists`, `reviewAgains`, `reviewAsks`, `progressReads` (each
 read of a working turn's progress), `taskTurnReads` (each task read that
-asked for a turn a Log link names), `liveSubscriptions` (what the pages
+asked for a turn a Log link names), `earlierReads` (each read of a long
+task's earlier turns), `retryManys` (each Retry selected),
+`liveSubscriptions` (what the pages
 listen to on the live connection), and the connect dialog's
 `connectReads`, `connects`, `gitConnects` and `tokenReplacements`), so the
 tests check what was sent as

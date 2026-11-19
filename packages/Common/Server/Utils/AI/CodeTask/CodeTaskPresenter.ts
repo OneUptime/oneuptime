@@ -11,6 +11,7 @@ import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
 import CodeTaskSteps from "./CodeTaskSteps";
 import CodeTaskThread, {
   CODE_TASK_TURN_SELECT,
+  CodeTaskEarlierTurnsRead,
   CodeTaskNumberedTurn,
   CodeTaskTurnsRead,
 } from "./CodeTaskThread";
@@ -37,6 +38,7 @@ import {
   CodeTaskContextItem,
   CodeTaskContextItemJSON,
   CodeTaskConversationJSON,
+  CodeTaskEarlierTurnsJSON,
   CodeTaskLinkedTurnJSON,
   CodeTaskOriginJSON,
   CodeTaskOriginType,
@@ -426,6 +428,98 @@ export default class CodeTaskPresenter {
   }
 
   /*
+   * Turns a long task's conversation does not show, a page at a time
+   * (Show earlier turns, #7128): the `limit` turns just before
+   * `beforeRunId` - one of the task's replies, the oldest the page has -
+   * oldest first, numbered from `firstNumber`, each read and sent as the
+   * conversation sends its own (getConversation): what was asked and the
+   * context added, the steps, the reply, the files changed - the diff only
+   * for those who may see it - and the pull requests it opened. Null when
+   * the run is not one of the task's replies.
+   */
+  @CaptureSpan()
+  public static async getEarlierTurns(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    beforeRunId: ObjectID;
+    limit: number;
+    canSeeChanges: boolean;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<CodeTaskEarlierTurnsJSON | null> {
+    const select: Select<AIRun> = {
+      ...CODE_TASK_TURN_SELECT,
+      taskContext: true,
+      taskOutcome: true,
+      ...(data.canSeeChanges ? { codeChanges: true } : {}),
+    };
+
+    const read: CodeTaskEarlierTurnsRead | null =
+      await CodeTaskThread.getRepliesBefore({
+        projectId: data.projectId,
+        task: data.task,
+        beforeRunId: data.beforeRunId,
+        limit: data.limit,
+        select,
+      });
+
+    if (!read) {
+      return null;
+    }
+
+    // Held to what the reader may read now, as the turns shown are (#9241).
+    await CodeTaskPresenter.keepReviewsForReader({
+      projectId: data.projectId,
+      runs: read.turns,
+      taskContext: data.task.taskContext,
+      props: data.props,
+    });
+
+    const turnIds: Array<ObjectID> = read.turns.map((turn: AIRun): ObjectID => {
+      return turn.id!;
+    });
+
+    const [pullRequests, people, eventsByRun]: [
+      Array<AIAgentTaskPullRequest>,
+      Map<string, CodeTaskPersonJSON>,
+      Map<string, Array<AIRunEvent>>,
+    ] = await Promise.all([
+      CodeTaskThread.getPullRequests({
+        projectId: data.projectId,
+        runIds: turnIds,
+      }),
+      CodeTaskThread.getPeople(
+        read.turns
+          .filter((turn: AIRun): boolean => {
+            return Boolean(turn.userId);
+          })
+          .map((turn: AIRun): ObjectID => {
+            return turn.userId!;
+          }),
+      ),
+      CodeTaskPresenter.loadEvents(turnIds),
+    ]);
+
+    return {
+      turns: read.turns.map((turn: AIRun): CodeTaskTurnJSON => {
+        return CodeTaskPresenter.toTurn({
+          turn,
+          // A turn not shown is never the first: the page has that one.
+          isFirst: false,
+          people,
+          pullRequests: pullRequests.filter(
+            (pullRequest: AIAgentTaskPullRequest): boolean => {
+              return pullRequest.aiRunId?.toString() === turn.id!.toString();
+            },
+          ),
+          events: eventsByRun.get(turn.id!.toString()) || [],
+          canSeeChanges: data.canSeeChanges,
+        });
+      }),
+      firstNumber: read.firstNumber,
+    };
+  }
+
+  /*
    * The turn a link names, when the conversation does not show it: one of
    * the task's replies, read as the turns shown are, with its place in the
    * task. Null for no link, a turn shown (the first always is), and a run
@@ -713,6 +807,16 @@ export default class CodeTaskPresenter {
       summary.taskNumber = data.task.taskNumber;
     }
 
+    /*
+     * A later turn's recipe - a request asked in reply, or a fix asked
+     * again: what Try again asks again (CodeTaskTryAgain).
+     */
+    if (latest.codeTaskId && latest.codeFixTaskType) {
+      summary.latestRecipe = CodeFixTaskTypeHelper.fromDatabaseValue(
+        latest.codeFixTaskType,
+      );
+    }
+
     if (data.requestedBy) {
       summary.requestedBy = data.requestedBy;
     }
@@ -777,7 +881,8 @@ export default class CodeTaskPresenter {
   private static toTurn(data: {
     turn: AIRun;
     isFirst: boolean;
-    origin: CodeTaskOriginJSON;
+    // What started the task: said on its first turn only.
+    origin?: CodeTaskOriginJSON | undefined;
     people: Map<string, CodeTaskPersonJSON>;
     pullRequests: Array<AIAgentTaskPullRequest>;
     events: Array<AIRunEvent>;
@@ -834,10 +939,14 @@ export default class CodeTaskPresenter {
        * A request OneUptime wrote itself: what started it - the insight -
        * above what it asked.
        */
-      if (data.isFirst && data.origin.type !== CodeTaskOriginType.Request) {
+      if (
+        data.isFirst &&
+        data.origin &&
+        data.origin.type !== CodeTaskOriginType.Request
+      ) {
         json.origin = data.origin;
       }
-    } else if (data.isFirst) {
+    } else if (data.isFirst && data.origin) {
       json.origin = data.origin;
     }
 

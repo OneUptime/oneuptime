@@ -17,6 +17,7 @@ import {
   CodeTaskContextItem,
   CodeTaskContextType,
 } from "../../../../../Types/AI/CodeTask";
+import { CODE_TASK_TRY_AGAIN_NOT_IN_CODE_MESSAGE } from "../../../../../Types/AI/CodeTaskTryAgain";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -608,19 +609,32 @@ describe("CodeTaskRuns.retry", () => {
     ).toBe("Only a turn that failed or was stopped can be tried again.");
   });
 
-  test("a turn nobody asked for in Code cannot be asked again", async () => {
-    latestReply = reply(AIRunStatus.Error, CodeFixTaskType.FixException);
+  /*
+   * A fix OneUptime started is asked again with its own context
+   * (CodeTaskFixRetry.test.ts); a task asked for on GitHub is asked again
+   * there, where its answer goes.
+   */
+  test.each([
+    CodeFixTaskType.GitHubIssueFix,
+    CodeFixTaskType.GitHubPullRequestRevision,
+    CodeFixTaskType.GitHubPullRequestReview,
+  ])(
+    "a turn asked for on GitHub (%s) cannot be asked again from Code",
+    async (recipe: CodeFixTaskType) => {
+      latestReply = reply(AIRunStatus.Error, recipe);
 
-    expect(
-      await refusal(() => {
-        return CodeTaskRuns.retry({
-          projectId: PROJECT_ID,
-          userId: USER_ID,
-          task: task(),
-        });
-      }),
-    ).toContain("was not asked for in Code");
-  });
+      expect(
+        await refusal(() => {
+          return CodeTaskRuns.retry({
+            projectId: PROJECT_ID,
+            userId: USER_ID,
+            task: task(),
+          });
+        }),
+      ).toBe(CODE_TASK_TRY_AGAIN_NOT_IN_CODE_MESSAGE);
+      expect(created).toHaveLength(0);
+    },
+  );
 
   test("a failed production review is not asked again as a turn", async () => {
     latestReply = null;

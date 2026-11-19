@@ -635,9 +635,13 @@ describe("the record version", () => {
 
   test("the form offers every version by its name, the newest first", () => {
     expect(getAuditLogExportSchemaVersionOptions()).toEqual([
-      { label: AuditLogExportCopy.schemaVersionNewestOption, value: "2" },
+      { label: AuditLogExportCopy.schemaVersionNewestOption, value: "3" },
+      { label: AuditLogExportCopy.schemaVersionSecondOption, value: "2" },
       { label: AuditLogExportCopy.schemaVersionFirstOption, value: "1" },
     ]);
+    expect(AuditLogExportCopy.schemaVersionNewestOption).toBe(
+      "Version 3 (newest)",
+    );
     expect(
       getAuditLogExportSchemaVersionOptions()
         .map((option: { value: string }): number => {
@@ -655,13 +659,21 @@ describe("the record version", () => {
     expect(
       readAuditLogExportForm(
         s3Values({
-          schemaVersion: { label: "Version 2 (newest)", value: "2" },
+          schemaVersion: { label: "Version 2", value: "2" },
         }),
         S3,
       ).schemaVersion,
     ).toBe(2);
+    expect(
+      readAuditLogExportForm(
+        s3Values({
+          schemaVersion: { label: "Version 3 (newest)", value: "3" },
+        }),
+        S3,
+      ).schemaVersion,
+    ).toBe(3);
 
-    for (const schemaVersion of [undefined, null, "", "3", "two", "0"]) {
+    for (const schemaVersion of [undefined, null, "", "4", "two", "0"]) {
       expect([
         schemaVersion,
         readAuditLogExportForm(

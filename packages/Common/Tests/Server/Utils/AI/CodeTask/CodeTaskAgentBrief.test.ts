@@ -1,4 +1,6 @@
 import CodeTaskAgentBrief, {
+  CODE_TASK_BRIEF_ASKED_AGAIN,
+  ENTRIES_PER_REPLY_TURN,
   MAX_CONVERSATION_LENGTH,
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAgentBrief";
 import CodeTaskOrigin from "../../../../../Server/Utils/AI/CodeTask/CodeTaskOrigin";
@@ -342,6 +344,51 @@ describe("what the turn is asked, and the conversation before it", () => {
     expect(details.conversation[1]!.text).toBe(
       "This turn failed: The tests failed twice.",
     );
+  });
+
+  /*
+   * A fix OneUptime started, asked again (#6509), then replied in: each
+   * turn is still who asked and what AI answered - two entries, as the
+   * count of entries a turn left out assumes (ENTRIES_PER_REPLY_TURN).
+   */
+  test("a fix asked again says who asked it again, and what AI answered each time", async () => {
+    turns[0]!.codeFixTaskType = CodeFixTaskType.FixException;
+    turns[0]!.status = AIRunStatus.Error;
+    turns[0]!.errorMessage = "The Runner went away.";
+    delete turns[0]!.taskContext;
+    delete turns[0]!.taskOutcome;
+    delete turns[0]!.userId;
+
+    turns[1]!.codeFixTaskType = CodeFixTaskType.FixException;
+    turns[1]!.status = AIRunStatus.Error;
+    turns[1]!.errorMessage = "The tests failed twice.";
+    delete turns[1]!.taskContext;
+
+    turns[2]!.status = AIRunStatus.Running;
+    pullRequests = [];
+
+    const details: CodeTaskAgentDetails = await brief(2);
+
+    expect(
+      details.conversation.map((entry: CodeTaskAgentTurn) => {
+        return entry.role;
+      }),
+    ).toEqual(["person", "ai", "person", "ai"]);
+    expect(details.conversation[0]!.text).toContain(
+      "OneUptime started this task on its own",
+    );
+    expect(details.conversation[1]!.text).toBe(
+      "This turn failed: The Runner went away.",
+    );
+    expect(details.conversation[2]).toEqual({
+      role: "person",
+      author: "Jane Doe",
+      text: CODE_TASK_BRIEF_ASKED_AGAIN,
+    });
+    expect(details.conversation[3]!.text).toBe(
+      "This turn failed: The tests failed twice.",
+    );
+    expect(ENTRIES_PER_REPLY_TURN).toBe(2);
   });
 
   test("a run with no request is not something to work on", async () => {

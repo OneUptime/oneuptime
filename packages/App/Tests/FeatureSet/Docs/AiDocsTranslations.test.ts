@@ -1150,8 +1150,9 @@ describe("the helpers, on these pages' shapes", () => {
  * Issue #6529: what a long task's page shows - its first turn and its
  * newest, and how many turns are not shown - said in every language, with
  * the numbers the English sentence states (AiDocsFacts holds them to
- * MAX_TURNS_PER_TASK) on the translated line beside it, in the language's
- * own digits.
+ * MAX_TURNS_PER_TASK, and the turns Show earlier turns adds each time,
+ * #7128, to MAX_EARLIER_TURNS_PER_READ) on the translated line beside it,
+ * in the language's own digits.
  */
 describe("a long task's page, in every language", () => {
   const english: Array<string> = englishPage(CODE_PAGE).split("\n");
@@ -1161,7 +1162,7 @@ describe("a long task's page, in every language", () => {
 
   it("is said on one line of the English page", () => {
     expect(lineIndex).toBeGreaterThan(0);
-    expect(numbersIn(english[lineIndex]!)).toEqual(["199", "200"]);
+    expect(numbersIn(english[lineIndex]!)).toEqual(["199", "200", "50"]);
   });
 
   it.each(LANGUAGES)(
