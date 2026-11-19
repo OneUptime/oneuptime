@@ -112,10 +112,15 @@ import {
 import {
   PROXMOX_STORAGE_NEAR_FULL_PERCENT,
   ProxmoxPartKind,
+  ProxmoxProblem,
   getProxmoxAttentionItems,
   getProxmoxClusterHealth,
+  getProxmoxProblemItems,
   isProxmoxTemplate,
 } from "../Utils/ProxmoxHealth";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
 import {
   ProxmoxGuestSummary,
   summarizeProxmoxGuests,
@@ -1361,6 +1366,75 @@ const ProxmoxClusterOverview: FunctionComponent<
     ((cluster?.otelCollectorStatus as string) || "").toLowerCase(),
   );
 
+  /*
+   * The parts each count of what is wrong is about - nodes offline, HA
+   * resources in error or fence - with why, while the agent reports: a
+   * disconnected cluster's last inventory is no longer the truth (#9594).
+   */
+  const problemItemsOf: (
+    problem: ProxmoxProblem,
+  ) => Array<ResourceAttentionItem> = (
+    problem: ProxmoxProblem,
+  ): Array<ResourceAttentionItem> => {
+    return inventory && isClusterConnected
+      ? getProxmoxProblemItems({
+          rows: inventory.rows,
+          problem: problem,
+          routeFor: getPartRoute,
+          now: OneUptimeDate.getCurrentDate(),
+          staleMs: METRIC_STALE_MS,
+        })
+      : [];
+  };
+
+  const nodesOfflineItems: Array<ResourceAttentionItem> = problemItemsOf({
+    kind: "nodesOffline",
+  });
+  // The cluster's own row while it is not quorate: the reason it is red.
+  const quorumItems: Array<ResourceAttentionItem> =
+    isQuorate === false && isClusterConnected
+      ? attentionItems.filter((item: ResourceAttentionItem): boolean => {
+          return item.key === "cluster";
+        })
+      : [];
+
+  /*
+   * Nodes offline, and the cluster that lost quorum: what the hero's nodes
+   * count and the Node Availability tile open. "1 node offline", or "Not
+   * quorate" while every node is up.
+   */
+  const nodesProblem: ResourceAttentionPillProps | undefined = (():
+    | ResourceAttentionPillProps
+    | undefined => {
+    const items: Array<ResourceAttentionItem> = [
+      ...quorumItems,
+      ...nodesOfflineItems,
+    ];
+    if (items.length === 0) {
+      return undefined;
+    }
+    const words: string =
+      nodesOfflineItems.length > 0
+        ? translator.translatePlural(
+            { one: "{{count}} node offline", other: "{{count}} nodes offline" },
+            nodesOfflineItems.length,
+          )
+        : translator.translateText("Not quorate") || "Not quorate";
+    return {
+      testId: "proxmox-nodes-offline",
+      label: words,
+      tone: "danger",
+      hint: "Show which nodes and why",
+      dialog: {
+        title: words,
+        items: items,
+        emptyMessage: "Every node is online now.",
+        // A list of nodes only names no kind on each.
+        showKind: quorumItems.length > 0,
+      },
+    };
+  })();
+
   // A guest's own page: what its name and its tiles link to.
   const getGuestRoute: (externalId: string) => Route = (
     externalId: string,
@@ -1440,12 +1514,17 @@ const ProxmoxClusterOverview: FunctionComponent<
       label: string;
       route?: Route | undefined;
       testId?: string | undefined;
+      // What is wrong among them, after the chip (#9594).
+      problem?: ResourceAttentionPillProps | undefined;
     }> = [];
     if (nodesTotal > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
         route: nodesRoute,
         testId: "proxmox-hero-nodes",
+        problem: nodesProblem
+          ? { ...nodesProblem, testId: "proxmox-hero-nodes-offline" }
+          : undefined,
         label: translator.translatePlural(
           {
             one: "{{online}}/{{count}} node online",
@@ -1519,6 +1598,7 @@ const ProxmoxClusterOverview: FunctionComponent<
      * recovery, ...) = amber.
      */
     const haChips: Array<{
+      state: string;
       label: string;
       value: number;
       colorClass: string;
@@ -1536,6 +1616,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           colorClass = "bg-gray-50 text-gray-700 ring-gray-200";
         }
         return {
+          state: state,
           label: translator.translateTemplate("HA {{state}}", { state: state }),
           value: count,
           colorClass,
@@ -1646,6 +1727,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                       label: string;
                       route?: Route | undefined;
                       testId?: string | undefined;
+                      problem?: ResourceAttentionPillProps | undefined;
                     },
                     idx: number,
                   ): ReactElement => {
@@ -1660,14 +1742,24 @@ const ProxmoxClusterOverview: FunctionComponent<
                     );
                     if (chip.route) {
                       return (
-                        <Link
-                          key={`spec-${idx}`}
-                          to={chip.route}
-                          dataTestId={chip.testId}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        >
-                          {content}
-                        </Link>
+                        <React.Fragment key={`spec-${idx}`}>
+                          <Link
+                            to={chip.route}
+                            dataTestId={chip.testId}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          >
+                            {content}
+                          </Link>
+                          {/*
+                           * What is wrong among them: it opens which,
+                           * and why.
+                           */}
+                          {chip.problem ? (
+                            <ResourceAttentionPill {...chip.problem} />
+                          ) : (
+                            <></>
+                          )}
+                        </React.Fragment>
                       );
                     }
                     return (
@@ -1709,19 +1801,62 @@ const ProxmoxClusterOverview: FunctionComponent<
                 {haChips.map(
                   (
                     chip: {
+                      state: string;
                       label: string;
                       value: number;
                       colorClass: string;
                     },
                     idx: number,
                   ): ReactElement => {
+                    // In the reader's digits, as the chips above.
+                    const words: ReactElement = (
+                      <>
+                        <span className="font-semibold">
+                          {translator.formatNumber(chip.value)}
+                        </span>
+                        <span>{chip.label}</span>
+                      </>
+                    );
+                    /*
+                     * HA gave up on a resource, or cut a node off: the
+                     * count opens which, and why (#9594).
+                     */
+                    const items: Array<ResourceAttentionItem> =
+                      chip.state === "error" || chip.state === "fence"
+                        ? problemItemsOf({ kind: "haState", state: chip.state })
+                        : [];
+                    if (items.length > 0) {
+                      return (
+                        <ResourceAttentionPill
+                          key={`ha-${idx}`}
+                          testId="proxmox-hero-ha-problem"
+                          dataAttributes={{ "data-state": chip.state }}
+                          label={words}
+                          tone="danger"
+                          hint="Show why"
+                          dialog={{
+                            title: translator.translatePlural(
+                              {
+                                one: "{{count}} HA resource in {{state}}",
+                                other: "{{count}} HA resources in {{state}}",
+                              },
+                              items.length,
+                              { state: chip.state },
+                            ),
+                            description: PROXMOX_METRIC_DESCRIPTIONS.haStates,
+                            items: items,
+                            emptyMessage:
+                              "No HA resource is in this state now.",
+                          }}
+                        />
+                      );
+                    }
                     return (
                       <span
                         key={`ha-${idx}`}
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
                       >
-                        <span className="font-semibold">{chip.value}</span>
-                        {chip.label}
+                        {words}
                       </span>
                     );
                   },
@@ -1801,7 +1936,8 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={
             nodeAvailabilityPct === null
               ? undefined
-              : `${nodesOnline}/${nodesTotal}`
+              : // In the reader's digits, as the hero's chips write them.
+                `${translator.formatNumber(nodesOnline)}/${translator.formatNumber(nodesTotal)}`
           }
           sublabel={nodesSublabel}
           percent={nodeAvailabilityPct}
@@ -1816,6 +1952,8 @@ const ProxmoxClusterOverview: FunctionComponent<
           }
           higherIsBetter={true}
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeAvailability}
+          // Which nodes are offline, and the quorum the cluster lost (#9594).
+          attention={nodesProblem}
         />
         <GoldenMetricTile
           title="CPU"
@@ -2622,6 +2760,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           )}
           guestsRoute={guestsRoute}
           now={OneUptimeDate.getCurrentDate()}
+          routeFor={getPartRoute}
         />
       )}
 

@@ -17,6 +17,7 @@ import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/Res
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import {
   ResourceAttentionItem,
+  ResourceAttentionSeverity,
   ResourceHealth,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import DockerSwarmNodesCard from "../../../Components/DockerSwarm/DockerSwarmNodesCard";
@@ -47,11 +48,16 @@ import { fetchDockerSwarmInventoryRows } from "../Utils/DockerSwarmResourceUtils
 import {
   countDockerSwarmTasks,
   getDockerSwarmAttentionItems,
+  getDockerSwarmFailingTaskItems,
   getDockerSwarmHealth,
   getDockerSwarmManagerQuorum,
+  getDockerSwarmNodesNotReadyItems,
   DockerSwarmManagerQuorum,
   DockerSwarmTaskCount,
 } from "../Utils/DockerSwarmHealth";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -102,6 +108,21 @@ interface SpecChip {
   label: string;
   route?: Route | undefined;
   testId?: string | undefined;
+  /*
+   * A count of what is wrong among what the chip counts - "1 node not
+   * ready" beside "2/3 nodes ready" - drawn after it, which opens exactly
+   * those and why (#9594). The chip itself still opens the whole list.
+   */
+  problem?: ResourceAttentionPillProps | undefined;
+}
+
+// The worst of the parts a count lists says its pill's tone.
+function toneOf(items: Array<ResourceAttentionItem>): "danger" | "warning" {
+  return items.some((item: ResourceAttentionItem): boolean => {
+    return item.severity === ResourceAttentionSeverity.Critical;
+  })
+    ? "danger"
+    : "warning";
 }
 
 interface InventorySummary {
@@ -355,8 +376,32 @@ const DockerSwarmClusterOverview: FunctionComponent<
      * nodes, the services, the tasks and the stacks (the side menu has the
      * rest).
      */
+    /*
+     * Which nodes are not ready, and which tasks fail, while the agent
+     * reports: a disconnected swarm's last snapshot is no longer the truth.
+     */
+    const nodesNotReady: Array<ResourceAttentionItem> =
+      inventory && isConnected
+        ? getDockerSwarmNodesNotReadyItems({
+            rows: inventory.rows,
+            routeFor: routes.getPartRoute,
+          })
+        : [];
+    const failingTasks: Array<ResourceAttentionItem> =
+      inventory && isConnected
+        ? getDockerSwarmFailingTaskItems({
+            rows: inventory.rows,
+            routeFor: routes.getPartRoute,
+            now: inventoryReadAt,
+          })
+        : [];
+
     const specChips: Array<SpecChip> = [];
     if (nodesTotal > 0) {
+      const notReadyWords: string = translator.translatePlural(
+        { one: "{{count}} node not ready", other: "{{count}} nodes not ready" },
+        nodesNotReady.length,
+      );
       specChips.push({
         icon: IconProp.Server,
         route: routes.nodesRoute,
@@ -370,6 +415,21 @@ const DockerSwarmClusterOverview: FunctionComponent<
           // In the reader's digits, as the count beside it is.
           { ready: translator.formatNumber(nodesReady) },
         ),
+        problem:
+          nodesNotReady.length > 0
+            ? {
+                testId: "docker-swarm-hero-nodes-not-ready",
+                label: notReadyWords,
+                tone: toneOf(nodesNotReady),
+                hint: "Show which nodes and why",
+                dialog: {
+                  title: notReadyWords,
+                  items: nodesNotReady,
+                  emptyMessage: "Every node is ready now.",
+                  showKind: false,
+                },
+              }
+            : undefined,
       });
     }
     if (managersTotal > 0) {
@@ -395,6 +455,10 @@ const DockerSwarmClusterOverview: FunctionComponent<
       });
     }
     if (tasksTotal > 0) {
+      const failingWords: string = translator.translatePlural(
+        { one: "{{count}} task failing", other: "{{count}} tasks failing" },
+        failingTasks.length,
+      );
       specChips.push({
         icon: IconProp.QueueList,
         route: routes.tasksRoute,
@@ -407,6 +471,21 @@ const DockerSwarmClusterOverview: FunctionComponent<
           tasksTotal,
           { running: translator.formatNumber(tasksRunning) },
         ),
+        problem:
+          failingTasks.length > 0
+            ? {
+                testId: "docker-swarm-hero-tasks-failing",
+                label: failingWords,
+                tone: toneOf(failingTasks),
+                hint: "Show which tasks and why",
+                dialog: {
+                  title: failingWords,
+                  items: failingTasks,
+                  emptyMessage: "No task is failing now.",
+                  showKind: false,
+                },
+              }
+            : undefined,
       });
     }
     if (stackCount > 0) {
@@ -539,22 +618,31 @@ const DockerSwarmClusterOverview: FunctionComponent<
                     <span className="font-medium">{chip.label}</span>
                   </>
                 );
+                // What is wrong among them, after the chip: it opens which, and why.
+                const problem: ReactElement = chip.problem ? (
+                  <ResourceAttentionPill {...chip.problem} />
+                ) : (
+                  <></>
+                );
                 if (chip.route) {
                   return (
-                    <Link
-                      key={`spec-${idx}`}
-                      to={chip.route}
-                      dataTestId={chip.testId}
-                      className={CHIP_LINK_CLASS_NAME}
-                    >
-                      {content}
-                    </Link>
+                    <React.Fragment key={`spec-${idx}`}>
+                      <Link
+                        to={chip.route}
+                        dataTestId={chip.testId}
+                        className={CHIP_LINK_CLASS_NAME}
+                      >
+                        {content}
+                      </Link>
+                      {problem}
+                    </React.Fragment>
                   );
                 }
                 return (
-                  <span key={`spec-${idx}`} className={CHIP_CLASS_NAME}>
-                    {content}
-                  </span>
+                  <React.Fragment key={`spec-${idx}`}>
+                    <span className={CHIP_CLASS_NAME}>{content}</span>
+                    {problem}
+                  </React.Fragment>
                 );
               })}
               {/*
