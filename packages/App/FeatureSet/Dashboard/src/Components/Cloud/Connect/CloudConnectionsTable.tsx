@@ -970,7 +970,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                  * A stream from stacks made before OneUptime streamed every
                  * key metric: the dialog's command updates them.
                  */
-                const update: CloudStreamUpdateWords | null =
+                const stacksToUpdate: CloudStreamUpdateWords | null =
                   stream && stream.state === "receiving"
                     ? getCloudStreamUpdateWords({
                         provider: item.provider,
@@ -1053,7 +1053,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
-                    {update ? (
+                    {stacksToUpdate ? (
                       <button
                         type="button"
                         aria-haspopup="dialog"
@@ -1064,7 +1064,10 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                           {
                             regions: composedValue(
                               (sentence: Translator): string => {
-                                return formatList(update.regions, sentence);
+                                return formatList(
+                                  stacksToUpdate.regions,
+                                  sentence,
+                                );
                               },
                             ),
                           },

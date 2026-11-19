@@ -255,12 +255,13 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
    * Stacks made before OneUptime streamed every key metric: the command
    * below, run again with a new key, updates them in place.
    */
-  const update: CloudStreamUpdateWords | null = getCloudStreamUpdateWords({
-    provider: props.connection.provider,
-    streamKeyCreatedAt: status.streamKeyCreatedAt,
-    streamSummary: status.streamSummary,
-    now,
-  });
+  const stacksToUpdate: CloudStreamUpdateWords | null =
+    getCloudStreamUpdateWords({
+      provider: props.connection.provider,
+      streamKeyCreatedAt: status.streamKeyCreatedAt,
+      streamSummary: status.streamSummary,
+      now,
+    });
 
   /*
    * Step 1: the key. Made here it is in the command, and shown once; one
@@ -550,11 +551,11 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {update ? (
+        {stacksToUpdate ? (
           <CloudStreamNotice
             text={translator.translateTemplate(STREAM_OLDER_STACKS_SENTENCE, {
               regions: composedValue((sentence: Translator): string => {
-                return formatList(update.regions, sentence);
+                return formatList(stacksToUpdate.regions, sentence);
               }),
             })}
             dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-update`}
