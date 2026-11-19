@@ -5,6 +5,7 @@ import {
   KubernetesObjectRef,
   getKubernetesJobCronJob,
   getKubernetesPodWorkload,
+  kubernetesObjectKey,
 } from "Common/Types/Kubernetes/KubernetesHealth";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -13,14 +14,20 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import Route from "Common/Types/API/Route";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
 import {
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartChip,
 } from "../../ResourcePart/ResourcePartTypes";
-import { getKubernetesKindIcon } from "../../../Pages/Kubernetes/Utils/KubernetesAttention";
 import {
+  KUBERNETES_CURRENT_PART_LABELS,
+  getKubernetesKindIcon,
+} from "../../../Pages/Kubernetes/Utils/KubernetesAttention";
+import {
+  KUBERNETES_PART_COPY,
   KubernetesPartRead,
   KubernetesPartRow,
   assessKubernetesPart,
+  getKubernetesPartAttentionItems,
   getKubernetesPodFacts,
   KubernetesPodFacts,
   toResourcePartStatus,
@@ -379,6 +386,34 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
     }
   }
 
+  /*
+   * What its Needs attention card lists - it and the pods it runs - which
+   * its status opens when it says something is wrong: "CrashLoopBackOff"
+   * says which container, its exit code and since when, a step from here.
+   */
+  const currentLabel: string | undefined =
+    KUBERNETES_CURRENT_PART_LABELS[props.kind];
+  const attention: ResourcePartAttention | undefined = props.read
+    ? {
+        items: getKubernetesPartAttentionItems({
+          read: props.read,
+          routeFor: props.routes.getPartRoute,
+        }),
+        description: KUBERNETES_PART_COPY[props.kind]?.attentionDescription,
+        current:
+          row && currentLabel
+            ? {
+                key: kubernetesObjectKey(
+                  row.kind || props.kind,
+                  row.namespaceKey || "",
+                  row.name || "",
+                ),
+                label: currentLabel,
+              }
+            : undefined,
+      }
+    : undefined;
+
   return (
     <ResourcePartHero
       testId={`kubernetes-${props.kind.toLowerCase()}-hero`}
@@ -390,6 +425,7 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
       location={location}
       lastReportAt={toDate(row?.lastSeenAt)}
       chips={chips}
+      attention={attention}
     />
   );
 };
