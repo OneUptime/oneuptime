@@ -68,6 +68,9 @@ class AgentCore(
     private var announcedStart: Boolean = false
     private var lastLogcatState: LogcatState? = null
     private var lastAppsCheckElapsed: Long? = null
+
+    // Set by the service's package receiver on the main thread, read by the cycle.
+    @Volatile
     private var appsCheckRequested: Boolean = false
     private var lastEndpointAndToken: Pair<OtlpEndpoint?, String?>? = null
 
