@@ -1082,6 +1082,8 @@ import { AddMonitorNetworkDeviceId1809184900000 } from "./1809184900000-AddMonit
 import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
 import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 import { AddDataBiConnectionReadState1809184920000 } from "./1809184920000-AddDataBiConnectionReadState";
+import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
+import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
 
 export default [
   InitialMigration,
@@ -2168,4 +2170,6 @@ export default [
   AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
   AddTableHealthSkippedTables1809184919541,
   AddDataBiConnectionReadState1809184920000,
+  AddWorkflowRunAs1809185100000,
+  AddWorkflowRunAsKeys1809185100100,
 ];
