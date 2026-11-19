@@ -20,7 +20,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionCurrent,
   ResourceAttentionItem,
@@ -68,6 +68,12 @@ export interface ComponentProps {
    * shows the first of them (as a read that says so does).
    */
   isTruncated?: boolean | undefined;
+  /*
+   * What a list cut short says under it, in English, with the count shown:
+   * the first of them, the most urgent first, unless the list is in another
+   * order and says its own (the newest first).
+   */
+  truncatedMessage?: PluralTemplate | undefined;
   load?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
   // What it says when nothing matches any more, in English.
   emptyMessage: string;
@@ -256,7 +262,7 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
             className="mt-4 text-xs text-gray-500"
           >
             {translator.translatePlural(
-              {
+              props.truncatedMessage || {
                 one: "Showing the first {{count}}, the most urgent first.",
                 other: "Showing the first {{count}}, the most urgent first.",
               },

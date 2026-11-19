@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} دستور ناموفق بود",
   "{{count}} commands failed_one": "{{count}} دستور ناموفق بود",
   "{{count}} never ran": "{{count}} هرگز اجرا نشد",
-  "{{count}} never ran_one": "{{count}} هرگز اجرا نشد"
+  "{{count}} never ran_one": "{{count}} هرگز اجرا نشد",
+  "Showing the newest {{count}}.": "نمایش {{count}} مورد از جدیدترین‌ها.",
+  "Showing the newest {{count}}._one": "نمایش {{count}} مورد از جدیدترین‌ها."
 }

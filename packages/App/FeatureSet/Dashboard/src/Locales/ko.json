@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "명령 {{count}}개가 실패했습니다",
   "{{count}} commands failed_one": "명령 {{count}}개가 실패했습니다",
   "{{count}} never ran": "{{count}}개 실행되지 않음",
-  "{{count}} never ran_one": "{{count}}개 실행되지 않음"
+  "{{count}} never ran_one": "{{count}}개 실행되지 않음",
+  "Showing the newest {{count}}.": "최신 {{count}}개를 표시하고 있습니다.",
+  "Showing the newest {{count}}._one": "최신 {{count}}개를 표시하고 있습니다."
 }

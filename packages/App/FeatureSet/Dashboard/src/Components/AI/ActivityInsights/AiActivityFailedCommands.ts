@@ -66,6 +66,12 @@ export const AI_INSIGHTS_FAILED_COMMANDS_TITLE: PluralTemplate = {
   other: "{{count}} commands failed",
 };
 
+// Under a list cut short: the newest of them are the ones it shows.
+export const AI_INSIGHTS_FAILED_COMMANDS_TRUNCATED: PluralTemplate = {
+  one: "Showing the newest {{count}}.",
+  other: "Showing the newest {{count}}.",
+};
+
 // Beside the pill: what no agent picked up in time.
 export const AI_INSIGHTS_COMMANDS_NEVER_RAN: PluralTemplate = {
   one: "{{count}} never ran",

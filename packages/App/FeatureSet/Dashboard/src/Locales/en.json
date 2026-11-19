@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} commands failed",
   "{{count}} commands failed_one": "{{count}} command failed",
   "{{count}} never ran": "{{count}} never ran",
-  "{{count}} never ran_one": "{{count}} never ran"
+  "{{count}} never ran_one": "{{count}} never ran",
+  "Showing the newest {{count}}.": "Showing the newest {{count}}.",
+  "Showing the newest {{count}}._one": "Showing the newest {{count}}."
 }

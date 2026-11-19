@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "الأوامر الفاشلة: {{count}}",
   "{{count}} commands failed_one": "{{count}} أمر فاشل",
   "{{count}} never ran": "لم يعمل أبدًا: {{count}}",
-  "{{count}} never ran_one": "لم يعمل أبدًا: {{count}}"
+  "{{count}} never ran_one": "لم يعمل أبدًا: {{count}}",
+  "Showing the newest {{count}}.": "عرض الأحدث (العدد: {{count}}).",
+  "Showing the newest {{count}}._one": "عرض الأحدث ({{count}})."
 }

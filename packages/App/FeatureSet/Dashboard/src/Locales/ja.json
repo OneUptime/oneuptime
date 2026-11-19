@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} 件のコマンドが失敗しました",
   "{{count}} commands failed_one": "{{count}} 件のコマンドが失敗しました",
   "{{count}} never ran": "{{count}} 件は未実行",
-  "{{count}} never ran_one": "{{count}} 件は未実行"
+  "{{count}} never ran_one": "{{count}} 件は未実行",
+  "Showing the newest {{count}}.": "新しい順に {{count}} 件を表示しています。",
+  "Showing the newest {{count}}._one": "新しい順に {{count}} 件を表示しています。"
 }

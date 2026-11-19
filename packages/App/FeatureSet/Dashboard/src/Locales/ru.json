@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "Команд с ошибкой: {{count}}",
   "{{count}} commands failed_one": "{{count}} команда завершилась ошибкой",
   "{{count}} never ran": "Не запущено: {{count}}",
-  "{{count}} never ran_one": "Не запущено: {{count}}"
+  "{{count}} never ran_one": "Не запущено: {{count}}",
+  "Showing the newest {{count}}.": "Показаны самые новые: {{count}}.",
+  "Showing the newest {{count}}._one": "Показана самая новая: {{count}}."
 }

@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} kommandoer mislykkedes",
   "{{count}} commands failed_one": "{{count}} kommando mislykkedes",
   "{{count}} never ran": "{{count}} kørte aldrig",
-  "{{count}} never ran_one": "{{count}} kørte aldrig"
+  "{{count}} never ran_one": "{{count}} kørte aldrig",
+  "Showing the newest {{count}}.": "Viser de {{count}} nyeste.",
+  "Showing the newest {{count}}._one": "Viser den nyeste ({{count}})."
 }

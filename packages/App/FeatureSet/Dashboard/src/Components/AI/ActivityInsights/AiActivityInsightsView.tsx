@@ -15,6 +15,7 @@ import {
   AI_INSIGHTS_FAILED_COMMANDS_HINT,
   AI_INSIGHTS_FAILED_COMMANDS_LABEL,
   AI_INSIGHTS_FAILED_COMMANDS_TITLE,
+  AI_INSIGHTS_FAILED_COMMANDS_TRUNCATED,
   getFailedCommandItems,
   getFailedCommands,
 } from "./AiActivityFailedCommands";
@@ -1289,6 +1290,8 @@ function CommandOutcomes(props: {
             description: AI_INSIGHTS_FAILED_COMMANDS_DESCRIPTION,
             items,
             isTruncated: failed.isTruncated,
+            // The newest of them, as the list is ordered - not the most urgent.
+            truncatedMessage: AI_INSIGHTS_FAILED_COMMANDS_TRUNCATED,
             emptyMessage: AI_INSIGHTS_FAILED_COMMANDS_EMPTY,
             // Every row is a command: no kind chip on each.
             showKind: false,

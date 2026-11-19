@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} comandos fallidos",
   "{{count}} commands failed_one": "{{count}} comando fallido",
   "{{count}} never ran": "{{count}} nunca se ejecutaron",
-  "{{count}} never ran_one": "{{count}} nunca se ejecutó"
+  "{{count}} never ran_one": "{{count}} nunca se ejecutó",
+  "Showing the newest {{count}}.": "Se muestran los {{count}} más recientes.",
+  "Showing the newest {{count}}._one": "Se muestra el más reciente ({{count}})."
 }

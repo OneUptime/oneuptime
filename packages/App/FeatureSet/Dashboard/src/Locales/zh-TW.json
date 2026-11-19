@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} 個指令失敗",
   "{{count}} commands failed_one": "{{count}} 個指令失敗",
   "{{count}} never ran": "{{count}} 個從未執行",
-  "{{count}} never ran_one": "{{count}} 個從未執行"
+  "{{count}} never ran_one": "{{count}} 個從未執行",
+  "Showing the newest {{count}}.": "顯示最新的 {{count}} 筆。",
+  "Showing the newest {{count}}._one": "顯示最新的 {{count}} 筆。"
 }

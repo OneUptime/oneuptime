@@ -58402,5 +58402,7 @@
   "{{count}} commands failed": "{{count}} opdrachten mislukt",
   "{{count}} commands failed_one": "{{count}} opdracht mislukt",
   "{{count}} never ran": "{{count}} nooit uitgevoerd",
-  "{{count}} never ran_one": "{{count}} nooit uitgevoerd"
+  "{{count}} never ran_one": "{{count}} nooit uitgevoerd",
+  "Showing the newest {{count}}.": "De {{count}} nieuwste worden getoond.",
+  "Showing the newest {{count}}._one": "De nieuwste ({{count}}) wordt getoond."
 }

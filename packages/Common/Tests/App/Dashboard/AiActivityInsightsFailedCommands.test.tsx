@@ -286,7 +286,7 @@ describe("the failed count opens which commands failed, and why", () => {
     expect(textOf(first)).not.toContain(FAILED_COMMAND);
   });
 
-  test("more failed than the page holds: the list says it shows the first of them", () => {
+  test("more failed than the page holds: the list says it shows the newest of them, as it is ordered", () => {
     renderView(makeInsights({ totals: makeTotals({ failedCommands: 74 }) }));
 
     expect(textOf(screen.getByTestId("ai-insights-failed-commands"))).toBe(
@@ -297,11 +297,14 @@ describe("the failed count opens which commands failed, and why", () => {
 
     expect(screen.getByText("74 commands failed")).toBeInTheDocument();
     expect(rowsOf(dialog)).toHaveLength(2);
-    expect(
-      within(dialog).getByTestId(
-        "ai-insights-failed-commands-dialog-truncated",
-      ),
-    ).toHaveTextContent("Showing the first 2");
+
+    const truncated: HTMLElement = within(dialog).getByTestId(
+      "ai-insights-failed-commands-dialog-truncated",
+    );
+
+    expect(textOf(truncated)).toBe("Showing the newest 2.");
+    // Not the resource lists' order: these are the newest, not the most urgent.
+    expect(textOf(truncated)).not.toContain("most urgent");
   });
 
   test("Close closes it, and the page is as it was", () => {
