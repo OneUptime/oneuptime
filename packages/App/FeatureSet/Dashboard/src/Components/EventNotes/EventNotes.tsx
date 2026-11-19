@@ -172,11 +172,6 @@ function EventNotes<TNote extends BaseModel>(
    */
   const isPrivateEvent: boolean = isPublic && Boolean(props.isPrivateEvent);
   /*
-   * And nothing on the page says they are on a status page: the
-   * description, the audience of a note being edited and what deleting one
-   * does are a private event's own (getPrivateEventPublicNotesCopy).
-   */
-  /*
    * What the viewer holds, blocks included - on a private record's page,
    * what they hold on the record: its notes are written, changed and
    * removed only by a team of theirs that owns it (PrivateRecordScope).
@@ -207,6 +202,11 @@ function EventNotes<TNote extends BaseModel>(
       : null;
   const reach: PublicNoteReachState = usePublicNoteReach(reachRequest);
 
+  /*
+   * And nothing on the page says they are on a status page: the
+   * description, the audience of a note being edited and what deleting one
+   * does are a private event's own (getPrivateEventPublicNotesCopy).
+   */
   const visibilityCopy: NotesCopy = getNotesCopy(
     props.visibility,
     props.eventNoun,
