@@ -7645,7 +7645,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async recordCreateInAuditLog(
     createBy: CreateBy<TBaseModel>,
   ): Promise<void> {
-    if (createBy.props.ignoreHooks || !this.getModel().enableAuditLogOn?.create) {
+    if (
+      createBy.props.ignoreHooks ||
+      !this.getModel().enableAuditLogOn?.create
+    ) {
       return;
     }
 
