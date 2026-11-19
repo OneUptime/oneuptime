@@ -1,6 +1,7 @@
 import InviteeEmailField from "./InviteeEmailField";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Email from "Common/Types/Email";
+import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -73,9 +74,12 @@ export const readFormTeamId: (value: unknown) => string | null = (
 export const drawInviteeEmailField: (data: {
   customProps: CustomElementProps;
   teamId: string | null;
+  // A suggestion picked: someone with an account, whose name is known.
+  onPick?: ((suggestion: InviteSuggestion) => void) | undefined;
 }) => ReactElement = (data: {
   customProps: CustomElementProps;
   teamId: string | null;
+  onPick?: ((suggestion: InviteSuggestion) => void) | undefined;
 }): ReactElement => {
   return (
     <InviteeEmailField
@@ -94,6 +98,7 @@ export const drawInviteeEmailField: (data: {
       ariaLabelledby={data.customProps.ariaLabelledby}
       ariaDescribedby={data.customProps.ariaDescribedby}
       teamId={data.teamId}
+      onPick={data.onPick}
       dataTestId="invitee-email"
     />
   );

@@ -414,6 +414,25 @@ export default class CloudConnection extends BaseModel {
   @Column({ type: ColumnType.JSON, nullable: true })
   public streamState?: JSONObject = undefined;
 
+  /*
+   * The metrics people added to what the connection reads, beyond each
+   * type's key metrics (CloudAddedMetrics): for one resource, or for every
+   * resource of a type. Written only by a cloud resource's Add and Remove
+   * on its Metrics tab, which check them and their caps
+   * (CloudResourceMetrics); readable, so a resource's page lists them.
+   */
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Added Metrics",
+    description:
+      "Metrics added to what the connection reads beyond each resource type's key metrics, for one resource or for every resource of a type.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public addedMetrics?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

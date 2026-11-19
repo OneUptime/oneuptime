@@ -102,9 +102,22 @@ function alertOwnersBullet(language: string): string {
   return bullets[0]!;
 }
 
-// The notification settings page's bullet on where an update goes.
+/*
+ * The notification settings page's bullet on where an update goes: the
+ * line the English page says it on, which every language's page keeps in
+ * the same place (rather than a fixed line, which a bullet added above it
+ * moves).
+ */
 function settingsOwnersBullet(language: string): string {
-  return readPage(language, SETTINGS).split("\n")[23] || "";
+  const index: number = readPage("en", SETTINGS)
+    .split("\n")
+    .findIndex((line: string): boolean => {
+      return line.startsWith("- An update goes to the record's owners:");
+    });
+
+  expect(index).toBeGreaterThan(0);
+
+  return readPage(language, SETTINGS).split("\n")[index] || "";
 }
 
 describe("the docs on an owner the record's on-call page reached already", () => {

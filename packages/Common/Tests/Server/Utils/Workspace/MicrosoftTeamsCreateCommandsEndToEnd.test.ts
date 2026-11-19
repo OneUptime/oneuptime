@@ -274,6 +274,7 @@ import {
   subscriberAudienceOf,
 } from "./WorkspaceSubscriberAudienceTestHelpers";
 import logger, { LogAttributes } from "../../../../Server/Utils/Logger";
+import { everyServerProductIsOn } from "../../TestingUtils/ServerProductsOn";
 import {
   Activity,
   CloudAdapter,
@@ -1603,6 +1604,8 @@ beforeEach(() => {
 
   realAdapter = installRealCloudAdapter();
   projectId = ObjectID.generate();
+  // A command and an action ask what the server has switched off: every product is on.
+  everyServerProductIsOn();
   stubTenantAndInstallCapture(projectId);
   stubSenderCheck(projectId);
   stubDashboardUrl();

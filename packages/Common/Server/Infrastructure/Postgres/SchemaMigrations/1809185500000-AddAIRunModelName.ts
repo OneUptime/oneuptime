@@ -15,8 +15,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Generated with npm run generate-postgres-migration.
  */
-export class AddAIRunModelName1809185300000 implements MigrationInterface {
-  public name: string = "AddAIRunModelName1809185300000";
+export class AddAIRunModelName1809185500000 implements MigrationInterface {
+  public name: string = "AddAIRunModelName1809185500000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

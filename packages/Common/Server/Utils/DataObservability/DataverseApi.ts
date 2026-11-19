@@ -11,6 +11,7 @@ import {
   MAX_PROVIDER_MESSAGE_LENGTH,
   readBodyText,
   redactAnswer,
+  withAttempts,
 } from "../DataSource/HttpFailure";
 import DataSourceHttpRetry, {
   HTTP_RETRY_BUDGET_IN_MS,
@@ -996,7 +997,10 @@ export default class DataverseApi {
       );
 
       throw new Error(
-        `Microsoft Entra ID ${isOutage ? "could not sign the app in" : "refused the app"} (${response.statusCode}): ${asSentence(message)}${attempts > 1 ? ` Tried ${attempts} times.` : ""}`,
+        withAttempts(
+          `Microsoft Entra ID ${isOutage ? "could not sign the app in" : "refused the app"} (${response.statusCode}): ${asSentence(message)}`,
+          attempts,
+        ),
       );
     }
 

@@ -9,6 +9,7 @@ import { Shipper } from "../Shipper";
 import {
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
+  KubernetesCostEngineInfo,
   PollerStatus,
 } from "../Types";
 
@@ -29,6 +30,7 @@ const WINDOW_MS: number = 60 * 1000;
 
 interface ShipCall {
   rows: Array<KubernetesCostAllocationIngestRow>;
+  costEngine?: KubernetesCostEngineInfo | undefined;
 }
 
 class EngineStub {
@@ -61,12 +63,13 @@ class ShipperStub {
 
   public async ship(
     rows: Array<KubernetesCostAllocationIngestRow>,
+    costEngine?: KubernetesCostEngineInfo | undefined,
   ): Promise<void> {
     if (this.failuresRemaining > 0) {
       this.failuresRemaining--;
       throw new Error("oneuptime unavailable");
     }
-    this.calls.push({ rows });
+    this.calls.push({ rows, costEngine });
   }
 }
 
@@ -394,4 +397,44 @@ test("a prometheus failure does not stop the window from shipping", async (): Pr
   const status: PollerStatus = poller.status();
   assert.ok(status.windowsCompleted > 0);
   assert.strictEqual(status.lastPollError, null);
+});
+
+/*
+ * #9633 / #9634: the engine the poller read the window from says which it
+ * is and where its prices come from, and the shipment carries that.
+ */
+test("ships what the engine says about itself with each window", async (): Promise<void> => {
+  const engine: EngineStub & { describe: () => KubernetesCostEngineInfo } =
+    Object.assign(new EngineStub(), {
+      describe: (): KubernetesCostEngineInfo => {
+        return {
+          engine: "OpenCost",
+          service: "",
+          bundledEngineUnused: false,
+          pricingSource: "default-rates",
+          pricingProvider: "",
+        };
+      },
+    });
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick } = makePoller(engine, shipper);
+
+  await tick();
+
+  assert.ok(shipper.calls.length > 0);
+  for (const call of shipper.calls) {
+    assert.strictEqual(call.costEngine?.pricingSource, "default-rates");
+    assert.strictEqual(call.costEngine?.engine, "OpenCost");
+  }
+});
+
+test("an engine that says nothing about itself ships rows as before", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick } = makePoller(engine, shipper);
+
+  await tick();
+
+  assert.ok(shipper.calls.length > 0);
+  assert.strictEqual(shipper.calls[0]!.costEngine, undefined);
 });

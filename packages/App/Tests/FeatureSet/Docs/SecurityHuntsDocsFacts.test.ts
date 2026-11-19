@@ -2,6 +2,7 @@ import { SECURITY_CASES, SECURITY_EVENTS } from "./AiObservabilityDocsPages";
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { SECURITY_CASE_EVIDENCE_COPY } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCopy";
+import { KEEP_ON_CASE } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
 import {
   ADD_TO_CASE,
   DELETE_HUNT,
@@ -684,7 +685,7 @@ describe("the Security Cases page's Evidence", () => {
       "the files, links and security events kept on the case, each with who added it and when.",
     );
     expect(evidence).toContain(
-      `A security event is kept here as it was, with **${ADD_TO_CASE}** on **Events** or on a [hunt's](/docs/telemetry/security-events#hunts) page, and **${VIEW_EVENT}** opens it.`,
+      `A security event is kept here as it was, with **${ADD_TO_CASE}** on **Events** or on a [hunt's](/docs/telemetry/security-events#hunts) page, or with **${KEEP_ON_CASE}** on an event a detection matched, and **${VIEW_EVENT}** opens it.`,
     );
     // The link opens the section this suite holds.
     expect(

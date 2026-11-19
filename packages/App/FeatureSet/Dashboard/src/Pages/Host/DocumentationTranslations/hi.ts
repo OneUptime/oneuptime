@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "जो एजेंट इसके डिफ़ॉल्ट रूप से चालू होने से पहले इंस्टॉल हुआ था, उसे अपग्रेड करें:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **इसे बंद करें:** उसी अपग्रेड में `--set cost.enabled=false` जोड़ें।",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **पहले से Kubecost या OpenCost चला रहे हैं?** इसके बजाय एजेंट को उसकी ओर इंगित करें, फिर कुछ भी साथ में नहीं जोड़ा जाता: `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (या अपनी Kubecost सर्विस) जोड़ें।",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **पहले से Kubecost या OpenCost चला रहे हैं?** एजेंट उसे ढूँढ लेता है और chart में शामिल इंजन के बजाय उसी को पढ़ता है, और क्लस्टर का अवलोकन यह बताता है: दूसरा इंजन शामिल करना बंद करने के लिए `--set cost.engine.url=auto` जोड़ें।",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **ऑन-प्रेम या बेयर मेटल?** `--set cost.opencost.customPricing.enabled=true` से एक रेट कार्ड सेट करें (प्रति रिसोर्स-घंटा USD; chart का `values.yaml` देखें)।",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

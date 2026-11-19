@@ -345,6 +345,8 @@ describe("the docs on owners told after a stop part way", () => {
       "IoTFleetOwners",
       "KubernetesClusterOwners",
       "MessageQueueOwners",
+      // Monitor groups' and Runners', added on their Owners pages (#9758).
+      "MonitorGroupOwners",
       "MonitorOwners",
       "NetworkDeviceOwners",
       "OnCallDutyPolicyOwners",
@@ -354,6 +356,7 @@ describe("the docs on owners told after a stop part way", () => {
       "ProxmoxClusterOwners",
       "RumApplicationOwners",
       "RunbookOwners",
+      "RunnerOwners",
       "ScheduledMaintenanceOwners",
       "ServerlessFunctionOwners",
       "ServiceOwners",
@@ -420,7 +423,8 @@ describe("the docs on owners told after a stop part way", () => {
       }).toEqual({ job: file, resumes: true, tellsEachOnce: true });
     }
 
-    expect(jobs).toBe(61);
+    // 61, and the monitor group's and the Runner's (#9758).
+    expect(jobs).toBe(63);
     // The incident and alert jobs among them, by name.
     expect(JOBS).toHaveLength(5);
 
@@ -447,9 +451,18 @@ describe("the docs on owners told after a stop part way", () => {
       "If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.",
     );
 
+    // The owners bullet: the one that says where an update goes, on the English page's line.
+    const ownersLine: number = readPage("en", SETTINGS)
+      .split("\n")
+      .findIndex((line: string): boolean => {
+        return line.startsWith("- An update goes to the record's owners:");
+      });
+
+    expect(ownersLine).toBeGreaterThan(0);
+
     for (const language of DOCS_LANGUAGES) {
-      // The owners bullet: the one that says where an update goes.
-      const owners: string = readPage(language, SETTINGS).split("\n")[23] || "";
+      const owners: string =
+        readPage(language, SETTINGS).split("\n")[ownersLine] || "";
 
       expect([language, A_FEW_MINUTES[language]!.test(owners)]).toEqual([
         language,

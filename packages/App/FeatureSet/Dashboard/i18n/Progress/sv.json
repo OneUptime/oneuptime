@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57551,
-    "untranslated": 8080
+    "keys": 57990,
+    "untranslated": 8183
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -349,6 +349,7 @@
     "VMware vCenter",
     "Valkey",
     "Version",
+    "Version 2",
     "Version {{number}}",
     "Version {{version}}",
     "Vital",

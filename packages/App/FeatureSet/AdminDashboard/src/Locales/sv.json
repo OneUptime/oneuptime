@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "Styr vem som kan skapa nya projekt på denna OneUptime-server.",
         "projectCreationSwitchTitle": "Låt användare skapa projekt",
         "projectCreationSwitchOnDescription": "Alla som är inloggade på den här servern kan skapa ett projekt.",
-        "projectCreationSwitchOffDescription": "Endast huvudadministratörer kan skapa projekt."
+        "projectCreationSwitchOffDescription": "Endast huvudadministratörer kan skapa projekt.",
+        "inviteSuggestionsCardTitle": "Inbjudningsförslag",
+        "inviteSuggestionsCardDescription": "Om de som bjuder in till ett projekt kan hitta alla med ett konto på den här servern. Låt det vara av om servern har mer än en organisation.",
+        "inviteSuggestionsSwitchTitle": "Föreslå alla konton på den här servern",
+        "inviteSuggestionsSwitchOnDescription": "Alla som får bjuda in personer till ett projekt ser varje kontos namn och e-postadress medan de skriver, märkt Inte i det här projektet än.",
+        "inviteSuggestionsSwitchOffDescription": "Inbjudningsformulären föreslår projektets egna personer. Huvudadministratörer erbjuds även serverns övriga konton."
       },
       "email": {
         "adminNotificationCardTitle": "Admin-notifierings-e-post",
@@ -1290,6 +1295,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Version 2 berättar också vad som ändrades i ett arbetsflödes steg och i JSON. Version 1 är den ursprungliga posten, för läsare som är byggda för den.",
   "Version 2 (newest)": "Version 2 (senaste)",
   "Version 1 (original)": "Version 1 (ursprunglig)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "Version 3 lägger till vad varje steg i ett arbetsflöde kördes som. Version 2 lägger till vad som ändrades i stegen och i JSON. Version 1 är originalet.",
+  "Version 3 (newest)": "Version 3 (senaste)",
+  "Version 2": "Version 2",
   "Unchanged": "Oförändrad",
   "Setup guide": "Installationsguide",
   "Write a test file": "Skriv en testfil",
@@ -4284,5 +4292,9 @@
   "Sign Out of the Identity Provider Too": "Logga även ut från identitetsleverantören",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "När man loggar ut från OneUptime loggas man även ut från den här leverantören och från alla andra appar som använder den. Slå på för delade datorer.",
   "Sign-out Redirect URI:": "Omdirigerings-URI efter utloggning:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrera omdirigerings-URI:n hos din OIDC-identitetsleverantör, och även omdirigerings-URI:n efter utloggning när ”Logga även ut från identitetsleverantören” är på."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrera omdirigerings-URI:n hos din OIDC-identitetsleverantör, och även omdirigerings-URI:n efter utloggning när ”Logga även ut från identitetsleverantören” är på.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Har personen inget OneUptime-konto ännu skapas det med det här namnet.",
+  "Suggest every account on this server?": "Föreslå alla konton på den här servern?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Alla som får bjuda in personer ser varje kontos namn och e-postadress medan de skriver. Slå bara på det om varje konto här hör till en och samma organisation.",
+  "Suggest Every Account": "Föreslå alla konton"
 }

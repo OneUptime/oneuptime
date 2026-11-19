@@ -14,6 +14,7 @@ import Permission, {
 import UserType from "../../../Types/UserType";
 import {
   WorkflowRunAs,
+  WorkflowRunAsAudit,
   readWorkflowRunAs,
 } from "../../../Types/Workflow/WorkflowRunAs";
 
@@ -37,7 +38,8 @@ import {
  *  - as no person (UserType.Workflow, no userId): a record a workflow creates
  *    names no creator (UserAttribution), a person's own settings stay theirs
  *    (OwnerOnlyColumn), and the audit trail names the workflow instead
- *    (workflowId, workflowName).
+ *    (workflowId, workflowName), with what it ran as and whose permissions
+ *    those were (workflowRunAsAudit, #9766).
  *
  * So what a Project Admin of the project may not do - an owner-only or a
  * billing change, a table or column the plan does not include - a step may
@@ -147,9 +149,9 @@ const PROJECT_ROLES: ReadonlyArray<Permission> = [
 
 /*
  * What a run of a workflow acts as, once the runner has checked it against
- * the person who gave it (WorkflowRunAsAuthority.resolveForRun): Project
- * Owner, or a custom role with the rows it gives. Absent - or Default - for
- * a workflow that runs with the default permissions.
+ * whoever gave it (WorkflowRunAsAuthority.resolveForRun): Project Owner, or
+ * a custom role with the rows it gives. Absent - or Default - for a
+ * workflow that runs with the default permissions.
  */
 export interface WorkflowRunAsGrant {
   runAs: WorkflowRunAs;
@@ -158,8 +160,13 @@ export interface WorkflowRunAsGrant {
   customRoleName?: string | undefined;
   // The rows the role gives a workflow, as its steps hold them (CustomRole only).
   rolePermissions?: Array<UserPermission> | undefined;
-  // The person whose permissions the run runs with, and their name.
+  /*
+   * Whose permissions the run runs with: a person, or one of the project's
+   * API keys (#9765) - one of the two - and their name (the person's name
+   * or email, or the key's name), for the run's log and the audit log.
+   */
   givenByUserId?: ObjectID | undefined;
+  givenByApiKeyId?: ObjectID | undefined;
   givenByName?: string | undefined;
 }
 
@@ -306,15 +313,51 @@ export default class WorkflowPrincipal {
     }
 
     /*
-     * Only a raised workflow's props say what it runs as: a default step's
-     * props are exactly what they were before Run As existed, and the
-     * access rule reads no mark as Default.
+     * Only a raised workflow's props carry the mark the access rule reads:
+     * a default step's permissions are exactly what they were before Run As
+     * existed, and the access rule reads no mark as Default.
      */
     if (options.runAs && WorkflowPrincipal.isRaised(options.runAs.runAs)) {
       props.workflowRunAs = options.runAs.runAs;
     }
 
+    // What every step ran as, and with whose permissions, for the audit log.
+    props.workflowRunAsAudit = WorkflowPrincipal.getRunAsAudit(options.runAs);
+
     return props;
+  }
+
+  /*
+   * WHAT A STEP RAN AS, FOR THE AUDIT LOG (#9766): Default for a run with
+   * the default permissions - none named, or one that cannot be read as
+   * raised - and for Project Owner or a custom role, the role's name and
+   * whoever gave them, as the run checked them as it started. A new object
+   * each time, holding nothing a step could use to act.
+   */
+  public static getRunAsAudit(
+    runAs?: WorkflowRunAsGrant | undefined,
+  ): WorkflowRunAsAudit {
+    if (!runAs || !WorkflowPrincipal.isRaised(runAs.runAs)) {
+      return { runAs: WorkflowRunAs.Default };
+    }
+
+    const audit: WorkflowRunAsAudit = { runAs: runAs.runAs };
+
+    if (runAs.runAs === WorkflowRunAs.CustomRole && runAs.customRoleName) {
+      audit.customRoleName = runAs.customRoleName;
+    }
+
+    if (runAs.givenByApiKeyId) {
+      audit.givenByApiKeyId = runAs.givenByApiKeyId;
+    } else if (runAs.givenByUserId) {
+      audit.givenByUserId = runAs.givenByUserId;
+    }
+
+    if (runAs.givenByName) {
+      audit.givenByName = runAs.givenByName;
+    }
+
+    return audit;
   }
 
   /*

@@ -78,6 +78,7 @@ export const AuditLogExportCopy: {
   schemaVersionField: string;
   schemaVersionDescription: string;
   schemaVersionNewestOption: string;
+  schemaVersionSecondOption: string;
   schemaVersionFirstOption: string;
   unchangedPlaceholder: string;
   // The test.
@@ -154,9 +155,10 @@ export const AuditLogExportCopy: {
   ),
   schemaVersionField: translationKey("Record version"),
   schemaVersionDescription: translationKey(
-    "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.",
+    "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.",
   ),
-  schemaVersionNewestOption: translationKey("Version 2 (newest)"),
+  schemaVersionNewestOption: translationKey("Version 3 (newest)"),
+  schemaVersionSecondOption: translationKey("Version 2"),
   schemaVersionFirstOption: translationKey("Version 1 (original)"),
   unchangedPlaceholder: translationKey("Unchanged"),
   testFilesButton: translationKey("Write a test file"),

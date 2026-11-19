@@ -63,7 +63,7 @@ Click a value in the **Filters** sidebar to add it as a chip: a severity, a serv
 Click a row. Its details open beside the list.
 :::
 
-Your search, your chips and the time range are kept in the page's address, so a refresh, a bookmark or a shared link opens the same logs.
+Your search, your chips and the time range are kept in the page's address, so a refresh, a bookmark or a shared link opens the same logs. A link to one log line, such as a security event's **View log line**, opens that line above the list, read with your own permissions.
 
 ## Read a log
 

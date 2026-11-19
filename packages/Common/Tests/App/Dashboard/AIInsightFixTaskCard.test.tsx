@@ -107,6 +107,8 @@ function task(data: Partial<CodeTaskSummaryJSON> = {}): CodeTaskSummaryJSON {
     lastActivityAt: "2026-11-09T10:10:00.000Z",
     origin: { type: CodeTaskOriginType.Insight, label: "New exception" },
     turnCount: 1,
+    // The server says the reader may try it again, should it fail.
+    canTryAgain: true,
     ...data,
   };
 }
@@ -488,15 +490,52 @@ describe("a fix task that fails, or that AI tries again", () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 
-  test("a task OneUptime started that failed is opened, not tried again from here", () => {
+  /*
+   * An insight's fix is most often a fix OneUptime started - an exception's,
+   * a slow trace's (#6509): tried again from its card when the server says
+   * it may be.
+   */
+  test("a fix OneUptime started that failed is tried again from here", async () => {
+    retryMock.mockResolvedValue(undefined as never);
+
+    const { onChanged } = drawCard({
+      task: task({
+        state: CodeTaskState.Failed,
+        recipe: CodeFixTaskType.FixException,
+        errorMessage: "The Runner went away.",
+      }),
+    });
+
+    fireEvent.click(
+      within(screen.getByTestId("ai-insight-fix-failed-actions")).getByTestId(
+        "ai-insight-fix-try-again",
+      ),
+    );
+
+    await waitFor(() => {
+      expect(onChanged).toHaveBeenCalled();
+    });
+    expect(retryMock).toHaveBeenCalledWith(TASK_ID);
+  });
+
+  test("one the server does not mark - a pull request it would open twice, a reader who may only read - is opened, not tried again", () => {
     drawCard({
       task: task({
         state: CodeTaskState.Failed,
         recipe: CodeFixTaskType.FixException,
+        pullRequest: OPEN_PULL_REQUEST,
+        canTryAgain: undefined,
       }),
     });
 
     expect(screen.getByTestId("ai-insight-fix-failed")).toBeInTheDocument();
+    expect(screen.queryByTestId("ai-insight-fix-try-again")).toBeNull();
+    expect(screen.getByTestId("ai-insight-fix-view-task")).toBeInTheDocument();
+  });
+
+  test("negative control: a working task offers no Try again, whatever it is marked", () => {
+    drawCard({ task: task({ state: CodeTaskState.Working }) });
+
     expect(screen.queryByTestId("ai-insight-fix-try-again")).toBeNull();
   });
 });

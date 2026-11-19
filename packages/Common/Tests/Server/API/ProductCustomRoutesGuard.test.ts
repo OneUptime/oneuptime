@@ -727,6 +727,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,
         '"/code-task/get/:taskId"': READ,
+        '"/code-task/turns/:taskId"': READ,
         '"/code-task/progress/:taskId"': READ,
         '"/code-task/summaries"': READ,
         '"/code-task/source-links"': READ,
@@ -1038,8 +1039,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        // Its invite suggestions read only (#9701).
-        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
+        /*
+         * Its invite suggestions read only (#9701); is-user-registered is
+         * gone (#9745).
+         */
+        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },

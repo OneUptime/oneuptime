@@ -6,6 +6,8 @@ import {
 } from "../../../Types/NetworkDevice/NetworkDeviceTelemetryAttribute";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
 } from "../../../Types/SecurityCase/SecurityConnection";
@@ -294,6 +296,50 @@ export function readLogNetworkDevice(
   return device;
 }
 
+// The Docker or Podman runtime a container's line names, and the attribute it puts on its events.
+const CONTAINER_HOST_ATTRIBUTES: Readonly<Record<string, string>> = {
+  docker: SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  podman: SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
+};
+
+/*
+ * The Docker or Podman host a container's line was written on (#9628): the
+ * host name its agent stamps on every line, under the runtime that ran the
+ * container. A container's logs are filed under its own service, so this is
+ * how an event read from one reaches the host's Security Events page - the
+ * same lines its Logs page shows. A line of any other runtime, or of no
+ * container, names no container host.
+ */
+export function readLogContainerHost(
+  attributes: JSONObject | undefined | null,
+): JSONObject {
+  if (!attributes || typeof attributes !== "object") {
+    return {};
+  }
+
+  const runtime: string = readAttribute(attributes, [
+    "resource.container.runtime",
+    "container.runtime",
+  ]).toLowerCase();
+  const attribute: string | undefined = Object.prototype.hasOwnProperty.call(
+    CONTAINER_HOST_ATTRIBUTES,
+    runtime,
+  )
+    ? CONTAINER_HOST_ATTRIBUTES[runtime]
+    : undefined;
+  const host: string = readAttribute(attributes, [
+    "resource.host.name",
+    "host.name",
+  ]);
+
+  // readAttribute bounds the host name, which DNS keeps to 253 characters.
+  if (!attribute || !host) {
+    return {};
+  }
+
+  return { [attribute]: host };
+}
+
 export interface LogSecurityEventInput {
   line: SecurityLogLine;
   format: SecurityLogFormat;
@@ -394,6 +440,7 @@ export function buildLogSecurityEvent(
   }
 
   Object.assign(attributes, readLogNetworkDevice(input.line.attributes));
+  Object.assign(attributes, readLogContainerHost(input.line.attributes));
 
   const recordSuffix: string =
     input.recordIndex !== undefined ? `:${input.recordIndex}` : "";

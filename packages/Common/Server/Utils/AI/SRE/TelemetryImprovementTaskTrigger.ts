@@ -107,9 +107,10 @@ export default class TelemetryImprovementTaskTrigger {
 
     return {
       offer,
+      // Its task: a fix asked again from Code (#6509) is a later turn of it.
       aiRunId:
         offer === SuggestionOffer.InProgress
-          ? activeRun?.id?.toString() || null
+          ? SubjectCodeFixRun.taskIdOf(activeRun)?.toString() || null
           : null,
     };
   }

@@ -194,17 +194,35 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(runAs).toContain(
       "never reads settings that hold credentials, never sees private incidents, alerts or episodes, and never changes API keys, single sign-on or SCIM settings",
     );
+    // A person or a project API key gives them (#9765).
     expect(runAs).toContain(
-      "whoever last chose its **Run As**, or saved its steps or its variables",
+      "the person or the project API key that last chose its **Run As**, or saved its steps or its variables",
     );
     expect(runAs).toContain("Anyone who can edit it can still turn it off.");
     // The keys a copy was made of stop working (WorkflowService.giveNewTriggerKeys).
     expect(runAs).toContain(
       "When it's set to run as more than the default, or what it runs as changes, it gets a new webhook URL and incoming email address, so copies of the old ones no longer start it.",
     );
-    expect(runAs).toContain("never an API key");
     expect(runAs).toContain(
-      "Each run first checks that the person who gave them still has them. If not, the run stops before its first step",
+      "A person or one of the project's API keys can give them, and only what they have themselves",
+    );
+    expect(runAs).toContain(
+      "A workflow's steps and the master API key can't give them, and resetting a key needs every permission the key has.",
+    );
+    expect(runAs).toContain(
+      "Each run first checks that whoever gave them still has them: a person still in the project, or a key that still exists, hasn't expired and hasn't lost them. If not, the run stops before its first step",
+    );
+    // An exported or duplicated copy runs as Default (ModelImportExport).
+    expect(runAs).toContain(
+      "An exported, imported or duplicated workflow runs with the default permissions",
+    );
+    // Each change a step makes says what it ran as (#9766).
+    expect(runAs).toContain(
+      "The audit log's **Workflow Ran As** and **Workflow Permissions Given By** filters find those changes.",
+    );
+    // Deleting a role workflows run as says what they run as instead (#9767).
+    expect(runAs).toContain(
+      "`miscDataProps` with `workflowsRunAs` set to `Default`, or to `CustomRole` with the role's id in `workflowsRunAsCustomRoleId`.",
     );
     expect(runAs).toContain("It doesn't read the project's global variables");
     expect(runAs).toContain(

@@ -1,6 +1,9 @@
 import CloudResourceService from "../../../../../Server/Services/CloudResourceService";
+import DockerHostService from "../../../../../Server/Services/DockerHostService";
 import HostService from "../../../../../Server/Services/HostService";
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
+import OpenStackCloudService from "../../../../../Server/Services/OpenStackCloudService";
+import PodmanHostService from "../../../../../Server/Services/PodmanHostService";
 import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
 import SecurityEntityRiskService from "../../../../../Server/Services/SecurityEntityRiskService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
@@ -17,6 +20,8 @@ import PositiveNumber from "../../../../../Types/PositiveNumber";
 import {
   ResourceSecurityJson,
   ResourceSecurityScopeJson,
+  SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
 } from "../../../../../Types/SecurityCase/SecurityConnection";
@@ -245,6 +250,133 @@ describe("ResourceSecurity.readScope: other records", () => {
     });
   });
 
+  /*
+   * An OpenStack audit event keeps its cloud's name in an attribute, never
+   * among its observables (its users, its projects), so the name alone
+   * found none of the cloud's own events (#9628): the events read from the
+   * logs the agent files under the cloud are its own too.
+   */
+  test("an OpenStack cloud is read by its name, or the events read from its own logs", async () => {
+    const find: jest.SpyInstance = jest
+      .spyOn(OpenStackCloudService, "findOneBy")
+      .mockResolvedValue({ id: DEVICE_ID, name: "production" } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.OpenStackCloud,
+    );
+
+    expect(find.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, _id: DEVICE_ID.toString() },
+      props: CALLER,
+    });
+    expect(scope).toEqual({
+      kind: SecurityConnectionKind.OpenStackCloud,
+      id: DEVICE_ID.toString(),
+      name: "production",
+      values: ["production"],
+      isSearchedByLogs: false,
+      scope: {
+        observables: ["production", "PRODUCTION"],
+        attributeKey: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+        attributeValues: [DEVICE_ID.toString()],
+      },
+    });
+  });
+
+  test("an OpenStack cloud with no name is still read by its own logs", async () => {
+    jest
+      .spyOn(OpenStackCloudService, "findOneBy")
+      .mockResolvedValue({ id: DEVICE_ID, name: "" } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.OpenStackCloud,
+    );
+
+    expect(scope?.values).toEqual([]);
+    expect(scope?.scope).toEqual({
+      observables: [],
+      attributeKey: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+      attributeValues: [DEVICE_ID.toString()],
+    });
+    expect(hasSecurityEventScopeMatch(scope?.scope)).toBe(true);
+  });
+
+  test("an OpenStack cloud the caller may not read has no page to read", async () => {
+    jest.spyOn(OpenStackCloudService, "findOneBy").mockResolvedValue(null);
+
+    expect(await readScope(SecurityConnectionKind.OpenStackCloud)).toBeNull();
+  });
+
+  /*
+   * A container's logs are filed under the container's own service, so a
+   * Docker or Podman host's own events are those read from lines its agent
+   * stamped with its host name (#9628), beside the events naming it.
+   */
+  test("Docker and Podman hosts are read by their names, or the events read from their containers' logs", async () => {
+    jest.spyOn(DockerHostService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "Build Box",
+      hostIdentifier: "build-1",
+    } as never);
+    jest.spyOn(PodmanHostService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "Edge Box",
+      hostIdentifier: "edge-1",
+    } as never);
+
+    expect((await readScope(SecurityConnectionKind.DockerHost))?.scope).toEqual(
+      {
+        observables: ["build-1", "BUILD-1", "build box", "BUILD BOX"],
+        attributeKey: SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+        attributeValues: ["build-1"],
+      },
+    );
+    expect((await readScope(SecurityConnectionKind.PodmanHost))?.scope).toEqual(
+      {
+        observables: ["edge-1", "EDGE-1", "edge box", "EDGE BOX"],
+        attributeKey: SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
+        attributeValues: ["edge-1"],
+      },
+    );
+  });
+
+  test("a container host with no host name of its own is read by its name alone", async () => {
+    jest.spyOn(DockerHostService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "Build Box",
+      hostIdentifier: "",
+    } as never);
+
+    expect((await readScope(SecurityConnectionKind.DockerHost))?.scope).toEqual(
+      {
+        observables: ["build box", "BUILD BOX"],
+      },
+    );
+  });
+
+  test("a Docker host's card counts the events read from its containers' logs too", async () => {
+    jest.spyOn(DockerHostService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "Build Box",
+      hostIdentifier: "build-1",
+    } as never);
+
+    await ResourceSecurity.read({
+      projectId: PROJECT_ID,
+      kind: SecurityConnectionKind.DockerHost,
+      id: DEVICE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      attribute: {
+        key: SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+        value: "build-1",
+      },
+    });
+  });
+
   test("a cloud resource with no name or address of its own is read by its logs", async () => {
     jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
       id: DEVICE_ID,
@@ -296,6 +428,29 @@ describe("ResourceSecurity.read: a network device's Security card counts its own
       endTime: NOW,
     });
     // Its own logs are its own: no log resource is asked for besides.
+    expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
+  });
+
+  test("an OpenStack cloud's card counts the events read from its own logs too", async () => {
+    jest
+      .spyOn(OpenStackCloudService, "findOneBy")
+      .mockResolvedValue({ id: DEVICE_ID, name: "production" } as never);
+
+    await ResourceSecurity.read({
+      projectId: PROJECT_ID,
+      kind: SecurityConnectionKind.OpenStackCloud,
+      id: DEVICE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: ["production", "PRODUCTION"],
+      attribute: {
+        key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+        value: DEVICE_ID.toString(),
+      },
+    });
     expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
   });
 

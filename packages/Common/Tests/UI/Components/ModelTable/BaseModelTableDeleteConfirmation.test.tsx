@@ -925,3 +925,106 @@ describe("a confirmation that is slow to work out", () => {
     expect(deleteItem).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A choice made in the dialog goes with the delete (#9767): deleting a custom
+ * role that workflows run as says what they run as from now on, picked in
+ * the dialog's details. The table asks for it when Delete is pressed, so the
+ * last choice is the one sent, and sends nothing more when there is none.
+ */
+describe("getMiscDataProps", () => {
+  test("what the dialog holds when Delete is pressed goes with the delete", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    let chosen: string = "default";
+
+    renderTable({
+      asModels: true,
+      deleteItem: deleteItem,
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          description: "Sure?",
+          submitButtonText: "Delete Role",
+          details: <div data-testid="choice">Run them as</div>,
+          getMiscDataProps: () => {
+            return { workflowsRunAs: chosen };
+          },
+        };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+
+    // Changed after the dialog opened: the choice is read at Delete.
+    chosen = "role-2";
+    fireEvent.click(findButtons("Delete Role")[0]!);
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledTimes(1);
+    });
+
+    expect((deleteItem.mock.calls[0]![0] as Monitor).id?.toString()).toBe(
+      "monitor-1",
+    );
+    expect(deleteItem.mock.calls[0]![1]).toEqual({ workflowsRunAs: "role-2" });
+  });
+
+  test("a confirmation without one deletes with nothing more", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+
+    renderTable({
+      asModels: true,
+      deleteItem: deleteItem,
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return { description: "Sure?", submitButtonText: "Delete Role" };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+    fireEvent.click(findButtons("Delete Role")[0]!);
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledTimes(1);
+    });
+
+    expect(deleteItem.mock.calls[0]![1]).toBeUndefined();
+  });
+
+  test("a blocked delete never asks for it, and deletes nothing", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    const getMiscDataProps: MockFunction = getJestMockFunction();
+    getMiscDataProps.mockReturnValue({ workflowsRunAs: "default" });
+
+    renderTable({
+      asModels: true,
+      deleteItem: deleteItem,
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          description: "You can't delete this role yet.",
+          isDeleteBlocked: true,
+          getMiscDataProps: getMiscDataProps as unknown as () => JSONObject,
+        };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+
+    // A notice: no Delete to press, one Close.
+    expect(findButtons("Delete")).toHaveLength(0);
+    fireEvent.click(findButtons("Close")[0]!);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("confirm-modal-description"),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(deleteItem).not.toHaveBeenCalled();
+    expect(getMiscDataProps).not.toHaveBeenCalled();
+  });
+});

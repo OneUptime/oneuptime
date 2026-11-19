@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "Управляйте тем, кто может создавать новые проекты на этом сервере OneUptime.",
         "projectCreationSwitchTitle": "Разрешить пользователям создавать проекты",
         "projectCreationSwitchOnDescription": "Любой, кто вошёл на этот сервер, может создать проект.",
-        "projectCreationSwitchOffDescription": "Создавать проекты могут только главные администраторы."
+        "projectCreationSwitchOffDescription": "Создавать проекты могут только главные администраторы.",
+        "inviteSuggestionsCardTitle": "Подсказки при приглашении",
+        "inviteSuggestionsCardDescription": "Могут ли те, кто приглашает в проект, найти любого, у кого есть учётная запись на этом сервере. Оставьте выключенным, если на сервере больше одной организации.",
+        "inviteSuggestionsSwitchTitle": "Предлагать все учётные записи этого сервера",
+        "inviteSuggestionsSwitchOnDescription": "Любой, кто может приглашать людей в проект, видит при вводе имя и почту каждой учётной записи с пометкой «Ещё не в этом проекте».",
+        "inviteSuggestionsSwitchOffDescription": "Формы приглашения предлагают людей самого проекта. Главным администраторам также предлагаются другие учётные записи сервера."
       },
       "email": {
         "adminNotificationCardTitle": "Email уведомлений администратора",
@@ -1290,6 +1295,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Версия 2 также сообщает, что изменилось в шагах рабочего процесса и в JSON. Версия 1 — исходная запись для читателей, рассчитанных на неё.",
   "Version 2 (newest)": "Версия 2 (новейшая)",
   "Version 1 (original)": "Версия 1 (исходная)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "Версия 3 добавляет, от чьего имени выполнялся каждый шаг рабочего процесса. Версия 2 добавляет, что изменилось в шагах и в JSON. Версия 1 — исходная.",
+  "Version 3 (newest)": "Версия 3 (новейшая)",
+  "Version 2": "Версия 2",
   "Unchanged": "Без изменений",
   "Setup guide": "Руководство по настройке",
   "Write a test file": "Записать тестовый файл",
@@ -4284,5 +4292,9 @@
   "Sign Out of the Identity Provider Too": "Выходить и из поставщика удостоверений",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Выход из OneUptime также завершает сеанс у этого поставщика и во всех других приложениях, которые его используют. Включайте для общих компьютеров.",
   "Sign-out Redirect URI:": "URI перенаправления после выхода:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Зарегистрируйте URI перенаправления у вашего поставщика удостоверений OIDC, а если включено «Выходить и из поставщика удостоверений», — и URI перенаправления после выхода."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Зарегистрируйте URI перенаправления у вашего поставщика удостоверений OIDC, а если включено «Выходить и из поставщика удостоверений», — и URI перенаправления после выхода.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Если у этого человека ещё нет учётной записи OneUptime, она будет создана с этим именем.",
+  "Suggest every account on this server?": "Предлагать все учётные записи этого сервера?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Любой, кто может приглашать людей, будет видеть при вводе имя и почту каждой учётной записи. Включайте это, только если все учётные записи здесь относятся к одной организации.",
+  "Suggest Every Account": "Предлагать все учётные записи"
 }

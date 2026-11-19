@@ -7,8 +7,11 @@ import PodmanHostService from "./PodmanHostService";
 import ServiceService from "./ServiceService";
 import Model from "../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { isComplianceFramework } from "../../Types/DataSecurity/ComplianceFramework";
@@ -34,6 +37,36 @@ export class Service extends ProjectReferencesService<Model> {
   // The requirement a setting names, trimmed: "" for its whole framework.
   public static readRequirement(value: unknown): string {
     return typeof value === "string" ? value.trim() : "";
+  }
+
+  /*
+   * Why it does not apply (#9629), as it is stored: trimmed, and none for
+   * an empty one. Its column holds ColumnLength.LongText characters, so a
+   * longer one is refused in words rather than by the database.
+   */
+  public static readNote(value: unknown): string | null {
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const note: string = value.trim();
+
+    if (note.length > ColumnLength.LongText) {
+      throw new BadDataException(
+        `Write the reason in ${ColumnLength.LongText} characters or fewer.`,
+      );
+    }
+
+    return note || null;
+  }
+
+  // A reason in a write, read as it is stored; a write without one is left alone.
+  private static normalizeNote(data: { note?: unknown }): void {
+    if (data.note === undefined) {
+      return;
+    }
+
+    data.note = Service.readNote(data.note);
   }
 
   @CaptureSpan()
@@ -70,6 +103,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     // Stored as the catalog names it, or empty for the whole framework.
     data.requirement = requirement || (null as unknown as string);
+
+    Service.normalizeNote(data as unknown as { note?: unknown });
 
     const projectId: ObjectID | undefined =
       data.projectId || createBy.props.tenantId || undefined;
@@ -114,6 +149,97 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: undefined };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+
+    Service.normalizeNote(
+      onUpdate.updateBy.data as unknown as { note?: unknown },
+    );
+
+    return onUpdate;
+  }
+
+  /*
+   * Who turned it off, and when (#9629), written once the create passed
+   * every permission check: no caller may write either. A setting made off
+   * - how the Dashboard turns a framework off for the first time - is
+   * turned off by whoever made it. One made on is turned off by nobody.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const data: Model = onCreate.createBy.data;
+
+    if (data.isEnabled === true) {
+      return;
+    }
+
+    data.turnedOffAt = OneUptimeDate.getCurrentDate();
+
+    if (onCreate.createBy.props.userId) {
+      data.turnedOffByUserId = onCreate.createBy.props.userId;
+    }
+  }
+
+  /*
+   * The same for a change: turning it off says who and when, unless it was
+   * off already - the same switch saved again keeps when it was turned off
+   * - and turning it on again says nobody. A reason written while it is off
+   * changes neither.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    const isEnabled: unknown = (updateBy.data as { isEnabled?: unknown })
+      .isEnabled;
+    const stamps: {
+      turnedOffAt?: Date | null;
+      turnedOffByUserId?: ObjectID | null;
+    } = updateBy.data as unknown as {
+      turnedOffAt?: Date | null;
+      turnedOffByUserId?: ObjectID | null;
+    };
+
+    if (isEnabled === true) {
+      stamps.turnedOffAt = null;
+      stamps.turnedOffByUserId = null;
+      return;
+    }
+
+    if (isEnabled !== false) {
+      return;
+    }
+
+    const current: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: { _id: true, isEnabled: true },
+      skip: 0,
+      limit: 1000,
+      props: { isRoot: true },
+    });
+
+    if (
+      current.length > 0 &&
+      current.every((row: Model): boolean => {
+        return row.isEnabled !== true;
+      })
+    ) {
+      return;
+    }
+
+    stamps.turnedOffAt = OneUptimeDate.getCurrentDate();
+    stamps.turnedOffByUserId = updateBy.props.userId || null;
   }
 
   // Whether the record a setting names is the project's own.

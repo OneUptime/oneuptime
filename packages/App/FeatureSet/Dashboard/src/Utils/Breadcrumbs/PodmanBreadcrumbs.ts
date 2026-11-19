@@ -60,6 +60,12 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Security Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_INCIDENTS, [
       "Project",
       "Podman",

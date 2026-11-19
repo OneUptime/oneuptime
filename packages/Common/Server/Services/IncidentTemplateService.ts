@@ -381,7 +381,6 @@ export class Service extends ProjectReferencesService<Model> {
           [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
-        false,
         onCreate.createBy.props,
         true,
       );
@@ -447,13 +446,18 @@ export class Service extends ProjectReferencesService<Model> {
     };
   }
 
+  /*
+   * Nobody is told they were made an owner of a template (#9758): its owners
+   * hear of each incident declared from it, as that incident's owners, and
+   * of nothing before. So its owner rows have no "told yet" flag, as a
+   * scheduled maintenance template's have none, and none waits for a job.
+   */
   @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     incidentTemplateId: ObjectID,
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
-    notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
     /*
      * True for the owners picked in the form that created the resource:
@@ -471,7 +475,6 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       userIds: userIds,
       teamIds: teamIds,
-      isOwnerNotified: !notifyOwners,
       props: props,
       onCreatorsBehalf: onCreatorsBehalf,
     });

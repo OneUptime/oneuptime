@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "Controle quem pode criar novos projetos neste servidor OneUptime.",
         "projectCreationSwitchTitle": "Permitir que usuários criem projetos",
         "projectCreationSwitchOnDescription": "Qualquer pessoa conectada a este servidor pode criar um projeto.",
-        "projectCreationSwitchOffDescription": "Somente administradores mestres podem criar projetos."
+        "projectCreationSwitchOffDescription": "Somente administradores mestres podem criar projetos.",
+        "inviteSuggestionsCardTitle": "Sugestões de convite",
+        "inviteSuggestionsCardDescription": "Se quem convida para um projeto pode encontrar qualquer pessoa com conta neste servidor. Deixe desativado se o servidor hospeda mais de uma organização.",
+        "inviteSuggestionsSwitchTitle": "Sugerir todas as contas deste servidor",
+        "inviteSuggestionsSwitchOnDescription": "Qualquer pessoa que possa convidar pessoas para um projeto vê o nome e o e-mail de cada conta enquanto digita, marcada como Ainda não está neste projeto.",
+        "inviteSuggestionsSwitchOffDescription": "Os formulários de convite sugerem as pessoas do próprio projeto. Administradores mestres também recebem as outras contas do servidor."
       },
       "email": {
         "adminNotificationCardTitle": "E-mail de notificação do admin",
@@ -1290,6 +1295,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "A versão 2 também informa o que mudou nos passos de um fluxo de trabalho e no JSON. A versão 1 é o registro original, para leitores feitos para ela.",
   "Version 2 (newest)": "Versão 2 (a mais recente)",
   "Version 1 (original)": "Versão 1 (original)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "A versão 3 acrescenta como o que cada passo de um fluxo de trabalho foi executado. A versão 2 acrescenta o que mudou nos passos e no JSON. A versão 1 é a original.",
+  "Version 3 (newest)": "Versão 3 (a mais recente)",
+  "Version 2": "Versão 2",
   "Unchanged": "Inalterado",
   "Setup guide": "Guia de configuração",
   "Write a test file": "Gravar um arquivo de teste",
@@ -4284,5 +4292,9 @@
   "Sign Out of the Identity Provider Too": "Sair também do provedor de identidade",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Sair do OneUptime também encerra a sessão neste provedor e em todos os outros apps que o usam. Ative para computadores compartilhados.",
   "Sign-out Redirect URI:": "URI de redirecionamento após sair:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registre a URI de redirecionamento no seu provedor de identidade OIDC e, quando «Sair também do provedor de identidade» estiver ativado, também a URI de redirecionamento após sair."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registre a URI de redirecionamento no seu provedor de identidade OIDC e, quando «Sair também do provedor de identidade» estiver ativado, também a URI de redirecionamento após sair.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Se essa pessoa ainda não tiver conta no OneUptime, ela será criada com este nome.",
+  "Suggest every account on this server?": "Sugerir todas as contas deste servidor?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Qualquer pessoa que possa convidar verá o nome e o e-mail de cada conta enquanto digita. Ative isso somente se todas as contas daqui pertencerem a uma única organização.",
+  "Suggest Every Account": "Sugerir todas as contas"
 }

@@ -3,10 +3,13 @@ import RunWorkflow, {
   StorageMap,
 } from "../../../FeatureSet/Workflow/Services/RunWorkflow";
 import QueueWorkflow from "../../../FeatureSet/Workflow/Services/QueueWorkflow";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import ApiKeyPermissionService from "Common/Server/Services/ApiKeyPermissionService";
+import ApiKeyService from "Common/Server/Services/ApiKeyService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserService from "Common/Server/Services/UserService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
@@ -301,6 +304,8 @@ describe("a workflow that runs as Default", () => {
       runAs: WorkflowRunAs.Default,
       runAsCustomRoleName: null,
       runAsGivenByUserId: null,
+      runAsGivenByApiKeyId: null,
+      runAsGivenByApiKeyName: null,
     });
     expect(String(lastWrite(persisted)["logs"])).not.toContain("Running as");
     expect(lastWrite(persisted)["workflowStatus"]).toBe(WorkflowStatus.Success);
@@ -335,6 +340,8 @@ describe("a workflow that runs as Project Owner", () => {
       runAs: WorkflowRunAs.ProjectOwner,
       runAsCustomRoleName: null,
       runAsGivenByUserId: GIVER_ID,
+      runAsGivenByApiKeyId: null,
+      runAsGivenByApiKeyName: null,
     });
     expect(String(lastWrite(persisted)["logs"])).toContain(
       "Running as Project Owner, with the permissions Jane Doe gave this workflow.",
@@ -511,5 +518,168 @@ describe("a Run Workflow step starting a workflow that runs as Project Owner", (
 
     expect(result.executePort?.id).not.toBe("error");
     expect(enqueue.mock.calls).toHaveLength(1);
+  });
+});
+
+/*
+ * A WORKFLOW AN API KEY GAVE ITS RUN AS (#9765): every run, and every wake
+ * from a Sleep step, reads the key again before its first step - deleted
+ * (revoked), expired or narrowed, and the run does not start.
+ */
+describe("a workflow that runs as Project Owner, given by an API key", () => {
+  const KEY_ID: ObjectID = new ObjectID("a9950000-0000-4000-8000-0000000000b1");
+
+  function keyedWorkflow(): Workflow {
+    const row: Workflow = theWorkflow({ runAs: WorkflowRunAs.ProjectOwner });
+    row.runAsGivenByApiKeyId = KEY_ID;
+    return row;
+  }
+
+  // The key as the run reads it: its row, and its permissions now.
+  function givenKey(data: {
+    permissions: Array<Permission>;
+    exists?: boolean;
+    expiresAt?: Date;
+  }): void {
+    const key: ApiKey = new ApiKey();
+    key.id = KEY_ID;
+    key.name = "Terraform";
+    key.expiresAt =
+      data.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    jest
+      .spyOn(ApiKeyService, "findOneBy")
+      .mockResolvedValue((data.exists === false ? null : key) as never);
+    jest
+      .spyOn(ApiKeyPermissionService, "findPermissionsByApiKeyId")
+      .mockResolvedValue(
+        data.permissions.map((permission: Permission) => {
+          return {
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+          };
+        }) as never,
+      );
+  }
+
+  test("while the key holds Project Owner, its steps run as one, and the run names the key - no person", async () => {
+    givenKey({ permissions: [Permission.ProjectOwner] });
+    const readUser: RecordedSpy = jest.spyOn(
+      UserService,
+      "findOneById",
+    ) as unknown as RecordedSpy;
+    const { runner, seen, persisted } = prepare(keyedWorkflow());
+
+    await run(runner);
+
+    expect(seen.options?.runAs?.runAs).toBe(WorkflowRunAs.ProjectOwner);
+    expect(seen.options?.runAs?.givenByApiKeyId?.toString()).toBe(
+      KEY_ID.toString(),
+    );
+    expect(seen.options?.runAs?.givenByUserId).toBeUndefined();
+    expect(readUser.mock.calls).toHaveLength(0);
+    expect(writes(persisted)).toContainEqual({
+      runAs: WorkflowRunAs.ProjectOwner,
+      runAsCustomRoleName: null,
+      runAsGivenByUserId: null,
+      runAsGivenByApiKeyId: KEY_ID,
+      runAsGivenByApiKeyName: "Terraform",
+    });
+    expect(String(lastWrite(persisted)["logs"])).toContain(
+      'Running as Project Owner, with the permissions the API key "Terraform" gave this workflow.',
+    );
+    expect(lastWrite(persisted)["workflowStatus"]).toBe(WorkflowStatus.Success);
+  });
+
+  test("its steps' audit entries say so: what it ran as, and the key's permissions (#9766)", async () => {
+    givenKey({ permissions: [Permission.ProjectOwner] });
+    const { runner, seen } = prepare(keyedWorkflow());
+
+    await run(runner);
+
+    expect(
+      WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: PROJECT_ID,
+        workflowId: WORKFLOW_ID,
+        runAs: seen.options?.runAs,
+      }).workflowRunAsAudit,
+    ).toEqual({
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByApiKeyId: KEY_ID,
+      givenByName: "Terraform",
+    });
+  });
+
+  test("once the key is deleted, it does not run: no step runs, and the run says why", async () => {
+    givenKey({ permissions: [Permission.ProjectOwner], exists: false });
+    const { runner, seen, persisted } = prepare(keyedWorkflow());
+
+    await run(runner);
+
+    expect(seen.options).toBeUndefined();
+    expect(lastWrite(persisted)["workflowStatus"]).toBe(WorkflowStatus.Error);
+    expect(String(lastWrite(persisted)["logs"])).toContain(
+      "the API key that gave it those permissions was deleted",
+    );
+  });
+
+  test("once the key has expired, it does not run", async () => {
+    givenKey({
+      permissions: [Permission.ProjectOwner],
+      expiresAt: new Date(Date.now() - 60 * 1000),
+    });
+    const { runner, seen, persisted } = prepare(keyedWorkflow());
+
+    await run(runner);
+
+    expect(seen.options).toBeUndefined();
+    expect(String(lastWrite(persisted)["logs"])).toContain(
+      'which the API key "Terraform" gave it, and that key has expired',
+    );
+  });
+
+  test("once the key is narrowed, it does not run", async () => {
+    givenKey({ permissions: [Permission.ProjectAdmin] });
+    const { runner, seen, persisted } = prepare(keyedWorkflow());
+
+    await run(runner);
+
+    expect(seen.options).toBeUndefined();
+    expect(String(lastWrite(persisted)["logs"])).toContain(
+      'which the API key "Terraform" gave it, and that key no longer has Project Owner',
+    );
+  });
+
+  test("a run woken from a Sleep step reads the key again, and does not carry on once it is narrowed", async () => {
+    givenKey({ permissions: [Permission.ProjectAdmin] });
+    const { runner, seen, persisted } = prepare(keyedWorkflow());
+
+    const asleep: WorkflowLog = new WorkflowLog();
+    asleep.logs = "Workflow suspended.";
+    asleep.isTestRun = false;
+    asleep.resumeData = {
+      pendingStack: [NODE.id],
+      executedComponents: [],
+      componentReturnValues: {},
+    };
+
+    jest
+      .spyOn(WorkflowLogService, "findOneById")
+      .mockResolvedValue(asleep as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+      isResume: true,
+    });
+
+    expect(seen.options).toBeUndefined();
+    expect(lastWrite(persisted)["workflowStatus"]).toBe(WorkflowStatus.Error);
+    expect(String(lastWrite(persisted)["logs"])).toContain(
+      "that key no longer has Project Owner",
+    );
   });
 });

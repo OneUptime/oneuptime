@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "对于在默认开启之前安装的代理，请升级它：",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **关闭它：** 在同一次升级中添加 `--set cost.enabled=false`。",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **已经在运行 Kubecost 或 OpenCost？** 改为让代理指向它，这样就不会内置任何组件：添加 `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`（或你的 Kubecost 服务）。",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **已经在运行 Kubecost 或 OpenCost？** 代理会找到它并读取它，而不是内置的引擎，集群的概览也会说明这一点：添加 `--set cost.engine.url=auto`，即可不再内置第二个引擎。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **本地部署或裸机？** 用 `--set cost.opencost.customPricing.enabled=true` 设置价目表（每资源小时的美元价格；参见 chart 的 `values.yaml`）。",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

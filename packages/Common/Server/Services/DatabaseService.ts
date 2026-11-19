@@ -9053,6 +9053,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       } as any,
       deletedByUser: deleteById.deletedByUser,
       deletionReason: deleteById.deletionReason,
+      ...(deleteById.miscDataProps
+        ? { miscDataProps: deleteById.miscDataProps }
+        : {}),
       props: deleteById.props,
     });
   }

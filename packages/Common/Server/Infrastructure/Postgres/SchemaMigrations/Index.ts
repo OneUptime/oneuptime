@@ -1090,7 +1090,16 @@ import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSec
 import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
 import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
-import { AddAIRunModelName1809185300000 } from "./1809185300000-AddAIRunModelName";
+import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
+import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
+import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
+import { AddAIRunModelName1809185500000 } from "./1809185500000-AddAIRunModelName";
 
 export default [
   InitialMigration,
@@ -2185,5 +2194,14 @@ export default [
   AddWorkflowRunAs1809185100000,
   AddWorkflowRunAsKeys1809185100100,
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
-  AddAIRunModelName1809185300000,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
+  DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
+  AddCloudConnectionAddedMetrics1809185310000,
+  AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
+  AddWorkflowRunAsApiKey1809185400000,
+  AddWorkflowRunAsApiKeyKey1809185400100,
+  AddAIRunModelName1809185500000,
 ];
