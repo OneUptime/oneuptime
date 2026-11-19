@@ -748,6 +748,90 @@ describe("Video Calls docs - connecting in one click", () => {
  * OneUptime AI card's reading of it, as the Dashboard draws them, the
  * scopes Zoom asks for, and the limits the server and the Dashboard keep.
  */
+/*
+ * What removing a transcript removes, said the same way by the docs and the
+ * privacy policy as the server does it (#9289, #9290): Remove transcript,
+ * removing a call, and removing OneUptime from a Zoom account take back what
+ * OneUptime AI read from the call, the feed and the channels; a message
+ * OneUptime cannot delete is named; what people wrote from the call stays.
+ * Both used to say the feed post stayed, and the transcripts with it.
+ */
+describe("Video Calls docs - what removing a transcript removes", () => {
+  const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+  const privacy: string = fs
+    .readFileSync(
+      path.join(repositoryRoot, "packages/Home/Views/privacy.ejs"),
+      "utf8",
+    )
+    .replace(/&gt;/g, ">");
+
+  test("Remove transcript takes what OneUptime AI read from the call, the feed and the channels, and says where a message stays", () => {
+    const section: string = sectionOf(readPage(), "reconnecting-and-removing");
+
+    expect(section).toContain(
+      "**Remove transcript** on a call deletes its transcript and what OneUptime AI read in it from the same places. If OneUptime can no longer delete a message there, because its workspace was disconnected or the app was removed from the channel, it says where the message stays.",
+    );
+    expect(section).toContain(
+      "from their calls, from the incidents' feeds and from the messages OneUptime posted in the incidents' Slack, Microsoft Teams and Mattermost channels",
+    );
+    expect(section).not.toContain("but not what OneUptime AI posted");
+    expect(readPage()).toContain(
+      "Removing a transcript removes what OneUptime AI read in it, from the call, the incident's feed and its channels, and keeps the incident's root cause.",
+    );
+  });
+
+  test("removing OneUptime from a Zoom account deletes, within minutes, the transcripts read through its sign-in - and leaves those someone added", () => {
+    const section: string = sectionOf(readPage(), "reconnecting-and-removing");
+
+    expect(section).toContain(
+      "Removing OneUptime from your Zoom account also deletes, within minutes, the call transcripts OneUptime read through its sign-in, and what OneUptime AI read in them",
+    );
+    expect(section).toContain("a transcript someone added stays");
+    expect(section).not.toContain(
+      "Transcripts OneUptime has already read stay on their incidents",
+    );
+  });
+
+  test("removing a call takes its transcript and what was read in it with it", () => {
+    expect(sectionOf(readPage(), "starting-a-call-by-hand")).toContain(
+      "**Remove** on the card takes a call off the incident's page, with its transcript and what OneUptime AI read in it.",
+    );
+  });
+
+  test("the privacy policy says the same, and no longer that the feed post stays", () => {
+    expect(privacy).toContain(
+      "Removing a transcript or a call also deletes what OneUptime AI read in it wherever OneUptime posted it: the incident's feed, and the messages OneUptime posted in the incident's Slack, Microsoft Teams and Mattermost channels.",
+    );
+    expect(privacy).toContain(
+      "When you remove OneUptime from your Zoom account, OneUptime deletes the transcripts it read through your sign-in, and what OneUptime AI read in them, in the same way",
+    );
+    expect(privacy).toContain(
+      "When you remove OneUptime from Zoom, OneUptime deletes the stored sign-in and, within minutes, the call transcripts it read through that sign-in",
+    );
+    expect(privacy).not.toContain(
+      "Removing a transcript does not remove what OneUptime AI has already posted",
+    );
+    expect(privacy).not.toContain(
+      "or removing OneUptime's access at the provider, does not delete the transcripts",
+    );
+  });
+
+  test("the Zoom app guide tells the reviewer what removing the app deletes", () => {
+    const guide: string = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "packages/Common/Server/Utils/VideoCall/RELEASING.md",
+      ),
+      "utf8",
+    );
+
+    expect(guide).toContain("DeleteTranscriptsOfRemovedSignIns");
+    expect(guide).toContain(
+      "every transcript it read through that sign-in, with what OneUptime AI read",
+    );
+  });
+});
+
 describe("Video Calls docs - call transcripts", () => {
   function readSource(file: string): string {
     return fs.readFileSync(file, "utf8");

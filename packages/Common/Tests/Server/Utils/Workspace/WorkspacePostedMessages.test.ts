@@ -14,6 +14,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
+  WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspacePostedMessage from "../../../../Types/Workspace/WorkspacePostedMessage";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -25,7 +26,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
+
+// What a workspace's deleteMessage is handed.
+type DeleteMessageData = {
+  authToken: string;
+  projectId: ObjectID;
+  location: WorkspaceMessageLocation;
+  messageId: string;
+};
+
+function markdownBlock(text: string): WorkspacePayloadMarkdown {
+  return { _type: "WorkspacePayloadMarkdown", text };
+}
 
 /*
  * The messages a send posted, and taking them back (#9290): where each post
@@ -38,7 +51,7 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 
 const BLOCKS: Array<WorkspaceMessageBlock> = [
-  { _type: "WorkspacePayloadMarkdown", text: "✨ OneUptime AI read it." },
+  markdownBlock("✨ OneUptime AI read it."),
 ];
 
 function payload(
@@ -121,7 +134,9 @@ describe("fromSend: where a send posted", () => {
 
     expect(
       WorkspacePostedMessages.fromSend({
-        payloads: [payload(WorkspaceType.MicrosoftTeams, { chatIds: [chatId] })],
+        payloads: [
+          payload(WorkspaceType.MicrosoftTeams, { chatIds: [chatId] }),
+        ],
         responses: [
           {
             workspaceType: WorkspaceType.MicrosoftTeams,
@@ -169,7 +184,7 @@ describe("fromSend: where a send posted", () => {
     const many: Array<WorkspaceMessageBlock> = Array.from(
       { length: WorkspacePostedMessages.MAX_BLOCKS_IN_ONE_POST + 1 },
       (_value: unknown, index: number): WorkspaceMessageBlock => {
-        return { _type: "WorkspacePayloadMarkdown", text: `Part ${index}` };
+        return markdownBlock(`Part ${index}`);
       },
     );
 
@@ -251,20 +266,13 @@ describe("fromSend: where a send posted", () => {
 });
 
 describe("deleteAll: taking messages back", () => {
-  let deleteMessage: jest.Mock<
-    (data: {
-      authToken: string;
-      projectId: ObjectID;
-      location: WorkspaceMessageLocation;
-      messageId: string;
-    }) => Promise<void>
-  >;
+  let deleteMessage: Mock<(data: DeleteMessageData) => Promise<void>>;
   let getProjectAuth: SpyInstance<
     typeof WorkspaceProjectAuthTokenService.getProjectAuth
   >;
 
   beforeEach(() => {
-    deleteMessage = jest.fn(async (): Promise<void> => {
+    deleteMessage = jest.fn(async (_data: DeleteMessageData): Promise<void> => {
       return undefined;
     });
     jest.spyOn(WorkspaceUtil, "getWorkspaceTypeUtil").mockReturnValue({
@@ -357,9 +365,11 @@ describe("deleteAll: taking messages back", () => {
   });
 
   test("a message the workspace refuses to delete is said, with why, and the rest are still deleted", async () => {
-    deleteMessage.mockImplementationOnce(async (): Promise<void> => {
-      throw new Error("is_archived");
-    });
+    deleteMessage.mockImplementationOnce(
+      async (_data: DeleteMessageData): Promise<void> => {
+        throw new Error("is_archived");
+      },
+    );
 
     const deletion: WorkspaceMessageDeletion =
       await WorkspacePostedMessages.deleteAll({
@@ -449,7 +459,8 @@ describe("forgetLoggedText: what Notification Logs kept of the messages", () => 
 
     expect(updateBy).toHaveBeenCalledTimes(2);
 
-    const first: JSONObject = updateBy.mock.calls[0]![0] as unknown as JSONObject;
+    const first: JSONObject = updateBy.mock
+      .calls[0]![0] as unknown as JSONObject;
 
     expect(first["query"]).toEqual({
       projectId: PROJECT,
@@ -476,9 +487,7 @@ describe("forgetLoggedText: what Notification Logs kept of the messages", () => 
       projectId: PROJECT,
       deletion: {
         deleted: [],
-        notDeleted: [
-          { message: { ...SLACK, messageId: "" }, reason: "no id" },
-        ],
+        notDeleted: [{ message: { ...SLACK, messageId: "" }, reason: "no id" }],
       },
       note: "Removed.",
     });

@@ -124,11 +124,15 @@ describePostgres("Taking back a call's transcript, against Postgres", () => {
         INCIDENT.toString(),
         data.provider || VideoCallProvider.Zoom,
         data.connectionId?.toString() || null,
-        data.transcript === undefined ? "00:00:01\tPriya\tHi." : data.transcript,
+        data.transcript === undefined
+          ? "00:00:01\tPriya\tHi."
+          : data.transcript,
         data.transcriptSource === undefined
           ? VideoCallTranscriptSource.Provider
           : data.transcriptSource,
-        data.transcriptAddedAt === undefined ? ADDED_AT : data.transcriptAddedAt,
+        data.transcriptAddedAt === undefined
+          ? ADDED_AT
+          : data.transcriptAddedAt,
         data.callSummary ? JSON.stringify(data.callSummary) : null,
         data.callSummaryStatus || null,
         data.callSummaryPosts ? JSON.stringify(data.callSummaryPosts) : null,
@@ -412,7 +416,10 @@ describePostgres("Taking back a call's transcript, against Postgres", () => {
       expect(taken).not.toBeNull();
       expect(taken!.removedTranscript).toBe(true);
       expect(taken!.untrackedReading).toBe(false);
-      expect(taken!.posts).toEqual([postOf("feed-1", ACCOUNT), postOf("feed-2")]);
+      expect(taken!.posts).toEqual([
+        postOf("feed-1", ACCOUNT),
+        postOf("feed-2"),
+      ]);
       expect(taken!.call.incidentId?.toString()).toBe(INCIDENT.toString());
 
       const row: JSONObject = await readCall(id);
@@ -621,7 +628,9 @@ describePostgres("Taking back a call's transcript, against Postgres", () => {
         connectionId: signedIn,
         transcriptSource: VideoCallTranscriptSource.Upload,
       });
-      const marked: ObjectID = await insertCall({ connectionId: removedByZoom });
+      const marked: ObjectID = await insertCall({
+        connectionId: removedByZoom,
+      });
       const ownAppCall: ObjectID = await insertCall({ connectionId: ownApp });
       const alreadyNamed: ObjectID = await insertCall({
         connectionId: signedIn,
@@ -667,9 +676,8 @@ describePostgres("Taking back a call's transcript, against Postgres", () => {
 
       await IncidentCallTranscriptSignInBackfill.run();
 
-      const [waiting] = await IncidentVideoCallService.getCallsOfRemovedSignIns(
-        10,
-      );
+      const [waiting] =
+        await IncidentVideoCallService.getCallsOfRemovedSignIns(10);
       const taken: TakenTranscript | null =
         await IncidentVideoCallService.takeTranscriptForRemoval({
           callId: id,

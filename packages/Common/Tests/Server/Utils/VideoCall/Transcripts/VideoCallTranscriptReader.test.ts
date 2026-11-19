@@ -387,7 +387,9 @@ describe("VideoCallTranscriptReader - whose sign-in read it", () => {
   };
   const FOUND: VideoCallTranscriptRead = {
     found: true,
-    lines: [{ offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolled back." }],
+    lines: [
+      { offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolled back." },
+    ],
     format: TranscriptText.detectFormat("WEBVTT"),
   };
 

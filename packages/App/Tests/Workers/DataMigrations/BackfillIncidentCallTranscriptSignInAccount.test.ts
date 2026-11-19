@@ -130,9 +130,7 @@ describe("BackfillIncidentCallTranscriptSignInAccount", () => {
       NAME_TRANSCRIPTS_AFTER_SIGN_INS_STATEMENT,
       MARK_TRANSCRIPTS_OF_REMOVED_SIGN_INS_STATEMENT,
     ]) {
-      expect(statement).toContain(
-        `"call"."transcriptSignInAccountId" IS NULL`,
-      );
+      expect(statement).toContain(`"call"."transcriptSignInAccountId" IS NULL`);
       expect(statement).toContain(`"call"."deletedAt" IS NULL`);
       expect(statement).toContain(`"call"."transcriptSource" = `);
     }

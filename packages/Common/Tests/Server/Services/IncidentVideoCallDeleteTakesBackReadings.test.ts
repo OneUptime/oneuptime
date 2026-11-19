@@ -110,7 +110,11 @@ beforeEach(() => {
   internals = service as unknown as Internals;
   held = jest
     .spyOn(service as never, "findRowsAndHoldDeleteToThem")
-    .mockResolvedValue([WITH_TRANSCRIPT, WITHOUT, POSTS_ONLY] as never) as never;
+    .mockResolvedValue([
+      WITH_TRANSCRIPT,
+      WITHOUT,
+      POSTS_ONLY,
+    ] as never) as never;
   takeBack = jest
     .spyOn(IncidentCallTranscriptRemoval, "takeBackDeletedCall")
     .mockResolvedValue(undefined);

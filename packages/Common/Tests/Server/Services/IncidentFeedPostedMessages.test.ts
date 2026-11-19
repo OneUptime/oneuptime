@@ -13,7 +13,9 @@ import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import { Indigo500 } from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
-import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceMessagePayload, {
+  WorkspacePayloadMarkdown,
+} from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspacePostedMessage from "../../../Types/Workspace/WorkspacePostedMessage";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
@@ -40,7 +42,8 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const INCIDENT: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const FEED: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
-const ENTRY: string = "✨ OneUptime AI read the transcript of the **Zoom meeting**.";
+const ENTRY: string =
+  "✨ OneUptime AI read the transcript of the **Zoom meeting**.";
 
 const SLACK_POST: WorkspacePostedMessage = {
   workspaceType: WorkspaceType.Slack,
@@ -94,7 +97,12 @@ beforeEach(() => {
         (workspaceType: WorkspaceType): MessageBlocksByWorkspaceType => {
           return {
             workspaceType,
-            messageBlocks: [{ _type: "WorkspacePayloadMarkdown", text: ENTRY }],
+            messageBlocks: [
+              {
+                _type: "WorkspacePayloadMarkdown",
+                text: ENTRY,
+              } as WorkspacePayloadMarkdown,
+            ],
           };
         },
       );
@@ -178,8 +186,12 @@ describe("the send tells where it posted", () => {
     jest
       .spyOn(WorkspaceNotificationRuleService, "hasConnectedWorkspace")
       .mockResolvedValue(false);
-    const onPosted: jest.Mock<(messages: Array<WorkspacePostedMessage>) => void> =
-      jest.fn();
+    const told: Array<Array<WorkspacePostedMessage>> = [];
+    const onPosted: (messages: Array<WorkspacePostedMessage>) => void = (
+      messages: Array<WorkspacePostedMessage>,
+    ): void => {
+      told.push(messages);
+    };
 
     await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
       projectId: PROJECT,
@@ -188,7 +200,7 @@ describe("the send tells where it posted", () => {
       workspaceNotification: { sendWorkspaceNotification: true, onPosted },
     });
 
-    expect(onPosted).not.toHaveBeenCalled();
+    expect(told).toEqual([]);
     expect(postSpy).not.toHaveBeenCalled();
   });
 
@@ -290,7 +302,10 @@ describe("IncidentFeedService.postIncidentFeedItem", () => {
     const send: SpyInstance<
       typeof WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification
     > = jest
-      .spyOn(WorkspaceNotificationRuleService, "sendWorkspaceMarkdownNotification")
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "sendWorkspaceMarkdownNotification",
+      )
       .mockResolvedValue(undefined);
 
     await IncidentFeedService.createIncidentFeedItem({

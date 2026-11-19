@@ -14,7 +14,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 /*
  * A POST THE BOT MADE, DELETED, so what OneUptime AI read in a call's
@@ -36,7 +35,7 @@ const AUTH_TOKEN: string = MattermostConnection.toAuthToken({
   botUserId: "fyrf6fb5ijgqjdpsk1dw8nmfkh",
 });
 
-let callServer: SpyInstance<typeof MattermostUtil.callServer>;
+let callServer: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   callServer = jest
@@ -63,7 +62,8 @@ describe("MattermostUtil.deleteMessage", () => {
 
     expect(callServer).toHaveBeenCalledTimes(1);
 
-    const call: JSONObject = callServer.mock.calls[0]![0] as unknown as JSONObject;
+    const call: JSONObject = callServer.mock
+      .calls[0]![0] as unknown as JSONObject;
 
     expect(call["method"]).toBe(HTTPMethod.DELETE);
     expect(call["path"]).toBe(`/api/v4/posts/${POST_ID}`);

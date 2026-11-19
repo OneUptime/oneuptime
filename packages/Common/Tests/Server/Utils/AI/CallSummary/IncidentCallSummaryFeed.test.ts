@@ -40,9 +40,7 @@ import type { SpyInstance } from "jest-mock";
  * removing OneUptime takes it back too (#9289).
  */
 
-const FEED_ID: ObjectID = new ObjectID(
-  "66666666-6666-4666-8666-666666666666",
-);
+const FEED_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
 // Where the item went: the feed, and the incident's Slack channel.
 function posted(): IncidentFeedItemPosted {
@@ -192,9 +190,9 @@ describe("IncidentCallSummaryFeed.post", () => {
 
     expect(post.signInAccountId).toBe("KdYKjnimT4KPd8FFgQt9FQ");
     // The feed item itself names nobody.
-    expect(
-      feed.mock.calls[0]![0] as unknown as JSONObject,
-    ).not.toHaveProperty("signInAccountId");
+    expect(feed.mock.calls[0]![0] as unknown as JSONObject).not.toHaveProperty(
+      "signInAccountId",
+    );
   });
 
   test("an item that could not be created is said as a post with nothing to take back", async () => {

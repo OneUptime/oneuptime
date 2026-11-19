@@ -142,9 +142,9 @@ describe("their place among the migrations", () => {
       ).toHaveLength(1);
     }
 
-    expect(new AddIncidentCallTranscriptPostsAndSignIn1809184700000().name).toBe(
-      columns,
-    );
+    expect(
+      new AddIncidentCallTranscriptPostsAndSignIn1809184700000().name,
+    ).toBe(columns);
     expect(new AddIncidentCallTranscriptSignInIndexes1809184710000().name).toBe(
       indexes,
     );

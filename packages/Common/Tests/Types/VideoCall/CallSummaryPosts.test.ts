@@ -65,9 +65,9 @@ describe("CallSummaryPosts", () => {
         messages: [SLACK, TEAMS_CHAT, TEAMS_CHANNEL],
       },
     ]);
-    expect(
-      CallSummaryPosts.read(value)[0]!.messages[1]!.channelId.length,
-    ).toBe(142);
+    expect(CallSummaryPosts.read(value)[0]!.messages[1]!.channelId.length).toBe(
+      142,
+    );
   });
 
   test("no posts left is no value at all", () => {
@@ -80,9 +80,12 @@ describe("CallSummaryPosts", () => {
     ["a list", [post()]],
     ["a string", "posts"],
     ["no posts list", { posts: "many" }],
-  ])("a column that holds %s holds no posts", (_name: string, value: unknown) => {
-    expect(CallSummaryPosts.read(value)).toEqual([]);
-  });
+  ])(
+    "a column that holds %s holds no posts",
+    (_name: string, value: unknown) => {
+      expect(CallSummaryPosts.read(value)).toEqual([]);
+    },
+  );
 
   test("a message that is not one is left out; the rest of its post stays", () => {
     const posts: Array<CallSummaryPost> = CallSummaryPosts.read({

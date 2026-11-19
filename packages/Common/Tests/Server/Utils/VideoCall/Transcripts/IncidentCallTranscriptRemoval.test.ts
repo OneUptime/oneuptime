@@ -486,9 +486,7 @@ describe("a reading posted before calls kept where it went", () => {
 
   test("finds its feed item by what it says, and deletes it", async () => {
     const call: IncidentVideoCall = legacyCall();
-    take.mockResolvedValue(
-      taken({ call, posts: [], untrackedReading: true }),
-    );
+    take.mockResolvedValue(taken({ call, posts: [], untrackedReading: true }));
     const item: IncidentFeed = new IncidentFeed();
     item.id = new ObjectID(FEED_A);
     feedFind.mockResolvedValue([item]);
@@ -518,9 +516,7 @@ describe("a reading posted before calls kept where it went", () => {
 
   test("finds its channel messages by the text their logs kept, deletes them, and forgets that text", async () => {
     const call: IncidentVideoCall = legacyCall();
-    take.mockResolvedValue(
-      taken({ call, posts: [], untrackedReading: true }),
-    );
+    take.mockResolvedValue(taken({ call, posts: [], untrackedReading: true }));
     logFind.mockResolvedValue([
       logRow({
         workspaceType: WorkspaceType.Slack,
@@ -743,7 +739,10 @@ describe("the account whose sign-in read it removed OneUptime (#9289)", () => {
     second.id = new ObjectID("88888888-8888-4888-8888-888888888888");
     jest
       .spyOn(IncidentVideoCallService, "getCallsOfRemovedSignIns")
-      .mockResolvedValue([callOf({ transcriptSignInAccountId: ACCOUNT }), second]);
+      .mockResolvedValue([
+        callOf({ transcriptSignInAccountId: ACCOUNT }),
+        second,
+      ]);
     const removeOne: SpyInstance<
       typeof IncidentCallTranscriptRemoval.removeForRemovedSignIn
     > = jest
