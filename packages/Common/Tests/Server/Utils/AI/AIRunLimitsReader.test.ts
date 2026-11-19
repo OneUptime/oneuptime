@@ -169,7 +169,7 @@ describe("AIRunLimitsReader.fromProject", () => {
 });
 
 describe("AIRunLimitsReader.read", () => {
-  test("reads the four limits, the time limit per command and both lanes' time limits, as root", async () => {
+  test("reads the four limits and both lanes' time limits, as root", async () => {
     const calls: Array<unknown> = mockProject(new Project());
 
     await AIRunLimitsReader.read({ projectId: PROJECT_ID });
@@ -182,7 +182,6 @@ describe("AIRunLimitsReader.read", () => {
           aiRunMaxToolCalls: true,
           aiRunMaxTokens: true,
           aiRunTimeLimitInMinutes: true,
-          aiRunCommandTimeLimitInMinutes: true,
           incidentAiInvestigationTimeLimitInMinutes: true,
           alertAiInvestigationTimeLimitInMinutes: true,
         },
@@ -204,26 +203,49 @@ describe("AIRunLimitsReader.read", () => {
    * run's limits (CodeAgentRunLimits), so a project's own setting is the most
    * a command may run - and a project with none reads as it always did.
    */
-  test("a project's time limit per command is read with the limits; none is the default", async () => {
-    mockProject(projectWith({ aiRunCommandTimeLimitInMinutes: 30 }));
+  test("a code task reads the project's time limit per command with the limits; none is the default", async () => {
+    const calls: Array<unknown> = mockProject(
+      projectWith({ aiRunCommandTimeLimitInMinutes: 30 }),
+    );
 
     const limits: AIAgentRunLimits = await AIRunLimitsReader.read({
       projectId: PROJECT_ID,
+      isCodeTask: true,
     });
 
     expect(limits.commandTimeLimitInMinutes).toBe(30);
     expect(AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(limits)).toBe(
       30,
     );
+    expect(
+      (calls[0] as { select: Record<string, boolean> }).select[
+        "aiRunCommandTimeLimitInMinutes"
+      ],
+    ).toBe(true);
 
     mockProject(new Project());
 
     const none: AIAgentRunLimits = await AIRunLimitsReader.read({
       projectId: PROJECT_ID,
+      isCodeTask: true,
     });
 
     expect(none.commandTimeLimitInMinutes).toBeUndefined();
     expect(AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(none)).toBe(10);
+  });
+
+  test("no other run reads a command's time limit: it runs no command", async () => {
+    const calls: Array<unknown> = mockProject(
+      projectWith({ aiRunCommandTimeLimitInMinutes: 30 }),
+    );
+
+    await AIRunLimitsReader.read({ projectId: PROJECT_ID, lane: "Incident" });
+
+    expect(
+      (calls[0] as { select: Record<string, boolean> }).select[
+        "aiRunCommandTimeLimitInMinutes"
+      ],
+    ).toBeUndefined();
   });
 
   test("the lane is passed through", async () => {

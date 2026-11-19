@@ -310,9 +310,14 @@ export default class CodeFixAgentCompletion {
       );
     }
 
-    // The run's limits, and what it has used - counted from its own LlmLog rows.
+    /*
+     * The run's limits, and what it has used - counted from its own LlmLog
+     * rows - and how long one command may run, which the worker holds each
+     * of its commands to (issue #6532).
+     */
     const limits: AIAgentRunLimits = await AIRunLimitsReader.read({
       projectId: run.projectId,
+      isCodeTask: true,
     });
 
     const usage: {

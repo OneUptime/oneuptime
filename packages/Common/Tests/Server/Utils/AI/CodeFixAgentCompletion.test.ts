@@ -696,6 +696,11 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     // About 80 minutes left of the 90.
     expect(result.limits.timeLeftMs).toBeGreaterThan(79 * MINUTE);
     expect(result.limits.timeLeftMs).toBeLessThanOrEqual(80 * MINUTE);
+    // A code task's limits include how long one command may run.
+    expect(AIRunLimitsReader.read).toHaveBeenCalledWith({
+      projectId,
+      isCodeTask: true,
+    });
   });
 
   test("with no limit set, the worker is told of none but the time limit", async () => {
@@ -803,7 +808,10 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
         >
       ).mock.calls[0]![0].select,
     ).toMatchObject({ startedAt: true });
-    expect(AIRunLimitsReader.read).toHaveBeenCalledWith({ projectId });
+    expect(AIRunLimitsReader.read).toHaveBeenCalledWith({
+      projectId,
+      isCodeTask: true,
+    });
   });
 
   test("the transcript numbers each call, and names no cap that is not set", async () => {

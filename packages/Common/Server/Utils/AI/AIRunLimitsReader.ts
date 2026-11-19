@@ -45,15 +45,17 @@ export default class AIRunLimitsReader {
   /*
    * The run's limits. A Slack or Microsoft Teams answer (isChatAppAnswer)
    * also stops at CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES, when that comes
-   * first. A project that cannot be read runs with the defaults - no cap,
-   * the default time limit - rather than not at all: the caps are opt-in,
-   * and the time limit still holds.
+   * first. A code task (isCodeTask) also reads how long one of its commands
+   * may run (issue #6532), which no other run has. A project that cannot be
+   * read runs with the defaults - no cap, the default time limit - rather
+   * than not at all: the caps are opt-in, and the time limit still holds.
    */
   @CaptureSpan()
   public static async read(data: {
     projectId: ObjectID;
     lane?: AIRunLane | undefined;
     isChatAppAnswer?: boolean | undefined;
+    isCodeTask?: boolean | undefined;
   }): Promise<AIAgentRunLimits> {
     let limits: AIAgentRunLimits;
 
@@ -65,9 +67,9 @@ export default class AIRunLimitsReader {
           aiRunMaxToolCalls: true,
           aiRunMaxTokens: true,
           aiRunTimeLimitInMinutes: true,
-          aiRunCommandTimeLimitInMinutes: true,
           incidentAiInvestigationTimeLimitInMinutes: true,
           alertAiInvestigationTimeLimitInMinutes: true,
+          ...(data.isCodeTask ? { aiRunCommandTimeLimitInMinutes: true } : {}),
         },
         props: { isRoot: true },
       });
