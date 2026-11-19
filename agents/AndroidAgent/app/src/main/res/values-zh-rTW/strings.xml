@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The agent's words in Traditional Chinese: every string of res/values/strings.xml, in the Dashboard's terms (Locales/zh-TW.json). -->
+<resources>
+
+    <string name="notification_channel_name">代理程式狀態</string>
+    <string name="notification_channel_description">顯示此裝置是否正在向 OneUptime 回報。</string>
+
+    <string name="notification_requests_channel_name">來自 OneUptime 的請求</string>
+    <string name="notification_requests_channel_description">OneUptime 為了疑難排解而請求讀取此裝置的日誌。</string>
+    <string name="notification_request_title">OneUptime 請求取得此裝置的日誌</string>
+
+    <string name="status_not_set_up">尚未設定</string>
+    <string name="status_not_set_up_detail">請輸入擷取金鑰，或透過裝置管理服務以 oneuptime_token 的形式傳送。</string>
+    <string name="status_unreachable">無法連線到 OneUptime</string>
+    <string name="status_unreachable_detail">請檢查裝置的網路。代理程式會自動重試。</string>
+    <string name="status_key_refused">OneUptime 拒絕了擷取金鑰</string>
+    <string name="status_key_refused_detail">請使用已開啟且未過期的伺服器擷取金鑰（HTTP %1$d）。</string>
+    <string name="status_not_found">此位址上沒有 OneUptime</string>
+    <string name="status_not_found_detail">請檢查 OneUptime URL（%1$s）。</string>
+    <string name="status_server_error">OneUptime 目前不接收遙測資料</string>
+    <string name="status_server_error_detail">OneUptime 回應了 %1$d。代理程式會自動重試。</string>
+    <string name="status_server_error_unknown_detail">OneUptime 回應了錯誤。代理程式會自動重試。</string>
+    <string name="status_sending_failed">傳送失敗</string>
+    <string name="status_retrying">代理程式會自動重試。</string>
+    <string name="status_kept">遙測資料會保留在裝置上，直到可以傳送為止。</string>
+    <string name="status_detail_and_kept">%1$s%2$s</string>
+    <string name="status_reporting">正在向 OneUptime 回報</string>
+    <string name="status_as_device">裝置名稱：%1$s</string>
+    <string name="status_starting">正在啟動</string>
+    <string name="status_starting_detail">裝置名稱：%1$s。第一份回報會在一分鐘內送出。</string>
+
+    <string name="address_empty">請輸入您的 OneUptime URL。</string>
+    <string name="address_not_a_url">OneUptime URL 不是有效的網址。</string>
+    <string name="address_not_https">OneUptime URL 必須以 https:// 開頭，以免擷取金鑰以明文傳送。</string>
+    <string name="address_query_or_fragment">請移除 OneUptime URL 中以 ? 或 # 開頭的部分。</string>
+    <string name="address_credentials">請移除 OneUptime URL 中的使用者名稱和密碼。</string>
+
+    <string name="setup_subtitle">向 OneUptime 回報此裝置的健康狀況、重新啟動、應用程式和日誌。</string>
+    <string name="setup_last_report">最後回報傳送於 %1$s</string>
+    <string name="setup_no_report_yet">尚未傳送任何內容</string>
+    <string name="setup_waiting">%1$s 待傳送</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s：裝置管理服務原封不動地傳送了 %2$s，沒有填入實際的值。</string>
+    <string name="setup_problem_invalid">%1$s：無法使用 %2$s，因此套用預設值。</string>
+    <string name="setup_connection">連線</string>
+    <string name="setup_managed_notice">顯示為鎖定的設定是由貴組織的裝置管理服務所指定。</string>
+    <string name="setup_url_label">OneUptime URL</string>
+    <string name="setup_url_help">只有在您自行託管 OneUptime 時才需要變更。</string>
+    <string name="setup_token_label">擷取金鑰</string>
+    <string name="setup_token_hint">貼上伺服器擷取金鑰</string>
+    <string name="setup_token_stored_hint">已儲存。貼上新金鑰即可取代。</string>
+    <string name="setup_token_help">在 OneUptime 中：專案設定 > 遙測與 APM > 擷取金鑰。請使用伺服器金鑰。</string>
+    <string name="setup_token_unreadable">此裝置已無法讀取儲存的金鑰。請重新貼上。</string>
+    <string name="setup_device_name_label">裝置名稱</string>
+    <string name="setup_device_name_help">此裝置在主機和資產清單中顯示的名稱。</string>
+    <string name="setup_set_by_organization">由貴組織設定</string>
+    <string name="setup_save">儲存並連線</string>
+    <string name="setup_saved">已儲存。代理程式正在傳送回報。</string>
+    <string name="setup_token_required">請貼上擷取金鑰。</string>
+    <string name="setup_save_failed">此裝置無法安全地儲存金鑰：%1$s</string>
+    <string name="setup_readings">此裝置允許代理程式讀取的項目</string>
+    <string name="setup_reading_yes">是</string>
+    <string name="setup_reading_cpu">CPU 使用率</string>
+    <string name="setup_reading_cpu_device_owner">是，以裝置擁有者身分</string>
+    <string name="setup_reading_cpu_not_device_owner">僅限代理程式為裝置擁有者時</string>
+    <string name="setup_reading_cpu_not_supported">此裝置不支援：Android 未提供 CPU 使用率</string>
+    <string name="setup_reading_memory">記憶體、儲存空間和網路</string>
+    <string name="setup_reading_battery">電池</string>
+    <string name="setup_reading_no_battery">無電池</string>
+    <string name="setup_reading_thermal">溫度與降頻</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 以上版本</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">當機堆疊和重新啟動原因</string>
+    <string name="setup_reading_crash_details_yes">是，所有應用程式</string>
+    <string name="setup_reading_crash_details_not_granted">已關閉：未授予 READ_LOGS</string>
+    <string name="setup_reading_crash_details_no_usage_access">已關閉：未授予使用狀況存取權</string>
+    <string name="setup_reading_apps">已安裝的應用程式</string>
+    <string name="setup_reading_off_by_manager">已關閉：由裝置管理服務關閉</string>
+    <string name="setup_reading_unknown">第一次回報後顯示</string>
+    <string name="setup_grants">如要傳送其他應用程式的日誌和當機堆疊，請使用 adb 或裝置管理服務的遠端 ADB 授予下列權限（只需一次）：</string>
+    <string name="setup_usage_access">授予使用狀況存取權</string>
+
+    <string name="logcat_not_started">未開始</string>
+    <string name="logcat_not_granted">已關閉：未授予 READ_LOGS</string>
+    <string name="logcat_crashes_and_anrs">所有應用程式的當機與 ANR</string>
+    <string name="logcat_full">所有應用程式的日誌、當機與 ANR</string>
+
+    <string name="log_session_title">疑難排解用的日誌</string>
+    <string name="log_session_request_by">%1$s 在 OneUptime 中請求取得此裝置上所有應用程式的日誌（%3$s以上等級），持續 %2$s。</string>
+    <string name="log_session_request">OneUptime 請求取得此裝置上所有應用程式的日誌（%2$s以上等級），持續 %1$s。</string>
+    <string name="log_session_android_prompt">接著 Android 會詢問是否允許存取所有裝置記錄，屆時也請選擇允許。</string>
+    <string name="log_session_allow">允許</string>
+    <string name="log_session_decline">拒絕</string>
+    <string name="log_session_stop">停止傳送</string>
+    <string name="log_session_starting">請在 Android 的提示中允許存取所有裝置記錄。</string>
+    <string name="log_session_collecting_until">正在傳送所有應用程式的日誌，直到 %1$s。</string>
+    <string name="log_session_collecting">正在傳送所有應用程式的日誌。</string>
+    <string name="log_session_declined_here">已拒絕。不會再傳送任何內容。</string>
+    <string name="log_session_declined_by_android">未允許存取所有裝置記錄，因此不會再傳送任何內容。</string>
+    <string name="log_session_no_answer">沒有人回應 Android 的提示，因此不會再傳送任何內容。</string>
+    <string name="log_session_time_up">完成：已在要求的時間內傳送所有應用程式的日誌。</string>
+    <string name="log_session_stopped">已停止。不會再傳送任何內容。</string>
+    <string name="log_session_agent_restarted">因代理程式重新啟動而結束。</string>
+    <string name="log_session_logcat_stopped">已結束：Logcat 已停止讀取。</string>
+    <string name="log_session_logcat_disabled">此裝置無法傳送：裝置管理服務已關閉 Logcat。</string>
+    <string name="log_session_not_granted">此裝置無法傳送：未授予 READ_LOGS。</string>
+    <string name="log_session_expired">沒有人及時允許。</string>
+    <string name="log_session_cancelled">已在 OneUptime 中取消。</string>
+    <string name="log_session_ended">已結束。</string>
+    <plurals name="duration_minutes">
+        <item quantity="other">%d 分鐘</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="other">%d 小時</item>
+    </plurals>
+
+    <string name="device_admin_description">讓代理程式以裝置擁有者身分讀取此裝置的 CPU 使用率。它絕不會鎖定、清除資料或限制裝置。</string>
+
+    <string name="restriction_url_title">OneUptime URL</string>
+    <string name="restriction_url_description">遙測資料的傳送目的地。除非您自行託管 OneUptime，否則請保留 https://oneuptime.com。</string>
+    <string name="restriction_token_title">擷取金鑰</string>
+    <string name="restriction_token_description">來自「專案設定 > 遙測與 APM > 擷取金鑰」的伺服器擷取金鑰。</string>
+    <string name="restriction_device_name_title">裝置名稱</string>
+    <string name="restriction_device_name_description">裝置在 OneUptime 中的名稱，例如 ${esper.deviceName}。請在應用程式的 host.name 中使用相同名稱，讓兩者顯示為同一台裝置。</string>
+    <string name="restriction_device_serial_title">序號</string>
+    <string name="restriction_device_serial_description">裝置的序號，例如 ${esper.serialNumber}。Android 本身不會將序號提供給應用程式。</string>
+    <string name="restriction_device_type_title">裝置類型</string>
+    <string name="restriction_device_type_description">裝置的類型：自助服務機、POS 終端機、手持裝置、數位看板。</string>
+    <string name="restriction_device_location_title">位置</string>
+    <string name="restriction_device_location_description">裝置所在的位置，例如門市編號。</string>
+    <string name="restriction_labels_title">標籤</string>
+    <string name="restriction_labels_description">裝置在 OneUptime 中的標籤，以逗號分隔的「名稱=值」組合表示，例如 store=0412, region=emea。</string>
+    <string name="restriction_interval_title">收集間隔（秒）</string>
+    <string name="restriction_interval_description">代理程式回報的頻率，範圍為 30 到 600 秒。預設為 60。</string>
+    <string name="restriction_logcat_enabled_title">傳送 Logcat</string>
+    <string name="restriction_logcat_enabled_description">傳送其他應用程式的當機、ANR 和日誌，並允許 OneUptime 請求的日誌工作階段。需要透過 adb 授予 READ_LOGS。</string>
+    <string name="restriction_logcat_level_title">最低 Logcat 等級</string>
+    <string name="restriction_logcat_level_description">要傳送的 Logcat 行的最低嚴重程度，適用於 Android 12 以下版本。預設為「警告」。</string>
+    <string name="restriction_apps_enabled_title">傳送已安裝的應用程式</string>
+    <string name="restriction_apps_enabled_description">每天傳送一次已安裝的應用程式及其版本，並在每次安裝、更新和移除時傳送。</string>
+    <string name="logcat_level_verbose">詳細</string>
+    <string name="logcat_level_debug">偵錯</string>
+    <string name="logcat_level_info">資訊</string>
+    <string name="logcat_level_warn">警告</string>
+    <string name="logcat_level_error">錯誤</string>
+    <string name="logcat_level_fatal">致命</string>
+</resources>

@@ -8,6 +8,7 @@ import {
   getAnnouncementNotifyBoxReason,
   getAnnouncementReachQuestion,
   getAnnouncementScheduleSectionSummary,
+  getAnnouncementUpdateBoxReason,
 } from "./AnnouncementForm";
 import useAnnouncementReach, {
   AnnouncementReachState,
@@ -17,9 +18,10 @@ import useAnnouncementReach, {
  * What the announcement forms say of the status pages picked on them, once
  * the server has said what is true for those pages (#9775,
  * useAnnouncementReach): the folded Schedule & Notifications line (Schedule
- * on the Edit), and why nobody would be told under a ticked notify box. The
- * words are AnnouncementForm's; each place asks for itself, and one answer
- * serves them all.
+ * on the Edit), and why nobody would be told under a ticked notify box -
+ * on the Edit's update box, the announcement's own state first (#9921).
+ * The words are AnnouncementForm's; each place asks for itself, and one
+ * answer serves them all.
  */
 
 /*
@@ -98,6 +100,48 @@ export const AnnouncementNotifyBoxReason: FunctionComponent<{
     values: props.values,
     fieldKey: props.fieldKey,
     isTickedByDefault: props.isTickedByDefault,
+    reach: reach,
+  });
+
+  if (!reason) {
+    return <></>;
+  }
+
+  return (
+    <ScopeNotice
+      text={translateString(reason) || reason}
+      dataTestId={props.dataTestId}
+    />
+  );
+};
+
+/*
+ * Under the Edit's "Notify subscribers about this update", while it is
+ * ticked: why the update would not be sent - the announcement's own state
+ * first (not shown until its start, or its own notification not gone out
+ * yet, #9921), then the status pages picked - in the same amber note.
+ * Nothing while it would be sent, or while the box is unticked.
+ */
+export const AnnouncementUpdateBoxReason: FunctionComponent<{
+  values: unknown;
+  announcementId: ObjectID | string | null | undefined;
+  dataTestId: string;
+}> = (props: {
+  values: unknown;
+  announcementId: ObjectID | string | null | undefined;
+  dataTestId: string;
+}): ReactElement => {
+  const { translateString } = useTranslateValue();
+
+  const { reach }: AnnouncementReachState = useAnnouncementReach(
+    getAnnouncementReachQuestion({
+      values: props.values,
+      announcementId: props.announcementId,
+    }),
+  );
+
+  const reason: string | null = getAnnouncementUpdateBoxReason({
+    values: props.values,
     reach: reach,
   });
 

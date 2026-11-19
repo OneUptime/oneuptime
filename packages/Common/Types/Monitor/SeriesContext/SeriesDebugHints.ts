@@ -413,9 +413,68 @@ export default class SeriesDebugHints {
     return commands;
   }
 
+  /*
+   * An Android device - the series carries its Android API level, which the
+   * Android host templates group by and only the Android agent sends, or
+   * says `os.name: Android` - has no shell to ssh into, but adb, which
+   * Esper's Secure Remote ADB and other device managers' remote ADB reach.
+   * Each command reads and changes nothing.
+   */
+  private static androidCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "mountpoint",
+    ]);
+
+    if (mountpoint) {
+      commands.push({
+        purpose: "Free space on the device's storage",
+        command: `adb shell df -h ${SeriesDebugHints.quoteForShell(mountpoint)}`,
+      });
+      commands.push({
+        purpose: "What fills it: apps, their data and caches",
+        command: "adb shell dumpsys diskstats",
+      });
+    }
+
+    commands.push({
+      purpose: "Battery, charger and temperature, as Android sees them",
+      command: "adb shell dumpsys battery",
+    });
+    commands.push({
+      purpose: "Thermal status, and what Android throttles",
+      command: "adb shell dumpsys thermalservice",
+    });
+    commands.push({
+      purpose: "Why the device last rebooted",
+      command: "adb shell getprop sys.boot.reason",
+    });
+    commands.push({
+      purpose: "The crashes and reboots Android kept, newest last",
+      command: "adb shell dumpsys dropbox",
+    });
+
+    return commands;
+  }
+
   private static hostCommands(
     seriesLabels: JSONObject,
   ): Array<SeriesDebugCommand> {
+    const osName: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "os.name",
+    ]);
+    const androidApiLevel: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["android.os.api_level"],
+    );
+
+    if (androidApiLevel || osName.trim().toLowerCase() === "android") {
+      return SeriesDebugHints.androidCommands(seriesLabels);
+    }
+
     const commands: Array<SeriesDebugCommand> = [];
 
     const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [

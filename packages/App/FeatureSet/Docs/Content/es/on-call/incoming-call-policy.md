@@ -53,7 +53,7 @@ Ve a **Guardia** > **Políticas de llamadas entrantes** y haz clic en **Crear Po
 
 ### Elige la cuenta de Twilio
 
-La **Vista general** de la política muestra una tarjeta **Configuración** con tres pasos numerados. En el primero, haz clic en **Seleccionar**, elige la cuenta en **Configuración de Twilio** y haz clic en **Guardar**.
+La **Vista general** de la política muestra una tarjeta **Configuración** con tres pasos numerados. En el primero, haz clic en **Seleccionar**, elige la cuenta en **Configuración de Twilio** y haz clic en **Guardar**. La lista solo ofrece las configuraciones usadas para **Llamadas y SMS** o **Solo llamadas**. Una política cuya configuración se cambia después a **Solo SMS** la conserva, y su tarjeta indica qué cambiar.
 
 ### Añade un número de teléfono
 

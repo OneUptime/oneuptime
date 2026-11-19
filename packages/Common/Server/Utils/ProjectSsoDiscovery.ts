@@ -40,7 +40,7 @@ import ObjectID from "../../Types/ObjectID";
  *   3. The providers that are on and list one of those domains, in the
  *      domain's own project (Provider.domains). The upgrade gave every
  *      provider made before domains existed the verified domains its
- *      project alone held (BackfillSsoProviderDomains1809186540000, #9918);
+ *      project alone held (BackfillSsoProviderDomains1809186620000, #9918);
  *      an admin picks the rest. A provider that lists no verified domain is
  *      offered to nobody here, and the SSO settings page says so. Such a
  *      provider still signs people in from the identity provider's own

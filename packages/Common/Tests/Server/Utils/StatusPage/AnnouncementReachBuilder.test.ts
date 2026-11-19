@@ -55,9 +55,14 @@ import StatusPageSubscriberService from "../../../../Server/Services/StatusPageS
 import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
 import { UnreadableReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import AnnouncementReachBuilder, {
+  ANNOUNCEMENT_RECORD,
   AnnouncementReachRequest,
 } from "../../../../Server/Utils/StatusPage/AnnouncementReachBuilder";
+import PickedStatusPagesReachBuilder, {
+  PickedStatusPagesRecordKind,
+} from "../../../../Server/Utils/StatusPage/PickedStatusPagesReachBuilder";
 import PublicNoteReachBuilder from "../../../../Server/Utils/StatusPage/PublicNoteReachBuilder";
+import StatusPageSubscriberNotificationStatus from "../../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -108,6 +113,9 @@ let readablePageIds: Array<string> | null = null;
 let pagesTheAnnouncementIsOn: Array<string> = [];
 // Whether the caller may update that announcement.
 let isAnnouncementUpdatable: boolean = true;
+// Where that announcement's own notification stands (#9921).
+let originalNotificationStatus: StatusPageSubscriberNotificationStatus | null =
+  StatusPageSubscriberNotificationStatus.Success;
 
 function page(id: string, overrides: Partial<PageRow> = {}): PageRow {
   return {
@@ -205,11 +213,38 @@ function pagesLoaded(): jest.Mock {
   return StatusPageSubscriberService.getStatusPagesToSendNotification as unknown as jest.Mock;
 }
 
+// The read of the announcement's own notification, on an Edit (#9921).
+function statusRead(): jest.Mock {
+  return StatusPageAnnouncementService.findOneBy as unknown as jest.Mock;
+}
+
 beforeEach(() => {
   setPages(page(SITE_1), page(SITE_2), page(SITE_3));
   readablePageIds = null;
   pagesTheAnnouncementIsOn = [SITE_1];
   isAnnouncementUpdatable = true;
+  originalNotificationStatus = StatusPageSubscriberNotificationStatus.Success;
+
+  // The announcement an Edit edits, as root reads it.
+  jest
+    .spyOn(StatusPageAnnouncementService, "findOneBy")
+    .mockImplementation((async (findBy: {
+      query: JSONObject;
+    }): Promise<StatusPageAnnouncement | null> => {
+      if (
+        !sameId(findBy.query["_id"], ANNOUNCEMENT) ||
+        !sameId(findBy.query["projectId"], PROJECT_ID)
+      ) {
+        return null;
+      }
+
+      const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
+      announcement._id = ANNOUNCEMENT;
+      if (originalNotificationStatus) {
+        announcement.subscriberNotificationStatus = originalNotificationStatus;
+      }
+      return announcement;
+    }) as never);
 
   /*
    * As every subscriber notification loads them: archived pages and a
@@ -318,10 +353,15 @@ async function reach(
     request: request(statusPageIds, options.announcementId || null),
   });
 
-  // Nothing but the reason ever travels.
-  expect(Object.keys(AnnouncementReach.toJSON(result))).toEqual([
-    "nothingSentReason",
-  ]);
+  /*
+   * Nothing but the reason ever travels about the pages; an Edit's answer
+   * adds the announcement's own notification, which its editor may read.
+   */
+  expect(Object.keys(AnnouncementReach.toJSON(result))).toEqual(
+    options.announcementId
+      ? ["nothingSentReason", "originalNotificationStatus"]
+      : ["nothingSentReason"],
+  );
 
   return result.nothingSentReason;
 }
@@ -573,7 +613,11 @@ describe("who may ask: on Edit, whoever may update this announcement", () => {
       });
 
     // SITE_1, which the caller may not read, shows it and notifies.
-    expect(result).toEqual({ nothingSentReason: null });
+    expect(result).toEqual({
+      nothingSentReason: null,
+      originalNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Success,
+    });
     expect(JSON.stringify(AnnouncementReach.toJSON(result))).not.toContain(
       "Site",
     );
@@ -618,6 +662,142 @@ describe("who may ask: on Edit, whoever may update this announcement", () => {
     expect(
       await reach([SITE_1, SITE_2], { announcementId: ANNOUNCEMENT }),
     ).toBe(PublicNoteNothingSentReason.NotificationsOff);
+  });
+});
+
+/*
+ * On Edit the answer also says where the announcement's own notification
+ * stands (#9921): the update job skips an update while it has not gone
+ * out, and "Notify subscribers about this update" says so. Read as root
+ * once the caller has been shown to update the announcement - never before,
+ * and never on Create.
+ */
+describe("on Edit, the announcement's own notification", () => {
+  test.each(Object.values(StatusPageSubscriberNotificationStatus))(
+    "%s is answered beside the pages' reason",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      originalNotificationStatus = status;
+
+      const result: AnnouncementReachResult =
+        await AnnouncementReachBuilder.build({
+          projectId: PROJECT_ID,
+          props: props(),
+          request: request([SITE_1], ANNOUNCEMENT),
+        });
+
+      expect(result).toEqual({
+        nothingSentReason: null,
+        originalNotificationStatus: status,
+      });
+    },
+  );
+
+  test("read as root, in the request's project, once the caller may update the announcement", async () => {
+    const caller: DatabaseCommonInteractionProps = props();
+
+    await reach([SITE_1], {
+      announcementId: ANNOUNCEMENT,
+      callerProps: caller,
+    });
+
+    const read: {
+      query: JSONObject;
+      select: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    } = statusRead().mock.calls[0]![0] as never;
+
+    expect(String(read.query["_id"])).toBe(ANNOUNCEMENT);
+    expect(String(read.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(read.select).toEqual({
+      _id: true,
+      subscriberNotificationStatus: true,
+    });
+    expect(read.props).toEqual({ isRoot: true });
+    expect(updatableRead().mock.invocationCallOrder[0]!).toBeLessThan(
+      statusRead().mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a caller who may not update it learns nothing of it: no status is read", async () => {
+    isAnnouncementUpdatable = false;
+
+    await expect(
+      reach([SITE_1], { announcementId: ANNOUNCEMENT }),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+    expect(statusRead()).not.toHaveBeenCalled();
+  });
+
+  test("with no page picked it is answered all the same: the update box reads it", async () => {
+    originalNotificationStatus = StatusPageSubscriberNotificationStatus.Pending;
+
+    const result: AnnouncementReachResult =
+      await AnnouncementReachBuilder.build({
+        projectId: PROJECT_ID,
+        props: props(),
+        request: request([], ANNOUNCEMENT),
+      });
+
+    expect(result).toEqual({
+      nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+      originalNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+  });
+
+  test("an announcement with no status stored, or gone since, is answered as none", async () => {
+    originalNotificationStatus = null;
+
+    expect(
+      (
+        await AnnouncementReachBuilder.build({
+          projectId: PROJECT_ID,
+          props: { isRoot: true },
+          request: request([SITE_1], ANNOUNCEMENT),
+        })
+      ).originalNotificationStatus,
+    ).toBeNull();
+  });
+
+  test("on Create no announcement is read", async () => {
+    await reach([SITE_1]);
+
+    expect(statusRead()).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * An announcement is one kind of record whose form picks its status pages:
+ * the one rule every such form is answered by (PickedStatusPagesReachBuilder),
+ * which a maintenance event and a template are answered by too (#9920).
+ */
+describe("the one rule for every form that picks its status pages", () => {
+  test("is asked with the announcement's kind: announcements shown, and its own create and update", async () => {
+    const build: jest.Mock = jest.spyOn(
+      PickedStatusPagesReachBuilder,
+      "build",
+    ) as unknown as jest.Mock;
+
+    await reach([SITE_1]);
+
+    const asked: {
+      kind: PickedStatusPagesRecordKind<StatusPageAnnouncement>;
+      request: { recordId: ObjectID | null };
+    } = build.mock.calls[0]![0] as never;
+
+    expect(asked.kind).toBe(ANNOUNCEMENT_RECORD);
+    expect(asked.request.recordId).toBeNull();
+    expect(ANNOUNCEMENT_RECORD.service).toBe(StatusPageAnnouncementService);
+    expect(ANNOUNCEMENT_RECORD.recordIdKey).toBe("announcementId");
+
+    const shows: StatusPage = new StatusPage();
+    shows.showAnnouncementsOnStatusPage = true;
+    const hides: StatusPage = new StatusPage();
+    hides.showAnnouncementsOnStatusPage = false;
+    // Maintenance events shown says nothing of announcements.
+    hides.showScheduledMaintenanceEventsOnStatusPage = true;
+
+    expect(ANNOUNCEMENT_RECORD.showsRecord(shows)).toBe(true);
+    expect(ANNOUNCEMENT_RECORD.showsRecord(hides)).toBe(false);
   });
 });
 

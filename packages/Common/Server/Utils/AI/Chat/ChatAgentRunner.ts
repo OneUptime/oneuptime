@@ -104,6 +104,7 @@ import {
 import ChatInfrastructureAccess, {
   ChatPageInfrastructure,
 } from "./ChatInfrastructureAccess";
+import { readTestPageNotes } from "./ChatTestPageNotes";
 
 export interface ChatTurnRequest {
   projectId: ObjectID;
@@ -449,10 +450,13 @@ export function applyHistoryTokenBudget(
  * when the row should be skipped (unfinished/errored assistant turns, empty
  * rows). Assistant answers get their stale [C#] markers stripped and a
  * compact evidence digest appended; widget-only answers are replayed as a
- * "[Showed the user: …]" summary instead of vanishing.
+ * "[Showed the user: …]" summary instead of vanishing. An answer a test
+ * page was sent from ends with what became of it (#7249, testPageNote:
+ * ChatTestPageNotes), as it stands now.
  */
 export function buildReplayedHistoryMessage(
   message: AIConversationMessage,
+  testPageNote?: string | undefined,
 ): ReplayedHistoryMessage | undefined {
   if (message.role === AIChatMessageRole.User) {
     if (!message.contentInMarkdown) {
@@ -509,7 +513,11 @@ export function buildReplayedHistoryMessage(
   if (prose.trim()) {
     return {
       role: "assistant",
-      content: digest ? `${prose}\n\n${digest}` : prose,
+      content: [prose, digest, testPageNote || ""]
+        .filter((part: string): boolean => {
+          return Boolean(part);
+        })
+        .join("\n\n"),
     };
   }
 
@@ -524,6 +532,9 @@ export function buildReplayedHistoryMessage(
   }
   if (digest) {
     parts.push(digest);
+  }
+  if (testPageNote) {
+    parts.push(testPageNote);
   }
 
   if (parts.length === 0) {
@@ -2373,13 +2384,24 @@ export default class ChatAgentRunner {
 
     const fetchedCount: number = history.length;
 
+    /*
+     * What became of a test page sent from an answer, as it stands now
+     * (#7249): read as the person asking, for the newest such answers.
+     */
+    const testPageNotes: Map<AIConversationMessage, string> =
+      await readTestPageNotes({
+        messages: history,
+        projectId: request.projectId,
+        props: request.props,
+      });
+
     // Oldest first, skipping unfinished/errored assistant rows.
     const replayable: Array<ReplayedHistoryMessage> = [];
     // What each of those showed the model of records it may change (issue #6291).
     const recordsSeenByEntry: Array<Array<unknown>> = [];
     for (const message of history.reverse()) {
       const replayed: ReplayedHistoryMessage | undefined =
-        buildReplayedHistoryMessage(message);
+        buildReplayedHistoryMessage(message, testPageNotes.get(message));
       if (replayed) {
         recordsSeenByEntry.push(
           (message.citations || []).flatMap(

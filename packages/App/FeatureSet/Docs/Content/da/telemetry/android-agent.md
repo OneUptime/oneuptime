@@ -7,6 +7,7 @@ OneUptimes Android-agent rapporterer til OneUptime om en Android-enhed, som din 
 - [Udrul den med Esper](#udrul-den-med-esper): Upload APK'en, send dens indstillinger ud, og start den én gang.
 - [Indstillinger](#indstillinger): Hver nøgle i dens administrerede konfiguration.
 - [Læs andre apps' logs](#læs-andre-apps-logs): Giv READ_LOGS én gang, med adb eller din MDM.
+- [Logsessioner](#logsessioner): Alle apps' logs i et stykke tid, tilladt af personen ved enheden.
 :::
 
 ## Sådan virker det
@@ -93,6 +94,8 @@ Agenten læser disse nøgler fra sin administrerede konfiguration. En enhed uden
 
 En pladsholder, som din MDM ikke udfyldte, f.eks. `${esper.deviceName}` sendt, som den er, ignoreres, og agentens skærm siger det. Hold `device_name` uændret, når en enhed først rapporterer: Et nyt navn er en ny vært.
 
+Agentens skærm, dens notifikationer og de titler og beskrivelser, din MDM viser for disse nøgler, er på enhedens sprog, på alle de sprog, OneUptimes dashboard findes på.
+
 ## Læs andre apps' logs
 
 Android lader kun en app læse andre apps' logs med tilladelsen READ_LOGS, og kun adb kan give den: hverken appen selv eller en enhedspolitik. Giv den én gang på hver enhed, så forbliver den givet gennem genstarter og opdateringer:
@@ -105,10 +108,51 @@ Med Esper kører du kommandoen over **Secure Remote ADB**: Slå ADB-adgang til f
 
 Hvad agenten derefter læser, afhænger af Android-versionen:
 
-- Android 13 og nyere: alle apps' nedbrud og ANR'er. Android viser kun andre apps' loglinjer til en app, der er på skærmen, efter at personen ved enheden har tilladt det, så en agent, der kører i baggrunden, kan ikke læse dem.
+- Android 13 og nyere: alle apps' nedbrud og ANR'er. Android viser kun andre apps' loglinjer til en app, der er på skærmen, efter at personen ved enheden har tilladt det, så en agent, der kører i baggrunden, kan ikke læse dem. Bed om dem i et stykke tid med en [logsession](#logsessioner).
 - Android 12 og ældre: alle apps' nedbrud og ANR'er og alle apps' loglinjer på `logcat_min_level` og derover.
 
 Uden READ_LOGS rapporterer agenten alt andet, og både dens skærm og enhedens logs fortæller, hvordan du giver tilladelsen.
+
+### Stack traces fra nedbrud og årsager til genstart
+
+Android gemmer den fulde rapport om hvert appnedbrud, hvert native nedbrud og hver ANR, og årsagen til hver genstart, i sin DropBox. Agenten læser dem for alle apps, når den har READ_LOGS og adgang til forbrugsdata, og på Android 15 og nyere READ_DROPBOX_DATA. Giv dem én gang med adb, ligesom READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+Den første kommando er til Android 15 og nyere; adgang til forbrugsdata kan også slås til under enhedens **Indstillinger → Adgang til forbrugsdata**. En enhedspolitik kan ikke give disse, og agentens skærm viser de kommandoer, der stadig skal køres. Med dem har hvert nedbrud i **Undtagelser** hele sin stack trace, et native nedbrud sit signal og det bibliotek, det gik ned i, en ANR sin hovedtråds stack, og en genstart i **Protokoller** den årsag, Android angiver for den. Kortnumre, e-mailadresser, tokens og adgangskoder i det, agenten læser, erstattes med `[card number]`, `[email]`, `[token]` og `[redacted]`, før det sendes.
+
+### CPU-forbrug
+
+Fra og med Android 8 skjuler Android en enheds CPU-forbrug for apps. Kun en app, der er enhedsejer, kan læse det, og kun på enheder, hvis hardware rapporterer det. Agenten læser det, når den er enhedsejer, hvilket du angiver med adb på en enhed uden konti og uden en anden enhedsejer:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+En enhed, som din MDM allerede ejer, kan ikke have en anden ejer, så dens CPU-forbrug er ikke tilgængeligt, og agentens skærm siger det. Dens CPU-forbrug udelades så fra værtslisten, og skabelonen **High CPU Utilization** tilbydes ikke for den.
+
+## Logsessioner
+
+En logsession sender alle apps' logs fra en enhed i et stykke tid, så du kan fejlfinde den. På Android 13 og nyere er det den eneste måde at læse andre apps' loglinjer på, fordi Android kun viser dem til en app, der er på skærmen, efter at personen ved enheden har tilladt det.
+
+:::steps
+### Anmod om en logsession
+
+Åbn enheden i **Værter**, derefter **Protokoller**, og klik på **Anmod om logsession** i **Logsessioner**. Vælg, hvor længe enheden sender sine logs, fra 15 minutter til 4 timer, og det laveste niveau, den sender: **Info**, **Fejlfinding** eller **Detaljeret**.
+
+### Tillad den på enheden
+
+Inden for et minut viser enheden en notifikation om, at nogen har bedt om dens logs, med vedkommendes navn. Personen ved enheden åbner agenten og trykker på **Tillad**. På Android 13 og nyere spørger Android derefter, om der skal gives adgang til alle enhedslogs, og det tillader personen også.
+
+### Læs linjerne
+
+Sessionen står på **Indsamler**, og alle apps' linjer kommer ind i enhedens logs. Klik på **Vis linjer** for at se sessionens linjer for sig. Sessionen slutter, når tiden er gået, eller når nogen stopper den på enheden eller annullerer den i OneUptime.
+:::
+
+En session kræver READ_LOGS og `logcat_enabled`; uden dem står den på **Ikke tilgængelig**. Der kører én session ad gangen på en enhed. En anmodning, som ingen tillader inden for en time, udløber, og en session, som enheden genstarter under, slutter med den, da Androids tilladelse slutter med agentens proces. Det kræver tilladelse til at redigere værten at bede om en session, og værtens **Auditlogs** gemmer, hvem der bad om den, og hvornår.
 
 ## Hvad den rapporterer
 
@@ -117,14 +161,15 @@ Uden READ_LOGS rapporterer agenten alt andet, og både dens skærm og enhedens l
 | Hukommelse, lagerplads, netværk og oppetid | Enhedens side i **Værter**: de samme metrikker, som en servers collector sender, så advarselsskabelonerne for værter virker |
 | Batteriniveau og -temperatur, og om enheden er tilsluttet ekstern strøm | Metrikkerne `hw.battery.charge`, `hw.temperature` og `android.battery.plugged` |
 | Termisk tilstand | Metrikkerne `android.thermal.status` og `android.thermal.headroom` |
-| Genstarter | **Protokoller**, med `@event.name:device.boot`: hvor længe enheden havde kørt, om den lukkede pænt ned, hvor længe den var slukket, og genstartsløkker |
+| CPU-forbrug | Metrikken `system.cpu.utilization`: på Android 7 og på Android 8 og nyere, når agenten er [enhedsejer](#cpu-forbrug) |
+| Genstarter | **Protokoller**, med `@event.name:device.boot`: hvor længe enheden havde kørt, om den lukkede pænt ned, hvor længe den var slukket, hvorfor den genstartede, og genstartsløkker |
 | Installerede apps | **Protokoller**, med `@event.name:android.package.inventory` én gang om dagen, og hver installation, opdatering og fjernelse |
-| Nedbrud og ANR'er i alle apps | **Undtagelser**, som ikke-håndterede, navngivet efter appen |
-| Mærke, model, serienummer, OS-version og firmware | Enhedens element i **Inventar** |
+| Nedbrud og ANR'er i alle apps | **Undtagelser**, som ikke-håndterede, navngivet efter appen, med deres stacks, når agenten læser [DropBox](#stack-traces-fra-nedbrud-og-årsager-til-genstart) |
+| Mærke, model, serienummer, OS-version, sikkerhedspatchniveau og firmware | Enhedens element i **Inventar** |
 
-Fra og med Android 8 skjuler Android enhedens CPU-forbrug for apps, så agenten rapporterer kun CPU-forbrug på Android 7 og på builds, der tillader det.
+I **Værter** står enhedens OS som Android, med Androids logo.
 
-De advarselsskabeloner for værter, der passer til en enhed, er Host Stopped Reporting, High Memory Utilization, High Filesystem Usage og Host Restarted. En enhed, der bliver ved med at genstarte, logger en advarsel ved hver opstart, med `android.boot.recent_count` sat til antallet af opstarter i den seneste time.
+Antallet af opstarter i den seneste time er metrikken `android.boot.recent_count`, og en enhed, der bliver ved med at genstarte, logger en advarsel ved hver opstart. I **Værter** tilbydes en Android-enhed sine egne advarselsskabeloner: Device Unplugged, Low Battery, Device Overheating, Restart Loop og Storage Nearly Full, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization, når den rapporterer CPU-forbrug. Hver advarsels første fejlfindingskommandoer er adb-kommandoer. Se [Værts-monitor](/docs/monitor/host-monitor#android-enheder).
 
 ## Fejlfinding
 
@@ -137,7 +182,11 @@ Brug en **Server**-nøgle, der er slået til og ikke er udløbet. En **Browser**
 :::
 
 :::details Ingen logs fra andre apps
-Giv READ_LOGS, som [Læs andre apps' logs](#læs-andre-apps-logs) beskriver. På Android 13 og nyere læses kun andre apps' nedbrud og ANR'er.
+Giv READ_LOGS, som [Læs andre apps' logs](#læs-andre-apps-logs) beskriver. På Android 13 og nyere læses kun andre apps' nedbrud og ANR'er, medmindre en [logsession](#logsessioner) kører.
+:::
+
+:::details En logsession bliver stående på Venter på godkendelse
+Ingen ved enheden har tilladt den endnu. Nogen skal åbne agenten på enheden og trykke på **Tillad** og på Android 13 og nyere også tillade Androids dialogboks, mens agenten er på skærmen. En session, som Androids dialogboks afviste, står på **Afvist**: Anmod om en ny.
 :::
 
 :::details To enheder vises som én vært

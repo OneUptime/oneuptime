@@ -253,6 +253,39 @@ generator's own files are held to the same strict rules. Change compiler
 options in Common's tsconfig, not here; `Tests/TypeCheckConfig.test.ts` names
 the few that differ and why.
 
+## Attributes that change only together
+
+A column can say it changes only together with a new value of another
+(`changesOnlyWith` on its `@TableColumn`). A monitor secret's `secretType` is
+one: OneUptime changes it only in the same write as a new `secretValue`, which
+it reads for the new type, and refuses a type sent alone. The spec says it as
+`x-oneuptime-changes-only-with`, and the generator:
+
+- names the other attribute by its Terraform name
+  (`OpenAPIParser.resolveChangesOnlyWith`), and adds to the attribute's
+  documentation that a plan changing it alone fails;
+- has the resource's `ModifyPlan` call `requireChangedTogether`
+  (`StaticFiles/changestogether.go`). It refuses, at plan time and on the
+  attribute, a plan that changes `secret_type` and keeps `secret_value` or
+  leaves it empty, and says what to change. A value known only at apply is
+  left to OneUptime to judge then;
+- keeps both attributes updatable in place. A plan that changes both makes one
+  update that carries both, so the secret keeps its ID.
+
+The provider's `Update` sends only what changed, so before this such a plan
+sent the type alone and failed half-way through the apply (#9814). Marking
+`secret_type` as replacing the secret would have been the other way out, and
+it is the wrong one here. OneUptime changes the type in place, and a
+replacement would lose the secret's ID, its history, and the monitors and
+labels it was shared with outside the configuration. A one-time code secret
+replaced by a Text secret holding the same setup key would also send that key
+where the code went, which OneUptime refuses in place for that reason.
+
+`Tests/ChangesOnlyWith.test.ts` covers the generator.
+`changestogether_test.go` covers the refusal on its own, and
+`changestogether_plan_test.go` covers type-only, value-only and type-and-value
+changes through the provider's protocol server against a fake API.
+
 ## 📚 Documentation
 
 - **Provider docs** are auto-generated for each resource and data source

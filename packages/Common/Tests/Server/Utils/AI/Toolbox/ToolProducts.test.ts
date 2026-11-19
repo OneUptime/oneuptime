@@ -15,9 +15,13 @@ import ServerProducts from "../../../../../Server/Utils/ServerProducts/ServerPro
 import { AIToolRefusal } from "../../../../../Types/AI/AIChatTypes";
 import {
   ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
+  ADD_TO_ON_CALL_POLICY_TOOL_NAME,
   AI_SETUP_ACTION_TOOL_NAMES,
+  INVITE_PEOPLE_TOOL_NAME,
   PUBLISH_STATUS_PAGE_TOOL_NAME,
+  SET_HOW_TO_REACH_ME_TOOL_NAME,
   SET_UP_PAGING_TOOL_NAME,
+  SET_UP_SERVICE_MONITOR_TOOL_NAME,
   SET_UP_WEBSITE_MONITORING_TOOL_NAME,
   WHO_IS_TOLD_TOOL_NAME,
 } from "../../../../../Types/AI/AISetupActions";
@@ -137,8 +141,36 @@ describe("every tool belongs to its products, or to none", () => {
     expect(getToolProducts(WHO_IS_TOLD_TOOL_NAME)).toEqual([
       ProductKey.Monitors,
     ]);
+    // People added to a policy the project has (#7244): On-Call's.
+    expect(getToolProducts(ADD_TO_ON_CALL_POLICY_TOOL_NAME)).toEqual([
+      ProductKey.OnCall,
+    ]);
+    // A service's recommended monitor (#7243): a monitor, of a service.
+    expect(getToolProducts(SET_UP_SERVICE_MONITOR_TOOL_NAME)).toEqual([
+      ProductKey.Monitors,
+      ProductKey.Services,
+    ]);
+
+    /*
+     * Two of no one product, as their own routes are
+     * (ProductCustomRoutesGuard): the project's people, always on (#7242),
+     * and how pages reach a person, which incidents, alerts and on-call
+     * all use (#7454).
+     */
+    const OF_NO_PRODUCT: Array<string> = [
+      INVITE_PEOPLE_TOOL_NAME,
+      SET_HOW_TO_REACH_ME_TOOL_NAME,
+    ];
+
+    for (const name of OF_NO_PRODUCT) {
+      expect(TOOLS_OF_NO_PRODUCT).toContain(name);
+    }
 
     for (const name of AI_SETUP_ACTION_TOOL_NAMES) {
+      if (OF_NO_PRODUCT.includes(name)) {
+        continue;
+      }
+
       expect(getToolProducts(name).length).toBeGreaterThan(0);
     }
   });

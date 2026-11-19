@@ -1,11 +1,11 @@
 import {
-  BackfillSsoProviderDomains1809186540000,
+  BackfillSsoProviderDomains1809186620000,
   PROVIDER_DOMAINS_TABLES,
   ProviderDomainsTable,
   RESERVED_DOMAIN_NAMES,
   getBackfillStatement,
   getNotReservedDomainSql,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186540000-BackfillSsoProviderDomains";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186620000-BackfillSsoProviderDomains";
 import { AddSsoProviderDomains1809186480000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186480000-AddSsoProviderDomains";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ProjectOIDC from "../../../../Models/DatabaseModels/ProjectOidc";
@@ -48,7 +48,7 @@ import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetad
  *  - registered once, after the migration that makes the tables it fills.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186540000";
+const MIGRATION_TIMESTAMP: string = "1809186620000";
 const MIGRATION_BASE_NAME: string = "BackfillSsoProviderDomains";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
@@ -69,7 +69,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new BackfillSsoProviderDomains1809186540000()[step](runner);
+  await new BackfillSsoProviderDomains1809186620000()[step](runner);
 
   return statements;
 }
@@ -123,7 +123,7 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new BackfillSsoProviderDomains1809186540000();
+      new BackfillSsoProviderDomains1809186620000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
@@ -316,7 +316,7 @@ describe("registering it", () => {
     expect(
       fs.existsSync(path.join(MIGRATION_DIRECTORY, MIGRATION_FILE_NAME)),
     ).toBe(true);
-    expect(new BackfillSsoProviderDomains1809186540000().name).toBe(
+    expect(new BackfillSsoProviderDomains1809186620000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
   });

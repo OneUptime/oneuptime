@@ -166,6 +166,11 @@ export function getTimeToCallOutcomeInMs(data: {
 // A Twilio call's id: "CA" and 32 hexadecimal digits.
 const TWILIO_CALL_SID: RegExp = new RegExp("^CA[0-9a-fA-F]{32}$");
 
+// Whether a value is a Twilio call's id, written as Twilio writes one.
+export function isTwilioCallSid(value: unknown): value is string {
+  return typeof value === "string" && TWILIO_CALL_SID.test(value);
+}
+
 /*
  * The message a call's log and its notification are left with once it
  * ended: the call's Twilio id, as the log has always shown it, and how it

@@ -53,7 +53,7 @@ flowchart TB
 
 ### Das Twilio-Konto wählen
 
-Die **Übersicht** der Richtlinie zeigt eine Karte **Einrichtung** mit drei nummerierten Schritten. Klicken Sie im ersten auf **Auswählen**, wählen Sie das Konto unter **Twilio-Konfiguration** und klicken Sie auf **Speichern**.
+Die **Übersicht** der Richtlinie zeigt eine Karte **Einrichtung** mit drei nummerierten Schritten. Klicken Sie im ersten auf **Auswählen**, wählen Sie das Konto unter **Twilio-Konfiguration** und klicken Sie auf **Speichern**. Die Liste bietet nur Konfigurationen an, die für **Anrufe und SMS** oder **Nur Anrufe** verwendet werden. Eine Richtlinie, deren Konfiguration später auf **Nur SMS** gestellt wird, behält sie, und ihre Karte sagt, was zu ändern ist.
 
 ### Eine Telefonnummer hinzufügen
 

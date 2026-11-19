@@ -1,5 +1,5 @@
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import { BackfillSsoProviderDomains1809186540000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186540000-BackfillSsoProviderDomains";
+import { BackfillSsoProviderDomains1809186620000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186620000-BackfillSsoProviderDomains";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectSsoDiscovery from "../../../../Server/Utils/ProjectSsoDiscovery";
 import Entities from "../../../../Models/DatabaseModels/Index";
@@ -27,7 +27,7 @@ import { DataSource, Logger, QueryRunner } from "typeorm";
  * "Sign in with SSO" finds a project's providers by the address's verified
  * domain alone (#9824, Server/Utils/ProjectSsoDiscovery). Every provider
  * made before that listed no domain, so after the upgrade the page offered
- * no existing provider to anyone. BackfillSsoProviderDomains1809186540000
+ * no existing provider to anyone. BackfillSsoProviderDomains1809186620000
  * gives each provider that lists none the verified domains its project, and
  * no other project, holds. This runs its real statements on rows shaped as
  * an install has them before the upgrade - projects with no verified
@@ -298,7 +298,7 @@ describePostgres(
 
       try {
         await runner.startTransaction();
-        await new BackfillSsoProviderDomains1809186540000().up(runner);
+        await new BackfillSsoProviderDomains1809186620000().up(runner);
         await runner.commitTransaction();
       } catch (error) {
         await runner.rollbackTransaction();

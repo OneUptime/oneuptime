@@ -553,6 +553,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-classes/:cloudId`":
         READ,
+      // A class's failed nodes, which its "Failed: N" opens (#9751).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-failed-nodes/:cloudId`":
+        READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/needs-attention/:cloudId`":
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/blast-radius/:cloudId`":
@@ -1108,7 +1111,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "How OneUptime sends a message - a call, a text, an email, a push, a chat - for every product, and what the provider says of how it went.",
       {
-        "packages/App/FeatureSet/Notification/API/Call.ts": 3,
+        /*
+         * #6594: Twilio's answering machine callback - who answered an
+         * on-call call, a person or voicemail - beside its status callback.
+         * Twilio calls it for a call already placed, as it calls an incoming
+         * call policy's routes: what already runs keeps running while On-Call
+         * is switched off.
+         */
+        "packages/App/FeatureSet/Notification/API/Call.ts": 4,
         "packages/App/FeatureSet/Notification/API/SMS.ts": 3,
         "packages/App/FeatureSet/Notification/API/Mail.ts": 1,
         "packages/App/FeatureSet/Notification/API/Webhook.ts": 1,
@@ -1183,6 +1193,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Telemetry arriving, by its ingestion key: it keeps arriving while its product is switched off, unless the server stops ingestion (DISABLE_TELEMETRY_INGESTION), as switching a product off promises.",
       {
+        "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
@@ -1222,9 +1233,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement on the status pages picked shows and notifies anyone.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone.",
       {
-        "packages/Common/Server/API/AnnouncementReachRoute.ts": 1,
+        "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,

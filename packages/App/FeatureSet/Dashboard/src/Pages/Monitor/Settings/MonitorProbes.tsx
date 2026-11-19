@@ -1,4 +1,5 @@
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import ProbeVersionElement from "../../../Components/Probe/ProbeVersion";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -427,6 +428,24 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               getElement: (item: Probe): ReactElement => {
                 return <ProbeStatusElement probe={item} />;
+              },
+            },
+            {
+              /*
+               * The release each probe runs (#9815), and "Update available"
+               * when it is older than this OneUptime, linked to how to
+               * update a probe. Not sorted: a release is kept as text, and
+               * 17.10.0 would sort before 17.9.0. The global probes above
+               * have none: OneUptime updates them.
+               */
+              field: {
+                reportedVersion: true,
+              },
+              title: "Version",
+              type: FieldType.Element,
+              disableSort: true,
+              getElement: (item: Probe): ReactElement => {
+                return <ProbeVersionElement probe={item} variant="cell" />;
               },
             },
             {

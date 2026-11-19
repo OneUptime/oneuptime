@@ -147,7 +147,7 @@
               "severityNumber": 9,
               "severityText": "INFO",
               "body": {
-                "stringValue": "OneUptime Android agent 17.0.12 started. Logcat: every app's crashes and ANRs. Android 13 and later show other apps' log lines only to an app on screen that the person at the device allows."
+                "stringValue": "OneUptime Android agent 17.0.12 started. Logcat: every app's crashes and ANRs. Android 13 and later show other apps' log lines only to an app on screen that the person at the device allows. DropBox: every app's crashes with their stacks, native crashes, ANRs and the reasons the device rebooted."
               },
               "attributes": [
                 {
@@ -167,6 +167,12 @@
                   "value": {
                     "stringValue": "crashes_and_anrs"
                   }
+                },
+                {
+                  "key": "oneuptime.agent.dropbox",
+                  "value": {
+                    "stringValue": "reading"
+                  }
                 }
               ]
             },
@@ -176,7 +182,7 @@
               "severityNumber": 9,
               "severityText": "INFO",
               "body": {
-                "stringValue": "Device started (boot 42). It had been up for 1d 0h 0m, and shut down cleanly. It was off for 2m 5s."
+                "stringValue": "Device started (boot 42). It had been up for 1d 0h 0m, and shut down cleanly. It was off for 2m 5s. Android gives the reboot's reason as reboot,userrequested."
               },
               "attributes": [
                 {
@@ -219,6 +225,285 @@
                   "key": "android.boot.recent_count",
                   "value": {
                     "intValue": "1"
+                  }
+                },
+                {
+                  "key": "android.boot.reason",
+                  "value": {
+                    "stringValue": "reboot,userrequested"
+                  }
+                },
+                {
+                  "key": "android.boot.last_kernel_log",
+                  "value": {
+                    "stringValue": "[86400.100000] reboot: Restarting system with command 'userrequested'"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076854467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 21,
+              "severityText": "FATAL",
+              "body": {
+                "stringValue": "com.example.kiosk crashed: java.lang.IllegalStateException: Card [card number] declined for [email]"
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "app.crash"
+                  }
+                },
+                {
+                  "key": "exception.type",
+                  "value": {
+                    "stringValue": "java.lang.IllegalStateException"
+                  }
+                },
+                {
+                  "key": "exception.message",
+                  "value": {
+                    "stringValue": "com.example.kiosk: Card [card number] declined for [email]"
+                  }
+                },
+                {
+                  "key": "exception.stacktrace",
+                  "value": {
+                    "stringValue": "java.lang.IllegalStateException: Card [card number] declined for [email]\n\tat com.example.kiosk.PaymentFlow.charge(PaymentFlow.kt:88)\n\tat com.example.kiosk.MainActivity.onPay(MainActivity.kt:41)\n\tat android.view.View.performClick(View.java:7659)\nCaused by: java.io.IOException: terminal offline\n\tat com.example.payments.Terminal.send(Terminal.java:12)\n\t... 3 more"
+                  }
+                },
+                {
+                  "key": "exception.escaped",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.process.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.package.version",
+                  "value": {
+                    "stringValue": "4.2.0"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4321"
+                  }
+                },
+                {
+                  "key": "android.app.foreground",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.dropbox.dropped_count",
+                  "value": {
+                    "intValue": "2"
+                  }
+                },
+                {
+                  "key": "android.dropbox.tag",
+                  "value": {
+                    "stringValue": "data_app_crash"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076855467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 17,
+              "severityText": "ERROR",
+              "body": {
+                "stringValue": "com.example.kiosk is not responding: Input dispatching timed out (8b3b1a2 com.example.kiosk/com.example.kiosk.MainActivity is not responding. Waited 5001ms for KeyEvent)"
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "device.anr"
+                  }
+                },
+                {
+                  "key": "exception.type",
+                  "value": {
+                    "stringValue": "ANR"
+                  }
+                },
+                {
+                  "key": "exception.message",
+                  "value": {
+                    "stringValue": "com.example.kiosk: Input dispatching timed out"
+                  }
+                },
+                {
+                  "key": "exception.stacktrace",
+                  "value": {
+                    "stringValue": "\"main\" prio=5 tid=1 Sleeping\n  | group=\"main\" sCount=1 ucsCount=0 flags=1 obj=0x72c9e5b8 self=0xb400\n  | sysTid=4321 nice=-10 cgrp=top-app sched=0/0 handle=0x7f8\n  at java.lang.Thread.sleep(Native method)\n  - sleeping on <0x0a1b2c3d> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:450)\n  at com.example.kiosk.MainActivity.onClick(MainActivity.kt:42)\n  at android.view.View.performClick(View.java:7659)"
+                  }
+                },
+                {
+                  "key": "exception.escaped",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.anr.reason",
+                  "value": {
+                    "stringValue": "Input dispatching timed out (8b3b1a2 com.example.kiosk/com.example.kiosk.MainActivity is not responding. Waited 5001ms for KeyEvent)"
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.process.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.package.version",
+                  "value": {
+                    "stringValue": "4.2.0"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4321"
+                  }
+                },
+                {
+                  "key": "android.app.foreground",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.dropbox.tag",
+                  "value": {
+                    "stringValue": "data_app_anr"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076856467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 21,
+              "severityText": "FATAL",
+              "body": {
+                "stringValue": "com.example.kiosk crashed in native code: SIGSEGV in libprinter.so (print_job(Job*)+52)"
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "app.crash"
+                  }
+                },
+                {
+                  "key": "exception.type",
+                  "value": {
+                    "stringValue": "SIGSEGV"
+                  }
+                },
+                {
+                  "key": "exception.message",
+                  "value": {
+                    "stringValue": "com.example.kiosk: SIGSEGV (SEGV_MAPERR) in libprinter.so (print_job(Job*)+52)"
+                  }
+                },
+                {
+                  "key": "exception.stacktrace",
+                  "value": {
+                    "stringValue": "pid: 4321, tid: 4350, name: PrinterThread\nsignal 11 (SIGSEGV), code SEGV_MAPERR, fault addr 0x0000000000000010\nCause: null pointer dereference\nbacktrace:\n  #00 pc 000000000005a4c4  /data/app/~~Zh3x==/com.example.kiosk-Ab1==/lib/x86_64/libprinter.so (print_job(Job*)+52) (BuildId: 1a2b3c)\n  #01 pc 0000000000039b70  /data/app/~~Zh3x==/com.example.kiosk-Ab1==/base.apk!libbridge.so (offset 0x1f000) (Java_com_example_Printer_print+40) (BuildId: 4d5e)\n  #02 pc 00000000001d2b3a  /apex/com.android.art/lib64/libart.so (art_quick_generic_jni_trampoline+42) (BuildId: 9f8e)"
+                  }
+                },
+                {
+                  "key": "exception.escaped",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.native.signal",
+                  "value": {
+                    "stringValue": "SIGSEGV"
+                  }
+                },
+                {
+                  "key": "android.native.code",
+                  "value": {
+                    "stringValue": "SEGV_MAPERR"
+                  }
+                },
+                {
+                  "key": "thread.name",
+                  "value": {
+                    "stringValue": "PrinterThread"
+                  }
+                },
+                {
+                  "key": "thread.id",
+                  "value": {
+                    "intValue": "4350"
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.process.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.package.version",
+                  "value": {
+                    "stringValue": "4.2.0"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4321"
+                  }
+                },
+                {
+                  "key": "android.app.foreground",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.dropbox.tag",
+                  "value": {
+                    "stringValue": "data_app_native_crash"
                   }
                 }
               ]
@@ -396,6 +681,53 @@
                   "key": "android.package.name",
                   "value": {
                     "stringValue": "com.example.kiosk"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076857700000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "Payment terminal handshake started"
+              },
+              "attributes": [
+                {
+                  "key": "android.log.tag",
+                  "value": {
+                    "stringValue": "KioskApp"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4242"
+                  }
+                },
+                {
+                  "key": "thread.id",
+                  "value": {
+                    "intValue": "4250"
+                  }
+                },
+                {
+                  "key": "android.log.buffer",
+                  "value": {
+                    "stringValue": "main"
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "oneuptime.agent.log_session.id",
+                  "value": {
+                    "stringValue": "9f8e7d6c-5b4a-4321-8765-0123456789ab"
                   }
                 }
               ]

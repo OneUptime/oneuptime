@@ -8,7 +8,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * keys are made, and need no online DDL.
  *
  * It writes no row: the backfill right after it
- * (BackfillSsoProviderDomains1809186540000, #9918) gives each provider made
+ * (BackfillSsoProviderDomains1809186620000, #9918) gives each provider made
  * before domains existed the verified domains its project alone holds, and
  * an admin picks the rest.
  */

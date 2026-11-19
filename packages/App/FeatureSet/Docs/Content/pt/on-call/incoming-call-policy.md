@@ -53,7 +53,7 @@ Vá em **Plantão** > **Políticas de chamadas recebidas** e clique em **Criar: 
 
 ### Escolha a conta do Twilio
 
-A **Visão geral** da política mostra um cartão **Configuração** com três passos numerados. No primeiro, clique em **Selecionar**, escolha a conta em **Configuração do Twilio** e clique em **Salvar**.
+A **Visão geral** da política mostra um cartão **Configuração** com três passos numerados. No primeiro, clique em **Selecionar**, escolha a conta em **Configuração do Twilio** e clique em **Salvar**. A lista oferece apenas as configurações usadas para **Chamadas e SMS** ou **Somente chamadas**. Uma política cuja configuração passa depois a **Somente SMS** a mantém, e o cartão dela diz o que mudar.
 
 ### Adicione um número de telefone
 

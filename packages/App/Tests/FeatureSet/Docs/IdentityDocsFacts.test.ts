@@ -96,7 +96,7 @@ const SOURCES: Record<string, string> = {
   ssoProviderDomains: `${DASHBOARD}/Components/Sso/SsoProviderDomains.ts`,
   // The upgrade's backfill of the providers' domains (#9918).
   ssoDomainBackfill:
-    "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809186540000-BackfillSsoProviderDomains.ts",
+    "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809186620000-BackfillSsoProviderDomains.ts",
   schemaMigrations:
     "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
   // The page the SSO sign-in link opens, and its path.
@@ -978,7 +978,7 @@ describe("the SSO guide", () => {
     const backfill: string = readSource("ssoDomainBackfill");
 
     expect(readSource("schemaMigrations")).toContain(
-      "BackfillSsoProviderDomains1809186540000,",
+      "BackfillSsoProviderDomains1809186620000,",
     );
     expect(backfill).toContain('"Domain"."isVerified" = true');
     expect(backfill).toContain('"VerifiedName"."projectCount" = 1');

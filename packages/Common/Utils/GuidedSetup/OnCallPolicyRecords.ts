@@ -1,5 +1,10 @@
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyEscalationRuleTeam from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
+import OnCallDutyPolicyEscalationRuleUser from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
   EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
   PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
@@ -237,6 +242,168 @@ export const buildFirstOnCallPolicy: (data: {
         ? { [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: data.language }
         : {}),
     },
+  };
+};
+
+/*
+ * WHAT IF NOBODY ANSWERS: A POLICY'S LEVELS AND REPEATS, ONE COPY (#7244).
+ *
+ * The guided on-call setup (#6805, OnCallSetupApi) and Ask AI's
+ * set_up_paging and add_to_on_call_policy (SetupTools) write them alike:
+ *
+ *   - someone else after a wait: the level before waits that long
+ *     (buildLevelWait, on its escalation rule), and a new escalation rule
+ *     pages the people and teams picked (buildOnCallPolicyLevel) - which
+ *     OneUptime Cloud's Free plan allows once per policy;
+ *   - the same people again: the first level waits that long, and the
+ *     policy starts over, up to this many more times (buildPolicyRepeat);
+ *   - more people on a level the policy has (buildLevelMembers), as
+ *     "Who else is on call?" adds them.
+ *
+ * Pure: the Dashboard writes them through the model API, the server
+ * through the services, as the person either way.
+ */
+
+// The minutes a level waits for an acknowledgement: from 1 to a day.
+export const MAX_LEVEL_WAIT_IN_MINUTES: number = 24 * 60;
+
+// How many more times a policy starts over: from 1 to 10.
+export const MAX_POLICY_REPEAT_TIMES: number = 10;
+
+// A wait as a level takes it, or null when it is not one.
+export const readLevelWaitInMinutes: (value: unknown) => number | null = (
+  value: unknown,
+): number | null => {
+  const minutes: number = Number(value);
+
+  return Number.isInteger(minutes) &&
+    minutes >= 1 &&
+    minutes <= MAX_LEVEL_WAIT_IN_MINUTES
+    ? minutes
+    : null;
+};
+
+// How many more times a policy starts over, or null when it is not a count it takes.
+export const readPolicyRepeatTimes: (value: unknown) => number | null = (
+  value: unknown,
+): number | null => {
+  const times: number = Number(value);
+
+  return Number.isInteger(times) &&
+    times >= 1 &&
+    times <= MAX_POLICY_REPEAT_TIMES
+    ? times
+    : null;
+};
+
+// A new level of a policy, and who it pages (read by its create).
+export interface OnCallPolicyLevelCreate {
+  rule: OnCallDutyPolicyEscalationRule;
+  /*
+   * Who it pages (users, teams: lists of ids): read by
+   * OnCallDutyPolicyEscalationRuleService.create, which adds them.
+   */
+  miscDataProps: JSONObject;
+}
+
+/*
+ * A new level of the policy, its last, paging the people and teams picked
+ * after the default wait of a new escalation rule (its own wait is the one
+ * before the level after it). The project is the request's, as the model
+ * API and the service set it; the server names it after its level.
+ */
+export const buildOnCallPolicyLevel: (data: {
+  policyId: ObjectID;
+  userIds: ReadonlyArray<string>;
+  teamIds: ReadonlyArray<string>;
+  projectId?: ObjectID | undefined;
+}) => OnCallPolicyLevelCreate = (data: {
+  policyId: ObjectID;
+  userIds: ReadonlyArray<string>;
+  teamIds: ReadonlyArray<string>;
+  projectId?: ObjectID | undefined;
+}): OnCallPolicyLevelCreate => {
+  const rule: OnCallDutyPolicyEscalationRule =
+    new OnCallDutyPolicyEscalationRule();
+
+  if (data.projectId) {
+    rule.projectId = data.projectId;
+  }
+
+  rule.onCallDutyPolicyId = data.policyId;
+  rule.escalateAfterInMinutes = DEFAULT_ESCALATE_AFTER_IN_MINUTES;
+
+  return {
+    rule: rule,
+    miscDataProps: { users: [...data.userIds], teams: [...data.teamIds] },
+  };
+};
+
+// How long a level waits before the next one is paged: its rule's update.
+export const buildLevelWait: (waitInMinutes: number) => {
+  escalateAfterInMinutes: number;
+} = (waitInMinutes: number): { escalateAfterInMinutes: number } => {
+  return { escalateAfterInMinutes: waitInMinutes };
+};
+
+// The policy starting over while nobody acknowledges: its update.
+export const buildPolicyRepeat: (times: number) => {
+  repeatPolicyIfNoOneAcknowledges: boolean;
+  repeatPolicyIfNoOneAcknowledgesNoOfTimes: number;
+} = (
+  times: number,
+): {
+  repeatPolicyIfNoOneAcknowledges: boolean;
+  repeatPolicyIfNoOneAcknowledgesNoOfTimes: number;
+} => {
+  return {
+    repeatPolicyIfNoOneAcknowledges: true,
+    repeatPolicyIfNoOneAcknowledgesNoOfTimes: times,
+  };
+};
+
+// People and teams added to a level the policy has: one row each.
+export interface OnCallPolicyLevelMembers {
+  users: Array<OnCallDutyPolicyEscalationRuleUser>;
+  teams: Array<OnCallDutyPolicyEscalationRuleTeam>;
+}
+
+export const buildLevelMembers: (data: {
+  projectId: ObjectID;
+  policyId: ObjectID;
+  ruleId: ObjectID;
+  userIds: ReadonlyArray<string>;
+  teamIds: ReadonlyArray<string>;
+}) => OnCallPolicyLevelMembers = (data: {
+  projectId: ObjectID;
+  policyId: ObjectID;
+  ruleId: ObjectID;
+  userIds: ReadonlyArray<string>;
+  teamIds: ReadonlyArray<string>;
+}): OnCallPolicyLevelMembers => {
+  return {
+    users: data.userIds.map(
+      (userId: string): OnCallDutyPolicyEscalationRuleUser => {
+        const row: OnCallDutyPolicyEscalationRuleUser =
+          new OnCallDutyPolicyEscalationRuleUser();
+        row.projectId = data.projectId;
+        row.onCallDutyPolicyId = data.policyId;
+        row.onCallDutyPolicyEscalationRuleId = data.ruleId;
+        row.userId = new ObjectID(userId);
+        return row;
+      },
+    ),
+    teams: data.teamIds.map(
+      (teamId: string): OnCallDutyPolicyEscalationRuleTeam => {
+        const row: OnCallDutyPolicyEscalationRuleTeam =
+          new OnCallDutyPolicyEscalationRuleTeam();
+        row.projectId = data.projectId;
+        row.onCallDutyPolicyId = data.policyId;
+        row.onCallDutyPolicyEscalationRuleId = data.ruleId;
+        row.teamId = new ObjectID(teamId);
+        return row;
+      },
+    ),
   };
 };
 

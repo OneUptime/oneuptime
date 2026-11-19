@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hindi. Every string of values/strings.xml, in the same order; keys, permission names and adb commands stay as they are. -->
+<resources>
+
+    <string name="notification_channel_name">एजेंट की स्थिति</string>
+    <string name="notification_channel_description">दिखाता है कि यह डिवाइस OneUptime को रिपोर्ट भेज रहा है या नहीं।</string>
+
+    <string name="notification_requests_channel_name">OneUptime से अनुरोध</string>
+    <string name="notification_requests_channel_description">जब OneUptime समस्या निवारण के लिए इस डिवाइस के लॉग पढ़ना चाहता है।</string>
+    <string name="notification_request_title">OneUptime इस डिवाइस के लॉग माँग रहा है</string>
+
+    <string name="status_not_set_up">अभी सेट अप नहीं है</string>
+    <string name="status_not_set_up_detail">इंजेशन कुंजी डालें, या उसे अपनी डिवाइस प्रबंधन सेवा से oneuptime_token के रूप में भेजें।</string>
+    <string name="status_unreachable">OneUptime से संपर्क नहीं हो पा रहा</string>
+    <string name="status_unreachable_detail">डिवाइस का नेटवर्क जाँचें। एजेंट अपने आप फिर से कोशिश करेगा।</string>
+    <string name="status_key_refused">OneUptime ने इंजेशन कुंजी अस्वीकार कर दी</string>
+    <string name="status_key_refused_detail">ऐसी सर्वर इंजेशन कुंजी इस्तेमाल करें जो चालू हो और जिसकी समय-सीमा खत्म न हुई हो (HTTP %1$d)।</string>
+    <string name="status_not_found">इस पते पर OneUptime नहीं है</string>
+    <string name="status_not_found_detail">OneUptime का URL जाँचें: %1$s।</string>
+    <string name="status_server_error">OneUptime अभी टेलीमेट्री स्वीकार नहीं कर रहा है</string>
+    <string name="status_server_error_detail">OneUptime से %1$d जवाब मिला। एजेंट अपने आप फिर से कोशिश करेगा।</string>
+    <string name="status_server_error_unknown_detail">OneUptime ने त्रुटि के साथ जवाब दिया। एजेंट अपने आप फिर से कोशिश करेगा।</string>
+    <string name="status_sending_failed">भेजना विफल रहा</string>
+    <string name="status_retrying">एजेंट अपने आप फिर से कोशिश करेगा।</string>
+    <string name="status_kept">टेलीमेट्री तब तक डिवाइस पर रखी जाती है, जब तक उसे भेजा न जा सके।</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">OneUptime को रिपोर्ट भेज रहा है</string>
+    <string name="status_as_device">%1$s के रूप में</string>
+    <string name="status_starting">शुरू हो रहा है</string>
+    <string name="status_starting_detail">%1$s के रूप में। पहली रिपोर्ट एक मिनट के भीतर भेजी जाएगी।</string>
+
+    <string name="address_empty">OneUptime का URL डालें।</string>
+    <string name="address_not_a_url">OneUptime का URL कोई वेब पता नहीं है।</string>
+    <string name="address_not_https">OneUptime का URL https:// से शुरू होना चाहिए, ताकि इंजेशन कुंजी कभी भी बिना एन्क्रिप्शन के न भेजी जाए।</string>
+    <string name="address_query_or_fragment">OneUptime के URL से ? या # वाला हिस्सा हटाएँ।</string>
+    <string name="address_credentials">OneUptime के URL से उपयोगकर्ता नाम और पासवर्ड हटाएँ।</string>
+
+    <string name="setup_subtitle">इस डिवाइस की स्थिति, रीस्टार्ट, ऐप और लॉग OneUptime को भेजता है।</string>
+    <string name="setup_last_report">पिछली रिपोर्ट %1$s भेजी गई</string>
+    <string name="setup_no_report_yet">अभी तक कुछ नहीं भेजा गया</string>
+    <string name="setup_waiting">%1$s भेजे जाने की प्रतीक्षा में</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: आपकी डिवाइस प्रबंधन सेवा ने %2$s को बिना भरे, जैसा है वैसा ही भेज दिया।</string>
+    <string name="setup_problem_invalid">%1$s: %2$s का उपयोग नहीं किया जा सकता, इसलिए डिफ़ॉल्ट मान लागू होता है।</string>
+    <string name="setup_connection">कनेक्शन</string>
+    <string name="setup_managed_notice">लॉक दिखने वाली सेटिंग आपके संगठन की डिवाइस प्रबंधन सेवा तय करती है।</string>
+    <string name="setup_url_label">OneUptime का URL</string>
+    <string name="setup_url_help">इसे तभी बदलें जब आप OneUptime को खुद होस्ट करते हों।</string>
+    <string name="setup_token_label">इंजेशन कुंजी</string>
+    <string name="setup_token_hint">सर्वर इंजेशन कुंजी पेस्ट करें</string>
+    <string name="setup_token_stored_hint">सहेजी गई। इसे बदलने के लिए नई कुंजी पेस्ट करें।</string>
+    <string name="setup_token_help">OneUptime में: प्रोजेक्ट सेटिंग्स, टेलीमेट्री और APM, इंजेशन कुंजियाँ। सर्वर कुंजी इस्तेमाल करें।</string>
+    <string name="setup_token_unreadable">सहेजी गई कुंजी अब इस डिवाइस पर पढ़ी नहीं जा सकती। उसे फिर से पेस्ट करें।</string>
+    <string name="setup_device_name_label">डिवाइस नाम</string>
+    <string name="setup_device_name_help">होस्ट और इन्वेंटरी में यह डिवाइस इसी नाम से दिखता है।</string>
+    <string name="setup_set_by_organization">आपके संगठन द्वारा सेट</string>
+    <string name="setup_save">सहेजें और कनेक्ट करें</string>
+    <string name="setup_saved">सहेजा गया। एजेंट अभी रिपोर्ट भेज रहा है।</string>
+    <string name="setup_token_required">इंजेशन कुंजी पेस्ट करें।</string>
+    <string name="setup_save_failed">यह डिवाइस कुंजी को सुरक्षित रूप से सहेज नहीं सका: %1$s</string>
+    <string name="setup_readings">यह डिवाइस एजेंट को क्या पढ़ने देता है</string>
+    <string name="setup_reading_yes">हाँ</string>
+    <string name="setup_reading_cpu">CPU उपयोग</string>
+    <string name="setup_reading_cpu_device_owner">हाँ, डिवाइस ओनर के रूप में</string>
+    <string name="setup_reading_cpu_not_device_owner">सिर्फ़ तब, जब एजेंट डिवाइस ओनर हो</string>
+    <string name="setup_reading_cpu_not_supported">इस डिवाइस पर नहीं: Android यहाँ CPU उपयोग नहीं बताता</string>
+    <string name="setup_reading_memory">मेमोरी, स्टोरेज और नेटवर्क</string>
+    <string name="setup_reading_battery">बैटरी</string>
+    <string name="setup_reading_no_battery">बैटरी नहीं है</string>
+    <string name="setup_reading_thermal">तापमान और थ्रॉटलिंग</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 और बाद के संस्करण</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">क्रैश के स्टैक ट्रेस और रीबूट के कारण</string>
+    <string name="setup_reading_crash_details_yes">हाँ, हर ऐप के लिए</string>
+    <string name="setup_reading_crash_details_not_granted">बंद: READ_LOGS की अनुमति नहीं दी गई है</string>
+    <string name="setup_reading_crash_details_no_usage_access">बंद: इस्तेमाल का ऐक्सेस नहीं दिया गया है</string>
+    <string name="setup_reading_apps">इंस्टॉल किए गए ऐप</string>
+    <string name="setup_reading_off_by_manager">बंद: आपकी डिवाइस प्रबंधन सेवा ने इसे बंद किया है</string>
+    <string name="setup_reading_unknown">पहली रिपोर्ट के बाद</string>
+    <string name="setup_grants">दूसरे ऐप के लॉग और क्रैश के स्टैक ट्रेस भेजने के लिए, ये अनुमतियाँ एक बार adb से या अपनी डिवाइस प्रबंधन सेवा के रिमोट ADB से दें:</string>
+    <string name="setup_usage_access">इस्तेमाल का ऐक्सेस दें</string>
+
+    <string name="logcat_not_started">शुरू नहीं हुआ</string>
+    <string name="logcat_not_granted">बंद: READ_LOGS की अनुमति नहीं दी गई है</string>
+    <string name="logcat_crashes_and_anrs">हर ऐप के क्रैश और ANR</string>
+    <string name="logcat_full">हर ऐप के लॉग, क्रैश और ANR</string>
+
+    <string name="log_session_title">समस्या निवारण के लिए लॉग</string>
+    <string name="log_session_request_by">%1$s ने OneUptime में इस डिवाइस पर हर ऐप के लॉग माँगे हैं (%2$s, स्तर %3$s और उससे ऊपर)।</string>
+    <string name="log_session_request">OneUptime इस डिवाइस पर हर ऐप के लॉग माँग रहा है (%1$s, स्तर %2$s और उससे ऊपर)।</string>
+    <string name="log_session_android_prompt">इसके बाद Android आपसे डिवाइस के सभी लॉग का ऐक्सेस देने के लिए पूछेगा। वहाँ भी अनुमति दें।</string>
+    <string name="log_session_allow">अनुमति दें</string>
+    <string name="log_session_decline">अस्वीकार करें</string>
+    <string name="log_session_stop">भेजना बंद करें</string>
+    <string name="log_session_starting">Android के प्रॉम्प्ट में डिवाइस के सभी लॉग का ऐक्सेस दें।</string>
+    <string name="log_session_collecting_until">%1$s तक हर ऐप के लॉग भेजे जा रहे हैं।</string>
+    <string name="log_session_collecting">हर ऐप के लॉग भेजे जा रहे हैं।</string>
+    <string name="log_session_declined_here">अस्वीकार किया गया। अब और कुछ नहीं भेजा जाएगा।</string>
+    <string name="log_session_declined_by_android">डिवाइस के सभी लॉग का ऐक्सेस नहीं दिया गया, इसलिए अब और कुछ नहीं भेजा जाएगा।</string>
+    <string name="log_session_no_answer">Android के प्रॉम्प्ट का किसी ने जवाब नहीं दिया, इसलिए अब और कुछ नहीं भेजा जाएगा।</string>
+    <string name="log_session_time_up">पूरा हुआ: माँगे गए पूरे समय तक हर ऐप के लॉग भेजे गए।</string>
+    <string name="log_session_stopped">रोका गया। अब और कुछ नहीं भेजा जाएगा।</string>
+    <string name="log_session_agent_restarted">एजेंट के रीस्टार्ट होने पर खत्म हुआ।</string>
+    <string name="log_session_logcat_stopped">खत्म हुआ: Logcat ने पढ़ना बंद कर दिया।</string>
+    <string name="log_session_logcat_disabled">यह डिवाइस इन्हें नहीं भेज सकता: आपकी डिवाइस प्रबंधन सेवा ने Logcat बंद कर दिया है।</string>
+    <string name="log_session_not_granted">यह डिवाइस इन्हें नहीं भेज सकता: READ_LOGS की अनुमति नहीं दी गई है।</string>
+    <string name="log_session_expired">किसी ने समय पर अनुमति नहीं दी।</string>
+    <string name="log_session_cancelled">OneUptime में रद्द किया गया।</string>
+    <string name="log_session_ended">खत्म हुआ।</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d मिनट</item>
+        <item quantity="other">%d मिनट</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d घंटा</item>
+        <item quantity="other">%d घंटे</item>
+    </plurals>
+
+    <string name="device_admin_description">एजेंट को डिवाइस ओनर के रूप में इस डिवाइस का CPU उपयोग पढ़ने देता है। यह डिवाइस को कभी लॉक, वाइप या प्रतिबंधित नहीं करता।</string>
+
+    <string name="restriction_url_title">OneUptime का URL</string>
+    <string name="restriction_url_description">टेलीमेट्री कहाँ भेजनी है। जब तक आप OneUptime को खुद होस्ट नहीं करते, इसे https://oneuptime.com ही रहने दें।</string>
+    <string name="restriction_token_title">इंजेशन कुंजी</string>
+    <string name="restriction_token_description">प्रोजेक्ट सेटिंग्स, टेलीमेट्री और APM, इंजेशन कुंजियाँ से एक सर्वर इंजेशन कुंजी।</string>
+    <string name="restriction_device_name_title">डिवाइस नाम</string>
+    <string name="restriction_device_name_description">OneUptime में डिवाइस का नाम, उदाहरण के लिए ${esper.deviceName}। अपने ऐप के host.name में भी यही नाम इस्तेमाल करें, ताकि दोनों एक ही डिवाइस के रूप में दिखें।</string>
+    <string name="restriction_device_serial_title">क्रम संख्या</string>
+    <string name="restriction_device_serial_description">डिवाइस की क्रम संख्या, उदाहरण के लिए ${esper.serialNumber}। Android इसे खुद ऐप को नहीं देता।</string>
+    <string name="restriction_device_type_title">डिवाइस प्रकार</string>
+    <string name="restriction_device_type_description">डिवाइस क्या है: कियोस्क, POS टर्मिनल, हैंडहेल्ड डिवाइस, डिजिटल साइनेज।</string>
+    <string name="restriction_device_location_title">स्थान</string>
+    <string name="restriction_device_location_description">डिवाइस कहाँ है, उदाहरण के लिए स्टोर नंबर।</string>
+    <string name="restriction_labels_title">लेबल</string>
+    <string name="restriction_labels_description">OneUptime में डिवाइस के लेबल, कॉमा से अलग किए गए नाम=मान जोड़ों के रूप में: store=0412, region=emea।</string>
+    <string name="restriction_interval_title">संग्रह अंतराल (सेकंड)</string>
+    <string name="restriction_interval_description">एजेंट हर कितने सेकंड में रिपोर्ट भेजे: 30 से 600 सेकंड तक। डिफ़ॉल्ट रूप से 60।</string>
+    <string name="restriction_logcat_enabled_title">Logcat भेजें</string>
+    <string name="restriction_logcat_enabled_description">दूसरे ऐप के क्रैश, ANR और लॉग भेजें, और OneUptime जिन लॉग सेशन को माँगे, उनकी अनुमति दें। इसके लिए adb से दी गई READ_LOGS अनुमति चाहिए।</string>
+    <string name="restriction_logcat_level_title">सबसे निचला Logcat स्तर</string>
+    <string name="restriction_logcat_level_description">भेजी जाने वाली सबसे कम गंभीर Logcat पंक्तियाँ, Android 12 और उससे पहले के संस्करणों पर। डिफ़ॉल्ट रूप से चेतावनी।</string>
+    <string name="restriction_apps_enabled_title">इंस्टॉल किए गए ऐप भेजें</string>
+    <string name="restriction_apps_enabled_description">इंस्टॉल किए गए ऐप और उनके संस्करण दिन में एक बार भेजें, और हर इंस्टॉल, अपडेट और हटाए जाने की जानकारी भी।</string>
+    <string name="logcat_level_verbose">विस्तृत</string>
+    <string name="logcat_level_debug">डीबग</string>
+    <string name="logcat_level_info">जानकारी</string>
+    <string name="logcat_level_warn">चेतावनी</string>
+    <string name="logcat_level_error">त्रुटि</string>
+    <string name="logcat_level_fatal">घातक</string>
+</resources>

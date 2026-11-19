@@ -144,10 +144,10 @@ export const getBackfillStatement: (table: ProviderDomainsTable) => string = (
   ].join(" ");
 };
 
-export class BackfillSsoProviderDomains1809186540000
+export class BackfillSsoProviderDomains1809186620000
   implements MigrationInterface
 {
-  public name: string = "BackfillSsoProviderDomains1809186540000";
+  public name: string = "BackfillSsoProviderDomains1809186620000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const table of PROVIDER_DOMAINS_TABLES) {

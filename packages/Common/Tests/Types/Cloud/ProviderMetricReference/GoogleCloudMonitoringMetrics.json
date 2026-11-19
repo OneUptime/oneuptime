@@ -97,7 +97,5 @@
     "file.googleapis.com/nfs/server/average_read_latency": {"displayName": "Average read latency", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "ms", "monitoredResources": ["filestore_instance"], "page": "metrics_gcp_d_h"},
     "file.googleapis.com/nfs/server/average_write_latency": {"displayName": "Average write latency", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "ms", "monitoredResources": ["filestore_instance"], "page": "metrics_gcp_d_h"}
   },
-  "retired": {
-    "pubsub.googleapis.com/topic/send_message_operation_count": {"displayName": "Publish message operations", "launchStage": "DEPRECATED", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["pubsub_topic"], "page": "metrics_gcp_p_z"}
-  }
+  "retired": {}
 }

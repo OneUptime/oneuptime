@@ -100,7 +100,7 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 
 **프로젝트 설정 → 알림**에서는 프로젝트가 알림을 보내는 방식을 정합니다.
 
-- **알림 채널**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 구성원의 기본 호출 방식인 **새 구성원의 기본 연락 순서**와 **온콜 담당자의 전화**([기본 연락 순서](/docs/notifications/on-call-rules#기본-연락-순서) 참조), **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
+- **알림 채널**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 구성원의 기본 호출 방식인 **새 구성원의 기본 연락 순서**와 **온콜 담당자의 전화**([기본 연락 순서](/docs/notifications/on-call-rules#기본-연락-순서) 참조), 온콜 전화가 음성사서함과 사람을 구분하는지 정하는 **온콜 전화의 음성사서함**([온콜 전화의 음성사서함](/docs/self-hosted/twilio-integration#온콜-전화의-음성사서함) 참조), **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
 - **알림 로그**: 프로젝트가 보낸 모든 알림. 채널마다 탭이 있습니다: **이메일**, **SMS**, **WhatsApp**, **Telegram**, **웹훅**, **호출**, **푸시**, **워크스페이스**. **웹훅** 탭은 각 주소의 스킴과 호스트만 남깁니다. 나머지는 웹훅의 시크릿입니다.
 - **모바일 앱**: iOS 및 Android 앱을 받는 곳. [앱 개요](/docs/mobile-desktop-apps/index)를 참조하세요.
 

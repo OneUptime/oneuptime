@@ -43,7 +43,7 @@ Cliquez sur **Suivant** pour atteindre **Ressources affectées**. Choisissez les
 
 ### Choisir qui en est informé
 
-Choisissez les pages de statut sous **Afficher l'événement sur ces pages de statut**. **Notifications aux abonnés**, replié, indique en une ligne quand l'événement s'y affiche, et qui est prévenu et quand ; ouvrez-le pour choisir **À une date et une heure précises** sous **Publier sur les pages de statut**, ou pour modifier **Lorsque l'événement est planifié**, **Lorsque l'événement commence**, **Lorsque l'événement se termine** ou **Rappels avant l'événement**.
+Choisissez les pages de statut sous **Afficher l'événement sur ces pages de statut**. **Notifications aux abonnés**, replié, indique en une ligne quand l'événement s'y affiche, et qui est prévenu et quand ; ouvrez-le pour choisir **À une date et une heure précises** sous **Publier sur les pages de statut**, ou pour modifier **Lorsque l'événement est planifié**, **Lorsque l'événement commence**, **Lorsque l'événement se termine** ou **Rappels avant l'événement**. La ligne suit les pages de statut sélectionnées : si aucune n'est sélectionnée, si aucune d'elles n'affiche d'événements de maintenance, ou si celles qui en affichent n'envoient rien à leurs abonnés, elle le dit au lieu de dire qui est informé.
 
 ### Le créer
 

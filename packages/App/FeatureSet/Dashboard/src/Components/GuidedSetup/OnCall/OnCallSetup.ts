@@ -22,6 +22,10 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
+  MAX_LEVEL_WAIT_IN_MINUTES,
+  MAX_POLICY_REPEAT_TIMES,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
   PluralTemplate,
   Translator,
   translationKey,
@@ -885,10 +889,11 @@ export enum NoAnswerChoice {
 }
 
 /*
- * The minutes a level waits: a whole number from 1 to a day. Null when the
+ * The minutes a level waits: a whole number from 1 to a day, as Ask AI's
+ * set_up_paging takes it too (Common's OnCallPolicyRecords). Null when the
  * text is not one.
  */
-export const MAX_WAIT_IN_MINUTES: number = 24 * 60;
+export const MAX_WAIT_IN_MINUTES: number = MAX_LEVEL_WAIT_IN_MINUTES;
 
 export const parseWaitMinutes: (input: string) => number | null = (
   input: string,
@@ -905,7 +910,7 @@ export const parseWaitMinutes: (input: string) => number | null = (
 };
 
 // How many more times the page starts again: a whole number from 1 to 10.
-export const MAX_REPEAT_TIMES: number = 10;
+export const MAX_REPEAT_TIMES: number = MAX_POLICY_REPEAT_TIMES;
 
 export const parseRepeatTimes: (input: string) => number | null = (
   input: string,
