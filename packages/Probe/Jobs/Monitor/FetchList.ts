@@ -392,8 +392,12 @@ export class FetchListAndProbe {
           options: ProbeAPIRequest.getDefaultRequestOptions(monitorListUrl),
         });
 
+      /*
+       * Not the list itself: the monitors in it hold their secrets' values,
+       * filled in by the server, which the logger's redaction (by field
+       * name) cannot all tell apart.
+       */
       logger.debug("Fetched monitor list");
-      logger.debug(result);
 
       /*
        * The server is too busy to hand out monitors now: nothing was

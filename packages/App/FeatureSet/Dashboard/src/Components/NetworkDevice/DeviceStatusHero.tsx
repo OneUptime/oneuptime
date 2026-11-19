@@ -23,6 +23,7 @@ import DeviceStatusUtil, {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { getDownInterfacesRoute } from "./InterfaceListRoute";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import MonitoringSwitchCopy, {
   TURN_MONITORING_ON_BUTTON_TEST_ID,
@@ -826,17 +827,27 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
               <span className="text-gray-400">
                 <InlineSeparator />
               </span>
-              <span
-                className={
-                  interfacesDown > 0
-                    ? "font-semibold text-red-700"
-                    : "text-gray-500"
-                }
-              >
-                {translator.translateTemplate("{{count}} down", {
-                  count: translator.formatNumber(interfacesDown),
-                })}
-              </span>
+              {/*
+               * "2 down" opens which two (#9596): the device's Interfaces,
+               * its table on the interfaces that are down.
+               */}
+              {interfacesDown > 0 ? (
+                <AppLink
+                  to={getDownInterfacesRoute(props.modelId)}
+                  dataTestId="device-hero-interfaces-down"
+                  className="rounded font-semibold text-red-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  {translator.translateTemplate("{{count}} down", {
+                    count: translator.formatNumber(interfacesDown),
+                  })}
+                </AppLink>
+              ) : (
+                <span className="text-gray-500">
+                  {translator.translateTemplate("{{count}} down", {
+                    count: translator.formatNumber(interfacesDown),
+                  })}
+                </span>
+              )}
             </div>
           )}
           {!isMonitorBacked && interfacesTotal > 0 && (

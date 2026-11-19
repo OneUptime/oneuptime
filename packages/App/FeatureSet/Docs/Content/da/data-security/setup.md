@@ -221,7 +221,7 @@ Datasikkerheds indstillinger er ét sæt pr. projekt i sektionen **Indstillinger
 | --- | --- | --- |
 | **Kontrollér konfiguration** | Til | Kører kontrollerne på hvert datalager. Slået fra åbnes, ændres eller lukkes intet problem. |
 | **Scan indhold** | Til | Tager prøver af datalagres indhold, hvor indholdstilladelsen er givet. |
-| **Scan telemetri** | Til | Tager prøver af projektets logs, traces, undtagelser, afspilninger og AI-samtaler. |
+| **Scan telemetri** | Til | Tager prøver af projektets logs, traces, metrikker, undtagelser, afspilninger og AI-samtaler. |
 | **Gem maskerede prøver** | Til | Gemmer op til tre maskerede prøver med hvert fund. Slået fra gemmes kun antal. |
 | **Åbn sikkerhedssager** | Til | Åbner en sikkerhedssag, grupperet efter datalager, når et kritisk problem åbnes. |
 | **Udløs advarsler** | Fra | Udløser en advarsel, som tilkalder den, der har vagt, når et kritisk problem åbnes. |

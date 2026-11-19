@@ -6,7 +6,12 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import { readTelemetryDataStoreKeyOwnerId } from "Common/Types/DataSecurity/DataStoreKey";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  MetricExplorerUrlParam,
+  SerializedMetricQuery,
+} from "Common/Utils/Metrics/MetricExplorerUrl";
 import {
   CrossSignalQueryParams,
   toLogsExplorerQueryParams,
@@ -28,12 +33,16 @@ import { buildExceptionsGroupRoute } from "../../Utils/TraceCorrelatedSignals";
  * trace view focused on the span; the logs explorer filtered to the line's
  * span in the minutes around it - or, for a line written outside any
  * request, to its service in the second around it; the exceptions list
- * filtered to the exception's group; the session's replay. The store's
- * own service or RUM application opens at the same signal.
+ * filtered to the exception's group; the session's replay; the metrics
+ * explorer on a metric's point - its metric, of its service, split by the
+ * attribute the data is under. The store's own service or RUM application
+ * opens at the same signal.
  *
- * Nothing a record holds goes into an address but ids and times: never the
- * value it carried. The explorers apply the reader's own permissions when
- * a link is followed. Built here without React, so a test pins each one.
+ * Nothing a record holds goes into an address but ids, times, a metric's
+ * name and an attribute's key: never the value it carried, and a metric's
+ * name only when nothing sensitive is in it (the server leaves metricName
+ * out otherwise). The explorers apply the reader's own permissions when a
+ * link is followed. Built here without React, so a test pins each one.
  */
 
 export enum OccurrenceLinkKind {
@@ -41,6 +50,7 @@ export enum OccurrenceLinkKind {
   Logs = "Logs",
   Exception = "Exception",
   SessionReplay = "SessionReplay",
+  Metrics = "Metrics",
 }
 
 export interface OccurrenceLink {
@@ -53,6 +63,9 @@ export const REQUEST_LOGS_WINDOW_IN_MINUTES: number = 15;
 
 // How far either side of a line written outside any request its neighbours are.
 export const NEIGHBOUR_LOGS_WINDOW_IN_SECONDS: number = 1;
+
+// How far either side of a metric's point the metrics explorer opens.
+export const METRIC_WINDOW_IN_MINUTES: number = 30;
 
 function withQuery(route: Route, params: Dictionary<string>): Route {
   const encoded: Dictionary<string> = {};
@@ -130,9 +143,60 @@ export function getOccurrenceLogsRoute(
 }
 
 /*
+ * The metrics explorer at a metric's point: its metric, of its service,
+ * split by the attribute the data is under, in the half hour around it -
+ * so the reader sees the series that carry it, under their own
+ * permissions, and never a value in the address. A point whose metric's
+ * name holds sensitive data names no metric (no metricName): its
+ * service's metrics open instead. Null without a time or a service.
+ */
+export function getOccurrenceMetricsRoute(
+  occurrence: DataSecurityFindingOccurrence,
+): Route | null {
+  const time: Date | null = timeOf(occurrence);
+  const serviceId: string = trimmed(occurrence.serviceId);
+  const metricName: string = occurrence.metricName || "";
+  const attributeKey: string = trimmed(occurrence.excerpt?.field);
+
+  if (!time || !ObjectID.isValidUUID(serviceId)) {
+    return null;
+  }
+
+  if (!metricName.trim()) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SERVICE_VIEW_METRICS]!,
+      { modelId: new ObjectID(serviceId) },
+    );
+  }
+
+  const query: SerializedMetricQuery = {
+    metricName,
+    serviceIds: [serviceId],
+  };
+
+  if (attributeKey) {
+    query.groupByAttributeKeys = [attributeKey];
+  }
+
+  return withQuery(
+    RouteUtil.populateRouteParams(RouteMap[PageMap.METRIC_VIEW]!),
+    {
+      [MetricExplorerUrlParam.MetricQueries]: JSON.stringify([query]),
+      [MetricExplorerUrlParam.StartTime]: OneUptimeDate.toString(
+        new Date(time.getTime() - METRIC_WINDOW_IN_MINUTES * 60 * 1000),
+      ),
+      [MetricExplorerUrlParam.EndTime]: OneUptimeDate.toString(
+        new Date(time.getTime() + METRIC_WINDOW_IN_MINUTES * 60 * 1000),
+      ),
+    },
+  );
+}
+
+/*
  * Where one record opens, its own explorer first: a span or an AI call's
  * trace; a log line's lines, then its trace; an exception's group, then
- * its trace; and the session a RUM record belongs to.
+ * its trace; a metric's point in the metrics explorer; and the session a
+ * RUM record belongs to.
  */
 export function getOccurrenceLinks(
   occurrence: DataSecurityFindingOccurrence,
@@ -142,6 +206,14 @@ export function getOccurrenceLinks(
   const spanId: string = trimmed(occurrence.spanId);
   const sessionId: string = trimmed(occurrence.sessionId);
   const rumApplicationId: string = trimmed(occurrence.rumApplicationId);
+
+  if (occurrence.recordKind === DataSecurityOccurrenceRecordKind.Metric) {
+    const metrics: Route | null = getOccurrenceMetricsRoute(occurrence);
+
+    if (metrics) {
+      links.push({ kind: OccurrenceLinkKind.Metrics, route: metrics });
+    }
+  }
 
   if (occurrence.recordKind === DataSecurityOccurrenceRecordKind.Log) {
     const logs: Route | null = getOccurrenceLogsRoute(occurrence);
@@ -186,6 +258,7 @@ const SERVICE_PAGE_OF_KIND: Readonly<Partial<Record<string, PageMap>>> = {
   [DataStoreKind.TelemetryTraces]: PageMap.SERVICE_VIEW_TRACES,
   [DataStoreKind.TelemetryExceptions]: PageMap.SERVICE_VIEW_EXCEPTIONS,
   [DataStoreKind.TelemetryAiConversations]: PageMap.SERVICE_VIEW,
+  [DataStoreKind.TelemetryMetrics]: PageMap.SERVICE_VIEW_METRICS,
 };
 
 /*

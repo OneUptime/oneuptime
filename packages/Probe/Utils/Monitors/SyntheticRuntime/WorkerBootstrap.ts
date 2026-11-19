@@ -973,6 +973,10 @@ export function getSyntheticMonitorWorkerBootstrapSource(): string {
         capturedMetrics.push(metric);
         void rpc(payload.capabilities.runtime, "captureMetric", [metric]).catch(() => {});
       },
+      // A fresh one-time code from a TOTP monitor secret; the seed never comes here.
+      getTotpCode(name) {
+        return rpc(payload.capabilities.runtime, "getTotpCode", [typeof name === "string" ? name : ""]);
+      },
     });
     const screenshots = new Proxy(Object.create(null), {
       set(_target, property, value) {

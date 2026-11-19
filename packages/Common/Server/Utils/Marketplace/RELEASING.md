@@ -6,12 +6,14 @@ This is the runbook for maintainers and AI agents who list **OneUptime Cloud**
 needs, and keep it running. Follow the repository's
 [AGENTS.md](../../../../../AGENTS.md) as well.
 
-**OneUptime Cloud is not listed on Google Cloud Marketplace** (the
-maintainer's decision, 11 November 2026): Google lists only SaaS hosted on
-Google Cloud, and OneUptime Cloud is moving off it (see
-[Google Cloud Marketplace](#google-cloud-marketplace)). Google sells only the
-self-hosted Kubernetes app. The Google integration stays in the code, unused
-while its settings are unset, for the day that changes.
+**OneUptime Cloud is being listed on Google Cloud Marketplace** (the
+maintainer's decision, 19 November 2026, once Google had approved it; on 11
+November the decision had been not to list it): its product,
+`oneuptime-cloud`, is in Google's review and not public yet (see
+[Google Cloud Marketplace](#google-cloud-marketplace)). Google lists only SaaS
+hosted on Google Cloud, as OneUptime Cloud is while it runs on GKE: a move off
+Google Cloud must be reported to Google first. Google sells the self-hosted
+Kubernetes app too.
 
 It does not cover self-hosted OneUptime Enterprise, which the same
 marketplaces sell as a Kubernetes application billed per user-hour: see
@@ -82,7 +84,7 @@ addresses carry the publisher ID Partner Center has for HackerBay,
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | AWS          | `https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw` (product `prod-unn56dxklr4mw`, seller `seller-d3b2fafj4knc2`) | 2026-10-21  |
 | Microsoft    | `https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud` (offer `oneuptime-cloud`)                        | 2026-10-21  |
-| Google Cloud | Not listed: Google lists only SaaS hosted on Google Cloud (see [Google Cloud Marketplace](#google-cloud-marketplace))        |             |
+| Google Cloud | Not listed yet: product `oneuptime-cloud` is in Google's review (see [Google Cloud Marketplace](#google-cloud-marketplace))  |             |
 
 The website shows them, from
 [packages/Home/Utils/CloudMarketplaces.ts](../../../../Home/Utils/CloudMarketplaces.ts):
@@ -91,7 +93,9 @@ the Resellers page's "Buy through your cloud marketplace" section
 A listing that is not public there says "Coming soon", and a marketplace that
 does not sell OneUptime Cloud has no row for it. When a listing goes public,
 put its address in that file as well as here, exactly as the marketplace
-links it.
+links it. Google's listing of OneUptime Cloud goes into that file once it is
+public: until then the file, and its tests, have Google selling OneUptime
+Enterprise only.
 
 ## Pricing: the same prices as oneuptime.com, in usage units
 
@@ -170,11 +174,14 @@ submit button without a maintainer's explicit go-ahead in chat.
     elsewhere). Pattern 3, "storage and backup on Google Cloud", is for
     storage, backup, replication and disaster-recovery products only:
     copying OneUptime's data to Google Cloud does not keep the listing
-    eligible. **So OneUptime Cloud is not listed there** (the maintainer's
-    decision, 11 November 2026): a listing would face a re-review at the
-    move, a possibly smaller revenue share, and buyers to move off Google
-    billing by hand. List it only if its data plane is to stay on Google
-    Cloud. Whether a purchase counts toward a buyer's Google Cloud commitment
+    eligible. On 11 November 2026 the maintainer decided not to list
+    OneUptime Cloud there for that reason: a listing would face a re-review
+    at the move, a possibly smaller revenue share, and buyers to move off
+    Google billing by hand. **On 19 November 2026 the maintainer decided to
+    list it**, once Google had approved it (case 77068529), and confirmed in
+    Producer Portal that it meets Google's listing requirements, hosting
+    included: report a move off Google Cloud to Google before it happens.
+    Whether a purchase counts toward a buyer's Google Cloud commitment
     is Google's rule for the product, not something to promise in the
     listing.
   - **AWS Marketplace** lists SaaS hosted anywhere (since May 2025). Only
@@ -318,19 +325,23 @@ The URLs each marketplace asks for (production):
 
 ## Google Cloud Marketplace
 
-**Not listed** (the maintainer's decision, 11 November 2026): OneUptime Cloud
-is moving off Google Cloud, and Google lists only SaaS hosted there - see the
-hosting rule under
+**Being listed** (the maintainer's decision, 19 November 2026, once Google had
+approved OneUptime Cloud; on 11 November the decision had been not to list it):
+see the hosting rule under
 [Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
-Google Cloud Marketplace sells only the self-hosted Kubernetes app
-([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)).
-Do not create a SaaS product in Producer Portal and leave the
-`GOOGLE_CLOUD_MARKETPLACE_*` settings unset: the integration's URLs then
-answer "not available here". The steps below are kept for the day OneUptime
-Cloud's data plane is to stay on Google Cloud.
+**Where it stands** (19 November 2026): the SaaS product `oneuptime-cloud`
+("OneUptime") is in Producer Portal next to the self-hosted Kubernetes app
+([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)),
+with steps 2 to 5 and 8 done; its product details and pricing are in
+Google's review, submitted that morning with the maintainer's go-ahead.
+**Left**: the production settings (step 7), the Pub/Sub subscription (step
+6), a test purchase (step 9), the technical integration's review once the
+pricing is approved (step 10), then **Publish** once all three reviews are
+approved (the maintainer's go-ahead). Until step 7, the integration's URLs
+answer "not available here".
 
 The listing, its service account, its Pub/Sub subscription and its Service
-Control service would live in a Google Cloud project made for the listings,
+Control service live in a Google Cloud project made for the listings,
 `oneuptime-marketplace` - never `oneuptime-k8s`, which hosts OneUptime Cloud
 today and will be deleted when OneUptime moves to its own data centre. Nothing
 in the integration depends on where OneUptime Cloud runs, but Google's listing
@@ -347,50 +358,85 @@ rules do.
    `https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`;
    it may not load until the partner account is approved.
 
-   **Where this stands** (17 November 2026): Google approved the self-hosted
+   **Where this stands** (19 November 2026): Google approved the self-hosted
    Kubernetes app on 6 November, the `oneuptime-marketplace` project has the
    roles Google asks for, and the project info form (once per partner) went
    in on 11 November with that product's listing type. Producer Portal has
-   been on since 17 November, and has that product,
-   `oneuptime-enterprise`, as its only one.
-   See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
-   for the details. A SaaS product would go into the same project, created
-   in Producer Portal next to the Kubernetes app with no new partner
-   sign-up, but Google validates every listing on its own (its Onboarding
-   Validation Form), the hosting rule included. Google's validation of
-   OneUptime Cloud (case 77068529, opened before the decision above) is
-   still open: on 16 November it asked to confirm its estimates of the
-   listing's yearly sales and infrastructure costs, and the maintainer
-   confirmed them on 17 November. The service
-   accounts of steps 5 and 6 (`marketplace@` and `marketplace-pubsub-push@`)
-   exist, with no key, and nothing uses them.
+   been on since 17 November, with `oneuptime-enterprise`, and has had
+   `oneuptime-cloud` next to it since 19 November, with no new partner
+   sign-up. See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
+   for the details. Google validates every listing on its own (its
+   Onboarding Validation Form), the hosting rule included: it approved
+   OneUptime Cloud (case 77068529, opened before the decision of 11
+   November; on 16 November it asked to confirm its estimates of the
+   listing's yearly sales and infrastructure costs, which the maintainer
+   confirmed on 17 November), and the maintainer reported the approval on
+   19 November. The service accounts of steps 5 and 6 (`marketplace@` and
+   `marketplace-pubsub-push@`) exist; neither has a key yet.
 
-2. **Create the product**: a SaaS product, "integrated with Google Cloud"
-   (Google Cloud bills it).
-3. **Pricing**: usage-based, one metric, `usage_units`, unit "unit", USD 0.01
-   per unit; no subscription fee; no free trial (OneUptime's own plan trial
-   applies). Ask the Partner Engineer to create the Service Control service
-   for it; Producer Portal then shows the **service name** and the **metric
-   name** - those are `GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME` and
-   `GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC`, copied exactly.
-4. **Technical integration > Frontend**: sign-up URL and login URL from the
-   table above; **Enable SSO login: No** (OneUptime has its own sign-in). The
-   product's domain is `oneuptime.com` - the sign-up JWT's audience.
-5. **Technical integration > Backend**: create one service account (for
-   example `marketplace@oneuptime-marketplace.iam.gserviceaccount.com`) and link it in
-   Producer Portal for the **Procurement API**, **Pub/Sub** and **Service
-   Control** (grant it `roles/servicemanagement.serviceController` there).
-   Create a JSON key for it: that is `GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY`.
-   The partner ID on the same page is `GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID`.
-6. **Pub/Sub push subscription** to the topic Producer Portal names (it is
-   `projects/cloudcommerceproc-prod/topics/<partner ID>`), signed with an OIDC
-   token for a push service account:
+2. **Create the product** (19 November 2026): **Add product** > **SaaS**
+   (Google Cloud bills it; buyers finish on our sign-up page), name
+   "OneUptime", product ID `oneuptime-cloud` (permanent; the product's
+   service is `oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog`).
+   The dialog's required box confirms the product meets Google's listing
+   requirements, hosting on Google Cloud included (the maintainer's
+   go-ahead). The product then asks for Google's roles: the project's were in
+   place, for the Kubernetes app, and Google's procurement account needs
+   Service Consumer and Service Controller on the product's service, which
+   only the CLI grants:
 
    ```bash
-   gcloud iam service-accounts create marketplace-pubsub-push --project=oneuptime-marketplace
+   SERVICE=oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog
+   for ROLE in roles/servicemanagement.serviceConsumer roles/servicemanagement.serviceController; do
+     gcloud endpoints services add-iam-policy-binding "$SERVICE" \
+       --member=serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com --role="$ROLE"
+   done
+   ```
+
+3. **Pricing** (submitted for review on 19 November 2026 with the
+   maintainer's go-ahead): plan ID `pay-as-you-go`, "Pay as you go",
+   usage-based, one metric: ID `usage_units`, display name "Usage units",
+   reporting unit `count` (the only count unit offered), display unit
+   "unit", whole numbers, **USD 0.01** per unit; no subscription fee; no free
+   trial (OneUptime's own plan trial applies). **Save** the plan structure,
+   then **Set up**, which takes a minute or two. Producer Portal makes the
+   service with the product and the metric with the plan, so no Partner
+   Engineer is needed: `GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME` is
+   `oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog` and
+   `GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC` is
+   `oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog/usage_units`,
+   as the **Technical integration** page shows them.
+   - **Features**: four rows with custom values: "Users on your OneUptime
+     plan" (plan price per user), "Active monitors" ($1 per month each),
+     "Logs, traces and metrics" (from $0.10 per GB) and "Billing" (hourly,
+     in $0.01 units), each with a tooltip.
+   - **Tax Category** (maintainer): the maintainer's answers. **Terms &
+     Policies** opens only once they are saved.
+   - **Terms & Policies**: EULA `https://oneuptime.com/legal/terms`, as on
+     Microsoft. **Submit** is on this tab, and a dialog asks again: pricing
+     cannot change once submitted, the review takes up to 14 days, and a
+     published price waits 30 days for an update.
+4. **Technical integration > Frontend integration** (19 November 2026):
+   sign-up URL and login URL from the table above; **Enable SSO login: No**
+   (OneUptime has its own sign-in). The product's domain is `oneuptime.com` -
+   the sign-up JWT's audience.
+5. **Technical integration > Billing integration** (19 November 2026):
+   `marketplace@oneuptime-marketplace.iam.gserviceaccount.com` is linked for
+   the **Procurement API**, **Pub/Sub** and **Service Control**. Linking it
+   does not grant `roles/servicemanagement.serviceController` on the
+   service, so grant it with `gcloud endpoints services add-iam-policy-binding`
+   (done). Its JSON key is `GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY`: the
+   maintainer creates it straight into production's Secret (step 7), so it
+   never sits in a file. The partner ID on the same page, `oneuptime-marketplace`,
+   is `GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID`.
+6. **Pub/Sub push subscription** to the topic Producer Portal names,
+   `projects/cloudcommerceproc-prod/topics/oneuptime-marketplace`, signed
+   with an OIDC token for the push service account, which exists:
+
+   ```bash
    gcloud pubsub subscriptions create oneuptime-marketplace-events \
      --project=oneuptime-marketplace \
-     --topic=projects/cloudcommerceproc-prod/topics/<partner ID> \
+     --topic=projects/cloudcommerceproc-prod/topics/oneuptime-marketplace \
      --push-endpoint=https://oneuptime.com/api/marketplace/google-cloud/events \
      --push-auth-service-account=marketplace-pubsub-push@oneuptime-marketplace.iam.gserviceaccount.com \
      --ack-deadline=60
@@ -398,25 +444,55 @@ rules do.
 
    `GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL` is that push service
    account. The subscription must be created by the service account linked for
-   Pub/Sub (or a person with its permissions). Google's current docs name
-   neither the topic nor push or pull (checked on 11 November 2026): the
-   Partner Engineer creates the topic, so take its name from them and
-   confirm that a push subscription to it is fine. If push deliveries are
-   refused with 401 in OneUptime's logs, the Pub/Sub service agent
+   Pub/Sub (or a person with its permissions). Create it after step 7: it
+   sends production every purchase. If push deliveries are refused with 401
+   in OneUptime's logs, the Pub/Sub service agent
    (`service-<project number>@gcp-sa-pubsub.iam.gserviceaccount.com`) needs
    `roles/iam.serviceAccountTokenCreator` on the push service account.
 
-7. **Deploy** the values (table above) to production and check
+7. **Deploy** the values (table above) to production. In OneUptime Cloud's
+   Helm values:
+
+   ```yaml
+   cloudMarketplace:
+     googleCloud:
+       providerId: oneuptime-marketplace
+       serviceName: oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog
+       usageMetric: oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog/usage_units
+       pubSubServiceAccountEmail: marketplace-pubsub-push@oneuptime-marketplace.iam.gserviceaccount.com
+       existingSecret:
+         name: google-cloud-marketplace-secret
+         serviceAccountKeyKey: serviceAccountKey
+   ```
+
+   with `marketplace@`'s JSON key in that Secret, under `serviceAccountKey`
+   (`signupAudience` and `pubSubAudience` stay unset: they default to the
+   host and to the push endpoint's URL). `enterpriseMarketplace.googleCloud`
+   is the self-hosted edition's, not this. Then check
    `https://oneuptime.com/api/marketplace/google-cloud/signup` answers (a GET
    shows "Open OneUptime from Google Cloud Marketplace").
-8. **Listing**: the copy and media above; support and legal links.
+8. **Listing** (submitted for review on 19 November 2026 with the
+   maintainer's go-ahead): the copy above, one line per paragraph and per
+   bullet; "link to more product info" `https://oneuptime.com`; categories
+   DevOps and Monitoring; documentation "Getting started"
+   (`/docs/en/introduction/getting-started`) and "Billing and usage"
+   (`/docs/en/configuration/billing`); the Enterprise listing's support text
+   and `https://oneuptime.com/support`; search metadata and keywords; URL
+   segment `oneuptime-cloud`. The product image is the Enterprise listing's
+   transparent logo, uploaded by the maintainer. **Submit** is at the bottom
+   of the **Product metadata** tab, and changing a field while the review
+   runs cancels it.
 9. **Test** with Producer Portal's test flow before submitting: buy as a test
    customer, sign up, pick a project, then check (Admin Dashboard API or
    database) that a `MarketplaceSubscription` row is `Active` with a
    `usageReportingId`, and after the next hour a `MarketplaceUsageReport` is
    `Reported`. Change plan and cancel from the Google Cloud console and watch
-   the row follow.
-10. **Submit for review** - a maintainer's decision.
+   the row follow. **Full Preview** tests a subscription as soon as the plan
+   exists; usage billing, only once the pricing is approved.
+10. **Submit for review** - a maintainer's decision. Product details and
+    pricing went in on 19 November 2026. Google takes the technical
+    integration's review (**Submit** on its **Frontend integration** tab)
+    only after the pricing is approved. Then **Publish** (maintainer).
 
 What OneUptime does with Google's events:
 [GoogleCloudMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceInbound.ts).
@@ -654,6 +730,10 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-11 | Google Cloud | Decided: OneUptime Cloud is not listed on Google Cloud Marketplace (it is moving off Google Cloud)                    | Maintainer |
 | 2026-11-17 | Google Cloud | Producer Portal requested on the self-hosted app's case (form and roles done); still pending                          | Agent      |
 | 2026-11-17 | Google Cloud | SaaS validation (case 77068529): the maintainer confirmed Google's sales and cost estimates                           | Maintainer |
+| 2026-11-19 | Google Cloud | Google approved OneUptime Cloud (case 77068529); decided: list it after all, hosting box ticked                       | Maintainer |
+| 2026-11-19 | Google Cloud | SaaS product `oneuptime-cloud` ("OneUptime") created; listing, pricing and integration links filled in                | Agent      |
+| 2026-11-19 | Google Cloud | Product image, Tax Category and EULA (OneUptime's terms) entered                                                      | Maintainer |
+| 2026-11-19 | Google Cloud | Product details and pricing (`usage_units` at USD 0.01) submitted for review, with the maintainer's go-ahead          | Agent      |
 
 ## Notes for agents driving the browser
 

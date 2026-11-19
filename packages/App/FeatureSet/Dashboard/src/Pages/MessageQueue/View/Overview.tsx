@@ -44,6 +44,8 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import { getFailedSpansRoute } from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import { MESSAGE_QUEUE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/MessageQueueMetricDescriptions";
@@ -771,9 +773,19 @@ const MessageQueueOverview: FunctionComponent<
       percent: figures.errorsTileBroker ? undefined : m.errorRatePercent,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
+      /*
+       * The broker's own failures open its metrics; failures counted from
+       * spans open those spans: every span of the queue that failed.
+       */
       to: figures.errorsTileBroker
         ? populate(PageMap.MESSAGE_QUEUE_VIEW_METRICS)
-        : undefined,
+        : hasSpans
+          ? getFailedSpansRoute({
+              tracesRoute: populate(PageMap.MESSAGE_QUEUE_VIEW_TRACES),
+              timeRange: timeRange,
+              spanType: TraceSpanType.All,
+            })
+          : undefined,
       description: figures.errorsTileBroker
         ? getMessageQueueBrokerFigureDescription(
             figures.errorsTileBroker,

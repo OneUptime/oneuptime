@@ -22,10 +22,16 @@ import {
 } from "./SiteFormSections";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
 import {
+  SITE_SUMMARY_TILES,
+  SiteSummaryStatusFilter,
   SiteSummaryTile,
   SiteSummaryTileAction,
   UNASSIGNED_DEVICES_FACET_SELECTION,
 } from "../../Components/NetworkSite/SiteSummaryTiles";
+import {
+  SITE_LIST_SHOW_PARAM,
+  SITE_LIST_SHOW_UNHEALTHY,
+} from "../../Components/NetworkSite/SiteListRoute";
 import {
   NETWORK_SITES_TABLE_ID,
   SITE_FACET_QUERY_FIELDS,
@@ -68,8 +74,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -96,6 +104,9 @@ const NetworkSites: FunctionComponent<
    * page reload.
    */
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  // A tile the address named is pressed once, when its counts first arrive.
+  const hasPressedRequestedTile: MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
 
@@ -401,6 +412,50 @@ const NetworkSites: FunctionComponent<
     });
   };
 
+  /*
+   * A link that names the Unhealthy Sites tile (the Network Overview's "2
+   * unhealthy", #9596) presses it once its counts arrive - the chip set as
+   * if the reader had pressed it - and the word is taken off the address,
+   * so going back or reloading never presses it again over a cleared chip.
+   */
+  const onSummaryCountsLoaded: (
+    getSelection: (tile: SiteSummaryTile) => FacetTileSelection | null,
+  ) => void = (
+    getSelection: (tile: SiteSummaryTile) => FacetTileSelection | null,
+  ): void => {
+    if (
+      hasPressedRequestedTile.current ||
+      Navigation.getQueryStringByName(SITE_LIST_SHOW_PARAM) !==
+        SITE_LIST_SHOW_UNHEALTHY
+    ) {
+      return;
+    }
+
+    hasPressedRequestedTile.current = true;
+
+    const unhealthyTile: SiteSummaryTile | undefined = SITE_SUMMARY_TILES.find(
+      (tile: SiteSummaryTile): boolean => {
+        return tile.statusFilter === SiteSummaryStatusFilter.Unhealthy;
+      },
+    );
+    const selection: FacetTileSelection | null = unhealthyTile
+      ? getSelection(unhealthyTile)
+      : null;
+
+    if (selection) {
+      // Set, never toggled off: it is pressed from a fresh page.
+      applyFacetTileSelection({
+        selection: selection,
+        facetSelections: {},
+        facetOperators: {},
+        setFacetSelection: setFacetSelection,
+        clearAllFacets: clearAllFacets,
+      });
+    }
+
+    Navigation.setQueryString({ [SITE_LIST_SHOW_PARAM]: null });
+  };
+
   return (
     <Fragment>
       <SiteSummaryCards
@@ -408,6 +463,7 @@ const NetworkSites: FunctionComponent<
         facetSelections={facetSelections}
         facetOperators={facetOperators}
         onTileClick={onSummaryTileClick}
+        onCountsLoaded={onSummaryCountsLoaded}
       />
       <div className="mb-5">
         <SiteHierarchyTree refreshToggle={refreshToggle} />
