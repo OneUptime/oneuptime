@@ -285,3 +285,77 @@ export async function loadDeviceMonitors(data: {
     monitorsTiedToDevices: tiedTo.data,
   });
 }
+
+/*
+ * How many addresses one read of the devices at a scan's hosts names: a
+ * scan's already-added hosts can be thousands, and one list read names a
+ * project's page of devices at most.
+ */
+export const DEVICE_MONITORS_HOSTNAMES_PER_READ: number = 200;
+
+/*
+ * The monitors of the devices at every one of these addresses - all of a
+ * scan's hosts that are devices already, as Review Results needs them to
+ * tell which can be picked to get a monitor (issue #9544) - read a piece at
+ * a time and put together. A piece that fails fails the whole read: the
+ * caller then offers every device, and the server's duplicate rule keeps
+ * each to one monitor of a kind.
+ */
+export async function loadDeviceMonitorsForHostnames(
+  hostnames: ReadonlyArray<string>,
+): Promise<DeviceMonitorsByKey> {
+  const unique: Array<string> = Array.from(
+    new Set(
+      hostnames
+        .map((hostname: string): string => {
+          return hostname.trim();
+        })
+        .filter((hostname: string): boolean => {
+          return Boolean(hostname);
+        }),
+    ),
+  );
+
+  const merged: DeviceMonitorsByKey = emptyDeviceMonitorsByKey();
+
+  for (
+    let offset: number = 0;
+    offset < unique.length;
+    offset += DEVICE_MONITORS_HOSTNAMES_PER_READ
+  ) {
+    const piece: DeviceMonitorsByKey = await loadDeviceMonitors({
+      hostnames: unique.slice(
+        offset,
+        offset + DEVICE_MONITORS_HOSTNAMES_PER_READ,
+      ),
+    });
+
+    for (const [key, summary] of piece.byDeviceId) {
+      merged.byDeviceId.set(key, summary);
+    }
+
+    for (const [key, summary] of piece.byHostname) {
+      merged.byHostname.set(key, summary);
+    }
+  }
+
+  return merged;
+}
+
+/*
+ * The addresses whose device - any device at that address - has a monitor:
+ * the hosts Review Results never offers to give a second one (issue #9544).
+ */
+export function getMonitoredAddresses(
+  monitors: DeviceMonitorsByKey,
+): Set<string> {
+  const addresses: Set<string> = new Set<string>();
+
+  for (const [hostname, summary] of monitors.byHostname) {
+    if (summary.monitors.length > 0) {
+      addresses.add(hostname);
+    }
+  }
+
+  return addresses;
+}

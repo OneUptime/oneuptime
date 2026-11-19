@@ -4,9 +4,14 @@ import {
   DiscoveryImportSettings,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import { isDeviceAddressMonitorType } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import {
+  isDeviceAddressMonitorType,
+  isDeviceTargetMonitorType,
+  isDeviceUrlMonitorType,
+} from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { MonitorTemplateAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import { isPingOnlyDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT AN IMPORT WILL DO, BEFORE IT DOES IT (OneUptime issue #4811).
@@ -27,9 +32,10 @@ import { isPingOnlyDiscoveredHost } from "Common/Utils/NetworkDiscovery/Discover
 
 /*
  * A monitor template the reader can pick, as the step knows it: a Network
- * Device template, whose monitor reads each device's polls, or a Ping, IP,
+ * Device template, whose monitor reads each device's polls, a Ping, IP,
  * Port or NTP template, whose monitor checks each device's address (issue
- * #5145).
+ * #5145), or a Website, API or SSL Certificate template, whose monitor
+ * checks a URL on each device (issue #9546).
  */
 export interface DiscoveryImportTemplateChoice {
   // Empty for the recommended template the import would create.
@@ -39,24 +45,56 @@ export interface DiscoveryImportTemplateChoice {
   monitorType: MonitorType;
   summary: MonitorTemplateAlertSummary;
   /*
-   * How often an address monitor made from it checks, as the template's
-   * cron. A Network Device monitor is judged on every poll instead.
+   * How often a monitor made from it checks, as the template's cron, for a
+   * template checked from a probe. A Network Device monitor is judged on
+   * every poll instead.
    */
   monitoringInterval?: string | undefined;
   // The ports a Port template's steps check, each once.
   ports?: Array<number> | undefined;
+  /*
+   * The URL a web template's first step checks, as written: each device's
+   * monitor checks it with the device's address as its host.
+   */
+  templateUrl?: string | undefined;
+  /*
+   * Why no device's monitor can be made from it, in English, as the server
+   * would refuse it: a web template whose URL has no host a device's
+   * address can take, say. Listed all the same - the reader sees what to
+   * change - but Import waits until it is changed.
+   */
+  unusableReason?: string | undefined;
   // Not in the project yet: Import creates it first.
   isCreatedOnImport?: boolean | undefined;
 }
 
 /*
  * Whether the template's monitors check each device's address (Ping, IP,
- * Port, NTP) rather than read its polls (Network Device).
+ * Port, NTP) rather than read its polls (Network Device) or check a URL on
+ * it.
  */
 export function checksDeviceAddress(
   choice: DiscoveryImportTemplateChoice | null | undefined,
 ): boolean {
   return Boolean(choice && isDeviceAddressMonitorType(choice.monitorType));
+}
+
+// Whether the template's monitors check a URL on each device (Website, API, SSL Certificate).
+export function checksDeviceUrl(
+  choice: DiscoveryImportTemplateChoice | null | undefined,
+): boolean {
+  return Boolean(choice && isDeviceUrlMonitorType(choice.monitorType));
+}
+
+/*
+ * Whether the template's monitors check each device from a probe, on the
+ * template's schedule - its address, or a URL on it - rather than read the
+ * device's polls: every kind but Network Device.
+ */
+export function checksFromProbe(
+  choice: DiscoveryImportTemplateChoice | null | undefined,
+): boolean {
+  return Boolean(choice && isDeviceTargetMonitorType(choice.monitorType));
 }
 
 // The value the recommended template Import would create is picked by.
@@ -90,13 +128,20 @@ export enum DiscoveryImportAlertReach {
 }
 
 export interface DiscoveryImportOutcome {
+  // New devices the import creates.
   hostCount: number;
+  /*
+   * Devices already added that were picked to get a monitor (issue #9544):
+   * each gets the template's monitor when monitors are asked for, and is
+   * otherwise left as it is.
+   */
+  existingDeviceCount: number;
   snmpHostCount: number;
   pingOnlyHostCount: number;
   pollingIntervalInMinutes: number;
   // Each SNMP device gets its vendor's health template on its first poll.
   appliesVendorTemplates: boolean;
-  // Devices the import creates a monitor for.
+  // Devices the import creates a monitor for: new ones, and ones already added.
   monitorCount: number;
   // Monitors past the plan's room: devices imported without one.
   monitorsBeyondRoom: number;
@@ -131,7 +176,14 @@ export function countPingOnlyHosts(
 }
 
 export function getDiscoveryImportOutcome(data: {
+  // The hosts the import brings in as new devices.
   hosts: ReadonlyArray<DiscoveredNetworkDevice>;
+  /*
+   * Hosts that are devices already, with no monitor, picked to get one
+   * (issue #9544). They are not imported again: only given the template's
+   * monitor, when monitors are asked for.
+   */
+  existingHosts?: ReadonlyArray<DiscoveredNetworkDevice> | undefined;
   settings: DiscoveryImportSettings;
   template: DiscoveryImportTemplateChoice | null;
   policies: ReadonlyArray<DiscoveryImportPolicyFact>;
@@ -139,6 +191,9 @@ export function getDiscoveryImportOutcome(data: {
   monitorRoom: number | null;
 }): DiscoveryImportOutcome {
   const hostCount: number = data.hosts.length;
+  const existingHosts: ReadonlyArray<DiscoveredNetworkDevice> =
+    data.existingHosts || [];
+  const existingDeviceCount: number = existingHosts.length;
   const pingOnlyHostCount: number = countPingOnlyHosts(data.hosts);
   const snmpHostCount: number = hostCount - pingOnlyHostCount;
 
@@ -150,7 +205,12 @@ export function getDiscoveryImportOutcome(data: {
     ? data.template
     : null;
 
-  const monitorCount: number = wantsMonitors ? hostCount : 0;
+  // Every host the template's monitor is made for: new and already added.
+  const monitoredHosts: ReadonlyArray<DiscoveredNetworkDevice> = wantsMonitors
+    ? [...data.hosts, ...existingHosts]
+    : [];
+  const monitorCount: number = monitoredHosts.length;
+  const pingOnlyMonitoredCount: number = countPingOnlyHosts(monitoredHosts);
 
   const monitorsBeyondRoom: number =
     wantsMonitors && data.monitorRoom !== null
@@ -184,10 +244,8 @@ export function getDiscoveryImportOutcome(data: {
    * the summary must not promise alerts only an SNMP device could create.
    */
   const isEveryHostPingOnly: boolean =
-    hostCount > 0 && pingOnlyHostCount === hostCount;
-  const readsWalks: boolean = Boolean(
-    template && !checksDeviceAddress(template),
-  );
+    monitorCount > 0 && pingOnlyMonitoredCount === monitorCount;
+  const readsWalks: boolean = Boolean(template && !checksFromProbe(template));
   const raisesIncidents: boolean = Boolean(
     template &&
       (isEveryHostPingOnly && readsWalks
@@ -201,12 +259,13 @@ export function getDiscoveryImportOutcome(data: {
         : template.summary.raisesAlerts),
   );
   /*
-   * A monitor that checks the address itself fires on a device that only
-   * answers ping as much as on any other.
+   * A monitor that checks the device itself, from a probe - its address or
+   * a URL on it - fires on a device that only answers ping as much as on
+   * any other.
    */
   const raisesOnPingOnly: boolean = Boolean(
     template &&
-      (checksDeviceAddress(template) ||
+      (checksFromProbe(template) ||
         template.summary.raisesIncidentsOnPingOnlyDevices ||
         template.summary.raisesAlertsOnPingOnlyDevices),
   );
@@ -221,6 +280,7 @@ export function getDiscoveryImportOutcome(data: {
 
   return {
     hostCount: hostCount,
+    existingDeviceCount: existingDeviceCount,
     snmpHostCount: snmpHostCount,
     pingOnlyHostCount: pingOnlyHostCount,
     pollingIntervalInMinutes: data.settings.pollingIntervalInMinutes,
@@ -233,7 +293,7 @@ export function getDiscoveryImportOutcome(data: {
     raisesIncidents: raisesIncidents,
     raisesAlerts: raisesAlerts,
     pingOnlyHostsWithoutAlerts:
-      template && !raisesOnPingOnly ? pingOnlyHostCount : 0,
+      template && !raisesOnPingOnly ? pingOnlyMonitoredCount : 0,
     coveringPolicyNames: coveringPolicyNames,
     scopedPolicyCount: scopedPolicyCount,
   };
@@ -241,23 +301,43 @@ export function getDiscoveryImportOutcome(data: {
 
 /*
  * Whether the monitoring step can be imported from as it stands: a host to
- * import, and - when monitors are asked for - a template picked.
+ * import - or a device already added to give a monitor (issue #9544) - and,
+ * when monitors are asked for, a template picked. Devices that are already
+ * added and get no monitor leave nothing to do.
  */
 export function getDiscoveryImportBlocker(data: {
   hostCount: number;
+  existingDeviceCount?: number | undefined;
   settings: DiscoveryImportSettings;
   template: DiscoveryImportTemplateChoice | null;
 }): string | null {
-  if (data.hostCount === 0) {
+  const existingDeviceCount: number = data.existingDeviceCount || 0;
+  const wantsMonitors: boolean =
+    data.settings.alerting === DiscoveryImportAlerting.MonitorTemplate;
+
+  if (data.hostCount === 0 && existingDeviceCount === 0) {
     return "Select at least one host to import.";
   }
 
-  if (
-    data.settings.alerting === DiscoveryImportAlerting.MonitorTemplate &&
-    !data.template
-  ) {
+  if (wantsMonitors && !data.template) {
     return "Pick the monitor template each device is monitored with.";
+  }
+
+  if (wantsMonitors && data.template?.unusableReason) {
+    return data.template.unusableReason;
+  }
+
+  if (data.hostCount === 0 && !wantsMonitors) {
+    return EXISTING_DEVICES_NEED_A_TEMPLATE;
   }
 
   return null;
 }
+
+/*
+ * Why there is nothing to import when every host picked is a device already
+ * and the step asks for no monitor: those hosts were picked to get one.
+ */
+export const EXISTING_DEVICES_NEED_A_TEMPLATE: string = translationKey(
+  "The devices you picked are already added. Give them a monitor from a template, or go back and pick new hosts.",
+);
