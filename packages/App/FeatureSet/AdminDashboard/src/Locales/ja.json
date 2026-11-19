@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "この人がまだ OneUptime のアカウントを持っていない場合は、この名前でアカウントが作成されます。",
   "Suggest every account on this server?": "このサーバーのすべてのアカウントを候補に表示しますか？",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "メンバーを招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られるようになります。ここのすべてのアカウントが 1 つの組織に属している場合にのみオンにしてください。",
-  "Suggest Every Account": "すべてのアカウントを表示"
+  "Suggest Every Account": "すべてのアカウントを表示",
+  "Already in this team": "このチームに参加済み",
+  "Already invited to this team": "このチームに招待済み",
+  "Not in this project yet": "このプロジェクトに未参加",
+  "People you can invite": "招待できる人"
 }

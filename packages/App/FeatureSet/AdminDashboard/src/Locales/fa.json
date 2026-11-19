@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
   "Suggest every account on this server?": "همه حساب‌های این سرور پیشنهاد شوند؟",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "هر کسی که می‌تواند افراد را دعوت کند، هنگام تایپ نام و ایمیل همه حساب‌ها را می‌بیند. فقط وقتی این را روشن کنید که همه حساب‌های اینجا متعلق به یک سازمان باشند.",
-  "Suggest Every Account": "پیشنهاد همه حساب‌ها"
+  "Suggest Every Account": "پیشنهاد همه حساب‌ها",
+  "Already in this team": "از قبل در این تیم",
+  "Already invited to this team": "از قبل به این تیم دعوت‌شده",
+  "Not in this project yet": "هنوز در این پروژه نیست",
+  "People you can invite": "افرادی که می‌توانید دعوت کنید"
 }

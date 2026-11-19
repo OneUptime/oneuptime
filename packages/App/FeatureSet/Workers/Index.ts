@@ -434,6 +434,8 @@ import "./Jobs/RunnerOwners/SendOwnerAddedNotification";
 import "./Jobs/Network/ReadNetworkControllerConnections";
 // ...and their devices added as network devices, when someone asks.
 import "./Jobs/Network/AddNetworkControllerDevices";
+// Device management connections (Esper): the fleet imported on a schedule.
+import "./Jobs/DeviceManagement/ReadDeviceManagementConnections";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";

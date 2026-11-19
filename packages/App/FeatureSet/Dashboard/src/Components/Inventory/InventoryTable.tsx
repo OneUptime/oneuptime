@@ -457,7 +457,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
              * being a column of its own, so it declares a placeholder field
              * and an explicit id — see Column.id.
              */
-            field: { _id: true },
+            field: { _id: true, resourceType: true },
             id: "inventory-status",
             title: "Status",
             type: FieldType.Element,
@@ -466,6 +466,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
               return (
                 <InventoryLivenessBadge
                   source={item.source}
+                  resourceType={item.resourceType}
                   lastSeenAt={item.lastSeenAt}
                   now={now}
                   showAge={true}
@@ -475,6 +476,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             getExportValue: (item: InventoryItem): string => {
               const liveness: InventoryLiveness = getInventoryLiveness({
                 source: item.source,
+                resourceType: item.resourceType,
                 lastSeenAt: item.lastSeenAt,
                 now,
               }).liveness;

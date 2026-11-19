@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Heeft deze persoon nog geen OneUptime-account, dan wordt het met deze naam aangemaakt.",
   "Suggest every account on this server?": "Elk account op deze server voorstellen?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Iedereen die mensen mag uitnodigen, ziet tijdens het typen de naam en het e-mailadres van elk account. Zet dit alleen aan als elk account hier bij één organisatie hoort.",
-  "Suggest Every Account": "Elk account voorstellen"
+  "Suggest Every Account": "Elk account voorstellen",
+  "Already in this team": "Al in dit team",
+  "Already invited to this team": "Al uitgenodigd voor dit team",
+  "Not in this project yet": "Nog niet in dit project",
+  "People you can invite": "Personen die u kunt uitnodigen"
 }

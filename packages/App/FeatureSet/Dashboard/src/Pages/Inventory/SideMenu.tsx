@@ -86,6 +86,19 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        /*
+         * The fleet a device management service such as Esper enrolls:
+         * where it is connected, and every device it imports.
+         */
+        {
+          link: {
+            title: "Managed Devices",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_MANAGED_DEVICES] as Route,
+            ),
+          },
+          icon: IconProp.DevicePhoneMobile,
+        },
         {
           link: {
             title: "Topology Map",
@@ -98,11 +111,12 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
         {
           link: {
             title: "Gone Quiet",
+            /*
+             * Discovered items and managed devices alike: only items with
+             * a heartbeat can go quiet (getInventoryLivenessSql).
+             */
             to: getScopedItemsRoute(
-              buildInventoryScopeQueryString({
-                source: EntitySource.Discovered,
-                staleOnly: true,
-              }),
+              buildInventoryScopeQueryString({ staleOnly: true }),
             ),
           },
           icon: IconProp.ExclaimationCircle,

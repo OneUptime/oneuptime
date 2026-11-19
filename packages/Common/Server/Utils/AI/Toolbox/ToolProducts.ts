@@ -36,6 +36,7 @@ export const TOOL_PRODUCTS: Readonly<
 
   // Alerts.
   query_alerts: [ProductKey.Alerts],
+  search_alerts: [ProductKey.Alerts],
   get_alert_timeline: [ProductKey.Alerts],
   create_alert: [ProductKey.Alerts],
   acknowledge_alert: [ProductKey.Alerts],

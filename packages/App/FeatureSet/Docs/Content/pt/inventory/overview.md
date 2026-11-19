@@ -5,6 +5,7 @@ O inventário é uma única lista de tudo o que o OneUptime sabe sobre o seu amb
 :::cards
 - [Como os itens chegam ao inventário](#como-os-itens-chegam-ao-inventário): Descobertos, espelhados ou adicionados por você.
 - [Como se orientar](#como-se-orientar): As páginas do inventário e as páginas próprias de cada item.
+- [Importar dispositivos do Esper](#importar-dispositivos-do-esper): Todos os dispositivos Android que o seu locatário do Esper registra, mantidos atualizados.
 - [Adicionar algo manualmente](#adicionar-algo-manualmente): Uma API de terceiros, um banco de dados externo ou um appliance.
 - [Arquivar em vez de excluir](#arquivar-em-vez-de-excluir): O jeito de organizar a lista que permanece.
 :::
@@ -25,14 +26,14 @@ flowchart TB
 | Origem | Na API | De onde vem | Por quanto tempo fica |
 | --- | --- | --- | --- |
 | **Descoberto** | `discovered` | Atributos de recurso do OpenTelemetry, lidos à medida que a telemetria chega: um serviço, host, objeto do Kubernetes ou máquina virtual que envia telemetria. | Registrado de novo a cada lote. Removido depois de ficar em silêncio por mais tempo que a janela do seu tipo (veja abaixo). |
-| **Replicado** | `inventory` | Um registro que um coletor do OneUptime mantém: dispositivos de rede, recursos de nuvem, dispositivos IoT, funções serverless, aplicações RUM, hosts Docker e hosts Podman. Copiado a cada 15 minutos. | Enquanto o seu registro existir. Exclua o registro e o item vai junto. |
+| **Replicado** | `inventory` | Um registro que um coletor do OneUptime mantém: dispositivos de rede, recursos de nuvem, dispositivos IoT, funções serverless, aplicações RUM, hosts Docker, hosts Podman e os dispositivos Android que uma conexão do Esper importa. Copiado a cada 15 minutos. Um dispositivo do Esper, a cada leitura da conexão dele. | Enquanto o seu registro existir. Exclua o registro e o item vai junto. |
 | **Adicionado por você** | `manual` | Adicionado por você, para algo que o OneUptime não consegue ver: uma API de terceiros, um banco de dados gerenciado por um fornecedor, um appliance em um rack. | Até você excluí-lo. Nada o faz expirar. |
 
 Um item descoberto ou espelhado não pode ser renomeado nem mudar de tipo: a sua origem sobrescreveria a mudança na próxima passagem. A página **Configurações** do item diz onde fazer uma mudança duradoura em vez disso. O que você sempre pode acrescentar a qualquer item, seja qual for a origem, são valores de campos personalizados: veja [Campos personalizados do inventário](/docs/inventory/custom-fields).
 
 ### Por quanto tempo um item silencioso fica
 
-Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o horário em que foi visto por último avança, e a coluna **Status** da lista mostra quão recente isso é. Itens espelhados e os que você adicionou não têm pulsação, então o status deles fica em branco em vez de alarmar.
+Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o horário em que foi visto por último avança, e a coluna **Status** da lista mostra quão recente isso é. O mesmo acontece com um dispositivo Android do Esper: a cada check-in que ele faz no Esper. Os outros itens espelhados e os que você adicionou não têm pulsação, então o status deles fica em branco em vez de alarmar.
 
 | Status | O que significa |
 | --- | --- |
@@ -58,8 +59,9 @@ Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas página
 | --- | --- |
 | **Visão geral** | Quantos itens você tem, o que são, quantos ficaram em silêncio e o que foi adicionado mais recentemente. |
 | **Todos os itens** | Todos os itens. Pesquise por nome, descrição ou chave de identidade, filtre a lista por tipo, origem, status ou campo personalizado e adicione um item manualmente. |
+| **Dispositivos gerenciados** | As suas conexões do Esper e todos os dispositivos Android que elas importam, com o status, o grupo, o modelo e a versão do Android de cada um. |
 | **Mapa de topologia** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
-| **Em silêncio** | Os itens descobertos que não enviam telemetria há mais de um dia. |
+| **Em silêncio** | Os itens sem notícias há mais de um dia: itens descobertos que não enviaram telemetria e dispositivos que pararam de fazer check-in no Esper. |
 | **Por origem** | Os itens de uma origem: **Descoberto**, **Replicado** ou **Adicionado por você**. |
 | **Configurações → Campos personalizados** | Os campos que o seu projeto mantém em cada item. |
 | **Ajuda → Documentação** | Um guia curto do inventário, com os tipos de item que ele reconhece. |
@@ -84,6 +86,47 @@ Os mesmos dados são colunas da lista **Todos os itens**, ocultas até você ati
 ### Conexões
 
 A página **Conexões** de um item lista os seus vizinhos nas duas direções, agrupados em **Chamadas**, **Chamado por**, **Executado em** e **Relacionados**. Cada grupo mostra o seu total (um grupo com mais de 100.000 conexões mostra "100.000+"), e **Mostrar mais** percorre o restante, então um cluster, namespace ou nó movimentado mostra todas as conexões, e não só as primeiras. A página não se limita a um intervalo de tempo: inclui relações adicionadas manualmente pela API e vizinhos arquivados. Um vizinho que não está mais no inventário aparece pela sua chave.
+
+## Importar dispositivos do Esper
+
+Conecte um locatário do Esper, e todos os dispositivos Android que ele registra ficam no inventário, inclusive os dispositivos cujo aplicativo nunca foi iniciado. Cada dispositivo é um host, com o que só o Esper sabe sobre ele: o grupo, a versão do Android, a build e o nível do patch de segurança, o número de série e o IMEI, a bateria e o armazenamento, e os aplicativos instalados. O Esper não envia nada por conta própria, então o OneUptime o lê em uma programação: os dispositivos a cada 15 minutos, e os aplicativos de cada dispositivo a cada 6 horas.
+
+:::steps
+### Criar uma chave de API no Esper
+
+No console do Esper, crie uma chave em API Key Management. O OneUptime só faz leituras, então basta a chave de um usuário cuja função no Esper possa ler dispositivos, grupos e aplicativos. Uma chave deixa de funcionar quando é substituída ou quando o usuário dela é excluído.
+
+### Conectar o locatário
+
+Vá para **Produtos → Recursos → Inventário**, depois para **Dispositivos gerenciados**, e clique em **Conectar Esper**. Informe o **Locatário**, o nome antes de `.esper.cloud` no endereço do seu console do Esper (`acme` para `acme.esper.cloud`), e a **Chave de API**. **Mais campos** guarda o nome da conexão e com que frequência ela é lida.
+
+### Conferir a primeira leitura
+
+**Conectar** testa a chave antes de salvar qualquer coisa: diz quantos dispositivos Android uma leitura vai importar, ou o que está errado e como corrigir. A primeira leitura começa em até um minuto, e a linha da conexão mostra como ela foi.
+:::
+
+| O que o Esper informa | Onde aparece |
+| --- | --- |
+| Modelo, fabricante, número de série, versão do Android, build e endereços IP e MAC | O cartão **Detalhes do ativo** do dispositivo e as colunas de **Todos os itens** |
+| Status, último check-in, grupo, nível do patch de segurança, IMEI, bateria, armazenamento e agente do Esper | O cartão **Esper** do dispositivo e a lista **Dispositivos** de **Dispositivos gerenciados** |
+| Aplicativos e as versões deles | A lista **Aplicativos instalados** do dispositivo |
+
+### Um dispositivo, não dois
+
+Um aplicativo ou o Android Agent que envia telemetria de um dispositivo se junta ao dispositivo que o Esper importa como um só item quando nomeia o dispositivo do mesmo jeito que o Esper. Defina estes atributos de recurso a partir da configuração gerenciada que o Esper preenche em cada dispositivo:
+
+| Atributo de recurso | Valor na configuração gerenciada | O que é |
+| --- | --- | --- |
+| `host.name` | `${esper.deviceName}` | O nome do dispositivo no Esper, como `ESP-ID-AAAAW`. Obrigatório. |
+| `host.serial_number` | `${esper.serialNumber}` | O número de série do dispositivo. Opcional. |
+
+O OneUptime encontra o item de um dispositivo pelo nome dele no Esper, depois pelo número de série, e só cria um quando nenhum corresponde. O Android Agent define os dois a partir das configurações `device_name` e `device_serial` dele, e [Configuração para Android](/docs/rum/android-setup#importar-a-frota-do-esper) mostra a configuração gerenciada de um aplicativo.
+
+### Quando um dispositivo fica em silêncio ou sai do Esper
+
+Um dispositivo que não faz check-in há 30 minutos fica **Offline** e mostra há quanto tempo fez o último. O **Status** do item dele segue o último check-in, ou a telemetria quando ela é mais recente, então um dispositivo em silêncio por um dia aparece na página **Em silêncio**.
+
+Um dispositivo removido do Esper é marcado como **Removido**, e o item dele é arquivado: sai da lista e fica aguardando em **Avançado → Arquivado**. Um dispositivo que volta ao Esper volta à lista. 30 dias depois de sair, o dispositivo é excluído, e o item dele também, a menos que a telemetria ou você tenham acrescentado algo a ele.
 
 ## Adicionar algo manualmente
 

@@ -250,7 +250,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
     form: "ModelFormModal: Invite New User",
     reason:
-      "Inviting someone to a project, one page as the Dashboard's Invite User is: the email, the name only when the address has no account yet, the team - its members team to start with, named in the team's description - and the master admin's auto-accept box, as on the Admin Dashboard's other add-to-project forms. Three rows for a known address. As two steps (User, Team) Invite could be pressed on the first without ever seeing which team the invitation was for.",
+      "Inviting someone to a project, one page as the Dashboard's Invite User is: the email, which suggests people as it is typed, the name once a whole address is typed and nobody was picked from the suggestions, the team - its members team to start with, named in the team's description - and the master admin's auto-accept box, as on the Admin Dashboard's other add-to-project forms. Three rows for a person picked. As two steps (User, Team) Invite could be pressed on the first without ever seeing which team the invitation was for.",
   },
   /*
    * "Adding an on-call override asks who is away and who covers, in plain

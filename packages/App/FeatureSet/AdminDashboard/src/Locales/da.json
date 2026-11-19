@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Har personen endnu ingen OneUptime-konto, oprettes den med dette navn.",
   "Suggest every account on this server?": "Foreslå alle konti på denne server?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Alle, der må invitere personer, ser hver kontos navn og e-mail, mens de skriver. Slå det kun til, hvis alle konti her hører til én organisation.",
-  "Suggest Every Account": "Foreslå alle konti"
+  "Suggest Every Account": "Foreslå alle konti",
+  "Already in this team": "Allerede i dette team",
+  "Already invited to this team": "Allerede inviteret til dette team",
+  "Not in this project yet": "Ikke i dette projekt endnu",
+  "People you can invite": "Personer, du kan invitere"
 }

@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "如果此人還沒有 OneUptime 帳戶，將用這個名稱建立帳戶。",
   "Suggest every account on this server?": "要建議此伺服器上的所有帳戶嗎？",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "任何可以邀請他人的人在輸入時都會看到每個帳戶的名稱和電子郵件。只有當這裡的每個帳戶都屬於同一個組織時，才開啟此項。",
-  "Suggest Every Account": "建議所有帳戶"
+  "Suggest Every Account": "建議所有帳戶",
+  "Already in this team": "已在此團隊中",
+  "Already invited to this team": "已受邀加入此團隊",
+  "Not in this project yet": "尚未加入此專案",
+  "People you can invite": "可邀請的人員"
 }

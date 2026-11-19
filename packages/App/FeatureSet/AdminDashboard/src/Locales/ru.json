@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Если у этого человека ещё нет учётной записи OneUptime, она будет создана с этим именем.",
   "Suggest every account on this server?": "Предлагать все учётные записи этого сервера?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Любой, кто может приглашать людей, будет видеть при вводе имя и почту каждой учётной записи. Включайте это, только если все учётные записи здесь относятся к одной организации.",
-  "Suggest Every Account": "Предлагать все учётные записи"
+  "Suggest Every Account": "Предлагать все учётные записи",
+  "Already in this team": "Уже в этой команде",
+  "Already invited to this team": "Уже приглашён в эту команду",
+  "Not in this project yet": "Ещё не в этом проекте",
+  "People you can invite": "Люди, которых вы можете пригласить"
 }
