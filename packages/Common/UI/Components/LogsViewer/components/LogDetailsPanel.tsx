@@ -30,6 +30,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import { getTextReadingDirectionByMostLetters } from "../../../../Types/ReadingDirection";
 import SeverityBadge from "./SeverityBadge";
 import CopyLogLineLinkButton from "./CopyLogLineLinkButton";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../Utils/API/API";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
@@ -190,6 +191,9 @@ const TRACE_CONTEXT_LIMIT: number = 100;
 // An attribute's key, in the list: two fifths of a phone's line, 14rem from sm up.
 export const LOG_ATTRIBUTE_KEY_CLASS_NAME: string =
   "w-2/5 flex-none truncate font-mono text-[12px] text-gray-500 sm:w-56";
+
+// An attribute's key or value, in its isolate: in the code font of its row.
+export const LOG_ATTRIBUTE_TEXT_CLASS_NAME: string = "font-mono";
 
 function toContextLog(log: Log): ContextLog {
   return {
@@ -991,17 +995,32 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                            * 390px phone, a value had a letter's width and
                            * ran down the row a letter a line.
                            */}
+                          {/*
+                           * Each read the way it is written (IsolatedText):
+                           * on a Persian page "/api/users" put its first
+                           * slash at its end ("api/users/"). The isolate
+                           * names its font itself, as the page's
+                           * `* { font-family }` would set it to Inter.
+                           */}
                           <span
                             className={LOG_ATTRIBUTE_KEY_CLASS_NAME}
                             title={entry.key}
                           >
-                            {entry.key}
+                            <IsolatedText
+                              text={entry.key}
+                              className={LOG_ATTRIBUTE_TEXT_CLASS_NAME}
+                            />
                           </span>
                           <span
                             className="min-w-0 flex-1 break-all font-mono text-[12px] text-gray-800"
                             title={entry.value}
                           >
-                            {entry.value || (
+                            {entry.value ? (
+                              <IsolatedText
+                                text={entry.value}
+                                className={LOG_ATTRIBUTE_TEXT_CLASS_NAME}
+                              />
+                            ) : (
                               <span className="italic text-gray-500">
                                 {translator.translateText("empty")}
                               </span>

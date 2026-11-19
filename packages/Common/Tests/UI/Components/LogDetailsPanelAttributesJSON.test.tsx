@@ -292,4 +292,46 @@ describe("a log's body reads the way it is written", () => {
       "rtl",
     );
   });
+
+  /*
+   * Regression: an attribute's key and value were the panel's own text, so
+   * on a Persian page "/api/w/admins" put its first slash at its end
+   * ("api/w/admins/"). Seen while adding Copy Link to the panel (#9794).
+   */
+  test("an attribute's key and value read the way they are written: a path left to right, a Persian note right to left", () => {
+    render(
+      <LogDetailsPanel
+        log={makeLog({
+          "url.path": "/api/w/admins/../../etc/passwd",
+          "user.note": "پرداخت انجام شد",
+          "http.status_code": 403,
+        })}
+        serviceMap={{}}
+      />,
+    );
+
+    const isolate: (text: string) => HTMLElement = (
+      text: string,
+    ): HTMLElement => {
+      const element: HTMLElement = screen.getByText(text);
+
+      expect(element.tagName).toBe("BDI");
+      /*
+       * Its own code font: the page sets every element's font
+       * (`* { font-family: Inter }`), so it would not take its row's.
+       */
+      expect(element).toHaveClass("font-mono");
+
+      return element;
+    };
+
+    expect(isolate("url.path")).toHaveAttribute("dir", "ltr");
+    expect(isolate("/api/w/admins/../../etc/passwd")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+    expect(isolate("پرداخت انجام شد")).toHaveAttribute("dir", "rtl");
+    // A number has no letters: the isolate reads it by itself.
+    expect(isolate("403")).not.toHaveAttribute("dir");
+  });
 });
