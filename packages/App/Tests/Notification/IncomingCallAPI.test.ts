@@ -284,7 +284,8 @@ const ruleService: { findBy: JestMock } =
 /*
  * The policy's escalation rules, as the API reads them: every one, in one
  * read, and tries them in the policy's order from the rule being dialled
- * (IncomingCallEscalationOrder) - by number, rules that share one by id.
+ * (IncomingCallEscalationOrder) - by number, the older of two rules at one
+ * number first, then by id.
  */
 function policyRules(...rules: Array<IncomingCallPolicyEscalationRule>): void {
   ruleService.findBy.mockResolvedValue(rules);
