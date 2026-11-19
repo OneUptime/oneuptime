@@ -28,6 +28,7 @@ import {
   MetricNameReference,
   MetricReaderKind,
   MetricReaders,
+  MetricReaderWidget,
 } from "../../../../Server/Utils/Telemetry/MetricReaders";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
@@ -354,9 +355,11 @@ describe("what a record reads", () => {
     });
 
     expect(
-      found.widgets.map((entry: { widget: Record<string, unknown> }) => {
-        return entry.widget;
-      }),
+      found.widgets.map(
+        (entry: { widget: MetricReaderWidget }): MetricReaderWidget => {
+          return entry.widget;
+        },
+      ),
     ).toEqual([
       { id: chartId, title: "Signups", type: "Chart" },
       {
