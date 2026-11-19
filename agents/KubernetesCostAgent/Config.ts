@@ -138,13 +138,14 @@ export const COST_PROMETHEUS_BUNDLED: boolean =
  * memory series carry: kubelet in kube-prometheus-stack's); set it to name
  * one.
  */
-export const DEFAULT_PROMETHEUS_CADVISOR_JOB: string =
-  "kubernetes-nodes-cadvisor";
-
 export const COST_PROMETHEUS_CADVISOR_JOB: string = optional(
   "COST_PROMETHEUS_CADVISOR_JOB",
-  DEFAULT_PROMETHEUS_CADVISOR_JOB,
+  "kubernetes-nodes-cadvisor",
 ).trim();
+
+// The job the bundled Prometheus, Kubecost's and the community chart's use.
+export const DEFAULT_PROMETHEUS_CADVISOR_JOB: string =
+  "kubernetes-nodes-cadvisor";
 
 // Whether COST_PROMETHEUS_CADVISOR_JOB was set rather than left to default.
 export const IS_COST_PROMETHEUS_CADVISOR_JOB_SET: boolean = Boolean(
