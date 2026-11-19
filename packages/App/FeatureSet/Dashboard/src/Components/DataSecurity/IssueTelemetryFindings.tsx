@@ -9,7 +9,6 @@ import {
   getRulesRoute,
   getScrubItGates,
   getScrubItState,
-  getScrubNoticeSignal,
   SCRUB_IT,
   SCRUB_NOTICES,
   SCRUB_UNAVAILABLE_SENTENCES,
@@ -642,10 +641,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
       const result: DataSecurityScrubResult =
         await DataSecurityApi.scrubFinding(new ObjectID(findingId));
 
-      setNotice({
-        ruleName: result.scrubRuleName,
-        signal: getScrubNoticeSignal(result.signal),
-      });
+      setNotice({ ruleName: result.scrubRuleName, signal: result.signal });
       setScrubbing(null);
       setReadCount((count: number): number => {
         return count + 1;
@@ -735,15 +731,17 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
             dataTestId="data-security-issue-findings-scrub-notice"
             title={
               <span>
-                {translator.translateTemplate(SCRUB_NOTICES[notice.signal], {
-                  name: notice.ruleName || "",
-                })}{" "}
+                {translator.translateTemplate(
+                  SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log,
+                  { name: notice.ruleName || "" },
+                )}{" "}
                 <AppLink
                   className="font-medium underline"
                   to={getRulesRoute(notice.signal)}
                 >
-                  {translator.translateText(VIEW_RULES[notice.signal]) ||
-                    VIEW_RULES[notice.signal]}
+                  {translator.translateText(
+                    VIEW_RULES[notice.signal] || VIEW_RULES.log,
+                  ) || VIEW_RULES[notice.signal]}
                 </AppLink>
               </span>
             }

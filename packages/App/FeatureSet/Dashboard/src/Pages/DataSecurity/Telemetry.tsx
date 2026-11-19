@@ -18,7 +18,6 @@ import {
   getRulesRoute,
   getScrubItGates,
   getScrubItState,
-  getScrubNoticeSignal,
   isScrubItOfferedAtAll,
   SCRUB_IT,
   SCRUB_NOTICES,
@@ -261,7 +260,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
 
     setNotice({
       ruleName: result.scrubRuleName,
-      signal: getScrubNoticeSignal(result.signal),
+      signal: result.signal,
     });
     setRefreshCount((count: number): number => {
       return count + 1;
@@ -405,15 +404,17 @@ const DataSecurityTelemetryPage: FunctionComponent<
           dataTestId="data-security-scrub-notice"
           title={
             <span>
-              {translator.translateTemplate(SCRUB_NOTICES[notice.signal], {
-                name: notice.ruleName,
-              })}{" "}
+              {translator.translateTemplate(
+                SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log,
+                { name: notice.ruleName },
+              )}{" "}
               <AppLink
                 className="font-medium underline"
                 to={getRulesRoute(notice.signal)}
               >
-                {translator.translateText(VIEW_RULES[notice.signal]) ||
-                  VIEW_RULES[notice.signal]}
+                {translator.translateText(
+                  VIEW_RULES[notice.signal] || VIEW_RULES.log,
+                ) || VIEW_RULES[notice.signal]}
               </AppLink>
             </span>
           }
