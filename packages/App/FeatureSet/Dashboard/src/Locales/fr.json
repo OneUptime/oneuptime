@@ -57641,5 +57641,17 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} à {{time}} : {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (budget : {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} annulée {{path}}",
-  "{{method}} failed {{path}}": "{{method}} en échec {{path}}"
+  "{{method}} failed {{path}}": "{{method}} en échec {{path}}",
+  "Every security event read from its containers' logs, whatever it names.": "Every security event read from its containers' logs, whatever it names.",
+  "Every security event read from its own logs and traces, whatever it names.": "Every security event read from its own logs and traces, whatever it names.",
+  "No security events about this cloud yet": "No security events about this cloud yet",
+  "No security events about this service yet": "No security events about this service yet",
+  "The security events about it: read from its containers' logs, or naming it.": "The security events about it: read from its containers' logs, or naming it.",
+  "The security events read from its own logs and traces.": "The security events read from its own logs and traces.",
+  "They appear here when OneUptime reads them in the logs of this host's containers - an attack in a web server's access log, a failed sign-in - or when a source names this host by its name.": "They appear here when OneUptime reads them in the logs of this host's containers - an attack in a web server's access log, a failed sign-in - or when a source names this host by its name.",
+  "They appear here when OneUptime reads them in this cloud's own logs - a failed sign-in, a role granted, a security group rule open to the world, an image made public - or when events from any other source name this cloud.": "They appear here when OneUptime reads them in this cloud's own logs - a failed sign-in, a role granted, a security group rule open to the world, an image made public - or when events from any other source name this cloud.",
+  "They appear here when OneUptime reads them in this service's own logs and traces - an attack in a request it answers, a failed sign-in, a prompt injection.": "They appear here when OneUptime reads them in this service's own logs and traces - an attack in a request it answers, a failed sign-in, a prompt injection.",
+  "Traces is on: OneUptime reads the requests this project's services answer for attacks. See the Security Events {{connections}} page.": "Traces is on: OneUptime reads the requests this project's services answer for attacks. See the Security Events {{connections}} page.",
+  "Turn on Traces, on the Security Events {{connections}} page, to read the requests this service answers.": "Turn on Traces, on the Security Events {{connections}} page, to read the requests this service answers.",
+  "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends.": "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends."
 }
