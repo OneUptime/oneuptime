@@ -773,8 +773,9 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   onTimeRangeReset?: (() => void) | undefined;
   /*
    * A second value axis, on the right, for the categories it names, each
-   * bar of which is drawn against it (SecondYAxis, issue #10042). A
-   * horizontal chart only: a vertical one draws its values along the bottom.
+   * bar of which is drawn against it (SecondYAxis, issue #10042). Read by a
+   * horizontal chart of values only: a vertical one draws its values along
+   * the bottom, and one of shares (percent) every bar as a share of 100%.
    */
   secondYAxis?: ChartSecondYAxis | undefined;
   /*
