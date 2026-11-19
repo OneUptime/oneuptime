@@ -10,6 +10,7 @@ import {
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
   KubernetesCostEngineInfo,
+  KubernetesCostMemoryPeaksSource,
   PollerStatus,
 } from "../Types";
 
@@ -426,6 +427,62 @@ test("ships what the engine says about itself with each window", async (): Promi
     assert.strictEqual(call.costEngine?.pricingSource, "default-rates");
     assert.strictEqual(call.costEngine?.engine, "OpenCost");
   }
+});
+
+/*
+ * #9970: each shipment says where its memory peaks come from, so the page
+ * that advises stopping the bundled engine says when that stops them too.
+ */
+const KUBECOST3_DESCRIBED: KubernetesCostEngineInfo = {
+  engine: "Kubecost",
+  service: "kubecost/kubecost-frontend",
+  bundledEngineUnused: true,
+  pricingSource: "default-rates",
+  pricingProvider: "",
+};
+
+test("ships where the memory peaks come from beside what the engine says", async (): Promise<void> => {
+  const engine: EngineStub & { describe: () => KubernetesCostEngineInfo } =
+    Object.assign(new EngineStub(), {
+      describe: (): KubernetesCostEngineInfo => {
+        return { ...KUBECOST3_DESCRIBED };
+      },
+    });
+  const shipper: ShipperStub = new ShipperStub();
+  const prometheus: PrometheusStub & {
+    memoryPeaksFrom: () => KubernetesCostMemoryPeaksSource;
+  } = Object.assign(new PrometheusStub(), {
+    memoryPeaksFrom: (): KubernetesCostMemoryPeaksSource => {
+      return "bundled";
+    },
+  });
+  const { tick } = makePoller(engine, shipper, prometheus);
+
+  await tick();
+
+  assert.ok(shipper.calls.length > 0);
+  for (const call of shipper.calls) {
+    assert.strictEqual(call.costEngine?.memoryPeaksFrom, "bundled");
+    // What the engine said stands beside it.
+    assert.strictEqual(call.costEngine?.bundledEngineUnused, true);
+    assert.strictEqual(call.costEngine?.service, "kubecost/kubecost-frontend");
+  }
+});
+
+test("a Prometheus client that cannot say where its peaks come from ships none named", async (): Promise<void> => {
+  const engine: EngineStub & { describe: () => KubernetesCostEngineInfo } =
+    Object.assign(new EngineStub(), {
+      describe: (): KubernetesCostEngineInfo => {
+        return { ...KUBECOST3_DESCRIBED };
+      },
+    });
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick } = makePoller(engine, shipper, new PrometheusStub());
+
+  await tick();
+
+  assert.ok(shipper.calls.length > 0);
+  assert.strictEqual(shipper.calls[0]!.costEngine?.memoryPeaksFrom, "");
 });
 
 test("an engine that says nothing about itself ships rows as before", async (): Promise<void> => {

@@ -17,6 +17,7 @@ import {
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
   KubernetesCostEngineInfo,
+  KubernetesCostMemoryPeaksSource,
   PollerStatus,
 } from "./Types";
 
@@ -80,6 +81,30 @@ export class Poller {
       consecutivePollFailures: this.consecutivePollFailures,
       lastPollError: this.lastPollErr,
     };
+  }
+
+  /*
+   * What the engine says about itself, with where the rows' memory peaks
+   * come from (#9970): the page that advises stopping the bundled engine
+   * says so when the peaks come from its Prometheus. Undefined from an
+   * engine that says nothing.
+   */
+  private describeEngine(): KubernetesCostEngineInfo | undefined {
+    const described: KubernetesCostEngineInfo | undefined =
+      typeof this.engine.describe === "function"
+        ? this.engine.describe()
+        : undefined;
+
+    if (!described) {
+      return undefined;
+    }
+
+    const memoryPeaksFrom: KubernetesCostMemoryPeaksSource =
+      typeof this.prometheus.memoryPeaksFrom === "function"
+        ? this.prometheus.memoryPeaksFrom()
+        : "";
+
+    return { ...described, memoryPeaksFrom };
   }
 
   public start(): void {
@@ -197,9 +222,7 @@ export class Poller {
            * (CostEngineResolver): the pages say so beside the figures.
            */
           const costEngine: KubernetesCostEngineInfo | undefined =
-            typeof this.engine.describe === "function"
-              ? this.engine.describe()
-              : undefined;
+            this.describeEngine();
 
           await this.shipper.ship(rows, costEngine);
 

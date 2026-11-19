@@ -70,6 +70,17 @@ export type KubernetesCostPricingSource =
   | "unknown";
 
 /*
+ * Where the memory peaks for right-sizing come from (#9970): the Prometheus
+ * the cluster's own engine reads, the chart's bundled one, the one
+ * cost.engine.prometheusUrl names, or none.
+ */
+export type KubernetesCostMemoryPeaksSource =
+  | "engine"
+  | "bundled"
+  | "configured"
+  | "";
+
+/*
  * Which engine priced a shipment's rows, and how. See
  * Common/Types/Kubernetes/KubernetesCostIngest.ts.
  */
@@ -93,6 +104,12 @@ export interface KubernetesCostEngineInfo {
    * billing-integration; empty otherwise.
    */
   pricingProvider: string;
+  /*
+   * Where the rows' memory peaks come from (#9970), as the poller says it.
+   * "bundled" beside bundledEngineUnused: stopping the bundled engine stops
+   * the Prometheus they come from too. Absent from the resolver's own word.
+   */
+  memoryPeaksFrom?: KubernetesCostMemoryPeaksSource | undefined;
 }
 
 export interface KubernetesCostIngestPayload {
