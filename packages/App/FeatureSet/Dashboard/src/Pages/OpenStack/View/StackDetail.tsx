@@ -32,7 +32,8 @@ import { ResourceAttentionItem } from "../../../Components/ResourcePart/Resource
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
   fetchOpenStackBlastRadius,
   fetchOpenStackNames,
@@ -64,10 +65,16 @@ const NO_PROJECT_DESCRIPTION: string = translationKey(
   "Heat only says whose a stack is to an admin. This credential sees its own project's stacks with no project on them.",
 );
 
-const StackOverview: FunctionComponent<{
+interface StackOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const StackOverview: FunctionComponent<StackOverviewProps> = (
+  props: StackOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
   const { part, row } = props;
@@ -128,11 +135,7 @@ const StackOverview: FunctionComponent<{
     return { instances, volumes };
   }, [listedInstances.join(","), listedVolumes.join(","), part.refreshToken]);
 
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
+  const attention: Array<ResourceAttentionItem> = props.attention.items;
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const reason: string = getOpenStackFactText(row, "statusReason");
@@ -255,11 +258,8 @@ const StackOverview: FunctionComponent<{
       <NeedsAttentionCard
         testId="openstack-stack-attention"
         items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Stack}/${part.externalId}`,
-          label: translationKey("This stack"),
-        }}
-        description="What about this stack is broken or needs a look."
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -379,12 +379,21 @@ const OpenStackCloudStackDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Stack);
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Stack,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <StackOverview part={part} row={row} />;
+        return <StackOverview part={part} row={row} attention={attention} />;
       }}
     />
   );
