@@ -1,4 +1,7 @@
 import DatabaseService from "./DatabaseService";
+import TelemetryUsageMetricTypeUtil, {
+  TELEMETRY_USAGE_METRIC_NAME_PREFIX,
+} from "../../Utils/Telemetry/TelemetryUsageMetricType";
 import TraceRecordingRuleService from "./TraceRecordingRuleService";
 import LogRecordingRuleService from "./LogRecordingRuleService";
 import Model from "../../Models/DatabaseModels/MetricRecordingRule";
@@ -70,6 +73,16 @@ export class Service extends DatabaseService<Model> {
     if (typeof name === "string" && isKubernetesCostMetricName(name)) {
       throw new BadDataException(
         `Metric names that start with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics. Choose another output metric name.`,
+      );
+    }
+
+    // And the telemetry usage readings the usage sweep writes (#6355).
+    if (
+      typeof name === "string" &&
+      TelemetryUsageMetricTypeUtil.isReservedMetricName(name)
+    ) {
+      throw new BadDataException(
+        `Metric names that start with "${TELEMETRY_USAGE_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry usage metrics. Choose another output metric name.`,
       );
     }
   }

@@ -56,6 +56,7 @@ import { PRODUCT_ANALYTICS_DERIVED_METRICS } from "../../Types/Rum/ProductAnalyt
 import { KUBERNETES_COST_METRICS } from "../../Types/Kubernetes/KubernetesCostMetrics";
 import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "../../Types/Rum/SessionReplaySignalMetric";
 import TelemetryIngestionBudgetMetricTypeUtil from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
+import TelemetryUsageMetricTypeUtil from "../../Utils/Telemetry/TelemetryUsageMetricType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -79,6 +80,13 @@ import {
 import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
 } from "./PayAsYouGoBillingService";
+import { TelemetryUsageAttributeFilter } from "./AnalyticsDatabaseService";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+  getExceptionSourceBilledBy,
+  isExceptionBillingProductType,
+} from "../../Types/Telemetry/ExceptionSource";
 
 /*
  * Primary entity types whose telemetry rows are never billed as ingested
@@ -164,10 +172,16 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * (oneuptime.rum.session.replay.signal.sessions, issue #6518): the replay
  * ingest counts it from recordings the project already sent, under the
  * session replay prefix only it can write.
+ *
+ * And the telemetry usage readings (oneuptime.telemetry.usage.*, issue
+ * #6355): they report on the usage the project already sent, keyed to each
+ * service or resource, and only the usage sweep can write them
+ * (TelemetryUsageMetricTypeUtil.isReservedMetricName).
  */
 export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> = [
   ...SessionReplayBudgetMetricTypeUtil.getAll(),
   ...TelemetryIngestionBudgetMetricTypeUtil.getAll(),
+  ...TelemetryUsageMetricTypeUtil.getAll(),
   ...PRODUCT_ANALYTICS_DERIVED_METRICS,
   ...KUBERNETES_COST_METRICS,
   SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
@@ -197,15 +211,42 @@ export const TELEMETRY_USAGE_UNREPORTED_BILLING_RETENTION_IN_DAYS: number =
  */
 export interface TelemetryResourceUsage {
   primaryEntityType: ServiceType;
-  // Everything the product bills: for Traces, the spans and the exceptions.
+  /*
+   * Everything the product bills: for Traces, the spans and the exceptions
+   * found in them; for Logs, the log records and the exceptions found in
+   * them (ExceptionSource).
+   */
   bytes: number;
   /*
-   * For Traces only: how many of those bytes were exception rows, so the
-   * usage pages can show exceptions apart (issue #6356). Already inside
-   * `bytes` - never to be added to it.
+   * For Traces and Logs only: how many of those bytes were exception rows,
+   * so the usage pages can show exceptions apart (issues #6356, #6590).
+   * Already inside `bytes` - never to be added to it.
    */
   exceptionBytes?: number | undefined;
 }
+
+/*
+ * The exception rows a product bills, as its usage scan reads them: Logs
+ * the ones found in logs, Traces every other one - the ones found in spans,
+ * and any row written without a source, as every row was before exceptions
+ * were found in logs (ExceptionSource). So each row is billed by exactly one
+ * of them. Undefined for a product that bills no exceptions.
+ */
+export const getBilledExceptionsFilter: (
+  productType: ProductType,
+) => TelemetryUsageAttributeFilter | undefined = (
+  productType: ProductType,
+): TelemetryUsageAttributeFilter | undefined => {
+  if (!isExceptionBillingProductType(productType)) {
+    return undefined;
+  }
+
+  return {
+    key: EXCEPTION_SOURCE_ATTRIBUTE,
+    value: ExceptionSource.Log,
+    isEqual: getExceptionSourceBilledBy(productType) === ExceptionSource.Log,
+  };
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -512,6 +553,7 @@ export class Service extends DatabaseService<Model> {
         await ExceptionInstanceService.getDaysWithRows({
           ...window,
           timestampColumnName: "time",
+          attributeFilter: getBilledExceptionsFilter(ProductType.Traces),
         }),
       ];
     } else if (data.productType === ProductType.Logs) {
@@ -519,6 +561,11 @@ export class Service extends DatabaseService<Model> {
         await LogService.getDaysWithRows({
           ...window,
           timestampColumnName: "time",
+        }),
+        await ExceptionInstanceService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "time",
+          attributeFilter: getBilledExceptionsFilter(ProductType.Logs),
         }),
       ];
     } else if (data.productType === ProductType.Metrics) {
@@ -672,11 +719,12 @@ export class Service extends DatabaseService<Model> {
    * they are left out of billing. A resource with a legacy row of no type is
    * a real Service (OpenTelemetry).
    *
-   * Traces are billed for their spans and their exceptions together, so a
-   * resource's traces bytes are both tables' - and, apart, how many of them
-   * the exception rows were (exceptionBytes), for the usage pages to show
-   * exceptions on their own. That part is inside the bytes, not added to
-   * them.
+   * Traces are billed for their spans and the exceptions found in them
+   * together, and Logs for their log records and the exceptions found in
+   * them (ExceptionSource, issue #6590), so a resource's traces or logs bytes
+   * are both tables' - and, apart, how many of them the exception rows were
+   * (exceptionBytes), for the usage pages to show exceptions on their own.
+   * That part is inside the bytes, not added to them.
    */
   @CaptureSpan()
   public async getTelemetryUsageByResource(data: {
@@ -703,7 +751,7 @@ export class Service extends DatabaseService<Model> {
      * is not a reason to skip the day.
      */
     if (
-      data.productType !== ProductType.Traces &&
+      !isExceptionBillingProductType(data.productType) &&
       data.productType !== ProductType.Profiles &&
       data.productType !== ProductType.SessionReplay &&
       averageRowSizeInBytes <= 0
@@ -712,7 +760,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (
-      data.productType === ProductType.Traces &&
+      isExceptionBillingProductType(data.productType) &&
       averageRowSizeInBytes <= 0 &&
       averageExceptionRowSizeInBytes <= 0
     ) {
@@ -799,10 +847,12 @@ export class Service extends DatabaseService<Model> {
           }),
           averageRowSizeInBytes,
         );
+        // The exceptions found in spans (ExceptionSource).
         addUsage(
           await ExceptionInstanceService.groupTelemetryUsageByService({
             ...window,
             timestampColumnName: "time",
+            attributeFilter: getBilledExceptionsFilter(ProductType.Traces),
           }),
           averageExceptionRowSizeInBytes,
           { isExceptions: true },
@@ -814,6 +864,19 @@ export class Service extends DatabaseService<Model> {
             timestampColumnName: "time",
           }),
           averageRowSizeInBytes,
+        );
+        /*
+         * And the exceptions found in those logs (issue #6590): billed with
+         * the logs they were found in, as a span's are with its traces.
+         */
+        addUsage(
+          await ExceptionInstanceService.groupTelemetryUsageByService({
+            ...window,
+            timestampColumnName: "time",
+            attributeFilter: getBilledExceptionsFilter(ProductType.Logs),
+          }),
+          averageExceptionRowSizeInBytes,
+          { isExceptions: true },
         );
       } else if (data.productType === ProductType.Metrics) {
         /*
@@ -900,11 +963,11 @@ export class Service extends DatabaseService<Model> {
       };
 
       /*
-       * Traces say how much of their bytes were exceptions - none, for a
-       * resource that recorded no exception, which is a part counted all
-       * the same.
+       * Traces and Logs say how much of their bytes were exceptions - none,
+       * for a resource that recorded no exception, which is a part counted
+       * all the same.
        */
-      if (data.productType === ProductType.Traces) {
+      if (isExceptionBillingProductType(data.productType)) {
         resourceUsage.exceptionBytes = Math.min(
           usage.exceptionBytes,
           usage.bytes,
@@ -1428,14 +1491,16 @@ export class Service extends DatabaseService<Model> {
     primaryEntityType?: ServiceType | undefined;
     /*
      * Everything the row is billed for. For Traces, the spans and the
-     * exceptions together: the cost is worked out from this alone.
+     * exceptions found in them together, and for Logs the log records and
+     * the exceptions found in them: the cost is worked out from this alone.
      */
     dataIngestedInGB: number;
     /*
-     * For Traces only: how much of dataIngestedInGB was exceptions, kept on
-     * the row for the usage pages to show apart (issue #6356). It is a part
-     * of dataIngestedInGB, never added to it, and nothing is charged for it
-     * - the cost above already covers it. Ignored for any other product.
+     * For Traces and Logs only: how much of dataIngestedInGB was exceptions,
+     * kept on the row for the usage pages to show apart (issues #6356,
+     * #6590). It is a part of dataIngestedInGB, never added to it, and
+     * nothing is charged for it - the cost above already covers it. Ignored
+     * for any other product.
      */
     exceptionDataIngestedInGB?: number | undefined;
     retentionInDays: number;
@@ -1540,7 +1605,7 @@ export class Service extends DatabaseService<Model> {
           dataIngestedInGB: new Decimal(
             (usageBilling.dataIngestedInGB?.value || 0) + data.dataIngestedInGB,
           ),
-          ...(data.productType === ProductType.Traces
+          ...(isExceptionBillingProductType(data.productType)
             ? {
                 exceptionDataIngestedInGB:
                   existingExceptionDataIngestedInGB !== null &&
@@ -1593,7 +1658,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The exceptions' part a row records: only a Traces row's, a finite number
+   * The exceptions' part a row records: only a Traces or Logs row's (the
+   * products exceptions are billed with, ExceptionSource), a finite number
    * of GB, and never more than all the row is billed for (nor less than
    * none). Undefined - no part at all - for every other product.
    */
@@ -1603,7 +1669,7 @@ export class Service extends DatabaseService<Model> {
     exceptionDataIngestedInGB?: number | undefined;
   }): number | undefined {
     if (
-      data.productType !== ProductType.Traces ||
+      !isExceptionBillingProductType(data.productType) ||
       typeof data.exceptionDataIngestedInGB !== "number" ||
       !Number.isFinite(data.exceptionDataIngestedInGB)
     ) {
