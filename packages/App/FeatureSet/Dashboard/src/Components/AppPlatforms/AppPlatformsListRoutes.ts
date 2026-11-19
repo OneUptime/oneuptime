@@ -5,6 +5,10 @@ import {
   APP_PLATFORMS_ENVIRONMENTS_TABLE_ID,
   CLOUD_ACCOUNT_FACET_KEY,
 } from "./AppPlatformsAccountFacet";
+import {
+  CloudEnvironmentStatus,
+  ENVIRONMENT_STATUS_FACET_KEY,
+} from "./AppPlatformsEnvironmentStatus";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
@@ -26,6 +30,8 @@ function withAccounts(data: {
   route: Route;
   tableId: string;
   accountIds: ReadonlyArray<string>;
+  // All Environments' Status chip, set to these (#9751).
+  statuses?: ReadonlyArray<CloudEnvironmentStatus> | undefined;
 }): Route {
   const accountIds: Array<string> = Array.from(
     new Set(
@@ -38,19 +44,31 @@ function withAccounts(data: {
         }),
     ),
   );
+  const statuses: Array<CloudEnvironmentStatus> = Array.from(
+    new Set(data.statuses || []),
+  );
 
-  if (accountIds.length === 0) {
+  if (accountIds.length === 0 && statuses.length === 0) {
     return data.route;
+  }
+
+  const selections: JSONObject = {};
+  const operators: JSONObject = {};
+
+  if (accountIds.length > 0) {
+    selections[CLOUD_ACCOUNT_FACET_KEY] = accountIds;
+    operators[CLOUD_ACCOUNT_FACET_KEY] = "is";
+  }
+
+  if (statuses.length > 0) {
+    selections[ENVIRONMENT_STATUS_FACET_KEY] = statuses;
+    operators[ENVIRONMENT_STATUS_FACET_KEY] = "is";
   }
 
   // The two fields the bar reads back; the rest takes its defaults.
   const facets: JSONObject = {
-    facetSelections: {
-      [CLOUD_ACCOUNT_FACET_KEY]: accountIds,
-    } as unknown as JSONObject,
-    facetOperators: {
-      [CLOUD_ACCOUNT_FACET_KEY]: "is",
-    } as unknown as JSONObject,
+    facetSelections: selections,
+    facetOperators: operators,
   };
 
   const params: Dictionary<string> = TableFilterUrlState.getLinkQueryParams(
@@ -61,9 +79,14 @@ function withAccounts(data: {
   return data.route.addQueryParams(params);
 }
 
-// App Platforms > All Environments, in these accounts.
+/*
+ * App Platforms > All Environments, in these accounts - and, with
+ * statuses, only the environments of those (the Overview's "2 environments
+ * disconnected", #9751).
+ */
 export function getAppPlatformsEnvironmentsRoute(
   accountIds: ReadonlyArray<string> = [],
+  options?: { statuses?: ReadonlyArray<CloudEnvironmentStatus> | undefined },
 ): Route {
   return withAccounts({
     route: RouteUtil.populateRouteParams(
@@ -71,6 +94,7 @@ export function getAppPlatformsEnvironmentsRoute(
     ),
     tableId: APP_PLATFORMS_ENVIRONMENTS_TABLE_ID,
     accountIds,
+    statuses: options?.statuses,
   });
 }
 

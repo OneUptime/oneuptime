@@ -8,6 +8,7 @@ import CorrelationRuleMatcher, {
   CorrelationMatchResult,
   CorrelationRuleMatchInput,
   describeGap,
+  getCorrelationMatchedEventsStart,
 } from "../../../../../Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
 import ObjectID from "../../../../../Types/ObjectID";
 import { DetectionRuleDefinition } from "../../../../../Types/SecurityEvent/SigmaCorrelation";
@@ -634,5 +635,91 @@ ${SUCCEEDED}`);
     expect(result.groups[0]!.summary).toBe(
       "First principalIp / principalHost in 1 week: 203.0.113.1 / laptop-9",
     );
+  });
+});
+
+/*
+ * Where the events a correlation's run matched start, for keeping them
+ * (#9795): the window each type counts in, as the matcher reads it - but a
+ * new value's run itself, never the history its values are new against.
+ */
+describe("getCorrelationMatchedEventsStart", () => {
+  function startOf(yaml: string): Date {
+    const definition: Extract<
+      DetectionRuleDefinition,
+      { kind: "correlation" }
+    > = correlation(yaml);
+
+    return getCorrelationMatchedEventsStart({
+      correlation: definition.correlation,
+      steps: definition.steps,
+      startTime: START,
+    });
+  }
+
+  test("a burst: the rolling window the matcher counts in, from the step a timespan before the run", async () => {
+    const yaml: string = `title: Many failures
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 5m
+  condition:
+    gte: 3
+---
+${FAILED}`;
+    const read: SpyInstance<typeof CorrelationQueries.findCountGroups> = jest
+      .spyOn(CorrelationQueries, "findCountGroups")
+      .mockResolvedValue([]);
+
+    await match(correlation(yaml));
+
+    expect(startOf(yaml)).toEqual(read.mock.calls[0]![0].window.readFrom);
+    expect(startOf(yaml).toISOString()).toBe("2026-10-21T09:55:05.000Z");
+  });
+
+  test("a sequence: its timespan and its longest counting step before the run, as the matcher reads it", async () => {
+    const yaml: string = `title: Many failures then success
+correlation:
+  type: temporal_ordered
+  rules: [many_failures, successful_sign_in]
+  group-by: [principalUser]
+  timespan: 10m
+---
+title: Many failures
+name: many_failures
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  timespan: 5m
+  condition:
+    gte: 3
+---
+${FAILED}
+---
+${SUCCEEDED}`;
+    const read: SpyInstance<typeof CorrelationQueries.findTemporalGroups> = jest
+      .spyOn(CorrelationQueries, "findTemporalGroups")
+      .mockResolvedValue([]);
+
+    await match(correlation(yaml));
+
+    expect(startOf(yaml)).toEqual(read.mock.calls[0]![0].window.readFrom);
+    expect(startOf(yaml).toISOString()).toBe("2026-10-21T09:45:00.000Z");
+  });
+
+  test("a new value: the run's own window, not the history before it", () => {
+    expect(
+      startOf(`title: New address
+correlation:
+  type: new_value
+  rules: [successful_sign_in]
+  group-by: [principalUser]
+  timespan: 30d
+  condition:
+    field: principalIp
+---
+${SUCCEEDED}`),
+    ).toEqual(START);
   });
 });

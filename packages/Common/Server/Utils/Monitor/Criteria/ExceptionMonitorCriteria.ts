@@ -14,11 +14,13 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 
 /*
- * An Exceptions monitor's criteria: each measure is a whole number the
- * worker read for the window (MonitorTelemetryMonitor.monitorException,
+ * An Exceptions monitor's criteria: each measure is a number the worker
+ * read for the window (MonitorTelemetryMonitor.monitorException,
  * ExceptionMonitorEvaluation) and is compared with the criteria's number.
  * A measure the worker did not read - a response from before it could -
  * reads 0, which is what it was then: nothing new, nothing back, no rise.
+ * The share of sessions with exceptions is the one exception: without a
+ * session to take it of it is unknown, not 0%, and matches nothing.
  *
  * An anomaly condition has no number: the count is judged against what is
  * normal for the hour of the week (ExceptionLearnedBaseline), which the
@@ -46,11 +48,21 @@ export default class ExceptionMonitorCriteria {
       return null;
     }
 
+    /*
+     * A share is typed with its fraction - 1.09% of sessions - and the
+     * criteria form saves what was typed as text, which convertToNumber
+     * would cut to 1: read it as a metric's threshold is, fraction kept.
+     */
+    const threshold: number | null =
+      input.criteriaFilter.checkOn === CheckOn.SessionsWithExceptionsPercent
+        ? CompareCriteria.convertMetricThresholdToNumber(
+            input.criteriaFilter.value,
+          )
+        : CompareCriteria.convertToNumber(input.criteriaFilter.value);
+
     return CompareCriteria.compareCriteriaNumbers({
       value,
-      threshold: CompareCriteria.convertToNumber(
-        input.criteriaFilter.value,
-      ) as number,
+      threshold: threshold as number,
       criteriaFilter: input.criteriaFilter,
     });
   }
@@ -69,6 +81,17 @@ export default class ExceptionMonitorCriteria {
         return response.regressedExceptionCount || 0;
       case CheckOn.ExceptionCountIncreasePercent:
         return response.exceptionCountIncreasePercent || 0;
+      /*
+       * No session to take a share of - spans that name none, or none in
+       * the window - says nothing about the rate: no criteria on it
+       * matches, either way.
+       */
+      case CheckOn.SessionsWithExceptionsPercent:
+        return typeof response.sessionsWithExceptionsPercent === "number"
+          ? response.sessionsWithExceptionsPercent
+          : null;
+      case CheckOn.SessionCount:
+        return response.sessionCount || 0;
       default:
         return null;
     }

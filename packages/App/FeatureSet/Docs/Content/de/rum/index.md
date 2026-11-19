@@ -77,7 +77,7 @@ OneUptime findet die Anwendung über `service.name`, ohne Rücksicht auf Groß- 
 
 | Wo | Was es zeigt |
 | --- | --- |
-| **Übersicht** | Bei einer Web-App Kacheln für **Seitenaufrufe**, **Seitenladezeit (p95)**, **Ereignisse**, **Fehlerrate**, **Ereignisdauer (p95)**, **Ausnahmen**, **Clients** und **Aufgezeichnete Sitzungen**, bei einer mobilen App für **Sitzungen**, **Absturzfreie Sitzungen**, **Abstürze**, **ANRs**, **App-Starts**, **Kaltstart (p95)**, **Eingefrorene Frames** und **Fehlerrate**, dazu Verlaufsdiagramme für den gewählten Zeitraum. |
+| **Übersicht** | Bei einer Web-App Kacheln für **Seitenaufrufe**, **Seitenladezeit (p95)**, **Ereignisse**, **Fehlerrate**, **Ereignisdauer (p95)**, **Ausnahmen**, **Clients** und **Aufgezeichnete Sitzungen**, bei einer mobilen App für **Sitzungen**, **Absturzfreie Sitzungen** mit ihren absturzfreien Installationen, **Abstürze**, **ANRs**, **App-Starts**, **Kaltstart (p95)**, **Eingefrorene Frames** und **Fehlerrate**, dazu Verlaufsdiagramme für den gewählten Zeitraum. |
 | **Core Web Vitals** | Eine Karte in der Übersicht einer Web-App mit LCP, INP, CLS, FCP und TTFB, jeweils an Googles Grenzwerten gemessen, und INP für jede Route einer Single-Page-App. Siehe [Core Web Vitals](/docs/rum/web-vitals) und [Single-Page-Apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metriken**, **Protokolle**, **Traces** | Die Telemetrie-Explorer, auf diese Anwendung beschränkt. |
 | **Clients** | Die Browser-Plattformen und Gerätemodelle, auf denen die Anwendung genutzt wurde: eine kurze Liste nach Plattform, nie eine Zeile pro Benutzer. |

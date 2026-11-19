@@ -60,9 +60,11 @@ export interface ComponentProps {
 type ExceptionMonitorFormValues = {
   message: string;
   exceptionTypesInput: string;
+  excludedExceptionTypesInput: string;
   environmentsInput: string;
   telemetryServiceIds: Array<string>;
   entityKeys: Array<string>;
+  unhandledOnly: boolean;
   includeResolved: boolean;
   includeArchived: boolean;
   lastXSecondsOfExceptions: number;
@@ -113,9 +115,14 @@ const toFormValues: ToFormValuesFunction = (
   return {
     message: monitor.message || "",
     exceptionTypesInput: monitor.exceptionTypes.join(", "),
+    excludedExceptionTypesInput:
+      MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+        monitor.excludedExceptionTypes,
+      ).join(", "),
     environmentsInput: MonitorStepExceptionMonitorUtil.normalizeEnvironments(
       monitor.environments,
     ).join(", "),
+    unhandledOnly: MonitorStepExceptionMonitorUtil.isUnhandledOnly(monitor),
     telemetryServiceIds: monitor.telemetryServiceIds.map(
       (id: ObjectID): string => {
         return id.toString();
@@ -137,7 +144,17 @@ type ToMonitorConfigFunction = (
 const toMonitorConfig: ToMonitorConfigFunction = (
   values: ExceptionMonitorFormValues,
 ) => {
+  const excludedExceptionTypes: Array<string> =
+    MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+      parseCommaSeparatedList(values.excludedExceptionTypesInput),
+    );
+
   return {
+    // Left out unless set, as a step saved before they existed is.
+    ...(excludedExceptionTypes.length > 0
+      ? { excludedExceptionTypes: excludedExceptionTypes }
+      : {}),
+    ...(values.unhandledOnly ? { unhandledOnly: true } : {}),
     telemetryServiceIds: values.telemetryServiceIds
       .filter((id: string): boolean => {
         return Boolean(id);
@@ -510,6 +527,35 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Infrastructure Entity",
             description:
               "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.",
+            hideOptionalLabel: true,
+            collapsibleSection: MORE_EXCEPTION_FILTERS,
+          },
+          /*
+           * Unhandled only, and the types to leave out (#9713): how a mobile
+           * app's App Crashes counts a crash and never an ANR or a hang.
+           * Folded with the other filters, whose header names each as a
+           * chip once it is set.
+           */
+          {
+            field: {
+              unhandledOnly: true,
+            },
+            fieldType: FormFieldSchemaType.Checkbox,
+            title: "Only Unhandled Exceptions",
+            description:
+              "Count only the exceptions nothing caught, such as a crash. Off: handled ones too.",
+            hideOptionalLabel: true,
+            collapsibleSection: MORE_EXCEPTION_FILTERS,
+          },
+          {
+            field: {
+              excludedExceptionTypesInput: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            title: "Leave Out Exception Types",
+            description:
+              "Exceptions of these types are not counted, separated by commas. Empty: none is left out.",
+            placeholder: "ANR, Hang",
             hideOptionalLabel: true,
             collapsibleSection: MORE_EXCEPTION_FILTERS,
           },

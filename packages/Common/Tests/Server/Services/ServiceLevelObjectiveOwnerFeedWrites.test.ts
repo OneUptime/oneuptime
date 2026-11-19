@@ -34,6 +34,9 @@ import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelO
 import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import URL from "../../../Types/API/URL";
 import { Gray500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
@@ -446,6 +449,64 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
       `👨🏻‍💻 Removed **ops@example.com** as an owner of ${SLO_MARKDOWN_LINK}.`,
+    );
+  });
+
+  /*
+   * Someone invited to the project who has not accepted is named as the
+   * project knows them - the name typed for them, else their address -
+   * never by their account's own name (#9823).
+   */
+  test("a removed owner only invited to the project is named by the name typed for them", async () => {
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(
+        makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+      );
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [USER_ID.toString().toLowerCase(), { inviteeName: "Jane (invited)" }],
+        ]),
+      );
+
+    await callHook(
+      ServiceLevelObjectiveOwnerUserService,
+      "onDeleteSuccess",
+      {
+        deleteBy: { props: {} },
+        carryForward: { itemsToDelete: [ownerUser()] },
+      },
+      [OWNER_USER_ROW_ID],
+    );
+
+    expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
+      `👨🏻‍💻 Removed **Jane (invited)** (jane@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
+    );
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
+
+    withheldIn.mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [USER_ID.toString().toLowerCase(), { inviteeName: null }],
+      ]),
+    );
+
+    await callHook(
+      ServiceLevelObjectiveOwnerUserService,
+      "onDeleteSuccess",
+      {
+        deleteBy: { props: {} },
+        carryForward: { itemsToDelete: [ownerUser()] },
+      },
+      [OWNER_USER_ROW_ID],
+    );
+
+    // Named by their address once, not their own name.
+    expect(feedCalls[1]!.feedInfoInMarkdown).toBe(
+      `👨🏻‍💻 Removed **jane@example.com** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 

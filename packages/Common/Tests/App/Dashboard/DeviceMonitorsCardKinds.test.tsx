@@ -653,7 +653,7 @@ describe("Remove a monitor someone tied to the device", () => {
     const dialog: HTMLElement = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Remove from Device");
     expect(dialog).toHaveTextContent(
-      "Kiosk ping (made by hand) stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.",
+      "Kiosk ping (made by hand) leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.",
     );
     // Nothing is written until the reader says so.
     expect(updateById).not.toHaveBeenCalled();

@@ -8,6 +8,7 @@ import OneUptimeDate from "../Date";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import { MonitorStepLogMonitorUtil } from "./MonitorStepLogMonitor";
 
 export default interface MonitorStepTraceMonitor {
   attributes: Dictionary<string | number | boolean>;
@@ -33,6 +34,23 @@ export default interface MonitorStepTraceMonitor {
    * anything that is not a positive number.
    */
   minimumDurationInMs?: number | undefined;
+  /*
+   * Attribute keys to group the matching spans by - e.g.
+   * ["resource.app.installation.id"] for one group per install of a
+   * mobile app (#9711). When set, the spans in the window are counted per
+   * distinct combination of these attributes' values, the criteria is
+   * evaluated per group, and each group raises (and resolves) its own
+   * alert or incident, as a grouped Logs monitor's do.
+   *
+   * A grouped monitor whose criteria can match no span at all ("fewer than
+   * 1") also counts the groups seen in the week before its window and quiet
+   * in it, as 0: a device that stopped sending spans has no span to make
+   * a group of (TraceGroupAbsence). Optional: monitors saved before this
+   * field existed, and monitors that leave it empty, count every matching
+   * span together, as they always have. Read it through
+   * MonitorStepTraceMonitorUtil.getGroupByAttributes.
+   */
+  groupByAttributes?: Array<string> | undefined;
 }
 
 // Nanoseconds in a millisecond: spans store their duration in nanoseconds.
@@ -133,6 +151,23 @@ export class MonitorStepTraceMonitorUtil {
     return Number.isFinite(value) && value > 0 ? value : null;
   }
 
+  /*
+   * The keys this monitor groups its spans by, cleaned up as a Logs
+   * monitor's are (MonitorStepLogMonitorUtil.getGroupByAttributes):
+   * trimmed, de-duplicated, empty, over-long and "__proto__" keys dropped,
+   * at most ten. An empty array means "not grouped".
+   */
+  public static getGroupByAttributes(
+    monitorStepTraceMonitor:
+      | Pick<MonitorStepTraceMonitor, "groupByAttributes">
+      | undefined
+      | null,
+  ): Array<string> {
+    return MonitorStepLogMonitorUtil.getGroupByAttributes({
+      groupByAttributes: monitorStepTraceMonitor?.groupByAttributes,
+    });
+  }
+
   public static getDefault(): MonitorStepTraceMonitor {
     return {
       attributes: {},
@@ -149,6 +184,10 @@ export class MonitorStepTraceMonitorUtil {
       MonitorStepTraceMonitorUtil.getMinimumDurationInMs({
         minimumDurationInMs: json["minimumDurationInMs"] as number | undefined,
       });
+    const groupByAttributes: Array<string> =
+      MonitorStepTraceMonitorUtil.getGroupByAttributes({
+        groupByAttributes: json["groupByAttributes"] as Array<string>,
+      });
 
     return {
       attributes:
@@ -162,12 +201,15 @@ export class MonitorStepTraceMonitorUtil {
       lastXSecondsOfSpans: json["lastXSecondsOfSpans"] as number,
       // Left out when there is none, as a step saved before it existed is.
       ...(minimumDurationInMs !== null ? { minimumDurationInMs } : {}),
+      ...(groupByAttributes.length > 0 ? { groupByAttributes } : {}),
     };
   }
 
   public static toJSON(monitor: MonitorStepTraceMonitor): JSONObject {
     const minimumDurationInMs: number | null =
       MonitorStepTraceMonitorUtil.getMinimumDurationInMs(monitor);
+    const groupByAttributes: Array<string> =
+      MonitorStepTraceMonitorUtil.getGroupByAttributes(monitor);
 
     return {
       attributes: monitor.attributes,
@@ -178,6 +220,7 @@ export class MonitorStepTraceMonitorUtil {
       lastXSecondsOfSpans: monitor.lastXSecondsOfSpans,
       // Left out when there is none, as a step saved before it existed is.
       ...(minimumDurationInMs !== null ? { minimumDurationInMs } : {}),
+      ...(groupByAttributes.length > 0 ? { groupByAttributes } : {}),
     };
   }
 }

@@ -129,7 +129,7 @@ name:"SELECT wp_options"
 
 ### 追踪
 
-追踪字段接受单个值或“任一”列表，例如 `status:(ok OR unset)`，`duration` 还接受 `>` 和 `<`。通配符、`~`、`!` 和前置的 `-` 在这里只对属性有效。
+追踪字段接受单个值或“任一”列表，例如 `status:(ok OR unset)`，`duration` 还接受 `>`、`>=`、`<` 和 `<=`。通配符、`~`、`!` 和前置的 `-` 在这里只对属性有效。
 
 | 字段 | 说明 |
 | --- | --- |
@@ -137,7 +137,7 @@ name:"SELECT wp_options"
 | `name` | Span 名称。单个值匹配其中任意部分。单独的词也搜索这里 |
 | `status` | `ok`、`error`、`unset` (unset = 未设置错误状态，即 OpenTelemetry 默认值) |
 | `kind` | `server`、`client`、`producer`、`consumer`、`internal` |
-| `duration` | 毫秒：`duration:>500`、`duration:<200` 或精确值 |
+| `duration` | 毫秒：`duration:>500`、`duration:>=500`、`duration:<200`、`duration:<=200` 或精确值 |
 | `statusMessage` | 状态消息文本。单个值匹配其中任意部分 |
 | `hasException` | `true` 或 `false` |
 | `trace`、`span` | ID |

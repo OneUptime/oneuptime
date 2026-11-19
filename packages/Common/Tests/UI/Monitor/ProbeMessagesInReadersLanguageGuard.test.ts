@@ -1135,3 +1135,267 @@ describe("why a check failed, with the values it found", () => {
     },
   );
 });
+
+/*
+ * A STATUS OR STATE CHANGE'S ROOT CAUSE, BEHIND VIEW CAUSE (#9752).
+ *
+ * A monitor's Status Timeline drew each status event's root cause as it was
+ * stored, `<MarkdownViewer text={rootCause} />`: "Criteria Name", "Filter
+ * Conditions Met", "Response Snapshot", the probe's yes or no and the
+ * engine's figures read in English on a German or a Persian page, laid out
+ * from the left on a page read from the right, while an incident's Root
+ * Cause page worded the same Markdown. An incident's and an alert's State
+ * Timeline drew theirs the same way, in their table and their timeline view.
+ *
+ * Every root cause the Dashboard draws now goes through its wording
+ * (MonitorRootCauseWording, StatusChangeCauseWording - through
+ * StateChangeCause on the timelines). This fails on:
+ *
+ *   - Markdown drawn from a root cause (a viewer's text that reads
+ *     `rootCause`) in a file that words none;
+ *   - a timeline view (ModelStatusTimeline) that opens a root cause
+ *     (causeColumn="rootCause") without handing it its wording
+ *     (wordCause).
+ */
+
+const DASHBOARD_DIRECTORY: string = path.join(
+  REPOSITORY_ROOT,
+  "packages/App/FeatureSet/Dashboard/src",
+);
+
+// What draws Markdown, by the name a page imports it under.
+const MARKDOWN_DRAWERS: ReadonlySet<string> = new Set<string>([
+  "MarkdownViewer",
+  "LazyMarkdownViewer",
+  "ClampedMarkdown",
+]);
+
+// A call that words a root cause in the reader's language.
+const ROOT_CAUSE_WORDING: RegExp =
+  /\b(wordRootCause|wordCause|wordStateChangeCause)\(/;
+
+const READS_ROOT_CAUSE: RegExp = /\brootCause\b|\["rootCause"\]/;
+
+/*
+ * Files whose Markdown reads a `rootCause` that is no record's stored root
+ * cause, each with its reason.
+ */
+const NOT_A_RECORDED_ROOT_CAUSE: Record<string, string> = {
+  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIExplanation.tsx":
+    "OneUptime AI's explanation of an exception (explanation.rootCause), which the AI writes when asked: no status or state change's recorded cause.",
+};
+
+interface RootCauseDraws {
+  // Markdown of a root cause drawn as stored.
+  rawDraws: Array<Finding>;
+  // Timeline views that open a root cause without wording it.
+  timelinesWithoutWording: Array<Finding>;
+  // Timeline views that open a root cause, worded.
+  wordedTimelines: number;
+}
+
+const attributeNamed: (
+  element: ts.JsxOpeningLikeElement,
+  name: string,
+) => ts.JsxAttribute | undefined = (
+  element: ts.JsxOpeningLikeElement,
+  name: string,
+): ts.JsxAttribute | undefined => {
+  for (const property of element.attributes.properties) {
+    if (ts.isJsxAttribute(property) && property.name.getText() === name) {
+      return property;
+    }
+  }
+
+  return undefined;
+};
+
+const readRootCauseDraws: (
+  fileName: string,
+  source: string,
+) => RootCauseDraws = (fileName: string, source: string): RootCauseDraws => {
+  const sourceFile: ts.SourceFile = parse(fileName, source);
+  const wordsARootCause: boolean = ROOT_CAUSE_WORDING.test(source);
+  const result: RootCauseDraws = {
+    rawDraws: [],
+    timelinesWithoutWording: [],
+    wordedTimelines: 0,
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
+      const tagName: string = node.tagName.getText(sourceFile);
+
+      if (MARKDOWN_DRAWERS.has(tagName)) {
+        const text: ts.JsxAttribute | undefined = attributeNamed(node, "text");
+        const value: string = text?.initializer
+          ? text.initializer.getText(sourceFile)
+          : "";
+
+        if (READS_ROOT_CAUSE.test(value) && !wordsARootCause) {
+          result.rawDraws.push(findingAt(sourceFile, node));
+        }
+      }
+
+      if (tagName.startsWith("ModelStatusTimeline")) {
+        const causeColumn: ts.JsxAttribute | undefined = attributeNamed(
+          node,
+          "causeColumn",
+        );
+
+        if (
+          causeColumn?.initializer &&
+          causeColumn.initializer.getText(sourceFile).includes("rootCause")
+        ) {
+          if (attributeNamed(node, "wordCause")) {
+            result.wordedTimelines++;
+          } else {
+            result.timelinesWithoutWording.push(
+              findingAt(sourceFile, causeColumn),
+            );
+          }
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return result;
+};
+
+describe("a status or state change's root cause, behind View Cause", () => {
+  const files: Array<string> = listSourceFiles(DASHBOARD_DIRECTORY).filter(
+    (file: string): boolean => {
+      return (
+        file.endsWith(".tsx") &&
+        !NOT_A_RECORDED_ROOT_CAUSE[toRelativePath(REPOSITORY_ROOT, file)]
+      );
+    },
+  );
+
+  test("every file left out still draws what its reason says", () => {
+    for (const file of Object.keys(NOT_A_RECORDED_ROOT_CAUSE)) {
+      const draws: RootCauseDraws = readRootCauseDraws(
+        file,
+        fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf-8"),
+      );
+
+      // Still there, and still found: a stale entry would hide nothing.
+      expect(draws.rawDraws.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("is drawn in the reader's language wherever it is drawn", () => {
+    const rawDraws: Array<string> = [];
+    const timelinesWithoutWording: Array<string> = [];
+    let wordedTimelines: number = 0;
+
+    for (const file of files) {
+      const draws: RootCauseDraws = readRootCauseDraws(
+        file,
+        fs.readFileSync(file, "utf-8"),
+      );
+      const relativeFile: string = toRelativePath(REPOSITORY_ROOT, file);
+
+      wordedTimelines += draws.wordedTimelines;
+
+      for (const finding of draws.rawDraws) {
+        rawDraws.push(`${relativeFile}:${finding.line} ${finding.text}`);
+      }
+
+      for (const finding of draws.timelinesWithoutWording) {
+        timelinesWithoutWording.push(
+          `${relativeFile}:${finding.line} ${finding.text}`,
+        );
+      }
+    }
+
+    expect(rawDraws).toEqual([]);
+    expect(timelinesWithoutWording).toEqual([]);
+    // A monitor's, an incident's and an alert's: a scan that finds none proves nothing.
+    expect(wordedTimelines).toBeGreaterThanOrEqual(3);
+  });
+
+  test("the timelines' table View Cause opens the worded cause", () => {
+    for (const page of [
+      "Pages/Monitor/View/StatusTimeline.tsx",
+      "Pages/Incidents/View/StateTimeline.tsx",
+      "Pages/Alerts/View/StateTimeline.tsx",
+    ]) {
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD_DIRECTORY, page),
+        "utf-8",
+      );
+
+      expect(source).toContain("<StateChangeCauseModal");
+      expect(source).not.toMatch(/<MarkdownViewer text=\{rootCause\} \/>/);
+    }
+  });
+
+  test("negative control: the cause as the timelines drew it is found", () => {
+    const source: string = `
+      const A = () => (
+        <>
+          <ModelStatusTimeline
+            modelType={MonitorStatusTimeline}
+            causeColumn="rootCause"
+            logColumn="statusChangeLog"
+          />
+          <ConfirmModal
+            title={"Root Cause"}
+            description={
+              <div>
+                <MarkdownViewer text={rootCause} />
+              </div>
+            }
+          />
+          <MarkdownViewer text={item["rootCause"]} />
+        </>
+      );
+    `;
+    const draws: RootCauseDraws = readRootCauseDraws("Old.tsx", source);
+
+    expect(
+      draws.rawDraws.map((finding: Finding): string => {
+        return finding.text;
+      }),
+    ).toEqual([
+      "<MarkdownViewer text={rootCause} />",
+      '<MarkdownViewer text={item["rootCause"]} />',
+    ]);
+    expect(
+      draws.timelinesWithoutWording.map((finding: Finding): string => {
+        return finding.text;
+      }),
+    ).toEqual(['causeColumn="rootCause"']);
+  });
+
+  test("and the cause as they draw it now is not", () => {
+    const source: string = `
+      const A = () => {
+        const wordCause = useWordStateChangeCause();
+        const worded = MonitorRootCauseWording.wordRootCause({ rootCause: stored });
+        return (
+          <>
+            <ModelStatusTimeline
+              modelType={MonitorStatusTimeline}
+              causeColumn="rootCause"
+              wordCause={wordCause}
+              logColumn="statusChangeLog"
+            />
+            <MarkdownViewer text={worded} />
+            <MarkdownViewer text={description} />
+          </>
+        );
+      };
+    `;
+    const draws: RootCauseDraws = readRootCauseDraws("New.tsx", source);
+
+    expect(draws.rawDraws).toEqual([]);
+    expect(draws.timelinesWithoutWording).toEqual([]);
+    expect(draws.wordedTimelines).toBe(1);
+  });
+});

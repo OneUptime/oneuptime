@@ -22,7 +22,10 @@ import {
   OpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "Common/Types/OpenStack/OpenStackBlastRadius";
-import { OpenStackBareMetalClass } from "Common/Types/OpenStack/OpenStackBareMetal";
+import {
+  OpenStackBareMetalClass,
+  OpenStackBareMetalResourceClass,
+} from "Common/Types/OpenStack/OpenStackBareMetal";
 import {
   OpenStackCountBy,
   OpenStackCountRow,
@@ -239,6 +242,30 @@ export async function fetchOpenStackBareMetalClasses(data: {
     ...(data.regionName ? { body: { regionName: data.regionName } } : {}),
   });
   return (answer["classes"] as unknown as Array<OpenStackBareMetalClass>) || [];
+}
+
+/*
+ * The nodes of one resource class that failed, as the class's "Failed: N" counts them (#9751),
+ * by name; and whether there were more than one read lists.
+ */
+export async function fetchOpenStackBareMetalFailedNodes(data: {
+  openStackCloudId: ObjectID;
+  // As the class count names it: null for the nodes with none.
+  resourceClass: OpenStackBareMetalResourceClass;
+  regionName?: string | null | undefined;
+}): Promise<{ rows: Array<OpenStackResource>; isTruncated: boolean }> {
+  const answer: JSONObject = await postToCloud({
+    path: "/openstack-resource/bare-metal-failed-nodes/",
+    openStackCloudId: data.openStackCloudId,
+    body: {
+      resourceClass: data.resourceClass,
+      ...(data.regionName ? { regionName: data.regionName } : {}),
+    },
+  });
+  return {
+    rows: toRows((answer["rows"] as Array<JSONObject>) || []),
+    isTruncated: answer["isTruncated"] === true,
+  };
 }
 
 export async function fetchOpenStackCounts(data: {

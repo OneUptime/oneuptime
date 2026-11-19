@@ -1,4 +1,6 @@
 import TraceMonitorResponse from "../../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import TraceMonitorGroupResult from "../../../../Types/Monitor/TraceMonitor/TraceMonitorGroupResult";
+import { LogMonitorGroupResultUtil } from "../../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
@@ -41,6 +43,13 @@ export default class TraceMonitorCriteria {
       input.criteriaFilter.value;
 
     if (input.criteriaFilter.checkOn === CheckOn.SpanCount) {
+      const traceResponse: TraceMonitorResponse =
+        input.dataToProcess as TraceMonitorResponse;
+
+      const isGrouped: boolean =
+        Array.isArray(traceResponse.groupBreakdown) ||
+        Boolean(traceResponse.evaluatedGroup);
+
       /*
        * Anomaly filters skip the static threshold entirely: the
        * observed span rate is compared to this monitor's scope in the
@@ -49,8 +58,16 @@ export default class TraceMonitorCriteria {
       if (
         CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
       ) {
+        /*
+         * The baseline is the volume of the monitor's whole scope; there
+         * is none per group, as for a grouped Logs monitor.
+         */
+        if (isGrouped) {
+          return null;
+        }
+
         return await TraceMonitorCriteria.evaluateSpanCountAnomaly({
-          traceResponse: input.dataToProcess as TraceMonitorResponse,
+          traceResponse: traceResponse,
           criteriaFilter: input.criteriaFilter,
           monitorStep: input.monitorStep,
         });
@@ -58,17 +75,63 @@ export default class TraceMonitorCriteria {
 
       threshold = CompareCriteria.convertToNumber(threshold);
 
-      const currentSpanCount: number =
-        (input.dataToProcess as TraceMonitorResponse).spanCount || 0;
+      /*
+       * A grouped monitor's verdict for the monitor as a whole (#9711): the
+       * filter holds when at least one group's count satisfies it, as a
+       * grouped Logs monitor's does. "Fewer than 1 span" holds while one
+       * install of forty is quiet; the per-group pass in
+       * MonitorCriteriaEvaluator then decides which groups alert.
+       */
+      if (traceResponse.groupBreakdown) {
+        for (const group of traceResponse.groupBreakdown) {
+          const groupMessage: string | null =
+            CompareCriteria.compareCriteriaNumbers({
+              value: group.spanCount || 0,
+              threshold: threshold as number,
+              criteriaFilter: input.criteriaFilter,
+            });
 
-      return CompareCriteria.compareCriteriaNumbers({
+          if (groupMessage) {
+            return TraceMonitorCriteria.forGroup(group, groupMessage);
+          }
+        }
+
+        return null;
+      }
+
+      const currentSpanCount: number = traceResponse.spanCount || 0;
+
+      const message: string | null = CompareCriteria.compareCriteriaNumbers({
         value: currentSpanCount,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });
+
+      // One group, judged alone by the per-group pass: say which one.
+      if (message && traceResponse.evaluatedGroup) {
+        return TraceMonitorCriteria.forGroup(
+          traceResponse.evaluatedGroup,
+          message,
+        );
+      }
+
+      return message;
     }
 
     return null;
+  }
+
+  /*
+   * "For resource.app.installation.id = 1b4e...: Span Count was 0, below
+   * the 1 threshold." A quiet group says so.
+   */
+  private static forGroup(
+    group: TraceMonitorGroupResult,
+    message: string,
+  ): string {
+    return `For ${LogMonitorGroupResultUtil.describeGroup(group.labels)}${
+      group.isQuiet ? ", which sent no span in the window" : ""
+    }: ${message}`;
   }
 
   /*

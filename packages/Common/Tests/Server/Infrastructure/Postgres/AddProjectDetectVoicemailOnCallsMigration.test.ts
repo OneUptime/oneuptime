@@ -4,7 +4,7 @@ import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import Project from "../../../../Models/DatabaseModels/Project";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProjectDetectVoicemailOnCalls1809186500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186500000-AddProjectDetectVoicemailOnCalls";
+import { AddProjectDetectVoicemailOnCalls1809186610000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186610000-AddProjectDetectVoicemailOnCalls";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Permission from "../../../../Types/Permission";
@@ -23,7 +23,7 @@ import Permission from "../../../../Types/Permission";
  * owners and admins.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186500000";
+const MIGRATION_TIMESTAMP: string = "1809186610000";
 
 const MIGRATION_BASE_NAME: string = "AddProjectDetectVoicemailOnCalls";
 
@@ -70,13 +70,13 @@ const makeQueryRunner: () => MakeQueryRunnerResult =
 
 async function upStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddProjectDetectVoicemailOnCalls1809186500000().up(runner);
+  await new AddProjectDetectVoicemailOnCalls1809186610000().up(runner);
   return statements;
 }
 
 async function downStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddProjectDetectVoicemailOnCalls1809186500000().down(runner);
+  await new AddProjectDetectVoicemailOnCalls1809186610000().down(runner);
   return statements;
 }
 
@@ -130,13 +130,13 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddProjectDetectVoicemailOnCalls1809186500000();
+      new AddProjectDetectVoicemailOnCalls1809186610000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddProjectDetectVoicemailOnCalls1809186500000.prototype,
+        AddProjectDetectVoicemailOnCalls1809186610000.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -157,11 +157,11 @@ describe("the migration runs", () => {
 
   test("it is in the exported migration list, exactly once", () => {
     expect(SchemaMigrations).toContain(
-      AddProjectDetectVoicemailOnCalls1809186500000,
+      AddProjectDetectVoicemailOnCalls1809186610000,
     );
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
-        return migration === AddProjectDetectVoicemailOnCalls1809186500000;
+        return migration === AddProjectDetectVoicemailOnCalls1809186610000;
       }),
     ).toHaveLength(1);
   });
@@ -172,14 +172,14 @@ describe("the migration runs", () => {
    * the boot the second time.
    */
   test("its declared name, its class name and its timestamp agree", () => {
-    expect(new AddProjectDetectVoicemailOnCalls1809186500000().name).toBe(
+    expect(new AddProjectDetectVoicemailOnCalls1809186610000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
-    expect(AddProjectDetectVoicemailOnCalls1809186500000.name).toBe(
+    expect(AddProjectDetectVoicemailOnCalls1809186610000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddProjectDetectVoicemailOnCalls1809186500000.name.match(
+      AddProjectDetectVoicemailOnCalls1809186610000.name.match(
         CLASS_TIMESTAMP,
       )?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
@@ -197,7 +197,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddProjectDetectVoicemailOnCalls1809186500000,
+      AddProjectDetectVoicemailOnCalls1809186610000,
     );
 
     expect(position).toBeGreaterThan(-1);

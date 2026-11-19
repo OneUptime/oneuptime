@@ -61,6 +61,12 @@ import {
   getMobileAppFaultKind,
 } from "Common/Utils/Telemetry/MobileAppFaults";
 import { SESSION_ID_ATTRIBUTE_KEYS } from "Common/Utils/Telemetry/CorrelationIdAttributes";
+import { APP_INSTALLATION_ID_ATTRIBUTE } from "Common/Types/Rum/MobileAppTelemetry";
+import {
+  MOBILE_ANR_RATE_PERCENT,
+  MOBILE_CRASH_RATE_PERCENT,
+  getRumAlertTemplateById,
+} from "Common/Types/Monitor/RumAlertTemplates";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { describe, expect, it, jest } from "@jest/globals";
@@ -229,6 +235,30 @@ describe("crashes and ANRs, as ingest files them", () => {
   it("finds a session by the key ingest reads a session id from", () => {
     expect(SESSION_ID_ATTRIBUTE_KEYS[0]).toBe("session.id");
     expect(reports).toContain("searched with `@session.id:`");
+  });
+
+  /*
+   * #9716: crash-free installs, from the install key the Overview's reads
+   * count, and the crash and ANR rate recommendations' own thresholds.
+   */
+  it("names the install key the Overview counts crash-free installs by", () => {
+    expect(APP_INSTALLATION_ID_ATTRIBUTE).toBe("app.installation.id");
+    expect(reports).toContain(
+      `Under **Crash-free sessions**, the line reads the same share of installs: the \`${APP_INSTALLATION_ID_ATTRIBUTE}\` OpenTelemetry Android 1.1 and later set`,
+    );
+  });
+
+  it("states the rate recommendations' thresholds as they alert", () => {
+    expect(getRumAlertTemplateById("rum-app-crash-rate")?.name).toBe(
+      "App Crash Rate",
+    );
+    expect(getRumAlertTemplateById("rum-app-anr-rate")?.name).toBe(
+      "App ANR Rate",
+    );
+    expect(reports).toContain(
+      `above Android vitals' ${MOBILE_CRASH_RATE_PERCENT}% and ${MOBILE_ANR_RATE_PERCENT}%`,
+    );
+    expect(reports).toContain("**App Crash Rate** and **App ANR Rate**");
   });
 });
 

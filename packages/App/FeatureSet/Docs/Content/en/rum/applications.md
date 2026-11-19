@@ -168,9 +168,9 @@ RUM telemetry is ordinary logs, metrics and traces, so there is no separate RUM 
 | Group | Recommendations |
 | --- | --- |
 | Core Web Vitals | For a web app: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint and Slow Time to First Byte. See [Core Web Vitals](/docs/rum/web-vitals). |
-| Errors | App Crashes and App Not Responding (ANR) for a mobile app, Failed User Operations for both, and Unhandled Browser Exceptions for a web app. |
+| Errors | App Crashes and App Not Responding (ANR) for a mobile app, and their rates, App Crash Rate and App ANR Rate, for an app with hundreds of sessions an hour; Failed User Operations for both, and Unhandled Browser Exceptions for a web app. |
 | Performance | For a mobile app: Slow Cold Start, when a cold start takes 5 seconds or more, which Android vitals counts as excessive, and Frozen Frames, when a frame takes longer than 700 ms to draw. |
-| Availability | For a mobile app: App Stopped Reporting, when the app sends no spans for 30 minutes. |
+| Availability | For a mobile app: App Stopped Reporting, when the app sends no spans for 30 minutes, and Device Stopped Reporting, when one of its devices sends none for an hour after sending some in the past week. |
 | Session Replay | The four [storage budget alerts](/docs/telemetry/session-replay#storage-budget-alerts), which warn before the project's daily limit or the application's monthly budget runs out. They are offered once the application has recorded a replay, and the monthly pair once it also has a monthly budget. |
 
 To build a monitor of your own, pick the one that reads the signal:

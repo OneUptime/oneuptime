@@ -8,9 +8,10 @@ import {
 } from "@jest/globals";
 import ProjectSCIMRouter from "../../../Server/Identity/API/SCIM";
 import ProjectSCIMAccountPolicy, {
-  HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE,
+  HOSTED_EMAIL_CHANGE_STEP,
+  NAME_CHANGE_STEP,
   ProjectSCIMAccountStanding,
-  UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE,
+  SELF_HOSTED_EMAIL_CHANGE_STEP,
 } from "../../../Server/Identity/Utils/ProjectSCIMAccountPolicy";
 import { createProjectSCIMLog } from "../../../Server/Identity/Utils/SCIMLogger";
 import {
@@ -250,7 +251,10 @@ const matchesQuery: (
 const toUser: (fake: FakeUser) => User = (fake: FakeUser): User => {
   const user: User = new User(new ObjectID(fake.id));
   user.email = new Email(fake.email);
-  user.name = new Name(fake.name);
+  // An account with no name has none, as one an invitation or SCIM created without one.
+  if (fake.name) {
+    user.name = new Name(fake.name);
+  }
   user.isMasterAdmin = fake.isMasterAdmin;
   return user;
 };
@@ -316,12 +320,12 @@ jest.mock("Common/Server/Services/UserService", () => {
       },
       createByEmail: async (args: {
         email: Email;
-        name: Name;
+        name: Name | undefined;
       }): Promise<User> => {
         const user: FakeUser = {
           id: idOf(ObjectID.generate()),
           email: args.email.toString(),
-          name: args.name.toString(),
+          name: args.name?.toString() || "",
           isMasterAdmin: false,
         };
         world.users.push(user);
@@ -336,6 +340,29 @@ jest.mock("Common/Server/Services/UserService", () => {
             return item.id === idOf(args.id);
           },
         );
+
+        /*
+         * The User table's unique index on email: the write is refused, as
+         * the database refuses it, and changes nothing.
+         */
+        if (
+          args.data.email &&
+          world.users.some((item: FakeUser) => {
+            return (
+              item.email === args.data.email!.toString() &&
+              item.id !== idOf(args.id)
+            );
+          })
+        ) {
+          const translator: typeof import("Common/Server/Utils/Database/PostgresErrorTranslator") =
+            jest.requireActual(
+              "Common/Server/Utils/Database/PostgresErrorTranslator",
+            ) as typeof import("Common/Server/Utils/Database/PostgresErrorTranslator");
+
+          throw translator.default.createUniqueViolationException(
+            "A User with this Email already exists. Please use a different value and try again.",
+          );
+        }
 
         world.userUpdates.push({
           id: idOf(args.id),
@@ -911,24 +938,31 @@ function expectSuccess(result: HttpResult): void {
 }
 
 /*
- * The request succeeded, and the address it asked for was not given to the
- * account: the connection's SCIM log says why (`refusal`). The identity
- * provider is answered with the SCIM user as it sent it - its own record.
+ * The request succeeded, and the connection's SCIM log says the SCIM user
+ * keeps the new address (`step`): on the hosted service, that no account
+ * takes one; on a self-hosted install, the same words whether or not the
+ * account took it, and whatever kept it from taking it (#9825). The
+ * identity provider is answered with the SCIM user as it sent it - its own
+ * record.
  */
-function expectEmailChangeNotApplied(
-  result: HttpResult,
-  refusal: string,
-): void {
+function expectEmailChangeLogged(result: HttpResult, step: string): void {
   expect(result.status).toBe(200);
   expect(createProjectSCIMLog).toHaveBeenCalledWith(
     expect.objectContaining({
       operationType: "UpdateUser",
       status: "Success",
       httpStatusCode: 200,
-      steps: expect.arrayContaining([
-        `Email change not applied to the OneUptime account: ${refusal} The SCIM user keeps the address the identity provider sent.`,
-      ]),
+      steps: expect.arrayContaining([step]),
     }),
+  );
+}
+
+// Every step the connection's SCIM log was written with, in this test.
+function loggedSteps(): Array<string> {
+  return (createProjectSCIMLog as jest.Mock).mock.calls.flatMap(
+    (call: Array<unknown>): Array<string> => {
+      return ((call[0] as JSONObject)["steps"] as Array<string>) || [];
+    },
   );
 }
 
@@ -1006,17 +1040,17 @@ async function sendBulkUserUpdate(
 const deployments: Array<{
   label: string;
   hosted: boolean;
-  refusalForUnmanaged: string;
+  emailChangeStep: string;
 }> = [
   {
     label: "the hosted service",
     hosted: true,
-    refusalForUnmanaged: HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE,
+    emailChangeStep: HOSTED_EMAIL_CHANGE_STEP,
   },
   {
     label: "a self-hosted install",
     hosted: false,
-    refusalForUnmanaged: UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE,
+    emailChangeStep: SELF_HOSTED_EMAIL_CHANGE_STEP,
   },
 ];
 
@@ -1030,10 +1064,10 @@ describe.each(deployments)(
   "on $label, SCIM cannot rewrite the email of an account it does not manage",
   ({
     hosted,
-    refusalForUnmanaged,
+    emailChangeStep,
   }: {
     hosted: boolean;
-    refusalForUnmanaged: string;
+    emailChangeStep: string;
   }) => {
     beforeEach(() => {
       setTestBillingEnabled(hosted);
@@ -1126,22 +1160,36 @@ describe.each(deployments)(
       },
     );
 
-    test("the address that was not given is written to the project's SCIM log, with why", async () => {
+    /*
+     * #9825: the log says what the identity provider changed, in words that
+     * do not say why the account kept its address - that it belongs to
+     * another customer, is an invitee or an administrator.
+     */
+    test("the project's SCIM log says the SCIM user keeps the new address, and never why the account kept its own", async () => {
       const result: HttpResult = await send(
         "PATCH",
         scimPath(`Users/${cast.pendingInvitee}`),
         patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
       );
 
-      expectEmailChangeNotApplied(result, refusalForUnmanaged);
+      expectEmailChangeLogged(result, emailChangeStep);
+      expect(emailOf(cast.pendingInvitee)).toBe("alice@globex.example");
       expect(createProjectSCIMLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          affectedUserEmail: "alice@globex.example",
+          affectedUserEmail: ATTACKER_MAILBOX,
           userInfo: expect.objectContaining({
-            email: "alice@globex.example",
+            email: ATTACKER_MAILBOX,
             previousEmail: "alice@globex.example",
           }),
+          additionalContext: expect.objectContaining({
+            fieldsUpdated: ["userName"],
+          }),
         }),
+      );
+
+      const log: string = JSON.stringify(loggedSteps());
+      expect(log).not.toMatch(
+        /another project|administrator|has not joined|invite|already|in use/i,
       );
     });
 
@@ -1269,7 +1317,7 @@ describe("on the hosted service, SCIM never changes an email address", () => {
       }),
     );
 
-    expectEmailChangeNotApplied(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeLogged(result, HOSTED_EMAIL_CHANGE_STEP);
 
     const readBack: HttpResult = await send(
       "GET",
@@ -1292,7 +1340,7 @@ describe("on the hosted service, SCIM never changes an email address", () => {
       patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
     );
 
-    expectEmailChangeNotApplied(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeLogged(result, HOSTED_EMAIL_CHANGE_STEP);
     expect(emailOf(newUserId)).toBe("new.hire@acme.example");
   });
 });
@@ -1396,7 +1444,7 @@ describe("on a self-hosted install, SCIM still changes the email of an account t
       patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
     );
 
-    expectEmailChangeNotApplied(result, UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeLogged(result, SELF_HOSTED_EMAIL_CHANGE_STEP);
     expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
   });
 });
@@ -1428,12 +1476,14 @@ describe.each(deployments)(
       expect(result.status).toBe(200);
       expect(nameOf(cast.multiProjectMember)).toBe("bob");
       expect(world.userUpdates).toEqual([]);
+      // The same words whether or not the account took the name (#9825).
       expect(createProjectSCIMLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          steps: expect.arrayContaining([
-            expect.stringMatching(/Name change skipped/),
-          ]),
+          steps: expect.arrayContaining([NAME_CHANGE_STEP]),
         }),
+      );
+      expect(JSON.stringify(loggedSteps())).not.toMatch(
+        /another project|administrator|has not joined|skipped/i,
       );
     });
 
@@ -1512,13 +1562,19 @@ describe("on the hosted service, an existing account is invited, not added", () 
     ).toBe(true);
     // One invitation into the project, not one per team.
     expect(invitationEmailsFor(cast.stranger)).toEqual(["dave@example.com"]);
+    /*
+     * The log names the teams, and not that the adds were invitations: that
+     * would say the address had an account (#9825). The project's Users
+     * list shows the invitations.
+     */
     expect(createProjectSCIMLog).toHaveBeenCalledWith(
       expect.objectContaining({
         steps: expect.arrayContaining([
-          expect.stringMatching(/0 added as member, 2 invited/),
+          "User added to teams: Default A, Default B",
         ]),
       }),
     );
+    expect(JSON.stringify(loggedSteps())).not.toMatch(/invit|pending/i);
   });
 
   test("the same through a Bulk request", async () => {
@@ -1966,7 +2022,11 @@ describe("on the hosted service, an existing account is invited, not added", () 
       expect(membershipsOf(nobody)).toEqual([]);
     });
 
-    test("the group log reports how many of the adds were only invitations", async () => {
+    /*
+     * Which adds were invitations would say, for the users SCIM provisioned,
+     * which addresses already had an account (#9825): the log counts adds.
+     */
+    test("the group log counts the adds, and never says which were invitations", async () => {
       await send(
         "PATCH",
         scimPath(`Groups/${GROUP_TEAM}`),
@@ -1982,10 +2042,16 @@ describe("on the hosted service, an existing account is invited, not added", () 
           operationType: "UpdateGroup",
           groupInfo: expect.objectContaining({
             membersAdded: 2,
-            membersInvited: 1,
           }),
         }),
       );
+      // The stranger was invited, the member added - and the log says neither.
+      expect(membershipIn(cast.stranger, GROUP_TEAM)).toMatchObject({
+        hasAcceptedInvitation: false,
+      });
+      expect(
+        JSON.stringify((createProjectSCIMLog as jest.Mock).mock.calls),
+      ).not.toMatch(/invit|pending/i);
     });
   });
 });
@@ -2360,10 +2426,12 @@ test("the group log says how many members a replace kept and removed", async () 
         membersKept: 1,
         membersRemoved: 1,
         membersAdded: 1,
-        membersInvited: 1,
       }),
     }),
   );
+  expect(
+    JSON.stringify((createProjectSCIMLog as jest.Mock).mock.calls),
+  ).not.toMatch(/invit|pending/i);
 });
 
 /*

@@ -303,8 +303,10 @@ describe("the lists by cloud account, on Cloud Environments", () => {
     );
     expect(CARD).toContain("to={getAppPlatformsAppsRoute(counts.accountIds)}");
     // The link sets the chip to "is" those accounts, visibly and clearably.
-    expect(ROUTES).toContain("[CLOUD_ACCOUNT_FACET_KEY]: accountIds,");
-    expect(ROUTES).toContain('[CLOUD_ACCOUNT_FACET_KEY]: "is",');
+    expect(ROUTES).toContain(
+      "selections[CLOUD_ACCOUNT_FACET_KEY] = accountIds;",
+    );
+    expect(ROUTES).toContain('operators[CLOUD_ACCOUNT_FACET_KEY] = "is";');
     expect(
       fs.readFileSync(path.join(DASHBOARD, "Pages/Cloud/Overview.tsx"), "utf8"),
     ).toContain("<CloudAppPlatformsCard accounts={read.accounts} />");

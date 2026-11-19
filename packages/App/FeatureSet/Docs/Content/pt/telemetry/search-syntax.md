@@ -129,7 +129,7 @@ Nomes de campo não diferenciam maiúsculas de minúsculas: `statusMessage:` e `
 
 ### Traces
 
-Os campos de trace aceitam um valor simples ou uma lista como `status:(ok OR unset)`, e `duration` também aceita `>` e `<`. Curingas, `~`, `!` e um `-` no início aqui só funcionam com atributos.
+Os campos de trace aceitam um valor simples ou uma lista como `status:(ok OR unset)`, e `duration` também aceita `>`, `>=`, `<` e `<=`. Curingas, `~`, `!` e um `-` no início aqui só funcionam com atributos.
 
 | Campo | Observações |
 | --- | --- |
@@ -137,7 +137,7 @@ Os campos de trace aceitam um valor simples ou uma lista como `status:(ok OR uns
 | `name` | Nome do span. Um único valor corresponde a qualquer parte do nome. Palavras soltas também o pesquisam |
 | `status` | `ok`, `error`, `unset` (unset = Nenhum status de erro definido, o padrão do OpenTelemetry) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Milissegundos: `duration:>500`, `duration:<200` ou um valor exato |
+| `duration` | Milissegundos: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` ou um valor exato |
 | `statusMessage` | Texto da mensagem de status. Um único valor corresponde a qualquer parte do texto |
 | `hasException` | `true` ou `false` |
 | `trace`, `span` | IDs |

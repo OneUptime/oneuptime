@@ -168,9 +168,9 @@ RUM-telemetrie bestaat uit gewone logs, metrieken en traces, dus er is geen apar
 | Groep | Aanbevelingen |
 | --- | --- |
 | Core Web Vitals | Voor een web-app: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint en Slow Time to First Byte. Zie [Core Web Vitals](/docs/rum/web-vitals). |
-| Fouten | App Crashes en App Not Responding (ANR) voor een mobiele app, Failed User Operations voor beide, en Unhandled Browser Exceptions voor een web-app. |
+| Fouten | App Crashes en App Not Responding (ANR) voor een mobiele app, en hun percentages, App Crash Rate en App ANR Rate, voor een app met honderden sessies per uur; Failed User Operations voor beide, en Unhandled Browser Exceptions voor een web-app. |
 | Prestaties | Voor een mobiele app: Slow Cold Start, wanneer een koude start 5 seconden of langer duurt, wat Android vitals als buitensporig lang beschouwt, en Frozen Frames, wanneer het renderen van een frame langer dan 700 ms duurt. |
-| Beschikbaarheid | Voor een mobiele app: App Stopped Reporting, wanneer de app 30 minuten lang geen spans verstuurt. |
+| Beschikbaarheid | Voor een mobiele app: App Stopped Reporting, wanneer de app 30 minuten lang geen spans verstuurt, en Device Stopped Reporting, wanneer een van de apparaten een uur lang geen spans verstuurt nadat het er in de afgelopen week wel heeft verstuurd. |
 | Sessieherhaling | De vier [waarschuwingen voor het opslagbudget](/docs/telemetry/session-replay#waarschuwingen-voor-het-opslagbudget), die waarschuwen voordat de daglimiet van het project of het maandbudget van de applicatie op is. Ze worden aangeboden zodra de applicatie een herhaling heeft opgenomen, en het maandpaar wanneer ze ook een maandbudget heeft. |
 
 Om je eigen monitor te maken kies je de monitor die het signaal leest:

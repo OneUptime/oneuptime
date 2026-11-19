@@ -5,6 +5,7 @@ Android, iOS, React Native 앱을 OpenTelemetry로 계측해 모바일 RUM 애�
 :::cards
 - [OneUptime에 필요한 것](#oneuptime에-필요한-것): 서버 키로 보내는 두 가지 리소스 속성.
 - [플랫폼 설정](#플랫폼-설정): Android, iOS, React Native 및 그 밖의 플랫폼.
+- [iOS 크래시와 멈춤](#ios-크래시와-멈춤): 예외와 개요에 나타나는 MetricKit 진단.
 - [도착 확인](#도착-확인하기): 키를 확인한 뒤 앱을 찾습니다.
 - [모바일 세션 리플레이](#모바일-세션-리플레이): React Native 앱의 녹화.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 `/v1/traces`, `/v1/metrics`, `/v1/logs`는 SDK가 엔드포인트에 직접 붙입니다.
 :::
+
+## iOS 크래시와 멈춤
+
+opentelemetry-swift 2.3 이상은 MetricKit 계측으로 iOS 앱의 크래시와 멈춤(hang)을 보고하며, 이 계측은 Apple의 각 진단을 로그 레코드로 OpenTelemetry에 넘깁니다. OneUptime은 이를 OpenTelemetry Android의 크래시와 ANR처럼 분류하므로, **예외**와 애플리케이션의 **개요**에 나타납니다.
+
+| Apple의 진단 | 이벤트 이름 | 예외에서 |
+| --- | --- | --- |
+| 크래시 | `metrickit.diagnostic.crash` | 처리되지 않은 예외로, 유형은 앱을 종료시킨 원인으로 정해집니다. iOS 17 이상에서는 Objective-C 예외, 그것이 없으면 Mach 예외(`EXC_BAD_ACCESS`), 그것도 없으면 시그널(`SIGSEGV`)입니다 |
+| 멈춤(hang) | `metrickit.diagnostic.hang` | **Hang** 유형의 처리되지 않은 예외로, iOS에서 ANR에 해당하며 멈춤이 지속된 시간을 담고 있습니다 |
+
+개요의 **크래시** 타일은 크래시를 세고, **ANR** 타일은 Android의 ANR과 함께 멈춤을 셉니다. 각 스택 트레이스는 크래시 보고서의 스레드처럼 그려지며, 크래시가 발생했거나 멈춘 스레드가 맨 앞에 옵니다. 프레임은 심볼화되지 않습니다. 각 프레임은 바이너리와 그 안에서 코드가 있던 위치를 알려 주며, **Binary Images**는 각 바이너리의 UUID를 나열하므로 어느 빌드의 dSYM으로 심볼화할 수 있는지 알 수 있습니다.
+
+:::steps
+### 스팬과 함께 로그도 내보내기
+
+MetricKit은 진단을 로그 레코드로 보고하므로, 트레이서 프로바이더 옆에 같은 리소스, 엔드포인트, 헤더로 로거 프로바이더를 등록하세요.
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### MetricKit 계측 등록하기
+
+opentelemetry-swift의 `MetricKitInstrumentation` 제품을 추가하고, 로거 프로바이더를 등록한 다음 MetricKit에 등록하세요.
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### 세션 기록하기
+
+**세션**과 **크래시 없는 세션** 타일은 스팬의 `session.id`를 셉니다. 이 값은 opentelemetry-swift의 `Sessions` 제품이 설정합니다. 트레이서 프로바이더에 `SessionSpanProcessor`를 추가하고, 로그 프로세서를 `SessionLogRecordProcessor`로 감싸 진단에도 세션이 붙게 하세요. 이 제품의 릴리스는 아직 `app.installation.id`를 설정하지 않으므로, iOS 앱의 **크래시 없는 세션** 타일은 크래시 없는 설치 비율 대신 크래시가 발생한 세션 수를 보여 줍니다.
+:::
+
+> [!NOTE]
+> Apple은 MetricKit의 진단을 다음 실행 이후에 앱에 전달합니다. iOS 15 이상에서는 곧바로, 그 이전 버전에서는 하루에 한 번 전달하므로 크래시나 멈춤은 발생하고 몇 분 또는 하루 뒤에 도착할 수 있으며, 도착할 때 셉니다. iOS 앱의 개요에 나온 "지난 1시간 동안 크래시 0건"은 아직 좋은 소식이라고 할 수 없습니다. 진단에 붙는 세션은 그 진단을 보고한 세션이지, 진단된 문제로 끝난 세션이 아닙니다.
+
+opentelemetry-swift는 앱이 시작될 때 스팬을 기록하지 않으므로, 앱이 직접 기록하기 전까지 **앱 시작**과 **콜드 스타트(p95)** 타일은 비어 있습니다. 기록할 스팬은 `AppStart`라는 이름에 `start.type`을 `cold`, `warm`, `hot` 중 하나로 설정한 스팬으로, 프로세스가 시작될 때부터 첫 화면이 준비될 때까지를 나타냅니다.
 
 ## 도착 확인하기
 

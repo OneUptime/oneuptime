@@ -143,6 +143,8 @@ flowchart TB
 | `/data-store/<id>/scan-now` | **立即扫描**：立即对数据存储的内容采样 |
 | `/data-store/<id>/check-now` | **立即检查**：重新读取数据存储的配置并运行其检查 |
 | `/data-store-finding/<id>/scrub` | 对遥测发现执行 **清除** |
+| `/data-store-finding/<id>/drop-metric-impact` | 对指标名称中的发现执行 **丢弃此指标** 会丢弃什么：多少个指标，以及读取它们的监视器和仪表板 |
+| `/data-store-finding/<id>/drop-metric` | **丢弃此指标**：一条永久丢弃该服务这些指标新数据点的指标管道规则。它接受 `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | 对问题执行 **用 AI 解释** |
 | `/data-security-issue/<id>/fix-with-ai` | 对问题执行 **用 AI 修复** |
 | `/data-store/<id>/response-actions` | 数据存储当前可以执行哪些响应操作，以及不能执行的原因 |

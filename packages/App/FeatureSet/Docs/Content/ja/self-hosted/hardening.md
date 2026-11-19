@@ -96,23 +96,40 @@ kubectl exec -n <namespace> deploy/<release>-nginx -- nginx -v
 
 The gateway speaks HTTP/2 only on the HTTPS port of your install's own address, and only when it terminates TLS for that address itself: with `PROVISION_SSL=true` on Docker Compose, or `ssl.provision: true` on Kubernetes. When a load balancer or ingress of your own terminates TLS in front of it, the gateway speaks HTTP/1.1 only.
 
-So when nginx fixes a vulnerability in HTTP/2 and you cannot upgrade OneUptime yet, turn HTTP/2 off on a gateway that terminates TLS. For example, nginx 1.30.7 fixed CVE-2026-123007 and CVE-2026-123633, which let anyone who can reach the gateway crash its worker processes, and possibly run code in them. A gateway on an older nginx has both.
+So when nginx fixes a vulnerability in HTTP/2 and you cannot upgrade OneUptime yet, turn HTTP/2 off on a gateway that terminates TLS. Upgrading is the fix, and this setting closes HTTP/2 until you can. For example, nginx 1.30.7 fixed CVE-2026-123007 and CVE-2026-123633, which let anyone who can reach the gateway crash its worker processes, and possibly run code in them. A gateway on an older nginx has both, and comes from a release that does not have this setting yet: upgrade it.
 
 :::tabs
 @tab Docker Compose
+```bash title="config.env"
+NGINX_HTTP2=off
+```
+
+Then recreate the containers with the new `config.env`:
+
 ```bash
-sh Scripts/Install/WithConfig.sh docker compose exec ingress sh -c 'sed -i "s/http2[[:space:]]*on;/http2 off;/" /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf && nginx -t && nginx -s reload'
+npm run start
 ```
 @tab Kubernetes
+```yaml title="values.yaml"
+nginx:
+  http2: false
+```
+
+Then apply it:
+
 ```bash
-for pod in $(kubectl get pods -n <namespace> -l app=<release>-nginx -o name); do
-  kubectl exec -n <namespace> "$pod" -c <release>-nginx -- sh -c 'sed -i "s/http2[[:space:]]*on;/http2 off;/" /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf && nginx -t && nginx -s reload'
-done
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 :::
 
-- **What stops working.** OTLP over gRPC to your install's address, because gRPC needs HTTP/2. OTLP over HTTP keeps working, and browsers switch to HTTP/1.1.
-- **How long it lasts.** Until the container is created again, or on Kubernetes until the pod is replaced. Run the command again after that, until you upgrade.
+The gateway's log then says `HTTP/2 is off`. A request that asks for HTTP/2 gets HTTP/1.1: this prints `1.1` while HTTP/2 is off, and `2` while it is on.
+
+```bash
+curl -s -o /dev/null -w '%{http_version}\n' --http2 https://oneuptime.example.com
+```
+
+- **What stops working.** OTLP over gRPC to your install's address. gRPC needs HTTP/2, so the gateway refuses an exporter's connection, and the exporter reports a TLS error about the application protocol. OTLP over HTTP keeps working, and browsers switch to HTTP/1.1.
+- **How long it lasts.** Until you set it back: `NGINX_HTTP2=on`, or `nginx.http2: true` on Kubernetes. Restarts and upgrades keep it, so set it back once your gateway runs a fixed nginx.
 - **What it does not fix.** Anything outside HTTP/2. nginx 1.30.7 also fixed CVE-2026-118899, a denial of service over TLS 1.3 that reaches every HTTPS listener with a certificate, including those of status pages on domains of their own. Only upgrading fixes that.
 
 ## Cryptography and FIPS 140

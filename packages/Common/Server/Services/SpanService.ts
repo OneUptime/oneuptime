@@ -24,6 +24,12 @@ import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../Types/JSON";
 import { ResponseJSON } from "@clickhouse/client";
+import ModelPermission, {
+  CheckReadPermissionType,
+} from "../Types/AnalyticsDatabase/ModelPermission";
+import Query from "../Types/AnalyticsDatabase/Query";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 /**
  * Columns the proj_hist_by_minute projection can answer with. If a count
@@ -39,6 +45,32 @@ const PROJECTION_ELIGIBLE_KEYS: Set<string> = new Set([
   "primaryEntityId",
   "statusCode",
 ]);
+
+// The longest a group's value is kept, as a Logs monitor's group is.
+const MAX_SPAN_GROUP_VALUE_LENGTH: number = 256;
+
+export interface SpanAttributeGroupCount {
+  // One value per group-by attribute, in the order they were asked for.
+  values: Array<string>;
+  count: number;
+}
+
+export interface SpanAttributeGroupCountResult {
+  // The groups with the most spans first, at most `limit` of them.
+  groups: Array<SpanAttributeGroupCount>;
+  // Spans matched across every group - not just the groups returned.
+  totalCount: number;
+  // Distinct groups matched, before `limit` cut them.
+  totalGroupCount: number;
+}
+
+// count() is a UInt64, a JSON string or a JSON number by server setting.
+function toSpanCount(value: unknown): number {
+  const parsed: number =
+    typeof value === "number" || typeof value === "string" ? Number(value) : 0;
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
 
 export class SpanService extends AnalyticsDatabaseService<Span> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
@@ -599,6 +631,249 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
 
     return (response.data || []) as Array<JSONObject>;
+  }
+
+  /*
+   * A grouped Traces monitor's count (#9711): one span count per distinct
+   * combination of its group-by attributes' values, the busiest first, at
+   * most `limit` of them, with the total and the number of groups before
+   * the cut. The statement a grouped Logs monitor runs
+   * (LogService.toAttributeGroupCountStatement), on spans.
+   */
+  @CaptureSpan()
+  public async countByAttributeGroups(input: {
+    query: Query<Span>;
+    groupByAttributes: Array<string>;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SpanAttributeGroupCountResult> {
+    const query: Query<Span> = await this.readableQuery(input);
+
+    const dbResult: Results = await this.executeQuery(
+      this.toAttributeGroupCountStatement({
+        query: query,
+        groupByAttributes: input.groupByAttributes,
+        limit: input.limit,
+      }),
+    );
+    const response: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+    const rows: Array<JSONObject> = response.data || [];
+    const firstRow: JSONObject | undefined = rows[0];
+
+    return {
+      groups: rows.map((row: JSONObject): SpanAttributeGroupCount => {
+        return {
+          values: SpanService.readGroupValues(row, input.groupByAttributes),
+          count: toSpanCount(row["groupCount"]),
+        };
+      }),
+      totalCount: firstRow ? toSpanCount(firstRow["totalCount"]) : 0,
+      totalGroupCount: firstRow ? toSpanCount(firstRow["totalGroupCount"]) : 0,
+    };
+  }
+
+  /*
+   * The groups the monitor's spans were in between `since` and `until`,
+   * the most recently seen first, at most `limit`: what a grouped monitor
+   * expects to keep hearing from (TraceGroupAbsence). A group whose every
+   * value is empty is none - a span that names no install is no install.
+   */
+  @CaptureSpan()
+  public async findRecentAttributeGroups(input: {
+    query: Query<Span>;
+    groupByAttributes: Array<string>;
+    since: Date;
+    until: Date;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<Array<string>>> {
+    const query: Query<Span> = await this.readableQuery({
+      query: {
+        ...input.query,
+        startTime: new InBetween(input.since, input.until),
+      },
+      props: input.props,
+    });
+
+    const statement: Statement = this.toGroupSelectStatement({
+      query: query,
+      groupByAttributes: input.groupByAttributes,
+      select: "max(startTime) AS lastSeen",
+    });
+
+    statement.append(
+      ` HAVING ${SpanService.groupAliases(input.groupByAttributes)
+        .map((alias: string) => {
+          return `${alias} != ''`;
+        })
+        .join(" OR ")}`,
+    );
+    statement.append(" ORDER BY lastSeen DESC");
+    statement.append(
+      SQL` LIMIT ${{
+        value: SpanService.toGroupLimit(input.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    const dbResult: Results = await this.executeQuery(statement);
+    const response: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+
+    return (response.data || []).map((row: JSONObject): Array<string> => {
+      return SpanService.readGroupValues(row, input.groupByAttributes);
+    });
+  }
+
+  /*
+   * The grouped count as one statement - the window functions run over the
+   * grouped rows before LIMIT, so the total and the number of groups cover
+   * every group. Attribute keys are bound as parameters, never spliced in;
+   * the aliases are built from the key's position. 'throw' on a timeout,
+   * not countBy's 'break': a partial set of groups would read as devices
+   * that stopped reporting.
+   */
+  public toAttributeGroupCountStatement(input: {
+    query: Query<Span>;
+    groupByAttributes: Array<string>;
+    limit: number;
+  }): Statement {
+    const aliases: Array<string> = SpanService.groupAliases(
+      input.groupByAttributes,
+    );
+
+    const statement: Statement = this.toGroupSelectStatement({
+      query: input.query,
+      groupByAttributes: input.groupByAttributes,
+      select:
+        "count() AS groupCount, sum(count()) OVER () AS totalCount, count() OVER () AS totalGroupCount",
+    });
+
+    // Busiest first; the values break ties so the cut is stable.
+    statement.append(
+      ` ORDER BY groupCount DESC, ${aliases
+        .map((alias: string) => {
+          return `${alias} ASC`;
+        })
+        .join(", ")}`,
+    );
+    statement.append(
+      SQL` LIMIT ${{
+        value: SpanService.toGroupLimit(input.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
+
+  // SELECT <select>, <the group values> FROM Span WHERE <query> GROUP BY <them>
+  private toGroupSelectStatement(input: {
+    query: Query<Span>;
+    groupByAttributes: Array<string>;
+    select: string;
+  }): Statement {
+    if (input.groupByAttributes.length === 0) {
+      throw new BadDataException(
+        "At least one attribute is needed to group spans by.",
+      );
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const aliases: Array<string> = SpanService.groupAliases(
+      input.groupByAttributes,
+    );
+
+    const statement: Statement = new Statement();
+    statement.append(`SELECT ${input.select}`);
+
+    input.groupByAttributes.forEach((key: string, index: number) => {
+      statement.append(
+        SQL`, substringUTF8(attributes[${{
+          value: key,
+          type: TableColumnType.Text,
+        }}], 1, `,
+      );
+      statement.append(`${MAX_SPAN_GROUP_VALUE_LENGTH}) AS ${aliases[index]}`);
+    });
+
+    statement
+      .append(SQL` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `)
+      .append(this.statementGenerator.toWhereStatement(input.query))
+      .append(this.getRetentionReadFilter());
+
+    statement.append(` GROUP BY ${aliases.join(", ")}`);
+
+    return statement;
+  }
+
+  // The query after the count hooks and the read permission, as countBy reads it.
+  private async readableQuery(input: {
+    query: Query<Span>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<Span>> {
+    const countBy: CountBy<Span> = await this.onBeforeCount({
+      query: input.query,
+      props: input.props,
+      skip: 0,
+      limit: 1,
+    });
+
+    const permission: CheckReadPermissionType<Span> =
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        countBy.query,
+        null,
+        input.props,
+      );
+
+    return permission.query;
+  }
+
+  private static groupAliases(groupByAttributes: Array<string>): Array<string> {
+    return groupByAttributes.map((_key: string, index: number) => {
+      return `__group_${index}`;
+    });
+  }
+
+  private static toGroupLimit(limit: number): number {
+    const value: number = Math.floor(Number(limit));
+
+    if (!Number.isFinite(value) || value < 1) {
+      throw new BadDataException("The group limit must be a positive number.");
+    }
+
+    return value;
+  }
+
+  private static readGroupValues(
+    row: JSONObject,
+    groupByAttributes: Array<string>,
+  ): Array<string> {
+    return groupByAttributes.map((_key: string, index: number): string => {
+      const value: unknown = row[`__group_${index}`];
+
+      return value === undefined || value === null ? "" : String(value);
+    });
   }
 }
 

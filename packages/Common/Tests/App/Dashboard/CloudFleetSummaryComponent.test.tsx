@@ -249,6 +249,76 @@ describe("CloudFleetSummary", () => {
   });
 
   /*
+   * #9751: "2 environments disconnected" linked nowhere, and All
+   * Environments could not be filtered to them. The line now opens the
+   * list with its Status chip on Disconnected; the tile's number, every
+   * environment, stays no link.
+   */
+  test("the disconnected line opens All Environments on those, and only it", async () => {
+    mockCountResponse = fleet({
+      total: 5,
+      connected: 3,
+      byProvider: { aws: 5 },
+      liveInstances: 2,
+      apps: 2,
+      runningApps: 2,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
+    });
+
+    const links: Array<HTMLElement> = screen
+      .getAllByTestId("cloud-fleet-summary-tile-sublabel")
+      .filter((line: HTMLElement): boolean => {
+        return line.tagName === "A";
+      });
+
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent("2 environments disconnected");
+    expect(links[0]).toHaveAttribute(
+      "title",
+      "Show which environments are disconnected",
+    );
+
+    const href: string = links[0]!.getAttribute("href") || "";
+
+    expect(href).toContain("/app-platforms/environments");
+    expect(decodeURIComponent(href)).toContain(
+      '"environmentStatus":["disconnected"]',
+    );
+  });
+
+  test("with none gone quiet, no line opens anything", async () => {
+    mockCountResponse = fleet({
+      total: 4,
+      connected: 3,
+      waiting: 1,
+      byProvider: { aws: 4 },
+      liveInstances: 2,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText("1 environment waiting for first data"),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("cloud-fleet-summary-tile-sublabel")
+        .filter((line: HTMLElement): boolean => {
+          return line.tagName === "A";
+        }),
+    ).toHaveLength(0);
+  });
+
+  /*
    * An environment that has never sent anything is new, not broken: grey
    * and "Waiting" on its platform's card, so the strip does not count it
    * disconnected either. It said "2 environments disconnected" over a card

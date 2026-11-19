@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -28,6 +29,10 @@ import KubernetesClusterOwnerTeam from "../../../Models/DatabaseModels/Kubernete
 import { KubernetesClusterFeedEventType } from "../../../Models/DatabaseModels/KubernetesClusterFeed";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
+import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
@@ -196,6 +201,61 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
     );
     expect(feedCalls[0]!.feedInfoInMarkdown).toContain("Jane Doe");
     expect(feedCalls[0]!.userId).toBe(ACTING_USER_ID);
+  });
+
+  /*
+   * An owner can be someone invited to the project who has not accepted:
+   * the project sees only what it invited of them - the name typed for
+   * them, else their address - never their account's own name (#9823).
+   */
+  test("a removed owner only invited to the project is named by the name typed for them", async () => {
+    const doomed: KubernetesClusterOwnerUser = new KubernetesClusterOwnerUser(
+      ObjectID.generate(),
+    );
+    doomed.kubernetesClusterId = CLUSTER_ID;
+    doomed.projectId = PROJECT_ID;
+    doomed.userId = USER_ID;
+
+    const user: User = new User(USER_ID);
+    user.name = new Name("Jane Doe");
+    user.email = new Email("jane@example.com");
+
+    const findUser: SpyInstance<typeof UserService.findOneById> = jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(user);
+    const withheldIn: SpyInstance<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            USER_ID.toString().toLowerCase(),
+            { inviteeName: "Jane from Platform" },
+          ],
+        ]),
+      );
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (KubernetesClusterOwnerUserService as any).onDeleteSuccess(
+        {
+          deleteBy: { props: { userId: ACTING_USER_ID } },
+          carryForward: { itemsToDelete: [doomed] },
+        },
+        [],
+      );
+
+      expect(feedCalls.length).toBe(1);
+      expect(feedCalls[0]!.feedInfoInMarkdown).toContain(
+        "Removed **Jane from Platform** (jane@example.com)",
+      );
+      expect(feedCalls[0]!.feedInfoInMarkdown).not.toContain("Jane Doe");
+      expect(withheldIn.mock.calls[0]![0].projectId).toBe(PROJECT_ID);
+    } finally {
+      findUser.mockRestore();
+      withheldIn.mockRestore();
+    }
   });
 });
 

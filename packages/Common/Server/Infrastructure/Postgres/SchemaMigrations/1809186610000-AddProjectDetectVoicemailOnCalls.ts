@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewrites nothing and blocks nothing. Every existing project reads it as
  * on, as a new one starts.
  */
-export class AddProjectDetectVoicemailOnCalls1809186500000
+export class AddProjectDetectVoicemailOnCalls1809186610000
   implements MigrationInterface
 {
-  public name: string = "AddProjectDetectVoicemailOnCalls1809186500000";
+  public name: string = "AddProjectDetectVoicemailOnCalls1809186610000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

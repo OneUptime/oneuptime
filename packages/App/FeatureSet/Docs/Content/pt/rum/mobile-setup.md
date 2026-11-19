@@ -5,6 +5,7 @@ Instrumente um aplicativo Android, iOS ou React Native com o OpenTelemetry para 
 :::cards
 - [O que o OneUptime precisa](#o-que-o-oneuptime-precisa): Dois atributos de recurso, enviados com uma chave Servidor.
 - [Configurar sua plataforma](#configurar-sua-plataforma): Android, iOS, React Native e as demais.
+- [Falhas e travamentos no iOS](#falhas-e-travamentos-no-ios): Os diagnósticos do MetricKit em Exceções e na Visão geral.
 - [Verificar se chega](#verificar-se-chega): Testar a chave e depois encontrar o aplicativo.
 - [Session Replay em dispositivos móveis](#session-replay-em-dispositivos-móveis): Gravações para aplicativos React Native.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 O SDK acrescenta `/v1/traces`, `/v1/metrics` e `/v1/logs` ao endpoint por conta própria.
 :::
+
+## Falhas e travamentos no iOS
+
+O opentelemetry-swift 2.3 e posteriores reportam as falhas e os travamentos de um aplicativo iOS pela instrumentação MetricKit dele, que entrega cada diagnóstico da Apple ao OpenTelemetry como um registro de log. O OneUptime os arquiva como arquiva as falhas e os ANRs do OpenTelemetry Android, então eles aparecem em **Exceções** e na **Visão geral** da aplicação:
+
+| Diagnóstico da Apple | Nome do evento | Em Exceções |
+| --- | --- | --- |
+| Uma falha | `metrickit.diagnostic.crash` | Uma exceção não tratada, com o tipo do que encerrou o aplicativo: a exceção Objective-C no iOS 17 e posteriores, senão a exceção Mach (`EXC_BAD_ACCESS`), senão o sinal (`SIGSEGV`) |
+| Um travamento | `metrickit.diagnostic.hang` | Uma exceção não tratada do tipo **Hang**, a contraparte de um ANR no iOS, que guarda quanto tempo o travamento durou |
+
+O bloco **Falhas** da Visão geral conta as falhas, e o bloco **ANRs** dela conta os travamentos junto com os ANRs do Android. Cada stack trace é desenhado como as threads de um relatório de falha, primeiro a thread que falhou ou travou. Os frames não são simbolizados: cada um nomeia o binário dele e a posição do código dentro desse binário, e **Binary Images** lista o UUID de cada binário, que indica o dSYM de qual build o simboliza.
+
+:::steps
+### Exportar logs além de spans
+
+O MetricKit reporta os diagnósticos como registros de log, então registre um logger provider ao lado do tracer provider, com o mesmo recurso, endpoint e cabeçalho:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Registrar a instrumentação MetricKit
+
+Adicione o produto `MetricKitInstrumentation` do opentelemetry-swift e registre-o no MetricKit depois que o logger provider estiver registrado:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Marcar as sessões
+
+Os blocos **Sessões** e **Sessões sem falhas** contam o `session.id` dos seus spans. O produto `Sessions` do opentelemetry-swift o define: adicione `SessionSpanProcessor` ao tracer provider e envolva o processador de logs em `SessionLogRecordProcessor`, para que os diagnósticos também tragam uma sessão. As versões dele ainda não definem nenhum `app.installation.id`, então o bloco **Sessões sem falhas** de um aplicativo iOS mostra quantas sessões tiveram falha em vez das instalações sem falhas.
+:::
+
+> [!NOTE]
+> A Apple entrega os diagnósticos do MetricKit ao aplicativo em uma inicialização posterior, imediatamente no iOS 15 e posteriores e uma vez por dia antes disso, então uma falha ou um travamento pode chegar minutos ou um dia depois de acontecer, e é contado quando chega. "0 falhas na última hora" na Visão geral de um aplicativo iOS ainda não é uma boa notícia. Um diagnóstico traz a sessão que o reportou, não a que ele encerrou.
+
+O opentelemetry-swift não registra nenhum span quando o aplicativo inicia, então os blocos **Inicializações do app** e **Inicialização a frio (p95)** ficam vazios até o seu aplicativo registrar um: um span chamado `AppStart`, com `start.type` definido como `cold`, `warm` ou `hot`, do início do processo até a primeira tela ficar pronta.
 
 ## Verificar se chega
 

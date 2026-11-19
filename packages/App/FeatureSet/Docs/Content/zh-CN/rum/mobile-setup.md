@@ -5,6 +5,7 @@
 :::cards
 - [OneUptime 需要什么](#oneuptime-需要什么): 两个资源属性，用服务器密钥发送。
 - [设置你的平台](#设置你的平台): Android、iOS、React Native 及其他平台。
+- [iOS 崩溃和卡顿](#ios-崩溃和卡顿): MetricKit 的诊断，显示在异常中和概览上。
 - [确认数据到达](#确认数据到达): 先测试密钥，再找到应用。
 - [移动端的会话回放](#移动端的会话回放): React Native 应用的录制。
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK 会自行在端点后加上 `/v1/traces` 、 `/v1/metrics` 和 `/v1/logs` 。
 :::
+
+## iOS 崩溃和卡顿
+
+opentelemetry-swift 2.3 及更高版本通过其 MetricKit 插桩上报 iOS 应用的崩溃和卡顿，该插桩会把 Apple 的每条诊断作为一条日志记录交给 OpenTelemetry。OneUptime 像归档 OpenTelemetry Android 的崩溃和 ANR 那样归档它们，因此它们会显示在 **异常** 中和应用程序的 **概览** 上：
+
+| Apple 的诊断 | 事件名称 | 在异常中 |
+| --- | --- | --- |
+| 崩溃 | `metrickit.diagnostic.crash` | 一个未处理异常，其类型取决于结束应用的原因：在 iOS 17 及更高版本上为 Objective-C 异常，否则为 Mach 异常（ `EXC_BAD_ACCESS` ），再否则为信号（ `SIGSEGV` ） |
+| 卡顿 | `metrickit.diagnostic.hang` | 一个类型为 **Hang** 的未处理异常，即 iOS 上与 ANR 相对应的情况，它会记下卡顿持续了多久 |
+
+概览的 **崩溃** 磁贴统计这些崩溃，其 **ANR** 磁贴把卡顿与 Android 的 ANR 一起统计。每条堆栈追踪都像崩溃报告那样按线程绘制，崩溃或卡顿的线程排在最前面。这些帧没有经过符号化：每一帧给出它所在的二进制文件以及代码在其中的偏移量， **Binary Images** 列出每个二进制文件的 UUID，据此可知要用哪个构建的 dSYM 对它进行符号化。
+
+:::steps
+### 除了 span，也导出日志
+
+MetricKit 以日志记录的形式上报诊断，因此请在追踪器提供程序旁边注册一个日志记录器提供程序，并使用相同的资源、端点和请求头：
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### 注册 MetricKit 插桩
+
+添加 opentelemetry-swift 的 `MetricKitInstrumentation` 产品，并在日志记录器提供程序注册之后把它注册到 MetricKit：
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### 记录会话
+
+**会话** 和 **无崩溃会话** 磁贴统计你的 span 上的 `session.id` 。opentelemetry-swift 的 `Sessions` 产品会设置它：把 `SessionSpanProcessor` 添加到追踪器提供程序，并用 `SessionLogRecordProcessor` 包装日志处理器，让诊断也带上会话。它的各个版本目前还不设置 `app.installation.id` ，因此 iOS 应用的 **无崩溃会话** 磁贴显示的是有多少会话崩溃，而不是无崩溃安装的占比。
+:::
+
+> [!NOTE]
+> Apple 会在应用之后的某次启动时把 MetricKit 的诊断交给应用：在 iOS 15 及更高版本上立即交付，更早的版本则每天一次。因此崩溃或卡顿可能在发生几分钟或一天后才到达，并在到达时才被计数。iOS 应用概览上的“过去一小时 0 次崩溃”还不算好消息。诊断带有的是上报它的会话，而不是它所结束的会话。
+
+opentelemetry-swift 不会在应用启动时记录 span，因此在你的应用自己记录一个之前， **应用启动** 和 **冷启动（p95）** 磁贴会一直为空：这个 span 名为 `AppStart` ， `start.type` 设为 `cold` 、 `warm` 或 `hot` ，时间范围从进程启动到第一个屏幕准备就绪。
 
 ## 确认数据到达
 

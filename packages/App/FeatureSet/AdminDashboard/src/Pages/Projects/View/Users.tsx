@@ -18,11 +18,18 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import {
+  drawInviteeEmailField,
+  getInviteeEmailError,
+  readFormTeamId,
+} from "Common/UI/Components/InviteeEmailField/InviteeEmailFormField";
 import {
   INVITEE_NAME_DESCRIPTION,
   shouldAskForInviteeName,
 } from "Common/UI/Utils/InviteeName";
+import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
 import { InviteTeam } from "Common/UI/Utils/DefaultInviteTeam";
 import { JSONObject } from "Common/Types/JSON";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -107,7 +114,16 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   );
   const [isPreparingInvite, setIsPreparingInvite] = useState<boolean>(false);
 
+  /*
+   * The address of the person last picked from the email box's
+   * suggestions: someone with an account, so Invite New User asks no name
+   * for them (Common/UI/Utils/InviteeName).
+   */
+  const [pickedInviteeEmail, setPickedInviteeEmail] = useState<string>("");
+
   const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
+    // A new invitation: nobody is picked yet.
+    setPickedInviteeEmail("");
     setIsPreparingInvite(true);
 
     const team: InviteTeam | null = await findProjectDefaultTeam({
@@ -506,10 +522,32 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                   description: cannotSendEmail
                     ? INVITATION_LINK_COPY.inviteDescriptionForAdmin
                     : "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
-                  fieldType: FormFieldSchemaType.Email,
+                  /*
+                   * The form's text box, which suggests people as it is
+                   * typed in, as the Dashboard's Invite User does, each with
+                   * where they stand for the team picked below (#9826,
+                   * Common/UI/Components/InviteeEmailField): the project's
+                   * people, and on a server somebody runs its other
+                   * accounts.
+                   */
+                  fieldType: FormFieldSchemaType.CustomComponent,
                   required: true,
                   placeholder: "member@company.com",
                   overrideFieldKey: "email",
+                  customValidation: getInviteeEmailError,
+                  getCustomElement: (
+                    values: FormValues<TeamMember>,
+                    customProps: CustomElementProps,
+                  ): ReactElement => {
+                    return drawInviteeEmailField({
+                      customProps: customProps,
+                      projectId: projectId.toString(),
+                      teamId: readFormTeamId((values as JSONObject)["team"]),
+                      onPick: (suggestion: InviteSuggestion) => {
+                        setPickedInviteeEmail(suggestion.email);
+                      },
+                    });
+                  },
                 },
                 {
                   field: {
@@ -518,7 +556,8 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                   /*
                    * Asked for every address typed, as the Dashboard's forms
                    * ask it (#9745): the server uses it only for an account
-                   * nobody has signed up to yet.
+                   * nobody has signed up to yet. Not for the person picked
+                   * from the suggestions, who has an account and a name.
                    */
                   title: "Name",
                   description: INVITEE_NAME_DESCRIPTION,
@@ -529,6 +568,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                   showIf: (values: FormValues<TeamMember>): boolean => {
                     return shouldAskForInviteeName({
                       email: (values as JSONObject)["email"],
+                      pickedEmail: pickedInviteeEmail,
                     });
                   },
                 },

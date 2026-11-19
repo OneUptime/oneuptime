@@ -24,7 +24,7 @@ import {
   drawInviteeEmailField,
   getInviteeEmailError,
   readFormTeamId,
-} from "../../Components/Team/InviteeEmailFormField";
+} from "Common/UI/Components/InviteeEmailField/InviteeEmailFormField";
 import {
   INVITEE_NAME_DESCRIPTION,
   shouldAskForInviteeName,
@@ -737,7 +737,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                 /*
                  * The form's text box, which suggests people as it is typed
                  * in, each with where they stand for the team picked below
-                 * (#9701, Components/Team/InviteeEmailFormField).
+                 * (#9701, Common/UI/Components/InviteeEmailField).
                  */
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: true,
