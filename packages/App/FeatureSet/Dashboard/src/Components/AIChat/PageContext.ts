@@ -7,10 +7,25 @@ import {
   PageEntityState,
 } from "./PageEntityState";
 import ResourcePageContextUtil from "./ResourcePageContext";
+import {
+  PALETTE_LIST_CREATE_ACTIONS,
+  PaletteListCreateAction,
+} from "../CommandPalette/DashboardCommandPaletteHelpers";
 import AlertStateUtil from "../../Utils/AlertState";
+import {
+  getHomeBreadcrumbs,
+  getOnCallDutyBreadcrumbs,
+  getSettingsBreadcrumbs,
+  getStatusPagesBreadcrumbs,
+} from "../../Utils/Breadcrumbs";
+import { getUserSettingsBreadcrumbs } from "../../Utils/Breadcrumbs/UserSettingsBreadcrumbs";
 import IncidentStateUtil from "../../Utils/IncidentState";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
+import CreateFormAddress from "Common/UI/Utils/CreateFormAddress";
+import Link from "Common/Types/Link";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -40,6 +55,7 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import Route from "Common/Types/API/Route";
 import AIChatPageContextType, {
   AIChatPageContext,
+  AIChatPageContextHelper,
 } from "Common/Types/AI/AIChatPageContext";
 import Select from "Common/Types/BaseDatabase/Select";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -77,6 +93,13 @@ export interface DashboardPageContext extends AIChatPageContext {
   icon: IconProp;
   // True when the context points at one specific record (has an entityId).
   isEntity: boolean;
+  /*
+   * The page on screen's own name, where it says more than the chip's
+   * label: "API Keys" beside "Project Settings" (#7062). An English key,
+   * as its menu and its breadcrumbs name it; the chip translates it. It
+   * stays in the browser: the server names the page from `page`.
+   */
+  pageTitle?: string | undefined;
   /*
    * Where that record stands (resolved, not operational, not started yet),
    * read with its title each time Ask AI opens on it. It picks the
@@ -278,6 +301,128 @@ const entityPageRules: Array<EntityPageRule> = [
     icon: IconProp.TableCells,
     isValidId: isUuid,
   },
+  /*
+   * A status page's pages, and an on-call policy's (#7062): "how do I put
+   * this on my own domain?" and "how do I add someone to this?" are about
+   * the one on screen, and end at its own page (#7065).
+   */
+  {
+    pageMapKey: PageMap.STATUS_PAGE_VIEW,
+    type: AIChatPageContextType.StatusPage,
+    noun: translationKey("status page"),
+    chipLabel: "This status page",
+    icon: IconProp.CheckCircle,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.ON_CALL_DUTY_POLICY_VIEW,
+    type: AIChatPageContextType.OnCallPolicy,
+    noun: translationKey("on-call policy"),
+    chipLabel: "This on-call policy",
+    icon: IconProp.Call,
+    isValidId: isUuid,
+  },
+];
+
+/*
+ * THE PAGES WHERE A PROJECT IS SET UP (#7062): Home, Project Settings, the
+ * person's own User Settings, On-Call and Status Pages, each by the root
+ * its pages are under. Read after the records' and the lists' rules, so a
+ * status page's own pages stay that status page, and an on-call policy's
+ * that policy.
+ */
+interface SetupPageRule {
+  baseRoute: Route | undefined;
+  type: AIChatPageContextType;
+  noun: string;
+  chipLabel: string;
+  icon: IconProp;
+  // The trail of the page on screen, by its route template, when it has one.
+  getBreadcrumbs: (path: string) => Array<Link> | undefined;
+}
+
+const setupPageRules: Array<SetupPageRule> = [
+  {
+    baseRoute: RouteMap[PageMap.HOME],
+    type: AIChatPageContextType.Home,
+    noun: translationKey("Home"),
+    chipLabel: "Home",
+    icon: IconProp.Home,
+    getBreadcrumbs: getHomeBreadcrumbs,
+  },
+  {
+    baseRoute: new Route(`/dashboard/${RouteParams.ProjectID}/settings`),
+    type: AIChatPageContextType.ProjectSettings,
+    noun: translationKey("Project Settings"),
+    chipLabel: "Project Settings",
+    icon: IconProp.Settings,
+    getBreadcrumbs: getSettingsBreadcrumbs,
+  },
+  {
+    baseRoute: new Route(`/dashboard/${RouteParams.ProjectID}/user-settings`),
+    type: AIChatPageContextType.UserSettings,
+    noun: translationKey("User Settings"),
+    chipLabel: "User Settings",
+    icon: IconProp.User,
+    getBreadcrumbs: getUserSettingsBreadcrumbs,
+  },
+  {
+    baseRoute: new Route(`/dashboard/${RouteParams.ProjectID}/on-call-duty`),
+    type: AIChatPageContextType.OnCall,
+    noun: translationKey("On-Call"),
+    chipLabel: "On-Call",
+    icon: IconProp.Call,
+    getBreadcrumbs: getOnCallDutyBreadcrumbs,
+  },
+  {
+    baseRoute: RouteMap[PageMap.STATUS_PAGES],
+    type: AIChatPageContextType.StatusPagesList,
+    noun: translationKey("status pages"),
+    chipLabel: "Status Pages",
+    icon: IconProp.CheckCircle,
+    getBreadcrumbs: getStatusPagesBreadcrumbs,
+  },
+];
+
+/*
+ * THE FORMS THAT CREATE SOMETHING (#7062): "what does this field do?" is
+ * about the form on screen. A product's own create page (Create Monitor,
+ * Declare Incident), and a list's create form opened from its address
+ * (?create=1: Create Status Page, Invite User), named as Search names
+ * them (PALETTE_LIST_CREATE_ACTIONS). Read before the lists' rules, which
+ * would take Create Monitor for the monitors list.
+ */
+interface CreateFormRule {
+  page: PageMap;
+  // The form's name, as its page and Search give it: an English key.
+  title: string;
+  // A list's form, opened on the list's own address with ?create=1.
+  isListForm: boolean;
+}
+
+const createFormRules: Array<CreateFormRule> = [
+  { page: PageMap.MONITOR_CREATE, title: "Create Monitor", isListForm: false },
+  {
+    page: PageMap.INCIDENT_CREATE,
+    title: "Declare Incident",
+    isListForm: false,
+  },
+  { page: PageMap.ALERT_CREATE, title: "Create Alert", isListForm: false },
+  {
+    page: PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+    title: "Create Maintenance Event",
+    isListForm: false,
+  },
+  {
+    page: PageMap.ANNOUNCEMENT_CREATE,
+    title: "Create Announcement",
+    isListForm: false,
+  },
+  ...PALETTE_LIST_CREATE_ACTIONS.map(
+    (action: PaletteListCreateAction): CreateFormRule => {
+      return { page: action.page, title: action.title, isListForm: true };
+    },
+  ),
 ];
 
 /*
@@ -418,6 +563,37 @@ export default class PageContextUtil {
    * context and Ask AI behaves exactly as before.
    */
   public static detectPageContext(): DashboardPageContext | null {
+    const context: DashboardPageContext | null =
+      PageContextUtil.detectPageSubject();
+
+    if (!context) {
+      return null;
+    }
+
+    /*
+     * Which page it is (#7062): its route template, which the server names
+     * from its own catalogs - never the address, with its ids.
+     */
+    const page: string | undefined = PageContextUtil.getCurrentPageTemplate();
+
+    return page ? { ...context, page } : context;
+  }
+
+  /*
+   * The route template of the page on screen, as the Dashboard's route map
+   * has it ("/dashboard/:projectId/settings/api-keys"), or undefined.
+   */
+  public static getCurrentPageTemplate(): string | undefined {
+    try {
+      return AIChatPageContextHelper.sanitizePage(
+        Navigation.getRoutePath(RouteUtil.getRoutes()).replace(/\/+$/, ""),
+      );
+    } catch {
+      return undefined;
+    }
+  }
+
+  private static detectPageSubject(): DashboardPageContext | null {
     try {
       const cloudAccountContext: DashboardPageContext | null =
         PageContextUtil.detectCloudAccountPage();
@@ -457,6 +633,12 @@ export default class PageContextUtil {
         };
       }
 
+      const createForm: DashboardPageContext | null =
+        PageContextUtil.detectCreateForm();
+      if (createForm) {
+        return createForm;
+      }
+
       for (const rule of areaPageRules) {
         if (!rule.baseRoute || !Navigation.isStartWith(rule.baseRoute)) {
           continue;
@@ -470,8 +652,70 @@ export default class PageContextUtil {
           isEntity: false,
         };
       }
+
+      return PageContextUtil.detectSetupPage();
     } catch {
       // Detection is a nice-to-have; fall through to "no context".
+    }
+
+    return null;
+  }
+
+  /*
+   * A form that creates something (#7062): a product's own create page, or
+   * a list's create form opened from its address. Named by the form: its
+   * chip reads "Create Monitor". Null on any other page.
+   */
+  private static detectCreateForm(): DashboardPageContext | null {
+    const current: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+
+    for (const rule of createFormRules) {
+      const route: Route | undefined = RouteMap[rule.page];
+
+      if (
+        !route ||
+        current !== route.toString() ||
+        (rule.isListForm && !CreateFormAddress.isAskedFor())
+      ) {
+        continue;
+      }
+
+      return {
+        type: AIChatPageContextType.CreateForm,
+        noun: rule.title,
+        chipLabel: rule.title,
+        icon: IconProp.Add,
+        isEntity: false,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * Home, Project Settings, User Settings, On-Call or Status Pages (#7062),
+   * with the page's own name beside the chip's where its trail has one:
+   * "Project Settings · API Keys". Null on any other page.
+   */
+  private static detectSetupPage(): DashboardPageContext | null {
+    for (const rule of setupPageRules) {
+      if (!rule.baseRoute || !Navigation.isStartWith(rule.baseRoute)) {
+        continue;
+      }
+
+      const trail: Array<Link> | undefined = rule.getBreadcrumbs(
+        Navigation.getRoutePath(RouteUtil.getRoutes()),
+      );
+      const pageTitle: string | undefined = trail?.[trail.length - 1]?.title;
+
+      return {
+        type: rule.type,
+        noun: rule.noun,
+        chipLabel: rule.chipLabel,
+        icon: rule.icon,
+        isEntity: false,
+        ...(pageTitle && pageTitle !== rule.chipLabel ? { pageTitle } : {}),
+      };
     }
 
     return null;
@@ -793,6 +1037,24 @@ export default class PageContextUtil {
             });
           return PageContextUtil.titleOnly(item?.name);
         }
+        // A status page and an on-call policy by their names (#7062).
+        case AIChatPageContextType.StatusPage: {
+          const item: StatusPage | null = await ModelAPI.getItem<StatusPage>({
+            modelType: StatusPage,
+            id: id,
+            select: { name: true },
+          });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.OnCallPolicy: {
+          const item: OnCallDutyPolicy | null =
+            await ModelAPI.getItem<OnCallDutyPolicy>({
+              modelType: OnCallDutyPolicy,
+              id: id,
+              select: { name: true },
+            });
+          return PageContextUtil.titleOnly(item?.name);
+        }
         default:
           return null;
       }
@@ -922,6 +1184,8 @@ export default class PageContextUtil {
       ...(context.subresource
         ? { subresource: { ...context.subresource } }
         : {}),
+      // Which page, by its route template only (#7062).
+      ...(context.page ? { page: context.page } : {}),
     };
   }
 
@@ -1668,6 +1932,95 @@ export default class PageContextUtil {
             title: "Provider health",
             question:
               "Did any cloud provider publish a health event about our accounts this week?",
+          },
+        ];
+      /*
+       * The pages where a project is set up (#7062): how to do something
+       * here, answered from the docs for the page on screen, and ending
+       * at the page where it is done.
+       */
+      case AIChatPageContextType.StatusPage:
+        return [
+          {
+            icon: IconProp.Globe,
+            title: "Use my own domain",
+            question: "How do I put this status page on my own domain?",
+          },
+          {
+            icon: IconProp.Lock,
+            title: "Make it private",
+            question:
+              "How do I make this status page private, so only the people I choose can see it?",
+          },
+          {
+            icon: IconProp.Email,
+            title: "Who subscribes",
+            question:
+              "How many people subscribe to this status page, and how do people subscribe to it?",
+          },
+        ];
+      case AIChatPageContextType.OnCallPolicy:
+        return [
+          {
+            icon: IconProp.Call,
+            title: "Who gets paged",
+            question: "Who does this policy page, and in what order?",
+          },
+          {
+            icon: IconProp.UserPlus,
+            title: "Add someone",
+            question: "How do I add someone to this policy?",
+          },
+          {
+            icon: IconProp.Bell,
+            title: "Did it page anyone?",
+            question:
+              "Did this policy page anyone in the last 24 hours, and did they acknowledge?",
+          },
+        ];
+      case AIChatPageContextType.Home:
+        return [
+          {
+            icon: IconProp.Book,
+            title: "Where do I start?",
+            question:
+              "Where do I start with OneUptime, and what should I set up first?",
+          },
+          {
+            icon: IconProp.Alert,
+            title: "What needs attention?",
+            question: "What needs my attention in this project right now?",
+          },
+        ];
+      case AIChatPageContextType.ProjectSettings:
+      case AIChatPageContextType.UserSettings:
+      case AIChatPageContextType.OnCall:
+      case AIChatPageContextType.StatusPagesList:
+        return [
+          {
+            icon: IconProp.Book,
+            title: "What is this page?",
+            question: "What is this page for, and when would I use it?",
+          },
+          {
+            icon: IconProp.QuestionMarkCircle,
+            title: "How do I use it?",
+            question: "How do I set up what this page is for, step by step?",
+          },
+        ];
+      case AIChatPageContextType.CreateForm:
+        return [
+          {
+            icon: IconProp.Book,
+            title: "What do I fill in?",
+            question:
+              "Which fields of this form do I need to fill in, and what does each one do?",
+          },
+          {
+            icon: IconProp.ArrowRight,
+            title: "What happens next?",
+            question:
+              "What happens after I create it, and what should I set up next?",
           },
         ];
       case AIChatPageContextType.DataSecurity:

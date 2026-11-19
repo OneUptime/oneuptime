@@ -630,8 +630,13 @@ export function useAiChat(options: {
      * resolved to the same context, their choice must hold — silently
      * re-attaching would send context they just removed.
      */
+    /*
+     * What the page is about, whichever of its pages is on screen (#7062):
+     * a monitor's Overview and its Criteria are one monitor, Project
+     * Settings' pages one Project Settings.
+     */
     const signature: string = detected
-      ? `${projectIdString}:${AIChatPageContextHelper.getIdentity(detected)}`
+      ? `${projectIdString}:${AIChatPageContextHelper.getSubjectIdentity(detected)}`
       : "";
     const contextChanged: boolean =
       signature !== lastContextSignatureRef.current;
@@ -639,17 +644,18 @@ export function useAiChat(options: {
 
     setPageContext((current: DashboardPageContext | null) => {
       /*
-       * The same record again (Ask AI opened on it once more): what the
-       * last read said about it stays until the read below comes back, so
-       * its chip and its questions do not fall back to the generic ones
-       * and change again each time Ask AI opens.
+       * The same record again (Ask AI opened on it once more, or on
+       * another of its pages): what the last read said about it stays
+       * until the read below comes back, so its chip and its questions do
+       * not fall back to the generic ones and change again each time Ask
+       * AI opens.
        */
       if (
         detected &&
         current &&
         !contextChanged &&
-        AIChatPageContextHelper.getIdentity(current) ===
-          AIChatPageContextHelper.getIdentity(detected)
+        AIChatPageContextHelper.getSubjectIdentity(current) ===
+          AIChatPageContextHelper.getSubjectIdentity(detected)
       ) {
         return {
           ...detected,
@@ -676,11 +682,11 @@ export function useAiChat(options: {
             return;
           }
           setPageContext((current: DashboardPageContext | null) => {
-            // Only decorate the context this fetch was started for.
+            // Only decorate the record this fetch was started for.
             if (
               !current ||
-              AIChatPageContextHelper.getIdentity(current) !==
-                AIChatPageContextHelper.getIdentity(detected)
+              AIChatPageContextHelper.getSubjectIdentity(current) !==
+                AIChatPageContextHelper.getSubjectIdentity(detected)
             ) {
               return current;
             }
