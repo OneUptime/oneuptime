@@ -57,7 +57,10 @@ export const SCRUB_UNAVAILABLE_SENTENCES: Readonly<
   ),
 };
 
-// What a page says once Scrub It made, or found, the rule.
+/*
+ * What a page says once Scrub It made, or found, the rule: one sentence,
+ * the rule's name ({{name}}) a link to the list it is in (TelemetryRuleNotice).
+ */
 export const SCRUB_NOTICES: Readonly<Record<DataSecurityScrubSignal, string>> =
   {
     log: translationKey(
@@ -71,19 +74,16 @@ export const SCRUB_NOTICES: Readonly<Record<DataSecurityScrubSignal, string>> =
     ),
   };
 
-// Where the rules of each kind are listed, and what the link to them says.
+/*
+ * Where the rules of each kind are listed: what the rule's name in a page's
+ * notice opens (TelemetryRuleNotice), where it can be changed or removed.
+ */
 export const RULES_PAGE_OF_SIGNAL: Readonly<
   Record<DataSecurityScrubSignal, PageMap>
 > = {
   log: PageMap.LOGS_SETTINGS_SCRUB_RULES,
   trace: PageMap.TRACES_SETTINGS_SCRUB_RULES,
   metric: PageMap.METRICS_SETTINGS_PIPELINE_RULES,
-};
-
-export const VIEW_RULES: Readonly<Record<DataSecurityScrubSignal, string>> = {
-  log: translationKey("View scrub rules"),
-  trace: translationKey("View scrub rules"),
-  metric: translationKey("View pipeline rules"),
 };
 
 export function getRulesRoute(signal: DataSecurityScrubSignal): Route {

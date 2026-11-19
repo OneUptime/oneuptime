@@ -581,12 +581,15 @@ describe("the card", () => {
     expect(notice).toHaveTextContent(
       "The scrub rule Data Security: Ireland PPS number in attributes.user.pps now masks this data in new traces.",
     );
+    // One sentence: the rule's name in it opens the list the rule is in.
     expect(
       within(notice)
-        .getByText("View scrub rules")
-        .closest("a")
-        ?.getAttribute("href"),
+        .getByRole("link", {
+          name: "Data Security: Ireland PPS number in attributes.user.pps",
+        })
+        .getAttribute("href"),
     ).toBe(routeFor(PageMap.TRACES_SETTINGS_SCRUB_RULES));
+    expect(within(notice).getAllByRole("link")).toHaveLength(1);
     expect(onChanged).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(findingListCalls().length).toBe(before + 1);
