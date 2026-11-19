@@ -257,7 +257,8 @@ beforeEach(async () => {
           throw new Error("network down");
         }
 
-        const tableName: string | undefined = new options.modelType().tableName;
+        const tableName: string =
+          new options.modelType().tableName?.toString() || "";
         const data: Array<unknown> =
           tableName === "ProjectSSO"
             ? samlRows
