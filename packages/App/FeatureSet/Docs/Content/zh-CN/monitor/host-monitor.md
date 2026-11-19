@@ -125,6 +125,21 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 - **进程数** 比较的是最大的单个进程状态（`running`、`sleeping`、…），而不是主机的总数，因此它与进程列表对不上。进程抓取器在 Linux、macOS 和 BSD 上报告，Windows 上不报告。
 - **Systemd Unit Failed** 为每个处于 `failed` 状态的 systemd 服务打开一个警报，数据来自 Collector 的 `systemd` 接收器，OneUptime 的默认配置会在带 systemd 的 Linux 主机上读取它。单元重新运行，或被 `systemctl reset-failed` 清除后即会解决。
 
+## Android 设备
+
+操作系统为 Android 的主机，例如运行 [Android 代理](/docs/telemetry/android-agent) 的自助终端或 POS 终端，会获得自己的模板，读取代理发送的数据，此外还有 Host Stopped Reporting、Host Restarted 和 High Memory Utilization。它不会获得针对设备从不发送的数据的模板，例如交换空间、inode、负载或 systemd 单元。
+
+| 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | 警告 | `android.battery.plugged`，Max，最近 10 分钟 | 整个窗口内设备都靠电池运行 | 重新接通电源 |
+| Low Battery | 警告 | `hw.battery.charge`，Min，以百分比显示，最近 5 分钟 | 低于 20% | 不低于 20% |
+| Device Overheating | 警告 | `android.thermal.status`，Max，最近 5 分钟 | 3（严重）或更糟 | 低于 3 |
+| Restart Loop | 严重 | `android.boot.recent_count`，Max，最近一小时 | 任一值不低于 3 | 所有值都低于 3 |
+| Storage Nearly Full | 严重 | `system.filesystem.utilization`，按 `mountpoint` 取 Max，以百分比显示，最近 5 分钟 | 高于 90% | 不高于 90% |
+| High CPU Utilization | 警告 | `idle` 状态的 `system.cpu.utilization`，繁忙为 1 减去空闲，以百分比显示，最近 5 分钟 | 高于 80% | 不高于 80% |
+
+设备上报 CPU 使用率后才会提供 High CPU Utilization，而在 Android 8 及更高版本上，这需要代理成为设备所有者。Android 设备的警报以要先运行的 adb 命令开头，例如 `adb shell dumpsys battery` 或 `adb shell getprop sys.boot.reason`，而不是服务器的 shell 命令。
+
 ## 收集的指标
 
 **Host Metric** 列表提供以下指标。每个指标都带有 `resource.host.name`，监视器用它把查询限定到一台主机。在那里选择时，CPU 统计 `user` 状态，内存和文件系统用量统计 `used` 状态，文件系统和进程按挂载点和状态各给出一个序列。

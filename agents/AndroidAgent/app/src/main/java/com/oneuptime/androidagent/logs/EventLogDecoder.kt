@@ -58,7 +58,8 @@ object EventLogDecoder {
         if (fileIndex < 5 || process.isEmpty() || exceptionType.isEmpty()) {
             return null
         }
-        val message: String = values.subList(5, fileIndex).joinToString(",").trim()
+        // An exception's message is whatever the app put in it: a card number or a token has no business leaving the device.
+        val message: String = Redactor.redact(values.subList(5, fileIndex).joinToString(",").trim())
         val file: String = values[fileIndex].trim()
         val lineNumber: Long? = values[fileIndex + 1].trim().toLongOrNull()
         val recoverable: Boolean = hasRecoverable && values.last().trim() == "1"
@@ -99,7 +100,7 @@ object EventLogDecoder {
         if (process.isEmpty()) {
             return null
         }
-        val reason: String = values.subList(4, values.size).joinToString(",").trim()
+        val reason: String = Redactor.redact(values.subList(4, values.size).joinToString(",").trim())
         // "Input dispatching timed out (8b3b1a2 ... Waited 5001ms ...)": the kind, without what changes each time.
         val kind: String = reason.substringBefore('(').trim().ifEmpty { "Application Not Responding" }
 

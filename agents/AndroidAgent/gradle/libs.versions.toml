@@ -12,6 +12,8 @@ androidxTestCore = "1.7.0"
 androidxTestExtJunit = "1.3.0"
 androidxTestRunner = "1.7.0"
 androidxTestRules = "1.7.0"
+# Gradle Play Publisher: 4.x is the line for AGP 9 (it needs AGP 9.0 and Gradle 9.1 or later).
+playPublisher = "4.1.2"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -30,3 +32,4 @@ androidx-test-rules = { module = "androidx.test:rules", version.ref = "androidxT
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }

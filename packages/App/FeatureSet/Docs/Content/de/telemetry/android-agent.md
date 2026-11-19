@@ -7,6 +7,7 @@ Der OneUptime-Android-Agent meldet ein Android-Gerät, das Ihrer Organisation ge
 - [Mit Esper bereitstellen](#mit-esper-bereitstellen): Das APK hochladen, die Einstellungen verteilen, den Agenten einmal starten.
 - [Einstellungen](#einstellungen): Jeder Schlüssel seiner verwalteten Konfiguration.
 - [Logs anderer Apps lesen](#logs-anderer-apps-lesen): READ_LOGS einmal erteilen, mit adb oder über Ihre Geräteverwaltung.
+- [Protokollsitzungen](#protokollsitzungen): Die Logs aller Apps für eine Weile, von der Person am Gerät erlaubt.
 :::
 
 ## So funktioniert es
@@ -93,6 +94,8 @@ Der Agent liest diese Schlüssel aus seiner verwalteten Konfiguration. Ein Gerä
 
 Ein Platzhalter, den Ihre Geräteverwaltung nicht ausgefüllt hat, etwa ein unverändert gesendetes `${esper.deviceName}`, wird ignoriert, und der Bildschirm des Agenten weist darauf hin. Lassen Sie `device_name` unverändert, sobald ein Gerät meldet: Ein neuer Name ist ein neuer Host.
 
+Der Bildschirm des Agenten, seine Benachrichtigungen sowie die Titel und Beschreibungen, die Ihre Geräteverwaltung für diese Schlüssel anzeigt, erscheinen in der Sprache des Geräts, in jeder Sprache, die das Dashboard von OneUptime spricht.
+
 ## Logs anderer Apps lesen
 
 Android lässt eine App die Logs anderer Apps nur mit der Berechtigung READ_LOGS lesen, und nur adb kann sie erteilen: weder die App selbst noch eine Geräterichtlinie. Erteilen Sie sie einmal auf jedem Gerät, dann bleibt sie über Neustarts und Updates hinweg erteilt:
@@ -105,10 +108,51 @@ Führen Sie diesen Befehl bei Esper über **Secure Remote ADB** aus: Schalten Si
 
 Was der Agent dann liest, hängt von der Android-Version ab:
 
-- Android 13 und neuer: die Abstürze und ANRs jeder App. Android zeigt die Logzeilen anderer Apps nur einer App, die gerade auf dem Bildschirm zu sehen ist, und erst, nachdem die Person am Gerät es erlaubt hat. Ein Agent, der im Hintergrund läuft, kann sie daher nicht lesen.
+- Android 13 und neuer: die Abstürze und ANRs jeder App. Android zeigt die Logzeilen anderer Apps nur einer App, die gerade auf dem Bildschirm zu sehen ist, und erst, nachdem die Person am Gerät es erlaubt hat. Ein Agent, der im Hintergrund läuft, kann sie daher nicht lesen. Mit einer [Protokollsitzung](#protokollsitzungen) fordern Sie sie für eine Weile an.
 - Android 12 und älter: die Abstürze und ANRs jeder App sowie die Logzeilen jeder App ab der Stufe `logcat_min_level`.
 
 Ohne READ_LOGS meldet der Agent alles andere, und sein Bildschirm und die Logs des Geräts erklären, wie Sie die Berechtigung erteilen.
+
+### Absturz-Stack-Traces und Neustartgründe
+
+Android bewahrt den vollständigen Bericht jedes App-Absturzes, jedes nativen Absturzes und jedes ANR sowie den Grund jedes Neustarts in seiner DropBox auf. Der Agent liest sie für jede App, wenn er READ_LOGS und den Zugriff auf Nutzungsdaten hat, und unter Android 15 und neuer READ_DROPBOX_DATA. Erteilen Sie sie einmal mit adb, wie READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+Der erste Befehl gilt für Android 15 und neuer; den Zugriff auf Nutzungsdaten können Sie auch auf dem Gerät unter **Einstellungen → Zugriff auf Nutzungsdaten** einschalten. Eine Geräterichtlinie kann diese Berechtigungen nicht erteilen, und der Bildschirm des Agenten listet die Befehle auf, die noch auszuführen sind. Damit hat jeder Absturz unter **Ausnahmen** seinen vollständigen Stack-Trace, ein nativer Absturz sein Signal und die Bibliothek, in der er abgestürzt ist, ein ANR den Stack seines Hauptthreads und ein Neustart unter **Protokolle** den Grund, den Android dafür angibt. Kartennummern, E-Mail-Adressen, Tokens und Passwörter in dem, was der Agent liest, werden vor dem Senden durch `[card number]`, `[email]`, `[token]` und `[redacted]` ersetzt.
+
+### CPU-Auslastung
+
+Ab Android 8 hält Android die CPU-Auslastung eines Geräts vor Apps verborgen. Nur eine App, die Geräteinhaber ist, kann sie lesen, und nur auf Geräten, deren Hardware sie meldet. Der Agent liest sie, wenn er der Geräteinhaber ist. Das legen Sie mit adb fest, auf einem Gerät ohne Konten und ohne anderen Geräteinhaber:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+Ein Gerät, dessen Inhaber bereits Ihre Geräteverwaltung ist, kann keinen zweiten Inhaber haben, daher ist seine CPU-Auslastung nicht verfügbar, und der Bildschirm des Agenten weist darauf hin. Seine CPU-Auslastung fehlt dann in der Liste der Hosts, und die Vorlage **High CPU Utilization** wird für das Gerät nicht angeboten.
+
+## Protokollsitzungen
+
+Eine Protokollsitzung sendet für eine Weile die Logs aller Apps eines Geräts, zur Fehlerbehebung. Unter Android 13 und neuer ist sie der einzige Weg, die Logzeilen anderer Apps zu lesen, denn Android zeigt sie nur einer App, die gerade auf dem Bildschirm zu sehen ist, und erst, nachdem die Person am Gerät es erlaubt hat.
+
+:::steps
+### Eine Sitzung anfordern
+
+Öffnen Sie das Gerät unter **Hosts**, dann **Protokolle**, und klicken Sie unter **Protokollsitzungen** auf **Protokollsitzung anfordern**. Wählen Sie, wie lange das Gerät seine Logs sendet, von 15 Minuten bis 4 Stunden, und die niedrigste Stufe, die es sendet: **Info**, **Debug** oder **Ausführlich**.
+
+### Am Gerät zulassen
+
+Innerhalb einer Minute zeigt das Gerät eine Benachrichtigung, dass jemand seine Logs angefordert hat, mit dessen Namen. Die Person am Gerät öffnet den Agenten und tippt auf **Zulassen**. Unter Android 13 und neuer fragt Android dann, ob der Zugriff auf alle Geräteprotokolle erlaubt werden soll, und die Person erlaubt auch das.
+
+### Die Zeilen lesen
+
+Die Sitzung zeigt **Wird erfasst** an, und die Zeilen aller Apps kommen in den Logs des Geräts an. Klicken Sie auf **Zeilen anzeigen**, um nur die Zeilen der Sitzung zu sehen. Die Sitzung endet, wenn ihre Zeit abgelaufen ist oder wenn jemand sie auf dem Gerät stoppt oder in OneUptime abbricht.
+:::
+
+Eine Sitzung braucht READ_LOGS und `logcat_enabled`; ohne sie zeigt sie **Nicht verfügbar** an. Auf einem Gerät läuft jeweils nur eine Sitzung. Eine Anfrage, die niemand innerhalb einer Stunde zulässt, läuft ab, und eine Sitzung, während der das Gerät neu startet, endet damit, denn die Berechtigung von Android endet mit dem Prozess des Agenten. Um eine Sitzung anzufordern, brauchen Sie die Berechtigung, den Host zu bearbeiten, und die **Audit-Protokolle** des Hosts halten fest, wer sie angefordert hat und wann.
 
 ## Was der Agent meldet
 
@@ -117,14 +161,15 @@ Ohne READ_LOGS meldet der Agent alles andere, und sein Bildschirm und die Logs d
 | Arbeitsspeicher, Speicherplatz, Netzwerk und Laufzeit | Die Seite des Geräts unter **Hosts**: dieselben Metriken, die der Collector eines Servers sendet, sodass die Host-Warnungsvorlagen funktionieren |
 | Akkuladung und Temperatur sowie ob das Gerät extern mit Strom versorgt wird | Die Metriken `hw.battery.charge`, `hw.temperature` und `android.battery.plugged` |
 | Thermischer Zustand | Die Metriken `android.thermal.status` und `android.thermal.headroom` |
-| Neustarts | **Protokolle**, mit `@event.name:device.boot`: wie lange das Gerät lief, ob es sauber heruntergefahren wurde, wie lange es aus war, und Neustartschleifen |
+| CPU-Auslastung | Die Metrik `system.cpu.utilization`: unter Android 7, und unter Android 8 und neuer, wenn der Agent der [Geräteinhaber](#cpu-auslastung) ist |
+| Neustarts | **Protokolle**, mit `@event.name:device.boot`: wie lange das Gerät lief, ob es sauber heruntergefahren wurde, wie lange es aus war, warum es neu gestartet ist, und Neustartschleifen |
 | Installierte Apps | **Protokolle**, mit `@event.name:android.package.inventory` einmal am Tag sowie bei jeder Installation, jedem Update und jeder Entfernung |
-| Abstürze und ANRs jeder App | **Ausnahmen**, als nicht behandelt, benannt nach der App |
-| Hersteller, Modell, Seriennummer, Betriebssystemversion und Firmware | Das Element des Geräts im **Inventar** |
+| Abstürze und ANRs jeder App | **Ausnahmen**, als nicht behandelt, benannt nach der App, mit ihren Stacks, wenn der Agent die [DropBox](#absturz-stack-traces-und-neustartgründe) liest |
+| Hersteller, Modell, Seriennummer, Betriebssystemversion, Sicherheitspatch-Ebene und Firmware | Das Element des Geräts im **Inventar** |
 
-Ab Android 8 hält Android die CPU-Auslastung des Geräts vor Apps verborgen, daher meldet der Agent die CPU-Auslastung nur unter Android 7 und auf Builds, die sie zulassen.
+Unter **Hosts** lautet das Betriebssystem des Geräts Android, mit dem Android-Logo.
 
-Die Host-Warnungsvorlagen, die zu einem Gerät passen, sind Host Stopped Reporting, High Memory Utilization, High Filesystem Usage und Host Restarted. Ein Gerät, das immer wieder neu startet, schreibt bei jedem Hochfahren ein Log mit dem Schweregrad Warnung, in dem `android.boot.recent_count` die Zahl seiner Starts in der letzten Stunde angibt.
+Die Starts des Geräts in der letzten Stunde sind die Metrik `android.boot.recent_count`, und ein Gerät, das immer wieder neu startet, schreibt bei jedem Hochfahren ein Log mit dem Schweregrad Warnung. Unter **Hosts** werden einem Android-Gerät eigene Warnungsvorlagen angeboten: Device Unplugged, Low Battery, Device Overheating, Restart Loop und Storage Nearly Full, dazu Host Stopped Reporting, Host Restarted und High Memory Utilization sowie High CPU Utilization, sobald es seine CPU-Auslastung meldet. Die ersten Debug-Befehle jeder Warnung sind adb-Befehle. Siehe [Host-Überwachung](/docs/monitor/host-monitor#android-geräte).
 
 ## Fehlerbehebung
 
@@ -137,7 +182,11 @@ Verwenden Sie einen **Server**-Schlüssel, der eingeschaltet und nicht abgelaufe
 :::
 
 :::details Keine Logs von anderen Apps
-Erteilen Sie READ_LOGS, wie [Logs anderer Apps lesen](#logs-anderer-apps-lesen) beschreibt. Unter Android 13 und neuer werden von anderen Apps nur Abstürze und ANRs gelesen.
+Erteilen Sie READ_LOGS, wie [Logs anderer Apps lesen](#logs-anderer-apps-lesen) beschreibt. Unter Android 13 und neuer werden von anderen Apps nur Abstürze und ANRs gelesen, solange keine [Protokollsitzung](#protokollsitzungen) läuft.
+:::
+
+:::details Eine Protokollsitzung bleibt bei Wartet auf Genehmigung
+Am Gerät hat sie noch niemand zugelassen. Jemand muss den Agenten auf dem Gerät öffnen und auf **Zulassen** tippen und unter Android 13 und neuer auch den Android-Dialog zulassen, während der Agent auf dem Bildschirm zu sehen ist. Eine Sitzung, die im Android-Dialog abgelehnt wurde, zeigt **Abgelehnt** an: Fordern Sie eine neue an.
 :::
 
 :::details Zwei Geräte erscheinen als ein einziger Host

@@ -168,13 +168,14 @@ object LogcatUid {
     private val APP_NAME: Regex = Regex("""^u(\d+)_a(\d+)$""")
 
     /** The numeric uid of an app's line, or null for the system's own (root, system, shell, ...). */
-    fun appUid(uid: String?): Int? {
+    fun appUid(uid: String?): Int? = numeric(uid)?.takeIf { it % 100_000 >= 10_000 }
+
+    /** The uid as a number: "10143" and "u0_a143" are 10143. Null for a name such as "system" or "root". */
+    fun numeric(uid: String?): Int? {
         val text: String = uid?.trim().orEmpty()
-        val numeric: Int? =
-            text.toIntOrNull()
-                ?: APP_NAME.matchEntire(text)?.let { match ->
-                    match.groupValues[1].toInt() * 100_000 + 10_000 + match.groupValues[2].toInt()
-                }
-        return numeric?.takeIf { it % 100_000 >= 10_000 }
+        return text.toIntOrNull()
+            ?: APP_NAME.matchEntire(text)?.let { match ->
+                match.groupValues[1].toInt() * 100_000 + 10_000 + match.groupValues[2].toInt()
+            }
     }
 }
