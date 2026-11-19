@@ -327,9 +327,21 @@ La règle est vérifiée à chaque fois, donc :
 - **Une personne dans un projet qui ne gère pas la connexion** : dès qu'elle est membre d'un projet, ou invitée dans un projet, qui n'exige pas le SSO ou n'a pas activé **Gérer la connexion avec le SSO**, elle retrouve ses réglages, et son **Profil utilisateur** nomme ce projet comme la raison. Si elle le quitte, sa connexion est de nouveau gérée. Un compte peut appartenir à de nombreuses organisations : une organisation ne décide donc jamais pour les projets d'une autre.
 - **Des projets avec des fournisseurs différents** : une personne dans deux projets qui gèrent tous deux la connexion, chacun avec son propre fournisseur d'identité, est gérée, et son profil nomme les deux fournisseurs.
 - **Les administrateurs principaux** gardent toujours leurs propres réglages.
-- **Ce que les personnes ont configuré avant** est conservé, inutilisé par votre projet. Un administrateur du serveur peut l'effacer sur la page **Authentification** de la personne dans l'Admin Dashboard, avec **Effacer les paramètres de connexion**.
+- **Ce que les personnes ont configuré avant** est conservé, inutilisé par votre projet, jusqu'à ce qu'il soit effacé : par les Propriétaires du projet (voir ci-dessous), ou par un administrateur du serveur sur la page **Authentification** de la personne dans l'Admin Dashboard, avec **Effacer les paramètres de connexion**.
 
 **Gérer la connexion avec le SSO** enregistre dès que vous basculez l'interrupteur, ne supprime rien, et le désactiver rend aussitôt leurs réglages à tous. Qui peut modifier **Exiger le SSO pour la connexion** peut le modifier, avec les mêmes plans. Quand **Exiger le SSO pour la connexion** est désactivé, il est masqué et ne change rien.
+
+### Effacer ce que vos membres ont enregistré avant
+
+Tant que **Gérer la connexion avec le SSO** est activé, les Propriétaires du projet voient en dessous combien de ses membres ont encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime. **Effacer les paramètres de connexion** supprime, après confirmation, leurs mots de passe avec tout lien de réinitialisation ou de connexion, leurs clés d'accès, clés de sécurité, applications d'authentification et codes de secours, désactive l'authentification à deux facteurs et met fin aux sessions qu'ils ont ouvertes sans SSO. C'est irréversible.
+
+Un compte peut appartenir à de nombreuses organisations : vous ne pouvez donc effacer les réglages que des personnes dont votre organisation est responsable. Votre organisation, ce sont les projets dont vous êtes propriétaire : les réglages d'une personne ne sont effacés que si chaque projet auquel elle appartient, y compris tout projet auquel elle est invitée, est un projet dont vous êtes **Propriétaire du projet** et qui a activé **Gérer la connexion avec le SSO**. Toutes les autres personnes gardent leurs réglages :
+
+- une personne membre d'un projet, ou invitée dans un projet, dont vous n'êtes pas propriétaire ou qui ne gère pas la connexion avec le SSO ;
+- une personne seulement invitée dans votre projet, qui ne l'a pas encore rejoint ;
+- les administrateurs principaux, et vous : changez vos propres réglages dans votre **Profil utilisateur**.
+
+Chaque personne dont les réglages sont effacés reçoit un e-mail indiquant ce qui a été supprimé et qu'elle se connecte désormais avec le SSO, et les journaux d'audit de vos projets enregistrent l'effacement à votre nom. Seul un **Propriétaire du projet** peut effacer, connecté au tableau de bord : jamais avec une clé d'API.
 
 ## Désactiver ou supprimer un fournisseur
 

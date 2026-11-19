@@ -327,9 +327,21 @@ The rule is checked every time, so:
 - **Someone in a project that does not manage sign-in**: as soon as they are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, they get their settings back, and their **User Profile** names that project as the reason. Leaving it manages their sign-in again. An account can belong to many organizations, so one organization never decides for another's projects.
 - **Projects with different providers**: someone in two projects that both manage sign-in, each with its own identity provider, is managed, and their profile names both providers.
 - **Master admins** always keep their own settings.
-- **What people set up before** is kept, unused by your project. A server admin can clear it on the person's **Authentication** page in the Admin Dashboard, with **Clear Sign-In Settings**.
+- **What people set up before** is kept, unused by your project, until it is cleared: by the Project Owners (see below), or by a server admin on the person's **Authentication** page in the Admin Dashboard, with **Clear Sign-In Settings**.
 
 **Manage Sign-In with SSO** saves as soon as you flip it, deletes nothing, and turning it off gives everyone their settings back at once. Whoever can change **Require SSO to Sign In** can change it, on the same plans. With **Require SSO to Sign In** off, it is hidden and changes nothing.
+
+### Clearing what your people saved before
+
+While **Manage Sign-In with SSO** is on, the Project Owners see under it how many of the project's people still have a password or two-factor authentication saved in OneUptime. **Clear Sign-In Settings** deletes their passwords with any reset or sign-in links, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone.
+
+An account can belong to many organizations, so you can clear only the people your organization is responsible for. Your organization is the projects you own: someone is cleared only when every project they belong to, including any project they are invited to, is one you are a **Project Owner** of and has **Manage Sign-In with SSO** on. Everyone else keeps their settings:
+
+- someone in, or invited to, a project you do not own, or one that does not manage sign-in with SSO;
+- someone only invited to your project, who has not joined it yet;
+- master admins, and you: change your own in your **User Profile**.
+
+Each person cleared is emailed what was removed and that they sign in with SSO now, and your projects' audit logs record the clear as yours. Only a **Project Owner** can clear, signed in to the Dashboard: never with an API key.
 
 ## Turning a provider off or deleting it
 

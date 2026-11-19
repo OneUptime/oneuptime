@@ -327,9 +327,21 @@ La regola viene verificata ogni volta, quindi:
 - **Qualcuno in un progetto che non gestisce l'accesso**: appena è membro di un progetto, o viene invitato in uno, che non richiede l'SSO o non ha attivo **Gestisci l'accesso con l'SSO**, riottiene le sue impostazioni, e il suo **Profilo utente** indica quel progetto come motivo. Se lo lascia, il suo accesso torna gestito. Un account può appartenere a molte organizzazioni, quindi un'organizzazione non decide mai per i progetti di un'altra.
 - **Progetti con provider diversi**: chi è in due progetti che gestiscono entrambi l'accesso, ciascuno con il proprio provider di identità, è gestito, e il suo profilo indica entrambi i provider.
 - **Gli amministratori principali** mantengono sempre le proprie impostazioni.
-- **Quello che le persone avevano configurato prima** viene conservato, senza che il tuo progetto lo usi. Un amministratore del server può cancellarlo nella pagina **Autenticazione** della persona nell'Admin Dashboard, con **Cancella impostazioni di accesso**.
+- **Quello che le persone avevano configurato prima** viene conservato, senza che il tuo progetto lo usi, finché non viene cancellato: dai Proprietari del progetto (vedi sotto), o da un amministratore del server nella pagina **Autenticazione** della persona nell'Admin Dashboard, con **Cancella impostazioni di accesso**.
 
 **Gestisci l'accesso con l'SSO** salva non appena sposti l'interruttore, non elimina nulla, e disattivarlo restituisce subito a tutti le loro impostazioni. Chi può modificare **Richiedi l'SSO per l'accesso** può modificarlo, con gli stessi piani. Con **Richiedi l'SSO per l'accesso** disattivato, è nascosto e non cambia nulla.
+
+### Cancellare ciò che i tuoi membri avevano salvato prima
+
+Mentre **Gestisci l'accesso con l'SSO** è attivo, i Proprietari del progetto vedono sotto quanti dei suoi membri hanno ancora una password o l'autenticazione a due fattori salvata in OneUptime. **Cancella impostazioni di accesso** elimina, dopo aver chiesto conferma, le loro password con eventuali link di reimpostazione o di accesso, le passkey, le chiavi di sicurezza, le app di autenticazione e i codici di backup, disattiva l'autenticazione a due fattori e termina le sessioni in cui hanno effettuato l'accesso senza SSO. Non si può annullare.
+
+Un account può appartenere a molte organizzazioni, quindi puoi cancellare le impostazioni solo delle persone di cui la tua organizzazione è responsabile. La tua organizzazione sono i progetti di cui sei proprietario: le impostazioni di una persona vengono cancellate solo quando ogni progetto a cui appartiene, compreso qualsiasi progetto a cui è invitata, è un progetto di cui sei **Proprietario del progetto** e ha attivo **Gestisci l'accesso con l'SSO**. Tutti gli altri mantengono le proprie impostazioni:
+
+- chi è membro di un progetto, o è invitato in un progetto, di cui non sei proprietario o che non gestisce l'accesso con l'SSO;
+- chi è solo invitato nel tuo progetto e non vi è ancora entrato;
+- gli amministratori principali, e tu: cambia le tue nel tuo **Profilo utente**.
+
+Ogni persona le cui impostazioni vengono cancellate riceve un'email con ciò che è stato rimosso e con l'avviso che ora accede con l'SSO, e i log di audit dei tuoi progetti registrano la cancellazione a tuo nome. Solo un **Proprietario del progetto** può cancellare, dopo aver effettuato l'accesso alla dashboard: mai con una chiave API.
 
 ## Disattivare o eliminare un provider
 

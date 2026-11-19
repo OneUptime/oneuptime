@@ -327,9 +327,21 @@ A regra é verificada todas as vezes, então:
 - **Alguém em um projeto que não gerencia o login**: assim que a pessoa é membro de um projeto, ou é convidada para um, que não exige SSO ou não tem **Gerenciar o login com SSO** ligado, ela recebe suas configurações de volta, e o **Perfil do usuário** dela mostra esse projeto como o motivo. Se ela sair dele, o login dela volta a ser gerenciado. Uma conta pode pertencer a muitas organizações, então uma organização nunca decide pelos projetos de outra.
 - **Projetos com provedores diferentes**: alguém em dois projetos que gerenciam o login, cada um com o próprio provedor de identidade, é gerenciado, e o perfil dele mostra os dois provedores.
 - **Os administradores mestres** sempre mantêm suas próprias configurações.
-- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto. Um administrador do servidor pode limpá-lo na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
+- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto, até ser limpo: pelos Proprietários do projeto (veja abaixo), ou por um administrador do servidor na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
 
 **Gerenciar o login com SSO** salva assim que você muda o interruptor, não exclui nada, e desligá-lo devolve a todos suas configurações na hora. Quem pode alterar **Exigir SSO para entrar** pode alterá-lo, nos mesmos planos. Com **Exigir SSO para entrar** desligado, ele fica oculto e não muda nada.
+
+### Limpar o que seus membros salvaram antes
+
+Enquanto **Gerenciar o login com SSO** está ligado, os Proprietários do projeto veem abaixo dele quantos de seus membros ainda têm uma senha ou a autenticação de dois fatores salva no OneUptime. **Limpar configurações de login** exclui, depois de pedir confirmação, as senhas deles com qualquer link de redefinição ou de login, as chaves de acesso, chaves de segurança, aplicativos autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que eles abriram sem SSO. Não dá para desfazer.
+
+Uma conta pode pertencer a muitas organizações, então você só pode limpar as configurações das pessoas pelas quais sua organização é responsável. Sua organização são os projetos dos quais você é proprietário: as configurações de uma pessoa só são limpas quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, são projetos dos quais você é **Proprietário do projeto** e têm **Gerenciar o login com SSO** ligado. Todos os outros mantêm suas configurações:
+
+- alguém que é membro de um projeto, ou foi convidado para um, do qual você não é proprietário ou que não gerencia o login com SSO;
+- alguém apenas convidado para o seu projeto, que ainda não entrou nele;
+- os administradores mestres, e você: altere as suas no seu **Perfil do usuário**.
+
+Cada pessoa cujas configurações são limpas recebe um e-mail com o que foi removido e avisando que agora entra com SSO, e os registros de auditoria dos seus projetos registram a limpeza como sua. Só um **Proprietário do projeto** pode limpar, conectado ao painel: nunca com uma chave de API.
 
 ## Desligar ou excluir um provedor
 
