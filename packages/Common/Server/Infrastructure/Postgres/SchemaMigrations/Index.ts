@@ -1113,6 +1113,7 @@ import { AddProjectAiRunCommandTimeLimit1809186466000 } from "./1809186466000-Ad
 import { AddSsoProviderDomains1809186480000 } from "./1809186480000-AddSsoProviderDomains";
 import { AddTeamMemberInviteeName1809186500000 } from "./1809186500000-AddTeamMemberInviteeName";
 import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessions";
+import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
 
 export default [
   InitialMigration,
@@ -2230,4 +2231,5 @@ export default [
   AddSsoProviderDomains1809186480000,
   AddTeamMemberInviteeName1809186500000,
   AddHostLogSessions1809186600000,
+  AddMonitorNetworkDeviceTieSource1809186700000,
 ];

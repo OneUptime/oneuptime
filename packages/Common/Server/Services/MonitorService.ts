@@ -19,7 +19,9 @@ import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
 import MonitorOwnerRuleEngineService from "./MonitorOwnerRuleEngineService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
-import MonitorProbeService from "./MonitorProbeService";
+import MonitorProbeService, {
+  Service as MonitorProbeServiceClass,
+} from "./MonitorProbeService";
 import MonitorStatusService from "./MonitorStatusService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
@@ -124,6 +126,9 @@ import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplate
 import MonitorDeviceLink, {
   MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN,
 } from "../Utils/NetworkDevice/MonitorDeviceLink";
+import NetworkDeviceTieSource, {
+  readNetworkDeviceTieSource,
+} from "../../Types/NetworkDevice/NetworkDeviceTieSource";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
@@ -171,6 +176,19 @@ const AUTO_PROVISIONED_NETWORK_DEVICE_KEYS: Array<string> = [
 
 // The network device a person's monitor checks (issue #9545), by both names.
 const NETWORK_DEVICE_KEYS: Array<string> = ["networkDeviceId", "networkDevice"];
+
+/*
+ * The creates and updates whose Network Device OneUptime's address rule set
+ * (MonitorDeviceLink): a new monitor tied to the device its probes see at
+ * the address it checks, or a tie that followed the address (issue #9904).
+ * Every other write of Network Device is recorded as a person's
+ * (recordNetworkDeviceTieSource). Held weakly, by the write itself, from
+ * the hook that decides to the one that records it.
+ */
+type NetworkDeviceWrite = CreateBy<Model> | UpdateBy<Model>;
+
+const WRITES_TIED_BY_ADDRESS: WeakSet<NetworkDeviceWrite> =
+  new WeakSet<NetworkDeviceWrite>();
 
 /*
  * A global or shared probe can be attached to thousands of monitors. Work
@@ -1103,6 +1121,8 @@ export class Service extends ProjectReferencesService<Model> {
           (updateBy.data as unknown as Record<string, unknown>)[
             "networkDeviceId"
           ] = followed;
+          // The rule's, not the person's: see recordNetworkDeviceTieSource.
+          WRITES_TIED_BY_ADDRESS.add(updateBy);
         }
       }
     }
@@ -1865,6 +1885,87 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * WHO SET NETWORK DEVICE, RECORDED WITH EVERY WRITE OF IT (issue #9904):
+   * Automatic when OneUptime's address rule set it (WRITES_TIED_BY_ADDRESS)
+   * or its own code says so (a root write naming the source itself: a tie
+   * that follows its monitor's probes, the backfill), and Person for any
+   * other write - a tie picked in the form, on the Details card or a
+   * device's Monitors card, or one taken off. OneUptime changes only its
+   * own ties when a monitor's probes change, so a person's choice stays as
+   * they made it.
+   *
+   * Written once the caller has passed every permission check: the column
+   * is OneUptime's alone, and set any earlier it would be held against the
+   * caller's column permissions (DatabaseService.onUpdatePermitted).
+   */
+  public static getNetworkDeviceTieSourceOfWrite(data: {
+    write: NetworkDeviceWrite;
+    payload: Record<string, unknown>;
+    props: DatabaseCommonInteractionProps;
+  }): NetworkDeviceTieSource {
+    if (WRITES_TIED_BY_ADDRESS.has(data.write)) {
+      return NetworkDeviceTieSource.Automatic;
+    }
+
+    const named: NetworkDeviceTieSource | null = readNetworkDeviceTieSource(
+      data.payload["networkDeviceTieSource"],
+    );
+
+    if (named && data.props.isRoot) {
+      return named;
+    }
+
+    return NetworkDeviceTieSource.Person;
+  }
+
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const data: Model = onCreate.createBy.data;
+
+    if (!data.networkDeviceId) {
+      return;
+    }
+
+    data.networkDeviceTieSource = Service.getNetworkDeviceTieSourceOfWrite({
+      write: onCreate.createBy,
+      payload: data as unknown as Record<string, unknown>,
+      props: onCreate.createBy.props,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (
+      !RelationIdUtil.isWritten(
+        Object.keys(updateBy.data || {}),
+        NETWORK_DEVICE_KEYS,
+      )
+    ) {
+      return;
+    }
+
+    const payload: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    payload["networkDeviceTieSource"] =
+      Service.getNetworkDeviceTieSourceOfWrite({
+        write: updateBy,
+        payload: payload,
+        props: updateBy.props,
+      });
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -2581,6 +2682,8 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (deviceAtAddress) {
         createBy.data.networkDeviceId = deviceAtAddress;
+        // The rule's, not the person's: see recordNetworkDeviceTieSource.
+        WRITES_TIED_BY_ADDRESS.add(createBy);
       }
     }
 
@@ -3576,6 +3679,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     });
   }
 
+  /*
+   * The probes a NEW monitor is created with (addProbesToMonitor): its tie
+   * to a network device was worked out from them already, so their creates
+   * do not work it out again. Probes added to a monitor that exists go
+   * through MonitorProbeService.create, which does.
+   */
   @CaptureSpan()
   public async createMonitorProbes(data: {
     projectId: ObjectID;
@@ -3599,6 +3708,13 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       createPromises.push(
         MonitorProbeService.create({
           data: monitorProbe,
+          /*
+           * Its monitor's tie was worked out from all of these probes
+           * (getProbeIdsOfNewMonitor): none asks again (issue #9904).
+           */
+          miscDataProps: {
+            [MonitorProbeServiceClass.CREATED_WITH_ITS_MONITOR]: true,
+          },
           props: {
             isRoot: true,
           },

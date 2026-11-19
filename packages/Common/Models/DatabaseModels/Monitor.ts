@@ -16,6 +16,7 @@ import Label from "./Label";
 import MonitorStatus from "./MonitorStatus";
 import MonitorTemplate from "./MonitorTemplate";
 import NetworkDevice from "./NetworkDevice";
+import NetworkDeviceTieSource from "../../Types/NetworkDevice/NetworkDeviceTieSource";
 import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import Project from "./Project";
 import User from "./User";
@@ -1927,6 +1928,48 @@ export default class Monitor extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public networkDeviceId?: ObjectID = undefined;
+
+  /*
+   * WHO SET NETWORK DEVICE (issue #9904): OneUptime, by the address the
+   * monitor checks seen from its probes, or a person. OneUptime works its
+   * own tie out again when the monitor's probes change - ties it to the
+   * device they see now, or unties it - and never changes what a person
+   * set, a tie or its removal (Types/NetworkDevice/NetworkDeviceTieSource).
+   * OneUptime's alone to write: MonitorService records it with every write
+   * of Network Device. Empty on a monitor tied before it was recorded,
+   * which is kept as it is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    // OneUptime fills it in: a value a create sends is not the caller's.
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Network Device Set By",
+    description:
+      "Who set Network Device: Automatic (OneUptime, by the address the monitor checks seen from its probes) or Person. OneUptime updates an automatic one when the monitor's probes change, and never one a person set. Empty on a monitor tied before this was recorded.",
+    example: "Automatic",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public networkDeviceTieSource?: NetworkDeviceTieSource | null = undefined;
 
   @ColumnAccessControl({
     create: [],
