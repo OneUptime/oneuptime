@@ -56,6 +56,7 @@ import {
   CLOUD_STREAM_URL_PREFIX,
 } from "../../Types/CloudConnection/CloudStream";
 import { isCompatibleIngestPath } from "../../Types/Telemetry/CompatibleIngest";
+import { getErrorDetails } from "../../Types/Exception/BadDataExceptionWithDetails";
 import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -716,7 +717,10 @@ export const expressErrorHandler: (
 
       if (isStatus && !isEmptyErrorPhrase((exception as Exception)?.message)) {
         res.status((exception as Exception).code);
-        res.send({ error: (exception as Exception).message });
+        res.send({
+          ...getErrorDetails(exception),
+          error: (exception as Exception).message,
+        });
       } else {
         sendUnexplainedError(_req, res, {
           status: isStatus ? (exception as Exception).code : 500,
@@ -775,8 +779,14 @@ export const expressErrorHandler: (
       return;
     }
 
+    /*
+     * Anything the exception adds goes beside its message, never over it,
+     * as Response.sendErrorResponse sends it: a refusal's code, which a
+     * program reads where the sentence may be reworded (NameTakenException,
+     * #9855), reaches a client through a route's next(err) too.
+     */
     res.status(status);
-    res.send({ error: exception.message });
+    res.send({ ...getErrorDetails(exception), error: exception.message });
   } else {
     /*
      * Not one of OneUptime's exceptions: a TypeError, a lost database

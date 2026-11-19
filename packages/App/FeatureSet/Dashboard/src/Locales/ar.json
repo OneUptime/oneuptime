@@ -59040,7 +59040,14 @@
   "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
   "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "تحمل تسمية أخرى في هذا المشروع هذا الاسم، لذا لا يمكن التمييز بينهما في أدوات الاختيار. قارن بين مواضع استخدام كل منهما، ثم غيّر اسم إحداهما.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "تعرض أدوات الاختيار التسمية باسمها ولونها. امنح هذه التسمية اسمًا لا تحمله أي تسمية أخرى.",
+  "Rename Label": "تغيير اسم التسمية",
+  "Same name as another label": "مطابق لاسم تسمية أخرى",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط.",
   "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "تم تخطي إنشاء تنبيه جديد لوجود تنبيه نشط لهذا المعيار وهذه السلسلة ({{series}}).",
-  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "تم تخطي إنشاء حادثة جديدة لوجود حادثة نشطة لهذا المعيار وهذه السلسلة ({{series}})."
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "تم تخطي إنشاء حادثة جديدة لوجود حادثة نشطة لهذا المعيار وهذه السلسلة ({{series}}).",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} تسمية تحمل اسم تسمية أخرى، ولا يمكن التمييز بينهما في أدوات الاختيار. قارن بين مواضع استخدام كل منهما، ثم غيّر اسم إحداهما.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} من التسميات تحمل اسم تسمية أخرى، ولا يمكن التمييز بينها في أدوات الاختيار. قارن بين مواضع استخدام كل منها، ثم غيّر اسم إحداها.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} تسمية تحمل اسم تسمية أخرى، ولا يمكن التمييز بينهما في أدوات الاختيار. قارن بين مواضع استخدام كل منهما، ثم غيّر اسم إحداهما."
 }

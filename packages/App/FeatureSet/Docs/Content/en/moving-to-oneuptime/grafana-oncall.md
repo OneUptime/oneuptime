@@ -56,9 +56,9 @@ The report counts what was created, invited and not brought over, and lists ever
 | In Grafana OnCall | In OneUptime | How |
 | --- | --- | --- |
 | Users | Project members | Matched by email address. Anyone who is not in the project yet is invited to the team you pick. |
-| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. |
-| Schedules | On-call schedules | Each rotation becomes a layer with the same people, start, hand-off and on-call hours, in the schedule's time zone, owned by the schedule's team. A rotation on a higher layer still takes over from the ones below it. |
-| Escalation chains | On-call policies | The steps that notify people, a team or a schedule's on-call person become escalation rules, and a wait step becomes the wait before the next rule. A step that repeats the chain comes over as the policy's repeats. |
+| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. When two teams have the same name, the second comes over numbered, such as `Platform 2`, and the report says the name it was created with. |
+| Schedules | On-call schedules | Each rotation becomes a layer with the same people, start, hand-off and on-call hours, in the schedule's time zone, owned by the schedule's team. A rotation on a higher layer still takes over from the ones below it. When two schedules have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
+| Escalation chains | On-call policies | The steps that notify people, a team or a schedule's on-call person become escalation rules, and a wait step becomes the wait before the next rule. A step that repeats the chain comes over as the policy's repeats. When two escalation chains have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
 
 Rotations on the same layer that are on call at the same time, and a rotation that puts several people on call at once, become one OneUptime schedule each, because a OneUptime schedule has one person on call at a time. Every on-call policy that paged the schedule pages all of them.
 

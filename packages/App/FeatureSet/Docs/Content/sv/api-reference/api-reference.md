@@ -254,7 +254,9 @@ Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett proje
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn. För team, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant.
+Utöver meddelandet innehåller svaret `"refusalCode": "name_taken"`. Känn igen det här avslaget på den koden, inte på meningen, som kan formuleras om. Ingenting skrevs, så samma begäran kan skickas igen så snart den andra posten lämnar namnet: Terraform-providern frågar igen i upp till 30 sekunder.
+
+En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn. För team, etiketter, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant. Arkiverade etiketter och jourpolicyer räknas inte med.
 
 ### Brytare
 

@@ -59040,7 +59040,14 @@
   "Publish a status page that shows my monitors.": "Publie une page de statut qui montre mes moniteurs.",
   "Publish a status page called {{name}} that shows my monitors.": "Publie une page de statut nommée {{name}} qui montre mes moniteurs.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aide-moi à envoyer les logs, métriques et traces de mon service à OneUptime, et alerte-moi quand il a des erreurs.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "Une autre étiquette de ce projet porte ce nom, si bien que les sélecteurs ne permettent pas de les distinguer. Comparez où chacune est utilisée, puis renommez l'une d'elles.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "Les sélecteurs affichent une étiquette par son nom et sa couleur. Donnez à celle-ci un nom qu'aucune autre étiquette ne porte.",
+  "Rename Label": "Renommer l'étiquette",
+  "Same name as another label": "Même nom qu'une autre étiquette",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Cette requête est en {{unit}} et le graphique de la requête précédente en {{chartUnit}}, ses valeurs ne se liront donc pas correctement sur l'axe de ce graphique.",
   "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Création d'une nouvelle alerte ignorée car une alerte active existe pour ce critère et cette série ({{series}}).",
-  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Création d'un nouvel incident ignorée car un incident actif existe pour ce critère et cette série ({{series}})."
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Création d'un nouvel incident ignorée car un incident actif existe pour ce critère et cette série ({{series}}).",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} étiquette porte le même nom qu'une autre étiquette, et les sélecteurs ne permettent pas de les distinguer. Comparez où chacune est utilisée, puis renommez l'une d'elles.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} étiquettes portent le même nom qu'une autre étiquette, et les sélecteurs ne permettent pas de les distinguer. Comparez où chacune est utilisée, puis renommez l'une d'elles.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} étiquette porte le même nom qu'une autre étiquette, et les sélecteurs ne permettent pas de les distinguer. Comparez où chacune est utilisée, puis renommez l'une d'elles."
 }

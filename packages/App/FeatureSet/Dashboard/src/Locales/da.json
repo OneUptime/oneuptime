@@ -59040,7 +59040,14 @@
   "Publish a status page that shows my monitors.": "Udgiv en statusside, der viser mine monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Udgiv en statusside med navnet {{name}}, der viser mine monitorer.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "En anden etiket i dette projekt har dette navn, så de to kan ikke skelnes fra hinanden i vælgere. Sammenlign, hvor hver af dem bruges, og omdøb så den ene.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "I vælgere vises en etiket med sit navn og sin farve. Giv denne etiket et navn, som ingen anden etiket har.",
+  "Rename Label": "Omdøb etiket",
+  "Same name as another label": "Samme navn som en anden etiket",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse.",
   "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Der blev ikke oprettet en ny advarsel, fordi der allerede findes en aktiv advarsel for dette kriterium og denne serie ({{series}}).",
-  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Der blev ikke oprettet en ny hændelse, fordi der allerede findes en aktiv hændelse for dette kriterium og denne serie ({{series}})."
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Der blev ikke oprettet en ny hændelse, fordi der allerede findes en aktiv hændelse for dette kriterium og denne serie ({{series}}).",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} etiket har samme navn som en anden etiket, og de to kan ikke skelnes fra hinanden i vælgere. Sammenlign, hvor hver af dem bruges, og omdøb så den ene.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} etiketter har samme navn som en anden etiket og kan ikke skelnes fra hinanden i vælgere. Sammenlign, hvor hver af dem bruges, og omdøb så én af dem.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} etiket har samme navn som en anden etiket, og de to kan ikke skelnes fra hinanden i vælgere. Sammenlign, hvor hver af dem bruges, og omdøb så den ene."
 }

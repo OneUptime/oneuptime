@@ -56,9 +56,9 @@ O relatório conta o que foi criado, convidado e não trazido, e lista cada item
 | No Grafana OnCall | No OneUptime | Como |
 | --- | --- | --- |
 | Usuários | Membros do projeto | Associados pelo endereço de e-mail. Quem ainda não está no projeto é convidado para a equipe que você escolher. |
-| Equipes | Equipes | Criadas com seus membros. Uma equipe cujo nome o projeto já tem é usada como está, e seus membros não são alterados. |
-| Agendamentos | Agendamentos de plantão | Cada rotação vira uma camada com as mesmas pessoas, o mesmo início, a mesma passagem de turno e os mesmos horários de plantão, no fuso horário do agendamento, pertencente à equipe do agendamento. Uma rotação em uma camada superior continua tendo prioridade sobre as de baixo. |
-| Cadeias de escalonamento | Políticas de plantão | As etapas que notificam pessoas, uma equipe ou quem está de plantão em um agendamento viram regras de escalonamento, e uma etapa de espera vira a espera antes da próxima regra. Uma etapa que repete a cadeia vira as repetições da política. |
+| Equipes | Equipes | Criadas com seus membros. Uma equipe cujo nome o projeto já tem é usada como está, e seus membros não são alterados. Se duas equipes têm o mesmo nome, o segundo item vem com um número, por exemplo `Platform 2`, e o relatório diz o nome com que foi criado. |
+| Agendamentos | Agendamentos de plantão | Cada rotação vira uma camada com as mesmas pessoas, o mesmo início, a mesma passagem de turno e os mesmos horários de plantão, no fuso horário do agendamento, pertencente à equipe do agendamento. Uma rotação em uma camada superior continua tendo prioridade sobre as de baixo. Se dois agendamentos têm o mesmo nome, o segundo item vem com um número, por exemplo `Primary 2`, e o relatório diz o nome com que foi criado. |
+| Cadeias de escalonamento | Políticas de plantão | As etapas que notificam pessoas, uma equipe ou quem está de plantão em um agendamento viram regras de escalonamento, e uma etapa de espera vira a espera antes da próxima regra. Uma etapa que repete a cadeia vira as repetições da política. Se duas cadeias de escalonamento têm o mesmo nome, o segundo item vem com um número, por exemplo `Primary 2`, e o relatório diz o nome com que foi criado. |
 
 Rotações da mesma camada que estão de plantão ao mesmo tempo, e uma rotação que coloca várias pessoas de plantão juntas, viram, cada uma, um agendamento do OneUptime, porque um agendamento do OneUptime tem uma pessoa de plantão por vez. Cada política de plantão que acionava o agendamento aciona todos eles.
 

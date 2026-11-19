@@ -59040,7 +59040,14 @@
   "Publish a status page that shows my monitors.": "Опубликуй страницу статуса, на которой видны мои мониторы.",
   "Publish a status page called {{name}} that shows my monitors.": "Опубликуй страницу статуса с названием {{name}}, на которой видны мои мониторы.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Помоги отправить логи, метрики и трассировки моего сервиса в OneUptime и оповещай меня, когда в нём появляются ошибки.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "Такое же название есть у другой метки в этом проекте, поэтому в полях выбора их не различить. Сравните, где используется каждая из них, затем переименуйте одну из них.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "В полях выбора метка видна по названию и цвету. Дайте этой метке название, которого нет ни у одной другой метки.",
+  "Rename Label": "Переименовать метку",
+  "Same name as another label": "Совпадает с названием другой метки",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы.",
   "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Создание нового оповещения пропущено, так как для этого критерия и этого ряда ({{series}}) уже есть активное оповещение.",
-  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Создание нового инцидента пропущено, так как для этого критерия и этого ряда ({{series}}) уже есть активный инцидент."
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Создание нового инцидента пропущено, так как для этого критерия и этого ряда ({{series}}) уже есть активный инцидент.",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} метка называется так же, как другая метка, и в полях выбора их не различить. Сравните, где используется каждая из них, затем переименуйте одну из них.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "Меток, названных так же, как другая метка: {{count}}. В полях выбора их не различить. Сравните, где используется каждая из них, затем переименуйте одну из них.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} метка называется так же, как другая метка, и в полях выбора их не различить. Сравните, где используется каждая из них, затем переименуйте одну из них."
 }
