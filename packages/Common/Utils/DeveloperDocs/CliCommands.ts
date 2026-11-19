@@ -35,6 +35,11 @@ import {
   PersonColumnKind,
 } from "./PeopleByEmail";
 import {
+  DeleteChoice,
+  DeleteChoicesOfTable,
+  getDeleteChoices,
+} from "./DeleteChoices";
+import {
   getTerraformAttributes,
   getTerraformModelOperations,
   isApiExcludedForPermissions,
@@ -818,6 +823,76 @@ const ENDS_WITH_PUNCTUATION: RegExp = /[.!?)]$/;
 
 function withFullStop(text: string): string {
   return ENDS_WITH_PUNCTUATION.test(text) ? text : `${text}.`;
+}
+
+/*
+ * WHAT A DELETE SAYS BESIDES THE RECORD, AND ITS FLAGS (#9949)
+ *
+ * `delete` takes the record's ID and nothing else, but for a record whose
+ * delete says what becomes of something that depends on it
+ * (DeleteChoices.ts): a custom role that workflows run as is deleted only
+ * by a delete that says what they run as instead. Each such choice is a
+ * flag of the resource's `delete`, named for its key in the delete's
+ * miscDataProps as a field's flag is for its column - workflowsRunAs is
+ * --workflows-run-as. On `delete` a flag can only be what the delete says,
+ * so it needs no "on delete" of its own, as Terraform's attribute beside
+ * the resource's fields does (workflows_run_as_on_delete).
+ */
+export interface CliDeleteChoiceFlag {
+  // Its key in the delete's miscDataProps: workflowsRunAs.
+  key: string;
+  flag: string;
+  // What it takes, as its help writes it: <value>, <id>.
+  valueName: string;
+  // What it is, the other choices named by their flags.
+  description: string;
+  // The values it takes; none for the ID of a record.
+  values?: ReadonlyArray<string> | undefined;
+  // The table of the record an ID names: CustomRole.
+  relatedTableName?: string | undefined;
+  // The flag it goes with, and that flag's value: given only then, and needed then.
+  requiredWith?: { flag: string; value: string } | undefined;
+}
+
+// A delete choice's flag: workflowsRunAs -> --workflows-run-as.
+export function getCliDeleteChoiceFlagName(key: string): string {
+  return toCliFlag(key);
+}
+
+function getDeleteChoiceValueName(choice: DeleteChoice): string {
+  if (choice.values) {
+    return "<value>";
+  }
+
+  return choice.relatedTableName ? "<id>" : "<text>";
+}
+
+// The flags a delete of a record of `tableName` takes; none for most tables.
+export function getCliDeleteChoiceFlags(
+  tableName: string | null | undefined,
+): Array<CliDeleteChoiceFlag> {
+  const choices: DeleteChoicesOfTable | null = getDeleteChoices(tableName);
+
+  if (!choices) {
+    return [];
+  }
+
+  return choices.choices.map((choice: DeleteChoice): CliDeleteChoiceFlag => {
+    return {
+      key: choice.key,
+      flag: getCliDeleteChoiceFlagName(choice.key),
+      valueName: getDeleteChoiceValueName(choice),
+      description: choice.describe(getCliDeleteChoiceFlagName),
+      values: choice.values,
+      relatedTableName: choice.relatedTableName,
+      requiredWith: choice.requiredWith
+        ? {
+            flag: getCliDeleteChoiceFlagName(choice.requiredWith.key),
+            value: choice.requiredWith.value,
+          }
+        : undefined,
+    };
+  });
 }
 
 /*

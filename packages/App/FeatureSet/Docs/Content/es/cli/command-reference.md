@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Elimina un registro de inmediato, sin preguntar.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argumento u opción | Obligatorio | Qué es |
 | --- | --- | --- |
 | `<id>` | Sí | El ID del registro |
 | `--force` | No | Se acepta y no cambia nada: `delete` nunca pide confirmación |
+| `--workflows-run-as <value>` | No | Solo roles personalizados: con qué se ejecutan, una vez eliminado el rol, los flujos de trabajo que se ejecutan con él, `Default` o `CustomRole`. Un rol con el que se ejecutan flujos de trabajo solo se elimina con esta opción |
+| `--workflows-run-as-custom-role-id <id>` | No | Solo roles personalizados: con `--workflows-run-as CustomRole`, el otro rol personalizado con el que se ejecutan |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Cada operación es una solicitud a la API, con la clave en la cabecera `APIKey`.
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Ninguno |
+| `delete` | `DELETE /api/<path>/<id>/` | Ninguno, o `miscDataProps` con `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 Una acción lee los estados de su proyecto y el registro, y luego crea una fila en la línea de tiempo de estados del registro, como hace el botón del panel: `acknowledge` en un incidente crea un `incident-state-timeline`. `add-note` crea un `incident-internal-note`, o con `--public` un `incident-public-note`. Una opción de correo lista primero los miembros de equipo del proyecto con esa dirección. Cuando OneUptime rechaza un campo que la clave no puede leer, una lista o una lectura vuelve a pedir sin él.

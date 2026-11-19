@@ -207,6 +207,20 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 > [!CAUTION]
 > `delete` はレコードをすぐに削除します。CLI は確認を求めず、元に戻すこともできません。そのフラグを付けて書かれたスクリプトのために `--force` を受け付けますが、`--force` は何も変えません。
 
+### ワークフローが実行に使っているカスタムロール
+
+OneUptime は、ワークフローが実行に使っているカスタムロールを、代わりに何として実行するかを削除で示したときだけ削除し、示さない削除はワークフローの名前を挙げて拒否します。`--workflows-run-as` で示してください。`Default` はデフォルトの権限、`CustomRole` はあなたがチームに与えられる別のカスタムロールで、その ID を `--workflows-run-as-custom-role-id` に指定します。Project Owner にはなりません。ロールを削除しても、ワークフローにできることが増えることはありません。
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+拒否された削除は、ワークフローの名前を挙げた OneUptime の拒否メッセージを表示し、続けてもう一度実行するときのフラグを表示します。どのワークフローも実行に使っていないロールには、どちらのフラグも要りません。
+
 ## レコードの件数を取得する
 
 ```bash
