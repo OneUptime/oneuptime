@@ -25,6 +25,7 @@ import {
   startingRows,
 } from "./ContiguousOrderCases";
 import { getJestSpyOn } from "../../Spy";
+import { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -89,7 +90,7 @@ async function moveInList(
 
 describe("an escalation rule moved", () => {
   const orderCase: OrderCase = caseOf("OnCallDutyPolicyEscalationRuleService");
-  let forget: jest.SpiedFunction<typeof OnDutyPoliciesCache.forgetProjects>;
+  let forget: SpyInstance<typeof OnDutyPoliciesCache.forgetProjects>;
 
   beforeEach(() => {
     const table: InMemoryTable = useInMemoryTable(
@@ -121,12 +122,9 @@ describe("an escalation rule moved", () => {
 
 describe("a schedule layer moved", () => {
   const orderCase: OrderCase = caseOf("OnCallDutyPolicyScheduleLayerService");
-  let propagate: jest.SpiedFunction<
-    typeof OnCallDutyPolicyScheduleService.propagateShiftConfigChange
-  >;
-  let refresh: jest.SpiedFunction<
-    typeof OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule
-  >;
+  // getJestSpyOn's spies are @types/jest's.
+  let propagate: jest.SpyInstance;
+  let refresh: jest.SpyInstance;
 
   beforeEach(() => {
     const table: InMemoryTable = useInMemoryTable(
@@ -177,9 +175,8 @@ describe("a person moved to another turn in a layer", () => {
   const PERSON_A: string = "1c000000-0000-4000-8000-0000000000e1";
   const PERSON_B: string = "1c000000-0000-4000-8000-0000000000e2";
   const PERSON_C: string = "1c000000-0000-4000-8000-0000000000e3";
-  let propagate: jest.SpiedFunction<
-    typeof OnCallDutyPolicyScheduleService.propagateShiftConfigChange
-  >;
+  // getJestSpyOn's spies are @types/jest's.
+  let propagate: jest.SpyInstance;
 
   beforeEach(() => {
     const table: InMemoryTable = useInMemoryTable(
