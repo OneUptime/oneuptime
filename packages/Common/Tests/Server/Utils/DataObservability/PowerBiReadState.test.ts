@@ -490,6 +490,26 @@ describe("the scans a read stopped waiting for", () => {
     expect(merged.pendingWorkspaceIds).toEqual(["c", "a"]);
   });
 
+  test("a whole scan keeps no scan of a workspace it no longer lists: it is gone, and the next read must not bring it back", () => {
+    const merged: ReturnType<typeof mergePowerBiWorkspaces> =
+      mergePowerBiWorkspaces({
+        kept: state().workspaces,
+        isFull: true,
+        listedIds: ["a"],
+        scans: [
+          {
+            workspaceIds: ["a", "gone"],
+            pending: pending("old", ["a", "gone"]),
+          },
+          { workspaceIds: ["deleted"] },
+        ],
+      });
+
+    expect(merged.pendingScans).toEqual([pending("old", ["a"])]);
+    expect(merged.pendingWorkspaceIds).toEqual([]);
+    expect(names(merged.workspaces)).toEqual(["a: Report in a"]);
+  });
+
   test("the next read picks up those Power BI still keeps; one started 23 hours ago or more has its workspaces scanned anew", () => {
     const fresh: PowerBiPendingScan = pending(
       "fresh",

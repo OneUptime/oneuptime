@@ -288,11 +288,13 @@ export function mergePowerBiWorkspaces(data: {
 
   const pendingWorkspaceIds: Set<string> = new Set();
   const pendingScans: Array<PowerBiPendingScan> = [];
+  // A whole scan's list is every workspace there is: one it does not list is gone, its scan or not.
+  const listed: Set<string> = new Set(data.listedIds);
 
   for (const scan of data.scans) {
     const own: Array<string> = Array.from(new Set(scan.workspaceIds)).filter(
       (id: string): boolean => {
-        return newest.get(id) === scan;
+        return newest.get(id) === scan && (!data.isFull || listed.has(id));
       },
     );
 
