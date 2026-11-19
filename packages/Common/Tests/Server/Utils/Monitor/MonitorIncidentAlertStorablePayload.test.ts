@@ -38,6 +38,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * The incident and alert a check opens, and the state change that resolves
@@ -239,8 +240,12 @@ describe("Incidents and alerts store payload copies Postgres can hold", () => {
         return alert;
       });
 
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
     jest
       .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")

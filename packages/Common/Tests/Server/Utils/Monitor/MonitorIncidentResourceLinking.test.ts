@@ -45,6 +45,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * The incident half of the series-resource-linking contract, driven
@@ -270,7 +271,9 @@ describe("Incidents link the resources their series identifies", () => {
         return incident;
       });
 
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   });
 
   afterEach(() => {

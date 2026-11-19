@@ -148,6 +148,16 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * no Linux capability is.
    */
   "Capabilities (Linux capabilities)",
+  /*
+   * A machine's make and model, as its maker names it: the Model of
+   * Inventory's Asset Details card, of the Managed Devices list (its column
+   * and its filter) and of a managed device's Esper card, a network device's
+   * and a storage array controller's (#9838). The bare "Model" is an AI
+   * model's - the AI / LLM pages, an LLM monitor, a workflow's AI step -
+   * worded so in Chinese (模型, a machine-learning model) and Arabic
+   * (النموذج), where a device's model is 型号 / 型號 and الطراز.
+   */
+  "Model (hardware model)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

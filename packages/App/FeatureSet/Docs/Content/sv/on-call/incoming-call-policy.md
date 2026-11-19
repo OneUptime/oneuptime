@@ -53,7 +53,7 @@ Gå till **Jour** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkomm
 
 ### Välj Twilio-kontot
 
-Policyns **Översikt** visar ett kort **Inställning** med tre numrerade steg. Klicka på **Välj** i det första, välj kontot under **Twilio-konfiguration** och klicka på **Spara**.
+Policyns **Översikt** visar ett kort **Inställning** med tre numrerade steg. Klicka på **Välj** i det första, välj kontot under **Twilio-konfiguration** och klicka på **Spara**. Listan visar bara konfigurationer som används för **Samtal och SMS** eller **Endast samtal**. En policy vars konfiguration senare ställs in på **Endast SMS** behåller den, och kortet säger vad du ska ändra.
 
 ### Lägg till ett telefonnummer
 

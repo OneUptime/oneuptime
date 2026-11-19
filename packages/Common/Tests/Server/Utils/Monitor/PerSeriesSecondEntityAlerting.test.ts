@@ -41,6 +41,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * The reported bug, pinned at the layer that produced it.
@@ -272,8 +273,12 @@ describe("A second breaching series alerts even while the first is open", () => 
         return incident;
       });
 
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
     jest
       .spyOn(AlertStateTimelineService, "getResolvedStateIdForProject")

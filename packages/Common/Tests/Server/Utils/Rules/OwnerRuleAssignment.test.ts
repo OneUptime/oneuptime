@@ -6,6 +6,8 @@ import DatabaseService, {
   PendingRecord,
 } from "../../../../Server/Services/DatabaseService";
 import OwnerRuleAssignment, {
+  OwnerAddOutcome,
+  OwnersAdded,
   OwnersToAssign,
 } from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
@@ -1158,7 +1160,7 @@ describe("OwnerRuleAssignment.addOwners", () => {
 
     expect(services.createTeam).not.toHaveBeenCalled();
     expect(services.createUser).not.toHaveBeenCalled();
-    expect(added).toEqual({ userIds: [], teamIds: [] });
+    expect(added).toEqual({ userIds: [], teamIds: [], notAdded: [] });
   });
 });
 
@@ -1491,11 +1493,451 @@ describe("OwnerRuleAssignment.addOwnersPickedOnCreate", () => {
 
       const added: OwnersToAssign = await addPicked(services, miscDataProps);
 
-      expect(added).toEqual({ userIds: [], teamIds: [] });
+      expect(added).toEqual({ userIds: [], teamIds: [], notAdded: [] });
       expect(services.userFindBy).not.toHaveBeenCalled();
       expect(services.teamFindBy).not.toHaveBeenCalled();
       expect(services.createUser).not.toHaveBeenCalled();
       expect(services.createTeam).not.toHaveBeenCalled();
     }
+  });
+});
+
+/*
+ * WHAT BECAME OF EACH OWNER (#9933). An owner rule's feed used to name every
+ * owner its rules asked for as assigned, though createOwner skipped some:
+ * the engines counted every id they handed to addOwners as added. createOwner
+ * says which of its answers it gave (createOwnerWithOutcome), and addOwners
+ * answers with the owners it wrote and, apart, the ones it skipped and why.
+ * An owner the resource already had is in neither list: it was there.
+ */
+describe("OwnerRuleAssignment.createOwnerWithOutcome", () => {
+  function teamService(create: jest.Mock): DatabaseService<MonitorOwnerTeam> {
+    return { create } as unknown as DatabaseService<MonitorOwnerTeam>;
+  }
+
+  function memberRow(userId: ObjectID): MonitorOwnerUser {
+    const owner: MonitorOwnerUser = ownerUser(userId);
+    owner.projectId = PROJECT_ID;
+    return owner;
+  }
+
+  it("says Added when the row is written", async () => {
+    await expect(
+      OwnerRuleAssignment.createOwnerWithOutcome({
+        ownerService: teamService(
+          jest.fn(async () => {
+            return {};
+          }),
+        ),
+        owner: ownerTeam(TEAM_A),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(OwnerAddOutcome.Added);
+  });
+
+  it.each([
+    ["the service's own check", refusedByServiceCheck],
+    ["the unique index", refusedByUniqueIndex],
+    [
+      "a unique violation DatabaseService already translated",
+      (): unknown => {
+        return PostgresErrorTranslator.translate(refusedByUniqueIndex());
+      },
+    ],
+  ])(
+    "says AlreadyOwner when %s finds the owner",
+    async (_label: string, refusal: () => unknown) => {
+      await expect(
+        OwnerRuleAssignment.createOwnerWithOutcome({
+          ownerService: teamService(
+            jest.fn(async () => {
+              throw refusal();
+            }),
+          ),
+          owner: ownerTeam(TEAM_A),
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(OwnerAddOutcome.AlreadyOwner);
+    },
+  );
+
+  it("says NotProjectMember for a user with no accepted membership, and writes nothing", async () => {
+    memberCheck.mockResolvedValue(false);
+    const create: jest.Mock = jest.fn(async () => {
+      return {};
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwnerWithOutcome({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerUser>,
+        owner: memberRow(USER_B),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(OwnerAddOutcome.NotProjectMember);
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("says NotProjectRecord for a row the owner service refuses as naming another project's record", async () => {
+    await expect(
+      OwnerRuleAssignment.createOwnerWithOutcome({
+        ownerService: teamService(
+          jest.fn(async () => {
+            throw new ProjectScopedReferenceException(
+              'This monitor owner team references records that are not in this project: Team "x". Please pick values from this project and try again.',
+            );
+          }),
+        ),
+        owner: ownerTeam(TEAM_B),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(OwnerAddOutcome.NotProjectRecord);
+  });
+
+  it("still throws a record its caller may not read, and any other failure", async () => {
+    for (const failure of [
+      new UnreadableReferenceException(
+        'This monitor owner team references records that are not in this project: Monitors "x". Please pick values from this project and try again.',
+      ),
+      new BadDataException("teamId is required"),
+      new Error("connection reset"),
+    ]) {
+      await expect(
+        OwnerRuleAssignment.createOwnerWithOutcome({
+          ownerService: teamService(
+            jest.fn(async () => {
+              throw failure;
+            }),
+          ),
+          owner: ownerTeam(TEAM_A),
+          props: { isRoot: true },
+        }),
+      ).rejects.toBe(failure);
+    }
+  });
+
+  it("createOwner is true for Added alone", async () => {
+    const outcomes: Array<[() => jest.Mock, boolean]> = [
+      [
+        (): jest.Mock => {
+          return jest.fn(async () => {
+            return {};
+          });
+        },
+        true,
+      ],
+      [
+        (): jest.Mock => {
+          return jest.fn(async () => {
+            throw refusedByServiceCheck();
+          });
+        },
+        false,
+      ],
+      [
+        (): jest.Mock => {
+          return jest.fn(async () => {
+            throw new ProjectScopedReferenceException("not the project's");
+          });
+        },
+        false,
+      ],
+    ];
+
+    for (const [create, written] of outcomes) {
+      await expect(
+        OwnerRuleAssignment.createOwner({
+          ownerService: teamService(create()),
+          owner: ownerTeam(TEAM_A),
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(written);
+    }
+  });
+
+  it("tells a skip from the outcomes that leave the owner on the resource", () => {
+    expect(
+      OwnerRuleAssignment.isSkipped(OwnerAddOutcome.NotProjectMember),
+    ).toBe(true);
+    expect(
+      OwnerRuleAssignment.isSkipped(OwnerAddOutcome.NotProjectRecord),
+    ).toBe(true);
+    expect(OwnerRuleAssignment.isSkipped(OwnerAddOutcome.Added)).toBe(false);
+    expect(OwnerRuleAssignment.isSkipped(OwnerAddOutcome.AlreadyOwner)).toBe(
+      false,
+    );
+  });
+});
+
+describe("OwnerRuleAssignment.addOwners: what it added, and what it skipped and why", () => {
+  // A team of another project: the owner service refuses its row.
+  const FOREIGN_TEAM: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+  const DEPARTED: ObjectID = USER_B;
+
+  function notTheProjects(): ProjectScopedReferenceException {
+    return new ProjectScopedReferenceException(
+      `This monitor owner team references records that are not in this project: Team "${FOREIGN_TEAM.toString()}". Please pick values from this project and try again.`,
+    );
+  }
+
+  function add(
+    services: WritableServices,
+    owners: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> },
+  ): Promise<OwnersAdded> {
+    return OwnerRuleAssignment.addOwners({
+      ownerUserService: services.ownerUserService,
+      ownerTeamService: services.ownerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceId: MONITOR_ID,
+      projectId: PROJECT_ID,
+      userIds: owners.userIds,
+      teamIds: owners.teamIds,
+      props: { isRoot: true },
+    });
+  }
+
+  beforeEach(() => {
+    memberCheck.mockImplementation(
+      async (data: { projectId: ObjectID; userId: ObjectID }) => {
+        return data.userId.toString() !== DEPARTED.toString();
+      },
+    );
+  });
+
+  it("lists a member and a project team as added, and a departed user and another project's team as skipped, with why", async () => {
+    const services: WritableServices = writableServices({
+      teamErrors: { [FOREIGN_TEAM.toString()]: notTheProjects() },
+    });
+
+    const result: OwnersAdded = await add(services, {
+      userIds: [USER_A, DEPARTED],
+      teamIds: [TEAM_A, FOREIGN_TEAM],
+    });
+
+    expect(ids(result.userIds)).toEqual([USER_A.toString()]);
+    expect(ids(result.teamIds)).toEqual([TEAM_A.toString()]);
+    expect(
+      result.notAdded.map(
+        (owner: OwnersAdded["notAdded"][number]): Array<string> => {
+          return [owner.ownerColumn, owner.id.toString(), owner.reason];
+        },
+      ),
+    ).toEqual([
+      ["teamId", FOREIGN_TEAM.toString(), OwnerAddOutcome.NotProjectRecord],
+      ["userId", DEPARTED.toString(), OwnerAddOutcome.NotProjectMember],
+    ]);
+  });
+
+  it("names neither list for an owner the resource already has, whether its own read or the database says so", async () => {
+    const services: WritableServices = writableServices({
+      existingUsers: [ownerUser(USER_A)],
+      teamErrors: { [TEAM_A.toString()]: refusedByUniqueIndex() },
+    });
+
+    const result: OwnersAdded = await add(services, {
+      userIds: [USER_A],
+      teamIds: [TEAM_A],
+    });
+
+    expect(result).toEqual({ userIds: [], teamIds: [], notAdded: [] });
+  });
+
+  it("answers every owner skipped when none is added", async () => {
+    const services: WritableServices = writableServices({
+      teamErrors: { [FOREIGN_TEAM.toString()]: notTheProjects() },
+    });
+
+    const result: OwnersAdded = await add(services, {
+      userIds: [DEPARTED],
+      teamIds: [FOREIGN_TEAM],
+    });
+
+    expect(result.userIds).toEqual([]);
+    expect(result.teamIds).toEqual([]);
+    expect(result.notAdded).toHaveLength(2);
+    expect(services.createUser).not.toHaveBeenCalled();
+  });
+
+  it("is what addOwnersPickedOnCreate answers too", async () => {
+    const services: WritableServices = writableServices({});
+
+    const result: OwnersAdded =
+      await OwnerRuleAssignment.addOwnersPickedOnCreate({
+        ownerUserService: services.ownerUserService,
+        ownerTeamService: services.ownerTeamService,
+        resourceIdColumn: "monitorId",
+        resourceId: MONITOR_ID,
+        projectId: PROJECT_ID,
+        miscDataProps: { ownerUsers: [USER_A.toString(), DEPARTED.toString()] },
+        props: { isRoot: true },
+      });
+
+    expect(ids(result.userIds)).toEqual([USER_A.toString()]);
+    expect(result.notAdded).toEqual([
+      {
+        ownerColumn: "userId",
+        id: DEPARTED,
+        reason: OwnerAddOutcome.NotProjectMember,
+      },
+    ]);
+  });
+
+  it("adds up two calls, as an engine that adds its notified and its silent owners apart does", () => {
+    const into: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+
+    OwnerRuleAssignment.addUp(into, {
+      userIds: [USER_A],
+      teamIds: [],
+      notAdded: [
+        {
+          ownerColumn: "userId",
+          id: DEPARTED,
+          reason: OwnerAddOutcome.NotProjectMember,
+        },
+      ],
+    });
+    OwnerRuleAssignment.addUp(into, {
+      userIds: [],
+      teamIds: [TEAM_A],
+      notAdded: [
+        {
+          ownerColumn: "teamId",
+          id: FOREIGN_TEAM,
+          reason: OwnerAddOutcome.NotProjectRecord,
+        },
+      ],
+    });
+
+    expect(ids(into.userIds)).toEqual([USER_A.toString()]);
+    expect(ids(into.teamIds)).toEqual([TEAM_A.toString()]);
+    expect(
+      into.notAdded.map((owner: OwnersAdded["notAdded"][number]): string => {
+        return owner.reason;
+      }),
+    ).toEqual([
+      OwnerAddOutcome.NotProjectMember,
+      OwnerAddOutcome.NotProjectRecord,
+    ]);
+  });
+
+  it("lists an owner both calls skipped once - two rules naming someone who left, one telling its owners and one not", () => {
+    const into: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+    const skippedByBoth: OwnersAdded = {
+      userIds: [],
+      teamIds: [],
+      notAdded: [
+        {
+          ownerColumn: "userId",
+          id: DEPARTED,
+          reason: OwnerAddOutcome.NotProjectMember,
+        },
+      ],
+    };
+
+    OwnerRuleAssignment.addUp(into, skippedByBoth);
+    OwnerRuleAssignment.addUp(into, {
+      ...skippedByBoth,
+      notAdded: [
+        {
+          ownerColumn: "userId",
+          // The same person, however the id is cased.
+          id: new ObjectID(DEPARTED.toString().toUpperCase()),
+          reason: OwnerAddOutcome.NotProjectMember,
+        },
+        {
+          ownerColumn: "teamId",
+          id: FOREIGN_TEAM,
+          reason: OwnerAddOutcome.NotProjectRecord,
+        },
+      ],
+    });
+
+    expect(
+      into.notAdded.map((owner: OwnersAdded["notAdded"][number]): string => {
+        return `${owner.ownerColumn}:${owner.id.toString().toLowerCase()}`;
+      }),
+    ).toEqual([
+      `userId:${DEPARTED.toString().toLowerCase()}`,
+      `teamId:${FOREIGN_TEAM.toString().toLowerCase()}`,
+    ]);
+  });
+
+  it("recordOutcome answers whether the owner was written", () => {
+    const into: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+
+    expect(
+      OwnerRuleAssignment.recordOutcome({
+        into,
+        ownerColumn: "userId",
+        id: USER_A,
+        outcome: OwnerAddOutcome.Added,
+      }),
+    ).toBe(true);
+
+    for (const outcome of [
+      OwnerAddOutcome.AlreadyOwner,
+      OwnerAddOutcome.NotProjectMember,
+      OwnerAddOutcome.NotProjectRecord,
+    ]) {
+      expect(
+        OwnerRuleAssignment.recordOutcome({
+          into,
+          ownerColumn: "userId",
+          id: DEPARTED,
+          outcome,
+        }),
+      ).toBe(false);
+    }
+
+    expect(ids(into.userIds)).toEqual([USER_A.toString()]);
+    // The two skips are listed; the owner already there is not.
+    expect(into.notAdded).toHaveLength(2);
+  });
+
+  it("starts every answer empty, and apart from every other", () => {
+    const first: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+    const second: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+
+    first.userIds.push(USER_A);
+
+    expect(second).toEqual({ userIds: [], teamIds: [], notAdded: [] });
+  });
+
+  it("a team OneUptime writes for its creator and the owner service refuses is skipped as not the project's", async () => {
+    const unreadable: UnreadableParentException = new UnreadableParentException(
+      'This monitor owner team references records that are not in this project: Monitor "x". Please pick values from this project and try again.',
+    );
+    jest
+      .spyOn(CreatePermission, "checkCreatePermissions")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+    const create: jest.Mock = jest
+      .fn()
+      .mockImplementationOnce(async () => {
+        throw unreadable;
+      })
+      .mockImplementationOnce(async () => {
+        throw notTheProjects();
+      });
+
+    await expect(
+      OwnerRuleAssignment.createOwnerWithOutcome({
+        ownerService: {
+          create,
+          modelType: MonitorOwnerTeam,
+          checkCreateScopeOf: jest.fn(async () => {
+            return undefined;
+          }),
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: ownerTeam(FOREIGN_TEAM),
+        props: { userId: CREATED_BY, tenantId: PROJECT_ID },
+        onCreatorsBehalf: true,
+      }),
+    ).resolves.toBe(OwnerAddOutcome.NotProjectRecord);
   });
 });

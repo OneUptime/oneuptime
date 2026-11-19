@@ -267,7 +267,8 @@ export default class ManagedDevice extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
-    title: "Model",
+    // Named "Model" in the API, and as a machine's model on screen (MeaningKeys).
+    title: "Model (hardware model)",
     description: "The device's model.",
   })
   @Column({

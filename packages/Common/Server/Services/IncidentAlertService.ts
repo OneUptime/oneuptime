@@ -24,6 +24,7 @@ import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
 import ProjectService from "./ProjectService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import type { OwnersAdded } from "../Utils/Rules/OwnerRuleAssignment";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthorization";
@@ -1128,7 +1129,9 @@ export class Service extends ProjectReferencesService<Model> {
    * incident. The declaring user is already made an owner by
    * DatabaseService.autoOwnerOnCreate. Owners are added as root, without
    * notifying them (they were notified about their alerts), and owners the
-   * incident already has are skipped.
+   * incident already has are skipped. Resolves to the owners added: an
+   * alert's owner who has since left the project, or a team that is not
+   * one of its teams, is not one (#9933).
    */
   @CaptureSpan()
   public async copyAlertOwnersToIncident(data: {
@@ -1188,7 +1191,7 @@ export class Service extends ProjectReferencesService<Model> {
       return { userIds, teamIds };
     }
 
-    await IncidentService.addOwners(
+    const added: OwnersAdded = await IncidentService.addOwners(
       data.projectId,
       data.incidentId,
       userIds,
@@ -1199,7 +1202,7 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
-    return { userIds, teamIds };
+    return { userIds: added.userIds, teamIds: added.teamIds };
   }
 
   /*

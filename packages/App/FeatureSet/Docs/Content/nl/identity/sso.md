@@ -79,7 +79,7 @@ U hebt toestemming nodig om SSO-providers toe te voegen — **Projecteigenaar**,
    - Een nieuwe provider staat eerst uit. Zodra uw IdP deze twee waarden heeft, bewerkt u de provider en zet u **Ingeschakeld** aan
 
 4. **De provider testen**
-   - Open de link in de kaart **Test Single Sign On (SSO)** en kies de provider op de pagina die opent. U gaat naar de aanmeldpagina van uw identiteitsprovider en komt aangemeld terug in OneUptime
+   - Open de link in de kaart **SSO-aanmeldlink** en kies de provider op de pagina die opent. U gaat naar de aanmeldpagina van uw identiteitsprovider en komt aangemeld terug in OneUptime
    - Zodra het werkt, kunt u voor het project [SSO verplichten](#sso-verplichten-voor-uw-project)
 :::
 
@@ -131,7 +131,7 @@ Keycloak is een veelgebruikte opensourceoplossing voor identiteits- en toegangsb
 
 5. **De provider inschakelen en testen**
 
-   Bewerk in OneUptime de provider en zet **Ingeschakeld** aan, open daarna de link in de kaart **Test Single Sign On (SSO)** en kies de provider. U zou naar de aanmeldpagina van Keycloak moeten gaan en terug naar OneUptime.
+   Bewerk in OneUptime de provider en zet **Ingeschakeld** aan, open daarna de link in de kaart **SSO-aanmeldlink** en kies de provider. U zou naar de aanmeldpagina van Keycloak moeten gaan en terug naar OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (voorheen Azure AD / Active Directory) is de cloudidentiteitsdienst van Microsoft. U hebt een tenant nodig die bedrijfsapplicaties met SAML-SSO ondersteunt, en beheerderstoegang tot zowel Entra ID als OneUptime. Staat OneUptime in de Microsoft Entra-applicatiegalerie, voeg de app dan op OneUptime Cloud van daaruit toe: die wordt geleverd met de claims die OneUptime leest en met de patronen van de URL's van OneUptime.
@@ -182,7 +182,7 @@ Microsoft Entra ID (voorheen Azure AD / Active Directory) is de cloudidentiteits
 
 7. **De provider inschakelen en testen**
 
-   Bewerk in OneUptime de provider en zet **Ingeschakeld** aan, open daarna de link in de kaart **Test Single Sign On (SSO)** en kies de provider. U zou naar de aanmeldpagina van Microsoft moeten gaan en terug naar OneUptime.
+   Bewerk in OneUptime de provider en zet **Ingeschakeld** aan, open daarna de link in de kaart **SSO-aanmeldlink** en kies de provider. U zou naar de aanmeldpagina van Microsoft moeten gaan en terug naar OneUptime.
 :::
 @tab Okta
 Okta is een veelgebruikt identiteitsplatform met SAML-SSO. U hebt een Okta-organisatie met beheerderstoegang nodig, en beheerderstoegang tot OneUptime. Staat OneUptime in het Okta Integration Network, voeg de app dan op OneUptime Cloud van daaruit toe: die meldt mensen aan vanaf de pagina **Inloggen met SSO** van OneUptime en vanaf hun Okta-dashboard, geeft ze bij hun eerste aanmelding een account en vraagt om twee ID's in plaats van de URL's van OneUptime.
@@ -232,7 +232,7 @@ Okta is een veelgebruikt identiteitsplatform met SAML-SSO. U hebt een Okta-organ
 
 6. **De provider inschakelen en testen**
 
-   Bewerk in OneUptime de provider en zet **Ingeschakeld** aan, open daarna de link in de kaart **Test Single Sign On (SSO)** en kies de provider. U zou naar de aanmeldpagina van Okta moeten gaan en terug naar OneUptime.
+   Bewerk in OneUptime de provider en zet **Ingeschakeld** aan, open daarna de link in de kaart **SSO-aanmeldlink** en kies de provider. U zou naar de aanmeldpagina van Okta moeten gaan en terug naar OneUptime.
 :::
 @tab Andere
 De SSO van OneUptime gebruikt SAML 2.0 en werkt met elke conforme identiteitsprovider:
@@ -242,7 +242,7 @@ De SSO van OneUptime gebruikt SAML 2.0 en werkt met elke conforme identiteitspro
 2. Maak in OneUptime de provider aan met die waarden en kopieer de **Identificatie (Entity ID)** en de **Antwoord-URL (Assertion Consumer Service-URL)** uit het dialoogvenster **SSO-configuratie** (of via **SSO-configuratie bekijken**).
 3. Stel in de SAML-applicatie van uw identiteitsprovider de **Assertion Consumer Service URL / Reply URL** en de **Entity ID / Audience URI** in op de waarden van OneUptime, en het **Name ID Format** op e-mailadres.
 4. De **Handtekeningmethode** (`RSA-SHA256`) en de **Digest-methode** (`SHA256`) staan al ingesteld onder **Meer velden**; wijzig ze alleen als uw identiteitsprovider anders ondertekent
-5. Zet **Ingeschakeld** aan voor de provider en test hem met de link in de kaart **Test Single Sign On (SSO)**.
+5. Zet **Ingeschakeld** aan voor de provider en test hem met de link in de kaart **SSO-aanmeldlink**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
 4. In de stap **Aanmelden** begint **Teams** met het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. De rest staat al ingevuld onder **Meer velden**: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vraagt. Alleen teams waarvoor u zelf iemand zou kunnen uitnodigen worden geaccepteerd: een team dat meer toegang geeft dan u hebt, wordt onder **Teams** genoemd.
 5. Sla op. Het dialoogvenster **OIDC-configuratie** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit, dus bewerk hem daarna en zet **Ingeschakeld** aan.
-6. Open de link in de kaart **Test Single Sign On (SSO)** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
+6. Open de link in de kaart **SSO-aanmeldlink** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
 :::
 
 ## Ook afmelden bij de identiteitsprovider
@@ -300,14 +300,20 @@ De teams van een provider bepalen wat mensen die zich ermee aanmelden mogen, daa
 1. Voeg uw domein toe onder **Projectinstellingen** > **Geavanceerd** > **Domeinen**, klik in de rij ervan op **Domein verifiëren** en voeg het getoonde TXT-record toe aan de DNS van het domein. Zodra het record is gevonden, is het domein geverifieerd.
 2. Bewerk de provider en kies het domein onder **Domeinen** bij de stap **Aanmelden**. Alleen de geverifieerde domeinen van het project worden vermeld.
 
-**Inloggen met SSO** biedt de provider daarna aan elk adres in dat domein aan, wie het ook typt. Het domein moet precies overeenkomen: `acme.com` dekt `eu.acme.com` niet, dus voeg elk domein toe waarmee mensen zich aanmelden. Een provider zonder domeinen, zoals een die is ingesteld voordat er domeinen waren, wordt daar aan niemand aangeboden en meldt mensen nog steeds aan via uw identiteitsprovider en via de link in de kaart **Test Single Sign On (SSO)**.
+**Inloggen met SSO** biedt de provider daarna aan elk adres in dat domein aan, wie het ook typt. Het domein moet precies overeenkomen: `acme.com` dekt `eu.acme.com` niet, dus voeg elk domein toe waarmee mensen zich aanmelden.
+
+Providers die zijn ingesteld voordat er domeinen waren, kregen bij de upgrade van OneUptime de geverifieerde domeinen van hun project: elk domein dat het project had geverifieerd, tenzij een ander project het ook had geverifieerd. Kies zo'n domein zelf als het van u is. Een domein dat is toegevoegd maar nooit geverifieerd, is aan geen enkele provider gegeven.
+
+Een provider die geen geverifieerd domein vermeldt, wordt daar aan niemand aangeboden. Zijn kolom **Domeinen** toont **Geen geverifieerd domein**, en een melding boven uw providers noemt hem en zegt wat u moet doen. Zolang het project geen geverifieerd domein heeft, opent **Een domein verifiëren** in de melding **Domeinen**.
+
+Iemand van wie het e-mailadres op een ander domein staat, zoals een externe medewerker, vindt daar ook geen provider. Deel de SSO-aanmeldlink van uw project met die persoon: kopieer hem uit de kaart **SSO-aanmeldlink** onder uw providers. Hij toont de providers van het project en vraagt om geen e-mailadres, dus hij zegt niets over wie een account heeft. Een aanmelding die bij uw identiteitsprovider begint, werkt ook, op welk domein dan ook.
 
 ## SSO verplichten voor uw project
 
 Een ingestelde provider houdt niemand tegen om zich met een wachtwoord aan te melden. Om SSO de enige weg het project in te maken, gebruikt u de schakelaar **SSO vereisen om aan te melden** onder **Projectinstellingen** > **Beveiliging** > **SSO**, onder uw providers:
 
 :::steps
-1. Test eerst uw provider met de link in de kaart **Test Single Sign On (SSO)**.
+1. Test eerst uw provider met de link in de kaart **SSO-aanmeldlink**.
 2. Zet **SSO vereisen om aan te melden** aan. OneUptime vraagt eerst om bevestiging: vanaf dan moet iedereen in het project, uzelf inbegrepen, zich met SSO aanmelden om het te openen, en wie met een wachtwoord is aangemeld, is buitengesloten van het project tot hij zich met SSO aanmeldt.
 3. Klik op **SSO vereisen** om te bevestigen. De schakelaar slaat direct op; er is geen aparte knop om op te slaan.
 :::
@@ -336,9 +342,21 @@ De regel wordt elke keer gecontroleerd, dus:
 - **Iemand in een project dat het aanmelden niet beheert**: zodra diegene lid is van, of uitgenodigd is voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, krijgt diegene de instellingen terug, en het **Gebruikersprofiel** noemt dat project als de reden. Na het verlaten ervan wordt het aanmelden weer beheerd. Een account kan bij veel organisaties horen, dus beslist een organisatie nooit over de projecten van een andere.
 - **Projecten met verschillende providers**: iemand in twee projecten die allebei het aanmelden beheren, elk met een eigen identiteitsprovider, wordt beheerd, en het profiel noemt beide providers.
 - **Master-admins** houden altijd hun eigen instellingen.
-- **Wat mensen eerder hebben ingesteld**, blijft bewaard, ongebruikt door uw project. Een serverbeheerder kan het wissen op de pagina **Authenticatie** van de persoon in het Admin Dashboard, met **Aanmeldinstellingen wissen**.
+- **Wat mensen eerder hebben ingesteld**, blijft bewaard, ongebruikt door uw project, totdat het wordt gewist: door de Projecteigenaren (zie hieronder), of door een serverbeheerder op de pagina **Authenticatie** van de persoon in het Admin Dashboard, met **Aanmeldinstellingen wissen**.
 
 **Aanmelden beheren met SSO** slaat op zodra u de schakelaar omzet, verwijdert niets, en uitzetten geeft iedereen meteen de instellingen terug. Wie **SSO vereisen om aan te melden** kan wijzigen, kan ook deze schakelaar wijzigen, op dezelfde abonnementen. Staat **SSO vereisen om aan te melden** uit, dan is hij verborgen en verandert hij niets.
+
+### Wissen wat uw leden eerder hebben opgeslagen
+
+Zolang **Aanmelden beheren met SSO** is ingeschakeld, zien de Projecteigenaren eronder hoeveel van de leden van uw project nog een wachtwoord of tweefactorauthenticatie in OneUptime hebben opgeslagen. **Aanmeldinstellingen wissen** verwijdert, na een bevestiging, hun wachtwoorden met eventuele reset- of aanmeldlinks, passkeys, beveiligingssleutels, authenticator-apps en back-upcodes, zet tweefactorauthenticatie uit en beëindigt de sessies waarin ze zonder SSO zijn aangemeld. Het kan niet ongedaan worden gemaakt.
+
+Een account kan bij veel organisaties horen, dus u kunt alleen de instellingen wissen van de mensen voor wie uw organisatie verantwoordelijk is. Uw organisatie is de projecten waarvan u eigenaar bent: iemands instellingen worden alleen gewist als elk project waartoe diegene behoort, inclusief elk project waarvoor diegene is uitgenodigd, een project is waarvan u **Projecteigenaar** bent en dat **Aanmelden beheren met SSO** heeft ingeschakeld. Alle anderen houden hun instellingen:
+
+- iemand die lid is van, of uitgenodigd is voor, een project waarvan u geen eigenaar bent, of een project dat het aanmelden niet met SSO beheert;
+- iemand die alleen is uitgenodigd voor uw project en er nog geen lid van is geworden;
+- master-admins, en uzelf: wijzig uw eigen instellingen in uw **Gebruikersprofiel**.
+
+Iedereen van wie de instellingen zijn gewist, krijgt een e-mail over wat er is verwijderd en dat diegene zich nu met SSO aanmeldt, en de auditlogboeken van uw projecten leggen vast dat u het wissen hebt gedaan. Alleen een **Projecteigenaar** kan wissen, aangemeld bij het dashboard: nooit met een API-sleutel.
 
 ## Een provider uitzetten of verwijderen
 

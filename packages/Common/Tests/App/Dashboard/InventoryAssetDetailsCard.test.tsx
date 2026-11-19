@@ -57,6 +57,7 @@ import InventoryItemOverview from "../../../../App/FeatureSet/Dashboard/src/Page
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -172,8 +173,11 @@ function row(field: InventoryAssetField): HTMLElement {
 
 function expectValue(field: InventoryAssetField, value: string): void {
   const cell: HTMLElement = row(field);
+  // A label that names its meaning ("Model (hardware model)") reads as its word.
   expect(
-    within(cell).getByText(INVENTORY_ASSET_FIELD_LABELS[field]),
+    within(cell).getByText(
+      withMeaningKeyAsItsWord(INVENTORY_ASSET_FIELD_LABELS[field]),
+    ),
   ).toBeInTheDocument();
   expect(within(cell).getByText(value)).toBeInTheDocument();
   expect(within(cell).queryByText("Unknown")).not.toBeInTheDocument();

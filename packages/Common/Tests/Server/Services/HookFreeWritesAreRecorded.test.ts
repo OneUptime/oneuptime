@@ -1161,6 +1161,8 @@ describe("owner and privacy rule engines", () => {
     "create",
     "createMany",
     "createOwner",
+    // createOwner, answering what became of the owner (#9933).
+    "createOwnerWithOutcome",
     "deleteBy",
     "deleteOneBy",
     "deleteOneById",

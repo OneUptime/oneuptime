@@ -252,7 +252,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
     detailRows.push({
       label:
         (node.isManaged
-          ? translateString("Model")
+          ? translateString("Model (hardware model)")
           : translateString("Platform")) || "",
       value: node.deviceModel,
     });

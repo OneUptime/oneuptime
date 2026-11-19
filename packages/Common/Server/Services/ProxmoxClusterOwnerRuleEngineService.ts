@@ -18,8 +18,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -239,7 +241,13 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
       }),
     );
 
-    let ownersAdded: number = 0;
+    /*
+     * What the adds did: the owners written, and the ones skipped and why -
+     * a user who has left the project, a team that is not one of its teams
+     * (#9933). The count, the result and the rules credited are made from
+     * these.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -263,15 +271,16 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
         owner.projectId = proxmoxCluster.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        if (
-          await OwnerRuleAssignment.createOwner({
+        OwnerRuleAssignment.recordOutcome({
+          into: outcome,
+          ownerColumn: "userId",
+          id: new ObjectID(userId),
+          outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
             ownerService: ProxmoxClusterOwnerUserService,
             owner: owner,
             props: RuleRunWriteProps.get(data.props),
-          })
-        ) {
-          ownersAdded++;
-        }
+          }),
+        });
       }
 
       for (const teamId of teamIds) {
@@ -280,21 +289,42 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
         owner.projectId = proxmoxCluster.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        if (
-          await OwnerRuleAssignment.createOwner({
+        OwnerRuleAssignment.recordOutcome({
+          into: outcome,
+          ownerColumn: "teamId",
+          id: new ObjectID(teamId),
+          outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
             ownerService: ProxmoxClusterOwnerTeamService,
             owner: owner,
             props: RuleRunWriteProps.get(data.props),
-          })
-        ) {
-          ownersAdded++;
-        }
+          }),
+        });
       }
     }
 
+    const ownersAdded: number = outcome.userIds.length + outcome.teamIds.length;
+
+    OwnerRuleFeed.logSkipped({
+      engine: "ProxmoxClusterOwnerRuleEngine",
+      record: `Proxmox cluster ${proxmoxCluster.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: proxmoxCluster.projectId.toString(),
+      } as LogAttributes,
+    });
+
+    /*
+     * Nothing added. When every owner its rules name was skipped, the run
+     * could not update this resource: never "already applied", which would
+     * say it has owners it does not (OwnerRuleFeed.getResult).
+     */
     if (ownersAdded === 0) {
-      return RuleApplicationResultUtil.alreadyApplied();
+      return OwnerRuleFeed.getResult(outcome);
     }
+
+    // Credited: the rules that brought an owner this run added (#9933).
+    const rulesThatAdded: Array<ProxmoxClusterOwnerRule> =
+      OwnerRuleFeed.getRulesThatAdded(matchedRules, outcome);
 
     logger.debug(
       `ProxmoxClusterOwnerRuleEngine added owners to Proxmox cluster ${proxmoxCluster.id}`,
@@ -315,12 +345,14 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
         mdText`👥 Owners were added to ${await ProxmoxClusterService.getProxmoxClusterMarkdownLink(
           proxmoxCluster.projectId,
           proxmoxCluster.id,
-        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+        )} by ${rulesThatAdded.length} owner ${rulesThatAdded.length === 1 ? "rule" : "rules"}.`.toString(),
       moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
         ruleKind: "Owner",
-        ruleNames: matchedRules.map((rule: ProxmoxClusterOwnerRule): string => {
-          return rule.name || rule.id?.toString() || "Unnamed rule";
-        }),
+        ruleNames: rulesThatAdded.map(
+          (rule: ProxmoxClusterOwnerRule): string => {
+            return rule.name || rule.id?.toString() || "Unnamed rule";
+          },
+        ),
       }).toString(),
     });
 

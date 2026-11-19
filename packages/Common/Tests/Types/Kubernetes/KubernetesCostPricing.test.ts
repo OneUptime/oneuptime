@@ -41,10 +41,34 @@ describe("readKubernetesCostEngineInfo", () => {
     expect(KUBERNETES_COST_ENGINE_NAMES).toEqual(["OpenCost", "Kubecost"]);
     expect(KUBERNETES_COST_PRICING_SOURCES).toEqual([
       "list-prices",
+      "billing-integration",
       "rate-card",
       "default-rates",
       "unknown",
     ]);
+  });
+
+  // #9851: a Kubecost that reads the cloud's bill, at that cloud's list prices.
+  test("keeps a bill-reading Kubecost's source and the cloud it names", () => {
+    expect(
+      readKubernetesCostEngineInfo({
+        ...FULL,
+        pricingSource: "billing-integration",
+        pricingProvider: "Azure",
+      }),
+    ).toEqual({
+      ...FULL,
+      pricingSource: KubernetesCostPricingSource.BillingIntegration,
+      pricingProvider: "Azure",
+    });
+    // Its provider is held to a plain name, as list prices' is.
+    expect(
+      readKubernetesCostEngineInfo({
+        ...FULL,
+        pricingSource: "billing-integration",
+        pricingProvider: "<b>AWS</b>",
+      })?.pricingProvider,
+    ).toBe("");
   });
 
   test("drops an engine it does not know", () => {
@@ -89,7 +113,7 @@ describe("readKubernetesCostEngineInfo", () => {
     ).toBe(KubernetesCostPricingSource.Unknown);
   });
 
-  test("keeps a provider only beside list prices, and only a plain name", () => {
+  test("keeps a provider only beside list prices (or a bill-reading Kubecost's), and only a plain name", () => {
     expect(
       readKubernetesCostEngineInfo({
         ...FULL,

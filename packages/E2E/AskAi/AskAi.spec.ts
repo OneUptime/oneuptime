@@ -87,6 +87,9 @@ interface FixtureState {
   feedback: Array<{ messageId: string; feedback: string | null }>;
   cancelled: number;
   deleted: Array<string>;
+  // A test page sent from an answer, kept on it, and its results read (#7249).
+  testPagesRecorded: Array<{ messageId: string; executionLogId: string }>;
+  testPageResultReads: Array<string>;
   unhandled: Array<string>;
 }
 
@@ -4985,6 +4988,39 @@ test.describe("a setup plan", () => {
     expect(fixtureState.unhandled).toEqual([]);
 
     await screenshot(page, "setup-done-1280");
+  });
+
+  /*
+   * #7249: the policy's test page was sent from the answer and kept on it,
+   * so opening the conversation again - a reload, another device - still
+   * says what became of it under the button, read from the test page's own
+   * result route, and records nothing again.
+   */
+  test("a test page sent from the answer is still under it, with what became of it, when the conversation opens again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup-tested");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Test this policy",
+    );
+
+    const line: Locator = page.getByTestId("ask-ai-test-page-result");
+    await expect(line).toContainText("It works");
+    await expect(line).toContainText("Ana Lopez acknowledged it");
+
+    const fixtureState: FixtureState = await state(page);
+    expect(fixtureState.testPageResultReads).toContain(
+      "70000000-0000-4000-8000-0000000000aa",
+    );
+    expect(fixtureState.testPagesRecorded).toEqual([]);
+    expect(fixtureState.unhandled).toEqual([]);
+
+    await screenshot(page, "setup-tested-1280");
   });
 
   test("in a busy project: no policy beside its own, the monitor put on its status page, and a test page to yourself", async ({

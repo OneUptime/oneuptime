@@ -456,9 +456,9 @@ describe("each setting is a result of its own", () => {
     const commands: Array<PaletteCommand> = toCommands(descriptors);
 
     /*
-     * "saml" is a word for the SSO page and its SAML card's name; "single
-     * sign-on" a word for the page and in its test card's name. The page
-     * first, then the card.
+     * "saml" is a word for the SSO page and its SAML card's name; "sso
+     * link" a word for the page and in its SSO Sign-in Link card's name.
+     * The page first, then the card.
      */
     expect(
       results("saml", commands)
@@ -468,12 +468,12 @@ describe("each setting is a result of its own", () => {
         }),
     ).toEqual(["SSO", "SAML"]);
     expect(
-      results("single sign-on", commands)
+      results("sso link", commands)
         .slice(0, 2)
         .map((command: PaletteCommand): string => {
           return command.title;
         }),
-    ).toEqual(["SSO", "Test Single Sign On (SSO)"]);
+    ).toEqual(["SSO", "SSO Sign-in Link"]);
   });
 
   test("a setting never repeats the name of the page it is on", () => {

@@ -26,6 +26,11 @@ import { getKubernetesAgentUpgradeCommand } from "../Utils/DocumentationMarkdown
  * rates can be far from what the hardware costs. When the cost agent read
  * the cluster's own Kubecost or OpenCost, the line names it.
  *
+ * A Kubecost that reads the cloud's bill (#9851) reconciles its prices with
+ * what was paid about a day and a half after each hour, and the cost agent
+ * ships each hour as it closes: "Prices: AWS list prices, before Kubecost
+ * reconciles them with your bill" says both.
+ *
  * And, only while the chart still bundles an OpenCost the agent does not
  * read (it found the cluster's own), one amber note with the upgrade that
  * stops running it: the one exception here someone has to act on.
@@ -46,11 +51,14 @@ export const KUBERNETES_COST_ENGINE_AUTO_COMMAND: string =
   getKubernetesAgentUpgradeCommand(["--set cost.engine.url=auto"]);
 
 export const KUBERNETES_COST_PRICING_DESCRIPTIONS: Record<
-  "listPrices" | "rateCard" | "defaultRates",
+  "listPrices" | "billingIntegration" | "rateCard" | "defaultRates",
   string
 > = {
   listPrices: translationKey(
     "Your cost engine prices the nodes at the cloud's public list prices: your discounts, savings plans and committed use are not in them.",
+  ),
+  billingIntegration: translationKey(
+    "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.",
   ),
   rateCard: translationKey(
     "Your cost engine prices the nodes at rates someone set for it, such as the chart's cost.opencost.customPricing.",
@@ -92,6 +100,23 @@ const KubernetesCostPricingNote: FunctionComponent<ComponentProps> = (
             engine.pricingProvider,
           ),
         })}
+      </span>
+    );
+  } else if (
+    engine.pricingSource === KubernetesCostPricingSource.BillingIntegration &&
+    engine.pricingProvider
+  ) {
+    description = KUBERNETES_COST_PRICING_DESCRIPTIONS.billingIntegration;
+    prices = (
+      <span>
+        {translator.translateTemplate(
+          "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill",
+          {
+            provider: getKubernetesCostProviderDisplayName(
+              engine.pricingProvider,
+            ),
+          },
+        )}
       </span>
     );
   } else if (engine.pricingSource === KubernetesCostPricingSource.RateCard) {

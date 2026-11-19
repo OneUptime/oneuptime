@@ -25,6 +25,10 @@ import path from "path";
  * Settings > On-Call Logs > Timeline draws, and offers in its filter, as
  * "Not answered": the words the Dashboard's other call lists use, already
  * in every language.
+ *
+ * An on-call call that voicemail answered (Twilio's answering machine
+ * detection, #6594) is logged "Voicemail", in yellow too: it reached the
+ * phone, and nobody picked up.
  */
 
 function readLocale(language: string): Record<string, unknown> {
@@ -52,6 +56,13 @@ describe("a call's status in the call logs", () => {
     expect(getCallStatusPill(CallStatus.Busy)).toEqual({
       color: Yellow,
       text: "Busy",
+    });
+  });
+
+  test("answered by voicemail: yellow, not red - it is no failure", () => {
+    expect(getCallStatusPill(CallStatus.Voicemail)).toEqual({
+      color: Yellow,
+      text: "Voicemail",
     });
   });
 
@@ -104,6 +115,7 @@ describe("the words, in every language", () => {
   const WORDS: ReadonlyArray<string> = [
     "Missed call",
     "Busy",
+    "Voicemail",
     NOT_ANSWERED_STATUS_LABEL,
   ];
 

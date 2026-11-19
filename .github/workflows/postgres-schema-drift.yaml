@@ -2468,7 +2468,10 @@ jobs:
           Tests/Server/Types/Database/UUIDColumnFilterPostgres.test.ts
           --forceExit
 
-      - name: Test the inventory overview and status facets on migrated Postgres
+      # The inventory's overview and status facets, and the host an Esper
+      # device's serial number finds when telemetry names the device
+      # another way (#9586).
+      - name: Test the inventory overview, status facets and hosts by serial number on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
         env:
@@ -2480,6 +2483,7 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/InventoryOverviewPostgres.test.ts
           Tests/Server/Types/Database/InventoryStatusPostgres.test.ts
+          Tests/Server/Services/InventoryHostsBySerialNumberPostgres.test.ts
           --forceExit
 
       - name: Test routine email settings on migrated Postgres
@@ -3047,6 +3051,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/ProjectSsoDiscoveryPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated Project, Domain, SSO provider, User and TeamMember
+      # tables into an isolated schema and runs the upgrade's backfill on
+      # them: each provider that lists no domain gets the verified domains its
+      # project alone holds - never one claimed and not verified, one two
+      # projects verified, or a reserved name - and "Sign in with SSO" then
+      # offers an existing customer's providers again, after the same reads
+      # whether or not an address has an account (#9918).
+      - name: Test the upgrade's SSO provider domains on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SSO_DOMAIN_BACKFILL_TESTS: "true"
+          SSO_DOMAIN_BACKFILL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SSO_DOMAIN_BACKFILL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SSO_DOMAIN_BACKFILL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/BackfillSsoProviderDomainsPostgres.test.ts
           --forceExit
 
       - name: Test team member reads across tenants on migrated Postgres
