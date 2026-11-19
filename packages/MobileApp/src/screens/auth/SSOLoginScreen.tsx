@@ -97,7 +97,7 @@ function linkNotUsableMessage(
     case "no-project":
       return LINK_NO_PROJECT_MESSAGE;
     case "other-server":
-      return `This link is for ${link.serverOrigin}, but this app signs in to ${originOf(serverUrl)}. Change the server on the sign-in screen, then paste the link again.`;
+      return `This link is for ${link.serverOrigin}, but this app signs in to ${originOf(serverUrl)}. Tap Change Server on the sign-in screen, then paste the link again.`;
     default:
       return `That is not an SSO sign-in link. Paste the link your admin shared: it starts with ${originOf(serverUrl)}/accounts/sso/.`;
   }

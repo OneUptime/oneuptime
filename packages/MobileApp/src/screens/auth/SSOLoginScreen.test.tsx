@@ -1540,7 +1540,7 @@ describe("A project's SSO sign-in link", () => {
 
     expect(
       await screen.findByText(
-        "This link is for https://status.acme.com, but this app signs in to https://oneuptime.com. Change the server on the sign-in screen, then paste the link again.",
+        "This link is for https://status.acme.com, but this app signs in to https://oneuptime.com. Tap Change Server on the sign-in screen, then paste the link again.",
       ),
     ).toBeTruthy();
     expect(linkDiscovery()).not.toHaveBeenCalled();
