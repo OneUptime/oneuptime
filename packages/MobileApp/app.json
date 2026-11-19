@@ -74,6 +74,9 @@
         {
           "ios": {
             "enableSceneSupport": true
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],

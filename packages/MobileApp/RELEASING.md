@@ -519,8 +519,8 @@ with an on-call policy that pages you by push:
 Since the release after 1.6.0 a new install opens **Get Ready for On-Call**
 by itself, once, the first time it is signed in to a project: allow
 notifications, ring through silent mode (Critical Alerts on an iPhone, Do Not
-Disturb access on Android), and send yourself a test page and acknowledge it
-- the same test page as the Dashboard's Send me a test page. Not Now puts it
+Disturb access on Android), and send yourself a test page and acknowledge it -
+the same test page as the Dashboard's Send me a test page. Not Now puts it
 away; it never opens by itself again, and Settings > Get Ready for On-Call
 opens it any time. An update over a phone already registered for pushes never
 opens it by itself. Critical alerts asked for and allowed in the phone's
@@ -628,9 +628,25 @@ track, privacy changes, warnings, and rollout scope.
    confirmation. Wait for initial automated checks to finish. Verify the console
    says **Your changes are now in review** and resolve any immediate failures.
 
-The 1.1.0 AAB showed only a missing-deobfuscation-file warning. Its R8/minification
-was disabled, so no mapping existed or was required; native debug symbols were
-present. For a future obfuscated build, upload that build's actual mapping file.
+Up to and including 1.7.0, Android builds ran without R8, so Play showed only a
+missing-deobfuscation-file warning and no mapping existed. Play's release
+dashboard then scored 1.6.0's code at 1% obfuscated: from February 2027 an app
+under 25% in any DEX optimization category may lose visibility and publishing
+capabilities (#9955). Since the release after 1.7.0, `app.json` turns R8 on for
+release builds (`expo-build-properties`, `android.enableMinifyInReleaseBuilds`),
+and `src/__tests__/androidReleaseOptimization.test.ts` holds it there. Resource
+shrinking stays off: the critical alarm sounds in `res/raw` are named by file
+name when their notification channels are created, which the shrinker cannot
+see.
+
+Each production build keeps its R8 mapping among the build's artifacts
+(`eas.json`, `buildArtifactPaths`): download it from the build's page on
+expo.dev, then upload it in Play Console under **App bundle explorer**, the
+release's version, **Downloads**, **ReTrace mapping file**, so crash reports
+stay readable. Before the first release built with R8, smoke-test a release
+build on a device or the Android emulator - sign-in and single sign-on, a push
+page and its actions, critical alerts, the biometric lock, and a fold - since a
+missing keep rule fails only at run time.
 
 EAS Submit can put the validated AAB into a production **draft** instead of an
 upload in Chrome. `eas.json`'s `submit.production.android` sets
