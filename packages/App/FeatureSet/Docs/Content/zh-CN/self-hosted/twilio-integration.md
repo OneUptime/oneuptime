@@ -147,6 +147,12 @@ Twilio 号码可以同时拨打电话和发送短信，也可以只支持其中�
 
 状态页只提供发送短信的配置，**发送测试短信** 和 **发送测试呼叫** 也只针对配置所发送的内容显示。所有现有配置都和以前一样用于 **通话和短信**。在 API 和 Terraform 中，这个选择是 `usedFor` 字段，缺少所选用途所需号码的配置会被拒绝。
 
+### 值班电话的语音信箱
+
+对 Twilio 来说，语音信箱接听的电话和有人接听的电话一样，都算已接听。因此每个值班电话都会在后台通过[答录机检测](https://www.twilio.com/docs/voice/answering-machine-detection)询问 Twilio 接听的是人还是语音信箱：接起电话的人会立即听到呼叫内容。语音信箱接听的电话算作未接听，和一直响铃无人接的电话一样，呼叫会像未接来电那样继续。问候语一结束，OneUptime 就会留下一段简短留言，内容是电话所说的话。通话日志会说明是否留下了留言，事件的 Feed 也会说明："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio 会对其检测的每个已接听电话收取答录机检测费用，由拨打电话的账户支付：整个安装的账户，或项目自己的配置。所有项目默认开启此功能。要关闭它，请在 **项目设置 > 通知 > 通知渠道** 的 **更多设置** 中关闭 **值班电话的语音信箱** ：语音信箱接听的电话随后会像以前一样算作已接听。 **发送测试呼叫** 和来电从不检测。与通话结果一样，它需要 Twilio 能访问你的服务器：请参阅下一节。
+
 ## 3. 配置网络访问
 
 仅有出站访问即可发送。投递状态更新、通话结果、按键确认和来电则需要 Twilio 能访问您的服务器。
@@ -171,7 +177,7 @@ sequenceDiagram
 | --- | --- |
 | 提交短信 | 否。不过投递状态更新需要回调。 |
 | 简单的测试语音电话 | 否。OneUptime 在出站 API 请求中附带语音指令。 |
-| 了解值班电话是否被接听 | 是。Twilio 会报告每通电话的结束方式，事件的 Feed 因此能写出有人未接听。没有它，电话也会照常拨出。 |
+| 了解值班电话是否被接听 | 是。Twilio 会报告每通电话的结束方式，以及接听的是人还是语音信箱，事件的 Feed 因此能写出有人未接听。没有它，电话也会照常拨出。 |
 | 按 1 确认值班警报 | 是。Twilio 把按键输入提交给 OneUptime。 |
 | 来电策略 | 是。Twilio 请求通话指令并报告拨号结果。 |
 
@@ -181,13 +187,14 @@ sequenceDiagram
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | 短信投递状态 |
 | POST | `/notification/call/status-callback/:callLogId/:token` | 通话结果 |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | 值班电话是由人还是语音信箱接听 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | 按键确认 |
 | POST | `/notification/incoming-call/voice` | 可选：来电指令 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 可选：来电路由结果 |
 
 OneUptime 会自动生成短信、通话结果和确认的 URL。不要用固定的 webhook URL 替换其中的令牌。来电请按照[来电策略](/docs/on-call/incoming-call-policy)操作，关联号码时会为该号码配置 webhook。
 
-Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。请使用公开受信任的 TLS 证书，并在经过代理时保留原始的主机、协议、路径、查询参数、请求体和 `X-Twilio-Signature` 请求头。来电处理程序会验证 Twilio 签名；短信投递和通话结果使用每条消息或每通电话独有的 URL 令牌，按键确认使用签名的查询令牌。不要在共享日志或截图中暴露令牌。请参阅 [Twilio webhook 安全](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。请使用公开受信任的 TLS 证书，并在经过代理时保留原始的主机、协议、路径、查询参数、请求体和 `X-Twilio-Signature` 请求头。来电处理程序会验证 Twilio 签名；短信投递和通话结果使用每条消息或每通电话独有的 URL 令牌，按键确认使用签名的查询令牌。语音信箱回调会同时验证其 URL 令牌和 Twilio 签名。不要在共享日志或截图中暴露令牌。请参阅 [Twilio webhook 安全](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
 
 ### 从私有部署发布回调
 

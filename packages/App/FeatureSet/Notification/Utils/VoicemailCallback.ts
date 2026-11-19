@@ -89,7 +89,18 @@ async function getCandidateAccounts(data: {
     }
   }
 
-  const serverAccount: TwilioConfig | null = await getTwilioConfig();
+  /*
+   * The server's own account, when it is the one the request names. A
+   * server whose settings cannot be read has no account to try: a call on a
+   * project's own config is still checked against that config.
+   */
+  let serverAccount: TwilioConfig | null = null;
+
+  try {
+    serverAccount = await getTwilioConfig();
+  } catch {
+    serverAccount = null;
+  }
 
   if (serverAccount && serverAccount.accountSid === data.accountSid) {
     candidates.push(serverAccount);

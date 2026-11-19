@@ -711,10 +711,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],
             /*
-             * How members are paged by default (#7449), and the project's
-             * own mail servers and Twilio accounts, folded under the page's
-             * More settings (ProjectPagingDefaultsWords, OwnSendersFold): each
-             * result opens the fold at its card.
+             * How members are paged by default (#7449), whether on-call calls
+             * tell voicemail from a person (#6594), and the project's own mail
+             * servers and Twilio accounts, folded under the page's More
+             * settings (ProjectPagingDefaultsWords, VoicemailDetectionWords,
+             * OwnSendersFold): each result opens the fold at its card.
              */
             actions: [
               {
@@ -742,6 +743,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                   "on-call phone",
                 ],
                 anchor: "phone-for-people-on-call",
+              },
+              {
+                id: "voicemail-on-on-call-calls",
+                title: "Voicemail on On-Call Calls",
+                icon: IconProp.Call,
+                keywords: [
+                  "voicemail",
+                  "detect voicemail",
+                  "answering machine",
+                  "answering machine detection",
+                  "missed call",
+                ],
+                anchor: "voicemail-on-on-call-calls",
               },
               {
                 id: "custom-smtp-configs",

@@ -799,6 +799,21 @@ describe("the call's token and Twilio's signature lock it", () => {
     expect(onlyDelivery()["notification.provider.config"]).toBe("project");
   });
 
+  test("a server whose own settings cannot be read still takes a callback on the project's own config", async () => {
+    addProjectConfig(PROJECT_ACCOUNT);
+    (getTwilioConfig as unknown as jest.Mock).mockRejectedValue(
+      new Error("Global Config not found") as never,
+    );
+
+    const answer: Answer = await answeredBy("machine_end_beep", {
+      account: PROJECT_ACCOUNT,
+      query: { providerConfig: "project" },
+    });
+
+    expectAccepted(answer);
+    expect(storedLog!.statusMessage).toBe(LEFT);
+  });
+
   test("a project config that cannot be read as an account is passed over, not thrown on", async () => {
     addProjectConfig(PROJECT_ACCOUNT);
     toTwilioConfig.mockImplementation(() => {
