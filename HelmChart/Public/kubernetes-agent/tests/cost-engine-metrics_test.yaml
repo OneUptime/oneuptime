@@ -297,9 +297,12 @@ tests:
           errorMessage: "cost.engine.url is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
 
   # --- Scraped as written, as before ------------------------------------------------
-  - it: scrapes the bundled engine where the chart put it, and adds no Service
+  # The bundled engine the agent may leave for the cluster's own is asked for
+  # like any other (#9852): cost-engine-bundled-prices_test.yaml.
+  - it: scrapes the bundled engine the agent always reads where the chart put it, and adds no Service
     set:
       cost.engine.url: ""
+      cost.engine.preferExisting: false
     asserts:
       - template: templates/configmap-deployment.yaml
         matchRegex:

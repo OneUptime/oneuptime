@@ -41,6 +41,12 @@ import BiRequestError from "./BiRequestError";
  * only until it ends, its result unread. One that failed, or that Power BI
  * no longer has, has its workspaces scanned anew in the same read; one too
  * old for its result to be kept is not asked about (PowerBiReadState).
+ *
+ * A scan the read stops waiting for still counts toward Power BI's 16 until
+ * it ends, so the read starts no other in its place (#9901): Microsoft's
+ * guide says to wait for a scan's Succeeded or Failed before starting
+ * another. The workspaces whose scan could not start are scanned by the
+ * next read, first.
  */
 
 // What the scanner asks Power BI, through the tool's own requests.
@@ -78,6 +84,8 @@ const MAX_REASON_LENGTH: number = 300;
 export interface PowerBiScanChunk {
   workspaceIds: Array<string>;
   result: JSONObject;
+  // When the scan started (ISO): how old what it read is (PowerBiReadState).
+  startedAt: string;
 }
 
 export interface PowerBiUnscanned {
@@ -360,6 +368,9 @@ export const PICKED_UP_SCAN_POLL_DELAYS_IN_MS: ReadonlyArray<number> = [
   0, 30_000,
 ];
 
+// Why a scan of the read's own never started: every place held one still running (#9901).
+export const POWER_BI_SCANS_FULL_REASON: string = `The read stopped waiting while Power BI was still running the ${MAX_SIMULTANEOUS_SCANS} scans it allows at once.`;
+
 /*
  * An answer that says Power BI does not have the scan, or will not give
  * it: its status said it failed, or a request about it was refused (a
@@ -513,13 +524,19 @@ export async function runPowerBiScans(data: {
 
       // Each workspace it scanned is scanned anew: it was followed only until it ended.
       if (gives.length === 0) {
-        return { kind: "scanned", workspaceIds: [], result: {} };
+        return {
+          kind: "scanned",
+          workspaceIds: [],
+          result: {},
+          startedAt: scan.startedAt,
+        };
       }
 
       return {
         kind: "scanned",
         workspaceIds: gives,
         result: await resultOf(scan.scanId),
+        startedAt: scan.startedAt,
       };
     } catch (error) {
       if (error instanceof PowerBiLimitError) {
@@ -588,6 +605,7 @@ export async function runPowerBiScans(data: {
         kind: "scanned",
         workspaceIds,
         result: await resultOf(scanId),
+        startedAt: started.startedAt,
       };
     } catch (error) {
       if (error instanceof PowerBiLimitError) {
@@ -607,16 +625,28 @@ export async function runPowerBiScans(data: {
     }
   };
 
+  /*
+   * One of Power BI's 16 places for a scan: it takes the next scan once the
+   * last has ended, and none after one it left running, which holds the
+   * place until Power BI ends it (#9901).
+   */
   const scanNext: () => Promise<void> = async (): Promise<void> => {
     while (next < tasks.length) {
       const index: number = next;
       const task: PowerBiScanTask = tasks[index]!;
 
       next++;
-      outcomes[index] =
+
+      const outcome: PowerBiScanOutcome =
         "pickUp" in task
           ? await pickUp(task.pickUp, task.gives)
           : await scan(task.start);
+
+      outcomes[index] = outcome;
+
+      if (outcome.kind === "running") {
+        return;
+      }
     }
   };
 
@@ -637,11 +667,25 @@ export async function runPowerBiScans(data: {
   };
 
   tasks.forEach((task: PowerBiScanTask, index: number) => {
-    const outcome: PowerBiScanOutcome = outcomes[index] || {
-      kind: "unscanned",
-      workspaceIds: "start" in task ? task.start : task.gives,
-      reason: "Power BI's workspace scan did not run.",
-    };
+    /*
+     * One no place was free for: every one held a scan still running when
+     * the read stopped waiting. A scan picked up is kept as it was, for the
+     * next read to ask about; one of the read's own was never started.
+     */
+    const outcome: PowerBiScanOutcome =
+      outcomes[index] ||
+      ("pickUp" in task
+        ? {
+            kind: "running",
+            scanId: task.pickUp.scanId,
+            workspaceIds: task.gives,
+            startedAt: task.pickUp.startedAt,
+          }
+        : {
+            kind: "unscanned",
+            workspaceIds: task.start,
+            reason: POWER_BI_SCANS_FULL_REASON,
+          });
 
     run.outcomes.push(outcome);
 
@@ -649,6 +693,7 @@ export async function runPowerBiScans(data: {
       run.scanned.push({
         workspaceIds: outcome.workspaceIds,
         result: outcome.result,
+        startedAt: outcome.startedAt,
       });
     } else if (outcome.kind === "unscanned") {
       run.unscanned.push({

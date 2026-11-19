@@ -30,7 +30,7 @@ Serveren din trenger et eget vertsnavn med en A-post som peker på den, for ekse
 
 ![Hjem spør «Hva vil du gjøre først?», med «Fortelle kundene mine det med en statusside» avkrysset](screen:home-goal-status-page)
 
-På siden **Hjem** i prosjektet ditt klikker du på **Publiser en statusside** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Fortelle kundene mine det med en statusside**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `status page` og velger **Publiser en statusside**.
+På siden **Hjem** i prosjektet ditt klikker du på **Publiser en statusside** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Fortelle kundene mine det med en statusside**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `status page` og velger **Publiser en statusside**. Eller klikk på **Beskriv det i stedet**: Spør AI åpnes med oppgaven skrevet i feltet, klar til å sendes.
 
 Også **Statussider** åpner det: klikk på **Veiledet oppsett** i den tomme listen, eller under **Slik fungerer det** når prosjektet har en statusside.
 

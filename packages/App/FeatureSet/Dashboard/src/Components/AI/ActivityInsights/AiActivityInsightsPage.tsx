@@ -7,13 +7,13 @@ import {
   parseAiActivityInsights,
 } from "./AiActivityInsightsData";
 import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
-import AiActivityInsightsView, { CoverageCard } from "./AiActivityInsightsView";
+import AiActivityInsightsView, {
+  AiActivityObjectRoute,
+  CoverageCard,
+} from "./AiActivityInsightsView";
 import ProjectAiNotice from "../../AISettings/ProjectAiNotice";
 import { ProjectAiNoticeContext } from "../../AISettings/ProjectAiSettingsCopy";
-import {
-  AiActivityInsights,
-  AiActivityObject,
-} from "Common/Types/AI/AiActivityInsights";
+import { AiActivityInsights } from "Common/Types/AI/AiActivityInsights";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -83,7 +83,7 @@ export interface ComponentProps {
    * A part of the scope's own page, when it has one: a cluster's node, pod
    * or deployment. Parts without one are named, not linked.
    */
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
   /*
    * The heading's line and the empty state's text in place of the noun's,
    * for a scope that is not one thing ("your incidents"). English keys,

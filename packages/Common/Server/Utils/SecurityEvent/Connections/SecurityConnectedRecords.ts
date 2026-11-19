@@ -12,8 +12,6 @@ import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   EXACT_SECURITY_CONNECTION_REASONS,
@@ -64,6 +62,10 @@ import UserService from "../../../Services/UserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../TeamMember/PendingInviteeProfiles";
+import { isRefusedRead } from "./RefusedRead";
 
 /*
  * WHICH OF THE PROJECT'S OWN RECORDS A SECURITY CASE, EVENT OR ENTITY NAMES.
@@ -188,13 +190,12 @@ export function getLogResourceKind(
   );
 }
 
-// Whether a read was refused for who is asking (a role, a plan), not failed.
-export function isRefusedRead(error: unknown): boolean {
-  return (
-    error instanceof NotAuthorizedException ||
-    error instanceof PaymentRequiredException
-  );
-}
+/*
+ * Whether a read was refused for who is asking (a role, a plan), not
+ * failed: kept in RefusedRead, which a security case's context reads
+ * without loading the connections (ConnectionsLoadOrder).
+ */
+export { isRefusedRead };
 
 // The order a record's matches are listed in, within one certainty.
 const REASON_ORDER: ReadonlyArray<SecurityConnectionReason> = [
@@ -1420,6 +1421,32 @@ export default class SecurityConnectedRecords {
       entityByEmail.set(foldConnectionValue(entity.value), entity);
     }
 
+    /*
+     * A membership can be an invitation not accepted yet: its person is
+     * named as the project knows them - the name typed for them, else
+     * their address - never by their account's own name, which the case's
+     * page and OneUptime AI's triage would show (#9823, #9934). Read once
+     * for them all; when it cannot be read, no member is named at all, and
+     * the members are said to have failed, as any read of them.
+     */
+    const withheld: Map<string, WithheldProfile> | null =
+      (members || []).length > 0
+        ? await collector.read(SecurityConnectionKind.User, async () => {
+            return await PendingInviteeProfiles.readWithheldProfilesInProject({
+              userIds: (members || [])
+                .map((member: TeamMember): string => {
+                  return member.userId?.toString() || "";
+                })
+                .filter(Boolean),
+              projectId: data.projectId,
+            });
+          })
+        : new Map<string, WithheldProfile>();
+
+    if (!withheld) {
+      return;
+    }
+
     for (const member of members || []) {
       const id: string = member.userId?.toString() || "";
       const user: User | undefined = usersById.get(id);
@@ -1441,7 +1468,13 @@ export default class SecurityConnectedRecords {
         collector.add({
           kind: SecurityConnectionKind.User,
           id,
-          name: user?.name?.toString() || email,
+          name:
+            PendingInviteeProfiles.getNameInProject({
+              userId: id,
+              name: user?.name,
+              email: email,
+              withheld: withheld,
+            }) || email,
           match: {
             entity,
             certainty: verdict.certainty,

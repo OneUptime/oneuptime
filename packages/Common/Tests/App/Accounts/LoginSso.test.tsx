@@ -652,7 +652,7 @@ describe("Accounts single sign-on, in every edition", () => {
 
         expect(
           await screen.findByText(
-            "Single sign-on is not set up for example.com. Ask your admin to set it up, or sign in another way.",
+            "Single sign-on is not set up for example.com. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
           ),
         ).toBeInTheDocument();
         expectEmailForm();
@@ -1050,7 +1050,7 @@ describe("Accounts single sign-on, in every edition", () => {
 
       expect(
         await screen.findByText(
-          "Single sign-on is not set up for sales.acme.com. Ask your admin to set it up, or sign in another way.",
+          "Single sign-on is not set up for sales.acme.com. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
         ),
       ).toBeInTheDocument();
       // The way back to a password is still under the form.
@@ -1397,7 +1397,7 @@ describe("Accounts single sign-on, in every edition", () => {
       }
 
       expect(english.sso.notSetUpForDomain).toBe(
-        "Single sign-on is not set up for {{domain}}. Ask your admin to set it up, or sign in another way.",
+        "Single sign-on is not set up for {{domain}}. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
       );
     });
 

@@ -413,6 +413,84 @@ describe("opened for one monitor, from the website setup's summary (#7053)", () 
   });
 });
 
+/*
+ * OPENED FROM AN ASK AI PLAN (#7245): its card's Open in guided setup
+ * opens this setup with the page's name the plan names (?name=): a page of
+ * the project's by that name is the one the monitors go on, and a new page
+ * takes the name otherwise.
+ */
+describe("opened from an Ask AI setup plan (#7245)", () => {
+  const openedFor: (search: string) => void = (search: string): void => {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/status-pages/setup${search}`,
+    );
+  };
+
+  afterEach(() => {
+    openedFor("");
+  });
+
+  test("a new page takes the name the plan gives it, and started says it came from Ask AI", async () => {
+    openedFor("?from=ask_ai&name=Acme%20Uptime");
+    await renderSetup();
+
+    expect(nameField().value).toBe("Acme Uptime");
+    expect(sent(ProductEventName.GuidedSetupStarted)).toEqual([
+      { setup: "status_page", from: "ask_ai" },
+    ]);
+  });
+
+  test("a page of the project's by that name is the one it goes on with", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([
+      { id: "70000000-0000-4000-8000-000000007601", name: "Walk Co Status" },
+      { id: "70000000-0000-4000-8000-000000007602", name: "Customer Status" },
+    ]);
+    api["loadShownMonitors"]!.mockResolvedValue({
+      count: 0,
+      names: [],
+      monitorIds: [],
+      monitorGroupIds: [],
+    });
+
+    openedFor("?from=ask_ai&name=customer%20status");
+    await renderSetup();
+
+    // An existing page is picked - the one the plan names - and no name is asked.
+    expect(
+      screen.queryByTestId("guided-setup-status-page-name"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("guided-setup-existing-page")).getByText(
+        "Customer Status",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("guided-setup-existing-page")).queryByText(
+        "Walk Co Status",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a name none of the project's pages has makes a new page by it, beside the pages it has", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([
+      { id: "70000000-0000-4000-8000-000000007601", name: "Walk Co Status" },
+    ]);
+    api["loadShownMonitors"]!.mockResolvedValue({
+      count: 0,
+      names: [],
+      monitorIds: [],
+      monitorGroupIds: [],
+    });
+
+    openedFor("?from=ask_ai&name=Acme%20Uptime");
+    await renderSetup();
+
+    expect(nameField().value).toBe("Acme Uptime");
+  });
+});
+
 describe("1. Name it, and pick what it shows", () => {
   test("Select all ticks every monitor, and Clear unticks them", async () => {
     await renderSetup();

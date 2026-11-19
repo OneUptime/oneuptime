@@ -74,6 +74,9 @@ import ResourceHealthPill, {
 import ResourceAttentionPill, {
   ComponentProps as ResourceAttentionPillProps,
 } from "../../../Components/ResourcePart/ResourceAttentionPill";
+import ResourceAttentionDialog, {
+  ResourceAttentionDialogRead,
+} from "../../../Components/ResourcePart/ResourceAttentionDialog";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import {
   ResourceAttentionItem,
@@ -90,12 +93,15 @@ import {
   CEPH_CLUSTER_NEARFULL_PERCENT,
   CephHealthCheck,
   CephOsdQuadrant,
+  CephPgProblemState,
+  CephPgReasonStates,
   CephPoolPgStates,
   getCephAttentionItems,
   getCephDownOsdItems,
   getCephHealth,
   getCephOsdAttentionItems,
   getCephOsdQuadrant,
+  getCephPgStatePoolItems,
   getCephPoolReadings,
   getCephProblemPgPoolItems,
 } from "../Utils/CephHealth";
@@ -105,6 +111,7 @@ import {
   CephPgStateReadings,
   loadCephHealthChecks,
   loadCephLatestPerLabel,
+  loadCephPgReasonStates,
   loadCephPgStates,
 } from "../Utils/CephReadings";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -181,6 +188,37 @@ export const CEPH_PROBLEM_PG_POOLS_TITLE: PluralTemplate = {
 };
 export const CEPH_NO_PROBLEM_PG_POOL: string = translationKey(
   "No pool has problem placement groups now.",
+);
+
+/*
+ * What the Placement Group States bar's Degraded and Undersized open
+ * (#9727): the pools that hold them, how many each, and Ceph's reason.
+ */
+export const CEPH_PG_STATE_TITLES: Record<CephPgProblemState, PluralTemplate> =
+  {
+    degraded: {
+      one: "{{count}} degraded placement group",
+      other: "{{count}} degraded placement groups",
+    },
+    undersized: {
+      one: "{{count}} undersized placement group",
+      other: "{{count}} undersized placement groups",
+    },
+  };
+export const CEPH_PG_STATE_DESCRIPTIONS: Record<CephPgProblemState, string> = {
+  degraded: translationKey(
+    "A degraded placement group is missing a copy of some of its objects. These pools hold them, with what Ceph is doing about it.",
+  ),
+  undersized: translationKey(
+    "An undersized placement group has fewer copies than its pool keeps. These pools hold them, with what Ceph is doing about it.",
+  ),
+};
+export const CEPH_NO_PG_STATE_POOL: Record<CephPgProblemState, string> = {
+  degraded: translationKey("No pool has degraded placement groups now."),
+  undersized: translationKey("No pool has undersized placement groups now."),
+};
+export const CEPH_PG_POOLS_READ_FAILED: string = translationKey(
+  "Couldn't read which pools hold them.",
 );
 
 /*
@@ -514,6 +552,10 @@ const CephClusterOverview: FunctionComponent<
     string,
     CephPoolPgStates
   > | null>(null);
+  // The bar's segment whose pools are open (#9727), while one is.
+  const [openPgState, setOpenPgState] = useState<CephPgProblemState | null>(
+    null,
+  );
   const [capacity, setCapacity] = useState<CapacityStats | null>(null);
 
   // Shared time range for the golden charts.
@@ -930,6 +972,45 @@ const CephClusterOverview: FunctionComponent<
         pgStatesByPool: pgStatesByPool,
       })
     : [];
+
+  /*
+   * Whether the bar's Degraded and Undersized can say which pools (#9727):
+   * while the agent reports, on a Ceph that counts placement groups per
+   * pool.
+   */
+  const canOpenPgPools: boolean =
+    isAttentionCurrent && Boolean(pgStatesByPool && pgStatesByPool.size > 0);
+
+  /*
+   * The pools a segment counts, read when it is pressed: Ceph's other
+   * states for their placement groups say what it is doing about them. A
+   * failed read of those never hides the pools: they show without it.
+   */
+  const loadPgStatePools: (
+    state: CephPgProblemState,
+  ) => Promise<ResourceAttentionDialogRead> = async (
+    state: CephPgProblemState,
+  ): Promise<ResourceAttentionDialogRead> => {
+    let reasonsByPool: Map<string, CephPgReasonStates> | null = null;
+    const clusterName: string = (cluster?.name as string | undefined) || "";
+    if (clusterName) {
+      try {
+        reasonsByPool = await loadCephPgReasonStates(clusterName);
+      } catch {
+        // The pools and their counts still say which; Ceph's reason waits.
+      }
+    }
+    return {
+      items: getCephPgStatePoolItems({
+        items: attentionItems,
+        rows: inventoryRows,
+        pgStatesByPool: pgStatesByPool,
+        state: state,
+        reasonsByPool: reasonsByPool,
+        translator: translator,
+      }),
+    };
+  };
 
   const renderHero: () => ReactElement | null = (): ReactElement | null => {
     if (!cluster) {
@@ -1450,6 +1531,28 @@ const CephClusterOverview: FunctionComponent<
     const other: number = Math.max(0, total - clean - degraded - undersized);
 
     /*
+     * Degraded and Undersized open the pools that hold them, and Ceph's
+     * reason (#9727): while the agent reports, on a Ceph that counts its
+     * placement groups per pool. One that counts them for the whole
+     * cluster only never says which pools, so its legend stays words.
+     */
+    const pressToOpenPools: (
+      state: CephPgProblemState,
+    ) => Pick<StackedProgressBarSegment, "onClick" | "clickHint"> = (
+      state: CephPgProblemState,
+    ): Pick<StackedProgressBarSegment, "onClick" | "clickHint"> => {
+      if (!canOpenPgPools) {
+        return {};
+      }
+      return {
+        onClick: (): void => {
+          setOpenPgState(state);
+        },
+        clickHint: tx(CEPH_POOL_HINT),
+      };
+    };
+
+    /*
      * The bar draws its legend as it is given: the reader's words, and
      * placement groups' words - a degraded group is missing copies, which
      * the word on its own says of a slow service in some languages.
@@ -1464,11 +1567,13 @@ const CephClusterOverview: FunctionComponent<
         value: degraded,
         color: "bg-amber-500",
         label: tx("Degraded PGs"),
+        ...pressToOpenPools("degraded"),
       },
       {
         value: undersized,
         color: "bg-orange-500",
         label: tx("Undersized PGs"),
+        ...pressToOpenPools("undersized"),
       },
       {
         value: other,
@@ -1800,6 +1905,31 @@ const CephClusterOverview: FunctionComponent<
       {renderGoldenTiles()}
       {renderOsdMatrix()}
       {renderPgDistribution()}
+      {/*
+       * The pools the bar's Degraded or Undersized counts, and why, once
+       * pressed: read when it opens.
+       */}
+      {openPgState ? (
+        <ResourceAttentionDialog
+          testId={`ceph-pg-${openPgState}-dialog`}
+          title={translator.translatePlural(
+            CEPH_PG_STATE_TITLES[openPgState],
+            Math.round(pgStats?.[openPgState] || 0),
+          )}
+          description={CEPH_PG_STATE_DESCRIPTIONS[openPgState]}
+          load={(): Promise<ResourceAttentionDialogRead> => {
+            return loadPgStatePools(openPgState);
+          }}
+          emptyMessage={CEPH_NO_PG_STATE_POOL[openPgState]}
+          whatFailed={CEPH_PG_POOLS_READ_FAILED}
+          showKind={false}
+          onClose={(): void => {
+            setOpenPgState(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {renderGoldenCharts()}
       {renderTopPools()}
       {/*

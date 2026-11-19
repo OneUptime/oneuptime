@@ -20,6 +20,12 @@
 export enum KubernetesCostPricingSource {
   // A cloud's public list prices (AWS, Google Cloud, Azure, ...).
   ListPrices = "list-prices",
+  /*
+   * The same list prices, priced by a Kubecost that reads the cloud's bill
+   * (#9851): it reconciles them with what was paid about a day and a half
+   * after each hour, after the cost agent shipped it.
+   */
+  BillingIntegration = "billing-integration",
   // Rates someone set: a rate card, or a CSV price list.
   RateCard = "rate-card",
   // The engine's built-in defaults: no cloud recognised, no rates set.
@@ -31,9 +37,17 @@ export enum KubernetesCostPricingSource {
 export const KUBERNETES_COST_PRICING_SOURCES: ReadonlyArray<KubernetesCostPricingSource> =
   [
     KubernetesCostPricingSource.ListPrices,
+    KubernetesCostPricingSource.BillingIntegration,
     KubernetesCostPricingSource.RateCard,
     KubernetesCostPricingSource.DefaultRates,
     KubernetesCostPricingSource.Unknown,
+  ];
+
+// The sources that name the cloud whose list prices apply.
+export const KUBERNETES_COST_PRICING_SOURCES_WITH_PROVIDER: ReadonlyArray<KubernetesCostPricingSource> =
+  [
+    KubernetesCostPricingSource.ListPrices,
+    KubernetesCostPricingSource.BillingIntegration,
   ];
 
 export type KubernetesCostEngineName = "OpenCost" | "Kubecost";
@@ -57,7 +71,10 @@ export interface KubernetesCostEngineInfo {
    */
   bundledEngineUnused: boolean;
   pricingSource: KubernetesCostPricingSource;
-  // The cloud whose list prices apply, as the engine names it ("AWS").
+  /*
+   * The cloud whose list prices apply, as the engine names it ("AWS"), with
+   * list-prices and billing-integration; empty otherwise.
+   */
   pricingProvider: string;
 }
 
@@ -109,7 +126,7 @@ export function readKubernetesCostEngineInfo(
     bundledEngineUnused: raw["bundledEngineUnused"] === true,
     pricingSource: pricingSource,
     pricingProvider:
-      pricingSource === KubernetesCostPricingSource.ListPrices &&
+      KUBERNETES_COST_PRICING_SOURCES_WITH_PROVIDER.includes(pricingSource) &&
       PROVIDER_NAME.test(provider)
         ? provider
         : "",

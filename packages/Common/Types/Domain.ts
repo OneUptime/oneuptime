@@ -126,6 +126,42 @@ export default class Domain extends DatabaseProperty {
     return subdomainRegex.test(subdomain);
   }
 
+  /*
+   * The name a domain value holds, however it legitimately arrives: text (a
+   * form's field, Terraform, a script), a Domain - the server's subclass of
+   * it too - or the JSON a Domain is sent as, which is how the Dashboard
+   * sends every Domain and how the API reference documents the column:
+   * { "_type": "Domain", "value": "example.com" }. Null for any other value.
+   * The name is as it came: not trimmed, lower-cased or checked.
+   *
+   * Read the name with this rather than asking which class a value is. JSON
+   * from the API is read back as a Domain of this class
+   * (JSONFunctions.deserialize), never as the server's subclass, so a check
+   * for the subclass refused every domain the Add Custom Domain dialog added
+   * (#9997).
+   */
+  public static getNameFrom(value: unknown): string | null {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (value instanceof Domain) {
+      return value.toString();
+    }
+
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      (value as JSONObject)["_type"] === ObjectType.Domain &&
+      typeof (value as JSONObject)["value"] === "string"
+    ) {
+      return (value as JSONObject)["value"] as string;
+    }
+
+    return null;
+  }
+
   public constructor(domain: string) {
     super();
     this.domain = domain;

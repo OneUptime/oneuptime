@@ -425,6 +425,8 @@ describe("a pod's row", () => {
         key: "container",
         label: KUBERNETES_PROBLEM_FACT_LABELS.container,
         value: "app",
+        // Its own page, this pod's (#9732).
+        route: routeFor({ kind: "Container", name: "app", namespace: "shop" }),
       },
       {
         key: "restarts",
@@ -433,6 +435,38 @@ describe("a pod's row", () => {
         isCount: true,
       },
     ]);
+  });
+
+  test("its container links with its pod: a container's page is named by it", () => {
+    const asked: Array<{
+      kind: string;
+      name: string;
+      namespace: string;
+      pod?: string | undefined;
+    }> = [];
+    toKubernetesPodProblemItem({
+      row: crashLooping("checkout-7d9f8b6c5-x2k4q", 14),
+      kind: KubernetesProblemKind.CannotRun,
+      routeFor: (part: {
+        kind: string;
+        name: string;
+        namespace: string;
+        pod?: string | undefined;
+      }): Route => {
+        asked.push(part);
+        return routeFor(part);
+      },
+    });
+    expect(
+      asked.find((part: { kind: string }): boolean => {
+        return part.kind === "Container";
+      }),
+    ).toEqual({
+      kind: "Container",
+      name: "app",
+      namespace: "shop",
+      pod: "checkout-7d9f8b6c5-x2k4q",
+    });
   });
 
   test("a failed pod says its container's exit code and when it failed", () => {

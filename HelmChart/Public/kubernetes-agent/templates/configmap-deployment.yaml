@@ -431,13 +431,16 @@ data:
             {{- $_ := include "kubernetes-agent.scrapeEndpoint" (dict "url" (include "kubernetes-agent.costEngineUrl" .) "setting" "cost.engine.url") }}
             {{- end }}
             # Cost metrics from wherever the engine the cost agent reads
-            # serves them (cost.engine.url: auto or a URL), which the agent
-            # finds and the job asks it for (http_sd): the engine's
-            # /metrics (OpenCost, Kubecost's cost model), the /model/metrics
-            # its frontend proxies (Kubecost 2, OpenCost's UI), or Kubecost
-            # 3's finops agent. A Kubecost frontend answers /metrics with its
-            # web page, which this job cannot parse. Nothing is scraped until
-            # the agent has found them; its /healthz says why not.
+            # serves them, which the agent finds and the job asks it for
+            # (http_sd): the engine's /metrics (OpenCost, Kubecost's cost
+            # model), the /model/metrics its frontend proxies (Kubecost 2,
+            # OpenCost's UI), or Kubecost 3's finops agent. A Kubecost
+            # frontend answers /metrics with its web page, which this job
+            # cannot parse. With the bundled OpenCost, the agent answers with
+            # it until it reads the cluster's own engine instead, so the
+            # dashboard's prices are always those of the engine the Costs
+            # pages are priced by (#9852). Nothing is scraped until the agent
+            # answers; its /healthz says why not.
             - job_name: cost-engine
               scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
               http_sd_configs:

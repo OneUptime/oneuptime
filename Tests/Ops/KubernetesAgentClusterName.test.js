@@ -229,7 +229,9 @@ function render(values) {
  * Two layouts between them run every component that names the cluster: the
  * node collector with the audit log reader, OBI, the profiler, the cost agent
  * and OpenCost; and the log tailer, which reads pod logs in their place
- * (logs.mode api).
+ * (logs.mode api). Cost monitoring is on by default (cost.enabled auto: on,
+ * except on the gke-autopilot and eks-fargate presets), so the log tailer's
+ * layout runs the cost agent and OpenCost too, with nothing set.
  */
 const BASE = {
   oneuptime: { url: "https://oneuptime.example.com", apiKey: "ingestion-key" },
@@ -277,7 +279,9 @@ const PLACES = {
     `DaemonSet/${FULLNAME}-ebpf ebpf-instrument OTEL_RESOURCE_ATTRIBUTES`,
     `Deployment/${FULLNAME} otel-collector CLUSTER_NAME`,
     `Deployment/${FULLNAME}-ai-agent ai-agent ONEUPTIME_KUBERNETES_CLUSTER_NAME`,
+    `Deployment/${FULLNAME}-cost cost-agent CLUSTER_NAME`,
     `Deployment/${FULLNAME}-logs log-tailer CLUSTER_NAME`,
+    `Deployment/${FULLNAME}-opencost opencost CLUSTER_ID`,
   ],
 };
 

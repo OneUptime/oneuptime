@@ -221,6 +221,57 @@ describe("the word endings", () => {
       ),
     ).toBe(false);
   });
+
+  /*
+   * A Russian noun in "-ние" meets itself in every case, the plural's too:
+   * the genitive plural ("Настройки уведомлений", Notification Settings)
+   * was read as "уведомлен" and the question's "уведомления" as "уведомл",
+   * so "Как настроить уведомления?" found the page named for it 9th to
+   * 11th, as other Russian pages came and went.
+   */
+  it("read a Russian noun in -ние as one word in every case, the plural's too, and its verb with it", () => {
+    for (const [forms, stem] of [
+      [
+        [
+          "уведомление",
+          "уведомления",
+          "уведомлению",
+          "уведомлением",
+          "уведомлении",
+          "уведомлений",
+          "уведомлениям",
+          "уведомлениями",
+          "уведомлениях",
+          "уведомлять",
+        ],
+        "уведомл",
+      ],
+      [
+        [
+          "расписание",
+          "расписания",
+          "расписаний",
+          "расписаниям",
+          "расписаниями",
+          "расписаниях",
+        ],
+        "распис",
+      ],
+    ] as Array<[Array<string>, string]>) {
+      for (const form of forms) {
+        expect({ form, terms: tokenizeForDocs(form, "ru") }).toEqual({
+          form,
+          terms: [stem],
+        });
+      }
+    }
+
+    // A word whose "-ений" is no ending keeps the stem it had.
+    expect(tokenizeForDocs("гений", "ru")).toEqual(["ген"]);
+    // Nor do the endings reach words they would join wrongly: a token is no current.
+    expect(tokenizeForDocs("токен", "ru")).toEqual(["токен"]);
+    expect(tokenizeForDocs("ток", "ru")).toEqual(["ток"]);
+  });
 });
 
 describe("getTypoAllowance", () => {

@@ -28,6 +28,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * The point of the whole feature: the Monitor Summary has to land on the
@@ -188,8 +189,12 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         return alert;
       });
 
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   });
 
   afterEach(() => {

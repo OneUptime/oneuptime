@@ -137,14 +137,14 @@ If you have no backup codes yet, OneUptime then shows them once, and you are sig
 
 ### When your organization manages your sign-in
 
-On a server that requires single sign-on, you sign in only through your organization's identity provider, such as Okta or Microsoft Entra ID, and OneUptime sets no password, passkey or two-factor authentication for you. **User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**. Change your password and your second step with your identity provider. Anything you set up before stays saved: it works again only if the server stops requiring single sign-on, unless a server admin clears it. Master admins keep their own **Security** settings.
+On a server that requires single sign-on, you sign in only through your organization's identity provider, such as Okta or Microsoft Entra ID, and OneUptime sets no password, passkey or two-factor authentication for you. **User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**. Change your password and your second step with your identity provider. Anything you set up before stays saved: it works again only if the server stops requiring single sign-on, unless a server admin clears it, and you are emailed if they do. Master admins keep their own **Security** settings.
 
 The same happens when every project you belong to requires single sign-on and has **Manage Sign-In with SSO** on. Your password still signs you in to OneUptime, but every project asks for SSO, so OneUptime sets no new password, passkey or second step for you:
 
 - **A project that does not**: as soon as you are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, your **Security** section comes back. **Overview** then names those projects under **Single Sign-On**, as the reason your settings are yours. Leaving that project takes them away again.
 - **Projects with different providers**: if all your projects manage sign-in, each with its own identity provider, **Overview** names every provider.
 - **Master admins** always keep their own **Security** settings.
-- **What you set up before** stays saved, and a server admin can clear it.
+- **What you set up before** stays saved. A server admin can clear it, and so can an owner of every project you belong to; you are emailed when they do.
 
 ## Your projects
 

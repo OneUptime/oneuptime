@@ -1,11 +1,11 @@
 ---
 name: set-up-monitoring
-description: Set up OneUptime monitors and a status page for a service. Use when someone asks to monitor a website, API, host or port with OneUptime, add uptime checks, or create a status page for what they run.
+description: Set up OneUptime monitors, who is paged, and a status page for a service. Use when someone asks to monitor a website, API, host or port with OneUptime, add uptime checks, be paged when it is down, or create a status page for what they run.
 ---
 
 # Set up monitors and a status page in OneUptime
 
-Create the checks for a service through the OneUptime MCP server, then give it a status page. One step needs the dashboard: there is no tool that puts a monitor on a status page.
+Set up the checks for a service through the OneUptime MCP server, decide who is paged when one fails, then give it a status page that shows them. A website or an API, paging and the status page take one call each: the setup tools make what OneUptime's guided setups and Ask AI make for the same answers.
 
 The person's own instructions come before these steps: where they ask for something else, do what they ask.
 
@@ -14,6 +14,7 @@ The person's own instructions come before these steps: where they ask for someth
 - The tools come from the `oneuptime` MCP server. The first time a tool needs an identity, the person signs in to OneUptime in the browser, from the client's MCP or connector settings, picks one project and chooses read and write or read only.
 - On OneUptime Cloud, connecting an MCP client and using API keys need the Growth plan or higher. The public status page tools need no credential.
 - Every create is a change to the person's project. Show them what you are about to create and get a yes.
+- The setup tools - `set_up_website_monitoring`, `set_up_paging`, `publish_status_page` and `add_monitors_to_status_page` - act as the person signed in, with their permissions: the monitor is theirs and the policy pages them. A project API key cannot use them.
 
 ## 1. Confirm where you are
 
@@ -23,16 +24,29 @@ Call `oneuptime_whoami`. If `access` is `read-only`, stop: the person has to con
 
 Find the addresses that matter: the public site, an API's health endpoint, the ports it serves. Read them from the service's code or configuration when you can see it, and ask the person otherwise. Confirm them with the person and do not guess an address. OneUptime's probes check from outside, so `localhost` and private addresses need a custom probe inside that network.
 
-Call `list_monitors` with a `name` filter so you do not create a monitor that already exists.
+A website or an API needs no search first: `set_up_website_monitoring` makes no second monitor for an address a monitor checks already, and its answer names that monitor. For the other types, call `list_monitors` with a `name` filter so you do not create a monitor that already exists.
 
-## 3. Collect the project's IDs
+## 3. Monitor a website or an API
+
+`set_up_website_monitoring` needs only the `address`:
+
+```json set_up_website_monitoring
+{
+  "address": "https://example.com",
+  "checkEveryMinutes": 5
+}
+```
+
+Add `"isApi": true` for an API endpoint, such as `https://api.example.com/health`. The monitor opens an incident when the address does not answer or answers with an error, is checked from the locations a new monitor starts with, and belongs to the person, who is emailed when its status changes. The answer's `details` say this in OneUptime's own words: tell the person what was set up from them, and the monitor's ID is in `record`.
+
+## 4. Other types: collect the project's IDs
 
 A monitor's criteria name the project's own records:
 
 - `list_monitor_statuses`: the `_id` of the status with `isOperationalState` true, and of the one with `isOfflineState` true.
 - `list_incident_severities`: the `_id` of the severity an outage of this service should have. Ask the person if the names do not make it clear.
 
-## 4. Create the monitor
+## 5. Other types: create the monitor
 
 `create_monitor` needs `name` and `monitorType`. A monitor of any type but `Manual` also needs `monitorSteps`, which say what to check and how to judge the result. These are the criteria a new website monitor starts with in the dashboard: offline and an incident when the site does not answer or answers with an error, operational otherwise.
 
@@ -146,33 +160,50 @@ The server gives every step and criteria its ID and attaches the project's defau
 
 If a monitor type needs more than this, ask the person to set one up in the dashboard, then read its `monitorSteps` with `get_monitor` and copy them. `oneuptime_describe_resource`, with `resource` set to `monitor`, lists every other field a monitor has.
 
-## 5. Check that it works
+## 6. Decide who is paged
 
-Read the monitor back with `get_monitor`. The first check runs on its interval, so `currentMonitorStatusId` starts at the operational status. Use `list_monitor_logs` with a `time` filter to see the checks once they have run.
+A monitor's incident pages whoever the project's on-call policies page. In a project that pages nobody yet, `set_up_paging` makes the on-call policy "Default on-call policy": it pages the person, and the members (`alsoPage`) and teams (`teams`) they name, for every new incident and alert. Pass how they asked to be reached in `reachMeBy` (`sms`, `call`, `push` or `email`):
 
-## 6. Create the status page
-
-`create_status_page` needs only a `name` of at least two characters:
-
-```json create_status_page
+```json set_up_paging
 {
-  "name": "Checkout status",
-  "pageTitle": "Checkout status",
-  "pageDescription": "Current status of the Checkout service"
+  "reachMeBy": ["sms"]
 }
 ```
 
-A new page is public: anyone with the link can read it. Leave the other settings at their defaults, which work on every plan. A page created with a setting the plan does not include, such as making it private or adding SMS subscribers, is refused with `402`, and the message names the plan.
+For someone paged next when nobody acknowledges, add `escalateTo` (or `escalateToTeams`) and `afterMinutes`; to page the same people again, `repeatTimes`. A project that pages people already keeps its own policies and rules, and the tool says so instead of making a second one. A phone number or the app is added and verified by the person: when `details` say one is missing, send them to **User Settings > Notification Methods** in OneUptime.
 
-## 7. Put the monitors on the page
+## 7. Check that it works
 
-The MCP server and the CLI have no tool for this, so tell the person to do it:
+Read the monitor back with `get_monitor`. The first check runs on its interval, so `currentMonitorStatusId` starts at the operational status. Use `list_monitor_logs` with a `time` filter to see the checks once they have run. `who_is_told` says who is told when it goes down, and what would stop them being reached:
 
-1. Open **Status Pages**, then the new page, then **Resources** in its side menu. It reads **Monitors** on projects without monitor groups.
-2. Click **Add Monitor**, or **Add Multiple** for several, and pick the monitors.
+```json who_is_told
+{
+  "monitor": "https://example.com"
+}
+```
 
-The page stays empty until they do. An incident reaches a status page only when one of its monitors is a resource on that page. The page's **Status Page Link** is on its **Overview** screen.
+## 8. Put the monitors on a status page
+
+For a new page, `publish_status_page` makes the page with the monitors on it, named by their names or the addresses they check:
+
+```json publish_status_page
+{
+  "name": "Checkout status",
+  "monitors": ["https://example.com"]
+}
+```
+
+For a page the project has, `add_monitors_to_status_page` adds them after the ones it shows:
+
+```json add_monitors_to_status_page
+{
+  "statusPage": "Checkout status",
+  "monitors": ["https://api.example.com/health"]
+}
+```
+
+A new page is public as soon as it is made: anyone with its link sees the status of the monitors it shows. Its link is in the answer. An incident reaches a status page only when one of its monitors is on that page. On a plan that allows no more status pages, `publish_status_page` is refused with `402` and the plan's own words: add the monitors to the page the project has instead.
 
 ## When a tool fails
 
-A failed tool answers with `statusCode`, `details` and a `suggestion`. Read the suggestion before you try again. `402` means the project's billing does not allow this: do not retry. A project owner can fix it under **Project Settings > Billing and Invoices > Billing**.
+A failed tool answers with `statusCode`, `details` and a `suggestion`. Read the suggestion before you try again. `402` means the project's billing does not allow this: do not retry. A project owner can fix it under **Project Settings > Billing and Invoices > Billing**. A setup tool that refuses says what is needed, such as a permission or an address it can check: tell the person in its words.

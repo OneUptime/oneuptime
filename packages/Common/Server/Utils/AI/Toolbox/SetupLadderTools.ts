@@ -45,7 +45,11 @@ import PagingLadderService, {
   PagingLadderSaveResult,
 } from "../../../Services/PagingLadderService";
 import { citationSentence } from "./ReadTableWords";
-import { SETUP_PLAN_ORDER } from "./SetupPlan";
+import {
+  SETUP_PLAN_ORDER,
+  SetupTestPageTarget,
+  getTestPageOfferForModel,
+} from "./SetupPlan";
 import {
   ObservabilityTool,
   PreparedMutation,
@@ -529,7 +533,7 @@ export const SetHowToReachMeTool: ObservabilityTool = {
                 ", ",
               )}. Tell them to add and verify one in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods").`
           : ""
-      }${keptCustom ? " Their custom channels' steps were kept." : ""} Under your answer the person can send themselves a test page; offer it in one sentence and never say one was sent.`,
+      }${keptCustom ? " Their custom channels' steps were kept." : ""} ${getTestPageOfferForModel(ctx, SetupTestPageTarget.Self)}`,
       rowCount: 1,
       ...citationSentence(AI_TOOL_CITATIONS.savedHowToReachMe),
       citationTarget: HOW_TO_REACH_ME_PAGE,

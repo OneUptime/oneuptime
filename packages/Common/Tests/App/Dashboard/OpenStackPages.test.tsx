@@ -11,6 +11,7 @@ import {
   act,
   cleanup,
   configure,
+  fireEvent,
   render,
   screen,
   within,
@@ -915,6 +916,98 @@ describe("the Overview", () => {
       ["RegionOne", "Healthy"],
       ["RegionTwo", "Degraded"],
     ]);
+
+    /*
+     * Degraded opens why (#9728): that region's parts from the Overview's own list, a
+     * button of its own beside the region's link, never inside it.
+     */
+    const twoRow: HTMLElement = items[1]!;
+    const pill: HTMLElement = within(twoRow).getByTestId(
+      "openstack-regions-card-health",
+    );
+    expect(pill.tagName).toBe("BUTTON");
+    expect(pill.closest("a")).toBeNull();
+    expect(within(twoRow).getAllByRole("link")).toHaveLength(1);
+    fireEvent.click(pill);
+    expect(
+      screen.getByText("Why region RegionTwo is Degraded"),
+    ).toBeInTheDocument();
+    const reasons: Array<HTMLElement> = screen.getAllByTestId(
+      "openstack-regions-card-health-dialog-item",
+    );
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]).toHaveTextContent("payments");
+  });
+
+  /*
+   * A service this credential is closed to reads "down" in the raw rows, and reading the
+   * region says it is closed, not down. The Regions card read the raw rows, so its pill
+   * called a region Unhealthy that its own page called Healthy (#9728).
+   */
+  test("a service closed to this credential is no region down: the card says what reading the region does", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+    const region: (regionName: string) => JSONObject = (
+      regionName: string,
+    ): JSONObject => {
+      return {
+        regionName,
+        apiCount: 2,
+        downApiCount: 0,
+        serviceCount: 0,
+        downServiceCount: 0,
+        hypervisorCount: 1,
+        instanceCount: 1,
+        vcpuCapacity: 10,
+        vcpuAllocated: 1,
+        memoryCapacityBytes: 10,
+        memoryAllocatedBytes: 1,
+        storageCapacityBytes: 0,
+        storageUsedBytes: 0,
+      };
+    };
+    posted = {
+      "region-summaries": {
+        regions: [region("RegionOne"), region("RegionTwo")],
+      },
+      "needs-attention": {
+        rows: [
+          {
+            // Designate refused this credential: down, and never vouched for.
+            kind: OpenStackResourceKind.Api,
+            name: "dns",
+            externalId: "RegionTwo/dns",
+            status: "down",
+            regionName: "RegionTwo",
+            stateChangedAt: new Date().toISOString(),
+          },
+        ],
+        totalsByKind: { Api: 1 },
+      },
+    };
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    const items: Array<HTMLElement> = await screen.findAllByTestId(
+      "openstack-regions-card-item",
+    );
+    expect(
+      items.map((item: HTMLElement): Array<string | null> => {
+        return [
+          item.getAttribute("data-region"),
+          item.getAttribute("data-health"),
+        ];
+      }),
+    ).toEqual([
+      ["RegionOne", "Healthy"],
+      ["RegionTwo", "Healthy"],
+    ]);
+    // Nothing to open where nothing is wrong.
+    expect(
+      within(items[1]!).getByTestId("openstack-regions-card-health").tagName,
+    ).toBe("SPAN");
   });
 
   test("a cloud that has stopped reporting asks nothing current, and has no verdict", async () => {

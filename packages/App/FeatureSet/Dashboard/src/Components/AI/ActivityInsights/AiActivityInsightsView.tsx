@@ -135,6 +135,17 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * link one of its parts to its own page.
  */
 
+/*
+ * A part of the scope's own page, or null for one without. `namedWith` is
+ * what the same problem or insight names beside it: a container's page is
+ * its pod's, so a container named with one pod links to that pod's
+ * (#9732).
+ */
+export type AiActivityObjectRoute = (
+  object: AiActivityObject,
+  namedWith?: ReadonlyArray<AiActivityObject>,
+) => Route | null;
+
 export interface ComponentProps {
   insights: AiActivityInsights;
   // The scope in sentences: "cluster", "Docker host".
@@ -153,7 +164,7 @@ export interface ComponentProps {
    */
   settingsRoute?: Route | undefined;
   // A part of the scope's own page, when it has one (a cluster's node).
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }
 
 // Where an insight may send the reader.
@@ -163,7 +174,7 @@ export interface AiInsightsRoutes {
   settingsRoute?: Route | undefined;
   // The incidents' or alerts' own page: whose AI settings a skip points at.
   subjectKind?: "incident" | "alert" | undefined;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }
 
 export function getSubjectRoute(subject: AiActivitySubject): Route {
@@ -462,11 +473,13 @@ function InvestigationWords(props: {
 function ObjectChip(props: {
   object: AiActivityObject;
   count?: number | undefined;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
+  // What the same problem or insight names beside it.
+  namedWith?: ReadonlyArray<AiActivityObject> | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const route: Route | null = props.getObjectRoute
-    ? props.getObjectRoute(props.object)
+    ? props.getObjectRoute(props.object, props.namedWith)
     : null;
   // How many times it came up, in the reader's digits.
   const text: string = `${describeObject(props.object)}${
@@ -664,6 +677,7 @@ function InsightItem(props: {
                   key={`${object.name}-${object.value}`}
                   object={object}
                   getObjectRoute={props.routes.getObjectRoute}
+                  namedWith={objects}
                 />
               );
             })}
@@ -791,7 +805,7 @@ function InsightsCard(props: {
 function ProblemRow(props: {
   problem: AiActivityProblem;
   context: AiInsightWordingContext;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }): ReactElement {
   const problem: AiActivityProblem = props.problem;
   const fixes: string | null = describeProblemFixes(problem);
@@ -850,6 +864,7 @@ function ProblemRow(props: {
                   object={object}
                   count={object.count}
                   getObjectRoute={props.getObjectRoute}
+                  namedWith={problem.objects}
                 />
               );
             },
@@ -938,7 +953,7 @@ function ProblemsCard(props: {
   insights: AiActivityInsights;
   problems: Array<AiActivityProblem>;
   context: AiInsightWordingContext;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const isTheRest: boolean =
@@ -986,7 +1001,7 @@ function ProblemsCard(props: {
 function HotspotsCard(props: {
   insights: AiActivityInsights;
   noun: string;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
 

@@ -5,7 +5,9 @@ import CloudResourceOwnerRuleEngineService from "../../../../Server/Services/Clo
 import CloudResourceOwnerRuleService from "../../../../Server/Services/CloudResourceOwnerRuleService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import logger from "../../../../Server/Utils/Logger";
-import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnerAddOutcome,
+} from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import CloudResourceLabelRule from "../../../../Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "../../../../Models/DatabaseModels/CloudResourceOwnerRule";
@@ -294,12 +296,12 @@ describe("CloudResourceOwnerRuleEngineService over each kind of row", () => {
           };
         }) as never);
       jest
-        .spyOn(OwnerRuleAssignment, "createOwner")
+        .spyOn(OwnerRuleAssignment, "createOwnerWithOutcome")
         .mockImplementation((async (data: {
           owner: CloudResourceOwnerUser;
         }) => {
           added.push(data.owner.userId!.toString());
-          return true;
+          return OwnerAddOutcome.Added;
         }) as never);
 
       await CloudResourceOwnerRuleEngineService.applyRulesToExistingResource({

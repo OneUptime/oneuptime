@@ -1420,7 +1420,7 @@ export default class PublicNoteApprovalEngine {
       steps,
     );
 
-    return await this.getWaitingFor(position);
+    return await this.getWaitingFor(position, data.note.projectId);
   }
 
   // ---------- what the Dashboard is told ----------
@@ -1505,7 +1505,10 @@ export default class PublicNoteApprovalEngine {
     }
 
     const userNames: Record<string, string> =
-      await PublicNoteApprovalNotifications.getUserNames(Array.from(userIds));
+      await PublicNoteApprovalNotifications.getUserNames(
+        Array.from(userIds),
+        data.projectId,
+      );
     const teamNames: Record<string, string> = await this.getTeamNames(
       Array.from(teamIds),
     );
@@ -1636,6 +1639,7 @@ export default class PublicNoteApprovalEngine {
         steps.flatMap((step: PublicNoteApprovalStepRule) => {
           return step.userIds;
         }),
+        data.projectId,
       );
     const teamNames: Record<string, string> = await this.getTeamNames(
       steps.flatMap((step: PublicNoteApprovalStepRule) => {
@@ -1727,8 +1731,10 @@ export default class PublicNoteApprovalEngine {
         data.round,
         data.steps,
       );
-      const waitingFor: PublicNoteApprovalWaitingFor =
-        await this.getWaitingFor(next);
+      const waitingFor: PublicNoteApprovalWaitingFor = await this.getWaitingFor(
+        next,
+        data.note.projectId,
+      );
 
       await this.addFeedItem({
         host: data.host,
@@ -1794,12 +1800,15 @@ export default class PublicNoteApprovalEngine {
       logger.error(error);
     }
 
-    const names: Record<string, string> =
-      await PublicNoteApprovalNotifications.getUserNames(
-        data.round.approvals.map((given: PublicNoteApprovalGiven) => {
-          return given.userId;
-        }),
-      );
+    // Who approved, as the note's project names them: nobody, with no project.
+    const names: Record<string, string> = data.note.projectId
+      ? await PublicNoteApprovalNotifications.getUserNames(
+          data.round.approvals.map((given: PublicNoteApprovalGiven) => {
+            return given.userId;
+          }),
+          data.note.projectId,
+        )
+      : {};
 
     await this.announce({
       host: data.host,
@@ -1919,8 +1928,10 @@ export default class PublicNoteApprovalEngine {
       round,
       steps,
     );
-    const waitingFor: PublicNoteApprovalWaitingFor =
-      await this.getWaitingFor(position);
+    const waitingFor: PublicNoteApprovalWaitingFor = await this.getWaitingFor(
+      position,
+      note.projectId,
+    );
 
     await this.addFeedItem({
       host: data.host,
@@ -2111,7 +2122,10 @@ export default class PublicNoteApprovalEngine {
         submittedAt: data.round.submittedAt,
         stepId: data.position.step.id,
         isFinal: data.position.isFinal,
-        waitingFor: await this.getWaitingFor(data.position),
+        waitingFor: await this.getWaitingFor(
+          data.position,
+          data.note.projectId,
+        ),
       };
     } catch (error) {
       logger.error(
@@ -2122,15 +2136,26 @@ export default class PublicNoteApprovalEngine {
     }
   }
 
+  /*
+   * Whom the step a note waits for names: its people as the note's project
+   * names them - someone only invited by the name typed for them, else
+   * their address (#9934) - and its teams. With no project to ask, no
+   * person is named.
+   */
   private static async getWaitingFor(
     position: PublicNoteApprovalPosition,
+    projectId: ObjectID | undefined,
   ): Promise<PublicNoteApprovalWaitingFor> {
     if (!position.step) {
       return { position, approverNames: [] };
     }
 
-    const userNames: Record<string, string> =
-      await PublicNoteApprovalNotifications.getUserNames(position.step.userIds);
+    const userNames: Record<string, string> = projectId
+      ? await PublicNoteApprovalNotifications.getUserNames(
+          position.step.userIds,
+          projectId,
+        )
+      : {};
     const teamNames: Record<string, string> = await this.getTeamNames(
       position.step.teamIds,
     );

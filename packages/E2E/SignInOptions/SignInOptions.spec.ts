@@ -1090,7 +1090,7 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
 
     await expect(
       page.getByText(
-        "Single sign-on is not set up for example.com. Ask your admin to set it up, or sign in another way.",
+        "Single sign-on is not set up for example.com. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
       ),
     ).toBeVisible();
     await expect(page.getByTestId("email")).toHaveValue("ada@example.com");

@@ -129,11 +129,23 @@ describe("OneUptimeDate user timezone", () => {
       );
     });
 
+    /*
+     * No real zone is newer than the enum since it lists America/Coyhaique
+     * (tzdata 2025b), so a made-up one stands in for the next.
+     */
     it("passes a guess newer than the enum through untouched", () => {
-      jest.spyOn(moment.tz, "guess").mockReturnValue("America/Coyhaique");
+      jest.spyOn(moment.tz, "guess").mockReturnValue("America/Atlantis");
 
       expect(OneUptimeDate.getCurrentTimezone().toString()).toBe(
-        "America/Coyhaique",
+        "America/Atlantis",
+      );
+    });
+
+    it("reports America/Coyhaique, which tzdata 2025b added, as itself", () => {
+      jest.spyOn(moment.tz, "guess").mockReturnValue("America/Coyhaique");
+
+      expect(OneUptimeDate.getCurrentTimezone()).toBe(
+        Timezone.AmericaCoyhaique,
       );
     });
 

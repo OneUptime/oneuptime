@@ -58,6 +58,13 @@ import {
   withGuidedSetupEntryPoint,
 } from "Common/UI/Utils/GuidedSetupEvents";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
+import {
+  GUIDED_SETUP_ADDRESS_QUERY,
+  GUIDED_SETUP_API_QUERY,
+  getDescribeItPrompt,
+  readGuidedSetupPrefill,
+} from "../AskAiGuidedSetupLinks";
+import Navigation from "Common/UI/Utils/Navigation";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
   getFirstOpenStepKey,
@@ -204,9 +211,18 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     null,
   );
 
-  // Step 1's form.
-  const [addressText, setAddressText] = useState<string>("");
-  const [isApi, setIsApi] = useState<boolean>(false);
+  /*
+   * Step 1's form - with the address an Ask AI plan opened it with, when
+   * one did (?address=, Open in guided setup, #7245).
+   */
+  const [addressText, setAddressText] = useState<string>((): string => {
+    return readGuidedSetupPrefill(
+      Navigation.getQueryStringByName(GUIDED_SETUP_ADDRESS_QUERY),
+    );
+  });
+  const [isApi, setIsApi] = useState<boolean>((): boolean => {
+    return Navigation.getQueryStringByName(GUIDED_SETUP_API_QUERY) === "true";
+  });
   const [addressError, setAddressError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
@@ -1991,6 +2007,11 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       isFinished={isWebsiteDownFinished(facts)}
       guideDocsPath={WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH}
       minutes={WELCOME_STEP_MINUTES[WelcomeStep.Monitor]}
+      describeItPrompt={getDescribeItPrompt({
+        setup: WEBSITE_DOWN_SETUP,
+        facts: { address: addressText, isApi: isApi },
+        translator: translator,
+      })}
     />
   );
 };

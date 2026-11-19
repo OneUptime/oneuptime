@@ -16,6 +16,11 @@ import {
   takeNewSetupProposal,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiSetupEvents";
 import {
+  getDescribedInsteadEvent,
+  getGuidedSetupForPlan,
+  getOpenedInGuidedSetupEvent,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/AskAiGuidedSetupLinks";
+import {
   COMMON_PRODUCT_EVENT_PROPERTIES,
   PRODUCT_EVENTS,
   ProductEventDefinition,
@@ -158,6 +163,18 @@ const BUILDER_KEYS: Record<string, () => Array<string>> = {
   },
   getSetupTestPageSentEvent: (): Array<string> => {
     return Object.keys(getSetupTestPageSentEvent({ kind: "self" }));
+  },
+  // The guided setups and Ask AI link to each other (#7245).
+  getDescribedInsteadEvent: (): Array<string> => {
+    return Object.keys(getDescribedInsteadEvent("website_down"));
+  },
+  getOpenedInGuidedSetupEvent: (): Array<string> => {
+    return Object.keys(
+      getOpenedInGuidedSetupEvent({
+        link: getGuidedSetupForPlan([SETUP_ACTION])!,
+        actions: [SETUP_ACTION],
+      }),
+    );
   },
   toProductEventProperties: (): Array<string> => {
     return PRODUCT_EVENTS.flatMap(

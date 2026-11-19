@@ -10,7 +10,11 @@ import {
   OPENCOST_DEFAULT_CPU_RATE,
   OPENCOST_DEFAULT_RAM_RATE,
   describeEnginePricing,
+  describeKubecost3Pricing,
+  hasBillingIntegration,
   isOpenCostDefaultRates,
+  kubecostClusterStatus,
+  kubecostNodeRates,
   readEnginePricing,
 } from "../EnginePricing";
 
@@ -160,6 +164,8 @@ test("isOpenCostDefaultRates compares the default CPU and RAM rates as numbers",
 let server: http.Server;
 let baseUrl: string = "";
 let requested: Array<string> = [];
+// The same requests with their query strings, decoded.
+let requestedUrls: Array<string> = [];
 let routes: Record<string, { status: number; body: unknown }> = {};
 
 before(async (): Promise<void> => {
@@ -167,6 +173,7 @@ before(async (): Promise<void> => {
     (req: http.IncomingMessage, res: http.ServerResponse): void => {
       const path: string = (req.url || "").split("?")[0] || "";
       requested.push(path);
+      requestedUrls.push(decodeURIComponent(req.url || ""));
       const route: { status: number; body: unknown } | undefined = routes[path];
       res.writeHead(route ? route.status : 404, {
         "Content-Type": "application/json",
@@ -196,6 +203,7 @@ after(async (): Promise<void> => {
 
 beforeEach((): void => {
   requested = [];
+  requestedUrls = [];
   routes = {};
 });
 
@@ -285,4 +293,472 @@ test("an answer that is not JSON is no answer", async (): Promise<void> => {
   await client.fetchAllocations(WINDOW);
 
   assert.strictEqual(await client.fetchApiData("clusterInfo"), null);
+});
+
+/*
+ * #9851: Kubecost 3 answers neither /clusterInfo nor /allNodePricing (its
+ * frontend sends /model/ to its aggregator), so a cluster it priced showed no
+ * prices line. Its aggregator's own APIs say instead. The answers below are
+ * the ones Kubecost 3.3.2 gave on a kind cluster, from its own chart.
+ */
+
+const KUBECOST3_CLUSTER: Record<string, unknown> = {
+  id: "cost-metrics-3",
+  accountID: "",
+  cloudId: "",
+  provider: "custom",
+  name: "",
+  lastCollectedTime: "2026-11-19T16:05:00Z",
+  cost: 0.2218044419050948,
+  monitoringStatus: "active",
+};
+
+// A node asset of a day, and the other assets the window holds beside it.
+const nodeAsset: (overrides?: Record<string, unknown>) => unknown = (
+  overrides?: Record<string, unknown>,
+): unknown => {
+  return {
+    type: "Node",
+    properties: {
+      category: "Compute",
+      provider: "custom",
+      service: "Kubernetes",
+      cluster: "cost-metrics-3",
+      name: "cost-9852-control-plane",
+      providerID: "kind://docker/cost-9852/cost-9852-control-plane",
+    },
+    minutes: 8.616667,
+    cpuCores: 32,
+    ramBytes: 135054692351.999985,
+    cpuCoreHours: 4.595556,
+    ramByteHours: 19395354429.439999,
+    preemptible: 0,
+    discount: 0,
+    cpuCost: 0.14527,
+    gpuCost: 0,
+    ramCost: 0.076534,
+    adjustment: 0,
+    totalCost: 0.221804,
+    ...(overrides || {}),
+  };
+};
+
+const KUBECOST3_ASSETS: unknown = [
+  {
+    "custom/__undefined__/Compute/cost-metrics-3/Node/Kubernetes/kind://docker/cost-9852/cost-9852-control-plane/cost-9852-control-plane":
+      nodeAsset(),
+    "custom/__undefined__/Management/cost-metrics-3/ClusterManagement/Kubernetes/__undefined__/__undefined__":
+      {
+        type: "ClusterManagement",
+        properties: {
+          category: "Management",
+          provider: "custom",
+          cluster: "cost-metrics-3",
+        },
+        totalCost: 0,
+      },
+  },
+];
+
+const AWS_INTEGRATION: Record<string, unknown> = {
+  active: true,
+  key: "aws-cur",
+  provider: "AWS",
+  source: "athena",
+  connectionStatus: "Connection Successful",
+};
+
+const kubecost3: (overrides?: {
+  pricingStatus?: unknown;
+  clusters?: unknown;
+  integrations?: unknown;
+  nodeAssets?: unknown;
+  clusterId?: string;
+}) => EnginePricing = (overrides?: {
+  pricingStatus?: unknown;
+  clusters?: unknown;
+  integrations?: unknown;
+  nodeAssets?: unknown;
+  clusterId?: string;
+}): EnginePricing => {
+  return describeKubecost3Pricing({
+    pricingStatus:
+      overrides && "pricingStatus" in overrides
+        ? overrides.pricingStatus
+        : { enabled: false, authorized: false, source: "" },
+    clusters:
+      overrides && "clusters" in overrides
+        ? overrides.clusters
+        : [KUBECOST3_CLUSTER],
+    integrations:
+      overrides && "integrations" in overrides ? overrides.integrations : null,
+    nodeAssets:
+      overrides && "nodeAssets" in overrides
+        ? overrides.nodeAssets
+        : KUBECOST3_ASSETS,
+    clusterId:
+      overrides && "clusterId" in overrides
+        ? overrides.clusterId!
+        : "cost-metrics-3",
+  });
+};
+
+test("Kubecost 3 on kind: the finops agent's default rates, read off what its nodes cost", (): void => {
+  assert.deepStrictEqual(kubecost3(), {
+    source: "default-rates",
+    provider: "",
+  });
+});
+
+test("Kubecost 3 with the finops agent's customPrices: a rate card", (): void => {
+  assert.deepStrictEqual(
+    kubecost3({
+      nodeAssets: [
+        {
+          node: nodeAsset({
+            // 0.02 per core-hour and 0.003 per GiB-hour.
+            cpuCost: 0.02 * 4.595556,
+            ramCost: (0.003 * 19395354429.44) / (1024 * 1024 * 1024),
+          }),
+        },
+      ],
+    }),
+    { source: "rate-card", provider: "" },
+  );
+});
+
+test("Kubecost 3's Enterprise custom pricing is a rate card, on any cloud", (): void => {
+  assert.deepStrictEqual(
+    kubecost3({
+      pricingStatus: { enabled: true, authorized: true, source: "configmap" },
+      clusters: [{ ...KUBECOST3_CLUSTER, provider: "AWS" }],
+    }),
+    { source: "rate-card", provider: "" },
+  );
+});
+
+test("Kubecost 3 on a cloud: that cloud's list prices", (): void => {
+  for (const [provider, named] of [
+    ["AWS", "AWS"],
+    ["GCP", "GCP"],
+    ["Azure", "Azure"],
+    ["azure", "Azure"],
+  ]) {
+    assert.deepStrictEqual(
+      kubecost3({ clusters: [{ ...KUBECOST3_CLUSTER, provider }] }),
+      { source: "list-prices", provider: named },
+    );
+  }
+});
+
+test("Kubecost 3 that reads its cloud's bill: list prices it reconciles with the bill", (): void => {
+  assert.deepStrictEqual(
+    kubecost3({
+      clusters: [{ ...KUBECOST3_CLUSTER, provider: "AWS" }],
+      integrations: [AWS_INTEGRATION],
+    }),
+    { source: "billing-integration", provider: "AWS" },
+  );
+  // Kubecost writes Azure's integration in capitals.
+  assert.deepStrictEqual(
+    kubecost3({
+      clusters: [{ ...KUBECOST3_CLUSTER, provider: "Azure" }],
+      integrations: [
+        { ...AWS_INTEGRATION, provider: "AZURE", connectionStatus: "synced" },
+      ],
+    }),
+    { source: "billing-integration", provider: "Azure" },
+  );
+});
+
+test("a cloud integration counts only when it is active, connected, and this cloud's", (): void => {
+  for (const integration of [
+    { ...AWS_INTEGRATION, active: false },
+    { ...AWS_INTEGRATION, connectionStatus: "Failed Connection" },
+    { ...AWS_INTEGRATION, connectionStatus: "No Connection" },
+    { ...AWS_INTEGRATION, connectionStatus: "Data Missing" },
+    { ...AWS_INTEGRATION, provider: "GCP" },
+  ]) {
+    assert.deepStrictEqual(
+      kubecost3({
+        clusters: [{ ...KUBECOST3_CLUSTER, provider: "AWS" }],
+        integrations: [integration],
+      }),
+      { source: "list-prices", provider: "AWS" },
+      JSON.stringify(integration),
+    );
+  }
+
+  assert.strictEqual(hasBillingIntegration(null, "AWS"), false);
+  assert.strictEqual(hasBillingIntegration({ data: [] }, "AWS"), false);
+  assert.strictEqual(hasBillingIntegration([AWS_INTEGRATION], ""), false);
+  assert.strictEqual(hasBillingIntegration(["AWS", 1, null], "AWS"), false);
+});
+
+test("Kubecost 3 that answers for several clusters is read for this one", (): void => {
+  const clusters: Array<Record<string, unknown>> = [
+    { ...KUBECOST3_CLUSTER, id: "prod-us", provider: "AWS" },
+    { ...KUBECOST3_CLUSTER, id: "prod-eu", provider: "GCP" },
+  ];
+
+  assert.deepStrictEqual(kubecost3({ clusters, clusterId: "prod-eu" }), {
+    source: "list-prices",
+    provider: "GCP",
+  });
+  // Without knowing which is this one: nothing is guessed.
+  assert.deepStrictEqual(kubecost3({ clusters, clusterId: "" }), {
+    source: "unknown",
+    provider: "",
+  });
+  assert.strictEqual(kubecostClusterStatus(clusters, "staging"), null);
+  assert.deepStrictEqual(
+    kubecostClusterStatus([KUBECOST3_CLUSTER], ""),
+    KUBECOST3_CLUSTER,
+  );
+});
+
+test("a Kubecost 3 that cannot say yet says nothing rather than guess", (): void => {
+  // Nothing collected yet: no node has run long enough to read a rate off.
+  assert.deepStrictEqual(kubecost3({ nodeAssets: [null] }), {
+    source: "unknown",
+    provider: "",
+  });
+  // The aggregator has no cluster yet.
+  assert.deepStrictEqual(kubecost3({ clusters: [] }), {
+    source: "unknown",
+    provider: "",
+  });
+  // Nothing answered at all.
+  assert.deepStrictEqual(
+    kubecost3({
+      pricingStatus: null,
+      clusters: null,
+      integrations: null,
+      nodeAssets: null,
+    }),
+    { source: "unknown", provider: "" },
+  );
+  // A provider it does not price at list prices is not taken for one.
+  assert.deepStrictEqual(
+    kubecost3({
+      clusters: [{ ...KUBECOST3_CLUSTER, provider: "SomeNewCloud" }],
+    }),
+    { source: "unknown", provider: "" },
+  );
+});
+
+test("a CSV price list is a rate card in Kubecost 3 too", (): void => {
+  assert.deepStrictEqual(
+    kubecost3({ clusters: [{ ...KUBECOST3_CLUSTER, provider: "CSV" }] }),
+    { source: "rate-card", provider: "" },
+  );
+});
+
+test("the rates are read off on-demand nodes of this cluster alone", (): void => {
+  const rates: { cpu: number; ram: number } | null = kubecostNodeRates(
+    KUBECOST3_ASSETS,
+    "cost-metrics-3",
+  );
+  assert.ok(rates);
+  assert.ok(Math.abs(rates.cpu - OPENCOST_DEFAULT_CPU_RATE) < 1e-6);
+  assert.ok(Math.abs(rates.ram - OPENCOST_DEFAULT_RAM_RATE) < 1e-6);
+
+  const mixed: unknown = [
+    {
+      node: nodeAsset(),
+      // Spot rates, and another cluster's rate card: neither counts.
+      spot: nodeAsset({ preemptible: 1, cpuCost: 0.006655 * 4.595556 }),
+      other: nodeAsset({
+        properties: { cluster: "prod-us" },
+        cpuCost: 99,
+        ramCost: 99,
+      }),
+    },
+  ];
+  assert.deepStrictEqual(kubecost3({ nodeAssets: mixed }), {
+    source: "default-rates",
+    provider: "",
+  });
+
+  // Only spot nodes: nothing to compare.
+  assert.strictEqual(
+    kubecostNodeRates(
+      [{ spot: nodeAsset({ preemptible: 1 }) }],
+      "cost-metrics-3",
+    ),
+    null,
+  );
+});
+
+const KUBECOST3_ROUTES: Record<string, { status: number; body: unknown }> = {
+  "/model/allocation": ALLOCATIONS,
+  // Kubecost 3's aggregator has neither API.
+  "/model/clusterInfo": { status: 404, body: "404 page not found\n" },
+  "/model/allNodePricing": { status: 404, body: "404 page not found\n" },
+  "/model/pricing/status": {
+    status: 200,
+    body: {
+      code: 200,
+      data: { enabled: false, authorized: false, source: "" },
+    },
+  },
+  "/model/clusters/status": {
+    status: 200,
+    body: { code: 200, data: [KUBECOST3_CLUSTER] },
+  },
+  // Off in its chart's values: 404, as the aggregator answers it.
+  "/model/cloudCost/status": { status: 404, body: "404 page not found\n" },
+  "/model/assets": { status: 200, body: { code: 200, data: KUBECOST3_ASSETS } },
+};
+
+test("asks a Kubecost 3's aggregator, as its own UI does", async (): Promise<void> => {
+  routes = { ...KUBECOST3_ROUTES };
+
+  const client: CostEngineClient = new CostEngineClient({ baseUrl });
+  await client.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(
+    await readEnginePricing({ client, clusterId: "cost-metrics-3" }),
+    { source: "default-rates", provider: "" },
+  );
+  assert.ok(requestedUrls.includes("/model/pricing/status"));
+  assert.ok(requestedUrls.includes("/model/clusters/status?window=2d"));
+  assert.ok(requestedUrls.includes("/model/cloudCost/status"));
+  assert.ok(
+    requestedUrls.includes(
+      '/model/assets?window=2d&accumulate=true&filter=assetType:"node"',
+    ),
+  );
+});
+
+test("a Kubecost 3 on AWS that reads its bill, end to end", async (): Promise<void> => {
+  routes = {
+    ...KUBECOST3_ROUTES,
+    "/model/clusters/status": {
+      status: 200,
+      body: { code: 200, data: [{ ...KUBECOST3_CLUSTER, provider: "AWS" }] },
+    },
+    "/model/cloudCost/status": {
+      status: 200,
+      body: { code: 200, data: [AWS_INTEGRATION] },
+    },
+  };
+
+  const client: CostEngineClient = new CostEngineClient({ baseUrl });
+  await client.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(await readEnginePricing({ client }), {
+    source: "billing-integration",
+    provider: "AWS",
+  });
+});
+
+test("a Kubecost 2 that reads its cloud's bill says so too", async (): Promise<void> => {
+  routes = {
+    "/model/allocation": ALLOCATIONS,
+    "/model/clusterInfo": {
+      status: 200,
+      body: { code: 200, data: { provider: "GCP" } },
+    },
+    "/model/cloudCost/status": {
+      status: 200,
+      body: {
+        code: 200,
+        data: [
+          { ...AWS_INTEGRATION, provider: "GCP", connectionStatus: "synced" },
+        ],
+      },
+    },
+  };
+
+  const client: CostEngineClient = new CostEngineClient({ baseUrl });
+  await client.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(await readEnginePricing({ client }), {
+    source: "billing-integration",
+    provider: "GCP",
+  });
+  // Kubecost 2 answers /clusterInfo: none of Kubecost 3's reads.
+  assert.ok(!requested.includes("/model/clusters/status"));
+  assert.ok(!requested.includes("/model/assets"));
+});
+
+test("a Kubecost 2 with no cloud integration (its answer on kind) keeps its list prices", async (): Promise<void> => {
+  routes = {
+    "/model/allocation": ALLOCATIONS,
+    "/model/clusterInfo": {
+      status: 200,
+      body: { code: 200, data: { provider: "AWS" } },
+    },
+    "/model/cloudCost/status": { status: 200, body: { code: 200, data: [] } },
+  };
+
+  const client: CostEngineClient = new CostEngineClient({ baseUrl });
+  await client.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(await readEnginePricing({ client }), {
+    source: "list-prices",
+    provider: "AWS",
+  });
+});
+
+test("OpenCost is never asked about a cloud integration, nor Kubecost on no cloud", async (): Promise<void> => {
+  routes = {
+    "/allocation/compute": ALLOCATIONS,
+    "/clusterInfo": {
+      status: 200,
+      body: { code: 200, data: { provider: "AWS" } },
+    },
+  };
+
+  const opencost: CostEngineClient = new CostEngineClient({ baseUrl });
+  await opencost.fetchAllocations(WINDOW);
+  await readEnginePricing({ client: opencost });
+
+  assert.ok(
+    !requested.some((path: string): boolean => {
+      return path.includes("cloudCost");
+    }),
+  );
+
+  requested = [];
+  routes = {
+    "/model/allocation": ALLOCATIONS,
+    "/model/clusterInfo": {
+      status: 200,
+      body: { code: 200, data: { provider: "custom" } },
+    },
+    "/model/allNodePricing": {
+      status: 200,
+      body: { code: 200, data: DEFAULT_RATES },
+    },
+  };
+
+  const kubecost: CostEngineClient = new CostEngineClient({ baseUrl });
+  await kubecost.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(await readEnginePricing({ client: kubecost }), {
+    source: "default-rates",
+    provider: "",
+  });
+  assert.ok(!requested.includes("/model/cloudCost/status"));
+});
+
+test("an OpenCost that does not answer /clusterInfo is never asked Kubecost 3's questions", async (): Promise<void> => {
+  routes = { "/allocation/compute": ALLOCATIONS };
+
+  const client: CostEngineClient = new CostEngineClient({ baseUrl });
+  await client.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(await readEnginePricing({ client }), {
+    source: "unknown",
+    provider: "",
+  });
+  // Past the Allocation API's paths, probed first: /clusterInfo, and no more.
+  assert.deepStrictEqual(
+    requested.filter((path: string): boolean => {
+      return !path.includes("allocation");
+    }),
+    ["/clusterInfo"],
+  );
 });

@@ -1,6 +1,9 @@
 import InstrumentationTaskTrigger from "../../../Server/Utils/AI/SRE/InstrumentationTaskTrigger";
 import RemediationRulePullRequests from "../../../Server/Utils/AI/SRE/RemediationRulePullRequests";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import CodeFixOnItsWay, {
+  CodeFixProblemKind,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -315,8 +318,15 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
 
 describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () => {
   let getRules: jest.SpyInstance;
+  /*
+   * An instrumentation fix of the subject on its way, by the one rule every
+   * fix holds to (CodeFixOnItsWay, which has its own suites): none unless a
+   * test says.
+   */
+  let onItsWay: jest.SpyInstance;
 
   beforeEach(() => {
+    onItsWay = jest.spyOn(CodeFixOnItsWay, "findTurn").mockResolvedValue(null);
     /*
      * The daily fix-run budget defaults to allowed; its own decision matrix
      * lives in FixRunBudget.test.ts. Mocking getBudgetStatus covers both
@@ -481,16 +491,17 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     // With no rule, any connected repository counts.
     expect(countBy.mock.calls[0]![0]).not.toHaveProperty("query._id");
 
-    // The dedupe guard queries per (subject, ImproveInstrumentation).
-    expect(findOneBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          runType: AIRunType.CodeFix,
-          codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
-          triggeredByIncidentId: incidentId,
-        }),
-      }),
-    );
+    /*
+     * The dedupe guard asks per (subject, ImproveInstrumentation), a reply in
+     * Code on its task included.
+     */
+    expect(onItsWay).toHaveBeenCalledWith({
+      projectId,
+      kind: CodeFixProblemKind.Incident,
+      recordId: incidentId.toString(),
+      taskTypes: [CodeFixTaskType.ImproveInstrumentation],
+    });
+    expect(findOneBy).not.toHaveBeenCalled();
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -562,9 +573,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    jest
-      .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    onItsWay.mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
     await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
@@ -657,6 +666,11 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
  */
 describe("InstrumentationTaskTrigger and the LLM provider the rules pick", () => {
   const PICK: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+
+  beforeEach(() => {
+    // No instrumentation fix of the subject on its way (CodeFixOnItsWay).
+    jest.spyOn(CodeFixOnItsWay, "findTurn").mockResolvedValue(null);
+  });
 
   afterEach(() => {
     jest.restoreAllMocks();

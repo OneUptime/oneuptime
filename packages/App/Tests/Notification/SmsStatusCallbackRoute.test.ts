@@ -48,6 +48,15 @@ import OnCallTimelineRows, {
  * same statement as the write (OnCallNotificationStatus), so an
  * acknowledgement or a skip is never written over (issue #6683).
  *
+ * The route is a public webhook, held to two locks (#9979): the SMS's own
+ * token in its URL, which says which SMS it is about, and Twilio's
+ * signature, made with the auth token of the account the SMS went out on -
+ * the project's own Twilio config or the OneUptime server's - by Twilio's own
+ * algorithm (getExpectedTwilioSignature) over the public URL Twilio was
+ * given, behind the ingress's rewrite. A request that fails either leaves
+ * the log, the page and the count as they were, and is logged with why -
+ * never the token, an auth token or a whole account SID.
+ *
  * The database is stood in for by one row the route reads and writes the
  * way Postgres would: a read is a snapshot, a write only lands while the
  * row still holds what it expects. The page's notification likewise
@@ -141,7 +150,19 @@ jest.mock("Common/Server/Middleware/ClusterKeyAuthorization", () => {
 jest.mock("Common/Server/Services/ProjectCallSMSConfigService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), toTwilioConfig: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(),
+      toTwilioConfig: jest.fn(),
+    },
+  };
+});
+
+// The server's own Twilio account, as its settings hold it (TwilioWebhookSignature).
+jest.mock("Common/Server/Services/GlobalConfigService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
   };
 });
 
@@ -164,6 +185,15 @@ jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
 
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import Phone from "Common/Types/Phone";
+import {
+  serverTwilioRow,
+  signedTwilioRequest,
+} from "Common/Tests/Server/TestingUtils/TwilioSignedRequests";
 import {
   isStaleSmsStatus,
   MAX_STATUS_WRITE_ATTEMPTS,
@@ -191,6 +221,9 @@ const ROUTE: RegisteredRoute | undefined = (
   );
 });
 
+const PROJECT_ID: ObjectID = new ObjectID(
+  "5e5e0000-0000-4000-8000-0000000000a0",
+);
 const SMS_LOG_ID: ObjectID = new ObjectID(
   "5e5e0000-0000-4000-8000-0000000000a1",
 );
@@ -200,6 +233,22 @@ const TIMELINE_ID: ObjectID = new ObjectID(
 const TOKEN: string = "5e5e0000-0000-4000-8000-0000000000f1";
 const MESSAGE_SID: string = "SM0123456789abcdef0123456789abcdef";
 const TO_NUMBER: string = "+15555550123";
+
+// The OneUptime server's own Twilio account, which sends an SMS unless the project has its own.
+const SERVER_ACCOUNT: TwilioConfig = {
+  accountSid: "AC11111111111111111111111111111111",
+  authToken: "server-auth-token-0000000000000001",
+  primaryPhoneNumber: new Phone("+14155550100"),
+  secondaryPhoneNumbers: [],
+};
+
+// The project's own Twilio config.
+const PROJECT_ACCOUNT: TwilioConfig = {
+  accountSid: "AC22222222222222222222222222222222",
+  authToken: "project-auth-token-000000000000002",
+  primaryPhoneNumber: new Phone("+14155550199"),
+  secondaryPhoneNumbers: [],
+};
 
 // "Now", and the log written two and a half seconds before it.
 const NOW: number = Date.UTC(2026, 10, 10, 12, 0, 0);
@@ -227,6 +276,22 @@ const updateTimeline: jest.Mock =
 const sendEmptySuccess: jest.Mock =
   Response.sendEmptySuccessResponse as jest.Mock;
 const warn: jest.Mock = logger.warn as jest.Mock;
+const findConfigs: jest.Mock = ProjectCallSMSConfigService.findBy as jest.Mock;
+const toTwilioConfig: jest.Mock =
+  ProjectCallSMSConfigService.toTwilioConfig as jest.Mock;
+const findGlobalConfig: jest.Mock = GlobalConfigService.findOneBy as jest.Mock;
+
+// The project's own Twilio configs, each with the account it reads as.
+let projectConfigs: Array<{ row: ProjectCallSMSConfig; account: TwilioConfig }>;
+
+// A project's own Twilio config on an account.
+function addProjectConfig(account: TwilioConfig): void {
+  const row: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+  row.id = ObjectID.generate();
+  row.projectId = PROJECT_ID;
+  row.twilioAccountSID = account.accountSid;
+  projectConfigs.push({ row: row, account: account });
+}
 
 // The page's notification, as the person's on-call timeline holds it.
 let timeline: OnCallTimelineRows;
@@ -239,6 +304,7 @@ function snapshot(): SmsLog | null {
 
   const log: SmsLog = new SmsLog();
   log.id = SMS_LOG_ID;
+  log.projectId = PROJECT_ID;
 
   if (stored.status !== null) {
     log.status = stored.status;
@@ -285,20 +351,59 @@ interface Answer {
   next: Mock;
 }
 
+// How Twilio signs a callback: on the server's account, over what it posted, unless said.
+interface Signing {
+  // The account whose SID the request names.
+  account?: TwilioConfig | undefined;
+  // The auth token it is signed with - the account's unless said - or null for none.
+  signedWith?: string | null | undefined;
+  // What Twilio signed, when the body changed on the way.
+  signedBody?: JSONObject | undefined;
+}
+
+// Twilio's parameters as it posts them: text, with the account they are about.
+function posted(
+  account: TwilioConfig,
+  body: JSONObject,
+): Record<string, string> {
+  const parameters: Record<string, string> = {
+    AccountSid: account.accountSid,
+  };
+
+  for (const [key, value] of Object.entries(body)) {
+    parameters[key] = String(value);
+  }
+
+  return parameters;
+}
+
+/*
+ * Twilio calling the SMS's status callback: posted to the public URL it was
+ * given - the log's id and token, the query - and signed over it.
+ */
 async function callback(
   body: JSONObject,
   query: JSONObject = {},
   params: { smsLogId?: string; token?: string } = {},
+  signing: Signing = {},
 ): Promise<Answer> {
-  const req: ExpressRequest = {
-    params: {
-      smsLogId: params.smsLogId ?? SMS_LOG_ID.toString(),
-      token: params.token ?? TOKEN,
-    },
-    query: query,
-    body: body,
-    headers: {},
-  } as unknown as ExpressRequest;
+  const account: TwilioConfig = signing.account || SERVER_ACCOUNT;
+  const smsLogId: string = params.smsLogId ?? SMS_LOG_ID.toString();
+  const token: string = params.token ?? TOKEN;
+  const search: string = Object.keys(query).length
+    ? `?${new URLSearchParams(query as Record<string, string>).toString()}`
+    : "";
+
+  const req: ExpressRequest = signedTwilioRequest({
+    publicUrl: `/notification/sms/status-callback/${smsLogId}/${token}${search}`,
+    body: posted(account, body),
+    signedWith:
+      signing.signedWith === undefined ? account.authToken : signing.signedWith,
+    signedBody: signing.signedBody
+      ? posted(account, signing.signedBody)
+      : undefined,
+    params: { smsLogId: smsLogId, token: token },
+  }) as unknown as ExpressRequest;
 
   const send: Mock = jest.fn();
   const status: Mock = jest.fn();
@@ -392,6 +497,23 @@ beforeEach(() => {
     return Promise.resolve(compareAndSet(input));
   }) as never);
   timeline.standIn(UserOnCallLogTimelineService);
+
+  findGlobalConfig.mockResolvedValue(serverTwilioRow(SERVER_ACCOUNT) as never);
+  projectConfigs = [];
+  findConfigs.mockImplementation((async () => {
+    return projectConfigs.map(
+      (config: { row: ProjectCallSMSConfig }): ProjectCallSMSConfig => {
+        return config.row;
+      },
+    );
+  }) as never);
+  toTwilioConfig.mockImplementation(((row: ProjectCallSMSConfig) => {
+    return projectConfigs.find(
+      (config: { row: ProjectCallSMSConfig }): boolean => {
+        return config.row === row;
+      },
+    )?.account;
+  }) as never);
 });
 
 afterEach(() => {
@@ -409,6 +531,8 @@ describe("the route", () => {
 
     expect(SMS_LOG_STATUS_CALLBACK_SELECT).toEqual({
       _id: true,
+      // Whose Twilio configs may have signed the callback.
+      projectId: true,
       status: true,
       statusCallbackToken: true,
       userOnCallLogTimelineId: true,
@@ -450,6 +574,127 @@ describe("the route", () => {
 
   test("tries a write at most three times", () => {
     expect(MAX_STATUS_WRITE_ATTEMPTS).toBe(3);
+  });
+});
+
+describe("the token and Twilio's signature lock the route (#9979)", () => {
+  // What a refused callback leaves: the log, the page and the count as they were.
+  function expectRefusedAsItWas(answer: Answer): void {
+    expect(answer.status).toHaveBeenCalledWith(403);
+    expect(answer.send).toHaveBeenCalledWith("Forbidden");
+    expect(answer.next).not.toHaveBeenCalled();
+    expect(sendEmptySuccess).not.toHaveBeenCalled();
+    expect(writeSmsLog).not.toHaveBeenCalled();
+    expect(stored!.status).toBe(SmsStatus.Sending);
+    expect(stored!.statusMessage).toBeUndefined();
+    expect(timeline.writes).toEqual([]);
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(UserNotificationStatus.Sent);
+    expectNothingCounted();
+  }
+
+  test("the right token without Twilio's signature is refused", async () => {
+    expectRefusedAsItWas(
+      await callback(twilio("undelivered"), {}, {}, { signedWith: null }),
+    );
+  });
+
+  test("the right token, signed with another auth token, is refused", async () => {
+    expectRefusedAsItWas(
+      await callback(
+        twilio("undelivered"),
+        {},
+        {},
+        { signedWith: "an-auth-token-nobody-here-holds" },
+      ),
+    );
+  });
+
+  test("a body changed on the way - delivered made undelivered - no longer matches the signature, and is refused", async () => {
+    expectRefusedAsItWas(
+      await callback(
+        twilio("undelivered", { ErrorCode: "30003" }),
+        {},
+        {},
+        { signedBody: twilio("delivered") },
+      ),
+    );
+  });
+
+  test("an account that sent none of this project's SMS is refused, even signed with its own auth token", async () => {
+    addProjectConfig(PROJECT_ACCOUNT);
+
+    const stranger: TwilioConfig = {
+      ...PROJECT_ACCOUNT,
+      accountSid: "AC33333333333333333333333333333333",
+      authToken: "a-strangers-auth-token-00000000003",
+    };
+
+    expectRefusedAsItWas(
+      await callback(twilio("undelivered"), {}, {}, { account: stranger }),
+    );
+  });
+
+  test("the accounts tried are the SMS's own project's configs, read as root, and the server's", async () => {
+    await callback(twilio("delivered"));
+
+    expect(findConfigs).toHaveBeenCalledTimes(1);
+    expect(
+      ((findConfigs.mock.calls[0]![0] as JSONObject)["query"] as JSONObject)[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+    expect(
+      (findConfigs.mock.calls[0]![0] as JSONObject)["props"] as JSONObject,
+    ).toEqual({ isRoot: true });
+  });
+
+  test("signed by the server's own account: accepted, and the status written", async () => {
+    const answer: Answer = await callback(twilio("delivered"));
+
+    expect(answer.status).not.toHaveBeenCalled();
+    expect(stored!.status).toBe(SmsStatus.Delivered);
+    expect(onlyDelivery()["notification.provider.config"]).toBe("global");
+  });
+
+  test("signed by the project's own Twilio config: accepted, written, and counted as the project's", async () => {
+    addProjectConfig(PROJECT_ACCOUNT);
+
+    const answer: Answer = await callback(
+      twilio("undelivered", { ErrorCode: "30003" }),
+      { providerConfig: "project" },
+      {},
+      { account: PROJECT_ACCOUNT },
+    );
+
+    expect(answer.status).not.toHaveBeenCalled();
+    expect(stored!.status).toBe(SmsStatus.Undelivered);
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Error,
+    );
+    expect(onlyDelivery()["notification.provider.config"]).toBe("project");
+    // The project's own config signed: the server's settings are not read.
+    expect(findGlobalConfig).not.toHaveBeenCalled();
+  });
+
+  test("a refusal is logged with why - and never the token, an auth token or the whole account SID", async () => {
+    await callback(
+      twilio("undelivered"),
+      { providerConfig: "project" },
+      {},
+      { signedWith: "an-auth-token-nobody-here-holds" },
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Twilio callback refused: the SMS status callback for log ${SMS_LOG_ID.toString()}. Its X-Twilio-Signature does not match the one Twilio account AC…1111 makes for https://oneuptime.example.com/notification/sms/status-callback/${SMS_LOG_ID.toString()}/…?providerConfig=…`,
+      ),
+    );
+
+    const logged: string = JSON.stringify(warn.mock.calls);
+
+    expect(logged).not.toContain(TOKEN);
+    expect(logged).not.toContain(SERVER_ACCOUNT.authToken);
+    expect(logged).not.toContain(SERVER_ACCOUNT.accountSid);
   });
 });
 
@@ -695,7 +940,7 @@ describe("each SMS is counted once - on its log's move into a final status", () 
     expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
   });
 
-  test("a wrong token: refused with 403, nothing written or counted", async () => {
+  test("a wrong token: refused with 403, nothing written or counted - even signed by Twilio, and before the signature is looked at", async () => {
     const answer: Answer = await callback(
       twilio("delivered"),
       {},
@@ -705,6 +950,8 @@ describe("each SMS is counted once - on its log's move into a final status", () 
     expect(answer.status).toHaveBeenCalledWith(403);
     expect(writeSmsLog).not.toHaveBeenCalled();
     expectNothingCounted();
+    expect(findConfigs).not.toHaveBeenCalled();
+    expect(findGlobalConfig).not.toHaveBeenCalled();
   });
 
   test("an unknown log: answered 200, nothing written or counted", async () => {

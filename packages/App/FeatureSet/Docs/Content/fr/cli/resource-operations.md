@@ -207,6 +207,20 @@ Elle répond `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.
 > [!CAUTION]
 > `delete` supprime l'enregistrement immédiatement. La CLI ne vous demande pas de confirmer, et rien ne permet d'annuler. Elle accepte `--force`, pour les scripts écrits avec, et `--force` ne change rien.
 
+### Un rôle personnalisé sous lequel s'exécutent des flux de travail
+
+OneUptime ne supprime un rôle personnalisé sous lequel s'exécutent des flux de travail que si la suppression dit sous quoi ils s'exécutent à la place, et refuse celle qui ne le dit pas, en nommant les flux de travail. Dites-le avec `--workflows-run-as` : `Default`, les autorisations par défaut, ou `CustomRole`, un autre rôle personnalisé que vous pourriez donner à une équipe, avec son ID dans `--workflows-run-as-custom-role-id`. Jamais Project Owner : supprimer un rôle n'étend jamais ce qu'un flux de travail peut faire.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Une suppression refusée affiche le refus de OneUptime, qui nomme les flux de travail, puis les options avec lesquelles la relancer. Un rôle sous lequel aucun flux de travail ne s'exécute n'a besoin d'aucune des deux.
+
 ## Compter des enregistrements
 
 ```bash

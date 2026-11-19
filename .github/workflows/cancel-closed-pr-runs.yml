@@ -83,6 +83,7 @@ jobs:
           - Terraform Provider E2E Tests
           - Terraform Provider Generation
           - Tests
+          - Time Zone Data
     # The cancelling happens here, when the job is queued. No `needs` and no
     # `if`: a job waiting on another one would not be queued until that one had
     # a runner, and a skipped job joins no group.

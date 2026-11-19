@@ -87,6 +87,11 @@ spec:
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        # The telemetry writer connects to PostgreSQL as it starts: wait for it
+        # here rather than exit and restart while it starts
+        # (oneuptime.postgres.runtimeWaitInitContainer).
+        {{- include "oneuptime.postgres.runtimeWaitInitContainer" (dict "Values" $.Values "Release" $.Release "ServiceName" "telemetry-writer" "ImageName" "app" "SecurityContext" ($.Values.telemetryWriter.containerSecurityContext | default $.Values.containerSecurityContext)) | nindent 8 }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "telemetry-writer" "ImageName" "app") }}
           name: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}

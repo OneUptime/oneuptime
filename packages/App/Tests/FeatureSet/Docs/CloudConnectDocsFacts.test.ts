@@ -26,6 +26,7 @@ import {
 } from "Common/Types/Cloud/CloudKeyMetrics";
 import {
   AZURE_FIVE_MINUTE_READING_HOLD_MS,
+  AZURE_HOURLY_READING_HOLD_MS,
   CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
   CLOUD_MEMORY_HIGH_PERCENT,
   CLOUD_STORAGE_FULL_PERCENT,
@@ -35,7 +36,9 @@ import {
 } from "Common/Types/Cloud/CloudResourceHealth";
 import {
   CLOUD_ALERT_WINDOWS,
+  CLOUD_FIVE_MINUTE_METRIC_WINDOW,
   CloudAlertTemplate,
+  getCloudAlertTemplate,
   getAllCloudAlertTemplates,
   getGceSshCommand,
   isCloudAlertTemplateOfOpsAgent,
@@ -225,6 +228,9 @@ const SOURCES: Record<string, string> = {
   resourceSideMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
   monitorActivity: `${DASHBOARD}/Components/Monitor/Overview/MonitorActivityCard.tsx`,
   dataMigrations: "packages/App/FeatureSet/Workers/DataMigrations/Index.ts",
+  workers: "packages/App/FeatureSet/Workers/Index.ts",
+  retiredMetricNotice: `${DASHBOARD}/Components/Metrics/RetiredCloudMetricNotice.tsx`,
+  monitorMetricsCard: `${DASHBOARD}/Components/Monitor/MetricMonitor/MonitorMetricsCard.tsx`,
   retiredMetricMoves:
     "packages/App/FeatureSet/Workers/DataMigrations/MoveMonitorsOffRetiredCloudMetrics.ts",
 };
@@ -925,10 +931,77 @@ describe("Connect a Cloud Account", () => {
     );
     expect(paragraph).toContain("Review the criteria of a moved monitor.");
 
-    // A monitor split by response code is left as it is, and told.
-    expect(RetiredCloudMetricKeptReason.ResponseCode).toBeDefined();
+    // Charts and SLOs move as monitors do (#9980).
+    expect(source("dataMigrations")).toContain(
+      "new MoveChartsAndSlosOffRetiredCloudMetrics()",
+    );
     expect(paragraph).toContain(
-      "One that could not be moved, such as a Pub/Sub monitor that reads publishes by their response code, reads nothing new, and says what to read instead.",
+      "A dashboard's charts and an SLO's metric move the same way.",
+    );
+
+    /*
+     * A monitor left on one is still read for (#9739's gap), says so on its
+     * Overview (its Metrics card), and is moved once it can be: every hour.
+     */
+    expect(RetiredCloudMetricKeptReason.ResponseCode).toBeDefined();
+    expect(source("monitorMetricsCard")).toContain(
+      "<RetiredCloudMetricNotice queryConfigs={reads.queryConfigs} />",
+    );
+    expect(source("retiredMetricNotice")).toContain(
+      "OneUptime still reads it for saved monitors and charts",
+    );
+    expect(source("workers")).toContain(
+      'import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";',
+    );
+    expect(paragraph).toContain(
+      "One that could not be moved, such as a Pub/Sub monitor that reads publishes by their response code, still has its metric read for it, and its **Overview** says what to read instead; one of a Cosmos DB account that had reported neither latency moves within an hour of the account reporting one.",
+    );
+    expect(paragraph).not.toContain("reads nothing new");
+  });
+
+  /*
+   * #9982: an Azure key metric kept at an hour, such as a Storage account's
+   * used capacity, is kept between its hourly reads until it is 4 hours old.
+   */
+  it("says how long an hourly reading is kept", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+
+    expect(AZURE_HOURLY_READING_HOLD_MS).toBe(4 * 60 * 60 * 1000);
+    expect(paragraph).toContain(
+      `Azure Monitor keeps a few key metrics at an hour, such as an Azure Storage account's used capacity: they are read once an hour, when they are 2 hours old, and kept until they are ${AZURE_HOURLY_READING_HOLD_MS / (60 * 60 * 1000)} hours old.`,
+    );
+  });
+
+  /*
+   * #9981: an App Service app with a health check is offered two monitors,
+   * over the 30 minutes a metric Azure Monitor keeps at five minutes needs.
+   */
+  it("says which monitors an App Service app's health check is offered, over what window, and their first command", () => {
+    const bullet: string | undefined = section("What you see in OneUptime")
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- **Recommended monitors.**");
+      });
+    const failing: CloudAlertTemplate | undefined = getCloudAlertTemplate(
+      "cloud-azure-appservice-health-check-failing",
+    );
+    const mostFailing: CloudAlertTemplate | undefined = getCloudAlertTemplate(
+      "cloud-azure-appservice-health-check-most-failing",
+    );
+
+    expect(CLOUD_FIVE_MINUTE_METRIC_WINDOW).toBe(RollingTime.Past30Minutes);
+    expect(failing?.rollingTime).toBe(RollingTime.Past30Minutes);
+    expect(mostFailing?.rollingTime).toBe(RollingTime.Past30Minutes);
+    expect(failing?.threshold).toBe(100);
+    expect(mostFailing?.threshold).toBe(CLOUD_HEALTH_CHECK_CRITICAL_PERCENT);
+    expect(failing?.requiresReading).toBe(true);
+    expect(failing?.firstCommand).toBeDefined();
+    expect(bullet).toContain(
+      "An App Service app with a health check is offered two more, over the last 30 minutes, as Azure Monitor keeps its metric at five minutes: one for an instance failing it, and one for fewer than half of its instances passing it, each incident giving the command for Azure Cloud Shell that names the instance that fails.",
     );
   });
 

@@ -1,5 +1,7 @@
 import ProductKey from "../../../Types/Product/ProductKey";
 import { SWITCHABLE_PRODUCTS } from "../../../Types/Product/ServerProducts";
+import { SETUP_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AISetupActions";
+import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
   PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
@@ -123,6 +125,17 @@ interface ProductRouteFile {
 
 // A refusal the file may hold whatever its product: a rule's table names it.
 const ANY_PRODUCT: ReadonlyArray<ProductKey> = SWITCHABLE_PRODUCTS;
+
+// The products of every setup action the API runs outside Ask AI's chat (#7241).
+const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
+  new Set<ProductKey>(
+    SETUP_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
+      (action: string): ReadonlyArray<ProductKey> => {
+        return getToolProducts(action);
+      },
+    ),
+  ),
+);
 
 const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/StatusPageAPI.ts": {
@@ -662,6 +675,15 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     },
   },
   /*
+   * Ask AI's setup actions, one call each, for the MCP server (#7241): the
+   * products of the action the body names, as Ask AI's tool names them
+   * (ProductsOfRequest.setupAction).
+   */
+  "packages/Common/Server/API/SetupActionAPI.ts": {
+    products: SETUP_ACTION_PRODUCTS,
+    leftAlone: {},
+  },
+  /*
    * OneUptime AI on an incident or an alert: the record's product
    * (ProductsOfRequest.incidentOrAlert), and Code for the pull request a
    * fix task opens.
@@ -1002,9 +1024,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         /*
          * #9764: a security key set up at sign-in - its options, and the
          * key's answer. #9822: a security key's sign-in options, asked for
-         * with the password again rather than by an address alone.
+         * with the password again rather than by an address alone. #9817:
+         * the phone's browser reads a mobile app's passkey options once,
+         * by the one-time hand-off the app was given at sign-in.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 21,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 22,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
@@ -1049,7 +1073,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "The project, its people and its settings - Users, Teams and Project Settings, which are always on.",
       {
         "packages/Common/Server/API/ApiKeyAPI.ts": 1,
-        "packages/Common/Server/API/ProjectAPI.ts": 8,
+        /*
+         * #9820: a project's owners counting and clearing the sign-in
+         * settings its people saved before it managed sign-in with SSO.
+         */
+        "packages/Common/Server/API/ProjectAPI.ts": 9,
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
@@ -1482,6 +1510,7 @@ const productsOfRefusal: (
       "ProductsOfRequest.aiResource": Object.values(
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),
+      "ProductsOfRequest.setupAction": SETUP_ACTION_PRODUCTS,
     };
 
     return resolvers[refusal.argument] || handed[refusal.argument] || null;

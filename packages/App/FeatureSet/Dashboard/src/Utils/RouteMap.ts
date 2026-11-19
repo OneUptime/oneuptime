@@ -1241,6 +1241,7 @@ export const InventoryRoutePath: Dictionary<string> = {
   [PageMap.INVENTORY_VIEW_DELETE]: `item/${RouteParams.ModelID}/delete`,
   [PageMap.INVENTORY_ARCHIVED]: "archived",
   [PageMap.INVENTORY_MANAGED_DEVICES]: "managed-devices",
+  [PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS]: `managed-devices/${RouteParams.ModelID}/recommendations`,
   [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
 };
 
@@ -10425,6 +10426,14 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INVENTORY_MANAGED_DEVICES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/inventory/${
       InventoryRoutePath[PageMap.INVENTORY_MANAGED_DEVICES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[
+        PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS
+      ]
     }`,
   ),
 

@@ -105,7 +105,9 @@ import ChannelMembersNotAddedNotice, {
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import ProjectService from "./ProjectService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
@@ -2633,9 +2635,12 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the event are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the event are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: ScheduledMaintenanceOwnerUserService,
       ownerTeamService: ScheduledMaintenanceOwnerTeamService,
       resourceIdColumn: "scheduledMaintenanceId",

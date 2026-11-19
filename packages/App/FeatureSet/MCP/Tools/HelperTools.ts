@@ -142,7 +142,8 @@ COMMON WORKFLOWS:
 3. Respond: Use acknowledge_incident / resolve_incident / add_incident_note
 4. Investigate: Use list_logs, list_metrics, list_spans, list_monitor_logs (always with a time-range filter)
 5. Create incident: Use list_incident_severities to get a severity ID, then create_incident
-6. Filter or sort on a field: Use ${DESCRIBE_RESOURCE_TOOL_NAME} to see a resource's fields`,
+6. Filter or sort on a field: Use ${DESCRIBE_RESOURCE_TOOL_NAME} to see a resource's fields
+7. Set up monitoring: Use set_up_website_monitoring, set_up_paging and publish_status_page, one call each`,
     inputSchema: {
       type: "object",
       properties: {
@@ -320,6 +321,16 @@ function handleHelpTool(
           description: "List all monitors and their current status",
         },
         {
+          tool: "set_up_website_monitoring",
+          description:
+            "Monitor a website or API address in one call, with the criteria the website guided setup gives it (signed in with OAuth)",
+        },
+        {
+          tool: "who_is_told",
+          description:
+            "Who is paged and emailed when a monitor goes down, and what would stop them being reached",
+        },
+        {
           tool: "create_monitor",
           description: "Create a new monitor to watch a service",
         },
@@ -345,6 +356,15 @@ function handleHelpTool(
 
     case "workflows":
       (response["data"] as Record<string, unknown>)["workflows"] = [
+        {
+          name: "Monitor a website, page me and show it on a status page",
+          steps: [
+            "1. Use set_up_website_monitoring with the address",
+            "2. Use set_up_paging in a project that pages nobody yet (who is paged, and how they asked to be reached)",
+            "3. Use publish_status_page with the monitor, or add_monitors_to_status_page for a page the project has",
+            "4. Use who_is_told with the monitor to check who is told when it goes down",
+          ],
+        },
         {
           name: "Check system status",
           steps: [

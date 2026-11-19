@@ -108,6 +108,7 @@ import MonitorStepMetricMonitor, {
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import MetricWholeWindow from "Common/Utils/Metrics/MetricWholeWindow";
+import MetricLatestReading from "Common/Utils/Metrics/MetricLatestReading";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -2217,6 +2218,24 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       : undefined;
 
   /*
+   * Each series on its latest reading, when the step asks
+   * (MonitorStepMetricMonitor.judgeLatestReading): a managed device's
+   * minutes since its last check-in, written once per read of its
+   * connection, opens an alert with the first reading that says it stopped
+   * and resolves it with the first that says it checked in again - never a
+   * window's worth of old readings later.
+   */
+  const judgesLatestReading: boolean =
+    MonitorStepMetricMonitorUtil.judgesLatestReading(metricMonitorConfig);
+
+  if (seriesBreakdown && judgesLatestReading) {
+    seriesBreakdown = MetricLatestReading.keepLatestReadings<
+      AggregatedModel,
+      MetricSeriesResult
+    >(seriesBreakdown);
+  }
+
+  /*
    * Seed synthetic "no data" series for hosts that are expected to be
    * reporting but produced no row this window, so per-host down-detection
    * fires instead of only catching a total fleet blackout. No-op unless the
@@ -2250,7 +2269,12 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs,
       zeroFill: zeroFill,
     }),
-    metricResult: resultsWithFormulas,
+    // An ungrouped step that asks is judged on its latest reading too.
+    metricResult: judgesLatestReading
+      ? MetricLatestReading.keepLatestRows<AggregatedModel, AggregatedResult>(
+          resultsWithFormulas,
+        )
+      : resultsWithFormulas,
     queryAttributes: readAttributes,
     // The services every query was read for, when it was limited to some.
     ...(metricMonitorConfig.telemetryServiceIds &&

@@ -22,6 +22,7 @@ import {
 } from "./TelemetrySetup";
 import TelemetryWhoIsTold from "./TelemetryWhoIsTold";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
+import { getDescribeItPrompt } from "../AskAiGuidedSetupLinks";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
   getFirstOpenStepKey,
@@ -911,6 +912,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       summary={summary}
       isFinished={isTelemetrySetupFinished(facts)}
       minutes={WELCOME_STEP_MINUTES[WelcomeStep.Telemetry]}
+      describeItPrompt={getDescribeItPrompt({
+        setup: TELEMETRY_SETUP,
+        translator: translator,
+      })}
     />
   );
 };

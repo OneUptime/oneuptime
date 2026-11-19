@@ -98,7 +98,7 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
   const resources: Array<InfrastructureResource> = toVMwareListResources(
     props.rows,
     props.context,
-  ).map(withVMwareVmStorage);
+  );
 
   const columns: Array<ResourceColumn> = [];
   if (props.scope === "vcenter") {
@@ -150,7 +150,6 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
         cpu: VMWARE_USAGE_BAR_THRESHOLDS,
         memory: VMWARE_USAGE_BAR_THRESHOLDS,
       }}
-      storageUsageColumns={VMWARE_VM_STORAGE_COLUMNS}
       columns={columns}
       getViewRoute={(resource: InfrastructureResource): Route => {
         return (
@@ -182,7 +181,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
   const resources: Array<InfrastructureResource> = toVMwareListResources(
     props.rows,
     props.context,
-  );
+  ).map(withVMwareVmStorage);
 
   const columns: Array<ResourceColumn> = [];
   if (props.scope === "vcenter") {
@@ -276,6 +275,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
         cpu: VMWARE_USAGE_BAR_THRESHOLDS,
         memory: VMWARE_USAGE_BAR_THRESHOLDS,
       }}
+      storageUsageColumns={VMWARE_VM_STORAGE_COLUMNS}
       columns={columns}
       getViewRoute={(resource: InfrastructureResource): Route => {
         return (

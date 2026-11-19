@@ -519,7 +519,7 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      * both a covered and an uncovered answer are exercised for all eight
      * resource types.
      */
-    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(20);
+    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(21);
 
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
@@ -562,7 +562,37 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
       }
 
       // ...and neither may claim everything, or agreement would be trivial.
-      expect(coveredMap.size).toBeLessThan(recommendations.length);
+      if (recommendations.length > 1) {
+        expect(coveredMap.size).toBeLessThan(recommendations.length);
+        continue;
+      }
+
+      /*
+       * A type with one recommendation (an Esper connection's, #9835) has
+       * every recommendation created above: its uncovered answer is another
+       * resource's monitor, which covers nothing here.
+       */
+      const otherResourceMonitors: Array<ExistingRecommendationMonitor> = [
+        buildMonitorFor(
+          recommendations,
+          buildArgs({ resourceIdentifier: "another-resource" }),
+        ),
+      ];
+
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+          recommendations: recommendations,
+          existingMonitors: otherResourceMonitors,
+          args: args,
+        }).size,
+      ).toBe(0);
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations: recommendations,
+          existingMonitorSteps: flattenSteps(otherResourceMonitors),
+          args: args,
+        }).size,
+      ).toBe(0);
     }
   });
 
@@ -642,6 +672,34 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
           );
         },
       );
+
+      /*
+       * A type with one recommendation (an Esper connection's, #9835) has no
+       * second template to tell apart: its identifier plumbing is told
+       * apart by two resources instead - the monitor of this one, never the
+       * other's, covers it.
+       */
+      if (recommendations.length === 1) {
+        const thisResourceMonitor: ExistingRecommendationMonitor =
+          buildMonitorFor([first], args);
+        const otherResourceMonitor: ExistingRecommendationMonitor =
+          buildMonitorFor(
+            [first],
+            buildArgs({ resourceIdentifier: "another-resource" }),
+          );
+
+        const covered: Map<string, ObjectID> =
+          MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+            recommendations: recommendations,
+            existingMonitors: [otherResourceMonitor, thisResourceMonitor],
+            args: args,
+          });
+
+        expect(covered.get(first.recommendationId)).toBe(
+          thisResourceMonitor.monitorId,
+        );
+        continue;
+      }
 
       expect(second).toBeDefined();
 

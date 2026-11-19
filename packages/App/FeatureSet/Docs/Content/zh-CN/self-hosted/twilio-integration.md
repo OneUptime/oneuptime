@@ -194,7 +194,10 @@ sequenceDiagram
 
 OneUptime 会自动生成短信、通话结果和确认的 URL。不要用固定的 webhook URL 替换其中的令牌。来电请按照[来电策略](/docs/on-call/incoming-call-policy)操作，关联号码时会为该号码配置 webhook。
 
-Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。请使用公开受信任的 TLS 证书，并在经过代理时保留原始的主机、协议、路径、查询参数、请求体和 `X-Twilio-Signature` 请求头。来电处理程序会验证 Twilio 签名；短信投递和通话结果使用每条消息或每通电话独有的 URL 令牌，按键确认使用签名的查询令牌。语音信箱回调会同时验证其 URL 令牌和 Twilio 签名。不要在共享日志或截图中暴露令牌。请参阅 [Twilio webhook 安全](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+Twilio 要求 [webhook URL 可被公开访问](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。请使用公开受信任的 TLS 证书，并在经过代理时保留原始的主机、协议、路径、查询参数、请求体和 `X-Twilio-Signature` 请求头。表中的每个回调都会验证 Twilio 签名，签名由发送该短信或拨出该电话的 Twilio 账号的 Auth Token 生成，即项目的 Twilio 配置或整个安装的账号。短信投递、通话结果和语音信箱回调还会验证其 URL 中的令牌，按键确认还会验证其查询中签名的令牌：签名表明请求来自 Twilio，令牌则说明请求涉及哪条短信或哪通电话。签名不匹配的回调会以 403 被拒绝，不会更改任何内容。不要在共享日志或截图中暴露令牌。请参阅 [Twilio webhook 安全](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+
+> [!IMPORTANT]
+> Twilio 会对它调用的确切 URL 及其发送的每个参数签名，因此 OneUptime 会拒绝途中被代理修改过的回调，短信投递状态、通话结果和按键确认也会随之停止更新。请检查 Twilio 与 OneUptime 之间的每个代理都原样转发路径、查询字符串、请求体和 `X-Twilio-Signature` 请求头，且不进行重定向。OneUptime 会用 `HOST` 和 `HTTP_PROTOCOL` 生成的 URL，以及请求的 `Host`、`X-Forwarded-Host` 和 `X-Forwarded-Proto` 请求头所指明的 URL 来验证签名，因此只要其中一个是 Twilio 调用的公开 URL 即可。对于每个被拒绝的回调，服务器日志中都有一行以 `Twilio callback refused` 开头的记录说明原因，其中不包含令牌或 Auth Token。
 
 ### 从私有部署发布回调
 
@@ -231,7 +234,7 @@ Twilio 普通 webhook 的来源地址会变化，因此不要把 SIP 或媒体 I
 | 什么都没有发出 | 凭据、号码的能力、账户限制和出站连接。 |
 | Twilio 以错误 21606 拒绝短信 | 该号码无法发送短信。请在 **Twilio 短信电话号码** 中添加一个可以发送短信的号码：参见 [为通话和短信使用不同号码](#为通话和短信使用不同号码)。 |
 | 通话或短信通过项目以外的账户发出 | 没有配置是它们的项目默认配置：**项目默认值** 列显示每个配置是哪种内容的默认配置。参见 [仅用于短信或仅用于通话的账户](#仅用于短信或仅用于通话的账户)。 |
-| 短信或电话已送达，但状态或确认没有更新 | 回调 URL 和公共 ingress 的日志。Twilio 的 [HTTP 获取失败指南](https://www.twilio.com/docs/api/errors/11200)可以帮助诊断无法访问的回调、TLS 问题和 HTTP 错误。 |
+| 短信或电话已送达，但状态或确认没有更新 | 回调 URL 和公共 ingress 的日志。Twilio 的 [HTTP 获取失败指南](https://www.twilio.com/docs/api/errors/11200)可以帮助诊断无法访问的回调、TLS 问题和 HTTP 错误。403 表示 OneUptime 拒绝了该回调：服务器日志会在以 `Twilio callback refused` 开头的一行中说明原因。 |
 
 仅凭测试电话成功，并不能证明回调可以访问。
 

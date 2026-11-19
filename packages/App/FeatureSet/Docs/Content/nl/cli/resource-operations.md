@@ -207,6 +207,20 @@ Hij antwoordt `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully
 > [!CAUTION]
 > `delete` verwijdert het record meteen. De CLI vraagt je niet om te bevestigen, en het kan niet ongedaan worden gemaakt. Hij accepteert `--force`, voor scripts die ermee zijn geschreven, en `--force` verandert niets.
 
+### Een aangepaste rol waarmee workflows draaien
+
+OneUptime verwijdert een aangepaste rol waarmee workflows draaien alleen als het verwijderen zegt waarmee ze in plaats daarvan draaien, en weigert een verwijdering die dat niet zegt, met de namen van de workflows. Zeg het met `--workflows-run-as`: `Default`, de standaardmachtigingen, of `CustomRole`, een andere aangepaste rol die je een team zou kunnen geven, met de ID ervan in `--workflows-run-as-custom-role-id`. Nooit Project Owner: een rol verwijderen breidt nooit uit wat een workflow mag.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Een geweigerde verwijdering drukt de weigering van OneUptime af, die de workflows noemt, en daarna de vlaggen waarmee je het opnieuw uitvoert. Een rol waarmee geen enkele workflow draait, heeft geen van beide nodig.
+
 ## Records tellen
 
 ```bash

@@ -19,8 +19,8 @@ import TraceInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/TraceIns
 import ExceptionInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/ExceptionInsightFix";
 import MetricInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/MetricInsightFix";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
-import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import { TelemetryAiLane } from "../../../../../Types/AI/TelemetryAi";
@@ -30,6 +30,10 @@ import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import SuggestionOffer from "../../../../../Utils/Suggestions/SuggestionOffer";
 import { NO_TELEMETRY_AI_FIX_SUGGESTION } from "../../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
+import FixTurnsTable, {
+  FixTurnFacts,
+  FixTurnRow,
+} from "../CodeFix/FixTurnsTable";
 
 /*
  * What every telemetry lane's pull request shares (TelemetryAiFix): the
@@ -117,42 +121,29 @@ describe("TelemetryAiFix.countStartedToday", () => {
 });
 
 describe("TelemetryAiFix.findActiveTaskIdForInsight", () => {
-  test("a Code task about the insight still on its way: its task's id", async () => {
-    const taskId: ObjectID = ObjectID.generate();
-    const find: SpyInstance<typeof AIRunService.findOneBy> = jest
-      .spyOn(AIRunService, "findOneBy")
-      .mockImplementation(async () => {
-        const run: AIRun = new AIRun();
-        run.id = ObjectID.generate();
-        run.codeTaskId = taskId;
-        return run;
-      });
+  /*
+   * The project's runs (FixTurnsTable): a Code task about the insight is a
+   * first turn that names it, of a lane's recipe, and every turn after it.
+   */
+  function tableOf(seed: (table: FixTurnsTable) => void): FixTurnsTable {
+    const table: FixTurnsTable = new FixTurnsTable(PROJECT_ID);
+    seed(table);
+    table.install();
+    return table;
+  }
 
-    expect(
-      await TelemetryAiFix.findActiveTaskIdForInsight({
-        projectId: PROJECT_ID,
-        insightId: INSIGHT_ID,
-      }),
-    ).toBe(taskId.toString());
+  const insightTask: FixTurnFacts = {
+    codeFixTaskType: CodeFixTaskType.CodeRequest,
+    status: AIRunStatus.Error,
+    aiInsightId: INSIGHT_ID,
+  };
 
-    const query: JSONObject = (find.mock.calls[0]![0] as unknown as JSONObject)[
-      "query"
-    ] as JSONObject;
+  test("a later turn of a Code task about the insight still on its way: its task's id", async () => {
+    let task: FixTurnRow | undefined;
 
-    expect(String(query["triggeredByAiInsightId"])).toBe(INSIGHT_ID.toString());
-    expect(inValuesOf(query["codeFixTaskType"]).sort()).toEqual(
-      [...LANE_RECIPES].sort(),
-    );
-    expect(JSON.stringify(query["status"])).toContain("Completed");
-  });
-
-  test("a first turn is its own task", async () => {
-    const runId: ObjectID = ObjectID.generate();
-
-    jest.spyOn(AIRunService, "findOneBy").mockImplementation(async () => {
-      const run: AIRun = new AIRun();
-      run.id = runId;
-      return run;
+    const table: FixTurnsTable = tableOf((runs: FixTurnsTable) => {
+      task = runs.addFirstTurn(insightTask);
+      runs.addAskedAgain(task, AIRunStatus.Running);
     });
 
     expect(
@@ -160,11 +151,53 @@ describe("TelemetryAiFix.findActiveTaskIdForInsight", () => {
         projectId: PROJECT_ID,
         insightId: INSIGHT_ID,
       }),
-    ).toBe(runId.toString());
+    ).toBe(task!._id);
+
+    // Asked of the insight, of every lane's recipe, in the project.
+    const parameters: Array<unknown> = table.statements[0]!.parameters;
+
+    expect(parameters[0]).toBe(PROJECT_ID.toString());
+    expect((parameters[3] as Array<string>).sort()).toEqual(
+      [...LANE_RECIPES].sort(),
+    );
+    expect(parameters[4]).toBe(INSIGHT_ID.toString());
   });
 
-  test("none on its way: null", async () => {
-    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+  test("a reply someone sent in Code, still working, keeps the task on its way - it names no insight of its own", async () => {
+    let task: FixTurnRow | undefined;
+
+    tableOf((runs: FixTurnsTable) => {
+      task = runs.addFirstTurn(insightTask);
+      runs.addReply(task, AIRunStatus.Queued);
+    });
+
+    expect(
+      await TelemetryAiFix.findActiveTaskIdForInsight({
+        projectId: PROJECT_ID,
+        insightId: INSIGHT_ID,
+      }),
+    ).toBe(task!._id);
+  });
+
+  test("a first turn is its own task", async () => {
+    let task: FixTurnRow | undefined;
+
+    tableOf((runs: FixTurnsTable) => {
+      task = runs.addFirstTurn({ ...insightTask, status: AIRunStatus.Running });
+    });
+
+    expect(
+      await TelemetryAiFix.findActiveTaskIdForInsight({
+        projectId: PROJECT_ID,
+        insightId: INSIGHT_ID,
+      }),
+    ).toBe(task!._id);
+  });
+
+  test("none on its way - its reply ended too: null", async () => {
+    tableOf((runs: FixTurnsTable) => {
+      runs.addReply(runs.addFirstTurn(insightTask), AIRunStatus.Completed);
+    });
 
     expect(
       await TelemetryAiFix.findActiveTaskIdForInsight({

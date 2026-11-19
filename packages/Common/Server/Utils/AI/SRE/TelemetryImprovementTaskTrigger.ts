@@ -10,6 +10,8 @@ import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
+import CodeTaskThread from "../CodeTask/CodeTaskThread";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   getTelemetryImprovementOffer,
   NO_TELEMETRY_IMPROVEMENT_SUGGESTION,
@@ -45,15 +47,21 @@ export default class TelemetryImprovementTaskTrigger {
    * What a service's Logs or Traces page offers: the card (Act), a link to
    * the improvement already on its way (InProgress), or nothing (None) -
    * decided by the gates createTelemetryImprovementTask enforces: AI on, a
-   * repository, no run of the same recipe in flight for the service, and
-   * nothing Code's gate says stops the run. The caller has already checked
-   * the person may read the service.
+   * repository, no task of the same recipe on its way for the service (a
+   * reply in Code included), and nothing Code's gate says stops the run.
+   * The caller has already checked the person may read the service.
+   *
+   * The improvement on its way is read as its task's own page reads it,
+   * for `reader`: one a reply carried a private incident or alert into,
+   * which they do not see, is there - no second one is offered - and
+   * nothing of it, not even the link to it (None).
    */
   @CaptureSpan()
   public static async getSuggestion(data: {
     projectId: ObjectID;
     telemetryServiceId: ObjectID;
     taskType: CodeFixTaskType;
+    reader: DatabaseCommonInteractionProps;
   }): Promise<TelemetryImprovementSuggestion> {
     if (
       data.taskType !== CodeFixTaskType.ImproveLogging &&
@@ -76,6 +84,22 @@ export default class TelemetryImprovementTaskTrigger {
         taskType: data.taskType,
         telemetryServiceId: data.telemetryServiceId.toString(),
       });
+
+    // Its task: a fix asked again or a reply is a later turn of it.
+    const activeTaskId: ObjectID | null = SubjectCodeFixRun.taskIdOf(activeRun);
+
+    if (
+      activeTaskId &&
+      (
+        await CodeTaskThread.findTasksHiddenFrom({
+          projectId: data.projectId,
+          taskIds: [activeTaskId],
+          reader: data.reader,
+        })
+      ).size > 0
+    ) {
+      return NO_TELEMETRY_IMPROVEMENT_SUGGESTION;
+    }
 
     const hasConnectedRepository: boolean = activeRun
       ? true
@@ -107,10 +131,9 @@ export default class TelemetryImprovementTaskTrigger {
 
     return {
       offer,
-      // Its task: a fix asked again from Code (#6509) is a later turn of it.
       aiRunId:
         offer === SuggestionOffer.InProgress
-          ? SubjectCodeFixRun.taskIdOf(activeRun)?.toString() || null
+          ? activeTaskId?.toString() || null
           : null,
     };
   }

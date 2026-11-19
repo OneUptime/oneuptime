@@ -695,6 +695,57 @@ describe("a brand-new project", () => {
   });
 });
 
+/*
+ * OPENED FROM AN ASK AI PLAN (#7245): its card's Open in guided setup
+ * opens this setup with the address the plan checks (?address=), and an API
+ * ticked as one (?api=true), for someone who wants to see each step.
+ */
+describe("1. Opened from an Ask AI setup plan (#7245)", () => {
+  const openedFor: (search: string) => void = (search: string): void => {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/monitors/setup${search}`,
+    );
+  };
+
+  afterEach(() => {
+    openedFor("");
+  });
+
+  test("the plan's address is filled in, an API is ticked as one, and nothing is checked yet", async () => {
+    openedFor(
+      `?from=ask_ai&address=${encodeURIComponent("https://api.example.com/health")}&api=true`,
+    );
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-address")).toHaveValue(
+      "https://api.example.com/health",
+    );
+    expect(screen.getByTestId("guided-setup-is-api")).toBeChecked();
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(stepState("check")).toBe("open");
+  });
+
+  test("a website's address leaves the API box as it is, and Start checking checks it", async () => {
+    openedFor("?from=ask_ai&address=example.com");
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-address")).toHaveValue(
+      "example.com",
+    );
+    expect(screen.getByTestId("guided-setup-is-api")).not.toBeChecked();
+  });
+
+  test("opened any other way, the address starts empty", async () => {
+    openedFor("?from=empty_list");
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-address")).toHaveValue("");
+    expect(screen.getByTestId("guided-setup-is-api")).not.toBeChecked();
+  });
+});
+
 describe("1. What should we check?", () => {
   test("every other kind of monitor is one link away, on Create Monitor", async () => {
     await renderSetup();

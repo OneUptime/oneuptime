@@ -2,11 +2,21 @@ import * as http from "http";
 import Logger from "./Logger";
 import { CostEngineResolver } from "./CostEngineResolver";
 import { EngineMetricsTarget, MetricsEngine } from "./EngineMetrics";
-import { listServices } from "./KubernetesApi";
+import { CostPrometheusTarget, PrometheusEngine } from "./EnginePrometheus";
+import { getConfigMap, listPods, listServices } from "./KubernetesApi";
 import { Poller } from "./Poller";
+import { PrometheusClient } from "./PrometheusClient";
 import { Shipper } from "./Shipper";
 import { startHealthServer } from "./Health";
-import { CLUSTER_NAME, COST_ENGINE_URL, ONEUPTIME_URL } from "./Config";
+import {
+  CLUSTER_NAME,
+  COST_ENGINE_URL,
+  COST_PROMETHEUS_BUNDLED,
+  COST_PROMETHEUS_CADVISOR_JOB,
+  COST_PROMETHEUS_URL,
+  IS_COST_PROMETHEUS_CADVISOR_JOB_SET,
+  ONEUPTIME_URL,
+} from "./Config";
 
 const main: () => Promise<void> = async (): Promise<void> => {
   Logger.info("starting kubernetes-cost-agent", {
@@ -34,22 +44,46 @@ const main: () => Promise<void> = async (): Promise<void> => {
     listServices: listServices,
   });
 
+  /*
+   * Which Prometheus the memory peaks are read from (#9777): the one
+   * cost.engine.prometheusUrl names, the chart's bundled one for the bundled
+   * engine, or the one the cluster's own engine reads.
+   */
+  const prometheus: CostPrometheusTarget = new CostPrometheusTarget({
+    prometheusUrl: COST_PROMETHEUS_URL,
+    prometheusUrlIsBundled: COST_PROMETHEUS_BUNDLED,
+    configuredJob: IS_COST_PROMETHEUS_CADVISOR_JOB_SET
+      ? COST_PROMETHEUS_CADVISOR_JOB
+      : null,
+    engine: (): PrometheusEngine | null => {
+      return engine.prometheusEngine();
+    },
+    kubernetes: { listServices, listPods, getConfigMap },
+  });
+
   const shipper: Shipper = new Shipper();
-  const poller: Poller = new Poller(engine, shipper);
+  const poller: Poller = new Poller(
+    engine,
+    shipper,
+    new PrometheusClient(prometheus),
+  );
   const healthServer: http.Server = startHealthServer({
     poller,
     shipper,
     engine,
     metrics,
+    prometheus,
   });
 
   poller.start();
   metrics.start();
+  prometheus.start();
 
   const shutdown: (signal: string) => void = (signal: string): void => {
     Logger.info("received shutdown signal; stopping", { signal });
     poller.stop();
     metrics.stop();
+    prometheus.stop();
     healthServer.close((): void => {
       process.exit(0);
     });

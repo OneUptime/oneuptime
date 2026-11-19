@@ -21,6 +21,20 @@ const CANDIDATE_PATHS: Array<string> = [
 const KUBECOST_PATH_PREFIX: string = "/model";
 
 /*
+ * What a /model/allocation answer is grouped by: each container, as
+ * OpenCost's /allocation/compute answers anyway. Asked nothing, a Kubecost's
+ * aggregator answers per namespace: Kubecost 2.8.7's and 3.3.2's both gave 12
+ * rows, each a namespace with no workload, pod, container or cluster, where
+ * these keys gave the 28 containers. Rows with no container are rows the
+ * Costs pages can put under no workload, right-sizing can size nothing from,
+ * no memory peak joins, and the check against an engine that answers for
+ * several clusters cannot see the cluster of. OpenCost's UI, which passes
+ * /model/allocation on to its API, answers the same 28 either way.
+ */
+export const CONTAINER_AGGREGATE: string =
+  "cluster,node,namespace,controllerKind,controller,pod,container";
+
+/*
  * RFC3339 to the SECOND — no fractional part. Both engines parse the
  * `window` bound with a fixed set of layouts and none of them accept
  * milliseconds, so a raw Date.toISOString() (which always emits `.sssZ`)
@@ -104,6 +118,9 @@ export class CostEngineClient {
       if (INCLUDE_IDLE) {
         url.searchParams.set("includeIdle", "true");
       }
+      if (path.startsWith(`${KUBECOST_PATH_PREFIX}/`)) {
+        url.searchParams.set("aggregate", CONTAINER_AGGREGATE);
+      }
 
       try {
         const result: HttpResult = await httpGetJson(url);
@@ -165,18 +182,26 @@ export class CostEngineClient {
   /*
    * The engine's own API besides allocations, beside the Allocation API it
    * answered on: /model/<name> on the Kubecost frontend, /<name> on
-   * OpenCost. Resolves to the envelope's data, or null when the engine does
-   * not answer it - an older engine, or a frontend that does not proxy it.
-   * Never throws: what it reads only describes the prices.
+   * OpenCost, with `params` as its query. Resolves to the envelope's data,
+   * or null when the engine does not answer it - an older engine, or a
+   * frontend that does not proxy it. Never throws: what it reads only
+   * describes the engine.
    */
-  public async fetchApiData(name: string): Promise<unknown> {
+  public async fetchApiData(
+    name: string,
+    params?: Record<string, string>,
+  ): Promise<unknown> {
     const prefix: string =
       this.engineKind() === "Kubecost" ? KUBECOST_PATH_PREFIX : "";
 
     try {
-      const result: HttpResult = await httpGetJson(
-        new URL(`${this.baseUrl}${prefix}/${name}`),
-      );
+      const url: URL = new URL(`${this.baseUrl}${prefix}/${name}`);
+
+      for (const [key, value] of Object.entries(params || {})) {
+        url.searchParams.set(key, value);
+      }
+
+      const result: HttpResult = await httpGetJson(url);
 
       if (result.statusCode < 200 || result.statusCode >= 300) {
         return null;
