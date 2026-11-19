@@ -924,7 +924,7 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
 
     test("a recurring template without a complete schedule creates nothing, says why, and is left as it is", async () => {
       const template: ScheduledMaintenanceTemplate = recurringTemplate();
-      template.firstEventStartsAt = undefined;
+      delete template.firstEventStartsAt;
 
       (
         ScheduledMaintenanceTemplateService.findAllBy as jest.Mock
