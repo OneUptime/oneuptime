@@ -1714,7 +1714,7 @@ sudo userdel oneuptime-openstack
 
 | イメージ | 入手先 | 用途 |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | Collector。常に必要で、[ログ](#サービスログ)と[トレース](#コントロールプレーンでリクエストをトレースする)のプロファイルも同じものを動かします |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | Collector。常に必要で、[ログ](#サービスログ)と[トレース](#コントロールプレーンでリクエストをトレースする)のプロファイルも同じものを動かします |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | 同梱のエクスポーターと、プロジェクトクォータを読み取るもの。[独自のエクスポーターを動かす](#エージェントをインストールして起動する)場合は不要です |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [AI エージェント](#ai-エージェント)。`docker-compose.yml` からそのサービスを外す場合は不要です。`release` タグは OneUptime のリリースごとに動くため、アップグレードのときにもう一度コピーしてください |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | [データベース経路](/docs/telemetry/openstack-very-large-clouds#データベース経由)のみ |
@@ -1722,7 +1722,7 @@ sudo userdel oneuptime-openstack
 ダイジェストを指定している 2 つはダイジェストでコピーされるため、ダイジェストを保持するミラーには同じバイト列が入ります。インターネットとレジストリの両方に到達できるマシンでは、`crane copy` がそれを保持します（`skopeo copy --all --preserve-digests` でも同様です）。または、`docker save` でファイルに保存し、それを持ち込んで、エージェントのマシンで `docker load` します。
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

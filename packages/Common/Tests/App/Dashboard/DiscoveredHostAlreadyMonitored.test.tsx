@@ -44,18 +44,24 @@ const KIOSK_PING_ID: string = "7c4d5e6f-8091-4cad-9e2f-3a4b5c6d7e8f";
 const KIOSK_HEALTH_ID: string = "7c4d5e6f-8091-4cad-9e2f-3a4b5c6d7e90";
 const BOUND_PING_ID: string = "7c4d5e6f-8091-4cad-9e2f-3a4b5c6d7e91";
 
-// The kiosk is monitored; the printer is a device nothing watches; the till is new.
+/*
+ * The kiosk is monitored; the printer is a device nothing watches; the till
+ * is new. Each already-added host names the device the server says it is
+ * (issue #9677).
+ */
 const KIOSK: DiscoveredNetworkDevice = {
   ipAddress: "10.40.12.7",
   sysName: "WB1567KSK02",
   snmpReachable: false,
   isAlreadyRegistered: true,
+  registeredDeviceId: KIOSK_DEVICE_ID,
 };
 const PRINTER: DiscoveredNetworkDevice = {
   ipAddress: "10.40.12.8",
   sysName: "WB1567PRN01",
   snmpReachable: false,
   isAlreadyRegistered: true,
+  registeredDeviceId: PRINTER_DEVICE_ID,
 };
 const TILL: DiscoveredNetworkDevice = {
   ipAddress: "10.40.12.9",
@@ -248,7 +254,7 @@ describe("a discovered host that is already a device, in Review Results", () => 
     ).toHaveTextContent("Printer ping");
   });
 
-  test("reads only the page's already-added hosts, by address, then their devices' monitors", async () => {
+  test("reads only the devices the page's already-added hosts are, by id, then their monitors", async () => {
     await renderHosts([KIOSK, PRINTER, TILL]);
 
     const reads: Array<{ modelType: unknown; query: Record<string, unknown> }> =
@@ -264,10 +270,11 @@ describe("a discovered host that is already a device, in Review Results", () => 
         return read.modelType === NetworkDevice;
       },
     )!;
-    const hostnames: Includes = deviceRead.query["hostname"] as Includes;
-    expect([...hostnames.values].sort()).toEqual(
-      [KIOSK.ipAddress, PRINTER.ipAddress].sort(),
+    const ids: Includes = deviceRead.query["_id"] as Includes;
+    expect([...ids.values].map(String).sort()).toEqual(
+      [KIOSK_DEVICE_ID, PRINTER_DEVICE_ID].sort(),
     );
+    expect(deviceRead.query["hostname"]).toBeUndefined();
 
     const monitorRead: { query: Record<string, unknown> } = reads.find(
       (read: { modelType: unknown }): boolean => {
@@ -341,7 +348,7 @@ describe("the monitors of a device, for a list", () => {
     ).toEqual(["Z bound", "A ping", "B health"]);
   });
 
-  test("by address, list together the monitors of every device at it", () => {
+  test("keep two sites' devices at one address apart: each has its own monitors (issue #9677)", () => {
     const summary: DeviceMonitorsByKey = summarizeDeviceMonitors({
       devices: [
         device(KIOSK_DEVICE_ID, KIOSK.ipAddress),
@@ -354,21 +361,16 @@ describe("the monitors of a device, for a list", () => {
           name: "Store kiosk",
           madeForDeviceId: KIOSK_DEVICE_ID,
         }),
-        monitor({
-          id: KIOSK_HEALTH_ID,
-          name: "Branch kiosk",
-          madeForDeviceId: BRANCH_KIOSK_DEVICE_ID,
-        }),
       ],
     });
 
-    const atAddress: ReturnType<typeof getMonitorsOfRow> = getMonitorsOfRow({
-      monitors: summary,
-      hostname: ` ${KIOSK.ipAddress} `,
-    });
-
-    expect(atAddress?.deviceId).toBe(KIOSK_DEVICE_ID);
-    expect(atAddress?.monitors).toHaveLength(2);
+    expect(
+      getMonitorsOfRow({ monitors: summary, deviceId: KIOSK_DEVICE_ID })
+        ?.monitors,
+    ).toHaveLength(1);
+    expect(
+      getMonitorsOfRow({ monitors: summary, deviceId: BRANCH_KIOSK_DEVICE_ID }),
+    ).toBeUndefined();
   });
 
   test("are no summary at all for a device with none, so its row says Already added", () => {
@@ -379,9 +381,6 @@ describe("the monitors of a device, for a list", () => {
 
     expect(
       getMonitorsOfRow({ monitors: summary, deviceId: PRINTER_DEVICE_ID }),
-    ).toBeUndefined();
-    expect(
-      getMonitorsOfRow({ monitors: summary, hostname: PRINTER.ipAddress }),
     ).toBeUndefined();
     expect(getMonitorsOfRow({ monitors: summary })).toBeUndefined();
   });
@@ -408,7 +407,7 @@ describe("the monitors of a device, for a list", () => {
   test("skip the monitor read when no device is found", async () => {
     inventory = [];
 
-    await loadDeviceMonitors({ hostnames: [TILL.ipAddress] });
+    await loadDeviceMonitors({ deviceIds: [BRANCH_KIOSK_DEVICE_ID] });
 
     expect(getListSpy).toHaveBeenCalledTimes(1);
   });
@@ -448,5 +447,64 @@ describe("the link to a device's monitors", () => {
     });
 
     expect(screen.queryByTestId("link")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * TWO SITES' DEVICES AT ONE ADDRESS (OneUptime issue #9677).
+ *
+ * Every branch can have a 10.40.12.7. A scan's host is the device the scan's
+ * probe sees there, and its row reads that device's monitors alone: the
+ * other branch's monitor never makes it "Already monitored".
+ */
+describe("a host at an address another branch's device has", () => {
+  const BRANCH_KIOSK: DiscoveredNetworkDevice = {
+    ...KIOSK,
+    registeredDeviceId: BRANCH_KIOSK_DEVICE_ID,
+  };
+
+  beforeEach(() => {
+    inventory = [
+      device(KIOSK_DEVICE_ID, KIOSK.ipAddress),
+      device(BRANCH_KIOSK_DEVICE_ID, KIOSK.ipAddress),
+    ];
+  });
+
+  test("says Already added when only the other branch's device has a monitor", async () => {
+    await renderHosts([BRANCH_KIOSK]);
+
+    const row: HTMLElement = rowOf(KIOSK.ipAddress);
+    expect(within(row).getByText("Already added")).toBeInTheDocument();
+    expect(
+      within(row).queryByText("Already monitored"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("reads the monitors of its own device alone", async () => {
+    await renderHosts([BRANCH_KIOSK]);
+
+    const deviceRead: { query: Record<string, unknown> } = getListSpy.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          modelType: unknown;
+          query: Record<string, unknown>;
+        };
+      })
+      .find((read: { modelType: unknown }): boolean => {
+        return read.modelType === NetworkDevice;
+      })!;
+
+    expect(
+      [...(deviceRead.query["_id"] as Includes).values].map(String),
+    ).toEqual([BRANCH_KIOSK_DEVICE_ID]);
+  });
+
+  test("says Already added, and reads nothing, when the scan's probe cannot tell which device it is", async () => {
+    await renderHosts([{ ...KIOSK, registeredDeviceId: undefined }]);
+
+    expect(
+      within(rowOf(KIOSK.ipAddress)).getByText("Already added"),
+    ).toBeInTheDocument();
+    expect(getListSpy).not.toHaveBeenCalled();
   });
 });

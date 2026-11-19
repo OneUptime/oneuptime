@@ -168,6 +168,62 @@ describe("a call the server answers", () => {
   });
 });
 
+/*
+ * Issue #6530: the server says, with every answer, how many tokens one
+ * request to the model may hold, and the agent sizes its conversation to
+ * it. A server from before says nothing, and a value that is not a number
+ * of tokens is read as nothing: the agent then keeps its default size.
+ */
+describe("the model's context window, with the answer", () => {
+  function answerWith(contextWindowTokens: unknown): void {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        {
+          message: { content: "Done." },
+          contextWindowTokens: contextWindowTokens,
+        } as unknown as JSONObject,
+        {},
+      ),
+    );
+  }
+
+  test("is read as the server says it", async () => {
+    answerWith(200_000);
+
+    expect((await call()).contextWindowTokens).toBe(200_000);
+  });
+
+  test("a server from before it said one: none", async () => {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { message: { content: "Done." } }, {}),
+    );
+
+    expect((await call()).contextWindowTokens).toBeNull();
+  });
+
+  test.each([
+    [null],
+    ["200000"],
+    [0],
+    [-5],
+    [512],
+    [Number.NaN],
+    [Number.POSITIVE_INFINITY],
+    [{ tokens: 200_000 }],
+  ])("%p is none", async (value: unknown) => {
+    answerWith(value);
+
+    expect((await call()).contextWindowTokens).toBeNull();
+  });
+
+  test("a fraction is read in whole tokens", async () => {
+    answerWith(32_000.7);
+
+    expect((await call()).contextWindowTokens).toBe(32_000);
+  });
+});
+
 describe("a call that fails", () => {
   test("a refusal carries the server's reason and its status", async () => {
     postMock.mockResolvedValue(

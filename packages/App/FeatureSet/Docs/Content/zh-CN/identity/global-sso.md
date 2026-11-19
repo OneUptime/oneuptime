@@ -93,9 +93,16 @@ flowchart TB
 
 ## 同时退出身份提供商的登录
 
-退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，下一个用该提供商登录的人会以离开的那个人的身份进入。对于 OpenID Connect 提供商，点击 **编辑配置**，并在 **更多字段** 下开启 **同时退出身份提供商的登录**：此后退出 OneUptime 也会结束提供商处的会话，提供商会把浏览器送回 OneUptime 登录页面。该设置默认关闭，因为在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。
+退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，下一个用该提供商登录的人会以离开的那个人的身份进入。在 SAML 或 OpenID Connect 提供商上点击 **编辑配置**，并在 **更多字段** 下开启 **同时退出身份提供商的登录**：这样退出 OneUptime 时也会结束提供商处的会话，提供商会把浏览器送回 OneUptime。该设置默认关闭，因为在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。
 
-请将 **身份提供商 URL** 卡片显示的退出登录后的重定向 URI 作为允许的 post-logout redirect URI 注册到提供商。像 Google 这样发现文档中没有 `end_session_endpoint` 的提供商无法开启此设置。
+:::tabs
+@tab SAML
+在 **更多字段** 下，把身份提供商的退出登录 URL 填为 **退出登录 URL**：没有它就无法开启该开关。然后把 **身份提供商 URL 列表** 卡片显示的 **Single Logout URL**，以及 OneUptime 用来签名其退出请求的证书提供给身份提供商；证书可在同一卡片的 **下载签名证书** 中获取。当用户在身份提供商处，或在使用它的其他应用中退出时，会向其应用发送退出请求的身份提供商也会让其退出 OneUptime。
+@tab OpenID Connect
+请在提供商处将 **身份提供商 URL** 卡片显示的退出登录后的重定向 URI 注册为允许的 post-logout redirect URI。像 Google 这样发现文档中没有 `end_session_endpoint` 的提供商无法开启此设置。
+:::
+
+Okta、Microsoft Entra ID、Auth0 和 Keycloak 中这些设置的位置，请见 [SSO](/docs/identity/sso) 页面。
 
 ## 强制使用 SSO
 

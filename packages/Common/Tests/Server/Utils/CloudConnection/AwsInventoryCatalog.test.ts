@@ -9,6 +9,7 @@ import {
   getAwsInventoryIdentity,
   getAwsInventoryRowTypes,
   getAwsInventoryType,
+  getGlobalAcceleratorId,
 } from "../../../../Server/Utils/CloudConnection/Aws/AwsInventoryCatalog";
 import { AwsListedResource } from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudControl";
 import { CloudInventoryItem } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
@@ -254,6 +255,59 @@ const SAMPLES: Array<{
     namespace: "AWS/ElasticBeanstalk",
     dimensions: { EnvironmentName: "shop-prod", ApplicationName: "shop" },
   },
+  /*
+   * #9692: the types listed by each service's own API, each the resource
+   * its metrics name. A web ACL's metrics name it by its metric name,
+   * which need not be its name, and its total by Rule ALL.
+   */
+  {
+    type: "AWS::WAFv2::WebACL",
+    listed: listed(
+      "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/edge/a1b2c3d4-5678-90ab-cdef-EXAMPLE11111",
+      {
+        Name: "edge",
+        Id: "a1b2c3d4",
+        Scope: "REGIONAL",
+        MetricName: "edgeMetrics",
+      },
+    ),
+    namespace: "AWS/WAFV2",
+    dimensions: { WebACL: "edgeMetrics", Rule: "ALL" },
+  },
+  {
+    type: "AWS::NetworkFirewall::Firewall",
+    listed: listed(
+      "arn:aws:network-firewall:eu-west-1:123456789012:firewall/egress",
+      { FirewallName: "egress" },
+    ),
+    namespace: "AWS/NetworkFirewall",
+    dimensions: { FirewallName: "egress" },
+  },
+  {
+    type: "AWS::Cognito::UserPool",
+    listed: listed("eu-west-1_AbCdEfGhI", { Name: "customers" }),
+    namespace: "AWS/Cognito",
+    dimensions: { UserPool: "eu-west-1_AbCdEfGhI" },
+  },
+  {
+    type: "AWS::AppSync::GraphQLApi",
+    listed: listed(
+      "arn:aws:appsync:eu-west-1:123456789012:apis/abcdefghijklmnopqrstuvwxyz",
+      { apiId: "abcdefghijklmnopqrstuvwxyz", name: "catalog" },
+    ),
+    namespace: "AWS/AppSync",
+    dimensions: { GraphQLAPIId: "abcdefghijklmnopqrstuvwxyz" },
+  },
+  {
+    type: "AWS::SageMaker::Endpoint",
+    // Its ARN spells its name in lower case: the listing's name is the metrics'.
+    listed: listed(
+      "arn:aws:sagemaker:eu-west-1:123456789012:endpoint/recommender-prod",
+      { EndpointName: "Recommender-Prod" },
+    ),
+    namespace: "AWS/SageMaker",
+    dimensions: { EndpointName: "Recommender-Prod" },
+  },
 ];
 
 describe("identity", () => {
@@ -298,6 +352,38 @@ describe("identity", () => {
       );
     },
   );
+
+  /*
+   * #9692: Global Accelerator answers, and publishes its metrics, in US
+   * West (Oregon) alone: listed once, its accelerators are that Region's,
+   * named by the id their ARN ends with.
+   */
+  test("a Global Accelerator is listed once, as US West (Oregon)'s, by its ARN's id", () => {
+    const accelerators: AwsInventoryType = type(
+      "AWS::GlobalAccelerator::Accelerator",
+    );
+    const arn: string =
+      "arn:aws:globalaccelerator::123456789012:accelerator/1234abcd-abcd-1234-abcd-1234abcdefgh";
+    const usWest: AwsInventoryContext = { ...context, region: "us-west-2" };
+    const fromInventory: CloudMonitoredResource | null =
+      getAwsInventoryIdentity(
+        accelerators,
+        listed(arn, { Name: "edge" }),
+        usWest,
+      );
+
+    expect(accelerators.isGlobal).toBe(true);
+    expect(accelerators.metricsRegion).toBe("us-west-2");
+    expect(getGlobalAcceleratorId(arn)).toBe(
+      "1234abcd-abcd-1234-abcd-1234abcdefgh",
+    );
+    expect(getGlobalAcceleratorId("arn:aws:s3:::bucket")).toBe("");
+    expect(fromInventory?.resourceType).toBe(
+      "AWS::GlobalAccelerator::Accelerator",
+    );
+    expect(fromInventory?.region).toBe("us-west-2");
+    expect(fromInventory?.providerResourceId).toBe(arn);
+  });
 
   test("CloudFront is listed in us-east-1, where its metrics are", () => {
     const cloudFront: AwsInventoryType = type("AWS::CloudFront::Distribution");

@@ -103,7 +103,7 @@ export const PROXMOX_AGENT_INSTALL_DIR: string = "/opt/oneuptime-proxmox-agent";
  * image below is built on it too.
  */
 export const PROXMOX_AGENT_COLLECTOR_IMAGE: string =
-  "otel/opentelemetry-collector-contrib:0.161.0";
+  "otel/opentelemetry-collector-contrib:0.165.0";
 
 // The containers docker-compose.yml runs (their container_name).
 export const PROXMOX_AGENT_CONTAINER: string = "oneuptime-proxmox-agent";

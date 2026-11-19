@@ -326,6 +326,12 @@ export default class AuthenticationEmail {
   public static async sendCompleteRegistrationEmail(data: {
     userId: ObjectID;
     email: Email;
+    /*
+     * For /resend-verification-email, whose reply says a mail went out: a
+     * send that fails throws, as sendVerificationEmail's does. A sign-up
+     * sends this after it has answered (#9816), and swallows a failure.
+     */
+    awaitDelivery?: boolean | undefined;
   }): Promise<void> {
     const registrationLink: URL =
       await UserRegistrationToken.generateRegistrationLink({
@@ -341,13 +347,8 @@ export default class AuthenticationEmail {
       service: "identity",
     });
 
-    /*
-     * Awaited, unlike sendVerificationEmail above. The signup handler replies
-     * "we have emailed you a link" the moment this returns, and a reply that
-     * races the mail it is describing is worse than a slightly slower one.
-     */
-    try {
-      await MailService.sendMail({
+    const isDelivered: boolean = await AuthenticationEmail.isDelivered(
+      MailService.sendMail({
         toEmail: data.email,
         subject: `Finish setting up your ${ProductBrandingText.getProductName()} account`,
         isSubjectLiteral: true,
@@ -360,17 +361,112 @@ export default class AuthenticationEmail {
             " days, and can only be used once.",
           homeUrl: new URL(httpProtocol, host).toString(),
         },
-      });
+      }),
+      data.userId,
+    );
+
+    /*
+     * Otherwise swallowed on purpose: whoever typed the address must not be
+     * able to tell, from a mail that failed, that it had an invitation
+     * waiting - the thing this whole path exists to hide.
+     */
+    if (!isDelivered && data.awaitDelivery) {
+      throw new ServiceUnavailableException(
+        VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+      );
+    }
+  }
+
+  /*
+   * Sent when a sign-up names an address that already has an account
+   * (#9816). The sign-up page tells whoever typed the address to check
+   * their email, as it tells everybody, so it says nothing about whether
+   * the address has an account; this email, to the address itself, is the
+   * only place that is said. Nothing was created or changed, and the email
+   * says so, with a way to sign in and a way to reset the password - the
+   * likeliest reason somebody signs up again is that they forgot they had
+   * an account, or its password - and when, from where and on which device
+   * the sign-up came, so the owner can tell their own from a stranger's.
+   *
+   * `awaitDelivery` as for sendCompleteRegistrationEmail: the resend route
+   * says a mail went out, and fails when it did not.
+   */
+  public static async sendAccountAlreadyExistsEmail(data: {
+    user: User;
+    origin?: RequestOrigin | undefined;
+    awaitDelivery?: boolean | undefined;
+  }): Promise<void> {
+    if (!data.user.email) {
+      return;
+    }
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const isDelivered: boolean = await AuthenticationEmail.isDelivered(
+      MailService.sendMail({
+        toEmail: data.user.email,
+        subject: `You already have a ${ProductBrandingText.getProductName()} account`,
+        isSubjectLiteral: true,
+        templateType: EmailTemplateType.AccountAlreadyExists,
+        vars: {
+          signInLink: new URL(
+            httpProtocol,
+            host,
+            new Route(AccountsRoute.toString()).addRoute("/login"),
+          ).toString(),
+          forgotPasswordUrl: new URL(
+            httpProtocol,
+            host,
+            new Route(AccountsRoute.toString()).addRoute("/forgot-password"),
+          ).toString(),
+          homeURL: new URL(httpProtocol, host).toString(),
+          ...RequestOriginUtil.getEmailVars({
+            origin: data.origin,
+            timezone: data.user.timezone,
+          }),
+        },
+      }),
+      data.user.id || undefined,
+    );
+
+    if (!isDelivered && data.awaitDelivery) {
+      throw new ServiceUnavailableException(
+        VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+      );
+    }
+  }
+
+  /*
+   * Whether a send went out: it neither threw nor came back as an
+   * HTTPErrorResponse - the shared API client returns error statuses rather
+   * than throwing them, so awaiting alone would miss every refusal the mail
+   * service sends back. A failure is logged here, never thrown.
+   */
+  private static async isDelivered(
+    sending: Promise<unknown>,
+    userId: ObjectID | undefined,
+  ): Promise<boolean> {
+    try {
+      const response: unknown = await sending;
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error(response, {
+          userId: userId?.toString(),
+          service: "identity",
+        });
+
+        return false;
+      }
+
+      return true;
     } catch (err) {
-      /*
-       * Swallowed on purpose. Surfacing a mail failure here would turn the
-       * response into an oracle for whether the address had a pending
-       * invitation, which is the thing this whole path exists to hide.
-       */
       logger.error(err, {
-        userId: data.userId.toString(),
+        userId: userId?.toString(),
         service: "identity",
       });
+
+      return false;
     }
   }
 }

@@ -58,7 +58,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
-import DefinitionsDrawnAfter from "Common/UI/Components/Glossary/DefinitionsDrawnAfter";
 import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
@@ -1492,14 +1491,13 @@ const Layers: FunctionComponent<ComponentProps> = (
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           {/*
-           * Its definition right after the heading, not in it: the heading
-           * stays named "Rotation layers" while it shows.
+           * Its definition is drawn on the page's body (DefinedTerm), not in
+           * the heading: the heading stays named "Rotation layers" while it
+           * shows.
            */}
-          <DefinitionsDrawnAfter>
-            <h2 className="text-lg font-semibold leading-6 text-gray-900">
-              {rotationLayersTitle}
-            </h2>
-          </DefinitionsDrawnAfter>
+          <h2 className="text-lg font-semibold leading-6 text-gray-900">
+            {rotationLayersTitle}
+          </h2>
           {/* A div, not a p: the link's icon is drawn in a block of its own. */}
           <div className="mt-1.5 max-w-2xl text-sm text-gray-500">
             {translator.translateText(

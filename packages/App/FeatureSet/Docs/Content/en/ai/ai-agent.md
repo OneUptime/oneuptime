@@ -190,7 +190,7 @@ A repository says how it is built and tested in an `AGENTS.md` at its root, the 
 
 | Where AI works | What it does with the repository's build and tests |
 | --- | --- |
-| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets 2 minutes, or up to 10 for a slow install, build or test suite, without the Runner's own credentials in its environment. |
+| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets 2 minutes, or up to 10 for a slow install, build or test suite, without the Runner's own credentials in its environment. **Time Limit per Command (Minutes)**, in the project's **Limits per run**, lets a command run up to 120 minutes, never past the run's time limit. |
 | **Global Runner** | Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it. |
 
 Nothing from a pull request that comes from a fork is ever read as the repository's instructions: a revision refuses such a pull request, and a review reads the base branch.

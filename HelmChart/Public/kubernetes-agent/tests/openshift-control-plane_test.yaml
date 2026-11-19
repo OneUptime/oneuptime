@@ -358,7 +358,6 @@ tests:
           content:
             nonResourceURLs:
               - /metrics
-              - /metrics/cadvisor
             verbs: ["get"]
 
   - it: grants nothing of EndpointSlices while the control plane is off

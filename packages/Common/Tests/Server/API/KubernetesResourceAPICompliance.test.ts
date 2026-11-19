@@ -1,9 +1,15 @@
 import { mockRouter } from "./Helpers";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import KubernetesResourceAPI from "../../../Server/API/KubernetesResourceAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import KubernetesClusterCompliance from "../../../Server/Utils/Kubernetes/KubernetesClusterCompliance";
+import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
+import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
+import ProductSwitchedOffException from "../../../Types/Exception/ProductSwitchedOffException";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../Types/Product/ServerProducts";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -33,11 +39,13 @@ import {
  * POST /kubernetes-resource/compliance/:clusterId (#9627)
  *
  * How a cluster itself stands against the Pod Security Standards and the
- * CIS Kubernetes Benchmark, for its Compliance page. Behind UserMiddleware
- * only, like the cluster's other reads beside it: the cluster is resolved
- * with the caller's props, so whoever may read the cluster may read its
+ * CIS Kubernetes Benchmark, for its Compliance page. Behind UserMiddleware,
+ * like the cluster's other reads beside it: the cluster is resolved with
+ * the caller's props, so whoever may read the cluster may read its
  * compliance, and a cluster that is missing and one the caller may not
- * read answer the same NotFound, before anything about it is read.
+ * read answer the same NotFound, before anything about it is read. Unlike
+ * them it sets Kubernetes to work, scoring the cluster on request, so it
+ * is refused while the server has switched Kubernetes off.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -159,15 +167,80 @@ describe("KubernetesResourceAPI compliance", () => {
     return { thrown: calls[0]?.[0], nextCallCount: calls.length };
   }
 
-  test("is mounted as POST behind UserMiddleware only, where the Dashboard asks", () => {
+  test("is mounted as POST behind UserMiddleware and one refusal, where the Dashboard asks", () => {
     const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
       "post",
       ROUTE,
     );
 
     expect(route.method).toBe("POST");
-    expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+    expect(withoutRefusals(route.middlewares)).toEqual([
+      UserMiddleware.getUserMiddleware,
+    ]);
+    // The refusal reads who is asking first, as every route's does.
+    expect(countRefusals(route.middlewares)).toBe(1);
+    expect(ServerProductRoutes.isRefusal(route.middlewares[1])).toBe(true);
     expect(getKubernetesComplianceRoute(":clusterId")).toBe(ROUTE);
+  });
+
+  /*
+   * Scoring sets Kubernetes to work, so the route is refused while the
+   * server has switched Kubernetes off (#7479), before anything about the
+   * cluster is read, and answered as before while it is on.
+   */
+  async function runRefusal(): Promise<Array<unknown>> {
+    const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+      "post",
+      ROUTE,
+    );
+    const refusal: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = route.middlewares.find((middleware: unknown) => {
+      return ServerProductRoutes.isRefusal(middleware);
+    }) as never;
+    const handedOn: Array<unknown> = [];
+
+    await refusal(
+      {
+        body: {},
+        params: { clusterId: clusterId.toString() },
+      } as unknown as ExpressRequest,
+      mockResponse,
+      ((err?: unknown): void => {
+        handedOn.push(err);
+      }) as NextFunction,
+    );
+
+    return handedOn;
+  }
+
+  test("is refused while the server has switched Kubernetes off, before the cluster is read", async () => {
+    jest.spyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.Kubernetes]: ServerProductOffReason.SwitchedOff,
+    });
+
+    const handedOn: Array<unknown> = await runRefusal();
+
+    expect(handedOn).toHaveLength(1);
+    expect(handedOn[0]).toBeInstanceOf(ProductSwitchedOffException);
+    expect((handedOn[0] as ProductSwitchedOffException).message).toContain(
+      "Kubernetes is switched off on this server.",
+    );
+    expect(findOneById).not.toHaveBeenCalled();
+    expect(readCompliance).not.toHaveBeenCalled();
+  });
+
+  test("goes on to score the cluster while Kubernetes is on, whatever else is off", async () => {
+    jest.spyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.Code]: ServerProductOffReason.SwitchedOff,
+    });
+
+    const handedOn: Array<unknown> = await runRefusal();
+
+    // next() with nothing: on to the handler.
+    expect(handedOn).toEqual([undefined]);
   });
 
   test("rejects a missing cluster id before reading anything", async () => {

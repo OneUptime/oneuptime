@@ -58,6 +58,9 @@ export const DISCOVERY_IMPORT_TRANSLATED_REASONS: ReadonlyArray<string> = [
     "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.",
   ),
   translationKey("The device was not imported, so it has no monitor."),
+  translationKey(
+    "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.",
+  ),
 ];
 
 export enum DiscoveryImportIssueKind {

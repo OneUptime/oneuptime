@@ -61,6 +61,14 @@ import CloudStreamActivity from "Common/Server/Utils/CloudConnection/CloudStream
 import CloudStreamAuthenticator from "Common/Server/Utils/CloudConnection/CloudStreamAuthentication";
 import CloudStreamKeyedConnections from "Common/Server/Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys";
+import CloudStreamReadings, {
+  REDIS_STREAM_READINGS_STORE,
+  getStreamedReadingsPeriodKey,
+} from "Common/Server/Utils/CloudConnection/CloudStreamReadings";
+import {
+  MemoryStreamReadingsStore,
+  createMemoryStreamReadingsStore,
+} from "Common/Tests/Helpers/MemoryStreamReadingsStore";
 import {
   createExpressApp,
   ExpressApplication,
@@ -377,6 +385,8 @@ beforeEach(() => {
   CloudStreamActivity.reset();
   // What earlier tests' deliveries carried never decides this one's.
   STREAMED_SERIES_MEMORY.clear();
+  // What deliveries keep for the read, held here rather than in Redis.
+  CloudStreamReadings.store = createMemoryStreamReadingsStore();
 
   jest
     .spyOn(CloudConnectionService, "findOneById")
@@ -480,6 +490,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   (MetricsQueueService.addMetricIngestJob as jest.Mock).mockReset();
   (LogsQueueService.addLogIngestJob as jest.Mock).mockReset();
+  CloudStreamReadings.store = REDIS_STREAM_READINGS_STORE;
 });
 
 async function settle(): Promise<void> {
@@ -1093,6 +1104,84 @@ describe("a delivery from a stack of template 2", () => {
     expect(
       summaries.get(CONNECTION_A.toString())?.metricSources[0],
     ).toMatchObject({ templateVersion: 1, everyMetric: false });
+  });
+});
+
+/*
+ * #9690: a delivery keeps, for its connection's read, each minute of a
+ * metric its resources' health and headlines read (CloudStreamReadings),
+ * so the read judges them from the stream rather than read them again.
+ */
+describe("what a delivery keeps for its connection's read", () => {
+  let store: MemoryStreamReadingsStore;
+
+  beforeEach(() => {
+    store = createMemoryStreamReadingsStore();
+    CloudStreamReadings.store = store;
+  });
+
+  test("its instance's CPU, which the read takes as its five-minute reading, its account and Region fresh", async () => {
+    const reply: FirehoseReply = await deliver({
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+
+    // 09:59 is the last minute of 09:55 to 10:00, which has settled by 10:06.
+    const loaded: Awaited<ReturnType<typeof CloudStreamReadings.load>> =
+      await CloudStreamReadings.load({
+        connectionId: CONNECTION_A.toString(),
+        now: new Date(MINUTE_START_MS + 7 * 60 * 1000),
+      });
+
+    expect(Array.from(loaded.freshSources)).toEqual([
+      `${ACCOUNT_ID}|${REGION}`.toLowerCase(),
+    ]);
+    expect(Array.from(loaded.readings.values())).toEqual([
+      {
+        provider: CloudProvider.AWS,
+        resourceType: "AWS::EC2::Instance",
+        readings: {
+          "aws/ec2/cpuutilization": {
+            value: 12.5,
+            time: new Date(MINUTE_START_MS - 4 * 60 * 1000).toISOString(),
+          },
+        },
+      },
+    ]);
+  });
+
+  test("nothing of a delivery Firehose must send again; sent again and taken, its minute counted once", async () => {
+    const requestId: string = nextRequestId();
+    queueFails = true;
+
+    await deliver({
+      requestId,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expect(store.hashes.size).toBe(0);
+
+    queueFails = false;
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      expectFirehoseAnswer(
+        await deliver({
+          requestId,
+          records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+        }),
+        { status: 200, requestId },
+      );
+    }
+
+    const period: Record<string, string> | undefined = store.hashes.get(
+      getStreamedReadingsPeriodKey(
+        CONNECTION_A.toString(),
+        MINUTE_START_MS - 4 * 60 * 1000,
+      ),
+    );
+
+    expect(Object.values(period || {})).toEqual(["00001,1,12.5,12.5,12.5"]);
   });
 });
 

@@ -30,6 +30,14 @@ The suite covers:
   `?repo=pick-gone`, whose pick is disconnected before the click), logs, exceptions,
   metrics (and a failed metrics read) and the profile flame graph
 - a phone-sized screen: no sideways scrolling and the span panel as a sheet
+- menus never cut off (`MenusNeverCutOff.spec.ts`, #9859, #9861): over the eBPF trace's
+  empty linked logs, the logs toolbar's Columns, keyboard shortcuts, Export and time range
+  are drawn on the page's body, whole at their four corners and inside the window, on a
+  laptop, a tablet and a phone, outside the list's card that cut them off; Tab goes
+  through Columns as if it sat after its button and Escape hands the focus back; the Copy
+  attributes menu is whole in the last expanded log row and opens above its caret near
+  the foot of a span panel in a 1280x640 window, and its arrows, Escape and Tab still
+  work
 
 `Fixture/Fixture.js` records every read on `window.__traceFixture`, so the assertions
 check what the page asked for as well as what it drew.

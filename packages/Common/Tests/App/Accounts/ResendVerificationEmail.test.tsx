@@ -57,15 +57,27 @@ const RESEND_TOKEN: string =
   "v1.eyJ2IjoxLCJ1IjoiMzMzMyJ9.c2lnbmF0dXJlLXNpZ25hdHVyZS1zaWduYXR1cmUtc2ln";
 const VERIFICATION_TOKEN: string = "8f2d1c3a-4b5e-4f60-8a71-92b3c4d5e6f7";
 
-// Straight out of en.json.
-const BUTTON: string = "Resend verification email";
+/*
+ * Straight out of en.json. A sign-up's credential (the default here) sends
+ * again whichever email the sign-up sent (#9816), so its words name an
+ * email; an emailed link's credential keeps the verification email's.
+ */
+const BUTTON: string = "Send Email Again";
 const SENT: string =
-  "We've sent a new verification link. It can take a minute or two to arrive.";
+  "We've sent the email again. It can take a minute or two to arrive.";
 const WAIT: string =
-  "A verification email was sent recently. You can request another one when the timer runs out.";
+  "We sent you an email a moment ago. You can ask for another when the timer runs out.";
 const ALREADY_VERIFIED: string =
   "Your email address is already verified. You can sign in now.";
 const FAILED: string =
+  "We couldn't send the email again. Please try again in a moment.";
+
+const VERIFICATION_BUTTON: string = "Resend verification email";
+const VERIFICATION_SENT: string =
+  "We've sent a new verification link. It can take a minute or two to arrive.";
+const VERIFICATION_WAIT: string =
+  "A verification email was sent recently. You can request another one when the timer runs out.";
+const VERIFICATION_FAILED: string =
   "We couldn't send a new verification email. Please try again in a moment.";
 const CONTINUE_TO_SIGN_IN: string = "Continue to sign in";
 
@@ -553,6 +565,56 @@ describe("ResendVerificationEmail", () => {
           data: { data: { verificationToken: VERIFICATION_TOKEN } },
         },
       ]);
+    });
+
+    test("an emailed link's credential keeps the verification email's words, a sign-up's names an email (#9816)", async () => {
+      renderButton({ credential: { verificationToken: VERIFICATION_TOKEN } });
+
+      expect(button()).toHaveAccessibleName(VERIFICATION_BUTTON);
+
+      answerResend = (): Promise<Answer> => {
+        return Promise.resolve(
+          ok({
+            emailSent: true,
+            alreadyVerified: false,
+            retryAfterSeconds: 60,
+          }),
+        );
+      };
+
+      await clickResend();
+
+      expect(status()).toHaveTextContent(VERIFICATION_SENT);
+      expect(status()).not.toHaveTextContent(SENT);
+    });
+
+    test("an emailed link's wait and failure keep the verification email's words too", async () => {
+      renderButton({ credential: { verificationToken: VERIFICATION_TOKEN } });
+
+      answerResend = (): Promise<Answer> => {
+        return Promise.resolve(
+          ok({
+            emailSent: false,
+            alreadyVerified: false,
+            retryAfterSeconds: 30,
+          }),
+        );
+      };
+
+      await clickResend();
+
+      expect(status()).toHaveTextContent(VERIFICATION_WAIT);
+
+      cleanup();
+      renderButton({ credential: { verificationToken: VERIFICATION_TOKEN } });
+
+      answerResend = (): Promise<Answer> => {
+        return Promise.reject(new Error("network down"));
+      };
+
+      await clickResend();
+
+      expect(status()).toHaveTextContent(VERIFICATION_FAILED);
     });
 
     test("a double click sends exactly one request", async () => {

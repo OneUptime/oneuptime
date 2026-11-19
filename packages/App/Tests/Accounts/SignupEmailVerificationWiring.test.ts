@@ -32,11 +32,11 @@ import nodePath from "path";
  *    is a real, working screen, so nothing looks broken; the feature is just
  *    gone. The same goes for the rejected link on VerifyEmail.tsx, whose token
  *    is the credential for asking for a new one;
- *  - WHERE THE CREDENTIAL IS HANDED OUT. Only in the answer to a signup that
- *    just created an account it could not sign in. The invitation branch's
- *    `registrationEmailSent` answer is deliberately identical whether or not
- *    an account stood behind the address; a token there would tell whoever
- *    typed it that one did, and hand them a way to keep mailing its owner;
+ *  - WHERE THE CREDENTIAL IS HANDED OUT. In the answer every address gets
+ *    where the server proves addresses by email (#9816), and nowhere else. It
+ *    names the sign-up attempt, never an account, so handing it to whoever
+ *    typed a member's address says nothing about the address; the server
+ *    keeps what the attempt did, and the button sends that again;
  *  - THE LIMITER. The route is anonymous and every request that gets past its
  *    checks sends an email. Registered without the identity limiter in front,
  *    it is bounded only by the per-account caps inside it;
@@ -289,40 +289,54 @@ describe("POST /resend-verification-email is registered behind its limiter", () 
  */
 
 describe("/signup hands out the resend token only with emailVerificationRequired", () => {
-  const verificationBranch: () => string = (): string => {
+  /*
+   * The answer every address gets where the server proves addresses by
+   * email (#9816): from the credential's minting to the answer itself.
+   */
+  const everyAddressesAnswer: () => string = (): string => {
     return sliceBetween(
       authenticationSource,
-      "if (savedUser && isEmailVerificationRequired) {",
-      "if (savedUser) {",
+      "const attemptId: string = SignUpAttempt.newAttemptId();",
+      "if (!isTestSeamOn) { await actOnAddress(); }",
     );
   };
 
-  test("the token is minted once, inside the verification branch", () => {
+  test("the sign-up's credential is minted once, for the answer every address gets", () => {
     expect(
       countOccurrences(
         authenticationSource,
-        "VerificationEmailResendToken.generate(",
+        "VerificationEmailResendToken.generateForSignUp(",
       ),
     ).toBe(1);
 
-    expect(verificationBranch()).toContain(
+    expect(everyAddressesAnswer()).toContain(
+      "VerificationEmailResendToken.generateForSignUp(",
+    );
+  });
+
+  test("no account-naming (v1) credential is minted any more", () => {
+    /*
+     * A v1 token names an account, and an address that already had one
+     * could only be handed it by giving its id to whoever typed it.
+     */
+    expect(authenticationSource).not.toContain(
       "VerificationEmailResendToken.generate(",
     );
   });
 
   test("the token rides in the same misc data as the flag, and nowhere else", () => {
     /*
-     * One occurrence in the whole file, and that one inside the branch: the
-     * invitation branch's `registrationEmailSent`, a self-hosted signup and a
-     * claimed invitation all answer without it.
+     * One occurrence in the whole file, and that one inside the answer:
+     * a self-hosted signup that cannot email the address, the invitation
+     * it emails instead, and a claimed invitation all answer without it.
      */
     expect(
       countOccurrences(authenticationSource, "verificationEmailResendToken"),
     ).toBe(1);
 
-    const branch: string = verificationBranch();
-    const flag: number = branch.indexOf("emailVerificationRequired: true");
-    const token: number = branch.indexOf(
+    const answer: string = everyAddressesAnswer();
+    const flag: number = answer.indexOf("emailVerificationRequired: true");
+    const token: number = answer.indexOf(
       "verificationEmailResendToken: resendToken",
     );
 
@@ -330,26 +344,16 @@ describe("/signup hands out the resend token only with emailVerificationRequired
     expect(token).toBeGreaterThan(flag);
   });
 
-  test("the token is minted after the welcome email's token row is written", () => {
-    /*
-     * The per-credential cap counts verification rows created after the
-     * token was issued. Minted first, the welcome row would count as one of
-     * the resends the token buys.
-     */
-    const welcomeToken: number = authenticationSource.indexOf(
-      "welcomeEmailVerificationToken = generatedToken",
-    );
-    const welcomeRow: number = authenticationSource.indexOf(
-      "EmailVerificationTokenService.create(",
-      welcomeToken,
-    );
-    const minted: number = authenticationSource.indexOf(
-      "VerificationEmailResendToken.generate(",
+  test("the address is acted on only after the answer has gone", () => {
+    const answer: string = everyAddressesAnswer();
+    const sent: number = answer.indexOf(
+      "Response.sendEntityResponse(req, res, null, User, {",
     );
 
-    expect(welcomeToken).toBeGreaterThan(-1);
-    expect(welcomeRow).toBeGreaterThan(welcomeToken);
-    expect(minted).toBeGreaterThan(welcomeRow);
+    expect(sent).toBeGreaterThan(-1);
+    expect(authenticationSource).toContain(
+      "if (!isTestSeamOn) { await actOnAddress(); }",
+    );
   });
 });
 
@@ -454,8 +458,16 @@ const NEW_KEYS: Array<string> = [
   "register.verifyEmailAlreadyVerifiedPrompt",
   "register.verifyEmailWrongAddressPrompt",
   "register.verifyEmailUseDifferentEmail",
+  // A sign-up's resend button, which sends whichever email the sign-up sent (#9816).
+  "register.resendEmailButton",
+  "register.resendEmailSent",
+  "register.resendEmailWait",
+  "register.resendEmailFailed",
   "verifyEmail.successTitle",
   "verifyEmail.successDescription",
+  // The link confirmed a new address for an account (#9821).
+  "verifyEmail.emailChangedTitle",
+  "verifyEmail.emailChangedDescription",
   "verifyEmail.continueToSignIn",
   "verifyEmail.linkInvalidTitle",
   "verifyEmail.requestNewLinkDescription",
@@ -495,7 +507,7 @@ const SERVER_MESSAGES: Array<string> = [
 ];
 
 const USED_KEY_PATTERN: RegExp =
-  /\bt\(\s*"((?:register\.verifyEmail|verifyEmail\.|resendVerificationEmail\.)[A-Za-z.]*)"/g;
+  /\bt\(\s*"((?:register\.verifyEmail|register\.resendEmail|verifyEmail\.|resendVerificationEmail\.)[A-Za-z.]*)"/g;
 
 const localeCodes: Array<string> = fs
   .readdirSync(LOCALES_DIR)

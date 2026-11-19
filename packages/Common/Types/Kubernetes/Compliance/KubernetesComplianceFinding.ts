@@ -1,3 +1,5 @@
+import { OneUptimeAgentNodesProxyReason } from "./KubernetesRbac";
+
 /*
  * WHAT A COMPLIANCE CONTROL FOUND ON A CLUSTER (#9627), in the words of the
  * objects themselves: the field a workload sets and what it sets it to, the
@@ -26,11 +28,26 @@ export interface KubernetesComplianceObject {
   name: string;
 }
 
+/*
+ * A binding the OneUptime agent's chart made (#9878): the page says so, and
+ * why the agent asks for what the control finds.
+ */
+export interface KubernetesComplianceAgentObject {
+  /*
+   * Why its role grants nodes/proxy, as the chart labels it
+   * (OneUptimeAgentNodesProxyReason): empty from a chart before the label,
+   * which grants it on every cluster.
+   */
+  nodesProxyReasons: Array<OneUptimeAgentNodesProxyReason>;
+}
+
 export interface KubernetesComplianceFinding {
   object: KubernetesComplianceObject;
   details: Array<KubernetesComplianceDetail>;
   // A workload's pods that fail the control, when it is a workload's.
   podCount?: number | undefined;
+  // The OneUptime agent's own binding, when it is one.
+  oneUptimeAgent?: KubernetesComplianceAgentObject | undefined;
 }
 
 // A detail's own key, so the same field of the same part is said once.

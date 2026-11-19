@@ -496,7 +496,7 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:0.161.0
+          image: otel/opentelemetry-collector-contrib:0.165.0
           env:
             - name: ONEUPTIME_URL
               value: "YOUR_ONEUPTIME_URL"

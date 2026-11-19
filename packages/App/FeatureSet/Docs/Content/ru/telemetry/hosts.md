@@ -205,7 +205,7 @@ Restart-Service oneuptime-collector
 | `--key KEY` | `-Key KEY` | Ключ приёма телеметрии вашего проекта. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Ставит метку на хост. Повторите параметр для других меток; в Windows перечислите их через запятую. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Передаёт коллектору переменную окружения для конфигураций, которые читают `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | Устанавливаемый релиз коллектора, по умолчанию 0.161.0. |
+| `--version VERSION` | `-Version VERSION` | Устанавливаемый релиз коллектора, по умолчанию 0.165.0. |
 | `--download-url URL` | `-DownloadUrl URL` | Загружает релизы с зеркала с той же структурой папок, что и на GitHub. |
 | `--proxy URL` | `-Proxy URL` | Направляет загрузки и весь трафик коллектора через HTTP-прокси. |
 | `--replace-existing` | `-ReplaceExisting` | Останавливает и отключает коллектор, установленный вручную. |

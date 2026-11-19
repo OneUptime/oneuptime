@@ -19,6 +19,7 @@ import {
   loadTrustOnce,
 } from "../Utils/GlobalSsoAuthorization";
 import GlobalSsoProviderChanges from "../Utils/GlobalSsoProviderChanges";
+import IdentityProviderSignOutCheck from "../Utils/IdentityProviderSignOutCheck";
 import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
@@ -113,6 +114,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    /*
+     * First, before any lock is taken: turning "Sign out of the identity
+     * provider too" on, or clearing the Sign Out URL while it is on, is
+     * refused without a Sign Out URL (Utils/IdentityProviderSignOutCheck).
+     */
+    await IdentityProviderSignOutCheck.beforeSamlProviderUpdate<Model>({
+      service: this,
+      updateBy: updateBy,
+    });
+
     await GlobalSsoProviderChanges.beforeProviderUpdate<Model>({
       providerType: SsoProviderType.GlobalSSO,
       service: this,
@@ -284,6 +295,20 @@ export class Service extends DatabaseService<Model> {
 
     clearGlobalSsoAuthorizationCaches();
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission check has passed: a provider created with "Sign
+   * out of the identity provider too" on needs a Sign Out URL
+   * (Utils/IdentityProviderSignOutCheck).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    IdentityProviderSignOutCheck.beforeSamlProviderCreate(
+      onCreate.createBy.data,
+    );
   }
 
   @CaptureSpan()

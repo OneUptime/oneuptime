@@ -17,7 +17,7 @@ import {
   useWindowLayout,
   type HeaderPlatform,
   type PaneLayout,
-} from "./WindowLayout";
+} from "./WindowLayoutProvider";
 import {
   NAVIGATION_RAIL_WIDTH,
   TWO_COLUMN_READABLE_WIDTH,

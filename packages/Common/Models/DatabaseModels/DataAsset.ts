@@ -352,6 +352,22 @@ export default class DataAsset extends BaseModel {
   })
   public name?: string = undefined;
 
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    computed: true,
+    title: "Entity Set Name",
+    description:
+      "A Microsoft Dataverse table's entity set: the name its Web API and Power BI's OData connectors call it by, such as accounts for the account table. Empty for every other database's tables.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public entitySetName?: string = undefined;
+
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,

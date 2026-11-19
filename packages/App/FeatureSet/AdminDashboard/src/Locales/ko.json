@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "이 사람에게 아직 OneUptime 계정이 없으면 이 이름으로 계정이 만들어집니다.",
   "Suggest every account on this server?": "이 서버의 모든 계정을 제안할까요?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "사람을 초대할 수 있는 모든 사람이 입력하는 동안 모든 계정의 이름과 이메일을 보게 됩니다. 여기의 모든 계정이 한 조직에 속한 경우에만 켜세요.",
-  "Suggest Every Account": "모든 계정 제안"
+  "Suggest Every Account": "모든 계정 제안",
+  "Sign Out URL": "로그아웃 URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다.",
+  "Single Logout URL:": "단일 로그아웃 URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
+  "Download Signing Certificate": "서명 인증서 다운로드"
 }

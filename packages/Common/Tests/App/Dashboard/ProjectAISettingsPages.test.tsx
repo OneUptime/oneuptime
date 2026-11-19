@@ -174,6 +174,8 @@ const AI_FEATURES_COLUMNS: Array<string> = [
   "aiRunMaxToolCalls",
   "aiRunMaxTokens",
   "aiRunTimeLimitInMinutes",
+  // Beside the run's time limit: a command's (#6532).
+  "aiRunCommandTimeLimitInMinutes",
   // Fix approvals, under More settings (#6148's follow-up).
   "requireTwoApprovalsForRiskierFixes",
 ];
@@ -613,7 +615,7 @@ describe("AI Features page", () => {
 
     /*
      * Enable AI's switch reads its own column, the AI context card its own,
-     * the Limits per run card its four, and Fix approvals' switch whether
+     * the Limits per run card its five, and Fix approvals' switch whether
      * two people approve a riskier fix.
      */
     for (const column of [
@@ -623,6 +625,7 @@ describe("AI Features page", () => {
       "aiRunMaxToolCalls",
       "aiRunMaxTokens",
       "aiRunTimeLimitInMinutes",
+      "aiRunCommandTimeLimitInMinutes",
       "requireTwoApprovalsForRiskierFixes",
     ]) {
       await waitFor(

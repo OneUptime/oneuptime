@@ -16,6 +16,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import AnnouncementReachRoute from "./AnnouncementReachRoute";
 
 export default class StatusPageAnnouncementAPI extends BaseAPI<
   StatusPageAnnouncement,
@@ -23,6 +24,16 @@ export default class StatusPageAnnouncementAPI extends BaseAPI<
 > {
   public constructor() {
     super(StatusPageAnnouncement, StatusPageAnnouncementService);
+
+    /*
+     * Whether an announcement on the status pages picked on its form shows
+     * on one, and whether it notifies anyone (Types/StatusPage
+     * /AnnouncementReach): what Create Announcement's line says (#9775).
+     */
+    AnnouncementReachRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+    });
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:projectId/:announcementId/:fileId`,

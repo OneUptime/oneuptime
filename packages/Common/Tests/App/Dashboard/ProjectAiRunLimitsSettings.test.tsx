@@ -36,8 +36,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { PROJECT_AI_DAILY_USAGE_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/useProjectAiDailyLimits";
 import Project from "../../../Models/DatabaseModels/Project";
-import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "../../../Types/AI/AIAgentRunLimits";
 import {
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+} from "../../../Types/AI/AIAgentRunLimits";
+import {
+  PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
   PROJECT_AI_RUN_LIMIT_COLUMNS,
   PROJECT_AI_RUN_LIMIT_UPDATE_PERMISSIONS,
   ProjectAiRunLimitColumn,
@@ -87,7 +92,9 @@ jest.mock("react-i18next", () => {
  *
  * Nothing is set by default: the card says each cap is "No limit" and the
  * time limit is the default 120 minutes, and the folded header shows no
- * chip. A limit set is a chip. The card edits the four limits on one page,
+ * chip. A limit set is a chip. Beside the run's time limit, how long one
+ * command of a code task may run (issue #6532): ten minutes unless set, at
+ * most 120. The card edits the limits in two steps,
  * writes their columns alone, refuses what the server would, and is locked,
  * saying who may change it, for everyone but a project owner or someone who
  * manages billing - who decide what a run may cost. Its place on the page
@@ -107,6 +114,7 @@ const MODEL_CALLS_TITLE: string = "Model Calls per Run";
 const TOOL_CALLS_TITLE: string = "Tool Calls per Run";
 const TOKENS_TITLE: string = "Tokens per Run";
 const TIME_TITLE: string = "Time Limit per Run (Minutes)";
+const COMMAND_TIME_TITLE: string = "Time Limit per Command (Minutes)";
 
 // The project as the server holds it: what getItem reads, a save writes.
 let stored: Record<string, unknown> = {};
@@ -264,7 +272,7 @@ function detailValue(card: HTMLElement, title: string): string {
 
 // The edit dialog's two steps, as the step list draws them.
 const CALLS_STEP_TITLE: string = "Calls and Tokens";
-const TIME_STEP_TITLE: string = "Time Limit";
+const TIME_STEP_TITLE: string = "Time Limits";
 
 async function openEditDialog(card: HTMLElement): Promise<HTMLElement> {
   fireEvent.click(within(card).getByText("Edit"));
@@ -454,7 +462,28 @@ describe("the Limits per run card", () => {
     expect(detailValue(card, TIME_TITLE)).toBe(
       "120\u00A0minutes (the default)",
     );
+    // A command keeps the ten minutes it always had (issue #6532).
+    expect(detailValue(card, COMMAND_TIME_TITLE)).toBe(
+      "10\u00A0minutes (the default)",
+    );
     expect(card).not.toHaveTextContent(/budget/i);
+  });
+
+  test("shows the time limit per command a project set, with its unit", async () => {
+    stored = { ...stored, aiRunCommandTimeLimitInMinutes: 30 };
+
+    openAiFeaturesPage();
+    const card: HTMLElement = await openRunLimitsCard();
+
+    await waitFor(
+      () => {
+        expect(detailValue(card, COMMAND_TIME_TITLE)).toBe("30\u00A0minutes");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(detailValue(card, TIME_TITLE)).toBe(
+      "120\u00A0minutes (the default)",
+    );
   });
 
   /*
@@ -509,7 +538,7 @@ describe("the Limits per run card", () => {
    * and the time limit. One column left four short values down a wide,
    * mostly empty card.
    */
-  test("lays the four limits out two to a row", async () => {
+  test("lays the limits out two to a row", async () => {
     openAiFeaturesPage();
     const card: HTMLElement = await openRunLimitsCard();
 
@@ -525,7 +554,7 @@ describe("the Limits per run card", () => {
     )[0]!.parentElement as HTMLElement | null;
 
     expect(grid?.className).toMatch(/(^|\s)sm:grid-cols-2(\s|$)/);
-    expect(within(card).getAllByTestId("detail-field")).toHaveLength(4);
+    expect(within(card).getAllByTestId("detail-field")).toHaveLength(5);
   });
 
   /*
@@ -533,7 +562,7 @@ describe("the Limits per run card", () => {
    * (LongFormStepsGuard): what a run may use, then how long it may take.
    * Save Changes is on the last step only, after a plain Next.
    */
-  test("edits the four limits in two steps, calls and tokens then the time limit, each saying what empty means", async () => {
+  test("edits the limits in two steps, calls and tokens then the time limits, each saying what empty means", async () => {
     openAiFeaturesPage();
 
     const dialog: HTMLElement = await openEditDialog(await openRunLimitsCard());
@@ -559,12 +588,19 @@ describe("the Limits per run card", () => {
       within(dialog).getByTestId("modal-footer-next-button"),
     ).toHaveTextContent("Next");
 
-    // The last step: the time limit alone, its default named, and Save.
+    // The last step: the time limits, each default named, and Save.
     await goToTimeStep(dialog);
 
     expect(inputFor(dialog, TIME_TITLE)).toHaveAttribute(
       "placeholder",
       "120\u00A0minutes (the default)",
+    );
+    expect(inputFor(dialog, COMMAND_TIME_TITLE)).toHaveAttribute(
+      "placeholder",
+      "10\u00A0minutes (the default)",
+    );
+    expect(dialog).toHaveTextContent(
+      "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.",
     );
     for (const title of [MODEL_CALLS_TITLE, TOOL_CALLS_TITLE, TOKENS_TITLE]) {
       expect(queryInputFor(dialog, title)).toBeNull();
@@ -604,7 +640,38 @@ describe("the Limits per run card", () => {
       [TOOL_CALLS_TITLE, stepIds[0]],
       [TOKENS_TITLE, stepIds[0]],
       [TIME_TITLE, stepIds[1]],
+      [COMMAND_TIME_TITLE, stepIds[1]],
     ]);
+  });
+
+  test("saving a time limit per command writes that column alone", async () => {
+    openAiFeaturesPage();
+
+    const dialog: HTMLElement = await openEditDialog(await openRunLimitsCard());
+
+    await goToTimeStep(dialog);
+    fireEvent.change(inputFor(dialog, COMMAND_TIME_TITLE), {
+      target: { value: "45" },
+    });
+    fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(
+      () => {
+        expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(postedColumns()).toEqual(["aiRunCommandTimeLimitInMinutes"]);
+    expect(posted("aiRunCommandTimeLimitInMinutes")).toBe(45);
+
+    fireEvent.click(moreSettingsHeader());
+    await waitFor(
+      () => {
+        expect(setChips(moreSettingsHeader())).toEqual(["Limits per run"]);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
   });
 
   test("saving a tool-call cap writes that column alone, and the header shows it", async () => {
@@ -700,6 +767,16 @@ describe("the Limits per run card", () => {
       "1441",
       "Time Limit per Run (Minutes) must be a whole number from 1 to 1,440. Leave it empty for the default.",
     ],
+    [
+      COMMAND_TIME_TITLE,
+      "0",
+      "Time Limit per Command (Minutes) must be a whole number from 1 to 120. Leave it empty for the default.",
+    ],
+    [
+      COMMAND_TIME_TITLE,
+      "121",
+      "Time Limit per Command (Minutes) must be a whole number from 1 to 120. Leave it empty for the default.",
+    ],
   ])(
     "%s refuses %s before anything is sent",
     async (title: string, value: string, message: string) => {
@@ -709,8 +786,11 @@ describe("the Limits per run card", () => {
         await openRunLimitsCard(),
       );
 
-      if (title === TIME_TITLE) {
-        // The time limit is on the last step, checked by Save Changes.
+      const isOnTimeStep: boolean =
+        title === TIME_TITLE || title === COMMAND_TIME_TITLE;
+
+      if (isOnTimeStep) {
+        // The time limits are on the last step, checked by Save Changes.
         await goToTimeStep(dialog);
         fireEvent.change(inputFor(dialog, title), { target: { value } });
         fireEvent.click(
@@ -726,7 +806,7 @@ describe("the Limits per run card", () => {
         await within(dialog).findByText(message, {}, { timeout: WAIT_TIMEOUT }),
       ).toBeInTheDocument();
       expect(activeStep(dialog)).toBe(
-        title === TIME_TITLE ? TIME_STEP_TITLE : CALLS_STEP_TITLE,
+        isOnTimeStep ? TIME_STEP_TITLE : CALLS_STEP_TITLE,
       );
       await flush();
       expect(createOrUpdateSpy).not.toHaveBeenCalled();
@@ -857,7 +937,7 @@ describe("the card's copy", () => {
     },
   } as unknown as Translator;
 
-  test("the fields are the four columns, in the card's order", () => {
+  test("the fields are the columns, in the card's order", () => {
     expect(
       PROJECT_AI_RUN_LIMIT_FIELDS.map((field: ProjectAiRunLimitField) => {
         return field.column;
@@ -877,11 +957,15 @@ describe("the card's copy", () => {
       `With nothing set, a run makes as many calls as its work needs, for up to ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes.`,
     );
 
-    // No other number of minutes is named anywhere on the card.
+    // No other number of minutes is named for a run anywhere on the card.
     const minutes: Array<string> = [
       ProjectAiRunLimitsCopy.cardDescription,
       ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder,
-      ...PROJECT_AI_RUN_LIMIT_FIELDS.map((field: ProjectAiRunLimitField) => {
+      ...PROJECT_AI_RUN_LIMIT_FIELDS.filter(
+        (field: ProjectAiRunLimitField): boolean => {
+          return field.column !== PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+        },
+      ).map((field: ProjectAiRunLimitField) => {
         return field.description;
       }),
     ].flatMap((text: string): Array<string> => {
@@ -891,6 +975,34 @@ describe("the card's copy", () => {
     expect(new Set(minutes)).toEqual(
       new Set([String(DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES)]),
     );
+  });
+
+  /*
+   * Issue #6532: the time limit per command names a command's default and
+   * the most a project may give it, as the code has them - and no other
+   * number of minutes.
+   */
+  test("the time limit per command names a command's default and its ceiling, as the code has them", () => {
+    const command: ProjectAiRunLimitField = PROJECT_AI_RUN_LIMIT_FIELDS.find(
+      (field: ProjectAiRunLimitField): boolean => {
+        return field.column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+      },
+    )!;
+
+    expect(command.stepId).toBe("time-limit");
+    expect(command.placeholder).toBe(
+      ProjectAiRunLimitsCopy.defaultCommandTimeLimitPlaceholder,
+    );
+    expect(ProjectAiRunLimitsCopy.defaultCommandTimeLimitPlaceholder).toBe(
+      `${DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes (the default)`,
+    );
+    expect(command.description).toBe(
+      `How long one command a code task runs on a Runner of your own may take, at most ${MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes. Leave empty for the default, ${DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes.`,
+    );
+    expect(command.description.match(/\d+(?= minutes)/g)).toEqual([
+      String(MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES),
+      String(DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES),
+    ]);
   });
 
   test("no word of it speaks of a budget", () => {
@@ -933,6 +1045,7 @@ describe("the card's copy", () => {
       aiRunMaxToolCalls: [1, " 250 ", 100_000],
       aiRunMaxTokens: [1000, "2000000", 2_000_000_000],
       aiRunTimeLimitInMinutes: [1, "120", 1440],
+      aiRunCommandTimeLimitInMinutes: [1, "30", 120],
     };
 
     for (const column of PROJECT_AI_RUN_LIMIT_COLUMNS) {
@@ -987,6 +1100,26 @@ describe("the card's copy", () => {
         translator: english,
       }),
     ).toBe("1 minute");
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunCommandTimeLimitInMinutes",
+        value: 30,
+        translator: english,
+      }),
+    ).toBe("30 minutes");
+  });
+
+  test("a time limit per command past its ceiling is refused with its own bounds", () => {
+    expect(
+      getProjectAiRunLimitFieldError({
+        column: "aiRunCommandTimeLimitInMinutes",
+        value: "121",
+        fieldTitle: "Time Limit per Command (Minutes)",
+        translator,
+      }),
+    ).toContain(
+      " must be a whole number from 1 to 120. Leave it empty for the default.",
+    );
   });
 
   test("in Persian and German, the digits and the unit are theirs", () => {
@@ -1062,6 +1195,7 @@ describe("the card's copy", () => {
         maxToolCalls: null,
         maxTokens: null,
         timeLimitInMinutes: null,
+        commandTimeLimitInMinutes: null,
       }).isSet,
     ).toBe(false);
     expect(
@@ -1070,6 +1204,16 @@ describe("the card's copy", () => {
         maxToolCalls: null,
         maxTokens: null,
         timeLimitInMinutes: 30,
+        commandTimeLimitInMinutes: null,
+      }).isSet,
+    ).toBe(true);
+    expect(
+      getProjectAiRunLimitsFoldedItem({
+        maxModelCalls: null,
+        maxToolCalls: null,
+        maxTokens: null,
+        timeLimitInMinutes: null,
+        commandTimeLimitInMinutes: 30,
       }).isSet,
     ).toBe(true);
   });

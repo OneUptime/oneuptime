@@ -8,6 +8,7 @@ whether investigations got better or worse. Run them before and after the change
 | `npm run ai-benchmark`                 | Does the investigation find a fault we planted, and cite the evidence for it?                   | A model key. No database, no project.        |
 | `npm run ai-eval -- --replay`          | On real incidents and alerts, does the changed AI find the root cause people wrote?             | A database with recordings, and a model key. |
 | `npm run ai-eval`                      | How did past runs score, from what was recorded? (No model is called.)                          | A database.                                  |
+| `npm run benchmark` in packages/Runner | Does the Code agent fix customer-shaped tasks, and how many rounds, tools, tokens and minutes?  | A model key. No database, no project.        |
 | **Project Settings → AI → AI Results** | What came of the AI's work in production: pages avoided, fixes verified, root causes confirmed. | Nothing: it is a page in the product.        |
 
 All three commands read their model key from the environment only: `AI_EVAL_LLM_API_KEY` for the model under test and
@@ -145,10 +146,59 @@ their grade.
 `config.env` moves it), never runs migrations, and writes every case to `./eval-replays.json` (the score mode writes
 `./eval-corpus.json`).
 
+## The Code agent benchmark: customer-shaped tasks with checks
+
+```
+cd packages/Runner
+npm run benchmark -- --list
+AI_EVAL_LLM_API_KEY=... npm run benchmark -- --llm-type=Anthropic --model=claude-opus-5-5
+```
+
+The benchmark runs the real in-house Code agent (`InHouseCodeAgent`) - its prompt, its tools, its loop and its
+limits - with the model you name, on tasks shaped like the work customers hand Code, each in a repository of its own:
+
+| Task                        | What it is                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------------- |
+| `discount-bug-in-long-file` | An exception's stack trace into a 2,000-line file, whose cause is a function far from the line. |
+| `failing-slug-tests`        | CI is red on two cases of a helper; the fix belongs in the code, never in the test.            |
+| `rename-across-files`       | An API renamed a field, and four pages and emails across the repository still read the old one. |
+| `slow-suite-retry-bug`      | The suite takes about two and a half minutes, longer than a command gets unless it asks.       |
+
+Each task's check runs after the agent, from outside the repository, so the agent can neither read nor change it: a
+hidden test of the fix, the repository's own tests, and that a test the task says to keep was kept. It writes one row a
+task - the check passed or failed; how the run ended (its answer, a loop stop, its time limit, or an error); its model
+calls; its tool calls by tool; its tokens; and its time - prints them as a Markdown table, and writes them all, with the
+agent's summary and what a failed check said, to `./code-agent-benchmark-results.json`.
+
+The model is called directly, through the server the benchmark stands in for: every call is held to what the OneUptime
+server holds a run to (its time limit, the answer it may still give past it, the time limit per command, the model's
+context window), and nothing is billed but the model's own provider. The agent's commands run on the machine that runs
+the benchmark, in a temporary copy of the task's repository, as they run on a Runner of your own: run it in a container
+or in CI.
+
+Options: `--task=<id>[,<id>]`, `--time-limit=<minutes>` (each task's, 30 by default), `--command-time-limit=<minutes>`
+(the most one command may run, 10 by default), `--fail-under=<n>`, `--keep-repositories` (to read what the agent left)
+and `--require-key`. Without `AI_EVAL_LLM_API_KEY` it skips and exits 0, unless `--require-key` asks it to fail; a model
+you run yourself (`--llm-type=Ollama` or `OpenAICompatible`, with `--base-url`) needs no key.
+
+The **Code Agent Benchmark** workflow (`.github/workflows/code-agent-benchmark.yml`) runs it by hand and weekly, and puts
+the table in the run's summary. It runs only once a maintainer adds the model's key as the
+`CODE_AGENT_BENCHMARK_LLM_API_KEY` secret; the weekly run's model can be set in the `CODE_AGENT_BENCHMARK_LLM_TYPE` and
+`CODE_AGENT_BENCHMARK_MODEL` variables. Without the secret, every run skips at its first step.
+
+### Adding a task
+
+1. Add it to `packages/Runner/Benchmark/CodeAgentBenchmarkTasks.ts`: its repository's files, the prompt as Code or an
+   exception's **Fix with AI** would put it, a check, and `solve`, the fix a person would make.
+2. Run its tests (`packages/Runner/Tests/Benchmark`). They hold every task's check to failing on the repository as the
+   task finds it and passing once `solve` made the fix.
+
 ## Where the code is
 
 - `packages/Common/Server/Utils/AI/Eval/`: the recorder (`InvestigationRecorder`), the replay
   (`ReplayInvestigation`, `RecordedToolAnswers`, `ReplayCorpus`, `ReplayRunner`), the judge (`EvalJudge`), the
   model a run is pinned to (`PinnedModel`), the command line (`EvalCommandLine`), and the benchmark (`Benchmark/`).
 - `Scripts/AI/RunInvestigationEval.ts` and `Scripts/AI/RunInvestigationBenchmark.ts`: the two commands.
+- `packages/Runner/Benchmark/` and `packages/Runner/Scripts/RunCodeAgentBenchmark.ts`: the Code agent benchmark, its
+  tasks (`CodeAgentBenchmarkTasks`), the server it stands in for (`CodeAgentBenchmarkServer`) and its command line.
 - `packages/Common/Server/Utils/AI/Outcomes/` and `POST /ai-activity/outcomes`: what the AI Results page counts.

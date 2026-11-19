@@ -1301,6 +1301,73 @@ describe("FormSummary: sections that say what they hold", () => {
       screen.getByTestId("form-summary-section-summary"),
     ).toHaveTextContent("Subscribers are told when it starts.");
   });
+
+  /*
+   * A line a component works out (getSummaryElement) - what the server
+   * says of the status pages picked, on Create Announcement (#9775) - is
+   * what the review shows, as the folded header does: in the section's one
+   * row, from the values reviewed.
+   */
+  const LIVE: FormFieldCollapsibleSection<JSONObject> = {
+    ...NOTIFY,
+    getSummaryElement: (values: FormValues<JSONObject>): ReactElement => {
+      return (
+        <em data-testid="live-line">
+          {values["whenStarted"] === false
+            ? "Nobody is told, as the server says."
+            : "Told when it starts, as the server says."}
+        </em>
+      );
+    },
+  };
+
+  function withLiveSection(
+    section: FormFieldCollapsibleSection<JSONObject>,
+  ): Fields<JSONObject> {
+    return SUMMARISED_FIELDS.map(
+      (field: Field<JSONObject>): Field<JSONObject> => {
+        return field.collapsibleSection === NOTIFY
+          ? { ...field, collapsibleSection: section }
+          : field;
+      },
+    );
+  }
+
+  test("reviews the section by the line its component works out, from the values reviewed", () => {
+    renderSummary({
+      values: { title: "Database upgrade", whenStarted: false },
+      fields: withLiveSection(LIVE),
+      steps: NOTIFY_STEPS,
+    });
+
+    const row: HTMLElement = screen.getByTestId("form-summary-section-summary");
+
+    expect(row).toHaveTextContent("Nobody is told, as the server says.");
+    expect(within(row).getByTestId("live-line")).toBeInTheDocument();
+    expect(row).not.toHaveTextContent("Subscribers are not told");
+    expect(screen.getByText("Subscriber Notifications")).toBeInTheDocument();
+  });
+
+  test("lists the fields, and no line, when the section's sentences say nothing", () => {
+    const rows: Fields<JSONObject> = getFormSummaryFields(
+      withLiveSection({
+        ...LIVE,
+        getSummary: (): Array<string> => {
+          return [];
+        },
+      }),
+      {
+        title: "Database upgrade",
+        reminder: "1 day",
+      } as FormValues<JSONObject>,
+    );
+
+    expect(
+      rows.map((field: Field<JSONObject>): string => {
+        return field.title || "";
+      }),
+    ).toEqual(["Title", "Status Pages", "Reminder"]);
+  });
 });
 
 /*

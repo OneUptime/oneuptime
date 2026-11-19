@@ -24,7 +24,7 @@ import {
 } from "@jest/globals";
 import type { UseQueryResult } from "@tanstack/react-query";
 import InboxStackNavigator from "./InboxStackNavigator";
-import { WindowLayoutProvider } from "../layout/WindowLayout";
+import { WindowLayoutProvider } from "../layout/WindowLayoutProvider";
 import type { FoldReport, PostureSource } from "../layout/windowPosture";
 import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
 import { useAllProjectIncidentEpisodes } from "../hooks/useAllProjectIncidentEpisodes";

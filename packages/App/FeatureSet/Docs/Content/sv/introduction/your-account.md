@@ -41,7 +41,7 @@ Klicka på din bild uppe till höger och välj **Profil**. Sidan **Översikt** �
 
 Klicka på **Redigera Användare** och ändra det du behöver:
 
-- **E-post**: adressen du loggar in med. Om du ändrar den verifierar du den nya adressen igen.
+- **E-post**: adressen du loggar in med. Om du ändrar den skickar OneUptime en länk till den nya adressen, och din adress ändras när du öppnar den. Tills dess loggar du in med den nuvarande, och **Avbryt ändring** stoppar ändringen. En huvudadministratörs egen adress ändras direkt.
 - **Fullständigt namn**: namnet som ditt team ser överallt i OneUptime.
 - **Tidszon**: tidszonen som instrumentpanelen visar och läser tider i, och den som används för tiderna i aviseringar till dig.
 - **Språk**: språket i instrumentpanelen i alla webbläsare du loggar in i, och i dina jourlarm. Inte valt: dina larm är på engelska och instrumentpanelen följer din webbläsare.
@@ -184,6 +184,14 @@ Ditt tema sparas i din webbläsare, så ställ in det igen i en annan webbläsar
 
 :::details Jag fick inte e-postmeddelandet för att verifiera min adress
 Loggar du in igen skickas en ny länk: titta även i skräppostmappen. Kan du inte logga in, använd **Glömt lösenord?** på inloggningssidan. Återställningslänken verifierar också din adress.
+:::
+
+:::details Registreringen skickade ett mejl om att jag redan har ett konto
+Den adressen har redan ett OneUptime-konto, så registreringen skapade och ändrade ingenting. Logga in med den, eller använd **Glömt lösenord?** på inloggningssidan om du inte minns ditt lösenord. Registreringssidan säger samma sak för alla adresser, så den avslöjar inte för någon vilka adresser som har ett konto.
+:::
+
+:::details Min e-postadress har inte ändrats
+Din adress ändras först när du öppnar länken som OneUptime skickade till den nya adressen. Länken fungerar i 24 timmar: om den har gått ut, ändra din e-post igen för att få en ny. Om ett annat konto redan använder adressen står det i mejlet som skickades dit, och din adress förblir som den är.
 :::
 
 :::details Jag har tappat bort min autentiseringsapp

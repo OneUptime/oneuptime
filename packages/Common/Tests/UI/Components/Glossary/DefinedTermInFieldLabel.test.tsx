@@ -464,7 +464,7 @@ describe("with its definition open, a field is still named by its title alone", 
     expect(open.closest("label")).toBeNull();
   });
 
-  test("the definition is drawn right after the title, outside it", async () => {
+  test("the definition is drawn on the page's body, outside the title and the form around it", async () => {
     answerGlossaryReads();
     renderField({
       title: "Initial State",
@@ -475,10 +475,14 @@ describe("with its definition open, a field is still named by its title alone", 
     const open: HTMLElement = await openDefinition("Initial State");
 
     expect(titleRow()).not.toContainElement(open);
-    expect(
-      titleRow().compareDocumentPosition(open) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    /*
+     * On the body, as every tooltip is (TooltipLayer): never in the title,
+     * which names the field, nor in a dialog's scrolling body that could
+     * cut it off.
+     */
+    expect(open.closest<HTMLElement>("[data-tippy-root]")?.parentElement).toBe(
+      document.body,
+    );
     expect(
       nameAsRead(
         screen.getByRole("combobox", { name: "Initial State (Optional)" }),
@@ -502,16 +506,56 @@ const tabStops: () => Array<HTMLElement> = (): Array<HTMLElement> => {
   });
 };
 
-// Where Tab goes from the title's word: the next stops, in order.
-const stopsAfterWord: (count: number) => Array<HTMLElement | undefined> = (
+// Tab, as the keyboard sends it; true when the browser's own move is left to it.
+const pressTab: () => boolean = (): boolean => {
+  return fireEvent.keyDown(document.activeElement || document.body, {
+    key: "Tab",
+    code: "Tab",
+  });
+};
+
+/*
+ * Where Tab goes from the title's word, with its definition open: into the
+ * definition first - drawn on the body, it keeps its place in the Tab order
+ * (keepTabOrder) - then, past its last, back to the word, from which the
+ * browser's own Tab moves on to the page's next stops, in order.
+ */
+const stopsAfterWord: (
+  open: HTMLElement,
+  count: number,
+) => Array<HTMLElement | undefined> = (
+  open: HTMLElement,
   count: number,
 ): Array<HTMLElement | undefined> => {
-  const stops: Array<HTMLElement> = tabStops();
-  const at: number = stops.indexOf(screen.getByTestId(DEFINED_TERM_TEST_ID));
+  const word: HTMLElement = screen.getByTestId(DEFINED_TERM_TEST_ID);
+  const reached: Array<HTMLElement | undefined> = [];
+
+  act(() => {
+    word.focus();
+  });
+
+  // Through the definition's own, until a Tab is left to the browser.
+  for (let press: number = 0; press < 5; press++) {
+    if (pressTab()) {
+      break;
+    }
+
+    reached.push(document.activeElement as HTMLElement);
+  }
+
+  // Back on the word, the definition still drawn after everything else.
+  expect(word).toHaveFocus();
+
+  const stops: Array<HTMLElement> = tabStops().filter(
+    (stop: HTMLElement): boolean => {
+      return !open.contains(stop);
+    },
+  );
+  const at: number = stops.indexOf(word);
 
   expect(at).toBeGreaterThanOrEqual(0);
 
-  return stops.slice(at + 1, at + 1 + count);
+  return [...reached, ...stops.slice(at + 1)].slice(0, count);
 };
 
 describe("with its definition open, Tab goes from the word to Read more", () => {
@@ -530,7 +574,7 @@ describe("with its definition open, Tab goes from the word to Read more", () => 
       });
 
       const open: HTMLElement = await openDefinition("Probes");
-      const [first, second] = stopsAfterWord(2);
+      const [first, second] = stopsAfterWord(open, 2);
 
       expect(first).toBe(
         within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
@@ -556,7 +600,7 @@ describe("with its definition open, Tab goes from the word to Read more", () => 
     );
 
     const open: HTMLElement = await openDefinition("Probes");
-    const [first, second, third] = stopsAfterWord(3);
+    const [first, second, third] = stopsAfterWord(open, 3);
 
     expect(first).toBe(
       within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
@@ -570,11 +614,11 @@ describe("with its definition open, Tab goes from the word to Read more", () => 
  * A recording of the first-run pages records the product's own words as
  * written (Utils/ProductText), Create Monitor's among them. A field's title
  * is marked, and its definition was recorded with it while drawn inside the
- * title. Drawn after the title (#7561), outside its marked words, it still
- * is: the popover carries the mark itself (DefinedTerm.test.tsx).
+ * title. Drawn on the page's body, outside its marked words, it still is:
+ * the popover carries the mark itself (DefinedTerm.test.tsx).
  */
 describe("in a recording of the page", () => {
-  test("the definition, drawn after the title, is recorded as written, as the title is", async () => {
+  test("the definition, drawn on the body, is recorded as written, as the title is", async () => {
     answerGlossaryReads();
     renderForm({
       title: "Probes",

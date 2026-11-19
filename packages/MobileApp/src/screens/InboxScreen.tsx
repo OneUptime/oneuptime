@@ -24,7 +24,7 @@ import {
   useContentGutters,
   usePane,
   type ResolvedPaneLayout,
-} from "../layout/WindowLayout";
+} from "../layout/WindowLayoutProvider";
 import { getHeightClass, type ContentGutters } from "../layout/windowLayout";
 import { useSecurityCasesAvailability } from "../hooks/useSecurityCases";
 import {

@@ -41,7 +41,7 @@ Fai clic sulla tua foto in alto a destra e scegli **Profilo**. La pagina **Panor
 
 Fai clic su **Modifica: Utente** e cambia ciò che ti serve:
 
-- **E-mail**: l'indirizzo con cui accedi. Se lo cambi, verifichi di nuovo il nuovo indirizzo.
+- **E-mail**: l'indirizzo con cui accedi. Se lo cambi, OneUptime invia un link al nuovo indirizzo, e il tuo indirizzo cambia quando lo apri. Fino ad allora accedi con quello attuale, e **Annulla modifica** ferma la modifica. L'indirizzo di un amministratore principale cambia subito.
 - **Nome completo**: il nome che il tuo team vede in tutto OneUptime.
 - **Fuso orario**: il fuso orario in cui la dashboard mostra e legge gli orari, e quello degli orari nelle notifiche che ti vengono inviate.
 - **Lingua**: la lingua della dashboard in ogni browser in cui accedi, e quella delle tue chiamate di reperibilità. Se non è impostata, le chiamate sono in inglese e la dashboard segue il tuo browser.
@@ -184,6 +184,14 @@ Apri **Zona pericolosa → Elimina account**. Puoi eliminare il tuo account solo
 
 :::details Non ho ricevuto l'e-mail per verificare il mio indirizzo
 Accedere di nuovo invia un nuovo link: controlla anche la cartella dello spam. Se non riesci ad accedere, usa **Password dimenticata?** nella pagina di accesso. Il suo link di reimpostazione verifica anche il tuo indirizzo.
+:::
+
+:::details La registrazione mi ha inviato un'e-mail che dice che ho già un account
+Quell'indirizzo ha già un account OneUptime, quindi la registrazione non ha creato né cambiato nulla. Accedi con quello, oppure usa **Password dimenticata?** nella pagina di accesso se non ricordi la password. La pagina di registrazione dice lo stesso per ogni indirizzo, quindi non rivela a nessuno quali indirizzi hanno un account.
+:::
+
+:::details Il mio indirizzo e-mail non è cambiato
+Il tuo indirizzo cambia solo quando apri il link che OneUptime ha inviato al nuovo indirizzo. Il link funziona per 24 ore: se è scaduto, cambia di nuovo la tua e-mail per riceverne uno nuovo. Se un altro account usa già quell'indirizzo, l'e-mail inviata lì lo dice, e il tuo indirizzo resta com'è.
 :::
 
 :::details Ho perso la mia app di autenticazione

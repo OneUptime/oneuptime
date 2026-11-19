@@ -205,7 +205,7 @@ Kør kommandoen igen for at ændre nogen af disse eller for at skifte til en nye
 | `--key KEY` | `-Key KEY` | En telemetri-indtagelsesnøgle fra dit projekt. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Sætter en etiket på værten. Gentag den for flere etiketter; på Windows angives de med kommaer. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Giver collectoren en miljøvariabel til konfigurationer, der læser `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | Den collector-udgivelse, der installeres, som standard 0.161.0. |
+| `--version VERSION` | `-Version VERSION` | Den collector-udgivelse, der installeres, som standard 0.165.0. |
 | `--download-url URL` | `-DownloadUrl URL` | Henter udgivelserne fra et spejl med samme mappestruktur som GitHubs. |
 | `--proxy URL` | `-Proxy URL` | Sender overførslerne og al collectorens trafik gennem en HTTP-proxy. |
 | `--replace-existing` | `-ReplaceExisting` | Stopper og deaktiverer en manuelt installeret collector. |

@@ -398,13 +398,22 @@ export function getCloudStreamStatusWords(data: {
 /*
  * A stream whose stack was made before OneUptime streamed every key metric
  * (CloudStreamStack): it streams the first ones only, and the connection
- * reads the rest from CloudWatch - billed to the account - until the
- * command is run again. The list offers the update, the dialog says why.
+ * reads the rest from CloudWatch - billed to the account - until the stack
+ * is updated. The list offers the update; the dialog says why, and shows
+ * the command that updates each stack in place (#9693: its own template,
+ * read back, with today's filters), so it keeps its log groups and its key.
  */
 export const STREAM_UPDATE_LABEL: string = translationKey("Update the stream");
 export const STREAM_OLDER_STACKS_SENTENCE: string = translationKey(
-  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Update them to stream those every minute too.",
 );
+export const STREAM_UPDATE_IN_PLACE_SENTENCE: string = translationKey(
+  "Run this in {{shell}}: it updates each stack in place, so each keeps its log groups and its key.",
+);
+export const STREAM_UPDATE_IN_PLACE_ORGANIZATION_SENTENCE: string =
+  translationKey(
+    "Run this in {{shell}} in the management account {{account}}: it updates each stack in place, the member accounts' too, so each keeps its log groups and its key.",
+  );
 
 export interface CloudStreamUpdateWords {
   // The Regions streaming from an older stack lately, each once.

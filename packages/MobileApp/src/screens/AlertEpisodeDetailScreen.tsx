@@ -9,10 +9,11 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
+import RecordOwnersAndLabels from "../components/RecordOwnersAndLabels";
 import {
   useAlertEpisodeDetail,
   useAlertEpisodeStates,
@@ -509,6 +510,11 @@ export default function AlertEpisodeDetailScreen({
           value={formatDateTime(episode.createdAt)}
         />
         <ResponseInfoRow label="Alerts" value={episode.alertCount ?? 0} />
+        <RecordOwnersAndLabels
+          list="alertEpisodes"
+          projectId={projectId}
+          recordId={episodeId}
+        />
       </ResponseSection>
       <ResponseSection title="Root Cause" iconName="bulb-outline">
         <RootCauseCard rootCauseText={rootCauseText} />
