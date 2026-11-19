@@ -40,6 +40,15 @@ import {
   isKubernetesCostMoneyMetric,
 } from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import { writeOwnValue } from "Common/Utils/LookupTable";
+import {
+  KubernetesCostEfficiencyRow,
+  getKubernetesCostEfficiencyWeight,
+  getKubernetesCostWeightedEfficiency,
+} from "Common/Types/Kubernetes/KubernetesCostEfficiency";
+import {
+  KubernetesCostEngineInfo,
+  readKubernetesCostEngineInfo,
+} from "Common/Types/Kubernetes/KubernetesCostPricing";
 
 /** Rows per fan-in submission — same order of magnitude as exceptions. */
 const KUBERNETES_COST_FLUSH_BATCH_SIZE: number = 500;
@@ -197,6 +206,14 @@ export default class KubernetesCostIngestService {
 
     const currency: string = this.sanitizeString(payload.currency);
 
+    /*
+     * Which engine priced these rows and where its prices come from, as the
+     * agent says (#9633, #9634): stamped on every row, so each hour says how
+     * it was priced. Null from an agent that says nothing.
+     */
+    const costEngine: KubernetesCostEngineInfo | null =
+      readKubernetesCostEngineInfo(payload.costEngine);
+
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
@@ -263,6 +280,7 @@ export default class KubernetesCostIngestService {
         clusterName: clusterIdentifier,
         k8sClusterEntityKey,
         currency,
+        costEngine,
         shipmentId,
         shipmentChunk,
         retentionDays,
@@ -562,6 +580,7 @@ export default class KubernetesCostIngestService {
     clusterName: string;
     k8sClusterEntityKey: string;
     currency: string;
+    costEngine?: KubernetesCostEngineInfo | null | undefined;
     shipmentId: string;
     shipmentChunk: number;
     retentionDays: number;
@@ -650,8 +669,30 @@ export default class KubernetesCostIngestService {
       currency: data.currency,
       shipmentId: data.shipmentId,
       shipmentChunk: data.shipmentChunk,
+      costEngine: data.costEngine?.engine || "",
+      costEngineService: data.costEngine?.service || "",
+      bundledEngineUnused: data.costEngine?.bundledEngineUnused === true,
+      pricingSource: data.costEngine?.pricingSource || "",
+      pricingProvider: data.costEngine?.pricingProvider || "",
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
+
+    /*
+     * What the row counts for in every cost-weighted efficiency, worked out
+     * from the values as stored (Common/Types/Kubernetes/
+     * KubernetesCostEfficiency): the same figures the columns' DEFAULT
+     * expressions give a row stored before them.
+     */
+    const efficiencySource: KubernetesCostEfficiencyRow = {
+      namespace: row["namespace"] as string,
+      cpuCost: row["cpuCost"] as number,
+      ramCost: row["ramCost"] as number,
+      totalEfficiency: row["totalEfficiency"] as number,
+    };
+    row["efficiencyWeight"] =
+      getKubernetesCostEfficiencyWeight(efficiencySource);
+    row["weightedEfficiency"] =
+      getKubernetesCostWeightedEfficiency(efficiencySource);
 
     // What the cost metrics read of it, as stored.
     const metricSource: KubernetesCostMetricSourceRow = {

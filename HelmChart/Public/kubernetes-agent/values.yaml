@@ -752,7 +752,8 @@ kubeStateMetrics:
 # pods, about 150m CPU and 450Mi of memory requested between them. OpenCost
 # prices your nodes and volumes at your cloud's public list prices on AWS,
 # Azure and Google Cloud, with no credentials, and at its default rates
-# anywhere else; set your own with `cost.opencost.customPricing`.
+# anywhere else; set your own with `cost.opencost.customPricing`. The
+# cluster's Costs page and overview say which prices its figures use.
 #
 #   auto  - on, except on the gke-autopilot and eks-fargate presets. Those
 #           platforms bill every pod by what it requests, so the cost pods
@@ -766,8 +767,11 @@ kubeStateMetrics:
 # cost.prometheus.image, cost.agent.image) as you do the others, or turn
 # cost off.
 #
-# Already running Kubecost or OpenCost? Set `cost.engine.url` to its
-# Service and nothing is bundled — the chart just reads from it:
+# Already running Kubecost or OpenCost? The cost agent finds it and reads
+# it instead of the bundled OpenCost, and the cluster's overview says the
+# bundled one is not needed. Stop running it with `cost.engine.url: auto`:
+# nothing is bundled, and the agent reads your engine wherever it runs. Or
+# name your engine yourself:
 #
 #   OpenCost:  http://opencost.opencost.svc.cluster.local:9003
 #   Kubecost:  http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
@@ -787,14 +791,33 @@ kubeStateMetrics:
 cost:
   enabled: auto
   engine:
-    # Base URL of an EXISTING cost engine. Empty (the default) bundles
-    # OpenCost + a minimal Prometheus instead; setting it disables the
-    # bundle and reads from your engine.
+    # Which cost engine prices the cluster.
     #
-    # `http://` or `https://`. The poller and the metrics scrape both follow
-    # the scheme, and both verify an https engine's certificate against
-    # public CAs only: there is no setting yet to trust a private one.
+    #   ""    (the default) bundle OpenCost and the small Prometheus it
+    #         needs. When the cluster already runs its own OpenCost or
+    #         Kubecost, the cost agent reads that one instead (see
+    #         preferExisting below), and the bundled one is then not needed.
+    #   auto  bundle nothing: the cost agent finds the OpenCost or Kubecost
+    #         the cluster runs, in any namespace, through the Kubernetes API,
+    #         and keeps looking until one answers. The chart cannot look
+    #         while it renders: Helm's `lookup` sees nothing under `helm
+    #         template`, Argo CD or a dry run. It finds Kubecost's
+    #         cost-analyzer or frontend Service and OpenCost's (from its
+    #         chart, or its manifest's Service named opencost), Kubecost
+    #         first, and passes over one that does not answer, needs a
+    #         sign-in, or answers for several clusters.
+    #   a URL bundle nothing, and read the engine at that address. `http://`
+    #         or `https://`: the poller and the metrics scrape both follow
+    #         the scheme, and both verify an https engine's certificate
+    #         against public CAs only (no setting yet trusts a private one).
     url: ""
+    # With the bundled engine (url empty): read the cluster's own OpenCost
+    # or Kubecost instead when it runs one and answers, so the cluster is
+    # priced as its owner set it up. The agent looks when it starts, then
+    # hourly, and falls back to the bundled engine. false always reads the
+    # bundled one. A rate card in cost.opencost.customPricing keeps the
+    # agent on the bundled engine too: someone chose those rates.
+    preferExisting: true
     # Allocation API path. Empty auto-detects by probing, in order:
     # /model/allocation (Kubecost), /allocation/compute (OpenCost),
     # /allocation (older OpenCost).
@@ -830,11 +853,15 @@ cost:
         cpu: 500m
         memory: 1Gi
     # Rate card for clusters whose nodes have no public cloud list
-    # price (on-prem, bare metal, air-gapped). When enabled, OpenCost
-    # prices every resource from these figures instead of a provider
-    # API. All values are USD per resource-HOUR (the defaults are the
-    # cost-model's GCP-us-central1-derived defaults: $0.031611/core-hr
-    # ~= $23/core-month).
+    # price (on-prem, bare metal, kind, k3s, air-gapped). Where OpenCost
+    # recognises no cloud, it prices every node from these figures
+    # instead of its default rates. On AWS, Azure, Google Cloud and the
+    # other clouds it knows, a node keeps its cloud's list price, and
+    # these figures price only what the list lacks. All values are USD
+    # per resource-HOUR (the defaults are OpenCost's own defaults, from
+    # GCP us-central1: $0.031611/core-hr ~= $23/core-month), so change
+    # them: left as they are, the Costs page still says "OpenCost's
+    # default rates".
     customPricing:
       enabled: false
       cpuPerCoreHour: "0.031611"

@@ -730,8 +730,20 @@ describe("accuracy: costs", () => {
     expect(COST.efficiency).toContain("above 100% means more was used");
     expect(COST.efficiency).toContain("Green from 70%, red below 40%");
     expect(COST.clusterEfficiency).toContain("Green from 70%, red below 40%");
-    // The project table's average includes the idle rows.
-    expect(COST.clusterEfficiency).toContain("idle-capacity records included");
+  });
+
+  /*
+   * #9635: every efficiency is weighted by what the CPU and memory cost, as
+   * the overview's is, and none of them averages the idle rows in.
+   */
+  test("efficiency is weighted by cost on both Costs pages, and leaves idle capacity out", () => {
+    for (const text of [COST.efficiency, COST.clusterEfficiency]) {
+      expect(text).toContain("weighted by what that CPU and memory cost");
+      expect(text).not.toContain("averaged");
+      expect(text).not.toContain("records");
+    }
+
+    expect(COST.clusterEfficiency).toContain("Idle capacity is not counted");
   });
 
   test("other = total minus the three named components", () => {

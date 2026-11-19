@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "Wurde Ihr Agent installiert, bevor sie standardmäßig eingeschaltet war, upgraden Sie ihn:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **Ausschalten:** Fügen Sie demselben Upgrade `--set cost.enabled=false` hinzu.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **Läuft bereits Kubecost oder OpenCost?** Verweisen Sie den Agenten stattdessen darauf, dann wird nichts mitgeliefert: Fügen Sie `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` hinzu (oder Ihren Kubecost-Dienst).",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **Läuft bereits Kubecost oder OpenCost?** Der Agent findet es und liest es anstelle der mitgelieferten Engine, und die Übersicht des Clusters zeigt das an: Fügen Sie `--set cost.engine.url=auto` hinzu, damit keine zweite mitgeliefert wird.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **On-Premises oder Bare Metal?** Legen Sie mit `--set cost.opencost.customPricing.enabled=true` eine Preisliste fest (USD pro Ressourcenstunde, siehe `values.yaml` des Charts).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

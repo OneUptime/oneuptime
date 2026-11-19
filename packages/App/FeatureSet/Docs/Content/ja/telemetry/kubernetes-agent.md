@@ -604,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-これだけで完全なインストールになります。チャートにはオープンソースの [OpenCost](https://opencost.io) エンジン (必要な小さな Prometheus を含む) が同梱されており、クラウドプロバイダーの公開定価を使って、認証情報なしでノードとボリュームの価格を算出します。追加される Pod は小さなものが 3 つで、最初のコストは最初の 1 時間が確定したあとに表示されます。無効にするには、同じ方法で `--set cost.enabled=false` を設定します。すでに Kubecost や OpenCost を使っている場合は、代わりに `--set cost.engine.url=<its service URL>` を追加すれば、何も同梱されません。オンプレミスのクラスターでは `cost.opencost.customPricing` で料金表を設定できます。オンプレミスの価格設定とトラブルシューティングを含む完全なガイドは、[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) です。
+これだけで完全なインストールになります。チャートにはオープンソースの [OpenCost](https://opencost.io) エンジン (必要な小さな Prometheus を含む) が同梱されており、クラウドプロバイダーの公開定価を使って、認証情報なしでノードとボリュームの価格を算出します。追加される Pod は小さなものが 3 つで、最初のコストは最初の 1 時間が確定したあとに表示されます。無効にするには、同じ方法で `--set cost.enabled=false` を設定します。すでに Kubecost や OpenCost を使っている場合は、コストエージェントがそれを見つけ、同梱のエンジンの代わりに読み取ります。2 つ目のエンジンを同梱しないようにするには、`--set cost.engine.url=auto` を追加します。オンプレミスのクラスターでは `cost.opencost.customPricing` で料金表を設定できます。オンプレミスの価格設定とトラブルシューティングを含む完全なガイドは、[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) です。
 
 ### プロジェクトラベルで自動的にタグ付けする
 

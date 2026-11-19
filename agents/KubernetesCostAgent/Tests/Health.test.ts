@@ -5,7 +5,14 @@ import { after, before, test } from "node:test";
 import { assessHealth, startHealthServer } from "../Health";
 import { Poller } from "../Poller";
 import { Shipper } from "../Shipper";
-import { HealthReport, PollerStatus, ShipperStatus } from "../Types";
+import {
+  CostEngineSource,
+  EngineAllocation,
+  HealthReport,
+  KubernetesCostEngineInfo,
+  PollerStatus,
+  ShipperStatus,
+} from "../Types";
 
 /*
  * The health verdict. assessHealth is pure — statuses in, verdict out — so
@@ -256,6 +263,12 @@ const stubs: Stubs = {
 
 let server: http.Server;
 
+// What the engine stub says about itself; nothing until a test sets it.
+const engineStubState: {
+  info: KubernetesCostEngineInfo | undefined;
+  url: string | undefined;
+} = { info: undefined, url: undefined };
+
 before(async (): Promise<void> => {
   const pollerStub: Poller = {
     status: (): PollerStatus => {
@@ -268,7 +281,23 @@ before(async (): Promise<void> => {
     },
   } as unknown as Shipper;
 
-  server = startHealthServer({ poller: pollerStub, shipper: shipperStub });
+  const engineStub: CostEngineSource = {
+    fetchAllocations: async (): Promise<Array<EngineAllocation>> => {
+      return [];
+    },
+    describe: (): KubernetesCostEngineInfo | undefined => {
+      return engineStubState.info;
+    },
+    engineUrl: (): string | undefined => {
+      return engineStubState.url;
+    },
+  };
+
+  server = startHealthServer({
+    poller: pollerStub,
+    shipper: shipperStub,
+    engine: engineStub,
+  });
   await new Promise<void>((resolve: () => void): void => {
     server.once("listening", resolve);
     if (server.listening) {
@@ -354,4 +383,54 @@ test("/livez stays 200 while degraded so a dead engine cannot crash-loop the pod
   assert.strictEqual(live.statusCode, 200);
   assert.match(live.body, /"status":"alive"/);
   assert.strictEqual(ready.statusCode, 503);
+});
+
+/*
+ * #9633: `kubectl port-forward` to /healthz answers "which engine does the
+ * agent read?" - and troubleshoot.sh probes the engine at that address.
+ */
+test("/healthz names the engine the agent reads, where, and where its prices come from", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+  engineStubState.info = {
+    engine: "Kubecost",
+    service: "kubecost/kubecost-cost-analyzer",
+    bundledEngineUnused: true,
+    pricingSource: "list-prices",
+    pricingProvider: "AWS",
+  };
+  engineStubState.url = "http://kubecost-cost-analyzer.kubecost.svc:9090";
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.deepStrictEqual(body["costEngine"], engineStubState.info);
+  assert.strictEqual(
+    body["costEngineUrl"],
+    "http://kubecost-cost-analyzer.kubecost.svc:9090",
+  );
+  // The keys troubleshoot.sh parses are all still there.
+  assert.ok("status" in body);
+  assert.ok("lastPollError" in body);
+  assert.ok("lastShipError" in body);
+
+  engineStubState.info = undefined;
+  engineStubState.url = undefined;
+});
+
+test("/healthz says nothing of an engine before the agent has one", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.ok(!("costEngine" in body));
+  assert.ok(!("costEngineUrl" in body));
 });

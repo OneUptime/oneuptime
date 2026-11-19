@@ -381,13 +381,65 @@ data:
                   action: keep
             {{- end }}
             {{- if eq (include "kubernetes-agent.costMetricsEnabled" .) "true" }}
+            {{- $costMetricsUrl := .Values.cost.metrics.endpoint | default "" | toString | trim }}
+            {{- if and (eq (include "kubernetes-agent.costEngineAuto" .) "true") (not $costMetricsUrl) }}
+            # Cost metrics from the cluster's own cost engine
+            # (cost.engine.url: auto), found the way the cost agent finds
+            # it: Services labelled for OpenCost or Kubecost 2's cost
+            # analyzer, or OpenCost's manifest's Service named opencost, in
+            # any namespace. Each read is narrowed by the API server, so
+            # nothing else in the cluster is watched. Scraped at OpenCost's
+            # API port (9003) or Kubecost's cost model (tcp-model), never a
+            # OneUptime agent's own bundled engine. A cluster that runs both
+            # engines has both scraped: set cost.engine.url or
+            # cost.metrics.endpoint to pick one.
+            - job_name: cost-engine
+              scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: service
+                  selectors:
+                    - role: service
+                      label: "app.kubernetes.io/name=opencost"
+                - role: service
+                  selectors:
+                    - role: service
+                      label: "app in (opencost,cost-analyzer)"
+                - role: service
+                  selectors:
+                    - role: service
+                      field: "metadata.name=opencost"
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_part_of]
+                  regex: oneuptime
+                  action: drop
+                - source_labels:
+                    - __meta_kubernetes_service_label_app_kubernetes_io_name
+                    - __meta_kubernetes_service_label_app
+                    - __meta_kubernetes_service_name
+                  regex: "(?:.*;)?opencost(?:;.*)?"
+                  target_label: __tmp_cost_engine
+                  replacement: opencost
+                - source_labels: [__meta_kubernetes_service_label_app]
+                  regex: cost-analyzer
+                  target_label: __tmp_cost_engine
+                  replacement: kubecost
+                - source_labels:
+                    - __tmp_cost_engine
+                    - __meta_kubernetes_service_port_number
+                    - __meta_kubernetes_service_port_name
+                  regex: "opencost;9003;.*|kubecost;[0-9]+;tcp-model"
+                  action: keep
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
+                  action: keep
+            {{- else }}
             {{- /* Resolution order: the explicit metrics endpoint, else
                    <engine URL>/metrics, the engine being the external one or the
                    bundled OpenCost. The engine URL is a base URL, so a path of
                    its own (a reverse proxy's /model prefix, say) goes in front
                    of /metrics rather than standing in for it. One that already
                    ends in /metrics is not given a second. */}}
-            {{- $costMetricsUrl := .Values.cost.metrics.endpoint | default "" | toString | trim }}
             {{- $costEndpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" ($costMetricsUrl | default (include "kubernetes-agent.costEngineUrl" .)) "setting" (ternary "cost.metrics.endpoint" "cost.engine.url" (ne $costMetricsUrl ""))) | fromJson }}
             {{- if and $costEndpoint.path (not $costMetricsUrl) }}
             {{- $_ := set $costEndpoint "path" (printf "%s/metrics" ($costEndpoint.path | trimSuffix "/metrics")) }}
@@ -419,6 +471,7 @@ data:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
                   action: keep
+            {{- end }}
             {{- end }}
             {{- if .Values.coreDns.enabled }}
             # CoreDNS metrics. By default CoreDNS exposes a Prometheus
