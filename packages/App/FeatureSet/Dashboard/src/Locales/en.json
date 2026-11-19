@@ -59045,6 +59045,8 @@
   "Rename Label": "Rename Label",
   "Same name as another label": "Same name as another label",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).",
   "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one."

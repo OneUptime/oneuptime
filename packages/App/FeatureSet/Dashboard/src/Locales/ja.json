@@ -59045,6 +59045,8 @@
   "Rename Label": "ラベルの名前を変更",
   "Same name as another label": "他のラベルと同じ名前",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "この条件とこの系列（{{series}}）にはアクティブなアラートがすでにあるため、新しいアラートの作成をスキップしました。",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "この条件とこの系列（{{series}}）にはアクティブなインシデントがすでにあるため、新しいインシデントの作成をスキップしました。",
   "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} 個のラベルが他のラベルと同じ名前のため、選択欄では区別できません。それぞれの使用先を比較してから、どちらかの名前を変更してください。",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} 個のラベルが他のラベルと同じ名前のため、選択欄では区別できません。それぞれの使用先を比較してから、どちらかの名前を変更してください。",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} 個のラベルが他のラベルと同じ名前のため、選択欄では区別できません。それぞれの使用先を比較してから、どちらかの名前を変更してください。"

@@ -59045,6 +59045,8 @@
   "Rename Label": "重新命名標籤",
   "Same name as another label": "與另一個標籤同名",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表單位為 {{chartUnit}}，因此無法在該圖表的座標軸上正確讀出此查詢的數值。",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "已略過建立新警示，因為此條件和此序列（{{series}}）已有進行中的警示。",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "已略過建立新事件，因為此條件和此序列（{{series}}）已有進行中的事件。",
   "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "有 {{count}} 個標籤與另一個標籤同名，在選擇器中無法區分。請比較它們各自的使用位置，然後重新命名其中一個。",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "有 {{count}} 個標籤與另一個標籤同名，在選擇器中無法區分。請比較它們各自的使用位置，然後重新命名其中一個。",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "有 {{count}} 個標籤與另一個標籤同名，在選擇器中無法區分。請比較它們各自的使用位置，然後重新命名其中一個。"

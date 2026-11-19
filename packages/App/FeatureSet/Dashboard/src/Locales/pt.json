@@ -59045,6 +59045,8 @@
   "Rename Label": "Renomear rótulo",
   "Same name as another label": "Mesmo nome que outro rótulo",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Criação de um novo alerta ignorada porque já existe um alerta ativo para este critério e esta série ({{series}}).",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Criação de um novo incidente ignorada porque já existe um incidente ativo para este critério e esta série ({{series}}).",
   "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} rótulo tem o mesmo nome que outro rótulo, e os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles.",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} rótulos têm o mesmo nome que outro rótulo, e os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles.",
   "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} rótulo tem o mesmo nome que outro rótulo, e os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles."
