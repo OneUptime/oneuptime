@@ -6,6 +6,7 @@ import URL from "Common/Types/API/URL";
 import { RequestOptions, RequestOutcome } from "Common/Utils/API";
 import { JSONObject } from "Common/Types/JSON";
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+import { AppVersion } from "Common/Server/EnvironmentConfig";
 
 /*
  * What this probe build can do, declared on every control-plane request so
@@ -54,6 +55,12 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
  * answers those with a 429 only to a probe that declares this: before it,
  * they logged a 429 as a failed request every tick.
  *
+ * "totpCodes": the monitor jobs make the one-time codes of TOTP monitor
+ * secrets from the parameters a step carries (MonitorStep.totpSecrets), as
+ * each check uses them. The server hands a step that needs a code only to
+ * a probe that declares this, and fails it on an older custom probe with a
+ * sentence saying to update the probe (issue #9759).
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -65,14 +72,29 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.DataObservabilityCollect,
   ProbeCapability.RetryWhenBusy,
   ProbeCapability.RetryAllWorkWhenBusy,
+  ProbeCapability.TotpCodes,
 ];
+
+/*
+ * What every request says of this probe's build: what it can do, and the
+ * release it runs (APP_VERSION, baked into the image; "unknown" for a
+ * build without one). OneUptime keeps the release with the probe's
+ * liveness stamp, so the probe's page and the monitor forms can say when a
+ * custom probe is too old for something (issue #9759).
+ */
+export function getProbeBuildDeclaration(): JSONObject {
+  return {
+    probeCapabilities: [...PROBE_CAPABILITIES],
+    probeVersion: AppVersion,
+  };
+}
 
 export default class ProbeAPIRequest {
   public static getDefaultRequestBody(): JSONObject {
     return {
       probeKey: PROBE_KEY,
       probeId: ProbeUtil.getProbeId().toString(),
-      probeCapabilities: [...PROBE_CAPABILITIES],
+      ...getProbeBuildDeclaration(),
     };
   }
 

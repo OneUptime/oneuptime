@@ -601,6 +601,18 @@ export const looksLikeSecretColumn: (
   return looksLikeSecretName(name);
 };
 
+/*
+ * Whether every value a column may hold is written in the code
+ * (allowedValues): a kind, never a secret, whatever the column is called.
+ * A monitor secret's type is Text or TOTP, so an entry says which it
+ * became (issue #9760) rather than "[REDACTED]".
+ */
+export const holdsOnlyListedValues: (
+  metadata: TableColumnMetadata | undefined,
+) => boolean = (metadata: TableColumnMetadata | undefined): boolean => {
+  return Boolean(metadata?.allowedValues && metadata.allowedValues.length > 0);
+};
+
 // A timestamp a worker keeps of when it last did something, or will next.
 const isWorkerTimestampName: (name: string) => boolean = (
   name: string,
@@ -953,7 +965,11 @@ export const getDefaultAuditLogOn: (
       }
     }
 
-    if (listedSecrets.has(column) || looksLikeSecretColumn(column, type)) {
+    if (
+      listedSecrets.has(column) ||
+      (looksLikeSecretColumn(column, type) &&
+        !holdsOnlyListedValues(model.getTableColumnMetadata(column)))
+    ) {
       redactColumns.push(column);
     }
   }

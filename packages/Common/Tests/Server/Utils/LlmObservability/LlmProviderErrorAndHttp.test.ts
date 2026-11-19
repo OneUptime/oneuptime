@@ -1,5 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
+import {
+  DataSourceHttpRequest,
+  DataSourceHttpResponse,
+} from "../../../../Server/Utils/DataSource/HttpFetch";
+import { DataSourceStatusException } from "../../../../Server/Utils/DataSource/HttpFailure";
+import DataSourceHttpRetry from "../../../../Server/Utils/DataSource/HttpRetry";
 import LlmProviderError, {
   MAX_LLM_PROVIDER_ERROR_LENGTH,
 } from "../../../../Server/Utils/LlmObservability/LlmProviderError";
@@ -56,6 +61,51 @@ describe("LlmProviderError.from", () => {
       'OpenAI usage report failed with HTTP 401: {"error":"invalid key [REDACTED]"}',
     );
     expect(error.responseBody).toBe('{"error":"invalid key [REDACTED]"}');
+  });
+
+  /*
+   * BigQuery signs in to Google through the retry client's transport, which
+   * says a status in a sentence of its own: the status and the provider's
+   * words are read from what it keeps, so a refused key is still one.
+   */
+  test("the retry client's HTTP failure is classified by the status and words it keeps, not its sentence", async () => {
+    const retry: DataSourceHttpRetry = new DataSourceHttpRetry({
+      transport: async (): Promise<DataSourceHttpResponse> => {
+        return {
+          statusCode: 401,
+          bodyText: `{"error":"invalid_client ${SECRET}"}`,
+          bodyJson: { error: `invalid_client ${SECRET}` },
+        };
+      },
+      classify: (): null => {
+        return null;
+      },
+      provider: "Google BigQuery",
+    });
+
+    const error: unknown = await LlmProviderHttp.requestJson({
+      transport: retry.asTransport({
+        isSafeToRepeat: (): boolean => {
+          return true;
+        },
+      }),
+      method: "POST",
+      url: "https://oauth2.googleapis.com/token",
+      step: "sign-in",
+      providerTitle: "Google BigQuery",
+      secretValues: [SECRET],
+    }).catch((thrown: unknown): unknown => {
+      return thrown;
+    });
+
+    expect(error).toBeInstanceOf(LlmProviderError);
+    expect(error).toMatchObject({
+      kind: LlmConnectionFailureKind.Authentication,
+      statusCode: 401,
+      message:
+        'Google BigQuery sign-in failed with HTTP 401: {"error":"invalid_client [REDACTED]"}',
+      responseBody: '{"error":"invalid_client [REDACTED]"}',
+    });
   });
 
   test("anything else is a provider that could not be reached", () => {
@@ -153,6 +203,14 @@ describe("LlmProviderError.redact", () => {
         new Error("Data source responded with HTTP 429: slow down\nplease"),
       ),
     ).toEqual({ status: 429, body: "slow down\nplease" });
+    expect(
+      LlmProviderError.readTransportHttpError(
+        new DataSourceStatusException(
+          "Example answered HTTP 429 to GET https://api.example.com/x. slow down",
+          { statusCode: 429, bodyText: "slow down" },
+        ),
+      ),
+    ).toEqual({ status: 429, body: "slow down" });
     expect(
       LlmProviderError.readTransportHttpError(new Error("socket hang up")),
     ).toBeNull();

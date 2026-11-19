@@ -24,10 +24,11 @@ SUITES_DIR="${TESTS_DIR}/suites"
 ALL_SUITES=(lint unit extra-values vapid-existing-secret twilio-environment email-environment air-gapped iron-bank marketplace secrets-lifecycle keda-bootstrap)
 
 # Run only when named, never by default (so not in the helm-test job). Two reasons:
-# gitops-revert pulls third-party images and waits out reconcile intervals,
-# measuring how other tools behave rather than checking this repository's charts,
-# and iron-bank-install needs a Registry1 account and images the job does not have.
-OPT_IN_SUITES=(gitops-revert iron-bank-install)
+# gitops-revert and cost-engine-metrics pull third-party images and wait for
+# them, measuring how other tools behave as much as checking this repository's
+# charts (Argo CD and Flux; Kubecost and OpenCost), and iron-bank-install needs a
+# Registry1 account and images the job does not have.
+OPT_IN_SUITES=(gitops-revert iron-bank-install cost-engine-metrics)
 
 usage() {
     echo "usage: $(basename "${BASH_SOURCE[0]}") [suite ...]"

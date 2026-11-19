@@ -124,6 +124,33 @@ spec:
 > [!TIP]
 > پرابی که باید نشانی‌های خصوصی، مانند `http://10.0.0.5/health`، را بررسی کند به `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` نیاز دارد. پراب‌ها نشانی‌های خصوصی را رد می‌کنند تا وقتی که اجازه‌شان را بدهید: [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access) را ببینید.
 
+## به‌روزرسانی پراب
+
+پراب نسخهٔ ایمیجی را اجرا می‌کند که از آن راه‌اندازی شده است، پس برای به‌روزرسانی آن، با همان شناسه و کلید پراب، آن را از یک ایمیج تازه‌تر دوباره راه‌اندازی کنید. ایمیج `oneuptime/probe:release` همیشه تازه‌ترین نسخه است.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+سپس فرمان [اجرای پراب](#اجرای-پراب) را دوباره اجرا کنید.
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+به‌جای `<version>` نسخه‌ای را بنویسید که باید اجرا شود، مانند `17.0.1`، و همان ایمیج را در `oneuptime-probe.yaml` هم بنویسید تا با اعمال دوبارهٔ فایل بماند.
+:::
+
+صفحهٔ پراب نسخه‌ای را که اجرا می‌کند زیر **وضعیت پراب** نشان می‌دهد. پرابی قدیمی‌تر از 17.0.1 نمی‌تواند کدهای یک [راز کد یک‌بارمصرف](/docs/monitor/monitor-secrets#ورود-با-کد-یکبارمصرف) را بسازد: صفحه‌اش این را می‌گوید، و فرم مانیتوری که بررسی‌اش می‌کند هم.
+
 ## اتصال از راه پراکسی
 
 اگر پراب برای رسیدن به OneUptime یا سایت‌هایی که بررسی می‌کند باید از پراکسی بگذرد، نشانی پراکسی را به آن بدهید:

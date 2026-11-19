@@ -20,6 +20,12 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  KubernetesNodeDiskCells,
+  getKubernetesNodeDisk,
+  getKubernetesNodeDiskCells,
+} from "../Utils/KubernetesNodeDisk";
 
 const KubernetesClusterNodes: FunctionComponent<
   PageComponentProps
@@ -38,6 +44,8 @@ const KubernetesClusterNodes: FunctionComponent<
           kubernetesClusterId: modelId,
           kind: "Node",
           selectFullSpec: true,
+          // Its disks (#9645), which its status reads too: "Disk nearly full".
+          selectVolumeUsage: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,
@@ -63,6 +71,24 @@ const KubernetesClusterNodes: FunctionComponent<
               KubernetesResourceUtils.parseK8sMemoryToBytes(memString);
             if (bytes > 0) {
               resource.memoryLimitBytes = bytes;
+            }
+
+            /*
+             * Its root disk's used and free, and its image disk's when its
+             * container images have a disk of their own (KubernetesNodeDisk).
+             */
+            const cells: KubernetesNodeDiskCells = getKubernetesNodeDiskCells(
+              getKubernetesNodeDisk({
+                latestVolumeCapacityBytes: row.latestVolumeCapacityBytes,
+                latestVolumeAvailableBytes: row.latestVolumeAvailableBytes,
+                latestImageFsCapacityBytes: row.latestImageFsCapacityBytes,
+                latestImageFsAvailableBytes: row.latestImageFsAvailableBytes,
+                latestVolumeMeasuredAt: row.latestVolumeMeasuredAt,
+              }),
+            );
+            resource.storageUsage = cells.storageUsage;
+            if (cells.secondaryStorageUsage) {
+              resource.secondaryStorageUsage = cells.secondaryStorageUsage;
             }
           },
         });
@@ -94,11 +120,31 @@ const KubernetesClusterNodes: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="Nodes"
-      description="All nodes in this cluster with their current resource usage."
+      description="All nodes in this cluster with their CPU, memory and disk use."
       resources={resources}
       builtInColumnDescriptions={{
         cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeCpu,
         memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeMemory,
+      }}
+      /*
+       * Its disk beside its CPU and memory (#9645): the fullest node is a
+       * click on Disk away, and amber and red at the lines the claims list
+       * uses - the red one where the kubelet starts evicting pods.
+       */
+      storageUsageColumns={{
+        usedTitle: translationKey("Disk"),
+        freeTitle: translationKey("Disk Free"),
+        usedDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeDiskUsed,
+        freeDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeDiskFree,
+        capacity: {
+          title: translationKey("Disk Capacity"),
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeDiskCapacity,
+        },
+        secondary: {
+          title: translationKey("Image Disk"),
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeImageDisk,
+        },
+        isAfterResourceMetrics: true,
       }}
       showNamespace={false}
       getViewRoute={(resource: KubernetesResource) => {

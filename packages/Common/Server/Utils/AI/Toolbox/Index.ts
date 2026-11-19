@@ -23,7 +23,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
-import { QueryAlertsTool } from "./AlertTools";
+import { QueryAlertsTool, SearchAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
 import { QueryRumApplicationsTool, QueryRumWebVitalsTool } from "./RumTools";
 import {
@@ -175,6 +175,7 @@ export default class AIToolbox {
     GetIncidentTimelineTool,
     GetAlertTimelineTool,
     QueryAlertsTool,
+    SearchAlertsTool,
     QueryMonitorsTool,
     QueryRumApplicationsTool,
     QueryRumWebVitalsTool,

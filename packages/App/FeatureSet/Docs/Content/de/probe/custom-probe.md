@@ -124,6 +124,33 @@ Monitore, die Sonden nicht prüfen (Manuell, Eingehende Anfrage, Eingehende E-Ma
 > [!TIP]
 > Eine Sonde, die private Adressen wie `http://10.0.0.5/health` prüfen soll, braucht `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`. Sonden lehnen private Adressen ab, bis Sie sie erlauben: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
+## Eine Sonde aktualisieren
+
+Eine Sonde läuft mit der Version des Images, aus dem sie gestartet wurde. Um sie zu aktualisieren, starten Sie sie deshalb mit derselben Sonden-ID und demselben Schlüssel aus einem neueren Image neu. Das Image `oneuptime/probe:release` ist immer die neueste Version.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Führen Sie dann den Befehl aus [Die Sonde starten](#die-sonde-starten) erneut aus.
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Ersetzen Sie `<version>` durch die Version, die laufen soll, etwa `17.0.1`, und tragen Sie dasselbe Image in `oneuptime-probe.yaml` ein, damit es bleibt, wenn Sie die Datei erneut anwenden.
+:::
+
+Die Seite der Sonde zeigt unter **Sondenstatus** die Version, mit der sie läuft. Eine Sonde, die älter als 17.0.1 ist, kann die Codes eines [Einmalcode-Geheimnisses](/docs/monitor/monitor-secrets#mit-einem-einmalcode-anmelden) nicht erzeugen: Ihre Seite sagt das, und ebenso das Formular eines Monitors, den sie prüft.
+
 ## Über einen Proxy verbinden
 
 Wenn die Sonde OneUptime oder die geprüften Sites nur über einen Proxy erreicht, geben Sie ihr die Adresse des Proxys:

@@ -23,6 +23,8 @@ export interface InventoryRecentItem {
   displayName: string;
   entityType: string;
   source: string;
+  // "ManagedDevice" for a managed device's host, whose last check-in is a heartbeat.
+  resourceType: string;
   lastSeenAt: string | null;
 }
 
@@ -119,6 +121,7 @@ export function parseInventoryOverview(json: JSONObject): InventoryOverview {
           displayName: readString(entry, "displayName"),
           entityType: readString(entry, "entityType"),
           source: readString(entry, "source"),
+          resourceType: readString(entry, "resourceType"),
           lastSeenAt: readString(entry, "lastSeenAt") || null,
         };
       })

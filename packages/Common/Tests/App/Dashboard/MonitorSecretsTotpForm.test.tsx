@@ -47,9 +47,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * One-time code (TOTP) asks for the site's setup key or otpauth:// link
  * instead of a value, says what is wrong with it as it is typed, and shows
  * the code it makes right now - from what was typed, never from a stored
- * secret - to check against the authenticator app. A secret keeps its type:
- * Edit asks neither the type nor the value, and Update Secret Value asks a
- * one-time code secret for a setup key.
+ * secret - to check against the authenticator app. Edit asks neither the
+ * type nor the value; Update Secret Value asks both, the type the secret
+ * has chosen, and changes the type only with a new value of that type
+ * (issue #9760): each type's value has a field of its own, so what was
+ * typed for one type is never sent, or previewed, as the other.
  *
  * The production page's fields go through the real modal, ModelForm,
  * BasicForm, CardSelect and validation. The table is replaced by its open
@@ -520,9 +522,13 @@ describe("a secret that exists", () => {
     await waitFor(() => {
       expect(updateByIdMock).toHaveBeenCalledTimes(1);
     });
+    // The type it keeps goes with the value: the server reads one for the other.
     expect(
       (updateByIdMock.mock.calls[0]?.[0] as { data: JSONObject }).data,
-    ).toEqual({ secretValue: SEED.toLowerCase() });
+    ).toEqual({
+      secretType: MonitorSecretType.TOTP,
+      secretValue: SEED.toLowerCase(),
+    });
   });
 
   test("of the Text type is given a new value as before", async () => {
@@ -546,5 +552,296 @@ describe("a secret that exists", () => {
     expect(
       within(update).queryByPlaceholderText(SETUP_KEY_PLACEHOLDER),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("Update Secret Value changes a secret's type together with a new value (#9760)", () => {
+  function storedSecret(secretType: MonitorSecretType): MonitorSecret {
+    const secret: MonitorSecret = new MonitorSecret(new ObjectID(SECRET_ID));
+    secret.name = "LoginCode";
+    secret.secretType = secretType;
+    secret.monitorAccess = MonitorSecretAccess.AllMonitors;
+    return secret;
+  }
+
+  async function openUpdate(
+    secretType: MonitorSecretType | undefined,
+  ): Promise<{ user: UserEvent; update: HTMLElement }> {
+    const user: UserEvent = await renderPage();
+    const secret: MonitorSecret = storedSecret(MonitorSecretType.Text);
+
+    if (secretType) {
+      secret.secretType = secretType;
+    } else {
+      // Read before types existed: Text.
+      delete (secret as unknown as { secretType?: unknown }).secretType;
+    }
+
+    await act(async (): Promise<void> => {
+      capturedTableProps!.actionButtons![0]!.onClick!(
+        secret,
+        () => {},
+        () => {},
+      );
+    });
+
+    const update: HTMLElement = await screen.findByRole("dialog", {
+      name: "Update Secret Value",
+    });
+
+    return { user, update };
+  }
+
+  function updateTypeCard(
+    update: HTMLElement,
+    secretType: MonitorSecretType,
+  ): HTMLElement {
+    return within(update).getByTestId(`card-select-option-${secretType}`);
+  }
+
+  async function choose(
+    user: UserEvent,
+    update: HTMLElement,
+    secretType: MonitorSecretType,
+  ): Promise<void> {
+    await user.click(updateTypeCard(update, secretType));
+
+    await waitFor(() => {
+      expect(updateTypeCard(update, secretType)).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+    });
+  }
+
+  async function save(user: UserEvent, update: HTMLElement): Promise<void> {
+    await user.click(
+      within(update).getByRole("button", { name: /Save|Submit|Update/ }),
+    );
+  }
+
+  function sentData(): JSONObject {
+    return (updateByIdMock.mock.calls[0]?.[0] as { data: JSONObject }).data;
+  }
+
+  test("offers the type, Text first, with the secret's own type chosen", async () => {
+    for (const secretType of [
+      MonitorSecretType.Text,
+      MonitorSecretType.TOTP,
+      undefined,
+    ]) {
+      const { update } = await openUpdate(secretType);
+      const cards: Array<string> = within(update)
+        .getAllByTestId(/^card-select-option-/)
+        .map((card: HTMLElement): string => {
+          return card.getAttribute("data-testid") || "";
+        });
+
+      expect(cards).toEqual([
+        `card-select-option-${MonitorSecretType.Text}`,
+        `card-select-option-${MonitorSecretType.TOTP}`,
+      ]);
+      expect(
+        updateTypeCard(update, secretType || MonitorSecretType.Text),
+      ).toHaveAttribute("aria-checked", "true");
+      expect(
+        within(update).getByText(
+          "Change it together with a new value below; monitors that use the secret take it at their next check.",
+        ),
+      ).toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  test("Text to One-time code: asks a setup key, shows the code it makes, and sends both", async () => {
+    const { user, update } = await openUpdate(MonitorSecretType.Text);
+
+    await choose(user, update, MonitorSecretType.TOTP);
+
+    expect(
+      within(update).queryByPlaceholderText(TEXT_VALUE_PLACEHOLDER),
+    ).not.toBeInTheDocument();
+
+    const setupKey: HTMLElement = within(update).getByPlaceholderText(
+      SETUP_KEY_PLACEHOLDER,
+    );
+
+    fireEvent.change(setupKey, { target: { value: LINK } });
+
+    expect(
+      await within(update).findByTestId("totp-code-preview-code"),
+    ).toHaveTextContent(grouped(generateTotpCode(LINK_PARAMETERS, NOW)));
+
+    await save(user, update);
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(sentData()).toEqual({
+      secretType: MonitorSecretType.TOTP,
+      secretValue: LINK,
+    });
+  });
+
+  test("One-time code to Text: asks a text value, shows no code, and sends both", async () => {
+    const { user, update } = await openUpdate(MonitorSecretType.TOTP);
+
+    await choose(user, update, MonitorSecretType.Text);
+
+    expect(
+      within(update).queryByPlaceholderText(SETUP_KEY_PLACEHOLDER),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(
+      within(update).getByPlaceholderText(TEXT_VALUE_PLACEHOLDER),
+      { target: { value: "a new password" } },
+    );
+
+    expect(
+      within(update).queryByTestId("totp-code-preview"),
+    ).not.toBeInTheDocument();
+
+    await save(user, update);
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(sentData()).toEqual({
+      secretType: MonitorSecretType.Text,
+      secretValue: "a new password",
+    });
+  });
+
+  test("a type changed without a new value is not sent: the value is required", async () => {
+    const { user, update } = await openUpdate(MonitorSecretType.Text);
+
+    await choose(user, update, MonitorSecretType.TOTP);
+    await save(user, update);
+
+    expect(
+      await within(update).findByText(/Setup Key is required/i),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a setup key no code can be made from is refused, saying why, and not sent", async () => {
+    const { user, update } = await openUpdate(MonitorSecretType.Text);
+
+    await choose(user, update, MonitorSecretType.TOTP);
+
+    const setupKey: HTMLElement = within(update).getByPlaceholderText(
+      SETUP_KEY_PLACEHOLDER,
+    );
+
+    fireEvent.change(setupKey, {
+      target: { value: `otpauth://hotp/a?secret=${SEED}&counter=0` },
+    });
+    fireEvent.blur(setupKey);
+
+    expect(
+      await within(update).findByText(
+        "This link is for counter-based codes (HOTP). A monitor needs a time-based link, which starts with otpauth://totp/.",
+      ),
+    ).toBeVisible();
+    expect(
+      within(update).queryByTestId("totp-code-preview"),
+    ).not.toBeInTheDocument();
+
+    await save(user, update);
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a setup key typed and then switched to Text is never sent as text", async () => {
+    const { user, update } = await openUpdate(MonitorSecretType.Text);
+
+    await choose(user, update, MonitorSecretType.TOTP);
+    fireEvent.change(
+      within(update).getByPlaceholderText(SETUP_KEY_PLACEHOLDER),
+      { target: { value: SEED } },
+    );
+    await choose(user, update, MonitorSecretType.Text);
+
+    // The Text field starts empty: the key stays in the field it was typed in.
+    expect(
+      within(update).getByPlaceholderText(TEXT_VALUE_PLACEHOLDER),
+    ).toHaveValue("");
+
+    fireEvent.change(
+      within(update).getByPlaceholderText(TEXT_VALUE_PLACEHOLDER),
+      { target: { value: "hunter2" } },
+    );
+    await save(user, update);
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(sentData()).toEqual({
+      secretType: MonitorSecretType.Text,
+      secretValue: "hunter2",
+    });
+    expect(JSON.stringify(sentData())).not.toContain(SEED);
+  });
+
+  test("a text typed and then switched to One-time code is never shown as a code", async () => {
+    const { user, update } = await openUpdate(MonitorSecretType.Text);
+
+    // A value that would make a code, were it read as a setup key.
+    fireEvent.change(
+      within(update).getByPlaceholderText(TEXT_VALUE_PLACEHOLDER),
+      { target: { value: SEED } },
+    );
+
+    expect(
+      within(update).queryByTestId("totp-code-preview"),
+    ).not.toBeInTheDocument();
+
+    await choose(user, update, MonitorSecretType.TOTP);
+
+    expect(
+      within(update).getByPlaceholderText(SETUP_KEY_PLACEHOLDER),
+    ).toHaveValue("");
+    expect(
+      within(update).queryByTestId("totp-code-preview"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a refusal from the server is said in the dialog, which stays open", async () => {
+    updateByIdMock
+      .mockReset()
+      .mockRejectedValue(
+        new Error(
+          "This is the setup key the secret holds now. A Text secret is sent as written, so the key itself would be sent where the one-time code went. Enter the new text value, or keep the type One-time code (TOTP).",
+        ),
+      );
+
+    const { user, update } = await openUpdate(MonitorSecretType.TOTP);
+
+    await choose(user, update, MonitorSecretType.Text);
+    fireEvent.change(
+      within(update).getByPlaceholderText(TEXT_VALUE_PLACEHOLDER),
+      { target: { value: SEED } },
+    );
+    await save(user, update);
+
+    expect(
+      await screen.findByText(/This is the setup key the secret holds now\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Update Secret Value" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Create Monitor Secret: the type's help says it can change later (#9760)", () => {
+  test("says Update Secret Value changes it, with a new value", async () => {
+    await renderCreateDialog();
+
+    expect(
+      within(dialog()).getByText(
+        "What the secret holds. Update Secret Value can change it later, together with a new value.",
+      ),
+    ).toBeInTheDocument();
   });
 });

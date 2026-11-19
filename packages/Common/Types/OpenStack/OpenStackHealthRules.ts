@@ -1,5 +1,10 @@
 import { JSONObject, JSONValue } from "../JSON";
 import {
+  StorageUsage,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "../../Utils/Storage/StorageUsage";
+import {
   OPENSTACK_AMPHORA_ERROR_STATUSES,
   OPENSTACK_AMPHORA_ROLE_MASTER,
   OPENSTACK_LOAD_BALANCER_ERROR_STATUSES,
@@ -41,6 +46,16 @@ import {
 
 export const OPENSTACK_STORAGE_POOL_WARNING_PERCENT: number = 85;
 export const OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT: number = 95;
+
+/*
+ * Where a storage pool's bar turns amber and red (StorageUsageBar): the
+ * lines above, only past them, as the rules and alerts read a pool.
+ */
+export const OPENSTACK_STORAGE_POOL_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
+  criticalPercent: OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
+  isPastLineOnly: true,
+};
 
 // Past this share of what Placement allows, a hypervisor has little room to give.
 export const OPENSTACK_ALLOCATION_WARNING_PERCENT: number = 90;
@@ -107,6 +122,17 @@ export const OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES: number = 30;
  * without much warning. The same line as a storage pool's.
  */
 export const OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT: number = 85;
+
+/*
+ * Where a database's volume bar turns amber: at the line above, as
+ * isOpenStackDatabaseVolumeNearlyFull reads it. Trove has no second line,
+ * so it turns red at the storage pool's.
+ */
+export const OPENSTACK_DATABASE_VOLUME_USAGE_THRESHOLDS: StorageUsageThresholds =
+  {
+    warningPercent: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+    criticalPercent: OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
+  };
 /*
  * Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node is then
  * in a failed state, which says so itself. Past twice that and as long again, Ironic has not given
@@ -615,6 +641,39 @@ export function getOpenStackDatabaseVolumePercent(data: {
     return null;
   }
   return percentOf(data.usedBytes, data.sizeBytes);
+}
+
+/*
+ * A database's volume as the shared storage bar reads it: what its database
+ * used of the volume's size. Null when it reads nothing - an instance that
+ * isn't running says 0, recorded, however full it is.
+ */
+export function getOpenStackDatabaseVolumeUsage(data: {
+  usedBytes?: number | null | undefined;
+  sizeBytes?: number | null | undefined;
+}): StorageUsage | null {
+  if (!data.usedBytes || data.usedBytes <= 0) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: data.sizeBytes, used: data.usedBytes },
+    OPENSTACK_DATABASE_VOLUME_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * A Cinder storage pool as the shared storage bar reads it: what the
+ * backend says is taken (its capacity less what it reports free, as the
+ * ingest keeps it) of its capacity, at the pool's lines.
+ */
+export function getOpenStackStoragePoolUsage(data: {
+  allocatedBytes?: number | null | undefined;
+  capacityBytes?: number | null | undefined;
+}): StorageUsage | null {
+  return getStorageUsage(
+    { capacity: data.capacityBytes, used: data.allocatedBytes },
+    OPENSTACK_STORAGE_POOL_USAGE_THRESHOLDS,
+  );
 }
 
 export function isOpenStackDatabaseVolumeNearlyFull(data: {

@@ -1,5 +1,10 @@
 import { translationKey } from "../Translator";
 import {
+  StorageUsage,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "../../Utils/Storage/StorageUsage";
+import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AwsKeyMetric,
   GCP_ALIGNMENT_PERIOD_SECONDS,
@@ -67,6 +72,14 @@ export const CLOUD_CPU_HIGH_PERCENT: number = 95;
 export const CLOUD_MEMORY_HIGH_PERCENT: number = 95;
 export const CLOUD_STORAGE_HIGH_PERCENT: number = 90;
 export const CLOUD_STORAGE_FULL_PERCENT: number = 95;
+/*
+ * Where a cloud store's bar turns amber and red (StorageUsageBar): the
+ * lines above, at them, as the storage rules read them.
+ */
+export const CLOUD_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: CLOUD_STORAGE_HIGH_PERCENT,
+  criticalPercent: CLOUD_STORAGE_FULL_PERCENT,
+};
 export const CLOUD_AVAILABILITY_LOW_PERCENT: number = 99.9;
 export const CLOUD_AVAILABILITY_DOWN_PERCENT: number = 90;
 // A queue's oldest message, or a stream's consumers, this far behind.
@@ -724,40 +737,140 @@ function backlogAge(data: {
 }
 
 const RDS_ALLOCATED_STORAGE_PROPERTY: string = "AllocatedStorage";
+const RDS_FREE_STORAGE_READING: string = "aws/rds/freestoragespace";
 const GIB: number = 1024 * 1024 * 1024;
 
 /*
  * A database's storage, from what is free (FreeStorageSpace, bytes) and
- * what was allocated (the inventory's AllocatedStorage, GiB). Without the
- * allocation there is nothing to compare with, and nothing is said.
+ * what was allocated (the inventory's AllocatedStorage, GiB), as the shared
+ * storage reading reads it - the one its page draws (getCloudResourceStorage)
+ * and its rule judges. Without both there is nothing to compare.
+ */
+export function getCloudDatabaseStorageUsage(data: {
+  freeBytes: number | null;
+  allocatedGib: number | null;
+}): StorageUsage | null {
+  if (
+    data.freeBytes === null ||
+    data.allocatedGib === null ||
+    data.allocatedGib <= 0
+  ) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: data.allocatedGib * GIB, available: data.freeBytes },
+    CLOUD_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * A database's storage past the storage lines. Without the allocation there
+ * is nothing to compare with, and nothing is said.
  */
 function storageFromFreeBytes(key: string): CloudHealthRule {
   return {
     readings: [key],
     evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
-      const free: number | null = reader.value(key);
-      const allocatedGib: number | null = reader.property(
-        RDS_ALLOCATED_STORAGE_PROPERTY,
-      );
+      const usage: StorageUsage | null = getCloudDatabaseStorageUsage({
+        freeBytes: reader.value(key),
+        allocatedGib: reader.property(RDS_ALLOCATED_STORAGE_PROPERTY),
+      });
 
-      if (free === null || allocatedGib === null || allocatedGib <= 0) {
+      if (!usage) {
         return null;
       }
 
-      const used: number = Math.max(
-        0,
-        Math.min(100, 100 - (free / (allocatedGib * GIB)) * 100),
-      );
-
-      if (used >= CLOUD_STORAGE_FULL_PERCENT) {
-        return critical(percentText(REASON_STORAGE_FULL, used));
+      if (usage.usedPercent >= CLOUD_STORAGE_FULL_PERCENT) {
+        return critical(percentText(REASON_STORAGE_FULL, usage.usedPercent));
       }
 
-      return used >= CLOUD_STORAGE_HIGH_PERCENT
-        ? warning(percentText(REASON_STORAGE_FULL, used))
+      return usage.usedPercent >= CLOUD_STORAGE_HIGH_PERCENT
+        ? warning(percentText(REASON_STORAGE_FULL, usage.usedPercent))
         : null;
     },
   };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A resource's storage, as its page draws it (#9648)
+ * ---------------------------------------------------------------------------
+ *
+ * Where its cloud says how big a store is - an RDS database's allocated
+ * storage, an EBS volume's or an Azure managed disk's size - its page draws
+ * it with the shared storage bar. A database's free space is in its
+ * metrics, so it reads how full it is. How much of a disk is used is known
+ * only inside the machine it is attached to (the guest's filesystem), so a
+ * disk's page says its size and says so, never an empty bar. An Aurora
+ * instance keeps its data in its cluster's volume, which grows as it needs:
+ * it has no allocation to fill.
+ */
+export interface CloudResourceStorage {
+  // How full it is, where its cloud says what is free.
+  usage: StorageUsage | null;
+  // Its size, whatever is known of what it holds.
+  capacityBytes: number;
+  // English, looked up where it is drawn: why there is no reading.
+  noUsageText?: string | undefined;
+}
+
+export const CLOUD_DISK_USAGE_INSIDE_GUEST: string = translationKey(
+  "How much of it is used is known only inside the machine it is attached to.",
+);
+export const CLOUD_STORAGE_NOT_REPORTED: string =
+  translationKey("Not reported");
+
+// A disk's size as its inventory keeps it, in GiB, by its type.
+const CLOUD_DISK_SIZE_GIB_PROPERTIES: Record<string, string> = {
+  "AWS::EC2::Volume": "Size",
+  "Microsoft.Compute/disks": "diskSizeGB",
+};
+
+export function getCloudResourceStorage(data: {
+  type: string;
+  properties: unknown;
+  readings: CloudResourceReadings;
+}): CloudResourceStorage | null {
+  if (data.type === "AWS::RDS::DBInstance") {
+    const engine: string = String(
+      ((data.properties || {}) as Record<string, unknown>)["Engine"] || "",
+    );
+    if (engine.toLowerCase().startsWith("aurora")) {
+      return null;
+    }
+    const allocatedGib: number | null = readProperty(
+      data.properties,
+      RDS_ALLOCATED_STORAGE_PROPERTY,
+    );
+    if (allocatedGib === null || allocatedGib <= 0) {
+      return null;
+    }
+    const usage: StorageUsage | null = getCloudDatabaseStorageUsage({
+      freeBytes: data.readings[RDS_FREE_STORAGE_READING]?.value ?? null,
+      allocatedGib: allocatedGib,
+    });
+    return {
+      usage: usage,
+      capacityBytes: allocatedGib * GIB,
+      noUsageText: usage ? undefined : CLOUD_STORAGE_NOT_REPORTED,
+    };
+  }
+
+  const sizeProperty: string | undefined =
+    CLOUD_DISK_SIZE_GIB_PROPERTIES[data.type];
+  if (sizeProperty) {
+    const sizeGib: number | null = readProperty(data.properties, sizeProperty);
+    if (sizeGib === null || sizeGib <= 0) {
+      return null;
+    }
+    return {
+      usage: null,
+      capacityBytes: sizeGib * GIB,
+      noUsageText: CLOUD_DISK_USAGE_INSIDE_GUEST,
+    };
+  }
+
+  return null;
 }
 
 function storagePercent(key: string, scale?: number): CloudHealthRule {

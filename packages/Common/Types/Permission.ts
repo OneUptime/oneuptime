@@ -1409,6 +1409,12 @@ enum Permission {
   EditServiceFeed = "EditServiceFeed",
   ReadServiceFeed = "ReadServiceFeed",
 
+  // What a service's team tells OneUptime AI about it (#7672).
+  CreateServiceAINote = "CreateServiceAINote",
+  EditServiceAINote = "EditServiceAINote",
+  DeleteServiceAINote = "DeleteServiceAINote",
+  ReadServiceAINote = "ReadServiceAINote",
+
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
   EditMonitorStatusTimeline = "EditMonitorStatusTimeline",
@@ -4615,6 +4621,47 @@ export class PermissionHelper {
         title: "Read Service Feed",
         description:
           "This permission can read the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+
+      {
+        permission: Permission.CreateServiceAINote,
+        title: "Create Service AI Note",
+        description:
+          "This permission can write notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.EditServiceAINote,
+        title: "Edit Service AI Note",
+        description:
+          "This permission can edit the notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.DeleteServiceAINote,
+        title: "Delete Service AI Note",
+        description:
+          "This permission can delete the notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.ReadServiceAINote,
+        title: "Read Service AI Note",
+        description:
+          "This permission can read the notes for OneUptime AI on a service in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

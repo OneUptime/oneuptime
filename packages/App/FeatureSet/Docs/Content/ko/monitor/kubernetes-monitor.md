@@ -87,7 +87,7 @@ flowchart TB
 | 범주 | 메트릭 |
 | --- | --- |
 | 파드 | Pod CPU 사용량, Pod 메모리 사용량, Pod 단계(코드), Pod 파일 시스템 사용량, 볼륨 용량, 볼륨 여유 공간, Pod 메모리 제한 사용률, Pod CPU 제한 사용률, Pod 네트워크 I/O(누적, 양방향) |
-| 노드 | 노드 CPU 사용량, 노드 할당 가능 CPU, 노드 메모리 사용량, 노드 메모리 작업 집합, 노드 파일 시스템 사용량, 노드 할당 가능 메모리, 노드 Ready 조건, 노드 MemoryPressure 조건, 노드 DiskPressure 조건, 노드 PIDPressure 조건, 노드 파일 시스템 사용 가능 공간 |
+| 노드 | 노드 CPU 사용량, 노드 할당 가능 CPU, 노드 메모리 사용량, 노드 메모리 작업 집합, 노드 파일 시스템 사용량, 노드 할당 가능 메모리, 노드 Ready 조건, 노드 MemoryPressure 조건, 노드 DiskPressure 조건, 노드 PIDPressure 조건, 노드 파일 시스템 사용 가능 공간, 노드 파일 시스템 용량 |
 | 컨테이너 | 컨테이너 재시작, 컨테이너 재시작(증가분), 컨테이너 CPU 제한, 컨테이너 CPU 요청, 컨테이너 메모리 제한, 컨테이너 메모리 요청, 컨테이너 준비됨 |
 | 워크로드 | Deployment 사용 가능 레플리카, Deployment 원하는 레플리카, DaemonSet 원하는 노드, DaemonSet 잘못 예약된 노드, DaemonSet 준비된 노드, StatefulSet 원하는 레플리카, StatefulSet 준비된 레플리카, Job 실패한 Pod, Job 실패한 Pod(증가분), Job 성공한 Pod |
 | HPA | HPA 현재 레플리카, HPA 원하는 레플리카, HPA 최대 레플리카, HPA 최소 레플리카 |

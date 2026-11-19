@@ -231,6 +231,14 @@ Each base image's tag (`BASE_TAG`) moves on Repo1 through Renovate (each
 project's `renovate.json`). When Renovate moves it, update it here too:
 `IronBankProjects.test.js` expects the Dockerfile and the manifest to agree.
 
+The ingress's `BASE_TAG` is also the nginx the Iron Bank ingress runs, because
+the image is built on Iron Bank's nginx-alpine, not on the release's nginx.
+`NginxVersion.test.js` holds it to the release's nginx line, and to the first
+nginx release that fixes nginx's published vulnerabilities. Until Iron Bank
+publishes that release, `IRON_BANK_NGINX_WAITING` in that test names the tag
+the ingress stays on and the issue that tracks it. For example, Iron Bank's
+nginx-alpine was still at 1.30.3 when the release moved to 1.30.7 (#9844).
+
 ## Onboarding, once
 
 1. Create a Platform One account (login.dso.mil).

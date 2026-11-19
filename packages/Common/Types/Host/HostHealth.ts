@@ -1,4 +1,5 @@
 import { HostCollectorConfigStatus } from "../HostCollector/HostCollector";
+import { StorageUsageThresholds } from "../../Utils/Storage/StorageUsage";
 
 /*
  * WHAT ON A HOST NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -50,6 +51,15 @@ const translationKey: (text: string) => string = (text: string): string => {
 
 export const HOST_DISK_NEAR_FULL_PERCENT: number = 85;
 export const HOST_DISK_FULL_PERCENT: number = 95;
+/*
+ * Where a mount's storage bar turns amber and red (StorageUsageBar): the
+ * lines above, only past them, as the rules below list a mount.
+ */
+export const HOST_DISK_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: HOST_DISK_NEAR_FULL_PERCENT,
+  criticalPercent: HOST_DISK_FULL_PERCENT,
+  isPastLineOnly: true,
+};
 export const HOST_INODES_NEAR_FULL_PERCENT: number = 85;
 export const HOST_INODES_FULL_PERCENT: number = 95;
 export const HOST_MEMORY_HIGH_PERCENT: number = 90;

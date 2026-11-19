@@ -872,6 +872,8 @@ const HostOverview: FunctionComponent<
           type: info.type,
           totalBytes: total,
           usedBytes: used,
+          freeBytes: free,
+          reservedBytes: reserved,
           utilizationPercent: (used / (used + free)) * 100,
         });
       }

@@ -39,7 +39,7 @@ La sonde qui exécute la vérification reçoit la valeur, donc un moniteur qui u
 :::
 
 > [!IMPORTANT]
-> Les secrets sont chiffrés et stockés de manière sécurisée. La valeur du secret n'est plus jamais affichée après son enregistrement — ni dans le tableau, ni dans le formulaire de modification, ni par l'API. Si vous perdez la valeur, vous devrez la récupérer là d'où elle vient et la définir de nouveau. Pour faire tourner un secret, utilisez le bouton **Mettre à jour la valeur secrète** sur sa ligne ; vous n'avez pas besoin de le supprimer et de le recréer.
+> Les secrets sont chiffrés et stockés de manière sécurisée. La valeur du secret n'est plus jamais affichée après son enregistrement — ni dans le tableau, ni dans le formulaire de modification, ni par l'API. Si vous perdez la valeur, vous devrez la récupérer là d'où elle vient et la définir de nouveau. Pour faire tourner un secret, utilisez le bouton **Mettre à jour la valeur secrète** sur sa ligne ; vous n'avez pas besoin de le supprimer et de le recréer. Le même bouton change aussi ce que contient le secret, **Texte** ou **Code à usage unique (TOTP)**, en même temps qu'une nouvelle valeur, et les moniteurs qui utilisent le secret adoptent le nouveau type à leur prochaine vérification.
 
 ### Choisir quels moniteurs peuvent utiliser un secret
 
@@ -128,7 +128,7 @@ return {
 La sonde ne fournit jamais un code qui reste valable moins de cinq secondes, ou moins d'un tiers de la période quand la période est plus courte : elle attend plutôt le code suivant, cinq secondes au plus, et ne compte pas cette attente dans le temps d'exécution de la vérification. Chaque code qu'une vérification produit est affiché sous forme d'astérisques, comme `******`, dans ses messages du journal, son résultat, son erreur et les noms de ses captures d'écran. Une capture d'écran est une image de la page : prenez-la donc avant que le code soit saisi ou une fois que la page est passée à la suite.
 
 > [!NOTE]
-> C'est la sonde qui produit les codes : mettez donc à jour une sonde personnalisée avant d'utiliser un secret de code à usage unique, car une sonde plus ancienne envoie `{{monitorSecrets.NAME}}` tel qu'il est écrit. L'horloge de la sonde doit aussi être juste, car une sonde décalée d'une minute produit des codes que le site a déjà dépassés.
+> C'est la sonde qui produit les codes : une sonde personnalisée doit donc exécuter OneUptime 17.0.1 ou une version ultérieure. Sur une sonde plus ancienne, une vérification qui a besoin d'un code ne s'exécute pas et échoue avec une phrase demandant de mettre la sonde à jour ; le formulaire du moniteur et la page de la sonde nomment une sonde trop ancienne, et [Mettre à jour une sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde) explique comment faire. L'horloge de la sonde doit aussi être juste, car une sonde décalée d'une minute produit des codes que le site a déjà dépassés.
 
 ## Dépannage
 
@@ -146,6 +146,10 @@ Seuls les champs du tableau ci-dessus acceptent les secrets. Dans tout autre cha
 
 :::details Le site refuse le code à usage unique
 Vérifiez que le **Code actuel** correspondait à votre application d'authentification quand vous avez enregistré le secret, que l'horloge de la sonde est juste, et qu'une référence dans le corps JSON d'une requête est entre guillemets. Si la connexion met du temps à arriver à sa demande de code, demandez le code à cet endroit avec `oneuptime.getTotpCode`.
+:::
+
+:::details La vérification indique que la sonde est trop ancienne pour produire des codes à usage unique
+La sonde exécute une version antérieure à OneUptime 17.0.1, qui ne peut pas produire de codes à usage unique, donc la vérification ne s'y est pas exécutée. Mettez la sonde à jour (voir [Mettre à jour une sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde)), ou faites vérifier le moniteur par des sondes qui exécutent 17.0.1 ou une version ultérieure.
 :::
 
 ## Étapes suivantes

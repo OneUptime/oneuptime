@@ -17,6 +17,7 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
 import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
+import LlmType from "../../Types/LLM/LlmType";
 import CarriedRecords, {
   CarriedRecordIds,
 } from "../../Types/AI/CarriedRecords";
@@ -66,6 +67,9 @@ export interface AIRunTransitionSet {
   llmCallCount?: number | undefined;
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
+  // The model that wrote a completed run's answer, and its provider's type.
+  modelName?: string | undefined;
+  llmProviderType?: LlmType | undefined;
   codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
   // The claiming agent's id as a string (ObjectID.toString()) — see above.
   aiAgentId?: string | undefined;
@@ -599,7 +603,9 @@ export class Service extends DatabaseService<Model> {
    * run side by side, not just whichever was created last.
    *
    * codeFixTaskType is normalized on the returned models: legacy null rows
-   * come back as FixException.
+   * come back as FixException. A run may be a later turn of its Code task -
+   * a fix asked again from Code (Try again) carries the exception and the
+   * recipe too - and names its task in codeTaskId.
    */
   @CaptureSpan()
   public async getLatestCodeFixRunPerTaskType(data: {
@@ -625,6 +631,7 @@ export class Service extends DatabaseService<Model> {
             errorMessage: true,
             createdAt: true,
             codeFixTaskType: true,
+            codeTaskId: true,
           },
           sort: {
             createdAt: SortOrder.Descending,
