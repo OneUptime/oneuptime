@@ -297,6 +297,13 @@ export interface MonitorRecommendationContext {
    */
   cloudConnectionLimit?: RdsConnectionLimitReading | null | undefined;
   /*
+   * Its name (CloudResource.name): what a first command names it by where
+   * its attributes do not - a Compute Engine VM's, which gcloud takes,
+   * where its metrics name it by its numeric id (CloudAlertTemplateArgs.
+   * resourceName).
+   */
+  cloudResourceName?: string | null | undefined;
+  /*
    * An App Platforms app's telemetry filter: its environment's
    * resource.cloud.* attributes and its own resource.* attributes, as its
    * Traces tab reads its spans. Without its own attributes nothing is

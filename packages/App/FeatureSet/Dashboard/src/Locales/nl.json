@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Stuurt abonnees van deze statuspagina's een melding zodra een aankondiging op basis van dit sjabloon wordt getoond.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "De melding over deze aankondiging is nog niet verzonden, dus deze update wordt niet verzonden.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Deze aankondiging wordt pas vanaf {{time}} op statuspagina's getoond, dus deze update wordt niet verzonden.",
-  "Whether subscribers are notified depends on the status pages picked.": "Of abonnees een melding krijgen, hangt af van de geselecteerde statuspagina's."
+  "Whether subscribers are notified depends on the status pages picked.": "Of abonnees een melding krijgen, hangt af van de geselecteerde statuspagina's.",
+  "Documents": "Documenten",
+  "Index size": "Indexgrootte",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitors voor geheugen en schijven worden aangeboden zodra de Ops Agent op de VM draait en ze rapporteert."
 }

@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Underretter abonnenter på disse statussider, når en meddelelse oprettet ud fra denne skabelon begynder at blive vist.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "Notifikationen om denne meddelelse er ikke sendt endnu, så denne opdatering sendes ikke.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Denne meddelelse vises først på statussider fra {{time}}, så denne opdatering sendes ikke.",
-  "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter underrettes, afhænger af de valgte statussider."
+  "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter underrettes, afhænger af de valgte statussider.",
+  "Documents": "Dokumenter",
+  "Index size": "Indeksstørrelse",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitorer for hukommelse og diske tilbydes, så snart Ops Agent kører på VM'en og rapporterer dem."
 }

@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "इस टेम्पलेट से बनी घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित करें।",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "इस घोषणा की सूचना अभी तक नहीं भेजी गई है, इसलिए यह अपडेट नहीं भेजा जाता।",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "यह घोषणा {{time}} तक स्थिति पृष्ठों पर नहीं दिखती, इसलिए यह अपडेट नहीं भेजा जाता।",
-  "Whether subscribers are notified depends on the status pages picked.": "सब्सक्राइबर्स को सूचित किया जाएगा या नहीं, यह चुने गए स्थिति पृष्ठों पर निर्भर करता है।"
+  "Whether subscribers are notified depends on the status pages picked.": "सब्सक्राइबर्स को सूचित किया जाएगा या नहीं, यह चुने गए स्थिति पृष्ठों पर निर्भर करता है।",
+  "Documents": "दस्तावेज़",
+  "Index size": "इंडेक्स आकार",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "मेमोरी और डिस्क के मॉनिटर तब सुझाए जाते हैं जब VM पर Ops Agent चलने लगता है और उनकी जानकारी भेजता है।"
 }

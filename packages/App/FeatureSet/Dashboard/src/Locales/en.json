@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "The notification about this announcement has not gone out yet, so this update is not sent.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "This announcement is not shown on status pages until {{time}}, so this update is not sent.",
-  "Whether subscribers are notified depends on the status pages picked.": "Whether subscribers are notified depends on the status pages picked."
+  "Whether subscribers are notified depends on the status pages picked.": "Whether subscribers are notified depends on the status pages picked.",
+  "Documents": "Documents",
+  "Index size": "Index size",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them."
 }

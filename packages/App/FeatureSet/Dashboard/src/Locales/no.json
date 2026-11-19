@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Varsler abonnenter på disse statussidene når en kunngjøring laget fra denne malen begynner å vises.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "Varslingen om denne kunngjøringen er ikke sendt ennå, så denne oppdateringen sendes ikke.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Denne kunngjøringen vises ikke på statussider før {{time}}, så denne oppdateringen sendes ikke.",
-  "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter varsles, avhenger av de valgte statussidene."
+  "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter varsles, avhenger av de valgte statussidene.",
+  "Documents": "Dokumenter",
+  "Index size": "Indeksstørrelse",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitorer for minne og disker tilbys så snart Ops Agent kjører på VM-en og rapporterer dem."
 }

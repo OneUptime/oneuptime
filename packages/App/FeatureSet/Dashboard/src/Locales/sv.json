@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Aviserar prenumeranter på dessa statussidor när ett meddelande som skapats från den här mallen börjar visas.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "Aviseringen om det här meddelandet har inte skickats än, så den här uppdateringen skickas inte.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Det här meddelandet visas inte på statussidor förrän {{time}}, så den här uppdateringen skickas inte.",
-  "Whether subscribers are notified depends on the status pages picked.": "Om prenumeranter aviseras beror på de valda statussidorna."
+  "Whether subscribers are notified depends on the status pages picked.": "Om prenumeranter aviseras beror på de valda statussidorna.",
+  "Documents": "Dokument",
+  "Index size": "Indexstorlek",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitorer för minne och diskar erbjuds så snart Ops Agent körs på VM:en och rapporterar dem."
 }

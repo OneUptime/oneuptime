@@ -128,6 +128,7 @@ import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAnd
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import MoveMonitorsOffRetiredCloudMetrics from "./MoveMonitorsOffRetiredCloudMetrics";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
@@ -1486,6 +1487,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before it (the two are independent).
    */
   new AddAuditLogWorkflowRunAsColumns(),
+  /*
+   * Moves the Metrics monitors that read a metric its cloud deprecates -
+   * a Pub/Sub topic's send_message_operation_count, a Cosmos DB account's
+   * ServerSideLatency - to what replaces it, which the cloud connections
+   * read since #9565, as they stop reading the old ones (#9739); a monitor
+   * left on one is told in its feed what to read instead. Postgres and the
+   * metric store's reads only, idempotent, a page of monitors at a time by
+   * id; before BackfillIncidentCallTranscriptSignInAccount, which keeps the
+   * slot just before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveMonitorsOffRetiredCloudMetrics(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "このテンプレートから作成したお知らせの表示が始まったら、これらのステータスページの購読者に通知します。",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "このお知らせの通知はまだ送信されていないため、この更新は送信されません。",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "このお知らせは {{time}} までステータスページに表示されないため、この更新は送信されません。",
-  "Whether subscribers are notified depends on the status pages picked.": "購読者に通知されるかどうかは、選択したステータスページによって決まります。"
+  "Whether subscribers are notified depends on the status pages picked.": "購読者に通知されるかどうかは、選択したステータスページによって決まります。",
+  "Documents": "ドキュメント",
+  "Index size": "インデックスサイズ",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "メモリとディスクのモニターは、VM 上で Ops Agent が動作してそれらを報告すると提案されます。"
 }

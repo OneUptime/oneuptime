@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "由此模板创建的公告开始显示时，通知这些状态页的订阅者。",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "此公告的通知尚未发出，因此不会发送此更新。",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "此公告在 {{time}} 之前不会显示在状态页上，因此不会发送此更新。",
-  "Whether subscribers are notified depends on the status pages picked.": "是否通知订阅者取决于所选的状态页。"
+  "Whether subscribers are notified depends on the status pages picked.": "是否通知订阅者取决于所选的状态页。",
+  "Documents": "文档",
+  "Index size": "索引大小",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "VM 上的 Ops Agent 运行并上报内存和磁盘数据后，就会提供内存和磁盘监视器。"
 }

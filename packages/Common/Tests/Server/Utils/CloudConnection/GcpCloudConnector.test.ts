@@ -1255,7 +1255,12 @@ describe("a distribution's count", () => {
     ).toBe(false);
   });
 
-  test("the deprecated publish operations are still read where a project has topics, under their own name, for the monitors built on them", async () => {
+  /*
+   * The deprecated publish operations were read for the monitors built on
+   * them until those moved to the count of the message sizes (#9739): read
+   * no more, of a project with topics or without.
+   */
+  test("the deprecated publish operations are read no more, even where a project has topics", async () => {
     const fake: FakeGcp = createFakeGcp({
       series: {
         [OPERATIONS]: [topicSeries(OPERATIONS, { doubleValue: 3.5 })],
@@ -1272,16 +1277,12 @@ describe("a distribution's count", () => {
         },
       }),
     );
-    const call: URL | undefined = fake.seriesCalls.find((url: URL): boolean => {
-      return metricTypeOf(url.searchParams.get("filter") || "") === OPERATIONS;
-    });
 
-    expect(call?.searchParams.get("aggregation.perSeriesAligner")).toBe(
-      "ALIGN_RATE",
-    );
-    expect(result.pointsWritten).toBe(1);
+    expect(calledMetricTypes(fake)).not.toContain(OPERATIONS);
+    // A topic's messages are its message sizes' count.
+    expect(calledMetricTypes(fake)).toContain(SIZES);
+    expect(result.pointsWritten).toBe(0);
 
-    // Never asked of a project with no topic: it is no type's first metric.
     const empty: FakeGcp = createFakeGcp({});
 
     await connector.read(settings(), readOptions(empty));

@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Уведомляет подписчиков этих страниц статуса, когда начинается показ объявления, созданного по этому шаблону.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "Уведомление об этом объявлении ещё не отправлено, поэтому это обновление не отправляется.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Это объявление не показывается на страницах статуса до {{time}}, поэтому это обновление не отправляется.",
-  "Whether subscribers are notified depends on the status pages picked.": "Получат ли подписчики уведомление, зависит от выбранных страниц статуса."
+  "Whether subscribers are notified depends on the status pages picked.": "Получат ли подписчики уведомление, зависит от выбранных страниц статуса.",
+  "Documents": "Документы",
+  "Index size": "Размер индекса",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Мониторы памяти и дисков появятся, как только на VM запустится Ops Agent и начнёт передавать эти данные."
 }

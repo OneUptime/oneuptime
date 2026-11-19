@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "أبلِغ مشتركي صفحات الحالة هذه عندما يبدأ في الظهور إعلانٌ أُنشئ من هذا القالب.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "لم يُرسَل إشعار هذا الإعلان بعد، لذا لا يُرسَل هذا التحديث.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "لا يظهر هذا الإعلان على صفحات الحالة قبل {{time}}، لذا لا يُرسَل هذا التحديث.",
-  "Whether subscribers are notified depends on the status pages picked.": "إشعار المشتركين من عدمه يتوقف على صفحات الحالة المختارة."
+  "Whether subscribers are notified depends on the status pages picked.": "إشعار المشتركين من عدمه يتوقف على صفحات الحالة المختارة.",
+  "Documents": "المستندات",
+  "Index size": "حجم الفهرس",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "تُعرض مراقبات الذاكرة والقرص بعد أن يعمل Ops Agent على الجهاز الافتراضي ويُبلغ عنهما."
 }

@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "هنگام شروع نمایش اطلاعیه‌ای که از این قالب ساخته شده، مشترکان این صفحات وضعیت را مطلع می‌کند.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "اعلان این اطلاعیه هنوز ارسال نشده است، پس این به‌روزرسانی ارسال نمی‌شود.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "این اطلاعیه تا {{time}} در صفحه‌های وضعیت نمایش داده نمی‌شود، پس این به‌روزرسانی ارسال نمی‌شود.",
-  "Whether subscribers are notified depends on the status pages picked.": "اینکه مشترکان مطلع شوند یا نه، به صفحه‌های وضعیت انتخاب‌شده بستگی دارد."
+  "Whether subscribers are notified depends on the status pages picked.": "اینکه مشترکان مطلع شوند یا نه، به صفحه‌های وضعیت انتخاب‌شده بستگی دارد.",
+  "Documents": "سندها",
+  "Index size": "اندازهٔ ایندکس",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "مانیتورهای حافظه و دیسک وقتی پیشنهاد می‌شوند که Ops Agent روی VM اجرا شود و آن‌ها را گزارش کند."
 }

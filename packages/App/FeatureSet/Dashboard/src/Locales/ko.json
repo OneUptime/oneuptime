@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "이 템플릿으로 만든 공지사항의 표시가 시작되면 이 상태 페이지의 구독자에게 알립니다.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "이 공지사항에 대한 알림이 아직 전송되지 않았으므로 이 업데이트는 전송되지 않습니다.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "이 공지사항은 {{time}}까지 상태 페이지에 표시되지 않으므로 이 업데이트는 전송되지 않습니다.",
-  "Whether subscribers are notified depends on the status pages picked.": "구독자에게 알릴지 여부는 선택한 상태 페이지에 따라 달라집니다."
+  "Whether subscribers are notified depends on the status pages picked.": "구독자에게 알릴지 여부는 선택한 상태 페이지에 따라 달라집니다.",
+  "Documents": "문서",
+  "Index size": "인덱스 크기",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "메모리와 디스크 모니터는 VM에서 Ops Agent가 실행되어 이를 보고하면 제안됩니다."
 }

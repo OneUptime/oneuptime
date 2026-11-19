@@ -58892,5 +58892,8 @@
   "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Informe les abonnés de ces pages de statut dès qu'une annonce créée à partir de ce modèle s'affiche.",
   "The notification about this announcement has not gone out yet, so this update is not sent.": "La notification de cette annonce n'a pas encore été envoyée, cette mise à jour n'est donc pas envoyée.",
   "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Cette annonce ne s'affiche sur les pages de statut qu'à partir du {{time}}, cette mise à jour n'est donc pas envoyée.",
-  "Whether subscribers are notified depends on the status pages picked.": "Que les abonnés soient notifiés ou non dépend des pages de statut sélectionnées."
+  "Whether subscribers are notified depends on the status pages picked.": "Que les abonnés soient notifiés ou non dépend des pages de statut sélectionnées.",
+  "Documents": "Documents",
+  "Index size": "Taille de l'index",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Les moniteurs de mémoire et de disque sont proposés dès que l'Ops Agent s'exécute sur la VM et les signale."
 }
