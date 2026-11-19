@@ -239,7 +239,7 @@ describe("SecurityEventService.countEventsNaming: a device's own logs", () => {
     await SecurityEventService.countEventsNaming({
       projectId: PROJECT_ID,
       values: ["hq firewall", "203.0.113.7"],
-      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      attribute: { key: "networkDevice.id", values: [DEVICE_ID] },
       startTime: START,
       endTime: END,
     });
@@ -266,7 +266,7 @@ describe("SecurityEventService.countEventsNaming: a device's own logs", () => {
     await SecurityEventService.countEventsNaming({
       projectId: PROJECT_ID,
       values: [],
-      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      attribute: { key: "networkDevice.id", values: [DEVICE_ID] },
       startTime: START,
       endTime: END,
     });
@@ -291,7 +291,7 @@ describe("SecurityEventService.countEventsNaming: a device's own logs", () => {
       projectId: PROJECT_ID,
       values: ["web-1"],
       logResourceId: HOST_ID,
-      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      attribute: { key: "networkDevice.id", values: [DEVICE_ID] },
       startTime: START,
       endTime: END,
     });
@@ -304,11 +304,15 @@ describe("SecurityEventService.countEventsNaming: a device's own logs", () => {
   });
 
   test.each([
-    ["an empty key", { key: "", value: DEVICE_ID }],
-    ["an empty value", { key: "networkDevice.id", value: "" }],
+    ["an empty key", { key: "", values: [DEVICE_ID] }],
+    ["an empty value", { key: "networkDevice.id", values: [""] }],
+    ["no values", { key: "networkDevice.id", values: [] }],
   ])(
     "an attribute with %s is nothing to look for",
-    async (_case: string, attribute: { key: string; value: string }) => {
+    async (
+      _case: string,
+      attribute: { key: string; values: Array<string> },
+    ) => {
       const spy: Spy = stubExecuteQuery([]);
 
       expect(
@@ -338,7 +342,7 @@ describe("SecurityEventService.countEventsNaming: a device's own logs", () => {
     await SecurityEventService.countEventsNaming({
       projectId: PROJECT_ID,
       values: [],
-      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      attribute: { key: "networkDevice.id", values: [DEVICE_ID] },
       startTime: START,
       endTime: END,
       serviceFilter: { serviceIds: [sourceId] },

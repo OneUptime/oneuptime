@@ -46,9 +46,11 @@ import {
   SecurityAddressScope,
   canonicalAddress,
   getMonitorTargetHosts,
+  getLogAttributeSearchValues,
   getObservableSearchValues,
   getRecordSecurityValues,
   getSecurityAddressScope,
+  isCaseInsensitiveResourceId,
   isCloudResourceIdLike,
   readCloudEndpointHosts,
   readRecordAddresses,
@@ -241,7 +243,8 @@ export function getResourceSecurityEventScope(data: {
 
   if (data.logAttribute) {
     scope.attributeKey = data.logAttribute.key;
-    scope.attributeValues = [data.logAttribute.value];
+    // A cloud resource's Azure ID in the spellings its events keep it in (#10034).
+    scope.attributeValues = getLogAttributeSearchValues(data.logAttribute);
   } else if (data.isSearchedByLogs) {
     scope.attributeKey = SECURITY_LOG_RESOURCE_ID_ATTRIBUTE;
     scope.attributeValues = [data.id.toString()];
@@ -340,7 +343,14 @@ export default class ResourceSecurity {
         projectId: data.projectId,
         values: getObservableSearchValues(values),
         ...(isSearchedByLogs ? { logResourceId: data.id } : {}),
-        ...(identity.logAttribute ? { attribute: identity.logAttribute } : {}),
+        ...(identity.logAttribute
+          ? {
+              attribute: {
+                key: identity.logAttribute.key,
+                values: getLogAttributeSearchValues(identity.logAttribute),
+              },
+            }
+          : {}),
         startTime,
         endTime: now,
         // Only the events of the sources the caller may read.
@@ -1066,12 +1076,27 @@ export default class ResourceSecurity {
         return { count: 0, items: [] };
       }
 
+      /*
+       * Each value compared without case, as a case's entities spell them -
+       * but an ARN or a Google Cloud resource name as written (#10034):
+       * another case of one is another resource, never this one.
+       */
+      const exactTexts: Array<string> = data.values.filter(
+        (value: string): boolean => {
+          return (
+            isCloudResourceIdLike(value) && !isCaseInsensitiveResourceId(value)
+          );
+        },
+      );
       const query: Record<string, unknown> = {
         projectId: data.projectId,
         securityCaseStatusId: QueryHelper.any(openStatusIds),
         entities: QueryHelper.jsonArrayObjectsHaveTextAnyOf({
           key: "value",
-          texts: data.values,
+          texts: data.values.filter((value: string): boolean => {
+            return !exactTexts.includes(value);
+          }),
+          exactTexts,
         }),
       };
 

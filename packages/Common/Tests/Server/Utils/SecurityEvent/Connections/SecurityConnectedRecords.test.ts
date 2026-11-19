@@ -1176,7 +1176,7 @@ describe("monitors", () => {
 });
 
 describe("cloud resources", () => {
-  test("by its own ID: exact, whatever the value was typed as, read with the caller's own permissions", async () => {
+  test("by its own ID: exact, read with the caller's own permissions", async () => {
     const arn: string = "arn:aws:s3:::acme-prod-data";
 
     spies["cloud"]!.mockImplementation(async (args: unknown) => {
@@ -1193,7 +1193,7 @@ describe("cloud resources", () => {
     });
 
     const result: SecurityConnectedRecordsResult = await resolve([
-      { type: SecurityEntityType.Other, value: "ARN:aws:s3:::acme-prod-data" },
+      { type: SecurityEntityType.Other, value: ` ${arn} ` },
     ]);
 
     expect(result.records).toEqual([
@@ -1206,7 +1206,7 @@ describe("cloud resources", () => {
           {
             entity: {
               type: SecurityEntityType.Other,
-              value: "ARN:aws:s3:::acme-prod-data",
+              value: arn,
             },
             certainty: SecurityConnectionCertainty.Exact,
             reason: SecurityConnectionReason.ResourceId,
@@ -1226,6 +1226,114 @@ describe("cloud resources", () => {
 
     expect(read.query["projectId"]).toBe(PROJECT_ID);
     expect(read.props).toBe(CALLER);
+  });
+
+  /*
+   * #10034: an Azure resource ID is the resource whatever case it was
+   * written in - Azure compares IDs without case - while an ARN or a Google
+   * Cloud name of another case is another resource. Both are looked up by
+   * LOWER(providerResourceId), which an index serves; each row is then held
+   * to its cloud's rule.
+   */
+  test("by an Azure ID in any case: exact; looked up by its lower case", async () => {
+    const id: string =
+      "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod/providers/Microsoft.KeyVault/vaults/kv-Payments";
+
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      return call.query["providerResourceId"] &&
+        boundValues(call.query["providerResourceId"]).includes(id.toLowerCase())
+        ? [
+            cloudResource(CLOUD_ID, "kv-Payments", {
+              providerResourceId: id,
+            }),
+          ]
+        : [];
+    });
+
+    const exported: string = id.toUpperCase();
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Other, value: exported },
+    ]);
+
+    expect(
+      record(result, SecurityConnectionKind.CloudResource, CLOUD_ID),
+    ).toMatchObject({
+      certainty: SecurityConnectionCertainty.Exact,
+      matches: [
+        {
+          entity: { type: SecurityEntityType.Other, value: exported },
+          reason: SecurityConnectionReason.ResourceId,
+          matchedValue: id,
+        },
+      ],
+    });
+    expect(result.unmatched).toEqual([]);
+  });
+
+  test("an ARN or a Google Cloud name of another case is another resource: listed as unmatched, never matched", async () => {
+    const table: string =
+      "arn:aws:dynamodb:us-east-1:111122223333:table/Orders";
+    const dataset: string =
+      "//bigquery.googleapis.com/projects/acme-prod/datasets/MyDataset";
+
+    // The index returns every row of the same lower case; the rule then decides.
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      if (!call.query["providerResourceId"]) {
+        return [];
+      }
+
+      const values: Array<unknown> = boundValues(
+        call.query["providerResourceId"],
+      );
+
+      return [
+        ...(values.includes(table.toLowerCase())
+          ? [cloudResource(CLOUD_ID, "Orders", { providerResourceId: table })]
+          : []),
+        ...(values.includes(dataset.toLowerCase())
+          ? [
+              cloudResource(OTHER_CLOUD_ID, "MyDataset", {
+                providerResourceId: dataset,
+              }),
+            ]
+          : []),
+      ];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Other, value: table.toLowerCase() },
+      { type: SecurityEntityType.Other, value: dataset.toLowerCase() },
+    ]);
+
+    expect(result.records).toEqual([]);
+    expect(result.unmatched).toEqual([
+      { type: SecurityEntityType.Other, value: table.toLowerCase() },
+      { type: SecurityEntityType.Other, value: dataset.toLowerCase() },
+    ]);
+
+    // Named as written, each is its resource; the other case of each stays unmatched.
+    const both: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Other, value: table },
+      { type: SecurityEntityType.Other, value: table.toLowerCase() },
+    ]);
+
+    expect(
+      record(both, SecurityConnectionKind.CloudResource, CLOUD_ID)?.matches,
+    ).toEqual([
+      {
+        entity: { type: SecurityEntityType.Other, value: table },
+        certainty: SecurityConnectionCertainty.Exact,
+        reason: SecurityConnectionReason.ResourceId,
+        matchedValue: table,
+      },
+    ]);
+    expect(both.unmatched).toEqual([
+      { type: SecurityEntityType.Other, value: table.toLowerCase() },
+    ]);
   });
 
   test("by a name it answers on: exact when the event says it is a host, possible when it does not, never by a short form", async () => {

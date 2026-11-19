@@ -115,6 +115,48 @@ describe("QueryHelper.jsonArrayObjectsHaveTextAnyOf", () => {
       ["web-1", "10.0.0.5'); drop table x; --"],
     ]);
   });
+
+  /*
+   * #10034: an ARN or a Google Cloud resource name is compared as written -
+   * another case of one is another resource - beside the texts compared
+   * without case.
+   */
+  it("compares the exact texts as written, beside the folded ones, each bound", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.jsonArrayObjectsHaveTextAnyOf({
+        key: "value",
+        texts: [
+          "/SUBSCRIPTIONS/1/RESOURCEGROUPS/RG/PROVIDERS/MICROSOFT.WEB/SITES/ORDERS",
+        ],
+        exactTexts: [" arn:aws:dynamodb:us-east-1:111122223333:table/Orders "],
+      }),
+    );
+    const sql: string = operator.getSql('"SecurityCase"."entities"');
+
+    expect(sql).toContain("(LOWER(json_array_item.item ->> :");
+    expect(sql).toContain(") OR json_array_item.item ->> :");
+    expect(sql).not.toContain("Orders");
+    expect(Object.values(operator.objectLiteralParameters)).toEqual([
+      "value",
+      [
+        "/subscriptions/1/resourcegroups/rg/providers/microsoft.web/sites/orders",
+      ],
+      ["arn:aws:dynamodb:us-east-1:111122223333:table/Orders"],
+    ]);
+  });
+
+  it("with no exact texts, the folded comparison alone, as it always was", () => {
+    const sql: string = asRaw(
+      QueryHelper.jsonArrayObjectsHaveTextAnyOf({
+        key: "value",
+        texts: ["web-1"],
+        exactTexts: [],
+      }),
+    ).getSql('"SecurityCase"."entities"');
+
+    expect(sql).not.toContain(" OR ");
+    expect(sql).toContain("AND LOWER(json_array_item.item ->> :");
+  });
 });
 
 describe("QueryHelper.textContainsAnyOf", () => {

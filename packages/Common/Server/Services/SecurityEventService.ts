@@ -17,6 +17,7 @@ import {
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
 } from "../../Types/SecurityCase/SecurityConnection";
+import { SECURITY_EVENT_SCOPE_MAX_ATTRIBUTE_VALUES } from "../../Types/SecurityEvent/SecurityEventScope";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import TelemetryReadScopeUtil, {
@@ -38,10 +39,16 @@ import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
-import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
+import { OnCreate, OnFind } from "../Types/AnalyticsDatabase/Hooks";
 import Query from "../Types/AnalyticsDatabase/Query";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
+import Dictionary from "../../Types/Dictionary";
+import { AttributeType } from "../Utils/Telemetry/Telemetry";
+import { copyOwnValues } from "../../Utils/LookupTable";
+import { foldResourceIdObservables } from "../../Utils/SecurityCase/SecurityConnectionMatch";
+import { foldCloudResourceAttribute } from "../Utils/SecurityEvent/SecurityEventRow";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -303,6 +310,42 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       ...existsBy,
       query: await this.bindWatchlists(existsBy.query, existsBy.props),
     });
+  }
+
+  /*
+   * An event created through the API keeps a cloud resource's ID as every
+   * writer's row does (SecurityEventRow, #10034): an Azure resource ID by
+   * its key, in lower case, among its observables and as the cloud resource
+   * its log line was of - the spelling a resource's page searches for. Only
+   * the event's own values change; nothing is written.
+   */
+  protected override async onBeforeCreate(
+    createBy: CreateBy<SecurityEvent>,
+  ): Promise<OnCreate<SecurityEvent>> {
+    const onCreate: OnCreate<SecurityEvent> = await super.onBeforeCreate(
+      createBy,
+    );
+    const event: SecurityEvent = onCreate.createBy.data;
+
+    if (Array.isArray(event.observables)) {
+      event.observables = foldResourceIdObservables(event.observables);
+    }
+
+    if (
+      event.attributes &&
+      typeof event.attributes === "object" &&
+      !Array.isArray(event.attributes)
+    ) {
+      const attributes: Dictionary<AttributeType | Array<AttributeType>> =
+        copyOwnValues<AttributeType | Array<AttributeType>>(
+          event.attributes as Dictionary<AttributeType | Array<AttributeType>>,
+        );
+
+      foldCloudResourceAttribute(attributes);
+      event.attributes = attributes as JSONObject;
+    }
+
+    return onCreate;
   }
 
   // Its resource's retention for security events, as on ingest.
@@ -811,9 +854,11 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     logResourceId?: ObjectID | undefined;
     /*
      * The attribute the events read from the record's own logs carry, and
-     * its value: a network device's `networkDevice.id`.
+     * the values it takes for the record: a network device's
+     * `networkDevice.id`, a cloud resource's ID in the spellings events
+     * keep it in (#10034).
      */
-    attribute?: { key: string; value: string } | undefined;
+    attribute?: { key: string; values: Array<string> } | undefined;
     startTime: Date;
     endTime: Date;
     // The sources the reader may read; none: every one (findObservableActivity).
@@ -831,9 +876,16 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       ),
     ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
 
-    const attribute: { key: string; value: string } | null =
-      data.attribute && data.attribute.key && data.attribute.value
-        ? data.attribute
+    const attributeValues: Array<string> = Array.from(
+      new Set(
+        (data.attribute?.values || []).filter((value: string): boolean => {
+          return typeof value === "string" && value.length > 0;
+        }),
+      ),
+    ).slice(0, SECURITY_EVENT_SCOPE_MAX_ATTRIBUTE_VALUES);
+    const attribute: { key: string; values: Array<string> } | null =
+      data.attribute && data.attribute.key && attributeValues.length > 0
+        ? { key: data.attribute.key, values: attributeValues }
         : null;
 
     if (values.length === 0 && !data.logResourceId && !attribute) {
@@ -901,16 +953,27 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }
 
       statement.append(
-        SQL`(has(attributeKeys, ${{
-          type: TableColumnType.Text,
-          value: attribute.key,
-        }}) AND attributes[${{
-          type: TableColumnType.Text,
-          value: attribute.key,
-        }}] = ${{
-          type: TableColumnType.Text,
-          value: attribute.value,
-        }})`,
+        attribute.values.length === 1
+          ? SQL`(has(attributeKeys, ${{
+              type: TableColumnType.Text,
+              value: attribute.key,
+            }}) AND attributes[${{
+              type: TableColumnType.Text,
+              value: attribute.key,
+            }}] = ${{
+              type: TableColumnType.Text,
+              value: attribute.values[0]!,
+            }})`
+          : SQL`(has(attributeKeys, ${{
+              type: TableColumnType.Text,
+              value: attribute.key,
+            }}) AND has(${{
+              type: TableColumnType.ArrayText,
+              value: attribute.values,
+            }}, attributes[${{
+              type: TableColumnType.Text,
+              value: attribute.key,
+            }}]))`,
       );
     }
 

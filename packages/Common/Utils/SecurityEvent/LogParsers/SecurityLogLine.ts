@@ -15,7 +15,10 @@ import {
   SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
   SECURITY_LOG_ROW_FUNCTION_KEY,
 } from "../../../Types/SecurityCase/SecurityConnection";
-import { MAX_RESOURCE_ID_LENGTH } from "../../SecurityCase/SecurityConnectionMatch";
+import {
+  MAX_RESOURCE_ID_LENGTH,
+  getResourceIdMatchKey,
+} from "../../SecurityCase/SecurityConnectionMatch";
 import { getResourceIdObservables } from "../SecurityRecordReading";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
@@ -369,10 +372,14 @@ function readExactAttribute(
 
 /*
  * The cloud resource a line is of (#9779): its resource.cloud.resource_id,
- * exactly as the stream stamped it - the value the resource's Logs page
- * filters on - so every event read from the line reaches that resource's
- * Security Events page. Kept whole: a value cut to fit would name another
- * resource, so one longer than any cloud's ID is left out.
+ * as the stream stamped it - the value the resource's Logs page filters on
+ * - so every event read from the line reaches that resource's Security
+ * Events page and its Connected Signals. An Azure resource ID is kept by
+ * its key, in lower case (#10034): Azure compares its IDs without case, and
+ * a collector or a pipeline stamps one in any case it likes. An ARN or a
+ * Google Cloud name is kept as written. Kept whole: a value cut to fit
+ * would name another resource, so one longer than any cloud's ID is left
+ * out.
  */
 export function readLogCloudResource(
   attributes: JSONObject | undefined | null,
@@ -383,7 +390,9 @@ export function readLogCloudResource(
     MAX_RESOURCE_ID_LENGTH,
   );
 
-  return id ? { [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: id } : {};
+  return id
+    ? { [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: getResourceIdMatchKey(id) }
+    : {};
 }
 
 /*

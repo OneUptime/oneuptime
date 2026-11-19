@@ -35,6 +35,7 @@ import {
   compareConnectedResources,
   foldConnectionValue,
   getBestCertainty,
+  getConnectionValueKey,
   getMonitorMentionTexts,
   getMonitorTargetHosts,
   getSecurityConnectionLookups,
@@ -42,6 +43,7 @@ import {
   matchEmail,
   matchHostName,
   matchMonitorTarget,
+  getResourceIdMatchKey,
   matchResourceId,
   readCloudEndpointHosts,
   recordReportsAddress,
@@ -240,11 +242,11 @@ class Collector {
       this.records.set(key, record);
     }
 
-    const matchKey: string = `${foldConnectionValue(data.match.entity.value)}|${data.match.reason}`;
+    const matchKey: string = `${getConnectionValueKey(data.match.entity.value)}|${data.match.reason}`;
     const isKnown: boolean = record.matches.some(
       (match: SecurityConnectionMatch): boolean => {
         return (
-          `${foldConnectionValue(match.entity.value)}|${match.reason}` ===
+          `${getConnectionValueKey(match.entity.value)}|${match.reason}` ===
           matchKey
         );
       },
@@ -337,7 +339,7 @@ export default class SecurityConnectedRecords {
 
     for (const record of records) {
       for (const match of record.matches) {
-        matchedValues.add(foldConnectionValue(match.entity.value));
+        matchedValues.add(getConnectionValueKey(match.entity.value));
       }
     }
 
@@ -350,7 +352,7 @@ export default class SecurityConnectedRecords {
       records,
       unmatched: lookups.lookedUp.filter((entity: SecurityEntity): boolean => {
         return (
-          !matchedValues.has(foldConnectionValue(entity.value)) &&
+          !matchedValues.has(getConnectionValueKey(entity.value)) &&
           wasLookedUpEverywhere(entity, unsureKinds)
         );
       }),
@@ -1126,8 +1128,9 @@ export default class SecurityConnectedRecords {
     if (lookups.resourceIds.length > 0) {
       const entityById: Map<string, SecurityEntity> = new Map();
 
+      // By the key each ID is looked up by: an ARN as written, an Azure ID folded.
       for (const entity of lookups.lookedUp) {
-        entityById.set(foldConnectionValue(entity.value), entity);
+        entityById.set(getResourceIdMatchKey(entity.value), entity);
       }
 
       reads.push(
