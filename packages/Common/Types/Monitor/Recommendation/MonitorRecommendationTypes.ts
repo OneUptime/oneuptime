@@ -109,6 +109,14 @@ export enum MonitorRecommendationResourceType {
    * only for the metrics its broker reports; see MonitorRecommendationContext.
    */
   MessageQueue = "MessageQueue",
+  /*
+   * A device management connection (a DeviceManagementConnection row: an
+   * Esper tenant, #9835). Its recommendations are Metrics monitors over the
+   * check-in readings each read of it writes for its devices
+   * (ManagedDeviceAlertTemplates), one monitor per connection alerting once
+   * per device; the set is a constant while Esper is the only service.
+   */
+  DeviceManagementConnection = "DeviceManagementConnection",
 }
 
 /*

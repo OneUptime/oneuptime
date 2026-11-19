@@ -58,6 +58,7 @@ import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertT
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
 import { getAllMessageQueueAlertTemplates } from "../../../../Types/Monitor/MessageQueueAlertTemplates";
+import { getAllManagedDeviceAlertTemplates } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -357,6 +358,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
     contextFreeTemplateCount: 0,
     identifierFieldName: "messageQueueId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    // Every template reads the check-ins the connection's reads write (#9835).
+    monitorTypes: [MonitorType.Metrics],
+    templateCount: getAllManagedDeviceAlertTemplates().length,
+    // A constant set: every connection is an Esper tenant.
+    contextFreeTemplateCount: getAllManagedDeviceAlertTemplates().length,
+    identifierFieldName: "deviceManagementConnectionId",
   },
 ];
 
