@@ -756,8 +756,11 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud and a s
       expect(routes).toContain(
         `import ${record.component} from "../Pages/${record.folder}/View/SecurityEvents";`,
       );
-      expect(routes).toContain(
-        `<${record.component} {...props} pageRoute={RouteMap[PageMap.${page}] as Route} />`,
+      // However the formatter breaks the element, its route is this page's.
+      expect(routes).toMatch(
+        new RegExp(
+          `<${record.component} \\{\\.\\.\\.props\\} pageRoute=\\{ ?RouteMap\\[PageMap\\.${page}\\] as Route ?\\} />`,
+        ),
       );
       expect(routes.indexOf(`PageMap.${page}`)).toBeGreaterThan(
         routes.indexOf(`<${record.logsComponent}`),
