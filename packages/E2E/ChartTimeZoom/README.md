@@ -620,6 +620,17 @@ four queries (`?metricQueries=`, each query on a chart of its own) and measures 
 card at 1280px, 1024px and 390px: as tall as a chart drawn alone, its plot 320px, two to
 a row from 1024px and one to a row on a phone.
 
+## Metric explorer: a second value axis for another kind of unit
+
+`MetricExplorerSecondAxis.spec.ts` (same fixture and command) pins #10042: the nodes'
+memory usage in bytes, overlaid on CPU utilization (a 0-1 fraction drawn in percent), is
+drawn against a second value axis on the chart's right. At 1280px and 390px the chart has
+two value axes, the left one's ticks in percent and the right one's, past the plot's right
+edge, in bytes; the bytes line (found by its legend chip's colour) spreads over its axis;
+the legend says "Left axis: Percent" and "Right axis: Bytes" and tags each series' chip with
+its axis, with no unit warning; and the card holds all of it on a phone. Its screenshots
+are `metric-explorer-second-axis-1280-synthetic.png` and `…-390-synthetic.png`.
+
 ## Run it
 
 ```
