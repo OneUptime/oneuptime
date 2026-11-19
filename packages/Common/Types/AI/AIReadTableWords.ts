@@ -424,6 +424,7 @@ export const AI_READ_CITATIONS: {
   alertsInHoursPaged: string;
   resolvedAlertsInHours: string;
   resolvedAlertsInHoursPaged: string;
+  alertSearch: string;
   alert: string;
   topExceptions: string;
   onCallPolicies: string;
@@ -522,6 +523,8 @@ export const AI_READ_CITATIONS: {
   resolvedAlertsInHoursPaged: translationKey(
     "Resolved alerts, last {{hours}}h ({{count}} of {{total}})",
   ),
+  // {{query}} is the text searched for, as typed.
+  alertSearch: translationKey('Alert search "{{query}}" ({{count}} found)'),
   alert: translationKey("Alert {{alert}}"),
   topExceptions: translationKey(
     "Top exceptions, last {{hours}}h ({{count}} found)",
@@ -652,6 +655,7 @@ export const AI_READ_WIDGET_TITLES: {
   resolvedIncidents: string;
   incidentsMatching: string;
   alerts: string;
+  alertsMatching: string;
   topExceptions: string;
   logVolume: string;
   metric: string;
@@ -671,6 +675,8 @@ export const AI_READ_WIDGET_TITLES: {
     'Incidents matching "{{query}}" ({{count}})',
   ),
   alerts: translationKey("Alerts ({{count}})"),
+  // {{query}} is the text searched for, as typed.
+  alertsMatching: translationKey('Alerts matching "{{query}}" ({{count}})'),
   topExceptions: translationKey("Top exceptions ({{count}})"),
   logVolume: translationKey("Log volume by severity"),
   /*
@@ -1104,6 +1110,7 @@ export const AI_TOOL_CITATIONS: {
   alertTimelineNotFound: string;
   workflowById: string;
   incidentSearchNoQuery: string;
+  alertSearchNoQuery: string;
   // A long output, read a page at a time (Chat/ToolOutputPager)
   outputPage: string;
 } = {
@@ -1378,6 +1385,7 @@ export const AI_TOOL_CITATIONS: {
   alertTimelineNotFound: translationKey("Alert timeline (not found)"),
   workflowById: translationKey("Workflow {{id}}"),
   incidentSearchNoQuery: translationKey("Incident search (no query)"),
+  alertSearchNoQuery: translationKey("Alert search (no query)"),
   /*
    * {{label}} is what the output is of - a command, or another chip's
    * words - and {{start}} and {{end}} the characters this page holds.

@@ -1103,6 +1103,7 @@ import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkf
 import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
 import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
 import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
+import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote";
 import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKubernetesDiskReadings";
 
 export default [
@@ -2211,5 +2212,6 @@ export default [
   AddProjectManageSignInWithSso1809185500000,
   AddAIRunModelName1809185800000,
   AddDeviceManagementConnection1809185900000,
+  AddServiceAINote1809185918000,
   AddKubernetesDiskReadings1809186000000,
 ];
