@@ -100,12 +100,12 @@ const FramesByScreenCard: FunctionComponent<FramesByScreenCardProps> = (
                 className="py-2 pe-4 text-start text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={screenColumns.getResize(
                   "screen",
-                  translator.translateText(APP_SCREEN_COLUMN),
+                  translator.translateTerm(APP_SCREEN_COLUMN),
                   ColumnWidthKind.Name,
                 )}
               >
                 <span>
-                  {translator.translateText(APP_SCREEN_COLUMN)}
+                  {translator.translateTerm(APP_SCREEN_COLUMN)}
                   <span className="ms-1 font-mono normal-case tracking-normal text-gray-500">
                     ({APP_SCREEN_NAME_ATTRIBUTE})
                   </span>
