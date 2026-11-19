@@ -1,4 +1,5 @@
 import EntityType from "../../Types/Telemetry/EntityType";
+import { ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE } from "../../Types/DeviceManagement/ManagedDeviceIdentity";
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import NetworkControllerProvider, {
   getNetworkControllerProviderTitle,
@@ -113,6 +114,13 @@ export enum InventoryAssetField {
   DnsName = "dnsName",
   Architecture = "architecture",
   SystemDescription = "systemDescription",
+  /*
+   * An Android device's security patch level (Build.VERSION.SECURITY_PATCH,
+   * "2024-06-05"): what a fleet of kiosks is audited by (#9800). The Android
+   * agent sends it on every report and the Esper import writes it, under one
+   * key, so a device both describe has one value.
+   */
+  SecurityPatch = "securityPatch",
 }
 
 /*
@@ -139,6 +147,7 @@ export const INVENTORY_ASSET_OPTIONAL_FIELDS: ReadonlyArray<InventoryAssetField>
     InventoryAssetField.DnsName,
     InventoryAssetField.Architecture,
     InventoryAssetField.SystemDescription,
+    InventoryAssetField.SecurityPatch,
   ];
 
 /*
@@ -163,6 +172,7 @@ export const INVENTORY_ASSET_ATTRIBUTE_KEYS: Readonly<
   [InventoryAssetField.DnsName]: "net.device.dns_name",
   [InventoryAssetField.Architecture]: "host.arch",
   [InventoryAssetField.SystemDescription]: "os.description",
+  [InventoryAssetField.SecurityPatch]: ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE,
 };
 
 // The OneUptime Network Site a network device is assigned to.
@@ -648,9 +658,10 @@ export function getNetworkDeviceInventoryAssetDetails(
     [InventoryAssetField.DeviceType]: facts.facts.deviceType,
     [InventoryAssetField.Location]: location,
     [InventoryAssetField.DnsName]: facts.facts.dnsName,
-    // A network device has no architecture to report.
+    // A network device has no architecture to report, and no Android patch level.
     [InventoryAssetField.Architecture]: {},
     [InventoryAssetField.SystemDescription]: facts.system.sysDescr,
+    [InventoryAssetField.SecurityPatch]: {},
   };
 
   const details: Array<InventoryAssetDetail> = [];
