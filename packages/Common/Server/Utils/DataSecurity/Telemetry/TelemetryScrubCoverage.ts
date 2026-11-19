@@ -16,11 +16,13 @@ import {
 import {
   getScrubTarget,
   getScrubUnavailableReason,
+  isMetricNameFinding,
   ScrubbedField,
   ScrubRuleSignal,
   ScrubTarget,
   TelemetryScrubUnavailableReason,
 } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
+import { DataSecurityDropMetricUnavailableReason } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import LogScrubAction from "../../../../Types/Log/LogScrubAction";
@@ -131,6 +133,16 @@ export type {
  * reason a person's pattern never does. A metric's name cannot be
  * scrubbed: a pipeline rule renames a metric whole, so the name is fixed
  * in the code that creates the metric.
+ *
+ * What a rule can do with such a name, until the code is fixed, is drop the
+ * new data points of every metric of the service whose name has the data
+ * type's shape (Drop This Metric, #9757): a Drop rule with a "Matches Regex"
+ * filter on the metric's name, of the pattern above. It loses those points
+ * for good, so it is never made by Scrub It, only when a person asks for it
+ * after reading what it drops (TelemetryMetricDrop). Such a rule covers the
+ * name finding, as does a Drop rule with no filter at all, for the service
+ * or the project, which stores none of its metrics - and so covers every
+ * finding in them.
  */
 
 export interface CoveringScrubRule {
@@ -371,6 +383,80 @@ function metricRuleCovers(
   );
 }
 
+/*
+ * The filters a Drop rule for a metric's name holding a data type has: the
+ * name has the type's shape (buildScrubPatternForDataType) - or null when no
+ * pattern can find the type, so no rule can tell those metrics apart.
+ */
+export function buildMetricDropFilters(
+  dataTypeId: string,
+): Array<MetricPipelineRuleFilterCondition> | null {
+  const pattern: string | null = isCustomDataTypeId(dataTypeId)
+    ? null
+    : buildScrubPatternForDataType(dataTypeId);
+
+  return pattern === null
+    ? null
+    : [
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+          conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+          value: pattern,
+        },
+      ];
+}
+
+function isRuleOfService(
+  rule: CoveringScrubRule,
+  finding: TelemetryFindingReference,
+): boolean {
+  const findingServiceId: string = finding.serviceId
+    ? finding.serviceId.toString().toLowerCase()
+    : "";
+
+  return !rule.serviceId || rule.serviceId.toLowerCase() === findingServiceId;
+}
+
+/*
+ * Whether an enabled metric pipeline Drop rule keeps a metrics finding's data
+ * from being stored: one with no filter, for its service or the project,
+ * drops every point of the service's metrics; one with exactly the filter
+ * Drop This Metric makes drops those whose name holds the finding's type -
+ * which covers a finding in the name.
+ */
+function dropRuleCovers(
+  rule: CoveringScrubRule,
+  finding: TelemetryFindingReference,
+): boolean {
+  if (
+    rule.signal !== "metric" ||
+    rule.patternType !== MetricPipelineRuleType.Drop ||
+    finding.kind !== DataStoreKind.TelemetryMetrics ||
+    !isRuleOfService(rule, finding)
+  ) {
+    return false;
+  }
+
+  const filters: Array<MetricPipelineRuleFilterCondition> = rule.filters || [];
+
+  if (filters.length === 0) {
+    return true;
+  }
+
+  const dropFilters: Array<MetricPipelineRuleFilterCondition> | null =
+    isMetricNameFinding(finding.kind, finding.location)
+      ? buildMetricDropFilters(finding.dataTypeId)
+      : null;
+
+  return (
+    dropFilters !== null &&
+    filters.length === dropFilters.length &&
+    filters.map(filterText).every((text: string, index: number): boolean => {
+      return text === filterText(dropFilters[index]!);
+    })
+  );
+}
+
 function ruleCovers(
   rule: CoveringScrubRule,
   target: ScrubTarget,
@@ -404,7 +490,7 @@ function ruleCovers(
   return DATA_TYPE_OF_SCRUB_PATTERN_TYPE[rule.patternType] === dataTypeId;
 }
 
-// The first enabled rule that hides a finding at ingest, or null.
+// The first enabled rule that hides a finding at ingest - or drops it - or null.
 export function findCoveringScrubRule(
   coverage: ScrubCoverage,
   finding: TelemetryFindingReference,
@@ -414,12 +500,11 @@ export function findCoveringScrubRule(
     finding.location,
   );
 
-  if (!target) {
-    return null;
-  }
-
   for (const rule of coverage.rules) {
-    if (ruleCovers(rule, target, finding)) {
+    if (
+      (target && ruleCovers(rule, target, finding)) ||
+      dropRuleCovers(rule, finding)
+    ) {
       return rule;
     }
   }
@@ -472,19 +557,20 @@ function toCoveringRule(
 
 /*
  * An enabled metric pipeline rule that hides an attribute's value (Redact
- * or Remove Attribute) as a covering rule, or null for any other rule.
+ * or Remove Attribute), or drops points (Drop), as a covering rule, or null
+ * for any other rule.
  */
 export function toCoveringMetricRule(
   rule: MetricPipelineRule,
 ): CoveringScrubRule | null {
   const id: string | undefined = rule.id?.toString() || rule._id?.toString();
   const attributeKey: string = (rule.addAttributeKey || "").trim();
+  const isDrop: boolean = rule.ruleType === MetricPipelineRuleType.Drop;
 
   if (
     !id ||
-    !attributeKey ||
     typeof rule.ruleType !== "string" ||
-    !METRIC_HIDING_RULE_TYPES.has(rule.ruleType)
+    (!isDrop && (!attributeKey || !METRIC_HIDING_RULE_TYPES.has(rule.ruleType)))
   ) {
     return null;
   }
@@ -494,10 +580,14 @@ export function toCoveringMetricRule(
     name: rule.name || "",
     signal: "metric",
     patternType: rule.ruleType,
-    fieldsToScrub: ScrubbedField.Attributes,
-    attributeKey,
+    // A Drop rule's filters name the metric: no attribute is its part.
+    fieldsToScrub: isDrop ? ScrubbedField.Name : ScrubbedField.Attributes,
     filters: Array.isArray(rule.filters) ? rule.filters : [],
   };
+
+  if (!isDrop) {
+    covering.attributeKey = attributeKey;
+  }
   const serviceId: string = rule.serviceId ? rule.serviceId.toString() : "";
 
   if (serviceId) {
@@ -1040,6 +1130,132 @@ async function createMetricScrubRule(data: {
     signal: "metric",
     scrubRuleId: idOf(created),
     scrubRuleName: created.name || rule.name || "",
+  };
+}
+
+// What the name of the rule Drop This Metric makes says after the prefix.
+export const METRIC_DROP_RULE_NAME: string = "drop metrics named with ";
+
+/*
+ * Why the metrics whose names hold a finding's data cannot be dropped by a
+ * rule, or null when they can: a finding that is no metric's name, a data
+ * type no pattern finds (found by field names, by the words around it, or
+ * one of the project's own), a service that is gone.
+ */
+export function getMetricDropUnavailableReason(data: {
+  kind: DataStoreKind | string | null | undefined;
+  location: string | null | undefined;
+  dataTypeId: string;
+  serviceId?: ObjectID | string | null | undefined;
+}): DataSecurityDropMetricUnavailableReason | null {
+  if (!isMetricNameFinding(data.kind, data.location)) {
+    return DataSecurityDropMetricUnavailableReason.NotAMetricName;
+  }
+
+  if (!buildMetricDropFilters((data.dataTypeId || "").trim())) {
+    return DataSecurityDropMetricUnavailableReason.NoPattern;
+  }
+
+  const serviceId: string = data.serviceId ? data.serviceId.toString() : "";
+
+  return ObjectID.isValidUUID(serviceId)
+    ? null
+    : DataSecurityDropMetricUnavailableReason.NoService;
+}
+
+// Why no drop can be made, in a sentence a person can act on.
+export const METRIC_DROP_UNAVAILABLE_SENTENCES: Readonly<
+  Record<DataSecurityDropMetricUnavailableReason, string>
+> = {
+  [DataSecurityDropMetricUnavailableReason.NotAMetricName]:
+    "Only a finding in a metric's name drops metrics. Scrub It hides the other findings in metrics.",
+  [DataSecurityDropMetricUnavailableReason.NoPattern]:
+    "No pattern can find this data type in a metric's name, so no rule could tell those metrics apart. Rename the metrics in your code, and send what varies in their names as an attribute instead.",
+  [DataSecurityDropMetricUnavailableReason.NoService]:
+    "The service these metrics were sent under no longer exists, so no new metrics of it are left to drop.",
+};
+
+/*
+ * The Drop rule "Drop This Metric" makes for a finding in a metric's name:
+ * every new data point of the service's metrics whose name has the data
+ * type's shape is dropped before it is stored. Refuses what
+ * getMetricDropUnavailableReason refuses.
+ */
+export function buildMetricDropRule(data: {
+  projectId: ObjectID;
+  serviceId?: ObjectID | string | null | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+}): MetricPipelineRule {
+  const reason: DataSecurityDropMetricUnavailableReason | null =
+    getMetricDropUnavailableReason(data);
+
+  if (reason) {
+    throw new BadDataException(METRIC_DROP_UNAVAILABLE_SENTENCES[reason]);
+  }
+
+  const dataTypeName: string = dataTypeNameOf(data.dataTypeId);
+  const rule: MetricPipelineRule = new MetricPipelineRule();
+
+  rule.projectId = data.projectId;
+  rule.serviceId = new ObjectID(data.serviceId!.toString());
+  rule.name = cut(
+    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${METRIC_DROP_RULE_NAME}${dataTypeName}`,
+    MAX_METRIC_RULE_NAME_LENGTH,
+  );
+  rule.description = cut(
+    `Made by Data Security ("Drop This Metric") from a finding of ${dataTypeName} in this service's metric names. It drops every new data point of the service's metrics whose name holds ${dataTypeName.toLowerCase()} before it is stored: those points are lost for good. What is stored already stays until its retention ends. Delete this rule to keep them again.`,
+    MAX_RULE_DESCRIPTION_LENGTH,
+  );
+  rule.ruleType = MetricPipelineRuleType.Drop;
+  rule.filterCondition = FilterCondition.All;
+  rule.filters = buildMetricDropFilters(data.dataTypeId)!;
+  rule.isEnabled = true;
+
+  return rule;
+}
+
+/*
+ * Drop This Metric on a finding in a metric's name: the Drop rule for its
+ * service, made as the person who asked - their permission to create metric
+ * pipeline rules checked by the service, and the rule's creation recorded
+ * in the project's audit log with them as its author - or the enabled rule
+ * that already drops those metrics. Refuses what buildMetricDropRule does.
+ */
+export async function createDropRuleForFinding(data: {
+  projectId: ObjectID;
+  userId?: ObjectID | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+  serviceId?: ObjectID | string | null | undefined;
+}): Promise<{ ruleId: string; ruleName: string; isNew: boolean }> {
+  const location: string = (data.location || "").trim();
+  const dataTypeId: string = (data.dataTypeId || "").trim();
+  const rule: MetricPipelineRule = buildMetricDropRule({
+    ...data,
+    location,
+    dataTypeId,
+  });
+  const existing: CoveringScrubRule | null = findCoveringScrubRule(
+    await getScrubCoverage(data.projectId),
+    { kind: data.kind, dataTypeId, location, serviceId: data.serviceId },
+  );
+
+  if (existing) {
+    return { ruleId: existing.id, ruleName: existing.name, isNew: false };
+  }
+
+  const created: MetricPipelineRule = await MetricPipelineRuleService.create({
+    data: rule,
+    props: await propsFor(data),
+  });
+
+  return {
+    ruleId: idOf(created),
+    ruleName: created.name || rule.name || "",
+    isNew: true,
   };
 }
 

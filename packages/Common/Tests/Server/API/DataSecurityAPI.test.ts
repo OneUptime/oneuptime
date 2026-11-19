@@ -36,6 +36,7 @@ import {
   DATA_SECURITY_SCAN_STORE_JOB,
 } from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import * as TelemetryScrubCoverage from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import * as TelemetryMetricDrop from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import * as TelemetryFindingOccurrences from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import { TelemetrySampleSource } from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner";
 import DataSecurityRunner from "../../../Server/Utils/DataSecurity/DataSecurityRunner";
@@ -199,6 +200,21 @@ const SCRUB: Array<Permission> = [
   // A metric's attribute is scrubbed by a metric pipeline rule (#9604).
   Permission.CreateProjectMetricPipelineRule,
 ];
+// Dropping a service's metrics named with a finding's data: who may make pipeline rules (#9757).
+const DROP_METRIC: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.CreateProjectMetricPipelineRule,
+];
+// Who may change other rules, or read the findings, but not make pipeline rules.
+const NOT_DROP_METRIC: Array<Permission> = [
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.CreateProjectLogScrubRule,
+  Permission.CreateProjectTraceScrubRule,
+  Permission.EditDataStoreFinding,
+  Permission.ReadProjectMetricPipelineRule,
+];
 const OCCURRENCES: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -303,6 +319,19 @@ const ROUTES: Array<RouteCase> = [
     ],
   },
   {
+    name: "what dropping a metric would do",
+    path: DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+    allowed: DROP_METRIC,
+    refused: NOT_DROP_METRIC,
+  },
+  {
+    name: "drop a metric",
+    path: DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+    allowed: DROP_METRIC,
+    refused: NOT_DROP_METRIC,
+    body: { confirmDataLoss: true },
+  },
+  {
     name: "a finding's records",
     path: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
     allowed: OCCURRENCES,
@@ -402,6 +431,8 @@ let aiSpy: jest.SpyInstance;
 let repositoriesSpy: jest.SpyInstance;
 let codeTaskSpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
+let dropSpy: jest.SpyInstance;
+let dropImpactSpy: jest.SpyInstance;
 let ownersSpy: jest.SpyInstance;
 let aiContextSpy: jest.SpyInstance;
 let complianceSettingFindSpy: jest.SpyInstance;
@@ -613,6 +644,25 @@ beforeEach(() => {
       scrubRuleId: "88888888-8888-4888-8888-888888888888",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
     });
+  dropSpy = jest
+    .spyOn(TelemetryScrubCoverage, "createDropRuleForFinding")
+    .mockResolvedValue({
+      ruleId: "99999999-9999-4999-8999-999999999999",
+      ruleName: "Data Security: drop metrics named with Email address",
+      isNew: true,
+    });
+  dropImpactSpy = jest
+    .spyOn(TelemetryMetricDrop, "getDropMetricImpact")
+    .mockResolvedValue({
+      isAvailable: true,
+      ruleName: "Data Security: drop metrics named with Email address",
+      metricsMatched: 2,
+      isMetricsMatchedCapped: false,
+      monitors: [],
+      dashboards: [],
+      monitorsChecked: true,
+      dashboardsChecked: true,
+    });
   ownersSpy = jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")
     .mockResolvedValue([]);
@@ -682,6 +732,12 @@ describe("routes and who may call them", () => {
     expect(DATA_SECURITY_API_ROUTES.scrubFinding("x")).toBe(
       "/data-store-finding/x/scrub",
     );
+    expect(DATA_SECURITY_API_ROUTES.dropMetricImpact("x")).toBe(
+      "/data-store-finding/x/drop-metric-impact",
+    );
+    expect(DATA_SECURITY_API_ROUTES.dropMetric("x")).toBe(
+      "/data-store-finding/x/drop-metric",
+    );
     expect(DATA_SECURITY_API_ROUTES.findingOccurrences("x")).toBe(
       "/data-store-finding/x/occurrences",
     );
@@ -741,6 +797,8 @@ describe("routes and who may call them", () => {
       expect(queueSpy).not.toHaveBeenCalled();
       expect(aiSpy).not.toHaveBeenCalled();
       expect(scrubSpy).not.toHaveBeenCalled();
+      expect(dropSpy).not.toHaveBeenCalled();
+      expect(dropImpactSpy).not.toHaveBeenCalled();
     },
   );
 
@@ -1234,6 +1292,148 @@ describe("Scrub It", () => {
 
     expect((nowhere.thrown as Exception).message).toBe("Finding not found.");
     expect(scrubSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * DROP THIS METRIC (#9757): dropping the new data points of a service's
+ * metrics whose names hold a finding's data loses them for good, so it is
+ * asked for in as many words, by someone who may make metric pipeline
+ * rules, and made as them.
+ */
+describe("Drop This Metric", () => {
+  const SERVICE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function nameFinding(): DataStoreFinding {
+    const finding: DataStoreFinding = telemetryFinding(
+      DataStoreKind.TelemetryMetrics,
+    );
+
+    finding.location = "name";
+    finding.dataStore!.serviceId = SERVICE_ID;
+
+    return finding;
+  }
+
+  test("drops as the caller, for the metrics' service, marks the finding scrubbed and evaluates again", async () => {
+    asCaller([Permission.CreateProjectMetricPipelineRule]);
+    findingRow = nameFinding();
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+      { id: STORE_ID.toString() },
+      { confirmDataLoss: true },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(dropSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "email-address",
+      location: "name",
+      serviceId: SERVICE_ID,
+    });
+    expect(findingUpdateSpy).toHaveBeenCalledWith({
+      id: STORE_ID,
+      data: { isScrubbed: true },
+    });
+    expect(queuedJobs()).toEqual([
+      {
+        jobName: DATA_SECURITY_EVALUATE_PROJECT_JOB,
+        payload: { projectId: PROJECT_ID.toString() },
+      },
+    ]);
+    expect(result.answer).toEqual({
+      ruleId: "99999999-9999-4999-8999-999999999999",
+      ruleName: "Data Security: drop metrics named with Email address",
+    });
+    expect(scrubSpy).not.toHaveBeenCalled();
+  });
+
+  test("nothing is dropped unless the request confirms the data loss in as many words", async () => {
+    asCaller([Permission.ProjectOwner]);
+    findingRow = nameFinding();
+
+    for (const body of [
+      {},
+      { confirmDataLoss: false },
+      { confirmDataLoss: "true" },
+      { confirmDataLoss: 1 },
+    ] as Array<JSONObject>) {
+      const result: RouteCall = await call(
+        DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+        { id: STORE_ID.toString() },
+        body,
+      );
+
+      expect((result.thrown as Exception).message).toBe(
+        "Dropping these metrics loses their new data points for good. Confirm that you want them dropped.",
+      );
+    }
+
+    expect(dropSpy).not.toHaveBeenCalled();
+    expect(findingUpdateSpy).not.toHaveBeenCalled();
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("what dropping would do is worked out with the caller's own permissions, for the finding's service", async () => {
+    asCaller([Permission.CreateProjectMetricPipelineRule]);
+    findingRow = nameFinding();
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(dropImpactSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: "email-address",
+        location: "name",
+        serviceId: SERVICE_ID,
+        props: expect.objectContaining({ userId: USER_ID }),
+      }),
+    );
+    // Never as OneUptime itself: the monitors and dashboards named are the caller's.
+    expect(dropImpactSpy.mock.calls[0]![0].props.isRoot).toBeFalsy();
+    expect(result.answer).toMatchObject({
+      isAvailable: true,
+      metricsMatched: 2,
+    });
+    // Asking changes nothing.
+    expect(dropSpy).not.toHaveBeenCalled();
+    expect(findingUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a finding of another project, or in a data store, is refused", async () => {
+    asCaller([Permission.ProjectOwner]);
+    findingRow = null;
+
+    const missing: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+      { id: STORE_ID.toString() },
+      { confirmDataLoss: true },
+    );
+
+    expect((missing.thrown as Exception).message).toBe("Finding not found.");
+
+    findingRow = telemetryFinding(DataStoreKind.AwsS3Bucket);
+
+    const notTelemetry: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect((notTelemetry.thrown as Exception).message).toBe(
+      "Scrub It masks telemetry at ingest; this finding is in a data store.",
+    );
+    expect(dropSpy).not.toHaveBeenCalled();
+    expect(dropImpactSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -26,6 +26,8 @@ export const DATA_SECURITY_API_ROUTES: {
   scanNow: (dataStoreId: string) => string;
   checkNow: (dataStoreId: string) => string;
   scrubFinding: (findingId: string) => string;
+  dropMetricImpact: (findingId: string) => string;
+  dropMetric: (findingId: string) => string;
   findingOccurrences: (findingId: string) => string;
   explainIssue: (issueId: string) => string;
   fixIssueWithAi: (issueId: string) => string;
@@ -47,6 +49,17 @@ export const DATA_SECURITY_API_ROUTES: {
   },
   scrubFinding: (findingId: string): string => {
     return `/data-store-finding/${findingId}/scrub`;
+  },
+  /*
+   * A metric's name that holds sensitive data (#9757): what dropping the
+   * service's metrics named so would drop and stop, before it is asked for.
+   */
+  dropMetricImpact: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/drop-metric-impact`;
+  },
+  // ...and the drop itself, { confirmDataLoss: true }: a metric pipeline Drop rule.
+  dropMetric: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/drop-metric`;
   },
   // The newest records a telemetry finding's data was seen in.
   findingOccurrences: (findingId: string): string => {
@@ -232,6 +245,66 @@ export interface DataSecurityScrubResult {
   signal: DataSecurityScrubSignal;
   scrubRuleId: string;
   scrubRuleName: string;
+}
+
+/*
+ * DROPPING THE METRICS WHOSE NAMES HOLD A FINDING'S DATA (issue #9757).
+ *
+ * No rule can take the data out of a metric's name: a pipeline rule only
+ * renames a metric whole. What one can do, until the code is fixed, is drop
+ * the new data points of every metric of the service whose name has the data
+ * type's shape - a metric pipeline Drop rule. That loses them for good, so it
+ * is an action of its own, asked for deliberately, after the page has said
+ * what it drops and which monitors and dashboards that leaves without data.
+ */
+
+// Why the metrics named with a finding's data cannot be dropped by a rule.
+export enum DataSecurityDropMetricUnavailableReason {
+  // The finding is not in a metric's name.
+  NotAMetricName = "NotAMetricName",
+  /*
+   * Its data type has no pattern a rule could find it in a name by: found by
+   * field names, or only by the words around it, or one of the project's own.
+   */
+  NoPattern = "NoPattern",
+  // The service the metrics were sent under is gone.
+  NoService = "NoService",
+}
+
+// A monitor or a dashboard that reads a metric the drop would empty.
+export interface DataSecurityMetricUser {
+  id: string;
+  name: string;
+}
+
+export interface DataSecurityDropMetricImpact {
+  isAvailable: boolean;
+  unavailableReason?: DataSecurityDropMetricUnavailableReason | undefined;
+  // The enabled rule that already drops them, when one does.
+  existingRule?: { id: string; name: string } | undefined;
+  // The name the rule would be given.
+  ruleName?: string | undefined;
+  /*
+   * How many of the service's metrics written in the last day have a name
+   * the rule drops - their names never leave the server - and whether there
+   * were more than were counted.
+   */
+  metricsMatched: number;
+  isMetricsMatchedCapped: boolean;
+  /*
+   * The monitors and dashboards that read a metric whose name the rule
+   * drops (of that service, or of every service): they get no new data.
+   * Only those the reader may read; Checked false when they may read none.
+   */
+  monitors: Array<DataSecurityMetricUser>;
+  dashboards: Array<DataSecurityMetricUser>;
+  monitorsChecked: boolean;
+  dashboardsChecked: boolean;
+}
+
+export interface DataSecurityDropMetricResult {
+  ruleId: string;
+  ruleName: string;
 }
 
 // What kind of record a telemetry finding's data was seen in.
