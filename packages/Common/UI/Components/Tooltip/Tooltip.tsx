@@ -1,5 +1,5 @@
 import Tippy from "@tippyjs/react";
-import { Placement } from "tippy.js";
+import { Placement, Plugin } from "tippy.js";
 import React, {
   cloneElement,
   FunctionComponent,
@@ -10,9 +10,11 @@ import React, {
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
+import "./Tooltip.css";
 import useTranslateValue from "../../Utils/Translation";
 import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 import { TOOLTIP_PLUGINS } from "./TooltipEscape";
+import { getTooltipLayer, keepTabOrder } from "./TooltipLayer";
 
 export interface ComponentProps {
   // In English, looked up here - unless one of the two flags below is set.
@@ -40,10 +42,13 @@ export interface ComponentProps {
   // Large collections can wait to create a tooltip until first opened.
   lazy?: boolean | undefined;
   /*
-   * Rich tooltips are interactive by default, and Tippy mounts an interactive
-   * tooltip inside the trigger's parent - where an overflow-clipped ancestor
-   * (a scrolling grid, say) cuts it off. Pass false for rich content that has
-   * nothing to click: it then mounts on <body> and hides on mouse-out.
+   * Rich tooltips are interactive by default: the pointer can move onto one
+   * to read, select or press what is in it, and Tab goes through its links
+   * and buttons as if it sat right after its trigger (TooltipLayer's
+   * keepTabOrder). Pass false for rich content with nothing to click or
+   * select: it then hides as the pointer leaves its trigger. Interactive or
+   * not, every tooltip is drawn on the page's body, where no table cell,
+   * scrolling list or card its trigger is in can cut it off (#9769).
    */
   interactive?: boolean | undefined;
   /*
@@ -88,6 +93,15 @@ interface PopupProps extends ComponentProps {
 
 // What a focus-triggered show says it was triggered by (Tippy's onTrigger).
 const FOCUS_TRIGGERS: Array<string> = ["focus", "focusin"];
+
+/*
+ * Escape puts it away (TooltipEscape), and drawn on the body it keeps its
+ * place in the Tab order (TooltipLayer).
+ */
+const SHARED_TOOLTIP_PLUGINS: Array<Plugin> = [
+  ...TOOLTIP_PLUGINS,
+  keepTabOrder,
+];
 
 const TooltipPopup: FunctionComponent<PopupProps> = (
   props: PopupProps,
@@ -161,9 +175,19 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       /*
        * Escape closes it, however it was opened, and leaves the focus where
        * it was; the Escape that closed it does not also close a dialog, menu
-       * or panel around its trigger (TooltipEscape, WCAG 1.4.13).
+       * or panel around its trigger (TooltipEscape, WCAG 1.4.13). Tab goes
+       * through what it holds as if it sat right after its trigger
+       * (TooltipLayer).
        */
-      plugins={TOOLTIP_PLUGINS}
+      plugins={SHARED_TOOLTIP_PLUGINS}
+      /*
+       * Drawn on the page's body, interactive or not - never inside its
+       * trigger's parent, Tippy's own place for an interactive one, where a
+       * table's cell, a list that scrolls sideways or a card cut it off
+       * (#9769). Placed from there against the window's edges: it flips to
+       * the other side, or slides along, where it has no room.
+       */
+      appendTo={getTooltipLayer}
       {...(props.reference
         ? { reference: props.reference, showOnCreate: true }
         : { children: props.children })}
