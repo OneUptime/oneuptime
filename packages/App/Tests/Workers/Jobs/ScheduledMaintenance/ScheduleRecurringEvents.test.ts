@@ -9,6 +9,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Recurring from "Common/Types/Events/Recurring";
+import Timezone from "Common/Types/Timezone";
 
 /*
  * A recurring scheduled maintenance is defined once, on a template, and
@@ -724,6 +725,220 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
       await mockCapturedJobs[JOB_NAME]!();
 
       expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Every event is the template's first one moved on whole intervals of the
+   * template's own clock (MaintenanceTemplateSchedule, #10037): its
+   * creation, its start and its end. The job used to move the next time on
+   * by fixed milliseconds and start and end each event fixed minutes after
+   * it was created, so a daily 02:00 window in Los Angeles started at 01:00
+   * there all winter.
+   */
+  describe("on the template's own clock (#10037)", () => {
+    const LOS_ANGELES: string = "America/Los_Angeles";
+
+    /*
+     * Created at 21:00 the evening before a 02:00 to 04:00 window, every
+     * day, typed in Los Angeles on 1 July (PDT, UTC-7).
+     */
+    function dailyInLosAngeles(
+      dueAt: Date,
+      timezone: string | undefined,
+    ): ScheduledMaintenanceTemplate {
+      const template: ScheduledMaintenanceTemplate = recurringTemplate();
+
+      // 2026-07-01 21:00, 2026-07-02 02:00 and 04:00 PDT.
+      template.firstEventScheduledAt = new Date("2026-07-02T04:00:00.000Z");
+      template.firstEventStartsAt = new Date("2026-07-02T09:00:00.000Z");
+      template.firstEventEndsAt = new Date("2026-07-02T11:00:00.000Z");
+      template.scheduleNextEventAt = dueAt;
+      template.recurringInterval = Recurring.fromJSON({
+        _type: "Recurring",
+        value: {
+          intervalType: "Day",
+          intervalCount: { _type: "PositiveNumber", value: 1 },
+        },
+      });
+
+      if (timezone) {
+        template.timezone = timezone as Timezone;
+      }
+
+      return template;
+    }
+
+    async function runAt(
+      now: Date,
+      template: ScheduledMaintenanceTemplate,
+    ): Promise<void> {
+      /*
+       * Only Date is faked: the sinon backend jest 28 uses cannot hijack the
+       * read-only `performance` global on current Node.
+       */
+      jest.useFakeTimers({
+        doNotFake: [
+          "performance",
+          "hrtime",
+          "nextTick",
+          "queueMicrotask",
+          "setImmediate",
+          "clearImmediate",
+          "setInterval",
+          "clearInterval",
+          "setTimeout",
+          "clearTimeout",
+        ],
+      });
+      jest.setSystemTime(now);
+
+      (
+        ScheduledMaintenanceTemplateService.findAllBy as jest.Mock
+      ).mockResolvedValue([template] as never);
+
+      try {
+        await mockCapturedJobs[JOB_NAME]!();
+      } finally {
+        jest.useRealTimers();
+      }
+    }
+
+    function nextTimeWritten(): Date | undefined {
+      const call: Array<unknown> | undefined = (
+        ScheduledMaintenanceTemplateService.updateOneById as jest.Mock
+      ).mock.calls[0];
+
+      return (call?.[0] as { data: { scheduleNextEventAt?: Date } })?.data
+        .scheduleNextEventAt;
+    }
+
+    test("reads the template's time zone with its schedule", async () => {
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const findAllByArgs: {
+        select: Record<string, boolean>;
+      } = (ScheduledMaintenanceTemplateService.findAllBy as jest.Mock).mock
+        .calls[0]![0] as { select: Record<string, boolean> };
+
+      for (const column of [
+        "timezone",
+        "firstEventScheduledAt",
+        "firstEventStartsAt",
+        "firstEventEndsAt",
+        "recurringInterval",
+        "scheduleNextEventAt",
+      ]) {
+        expect([column, findAllByArgs.select[column]]).toEqual([column, true]);
+      }
+    });
+
+    // On PST (UTC-8) from 1 November: 21:00 is 05:00 UTC, 02:00 is 10:00 UTC.
+    test("in Los Angeles, the event created on 1 November starts at 02:00 PST on the 2nd, and the next is created at 21:00 on the 2nd", async () => {
+      const dueAt: Date = new Date("2026-11-02T05:00:00.000Z");
+
+      await runAt(
+        new Date(dueAt.getTime() + 20 * 1000),
+        dailyInLosAngeles(dueAt, LOS_ANGELES),
+      );
+
+      expect(created).toHaveLength(1);
+      expect(created[0]!.createdAt?.toISOString()).toBe(
+        "2026-11-02T05:00:00.000Z",
+      );
+      expect(created[0]!.startsAt?.toISOString()).toBe(
+        "2026-11-02T10:00:00.000Z",
+      );
+      expect(created[0]!.endsAt?.toISOString()).toBe(
+        "2026-11-02T12:00:00.000Z",
+      );
+      expect(nextTimeWritten()?.toISOString()).toBe("2026-11-03T05:00:00.000Z");
+    });
+
+    /*
+     * Created on Saturday 31 October, the evening before the clocks go back,
+     * for 02:00 on the Sunday: the event starts at 02:00 PST - six hours
+     * after it was created, where the old fixed five hours said 01:00.
+     */
+    test("an event created the evening before the clocks change still starts at 02:00 on the new clock", async () => {
+      // 21:00 PDT on 31 October.
+      const dueAt: Date = new Date("2026-11-01T04:00:00.000Z");
+
+      await runAt(
+        new Date(dueAt.getTime() + 20 * 1000),
+        dailyInLosAngeles(dueAt, LOS_ANGELES),
+      );
+
+      // 02:00 PST on 1 November.
+      expect(created[0]!.startsAt?.toISOString()).toBe(
+        "2026-11-01T10:00:00.000Z",
+      );
+      expect(
+        created[0]!.startsAt!.getTime() - created[0]!.createdAt!.getTime(),
+      ).toBe(6 * 60 * 60 * 1000);
+    });
+
+    test("a template saved before it had a time zone steps 24 hours a day, on UTC, as it did", async () => {
+      // 04:00 UTC: 21:00 PDT in July, 20:00 PST in November.
+      const dueAt: Date = new Date("2026-11-02T04:00:00.000Z");
+
+      await runAt(
+        new Date(dueAt.getTime() + 20 * 1000),
+        dailyInLosAngeles(dueAt, "UTC"),
+      );
+
+      expect(created[0]!.startsAt!.toISOString()).toBe(
+        "2026-11-02T09:00:00.000Z",
+      );
+      expect(nextTimeWritten()?.toISOString()).toBe("2026-11-03T04:00:00.000Z");
+    });
+
+    /*
+     * A monthly template's next time as the old steps of 30.4375 days put it,
+     * 31 January 10:30 for a window on the 1st: the calendar's event, on 1
+     * February, is still to come. Nothing is created now, and the next time
+     * moves to 1 February.
+     */
+    test("a time the old steps held before its event's day creates nothing yet, and moves to that day", async () => {
+      const template: ScheduledMaintenanceTemplate = recurringTemplate();
+
+      template.firstEventScheduledAt = new Date("2026-01-01T00:00:00.000Z");
+      template.firstEventStartsAt = new Date("2026-01-01T02:00:00.000Z");
+      template.firstEventEndsAt = new Date("2026-01-01T04:00:00.000Z");
+      template.scheduleNextEventAt = new Date("2026-01-31T10:30:00.000Z");
+      template.timezone = "UTC" as Timezone;
+      template.recurringInterval = Recurring.fromJSON({
+        _type: "Recurring",
+        value: {
+          intervalType: "Month",
+          intervalCount: { _type: "PositiveNumber", value: 1 },
+        },
+      });
+
+      await runAt(new Date("2026-01-31T10:30:20.000Z"), template);
+
+      expect(created).toHaveLength(0);
+      expect(nextTimeWritten()?.toISOString()).toBe("2026-02-01T00:00:00.000Z");
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    test("a recurring template without a complete schedule creates nothing, says why, and is left as it is", async () => {
+      const template: ScheduledMaintenanceTemplate = recurringTemplate();
+      template.firstEventStartsAt = undefined;
+
+      (
+        ScheduledMaintenanceTemplateService.findAllBy as jest.Mock
+      ).mockResolvedValue([template] as never);
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(created).toHaveLength(0);
+      expect(
+        ScheduledMaintenanceTemplateService.updateOneById,
+      ).not.toHaveBeenCalled();
+      expect(String((logger.error as jest.Mock).mock.calls[0]?.[0])).toContain(
+        "without a complete schedule",
+      );
     });
   });
 });
