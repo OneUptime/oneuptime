@@ -65,7 +65,7 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 | **Monitor**                          | **Risorse interessate** | Nessuno                    | I monitor che non vengono controllati mentre l'evento è in corso.                |
 | **Cambia lo stato del monitor in**   | **Risorse interessate** | Nessun cambio              | Lo stato che questi monitor mostrano durante l'evento. Viene chiesto appena si sceglie un monitor. |
 | **Altre risorse interessate**        | **Risorse interessate** | Nessuna                    | Host, cluster, database, siti di rete, servizi e altro.                          |
-| **Mostra evento su queste pagine di stato** | **Risorse interessate** | Nessuna           | Le pagine di stato che mostrano l'evento e avvisano i loro iscritti.             |
+| **Mostra evento su queste pagine di stato** | **Risorse interessate** | Nessuna           | Le uniche pagine di stato che possono mostrare l'evento o avvisare i loro iscritti. |
 | **Notifiche agli iscritti**          | **Risorse interessate** | Pubblicato subito, tutti e tre i momenti attivi, nessun promemoria | Quando l'evento compare su quelle pagine e quando vengono avvisati i loro iscritti. |
 
 Due cose compilano il modulo per voi strada facendo:
@@ -104,8 +104,9 @@ Pianificate il lavoro con tutto l'anticipo che volete e tenetelo all'interno del
 | Il suo **Termina il**    | Termina                                                             | Concluso                     |
 
 - **Fino ad allora, gli iscritti non ne sanno nulla.** Finché l'evento attende, non vengono inviati loro i promemoria prima dell'evento, i cambi di stato né le note pubbliche.
-- **La sua pagina lo dice.** La sua intestazione mostra **Non ancora sulle pagine di stato**, con l'ora da cui compare, e **Pubblica ora** lo pubblica subito, dopo una conferma. Le sue **Impostazioni** dicono lo stesso, e l'elenco degli eventi mostra l'ora sotto le sue pagine di stato.
+- **La sua pagina lo dice.** La sua intestazione mostra **Non ancora sulle pagine di stato**, con l'ora da cui compare, e **Pubblica ora** lo pubblica subito, dopo una conferma. Quando nessuna delle sue pagine di stato mostra gli eventi di manutenzione, l'intestazione lo dice al posto dell'ora. Le sue **Impostazioni** dicono lo stesso, e l'elenco degli eventi mostra l'ora sotto le sue pagine di stato.
 - **Cambiarlo, o pubblicarlo subito.** Spostate il **Pubblica il** nel passo **Pagine di stato** di **Modifica**, o scegliete **Subito**. Disattivate **Visibile sulla pagina di stato** nelle sue **Impostazioni** per tenerlo fuori dalle sue pagine di stato a qualsiasi ora.
+- **Cosa fanno le sue pagine di stato.** Nello stesso passo, una nota sotto le pagine di stato dice quando le pagine scelte non mostreranno l'evento a nessuno o non avviseranno nessuno, e perché, e una nota sotto **Promemoria prima dell'evento** dice quali promemoria non vengono inviati. La scheda **Dettagli della manutenzione** lo dice sotto **Mostrato sulle pagine di stato** quando nessuna di loro mostra gli eventi di manutenzione.
 
 ## Modificare un evento in seguito
 
