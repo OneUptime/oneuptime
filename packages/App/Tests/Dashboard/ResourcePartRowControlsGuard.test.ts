@@ -47,6 +47,10 @@ const CONTROL_ELEMENTS: ReadonlyArray<string> = [
 
 const CONTROL: RegExp = new RegExp(`<(${CONTROL_ELEMENTS.join("|")})\\b`, "g");
 
+// A row's props: where it leads, and whether it holds controls of its own.
+const LINK_PROP: RegExp = /\bto=/;
+const HAS_CONTROLS_PROP: RegExp = /\bhasControls\b/;
+
 interface RowFinding {
   file: string;
   line: number;
@@ -87,8 +91,8 @@ function findRowsHoldingControls(
     if (tagEnd >= 0 && close > tagEnd) {
       const tag: string = source.slice(start, tagEnd + 1);
       const body: string = source.slice(tagEnd + 1, close);
-      const isLink: boolean = (/\bto=/).test(tag);
-      const hasControls: boolean = (/\bhasControls\b/).test(tag);
+      const isLink: boolean = LINK_PROP.test(tag);
+      const hasControls: boolean = HAS_CONTROLS_PROP.test(tag);
 
       if (isLink && !hasControls) {
         const controls: Array<string> = Array.from(
