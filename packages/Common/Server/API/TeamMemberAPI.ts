@@ -134,7 +134,8 @@ export default class TeamMemberAPI extends BaseAPI<
      * email holds what was typed, found as Search finds them, with the
      * caller's own permissions, each with where they stand for the team the
      * invitation is for; and, on a server somebody runs, its other accounts
-     * for its master admin (Utils/Team/InviteSuggestions). Never anyone of
+     * for its master admin, or for anyone who may invite while its master
+     * admin lets them (#9744, Utils/Team/InviteSuggestions). Never anyone of
      * another project on Cloud. For a signed-in member of the project or a
      * project API key; fewer than two letters are refused rather than
      * answered with everyone. Nothing is written or cached.
