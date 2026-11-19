@@ -17,11 +17,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * fills a list in. No index, no key, nothing backfilled; a server of the
  * release before ignores the columns.
  */
-export class AddSessionReplayPageRulesAndReadableEventProperties1809184961000
+export class AddSessionReplayPageRulesAndReadableEventProperties1809185110000
   implements MigrationInterface
 {
   public name: string =
-    "AddSessionReplayPageRulesAndReadableEventProperties1809184961000";
+    "AddSessionReplayPageRulesAndReadableEventProperties1809185110000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

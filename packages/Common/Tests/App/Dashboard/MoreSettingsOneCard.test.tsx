@@ -37,6 +37,9 @@ import TeamViewPermissions, {
   TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Permissions";
 import HostSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Settings";
+import WorkflowSettings, {
+  WORKFLOW_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/View/Settings";
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import ProjectTelemetrySettings, {
   PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
@@ -372,6 +375,18 @@ const PAGES: Array<MoreSettingsPage> = [
     // The daily limits, the limits per run, then who approves a riskier fix.
     sectionTitles: ["Daily limits", "Limits per run", "Fix approvals"],
     namesSectionsByTitle: false,
+    tableCount: 0,
+  },
+  {
+    // What a workflow's steps run as (#9695).
+    name: "Workflows -> a workflow -> Settings",
+    path: `/dashboard/${PROJECT_ID}/workflows/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      return <WorkflowSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: WORKFLOW_SETTINGS_MORE_TEST_ID,
+    sectionTitles: ["Run As"],
+    namesSectionsByTitle: true,
     tableCount: 0,
   },
   {

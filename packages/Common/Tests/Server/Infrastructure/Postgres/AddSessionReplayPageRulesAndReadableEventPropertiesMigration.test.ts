@@ -1,4 +1,4 @@
-import { AddSessionReplayPageRulesAndReadableEventProperties1809184961000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184961000-AddSessionReplayPageRulesAndReadableEventProperties";
+import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
 import ColumnType from "../../../../Types/Database/ColumnType";
@@ -20,10 +20,10 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  */
 
 const OWN_CLASS_NAME: string =
-  "AddSessionReplayPageRulesAndReadableEventProperties1809184961000";
+  "AddSessionReplayPageRulesAndReadableEventProperties1809185110000";
 
 const MIGRATION_FILE_NAME: string =
-  "1809184961000-AddSessionReplayPageRulesAndReadableEventProperties.ts";
+  "1809185110000-AddSessionReplayPageRulesAndReadableEventProperties.ts";
 
 const MIGRATIONS_DIRECTORY: string = path.join(
   __dirname,
@@ -59,7 +59,7 @@ const recordQueries: RecordQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new AddSessionReplayPageRulesAndReadableEventProperties1809184961000()[
+  await new AddSessionReplayPageRulesAndReadableEventProperties1809185110000()[
     direction
   ](queryRunner);
 
@@ -100,7 +100,7 @@ describe("AddSessionReplayPageRulesAndReadableEventProperties migration - identi
       new RegExp(`public name: string =\\s*"${OWN_CLASS_NAME}";`),
     );
     expect(
-      new AddSessionReplayPageRulesAndReadableEventProperties1809184961000()
+      new AddSessionReplayPageRulesAndReadableEventProperties1809185110000()
         .name,
     ).toBe(OWN_CLASS_NAME);
   });

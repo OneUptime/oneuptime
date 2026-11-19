@@ -4222,6 +4222,12 @@ describe("Your Account", () => {
     expect(page).toContain(
       "an app such as 1Password, Google Authenticator, or Microsoft Authenticator",
     );
+    // Enable with nothing set up chooses a second step first (#9666).
+    expect(page).toContain(
+      'authenticatorApp: translationKey("Authenticator app")',
+    );
+    expect(page).toContain('securityKey: translationKey("Security key")');
+    expect(page).toContain('submitButtonText="Continue"');
     expect(page).toContain("enter its 6-digit code to finish setup");
     expect(page).toContain('submitButtonText="Verify and finish"');
     expect(keys).toContain(
@@ -4230,23 +4236,40 @@ describe("Your Account", () => {
     expect(backupCodes).toContain('title="Your backup codes"');
     expect(backupCodes).toContain('submitButtonText="Done"');
     expect(backupCodes).toContain('"Regenerate codes"');
-    expect(status).toContain('"Enable two-factor authentication"');
-    // The badge is looked up in the reader's language (#6658).
-    expect(status.replace(/\s+/g, " ")).toContain(
-      '{isEnabled ? translator.translateText("Enabled") : translator.translateText("Not enabled")}',
+    expect(status).toContain(
+      'enableAction: translationKey("Enable two-factor authentication")',
+    );
+    expect(status).toContain(
+      'finishSetupAction: translationKey("Finish setup")',
+    );
+    /*
+     * The badge is a Pill, which looks its words up in the reader's language
+     * (#6658): Enabled, or Setup needed while nothing is set up behind it.
+     */
+    expect(status).toContain('enabled: translationKey("Enabled")');
+    expect(status).toContain('setupNeeded: translationKey("Setup needed")');
+    expect(status).toContain("text={TWO_FACTOR_STATUS_COPY.enabled}");
+    expect(status).toContain("text={TWO_FACTOR_STATUS_COPY.setupNeeded}");
+    expect(readSource(COMMON_DIR, "UI/Components/Pill/Pill.tsx")).toContain(
+      "translateString(props.text)",
     );
 
     // The steps are headings of their own, so read the whole section.
     const turnOn: string = sectionOf(YOUR_ACCOUNT, "## Signing in securely");
 
     for (const label of [
-      "Authenticator apps",
+      "Enable two-factor authentication",
+      "Authenticator app",
+      "Security key",
+      "Continue",
       "Verify and finish",
-      "Security keys",
+      "Enabled",
       "Your backup codes",
       "Done",
-      "Enable two-factor authentication",
-      "Enabled",
+      "Authenticator apps",
+      "Security keys",
+      "Setup needed",
+      "Finish setup",
       "Regenerate codes",
     ]) {
       expect({ label: label, named: turnOn.includes(`**${label}**`) }).toEqual({
@@ -4254,6 +4277,51 @@ describe("Your Account", () => {
         named: true,
       });
     }
+  });
+
+  it("says what User Profile shows when the server requires SSO, as the profile and the server decide it (#9688)", () => {
+    const sideMenu: string = dashboard("Pages/Global/UserProfile/SideMenu.tsx");
+    const overview: string = dashboard("Pages/Global/UserProfile/Index.tsx");
+    const notice: string = dashboard(
+      "Components/UserProfile/SignInManagement.tsx",
+    );
+    const rule: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/SsoRequiredSignIn.ts",
+    );
+    const managed: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/SsoManagedSignIn.ts",
+    );
+
+    // The rule is the server's own Require SSO, and master admins are exempt.
+    expect(managed).toContain(
+      "return await SsoRequiredSignIn.isNonSsoSignInRefused(account);",
+    );
+    expect(rule).toContain("if (account.isMasterAdmin === true) {");
+
+    // No Security section, and Overview names the provider under Single Sign-On.
+    expect(oneLine(sideMenu)).toContain(
+      "(props.signInManagement !== null && !props.signInManagement.isManagedBySso);",
+    );
+    expect(oneLine(sideMenu)).toContain(
+      '{showsSecurity ? ( <SideMenuSection title="Security">',
+    );
+    expect(overview).toContain("{signInManagement?.isManagedBySso ? (");
+    expect(overview).toContain("<SsoManagedSignInNotice");
+    expect(notice).toContain('title: translationKey("Single Sign-On")');
+
+    const managedSection: string = sectionOf(
+      YOUR_ACCOUNT,
+      "### When your organization manages your sign-in",
+    );
+
+    expect(managedSection).toContain(
+      "**User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**.",
+    );
+    expect(managedSection).toContain(
+      "Master admins keep their own **Security** settings.",
+    );
   });
 
   it("creates, joins and leaves projects with the controls that do it", () => {

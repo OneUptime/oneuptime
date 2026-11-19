@@ -2,6 +2,15 @@ import User from "../../../Models/DatabaseModels/User";
 import UserAPI from "../../../Server/API/UserAPI";
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
 import UserService from "../../../Server/Services/UserService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
+import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SsoManagedSignIn";
+import {
+  TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE,
+} from "../../../Types/TwoFactorAuthSetup";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import {
   ExpressResponse,
@@ -71,6 +80,15 @@ describe("User two-factor self-service API integration", () => {
   let find: jest.SpyInstance;
   let update: MockFunction;
   let response: ExpressResponse;
+  /*
+   * What turning it on reads (#9666, #9688): the server's Require SSO to
+   * Sign In, and the second steps set up behind it - authenticator apps
+   * whose code was entered, then security keys and passkeys. One of each
+   * kind set up unless a test says otherwise, and SSO not required.
+   */
+  let getRequireSsoForLogin: jest.SpyInstance;
+  let countVerifiedApps: jest.SpyInstance;
+  let countVerifiedKeys: jest.SpyInstance;
 
   const requestFor: (data?: RequestOptions) => OneUptimeRequest = (
     data: RequestOptions = {},
@@ -160,6 +178,9 @@ describe("User two-factor self-service API integration", () => {
         if (row.enableTwoFactorAuth !== undefined) {
           snapshot.enableTwoFactorAuth = row.enableTwoFactorAuth;
         }
+        if (row.isMasterAdmin !== undefined) {
+          snapshot.isMasterAdmin = row.isMasterAdmin;
+        }
         return [snapshot];
       },
     );
@@ -177,12 +198,26 @@ describe("User two-factor self-service API integration", () => {
       },
     );
     getJestSpyOn(UserService, "getRepository").mockReturnValue({ update });
+
+    getRequireSsoForLogin = getJestSpyOn(
+      GlobalConfigService,
+      "getRequireSsoForLogin",
+    ).mockResolvedValue(false);
+    countVerifiedApps = getJestSpyOn(
+      UserTotpAuthService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(1));
+    countVerifiedKeys = getJestSpyOn(
+      UserWebAuthnService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(0));
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
+  // With an authenticator app set up (beforeEach), turning it on is allowed.
   test.each([false, true])(
     "persists the current user's enableTwoFactorAuth=%s through ordinary CRUD",
     async (enabled: boolean): Promise<void> => {
@@ -479,4 +514,160 @@ describe("User two-factor self-service API integration", () => {
       }
     },
   );
+  /*
+   * ISSUE #9666: NO SECOND STEP, NO TWO-FACTOR AUTHENTICATION.
+   *
+   * Turned on from the profile with nothing set up, the page said "Enabled"
+   * over "No security keys added yet", and the account had no second factor
+   * at all. The same ordinary CRUD write, the same real hook, refused now
+   * until an authenticator app, a security key or a passkey is set up -
+   * and, for somebody whose sign-in the server's SSO manages (#9688), not
+   * at all.
+   */
+  describe("turning it on", () => {
+    const turnOn: (data?: RequestOptions) => Promise<void> = async (
+      data: RequestOptions = {},
+    ): Promise<void> => {
+      await api.updateItem(
+        requestFor({
+          body: { data: { enableTwoFactorAuth: true } },
+          ...data,
+        }),
+        response,
+      );
+    };
+
+    beforeEach(() => {
+      rows.get(OWNER_ID)!.enableTwoFactorAuth = false;
+    });
+
+    test("is refused with nothing set up behind it, and nothing is written", async () => {
+      countVerifiedApps.mockResolvedValue(new PositiveNumber(0));
+      countVerifiedKeys.mockResolvedValue(new PositiveNumber(0));
+
+      await expect(turnOn()).rejects.toThrow(
+        new BadDataException(TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE),
+      );
+
+      expect(update).not.toHaveBeenCalled();
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(false);
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+    });
+
+    test("counts only finished setups, of the caller's own account", async () => {
+      countVerifiedApps.mockResolvedValue(new PositiveNumber(0));
+      countVerifiedKeys.mockResolvedValue(new PositiveNumber(0));
+
+      await expect(turnOn()).rejects.toThrow(BadDataException);
+
+      for (const spy of [countVerifiedApps, countVerifiedKeys]) {
+        expect(spy).toHaveBeenCalledTimes(1);
+        const query: Record<string, unknown> = (
+          spy.mock.calls[0]![0] as { query: Record<string, unknown> }
+        ).query;
+        expect(String(query["userId"])).toBe(OWNER_ID);
+        expect(query["isVerified"]).toBe(true);
+      }
+    });
+
+    test.each([
+      ["an authenticator app", 1, 0],
+      ["a security key or a passkey", 0, 1],
+      ["several of each", 2, 3],
+    ])(
+      "is allowed with %s set up",
+      async (_label: string, apps: number, keys: number) => {
+        countVerifiedApps.mockResolvedValue(new PositiveNumber(apps));
+        countVerifiedKeys.mockResolvedValue(new PositiveNumber(keys));
+
+        await turnOn();
+
+        expect(update).toHaveBeenCalledTimes(1);
+        expect(update).toHaveBeenCalledWith(
+          { _id: OWNER_ID },
+          expect.objectContaining({ enableTwoFactorAuth: true }),
+        );
+        expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(true);
+        expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
+      },
+    );
+
+    test("a hand-written true is held to the same rule as true", async () => {
+      countVerifiedApps.mockResolvedValue(new PositiveNumber(0));
+      countVerifiedKeys.mockResolvedValue(new PositiveNumber(0));
+
+      await expect(
+        turnOn({ body: { data: { enableTwoFactorAuth: "true" } } }),
+      ).rejects.toThrow(TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE);
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    test("is refused while the server signs the caller in with SSO, before anything is counted (#9688)", async () => {
+      getRequireSsoForLogin.mockResolvedValue(true);
+
+      await expect(turnOn()).rejects.toThrow(
+        new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE),
+      );
+
+      expect(countVerifiedApps).not.toHaveBeenCalled();
+      expect(countVerifiedKeys).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    test("a master admin turns it on for themselves while the server requires SSO: they are exempt", async () => {
+      getRequireSsoForLogin.mockResolvedValue(true);
+      rows.get(OWNER_ID)!.isMasterAdmin = true;
+
+      await turnOn({ userType: UserType.MasterAdmin });
+
+      expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(true);
+    });
+
+    test("whether the caller is a master admin is read from their account, not their session", async () => {
+      getRequireSsoForLogin.mockResolvedValue(true);
+      // The session says master admin; the account no longer does.
+      rows.get(OWNER_ID)!.isMasterAdmin = false;
+
+      await expect(turnOn({ userType: UserType.MasterAdmin })).rejects.toThrow(
+        SSO_MANAGED_SIGN_IN_MESSAGE,
+      );
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    test("a rule that cannot be read refuses, never turning it on as if SSO were not required", async () => {
+      getRequireSsoForLogin.mockRejectedValue(new Error("connection refused"));
+
+      await expect(turnOn()).rejects.toThrow("connection refused");
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    test("a master admin cannot turn it on for another account through ordinary CRUD", async () => {
+      rows.get(OTHER_ID)!.enableTwoFactorAuth = false;
+
+      await expect(
+        turnOn({ id: OTHER_ID, userType: UserType.MasterAdmin }),
+      ).rejects.toThrow(
+        new BadDataException(TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE),
+      );
+
+      expect(update).not.toHaveBeenCalled();
+      expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(false);
+      expect(countVerifiedApps).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("turning it off", () => {
+    test("needs nothing set up, and is never refused for SSO: anybody can step down from it", async () => {
+      getRequireSsoForLogin.mockResolvedValue(true);
+      countVerifiedApps.mockResolvedValue(new PositiveNumber(0));
+      countVerifiedKeys.mockResolvedValue(new PositiveNumber(0));
+
+      await api.updateItem(requestFor(), response);
+
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(false);
+      expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+      expect(countVerifiedApps).not.toHaveBeenCalled();
+    });
+  });
 });

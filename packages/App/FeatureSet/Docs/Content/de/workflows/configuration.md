@@ -181,6 +181,8 @@ Die einzelnen Berechtigungen, für ein Team oder einen API-Schlüssel, die genau
 
 Eine Ausführung von Hand erreicht nur Workflows, die Sie öffnen können: Eine Rolle, die auf einige Beschriftungen oder auf die Workflows Ihres Teams beschränkt ist, führt nur diese aus. Wer einen Workflow nicht ausführen darf, sieht **Arbeitsablauf ausführen** ausgegraut, mit dem Grund im Tooltip.
 
+Einen Workflow, der als **Projektinhaber** oder als benutzerdefinierte Rolle läuft, ändern und führen von Hand nur Personen aus, die diese Berechtigungen selbst haben; alle anderen können ihn im **Editor** nur ansehen. Siehe [Run As](#run-as).
+
 Geben Sie den Personen, die Automatisierungen bauen, **Arbeitsablauf-Administrator** und denen, die sie nur starten, **Arbeitsablauf-Mitglied**. Behalten Sie den Bearbeitungszugriff auf Variablen den Personen vor, die die Geheimnisse Ihres Projekts verwalten. Wie Rollen vergeben werden, steht unter [Benutzer, Teams und Berechtigungen](/docs/permissions/index).
 
 ## Was Workflow-Schritte dürfen
@@ -189,7 +191,7 @@ Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-
 
 - **Nur das eigene Projekt des Workflows.** Ein Schritt liest und schreibt die Datensätze des Projekts, zu dem der Workflow gehört, und keines anderen, und ein Update verschiebt nie einen Datensatz in ein anderes Projekt.
 - **Nur, was ein Project Admin darf.** Ein Schritt kann nichts tun, was nur **Projektinhaber** oder Berechtigungen für Abrechnung oder Projektlöschung erlauben, und er kann nicht lesen, wer eine Sonde oder einen KI-Agenten angelegt hat; das sehen nur Projektinhaber.
-- **Nicht, wer Zugriff hat.** Ein Schritt legt keine Teams, Teammitglieder, Team-Berechtigungen, benutzerdefinierten Rollen oder API-Schlüssel-Berechtigungen an, ändert und löscht sie nicht, auch wenn ein Projektadministrator das darf. Wer einen Workflow baut, entscheidet, was seine Schritte tun, und das kann ein **Projektmitglied** sein; ein Schritt, der es könnte, gäbe ihm also Zugriff, den er nicht bekommen hat, etwa **Projektadministrator**. Der Schritt wird abgelehnt, und das Protokoll der Ausführung sagt, dass eine Person, die die Teams und API-Schlüssel des Projekts verwaltet, die Änderung vornehmen muss. Trigger und Find-Schritte auf diesen Datensätzen funktionieren weiterhin.
+- **Nicht, wer Zugriff hat.** Mit den Standardberechtigungen legt ein Schritt keine Teams, Teammitglieder, Team-Berechtigungen oder benutzerdefinierten Rollen an, ändert und löscht sie nicht, auch wenn ein Projektadministrator das darf. Wer einen Workflow baut, entscheidet, was seine Schritte tun, und das kann ein **Projektmitglied** sein; ein Schritt, der es könnte, gäbe ihm also Zugriff, den er nicht bekommen hat, etwa **Projektadministrator**. Der Schritt wird abgelehnt, und das Protokoll der Ausführung nennt die Berechtigung, die die Änderung braucht, und sagt, dass Sie in den **Einstellungen** des Workflows **Run As** wählen sollen: Ein Workflow, der als **Projektinhaber** läuft oder als benutzerdefinierte Rolle mit dieser Berechtigung, darf die Änderung vornehmen (siehe [Run As](#run-as)). Kein Schritt eines Workflows ändert API-Schlüssel, Single Sign-On oder SCIM-Einstellungen, ganz gleich, womit der Workflow läuft. Trigger und Find-Schritte auf diesen Datensätzen funktionieren weiterhin.
 - **Nicht das Lesen von Einstellungen mit Zugangsdaten.** Ein Projektadministrator darf SMTP-Server, Anruf- und SMS-Anbieter, SNMP-Zugangsdaten, Videoanruf-Verbindungen und API-Schlüssel lesen, aber einem Schritt wird das nie geliehen, wer auch immer den Workflow gebaut oder gespeichert hat. Ein Schritt kann keine dieser Einstellungen nennen, etwa den SMTP-Server, über den eine Statusseite E-Mails sendet, oder den API-Schlüssel, dem eine Berechtigung erteilt wird. Der Schritt wird abgelehnt, und sein Ausführungsprotokoll sagt, dass eine Person, die sie lesen darf (die Leseberechtigung dieser Art von Einstellung oder ein Projektinhaber oder Projektadministrator), die Änderung vornehmen muss. Ein Schritt, der die Einstellung behält, die ein Datensatz bereits nennt, oder sie leert, wird nicht abgelehnt.
 - **Nicht private Vorfälle, Warnungen und Episoden.** Ein Projektadministrator sieht jeden privaten Vorfall, jede private Warnung und Episode, aber das wird einem Schritt nie geliehen, egal wer den Workflow gebaut oder gespeichert hat. Ein Schritt findet keinen privaten Datensatz, ändert keinen und fügt keinem etwas hinzu, und ein Workflow startet nicht bei einem solchen Datensatz oder bei etwas, das zu ihm gehört, ob ein Ereignis eines Datensatzes oder **Arbeitsablauf ausführen** ihn startet. Wer einen Workflow baut, entscheidet, wohin das geht, was seine Schritte lesen — an einen Webhook, eine E-Mail, einen Chat, das Ausführungsprotokoll —, und das kann ein **Projektmitglied** sein, das einen privaten Datensatz nicht sehen darf. Siehe [Private Vorfälle, Warnungen und Episoden](/docs/permissions/index#private-vorfälle-warnungen-und-episoden).
 - **Nur, was Ihr Plan enthält.** In OneUptime Cloud wird ein Schritt, der etwas anlegt oder ändert, das Ihr Plan nicht enthält, mit dem Plan abgelehnt, den er braucht, genau wie das Dashboard. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Grenzen.
@@ -204,6 +206,26 @@ Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-
 Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Fehler**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
 
 Schritte, die mit anderen Systemen sprechen – API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code und Generate Text with AI –, lesen oder ändern keine OneUptime-Datensätze, daher ändert all das an ihnen nichts.
+
+### Run As
+
+Standardmäßig läuft ein Workflow mit den oben beschriebenen Berechtigungen, und die meisten Workflows brauchen nie mehr. Wenn doch – etwa ein Workflow, der jedem neuen Team eine benutzerdefinierte Rolle gibt –, öffnen Sie seine **Einstellungen**, dann **Weitere Einstellungen**, und wählen Sie **Change Run As**:
+
+- Standard: die oben beschriebenen Berechtigungen.
+- Projektinhaber: was ein **Projektinhaber** in diesem Projekt darf, einschließlich zu ändern, wer in einem Team ist und was ein Team darf. Nur ein Projektinhaber kann das wählen.
+- Eine benutzerdefinierte Rolle: genau das, was eine der benutzerdefinierten Rollen des Projekts erlaubt. Nur wer diese Rolle einem Team geben könnte, kann sie wählen.
+
+Womit der Workflow auch läuft: Ein Schritt liest nie Einstellungen mit Zugangsdaten, sieht nie private Vorfälle, Warnungen oder Episoden und ändert nie API-Schlüssel, Single Sign-On oder SCIM-Einstellungen. Wenn er einem Team eine Berechtigung oder eine Rolle gibt, kann er nur geben, was er selbst hat, und fehlt ihm etwas, nennt das Protokoll der Ausführung die Berechtigung.
+
+Ein Workflow, der mit mehr als den Standardberechtigungen läuft, läuft mit den Berechtigungen der Person, die sie ihm gegeben hat: wer zuletzt sein **Run As** gewählt oder seine Schritte oder Variablen gespeichert hat. Damit niemand über ihn mehr bekommt, als er selbst hat:
+
+- Nur Personen, die diese Berechtigungen haben, können ihn oder seine Variablen ändern, ihn archivieren oder löschen, ihn oder einen seiner Schritte von Hand ausführen oder seine Webhook-URL und eingehende E-Mail-Adresse sehen. Wer ihn bearbeiten darf, kann ihn trotzdem ausschalten. Sobald er mit mehr als den Standardberechtigungen läuft oder sich ändert, womit er läuft, bekommt er eine neue Webhook-URL und eingehende E-Mail-Adresse, sodass Kopien der alten ihn nicht mehr starten.
+- Nur eine Person kann sie geben, nie ein API-Schlüssel.
+- Jede Ausführung prüft zuerst, ob die Person, die sie gegeben hat, sie noch hat. Wenn nicht, stoppt die Ausführung vor ihrem ersten Schritt, und ihr Protokoll sagt, warum und wer sie wieder geben kann.
+- Er liest die globalen Variablen des Projekts nicht, die jeder ändern kann, der Workflow-Variablen bearbeiten darf.
+- Ein **Anderen Arbeitsablauf ausführen**-Schritt eines anderen Workflows kann ihn nur starten, wenn dieser Workflow mit denselben oder mehr Berechtigungen läuft.
+
+Jede Ausführung hält fest, womit sie lief und mit wessen Berechtigungen, zu sehen im Fenster der Ausführung und in einem heruntergeladenen Protokoll, und das [Audit-Protokoll](/docs/configuration/audit-logs) hält fest, wer das **Run As** eines Workflows geändert hat.
 
 ## Plan-Grenzen
 

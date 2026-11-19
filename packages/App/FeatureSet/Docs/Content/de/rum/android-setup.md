@@ -107,6 +107,8 @@ OpenTelemetry Android zeichnet all das von sich aus auf. Die Geräteattribute, d
 
 Abstürze und ANRs erreichen **Ausnahmen** als nicht behandelt, gruppiert nach ihren Stacktraces, mit der Sitzung, in der sie passiert sind. Der Agent speichert einen Absturz auf dem Datenträger, noch während die App abstürzt, und sendet ihn von dort aus, sodass ein Absturz, der offline passiert, trotzdem ankommt, sobald die App wieder mit Netzwerk läuft.
 
+Die **Übersicht** der Anwendung wertet das für Sie aus: **Sitzungen**, **Absturzfreie Sitzungen**, **Abstürze**, **ANRs**, **App-Starts**, **Kaltstart (p95)** und **Eingefrorene Frames**, und jede dieser Kacheln öffnet die Ausnahmen, Spans oder Ereignisse, die sie zählt. Solange die App keine App-Starts oder Frames sendet, sagen die zugehörigen Diagramme, wie Sie sie einschalten. Die **Empfehlungen** der Anwendung bieten Monitore für Abstürze, ANRs, langsame Kaltstarts, eingefrorene Frames und eine App, die nicht mehr meldet.
+
 Eine Sitzung endet nach 15 Minuten im Hintergrund oder nach 4 Stunden. Eine App, die nie in den Hintergrund geht, etwa ein Kiosk, behält 4 Stunden lang eine einzige Sitzung. Tracen Sie daher den Besuch jedes Kunden als eigenen Span, wie [Eigene Abläufe tracen](#eigene-abläufe-tracen) zeigt.
 
 Auch die eigenen `android.util.Log`-Aufrufe Ihrer App werden zu Logs, wenn Sie `android-log-library` und `android-log-agent` neben den OkHttp-Modulen unten hinzufügen: Das Tag jedes Aufrufs landet in `android.log.tag`, und ein Aufruf mit einem Throwable ist eine Ausnahme unter **Ausnahmen**. OpenTelemetry Android liest Logcat nicht.

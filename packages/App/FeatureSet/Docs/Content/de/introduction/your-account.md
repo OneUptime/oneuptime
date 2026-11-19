@@ -105,24 +105,30 @@ Der Link funktioniert einmal, 15 Minuten lang, und ein neuerer Link ersetzt ihn.
 
 ### Die Zwei-Faktor-Authentifizierung einschalten
 
-Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder einem per E-Mail gesendeten Link anmelden. Fügen Sie zuerst einen zweiten Schritt hinzu, und schalten Sie sie dann ein.
+Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder einem per E-Mail gesendeten Link anmelden. Sie wird erst eingeschaltet, wenn Ihr zweiter Schritt funktioniert, und fragt so nie nach einem Schritt, den Sie nicht haben.
 
 :::steps
-### Eine Authenticator-App hinzufügen
+### Ihren zweiten Schritt wählen
 
-Öffnen Sie **Sicherheit → Zwei-Faktor-Authentifizierung**. Fügen Sie unter **Authenticator-Apps** eine App hinzu und geben Sie ihr einen Namen. Scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben Sie den sechsstelligen Code ein, den sie zeigt, und klicken Sie auf **Verifizieren und abschließen**. Um stattdessen einen USB- oder NFC-Schlüssel zu nutzen, fügen Sie ihn unter **Sicherheitsschlüssel** hinzu.
+Öffnen Sie **Sicherheit → Zwei-Faktor-Authentifizierung** und klicken Sie auf **Zwei-Faktor-Authentifizierung aktivieren**. Wählen Sie **Authenticator-App** oder **Sicherheitsschlüssel** und klicken Sie auf **Weiter**.
+
+### Ihn einrichten
+
+Für eine Authenticator-App scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben den sechsstelligen Code ein, den sie zeigt, und klicken auf **Verifizieren und abschließen**. Einem USB- oder NFC-Schlüssel geben Sie einen Namen und folgen der Aufforderung Ihres Browsers. Danach ist die Zwei-Faktor-Authentifizierung eingeschaltet, und die Karte zeigt **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 
 ### Ihre Backup-Codes sichern
 
 Wenn Sie zum ersten Mal eine App, einen Schlüssel oder einen Passkey hinzufügen, zeigt OneUptime **Ihre Backup-Codes**. Jeder Code meldet Sie einmal an, falls Sie Ihre App oder Ihren Schlüssel verlieren. Kopieren oder laden Sie sie herunter, setzen Sie den Haken, dass Sie sie gesichert haben, und klicken Sie auf **Fertig**.
-
-### Sie einschalten
-
-Klicken Sie oben auf der Seite auf **Zwei-Faktor-Authentifizierung aktivieren** und bestätigen Sie. Die Karte zeigt nun **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 :::
+
+Haben Sie unter **Authenticator-Apps** schon eine App oder unter **Sicherheitsschlüssel** schon einen Schlüssel, fragt **Zwei-Faktor-Authentifizierung aktivieren** stattdessen nur nach einer Bestätigung. Solange sie eingeschaltet ist, lässt sich Ihre letzte App, Ihr letzter Schlüssel oder Passkey nicht entfernen: Fügen Sie zuerst einen weiteren hinzu oder schalten Sie die Zwei-Faktor-Authentifizierung aus. Zeigt die Karte **Einrichtung erforderlich**, ist die Zwei-Faktor-Authentifizierung eingeschaltet, aber noch nichts eingerichtet, oft weil ein Administrator sie verlangt hat: Klicken Sie auf **Einrichtung abschließen**, sonst werden Sie bei Ihrer nächsten Anmeldung dazu aufgefordert.
 
 > [!TIP]
 > Gehen Ihnen die Backup-Codes aus? **Codes neu erzeugen** auf derselben Seite gibt Ihnen einen neuen Satz, und die alten Codes funktionieren sofort nicht mehr.
+
+### Wenn Ihre Organisation Ihre Anmeldung verwaltet
+
+Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
 
 ## Ihre Projekte
 

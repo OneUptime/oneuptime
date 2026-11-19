@@ -7,11 +7,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  composedValue,
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
@@ -21,12 +17,9 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
-import {
-  getProxmoxAttentionItems,
-  isProxmoxIssueAbout,
-} from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
+import { isProxmoxIssueAbout } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
 import {
   ProxmoxGuestBackup,
   formatProxmoxDuration,
@@ -59,14 +52,16 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * the QEMU guest agent in a guest that never starts - only its last backup.
  */
 
-// How the guest's own row reads in its Needs attention card.
-const THIS_GUEST: string = translationKey("This guest");
-
 export interface ComponentProps {
   clusterId: ObjectID;
   clusterName: string;
   externalId: string;
   row: ProxmoxResource | null;
+  /*
+   * What needs attention on the guest: the page reads it once
+   * (getProxmoxPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: ProxmoxPartRoutes;
   refreshToken?: number | undefined;
   // Drawn last: the linked host, or how to see inside the guest.
@@ -112,13 +107,6 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
       });
     });
   };
-
-  const attentionItems: Array<ResourceAttentionItem> = getProxmoxAttentionItems(
-    {
-      rows: [row],
-      routeFor: props.routes.getPartRoute,
-    },
-  );
 
   const isQemu: boolean =
     row.guestType === "qemu" || props.externalId.startsWith("qemu/");
@@ -318,9 +306,9 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="proxmox-guest-overview">
       <NeedsAttentionCard
         testId="proxmox-guest-attention"
-        items={attentionItems}
-        current={{ key: `Guest:${props.externalId}`, label: THIS_GUEST }}
-        description="What about this guest is broken or needs a look, the most urgent first."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div

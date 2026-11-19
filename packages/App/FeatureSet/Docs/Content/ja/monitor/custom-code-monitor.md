@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 引用符を含むシークレットの値は、それを囲む文字列を壊します。モニターが使えない参照は、書かれたままスクリプトに残ります。シークレットを作成し、使えるモニターを選ぶ方法は [モニター シークレット](/docs/monitor/monitor-secrets) を参照してください。
 
+ワンタイムコードのシークレットは、値ではなくサイトの 2 要素認証のセットアップキーを保持します。その `{{monitorSecrets.NAME}}` はスクリプトの開始時点のコードになり、`await oneuptime.getTotpCode("NAME")` はスクリプトが求めたときに新しいコードを作ります。[ワンタイムコードでサインインする](/docs/monitor/monitor-secrets#ワンタイムコードでサインインする) を参照してください。
+
 ## カスタムメトリクス
 
 `oneuptime.captureMetric()` 関数を使うと、スクリプトからカスタムメトリクスを記録できます。これらのメトリクスは OneUptime に保存され、Metric Explorer でダッシュボードのグラフにできます。
@@ -226,6 +228,7 @@ return {
 | `http`、`https` | `axios` に渡すための `Agent` クラスだけです。たとえば `httpsAgent: new https.Agent({ rejectUnauthorized: false })` のように使います。`request` や `get` はありません。 |
 | `console.log` | デバッグ用にデータを記録します。あるのは `console.log` だけで、`console.error` などはありません。 |
 | `oneuptime.captureMetric` | カスタムメトリクスを記録します。[カスタムメトリクス](#カスタムメトリクス) を参照してください。 |
+| `oneuptime.getTotpCode` | ワンタイムコードのシークレットの現在のコードを作ります：`await oneuptime.getTotpCode("NAME")`。[モニター シークレットを使う](#モニター-シークレットを使う) を参照してください。 |
 | `setTimeout`、`clearTimeout`、`sleep(ms)` | スクリプト内で待機します。待機がスクリプトのタイムアウトを超えることはありません。 |
 
 ## 考慮事項

@@ -49,23 +49,26 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 | --- | --- | --- |
 | **Incidenter** | **Incident skapad**, **Incidenttillstånd ändrat**, **Påminnelse om incident**, **Incidentens SLA överskridet**, **Incidentepisod skapad**, **Tillstånd för incidentepisod ändrat**, **Incident tillagd i incidentepisod** | **Incidentanteckning publicerad**, **Tillagd som ägare av incident**, **Tilldelad till en incident**, **Anteckning för incidentepisod publicerad**, **Tillagd som ägare av incidentepisod** |
 | **Larm** | **Larm skapat**, **Larmtillstånd ändrades**, **Påminnelse om larm**, **Larmepisod skapad**, **Tillstånd för larmepisod ändrades**, **Larm tillagt i larmepisod** | **Larmanteckning publicerad**, **Tillagd som ägare av larm**, **Anteckning för larmepisod publicerad**, **Tillagd som ägare av larmepisod** |
-| **Övervakning** | **Sondstatus ändrad för din övervakning**, **Övervakningen har inga aktiva sonder**, **SLO-status ändrad**, **Tillagd som SLO-ägare**, **Undantag tilldelat mig**, **Sondstatus ändrad**, **Tillagd som ägare av sond**, **Tillagd som ägare av tabell**, **Tillagd som ägare av pipeline** | **Övervakning skapad**, **Övervakningsstatus ändrad**, **Tillagd som ägare av övervakning**, **Status för AI-agent ändrades**, **Tillagd som ägare av AI-agent** |
+| **Övervakning** | **Sondstatus ändrad för din övervakning**, **Övervakningen har inga aktiva sonder**, **SLO-status ändrad**, **Tillagd som SLO-ägare**, **Undantag tilldelat mig**, **Sondstatus ändrad**, **Tillagd som ägare av sond**, **Tillagd som ägare av tabell**, **Tillagd som ägare av pipeline**, **Tillagd som ägare av tjänst eller infrastruktur**, **Tillagd som ägare av instrumentpanel**, **Tillagd som ägare av arbetsflöde**, **Tillagd som ägare av runbook** | **Övervakning skapad**, **Övervakningsstatus ändrad**, **Tillagd som ägare av övervakning**, **Status för AI-agent ändrades**, **Tillagd som ägare av AI-agent** |
 | **Statussidor** | **Min offentliga anteckning godkänd eller avvisad**, och även via push: **Offentlig anteckning väntar på mitt godkännande** | **Statussida skapad**, **Statussidemeddelande publicerat**, **Tillagd som ägare av statussida** |
 | **Schemalagt underhåll** | **Påminnelse om underhåll** | **Underhållshändelse skapad**, **Underhållstillstånd ändrat**, **Underhållsanteckning publicerad**, **Tillagd som ägare av underhåll** |
-| **Jour** | **Du går på jour**, **Du är näst på tur i jouren**, **Du går av jour**, **Tillagd i jourpolicy**, **Borttagen från jourpolicy**, **Missat samtal**, och även via push: **Innan mitt jourpass börjar**, **Mitt kommande jourpass tilldelas någon annan** | Inga |
+| **Jour** | **Du går på jour**, **Du är näst på tur i jouren**, **Du går av jour**, **Tillagd i jourpolicy**, **Borttagen från jourpolicy**, **Missat samtal**, **Tillagd som ägare av jourpolicy**, **Tillagd som ägare av jourschema**, **Tillagd som ägare av inkommande samtalspolicy**, och även via push: **Innan mitt jourpass börjar**, **Mitt kommande jourpass tilldelas någon annan** | Inga |
 | **Säkerhet** | **Tillagd som ägare av datalager**, och även via push: **Nytt säkerhetsärende** (ärenden med High och Critical), **Säkerhetsärende tilldelat mig**, **Playbook-steg väntar på mitt godkännande**, **Svarsmål för säkerhetsärende**, **Uppgift i säkerhetsärende tilldelad mig**, **En hunt hittade säkerhetshändelser** | Inga |
 
 > [!IMPORTANT]
 > **Övervakningsstatus ändrad** börjar avstängd. För att få veta när en övervakning du äger går ned eller kommer tillbaka slår du på den på fliken **Övervakning**.
 
+**Tillagd som ägare av tjänst eller infrastruktur**, på kortet **Tjänster och infrastruktur**, är en enda brytare för varje tjänst, RUM-applikation, databas, kö, värd, kluster, molnresurs och annan infrastruktur som du blir ägare av. Meddelandet säger vilken det är.
+
 ## Dina jourpass
 
-Fliken **Jour** handlar om dig, inte om det du äger:
+Fliken **Jour** handlar om dig och om de jourposter du äger:
 
 - **Du går på jour**, **Du är näst på tur i jouren** och **Du går av jour** följer dina turer i jourschemana du är med i.
 - **Tillagd i jourpolicy** och **Borttagen från jourpolicy** berättar när en jourpolicy börjar eller slutar nämna dig.
 - **Innan mitt jourpass börjar** skickar påminnelser vid de tider du väljer under **Användarinställningar → Profil och kalender → Kalenderflöde**, och **Mitt kommande jourpass tilldelas någon annan** berättar när någon annan täcker ett jourpass som du har påmints om. Se [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning).
 - **Missat samtal**, på kortet **Inkommande samtalspolicyer**, berättar för ägarna av en policy för inkommande samtal att någon som ringde inte nådde någon. Se [Policy för inkommande samtal](/docs/on-call/incoming-call-policy#missade-samtal).
+- **Tillagd som ägare av jourpolicy**, **Tillagd som ägare av jourschema** och **Tillagd som ägare av inkommande samtalspolicy** berättar när du blir ägare av en av dem, genom en ägarregel eller av en person på dess sida Ägare.
 
 ## Säkerhetsärenden
 

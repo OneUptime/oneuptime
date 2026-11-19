@@ -3,6 +3,13 @@ import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import {
+  TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE,
+} from "../../../Types/TwoFactorAuthSetup";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
@@ -1143,18 +1150,58 @@ describe("UserService -- admin-controlled two factor auth", () => {
       ).resolves.toBeDefined();
     });
 
-    test("a non-root caller may still turn the requirement ON for themselves", async () => {
+    test("a non-root caller turns the requirement ON for themselves once a second step is set up (#9666)", async () => {
       /*
-       * Self-service enrolment stays. The guard is deliberately one-way: it
-       * bounds who can WEAKEN an account, not who can strengthen one.
+       * Self-service stays, one step later than it was. Turned on with
+       * nothing set up, the profile said "Enabled" over "No security keys
+       * added yet" and the account had no second factor at all, so the
+       * owner's own switch now asks for an authenticator app, a security key
+       * or a passkey behind it. A master admin's requirement (the root write
+       * above) still asks for nothing: walking the person through enrolment
+       * at their next sign-in is what it is for.
        */
+      getJestSpyOn(
+        GlobalConfigService,
+        "getRequireSsoForLogin",
+      ).mockResolvedValue(false);
+      findOneBySpy.mockImplementation(async (): Promise<User | null> => {
+        return buildUser({ id: userId, enableTwoFactorAuth: false });
+      });
+      totpCountBySpy.mockResolvedValue(new PositiveNumber(1));
+      webAuthnCountBySpy.mockResolvedValue(new PositiveNumber(0));
+
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: true },
+          props: { userId },
+        }),
+      ).resolves.toBeDefined();
+
+      totpCountBySpy.mockResolvedValue(new PositiveNumber(0));
+
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: true },
+          props: { userId },
+        }),
+      ).rejects.toThrow(TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE);
+    });
+
+    test("a non-root caller with no session of their own cannot turn it ON: there is no own account to name", async () => {
       await expect(
         callOnBeforeUpdate({
           query: { _id: userId },
           data: { enableTwoFactorAuth: true },
           props: {},
         }),
-      ).resolves.toBeDefined();
+      ).rejects.toThrow(TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE);
+
+      // Refused on what the query says, before anything is counted.
+      for (const spy of authenticatorProbeSpies()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
     });
 
     test("an unrelated non-root update is untouched by the guard", async () => {
@@ -1290,45 +1337,45 @@ describe("UserService -- admin-controlled two factor auth", () => {
       expect(violations).toEqual([]);
     });
 
-    test("neither authenticator service overrides onBeforeDelete any more", async () => {
+    test("both authenticator services guard the last second step again, the same way (#9666)", async () => {
       /*
        * Both services used to refuse the deletion of a user's LAST verified
-       * factor while `enableTwoFactorAuth` was on, advising them to "disable two
-       * factor auth before deleting this item".
+       * factor while `enableTwoFactorAuth` was on, and the guard was taken
+       * out for three reasons. Each is answered by the guard that replaced
+       * it (UserService.assertTwoFactorAuthKeepsASecondStep):
        *
-       * Both halves of that stopped being true. The advice is impossible to
-       * follow for a user whose two factor auth was MANDATED -- they cannot turn
-       * the requirement off -- so the guard did not protect them, it stranded
-       * them on an authenticator they may have been trying to replace, and it
-       * would have made `resetTwoFactorAuth` throw on the one account that needs
-       * it most. And the lockout it protected against no longer exists: an
-       * account required to use two factor auth with nothing set up is now sent
-       * through enrolment at its next sign-in, so deleting the last factor costs
-       * a QR code, not an account.
+       *  - its advice could not be followed by somebody whose admin required
+       *    two factor auth. Its owner turns it off from their profile now,
+       *    whoever turned it on;
+       *  - it would have made `resetTwoFactorAuth` throw. A root delete is
+       *    not asked (the lost-phone test below still holds);
+       *  - it counted the factors that existed BEFORE the delete, once per
+       *    item, so removing two in one call passed twice. The count is taken
+       *    over every row the delete removes.
        *
-       * (It was also wrong on its own terms -- it counted the factors that
-       * existed BEFORE the delete, once per item, inside a loop over the whole
-       * delete set, so removing two verified factors in one call passed the
-       * check twice and landed in the state it existed to prevent.)
-       *
-       * Identity against `DatabaseService.prototype` is the robust form: it does
-       * not care what a reinstated guard would decide, only that the two
-       * services still inherit the placeholder.
+       * What it guards against is real again: removing the last one left
+       * "Enabled" over nothing, the state #9666 reported. Both services
+       * override the placeholder, with the same hook.
        */
-      const violations: Array<string> = [];
-
       const inherited: unknown = (DatabaseService.prototype as any)
         .onBeforeDelete;
 
-      if ((UserTotpAuthService as any).onBeforeDelete !== inherited) {
-        violations.push("UserTotpAuthService overrides onBeforeDelete again");
-      }
+      expect((UserTotpAuthService as any).onBeforeDelete).not.toBe(inherited);
+      expect((UserWebAuthnService as any).onBeforeDelete).not.toBe(inherited);
+    });
 
-      if ((UserWebAuthnService as any).onBeforeDelete !== inherited) {
-        violations.push("UserWebAuthnService overrides onBeforeDelete again");
-      }
+    test("a non-root delete of the last verified second step of an account with it on is refused", async () => {
+      findOneBySpy.mockImplementation(async (): Promise<User | null> => {
+        return buildUser({ id: userId, enableTwoFactorAuth: true });
+      });
+      totpCountBySpy.mockResolvedValue(new PositiveNumber(1));
+      webAuthnCountBySpy.mockResolvedValue(new PositiveNumber(0));
 
-      expect(violations).toEqual([]);
+      await expect(
+        UserService.assertTwoFactorAuthKeepsASecondStep([
+          { userId: userId, isVerified: true },
+        ]),
+      ).rejects.toThrow(TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE);
     });
 
     test("the override comparison can actually detect an override", async () => {

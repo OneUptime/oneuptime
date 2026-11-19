@@ -136,16 +136,19 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(text).toContain(`*${written}*`);
   });
 
-  test("a step changes nobody's access, and the page says who makes those changes", () => {
+  test("a default step changes nobody's access, and the page says what would let it (#9695)", () => {
     expect(text).toContain("**Not who has access.**");
     expect(text).toContain(
-      "A step doesn't create, change or delete teams, team members, team permissions, custom roles or API key permissions, even though a Project Admin may.",
+      "On the default permissions, a step doesn't create, change or delete teams, team members, team permissions or custom roles, even though a Project Admin may.",
     );
     // Why: whoever builds a workflow may be someone with less access.
     expect(text).toContain("that can be a **Project Member**");
     expect(text).toContain("such as **Project Admin**");
     expect(text).toContain(
-      "its run log says a person who manages the project's teams and API keys has to make the change",
+      "its run log names the permission the change takes and says to choose **Run As** in the workflow's **Settings**",
+    );
+    expect(text).toContain(
+      "No workflow's step changes API keys, single sign-on or SCIM settings, whatever it runs as.",
     );
     expect(text).toContain(
       "Triggers and Find steps on these records still work.",
@@ -164,11 +167,56 @@ describe("the Configuration & Safety page says what a step may do", () => {
     })!;
 
     expect(written).toContain(
-      "A person who manages the project's teams and API keys has to make this change.",
+      "To let this workflow do it, choose what it runs as in its Settings: Project Owner, or a custom role that has Edit Team Permissions.",
     );
     expect(written).not.toContain(
       "Workflow steps can do only what a Project Admin of this project can do",
     );
+  });
+
+  /*
+   * What a workflow runs as (#9695), under the section it changes: the
+   * choices and who may make them, what no workflow ever does, whose
+   * permissions a raised workflow runs with, and each way someone holding
+   * less is kept from steering it.
+   */
+  test("its Run As subsection says the choices, the limits and who may steer a raised workflow", () => {
+    const runAs: string = section(page, "### Run As");
+
+    expect(text).toContain("### Run As");
+    expect(text).toContain("(see [Run As](#run-as))");
+    expect(runAs).toContain("**Settings**, then **More settings**");
+    expect(runAs).toContain("**Change Run As**");
+    expect(runAs).toContain("Only a Project Owner can choose it.");
+    expect(runAs).toContain(
+      "Only someone who could give that role to a team can choose it.",
+    );
+    expect(runAs).toContain(
+      "never reads settings that hold credentials, never sees private incidents, alerts or episodes, and never changes API keys, single sign-on or SCIM settings",
+    );
+    expect(runAs).toContain(
+      "whoever last chose its **Run As**, or saved its steps or its variables",
+    );
+    expect(runAs).toContain("Anyone who can edit it can still turn it off.");
+    // The keys a copy was made of stop working (WorkflowService.giveNewTriggerKeys).
+    expect(runAs).toContain(
+      "When it's set to run as more than the default, or what it runs as changes, it gets a new webhook URL and incoming email address, so copies of the old ones no longer start it.",
+    );
+    expect(runAs).toContain("never an API key");
+    expect(runAs).toContain(
+      "Each run first checks that the person who gave them still has them. If not, the run stops before its first step",
+    );
+    expect(runAs).toContain("It doesn't read the project's global variables");
+    expect(runAs).toContain(
+      "can start it only if that workflow runs with the same permissions or more",
+    );
+    expect(runAs).toContain("[audit log](/docs/configuration/audit-logs)");
+    // Its list adds no bold-led point: the translations keep the section's points.
+    expect(
+      runAs.split("\n").filter((line: string): boolean => {
+        return line.startsWith("- **");
+      }),
+    ).toEqual([]);
   });
 
   test("steps that call other systems are not changed", () => {
@@ -306,6 +354,22 @@ describe("every language's Configuration page has the section", () => {
       expect(text).toContain("CNAME");
       // A Create Many step keeps the records it made before the refused one.
       expect(text).toContain("Create Many");
+      /*
+       * What a workflow runs as (#9695): its own subsection, headed as the
+       * language's Dashboard names the setting, that the access point and
+       * the Permissions section link to.
+       */
+      const runAs: string = drawnActionLabel(locale, "Run As");
+
+      expect(text).toContain(`\n### ${runAs}\n`);
+      expect(text).toContain(`(#${slugify(runAs)})`);
+      expect(text).toContain(
+        `**${drawnActionLabel(locale, "Change Run As")}**`,
+      );
+      expect(
+        page.slice(0, page.indexOf(headings[at]!)).split(`(#${slugify(runAs)})`)
+          .length,
+      ).toBe(2);
       /*
        * Sending the template's id is refused, and the page names the way
        * round it: the step's Incident Template setting, as the settings

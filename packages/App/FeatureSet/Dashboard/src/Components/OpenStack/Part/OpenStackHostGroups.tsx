@@ -101,6 +101,14 @@ interface HostGroupWords {
   readErrorTitle: string;
 }
 
+/*
+ * What a zone's or an aggregate's Needs attention is for: its card and the
+ * list its hero's status opens say it in the same words (#9594).
+ */
+const GROUP_ATTENTION_DESCRIPTION: string = translationKey(
+  "What on these hypervisors is broken or needs a look, the most urgent first.",
+);
+
 const WORDS: Record<OpenStackHostGroupKind, HostGroupWords> = {
   zone: {
     title: translationKey("Availability Zones"),
@@ -507,7 +515,7 @@ export const OpenStackHostGroupPage: FunctionComponent<{
           <NeedsAttentionCard
             testId={`openstack-${props.kind}-attention`}
             items={group.attention}
-            description="What on these hypervisors is broken or needs a look, the most urgent first."
+            description={GROUP_ATTENTION_DESCRIPTION}
           />
           <div
             className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
@@ -657,6 +665,11 @@ export const OpenStackHostGroupPage: FunctionComponent<{
         accent="orange"
         name={group.name}
         status={{ label: group.health, tone: HEALTH_TONES[group.health] }}
+        // What its Needs attention lists: a Degraded or Unhealthy opens it.
+        attention={{
+          items: group.attention,
+          description: GROUP_ATTENTION_DESCRIPTION,
+        }}
         location={
           <TranslatedSentence
             template={words.groupLocation}

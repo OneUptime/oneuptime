@@ -1814,6 +1814,145 @@ export function getOpenStackHealth(
   return getResourceAttentionHealth(items);
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * What the Overview's tiles count
+ * ---------------------------------------------------------------------------
+ *
+ * "APIs up · 3 workers down" and "up · 2 lost" said how many and nothing else
+ * (#9594). Pressed, each opens the parts it counts as Needs attention lists
+ * them, with why: chosen by the rows the count was made of, the way
+ * getOpenStackWorkerCounts and getOpenStackHypervisorCounts count them.
+ */
+function isCountedDown(row: OpenStackResource): boolean {
+  return (
+    !isOpenStackAdminDisabled(row.adminState) &&
+    isOpenStackServiceDown({ status: row.status, adminState: row.adminState })
+  );
+}
+
+/*
+ * The workers that are down: each on its own, and a service none of whose
+ * workers is up as the one row Needs attention gives it.
+ */
+export function getOpenStackWorkersDownItems(data: {
+  items: Array<ResourceAttentionItem>;
+  workers: Array<OpenStackResource>;
+}): Array<ResourceAttentionItem> {
+  const keys: Set<string> = new Set<string>();
+  for (const worker of data.workers) {
+    if (
+      worker.kind !== OpenStackResourceKind.Service ||
+      !isCountedDown(worker)
+    ) {
+      continue;
+    }
+    keys.add(`${worker.kind}/${worker.externalId}`);
+    // As getEveryWorkerDownItems keys a service whose every worker is down.
+    keys.add(`every-${worker.regionName || ""}-${worker.name || ""}`);
+  }
+  return data.items.filter((item: ResourceAttentionItem): boolean => {
+    return keys.has(item.key);
+  });
+}
+
+/*
+ * The hypervisors Nova lost, the capacity nobody can use, each as one host
+ * whose state is its nova-compute's: the nova-compute's own row of Needs
+ * attention where it lists one - down, and the instances and projects it
+ * held - else the host as assessOpenStackHost says it, a step from the
+ * hypervisor's page. A lost hypervisor's own row says nothing in Needs
+ * attention: its nova-compute already does.
+ */
+export function getOpenStackLostHypervisorItems(data: {
+  items: Array<ResourceAttentionItem>;
+  // What the items were read from: where a hypervisor's nova-compute is.
+  rows: Array<OpenStackResource>;
+  hypervisors: Array<OpenStackResource>;
+  now: Date;
+  routeFor?: OpenStackRouteFor | undefined;
+}): Array<ResourceAttentionItem> {
+  const hostKey: (
+    regionName: string | null | undefined,
+    host: string | null | undefined,
+  ) => string = (
+    regionName: string | null | undefined,
+    host: string | null | undefined,
+  ): string => {
+    return `${regionName || ""}/${getOpenStackShortHostName(host)}`;
+  };
+
+  const computeByHost: Map<string, OpenStackResource> = new Map();
+  for (const row of data.rows) {
+    const host: unknown = factsOf(row)["host"];
+    if (
+      row.kind === OpenStackResourceKind.Service &&
+      row.name === "nova-compute" &&
+      typeof host === "string"
+    ) {
+      computeByHost.set(hostKey(row.regionName, host), row);
+    }
+  }
+  const listed: Map<string, ResourceAttentionItem> = new Map(
+    data.items.map(
+      (item: ResourceAttentionItem): [string, ResourceAttentionItem] => {
+        return [item.key, item];
+      },
+    ),
+  );
+
+  const result: Array<ResourceAttentionItem> = [];
+  const seen: Set<string> = new Set<string>();
+  for (const hypervisor of data.hypervisors) {
+    if (
+      hypervisor.kind !== OpenStackResourceKind.Hypervisor ||
+      !isCountedDown(hypervisor)
+    ) {
+      continue;
+    }
+    const compute: OpenStackResource | undefined = computeByHost.get(
+      hostKey(
+        hypervisor.regionName,
+        hypervisor.hypervisorName || hypervisor.name,
+      ),
+    );
+    const own: ResourceAttentionItem | undefined = compute
+      ? listed.get(`${compute.kind}/${compute.externalId}`)
+      : undefined;
+    if (own) {
+      if (!seen.has(own.key)) {
+        seen.add(own.key);
+        result.push(own);
+      }
+      continue;
+    }
+    const assessment: OpenStackAssessment = assessOpenStackHost({
+      hypervisor: hypervisor,
+      compute: compute || null,
+      now: data.now,
+    });
+    if (!assessment.severity) {
+      continue;
+    }
+    const key: string = `${hypervisor.kind}/${hypervisor.externalId}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push({
+      key: key,
+      kind: KIND_WORDS[OpenStackResourceKind.Hypervisor] || KIND_HYPERVISOR,
+      icon: iconOf(OpenStackResourceKind.Hypervisor),
+      name: getOpenStackDisplayName(hypervisor),
+      detail: getOpenStackDetail(hypervisor),
+      severity: assessment.severity,
+      reasons: assessment.reasons,
+      route: data.routeFor?.(hypervisor),
+    });
+  }
+  return sortResourceAttention(result, OPENSTACK_ATTENTION_KIND_ORDER);
+}
+
 // A part's name as people know it, or its id when OpenStack gave it none.
 export function getOpenStackDisplayName(row: OpenStackResource): string {
   if (row.name) {

@@ -1,6 +1,6 @@
 # Sensible Daten in der Telemetrie
 
-Telemetrie enthält alles, was Ihr Code schreibt: eine E-Mail-Adresse in einer Logzeile, eine Kartennummer in einem Span-Attribut, ein Token in einem Stacktrace, die Frage eines Kunden in einem Prompt. Datensicherheit behandelt die Logs, Traces, Ausnahmen und KI-Unterhaltungen jedes Dienstes und die Sitzungen jeder RUM-Anwendung als eigene Datenspeicher. Sie nimmt jede Stunde Stichproben davon, findet darin sensible Daten wie in einem Bucket, und **Bereinigen** macht aus einem Fund eine Bereinigungsregel, die diese Daten von da an bei der Aufnahme maskiert.
+Telemetrie enthält alles, was Ihr Code schreibt: eine E-Mail-Adresse in einer Logzeile, eine Kartennummer in einem Span-Attribut, ein Token in einem Stacktrace, die Frage eines Kunden in einem Prompt, die IP-Adresse eines Benutzers im Label einer Metrik. Datensicherheit behandelt die Logs, Traces, Metriken, Ausnahmen und KI-Unterhaltungen jedes Dienstes und die Sitzungen jeder RUM-Anwendung als eigene Datenspeicher. Sie nimmt jede Stunde Stichproben davon, findet darin sensible Daten wie in einem Bucket, und **Bereinigen** macht aus einem Fund eine Regel, die diese Daten von da an bei der Aufnahme maskiert.
 
 Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gescannt, sofern **Telemetrie scannen** in den Einstellungen des Projekts nicht ausgeschaltet ist. Um die Logs, Traces oder ein anderes Signal eines Dienstes auszulassen, schalten Sie **Inhalt scannen** in den **Einstellungen** dieses Datenspeichers aus: Ab dem nächsten Scan wird nichts davon gelesen.
 
@@ -34,8 +34,19 @@ Ein Fund, den eine Bereinigungsregel abdeckt, wird als bereinigt markiert: Was v
 | Ausnahmen | Die Nachricht, der Stacktrace und die Attribute | `message`, `stackTrace`, `attributes.<key>` |
 | KI-Unterhaltungen | Die Prompts und Antworten jedes KI-Aufrufs, unter den Schlüsseln, in die die GenAI-Konventionen sie legen, und jedes andere Attribut | Der Schlüssel, in dem sie stehen, etwa `gen_ai.input.messages` oder `gen_ai.prompt[].content` |
 | Sitzungswiedergaben | Die Attribute der Spans und Logs einer RUM-Anwendung, die Attribute ihrer Sitzungen, die Merkmale, die `identify()` ihren Benutzern gegeben hat, und die Benutzerreferenz, die ihr mitgeteilt wurde | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Metriken | Jedes Attribut eines Datenpunkts, darunter die seiner Ressource, und die Namen der Metriken | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Nummerierte Schlüssel werden zu einem Ort zusammengefasst: `gen_ai.prompt.3.content` ist `gen_ai.prompt[].content`, sodass die zwanzig Nachrichten eines Chats ein Fund sind, nicht zwanzig. Attribute, die OneUptime selbst hinzufügt und die mit `oneuptime.` beginnen, werden nicht gelesen.
+
+### Metriken
+
+Die Attribute einer Metrik sind die Labels ihrer Reihen. Sie sind an jedem Datenpunkt einer Reihe gleich, sodass eine Metrik, die tausend Punkte pro Minute schreibt, vielleicht nur drei Werte enthält, und ein Label, das die E-Mail-Adresse eines Benutzers preisgibt, eine Reihe hinzufügt, keinen Punkt. Deshalb werden von einer Metrik Stichproben nach ihren Reihen genommen, nicht nach ihren Punkten:
+
+- **Ihre neueste Minute.** Jede Metrik wird in der neuesten Minute gelesen, die sie in der letzten Stunde geschrieben hat: bis zu 100 Datenpunkte dieser Minute, was bei einer Metrik, die einmal pro Minute gesendet wird, wie OpenTelemetry es standardmäßig tut, ein Punkt jeder Reihe ist. Ein Wert wird einmal klassifiziert, egal wie viele Punkte ihn wiederholen, sodass ein Fund die verschiedenen Werte an seinem Ort zählt.
+- **Die aktivsten zuerst, die übrigen im Wechsel.** Welche Metriken ein Dienst geschrieben hat, ergibt sich aus der minütlichen Zusammenfassung, die die Metriktabelle führt, nie aus ihren Punkten. Jeder Scan liest die aktivsten Metriken eines Dienstes, die am ehesten viele Reihen haben, und einige seiner übrigen, jede Stunde die nächsten, sodass nach und nach jede Metrik gelesen wird.
+- **Der eigene Bereich jeder Metrik.** Die Metriken werden gemeinsam gelesen, jede über ihren eigenen Bereich des Primärschlüssels der Tabelle. Eine Metrik, deren neueste Minute mehr als 16.384 Punkte enthält, etwa eine mit der E-Mail-Adresse jedes Benutzers als Label, wird für sich gelesen, und der Lesevorgang endet bei ihren ersten Punkten, sodass sie nicht mehr kostet als jede andere Metrik.
+
+Ein Fund nennt das Attribut, etwa `attributes.user.email`, oder `name` für Daten im Namen einer Metrik. Seine Einträge sind die Datenpunkte, in denen er gefunden wurde: Jeder zeigt seine Metrik und den Wert des Attributs, maskiert, und öffnet in **Metriken** diese Metrik, gruppiert nach diesem Attribut. Enthält der Name einer Metrik sensible Daten, wird auch der Name maskiert, und der Eintrag öffnet stattdessen die Metriken des Dienstes.
 
 ### Warum die Aufzeichnung einer Wiedergabe nie gelesen wird
 
@@ -62,6 +73,8 @@ Jede Stunde werden die neuesten Datensätze jedes Signals aus der letzten Stunde
 | Attribute eines Datensatzes | 128; 64 bei einem KI-Aufruf |
 | Ereignisse eines Spans und Attribute eines Ereignisses | 16 und 32 |
 | Orte eines Datenspeichers | 500 |
+| In einem Scan gelesene Metriken | 100, aufgeteilt auf die Dienste, mindestens eine von jedem; höchstens 10 eines Dienstes, zur Hälfte seine aktivsten und zur Hälfte im Wechsel seine übrigen |
+| Datenpunkte einer Metrik | Die ihrer neuesten Minute, höchstens 100 |
 
 Jeder Wert wird schon in der Datenbank gekürzt, sodass kein langer Wert sie verlässt, und jeder Lesevorgang endet nach 30 Sekunden. Ein fehlgeschlagener Lesevorgang wird zum Warnhinweis an den Datenspeichern, für die er gedacht war; der Scan macht mit dem nächsten weiter.
 
@@ -69,16 +82,16 @@ Um etwas auszulassen, fügen Sie es unter **Scan-Ausschlüsse** des Datenspeiche
 
 ## Bereinigen
 
-**Bereinigen** an einem Fund erstellt die Bereinigungsregel, die diesen Datentyp an diesem Ort von da an verbirgt, oder verweist auf die aktivierte Regel, die das bereits tut:
+**Bereinigen** an einem Fund erstellt die Regel, die diesen Datentyp an diesem Ort von da an verbirgt, oder verweist auf die aktivierte Regel, die das bereits tut:
 
 :::steps
 ### Den Fund öffnen
 
-Öffnen Sie den Telemetrie-Datenspeicher - zum Beispiel die **Protokolle** eines Dienstes - und den Fund.
+Öffnen Sie das Problem - **Wo es gefunden wurde** listet jeden Fund dahinter auf - oder **Datensicherheit > In Ihrer Telemetrie**, wo **Einträge anzeigen** die Einträge, in denen ein Fund gefunden wurde, neben der Liste öffnet.
 
 ### Auf Bereinigen klicken
 
-Klicken Sie auf **Bereinigen**. OneUptime erstellt eine Bereinigungsregel für Logs bei Logs und den Logs einer RUM-Anwendung und eine Bereinigungsregel für Traces bei Spans, Ausnahmen und KI-Aufrufen, für den Teil des Datensatzes, in dem der Fund steht.
+Klicken Sie auf **Bereinigen**. OneUptime erstellt eine Bereinigungsregel für Logs bei Logs und den Logs einer RUM-Anwendung, eine Bereinigungsregel für Traces bei Spans, Ausnahmen und KI-Aufrufen, für den Teil des Datensatzes, in dem der Fund steht, und eine Metrik-Pipeline-Regel beim Attribut einer Metrik.
 
 ### Auch den Code beheben
 
@@ -92,16 +105,18 @@ Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email 
 | E-Mail-Adresse, Kartennummer, US-Sozialversicherungsnummer, Telefonnummer oder IP-Adresse | Das integrierte Muster dieses Typs. Kartennummern, Sozialversicherungsnummern und Telefonnummern werden maskiert, der Rest geschwärzt. |
 | Ein Wert unter einem Schlüssel, der sensibel aussieht, etwa `password` oder `token` | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
 | Jeder andere Datentyp, den ein Muster finden kann | Eine Regel **Benutzerdefinierter Regex** aus den eigenen Mustern des Datentyps, die jeden Wert seiner Form schwärzt |
+| Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs in der Form des Datentyps durch `[REDACTED]` ersetzt, oder jeden Wert des Attributs, wenn kein Muster den Datentyp findet |
 
-Manche Funde lassen sich durch keine Regel bereinigen, und **Bereinigen** sagt, warum:
+Manche Funde lassen sich durch keine Regel bereinigen, und **Bereinigen** sagt, warum. Das Attribut einer Metrik lässt sich immer bereinigen, da seine Regel jeden Wert des Attributs verbergen kann:
 
 - Ein Datentyp, der allein anhand von Feldnamen gefunden wird, etwa der Name einer Person: Kein Muster kann ihn finden. Benennen Sie das Attribut in einen Schlüssel um, den eine Regel für sensible Schlüssel verbirgt, oder senden Sie es nicht mehr.
 - Ein Datentyp, der sich von anderen Werten nur durch die Wörter um ihn herum unterscheidet, etwa eine Bankleitzahl: Eine Regel würde weit mehr verbergen als diesen Datentyp.
 - Eine Dokumentkennzeichnung: Das Wort zu verbergen, würde das Dokument nicht verbergen.
 - Einer Ihrer eigenen Datentypen: Fügen Sie selbst eine benutzerdefinierte Bereinigungsregel mit seinem Muster hinzu.
 - Die eigenen Details einer Sitzung (`sessions.*`): Die Aufnahme von Sitzungswiedergaben führt keine Bereinigungsregeln aus.
+- Der Name einer Metrik (`name`): Ihn legt der Code fest, der die Metrik erstellt, und eine Pipeline-Regel kann eine Metrik nur als Ganzes umbenennen. Benennen Sie die Metrik um, und senden Sie, was in ihrem Namen variiert, stattdessen als Attribut.
 
-**Bereinigen** erstellt die Regel in Ihrem Namen, mit Ihren eigenen Berechtigungen: Projektinhaber und Projektadministratoren können darauf klicken, ebenso ein Team, das Bereinigungsregeln für Logs erstellen darf, und für Spans, Ausnahmen und KI-Aufrufe Bereinigungsregeln für Traces.
+**Bereinigen** erstellt die Regel in Ihrem Namen, mit Ihren eigenen Berechtigungen: Projektinhaber und Projektadministratoren können darauf klicken, ebenso ein Team, das Bereinigungsregeln für Logs erstellen darf, für Spans, Ausnahmen und KI-Aufrufe Bereinigungsregeln für Traces und für Metriken Metrik-Pipeline-Regeln.
 
 ## Was als bereinigt zählt
 
@@ -111,6 +126,7 @@ Ein Fund wird nur dann als bereinigt markiert, wenn die Aufnahme eine aktivierte
 - **Der richtige Teil.** Die Regel nennt unter **Zu bereinigende Felder** den Teil des Datensatzes, in dem der Fund steht, oder lässt sie auf ihrem Standardwert.
 - **Ein Muster, das den Typ findet.** Ein integrierter **Mustertyp** findet seinen eigenen Datentyp: **E-Mail-Adresse** findet E-Mail-Adressen, **Kreditkartennummer** Kartennummern, **SSN (Sozialversicherungsnummer)** US-Sozialversicherungsnummern, **Telefonnummer** Telefonnummern und **IP-Adresse** IP-Adressen. **Sensible Attributschlüssel** deckt jeden Wert unter einem Schlüssel ab, der sensibel aussieht, egal welcher Wert es ist.
 - **Ihre eigenen benutzerdefinierten Muster zählen nie.** Ein **Benutzerdefinierter Regex** deckt einen Fund nur ab, wenn er genau das Muster ist, das **Bereinigen** für dessen Typ erstellt. Ein Fund behält nur maskierte Stichproben, an denen sich kein Muster ausprobieren lässt, also könnte OneUptime nicht beweisen, dass Ihr Muster die Daten verbirgt, und ein fälschlich als bereinigt bezeichneter Fund ist ein Leck, das niemand ansieht.
+- **Das Attribut einer Metrik.** Eine Metrik-Pipeline-Regel **Attribut schwärzen** oder **Attribut entfernen** für den Schlüssel dieses Attributs, für den Dienst des Funds oder das ganze Projekt, deckt ihn ab, wenn sie keinen Filter hat oder genau den Filter, den **Bereinigen** erstellt. Ein Filter, den Sie selbst geschrieben haben, zählt nie, aus demselben Grund.
 
 Eine Regel, die ausgeschaltet ist oder nichts bereinigt, zählt nie. Die Abdeckung wird nach jedem Scan neu ermittelt, sodass eine Regel, die Sie von Hand hinzufügen oder entfernen, innerhalb einer Stunde ändert, was als bereinigt markiert ist.
 

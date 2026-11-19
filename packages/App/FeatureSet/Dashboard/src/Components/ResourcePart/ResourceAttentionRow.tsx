@@ -201,6 +201,21 @@ const ResourceAttentionRow: FunctionComponent<ComponentProps> = (
           })}
         </div>
         {/*
+         * Why, in whole sentences already in the reader's words (a
+         * monitor's criteria and what it found): drawn as handed, each
+         * value in it as its sentence placed it.
+         */}
+        {item.explanation ? (
+          <p
+            data-testid={`${testId}-explanation`}
+            className="mt-1 text-sm text-gray-700 [overflow-wrap:anywhere]"
+          >
+            {item.explanation}
+          </p>
+        ) : (
+          <></>
+        )}
+        {/*
          * A part that stopped reporting: when it last did, in the
          * sentence's language (the hero's own words).
          */}

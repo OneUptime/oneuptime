@@ -145,6 +145,8 @@ jest.mock("react-i18next", () => {
 
 import RunbookOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Index";
 import {
+  RUNBOOK_EXECUTIONS_TABLE_ID,
+  RUNBOOK_FAILED_RUNS_LINK_TEST_ID,
   RUNBOOK_LAST_RUN_LINK_TEST_ID,
   RUNBOOK_LAST_RUN_TILE_TEST_ID,
   RUNBOOK_TOTAL_RUNS_LINK_TEST_ID,
@@ -386,20 +388,61 @@ describe("Last Run leads to that run", () => {
 });
 
 describe("Outcomes", () => {
-  test("is not a link, and its two counts wrap rather than run past the tile", async () => {
+  function outcomesTile(): HTMLElement {
+    return screen.getByText("Outcomes").parentElement as HTMLElement;
+  }
+
+  test("is not one link, and its two counts wrap rather than run past the tile", async () => {
     await openOverview();
 
-    const label: HTMLElement = screen.getByText("Outcomes");
-    const tile: HTMLElement = label.parentElement as HTMLElement;
+    const tile: HTMLElement = outcomesTile();
     const counts: HTMLElement = within(tile).getByText("completed")
       .parentElement!.parentElement as HTMLElement;
 
-    expect(within(tile).queryByRole("link")).toBeNull();
+    // Only the failed count leads anywhere; the tile is no stretched link.
+    expect(within(tile).getAllByRole("link")).toHaveLength(1);
+    expect(tile.className).not.toContain("hover:border-indigo-300");
     expect(counts.className.split(" ")).toEqual(
       expect.arrayContaining(["flex", "flex-wrap"]),
     );
     expect(tile).toHaveTextContent("3");
     expect(tile).toHaveTextContent("1");
+  });
+
+  /*
+   * "1 failed" opens the run that failed (#9597): the runbook's Executions,
+   * its Status filter set to Failed in the table's own address, so the
+   * filter shows as applied and clearing it shows every run.
+   */
+  test("'1 failed' opens the runs that failed: the Executions, filtered to Failed", async () => {
+    await openOverview();
+
+    const link: HTMLElement = screen.getByTestId(
+      RUNBOOK_FAILED_RUNS_LINK_TEST_ID,
+    );
+    const href: string = link.getAttribute("href") || "";
+    const [path, query] = href.split("?") as [string, string];
+    const filter: string | null = new URLSearchParams(query).get(
+      `${RUNBOOK_EXECUTIONS_TABLE_ID}-filter`,
+    );
+
+    expect(link.tagName).toBe("A");
+    expect(link).toHaveTextContent("1 failed");
+    expect(path).toBe(EXECUTIONS_PATH);
+    expect(JSON.parse(filter || "{}")).toEqual({
+      status: RunbookExecutionStatus.Failed,
+    });
+    // Its own words only: the completed count beside it opens nothing.
+    expect(link.className).not.toContain("after:absolute");
+  });
+
+  test("with none failed, the count opens nothing", async () => {
+    mockCounts = { total: 3, completed: 3, failed: 0 };
+
+    await openOverview();
+
+    expect(screen.queryByTestId(RUNBOOK_FAILED_RUNS_LINK_TEST_ID)).toBeNull();
+    expect(within(outcomesTile()).queryByRole("link")).toBeNull();
   });
 });
 

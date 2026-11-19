@@ -28,6 +28,7 @@ import {
   formatCompact,
   formatDurationMsInLanguage,
   formatPercent,
+  parseBucketTimeMs,
 } from "./telemetryFormat";
 
 /*
@@ -574,11 +575,9 @@ function addPoint(
   time: string | undefined,
   count: number,
 ): void {
-  if (!time) {
-    return;
-  }
-  const ms: number = new Date(time).getTime();
-  if (Number.isNaN(ms)) {
+  // UTC, as ClickHouse writes it, never the browser's zone (parseBucketTimeMs).
+  const ms: number | null = parseBucketTimeMs(time);
+  if (ms === null) {
     return;
   }
   seriesByTime.set(ms, (seriesByTime.get(ms) || 0) + count);

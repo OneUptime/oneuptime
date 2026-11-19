@@ -163,19 +163,21 @@ Une répartition utile : donnez à un ingénieur du support `ReadRumApplication`
 
 ## Alertes sur les données RUM
 
-La télémétrie RUM se compose de journaux, de métriques et de traces ordinaires : il n'y a donc pas de moniteur RUM à part, les moniteurs habituels fonctionnent dessus. Le plus rapide est de commencer par la page **Recommandations** de l'application, qui propose des moniteurs déjà limités à l'application :
+La télémétrie RUM se compose de journaux, de métriques et de traces ordinaires : il n'y a donc pas de moniteur RUM à part, les moniteurs habituels fonctionnent dessus. Le plus rapide est de commencer par la page **Recommandations** de l'application, qui propose des moniteurs déjà limités à l'application, ceux qui conviennent à une application web ou à une application mobile :
 
 | Groupe | Recommandations |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint et Slow Time to First Byte. Voir [Core Web Vitals](/docs/rum/web-vitals). |
-| Erreurs | Failed User Operations, et Unhandled Browser Exceptions. |
+| Core Web Vitals | Pour une application web : Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint et Slow Time to First Byte. Voir [Core Web Vitals](/docs/rum/web-vitals). |
+| Erreurs | App Crashes et App Not Responding (ANR) pour une application mobile, Failed User Operations pour les deux, et Unhandled Browser Exceptions pour une application web. |
+| Performances | Pour une application mobile : Slow Cold Start, quand un démarrage à froid prend 5 secondes ou plus, ce qu'Android vitals considère comme excessif, et Frozen Frames, quand le rendu d'une image prend plus de 700 ms. |
+| Disponibilité | Pour une application mobile : App Stopped Reporting, quand l'application n'envoie aucun span pendant 30 minutes. |
 | Relecture de session | Les quatre [alertes de budget de stockage](/docs/telemetry/session-replay#alertes-de-budget-de-stockage), qui préviennent avant que la limite quotidienne du projet ou le budget mensuel de l'application soit épuisé. Elles sont proposées dès que l'application a enregistré une relecture, et la paire mensuelle dès qu'elle a aussi un budget mensuel. |
 
 Pour créer votre propre moniteur, choisissez celui qui lit le signal :
 
 - [Surveillance des métriques](/docs/monitor/metrics-monitor) : une Core Web Vital, ou toute métrique que votre application envoie.
-- [Surveillance des traces](/docs/monitor/traces-monitor) : le taux d'erreurs ou la latence côté client.
-- [Surveillance des journaux](/docs/monitor/logs-monitor) : un motif dans les journaux du navigateur.
+- [Surveillance des traces](/docs/monitor/traces-monitor) : le taux d'erreurs ou la latence côté client, ou les démarrages de l'application plus lents qu'une durée que vous définissez.
+- [Surveillance des journaux](/docs/monitor/logs-monitor) : un motif dans les journaux du navigateur, ou les événements `app.crash`, `device.anr` et `app.jank` d'une application mobile.
 - [Surveillance des exceptions](/docs/monitor/exceptions-monitor) : des exceptions côté client nouvelles ou en hausse brutale.
 
 Limitez à l'application un moniteur que vous créez, pour qu'un service backend à la signature semblable ne le déclenche pas.

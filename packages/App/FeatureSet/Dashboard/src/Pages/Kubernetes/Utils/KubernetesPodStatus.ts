@@ -171,10 +171,23 @@ const STATUS_UNKNOWN: string = translationKey("Unknown");
 // A pod that cannot run whose word the server could not read.
 const STATUS_CANNOT_RUN: string = translationKey("Can't run");
 
-const POD_HINT: string = translationKey("Show which pods and why");
-const NODE_HINT: string = translationKey("Show which nodes and why");
-const PODS_WHAT_FAILED: string = translationKey("Couldn't read these pods.");
-const NODES_WHAT_FAILED: string = translationKey("Couldn't read these nodes.");
+// What a press shows, and what a read that failed says, wherever pods are counted.
+export const KUBERNETES_POD_HINT: string = translationKey(
+  "Show which pods and why",
+);
+const POD_HINT: string = KUBERNETES_POD_HINT;
+export const KUBERNETES_NODE_HINT: string = translationKey(
+  "Show which nodes and why",
+);
+const NODE_HINT: string = KUBERNETES_NODE_HINT;
+export const KUBERNETES_PODS_WHAT_FAILED: string = translationKey(
+  "Couldn't read these pods.",
+);
+const PODS_WHAT_FAILED: string = KUBERNETES_PODS_WHAT_FAILED;
+export const KUBERNETES_NODES_WHAT_FAILED: string = translationKey(
+  "Couldn't read these nodes.",
+);
+const NODES_WHAT_FAILED: string = KUBERNETES_NODES_WHAT_FAILED;
 
 const CANNOT_RUN_EMPTY: string = translationKey(
   "No pod is failing this way now: it recovered or was replaced since the count was read.",
@@ -182,13 +195,91 @@ const CANNOT_RUN_EMPTY: string = translationKey(
 const PENDING_EMPTY: string = translationKey(
   "No pod is pending now: each has started or gone since the count was read.",
 );
-const FAILED_EMPTY: string = translationKey(
+export const KUBERNETES_FAILED_PODS_EMPTY: string = translationKey(
   "No failed pods now: they were cleaned up since the count was read.",
 );
+const FAILED_EMPTY: string = KUBERNETES_FAILED_PODS_EMPTY;
 const UNKNOWN_EMPTY: string = translationKey(
   "No pod is in an unknown state now.",
 );
-const NODES_EMPTY: string = translationKey("Every node is ready now.");
+export const KUBERNETES_NODES_EMPTY: string = translationKey(
+  "Every node is ready now.",
+);
+const NODES_EMPTY: string = KUBERNETES_NODES_EMPTY;
+
+/*
+ * What pressing a count of pods that cannot run opens: those of one word
+ * ("CrashLoopBackOff"), or every one of them when no word is given - the
+ * Pod Health bar's "Can't run".
+ */
+export function getKubernetesCannotRunProblem(
+  reason?: string | undefined,
+): KubernetesStatusChipProblem {
+  return {
+    query: {
+      kind: KubernetesProblemKind.CannotRun,
+      reason: reason || undefined,
+    },
+    title: reason
+      ? {
+          one: "{{count}} pod in {{reason}}",
+          other: "{{count}} pods in {{reason}}",
+        }
+      : {
+          one: "{{count}} pod with a container that can't run",
+          other: "{{count}} pods with a container that can't run",
+        },
+    description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsCannotRun,
+    emptyMessage: CANNOT_RUN_EMPTY,
+    whatFailed: PODS_WHAT_FAILED,
+    hint: POD_HINT,
+  };
+}
+
+export const KUBERNETES_PENDING_PODS_PROBLEM: KubernetesStatusChipProblem = {
+  query: { kind: KubernetesProblemKind.Pending },
+  title: {
+    one: "{{count}} pending pod",
+    other: "{{count}} pending pods",
+  },
+  description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsPending,
+  emptyMessage: PENDING_EMPTY,
+  whatFailed: PODS_WHAT_FAILED,
+  hint: POD_HINT,
+};
+
+export const KUBERNETES_FAILED_PODS_PROBLEM: KubernetesStatusChipProblem = {
+  query: { kind: KubernetesProblemKind.Failed },
+  title: { one: "{{count}} failed pod", other: "{{count}} failed pods" },
+  description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsFailed,
+  emptyMessage: FAILED_EMPTY,
+  whatFailed: PODS_WHAT_FAILED,
+  hint: POD_HINT,
+};
+
+export const KUBERNETES_UNKNOWN_PODS_PROBLEM: KubernetesStatusChipProblem = {
+  query: { kind: KubernetesProblemKind.Unknown },
+  title: {
+    one: "{{count}} pod in an unknown state",
+    other: "{{count}} pods in an unknown state",
+  },
+  description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsUnknown,
+  emptyMessage: UNKNOWN_EMPTY,
+  whatFailed: PODS_WHAT_FAILED,
+  hint: POD_HINT,
+};
+
+export const KUBERNETES_NODES_NOT_READY_PROBLEM: KubernetesStatusChipProblem = {
+  query: { kind: KubernetesProblemKind.NodesNotReady },
+  title: {
+    one: "{{count}} node not ready",
+    other: "{{count}} nodes not ready",
+  },
+  description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.nodesNotReady,
+  emptyMessage: NODES_EMPTY,
+  whatFailed: NODES_WHAT_FAILED,
+  hint: NODE_HINT,
+};
 
 export function getKubernetesStatusChips(data: {
   pods: KubernetesPodStatusCountsRead;
@@ -217,25 +308,7 @@ export function getKubernetesStatusChips(data: {
       tone: "danger",
       reasonAsWritten: hasWord ? row.reason : undefined,
       word: hasWord ? undefined : STATUS_CANNOT_RUN,
-      problem: {
-        query: {
-          kind: KubernetesProblemKind.CannotRun,
-          reason: row.reason || undefined,
-        },
-        title: hasWord
-          ? {
-              one: "{{count}} pod in {{reason}}",
-              other: "{{count}} pods in {{reason}}",
-            }
-          : {
-              one: "{{count}} pod with a container that can't run",
-              other: "{{count}} pods with a container that can't run",
-            },
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsCannotRun,
-        emptyMessage: CANNOT_RUN_EMPTY,
-        whatFailed: PODS_WHAT_FAILED,
-        hint: POD_HINT,
-      },
+      problem: getKubernetesCannotRunProblem(row.reason || undefined),
     });
   }
 
@@ -246,17 +319,7 @@ export function getKubernetesStatusChips(data: {
       count: pods.pending,
       tone: "warning",
       word: STATUS_PENDING,
-      problem: {
-        query: { kind: KubernetesProblemKind.Pending },
-        title: {
-          one: "{{count}} pending pod",
-          other: "{{count}} pending pods",
-        },
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsPending,
-        emptyMessage: PENDING_EMPTY,
-        whatFailed: PODS_WHAT_FAILED,
-        hint: POD_HINT,
-      },
+      problem: KUBERNETES_PENDING_PODS_PROBLEM,
     });
   }
 
@@ -267,14 +330,7 @@ export function getKubernetesStatusChips(data: {
       count: pods.failed,
       tone: "danger",
       word: STATUS_FAILED,
-      problem: {
-        query: { kind: KubernetesProblemKind.Failed },
-        title: { one: "{{count}} failed pod", other: "{{count}} failed pods" },
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsFailed,
-        emptyMessage: FAILED_EMPTY,
-        whatFailed: PODS_WHAT_FAILED,
-        hint: POD_HINT,
-      },
+      problem: KUBERNETES_FAILED_PODS_PROBLEM,
     });
   }
 
@@ -285,17 +341,7 @@ export function getKubernetesStatusChips(data: {
       count: pods.unknown,
       tone: "warning",
       word: STATUS_UNKNOWN,
-      problem: {
-        query: { kind: KubernetesProblemKind.Unknown },
-        title: {
-          one: "{{count}} pod in an unknown state",
-          other: "{{count}} pods in an unknown state",
-        },
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsUnknown,
-        emptyMessage: UNKNOWN_EMPTY,
-        whatFailed: PODS_WHAT_FAILED,
-        hint: POD_HINT,
-      },
+      problem: KUBERNETES_UNKNOWN_PODS_PROBLEM,
     });
   }
 
@@ -309,17 +355,7 @@ export function getKubernetesStatusChips(data: {
         one: "{{count}} Node Not Ready",
         other: "{{count}} Nodes Not Ready",
       },
-      problem: {
-        query: { kind: KubernetesProblemKind.NodesNotReady },
-        title: {
-          one: "{{count}} node not ready",
-          other: "{{count}} nodes not ready",
-        },
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.nodesNotReady,
-        emptyMessage: NODES_EMPTY,
-        whatFailed: NODES_WHAT_FAILED,
-        hint: NODE_HINT,
-      },
+      problem: KUBERNETES_NODES_NOT_READY_PROBLEM,
     });
   }
 

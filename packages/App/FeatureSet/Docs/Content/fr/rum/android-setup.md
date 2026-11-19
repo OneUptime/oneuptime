@@ -107,6 +107,8 @@ OpenTelemetry Android enregistre tout cela de lui-même. Les attributs d'apparei
 
 Les plantages et les ANR arrivent dans **Exceptions** comme non gérés, regroupés par stack trace, avec la session dans laquelle ils se sont produits. L'agent enregistre un plantage sur le disque au moment où l'application meurt et l'envoie à partir de là : un plantage survenu hors ligne arrive donc quand même dès que l'application tourne à nouveau avec un réseau.
 
+La page **Vue d'ensemble** de l'application les lit pour vous : **Sessions**, **Sessions sans plantage**, **Plantages**, **ANR**, **Démarrages de l'application**, **Démarrage à froid (p95)** et **Images figées**, chaque tuile ouvrant les exceptions, les spans ou les événements qu'elle compte. Tant que l'application n'envoie ni démarrages ni images, leurs graphiques indiquent ce qui les active. Sa page **Recommandations** propose des moniteurs pour les plantages, les ANR, les démarrages à froid lents, les images figées et une application qui cesse d'envoyer des données.
+
 Une session se termine après 15 minutes en arrière-plan, ou après 4 heures. Une application qui ne passe jamais en arrière-plan, comme une borne, garde une seule session pendant 4 heures : tracez donc la visite de chaque client comme un span à part entière, comme le montre [Tracer vos propres flux de travail](#tracer-vos-propres-flux-de-travail).
 
 Les propres appels `android.util.Log` de votre application deviennent aussi des journaux quand vous ajoutez `android-log-library` et `android-log-agent` à côté des modules OkHttp ci-dessous : le tag de chaque appel va dans `android.log.tag`, et un appel avec un throwable est une exception dans **Exceptions**. OpenTelemetry Android ne lit pas Logcat.

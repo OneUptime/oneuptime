@@ -36,13 +36,14 @@ import { ResourceAttentionItem } from "../../../Components/ResourcePart/Resource
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
+import {
+  ResourcePartAttention,
+  ResourcePartBadge,
+} from "../../../Components/ResourcePart/ResourcePartTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import {
-  getOpenStackAttentionItems,
-  getOpenStackBareMetalPowerState,
-} from "../Utils/OpenStackHealth";
+import { getOpenStackBareMetalPowerState } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   fetchOpenStackHostOf,
   fetchOpenStackRow,
@@ -123,67 +124,76 @@ function dateText(value: string): string {
     : "";
 }
 
-const NodeOverview: FunctionComponent<{
+/*
+ * Nova names a node's instance's hypervisor by the node's UUID, and a probe also says it from
+ * Ironic's side. What Placement holds of it is its own row, keyed by region. No recording holds
+ * an instance on a node yet, so this join is from Nova's driver's source. The page reads it
+ * once its row is in: what Nova says of that instance is also what the hero's status opens
+ * (#9594).
+ */
+function useBareMetalReads(part: OpenStackPart): OpenStackRead<BareMetalReads> {
+  const row: OpenStackResource | null = part.row;
+  const nodeId: string = part.externalId;
+  return useOpenStackRead<BareMetalReads>(async () => {
+    if (!row) {
+      return { instance: null, provider: null, host: null };
+    }
+    const [instances, provider, host]: [
+      Array<OpenStackResource>,
+      OpenStackResource | null,
+      Host | null,
+    ] = await Promise.all([
+      fetchOpenStackRows({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.Instance,
+        query: { hypervisorName: nodeId },
+        limit: 1,
+      }),
+      fetchOpenStackRow({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.PlacementProvider,
+        externalId: `${row.regionName || "default"}/${nodeId}`,
+      }),
+      // Supplementary: the page says the same of the node, with or without its host.
+      row.name
+        ? fetchOpenStackHostOf({
+            openStackCloudId: part.openStackCloudId,
+            machineName: row.name,
+          }).catch((): null => {
+            return null;
+          })
+        : Promise.resolve(null),
+    ]);
+    return { instance: instances[0] || null, provider, host };
+  }, [nodeId, part.refreshToken, Boolean(row)]);
+}
+
+interface NodeOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What the page read around it (useBareMetalReads).
+  reads: OpenStackRead<BareMetalReads>;
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const NodeOverview: FunctionComponent<NodeOverviewProps> = (
+  props: NodeOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const say: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
   };
-  const { part, row } = props;
+  const { part, row, reads } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
   const isFromProbe: boolean = Boolean(factText(row, "driver"));
   const nodeId: string = part.externalId;
-
-  /*
-   * Nova names a node's instance's hypervisor by the node's UUID, and a probe also says it from
-   * Ironic's side. What Placement holds of it is its own row, keyed by region. No recording holds
-   * an instance on a node yet, so this join is from Nova's driver's source.
-   */
-  const reads: OpenStackRead<BareMetalReads> =
-    useOpenStackRead<BareMetalReads>(async () => {
-      const [instances, provider, host]: [
-        Array<OpenStackResource>,
-        OpenStackResource | null,
-        Host | null,
-      ] = await Promise.all([
-        fetchOpenStackRows({
-          openStackCloudId: part.openStackCloudId,
-          kind: OpenStackResourceKind.Instance,
-          query: { hypervisorName: nodeId },
-          limit: 1,
-        }),
-        fetchOpenStackRow({
-          openStackCloudId: part.openStackCloudId,
-          kind: OpenStackResourceKind.PlacementProvider,
-          externalId: `${row.regionName || "default"}/${nodeId}`,
-        }),
-        // Supplementary: the page says the same of the node, with or without its host.
-        row.name
-          ? fetchOpenStackHostOf({
-              openStackCloudId: part.openStackCloudId,
-              machineName: row.name,
-            }).catch((): null => {
-              return null;
-            })
-          : Promise.resolve(null),
-      ]);
-      return { instance: instances[0] || null, provider, host };
-    }, [nodeId, part.refreshToken]);
 
   const instance: OpenStackResource | null = reads.data?.instance || null;
   const instanceId: string =
     instance?.externalId || factText(row, "instanceId");
 
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-    instanceStatusOnNodeFor: (): string | undefined => {
-      return instance?.status;
-    },
-  });
+  const attention: Array<ResourceAttentionItem> = props.attention.items;
 
   const explanation: string | null =
     attention.length > 0 ? getOpenStackPartExplanation(row, now) : null;
@@ -457,11 +467,8 @@ const NodeOverview: FunctionComponent<{
       <NeedsAttentionCard
         testId="openstack-bare-metal-node-attention"
         items={attention}
-        current={{
-          key: `${OpenStackResourceKind.BareMetalNode}/${nodeId}`,
-          label: translationKey("This node"),
-        }}
-        description="What about this node is broken or needs a look."
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {isFailed && !lastError ? (
@@ -560,6 +567,22 @@ const OpenStackCloudBareMetalNodeDetail: FunctionComponent<
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.BareMetalNode,
   );
+  const reads: OpenStackRead<BareMetalReads> = useBareMetalReads(part);
+  /*
+   * What needs attention on the node, with what Nova says of the instance
+   * on it, read once: the Overview's card lists it, the hero's status
+   * opens it.
+   */
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.BareMetalNode,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+    instanceStatusOnNodeFor: (): string | undefined => {
+      return reads.data?.instance?.status;
+    },
+  });
 
   const badges: Array<ResourcePartBadge> = [];
 
@@ -584,9 +607,16 @@ const OpenStackCloudBareMetalNodeDetail: FunctionComponent<
   return (
     <OpenStackPartPage
       part={part}
-      hero={{ badges }}
+      hero={{ badges, attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <NodeOverview part={part} row={row} />;
+        return (
+          <NodeOverview
+            part={part}
+            row={row}
+            reads={reads}
+            attention={attention}
+          />
+        );
       }}
     />
   );

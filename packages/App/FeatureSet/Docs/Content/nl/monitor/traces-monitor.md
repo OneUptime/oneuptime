@@ -48,7 +48,7 @@ Stel in **Te bewaken spans** de velden **Span-status** en **Spannaam bevat** in.
 
 ### Verder verfijnen (optioneel)
 
-Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut.
+Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut, of om alleen de spans te tellen die minstens een bepaalde tijd duurden.
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
@@ -76,6 +76,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Filteren op service** (onder **Meer velden**) | Spans van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Spans van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Spans waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
+| **Duurt minstens (ms)** (onder **Meer velden**) | Spans die zo lang of langer duurden, in milliseconden, zoals 5000 voor een koude start van vijf seconden. | Leeg: elke duur |
 
 Alle filters die u instelt, moeten overeenkomen voordat een span wordt geteld.
 

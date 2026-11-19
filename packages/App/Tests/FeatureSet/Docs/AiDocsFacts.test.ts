@@ -36,6 +36,18 @@ import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRe
 import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
 import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+  RemediationRoundTryAgainRefusal,
+} from "Common/Types/AutoRemediation/RemediationRound";
+import AutoRemediationRoundRateLimit, {
+  AutoRemediationRoundRateLimitBucket,
+} from "Common/Server/Middleware/AutoRemediationRoundRateLimit";
+import {
+  REMEDIATION_FIX_STEP_COPY,
+  REMEDIATION_ROUND_COPY,
+} from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
+import { REMEDIATION_STEP_STATUS_TEXT } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
+import {
   CODE_TASK_LIMITS,
   CODE_TASK_LOG_WINDOWS_IN_HOURS,
 } from "Common/Types/AI/CodeTask";
@@ -3023,6 +3035,195 @@ describe("Production review of pull requests", () => {
     );
     expect(app).toContain(
       `turn on ${bold("Review Pull Requests Against Production")} in the repository's settings: see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).`,
+    );
+  });
+});
+
+/*
+ * WHY ONEUPTIME AI FOUND NO FIX, OR STOPPED (#6522): the part of What
+ * auto-remediation did that says how the Remediation step explains a fix
+ * that found no safe fix (#6436), and Try again on one that stopped
+ * (#6487). Its words are the card's own, read from the Dashboard's source,
+ * and its refusals are the server's, so the page cannot drift from the
+ * card. AiDocsTranslations holds every language to the English lines.
+ */
+describe("AI SRE: a fix that found no safe fix, or stopped", () => {
+  const HEADING: string = "### Why OneUptime AI found no fix, or stopped";
+
+  function part(): string {
+    return flat(englishSection(AI_SRE, HEADING));
+  }
+
+  it("sits under What auto-remediation did, right before Before you approve a fix", () => {
+    const lines: Array<string> = englishPage(AI_SRE).split("\n");
+    const at: number = lines.indexOf(HEADING);
+    const section: number = lines.lastIndexOf(
+      "## What auto-remediation did",
+      at,
+    );
+
+    expect(at).toBeGreaterThan(0);
+    expect(section).toBeGreaterThan(0);
+    expect(
+      lines.slice(section + 1, at).some((line: string): boolean => {
+        return line.startsWith("## ");
+      }),
+    ).toBe(false);
+    expect(
+      lines.slice(at + 1).find((line: string): boolean => {
+        return line.startsWith("#");
+      }),
+    ).toBe("### Before you approve a fix");
+  });
+
+  it("names the plan step and what opens under it in the card's own words, in the card's order", () => {
+    const words: string = part();
+
+    for (const label of [
+      REMEDIATION_FIX_STEP_COPY.noSafeFix,
+      REMEDIATION_FIX_STEP_COPY.noRunbook,
+      REMEDIATION_ROUND_COPY.showFullReasoning,
+      REMEDIATION_ROUND_COPY.ruledOutHeading,
+      REMEDIATION_ROUND_COPY.checksHeading,
+      REMEDIATION_ROUND_COPY.unfinishedFix,
+      REMEDIATION_ROUND_COPY.unfinishedRunbook,
+      REMEDIATION_STEP_STATUS_TEXT.didNotFinish,
+    ]) {
+      expect({ label, named: words.includes(bold(label)) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    // The fixes it ruled out come before what it checked, as on the card.
+    expect(
+      words.indexOf(bold(REMEDIATION_ROUND_COPY.ruledOutHeading)),
+    ).toBeLessThan(words.indexOf(bold(REMEDIATION_ROUND_COPY.checksHeading)));
+    expect(
+      flat(
+        dashboardSource(
+          "Components/AutoRemediation/RemediationRoundDetails.tsx",
+        ),
+      ),
+    ).toContain(
+      "{ruledOutFixes.length > 0 ? ( <RuledOutFixList fixes={ruledOutFixes} /> ) : ( <></> )} {round && (round.checks.length > 0 || round.otherCheckCount > 0) ? (",
+    );
+  });
+
+  it("says that nothing ran and nobody was asked, in the step's words", () => {
+    const sentence: string = REMEDIATION_ROUND_COPY.nothingAskedNoFix;
+
+    expect(sentence).toBe(
+      "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+    );
+    expect(part()).toContain(
+      `the step says that no fix ran and nobody was asked to approve one: ${sentence.slice(sentence.indexOf(": ") + 2)}`,
+    );
+  });
+
+  it("says the failure notice's Details and Try again as the card draws them, and who may press it", () => {
+    const notice: string = dashboardSource(
+      "Components/AI/AiRunFailureNotice.tsx",
+    );
+    const button: string = dashboardSource(
+      "Components/AI/AiRunTryAgainButton.tsx",
+    );
+
+    expect(notice).toContain('translator.translateText("Details")');
+    expect(button).toContain('props.label || "Try again"');
+    expect(part()).toContain(
+      `the provider's own error under ${bold("Details")}`,
+    );
+    expect(part()).toContain(
+      `${bold("Try again")} starts the fix again with a new run, for anyone who may edit the incident or alert.`,
+    );
+    // Who may: who may edit the incident or alert, as the server checks it.
+    expect(
+      readRepoFile("Common/Server/Utils/AutoRemediation/RemediationRound.ts"),
+    ).toContain("await IncidentService.findOneUpdatableById({");
+  });
+
+  it("says What it checked lists the reads of the project's MCP servers too, as the round's read lists them", () => {
+    const round: string = readRepoFile(
+      "Common/Server/Utils/AutoRemediation/RemediationRound.ts",
+    );
+
+    expect(part()).toContain(
+      "each command it ran on the cluster or resource and each tool of the project's MCP servers it read with, with why, when and how it went, and how many times it queried the project's telemetry besides.",
+    );
+    expect(flat(round)).toContain(
+      "const CHECK_TOOL_NAMES: ReadonlyArray<string> = [ ...COMMAND_CHECK_TOOL_NAMES, CALL_MCP_TOOL_TOOL_NAME, ];",
+    );
+  });
+
+  /*
+   * Every refusal of a round's Try again (RemediationRoundTryAgainRefusal)
+   * a person can meet once it is offered, each said on the page. A fix no
+   * AI run worked out offers no Try again (NoRound), and a queue that took
+   * nothing for no reason it could name (NotStarted) says to try again in a
+   * few minutes, as any failure does.
+   */
+  it("lists every reason Try again is refused, from the server's refusals and its limit", () => {
+    const words: string = part();
+    const limit: { perUserLimit: number; windowSeconds: number } =
+      AutoRemediationRoundRateLimit.getConfig(
+        AutoRemediationRoundRateLimitBucket.TryAgain,
+      );
+    const said: Record<RemediationRoundTryAgainRefusal, string | null> = {
+      [RemediationRoundTryAgainRefusal.NoRound]: null,
+      [RemediationRoundTryAgainRefusal.NotStarted]: null,
+      [RemediationRoundTryAgainRefusal.PartlyApplied]:
+        "- when the fix made a change before it stopped, since starting it again could make the same change twice: check what it changed, then finish the fix yourself;",
+      [RemediationRoundTryAgainRefusal.StillWorking]:
+        "- while the fix is still working, or once it has finished;",
+      [RemediationRoundTryAgainRefusal.Finished]:
+        "- while the fix is still working, or once it has finished;",
+      [RemediationRoundTryAgainRefusal.IncidentResolved]:
+        "- when the incident or alert is resolved;",
+      [RemediationRoundTryAgainRefusal.AlertResolved]:
+        "- when the incident or alert is resolved;",
+      [RemediationRoundTryAgainRefusal.AiOff]: "- when AI is off,",
+      [RemediationRoundTryAgainRefusal.NoProvider]:
+        "the project has no LLM provider,",
+      [RemediationRoundTryAgainRefusal.CreditsUsedUp]:
+        "its AI credits are used up",
+      [RemediationRoundTryAgainRefusal.LimitReached]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.AlertTokenLimitPaused]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.AlreadyStarted]:
+        "- when someone else has just pressed it,",
+      [RemediationRoundTryAgainRefusal.TooManyTries]: `or you have pressed Try again ${limit.perUserLimit} times in ${limit.windowSeconds / 60} minutes.`,
+    };
+
+    expect(Object.keys(said).sort()).toEqual(
+      Object.values(RemediationRoundTryAgainRefusal).sort(),
+    );
+
+    for (const [refusal, phrase] of Object.entries(said)) {
+      if (phrase === null) {
+        continue;
+      }
+
+      expect({ refusal, said: words.includes(phrase) }).toEqual({
+        refusal,
+        said: true,
+      });
+    }
+
+    // The server's own reason for refusing a fix that made a change.
+    expect(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[
+        RemediationRoundTryAgainRefusal.PartlyApplied
+      ],
+    ).toContain(
+      "that could make the same change twice. Check what it changed, then finish the fix yourself.",
     );
   });
 });

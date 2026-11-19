@@ -788,7 +788,7 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
   const loader: string = between(
     OVERVIEW,
     "const loadTelemetry: (showLoading: boolean) => void = useCallback(",
-    "[modelIdString, timeRangeKey],",
+    "[modelIdString, timeRangeKey, isMobileApp, loadMobileSignals],",
   );
   const guarded: string = between(
     loader,
@@ -889,7 +889,7 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
 describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
   const D: Record<RumMetric, string> = RUM_METRIC_DESCRIPTIONS;
 
-  test("covers every tile, every chart, the web-vitals card and INP by route - sixteen texts", () => {
+  test("covers every tile, every chart and card of a browser app's Overview and of a mobile app's - thirty-one texts", () => {
     expect(Object.keys(D).sort()).toEqual(
       [
         "pageLoads",
@@ -908,6 +908,22 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
         "logsChart",
         "webVitals",
         "inpByRoute",
+        // A mobile app's (#9588).
+        "sessions",
+        "crashFreeSessions",
+        "crashes",
+        "anrs",
+        "appStarts",
+        "coldStartTime",
+        "frozenFrames",
+        "errorRateMobile",
+        "appStartsChart",
+        "startupTimeChart",
+        "crashesChart",
+        "framesChart",
+        "eventsChartMobile",
+        "logsChartMobile",
+        "framesByScreen",
       ].sort(),
     );
   });

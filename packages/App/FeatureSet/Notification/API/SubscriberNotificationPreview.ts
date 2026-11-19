@@ -77,8 +77,12 @@ const NOTHING_SENT_MESSAGES: Record<
     "Nothing would be sent: private incidents are hidden from all status pages.",
   [SubscriberNotificationPreviewNothingSentReason.NotifyOff]:
     "Nothing would be sent: 'Notify Status Page Subscribers' is off.",
+  /*
+   * Of now: a status page that lists one of its monitors later can show it
+   * (#9684), as the preview says.
+   */
   [SubscriberNotificationPreviewNothingSentReason.NoStatusPages]:
-    "Nothing would be sent: no status page that lists these monitors will show this incident.",
+    "Nothing would be sent: no status page shows this incident now.",
   [SubscriberNotificationPreviewNothingSentReason.NotificationsOff]:
     "Nothing would be sent: the status pages that show this incident do not send notifications to their subscribers.",
 };

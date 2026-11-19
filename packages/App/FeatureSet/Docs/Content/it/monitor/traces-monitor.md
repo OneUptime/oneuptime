@@ -48,7 +48,7 @@ In **Span da osservare**, impostate **Stato dello span** e **Il nome dello span 
 
 ### Restringere il campo (facoltativo)
 
-Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo.
+Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo, o per contare solo gli span che sono durati almeno un certo tempo.
 
 ### Dire quando avvisare
 
@@ -76,6 +76,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Filtra per servizio** (in **Altri campi**) | Span di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Span di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Span i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
+| **Dura almeno (ms)** (in **Altri campi**) | Span che sono durati almeno questo tempo, in millisecondi, ad esempio 5000 per un avvio a freddo di cinque secondi. | Vuoto: qualsiasi durata |
 
 Tutti i filtri che impostate devono corrispondere perché uno span venga contato.
 

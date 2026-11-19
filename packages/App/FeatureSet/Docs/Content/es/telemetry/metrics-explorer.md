@@ -189,7 +189,7 @@ Reinicie el collector. Cada servicio cuyas trazas pasan por él envía entonces 
 | Renombrar atributo | Cambia la clave de un atributo en los puntos de datos que coinciden. |
 | Añadir atributo | Añade un atributo a los puntos de datos que coinciden. |
 | Eliminar atributo | Quita un atributo, como uno con demasiados valores para ser útil. |
-| Redactar atributo | Sustituye el valor de un atributo por un marcador. |
+| Ocultar atributo | Sustituye el valor de un atributo por un marcador. |
 | Muestra | Conserva un porcentaje de los puntos de datos que coinciden. |
 
 **Métricas → Ajustes → Reglas de grabación** calcula cada minuto métricas nuevas a partir de otras métricas. Consulte [Reglas de grabación de registros](/docs/telemetry/log-recording-rules) para ver cómo funcionan las reglas de grabación.

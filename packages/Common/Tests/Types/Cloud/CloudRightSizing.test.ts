@@ -767,6 +767,62 @@ describe("the verdict", () => {
     });
   });
 
+  /*
+   * A Compute Engine VM's memory comes from the Ops Agent on it (#9568):
+   * where the agent runs, its peak is read and weighed; where none came in,
+   * the VM is sized by its CPU and says it needs the agent.
+   */
+  test("a VM that runs the Ops Agent is sized by its memory too; one without it says it needs the agent", () => {
+    expect(GCE.memory).toEqual({
+      names: ["agent.googleapis.com/memory/percent_used"],
+      toPercent: 1,
+    });
+
+    const busyMemory: CloudRightSizing = buildCloudRightSizing({
+      profile: GCE,
+      size: "n2-standard-8",
+      observation: observation({
+        cpuP95Percent: 10,
+        cpuMaxPercent: 20,
+        memoryPeakPercent: 72,
+      }),
+    });
+
+    expect(busyMemory).toMatchObject({
+      memoryPeakPercent: 72,
+      isMemoryRead: true,
+      verdict: CloudRightSizingVerdict.RightSized,
+    });
+    expect(busyMemory.memoryNotRead).toBeUndefined();
+
+    const idleMemory: CloudRightSizing = buildCloudRightSizing({
+      profile: GCE,
+      size: "n2-standard-8",
+      observation: observation({
+        cpuP95Percent: 10,
+        cpuMaxPercent: 20,
+        memoryPeakPercent: 20,
+      }),
+    });
+
+    expect(idleMemory).toMatchObject({
+      isMemoryRead: true,
+      verdict: CloudRightSizingVerdict.Overprovisioned,
+    });
+
+    const noAgent: CloudRightSizing = buildCloudRightSizing({
+      profile: GCE,
+      size: "n2-standard-8",
+      observation: observation({ cpuP95Percent: 10, cpuMaxPercent: 20 }),
+    });
+
+    expect(noAgent).toMatchObject({
+      verdict: CloudRightSizingVerdict.Overprovisioned,
+      isMemoryRead: false,
+      memoryNotRead: MEMORY_NEEDS_OPS_AGENT,
+    });
+  });
+
   test("a memory reading of a type sized by CPU only is never used", () => {
     expect(
       buildCloudRightSizing({

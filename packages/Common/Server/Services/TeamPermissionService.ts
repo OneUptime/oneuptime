@@ -23,11 +23,13 @@ import Permission, {
   UserPermission,
 } from "../../Types/Permission";
 import {
+  getPermissionGrantRefusedMessage,
   getPermissionTitleForSentence,
   getRoleCopyChangeRefusedMessage,
   getTenantPermissionProblem,
   PermissionHolder,
 } from "../../Types/Team/CustomRole";
+import UserType from "../../Types/UserType";
 import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -363,9 +365,16 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (!canDelegate || isBlocked) {
-      // The permission by its title ("Incident Member"), not its code name.
+      /*
+       * The permission by its title ("Incident Member"), not its code name,
+       * said of the permissions a workflow runs with when a workflow's step
+       * is refused (#9695).
+       */
       throw new NotAuthorizedException(
-        `You cannot grant ${getPermissionTitleForSentence(data.permission)} because your own access does not include that permission at an equal or broader scope.`,
+        getPermissionGrantRefusedMessage({
+          permission: data.permission,
+          isWorkflow: data.props.userType === UserType.Workflow,
+        }),
       );
     }
   }

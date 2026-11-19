@@ -48,7 +48,7 @@ I **Spans att bevaka** anger du **Span-status** och **Spannamnet innehåller**. 
 
 ### Begränsa dem (valfritt)
 
-Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut.
+Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut, eller för att bara räkna de spans som tog minst en viss tid.
 
 ### Säg när det ska larmas
 
@@ -76,6 +76,7 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Filtrera efter tjänst** (under **Fler fält**) | Spans från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Spans från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Spans vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
+| **Tar minst (ms)** (under **Fler fält**) | Spans som tog så här lång tid eller längre, i millisekunder, till exempel 5000 för en kallstart på fem sekunder. | Tomt: valfri varaktighet |
 
 Alla filter som du anger måste matcha för att en span ska räknas.
 
