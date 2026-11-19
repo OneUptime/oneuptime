@@ -130,7 +130,7 @@ Un solo cambio vuelve a subir por la lista: la reapertura de una regla de agrupa
 
 Para corregir un estado puesto por error, elimina su fila en la página de la cronología de estados del registro (consulta [La cronología de estados](#la-cronología-de-estados)). El registro vuelve al estado de su última fila restante; un episodio cuya fila de resolución elimines vuelve a estar abierto, y se borra su hora de resolución.
 
-Por la API y Terraform, el orden es la columna `order`: los números más bajos van primero. Un estado creado sin él va justo por encima del estado resuelto; uno creado o actualizado con un número ocupa ese lugar, y los estados que estorban bajan un puesto. Los números que nadie más tiene se conservan tal como se escribieron, así que un estado gestionado con Terraform relee el número que se le dio.
+Por la API y Terraform, el orden es la columna `order`: los números más bajos van primero. Un estado creado sin él va justo por encima del estado resuelto. Un número que escribe se conserva tal como se escribió y no mueve ningún otro estado, así que un estado gestionado con Terraform relee el número que se le dio; de dos estados con el mismo número, se muestra primero el más antiguo. Los estados integrados siguen conservando su orden: una escritura que pondría a dos de ellos en el mismo número, o fuera de orden, se rechaza.
 
 ## Las gravedades iniciales
 

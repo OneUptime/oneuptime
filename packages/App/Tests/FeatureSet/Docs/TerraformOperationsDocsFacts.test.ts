@@ -67,6 +67,14 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { getApiKeysStoppedMessage } from "Common/Types/Billing/PlanCutoffCredentials";
@@ -83,7 +91,15 @@ import {
   getTerraformResourceConfig,
   TerraformResourceConfig,
 } from "Common/Utils/DeveloperDocs/TerraformConfig";
-import { getListOrderCollisionChanges } from "Common/Utils/ListOrder";
+import { getListOrderMoveChanges } from "Common/Utils/ListOrder";
+import MoveInListUtil from "Common/Types/Database/MoveInList";
+import {
+  STATE_LISTS,
+  StateListRow,
+  StateListType,
+  getStateListOrderViolationMessage,
+  getStateListRowsAfterMove,
+} from "Common/Utils/StateOrder";
 import { beforeAll, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -106,7 +122,8 @@ import path from "path";
  *     cannot read back;
  *   - the troubleshooting page: every error it quotes, as the provider, the
  *     server and the generated Go word it, with its status; the lookup
- *     table leading to every section; and the order numbers that move;
+ *     table leading to every section; and what a number written on an
+ *     ordered list does;
  *   - the self-hosted page: the address and the version range the
  *     dashboard writes for an installation, which the new
  *     {{TERRAFORM_PROVIDER_MATCHING}} placeholder renders the same way, and
@@ -730,54 +747,125 @@ describe("the troubleshooting page", () => {
     );
   });
 
-  it("is right that a taken order number moves the ones in the way, and a free one is kept", () => {
-    for (const model of [
-      MonitorStatus,
-      IncidentState,
-      IncidentSeverity,
-      AlertState,
-      AlertSeverity,
-    ]) {
+  /*
+   * One section for every list put in order in the dashboard (issues #9609,
+   * #9610): a number written places its row and moves no other, a row
+   * created without one goes to the end (a state just above the resolved
+   * state, a monitor status just above the offline one), a drag renumbers
+   * the list from the top, and the built-in states keep their order.
+   */
+  it("is right that a number written places its resource and moves no other, on every list it names", () => {
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### A priority or order that moves",
+    );
+
+    // Every list it names is one whose rows keep the number written.
+    for (const [model, column] of [
+      [MonitorStatus, "priority"],
+      [IncidentState, "order"],
+      [IncidentSeverity, "order"],
+      [AlertState, "order"],
+      [AlertSeverity, "order"],
+      [IncidentCustomField, "sortOrder"],
+      [LogPipeline, "sortOrder"],
+      [LogDropFilter, "sortOrder"],
+      [StatusPageGroup, "order"],
+      [StatusPageResource, "order"],
+      [OnCallDutyPolicyEscalationRule, "order"],
+      [OnCallDutyPolicyScheduleLayer, "order"],
+    ] as Array<[{ new (): BaseModel }, string]>) {
       expect({
         model: new model().tableName,
-        ordered: Boolean(new model().getListOrder()),
-      }).toEqual({ model: new model().tableName, ordered: true });
+        column: MoveInListUtil.getListColumn(new model()),
+      }).toEqual({ model: new model().tableName, column: column });
     }
 
-    const siblings: Array<{ id: string; value: number }> = [
-      { id: "a", value: 101 },
-      { id: "b", value: 102 },
-      { id: "c", value: 103 },
+    // And the attributes it names are the ones the provider sets.
+    expect(attribute("monitor_status", "priority").settable).toBe(true);
+    expect(attribute("log_pipeline", "sort_order").settable).toBe(true);
+    expect(attribute("incident_severity", "order").settable).toBe(true);
+    expect(section).toContain("monitor statuses (`priority`)");
+    expect(section).toContain("log pipelines and drop filters (`sort_order`)");
+
+    // A number another state holds is shared: no other state moves.
+    const states: Array<StateListRow> = [
+      { id: "a", name: "Identified", order: 1, flags: [] },
+      { id: "b", name: "Investigating", order: 2, flags: [] },
+      { id: "c", name: "Mitigated", order: 3, flags: [] },
     ];
 
-    // A number nobody holds is kept, and nothing else moves.
     expect(
-      getListOrderCollisionChanges({
-        siblings: siblings,
-        itemId: "new",
-        previousValue: null,
-        requestedValue: 110,
-        sortOrder: SortOrder.Ascending,
+      getStateListRowsAfterMove({
+        rows: states,
+        id: "c",
+        requestedValue: 1,
+      }).map((state: StateListRow): number | null => {
+        return state.order;
       }),
-    ).toEqual([]);
-    // A taken number: the one holding it, and the run behind it, step down.
-    expect(
-      getListOrderCollisionChanges({
-        siblings: siblings,
-        itemId: "new",
-        previousValue: null,
-        requestedValue: 102,
-        sortOrder: SortOrder.Ascending,
-      }),
-    ).toEqual([
-      { id: "b", value: 103 },
-      { id: "c", value: 104 },
-    ]);
-    expect(
-      englishSection(TROUBLESHOOTING, "### A priority or order that moves"),
-    ).toContain(
-      "A number nobody else holds is kept as written. A number another one already holds is taken over, and the ones in the way step down one place",
+    ).toEqual([1, 2, 1]);
+    expect(section).toContain(
+      "Setting a number places that resource and moves no other, so a configuration that numbers a whole list",
     );
+    expect(section).toContain("`order = index(local.severities, each.key) + 1`");
+
+    // Where a resource created without a number goes.
+    expect(STATE_LISTS[StateListType.IncidentState].insertAboveFlag).toBe(
+      "isResolvedState",
+    );
+    expect(STATE_LISTS[StateListType.AlertState].insertAboveFlag).toBe(
+      "isResolvedState",
+    );
+    expect(STATE_LISTS[StateListType.MonitorStatus].insertAboveFlag).toBe(
+      "isOfflineState",
+    );
+    expect(STATE_LISTS[StateListType.IncidentSeverity].insertAboveFlag).toBe(
+      undefined,
+    );
+    expect(section).toContain(
+      "A resource created without a number goes to the end of its list. A new incident or alert state goes just above the resolved state instead, and a new monitor status just above the offline status.",
+    );
+
+    // A drag is a move: the list numbered again from the top.
+    expect(
+      getListOrderMoveChanges({
+        items: [
+          { id: "a", value: 10 },
+          { id: "b", value: 20 },
+          { id: "c", value: 30 },
+        ],
+        itemId: "c",
+        placeOfId: "a",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({
+      kind: "moved",
+      changes: [
+        { id: "c", value: 1 },
+        { id: "a", value: 2 },
+        { id: "b", value: 3 },
+      ],
+    });
+    expect(section).toContain(
+      "Dragging a resource in the OneUptime dashboard numbers its whole list again from the top",
+    );
+
+    // The built-in states keep their order, and a refusal says why.
+    expect(
+      getStateListOrderViolationMessage(STATE_LISTS[StateListType.IncidentState], {
+        earlier: { id: "b", name: "Acknowledged", order: 2, flags: [] },
+        earlierBuiltIn: { flag: "isAcknowledgedState", role: "acknowledged state" },
+        later: { id: "c", name: "Resolved", order: 2, flags: [] },
+        laterBuiltIn: { flag: "isResolvedState", role: "resolved state" },
+      }),
+    ).toContain("has to stay below");
+    expect(section).toContain(
+      "a change that would put two of them at one number, or out of order, is refused, with why",
+    );
+
+    // Nothing of the old rule is left: no number is taken over.
+    expect(section).not.toContain("taken over");
+    expect(section).not.toContain("step down");
   });
 
   it("is right about the attributes only OneUptime writes", () => {
