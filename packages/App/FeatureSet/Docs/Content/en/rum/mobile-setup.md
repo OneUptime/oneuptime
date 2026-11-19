@@ -222,7 +222,7 @@ The **Sessions** and **Crash-free sessions** tiles count the `session.id` on you
 :::
 
 > [!NOTE]
-> Apple hands MetricKit's diagnostics to the app on a later launch, at once on iOS 15 and later and once a day before, so a crash or a hang can arrive minutes or a day after it happened. "0 crashes in the past hour" on an iOS app's Overview is not yet good news. A diagnostic carries the session that reported it, not the one it ended.
+> Apple hands MetricKit's diagnostics to the app on a later launch, at once on iOS 15 and later and once a day before, so a crash or a hang can arrive minutes or a day after it happened, and is counted when it arrives. "0 crashes in the past hour" on an iOS app's Overview is not yet good news. A diagnostic carries the session that reported it, not the one it ended.
 
 opentelemetry-swift records no span when the app starts, so the **App starts** and **Cold start (p95)** tiles stay empty until your app records one: a span named `AppStart`, with `start.type` set to `cold`, `warm` or `hot`, from the process starting to the first screen being ready.
 
