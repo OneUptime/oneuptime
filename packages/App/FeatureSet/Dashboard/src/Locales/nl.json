@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Wordt sinds {{endsAt}} niet meer getoond.",
   "Subscribers are not notified.": "Abonnees krijgen geen melding.",
   "Subscribers are notified when it starts showing.": "Abonnees krijgen een melding zodra deze wordt getoond.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnees van deze statuspagina's krijgen een melding zodra een aankondiging op basis van dit sjabloon wordt getoond.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Wanneer de aankondiging op de statuspagina's wordt getoond, en of hun abonnees ervan horen.",
   "Schedule & Notifications": "Schema & meldingen",
   "Who to call": "Wie er gebeld wordt",
@@ -58885,5 +58884,11 @@
   "step {{number}}": "stap {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} verdwijnt van dit apparaat: wat hij veroorzaakt, wordt er niet meer aan gekoppeld, en imports kunnen een monitor van dezelfde soort toevoegen. De monitor blijft controleren.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "None of the status pages picked shows maintenance events.": "Geen van de geselecteerde statuspagina's toont onderhoudsgebeurtenissen.",
+  "Reminders whose time has passed are not sent.": "Herinneringen waarvan het tijdstip al voorbij is, worden niet verzonden.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Stuurt abonnees van deze statuspagina's een melding zodra een aankondiging op basis van dit sjabloon wordt getoond.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "De melding over deze aankondiging is nog niet verzonden, dus deze update wordt niet verzonden.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Deze aankondiging wordt pas vanaf {{time}} op statuspagina's getoond, dus deze update wordt niet verzonden.",
+  "Whether subscribers are notified depends on the status pages picked.": "Of abonnees een melding krijgen, hangt af van de geselecteerde statuspagina's."
 }

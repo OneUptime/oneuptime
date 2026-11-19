@@ -5,6 +5,7 @@ import AnnouncementReach, {
 import PublicNoteReach, {
   PublicNoteNothingSentReason,
 } from "../../../Types/StatusPage/PublicNoteReach";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 /*
  * What an announcement on the status pages picked does (#9775), as the
@@ -109,5 +110,81 @@ describe("the answer as it travels", () => {
 
   test("the route is under the announcement's API", () => {
     expect(AnnouncementReach.routePath).toBe("/reach");
+  });
+});
+
+/*
+ * On the announcement's Edit the answer also says where the announcement's
+ * own notification stands (#9921): the update job skips an update while it
+ * has not gone out, and "Notify subscribers about this update" says so.
+ */
+describe("an Edit's answer: the announcement's own notification", () => {
+  test.each(Object.values(StatusPageSubscriberNotificationStatus))(
+    "%s goes and comes back beside the reason",
+    (status: StatusPageSubscriberNotificationStatus) => {
+      const answer: AnnouncementReachResult = {
+        nothingSentReason: PublicNoteNothingSentReason.NotificationsOff,
+        originalNotificationStatus: status,
+      };
+
+      const json: ReturnType<typeof AnnouncementReach.toJSON> =
+        AnnouncementReach.toJSON(answer);
+
+      expect(json).toEqual({
+        nothingSentReason: "NotificationsOff",
+        originalNotificationStatus: status,
+      });
+      expect(AnnouncementReach.fromJSON(json)).toEqual(answer);
+    },
+  );
+
+  test("none stored travels as null", () => {
+    const json: ReturnType<typeof AnnouncementReach.toJSON> =
+      AnnouncementReach.toJSON({
+        nothingSentReason: null,
+        originalNotificationStatus: null,
+      });
+
+    expect(json).toEqual({
+      nothingSentReason: null,
+      originalNotificationStatus: null,
+    });
+    expect(AnnouncementReach.fromJSON(json)).toEqual({
+      nothingSentReason: null,
+      originalNotificationStatus: null,
+    });
+  });
+
+  test("a Create's answer carries none: only the reason travels", () => {
+    expect(
+      Object.keys(AnnouncementReach.toJSON({ nothingSentReason: null })),
+    ).toEqual(["nothingSentReason"]);
+    expect(
+      AnnouncementReach.fromJSON({ nothingSentReason: null }),
+    ).not.toHaveProperty("originalNotificationStatus");
+  });
+
+  test.each([["SomethingNew"], [3], [{}], [true]] as Array<[unknown]>)(
+    "a status it does not know is left out, and the pages' answer still stands: %j",
+    (status: unknown) => {
+      const read: AnnouncementReachResult | null = AnnouncementReach.fromJSON({
+        nothingSentReason: "NoStatusPages",
+        originalNotificationStatus: status,
+      });
+
+      expect(read).toEqual({
+        nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+      });
+      expect(read).not.toHaveProperty("originalNotificationStatus");
+    },
+  );
+
+  test("a reason it cannot read still promises nothing, whatever the status", () => {
+    expect(
+      AnnouncementReach.fromJSON({
+        nothingSentReason: "NotPublishedYet",
+        originalNotificationStatus: "Pending",
+      }),
+    ).toBeNull();
   });
 });

@@ -38,7 +38,11 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getSubscriberNotificationsSection } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  MaintenanceNotifyOptionsReason,
+  getSubscriberNotificationsSection,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
+import { MaintenanceReachRecord } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceReach";
 import { SCHEDULED_NOTIFICATION_DESCRIPTION } from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
 import { getMaintenanceStatusPagesFormField } from "../../../Components/ScheduledMaintenance/MaintenanceStatusPagesFormField";
 import ObjectID from "Common/Types/ObjectID";
@@ -413,6 +417,21 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       fieldType: FormFieldSchemaType.Checkbox,
       defaultValue: true,
       required: false,
+      /*
+       * Under the three moments: why an event made from it would tell
+       * nobody - no status page picked, the pages picked hide maintenance
+       * events or send nothing (#9920).
+       */
+      getFooterElement: (
+        values: FormValues<ScheduledMaintenanceTemplate>,
+      ): ReactElement => {
+        return (
+          <MaintenanceNotifyOptionsReason
+            values={values}
+            record={MaintenanceReachRecord.Template}
+          />
+        );
+      },
     },
     {
       field: {

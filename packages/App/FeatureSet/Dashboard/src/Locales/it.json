@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Non viene più mostrato dal {{endsAt}}.",
   "Subscribers are not notified.": "Gli iscritti non vengono notificati.",
   "Subscribers are notified when it starts showing.": "Gli iscritti vengono notificati quando inizia a essere mostrato.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Gli iscritti a queste pagine di stato vengono avvisati quando inizia a essere mostrato un annuncio creato da questo modello.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Quando l'annuncio viene mostrato sulle sue pagine di stato e se i loro iscritti ne vengono informati.",
   "Schedule & Notifications": "Pianificazione e notifiche",
   "Who to call": "Chi chiamare",
@@ -58885,5 +58884,11 @@
   "step {{number}}": "il passaggio {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} lascia questo dispositivo: ciò che genera non vi è più collegato, e le importazioni possono aggiungere un monitor uguale. Il monitor continua a controllare.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "None of the status pages picked shows maintenance events.": "Nessuna delle pagine di stato selezionate mostra eventi di manutenzione.",
+  "Reminders whose time has passed are not sent.": "I promemoria il cui orario è già passato non vengono inviati.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Avvisa gli iscritti a queste pagine di stato quando inizia a essere mostrato un annuncio creato da questo modello.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "La notifica di questo annuncio non è ancora stata inviata, quindi questo aggiornamento non viene inviato.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Questo annuncio non viene mostrato sulle pagine di stato fino al {{time}}, quindi questo aggiornamento non viene inviato.",
+  "Whether subscribers are notified depends on the status pages picked.": "Se gli iscritti vengono notificati dipende dalle pagine di stato selezionate."
 }

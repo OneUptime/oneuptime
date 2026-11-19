@@ -28,11 +28,17 @@ import {
   getAnnouncementScheduleSection,
   getAnnouncementScheduleSectionSummary,
   getAnnouncementScheduleSummary,
+  getAnnouncementUpdateBoxReason,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
+  ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET,
+  ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
   getStatusPageToReturnTo,
   readAnnouncementQueryId,
   readRecordIds,
 } from "../../FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
 import { AnnouncementReachResult } from "Common/Types/StatusPage/AnnouncementReach";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import {
   CreateFromRecordKind,
@@ -893,8 +899,180 @@ describe("the end's own check", () => {
   });
 });
 
+/*
+ * #9921: on the Edit, under a ticked "Notify subscribers about this
+ * update", why the update would not be sent for the announcement's own
+ * state - not shown until its start, or its own notification not gone out
+ * yet - before why the pages picked would tell nobody. That each answer is
+ * what the update job does is App/Tests/Workers/Jobs/Announcement
+ * /SendNotificationToSubscribers's.
+ */
+describe("under the Edit's ticked update box", () => {
+  const LATER: Date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const EARLIER: Date = new Date("2026-01-01T00:00:00.000Z");
+
+  function edit(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      statusPages: [STATUS_PAGE_ID],
+      [ANNOUNCEMENT_STARTS_AT_KEY]: EARLIER,
+      [SubscriberUpdateNotification.miscDataKey]: true,
+      ...overrides,
+    };
+  }
+
+  function answer(
+    reason: AnnouncementReachResult["nothingSentReason"],
+    originalNotificationStatus?: StatusPageSubscriberNotificationStatus | null,
+  ): AnnouncementReachResult {
+    return {
+      nothingSentReason: reason,
+      ...(originalNotificationStatus !== undefined
+        ? { originalNotificationStatus: originalNotificationStatus }
+        : {}),
+    };
+  }
+
+  test("its start still to come: it is not shown until then, whatever its own notification and its pages", () => {
+    for (const status of [
+      StatusPageSubscriberNotificationStatus.Pending,
+      StatusPageSubscriberNotificationStatus.Success,
+      undefined,
+    ]) {
+      for (const reason of [
+        null,
+        PublicNoteNothingSentReason.NotificationsOff,
+      ] as Array<AnnouncementReachResult["nothingSentReason"]>) {
+        expect(
+          getAnnouncementUpdateBoxReason({
+            values: edit({ [ANNOUNCEMENT_STARTS_AT_KEY]: LATER }),
+            reach: answer(reason, status),
+          }),
+        ).toBe(
+          `This announcement is not shown on status pages until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(LATER)}, so this update is not sent.`,
+        );
+      }
+    }
+  });
+
+  test("its own notification not gone out yet, showing already: that, before what the pages do", () => {
+    for (const reason of [
+      null,
+      PublicNoteNothingSentReason.NotificationsOff,
+      PublicNoteNothingSentReason.NoStatusPages,
+    ] as Array<AnnouncementReachResult["nothingSentReason"]>) {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(reason, StatusPageSubscriberNotificationStatus.Pending),
+        }),
+      ).toBe(ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET);
+    }
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Skipped,
+    StatusPageSubscriberNotificationStatus.Failed,
+    StatusPageSubscriberNotificationStatus.InProgress,
+    null,
+  ])(
+    "its own notification %s, showing already: only what the pages do",
+    (status: StatusPageSubscriberNotificationStatus | null) => {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(null, status),
+        }),
+      ).toBeNull();
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(PublicNoteNothingSentReason.NotificationsOff, status),
+        }),
+      ).toBe(ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY);
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(PublicNoteNothingSentReason.NoStatusPages, status),
+        }),
+      ).toBe(ANNOUNCEMENT_NOT_SHOWN);
+    },
+  );
+
+  test("an announcement that has ended still gets its update: nothing is said of it", () => {
+    expect(
+      getAnnouncementUpdateBoxReason({
+        values: edit({
+          [ANNOUNCEMENT_ENDS_AT_KEY]: new Date("2026-02-01T00:00:00.000Z"),
+        }),
+        reach: answer(null, StatusPageSubscriberNotificationStatus.Success),
+      }),
+    ).toBeNull();
+  });
+
+  test("while nothing is known, only what the form holds: its start", () => {
+    expect(
+      getAnnouncementUpdateBoxReason({ values: edit(), reach: null }),
+    ).toBeNull();
+    expect(
+      getAnnouncementUpdateBoxReason({
+        values: edit({ [ANNOUNCEMENT_STARTS_AT_KEY]: LATER }),
+        reach: null,
+      }),
+    ).toContain("is not shown on status pages until");
+  });
+
+  test("nothing while the box is unticked: an Edit's box starts unticked every time", () => {
+    for (const ticked of [false, undefined, "true"]) {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit({
+            [ANNOUNCEMENT_STARTS_AT_KEY]: LATER,
+            [SubscriberUpdateNotification.miscDataKey]: ticked,
+          }),
+          reach: answer(
+            PublicNoteNothingSentReason.NotificationsOff,
+            StatusPageSubscriberNotificationStatus.Pending,
+          ),
+        }),
+      ).toBeNull();
+    }
+  });
+});
+
+describe("an announcement template's notify box", () => {
+  /*
+   * As Create's switch says it: "Tell the subscribers of these status pages
+   * when the announcement starts showing." The form draws it with the
+   * template's fields (Common's AnnouncementEditAndTemplateForms).
+   */
+  test("says what ticking it asks for, as Create's switch does, and promises nothing", () => {
+    expect(ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION).toBe(
+      "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
+    );
+    expect(ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION).not.toMatch(
+      /are (told|notified)/,
+    );
+  });
+
+  test("the sentence that promised it is gone from every locale", () => {
+    for (const locale of ["en", ...OTHER_LOCALES]) {
+      expect(
+        readLocale(locale)[
+          "Subscribers of these status pages are told when an announcement made from this template starts showing."
+        ],
+      ).toBe(undefined);
+    }
+  });
+});
+
 describe("every sentence of it is translated", () => {
   const SENTENCES: Array<string> = [
+    ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET,
+    ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
+    ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
     ...Object.values(ANNOUNCEMENT_SCHEDULE_SUMMARIES),
     ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
     ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
@@ -942,7 +1120,7 @@ describe("every sentence of it is translated", () => {
         expect(`${sentence}: ${Boolean(translated)}`).toBe(`${sentence}: true`);
         expect(translated).not.toBe(sentence);
 
-        for (const placeholder of ["{{startsAt}}", "{{endsAt}}"]) {
+        for (const placeholder of ["{{startsAt}}", "{{endsAt}}", "{{time}}"]) {
           expect(
             `${sentence} ${placeholder}: ${translated!.includes(placeholder)}`,
           ).toBe(

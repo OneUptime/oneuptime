@@ -43,7 +43,7 @@ Klicken Sie auf **Weiter**, um zu **Betroffene Ressourcen** zu gelangen. Wählen
 
 ### Festlegen, wer davon erfährt
 
-Wählen Sie die Statusseiten unter **Ereignis auf diesen Status-Seiten anzeigen**. **Abonnentenbenachrichtigungen**, eingeklappt, sagt in einer Zeile, wann das Ereignis dort erscheint und wer wann informiert wird; öffnen Sie es, um unter **Auf Statusseiten veröffentlichen** die Option **Zu einem bestimmten Zeitpunkt** zu wählen oder um **Wenn das Ereignis geplant wird**, **Wenn das Ereignis beginnt**, **Wenn das Ereignis endet** oder **Erinnerungen vor dem Ereignis** zu ändern.
+Wählen Sie die Statusseiten unter **Ereignis auf diesen Status-Seiten anzeigen**. **Abonnentenbenachrichtigungen**, eingeklappt, sagt in einer Zeile, wann das Ereignis dort erscheint und wer wann informiert wird; öffnen Sie es, um unter **Auf Statusseiten veröffentlichen** die Option **Zu einem bestimmten Zeitpunkt** zu wählen oder um **Wenn das Ereignis geplant wird**, **Wenn das Ereignis beginnt**, **Wenn das Ereignis endet** oder **Erinnerungen vor dem Ereignis** zu ändern. Die Zeile folgt den ausgewählten Statusseiten: Ist keine ausgewählt, zeigt keine von ihnen Wartungsereignisse an oder senden die, die sie anzeigen, ihren Abonnenten nichts, sagt sie das, statt zu sagen, wer benachrichtigt wird.
 
 ### Es erstellen
 

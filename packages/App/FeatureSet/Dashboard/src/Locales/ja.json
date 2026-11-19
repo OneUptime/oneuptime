@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "{{endsAt}}に表示を終了しました。",
   "Subscribers are not notified.": "購読者には通知されません。",
   "Subscribers are notified when it starts showing.": "表示が始まると購読者に通知されます。",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "このテンプレートから作成したお知らせの表示が始まると、これらのステータスページの購読者に通知されます。",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "お知らせがステータスページに表示されるタイミングと、その購読者に知らせるかどうかです。",
   "Schedule & Notifications": "スケジュールと通知",
   "Who to call": "呼び出す相手",
@@ -58885,5 +58884,11 @@
   "step {{number}}": "ステップ {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} はこのデバイスから外れます。今後発生するものはこのデバイスに関連付けられず、インポートで同様のモニターが追加されることがあります。モニターはチェックを続けます。",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "None of the status pages picked shows maintenance events.": "選択したステータスページはいずれもメンテナンスイベントを表示しません。",
+  "Reminders whose time has passed are not sent.": "時刻を過ぎたリマインダーは送信されません。",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "このテンプレートから作成したお知らせの表示が始まったら、これらのステータスページの購読者に通知します。",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "このお知らせの通知はまだ送信されていないため、この更新は送信されません。",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "このお知らせは {{time}} までステータスページに表示されないため、この更新は送信されません。",
+  "Whether subscribers are notified depends on the status pages picked.": "購読者に通知されるかどうかは、選択したステータスページによって決まります。"
 }

@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Holdt op med at blive vist {{endsAt}}.",
   "Subscribers are not notified.": "Abonnenter underrettes ikke.",
   "Subscribers are notified when it starts showing.": "Abonnenter underrettes, når den begynder at blive vist.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenter på disse statussider underrettes, når en meddelelse oprettet ud fra denne skabelon begynder at blive vist.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Hvornår meddelelsen vises på dens statussider, og om deres abonnenter hører om den.",
   "Schedule & Notifications": "Tidsplan og notifikationer",
   "Who to call": "Hvem der skal ringes til",
@@ -58885,5 +58884,11 @@
   "step {{number}}": "trin {{number}}",
   "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} fjernes fra denne enhed: det, den udløser, knyttes ikke længere til den, og importer kan tilføje en monitor af samme slags. Monitoren bliver ved med at tjekke.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
-  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
+  "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "None of the status pages picked shows maintenance events.": "Ingen af de valgte statussider viser vedligeholdelseshændelser.",
+  "Reminders whose time has passed are not sent.": "Påmindelser, hvis tidspunkt allerede er passeret, sendes ikke.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Underretter abonnenter på disse statussider, når en meddelelse oprettet ud fra denne skabelon begynder at blive vist.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "Notifikationen om denne meddelelse er ikke sendt endnu, så denne opdatering sendes ikke.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Denne meddelelse vises først på statussider fra {{time}}, så denne opdatering sendes ikke.",
+  "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter underrettes, afhænger af de valgte statussider."
 }
