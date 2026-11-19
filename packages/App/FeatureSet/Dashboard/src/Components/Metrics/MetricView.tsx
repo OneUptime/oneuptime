@@ -1019,6 +1019,15 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   );
 
   /*
+   * How many charts the view draws: a query overlaid on the one before it
+   * draws on that query's chart, so it is no chart of its own.
+   */
+  const chartCount: number = MetricQueryOverlay.getChartCount(
+    effectiveData.queryConfigs,
+    effectiveData.formulaConfigs.length,
+  );
+
+  /*
    * What the charts have to show, for a host that explains an empty view
    * (see onResultsStateChange). Read from the same state the render below
    * draws, so the host is never told "empty" while a loader, an error or a
@@ -1524,29 +1533,15 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   <span>{translator.translateText("Charts")}</span>
                   {/*
-                   * Panel count, not result count: a query flagged
+                   * Chart count, not result count: a query flagged
                    * overlayWithPreviousQuery draws on the previous query's
-                   * chart panel, so it must not count as its own card.
+                   * chart, so it must not count as its own card.
                    */}
-                  {(() => {
-                    const chartPanelCount: number =
-                      props.data.queryConfigs.filter(
-                        (
-                          queryConfig: MetricQueryConfigData,
-                          index: number,
-                        ): boolean => {
-                          return !(
-                            index > 0 &&
-                            queryConfig.overlayWithPreviousQuery === true
-                          );
-                        },
-                      ).length + props.data.formulaConfigs.length;
-                    return chartPanelCount > 1 ? (
-                      <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-xs font-semibold text-gray-500">
-                        {chartPanelCount}
-                      </span>
-                    ) : null;
-                  })()}
+                  {chartCount > 1 ? (
+                    <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-xs font-semibold text-gray-500">
+                      {chartCount}
+                    </span>
+                  ) : null}
                   {props.showOwnZoomReset ? (
                     /*
                      * At the end of the row that already heads the charts:
@@ -1631,10 +1626,14 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                   }${isMetricResultsLoading ? " opacity-75 transition-opacity" : ""}`}
                   style={{
                     /*
-                     * Give each metric result ~20rem of height (matching the
-                     * chart's previous fixed h-80 / 320px height).
+                     * Give each chart ~20rem of height (matching the chart's
+                     * previous fixed h-80 / 320px height). Per chart, not per
+                     * result: two overlaid queries draw one chart, which a
+                     * height per result stretched to twice its height, and
+                     * three to three times (issue #9961).
                      */
-                    minHeight: metricResults.length * 20 + "rem",
+                    minHeight:
+                      Math.min(chartCount, metricResults.length) * 20 + "rem",
                   }}
                 >
                   <MetricCharts
