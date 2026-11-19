@@ -12,13 +12,12 @@ import {
   ResourceStorageUsageColumns,
 } from "../Infrastructure/ResourceTable";
 import {
-  StorageUsageThresholds,
   formatStorageBytes,
   getStorageUsage,
 } from "Common/Utils/Storage/StorageUsage";
 import {
-  PROXMOX_STORAGE_FULL_PERCENT,
-  PROXMOX_STORAGE_NEAR_FULL_PERCENT,
+  PROXMOX_STORAGE_USAGE_THRESHOLDS,
+  getProxmoxDiskUsage,
 } from "../../Pages/Proxmox/Utils/ProxmoxHealth";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../MetricDescriptions/ProxmoxMetricDescriptions";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
@@ -54,18 +53,6 @@ const STORAGE_LOCAL: string = translationKey("Local");
 const STORAGE_NOT_REPORTED: string = translationKey("Not reported");
 
 /*
- * Where a storage's bar turns amber and red: the lines the cluster's rules
- * call a storage Degraded and Unhealthy at (ProxmoxHealth), as its own
- * page's Used tile does.
- */
-export const PROXMOX_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
-  warningPercent: PROXMOX_STORAGE_NEAR_FULL_PERCENT,
-  criticalPercent: PROXMOX_STORAGE_FULL_PERCENT,
-  // "Above 85%", as the rules say: a storage at exactly the line has not crossed it.
-  isPastLineOnly: true,
-};
-
-/*
  * The Used and Free columns of a storage list (ResourceTable): how full each
  * storage is as a bar, and what is left, in place of the plain
  * "Used / Total" text the list drew with English digits.
@@ -73,6 +60,22 @@ export const PROXMOX_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
 export const PROXMOX_STORAGE_USAGE_COLUMNS: ResourceStorageUsageColumns = {
   usedDescription: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent,
   freeDescription: PROXMOX_METRIC_DESCRIPTIONS.storageFree,
+};
+
+/*
+ * A node's or a guest's root disk in its list, beside its CPU and Memory
+ * (#9646): the same bar and lines as a storage's (ProxmoxHealth), so the
+ * fullest one is a click away. A VM says Not reported: Proxmox cannot see
+ * inside it.
+ */
+export const PROXMOX_NODE_DISK_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: PROXMOX_METRIC_DESCRIPTIONS.nodesTableDisk,
+  disk: { title: "Disk" },
+};
+
+export const PROXMOX_GUEST_DISK_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: PROXMOX_METRIC_DESCRIPTIONS.guestsTableDisk,
+  disk: { title: "Disk" },
 };
 
 const NO_VALUE: string = EMPTY_VALUE_MARK;
@@ -150,6 +153,14 @@ export function toProxmoxListResource(
 
   if (row.kind === "Guest") {
     attributes["guestKind"] = getProxmoxGuestKind(row);
+  }
+
+  // A node's root filesystem and a guest's root disk: the Disk column.
+  if (row.kind === "Node" || row.kind === "Guest") {
+    resource.storageUsage = {
+      usage: getProxmoxDiskUsage(row),
+      noUsageText: STORAGE_NOT_REPORTED,
+    };
   }
 
   if (row.kind === "Storage") {

@@ -11,6 +11,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatCompactDuration } from "../../../Utils/Milliseconds";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 /*
  * Shared helpers for the Proxmox list/detail pages. The pages read the
@@ -30,12 +31,25 @@ export const METRIC_STALE_MS: number = 15 * 60 * 1000;
 
 export type ProxmoxResourceKind = "Node" | "Guest" | "Storage";
 
-export function formatBytes(bytes: number | null | undefined): string {
+/*
+ * A size in binary units ("36.2 GiB") and a share ("85.4%"), with the
+ * decimals toFixed wrote: in the reader's digits, decimal sign and percent
+ * sign where a page draws them ("36,2 GiB", "۸۵٫۴٪"; #9646), and in English
+ * for a chart's value axis, which the metric chart writes in the reader's
+ * digits itself (writeFigureInLanguage).
+ */
+function writeBytes(
+  bytes: number | null | undefined,
+  language: string | undefined,
+): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
     return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)}\u00A0B`;
+    return `${formatReaderFigure(Math.round(bytes), {
+      decimals: 0,
+      language: language,
+    })}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
@@ -44,14 +58,21 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`;
+  return `${formatReaderFigure(value, {
+    decimals: value >= 100 ? 0 : 1,
+    language: language,
+  })}\u00A0${units[idx]}`;
+}
+
+export function formatBytes(bytes: number | null | undefined): string {
+  return writeBytes(bytes, undefined);
 }
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return EMPTY_VALUE_MARK;
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
 /*
@@ -81,8 +102,9 @@ export function formatUptime(
   return formatCompactDuration(translator, { minutes });
 }
 
+// English, for a chart's axis: the chart writes it in the reader's digits.
 export function formatBytesForChart(value: number): string {
-  return formatBytes(value);
+  return writeBytes(value, "en");
 }
 
 /*
