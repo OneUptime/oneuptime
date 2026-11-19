@@ -112,7 +112,9 @@ Lagrede visninger hører til prosjektet, så alle i det ser de samme visningene,
 
 ## Vis loggene dine i diagrammer
 
-Bytt listen til **Analyser** for å telle logger i stedet for å lese dem. Velg en tidsserie, en toppliste eller en tabell; tell hver logg, eller de unike verdiene i ett felt; og grupper etter alvorlighetsgrad, tjeneste, spor, span eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser de øverste 5, 10, 25 eller 50 gruppene.
+Bytt listen til **Analyser** for å vise logger i diagrammer i stedet for å lese dem. Velg en tidsserie, en toppliste eller en tabell, og hva den måler: hver logg talt, de unike verdiene i ett felt, eller summen, gjennomsnittet, medianen, P90, P95, P99, minimum eller maksimum av et numerisk attributt, som P95 av `duration_ms`. Grupper etter alvorlighetsgrad, tjeneste, spor, span eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser de øverste 5, 10, 25 eller 50 gruppene.
+
+Et numerisk attributt leses bare der verdien er et tall: et heltall eller et desimaltall, med eller uten fortegn, i vitenskapelig notasjon eller ikke, som `42`, `-7`, `3.14` eller `1e3`. En logg uten attributtet, eller med noe annet i det, som `12ms` eller `n/a`, utelates i stedet for å leses som 0. En persentil regnes ut fra opptil 8 192 verdier per punkt, så et punkt med flere logger har et nært anslag i stedet for den nøyaktige verdien.
 
 Klikk på **Liste** for å gå tilbake til selve linjene.
 

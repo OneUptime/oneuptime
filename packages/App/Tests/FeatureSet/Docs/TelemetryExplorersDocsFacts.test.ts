@@ -1133,7 +1133,7 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     );
   });
 
-  it("charts logs as a time series, a top list or a table, counted or unique, top 5 to 50", () => {
+  it("charts logs as a time series, a top list or a table, counted, unique or a numeric attribute's aggregate, top 5 to 50", () => {
     const analytics: string = readCommonSource(
       "UI/Components/LogsViewer/components/LogsAnalyticsView.tsx",
     );
@@ -1148,6 +1148,15 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       'label: "Table"',
       'label: "Count"',
       'label: "Unique Count"',
+      // A numeric attribute's aggregates (#7716).
+      'label: "Sum"',
+      'label: "Average"',
+      'label: "Median (P50)"',
+      'label: "P90"',
+      'label: "P95"',
+      'label: "P99"',
+      'label: "Minimum"',
+      'label: "Maximum"',
       'label: "Severity"',
       'label: "Service"',
       'label: "Trace ID"',
@@ -1157,7 +1166,27 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     }
 
     expect(page).toContain(
-      "Pick a time series, a top list or a table; count every log, or the unique values of one field; and group by severity, service, trace, span or any attribute, then by a second field. A top list or a table shows the top 5, 10, 25 or 50 groups.",
+      "Pick a time series, a top list or a table, and what it measures: every log counted, the unique values of one field, or the sum, average, median, P90, P95, P99, minimum or maximum of a numeric attribute, such as the P95 of `duration_ms`. Group by severity, service, trace, span or any attribute, then by a second field. A top list or a table shows the top 5, 10, 25 or 50 groups.",
+    );
+  });
+
+  /*
+   * What counts as a number is LogNumericAttributeSql's: toFloat64OrNull,
+   * and only a finite value is read - the WHERE clause leaves the rest out.
+   * A percentile is ClickHouse's quantile, a reservoir of 8,192 values.
+   */
+  it("says which attribute values a numeric aggregate reads, and how close a percentile is", () => {
+    const numberSql: string = readCommonSource(
+      "Server/Utils/Telemetry/LogNumericAttributeSql.ts",
+    );
+
+    expect(numberSql).toContain("toFloat64OrNull(attributes[");
+    expect(numberSql).toContain(") AND isFinite(`");
+    expect(numberSql).toContain("return `quantile(${percentileLevel})`;");
+    expect(numberSql).toContain("8,192 values per group");
+
+    expect(page).toContain(
+      "A numeric attribute is read only where its value is a number: an integer or a decimal, with or without a sign, in scientific notation or not, such as `42`, `-7`, `3.14` or `1e3`. A log without the attribute, or with anything else in it, such as `12ms` or `n/a`, is left out rather than read as 0. A percentile is worked out from up to 8,192 values per point, so a point of more logs than that has a close estimate rather than the exact value.",
     );
   });
 
