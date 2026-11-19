@@ -221,12 +221,15 @@ export interface SsoDiscoveryResult<T> {
  * Decides whether a thrown request was a genuine failure to reach the server,
  * or the server answering perfectly well that there is nothing to offer.
  *
- * This distinction is not cosmetic. App/FeatureSet/Identity/API/SSO.ts answers
- * the ordinary "this email has no project SSO" case with HTTP 400
- * ("No SSO config found for this user") - for an unknown user, a user with no
- * id, and a user who belongs to no project alike. axios rejects on 4xx, so
- * treating every rejection as a failure tells the user their network is broken
- * when in fact the server replied correctly and immediately.
+ * This distinction is not cosmetic. App/FeatureSet/Identity/API/SSO.ts on a
+ * server older than #9745 answers the ordinary "this email has no project
+ * SSO" case with HTTP 400 ("No SSO config found for this user") - for an
+ * unknown user, a user with no id, and a user who belongs to no project
+ * alike. (A newer server answers every such case with an empty list, so the
+ * answer says nothing about whether the address has an account.) axios
+ * rejects on 4xx, so treating every rejection as a failure tells the user
+ * their network is broken when in fact the server replied correctly and
+ * immediately.
  *
  * So: any response at all below 500 means the server was reached and had its
  * say. Only a transport error (no response) or a 5xx is an outage.

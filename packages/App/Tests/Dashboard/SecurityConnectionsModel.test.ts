@@ -836,11 +836,12 @@ describe("where a connection's links go", () => {
 
   test("Security Events on the events naming a record over the card's week", () => {
     const now: Date = new Date("2026-10-25T12:00:00.000Z");
-    const host: { path: string; query: Record<string, string> } = open(
+    // A record with no page of its own: the explorer, on what names it.
+    const item: { path: string; query: Record<string, string> } = open(
       model.getRecordSecurityEventsRoute({
         security: {
-          kind: SecurityConnectionKind.Host,
-          id: HOST_ID,
+          kind: SecurityConnectionKind.InventoryItem,
+          id: ITEM_ID,
           values: ["web-1", "203.0.113.9"],
           windowDays: 7,
           isSearchedByLogs: false,
@@ -849,10 +850,38 @@ describe("where a connection's links go", () => {
       }),
     );
 
-    expect(host.path).toBe(`${BASE}/security-events`);
-    expect(decodeURIComponent(host.query["search"]!)).toBe(
+    expect(item.path).toBe(`${BASE}/security-events`);
+    expect(decodeURIComponent(item.query["search"]!)).toBe(
       "observable:(web-1 OR 203.0.113.9)",
     );
+
+    /*
+     * A record with a page of its own (#9547, #9628): that page, over the
+     * card's week, with nothing searched - the page reads its own scope.
+     */
+    for (const [kind, root] of [
+      [SecurityConnectionKind.Host, "host"],
+      [SecurityConnectionKind.DockerHost, "docker"],
+      [SecurityConnectionKind.PodmanHost, "podman"],
+      [SecurityConnectionKind.OpenStackCloud, "openstack"],
+      [SecurityConnectionKind.Service, "service"],
+    ] as Array<[SecurityConnectionKind, string]>) {
+      const own: { path: string; query: Record<string, string> } = open(
+        model.getRecordSecurityEventsRoute({
+          security: {
+            kind,
+            id: HOST_ID,
+            values: kind === SecurityConnectionKind.Service ? [] : ["web-1"],
+            windowDays: 7,
+            isSearchedByLogs: kind === SecurityConnectionKind.Service,
+          },
+          now,
+        }),
+      );
+
+      expect(own.path).toBe(`${BASE}/${root}/${HOST_ID}/security-events`);
+      expect(own.query["search"]).toBeUndefined();
+    }
 
     const one: { path: string; query: Record<string, string> } = open(
       model.getRecordSecurityEventsRoute({
@@ -871,9 +900,8 @@ describe("where a connection's links go", () => {
       "observable:kim@acme.example",
     );
 
-    // A service's, a function's, a cloud resource's searched by its logs: the events read from its logs.
+    // A function's, a cloud resource's searched by its logs: the events read from its logs.
     for (const kind of [
-      SecurityConnectionKind.Service,
       SecurityConnectionKind.ServerlessFunction,
       SecurityConnectionKind.CloudResource,
     ]) {
@@ -913,12 +941,12 @@ describe("where a connection's links go", () => {
       ),
     ).toBe("observable:shop.acme.example");
 
-    // Nothing to search for opens nothing.
+    // Nothing to search for opens nothing, on a record with no page of its own.
     expect(
       model.getRecordSecurityEventsRoute({
         security: {
-          kind: SecurityConnectionKind.Host,
-          id: HOST_ID,
+          kind: SecurityConnectionKind.InventoryItem,
+          id: ITEM_ID,
           values: [],
           windowDays: 7,
           isSearchedByLogs: false,

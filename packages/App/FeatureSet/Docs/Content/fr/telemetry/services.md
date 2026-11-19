@@ -57,13 +57,14 @@ Pour ajouter un service avant l'arrivée de sa télémétrie, par exemple pour d
 
 ## Les pages d'un service
 
-Le menu latéral d'un service compte cinq sections :
+Le menu latéral d'un service compte six sections :
 
 | Section | Pages |
 | --- | --- |
 | **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommandations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **SLO** : les SLO qui mesurent ses requêtes, où vous pouvez en créer un qui mesure déjà le service. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
-| **Télémétrie** | Ses **Journaux**, **Traces**, **Métriques**, **Profils**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
+| **Télémétrie** | Ses **Journaux**, **Événements de sécurité**, **Traces**, **Métriques**, **Profils**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
 | **Activité** | Les **Incidents**, les **Alertes** et les événements de **Maintenance planifiée** qui le concernent. |
+| **Sécurité** | **Sécurité des données** : les données sensibles que contiennent ses journaux, traces et exceptions, et ce qu'il faut corriger ([Données sensibles dans la télémétrie](/docs/data-security/telemetry)). **Conformité** : la situation de ces données face à chaque référentiel, avec un interrupteur qui désactive un référentiel ou une exigence pour ce service ([Conformité de Sécurité des données](/docs/data-security/compliance#sur-la-page-dune-ressource)). Cette section apparaît dès que Sécurité des données a analysé la télémétrie du service, et elle est d'abord repliée. |
 | **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |
 | **Avancé** | **Paramètres**, **Journaux d'audit** et **Supprimer le service**. **Avancé** est replié au départ : dépliez-le d'abord. |
 

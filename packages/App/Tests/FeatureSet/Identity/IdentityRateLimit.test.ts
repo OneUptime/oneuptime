@@ -368,6 +368,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 const sendErrorResponse: jest.Mock = jest.fn();
 const sendEntityResponse: jest.Mock = jest.fn();
+const sendJsonObjectResponse: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/Response", () => {
   return {
@@ -380,7 +381,10 @@ jest.mock("Common/Server/Utils/Response", () => {
       sendEntityResponse: (...args: Array<unknown>): unknown => {
         return sendEntityResponse(...args);
       },
-      sendJsonObjectResponse: jest.fn(),
+      sendJsonObjectResponse: (...args: Array<unknown>): unknown => {
+        return sendJsonObjectResponse(...args);
+      },
+      setNoCacheHeaders: jest.fn(),
     },
   };
 });
@@ -428,6 +432,9 @@ type AttemptOptions = {
    */
   emailShape?: "string" | "object";
   code?: string;
+
+  // The whole body, for a route that takes another one than the sign-ins.
+  body?: Record<string, unknown>;
   headers?: Record<string, string | Array<string>>;
   socketAddress?: string;
 };
@@ -463,7 +470,7 @@ const attempt: AttemptFunction = async (
       : { _type: "Email", value: emailValue };
 
   const req: ExpressRequest = buildRequest(
-    {
+    options.body || {
       data: {
         email: emailField,
         password: { _type: "HashedString", value: PASSWORD },
@@ -596,6 +603,17 @@ beforeEach(() => {
     .mockResolvedValue(null as never);
 
   jest.spyOn(UserService, "updateOneById").mockResolvedValue(1 as never);
+
+  /*
+   * A sign-in for an address with no account spends a scrypt derivation,
+   * so its refusal takes as long as a wrong password's (#9745,
+   * SignInSaysNothingOfAccounts). These suites count requests, hundreds of
+   * them for addresses nobody has, not the time each takes: the derivation
+   * is skipped here, or each such request would cost tens of milliseconds.
+   */
+  jest
+    .spyOn(PasswordHash, "spendVerificationTime")
+    .mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -628,6 +646,14 @@ describe("the credential routes have a limiter in front of the handler", () => {
      * looks its token up. Limited on a bucket of its own (MagicLink).
      */
     ["/login-with-magic-link"],
+
+    /*
+     * Nor this one -- its credential is an invited address's registration
+     * token, a server-minted random UUID -- but anonymous, and every request
+     * looks its token up. Limited on a bucket of its own (SignUpInvitation);
+     * see "POST /sign-up-invitation" below.
+     */
+    ["/sign-up-invitation"],
   ])("%s runs middleware before its handler", (uri: string) => {
     expect(mockRouter.matchAll("post", uri).length).toBeGreaterThan(1);
   });
@@ -708,6 +734,77 @@ describe("the credential routes have a limiter in front of the handler", () => {
     expect(postRoutes.length).toBeGreaterThanOrEqual(
       ROUTES_THAT_ACCEPT_NO_CREDENTIAL.length + 6,
     );
+  });
+});
+
+/*
+ * The sign-up page an invitation opens asks POST /sign-up-invitation, with
+ * the invited address and its registration token at the top of the body.
+ * Nothing is guessed there -- the token is a server-minted random UUID --
+ * but every ask looks its token up, so the limiter in front of it bounds
+ * work, on a bucket of its own (SIGN_UP_INVITATION_BUCKET).
+ */
+describe("POST /sign-up-invitation", () => {
+  // The shipped budget, restated so a change to it has to be deliberate.
+  const SIGN_UP_INVITATION_LIMIT: number = 150;
+
+  // Not a UUID, so the handler answers none before it reads anything.
+  const ask: (from?: string) => Promise<AttemptResult> = (
+    from: string = REAL_CLIENT_IP,
+  ): Promise<AttemptResult> => {
+    return attempt({
+      uri: "/sign-up-invitation",
+      body: { email: "invited@example.com", token: "not-a-token" },
+      headers: { "x-forwarded-for": from },
+      socketAddress: from,
+    });
+  };
+
+  it("lets one address ask a hundred and fifty times a quarter hour, then refuses it before the handler", async () => {
+    for (let index: number = 0; index < SIGN_UP_INVITATION_LIMIT; index++) {
+      expect((await ask()).reachedHandler).toBe(true);
+    }
+
+    // Each answered by the handler: none, for a token that is not one.
+    expect(sendJsonObjectResponse).toHaveBeenCalledTimes(
+      SIGN_UP_INVITATION_LIMIT,
+    );
+
+    const refused: AttemptResult = await ask();
+
+    expect(refused.reachedHandler).toBe(false);
+    expect(refused.errorCode).toBe(ExceptionCode.TooManyRequestsException);
+    expect(Number(refused.retryAfter)).toBeGreaterThan(0);
+    expect(sendJsonObjectResponse).toHaveBeenCalledTimes(
+      SIGN_UP_INVITATION_LIMIT,
+    );
+
+    // Another address has an allowance of its own.
+    expect((await ask("198.51.100.77")).reachedHandler).toBe(true);
+  });
+
+  /*
+   * An office invited together opens its links behind one address while the
+   * rest of it signs in: the asks are counted apart, and spending them
+   * leaves that address's sign-ins as they were.
+   */
+  it("counts its asks under keys of its own, apart from the sign-ins of the same address", async () => {
+    await ask();
+
+    const keys: Array<string> = Array.from(redisClient.counters.keys());
+
+    expect(keys).toHaveLength(2);
+
+    for (const key of keys) {
+      expect(key.startsWith("identity:rl:sign-up-invitation:")).toBe(true);
+    }
+
+    for (let index: number = 0; index < SIGN_UP_INVITATION_LIMIT; index++) {
+      await ask();
+    }
+
+    expect((await ask()).reachedHandler).toBe(false);
+    expect((await attempt({ uri: "/login" })).reachedHandler).toBe(true);
   });
 });
 

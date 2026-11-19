@@ -29,6 +29,11 @@ import {
 } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+  getCloudAddedMetricKey,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
 import { everythingSent } from "../LlmObservability/FakeProviderApi";
 import {
   FAKE_ACCOUNT_ID,
@@ -1569,5 +1574,334 @@ describe("read", () => {
         new Date((HOURLY_END_S + 3600) * 1000).toISOString(),
       );
     });
+  });
+});
+
+/*
+ * ---- Metrics a person added to the reads (#9563) -------------------------
+ *
+ * GetMetricData bills each metric read, so an addition is read only of the
+ * resources it is for, in the GetMetricData calls the key metrics are read
+ * in: a type's listed in its namespace like a key metric and kept for the
+ * resources of its type, a resource's own on the series its listing found,
+ * with no listing call each read. A stream of every metric writes it
+ * already, so the read leaves it to the stream.
+ */
+describe("metrics a person added to the reads", () => {
+  const INSTANCE: string = "AWS::EC2::Instance";
+
+  function added(overrides: Partial<CloudAddedMetric> = {}): CloudAddedMetric {
+    const metric: CloudAddedMetric = {
+      key: "",
+      provider: CloudProvider.AWS,
+      scope: CloudAddedMetricScope.Type,
+      resourceType: INSTANCE,
+      namespace: "AWS/EC2",
+      name: "MetadataNoToken",
+      aggregation: "Sum",
+      unit: "",
+      addedAt: NOW.toISOString(),
+      ...overrides,
+    };
+
+    return { ...metric, key: getCloudAddedMetricKey(metric) };
+  }
+
+  function ownAddition(
+    overrides: Partial<CloudAddedMetric> = {},
+  ): CloudAddedMetric {
+    return added({
+      scope: CloudAddedMetricScope.Resource,
+      cloudResourceId: "c1d2e3f4-0000-4000-8000-000000000001",
+      accountId: FAKE_ACCOUNT_ID,
+      region: "us-east-1",
+      dimensions: [{ name: "InstanceId", value: "i-0aaa" }],
+      ...overrides,
+    });
+  }
+
+  // Two instances, and an Auto Scaling group's own series of the metric.
+  function instances(): FakeAws {
+    return createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            ...ec2("i-0aaa", [10]),
+            ...ec2("i-0bbb", [20]),
+            {
+              namespace: "AWS/EC2",
+              metricName: "MetadataNoToken",
+              dimensions: [["InstanceId", "i-0aaa"]],
+              values: [[WINDOW_START_S, 3]],
+            },
+            {
+              namespace: "AWS/EC2",
+              metricName: "MetadataNoToken",
+              dimensions: [["InstanceId", "i-0bbb"]],
+              values: [[WINDOW_START_S, 4]],
+            },
+            {
+              namespace: "AWS/EC2",
+              metricName: "MetadataNoToken",
+              dimensions: [["AutoScalingGroupName", "web-asg"]],
+              values: [[WINDOW_START_S, 7]],
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  function queriesOf(fake: FakeAws): Array<{
+    metricName: string;
+    dimensions: string;
+    stat: string;
+  }> {
+    return fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }) => {
+        return (call.body["MetricDataQueries"] as Array<JSONObject>).map(
+          (query: JSONObject) => {
+            const stat: JSONObject = query["MetricStat"] as JSONObject;
+            const metric: JSONObject = stat["Metric"] as JSONObject;
+
+            return {
+              metricName: String(metric["MetricName"]),
+              dimensions: ((metric["Dimensions"] || []) as Array<JSONObject>)
+                .map((dimension: JSONObject): string => {
+                  return `${dimension["Name"]}=${dimension["Value"]}`;
+                })
+                .join(","),
+              stat: String(stat["Stat"]),
+            };
+          },
+        );
+      });
+  }
+
+  function listedNames(fake: FakeAws): Array<string> {
+    return fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "ListMetrics";
+      })
+      .map((call: { body: JSONObject }): string => {
+        return String(call.body["MetricName"] || "");
+      });
+  }
+
+  test("a type's addition is listed in its namespace and read for each resource of its type, in the same GetMetricData call", async () => {
+    const fake: FakeAws = instances();
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      { ...readOptions(fake), addedMetrics: [added()] },
+    );
+
+    expect(listedNames(fake)).toContain("MetadataNoToken");
+    expect(
+      queriesOf(fake).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toEqual([
+      {
+        metricName: "MetadataNoToken",
+        dimensions: "InstanceId=i-0aaa",
+        stat: "Sum",
+      },
+      {
+        metricName: "MetadataNoToken",
+        dimensions: "InstanceId=i-0bbb",
+        stat: "Sum",
+      },
+    ]);
+    // One call for every series of the period, key metrics and added.
+    expect(
+      fake.cloudWatchCalls.filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      }),
+    ).toHaveLength(1);
+
+    const written: Array<{ metricName: string; attributes: JSONObject }> =
+      resolvedFromPayloads(result).filter(
+        (entry: { metricName: string }): boolean => {
+          return entry.metricName === "amazonaws.com/AWS/EC2/MetadataNoToken";
+        },
+      );
+
+    expect(
+      written.map((entry: { attributes: JSONObject }) => {
+        return entry.attributes["Dimensions.InstanceId"];
+      }),
+    ).toEqual(["i-0aaa", "i-0bbb"]);
+  });
+
+  test("a resource's own addition is read on the series its listing found, with no listing call", async () => {
+    const fake: FakeAws = instances();
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      { ...readOptions(fake), addedMetrics: [ownAddition()] },
+    );
+
+    expect(listedNames(fake)).not.toContain("MetadataNoToken");
+    expect(
+      queriesOf(fake).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toEqual([
+      {
+        metricName: "MetadataNoToken",
+        dimensions: "InstanceId=i-0aaa",
+        stat: "Sum",
+      },
+    ]);
+    expect(
+      resolvedFromPayloads(result)
+        .filter((entry: { metricName: string }): boolean => {
+          return entry.metricName === "amazonaws.com/AWS/EC2/MetadataNoToken";
+        })
+        .map((entry: { attributes: JSONObject }) => {
+          return entry.attributes["Dimensions.InstanceId"];
+        }),
+    ).toEqual(["i-0aaa"]);
+  });
+
+  test("a resource's own addition of another account, or of a Region or namespace the account has no resources in, is not read", async () => {
+    const fake: FakeAws = instances();
+
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(fake),
+      addedMetrics: [
+        ownAddition({ accountId: "999999999999" }),
+        ownAddition({ region: "eu-west-1", cloudResourceId: "other-row-1" }),
+        ownAddition({ namespace: "AWS/RDS", cloudResourceId: "other-row-2" }),
+      ],
+    });
+
+    expect(
+      queriesOf(fake).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toEqual([]);
+  });
+
+  test("an addition a stream of every metric writes already is left to it; a key-metric stream does not carry it", async () => {
+    const coverage: (everyMetric: boolean) => AwsStreamCoverage = (
+      everyMetric: boolean,
+    ): AwsStreamCoverage => {
+      return getAwsStreamCoverage({
+        summary: {
+          metricSources: [
+            {
+              accountId: FAKE_ACCOUNT_ID,
+              region: "us-east-1",
+              namespaces: ["AWS/EC2"],
+              lastAt: new Date(NOW.getTime() - 60 * 1000).toISOString(),
+              templateVersion: 2,
+              everyMetric,
+            },
+          ],
+          logSources: [],
+        },
+        now: NOW,
+      });
+    };
+
+    const whole: FakeAws = instances();
+    const wholeResult: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(whole),
+        awsStreamCoverage: coverage(true),
+        addedMetrics: [added(), ownAddition({ name: "DiskReadOps" })],
+      },
+    );
+
+    expect(
+      queriesOf(whole).filter((query: { metricName: string }): boolean => {
+        return (
+          query.metricName === "MetadataNoToken" ||
+          query.metricName === "DiskReadOps"
+        );
+      }),
+    ).toEqual([]);
+    expect(
+      resolvedFromPayloads(wholeResult).some(
+        (entry: { metricName: string }): boolean => {
+          return entry.metricName === "amazonaws.com/AWS/EC2/MetadataNoToken";
+        },
+      ),
+    ).toBe(false);
+
+    const keyOnly: FakeAws = instances();
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(keyOnly),
+      awsStreamCoverage: coverage(false),
+      addedMetrics: [added()],
+    });
+
+    expect(
+      queriesOf(keyOnly).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("an addition that is a key metric of its namespace is read once, as the key metric", async () => {
+    // EC2's listing calls of CPUUtilization and NetworkIn in a read.
+    const ec2Listings: (fake: FakeAws) => Array<string> = (
+      fake: FakeAws,
+    ): Array<string> => {
+      return fake.cloudWatchCalls
+        .filter((call: { action: string; body: JSONObject }): boolean => {
+          return (
+            call.action === "ListMetrics" &&
+            call.body["Namespace"] === "AWS/EC2" &&
+            (call.body["MetricName"] === "CPUUtilization" ||
+              call.body["MetricName"] === "NetworkIn")
+          );
+        })
+        .map((call: { body: JSONObject }): string => {
+          return String(call.body["MetricName"]);
+        });
+    };
+
+    const without: FakeAws = instances();
+    await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(without),
+    );
+
+    const fake: FakeAws = instances();
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(fake),
+      addedMetrics: [
+        added({ name: "CPUUtilization", aggregation: "Maximum" }),
+        ownAddition({ name: "NetworkIn" }),
+      ],
+    });
+
+    expect(
+      queriesOf(fake)
+        .filter((query: { metricName: string }): boolean => {
+          return (
+            query.metricName === "CPUUtilization" ||
+            query.metricName === "NetworkIn"
+          );
+        })
+        .map((query: { metricName: string; stat: string }): string => {
+          return `${query.metricName}:${query.stat}`;
+        })
+        .sort(),
+    ).toEqual([
+      "CPUUtilization:Average",
+      "CPUUtilization:Average",
+      "NetworkIn:Sum",
+      "NetworkIn:Sum",
+    ]);
+    // Listed as often as without the additions.
+    expect(ec2Listings(fake)).toEqual(ec2Listings(without));
   });
 });

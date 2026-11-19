@@ -6,6 +6,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -15,14 +16,26 @@ import API from "Common/UI/Utils/API/API";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  CloudAddedMetric,
+  toStoredCloudAddedMetrics,
+} from "Common/Types/Cloud/CloudAddedMetrics";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
-import { GetMetricRowGroup } from "../../../Components/Metrics/Utils/MetricRowScope";
+import {
+  GetMetricRowGroup,
+  GetMetricRowGroupGaps,
+  MetricRowGroupGap,
+} from "../../../Components/Metrics/Utils/MetricRowScope";
+import CloudResourceMoreMetrics from "../../../Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics";
+import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
   getCloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceRowGroup,
+  getCloudMonitoredResourceRowGroupGaps,
+  getCloudResourceAddedStoredNames,
   isCloudMonitoredResourceScoped,
 } from "../Utils/CloudMonitoredResourceScope";
 
@@ -35,6 +48,13 @@ import {
  * A Service Bus or Event Hubs namespace's metrics arrive once per queue,
  * topic and event hub, and its rows read as their total, as do the
  * explorer and the monitors opened from them.
+ *
+ * Its key metrics read in sections, each saying - folded away - which of
+ * its key metrics the resource did not report in the range, and why
+ * (#9569). Under the list, More Metrics lists what else its cloud
+ * publishes, on demand, and adds one to what its connection reads (#9563):
+ * an added metric reads in a section of its own, and charts and alerts as
+ * a key metric does.
  */
 const CloudResourceMetrics: FunctionComponent<
   PageComponentProps
@@ -55,6 +75,7 @@ const CloudResourceMetrics: FunctionComponent<
         modelType: CloudResource,
         id: modelId,
         select: {
+          _id: true,
           resourceIdentifier: true,
           name: true,
           // The scope reads the attributes of a resource only.
@@ -63,6 +84,11 @@ const CloudResourceMetrics: FunctionComponent<
           // What its rows add up: a namespace's metrics, one per queue.
           cloudProvider: true,
           cloudResourceType: true,
+          // What its connection reads for it besides its key metrics.
+          cloudConnectionId: true,
+          cloudConnection: {
+            addedMetrics: true,
+          },
         },
       });
 
@@ -113,12 +139,64 @@ const CloudResourceMetrics: FunctionComponent<
     }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
 
   /*
+   * Its connection's additions: as loaded, then as Add and Remove leave
+   * them, so the list re-sections without a reload.
+   */
+  const [addedMetrics, setAddedMetrics] = useState<unknown>(undefined);
+
+  useEffect(() => {
+    setAddedMetrics(cloudResource?.cloudConnection?.addedMetrics);
+  }, [cloudResource]);
+
+  const onAddedMetricsChange: (metrics: Array<CloudAddedMetric>) => void =
+    useCallback((metrics: Array<CloudAddedMetric>): void => {
+      setAddedMetrics(toStoredCloudAddedMetrics(metrics));
+    }, []);
+
+  // What someone added for it, by the names they are stored under.
+  const addedStoredNames: Array<string> = useMemo(() => {
+    return getCloudResourceAddedStoredNames({
+      _id: cloudResource?._id,
+      cloudResourceType: cloudResource?.cloudResourceType,
+      cloudConnection: { addedMetrics },
+    });
+  }, [cloudResource?._id, cloudResource?.cloudResourceType, addedMetrics]);
+  const addedNamesKey: string = addedStoredNames.join("\n");
+
+  /*
    * Its key metrics in sections - Availability, Traffic, Errors, Latency
-   * and the rest, most telling first - and its other metrics after them.
+   * and the rest, most telling first - then what someone added, and its
+   * other metrics after them.
    */
   const getRowGroup: GetMetricRowGroup | undefined = useMemo(() => {
-    return getCloudMonitoredResourceRowGroup(cloudResource);
-  }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
+    return getCloudMonitoredResourceRowGroup(cloudResource, addedStoredNames);
+  }, [
+    cloudResource?.cloudProvider,
+    cloudResource?.cloudResourceType,
+    addedNamesKey,
+  ]);
+
+  // The key metrics each section did not get in the range, and why.
+  const getRowGroupGaps: GetMetricRowGroupGaps | undefined = useMemo(() => {
+    return getCloudMonitoredResourceRowGroupGaps(cloudResource);
+  }, [
+    cloudResource?.cloudProvider,
+    cloudResource?.cloudResourceType,
+    cloudResource?.telemetryAttributes,
+  ]);
+
+  const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =
+    useCallback(
+      (gap: MetricRowGroupGap): ReactElement => {
+        return (
+          <CloudUnreportedKeyMetricsList
+            cloudResourceId={modelId}
+            keys={gap.keys}
+          />
+        );
+      },
+      [modelId.toString()],
+    );
 
   if (isLoading) {
     return <PageSkeleton shape="chart" />;
@@ -150,8 +228,22 @@ const CloudResourceMetrics: FunctionComponent<
         eventScope={eventScope}
         getRowAggregation={rowAggregation?.getRowAggregation}
         getRowGroup={getRowGroup}
+        getRowGroupGaps={getRowGroupGaps}
+        renderRowGroupGap={renderRowGroupGap}
         defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
       />
+      {cloudResource.cloudConnectionId ? (
+        <div className="mt-6">
+          <CloudResourceMoreMetrics
+            cloudResourceId={modelId}
+            provider={String(cloudResource.cloudProvider || "")}
+            resourceType={String(cloudResource.cloudResourceType || "")}
+            onAddedMetricsChange={onAddedMetricsChange}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

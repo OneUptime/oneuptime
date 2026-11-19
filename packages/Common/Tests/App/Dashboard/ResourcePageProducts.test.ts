@@ -57,12 +57,17 @@ afterEach(() => {
 });
 
 describe("the resource pages that show another product", () => {
-  test("a device's, a host's and a cluster's Security Events need Security Events; every data page Data Security", () => {
+  test("every resource's Security Events needs Security Events; every data page Data Security", () => {
     expect(RESOURCE_PAGE_PRODUCTS).toEqual({
       [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS]:
         ProductKey.SecurityEvents,
+      // A container host's, a cloud's and a service's (#9628).
+      [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+      [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+      [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+      [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
       [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
       [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
@@ -77,6 +82,34 @@ describe("the resource pages that show another product", () => {
       [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
     });
   });
+
+  test.each([
+    [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS, ProductKey.Docker],
+    [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS, ProductKey.Podman],
+    [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS, ProductKey.OpenStack],
+    [PageMap.SERVICE_VIEW_SECURITY_EVENTS, ProductKey.Services],
+  ])(
+    "%s stays a page of %s, and needs Security Events too (#9628)",
+    (page: PageMap, product: ProductKey) => {
+      expect(getProductOfPath(addressOf(page))).toBe(product);
+      expect(getProductsOfPath(addressOf(page))).toEqual([
+        product,
+        ProductKey.SecurityEvents,
+      ]);
+      expect(
+        getOffProductOfPath({
+          pathname: addressOf(page),
+          offOnServer: {
+            [ProductKey.SecurityEvents]: ServerProductOffReason.SwitchedOff,
+          },
+        }),
+      ).toEqual({
+        product: ProductKey.SecurityEvents,
+        reason: ServerProductOffReason.SwitchedOff,
+        pageProduct: product,
+      });
+    },
+  );
 
   test.each([
     [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE, ProductKey.Databases],

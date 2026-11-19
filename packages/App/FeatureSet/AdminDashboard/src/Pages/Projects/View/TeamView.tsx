@@ -11,7 +11,10 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import {
+  INVITEE_NAME_DESCRIPTION,
+  shouldAskForInviteeName,
+} from "Common/UI/Utils/InviteeName";
 import { JSONObject } from "Common/Types/JSON";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -80,12 +83,6 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
    */
   const invitationEmailsNotSent: InvitationEmailsNotSent =
     useInvitationEmailsNotSent(!cannotSendEmail, { isAcrossProjects: true });
-
-  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
-    getRequestHeaders: () => {
-      return AdminModelAPI.getCommonHeaders();
-    },
-  });
 
   return (
     <ModelPage<Project>
@@ -286,26 +283,26 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               required: true,
               placeholder: "member@company.com",
               overrideFieldKey: "email",
-              onChange: (value: string) => {
-                checkEmail(value);
-              },
             },
             {
               field: {
                 user: true,
               },
+              /*
+               * Asked for every address typed, as the Dashboard's forms ask
+               * it (#9745): the server uses it only for an account nobody
+               * has signed up to yet.
+               */
               title: "Name",
-              description:
-                "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+              description: INVITEE_NAME_DESCRIPTION,
               fieldType: FormFieldSchemaType.Text,
               required: false,
               placeholder: "John Smith",
               overrideFieldKey: "name",
               showIf: (values: FormValues<TeamMember>): boolean => {
-                return (
-                  Boolean((values as JSONObject)["email"]) &&
-                  isEmailRegistered === false
-                );
+                return shouldAskForInviteeName({
+                  email: (values as JSONObject)["email"],
+                });
               },
             },
             {

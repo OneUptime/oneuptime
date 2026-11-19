@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -418,7 +419,7 @@ describe("Add Existing Monitor", () => {
     const updateById: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
-    const onMonitorAdded: jest.Mock = jest.fn();
+    const onMonitorAdded: Mock<() => void> = jest.fn<() => void>();
 
     renderAddable(onMonitorAdded);
 
@@ -499,7 +500,7 @@ describe("Add Existing Monitor", () => {
           "An import, an auto import rule or an alert policy made this monitor for its network device, so it is that device's already. Its Network Device cannot be changed.",
         ),
       );
-    const onMonitorAdded: jest.Mock = jest.fn();
+    const onMonitorAdded: Mock<() => void> = jest.fn<() => void>();
 
     renderAddable(onMonitorAdded);
 

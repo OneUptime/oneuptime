@@ -4,6 +4,10 @@ import {
   readSecurityCaseEventSnapshot,
 } from "./SecurityCaseEventEvidence";
 import { JSONObject, JSONValue } from "../JSON";
+import {
+  DetectionRuleResponseStep,
+  readDetectionRuleResponseSteps,
+} from "../SecurityEvent/DetectionRuleResponseSteps";
 
 /*
  * WHY A CASE WAS OPENED, AND WHAT MATCHED.
@@ -126,6 +130,12 @@ export interface SecurityCaseMatchRuleJson {
   falsePositives: Array<string>;
   references: Array<string>;
   lookFor: Array<SecurityCaseMatchLookForJson>;
+  /*
+   * What to do when it fires, in its author's words (#9621): the case's
+   * Response Plan shows them ahead of its general steps. A Rule Library
+   * rule added before rules had steps reads its library entry's.
+   */
+  responseSteps: Array<DetectionRuleResponseStep>;
 }
 
 /*
@@ -133,7 +143,14 @@ export interface SecurityCaseMatchRuleJson {
  * (its who, what and where, and its source attributes), with the request it
  * happened in - its trace, span, session and how far it got.
  */
-export type SecurityCaseMatchedEventJson = SecurityCaseEventSnapshot;
+export interface SecurityCaseMatchedEventJson
+  extends SecurityCaseEventSnapshot {
+  /*
+   * When the events table deletes the event, as an ISO string, for an
+   * event the detection kept (#9619); "" or none where it is not known.
+   */
+  retentionDate?: string | undefined;
+}
 
 export interface SecurityCaseMatchedDetectionJson {
   id: string;
@@ -162,6 +179,17 @@ export interface SecurityCaseMatchedDetectionJson {
   windowEnd: string | null;
   // The events, oldest first, at most SECURITY_CASE_MATCHES_MAX_EVENTS.
   events: Array<SecurityCaseMatchedEventJson>;
+  /*
+   * The events are the ones the detection kept when it fired (#9619):
+   * exactly what it matched then, whatever its rule says now. False for
+   * one that kept none - it fired before OneUptime kept events, or its
+   * source keeps none - whose events were read again.
+   */
+  isKept: boolean;
+  // Of the events listed, the ones past the events table's retention: shown as kept.
+  keptPastRetentionCount: number;
+  // The events it kept of sources the reader's role cannot read: not listed.
+  hiddenEventCount: number;
   /*
    * How many events matched over the window, and how many of them took
    * each request outcome ("" for those no request was followed for). Null
@@ -287,6 +315,7 @@ export function parseSecurityCaseMatchRule(
     falsePositives: readStrings(record["falsePositives"]),
     references: readStrings(record["references"]),
     lookFor: readLookFor(record["lookFor"]),
+    responseSteps: readDetectionRuleResponseSteps(record["responseSteps"]),
   };
 }
 
@@ -323,7 +352,11 @@ function readEvents(
       readSecurityCaseEventSnapshot(item);
 
     if (snapshot) {
-      events.push(snapshot);
+      const retentionDate: string | null = readTime(
+        readObject(item)?.["retentionDate"],
+      );
+
+      events.push(retentionDate ? { ...snapshot, retentionDate } : snapshot);
     }
   }
 
@@ -378,6 +411,11 @@ export function parseSecurityCaseMatches(
       windowStart: readTime(record["windowStart"]),
       windowEnd: readTime(record["windowEnd"]),
       events: readEvents(record["events"]),
+      isKept: record["isKept"] === true,
+      keptPastRetentionCount: Math.trunc(
+        readNumber(record["keptPastRetentionCount"]),
+      ),
+      hiddenEventCount: Math.trunc(readNumber(record["hiddenEventCount"])),
       matchedEventCount: readNullableNumber(record["matchedEventCount"]),
       outcomes: readOutcomes(record["outcomes"]),
     });

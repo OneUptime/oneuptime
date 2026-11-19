@@ -2,6 +2,7 @@ import childProcess from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 
 /*
  * WHAT A BUILD PUTS IN THE FIRST LOAD, FOR A TEST THAT HOLDS A PAGE TO IT.
@@ -17,6 +18,9 @@ import path from "path";
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
 
+// Where a package the frontend installs, and this checkout does not, is built.
+export const NOT_INSTALLED_NAMESPACE: string = "not-installed-here";
+
 export interface FirstLoadBuildOptions {
   // The entry's lines: what it exports, from the modules the page draws with.
   entryLines: ReadonlyArray<string>;
@@ -27,6 +31,15 @@ export interface FirstLoadBuildOptions {
   additionalAlias?: Record<string, string> | undefined;
   // Where a frontend's sources find the packages they import.
   nodePaths?: ReadonlyArray<string> | undefined;
+  /*
+   * Packages the frontend installs and Common does not ("jspdf"). Where the
+   * frontend's packages are installed, each is built as it is. Where only
+   * Common's are - the Common Test workflow - one that does not resolve is
+   * built as an empty module of its own (NOT_INSTALLED_NAMESPACE) at the
+   * same import, so the first load is still told from what loads later.
+   * Any other import that does not resolve fails the build.
+   */
+  frontendOnlyPackages?: ReadonlyArray<string> | undefined;
 }
 
 export interface FirstLoadBuild {
@@ -46,6 +59,14 @@ export const buildFirstLoad: (
   );
   const entry: string = path.join(entryDirectory, "FirstLoadEntry.ts");
 
+  // A frontend-only package's name, and any path into it: "jspdf", "jspdf/dist/...".
+  const frontendOnlyPackages: ReadonlyArray<string> =
+    options.frontendOnlyPackages || [];
+  const frontendOnlyFilter: string | null =
+    frontendOnlyPackages.length > 0
+      ? `^(?:${frontendOnlyPackages.map(escapeRegExp).join("|")})(?:/|$)`
+      : null;
+
   try {
     fs.writeFileSync(entry, options.entryLines.join("\n"));
 
@@ -63,10 +84,51 @@ export const buildFirstLoad: (
         entryPoint: ${JSON.stringify(entry)},
         additionalAlias: ${JSON.stringify(options.additionalAlias || {})},
       });
+      const frontendOnlyFilter = ${frontendOnlyFilter ? `new RegExp(${JSON.stringify(frontendOnlyFilter)})` : "null"};
+      const notInstalledNamespace = ${JSON.stringify(NOT_INSTALLED_NAMESPACE)};
+
+      // A frontend-only package: as installed, else an empty module in its place.
+      const frontendOnlyPackages = {
+        name: "frontend-only-packages",
+        setup(build) {
+          build.onResolve({ filter: frontendOnlyFilter }, async (args) => {
+            if (args.pluginData && args.pluginData.isFrontendOnlyCheck) {
+              return undefined;
+            }
+
+            const installed = await build.resolve(args.path, {
+              kind: args.kind,
+              importer: args.importer,
+              resolveDir: args.resolveDir,
+              pluginData: { isFrontendOnlyCheck: true },
+            });
+
+            if (installed.errors.length === 0) {
+              return {
+                path: installed.path,
+                namespace: installed.namespace,
+                external: installed.external,
+                sideEffects: installed.sideEffects,
+                suffix: installed.suffix,
+                pluginData: installed.pluginData,
+              };
+            }
+
+            return { path: args.path, namespace: notInstalledNamespace };
+          });
+
+          build.onLoad({ filter: /.*/, namespace: notInstalledNamespace }, () => {
+            return { contents: "export default null;", loader: "js" };
+          });
+        },
+      };
 
       esbuild.build({
         ...config,
         nodePaths: ${JSON.stringify(options.nodePaths || [])},
+        plugins: frontendOnlyFilter
+          ? [frontendOnlyPackages, ...(config.plugins || [])]
+          : config.plugins,
         write: false,
         sourcemap: false,
         metafile: true,
@@ -130,6 +192,27 @@ export const buildFirstLoad: (
   } finally {
     fs.rmSync(entryDirectory, { recursive: true, force: true });
   }
+};
+
+/*
+ * A package's inputs, as built ("node_modules/jspdf/...") or as the empty
+ * module built in its place where it is not installed
+ * ("not-installed-here:jspdf").
+ */
+export const inputsOfPackage: (
+  inputs: ReadonlyArray<string>,
+  name: string,
+) => Array<string> = (
+  inputs: ReadonlyArray<string>,
+  name: string,
+): Array<string> => {
+  return inputs.filter((input: string): boolean => {
+    return (
+      input.includes(`node_modules/${name}/`) ||
+      input === `${NOT_INSTALLED_NAMESPACE}:${name}` ||
+      input.startsWith(`${NOT_INSTALLED_NAMESPACE}:${name}/`)
+    );
+  });
 };
 
 // The inputs whose path holds `part`, as the metafile names them.
