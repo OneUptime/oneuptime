@@ -136,10 +136,12 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import Includes from "../../../Types/BaseDatabase/Includes";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   KubernetesContainerAssessment,
   KubernetesHealthRow,
+  KubernetesHealthText,
   assessKubernetesContainer,
 } from "../../../Types/Kubernetes/KubernetesHealth";
 import KubernetesContainerModel from "../../../Models/DatabaseModels/KubernetesContainer";
@@ -175,16 +177,14 @@ function minutesAgo(minutes: number): string {
 }
 
 // A container's status as the agent reports it in its pod's status.
-function containerStatus(
-  fields: Record<string, unknown>,
-): Record<string, unknown> {
+function containerStatus(fields: JSONObject): JSONObject {
   return { ready: false, restartCount: 0, ...fields };
 }
 
 function pod(
   name: string,
   namespace: string,
-  containerStatuses: Array<Record<string, unknown>>,
+  containerStatuses: Array<JSONObject>,
 ): KubernetesHealthRow {
   return {
     kind: "Pod",
@@ -215,18 +215,14 @@ function assess(
   return assessKubernetesContainer(row, { name: container });
 }
 
-function englishOf(
-  reasons: Array<{ text: string; values?: Record<string, string> }>,
-): Array<string> {
-  return reasons.map(
-    (reason: { text: string; values?: Record<string, string> }): string => {
-      let filled: string = reason.text;
-      for (const [key, value] of Object.entries(reason.values || {})) {
-        filled = filled.split(`{{${key}}}`).join(value);
-      }
-      return filled;
-    },
-  );
+function englishOf(reasons: Array<KubernetesHealthText>): Array<string> {
+  return reasons.map((reason: KubernetesHealthText): string => {
+    let filled: string = reason.text;
+    for (const [key, value] of Object.entries(reason.values || {})) {
+      filled = filled.split(`{{${key}}}`).join(value);
+    }
+    return filled;
+  });
 }
 
 const CRASH_LOOPING: KubernetesHealthRow = pod("web-2", "shop", [
