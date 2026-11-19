@@ -1,5 +1,7 @@
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -15,6 +17,8 @@ import {
   KubernetesEventsTypeFilter,
 } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import { ResourceAttentionDialogRead } from "../../../Components/ResourcePart/ResourceAttentionDialog";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import { KubernetesPartRouteFor } from "./KubernetesAttention";
 import {
   KubernetesProblemKind,
   KubernetesProblemQuery,
@@ -72,6 +76,9 @@ export function getKubernetesProblemModelQuery(data: {
       return { ...base, kind: "Pod", phase: "Pending" };
     case KubernetesProblemKind.Failed:
       return { ...base, kind: "Pod", phase: "Failed" };
+    case KubernetesProblemKind.NeedsAttention:
+      // Every pod ingest flagged, critical or a warning.
+      return { ...base, kind: "Pod", healthSeverity: new NotNull() };
     case KubernetesProblemKind.Unknown:
     default:
       return { ...base, kind: "Pod", phase: "Unknown" };
@@ -162,21 +169,71 @@ export async function loadKubernetesProblemItems(data: {
       ? all
       : selectKubernetesProblemPods(all, data.query);
 
-  const objectKind: "Pod" | "Node" = getKubernetesProblemObjectKind(data.query);
-  const routeFor: (part: {
-    kind: string;
-    name: string;
-    namespace: string;
-  }) => ReturnType<typeof getKubernetesPartRoute> = (part: {
-    kind: string;
-    name: string;
-    namespace: string;
-  }) => {
-    return getKubernetesPartRoute(data.clusterId, part);
+  const items: Array<ResourceAttentionItem> =
+    await loadKubernetesProblemItemsForRows({
+      clusterIdentifier: data.clusterIdentifier,
+      rows: rows,
+      query: data.query,
+      routeFor: (part: {
+        kind: string;
+        name: string;
+        namespace: string;
+      }): Route | undefined => {
+        return getKubernetesPartRoute(data.clusterId, part);
+      },
+    });
+
+  return {
+    items: items,
+    isTruncated: result.count > result.data.length,
   };
+}
+
+/*
+ * Reads the warning Events of a dialog's rows when it opens, for a page
+ * that already holds the rows (a failed Job's pods, a namespace's).
+ */
+export type KubernetesProblemRowsLoader = (data: {
+  rows: Array<KubernetesHealthRow>;
+  kind: KubernetesProblemKind;
+}) => Promise<Array<ResourceAttentionItem>>;
+
+export function getKubernetesProblemRowsLoader(data: {
+  // The agent's name for the cluster, which its Events are stamped with.
+  clusterIdentifier: string;
+  routeFor: KubernetesPartRouteFor;
+}): KubernetesProblemRowsLoader {
+  return (rows: {
+    rows: Array<KubernetesHealthRow>;
+    kind: KubernetesProblemKind;
+  }): Promise<Array<ResourceAttentionItem>> => {
+    return loadKubernetesProblemItemsForRows({
+      clusterIdentifier: data.clusterIdentifier,
+      rows: rows.rows,
+      query: { kind: rows.kind },
+      routeFor: data.routeFor,
+    });
+  };
+}
+
+/*
+ * The rows a page already holds - a failed Job's pods, a namespace's pods
+ * that need attention - as the dialog lists them, with their warning
+ * Events read in one more read when the dialog opens. Events are extra:
+ * when they cannot be read, the rows still say why from their status.
+ */
+export async function loadKubernetesProblemItemsForRows(data: {
+  clusterIdentifier: string;
+  rows: Array<KubernetesHealthRow>;
+  query: KubernetesProblemQuery;
+  routeFor: KubernetesPartRouteFor;
+}): Promise<Array<ResourceAttentionItem>> {
+  const rows: Array<KubernetesHealthRow> = data.rows;
+  const objectKind: "Pod" | "Node" = getKubernetesProblemObjectKind(data.query);
+  const routeFor: KubernetesPartRouteFor = data.routeFor;
 
   // Without events first, to know when each began failing.
-  const withoutEvents: ReturnType<typeof buildKubernetesProblemItems> =
+  const withoutEvents: Array<ResourceAttentionItem> =
     buildKubernetesProblemItems({
       rows: rows,
       query: data.query,
@@ -224,16 +281,12 @@ export async function loadKubernetesProblemItems(data: {
     }
   }
 
-  return {
-    items:
-      events.length > 0
-        ? buildKubernetesProblemItems({
-            rows: rows,
-            query: data.query,
-            routeFor: routeFor,
-            events: events,
-          })
-        : withoutEvents,
-    isTruncated: result.count > result.data.length,
-  };
+  return events.length > 0
+    ? buildKubernetesProblemItems({
+        rows: rows,
+        query: data.query,
+        routeFor: routeFor,
+        events: events,
+      })
+    : withoutEvents;
 }

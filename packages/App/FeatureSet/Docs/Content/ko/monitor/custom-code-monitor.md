@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 따옴표가 들어 있는 시크릿 값은 그것을 둘러싼 문자열을 깨뜨립니다. 모니터가 사용할 수 없는 참조는 작성된 그대로 스크립트에 남습니다. 시크릿을 만들고 사용할 수 있는 모니터를 고르는 방법은 [모니터 시크릿](/docs/monitor/monitor-secrets)을 참고하세요.
 
+일회용 코드 시크릿은 값이 아니라 사이트의 2단계 인증 설정 키를 담습니다. 그 `{{monitorSecrets.NAME}}`은 스크립트가 시작되는 순간의 코드이고, `await oneuptime.getTotpCode("NAME")`은 스크립트가 요청할 때 새 코드를 만듭니다. [일회용 코드로 로그인](/docs/monitor/monitor-secrets#일회용-코드로-로그인)을 참고하세요.
+
 ## 사용자 정의 메트릭
 
 `oneuptime.captureMetric()` 함수로 스크립트에서 사용자 정의 메트릭을 기록할 수 있습니다. 이 메트릭은 OneUptime에 저장되며, Metric Explorer를 사용해 대시보드에 차트로 그릴 수 있습니다.
@@ -226,6 +228,7 @@ return {
 | `http`, `https` | `axios` 에 넘길 `Agent` 클래스만 있습니다. 예: `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. `request` 나 `get` 은 없습니다. |
 | `console.log` | 디버깅용 데이터를 기록합니다. `console.log` 만 있고 `console.error` 등은 없습니다. |
 | `oneuptime.captureMetric` | 사용자 정의 메트릭을 기록합니다. [사용자 정의 메트릭](#사용자-정의-메트릭)을 참고하세요. |
+| `oneuptime.getTotpCode` | 일회용 코드 시크릿의 현재 코드를 만듭니다: `await oneuptime.getTotpCode("NAME")`. [모니터 시크릿 사용](#모니터-시크릿-사용)을 참고하세요. |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | 스크립트 안에서 기다립니다. 지연이 스크립트의 타임아웃을 넘는 일은 없습니다. |
 
 ## 고려 사항

@@ -478,6 +478,45 @@ describe("a hypervisor's page", () => {
     expect(asked).toEqual([["compute-07", HYPERVISOR_NAME]]);
   });
 
+  /*
+   * "Lost" beside its name said nothing of what was lost with it: that was
+   * Needs attention, its nova-compute and the instances on it (#9594).
+   */
+  test("its Lost opens why: the nova-compute that is down, read once for the card and the hero", async () => {
+    server.rows = [
+      hypervisorRow({ status: "down" }),
+      computeServiceRow({ status: "down" }),
+    ];
+
+    await renderPage(OpenStackCloudHypervisorDetail, PATH);
+    await screen.findByTestId("openstack-hypervisor-attention");
+
+    const status: HTMLElement = screen.getByTestId(
+      "openstack-hypervisor-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const dialogRows: Array<string> = screen
+      .getAllByTestId("openstack-hypervisor-hero-status-dialog-item")
+      .map((item: HTMLElement): string => {
+        return item.getAttribute("data-key") || "";
+      });
+    const cardRows: Array<string> = within(
+      screen.getByTestId("openstack-hypervisor-attention"),
+    )
+      .getAllByTestId("openstack-hypervisor-attention-item")
+      .map((item: HTMLElement): string => {
+        return item.getAttribute("data-key") || "";
+      });
+    expect(dialogRows).toEqual(cardRows);
+    expect(
+      screen.getByTestId("openstack-hypervisor-hero-status-dialog-name"),
+    ).toHaveTextContent("nova-compute");
+    // Its nova-compute was asked for once, for both.
+    expect(kindCalls(OpenStackResourceKind.Service)).toHaveLength(1);
+  });
+
   test("what needs attention: its own allocation, and the instances on it by name", async () => {
     server.rows = [
       hypervisorRow({ vcpuAllocated: 60 }),
@@ -1269,6 +1308,32 @@ describe("availability zones and aggregates", () => {
       return one.query["availabilityZone"] === "az1";
     });
     expect(call?.query["regionName"]).toBe("RegionOne");
+  });
+
+  test("a zone's Unhealthy opens why: the nova-compute down in it, a step from its page", async () => {
+    server.rows = MANY;
+
+    await renderPage(
+      OpenStackCloudAvailabilityZoneDetail,
+      partPath("availability-zones", "RegionOne/az1"),
+    );
+
+    const status: HTMLElement = await screen.findByTestId(
+      "openstack-zone-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const row: HTMLElement = screen.getByTestId(
+      "openstack-zone-hero-status-dialog-item",
+    );
+    expect(
+      within(row).getByTestId("openstack-zone-hero-status-dialog-name"),
+    ).toHaveTextContent("nova-compute");
+    expect(row).toHaveTextContent("Down, with 7 instances on it");
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What on these hypervisors is broken or needs a look, the most urgent first.",
+    );
   });
 
   test("a zone nothing says it is in says that", async () => {

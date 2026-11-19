@@ -221,7 +221,7 @@ Data Security's settings are one set per project, in the **Settings** section of
 | --- | --- | --- |
 | **Check Configuration** | On | Runs the checks on every store. Off, no issue opens, changes or closes. |
 | **Scan Content** | On | Samples stores' content where the content permission was granted. |
-| **Scan Telemetry** | On | Samples the project's logs, traces, exceptions, replays and AI conversations. |
+| **Scan Telemetry** | On | Samples the project's logs, traces, metrics, exceptions, replays and AI conversations. |
 | **Keep Masked Samples** | On | Keeps up to three masked samples with each finding. Off keeps counts only. |
 | **Open Security Cases** | On | Opens a security case, grouped by store, when a Critical issue opens. |
 | **Raise Alerts** | Off | Raises an alert, which pages whoever is on call, when a Critical issue opens. |

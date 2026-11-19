@@ -45,8 +45,9 @@ import React, {
  * (DataSecurityApi.getFindingOccurrences, issues #5594 and #9549): the very
  * ones the last scan found it in, or those written when it was last seen.
  * Each one says what it is - a log line and its severity, a span and its
- * name, an exception and its type, an AI call, a session - when it was
- * written and which service sent it, and shows the line itself: the value
+ * name, an exception and its type, an AI call, a session, a metric's data
+ * point and its metric - when it was written and which service sent it,
+ * and shows the line itself: the value
  * at the finding's place, cut around the data, which is marked, with every
  * sensitive value in it masked. Each opens where the rest of OneUptime
  * shows it (FindingOccurrenceLinks), whole, to whoever may read that
@@ -67,6 +68,7 @@ export const RECORD_KIND_TITLES: Readonly<
   [DataSecurityOccurrenceRecordKind.Exception]: translationKey("Exception"),
   [DataSecurityOccurrenceRecordKind.AiCall]: translationKey("AI call"),
   [DataSecurityOccurrenceRecordKind.Session]: translationKey("Session"),
+  [DataSecurityOccurrenceRecordKind.Metric]: translationKey("Metric"),
 };
 
 const RECORD_KIND_ICONS: Readonly<
@@ -77,6 +79,7 @@ const RECORD_KIND_ICONS: Readonly<
   [DataSecurityOccurrenceRecordKind.Exception]: IconProp.Bug,
   [DataSecurityOccurrenceRecordKind.AiCall]: IconProp.Bolt,
   [DataSecurityOccurrenceRecordKind.Session]: IconProp.Play,
+  [DataSecurityOccurrenceRecordKind.Metric]: IconProp.ChartBar,
 };
 
 export const LINK_TITLES: Readonly<Record<OccurrenceLinkKind, string>> = {
@@ -84,6 +87,7 @@ export const LINK_TITLES: Readonly<Record<OccurrenceLinkKind, string>> = {
   [OccurrenceLinkKind.Logs]: translationKey("Open in Logs"),
   [OccurrenceLinkKind.Exception]: translationKey("Open exception"),
   [OccurrenceLinkKind.SessionReplay]: translationKey("Open session replay"),
+  [OccurrenceLinkKind.Metrics]: translationKey("Open in Metrics"),
 };
 
 const LINK_ICONS: Readonly<Record<OccurrenceLinkKind, IconProp>> = {
@@ -91,6 +95,7 @@ const LINK_ICONS: Readonly<Record<OccurrenceLinkKind, IconProp>> = {
   [OccurrenceLinkKind.Logs]: IconProp.Logs,
   [OccurrenceLinkKind.Exception]: IconProp.Bug,
   [OccurrenceLinkKind.SessionReplay]: IconProp.Play,
+  [OccurrenceLinkKind.Metrics]: IconProp.ChartBar,
 };
 
 export const UNAVAILABLE_SENTENCES: Readonly<

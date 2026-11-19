@@ -81,6 +81,13 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       getQueryStringByName: () => {
         return "shop";
       },
+      // Its hero's links ask the address for the project.
+      getFirstParam: () => {
+        return null;
+      },
+      isOnThisPage: () => {
+        return false;
+      },
       navigate: () => {},
     },
   };

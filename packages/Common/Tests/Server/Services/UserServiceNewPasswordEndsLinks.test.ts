@@ -25,6 +25,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 /*
+ * Whether a person's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts): here it
+ * lets everyone through.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
+
+/*
  * ---------------------------------------------------------------------------
  * A NEW PASSWORD ENDS THE ACCOUNT'S SIGN-IN LINK AND ITS RESET LINK, HOWEVER IT
  * IS SET.

@@ -470,4 +470,42 @@ export default class ServiceOwnerTeam extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  /*
+   * Whether the members of the team this row made an owner were told
+   * (#9700): written not told by an owner rule whose Notify Owners is on and
+   * by a person on the service's Owners page, told by the Workers'
+   * ServiceOwners job, as every other record's owner rows are.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadServiceOwnerTeam,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Are Owners Notified",
+    description: "Are owners notified of this resource ownership?",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isOwnerNotified?: boolean = undefined;
 }

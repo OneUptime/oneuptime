@@ -347,12 +347,12 @@ router.post(
         monitorWithSecretsPopulatePromises,
       );
 
+      /*
+       * A count, never the monitors: they now hold the secrets' values, which
+       * the logger's redaction (by field name) cannot all tell apart.
+       */
       logger.debug(
-        "Populated secrets",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.debug(
-        monitorsWithSecretPopulated,
+        `Populated secrets for ${monitorsWithSecretPopulated.length} monitors`,
         getLogAttributesFromRequest(req as any),
       );
 
@@ -532,12 +532,9 @@ router.post(
         monitorTestsWithSecretsPopulatePromises,
       );
 
+      // A count, never the tests: they now hold the secrets' values.
       logger.debug(
-        "Populated secrets",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.debug(
-        monitorTestsWithSecretPopulated,
+        `Populated secrets for ${monitorTestsWithSecretPopulated.length} monitor tests`,
         getLogAttributesFromRequest(req as any),
       );
 

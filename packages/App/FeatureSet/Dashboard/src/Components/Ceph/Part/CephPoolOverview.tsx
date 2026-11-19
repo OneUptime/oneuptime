@@ -17,13 +17,11 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   CephPoolPgStates,
   CephPoolReadings,
-  getCephAttentionItems,
-  getCephAttentionKey,
   getCephPoolReadings,
   isCephIssueAbout,
   toCephDate,
@@ -31,7 +29,6 @@ import {
 import {
   CEPH_POOL_ALERT_TEMPLATE_IDS,
   CephPoolPgSummary,
-  THIS_POOL_LABEL,
   getCephPoolPgSummary,
   getCephPoolUsedTone,
   toCephTileTone,
@@ -57,7 +54,11 @@ export interface ComponentProps {
   clusterName: string;
   externalId: string;
   row: CephResource | null;
-  newestSeenAt: Date | null;
+  /*
+   * What needs attention on the pool: the page reads it once
+   * (getCephPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   // Its placement groups by state; null when they could not be read.
   pgStates: CephPoolPgStates | null;
   // When it fills at the last day's growth; null while unknown.
@@ -135,16 +136,6 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
-
-  const attentionItems: Array<ResourceAttentionItem> = getCephAttentionItems({
-    rows: [row],
-    pgStatesByPool: props.pgStates
-      ? new Map([[props.externalId, props.pgStates]])
-      : null,
-    routeFor: props.routes.getPartRoute,
-    now: props.now,
-    newestSeenAt: props.newestSeenAt,
-  });
 
   const readings: CephPoolReadings = getCephPoolReadings(row, props.now);
   const pgSummary: CephPoolPgSummary | null = getCephPoolPgSummary(
@@ -224,12 +215,9 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="ceph-pool-overview">
       <NeedsAttentionCard
         testId="ceph-pool-attention"
-        items={attentionItems}
-        current={{
-          key: getCephAttentionKey("Pool", props.externalId),
-          label: THIS_POOL_LABEL,
-        }}
-        description="What about this pool is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {readings.usedPercent !== null || pgSummary ? (

@@ -54,14 +54,16 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
+import {
+  ResourcePartAttention,
+  ResourcePartBadge,
+} from "../../../Components/ResourcePart/ResourcePartTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   OpenStackHostUsage,
   fetchOpenStackComputeServiceOf,
@@ -110,24 +112,21 @@ function formatLine(line: OpenStackAllocationLine, value: number): string {
     : formatOpenStackBytes(value);
 }
 
-const HypervisorOverview: FunctionComponent<{
-  part: OpenStackPart;
-  row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const { part, row } = props;
-  const hypervisorName: string = row.hypervisorName || row.name || "";
-  const isLost: boolean = isOpenStackHypervisorLost(row);
-  const now: Date = OneUptimeDate.getCurrentDate();
-
-  /*
-   * Its nova-compute, which is what says it is down, and the instances on it that may need
-   * someone. Asked for by the words the rules read, so a host with thousands of instances
-   * answers as quickly as one with none.
-   */
-  const around: OpenStackRead<Array<OpenStackResource>> = useOpenStackRead<
-    Array<OpenStackResource>
-  >(async () => {
+/*
+ * Its nova-compute, which is what says it is down, and the instances on it that may need
+ * someone. Asked for by the words the rules read, so a host with thousands of instances
+ * answers as quickly as one with none. The page reads it once its row is in: it is what
+ * the hero's status opens, as well as the Overview's Needs attention (#9594).
+ */
+function useHypervisorSurroundings(
+  part: OpenStackPart,
+): OpenStackRead<Array<OpenStackResource>> {
+  const row: OpenStackResource | null = part.row;
+  return useOpenStackRead<Array<OpenStackResource>>(async () => {
+    if (!row) {
+      return [];
+    }
+    const hypervisorName: string = row.hypervisorName || row.name || "";
     const [service, instances]: [
       OpenStackResource | null,
       Array<OpenStackResource>,
@@ -152,7 +151,26 @@ const HypervisorOverview: FunctionComponent<{
       }),
     ]);
     return [...(service ? [service] : []), ...instances];
-  }, [part.externalId, part.refreshToken]);
+  }, [part.externalId, part.refreshToken, Boolean(row)]);
+}
+
+interface HypervisorOverviewProps {
+  part: OpenStackPart;
+  row: OpenStackResource;
+  // What the page read around it (useHypervisorSurroundings).
+  around: OpenStackRead<Array<OpenStackResource>>;
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const HypervisorOverview: FunctionComponent<HypervisorOverviewProps> = (
+  props: HypervisorOverviewProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const { part, row, around } = props;
+  const hypervisorName: string = row.hypervisorName || row.name || "";
+  const isLost: boolean = isOpenStackHypervisorLost(row);
+  const now: Date = OneUptimeDate.getCurrentDate();
 
   const host: OpenStackRead<{
     host: Host;
@@ -170,12 +188,6 @@ const HypervisorOverview: FunctionComponent<{
       usage: await fetchOpenStackHostUsage(found.hostIdentifier),
     };
   }, [part.openStackCloudId.toString(), hypervisorName]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row, ...(around.data || [])],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const lines: Array<OpenStackAllocationLine> =
     getOpenStackAllocationLines(row);
@@ -359,12 +371,9 @@ const HypervisorOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-hypervisor-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Hypervisor}/${part.externalId}`,
-          label: translationKey("This hypervisor"),
-        }}
-        description="What on this hypervisor is broken or needs a look, the most urgent first."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
         error={around.error}
         onRetry={around.reload}
       />
@@ -676,6 +685,20 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
     OpenStackResourceKind.Hypervisor,
   );
   const row: OpenStackResource | null = part.row;
+  const around: OpenStackRead<Array<OpenStackResource>> =
+    useHypervisorSurroundings(part);
+  /*
+   * What needs attention on it, its nova-compute and the instances on it,
+   * read once: the Overview's card lists it, the hero's status opens it.
+   */
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Hypervisor,
+    externalId: part.externalId,
+    row: row,
+    aroundRows: around.data || [],
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
 
   const badges: Array<ResourcePartBadge> = [];
   if (row && isOpenStackHypervisorLost(row)) {
@@ -690,6 +713,7 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
       part={part}
       hero={{
         badges,
+        attention,
         location: row?.availabilityZone ? (
           <TranslatedSentence
             template="In zone {{zone}} of region {{region}} of cloud {{cloud}}"
@@ -721,7 +745,14 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
         ) : undefined,
       }}
       overview={(overviewRow: OpenStackResource): ReactElement => {
-        return <HypervisorOverview part={part} row={overviewRow} />;
+        return (
+          <HypervisorOverview
+            part={part}
+            row={overviewRow}
+            around={around}
+            attention={attention}
+          />
+        );
       }}
       tabs={(tabRow: OpenStackResource): Array<Tab> => {
         return [

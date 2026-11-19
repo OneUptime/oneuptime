@@ -26,6 +26,12 @@
 import WorkflowStatus, {
   getWorkflowStatusLabel,
 } from "../../../Types/Workflow/WorkflowStatus";
+import { createTranslator } from "../../../Types/Translator";
+import {
+  WorkflowRunRanAs,
+  describeWorkflowRunRanAs,
+  getWorkflowRunRanAs,
+} from "./WorkflowRunRanAs";
 import {
   WorkflowStepTrace,
   parseTrace,
@@ -61,6 +67,11 @@ export interface WorkflowRunDetails {
    * by email when they have no name (WorkflowLog.startedByUser).
    */
   startedBy?: string | null | undefined;
+  /**
+   * What it ran as, when that was more than Default (#9695): Project Owner
+   * or a custom role, with whose permissions (WorkflowRunRanAs).
+   */
+  ranAs?: WorkflowRunRanAs | null | undefined;
   /**
    * What it started with was kept, so it can be run again
    * (Types/Workflow/WorkflowRunAgain). Not part of a downloaded run.
@@ -332,6 +343,13 @@ export const getWorkflowRunHeadingLines: GetWorkflowRunHeadingLinesFunction = (
   // Only a test run says so; any other run is what its trigger started.
   addLine("Test run", run.isTestRun ? "Yes" : null);
   addLine("Started by", cleanText(run.startedBy));
+  // Only a run that ran as more than Default says so (#9695), in English.
+  addLine(
+    "Ran as",
+    run.ranAs
+      ? describeWorkflowRunRanAs(createTranslator(undefined), run.ranAs)
+      : null,
+  );
   addLine("Scheduled at", toIsoString(run.scheduledAt));
   addLine("Started at", toIsoString(run.startedAt));
   addLine("Completed at", toIsoString(run.completedAt));
@@ -463,8 +481,11 @@ export const getWorkflowRunExportFromWorkflowLog: GetWorkflowRunExportFromWorkfl
     const workflowId: string | null =
       log.workflowId?.toString() ||
       (log.workflow?._id ? String(log.workflow._id) : null);
+    // Only a run that ran as more than Default says what it ran as (#9695).
+    const ranAs: WorkflowRunRanAs | null = getWorkflowRunRanAs(log);
 
     return {
+      ...(ranAs ? { ranAs: ranAs } : {}),
       runId: log._id ? String(log._id) : null,
       workflowId: workflowId,
       workflowName: log.workflow?.name || null,

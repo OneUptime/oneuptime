@@ -663,6 +663,39 @@ describe("a part's own page", () => {
     expect(details).not.toHaveTextContent("Connectivity");
   });
 
+  /*
+   * "Lost redundant paths" said the state and nothing of which controller
+   * was gone: that was Needs attention, under the tabs (#9594).
+   */
+  test("its Lost redundant paths opens why: This host, through one controller only", async () => {
+    await openPart(StorageArrayHostDetail, "esx-07");
+
+    const status: HTMLElement = screen.getByTestId(
+      "storage-array-part-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "storage-array-part-hero-status-dialog-item",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).getByTestId(
+        "storage-array-part-hero-status-dialog-name",
+      ),
+    ).toHaveTextContent("This host");
+    expect(rows[0]!).toHaveTextContent(
+      "Reaches the array through one controller only",
+    );
+    expect(
+      within(rows[0]!).queryByTestId(
+        "storage-array-part-hero-status-dialog-view",
+      ),
+    ).toBeNull();
+  });
+
   test("a host on both controllers: Redundant paths in green, nothing needs attention", async () => {
     await openPart(StorageArrayHostDetail, "esx-08");
 

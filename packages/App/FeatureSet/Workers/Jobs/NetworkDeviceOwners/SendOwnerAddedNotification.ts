@@ -1,201 +1,49 @@
-import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
-import RunCron from "../../Utils/Cron";
-import JobDeadline from "Common/Server/Utils/JobDeadline";
-import Select from "Common/Server/Types/Database/Select";
-import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import Dictionary from "Common/Types/Dictionary";
-import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
-import ObjectID from "Common/Types/ObjectID";
-import { SMSMessage } from "Common/Types/SMS/SMS";
-import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
-import URL from "Common/Types/API/URL";
-import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import DatabaseConfig from "Common/Server/DatabaseConfig";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOwnerTeamService from "Common/Server/Services/NetworkDeviceOwnerTeamService";
 import NetworkDeviceOwnerUserService from "Common/Server/Services/NetworkDeviceOwnerUserService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
-import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
-import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
-import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import OwnerNotificationDeliveries, {
-  OwnerNotificationDelivery,
-} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import URL from "Common/Types/API/URL";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
-import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
-
-// What the networkDevice the owners were added to is read with.
-const NETWORK_DEVICE_SELECT: Select<NetworkDevice> = {
-  _id: true,
-  name: true,
-  projectId: true,
-  project: {
-    name: true,
-  },
-};
-
-RunCron(
-  "NetworkDeviceOwner:SendOwnerAddedEmail",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
-  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
-    /*
-     * The owners a run that stopped part way left untold - a worker killed
-     * between the take and the last owner (#8509) - told first, exactly
-     * them, from the network device as it is now (OwnerNotificationDeliveries).
-     */
-    await OwnerNotificationDeliveries.resume({
-      kinds: [OwnerNotificationKind.NetworkDeviceOwnerAdded],
-      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
-        const networkDevice: NetworkDevice | null = await readNetworkDevice(
-          delivery.notification.resourceId,
-        );
-
-        if (!networkDevice) {
-          await delivery.giveUp("the network device is gone");
-          return;
-        }
-
-        await notifyOwnersAdded({
-          networkDevice: networkDevice,
-          deliveries: [delivery],
-        });
-      },
-    });
-
-    /*
-     * Every record's new owner rows, a page at a time, oldest first: its
-     * team rows and user rows told of together, each person once, each row
-     * taken by one run alone; the run stops between records at its deadline
-     * and the next carries on (OwnersAdded, issue #8862).
-     */
-    await tellOwnersAdded<NetworkDevice>({
-      jobName: "NetworkDeviceOwner:SendOwnerAddedEmail",
-      kind: OwnerNotificationKind.NetworkDeviceOwnerAdded,
-      recordIdColumn: "networkDeviceId",
-      teamService: NetworkDeviceOwnerTeamService,
-      userService: NetworkDeviceOwnerUserService,
-      recordService: NetworkDeviceService,
-      recordSelect: NETWORK_DEVICE_SELECT,
-      deadline: deadline,
-      tell: async (
-        record: NetworkDevice,
-        deliveries: Array<OwnerNotificationDelivery>,
-      ): Promise<void> => {
-        await notifyOwnersAdded({
-          networkDevice: record,
-          deliveries: deliveries,
-        });
-      },
-    });
-  },
-);
-
-async function readNetworkDevice(
-  networkDeviceId: ObjectID,
-): Promise<NetworkDevice | null> {
-  return await NetworkDeviceService.findOneById({
-    id: networkDeviceId,
-    props: {
-      isRoot: true,
-    },
-    select: NETWORK_DEVICE_SELECT,
-  });
-}
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  getRecordLinkInDashboard,
+  runResourceOwnerAddedJob,
+} from "../../Utils/ResourceOwnersAdded";
 
 /*
- * Tells each delivery's owners that they were added as owners of the
- * network device, each once (OwnerNotificationDelivery.tell).
+ * Tells the people a network device owner rule, or a person on its Owners
+ * page, made owners of a network device, as every other record's new
+ * owners are told (ResourceOwnersAdded). It waits while Network is switched
+ * off on the server.
+ *
+ * A network device is infrastructure, so its owners are told through the
+ * one setting for every service and piece of infrastructure (#9700), on by
+ * email for every member. It used to borrow "Added as monitor owner", which
+ * starts off and which no member was given, so most owners were never
+ * told; and a WhatsApp template written for monitors, which called the
+ * device a monitor.
  */
-async function notifyOwnersAdded(data: {
-  networkDevice: NetworkDevice;
-  deliveries: Array<OwnerNotificationDelivery>;
-}): Promise<void> {
-  const networkDevice: NetworkDevice = data.networkDevice;
-
-  if (ownersToTell(data.deliveries).length === 0) {
-    return;
-  }
-
-  const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-  const deviceViewLink: string = URL.fromString(dashboardUrl.toString())
-    .addRoute(
-      `/${networkDevice.projectId!.toString()}/network-devices/${networkDevice.id!.toString()}`,
-    )
-    .toString();
-
-  const emailSubject: string =
-    "You have been added as the owner of the network device.";
-
-  const vars: Dictionary<string> = {
-    subject: emailSubject,
-    message: `You have been added as the owner of the network device ${networkDevice.name!} in the project ${networkDevice.project!.name!}. You can view the device here: ${deviceViewLink}`,
-  };
-
-  for (const delivery of data.deliveries) {
-    for (const user of delivery.owners) {
-      await delivery.tell(user, async (): Promise<void> => {
-        const emailMessage: EmailEnvelope = {
-          templateType: EmailTemplateType.SimpleMessage,
-          vars: vars,
-          subject: emailSubject,
-          isSubjectLiteral: true,
-        };
-
-        const sms: SMSMessage = {
-          message: buildNotificationSms(
-            `You have been added as the owner of the network device - ${networkDevice.name}.`,
-          ),
-        };
-
-        const callMessage: CallRequestMessage = {
-          data: [
-            {
-              sayMessage: `This is a message from OneUptime. You have been added as the owner of the network device ${networkDevice.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
-            },
-          ],
-        };
-
-        const pushMessage: PushNotificationMessage =
-          PushNotificationUtil.createGenericNotification({
-            title: "Added as Network Device Owner",
-            body: `You have been added as the owner of the network device: ${networkDevice.name}. Click to view details.`,
-            clickAction: deviceViewLink,
-            tag: "network-device-owner-added",
-            requireInteraction: false,
-          });
-
-        /*
-         * There is no dedicated network-device notification setting yet, so
-         * device ownership rides on the monitor owner-added preference —
-         * network devices are monitored resources and every user gets this
-         * setting by default.
-         */
-        const eventType: NotificationSettingEventType =
-          NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION;
-
-        const whatsAppMessage: WhatsAppMessagePayload =
-          createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              monitor_name: networkDevice.name!,
-              monitor_link: deviceViewLink,
-            },
-          });
-
-        await UserNotificationSettingService.sendUserNotification({
-          userId: user.id!,
-          projectId: networkDevice.projectId!,
-          emailEnvelope: emailMessage,
-          smsMessage: sms,
-          callRequestMessage: callMessage,
-          pushNotificationMessage: pushMessage,
-          whatsAppMessage,
-          eventType,
-        });
-      });
-    }
-  }
-}
+runResourceOwnerAddedJob<NetworkDevice>({
+  // The name it always ran under, so its lock and its history carry on.
+  jobName: "NetworkDeviceOwner:SendOwnerAddedEmail",
+  kind: OwnerNotificationKind.NetworkDeviceOwnerAdded,
+  eventType:
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+  ownerTableName: "NetworkDeviceOwnerUser",
+  recordIdColumn: "networkDeviceId",
+  teamService: NetworkDeviceOwnerTeamService,
+  userService: NetworkDeviceOwnerUserService,
+  recordService: NetworkDeviceService,
+  noun: "network device",
+  title: "Network Device",
+  getLink: (
+    projectId: ObjectID,
+    networkDevice: NetworkDevice,
+  ): Promise<URL> => {
+    return getRecordLinkInDashboard(
+      projectId,
+      `network-devices/${networkDevice.id!.toString()}`,
+    );
+  },
+});

@@ -52,8 +52,10 @@ import {
  * The ten jobs of incidents and alerts - Created, state changed, note
  * posted, owner added and still-open reminder - and the 23 of episodes,
  * monitors, scheduled maintenance events, status pages, SLOs and network
- * devices, and the owner-added jobs of probes, AI agents, and Data
- * Observability's tables, pipelines and data stores (#9681), each take
+ * devices, and the owner-added jobs of probes, AI agents, Data
+ * Observability's tables, pipelines and data stores (#9681), and the 23
+ * records whose owner rules told nobody until #9700 - services, hosts,
+ * clusters, dashboards, on-call policies and the rest - each take
  * (mark) the record
  * they tell of before they tell its owners. Every one reads what it has to
  * tell a page at a time and takes each record by one hook-free
@@ -207,6 +209,20 @@ function mockAnyService(): unknown {
       getDataPipelineLinkInDashboard: jest.fn(),
       getDataStoreLinkInDashboard: jest.fn(),
       getDataObservabilityDatabaseLinkInDashboard: jest.fn(),
+      getServiceLinkInDashboard: jest.fn(),
+      getDatabaseServerLinkInDashboard: jest.fn(),
+      getMessageQueueLinkInDashboard: jest.fn(),
+      getHostLinkInDashboard: jest.fn(),
+      getKubernetesClusterLinkInDashboard: jest.fn(),
+      getDockerHostLinkInDashboard: jest.fn(),
+      getDockerSwarmClusterLinkInDashboard: jest.fn(),
+      getPodmanHostLinkInDashboard: jest.fn(),
+      getProxmoxClusterLinkInDashboard: jest.fn(),
+      getOpenStackCloudLinkInDashboard: jest.fn(),
+      getVMwareVCenterLinkInDashboard: jest.fn(),
+      getCephClusterLinkInDashboard: jest.fn(),
+      getStorageArrayLinkInDashboard: jest.fn(),
+      getOnCallDutyPolicyLinkInDashboard: jest.fn(),
       isScheduledMaintenanceCompleted: jest.fn(),
       isScheduledMaintenanceOngoing: jest.fn(),
       findMatchingRule: jest.fn(),
@@ -392,6 +408,220 @@ jest.mock("Common/Server/Services/DataStoreOwnerTeamService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/DataStoreOwnerUserService", () => {
+  return mockAnyService();
+});
+// The records whose owner rules told nobody until #9700.
+jest.mock("Common/Server/Services/ServiceService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ServiceOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ServiceOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DatabaseServerService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DatabaseServerOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DatabaseServerOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MessageQueueService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MessageQueueOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MessageQueueOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RumApplicationService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RumApplicationOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RumApplicationOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/HostService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/HostOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/HostOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/KubernetesClusterService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/KubernetesClusterOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/KubernetesClusterOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DockerHostService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DockerHostOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DockerHostOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DockerSwarmClusterService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DockerSwarmClusterOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DockerSwarmClusterOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/PodmanHostService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/PodmanHostOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/PodmanHostOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ProxmoxClusterService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ProxmoxClusterOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ProxmoxClusterOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OpenStackCloudService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OpenStackCloudOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OpenStackCloudOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/VMwareVCenterService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/VMwareVCenterOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/VMwareVCenterOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/CephClusterService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/CephClusterOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/CephClusterOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/StorageArrayService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/StorageArrayOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/StorageArrayOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/IoTFleetService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/IoTFleetOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/IoTFleetOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/CloudResourceService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/CloudResourceOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/CloudResourceOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ServerlessFunctionService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ServerlessFunctionOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ServerlessFunctionOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DashboardService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DashboardOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DashboardOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/WorkflowService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/WorkflowOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/WorkflowOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RunbookService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RunbookOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RunbookOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OnCallDutyPolicyService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OnCallDutyPolicyOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleService", () => {
+  return mockAnyService();
+});
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService",
+  () => {
+    return mockAnyService();
+  },
+);
+jest.mock(
+  "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService",
+  () => {
+    return mockAnyService();
+  },
+);
+jest.mock("Common/Server/Services/IncomingCallPolicyService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/IncomingCallPolicyOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/IncomingCallPolicyOwnerUserService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/IncidentMemberService", () => {
@@ -668,6 +898,75 @@ import DataPipelineOwnerUserService from "Common/Server/Services/DataPipelineOwn
 import DataStoreService from "Common/Server/Services/DataStoreService";
 import DataStoreOwnerTeamService from "Common/Server/Services/DataStoreOwnerTeamService";
 import DataStoreOwnerUserService from "Common/Server/Services/DataStoreOwnerUserService";
+import ServiceService from "Common/Server/Services/ServiceService";
+import ServiceOwnerTeamService from "Common/Server/Services/ServiceOwnerTeamService";
+import ServiceOwnerUserService from "Common/Server/Services/ServiceOwnerUserService";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import DatabaseServerOwnerTeamService from "Common/Server/Services/DatabaseServerOwnerTeamService";
+import DatabaseServerOwnerUserService from "Common/Server/Services/DatabaseServerOwnerUserService";
+import MessageQueueService from "Common/Server/Services/MessageQueueService";
+import MessageQueueOwnerTeamService from "Common/Server/Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "Common/Server/Services/MessageQueueOwnerUserService";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import RumApplicationOwnerTeamService from "Common/Server/Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUserService from "Common/Server/Services/RumApplicationOwnerUserService";
+import HostService from "Common/Server/Services/HostService";
+import HostOwnerTeamService from "Common/Server/Services/HostOwnerTeamService";
+import HostOwnerUserService from "Common/Server/Services/HostOwnerUserService";
+import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import KubernetesClusterOwnerTeamService from "Common/Server/Services/KubernetesClusterOwnerTeamService";
+import KubernetesClusterOwnerUserService from "Common/Server/Services/KubernetesClusterOwnerUserService";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import DockerHostOwnerTeamService from "Common/Server/Services/DockerHostOwnerTeamService";
+import DockerHostOwnerUserService from "Common/Server/Services/DockerHostOwnerUserService";
+import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
+import DockerSwarmClusterOwnerTeamService from "Common/Server/Services/DockerSwarmClusterOwnerTeamService";
+import DockerSwarmClusterOwnerUserService from "Common/Server/Services/DockerSwarmClusterOwnerUserService";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import PodmanHostOwnerTeamService from "Common/Server/Services/PodmanHostOwnerTeamService";
+import PodmanHostOwnerUserService from "Common/Server/Services/PodmanHostOwnerUserService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import ProxmoxClusterOwnerTeamService from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import OpenStackCloudOwnerTeamService from "Common/Server/Services/OpenStackCloudOwnerTeamService";
+import OpenStackCloudOwnerUserService from "Common/Server/Services/OpenStackCloudOwnerUserService";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
+import VMwareVCenterOwnerTeamService from "Common/Server/Services/VMwareVCenterOwnerTeamService";
+import VMwareVCenterOwnerUserService from "Common/Server/Services/VMwareVCenterOwnerUserService";
+import CephClusterService from "Common/Server/Services/CephClusterService";
+import CephClusterOwnerTeamService from "Common/Server/Services/CephClusterOwnerTeamService";
+import CephClusterOwnerUserService from "Common/Server/Services/CephClusterOwnerUserService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import StorageArrayOwnerTeamService from "Common/Server/Services/StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService from "Common/Server/Services/StorageArrayOwnerUserService";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
+import IoTFleetOwnerTeamService from "Common/Server/Services/IoTFleetOwnerTeamService";
+import IoTFleetOwnerUserService from "Common/Server/Services/IoTFleetOwnerUserService";
+import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import CloudResourceOwnerTeamService from "Common/Server/Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService from "Common/Server/Services/CloudResourceOwnerUserService";
+import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
+import ServerlessFunctionOwnerTeamService from "Common/Server/Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService from "Common/Server/Services/ServerlessFunctionOwnerUserService";
+import DashboardService from "Common/Server/Services/DashboardService";
+import DashboardOwnerTeamService from "Common/Server/Services/DashboardOwnerTeamService";
+import DashboardOwnerUserService from "Common/Server/Services/DashboardOwnerUserService";
+import WorkflowService from "Common/Server/Services/WorkflowService";
+import WorkflowOwnerTeamService from "Common/Server/Services/WorkflowOwnerTeamService";
+import WorkflowOwnerUserService from "Common/Server/Services/WorkflowOwnerUserService";
+import RunbookService from "Common/Server/Services/RunbookService";
+import RunbookOwnerTeamService from "Common/Server/Services/RunbookOwnerTeamService";
+import RunbookOwnerUserService from "Common/Server/Services/RunbookOwnerUserService";
+import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyService";
+import OnCallDutyPolicyOwnerTeamService from "Common/Server/Services/OnCallDutyPolicyOwnerTeamService";
+import OnCallDutyPolicyOwnerUserService from "Common/Server/Services/OnCallDutyPolicyOwnerUserService";
+import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyScheduleOwnerTeamService from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService";
+import OnCallDutyPolicyScheduleOwnerUserService from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService";
+import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
+import IncomingCallPolicyOwnerTeamService from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
+import IncomingCallPolicyOwnerUserService from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
 import IncidentMemberService from "Common/Server/Services/IncidentMemberService";
 import IncidentRoleService from "Common/Server/Services/IncidentRoleService";
 
@@ -710,6 +1009,29 @@ import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/DataAssetOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/DataPipelineOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/DataStoreOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/ServiceOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DatabaseServerOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/MessageQueueOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RumApplicationOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/HostOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/KubernetesClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DockerHostOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DockerSwarmClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/PodmanHostOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/ProxmoxClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/OpenStackCloudOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/CephClusterOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/IoTFleetOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/CloudResourceOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DashboardOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/WorkflowOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RunbookOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IncidentMembers/SendMemberAddedNotification";
 
 type AnyMock = jest.Mock;
@@ -1373,6 +1695,75 @@ const EVERY_RESOURCE_SERVICES: Array<unknown> = [
   DataStoreService,
   DataStoreOwnerTeamService,
   DataStoreOwnerUserService,
+  ServiceService,
+  ServiceOwnerTeamService,
+  ServiceOwnerUserService,
+  DatabaseServerService,
+  DatabaseServerOwnerTeamService,
+  DatabaseServerOwnerUserService,
+  MessageQueueService,
+  MessageQueueOwnerTeamService,
+  MessageQueueOwnerUserService,
+  RumApplicationService,
+  RumApplicationOwnerTeamService,
+  RumApplicationOwnerUserService,
+  HostService,
+  HostOwnerTeamService,
+  HostOwnerUserService,
+  KubernetesClusterService,
+  KubernetesClusterOwnerTeamService,
+  KubernetesClusterOwnerUserService,
+  DockerHostService,
+  DockerHostOwnerTeamService,
+  DockerHostOwnerUserService,
+  DockerSwarmClusterService,
+  DockerSwarmClusterOwnerTeamService,
+  DockerSwarmClusterOwnerUserService,
+  PodmanHostService,
+  PodmanHostOwnerTeamService,
+  PodmanHostOwnerUserService,
+  ProxmoxClusterService,
+  ProxmoxClusterOwnerTeamService,
+  ProxmoxClusterOwnerUserService,
+  OpenStackCloudService,
+  OpenStackCloudOwnerTeamService,
+  OpenStackCloudOwnerUserService,
+  VMwareVCenterService,
+  VMwareVCenterOwnerTeamService,
+  VMwareVCenterOwnerUserService,
+  CephClusterService,
+  CephClusterOwnerTeamService,
+  CephClusterOwnerUserService,
+  StorageArrayService,
+  StorageArrayOwnerTeamService,
+  StorageArrayOwnerUserService,
+  IoTFleetService,
+  IoTFleetOwnerTeamService,
+  IoTFleetOwnerUserService,
+  CloudResourceService,
+  CloudResourceOwnerTeamService,
+  CloudResourceOwnerUserService,
+  ServerlessFunctionService,
+  ServerlessFunctionOwnerTeamService,
+  ServerlessFunctionOwnerUserService,
+  DashboardService,
+  DashboardOwnerTeamService,
+  DashboardOwnerUserService,
+  WorkflowService,
+  WorkflowOwnerTeamService,
+  WorkflowOwnerUserService,
+  RunbookService,
+  RunbookOwnerTeamService,
+  RunbookOwnerUserService,
+  OnCallDutyPolicyService,
+  OnCallDutyPolicyOwnerTeamService,
+  OnCallDutyPolicyOwnerUserService,
+  OnCallDutyPolicyScheduleService,
+  OnCallDutyPolicyScheduleOwnerTeamService,
+  OnCallDutyPolicyScheduleOwnerUserService,
+  IncomingCallPolicyService,
+  IncomingCallPolicyOwnerTeamService,
+  IncomingCallPolicyOwnerUserService,
 ];
 
 // The record the owners of the other resources are told of.
@@ -1513,6 +1904,19 @@ function dataStore(): PlainRecord {
     ...OF_THE_PROJECT,
     name: "orders-db",
     description: "The orders database",
+  });
+}
+
+/*
+ * A service, a piece of infrastructure, a dashboard, a workflow, a runbook
+ * or an on-call record (#9700): each is read by its name and description.
+ */
+function ownedRecord(): PlainRecord {
+  return plain({
+    id: RESOURCE_ID,
+    ...OF_THE_PROJECT,
+    name: "checkout",
+    description: "Takes the money",
   });
 }
 
@@ -2127,6 +2531,214 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     recordIdField: "dataStoreId",
     record: dataStore,
   }),
+  // Services, infrastructure, dashboards, workflows, runbooks, on-call (#9700).
+  ownerAddedCase({
+    title: "a team added as the owner of a service",
+    jobName: "ServiceOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.ServiceOwnerAdded,
+    recordService: ServiceService,
+    teamService: ServiceOwnerTeamService,
+    recordIdField: "serviceId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a database",
+    jobName: "DatabaseServerOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DatabaseServerOwnerAdded,
+    recordService: DatabaseServerService,
+    teamService: DatabaseServerOwnerTeamService,
+    recordIdField: "databaseServerId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a queue",
+    jobName: "MessageQueueOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.MessageQueueOwnerAdded,
+    recordService: MessageQueueService,
+    teamService: MessageQueueOwnerTeamService,
+    recordIdField: "messageQueueId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a RUM application",
+    jobName: "RumApplicationOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.RumApplicationOwnerAdded,
+    recordService: RumApplicationService,
+    teamService: RumApplicationOwnerTeamService,
+    recordIdField: "rumApplicationId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a host",
+    jobName: "HostOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.HostOwnerAdded,
+    recordService: HostService,
+    teamService: HostOwnerTeamService,
+    recordIdField: "hostId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Kubernetes cluster",
+    jobName: "KubernetesClusterOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.KubernetesClusterOwnerAdded,
+    recordService: KubernetesClusterService,
+    teamService: KubernetesClusterOwnerTeamService,
+    recordIdField: "kubernetesClusterId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Docker host",
+    jobName: "DockerHostOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DockerHostOwnerAdded,
+    recordService: DockerHostService,
+    teamService: DockerHostOwnerTeamService,
+    recordIdField: "dockerHostId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Docker Swarm cluster",
+    jobName: "DockerSwarmClusterOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DockerSwarmClusterOwnerAdded,
+    recordService: DockerSwarmClusterService,
+    teamService: DockerSwarmClusterOwnerTeamService,
+    recordIdField: "dockerSwarmClusterId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Podman host",
+    jobName: "PodmanHostOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.PodmanHostOwnerAdded,
+    recordService: PodmanHostService,
+    teamService: PodmanHostOwnerTeamService,
+    recordIdField: "podmanHostId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Proxmox cluster",
+    jobName: "ProxmoxClusterOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.ProxmoxClusterOwnerAdded,
+    recordService: ProxmoxClusterService,
+    teamService: ProxmoxClusterOwnerTeamService,
+    recordIdField: "proxmoxClusterId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a OpenStack cloud",
+    jobName: "OpenStackCloudOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.OpenStackCloudOwnerAdded,
+    recordService: OpenStackCloudService,
+    teamService: OpenStackCloudOwnerTeamService,
+    recordIdField: "openStackCloudId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a VMware vCenter",
+    jobName: "VMwareVCenterOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.VMwareVCenterOwnerAdded,
+    recordService: VMwareVCenterService,
+    teamService: VMwareVCenterOwnerTeamService,
+    recordIdField: "vmwareVCenterId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Ceph cluster",
+    jobName: "CephClusterOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.CephClusterOwnerAdded,
+    recordService: CephClusterService,
+    teamService: CephClusterOwnerTeamService,
+    recordIdField: "cephClusterId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a storage array",
+    jobName: "StorageArrayOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.StorageArrayOwnerAdded,
+    recordService: StorageArrayService,
+    teamService: StorageArrayOwnerTeamService,
+    recordIdField: "storageArrayId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a IoT fleet",
+    jobName: "IoTFleetOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.IoTFleetOwnerAdded,
+    recordService: IoTFleetService,
+    teamService: IoTFleetOwnerTeamService,
+    recordIdField: "iotFleetId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a cloud environment",
+    jobName: "CloudResourceOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.CloudResourceOwnerAdded,
+    recordService: CloudResourceService,
+    teamService: CloudResourceOwnerTeamService,
+    recordIdField: "cloudResourceId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a serverless function",
+    jobName: "ServerlessFunctionOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.ServerlessFunctionOwnerAdded,
+    recordService: ServerlessFunctionService,
+    teamService: ServerlessFunctionOwnerTeamService,
+    recordIdField: "serverlessFunctionId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a dashboard",
+    jobName: "DashboardOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DashboardOwnerAdded,
+    recordService: DashboardService,
+    teamService: DashboardOwnerTeamService,
+    recordIdField: "dashboardId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a workflow",
+    jobName: "WorkflowOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.WorkflowOwnerAdded,
+    recordService: WorkflowService,
+    teamService: WorkflowOwnerTeamService,
+    recordIdField: "workflowId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a runbook",
+    jobName: "RunbookOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.RunbookOwnerAdded,
+    recordService: RunbookService,
+    teamService: RunbookOwnerTeamService,
+    recordIdField: "runbookId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a on-call policy",
+    jobName: "OnCallDutyPolicyOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.OnCallDutyPolicyOwnerAdded,
+    recordService: OnCallDutyPolicyService,
+    teamService: OnCallDutyPolicyOwnerTeamService,
+    recordIdField: "onCallDutyPolicyId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a on-call schedule",
+    jobName: "OnCallDutyPolicyScheduleOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.OnCallDutyPolicyScheduleOwnerAdded,
+    recordService: OnCallDutyPolicyScheduleService,
+    teamService: OnCallDutyPolicyScheduleOwnerTeamService,
+    recordIdField: "onCallDutyPolicyScheduleId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a incoming call policy",
+    jobName: "IncomingCallPolicyOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.IncomingCallPolicyOwnerAdded,
+    recordService: IncomingCallPolicyService,
+    teamService: IncomingCallPolicyOwnerTeamService,
+    recordIdField: "incomingCallPolicyId",
+    record: ownedRecord,
+  }),
 ];
 
 /*
@@ -2316,6 +2928,20 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
           "getDataPipelineLinkInDashboard",
           "getDataStoreLinkInDashboard",
           "getDataObservabilityDatabaseLinkInDashboard",
+          "getServiceLinkInDashboard",
+          "getDatabaseServerLinkInDashboard",
+          "getMessageQueueLinkInDashboard",
+          "getHostLinkInDashboard",
+          "getKubernetesClusterLinkInDashboard",
+          "getDockerHostLinkInDashboard",
+          "getDockerSwarmClusterLinkInDashboard",
+          "getPodmanHostLinkInDashboard",
+          "getProxmoxClusterLinkInDashboard",
+          "getOpenStackCloudLinkInDashboard",
+          "getVMwareVCenterLinkInDashboard",
+          "getCephClusterLinkInDashboard",
+          "getStorageArrayLinkInDashboard",
+          "getOnCallDutyPolicyLinkInDashboard",
         ]) {
           asMock(each[link]).mockResolvedValue("https://oneuptime.test/record");
         }

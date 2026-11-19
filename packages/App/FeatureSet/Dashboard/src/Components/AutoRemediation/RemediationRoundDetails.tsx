@@ -41,7 +41,8 @@ import { REMEDIATION_ROUND_COPY } from "./RemediationStepCopy";
  *   - the fixes it ruled out, each with why not and the commands it would
  *     have run (what the AI said when it ended without one);
  *   - what it checked: each command it ran on the cluster or the resource,
- *     how it went, when and why it ran it, and how often it queried the
+ *     and each tool of the project's MCP servers it read with (#6526), how
+ *     it went, when and why it ran it, and how often it queried the
  *     project's telemetry besides;
  *   - for a round with no fix: that nothing ran and nobody was asked to
  *     approve anything.
@@ -364,13 +365,41 @@ const CheckList: FunctionComponent<{
                       command a few letters a line.
                     */}
                     <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 [@container(min-width:26rem)]:flex-nowrap">
-                      <code
-                        dir="ltr"
-                        data-testid="remediation-round-check-command"
-                        className="min-w-0 font-mono text-gray-800 [overflow-wrap:anywhere]"
-                      >
-                        {check.command}
-                      </code>
+                      {check.mcpTool ? (
+                        /*
+                         * A read through one of the project's MCP servers
+                         * (#6526): the server, as its admins named it, and
+                         * the tool, as the server names it - the way the
+                         * fix's own changes and the run's sources name a
+                         * call. Never what it was called with.
+                         */
+                        <span
+                          data-testid="remediation-round-check-mcp"
+                          className="min-w-0 text-gray-800 [overflow-wrap:anywhere]"
+                        >
+                          <bdi data-testid="remediation-round-check-server">
+                            {check.mcpTool.server}
+                          </bdi>
+                          <span aria-hidden="true" className="text-gray-400">
+                            {" · "}
+                          </span>
+                          <code
+                            dir="ltr"
+                            data-testid="remediation-round-check-tool"
+                            className="font-mono"
+                          >
+                            {check.mcpTool.tool}
+                          </code>
+                        </span>
+                      ) : (
+                        <code
+                          dir="ltr"
+                          data-testid="remediation-round-check-command"
+                          className="min-w-0 font-mono text-gray-800 [overflow-wrap:anywhere]"
+                        >
+                          {check.command}
+                        </code>
+                      )}
                       {at && time ? (
                         <time
                           dateTime={at.toISOString()}

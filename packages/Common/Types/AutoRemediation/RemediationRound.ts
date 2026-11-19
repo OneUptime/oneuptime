@@ -14,9 +14,9 @@
  * proposes a fix, makes one, or finds none. The step reads the round
  * (POST REMEDIATION_ROUND_PATH): how its run went - finished, or stopped
  * and why (the run's own failure, as every AI card words it) - the commands
- * it ran to check, and, when it ends without a fix, why and the fixes it
- * ruled out, which the AI says with EXPLAIN_NO_FIX_TOOL_NAME before its
- * answer.
+ * it ran to check and the MCP servers' tools it read with (#6526), and,
+ * when it ends without a fix, why and the fixes it ruled out, which the AI
+ * says with EXPLAIN_NO_FIX_TOOL_NAME before its answer.
  *
  * A round that did not finish - its run failed, stopped answering or
  * expired in the queue - is tried again from the step
@@ -227,6 +227,12 @@ export enum RemediationRoundTryAgainRefusal {
   AlertTokenLimitUsedUp = "AlertTokenLimitUsedUp",
   // The queue did not take it, for no reason it could name.
   NotStarted = "NotStarted",
+  /*
+   * The person pressed Try again - this one or the record's - more often
+   * than its limit allows in a few minutes (AutoRemediationRoundRateLimit,
+   * #6525).
+   */
+  TooManyTries = "TooManyTries",
 }
 
 export const REMEDIATION_ROUND_TRY_AGAIN_REFUSALS: Readonly<
@@ -264,7 +270,17 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSALS: Readonly<
     getRecordAiTokenLimitMessage("alert"),
   [RemediationRoundTryAgainRefusal.NotStarted]:
     "The fix could not start again. Try again in a few minutes.",
+  [RemediationRoundTryAgainRefusal.TooManyTries]:
+    "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
 };
+
+/*
+ * What a read of a round says when the person read rounds too often
+ * (AutoRemediationRoundRateLimit, #6525). The Remediation step never shows
+ * it: it waits the Retry-After the answer carries, then reads again.
+ */
+export const REMEDIATION_ROUND_READ_TOO_OFTEN: string =
+  "You have read AI fixes too often in the last few minutes. Wait a few minutes, then try again.";
 
 export function getRemediationRoundTryAgainRefusal(
   refusal: RemediationRoundTryAgainRefusal,
@@ -286,11 +302,13 @@ export const REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED: Readonly<
 };
 
 /*
- * A command a round ran to check what is wrong (a read-only kubectl
- * command, or a command on an infrastructure resource), as the step lists
- * it: the command, the round's own reason for it, when, and how it went -
- * it ran, it failed (kubectl answered an error, or it could not run), its
- * result never came back (it may have run), it is running now, or the
+ * A check a round made to see what is wrong, as the step lists it: a
+ * command it ran (a read-only kubectl command, or a command on an
+ * infrastructure resource), or a call of a tool one of the project's MCP
+ * servers marks as only reading (a fix through MCP servers, issue #6526) -
+ * with the round's own reason for it, when, and how it went: it ran, it
+ * failed (kubectl or the server answered an error, or it could not run),
+ * its result never came back (it may have run), it is running now, or the
  * round stopped while it ran.
  */
 export type RemediationRoundCheckStatus =
@@ -300,8 +318,21 @@ export type RemediationRoundCheckStatus =
   | "running"
   | "stopped";
 
+/*
+ * The tool of an MCP server a round called to check, by the server's name
+ * and the tool's: never what it was called with or what it answered, which
+ * can hold anything the other system returns.
+ */
+export interface RemediationRoundMcpToolCall {
+  server: string;
+  tool: string;
+}
+
 export interface RemediationRoundCheck {
+  // The command it ran: "" for a call of an MCP server's tool.
   command: string;
+  // The MCP server's tool it called, in place of a command (issue #6526).
+  mcpTool?: RemediationRoundMcpToolCall | undefined;
   // Why the round ran it, in its own words: may be empty.
   why: string;
   status: RemediationRoundCheckStatus;
@@ -315,6 +346,26 @@ export interface RemediationRoundCheck {
 export const MAX_ROUND_CHECKS: number = 50;
 export const MAX_ROUND_CHECK_WHY_LENGTH: number = 200;
 export const MAX_ROUND_CHECK_ERROR_LENGTH: number = 300;
+// An MCP server's name and its tool's, as a check names them.
+export const MAX_ROUND_MCP_NAME_LENGTH: number = 120;
+
+// An MCP tool call off the wire: both names, or nothing.
+export function parseRemediationRoundMcpToolCall(
+  value: unknown,
+): RemediationRoundMcpToolCall | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const entry: Record<string, unknown> = value as Record<string, unknown>;
+  const server: string = clipRoundText(
+    entry["server"],
+    MAX_ROUND_MCP_NAME_LENGTH,
+  );
+  const tool: string = clipRoundText(entry["tool"], MAX_ROUND_MCP_NAME_LENGTH);
+
+  return server && tool ? { server, tool } : null;
+}
 
 const CHECK_STATUSES: ReadonlyArray<string> = [
   "ran",
@@ -340,14 +391,16 @@ export function parseRemediationRoundChecks(
     }
 
     const entry: Record<string, unknown> = item as Record<string, unknown>;
-    const command: string = clipRoundText(
-      entry["command"],
-      MAX_ROUND_COMMAND_LENGTH,
-    );
+    // A call of an MCP server's tool names it instead of a command.
+    const mcpTool: RemediationRoundMcpToolCall | null =
+      parseRemediationRoundMcpToolCall(entry["mcpTool"]);
+    const command: string = mcpTool
+      ? ""
+      : clipRoundText(entry["command"], MAX_ROUND_COMMAND_LENGTH);
     const status: unknown = entry["status"];
 
     if (
-      !command ||
+      (!command && !mcpTool) ||
       typeof status !== "string" ||
       !CHECK_STATUSES.includes(status)
     ) {
@@ -356,6 +409,7 @@ export function parseRemediationRoundChecks(
 
     checks.push({
       command,
+      ...(mcpTool ? { mcpTool } : {}),
       why: clipRoundText(entry["why"], MAX_ROUND_CHECK_WHY_LENGTH),
       status: status as RemediationRoundCheckStatus,
       at: typeof entry["at"] === "string" ? entry["at"] : "",

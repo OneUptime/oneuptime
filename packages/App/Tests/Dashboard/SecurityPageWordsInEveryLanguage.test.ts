@@ -60,6 +60,19 @@ const SECURITY_ROOTS: Array<SourceRoot> = [
     directory: "packages/App/FeatureSet/Dashboard/src/Components/TwoFactorAuth",
     kind: "ui",
   },
+  /*
+   * What the profile says in their place to somebody whose organization
+   * manages their sign-in (#9688), and the Password page it says it on.
+   */
+  {
+    directory: "packages/App/FeatureSet/Dashboard/src/Components/UserProfile",
+    kind: "ui",
+  },
+  {
+    directory:
+      "packages/App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Password.tsx",
+    kind: "ui",
+  },
   // The QR code and setup key an authenticator app is added with.
   {
     directory: "packages/Common/UI/Components/AuthenticatorAppSetupCode",

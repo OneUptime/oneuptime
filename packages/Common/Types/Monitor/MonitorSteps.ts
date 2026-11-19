@@ -184,12 +184,40 @@ export default class MonitorSteps extends DatabaseProperty {
     value: MonitorSteps | FindOperator<MonitorSteps>,
   ): JSONObject | null {
     if (value && value instanceof MonitorSteps) {
-      return (value as MonitorSteps).toJSON();
+      return MonitorSteps.toDatabaseJSON((value as MonitorSteps).toJSON());
     } else if (value) {
       return JSONFunctions.serialize(value as any);
     }
 
     return null;
+  }
+
+  /*
+   * Steps as they are written to the database: each step without what only
+   * travels to a probe (MonitorStep.toDatabaseJSON) - a monitor's own
+   * record never holds the seed of a one-time code secret.
+   */
+  public static toDatabaseJSON(json: JSONObject): JSONObject {
+    const value: JSONObject | undefined = json["value"] as
+      | JSONObject
+      | undefined;
+    const steps: unknown = value?.["monitorStepsInstanceArray"];
+
+    if (!value || !Array.isArray(steps)) {
+      return json;
+    }
+
+    return {
+      ...json,
+      value: {
+        ...value,
+        monitorStepsInstanceArray: (steps as JSONArray).map(
+          (step: unknown): JSONObject => {
+            return MonitorStep.toDatabaseJSON(step as JSONObject);
+          },
+        ),
+      },
+    };
   }
 
   protected static override fromDatabase(

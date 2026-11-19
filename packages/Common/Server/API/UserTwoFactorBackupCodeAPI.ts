@@ -10,6 +10,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import MailService from "../Services/MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import RequestOrigin from "../../Types/RequestOrigin";
 import UserService from "../Services/UserService";
 import User from "../../Models/DatabaseModels/User";
@@ -77,6 +78,15 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
         try {
           const userId: ObjectID =
             UserTwoFactorBackupCodeAPI.getCurrentUserId(req);
+
+          /*
+           * Backup codes stand in for a second step that guards a password
+           * or an emailed link, and the server signs somebody whose sign-in
+           * is managed by single sign-on in with neither (SsoManagedSignIn,
+           * #9688): none are minted for them. Before the codes they hold are
+           * thrown away.
+           */
+          await SsoManagedSignIn.assertMayChangeLocalSignIn(userId);
 
           const previousStatus: TwoFactorBackupCodeStatus =
             await UserTwoFactorBackupCodeService.getStatusForUser({

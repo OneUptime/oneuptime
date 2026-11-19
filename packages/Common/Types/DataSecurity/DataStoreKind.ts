@@ -5,7 +5,7 @@ import IconProp from "../Icon/IconProp";
  *
  * Cloud buckets, databases and warehouses; databases teams run themselves;
  * and the telemetry a project sends OneUptime, which holds whatever its
- * code writes into logs, spans and prompts. Each kind says where it lives
+ * code writes into logs, spans, metrics and prompts. Each kind says where it lives
  * (its provider), what family it belongs to (so checks and pages can speak
  * of "buckets" or "databases"), the cloud inventory type it is discovered
  * from, and whether Data Security can read its content - configuration
@@ -50,6 +50,7 @@ export enum DataStoreKind {
   TelemetryExceptions = "Exceptions",
   TelemetrySessionReplays = "Session Replays",
   TelemetryAiConversations = "AI Conversations",
+  TelemetryMetrics = "Metrics",
 }
 
 export enum DataStoreProvider {
@@ -219,6 +220,11 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
     contentScannable: true,
     icon: IconProp.Bolt,
   }),
+  // A service's metric data points: their attributes and the metrics' names.
+  kind(K.TelemetryMetrics, P.OneUptime, F.Telemetry, {
+    contentScannable: true,
+    icon: IconProp.ChartBar,
+  }),
 ];
 
 const KINDS_BY_VALUE: ReadonlyMap<string, DataStoreKindInfo> = new Map(
@@ -252,6 +258,7 @@ export const TELEMETRY_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.TelemetryExceptions,
   DataStoreKind.TelemetrySessionReplays,
   DataStoreKind.TelemetryAiConversations,
+  DataStoreKind.TelemetryMetrics,
 ];
 
 /*

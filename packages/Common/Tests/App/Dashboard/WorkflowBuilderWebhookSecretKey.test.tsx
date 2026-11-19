@@ -251,6 +251,9 @@ describe("the builder loads the webhook secret key only for those who may see it
         name: true,
         isEnabled: true,
         isArchived: true,
+        // Who may change it and run it by hand (#9695): read by every reader.
+        runAs: true,
+        runAsCustomRoleId: true,
         webhookSecretKey: true,
         incomingEmailSecretKey: true,
       });
@@ -282,6 +285,8 @@ describe("the builder loads the webhook secret key only for those who may see it
         "name",
         "isEnabled",
         "isArchived",
+        "runAs",
+        "runAsCustomRoleId",
       ]);
       expect(canvas().webhookSecretKey).toBe("");
       expect(canvas().canSeeWebhookSecretKey).toBe(false);
@@ -302,6 +307,8 @@ describe("the builder loads the webhook secret key only for those who may see it
       "name",
       "isEnabled",
       "isArchived",
+      "runAs",
+      "runAsCustomRoleId",
     ]);
     expect(canvas().canSeeWebhookSecretKey).toBe(false);
   });

@@ -1,24 +1,102 @@
 import User from "Common/Models/DatabaseModels/User";
 import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
+import { TwoFactorAuthSetup } from "Common/Types/TwoFactorAuthSetup";
+import TwoFactorAuthStatus from "Common/Types/TwoFactorAuthStatus";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  describeTwoFactorAuthSetupError,
+  TwoFactorAuthSetupState,
+  useTwoFactorAuthSetup,
+} from "./TwoFactorAuthSetupState";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const TwoFactorStatus: FunctionComponent = (): ReactElement => {
+/*
+ * THE TWO-FACTOR AUTHENTICATION CARD (issue #9666).
+ *
+ * It used to switch the setting on whatever stood behind it, so somebody
+ * with no authenticator app, security key or passkey could turn it on, and
+ * the card said "Enabled" in green over "No security keys added yet". The
+ * server refuses that now (Types/TwoFactorAuthSetup), and the card offers
+ * only what the server allows, by where the person stands
+ * (GET /user/two-factor-auth-status):
+ *
+ *   - off, with nothing set up: Enable starts setting up a second step
+ *     (onStartSetup), and turns it on at the end - nothing is turned on
+ *     until the step works;
+ *   - off, with a second step ready: Enable asks to confirm, then turns it on;
+ *   - on: Turn off asks to confirm, then turns it off;
+ *   - on with nothing set up - a master admin's requirement, or an account
+ *     switched on before this - says "Setup needed", never "Enabled", and
+ *     why it does not protect the account yet: Finish setup, or Turn off.
+ */
+
+export const TWO_FACTOR_STATUS_COPY: {
+  enabled: string;
+  notEnabled: string;
+  setupNeeded: string;
+  notEnabledWithNothing: string;
+  notEnabledWithASecondStep: string;
+  enabledWithASecondStep: string;
+  setupNeededExplanation: string;
+  enableAction: string;
+  turnOffAction: string;
+  finishSetupAction: string;
+  enableQuestion: string;
+  enableDescription: string;
+} = {
+  enabled: translationKey("Enabled"),
+  notEnabled: translationKey("Not enabled"),
+  setupNeeded: translationKey("Setup needed"),
+  notEnabledWithNothing: translationKey(
+    "Turn it on to set up an authenticator app or a security key as the second step of your sign-in.",
+  ),
+  notEnabledWithASecondStep: translationKey(
+    "Your second step is ready. Turn on two-factor authentication to ask for it each time you sign in with a password.",
+  ),
+  enabledWithASecondStep: translationKey(
+    "Use an authenticator app or security key for your second step.",
+  ),
+  setupNeededExplanation: translationKey(
+    "Two-factor authentication is on, but no second step is set up yet, so it does not protect your account. Set one up now, or you will be asked to at your next sign-in.",
+  ),
+  enableAction: translationKey("Enable two-factor authentication"),
+  turnOffAction: translationKey("Turn off two-factor authentication"),
+  finishSetupAction: translationKey("Finish setup"),
+  enableQuestion: translationKey("Enable two-factor authentication?"),
+  enableDescription: translationKey(
+    "Signing in with a password or an emailed link will then ask for your second step: an authenticator app, a security key or a passkey.",
+  ),
+};
+
+export interface ComponentProps {
+  /*
+   * Bumped by the page when a second step is added or removed, so the card
+   * reads where the person stands again.
+   */
+  refreshToggle?: number | undefined;
+  // Told what the card read, so the page can lock what the server would refuse.
+  onSetupLoaded?: ((setup: TwoFactorAuthSetup | null) => void) | undefined;
+  // Enable with nothing set up, and Finish setup: the page's guided setup.
+  onStartSetup?: (() => void) | undefined;
+}
+
+const TwoFactorStatus: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
-  const [isEnabled, setIsEnabled] = React.useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
-  const [loadError, setLoadError] = React.useState<string>("");
-  const [refresh, setRefresh] = React.useState<number>(0);
+  const [ownRefresh, setOwnRefresh] = React.useState<number>(0);
   const [pendingStatus, setPendingStatus] = React.useState<boolean | null>(
     null,
   );
@@ -26,47 +104,37 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
   const [saveError, setSaveError] = React.useState<string>("");
   const saving: React.MutableRefObject<boolean> = React.useRef<boolean>(false);
 
+  const state: TwoFactorAuthSetupState = useTwoFactorAuthSetup(
+    (props.refreshToggle || 0) + ownRefresh,
+  );
+  const setup: TwoFactorAuthSetup | null = state.setup;
+  /*
+   * Only the first read draws the skeleton: a read again after a change
+   * keeps what the card shows until the answer comes, so nothing jumps.
+   */
+  const isFirstLoad: boolean = state.isLoading && !setup;
+
+  const onSetupLoaded:
+    | ((setup: TwoFactorAuthSetup | null) => void)
+    | undefined = props.onSetupLoaded;
+
   React.useEffect(() => {
-    const controller: AbortController = new AbortController();
-    setIsLoading(true);
-    setLoadError("");
+    if (!state.isLoading) {
+      onSetupLoaded?.(setup);
+    }
+  }, [setup, state.isLoading]);
 
-    const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const user: User | null = await ModelAPI.getItem<User>({
-          modelType: User,
-          id: UserUtil.getUserId(),
-          select: { enableTwoFactorAuth: true },
-          requestOptions: { apiRequestOptions: { signal: controller.signal } },
-        });
-
-        if (!user || typeof user.enableTwoFactorAuth !== "boolean") {
-          throw new Error(
-            translator.translateText(
-              "Your two-factor authentication status could not be loaded.",
-            ),
-          );
-        }
-
-        if (!controller.signal.aborted) {
-          setIsEnabled(user.enableTwoFactorAuth);
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setLoadError(API.getFriendlyMessage(error));
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void load();
-    return () => {
-      controller.abort();
-    };
-  }, [refresh]);
+  const loadError: string = state.error
+    ? describeTwoFactorAuthSetupError({
+        error: state.error,
+        translateText: (text: string): string => {
+          return translator.translateText(text) as string;
+        },
+        getFriendlyMessage: (error: unknown): string => {
+          return API.getFriendlyMessage(error);
+        },
+      })
+    : "";
 
   const updateStatus: () => Promise<void> = async (): Promise<void> => {
     if (saving.current || pendingStatus === null) {
@@ -82,8 +150,10 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
         id: UserUtil.getUserId(),
         data: { enableTwoFactorAuth: pendingStatus },
       });
-      setIsEnabled(pendingStatus);
       setPendingStatus(null);
+      setOwnRefresh((value: number) => {
+        return value + 1;
+      });
     } catch (error) {
       setSaveError(API.getFriendlyMessage(error));
     } finally {
@@ -92,50 +162,127 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
     }
   };
 
+  const status: TwoFactorAuthStatus | null = setup ? setup.status : null;
+  const hasASecondStep: boolean = Boolean(
+    setup && setup.verifiedMethodCount > 0,
+  );
+
+  const getButtons: () => Array<CardButtonSchema> =
+    (): Array<CardButtonSchema> => {
+      if (isFirstLoad || loadError || !status) {
+        return [];
+      }
+
+      const turnOff: CardButtonSchema = {
+        title: TWO_FACTOR_STATUS_COPY.turnOffAction,
+        icon: IconProp.Lock,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          setSaveError("");
+          setPendingStatus(false);
+        },
+      };
+
+      if (status === TwoFactorAuthStatus.EnabledConfigured) {
+        return [turnOff];
+      }
+
+      if (status === TwoFactorAuthStatus.EnabledPendingSetup) {
+        return [
+          {
+            title: TWO_FACTOR_STATUS_COPY.finishSetupAction,
+            icon: IconProp.ShieldCheck,
+            buttonStyle: ButtonStyleType.PRIMARY,
+            onClick: () => {
+              props.onStartSetup?.();
+            },
+          },
+          turnOff,
+        ];
+      }
+
+      return [
+        {
+          title: TWO_FACTOR_STATUS_COPY.enableAction,
+          icon: IconProp.ShieldCheck,
+          buttonStyle: ButtonStyleType.PRIMARY,
+          onClick: () => {
+            if (hasASecondStep) {
+              setSaveError("");
+              setPendingStatus(true);
+              return;
+            }
+
+            props.onStartSetup?.();
+          },
+        },
+      ];
+    };
+
+  const getBadge: () => ReactElement | undefined = ():
+    | ReactElement
+    | undefined => {
+    if (isFirstLoad || loadError || !status) {
+      return undefined;
+    }
+
+    if (status === TwoFactorAuthStatus.EnabledConfigured) {
+      return (
+        <span data-testid="two-factor-status">
+          <Pill
+            text={TWO_FACTOR_STATUS_COPY.enabled}
+            tone={PillTone.Success}
+            icon={IconProp.ShieldCheck}
+          />
+        </span>
+      );
+    }
+
+    if (status === TwoFactorAuthStatus.EnabledPendingSetup) {
+      return (
+        <span data-testid="two-factor-status">
+          <Pill
+            text={TWO_FACTOR_STATUS_COPY.setupNeeded}
+            tone={PillTone.Warning}
+            icon={IconProp.Alert}
+          />
+        </span>
+      );
+    }
+
+    return (
+      <span data-testid="two-factor-status">
+        <Pill text={TWO_FACTOR_STATUS_COPY.notEnabled} tone={PillTone.Paused} />
+      </span>
+    );
+  };
+
+  const getExplanation: () => string = (): string => {
+    if (status === TwoFactorAuthStatus.EnabledConfigured) {
+      return TWO_FACTOR_STATUS_COPY.enabledWithASecondStep;
+    }
+
+    if (status === TwoFactorAuthStatus.EnabledPendingSetup) {
+      return TWO_FACTOR_STATUS_COPY.setupNeededExplanation;
+    }
+
+    return hasASecondStep
+      ? TWO_FACTOR_STATUS_COPY.notEnabledWithASecondStep
+      : TWO_FACTOR_STATUS_COPY.notEnabledWithNothing;
+  };
+
+  const isSetupNeeded: boolean =
+    status === TwoFactorAuthStatus.EnabledPendingSetup;
+
   return (
     <>
       <Card
         title="Two-factor authentication"
         description="Add an extra layer of security when you sign in with a password."
-        rightElement={
-          !isLoading && !loadError && isEnabled !== null ? (
-            <span
-              className={
-                isEnabled
-                  ? "inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700"
-                  : "inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600"
-              }
-              data-testid="two-factor-status"
-            >
-              <Icon
-                icon={isEnabled ? IconProp.ShieldCheck : IconProp.Lock}
-                className="h-4 w-4"
-              />
-              {isEnabled
-                ? translator.translateText("Enabled")
-                : translator.translateText("Not enabled")}
-            </span>
-          ) : undefined
-        }
-        buttons={
-          !isLoading && !loadError && isEnabled !== null
-            ? [
-                {
-                  title: isEnabled
-                    ? "Turn off two-factor authentication"
-                    : "Enable two-factor authentication",
-                  icon: isEnabled ? IconProp.Lock : IconProp.ShieldCheck,
-                  buttonStyle: ButtonStyleType.NORMAL,
-                  onClick: () => {
-                    setSaveError("");
-                    setPendingStatus(!isEnabled);
-                  },
-                },
-              ]
-            : []
-        }
+        rightElement={getBadge()}
+        buttons={getButtons()}
       >
-        {isLoading ? (
+        {isFirstLoad ? (
           <DetailListSkeleton fields={2} columns={1} />
         ) : loadError ? (
           <div>
@@ -145,26 +292,37 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
               buttonStyle={ButtonStyleType.NORMAL}
               className="mt-3"
               onClick={() => {
-                setRefresh((value: number) => {
+                setOwnRefresh((value: number) => {
                   return value + 1;
                 });
               }}
             />
           </div>
         ) : (
-          <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3">
+          <div
+            className={
+              isSetupNeeded
+                ? "flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3"
+                : "flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3"
+            }
+            data-testid="two-factor-status-explanation"
+          >
             <Icon
-              icon={IconProp.Lock}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+              icon={isSetupNeeded ? IconProp.Alert : IconProp.Lock}
+              className={
+                isSetupNeeded
+                  ? "mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+                  : "mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+              }
             />
-            <p className="text-sm leading-6 text-gray-600">
-              {isEnabled
-                ? translator.translateText(
-                    "Use an authenticator app or security key for your second step.",
-                  )
-                : translator.translateText(
-                    "Set up an authenticator app or security key below, then enable two-factor authentication for your account.",
-                  )}
+            <p
+              className={
+                isSetupNeeded
+                  ? "text-sm leading-6 text-amber-800"
+                  : "text-sm leading-6 text-gray-600"
+              }
+            >
+              {translator.translateText(getExplanation())}
             </p>
           </div>
         )}
@@ -173,18 +331,18 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
         <ConfirmModal
           title={
             pendingStatus
-              ? "Enable two-factor authentication?"
+              ? TWO_FACTOR_STATUS_COPY.enableQuestion
               : "Turn off two-factor authentication?"
           }
           description={
             pendingStatus
-              ? "Signing in with a password will need an authenticator app or security key. Without one, you set it up at your next sign-in."
+              ? TWO_FACTOR_STATUS_COPY.enableDescription
               : "You will no longer be asked for a second step when signing in with a password. Your authenticator apps and security keys stay saved."
           }
           submitButtonText={
             pendingStatus
-              ? "Enable two-factor authentication"
-              : "Turn off two-factor authentication"
+              ? TWO_FACTOR_STATUS_COPY.enableAction
+              : TWO_FACTOR_STATUS_COPY.turnOffAction
           }
           submitButtonType={
             pendingStatus ? ButtonStyleType.PRIMARY : ButtonStyleType.DANGER

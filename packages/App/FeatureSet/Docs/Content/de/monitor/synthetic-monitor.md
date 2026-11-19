@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 Wie Sie ein Geheimnis anlegen und festlegen, welche Monitore es verwenden dürfen, steht unter [Überwachungs-Geheimnisse](/docs/monitor/monitor-secrets).
 
+Ein Einmalcode-Geheimnis enthält statt eines Werts den Zwei-Faktor-Einrichtungsschlüssel einer Website. Sein `{{monitorSecrets.NAME}}` ist der Code, der in dem Moment gilt, in dem das Skript startet, und `await oneuptime.getTotpCode("NAME")` erzeugt einen frischen Code, wenn das Skript ihn anfordert. Das passt zu einer Anmeldung, die die Abfrage des Codes erst einige Seiten später erreicht. Siehe [Mit einem Einmalcode anmelden](/docs/monitor/monitor-secrets#mit-einem-einmalcode-anmelden).
+
 ## Benutzerdefinierte Metriken
 
 Mit der Funktion `oneuptime.captureMetric()` erfassen Sie aus Ihrem Skript eigene Metriken. Diese Metriken werden in OneUptime gespeichert und lassen sich im Metrik-Explorer in Dashboards darstellen.
@@ -258,6 +260,7 @@ In Vorfall- und Warnungsvorlagen steht jeder Lauf in `{{syntheticResponses}}`: s
 | `crypto` | Eine Browser-Worker-Implementierung von SHA-256-Hashes, HMAC-SHA-256, `randomBytes`, `randomInt` und `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` und `error`. Die Meldungen werden mit jedem Lauf aufbewahrt. |
 | `oneuptime.captureMetric` | Erfasst eine benutzerdefinierte Metrik. Siehe [Benutzerdefinierte Metriken](#benutzerdefinierte-metriken). |
+| `oneuptime.getTotpCode` | Erzeugt den aktuellen Code eines Einmalcode-Geheimnisses: `await oneuptime.getTotpCode("NAME")`. Siehe [Monitor-Geheimnisse verwenden](#monitor-geheimnisse-verwenden). |
 | `http` | Eine gepufferte, reine Client-Kompatibilitätsfassade mit `request`, `get` und `Agent`. |
 | `https` | Das HTTPS-Gegenstück zur reinen Client-Fassade `http`. |
 | `Buffer`, `setTimeout`, `setInterval` | Und ihre `clear`-Funktionen. |

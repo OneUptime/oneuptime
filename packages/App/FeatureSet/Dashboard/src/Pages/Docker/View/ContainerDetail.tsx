@@ -37,7 +37,11 @@ import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePart
 import ResourcePartTabs from "../../../Components/ResourcePart/ResourcePartTabs";
 import ContainerHostContainerHero from "../../../Components/ContainerHost/ContainerHostContainerHero";
 import ContainerHostContainerOverview from "../../../Components/ContainerHost/ContainerHostContainerOverview";
-import { ContainerHostContainer } from "../../../Components/ContainerHost/ContainerHostHealth";
+import {
+  ContainerHostContainer,
+  getContainerHostPartAttention,
+} from "../../../Components/ContainerHost/ContainerHostHealth";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
   ContainerHostRoutes,
   DOCKER_CONTAINER_HOST_RUNTIME,
@@ -262,6 +266,13 @@ const DockerHostContainerDetail: FunctionComponent<
     modelId,
   );
   const hostName: string = host.name || host.hostIdentifier || getUnnamedText();
+  const hostLatestReadingAt: Date | null =
+    readingsState.readings?.hostLatestReadingAt || null;
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getContainerHostPartAttention({
+    container: container,
+    hostLatestReadingAt: hostLatestReadingAt,
+  });
 
   const tabs: Array<Tab> = [
     {
@@ -283,9 +294,8 @@ const DockerHostContainerDetail: FunctionComponent<
             hostName={hostName}
             hostIdentifier={host.hostIdentifier || ""}
             container={container}
-            hostLatestReadingAt={
-              readingsState.readings?.hostLatestReadingAt || null
-            }
+            hostLatestReadingAt={hostLatestReadingAt}
+            attention={attention}
             hasRestartCounts={Boolean(readingsState.readings?.hasRestartCounts)}
             routes={routes}
             readAt={readingsState.readings?.readAt || new Date()}
@@ -341,11 +351,10 @@ const DockerHostContainerDetail: FunctionComponent<
       <ContainerHostContainerHero
         containerName={containerName}
         container={container}
-        hostLatestReadingAt={
-          readingsState.readings?.hostLatestReadingAt || null
-        }
+        hostLatestReadingAt={hostLatestReadingAt}
         hostName={hostName}
         hostRoute={routes.hostRoute}
+        attention={attention}
       />
       <DatabaseServerWorkloadBadge
         resourceLabel="container"

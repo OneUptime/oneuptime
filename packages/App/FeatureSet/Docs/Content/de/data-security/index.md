@@ -33,7 +33,7 @@ flowchart TB
 
 ## Was sie anders macht
 
-- **Ihre Telemetrie ist ein Datenspeicher.** Die Logs, Traces, Ausnahmen, Sitzungswiedergaben und KI-Unterhaltungen jedes Dienstes werden wie ein Bucket geprüft, jede Stunde. Eine E-Mail-Adresse in einer Logzeile ist ein Fund, und **Bereinigen** maskiert sie von da an bei der Aufnahme. Siehe [Sensible Daten in der Telemetrie](/docs/data-security/telemetry).
+- **Ihre Telemetrie ist ein Datenspeicher.** Die Logs, Traces, Metriken, Ausnahmen, Sitzungswiedergaben und KI-Unterhaltungen jedes Dienstes werden wie ein Bucket geprüft, jede Stunde. Eine E-Mail-Adresse in einer Logzeile ist ein Fund, und **Bereinigen** maskiert sie von da an bei der Aufnahme. Siehe [Sensible Daten in der Telemetrie](/docs/data-security/telemetry).
 - **Datenflüsse stammen aus echtem Verkehr.** Die Dienstkarte sagt, welcher Dienst welche Datenbank nutzt, KI-Aufrufe nennen den Anbieter, den sie erreichen, und Kopien von Produktionsdaten werden durch den Vergleich von Fingerabdrücken gefunden. Siehe [Datenflüsse, Zugriff und Residenz](/docs/data-security/flows-access-residency).
 - **Zugriff wird von beiden Seiten gelesen.** Datensicherheit liest, wen die eigenen Einstellungen jedes Datenspeichers hereinlassen, und bei AWS, was jede Rolle und jeder Benutzer über die eigenen IAM-Richtlinien erreichen darf und wann sie zuletzt verwendet wurden. **Zugriff** ordnet jede Identität nach dem Schaden, den sie anrichten könnte, und Zugriff auf sensible Daten, der seit 90 Tagen nicht verwendet wurde, ist ein Problem. Siehe [Wer einen Datenspeicher erreichen kann](/docs/data-security/flows-access-residency#wer-einen-datenspeicher-erreichen-kann).
 - **Belege werden immer maskiert.** Ein Fund behält Zählungen und höchstens drei maskierte Stichproben, etwa `j***@e******.com`, maskiert im Scanner, bevor irgendetwas ihn verlässt. Schalten Sie Stichproben aus, und er behält nur Zählungen.
@@ -70,7 +70,7 @@ Setzen Sie unter **Weitere Felder** die Option **Datensicherheit** auf **Nur Kon
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen |
+| OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken |
 
 Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt.
 

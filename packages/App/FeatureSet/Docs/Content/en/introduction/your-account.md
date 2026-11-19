@@ -105,24 +105,30 @@ The link works once, for 15 minutes, and a newer link replaces it. You can open 
 
 ### Turn on two-factor authentication
 
-Two-factor authentication applies when you sign in with your password or an emailed link. Add a second step first, then turn it on.
+Two-factor authentication applies when you sign in with your password or an emailed link. It turns on only once your second step works, so it never asks for a step you do not have.
 
 :::steps
-### Add an authenticator app
+### Choose your second step
 
-Open **Security → Two-factor authentication**. Under **Authenticator apps**, add an app and give it a name. Scan the QR code with an app such as 1Password, Google Authenticator or Microsoft Authenticator, enter the 6-digit code it shows, and click **Verify and finish**. To use a USB or NFC key instead, add it under **Security keys**.
+Open **Security → Two-factor authentication** and click **Enable two-factor authentication**. Choose **Authenticator app** or **Security key**, and click **Continue**.
+
+### Set it up
+
+For an authenticator app, scan the QR code with an app such as 1Password, Google Authenticator or Microsoft Authenticator, enter the 6-digit code it shows, and click **Verify and finish**. For a USB or NFC key, name it and follow your browser's prompt. Two-factor authentication is then on, and the card reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
 
 ### Save your backup codes
 
 The first time you add an app, a key or a passkey, OneUptime shows **Your backup codes**. Each code signs you in once if you lose your app or key. Copy or download them, tick the box that says you saved them, and click **Done**.
-
-### Turn it on
-
-At the top of the page, click **Enable two-factor authentication** and confirm. The card now reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
 :::
+
+If you already have an app under **Authenticator apps** or a key under **Security keys**, **Enable two-factor authentication** asks you to confirm instead. While it is on, your last app, key or passkey cannot be removed: add another one first, or turn two-factor authentication off. If the card reads **Setup needed**, two-factor authentication is on with nothing set up yet, often because an administrator required it: click **Finish setup**, or you are asked to set it up at your next sign-in.
 
 > [!TIP]
 > Running low on backup codes? **Regenerate codes** on the same page gives you a new set, and the old codes stop working at once.
+
+### When your organization manages your sign-in
+
+On a server that requires single sign-on, you sign in only through your organization's identity provider, such as Okta or Microsoft Entra ID, and OneUptime sets no password, passkey or two-factor authentication for you. **User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**. Change your password and your second step with your identity provider. Anything you set up before stays saved: it works again only if the server stops requiring single sign-on. Master admins keep their own **Security** settings.
 
 ## Your projects
 

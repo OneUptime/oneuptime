@@ -427,11 +427,16 @@ describe("the whole Persian page", () => {
     await renderIn("fa");
 
     expect(latinTexts()).toEqual([]);
-    // The cards' counts, in Persian: 3 nodes (1 not ready), 12 pods, 4 namespaces.
+    /*
+     * The cards' counts, in Persian: 3 nodes, 1 of them not ready - a pill
+     * that opens which (#9595) - 12 pods, 4 namespaces.
+     */
     expect(document.body.textContent || "").toContain("۱۲");
-    expect(withoutIsolateMarks(document.body.textContent || "")).toContain(
-      "(۱ آماده نیست)",
-    );
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("kubernetes-nodes-card-not-ready").textContent || "",
+      ),
+    ).toContain("۱ آماده نیست");
   });
 });
 

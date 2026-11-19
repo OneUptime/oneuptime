@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 Ein Geheimniswert, der ein Anführungszeichen enthält, zerbricht die Zeichenkette um ihn herum. Ein Verweis, den der Monitor nicht verwenden darf, bleibt so im Skript stehen, wie er geschrieben wurde. Wie Sie ein Geheimnis anlegen und festlegen, welche Monitore es verwenden dürfen, steht unter [Überwachungs-Geheimnisse](/docs/monitor/monitor-secrets).
 
+Ein Einmalcode-Geheimnis enthält statt eines Werts den Zwei-Faktor-Einrichtungsschlüssel einer Website. Sein `{{monitorSecrets.NAME}}` ist der Code, der in dem Moment gilt, in dem das Skript startet, und `await oneuptime.getTotpCode("NAME")` erzeugt einen frischen Code, wenn das Skript ihn anfordert. Siehe [Mit einem Einmalcode anmelden](/docs/monitor/monitor-secrets#mit-einem-einmalcode-anmelden).
+
 ## Benutzerdefinierte Metriken
 
 Mit der Funktion `oneuptime.captureMetric()` erfassen Sie aus Ihrem Skript eigene Metriken. Diese Metriken werden in OneUptime gespeichert und lassen sich im Metrik-Explorer in Dashboards darstellen.
@@ -226,6 +228,7 @@ Fügen Sie pro Feld, das Sie prüfen möchten, einen Filter hinzu; jeder kann ei
 | `http`, `https` | Nur ihre Klasse `Agent`, um sie an `axios` zu übergeben — zum Beispiel `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Es gibt kein `request` und kein `get`. |
 | `console.log` | Protokolliert Daten zur Fehlersuche. Es gibt nur `console.log`; `console.error` und die anderen gibt es nicht. |
 | `oneuptime.captureMetric` | Erfasst eine benutzerdefinierte Metrik. Siehe [Benutzerdefinierte Metriken](#benutzerdefinierte-metriken). |
+| `oneuptime.getTotpCode` | Erzeugt den aktuellen Code eines Einmalcode-Geheimnisses: `await oneuptime.getTotpCode("NAME")`. Siehe [Monitor-Geheimnisse verwenden](#monitor-geheimnisse-verwenden). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Im Skript warten. Eine Verzögerung läuft nie über das Zeitlimit des Skripts hinaus. |
 
 ## Zu beachten

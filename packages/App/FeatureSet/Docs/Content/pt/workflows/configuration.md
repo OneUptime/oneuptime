@@ -181,6 +181,8 @@ As permissões individuais, para uma equipe ou uma chave de API que precisa de e
 
 Uma execução manual só alcança os workflows que você pode abrir: um papel limitado a alguns rótulos, ou aos workflows que a sua equipe possui, só roda esses. Quem não pode rodar um workflow vê **Executar fluxo de trabalho** em cinza, com o motivo na dica.
 
+Um workflow que é executado como **Proprietário do projeto** ou como uma função personalizada só é alterado e executado manualmente por pessoas que têm essas permissões; os demais só podem vê-lo no **Construtor**. Veja [Run As](#run-as).
+
 Dê **Administrador de fluxos de trabalho** a quem monta a automação, e **Membro de fluxos de trabalho** a quem só a inicia. Reserve o acesso de edição de variáveis a quem gerencia os segredos do projeto. Veja [Usuários, equipes e permissões](/docs/permissions/index) para saber como os papéis são concedidos.
 
 ## O que os passos de um workflow podem fazer
@@ -189,7 +191,7 @@ Os passos que leem e alteram registros do OneUptime — os componentes Find, Cre
 
 - **Só o projeto do próprio workflow.** Um passo lê e grava os registros do projeto ao qual o workflow pertence e de nenhum outro, e um Update nunca move um registro para outro projeto.
 - **Só o que um Project Admin pode fazer.** Um passo não pode fazer o que só **Proprietário do projeto** e as permissões de cobrança ou de exclusão do projeto permitem, e não pode ler quem criou uma sonda ou um agente de IA, o que só os Proprietários do projeto veem.
-- **Não quem tem acesso.** Um passo não cria, não altera nem exclui equipes, membros de equipe, permissões de equipe, funções personalizadas ou permissões de chaves de API, mesmo que um Administrador do projeto possa. Quem monta um workflow decide o que seus passos fazem, e pode ser um **Membro do projeto**, então um passo que pudesse fazer isso daria a quem o montou um acesso que não lhe foi dado, como **Administrador do projeto**. O passo é recusado, e o log da execução diz que uma pessoa que gerencia as equipes e as chaves de API do projeto precisa fazer a alteração. Gatilhos e passos Find sobre esses registros continuam funcionando.
+- **Não quem tem acesso.** Com as permissões padrão, um passo não cria, não altera nem exclui equipes, membros de equipe, permissões de equipe ou funções personalizadas, mesmo que um Administrador do projeto possa. Quem monta um workflow decide o que seus passos fazem, e pode ser um **Membro do projeto**, então um passo que pudesse fazer isso daria a quem o montou um acesso que não lhe foi dado, como **Administrador do projeto**. O passo é recusado, e o log da execução nomeia a permissão que a alteração exige e diz para escolher **Run As** nas **Configurações** do workflow: um workflow que é executado como **Proprietário do projeto**, ou como uma função personalizada que tenha essa permissão, pode fazer a alteração (veja [Run As](#run-as)). Nenhum passo de workflow altera chaves de API, login único ou configurações de SCIM, independentemente de como o workflow é executado. Gatilhos e passos Find sobre esses registros continuam funcionando.
 - **Não a leitura de configurações que guardam credenciais.** Um Administrador do projeto pode ler servidores SMTP, provedores de chamadas e SMS, credenciais SNMP, conexões de videochamada e chaves de API, mas isso nunca é emprestado a um passo, não importa quem construiu ou salvou o workflow. Um passo não pode nomear uma dessas configurações, como o servidor SMTP com que uma página de status envia e-mails ou a chave de API a que uma permissão é concedida. O passo é recusado, e o log de execução dele diz que uma pessoa que pode lê-las (a permissão de leitura desse tipo de configuração, ou um Proprietário do projeto ou Administrador do projeto) precisa fazer a alteração. Um passo que mantém a configuração que um registro já nomeia, ou a limpa, não é recusado.
 - **Não os incidentes, alertas e episódios privados.** Um Administrador do projeto vê qualquer incidente, alerta e episódio privado, mas isso nunca é emprestado a um passo, seja quem for que construiu ou salvou o workflow. Um passo não encontra nenhum registro privado, não altera nenhum nem acrescenta nada a eles, e um workflow não começa por um deles nem por algo que lhe pertença, seja um evento de um registro ou **Executar fluxo de trabalho** que o inicie. Quem constrói um workflow decide para onde vai o que seus passos leem — um webhook, um e-mail, um chat, o log da execução — e pode ser um **Membro do projeto** que não pode ver um registro privado. Veja [Incidentes, alertas e episódios privados](/docs/permissions/index#incidentes-alertas-e-episódios-privados).
 - **Só o que o seu plano inclui.** No OneUptime Cloud, um passo que cria ou altera algo que o seu plano não inclui é recusado com o plano necessário, como no dashboard. Instalações self-hosted sem cobrança não têm limites de plano.
@@ -204,6 +206,26 @@ Os passos que leem e alteram registros do OneUptime — os componentes Find, Cre
 Quando uma verificação recusa um passo, o passo toma a saída **Erro** sem fazer a alteração recusada, e o log da execução nomeia o passo e o motivo em palavras simples, por exemplo *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leia-o nas [Execuções](/docs/workflows/runs-and-logs) do workflow. Um passo Create Many cria os registros um de cada vez e para no primeiro recusado: os registros criados antes dele são mantidos.
 
 Os passos que conversam com outros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — não leem nem alteram registros do OneUptime, então nada disso os afeta.
+
+### Run As
+
+Por padrão, um workflow é executado com as permissões acima, e a maioria dos workflows nunca precisa de mais. Quando um precisa — por exemplo, um workflow que dá uma função personalizada a cada nova equipe —, abra as **Configurações** dele, depois **Mais configurações**, e escolha **Change Run As**:
+
+- Padrão: as permissões acima.
+- Proprietário do projeto: o que um **Proprietário do projeto** pode fazer neste projeto, incluindo mudar quem está em uma equipe e o que uma equipe pode fazer. Só um Proprietário do projeto pode escolher essa opção.
+- Uma função personalizada: exatamente o que uma das funções personalizadas do projeto permite. Só quem poderia dar essa função a uma equipe pode escolhê-la.
+
+Seja como for executado, um passo nunca lê configurações que guardam credenciais, nunca vê incidentes, alertas ou episódios privados e nunca altera chaves de API, login único ou configurações de SCIM. Quando dá a uma equipe uma permissão ou uma função, só pode dar o que ele mesmo tem, e se faltar algo, o log da execução nomeia a permissão.
+
+Um workflow executado com mais do que as permissões padrão é executado com as permissões da pessoa que as deu a ele: quem escolheu por último o seu **Run As** ou salvou os seus passos ou as suas variáveis. Para que ninguém consiga por meio dele mais do que tem:
+
+- Só as pessoas que têm essas permissões podem alterar o workflow ou as suas variáveis, arquivá-lo ou excluí-lo, executá-lo ou um dos seus passos manualmente, ou ver a sua URL de webhook e o seu endereço de e-mail de entrada. Qualquer pessoa que possa editá-lo ainda pode desativá-lo. Quando passa a ser executado com mais do que as permissões padrão, ou muda a forma como é executado, ele recebe uma nova URL de webhook e um novo endereço de e-mail de entrada, então cópias dos antigos não o iniciam mais.
+- Só uma pessoa pode dá-las, nunca uma chave de API.
+- Cada execução verifica primeiro se a pessoa que as deu ainda as tem. Se não, a execução para antes do seu primeiro passo, e o seu log diz por quê e quem pode dá-las de novo.
+- Ele não lê as variáveis globais do projeto, que qualquer pessoa que possa editar variáveis de workflow pode alterar.
+- O passo **Executar outro fluxo de trabalho** de outro workflow só pode iniciá-lo se esse workflow for executado com as mesmas permissões ou mais.
+
+Cada execução registra como foi executada e com as permissões de quem, o que aparece na janela da execução e em um log baixado, e o [log de auditoria](/docs/configuration/audit-logs) registra quem alterou o **Run As** de um workflow.
 
 ## Limites do plano
 

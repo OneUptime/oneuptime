@@ -221,7 +221,7 @@ As configurações da Segurança de dados são um único conjunto por projeto, n
 | --- | --- | --- |
 | **Verificar configuração** | Ativado | Executa as verificações em cada repositório. Desativada, nenhum problema abre, muda ou fecha. |
 | **Varrer conteúdo** | Ativado | Amostra o conteúdo dos repositórios onde a permissão de conteúdo foi concedida. |
-| **Varrer telemetria** | Ativado | Amostra os logs, traces, exceções, replays e conversas de IA do projeto. |
+| **Varrer telemetria** | Ativado | Amostra os logs, traces, métricas, exceções, replays e conversas de IA do projeto. |
 | **Manter amostras mascaradas** | Ativado | Guarda até três amostras mascaradas com cada descoberta. Desativada, guarda só contagens. |
 | **Abrir casos de segurança** | Ativado | Abre um caso de segurança, agrupado por repositório, quando um problema Crítico abre. |
 | **Gerar alertas** | Desativado | Gera um alerta, que aciona quem estiver de plantão, quando um problema Crítico abre. |
