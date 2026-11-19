@@ -6,6 +6,7 @@ import {
   CostEngineMode,
   CostEngineResolver,
   clusterOfAllocations,
+  latestAllocationEnd,
 } from "../CostEngineResolver";
 import { KubernetesService, ServiceQuery } from "../KubernetesApi";
 import { EngineAllocation, KubernetesCostEngineInfo } from "../Types";
@@ -746,12 +747,15 @@ test("auto has no price metrics to scrape until it has an engine, nor after losi
   assert.strictEqual(resolver.metricsEngine(), null);
 });
 
-// --- whether a Kubecost has collected the window yet --------------------------
+// --- whether a window's rows hold all of it yet --------------------------------
 
 /*
- * A Kubecost answers from what its aggregator has collected, ten minutes or
- * more behind the clock (on kind, Kubecost 3.3.2 had collected up to 16:05 at
- * 16:20): an hour is read once the aggregator has reached its end.
+ * A Kubecost answers from what its aggregator has collected, in batches
+ * behind the clock: on kind, at 17:02, Kubecost 2.8.7 had 16:00-16:20 of the
+ * hour that had just closed, and Kubecost 3.3.2 16:00-16:15. Each row's own
+ * end says how far the data reached, so an hour is shipped once its rows
+ * reach its end. OpenCost, which works an hour out when asked, ends its rows
+ * at the hour's end at once.
  */
 const COLLECTED: {
   windowStart: Date;
@@ -761,34 +765,125 @@ const COLLECTED: {
   windowEnd: new Date("2026-11-18T12:00:00Z"),
 };
 
-test("a Kubecost's hour is read once its aggregator has collected it", async (): Promise<void> => {
+// A window's rows, the latest ending at `end`.
+const rowsEndingAt: (end: string) => Array<EngineAllocation> = (
+  end: string,
+): Array<EngineAllocation> => {
+  return [
+    {
+      name: "prod-eu/kind/kube-system/deployment/coredns/coredns-1/coredns",
+      properties: { cluster: "prod-eu", namespace: "kube-system" },
+      start: "2026-11-18T11:00:00Z",
+      end: end,
+      window: { start: "2026-11-18T11:00:00Z", end: "2026-11-18T12:00:00Z" },
+      totalCost: 0.1,
+    },
+    {
+      // A pod that ended mid-window: its own end is earlier, and does not count.
+      name: "prod-eu/kind/batch/job/report/report-1/report",
+      properties: { cluster: "prod-eu", namespace: "batch" },
+      start: "2026-11-18T11:00:00Z",
+      end: "2026-11-18T11:05:00Z",
+      window: { start: "2026-11-18T11:00:00Z", end: "2026-11-18T12:00:00Z" },
+      totalCost: 0.01,
+    },
+  ];
+};
+
+test("a Kubecost's hour waits until its rows reach the hour's end", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, { kind: "Kubecost" });
+  const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
+
+  // 12:30: the rows reach 11:20, as Kubecost 2.8.7's did two minutes in.
+  assert.strictEqual(
+    await resolver.isWindowComplete({
+      ...COLLECTED,
+      allocations: rowsEndingAt("2026-11-18T11:20:00Z"),
+    }),
+    false,
+  );
+  // The asked-for window is no measure: only each row's own end.
+  assert.strictEqual(
+    latestAllocationEnd(rowsEndingAt("2026-11-18T11:20:00Z")),
+    Date.parse("2026-11-18T11:20:00Z"),
+  );
+
+  assert.strictEqual(
+    await resolver.isWindowComplete({
+      ...COLLECTED,
+      allocations: rowsEndingAt("2026-11-18T12:00:00Z"),
+    }),
+    true,
+  );
+  // A minute short is the engine's rounding, not a missing quarter hour.
+  assert.strictEqual(
+    await resolver.isWindowComplete({
+      ...COLLECTED,
+      allocations: rowsEndingAt("2026-11-18T11:59:30Z"),
+    }),
+    true,
+  );
+});
+
+test("OpenCost's rows reach the hour's end when it closes: shipped at once, nothing asked", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [OPENCOST];
+  const opencost: FakeEngine = world.engine(OPENCOST_URL, { kind: "OpenCost" });
+  const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
+  const asked: number = (opencost.asked || []).length;
+
+  assert.strictEqual(
+    await resolver.isWindowComplete({
+      ...COLLECTED,
+      allocations: rowsEndingAt("2026-11-18T12:00:00Z"),
+    }),
+    true,
+  );
+  // An empty window of an engine that works it out when asked is empty.
+  assert.strictEqual(
+    await resolver.isWindowComplete({ ...COLLECTED, allocations: [] }),
+    true,
+  );
+  assert.strictEqual((opencost.asked || []).length, asked);
+});
+
+test("a Kubecost's empty hour waits while it says it has not collected it", async (): Promise<void> => {
   const world: World = new World();
   world.services = [KUBECOST];
   const kubecost: FakeEngine = world.engine(KUBECOST_URL, {
     kind: "Kubecost",
     api: {
       "clusters/status": [
-        { id: "prod-eu", lastCollectedTime: "2026-11-18T11:50:00Z" },
+        { id: "prod-eu", lastCollectedTime: "2026-11-18T10:50:00Z" },
       ],
     },
   });
-  world.engine(BUNDLED_URL, {});
+  const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
 
-  const resolver: CostEngineResolver = world.resolver("bundled");
-
-  // 12:30: collected to 11:50, so 11:00-12:00 waits.
-  assert.strictEqual(await resolver.isWindowReady(COLLECTED), false);
+  assert.strictEqual(
+    await resolver.isWindowComplete({ ...COLLECTED, allocations: [] }),
+    false,
+  );
   assert.deepStrictEqual(kubecost.asked?.pop(), {
     name: "clusters/status",
     params: { window: "2d" },
   });
 
+  // Collected past it, and still empty: the hour had nothing.
   kubecost.api = {
     "clusters/status": [
-      { id: "prod-eu", lastCollectedTime: "2026-11-18T12:00:00Z" },
+      { id: "prod-eu", lastCollectedTime: "2026-11-18T12:05:00Z" },
     ],
   };
-  assert.strictEqual(await resolver.isWindowReady(COLLECTED), true);
+  assert.strictEqual(
+    await resolver.isWindowComplete({ ...COLLECTED, allocations: [] }),
+    true,
+  );
 });
 
 test("a Kubecost that answers for several clusters is asked about the one its rows name", async (): Promise<void> => {
@@ -808,35 +903,37 @@ test("a Kubecost that answers for several clusters is asked about the one its ro
   const resolver: CostEngineResolver = world.resolver("auto");
   await resolver.fetchAllocations(WINDOW);
 
-  assert.strictEqual(await resolver.isWindowReady(COLLECTED), false);
+  assert.strictEqual(
+    await resolver.isWindowComplete({ ...COLLECTED, allocations: [] }),
+    false,
+  );
 });
 
-test("OpenCost works an hour out when asked: it is read at once, with nothing asked", async (): Promise<void> => {
-  const world: World = new World();
-  world.services = [OPENCOST];
-  const opencost: FakeEngine = world.engine(OPENCOST_URL, { kind: "OpenCost" });
-
-  const resolver: CostEngineResolver = world.resolver("auto");
-
-  assert.strictEqual(await resolver.isWindowReady(COLLECTED), true);
-  assert.deepStrictEqual(opencost.asked || [], []);
-});
-
-test("a Kubecost that does not say how far it has collected is read at once", async (): Promise<void> => {
+test("a Kubecost that cannot say how far it has collected an empty hour leaves it empty", async (): Promise<void> => {
   const world: World = new World();
   world.services = [KUBECOST];
   world.engine(KUBECOST_URL, {
     kind: "Kubecost",
     api: { "clusters/status": null },
   });
+  const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
 
   assert.strictEqual(
-    await world.resolver("auto").isWindowReady(COLLECTED),
+    await resolver.isWindowComplete({ ...COLLECTED, allocations: [] }),
+    true,
+  );
+  // Rows that say no end are taken as they are too.
+  assert.strictEqual(
+    await resolver.isWindowComplete({
+      ...COLLECTED,
+      allocations: [{ name: "a", properties: { namespace: "prod" } }],
+    }),
     true,
   );
 });
 
-test("an hour three hours closed is read whatever the Kubecost says", async (): Promise<void> => {
+test("three hours after it closed, an hour is shipped however much of it there is", async (): Promise<void> => {
   const world: World = new World();
   world.services = [KUBECOST];
   const kubecost: FakeEngine = world.engine(KUBECOST_URL, {
@@ -847,19 +944,33 @@ test("an hour three hours closed is read whatever the Kubecost says", async (): 
       ],
     },
   });
-
   const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
+  const asked: number = (kubecost.asked || []).length;
+
   world.nowMs = Date.parse("2026-11-18T15:00:00Z");
 
-  assert.strictEqual(await resolver.isWindowReady(COLLECTED), true);
-  assert.deepStrictEqual(kubecost.asked || [], []);
+  assert.strictEqual(
+    await resolver.isWindowComplete({
+      ...COLLECTED,
+      allocations: rowsEndingAt("2026-11-18T11:20:00Z"),
+    }),
+    true,
+  );
+  assert.strictEqual(
+    await resolver.isWindowComplete({ ...COLLECTED, allocations: [] }),
+    true,
+  );
+  assert.strictEqual((kubecost.asked || []).length, asked);
 });
 
-test("with no engine to read, the window is the read's to fail, not this check's", async (): Promise<void> => {
+test("with no engine read yet, an empty window is the read's to judge, not this check's", async (): Promise<void> => {
   const world: World = new World();
 
   assert.strictEqual(
-    await world.resolver("auto").isWindowReady(COLLECTED),
+    await world
+      .resolver("auto")
+      .isWindowComplete({ ...COLLECTED, allocations: [] }),
     true,
   );
 });

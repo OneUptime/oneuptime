@@ -102,12 +102,36 @@ export const clusterOfAllocations: (
 };
 
 /*
- * How long after a window closes it is read whatever a Kubecost says of it
- * (EngineCollection): an aggregator that has stopped collecting must not
- * hold every later hour back for good. Its /healthz already reads degraded
- * by then (no window completed in three).
+ * How long after a window closes it is shipped however much of it the
+ * engine has (EngineCollection): an aggregator that has stopped collecting
+ * must not hold every later hour back for good. The agent's /healthz already
+ * reads degraded by then (no window completed in three).
  */
 const MAX_COLLECTION_WAIT_MS: number = 3 * 60 * 60 * 1000;
+
+// How far short of a window's end its data may stop and still count whole.
+const COLLECTION_TOLERANCE_MS: number = 60 * 1000;
+
+/*
+ * How far a window's allocations reach: the latest end any row has (each
+ * row's own `end`, not the `window` it was asked for), or null when no row
+ * says.
+ */
+export const latestAllocationEnd: (
+  allocations: Array<EngineAllocation>,
+) => number | null = (allocations: Array<EngineAllocation>): number | null => {
+  let latest: number | null = null;
+
+  for (const allocation of allocations) {
+    const end: number = Date.parse(allocation.end || "");
+
+    if (Number.isFinite(end) && (latest === null || end > latest)) {
+      latest = end;
+    }
+  }
+
+  return latest;
+};
 
 type Discovery =
   | { status: "found"; engine: SelectedEngine }
@@ -578,48 +602,56 @@ export class CostEngineResolver implements CostEngineSource {
   }
 
   /*
-   * Whether the engine has collected all of a closed window yet
-   * (EngineCollection): a Kubecost once its aggregator has collected this
-   * cluster up to the window's end, or three hours after it, whichever comes
-   * first; any other engine, and a Kubecost that does not say, at once.
-   * Never throws: an engine that cannot be reached is the next read's to
-   * report.
+   * Whether the allocations just read hold the whole of a closed window
+   * (EngineCollection), or the window waits for a later tick. The rows say
+   * how far the engine had data: their latest end, which an engine that
+   * works the window out when asked (OpenCost, Kubecost's cost model) puts
+   * at the window's end, and a Kubecost aggregator that has not collected
+   * all of it yet puts before. With no rows to tell by, a Kubecost is asked
+   * how far it has collected the cluster; any other engine's empty window
+   * is empty. Three hours after a window closed it is taken as it is, so an
+   * engine that stopped collecting cannot hold every later hour back.
+   * Never throws.
    */
-  public async isWindowReady(data: {
+  public async isWindowComplete(data: {
     windowStart: Date;
     windowEnd: Date;
+    allocations: Array<EngineAllocation>;
   }): Promise<boolean> {
     if (this.now() - data.windowEnd.getTime() >= MAX_COLLECTION_WAIT_MS) {
       return true;
     }
 
-    let engine: SelectedEngine;
+    let collected: number | null = latestAllocationEnd(data.allocations);
 
-    try {
-      engine = await this.resolve();
-    } catch {
-      return true;
+    if (collected === null) {
+      const engine: SelectedEngine | null = this.selected;
+
+      if (!engine || this.kindOf(engine) !== "Kubecost") {
+        return true;
+      }
+
+      const through: Date | null = await readKubecostCollectedThrough({
+        client: engine.client,
+        clusterId: engine.clusterId,
+      });
+
+      collected = through ? through.getTime() : null;
     }
 
-    if (this.kindOf(engine) !== "Kubecost") {
-      return true;
-    }
-
-    const collected: Date | null = await readKubecostCollectedThrough({
-      client: engine.client,
-      clusterId: engine.clusterId,
-    });
-
-    if (!collected || collected.getTime() >= data.windowEnd.getTime()) {
+    if (
+      collected === null ||
+      collected >= data.windowEnd.getTime() - COLLECTION_TOLERANCE_MS
+    ) {
       return true;
     }
 
     Logger.info(
-      "the cost engine has not collected this window yet; it is read once it has",
+      "the cost engine has not collected all of this window yet; it is read again at the next tick",
       {
         windowStart: data.windowStart.toISOString(),
         windowEnd: data.windowEnd.toISOString(),
-        collectedThrough: collected.toISOString(),
+        collectedThrough: new Date(collected).toISOString(),
       },
     );
 

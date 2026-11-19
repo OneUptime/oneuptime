@@ -225,13 +225,14 @@ export interface CostEngineSource {
   // Where the engine in use answers, for /healthz and troubleshoot.sh.
   engineUrl?(): string | undefined;
   /*
-   * Whether the engine has collected all of a closed window yet
-   * (EngineCollection): false holds the window for a later tick, without
-   * counting as a failure. Absent: always.
+   * Whether the allocations just read hold the whole of a closed window
+   * (EngineCollection): false holds the window for a later tick, unshipped,
+   * without counting as a failure. Absent: always.
    */
-  isWindowReady?(data: {
+  isWindowComplete?(data: {
     windowStart: Date;
     windowEnd: Date;
+    allocations: Array<EngineAllocation>;
   }): Promise<boolean>;
 }
 
