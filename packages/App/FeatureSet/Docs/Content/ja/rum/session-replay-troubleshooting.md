@@ -254,6 +254,7 @@ Network タブにすぐ `POST /telemetry/session-replay/v1/chunk` が、コン�
 | `recording-resumed` | 録画が一時停止している間にユーザーが戻ってきたため、新しいスナップショットから同じセッションで再開しました ( `pausedForMs` が一時停止していた時間を示します)。プレーヤーはその間の区間を飛ばします。 |
 | `recording-paused-page` | ページが `OneUptimeReplay.pause()` で録画を一時停止しました。ページが `OneUptimeReplay.resume()` を呼び出すまで、何もキャプチャされません。訪問者の操作でセッションは開いたままになりますが、録画は再開されません。このページを録画する必要がある場合は、`OneUptimeReplay.pause()` を呼び出している箇所を探してください。 |
 | `recording-resumed-page` | ページが `OneUptimeReplay.resume()` で録画を再開しました。録画は同じセッションで新しいスナップショットから続くか、一時停止中にそのセッションが終了していた場合は新しいセッションで続きます。 |
+| `recording-paused-page-rule` | このアプリケーションのリプレイポリシーはこのページを録画しない ( **リプレイポリシー** ページの **これらのページだけを録画** または **これらのページは録画しない** ) ため、録画を一時停止し、ページの内容もアドレスも録画しません。ポリシーが録画する次のページで、同じセッションのまま録画を続けます。このページを録画する必要がある場合は、これら両方のリストを確認してください。 |
 | `session-rotated` | 新しいセッションが始まりました (ユーザーが 30 分のアイドルの後に戻った、セッションが 4 時間に達した、 `identify()` がセッションのユーザーとは別のユーザーを指定した ( `rotationReason: "identity-change"`)、または同じ訪問者の別のタブが先に新しいセッションを始めた ( `rotationReason: "adopted"`))。録画は新しい ID で続き、 `onSessionChange` のリスナーに通知され、それ以降、自分のオリジンへのリクエストには新しい ID が付きます。 |
 | `command-queue-not-an-array` | `window.OneUptimeReplayQueue` が配列ではないため、キューのすべてのコマンドが無視されました。 `[command, ...arguments]` エントリの配列である必要があります。 |
 | `command-queue-unknown-command` | キューのコマンド名が認識されませんでした。 [JavaScript API](/docs/telemetry/session-replay#javascript-api) と照らしてつづりを確認してください。 |
