@@ -1,11 +1,31 @@
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  FIND_DASHBOARD_PAGE_TOOL_NAME,
+  READ_DOCS_TOOL_NAME,
+  SEARCH_DOCS_TOOL_NAME,
+} from "../../../../Types/AI/AskAiDocsTools";
+import {
+  ASK_AI_RECORD_KINDS,
+  AskAiRecordKind,
+  AskAiRecordKindPages,
+  AskAiRecordPage,
+  isAskAiRecordKind,
+} from "../../../../Types/AI/AskAiRecordPages";
 import {
   DEFAULT_DOCS_LANGUAGE,
   isSupportedDocsLanguage,
 } from "../../../../Types/Docs/DocsLanguage";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import {
+  getProductOffMessage,
+  ServerProductOffReason,
+  ServerProductsOff,
+} from "../../../../Types/Product/ServerProducts";
 import { IsBillingEnabled } from "../../../EnvironmentConfig";
+import ServerProducts from "../../ServerProducts/ServerProducts";
 import AIDocsLibrary, {
   AIDocsPage,
   AIDocsReader,
@@ -15,6 +35,17 @@ import AIDocsLibrary, {
 import DashboardPageFinder, {
   AIDashboardPage,
 } from "../Docs/DashboardPageFinder";
+import {
+  getDashboardPageCitationTarget,
+  getRecordPageCitationTarget,
+} from "../Docs/DashboardPageCitations";
+import {
+  getFirstOffProduct,
+  getProductsOfDashboardPage,
+  getProductsOfRecordPage,
+} from "../Docs/DashboardPageProducts";
+import DashboardRecordPageFinder from "../Docs/DashboardRecordPageFinder";
+import { readDashboardRecordName } from "../Docs/DashboardRecordReaders";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -45,9 +76,16 @@ import { citationSentence, ToolCitation } from "./ReadTableWords";
  * (#6829) reads the docs and names the page the same way.
  */
 
-export const SEARCH_DOCS_TOOL_NAME: string = "search_docs";
-export const READ_DOCS_TOOL_NAME: string = "read_docs";
-export const FIND_DASHBOARD_PAGE_TOOL_NAME: string = "find_dashboard_page";
+/*
+ * The tools' names live in Types/AI/AskAiDocsTools, so the prompt and the
+ * ratings name them without loading these tools, which read records
+ * through the project's services (#7065).
+ */
+export {
+  FIND_DASHBOARD_PAGE_TOOL_NAME,
+  READ_DOCS_TOOL_NAME,
+  SEARCH_DOCS_TOOL_NAME,
+};
 
 // Everyone in the project: the docs and the Dashboard's page names are no one's data.
 const DOCS_TOOL_PERMISSIONS: Array<Permission> = [
@@ -406,22 +444,246 @@ export const ReadDocsTool: ObservabilityTool = {
   },
 };
 
+/*
+ * What is switched off on this server, to leave its pages out (#6815).
+ * Read for every person alike, and kept for a few seconds
+ * (ServerProducts): "everything on" when it cannot be read, as every
+ * other place that hides a switched-off product reads it.
+ */
+const readOffProducts: () => Promise<ServerProductsOff> =
+  async (): Promise<ServerProductsOff> => {
+    try {
+      return await ServerProducts.getOff();
+    } catch {
+      return {};
+    }
+  };
+
+const noPage: (
+  dataForLlm: string,
+  citation: ToolCitation,
+) => ToolExecutionResult = (
+  dataForLlm: string,
+  citation: ToolCitation,
+): ToolExecutionResult => {
+  return {
+    dataForLlm,
+    rowCount: 0,
+    ...citation,
+    redactionCount: 0,
+    isTruncated: false,
+  };
+};
+
+// What the model is told of a page it may not offer, its product being off.
+const productOffText: (data: {
+  page: string;
+  off: { product: ProductKey; reason: ServerProductOffReason };
+}) => string = (data: {
+  page: string;
+  off: { product: ProductKey; reason: ServerProductOffReason };
+}): string => {
+  return `"${data.page}" is a page of a product this server has switched off: ${getProductOffMessage(data.off)} Say so plainly, and end the answer without a page: do not send the person to it another way.`;
+};
+
+/*
+ * Where a page of one record is, as the menus say it: the record's kind,
+ * its section and its title - "Status Page > Branding > Custom Domains" -
+ * leaving out a section that only repeats the title ("Overview").
+ */
+export const getRecordPageMenuPath: (data: {
+  kind: AskAiRecordKindPages;
+  page: AskAiRecordPage;
+}) => Array<string> = (data: {
+  kind: AskAiRecordKindPages;
+  page: AskAiRecordPage;
+}): Array<string> => {
+  return data.page.section === data.page.title
+    ? [data.kind.recordName, data.page.title]
+    : [data.kind.recordName, data.page.section, data.page.title];
+};
+
+/*
+ * ONE RECORD'S OWN PAGE (#7065): "how do I put this status page on my own
+ * domain?" ends with that status page's Custom Domains. Only for a record
+ * the person may open: it is read with their own props first
+ * (DashboardRecordReaders), and a record they may not read - or of a
+ * product switched off on the server - gets no page, without a word on
+ * whether it exists. The citation carries the page's route and the
+ * record's id, never an address: the Dashboard fills the id in only when
+ * the route is one of its own and the id is one (AskAiPageLinks).
+ */
+const findRecordPage: (data: {
+  query: string;
+  place: string | undefined;
+  recordType: string | undefined;
+  recordId: string | undefined;
+  ctx: ToolContext;
+}) => Promise<ToolExecutionResult> = async (data: {
+  query: string;
+  place: string | undefined;
+  recordType: string | undefined;
+  recordId: string | undefined;
+  ctx: ToolContext;
+}): Promise<ToolExecutionResult> => {
+  const citation: ToolCitation = citationSentence(
+    AI_TOOL_CITATIONS.dashboardPageSearch,
+    { query: data.query },
+  );
+
+  if (!isAskAiRecordKind(data.recordType)) {
+    return noPage(
+      `Error: recordType must be one of ${ASK_AI_RECORD_KINDS.join(", ")}, with recordId. Adjust the arguments and try again, or call without them for the project's pages.`,
+      citation,
+    );
+  }
+
+  if (!data.recordId || !ObjectID.isValidUUID(data.recordId)) {
+    return noPage(
+      "Error: recordId must be the record's ID, as the page context or a tool that read the record gave it. Never guess one: call without recordType and recordId for the project's pages.",
+      citation,
+    );
+  }
+
+  const recordType: AskAiRecordKind = data.recordType;
+  const kind: AskAiRecordKindPages | undefined =
+    DashboardRecordPageFinder.getKind(recordType);
+
+  if (!kind) {
+    return noPage(
+      "No page of such a record can be opened. End the answer without a page.",
+      citation,
+    );
+  }
+
+  const recordName: string | null = await readDashboardRecordName({
+    kind: recordType,
+    id: new ObjectID(data.recordId),
+    props: data.ctx.props,
+  });
+
+  if (recordName === null) {
+    return noPage(
+      `The person cannot open a ${kind.recordName.toLowerCase()} with that ID. End the answer without a page of it, and say nothing of whether it exists. To send them to a page of the project instead, call again without recordType and recordId.`,
+      citation,
+    );
+  }
+
+  const found: Array<AskAiRecordPage> = DashboardRecordPageFinder.find({
+    kind: recordType,
+    query: data.query,
+    limit: DASHBOARD_PAGE_LIMIT,
+    place: data.place,
+  });
+  const best: AskAiRecordPage | undefined = found[0];
+  const recordLabel: string = recordName
+    ? `${kind.recordName} "${recordName}"`
+    : kind.recordName;
+
+  if (!best) {
+    return noPage(
+      data.place
+        ? `No page of a ${kind.recordName.toLowerCase()} named like "${data.query}" is in "${data.place}". Call again without place to see where the pages of that name are.`
+        : `No page of a ${kind.recordName.toLowerCase()} is named like "${data.query}". Try the name its menu gives the page, once; otherwise end the answer without a page.`,
+      citation,
+    );
+  }
+
+  const off: ServerProductsOff = await readOffProducts();
+  const bestOff: {
+    product: ProductKey;
+    reason: ServerProductOffReason;
+  } | null = getFirstOffProduct({
+    products: getProductsOfRecordPage(best),
+    off,
+  });
+
+  if (bestOff) {
+    return noPage(
+      productOffText({
+        page: `${recordLabel} > ${best.title}`,
+        off: bestOff,
+      }),
+      citation,
+    );
+  }
+
+  const pages: Array<AskAiRecordPage> = found.filter(
+    (page: AskAiRecordPage): boolean => {
+      return !getFirstOffProduct({
+        products: getProductsOfRecordPage(page),
+        off,
+      });
+    },
+  );
+
+  return {
+    dataForLlm: JSON.stringify(
+      {
+        record: {
+          kind: recordType,
+          ...(recordName ? { name: recordName } : {}),
+        },
+        pages: pages.map((page: AskAiRecordPage): JSONObject => {
+          return { title: page.title, section: page.section };
+        }),
+        citationOpens: [
+          recordLabel,
+          ...getRecordPageMenuPath({ kind, page: best }).slice(1),
+        ].join(" > "),
+        ...(pages.length > 1
+          ? {
+              toCiteAnother:
+                "Call again with its title as query and its section as place, with the same recordType and recordId.",
+            }
+          : {}),
+      },
+      null,
+      1,
+    ),
+    rowCount: pages.length,
+    // The chip names the page where the record's menu puts it, each name in the reader's language.
+    ...citationSentence(AI_TOOL_CITATIONS.dashboardPage, {
+      path: aiActionMenuPath(getRecordPageMenuPath({ kind, page: best })),
+    }),
+    // The record's name as the person reads it, beside its button.
+    citationTarget: getRecordPageCitationTarget({
+      page: best,
+      recordId: data.recordId,
+      recordTitle: recordName,
+    }),
+    redactionCount: 0,
+    isTruncated: false,
+  };
+};
+
 export const FindDashboardPageTool: ObservabilityTool = {
   name: FIND_DASHBOARD_PAGE_TOOL_NAME,
   description:
-    'Find the page of this project in the OneUptime Dashboard where something is done or set - by the page\'s or the setting\'s English name as the docs and the menus give it ("Create Monitor", "Notification Methods", "API Keys", "Incidents Custom Fields"). Returns the best pages with where each is. The citation of this result opens its first page for the person: cite it at the end of a how-do-I answer. Two pages can share a name ("Insights" is the Traces explorer\'s tab, where "Traces", and OneUptime AI\'s findings, where "Traces > AI"): to send them to another of the pages returned, call again with that page\'s title as query and its where as place, and cite that result.',
+    'Find the page of this project in the OneUptime Dashboard where something is done or set - by the page\'s or the setting\'s English name as the docs and the menus give it ("Create Monitor", "Notification Methods", "API Keys", "Incidents Custom Fields"). Returns the best pages with where each is. The citation of this result opens its first page for the person: cite it at the end of a how-do-I answer. Two pages can share a name ("Insights" is the Traces explorer\'s tab, where "Traces", and OneUptime AI\'s findings, where "Traces > AI"): to send them to another of the pages returned, call again with that page\'s title as query and its where as place, and cite that result. For one record\'s own page - this status page\'s Custom Domains, a monitor\'s Criteria, a policy\'s Escalation Rules - pass recordType and recordId too: its pages are searched instead, and the citation opens that record\'s page.',
   inputSchema: {
     type: "object",
     properties: {
       query: {
         type: "string",
         description:
-          'The page\'s or setting\'s name in English, with where it is when the name is common: "Phone Numbers for SMS Notifications", "Status Pages Custom Fields".',
+          'The page\'s or setting\'s name in English, with where it is when the name is common: "Phone Numbers for SMS Notifications", "Status Pages Custom Fields". For a record\'s page, its name in the record\'s menu: "Custom Domains", "Criteria".',
       },
       place: {
         type: "string",
         description:
-          'Optional: where the page is, exactly as a result of this tool gave it ("Traces", "Traces > AI", "Project Settings > Advanced"). Only the pages there are found, so the citation opens the one you mean.',
+          'Optional: where the page is, exactly as a result of this tool gave it ("Traces", "Traces > AI", "Project Settings > Advanced"; for a record\'s page, its section: "Branding"). Only the pages there are found, so the citation opens the one you mean.',
+      },
+      recordType: {
+        type: "string",
+        enum: [...ASK_AI_RECORD_KINDS],
+        description:
+          'Optional, with recordId: the kind of the one record whose own page to find - "status-pages", "monitors", "on-call-policies" and so on.',
+      },
+      recordId: {
+        type: "string",
+        description:
+          "With recordType: the record's ID, as the page context or a tool that read the record gave it. Never guess one. The person gets a page only of a record they may open.",
       },
     },
     required: ["query"],
@@ -429,7 +691,7 @@ export const FindDashboardPageTool: ObservabilityTool = {
   requiredPermissions: DOCS_TOOL_PERMISSIONS,
   execute: async (
     args: JSONObject,
-    _ctx: ToolContext,
+    ctx: ToolContext,
   ): Promise<ToolExecutionResult> => {
     const query: string = (ToolArgs.getString(args, "query") || "").slice(
       0,
@@ -439,39 +701,78 @@ export const FindDashboardPageTool: ObservabilityTool = {
     const place: string | undefined =
       (ToolArgs.getString(args, "place") || "").slice(0, 200).trim() ||
       undefined;
+    const recordType: string | undefined =
+      (ToolArgs.getString(args, "recordType") || "").trim() || undefined;
+    const recordId: string | undefined =
+      (ToolArgs.getString(args, "recordId") || "").trim() || undefined;
+
+    // One record's own page (#7065).
+    if (recordType || recordId) {
+      return findRecordPage({ query, place, recordType, recordId, ctx });
+    }
+
     const citation: ToolCitation = citationSentence(
       AI_TOOL_CITATIONS.dashboardPageSearch,
       { query },
     );
-    const pages: Array<AIDashboardPage> = query
+    // More than are returned, so the pages of a product switched off can be left out.
+    const found: Array<AIDashboardPage> = query
       ? DashboardPageFinder.find({
           query,
-          limit: DASHBOARD_PAGE_LIMIT,
+          limit: DASHBOARD_PAGE_LIMIT * 2,
           isBillingEnabled: IsBillingEnabled,
           place,
         })
       : [];
-    const first: AIDashboardPage | undefined = pages[0];
+    const first: AIDashboardPage | undefined = found[0];
 
     if (!first && place) {
-      return {
-        dataForLlm: `No page of the Dashboard named like "${query}" is in "${place}". Call again without place to see where the pages of that name are.`,
-        rowCount: 0,
-        ...citation,
-        redactionCount: 0,
-        isTruncated: false,
-      };
+      return noPage(
+        `No page of the Dashboard named like "${query}" is in "${place}". Call again without place to see where the pages of that name are.`,
+        citation,
+      );
     }
 
     if (!first) {
-      return {
-        dataForLlm: `No page of the Dashboard is named like "${query}". Try the name the docs give the page, once; otherwise end the answer without a page.`,
-        rowCount: 0,
-        ...citation,
-        redactionCount: 0,
-        isTruncated: false,
-      };
+      return noPage(
+        `No page of the Dashboard is named like "${query}". Try the name the docs give the page, once; otherwise end the answer without a page.`,
+        citation,
+      );
     }
+
+    /*
+     * Never a page of a product switched off on the server (#6815): the
+     * menus and Search leave it out, and its page says it is off. When the
+     * page asked for is one, the answer says so instead of offering
+     * another page in its place.
+     */
+    const off: ServerProductsOff = await readOffProducts();
+    const firstOff: {
+      product: ProductKey;
+      reason: ServerProductOffReason;
+    } | null = getFirstOffProduct({
+      products: getProductsOfDashboardPage(first.path),
+      off,
+    });
+
+    if (firstOff) {
+      return noPage(
+        productOffText({
+          page: `${first.where.join(" > ")} > ${first.title}`,
+          off: firstOff,
+        }),
+        citation,
+      );
+    }
+
+    const pages: Array<AIDashboardPage> = found
+      .filter((page: AIDashboardPage): boolean => {
+        return !getFirstOffProduct({
+          products: getProductsOfDashboardPage(page.path),
+          off,
+        });
+      })
+      .slice(0, DASHBOARD_PAGE_LIMIT);
 
     return {
       dataForLlm: JSON.stringify(
@@ -506,19 +807,7 @@ export const FindDashboardPageTool: ObservabilityTool = {
           first.titleKey ? first.titleValues : undefined,
         ),
       }),
-      citationTarget: {
-        type: AIChatCitationTargetType.DashboardPage,
-        params: {
-          path: first.path,
-          title: first.title,
-          // The key its button draws, where it is not the title (#8817).
-          ...(first.titleKey ? { titleKey: first.titleKey } : {}),
-          // What fills that key, where it is a template (#8834).
-          ...(first.titleKey && first.titleValues
-            ? { titleValues: JSON.stringify(first.titleValues) }
-            : {}),
-        },
-      },
+      citationTarget: getDashboardPageCitationTarget(first),
       redactionCount: 0,
       isTruncated: false,
     };

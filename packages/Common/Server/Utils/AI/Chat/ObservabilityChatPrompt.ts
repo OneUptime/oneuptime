@@ -13,7 +13,7 @@ import {
   FIND_DASHBOARD_PAGE_TOOL_NAME,
   READ_DOCS_TOOL_NAME,
   SEARCH_DOCS_TOOL_NAME,
-} from "../Toolbox/DocsTools";
+} from "../../../../Types/AI/AskAiDocsTools";
 import {
   AI_RESOURCE_TYPES_NOT_LINKABLE,
   getPageAffectedResource,
@@ -155,6 +155,7 @@ export const ONEUPTIME_QUESTIONS_SECTION: string = `## Questions about OneUptime
 - If the pages you read do not say, answer "${DOCS_ANSWER_NOT_COVERED}" and name the pages you read. Never fill the gap from memory of OneUptime or of other products: a menu, a setting or a feature you have not read in the docs may not exist.
 - Answer a "how do I…?" in short numbered steps, naming each menu, page, button and field as the docs name them.
 - End a "how do I…?" with the page of this project where it is done: call ${FIND_DASHBOARD_PAGE_TOOL_NAME} with the page's or setting's English name as the docs or the menus give it ("Create Monitor", "Notification Methods"), and end with a line naming the page with its citation, e.g. "Open Notification Methods [C4]". The citation is what takes the person there: never write an address of the Dashboard or of the docs yourself. When no page it finds fits, leave the line out.
+- When the "how do I…?" is about one record - this status page, the monitor named Checkout, the policy on screen - also pass ${FIND_DASHBOARD_PAGE_TOOL_NAME} its kind as recordType and its ID as recordId, with the page's name in the record's own menu ("Custom Domains", "Criteria", "Escalation Rules"): its citation opens that record's own page. Take the ID from the page context or from a tool that read the record; never guess one, and when you have none, end at the project's page instead.
 - A question that needs both - "why did nobody get paged for INC-12?" - reads the project's data with the data tools and the rules with the docs tools, and cites both.`;
 
 export interface ObservabilityChatApp {

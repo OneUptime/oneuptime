@@ -11,7 +11,7 @@ import {
   FIND_DASHBOARD_PAGE_TOOL_NAME,
   READ_DOCS_TOOL_NAME,
   SEARCH_DOCS_TOOL_NAME,
-} from "../../../../Server/Utils/AI/Toolbox/DocsTools";
+} from "../../../../Types/AI/AskAiDocsTools";
 import AIToolbox from "../../../../Server/Utils/AI/Toolbox/Index";
 
 /*
