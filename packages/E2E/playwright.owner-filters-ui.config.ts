@@ -17,8 +17,15 @@ const port: string = process.env["OWNER_FILTERS_FIXTURE_PORT"] || "4481";
 
 export default defineConfig({
   testDir: "./OwnerFilters",
-  // ScheduleUsedBy: a schedule's own Overview and its Used by card (#7438).
-  testMatch: ["OwnerFilters.spec.ts", "ScheduleUsedBy.spec.ts"],
+  /*
+   * ScheduleUsedBy: a schedule's own Overview and its Used by card (#7438).
+   * OwnerTooltip: the first row's owner tooltip, whole (#9769).
+   */
+  testMatch: [
+    "OwnerFilters.spec.ts",
+    "ScheduleUsedBy.spec.ts",
+    "OwnerTooltip.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

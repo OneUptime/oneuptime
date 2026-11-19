@@ -93,6 +93,7 @@ import {
   formatReaderFigure,
   getDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
+import VMwareStorageCapacityCard from "../../../Components/VMware/VMwareStorageCapacityCard";
 import GoldenMetricTile, {
   GoldenMetricTileTone,
   tileColorClasses,
@@ -2441,6 +2442,12 @@ const VMwareVCenterOverview: FunctionComponent<
 
       {/* Golden charts — vCenter resource usage (synced) */}
       {renderGoldenCharts()}
+
+      {/*
+       * All its storage together: used, free and capacity across every
+       * datastore, at the datastores' levels (#9646).
+       */}
+      {vcenter && <VMwareStorageCapacityCard vcenter={vcenter} />}
 
       {/* Each ESXi host at a glance, one step from its page */}
       {inventory && (

@@ -10,6 +10,7 @@ import {
   routeParamFromExternalId,
 } from "../Utils/ProxmoxResourceUtils";
 import {
+  PROXMOX_NODE_DISK_COLUMNS,
   getProxmoxNodeColumns,
   toProxmoxListResource,
 } from "../../../Components/Proxmox/ProxmoxResourceColumns";
@@ -98,6 +99,7 @@ const ProxmoxClusterNodes: FunctionComponent<
         age: PROXMOX_METRIC_DESCRIPTIONS.nodesTableUptime,
       }}
       tableIdPrefix="proxmox"
+      storageUsageColumns={PROXMOX_NODE_DISK_COLUMNS}
       emptyMessage="No nodes reported yet. Make sure the Proxmox agent is sending metrics."
       columns={getProxmoxNodeColumns({ rows: rows, translator: translator })}
       getViewRoute={(resource: InfrastructureResource) => {

@@ -650,6 +650,133 @@ describe("DockerSwarmInventoryExtractor - Volume", () => {
   });
 });
 
+/*
+ * THE BODY THE REAL AGENT SENDS (#9648).
+ *
+ * The agent's collector moves each snapshot line's `data` into the record's
+ * body as a map (its filelog receiver's `move` operator), which OTLP carries
+ * as a kvlistValue: Tests/Ops/Utils/DockerSwarmInventoryBehaviour.js reads it
+ * so from the real collector. The ingest writes a non-string body as that
+ * JSON, and the extractor read only flat JSON, so every record the real agent
+ * sent read as nothing. These feed the body as the ingest hands it on.
+ */
+function otlpMap(data: Record<string, string | number | boolean>): JSONObject {
+  return {
+    kvlistValue: {
+      values: Object.entries(data).map(
+        ([key, value]: [string, string | number | boolean]): JSONObject => {
+          if (typeof value === "number") {
+            return {
+              key: key,
+              value: Number.isInteger(value)
+                ? { intValue: String(value) }
+                : { doubleValue: value },
+            };
+          }
+          if (typeof value === "boolean") {
+            return { key: key, value: { boolValue: value } };
+          }
+          return { key: key, value: { stringValue: value } };
+        },
+      ),
+    },
+  };
+}
+
+describe("DockerSwarmInventoryExtractor - the real agent's map body", () => {
+  test("a volume the collector sent as a kvlistValue is read, as a flat body is", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Volume",
+        otlpMap({
+          Name: "shop_data",
+          Driver: "local",
+          Scope: "local",
+          Mountpoint: "/var/lib/docker/volumes/shop_data/_data",
+          Node: "mgr-1",
+        }),
+      ),
+    );
+
+    expect(r.externalId).toBe("volume/shop_data@mgr-1");
+    expect(r.driver).toBe("local");
+    expect(r.attributes?.["mountpoint"]).toBe(
+      "/var/lib/docker/volumes/shop_data/_data",
+    );
+  });
+
+  test("a node's numbers and flags keep their types through the map", () => {
+    const flat: ExtractedDockerSwarmInventoryRecord | null = extract(
+      "Volume",
+      envelope("Volume", { Name: "v", Driver: "local", Node: "n1" }),
+    );
+    const mapped: ExtractedDockerSwarmInventoryRecord | null = extract(
+      "Volume",
+      otlpMap({ Name: "v", Driver: "local", Node: "n1" }),
+    );
+
+    expect(mapped?.resource.externalId).toBe(flat?.resource.externalId);
+    expect(mapped?.resource.driver).toBe(flat?.resource.driver);
+  });
+
+  test("the protobuf decoder's snake_case map is read too", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract("Volume", {
+        kvlist_value: {
+          values: [
+            { key: "Name", value: { string_value: "logs" } },
+            { key: "Node", value: { string_value: "mgr-2" } },
+          ],
+        },
+      }),
+    );
+
+    expect(r.externalId).toBe("volume/logs@mgr-2");
+  });
+
+  test("a map with no name is still nothing, as a flat body with none is", () => {
+    expect(extract("Volume", otlpMap({ Driver: "local" }))).toBeNull();
+  });
+
+  /*
+   * Files 0.161.4 on (#9648): a local volume's size as Docker measures it,
+   * and the disk Docker keeps local volumes on, as the real collector sends
+   * them - int64s in a map.
+   */
+  test("a local volume keeps its size and the disk it lives on", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Volume",
+        otlpMap({
+          Name: "shop_data",
+          Driver: "local",
+          Node: "mgr-1",
+          SizeBytes: 10920104,
+          DiskTotalBytes: 536870912000,
+          DiskAvailableBytes: 107374182400,
+        }),
+      ),
+    );
+
+    expect(r.attributes?.["sizeBytes"]).toBe(10920104);
+    expect(r.attributes?.["diskTotalBytes"]).toBe(536870912000);
+    expect(r.attributes?.["diskAvailableBytes"]).toBe(107374182400);
+  });
+
+  test("a volume Docker cannot measure, or older files, keep none of them", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Volume",
+        envelope("Volume", { Name: "media", Driver: "nfs", SizeBytes: -1 }),
+      ),
+    );
+
+    expect(r.attributes?.["sizeBytes"]).toBeNull();
+    expect(r.attributes?.["diskTotalBytes"]).toBeNull();
+    expect(r.attributes?.["diskAvailableBytes"]).toBeNull();
+  });
+});
+
 describe("DockerSwarmInventoryExtractor - kind/payload routing", () => {
   test("kind discriminator routes independently of payload shape", () => {
     /*

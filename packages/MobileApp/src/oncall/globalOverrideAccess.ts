@@ -23,7 +23,12 @@
  * of generated permission rows, so neither can change alone.
  */
 
-// The permissions that add a user override (its table's create list).
+/*
+ * The permissions that add a user override (its table's create list).
+ * Manage On-Call Policy User Overrides for Own Team adds one too, for the
+ * people of the team that gives it: the server refuses cover from or for
+ * anyone else, and says who (issue #9733).
+ */
 export const USER_OVERRIDE_CREATE_PERMISSIONS: ReadonlyArray<string> = [
   "ProjectOwner",
   "ProjectAdmin",
@@ -31,6 +36,7 @@ export const USER_OVERRIDE_CREATE_PERMISSIONS: ReadonlyArray<string> = [
   "OnCallAdmin",
   "OnCallMember",
   "CreateOnCallDutyPolicyUserOverride",
+  "ManageTeamOnCallDutyPolicyUserOverride",
 ];
 
 /*

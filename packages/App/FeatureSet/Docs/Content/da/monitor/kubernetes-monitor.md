@@ -87,7 +87,7 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 | Kategori | Metrikker |
 | --- | --- |
 | Pod | Pod'ens CPU-forbrug, Pod-hukommelsesforbrug, Pod'ens fase (kode), Pod'ens filsystemforbrug, Volumenkapacitet, Ledig plads på volumen, Pod'ens udnyttelse af hukommelsesgrænsen, Pod'ens udnyttelse af CPU-grænsen, Pod'ens netværks-I/O (akkumuleret, begge retninger) |
-| Node | Nodens CPU-forbrug, Nodens allokerbare CPU, Node-hukommelsesforbrug, Nodens working set for hukommelse, Node-filsystemforbrug, Nodens allokerbare hukommelse, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgængelige filsystem |
+| Node | Nodens CPU-forbrug, Nodens allokerbare CPU, Node-hukommelsesforbrug, Nodens working set for hukommelse, Node-filsystemforbrug, Nodens allokerbare hukommelse, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgængelige filsystem, Nodens filsystemkapacitet |
 | Container | Containerens genstarter, Containerens genstarter (stigning), Containerens CPU-grænse, Containerens CPU-anmodning, Containerens hukommelsesgrænse, Containerens hukommelsesanmodning, Container klar |
 | Arbejdsbyrde | Deploymentens tilgængelige replikaer, Deploymentens ønskede replikaer, DaemonSettets ønskede noder, DaemonSettets fejlplanlagte noder, DaemonSettets klare noder, StatefulSettets ønskede replikaer, StatefulSettets klare replikaer, Jobbets mislykkede pods, Jobbets mislykkede pods (stigning), Jobbets vellykkede pods |
 | HPA | HPA'ens aktuelle replikaer, HPA'ens ønskede replikaer, HPA'ens maksimale replikaer, HPA'ens minimale replikaer |

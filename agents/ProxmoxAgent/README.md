@@ -224,7 +224,7 @@ To enable it:
 4. **Swap the collector image.** The stock `otel/opentelemetry-collector-contrib` image is built `FROM scratch`: it contains no `journalctl` binary (which the journald receiver shells out to) and runs as a non-root user that cannot read the journal. Build a thin wrapper and point `image:` in `docker-compose.yml` at it:
 
    ```dockerfile
-   FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+   FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
    FROM debian:stable-slim
    RUN apt-get update \
        && apt-get install -y --no-install-recommends systemd \

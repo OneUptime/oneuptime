@@ -62,9 +62,12 @@ import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnec
 import {
   CloudHealthAssessment,
   CloudHealthState,
+  CloudResourceStorage,
   assessCloudResourceHealth,
+  getCloudResourceStorage,
   readCloudResourceReadings,
 } from "Common/Types/Cloud/CloudResourceHealth";
+import ResourceStorageCard from "../../../Components/ResourcePart/ResourceStorageCard";
 import {
   CloudHeadlineTile,
   getCloudHeadlineTiles,
@@ -317,6 +320,39 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const hasNoMetrics: boolean =
     isInventoryOnlyCloudResourceType(provider, type) &&
     Object.keys(attributeFilters).length === 0;
+  /*
+   * How full it is, where its cloud says how big it is (#9648): a
+   * database's allocated storage against what is free, a disk's size.
+   */
+  const storage: CloudResourceStorage | null = getCloudResourceStorage({
+    type: type,
+    properties: r.cloudProperties,
+    readings: readCloudResourceReadings(r.cloudReadings),
+  });
+  const storageCard: ReactElement | null = storage ? (
+    <ResourceStorageCard
+      testId="cloud-resource-storage"
+      description={
+        storage.usage || type === "AWS::RDS::DBInstance"
+          ? "How much of its allocated storage the database uses, from its latest reading."
+          : "The disk's size, as its cloud reports it."
+      }
+      usage={storage.usage}
+      capacityBytes={storage.capacityBytes}
+      noUsageText={storage.noUsageText}
+      measuredAt={
+        r.cloudReadingsAt ? new Date(r.cloudReadingsAt as Date) : undefined
+      }
+    />
+  ) : null;
+  const spendCards: ReactElement | null =
+    ProjectUtil.getCurrentProjectId() &&
+    (r.providerResourceId || getCloudRightSizingProfile(provider, type)) ? (
+      <CloudResourceSpendCards
+        projectId={ProjectUtil.getCurrentProjectId()!}
+        resource={r}
+      />
+    ) : null;
 
   const chips: Array<ResourceOverviewChip> = [];
   if (provider) {
@@ -475,13 +511,11 @@ const CloudMonitoredResourceOverview: FunctionComponent<
          * neither.
          */
         charts={
-          ProjectUtil.getCurrentProjectId() &&
-          (r.providerResourceId ||
-            getCloudRightSizingProfile(provider, type)) ? (
-            <CloudResourceSpendCards
-              projectId={ProjectUtil.getCurrentProjectId()!}
-              resource={r}
-            />
+          storageCard || spendCards ? (
+            <>
+              {storageCard ? <div className="mb-6">{storageCard}</div> : null}
+              {spendCards}
+            </>
           ) : undefined
         }
         detailRows={detailRows}

@@ -27,8 +27,8 @@ import {
   fetchVMwareInventoryRow,
   fetchVMwareInventoryRows,
   fetchVMwareVirtualMachinesThatMayNeedAttention,
-  formatBytes,
-  formatMhz,
+  formatBytesForChart,
+  formatMhzForChart,
   displayNameForResource,
   identityAttributesForResource,
 } from "../Utils/VMwareResourceUtils";
@@ -358,7 +358,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatMhz,
+    yAxisValueFormatter: formatMhzForChart,
   };
 
   const effectiveMemoryQuery: MetricQueryConfigData = {
@@ -382,7 +382,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   /*

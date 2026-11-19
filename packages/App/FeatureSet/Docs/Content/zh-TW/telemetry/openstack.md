@@ -1714,7 +1714,7 @@ sudo userdel oneuptime-openstack
 
 | 映像檔 | 來源 | 用途 |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | 收集器。永遠需要，而[日誌](#服務日誌)與[追蹤](#透過控制平面追蹤請求)設定檔執行的是同一個 |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | 收集器。永遠需要，而[日誌](#服務日誌)與[追蹤](#透過控制平面追蹤請求)設定檔執行的是同一個 |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | 內附的匯出器，以及讀取專案配額的那一個。如果你[執行自己的匯出器](#安裝並啟動代理程式)則不需要 |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [AI 代理程式](#ai-代理程式)。如果你把它的服務從 `docker-compose.yml` 移除則不需要。`release` 標籤會隨每個 OneUptime 版本移動，所以升級時請再複製一次 |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | 僅用於[資料庫路徑](/docs/telemetry/openstack-very-large-clouds#資料庫路徑) |
@@ -1722,7 +1722,7 @@ sudo userdel oneuptime-openstack
 指名了摘要的那兩個是以摘要複製的，所以保留摘要的鏡像持有的是相同的位元組。在能連到網際網路和你的登錄庫的機器上，`crane copy` 會保留它（`skopeo copy --all --preserve-digests` 也一樣）。或者用 `docker save` 把它們儲存成檔案，帶過去，再在代理程式的機器上 `docker load`。
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

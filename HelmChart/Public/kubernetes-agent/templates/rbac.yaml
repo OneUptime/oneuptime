@@ -167,6 +167,27 @@ rules:
       - deploymentconfigs
     verbs: ["get", "list", "watch"]
 {{- end }}
+{{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+  # For the k8sobjects/compliance receiver (configmap-deployment.yaml): what
+  # the CIS Kubernetes Benchmark's policy controls read, for the cluster's
+  # Compliance page, read only. No Secret is read: a ServiceAccount only
+  # names its token Secrets, and OneUptime drops even the names.
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - serviceaccounts
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+{{- end }}
 {{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
   # For the control-plane scrapes on OpenShift (configmap-deployment.yaml):
   # service discovery finds each replica in its Service's EndpointSlices. It

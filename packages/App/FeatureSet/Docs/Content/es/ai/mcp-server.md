@@ -341,6 +341,8 @@ La herramienta **`get_data_table_freshness`** le dice a un agente si una tabla q
 
 La herramienta **`get_data_table_lineage`** le dice a un agente a partir de qué se construye una tabla vigilada y qué se construye a partir de ella, antes de que cambie la tabla o se fíe de sus datos: las tablas de origen y de destino que van con retraso, se eliminaron, tienen alertas abiertas o cuyo pipeline falló en su última ejecución, primero las más cercanas, cada una con cuántos pasos la separan, luego las demás, los pipelines que cargan sus orígenes desde fuera y los paneles de BI construidos sobre ella. Llega a tres pasos en cada dirección, o hasta cinco con `depth`. Pase `table` como para `get_data_table_freshness`. No cambia nada.
 
+La herramienta **`oneuptime_move_in_list`** mueve una fila de una lista ordenada, como una severidad de incidente, un estado de incidente o un estado de monitor, al lugar de otra fila, como hace arrastrarla en el panel: las filas intermedias se desplazan un lugar, y responde con cada fila cuyo número cambió. Pase `resource` (como `Incident Severity`), el `id` de la fila y `placeOfId`, el ID de la fila cuyo lugar ocupa. Escribir el número de una fila con su herramienta `update_` coloca solo esa fila, junto a cualquier fila que ya tenga ese número.
+
 ## Consultar la telemetría
 
 Los logs, las métricas, las trazas (spans), las excepciones, los logs de monitores y los demás tipos de telemetría llegan como herramientas `list_` y `count_` de solo lectura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` y sus gemelas `count_`). La telemetría llega a través de OpenTelemetry, así que no hay herramientas de creación.

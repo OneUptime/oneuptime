@@ -20,6 +20,11 @@ import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
 import { getApiSingularName } from "../../Utils/ModelApiName";
+import {
+  ListOrderFacts,
+  getListOrderFacts,
+  listOrderFactsToJSON,
+} from "../../Utils/DeveloperDocs/ListOrderFacts";
 import crypto from "crypto";
 import zlib from "zlib";
 
@@ -131,6 +136,7 @@ export default class OpenAPIUtil {
       "x-former-names"?: Array<string>;
       "x-oneuptime-table": string;
       "x-oneuptime-telemetry"?: boolean;
+      "x-oneuptime-list-order"?: JSONObject;
     }> = [];
 
     // Register schemas and paths for all models
@@ -157,6 +163,7 @@ export default class OpenAPIUtil {
        * screen keeps its tag, and so its Terraform resource (ModelApiName).
        */
       const singularModelName: string = getApiSingularName(model) || modelName;
+      const listOrderFacts: ListOrderFacts | null = getListOrderFacts(model);
       tags.push({
         name: singularModelName,
         description:
@@ -175,6 +182,16 @@ export default class OpenAPIUtil {
          * (ClientResourceNames.ts), by it.
          */
         "x-oneuptime-table": modelName,
+        /*
+         * A drag-ordered list (@ListOrderColumn): which column numbers a
+         * row, which end is the top, what holds the list and where a row
+         * created without a number goes - a write of the number places the
+         * row and moves no other (issue #9609). The Terraform provider
+         * writes the Order section of the resource's page from it.
+         */
+        ...(listOrderFacts
+          ? { "x-oneuptime-list-order": listOrderFactsToJSON(listOrderFacts) }
+          : {}),
       });
 
       // register the model schema

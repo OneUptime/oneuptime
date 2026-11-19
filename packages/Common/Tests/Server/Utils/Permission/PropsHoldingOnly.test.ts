@@ -343,3 +343,139 @@ describe("PropsHoldingOnly.build", () => {
     expect(JSON.stringify(databaseProps)).toBe(snapshot);
   });
 });
+
+/*
+ * PropsHoldingOnly.buildWithout is the other way round: everything the
+ * caller holds but the allow rows it names, for a check that asks which
+ * records a caller reaches without a grant - the user overrides a member
+ * reaches without Manage On-Call Policy User Overrides for Own Team, or
+ * with only one team's rows of it (issue #9733).
+ */
+describe("PropsHoldingOnly.buildWithout", () => {
+  const PAYMENTS: ObjectID = new ObjectID(
+    "1b2c3d4e-0000-4000-8000-0000000000f1",
+  );
+  const MOBILE: ObjectID = new ObjectID("1b2c3d4e-0000-4000-8000-0000000000f2");
+
+  const teamRow: (teamId: ObjectID) => UserPermission = (
+    teamId: ObjectID,
+  ): UserPermission => {
+    return {
+      ...row(Permission.ManageTeamOnCallDutyPolicyUserOverride),
+      teamId: teamId,
+    };
+  };
+
+  test("leaves out the allow rows it names, and keeps every other row as it was", () => {
+    const viewer: UserPermission = row(Permission.OnCallViewer);
+    const narrowed: UserPermission = row(
+      Permission.CreateOnCallDutyPolicyUserOverride,
+      { labelIds: [LABEL_ID] },
+    );
+
+    const props: DatabaseCommonInteractionProps = PropsHoldingOnly.buildWithout(
+      {
+        databaseProps: propsWithRows({
+          projectRows: [viewer, teamRow(PAYMENTS), narrowed, teamRow(MOBILE)],
+        }),
+        projectId: PROJECT_ID,
+        isLeftOut: (candidate: UserPermission): boolean => {
+          return (
+            candidate.permission ===
+            Permission.ManageTeamOnCallDutyPolicyUserOverride
+          );
+        },
+      },
+    );
+
+    expect(rowsOf(props)).toEqual([viewer, narrowed]);
+  });
+
+  test("leaves out one team's rows of a permission and keeps another team's", () => {
+    const props: DatabaseCommonInteractionProps = PropsHoldingOnly.buildWithout(
+      {
+        databaseProps: propsWithRows({
+          projectRows: [teamRow(PAYMENTS), teamRow(MOBILE)],
+        }),
+        projectId: PROJECT_ID,
+        isLeftOut: (candidate: UserPermission): boolean => {
+          return candidate.teamId?.toString() !== PAYMENTS.toString();
+        },
+      },
+    );
+
+    expect(
+      rowsOf(props).map((candidate: UserPermission): string => {
+        return candidate.teamId?.toString() || "";
+      }),
+    ).toEqual([PAYMENTS.toString()]);
+  });
+
+  test("never leaves out a block: a block only ever takes away", () => {
+    const block: UserPermission = row(
+      Permission.ManageTeamOnCallDutyPolicyUserOverride,
+      { block: true, labelIds: [LABEL_ID] },
+    );
+
+    const props: DatabaseCommonInteractionProps = PropsHoldingOnly.buildWithout(
+      {
+        databaseProps: propsWithRows({
+          projectRows: [teamRow(PAYMENTS), block],
+        }),
+        projectId: PROJECT_ID,
+        isLeftOut: (): boolean => {
+          return true;
+        },
+      },
+    );
+
+    expect(rowsOf(props)).toEqual([block]);
+  });
+
+  test("keeps the global permissions, the other projects' rows and who the caller is; adds no row every caller holds to the project", () => {
+    const elsewhere: UserPermission = row(Permission.ProjectAdmin);
+    const databaseProps: DatabaseCommonInteractionProps = propsWithRows({
+      projectRows: [row(Permission.OnCallViewer)],
+      otherProjectRows: [elsewhere],
+    });
+
+    const props: DatabaseCommonInteractionProps = PropsHoldingOnly.buildWithout(
+      {
+        databaseProps: databaseProps,
+        projectId: PROJECT_ID,
+        isLeftOut: (): boolean => {
+          return false;
+        },
+      },
+    );
+
+    expect(props.userId).toEqual(USER_ID);
+    expect(props.tenantId).toEqual(PROJECT_ID);
+    expect(props.userGlobalAccessPermission).toEqual(
+      databaseProps.userGlobalAccessPermission,
+    );
+    expect(rowsOf(props, OTHER_PROJECT_ID)).toEqual([elsewhere]);
+    expect(
+      rowsOf(props).map((candidate: UserPermission): Permission => {
+        return candidate.permission;
+      }),
+    ).toEqual([Permission.OnCallViewer]);
+  });
+
+  test("changes nothing of the props it was handed", () => {
+    const databaseProps: DatabaseCommonInteractionProps = propsWithRows({
+      projectRows: [teamRow(PAYMENTS), row(Permission.OnCallViewer)],
+    });
+    const snapshot: string = JSON.stringify(databaseProps);
+
+    PropsHoldingOnly.buildWithout({
+      databaseProps: databaseProps,
+      projectId: PROJECT_ID,
+      isLeftOut: (): boolean => {
+        return true;
+      },
+    });
+
+    expect(JSON.stringify(databaseProps)).toBe(snapshot);
+  });
+});

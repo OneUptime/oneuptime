@@ -46,7 +46,7 @@ flowchart TB
 - 一把擷取金鑰。在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立一把並複製其值。Collector 會將其作為 `x-oneuptime-token` 標頭傳送。
 - 機器上的系統管理員權限：Linux 和 macOS 上的 `sudo`，Windows 上以系統管理員身分執行的 PowerShell。
 - 從機器到你的 OneUptime URL 的輸出 HTTPS。
-- Collector 的 contrib 發行版本 `otelcol-contrib`。核心 `otelcol` 組建缺少這些設定所使用的接收器和處理器。`systemd` 接收器（Linux）從 v0.143.0 起可用，`windows_service` 接收器（Windows）從 v0.155.0 起可用；下面的指令會安裝 v0.161.0，也就是 OneUptime 固定的版本。
+- Collector 的 contrib 發行版本 `otelcol-contrib`。核心 `otelcol` 組建缺少這些設定所使用的接收器和處理器。`systemd` 接收器（Linux）從 v0.143.0 起可用，`windows_service` 接收器（Windows）從 v0.155.0 起可用；下面的指令會安裝 v0.165.0，也就是 OneUptime 固定的版本。
 
 ## 安裝 Collector
 
@@ -140,7 +140,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -238,7 +238,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -346,7 +346,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -381,7 +381,7 @@ service:
 在 Debian 或 Ubuntu 上：
 
 ```bash
-VERSION=0.161.0                      # the release OneUptime pins
+VERSION=0.165.0                      # the release OneUptime pins
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \
@@ -392,7 +392,7 @@ sudo dpkg -i /tmp/otelcol-contrib.deb
 在 RHEL、CentOS、Fedora 或 Amazon Linux 上：
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \
@@ -413,7 +413,7 @@ sudo systemctl status otelcol-contrib
 封裝好的單元以非特權的 `otelcol-contrib` 使用者執行 Collector。`systemd-journal` 群組讓它能讀取 journal；若要追蹤 `/var/log` 中的檔案（在 Debian 和 Ubuntu 上可由 `adm` 群組讀取），也要加入該群組。若要讓 `process` 抓取器看到其他使用者的處理程序，請授予它 `CAP_SYS_PTRACE` 能力。
 @tab macOS
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \
@@ -458,7 +458,7 @@ sudo launchctl list | grep otelcol-contrib
 在以系統管理員身分執行的 PowerShell 中，於包含 `config.yaml` 的資料夾裡整段執行這個區塊：每一行都依賴其上方的變數。
 
 ```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$VERSION = "0.165.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -852,7 +852,7 @@ docker run -d \
   -e HOST_VAR=/hostfs/var \
   -e HOST_RUN=/hostfs/run \
   -e HOST_DEV=/hostfs/dev \
-  otel/opentelemetry-collector-contrib:0.161.0 \
+  otel/opentelemetry-collector-contrib:0.165.0 \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
@@ -863,7 +863,7 @@ docker run -d \
 無法使用套件時，請解壓縮靜態二進位檔，並為它建立一個專用的 systemd 單元：
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \
@@ -1157,7 +1157,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 

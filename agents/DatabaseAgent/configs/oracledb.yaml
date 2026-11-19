@@ -104,7 +104,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime

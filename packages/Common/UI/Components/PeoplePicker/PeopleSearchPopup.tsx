@@ -122,6 +122,13 @@ export interface ComponentProps {
   searchPlaceholder?: string | undefined;
   // What the list says when there is nothing to pick at all.
   emptyText?: string | undefined;
+  /*
+   * People only from these teams - their accepted members - and a line
+   * above the list, in the reader's words already, saying why
+   * (PeoplePickerFieldConfig.onlyMembersOfTeamIds and searchHint).
+   */
+  onlyMembersOfTeamIds?: Array<string> | undefined;
+  searchHint?: string | undefined;
   // The dialog's name, e.g. "Add owner".
   ariaLabel: string;
   /*
@@ -166,6 +173,11 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   const listboxId: string = `${baseId}-listbox`;
 
   const kindsSignature: string = props.kinds.join(",");
+
+  // The teams the list keeps its people to, as a key: none when it keeps to none.
+  const teamsSignature: string = props.onlyMembersOfTeamIds
+    ? `teams:${props.onlyMembersOfTeamIds.join(",")}`
+    : "";
 
   // How many records the list leaves out, whatever is searched.
   const excludedCount: number = props.excludedKeys?.size || 0;
@@ -253,6 +265,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
              * offers as many as it would without them.
              */
             limit: PEOPLE_PICKER_SEARCH_LIMIT + hiddenCount,
+            onlyMembersOfTeamIds: props.onlyMembersOfTeamIds,
           });
         },
       ),
@@ -285,7 +298,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, debouncedSearch, kindsSignature, excludedCount]);
+  }, [isOpen, debouncedSearch, kindsSignature, excludedCount, teamsSignature]);
 
   const groups: Array<RowGroup> = useMemo((): Array<RowGroup> => {
     return props.kinds
@@ -499,6 +512,23 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
           />
         </div>
       </div>
+
+      {/*
+       * Why the list offers whom it does - only the people of some teams -
+       * above it, where whoever looks for somebody missing reads it first.
+       */}
+      {props.searchHint ? (
+        <p
+          data-testid="people-search-hint"
+          className="flex flex-shrink-0 items-start gap-2 border-b border-gray-100 px-3 py-2 text-xs leading-5 text-gray-600"
+        >
+          <Icon
+            icon={IconProp.Info}
+            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <span>{props.searchHint}</span>
+        </p>
+      ) : null}
 
       <div
         id={listboxId}
