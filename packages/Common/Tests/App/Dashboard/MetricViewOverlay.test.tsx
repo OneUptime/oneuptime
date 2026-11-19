@@ -172,8 +172,8 @@ async function drawView(
     <MetricView
       data={data}
       hideStartAndEndDate={true}
-      hideCardInQueryElements={options.isMonitorForm}
-      hideCardInCharts={options.isMonitorForm}
+      hideCardInQueryElements={Boolean(options.isMonitorForm)}
+      hideCardInCharts={Boolean(options.isMonitorForm)}
       onChange={(): void => {}}
     />,
   );

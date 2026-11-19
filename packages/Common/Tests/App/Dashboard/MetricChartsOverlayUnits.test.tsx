@@ -100,7 +100,7 @@ import { MetricChartThreshold } from "../../../../App/FeatureSet/Dashboard/src/C
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import FilterType from "../../../Types/Filter/FilterType";
+import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MetricQueryConfigData, {
   MetricChartType,
 } from "../../../Types/Metrics/MetricQueryConfigData";
