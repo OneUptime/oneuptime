@@ -5,6 +5,7 @@ Sehen Sie, wie viel Telemetrie jedes Projekt und jeder Dienst oder jede Ressourc
 :::cards
 - [Wie die Nutzung gezählt wird](#wie-die-nutzung-gezählt-wird): Einmal am Tag, für jede Ressource und jedes Signal.
 - [Die Nutzung eines Projekts ansehen](#die-nutzung-eines-projekts-ansehen): Projekteinstellungen → Telemetrie & APM → Nutzung.
+- [Die Nutzung darstellen, während sie eintrifft](#die-nutzung-darstellen-während-sie-eintrifft): Alle 5 Minuten, als Metrik.
 - [Die Nutzung aller Projekte ansehen](#die-nutzung-aller-projekte-ansehen): Das Admin Dashboard, für den Instanzadministrator.
 - [Wie lange die Nutzung aufbewahrt wird](#wie-lange-die-nutzung-aufbewahrt-wird): 120 Tage, sofern Sie das nicht ändern.
 :::
@@ -70,6 +71,36 @@ Telemetrie, die keinen Dienst genannt hat, wird als **Unbekannter Dienst** aufge
 | Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied, Telemetrie-Betrachter | Wie viel jede Ressource gesendet hat und wie lange das aufbewahrt wird |
 
 Was die Nutzung gekostet hat, wird nur in OneUptime Cloud angezeigt: Eine Installation ohne Abrechnung berechnet nichts dafür. Die Preise finden Sie unter [Abrechnung & Nutzung](/docs/configuration/billing#nutzungsverlauf).
+
+## Die Nutzung darstellen, während sie eintrifft
+
+Die Nutzungszeilen kommen erst am nächsten Tag. Um innerhalb von Minuten in einem Diagramm zu sehen, was jeder Dienst sendet, und gewarnt zu werden, wenn er mehr sendet, kann ein Projektinhaber oder Projektadministrator die Nutzung des Projekts als Metrik veröffentlichen:
+
+:::steps
+### Einschalten
+
+Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Nutzung**, öffnen Sie **Weitere Einstellungen** am Ende der Seite, und schalten Sie auf der Karte **Nutzung als Metriken** die Option **Nutzung als Metriken veröffentlichen** ein. Sie wird gespeichert, sobald Sie sie umschalten.
+
+### Als Diagramm darstellen
+
+Alle 5 Minuten schreibt OneUptime, was jeder Dienst und jede Ressource in diesen 5 Minuten von jedem Signal gesendet hat, als Metrik `oneuptime.telemetry.usage.bytes`, in Bytes (`By`). Stellen Sie ihre Summe im [Metrik-Explorer](/docs/telemetry/metrics-explorer) dar, oder lassen Sie sich mit einem [Metriken-Monitor](/docs/monitor/metrics-monitor) warnen.
+:::
+
+Jeder Punkt trägt diese Attribute:
+
+| Attribut | Wert |
+| --- | --- |
+| `projectId` | Die ID des Projekts. |
+| `signal` | `logs`, `traces`, `metrics` oder `profiles`. |
+| `resourceType` | Die Art der Ressource: `OpenTelemetry` für einen Dienst, `Host` für einen Host und so weiter. |
+| `resourceId` | Die ID des Dienstes oder der Ressource. |
+| `resourceName` | Ihr Name, als der Punkt geschrieben wurde. |
+
+- **Gezählt beim Eintreffen.** Jeder Punkt ist der Anteil der Ressource an dem, was eintraf, dekomprimiert, so wie Ingestion-Budgets es zählen, und kann daher mehr zeigen als die Nutzungszeilen, die zählen, was gespeichert wurde.
+- **Über OpenTelemetry gesendet.** Gezählt werden die Protokolle, Traces, Metriken und Profile, die über OTLP gesendet werden. Sicherheitsereignisse, Sitzungswiedergaben und die Protokolle von Fluent Bit, Fluentd oder Syslog nicht.
+- **Jeder Punkt gehört seiner Ressource.** Wer die Telemetrie eines Dienstes oder einer Ressource lesen darf, liest ihre Punkte: Eine auf einige Beschriftungen beschränkte Rolle sieht nur deren Punkte.
+- **Sie kosten nichts.** Diese Punkte werden auf kein Budget angerechnet und nicht als Nutzung gezählt, und sie werden so lange aufbewahrt wie Monitor-Metriken: 30 Tage, sofern der Instanzadministrator das nicht ändert. Metriknamen, die mit `oneuptime.telemetry.usage.` beginnen, sind ihnen vorbehalten: Metriken, die Ihre Anwendungen unter einem solchen Namen senden, werden verworfen.
+- **Standardmäßig aus.** Solange die Option aus ist, wird nichts geschrieben, und bereits geschriebene Punkte bleiben, bis sie ablaufen.
 
 ## Die Nutzung aller Projekte ansehen
 

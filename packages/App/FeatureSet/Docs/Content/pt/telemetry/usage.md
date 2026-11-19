@@ -5,6 +5,7 @@ Veja quanta telemetria cada projeto, e cada serviço ou recurso dele, envia: reg
 :::cards
 - [Como o uso é contado](#como-o-uso-é-contado): Uma vez por dia, para cada recurso e sinal.
 - [Ver o uso de um projeto](#ver-o-uso-de-um-projeto): Configurações do projeto → Telemetria e APM → Uso.
+- [Acompanhar o uso à medida que chega](#acompanhar-o-uso-à-medida-que-chega): A cada 5 minutos, como métrica.
 - [Ver o uso de todos os projetos](#ver-o-uso-de-todos-os-projetos): O Admin Dashboard, para o administrador da instância.
 - [Por quanto tempo o uso é mantido](#por-quanto-tempo-o-uso-é-mantido): 120 dias, a menos que você mude isso.
 :::
@@ -70,6 +71,36 @@ A telemetria que não indicou um serviço aparece como **Serviço desconhecido**
 | Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria, Visualizador de telemetria | Quanto cada recurso enviou e por quanto tempo isso é mantido |
 
 O custo do uso só aparece no OneUptime Cloud: uma instalação sem cobrança não cobra nada por ele. Veja [Cobrança e uso](/docs/configuration/billing#histórico-de-uso) para os preços.
+
+## Acompanhar o uso à medida que chega
+
+As linhas de uso chegam no dia seguinte. Para ver em um gráfico, em minutos, o que cada serviço envia, e receber um alerta quando ele envia mais, um Proprietário do projeto ou um Administrador do projeto pode publicar o uso do projeto como uma métrica:
+
+:::steps
+### Ativar
+
+Acesse **Configurações do projeto → Telemetria e APM → Uso**, abra **Mais configurações** no fim da página e ative **Publicar o uso como métricas** no cartão **Uso como métricas**. A configuração é salva assim que você a ativa.
+
+### Ver no gráfico
+
+A cada 5 minutos, o OneUptime grava o que cada serviço e recurso enviou de cada sinal nesses 5 minutos como a métrica `oneuptime.telemetry.usage.bytes`, em bytes (`By`). Acompanhe a soma dela no [Explorador de métricas](/docs/telemetry/metrics-explorer), ou crie alertas sobre ela com um [monitor de métricas](/docs/monitor/metrics-monitor).
+:::
+
+Cada ponto carrega estes atributos:
+
+| Atributo | Valor |
+| --- | --- |
+| `projectId` | O ID do projeto. |
+| `signal` | `logs`, `traces`, `metrics` ou `profiles`. |
+| `resourceType` | O tipo de recurso: `OpenTelemetry` para um serviço, `Host` para um host, e assim por diante. |
+| `resourceId` | O ID do serviço ou recurso. |
+| `resourceName` | O nome dele quando o ponto foi gravado. |
+
+- **Contado à medida que chega.** Cada ponto é a parte do recurso no que chegou, descomprimido, como os orçamentos de ingestão o contam, então pode mostrar mais do que as linhas de uso, que contam o que foi armazenado.
+- **Enviado pelo OpenTelemetry.** Os registros, traços, métricas e perfis enviados por OTLP são contados. Os eventos de segurança, as reproduções de sessão e os registros do Fluent Bit, do Fluentd ou do syslog não são.
+- **Cada ponto é do seu recurso.** Quem pode ler a telemetria de um serviço ou de um recurso lê os pontos dele: uma função limitada a alguns rótulos vê apenas os deles.
+- **Eles não custam nada.** Estes pontos não são contados em nenhum orçamento nem como uso, e são mantidos pelo mesmo tempo que as métricas de monitor: 30 dias, a menos que o administrador da instância mude isso. Os nomes de métricas que começam com `oneuptime.telemetry.usage.` são reservados para eles: as métricas que os seus aplicativos enviam com um nome assim são descartadas.
+- **Desativado por padrão.** Enquanto está desativado, nada é gravado, e os pontos já gravados são mantidos até expirarem.
 
 ## Ver o uso de todos os projetos
 

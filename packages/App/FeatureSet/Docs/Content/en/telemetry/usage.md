@@ -5,6 +5,7 @@ See how much telemetry each project, and each service or resource in it, sends: 
 :::cards
 - [How usage is counted](#how-usage-is-counted): Once a day, for each resource and signal.
 - [See a project's usage](#see-a-projects-usage): Project Settings → Telemetry & APM → Usage.
+- [Chart usage as it arrives](#chart-usage-as-it-arrives): Every 5 minutes, as a metric.
 - [See every project's usage](#see-every-projects-usage): The Admin Dashboard, for the instance admin.
 - [How long usage is kept](#how-long-usage-is-kept): 120 days unless you change it.
 :::
@@ -70,6 +71,36 @@ Telemetry that did not name a service is listed as **Unknown Service**. A resour
 | Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer | How much each resource sent and how long it is kept |
 
 What usage cost is shown only on OneUptime Cloud: an installation without billing charges nothing for it. See [Billing & Usage](/docs/configuration/billing#usage-history) for the prices.
+
+## Chart usage as it arrives
+
+The usage rows arrive the day after. To chart what each service sends within minutes, and alert when it sends more, a Project Owner or Project Admin can publish the project's usage as a metric:
+
+:::steps
+### Switch it on
+
+Go to **Project Settings → Telemetry & APM → Usage**, open **More settings** at the end of the page, and switch on **Publish usage as metrics** on the **Usage as Metrics** card. It is saved as you switch it.
+
+### Chart it
+
+Every 5 minutes, OneUptime writes what each service and resource sent of each signal in those 5 minutes as the metric `oneuptime.telemetry.usage.bytes`, in bytes (`By`). Chart its sum in the [Metrics Explorer](/docs/telemetry/metrics-explorer), or alert on it with a [Metrics Monitor](/docs/monitor/metrics-monitor).
+:::
+
+Each point carries these attributes:
+
+| Attribute | Value |
+| --- | --- |
+| `projectId` | The ID of the project. |
+| `signal` | `logs`, `traces`, `metrics` or `profiles`. |
+| `resourceType` | The kind of resource: `OpenTelemetry` for a service, `Host` for a host, and so on. |
+| `resourceId` | The ID of the service or resource. |
+| `resourceName` | Its name when the point was written. |
+
+- **Counted as it arrives.** Each point is the resource's share of what arrived, decompressed, as ingestion budgets count it, so it can read more than the usage rows, which count what was stored.
+- **Sent over OpenTelemetry.** The logs, traces, metrics and profiles sent over OTLP are counted. Security events, session replays and the logs from Fluent Bit, Fluentd or syslog are not.
+- **Each point is its resource's.** Whoever may read a service's or a resource's telemetry reads its points: a role limited to some labels sees only theirs.
+- **They cost nothing.** These points are not counted against any budget or as usage, and are kept as long as monitor metrics: 30 days unless the instance admin changes it. Metric names that start with `oneuptime.telemetry.usage.` are reserved for them: metrics your applications send under such a name are dropped.
+- **Off by default.** While it is off, nothing is written, and the points already written are kept until they expire.
 
 ## See every project's usage
 

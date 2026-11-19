@@ -5,6 +5,7 @@ Zie hoeveel telemetrie elk project, en elke service of resource daarin, verstuur
 :::cards
 - [Hoe gebruik wordt geteld](#hoe-gebruik-wordt-geteld): Eén keer per dag, voor elke resource en elk signaal.
 - [Het gebruik van een project bekijken](#het-gebruik-van-een-project-bekijken): Projectinstellingen → Telemetrie & APM → Gebruik.
+- [Gebruik volgen terwijl het binnenkomt](#gebruik-volgen-terwijl-het-binnenkomt): Elke 5 minuten, als metriek.
 - [Het gebruik van elk project bekijken](#het-gebruik-van-elk-project-bekijken): Het Admin Dashboard, voor de instantiebeheerder.
 - [Hoe lang gebruik wordt bewaard](#hoe-lang-gebruik-wordt-bewaard): 120 dagen, tenzij u dat wijzigt.
 :::
@@ -70,6 +71,36 @@ Telemetrie die geen service noemde, staat vermeld als **Onbekende service**. Een
 | Projectlid, Kijker, Telemetriebeheerder, Telemetrielid, Telemetriekijker | Hoeveel elke resource heeft verstuurd en hoe lang dat wordt bewaard |
 
 Wat gebruik kostte, wordt alleen op OneUptime Cloud getoond: een installatie zonder facturering rekent er niets voor. Zie [Facturering en gebruik](/docs/configuration/billing#gebruiksgeschiedenis) voor de prijzen.
+
+## Gebruik volgen terwijl het binnenkomt
+
+De gebruiksrijen komen de dag erna. Om binnen enkele minuten in een grafiek te zien wat elke service verstuurt, en een waarschuwing te krijgen als die meer verstuurt, kan een Projecteigenaar of Projectbeheerder het gebruik van het project als metriek publiceren:
+
+:::steps
+### Inschakelen
+
+Ga naar **Projectinstellingen → Telemetrie & APM → Gebruik**, open **Meer instellingen** onderaan de pagina, en schakel **Gebruik als metrieken publiceren** in op de kaart **Gebruik als metrieken**. Het wordt opgeslagen zodra u het omzet.
+
+### In een grafiek volgen
+
+Elke 5 minuten schrijft OneUptime wat elke service en resource in die 5 minuten van elk signaal heeft verstuurd als de metriek `oneuptime.telemetry.usage.bytes`, in bytes (`By`). Volg de som ervan in de [Metriekverkenner](/docs/telemetry/metrics-explorer), of waarschuw erop met een [metrics-monitor](/docs/monitor/metrics-monitor).
+:::
+
+Elk punt heeft deze attributen:
+
+| Attribuut | Waarde |
+| --- | --- |
+| `projectId` | De ID van het project. |
+| `signal` | `logs`, `traces`, `metrics` of `profiles`. |
+| `resourceType` | Het soort resource: `OpenTelemetry` voor een service, `Host` voor een host, enzovoort. |
+| `resourceId` | De ID van de service of resource. |
+| `resourceName` | De naam toen het punt werd geschreven. |
+
+- **Geteld bij binnenkomst.** Elk punt is het deel van de resource in wat er binnenkwam, gedecomprimeerd, zoals ingestiebudgetten het tellen, dus het kan meer aangeven dan de gebruiksrijen, die tellen wat is opgeslagen.
+- **Verstuurd via OpenTelemetry.** De logboeken, traces, metrieken en profielen die via OTLP worden verstuurd, worden geteld. Beveiligingsgebeurtenissen, sessieherhalingen en de logboeken van Fluent Bit, Fluentd of syslog niet.
+- **Elk punt hoort bij zijn resource.** Wie de telemetrie van een service of resource mag lezen, leest de punten ervan: een rol die tot enkele labels is beperkt, ziet alleen die van hen.
+- **Ze kosten niets.** Deze punten tellen niet mee voor een budget of als gebruik, en worden net zo lang bewaard als monitormetrieken: 30 dagen, tenzij de instantiebeheerder dat wijzigt. Metrieknamen die beginnen met `oneuptime.telemetry.usage.` zijn voor hen gereserveerd: metrieken die uw applicaties onder zo'n naam versturen, worden verworpen.
+- **Standaard uit.** Zolang het uit staat, wordt er niets geschreven, en de punten die al zijn geschreven, blijven tot ze verlopen.
 
 ## Het gebruik van elk project bekijken
 

@@ -5,6 +5,7 @@ Se hvor mye telemetri hvert prosjekt, og hver tjeneste eller ressurs i det, send
 :::cards
 - [Slik telles forbruk](#slik-telles-forbruk): Én gang om dagen, for hver ressurs og hvert signal.
 - [Se forbruket til et prosjekt](#se-forbruket-til-et-prosjekt): Prosjektinnstillinger → Telemetri og APM → Forbruk.
+- [Følg forbruket etter hvert som det kommer](#følg-forbruket-etter-hvert-som-det-kommer): Hvert 5. minutt, som en måling.
 - [Se forbruket til alle prosjekter](#se-forbruket-til-alle-prosjekter): Admin Dashboard, for instansadministratoren.
 - [Hvor lenge forbruk oppbevares](#hvor-lenge-forbruk-oppbevares): 120 dager, med mindre du endrer det.
 :::
@@ -70,6 +71,36 @@ Telemetri som ikke oppga en tjeneste, vises som **Ukjent tjeneste**. En ressurs 
 | Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem, Telemetrileser | Hvor mye hver ressurs sendte og hvor lenge det oppbevares |
 
 Hva forbruket kostet, vises bare på OneUptime Cloud: en installasjon uten fakturering tar ingenting betalt for det. Se [Fakturering og bruk](/docs/configuration/billing#brukshistorikk) for prisene.
+
+## Følg forbruket etter hvert som det kommer
+
+Forbruksradene kommer dagen etter. For å se i et diagram i løpet av minutter hva hver tjeneste sender, og bli varslet når den sender mer, kan en Prosjekteier eller Prosjektadministrator publisere prosjektets forbruk som en måling:
+
+:::steps
+### Slå det på
+
+Gå til **Prosjektinnstillinger → Telemetri og APM → Forbruk**, åpne **Flere innstillinger** nederst på siden, og slå på **Publiser forbruk som målinger** på kortet **Forbruk som målinger**. Det lagres så snart du slår det på.
+
+### Vis det i et diagram
+
+Hvert 5. minutt skriver OneUptime det hver tjeneste og ressurs har sendt av hvert signal i de 5 minuttene, som målingen `oneuptime.telemetry.usage.bytes`, i byte (`By`). Vis summen i [Målingsutforsker](/docs/telemetry/metrics-explorer), eller bli varslet om den med en [målingsmonitor](/docs/monitor/metrics-monitor).
+:::
+
+Hvert punkt har disse attributtene:
+
+| Attributt | Verdi |
+| --- | --- |
+| `projectId` | ID-en til prosjektet. |
+| `signal` | `logs`, `traces`, `metrics` eller `profiles`. |
+| `resourceType` | Typen ressurs: `OpenTelemetry` for en tjeneste, `Host` for en vert og så videre. |
+| `resourceId` | ID-en til tjenesten eller ressursen. |
+| `resourceName` | Navnet da punktet ble skrevet. |
+
+- **Telt etter hvert som det kommer.** Hvert punkt er ressursens andel av det som kom inn, dekomprimert, slik inntaksbudsjetter teller det, så det kan vise mer enn forbruksradene, som teller det som ble lagret.
+- **Sendt over OpenTelemetry.** Loggene, sporene, målingene og profilene som sendes over OTLP, telles. Sikkerhetshendelser, øktavspillinger og loggene fra Fluent Bit, Fluentd eller syslog gjør det ikke.
+- **Hvert punkt tilhører ressursen sin.** Den som kan lese telemetrien til en tjeneste eller en ressurs, leser punktene dens: en rolle som er begrenset til noen etiketter, ser bare deres.
+- **De koster ingenting.** Disse punktene telles ikke mot noe budsjett eller som forbruk, og de oppbevares like lenge som monitormålinger: 30 dager, med mindre instansadministratoren endrer det. Målingsnavn som starter med `oneuptime.telemetry.usage.`, er reservert for dem: målinger applikasjonene dine sender under et slikt navn, forkastes.
+- **Av som standard.** Mens det er av, skrives ingenting, og punktene som allerede er skrevet, beholdes til de utløper.
 
 ## Se forbruket til alle prosjekter
 

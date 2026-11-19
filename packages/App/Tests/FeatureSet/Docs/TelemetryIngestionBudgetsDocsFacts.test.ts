@@ -7,7 +7,8 @@ import { describe, expect, jest, test } from "@jest/globals";
  * and a per-second rate are set for every project, for one project and for
  * one ingestion key, how bytes are counted, what a refused sender is told,
  * when the warning and the reset happen, where today's usage and drops are
- * shown, and how to alert on the budget metrics. Each claim is held here to
+ * shown, and how to alert on the budget metrics - and, since #6386, how a
+ * team or a label gets a budget of its own. Each claim is held here to
  * the code that makes it true, and every translation to its English page:
  * line for line, with the same code, numbers and links, and each label as
  * that language's Dashboard or Admin Dashboard draws it.
@@ -48,6 +49,7 @@ import {
   RATE_LIMIT_TITLES,
 } from "../../../FeatureSet/AdminDashboard/src/Utils/IngestionBudgetFormFields";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import TelemetryIngestionBudget from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
 import { getTelemetryIngestionBudgetHttpStatus } from "Common/Server/Utils/Telemetry/TelemetryIngestionBudgetHttp";
 import { GRPC_RESOURCE_EXHAUSTED_CODE } from "Common/Server/Utils/Telemetry/GoogleRpcStatus";
@@ -64,7 +66,9 @@ import {
   TELEMETRY_INGESTION_BUDGET_DEFAULT_WARNING_PERCENT,
   TELEMETRY_INGESTION_BUDGET_MAX_WARNING_PERCENT,
   TELEMETRY_INGESTION_BUDGET_MIN_WARNING_PERCENT,
+  TELEMETRY_INGESTION_BUDGET_COLUMNS,
   TELEMETRY_INGESTION_BUDGET_SIGNALS,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
   getEmptyTelemetryIngestionBudgetStoredSettings,
   TelemetryIngestionBudgetDay,
   TelemetryIngestionBudgetRefusalKind,
@@ -76,10 +80,14 @@ import TelemetryIngestionBudgetMetricTypeUtil, {
   TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_ID_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_NAME_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_INTERVAL_MINUTES,
+  TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_ID_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_NAME_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
   TELEMETRY_INGESTION_BUDGET_METRIC_PROJECT_ID_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_SCOPE_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_SIGNAL_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_ID_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_NAME_ATTRIBUTE,
 } from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import fs from "fs";
 import path from "path";
@@ -128,6 +136,16 @@ const SETTINGS: string = readCommonSource(
 );
 const QUEUE: string = readAppSource(
   "FeatureSet/Telemetry/Services/Queue/TelemetryQueueService.ts",
+);
+// Team and label budgets (#6386): the Usage page's table, and where they count.
+const TEAM_LABEL_TABLE: string = readDashboardSource(
+  "Components/TelemetryIngestionBudget/TeamLabelBudgetsTable.tsx",
+);
+const PROCESS_TELEMETRY: string = readAppSource(
+  "FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts",
+);
+const ATTRIBUTION_COUNTER: string = readCommonSource(
+  "Server/Utils/Telemetry/TelemetryIngestAttributionCounter.ts",
 );
 
 // Code with no whitespace, so a check holds however prettier wraps it.
@@ -204,6 +222,15 @@ const DASHBOARD_LABELS: ReadonlyArray<string> = [
   "Unknown",
   "Today's Budget Usage",
   "See budgets",
+  // A team's or a label's budget (#6386), under the Usage page's More settings.
+  "More settings",
+  "Team and Label Budgets",
+  "Create Budget",
+  "Team or Label",
+  "More fields",
+  "Team and Label Budgets Today",
+  "This team's own",
+  "This label's own",
 ];
 
 // The English lines that name a label in bold, by label.
@@ -425,6 +452,190 @@ describe("where budgets are set", () => {
     ).toBe("Edit Ingestion Key");
     expect(ENGLISH).toContain(
       "Project Owner or Project Admin, or a custom role with the Edit Ingestion Key permission.",
+    );
+  });
+});
+
+describe("a team's or a label's budget", () => {
+  test("is under the Usage page's More settings, on its own card", () => {
+    const fold: number = USAGE_PAGE.indexOf("<AdvancedPageSection");
+    const table: number = USAGE_PAGE.indexOf("<TeamLabelBudgetsTable");
+
+    expect(fold).toBeGreaterThan(0);
+    expect(table).toBeGreaterThan(fold);
+    expect(compact(TEAM_LABEL_TABLE)).toContain(
+      compact('translationKey("Team and Label Budgets"'),
+    );
+    // Its Create button and the dialog's are "Create Budget".
+    expect(TEAM_LABEL_TABLE).toContain('singularName="Budget"');
+    expect(TEAM_LABEL_TABLE).toContain('title: "Team or Label"');
+    expect(ENGLISH).toContain(
+      "Go to **Project Settings → Telemetry & APM → Usage**, and open **More settings** at the end of the page.",
+    );
+    expect(ENGLISH).toContain(
+      "On the **Team and Label Budgets** card, click **Create Budget**. Choose the team or the label in **Team or Label**",
+    );
+  });
+
+  test("asks for the logs budget, and folds the other signals", () => {
+    const fields: string = compact(
+      TEAM_LABEL_TABLE.slice(
+        TEAM_LABEL_TABLE.indexOf("formFields={["),
+        TEAM_LABEL_TABLE.indexOf("columns={["),
+      ),
+    );
+
+    // A form field's own code, up to the next field.
+    const fieldOf: (column: string) => string = (column: string): string => {
+      const at: number = fields.indexOf(`field:{${column}:true}`);
+      const next: number = fields.indexOf("field:{", at + 1);
+
+      expect({ column, found: at > 0 }).toEqual({ column, found: true });
+
+      return fields.slice(at, next > at ? next : undefined);
+    };
+
+    expect(fieldOf("logsDailyIngestionBudgetInGB")).not.toContain(
+      "collapsibleSection",
+    );
+
+    for (const column of [
+      "tracesDailyIngestionBudgetInGB",
+      "metricsDailyIngestionBudgetInGB",
+      "profilesDailyIngestionBudgetInGB",
+    ]) {
+      expect({ column, field: fieldOf(column) }).toEqual({
+        column,
+        field: expect.stringContaining("collapsibleSection:moreSignals"),
+      });
+    }
+
+    expect(ENGLISH).toContain(
+      "enter a number of GB per day in **Logs (GB per day)**. The other signals are under **More fields**.",
+    );
+  });
+
+  test("counts the OTLP logs, traces, metrics and profiles of the services it owns or is on, and nothing else", () => {
+    expect([...TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS]).toEqual([
+      ProductType.Logs,
+      ProductType.Traces,
+      ProductType.Metrics,
+      ProductType.Profiles,
+    ]);
+
+    // The worker attributes the OTLP jobs, and only those.
+    for (const type of ["Logs", "Traces", "Metrics", "Profiles"]) {
+      const at: number = PROCESS_TELEMETRY.indexOf(
+        `case TelemetryType.${type}: {`,
+      );
+      const next: number = PROCESS_TELEMETRY.indexOf(
+        "case TelemetryType.",
+        at + 1,
+      );
+
+      expect({
+        type,
+        attributed: PROCESS_TELEMETRY.slice(at, next).includes(
+          "resolveAttributedOtelRequest",
+        ),
+      }).toEqual({ type, attributed: true });
+    }
+
+    for (const type of ["Syslog", "FluentLogs", "SecurityEvents"]) {
+      const at: number = PROCESS_TELEMETRY.indexOf(
+        `case TelemetryType.${type}: {`,
+      );
+      const next: number = PROCESS_TELEMETRY.indexOf(
+        "case TelemetryType.",
+        at + 1,
+      );
+
+      expect({
+        type,
+        attributed: PROCESS_TELEMETRY.slice(at, next).includes("Attribution"),
+      }).toEqual({ type, attributed: false });
+    }
+
+    expect(ENGLISH).toContain(
+      "The logs, traces, metrics and profiles that the services the team owns, or the services with the label, send over OpenTelemetry (OTLP).",
+    );
+    expect(ENGLISH).toContain(
+      "security events, and logs from Fluent Bit, Fluentd or syslog count against the project's and the key's budgets only.",
+    );
+  });
+
+  test("has a daily budget and no rate limit", () => {
+    const model: TelemetryIngestionTeamLabelBudget =
+      new TelemetryIngestionTeamLabelBudget();
+
+    for (const signal of TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS) {
+      const columns: {
+        dailyBudgetInGB: string;
+        rateLimitInMBPerSecond: string;
+      } = TELEMETRY_INGESTION_BUDGET_COLUMNS[signal];
+
+      expect(model.hasColumn(columns.dailyBudgetInGB)).toBe(true);
+      expect(model.hasColumn(columns.rateLimitInMBPerSecond)).toBe(false);
+    }
+
+    expect(ENGLISH).toContain(
+      "**A daily budget only.** A team or a label has no rate limit.",
+    );
+  });
+
+  test("is set by Project Owners and Project Admins", () => {
+    const model: TelemetryIngestionTeamLabelBudget =
+      new TelemetryIngestionTeamLabelBudget();
+
+    for (const column of [
+      "teamId",
+      "labelId",
+      "logsDailyIngestionBudgetInGB",
+    ]) {
+      expect({
+        column,
+        create: model.getColumnAccessControlFor(column)?.create,
+      }).toEqual({
+        column,
+        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+      });
+    }
+
+    expect(ENGLISH).toContain(
+      "- **For a team's or a label's budget, Project Owner or Project Admin.**",
+    );
+  });
+
+  test("drops what it refuses, uncounted against the project, and emails the Project Owners", () => {
+    // What a team's budget drops is taken back off the project's and the key's day.
+    expect(compact(ATTRIBUTION_COUNTER)).toContain(
+      compact("redis.call('HINCRBY', day, 'used', -refund)"),
+    );
+    expect(METRICS).toContain("getTeamLabelNotice");
+    expect(METRICS).toContain(
+      "Project Owners get this email once a day for each budget",
+    );
+    expect(ENGLISH).toContain(
+      "What is dropped no longer counts against the project's or the key's budget.",
+    );
+    expect(ENGLISH).toContain(
+      "The Project Owners get an email when the budget passes the warning threshold, and when it is used up.",
+    );
+  });
+
+  test("shows today's figures on their own card, and in the explorers' banner", () => {
+    expect(compact(STATUS_CARD)).toContain(
+      compact('translationKey("Team and Label Budgets Today"'),
+    );
+
+    for (const label of ["This team's own", "This label's own"]) {
+      expect(compact(WORDS)).toContain(compact(`translationKey("${label}")`));
+      expect(ENGLISH).toContain(`**${label}**`);
+    }
+
+    expect(BANNER).toContain("TEAM_LABEL_BUDGETS_USED_UP");
+    expect(ENGLISH).toContain(
+      "or a key's, a team's or a label's is used up, with **See budgets**",
     );
   });
 });
@@ -662,6 +873,10 @@ describe("the budget metrics", () => {
       TELEMETRY_INGESTION_BUDGET_METRIC_SCOPE_ATTRIBUTE,
       TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_ID_ATTRIBUTE,
       TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_NAME_ATTRIBUTE,
+      TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_ID_ATTRIBUTE,
+      TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_NAME_ATTRIBUTE,
+      TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_ID_ATTRIBUTE,
+      TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_NAME_ATTRIBUTE,
     ]) {
       expect(ENGLISH).toContain(`| \`${attribute}\` |`);
     }
@@ -675,7 +890,7 @@ describe("the budget metrics", () => {
       `| \`signal\` | ${slugs.replace(/, ([^,]*)$/, " or $1")}. |`,
     );
     expect(ENGLISH).toContain(
-      `| \`scope\` | \`${TelemetryIngestionBudgetScope.Project}\`, or \`${TelemetryIngestionBudgetScope.IngestionKey}\` for a key's own budget. |`,
+      `| \`scope\` | \`${TelemetryIngestionBudgetScope.Project}\`, \`${TelemetryIngestionBudgetScope.IngestionKey}\` for a key's own budget, or \`${TelemetryIngestionBudgetScope.Team}\` or \`${TelemetryIngestionBudgetScope.Label}\` for a team's or a label's. |`,
     );
   });
 

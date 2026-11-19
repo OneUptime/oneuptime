@@ -5,6 +5,7 @@ Se hur mycket telemetri varje projekt, och varje tjänst eller resurs i det, ski
 :::cards
 - [Hur användningen räknas](#hur-användningen-räknas): En gång om dagen, för varje resurs och signal.
 - [Se ett projekts användning](#se-ett-projekts-användning): Projektinställningar → Telemetri och APM → Användning.
+- [Följ användningen medan den kommer in](#följ-användningen-medan-den-kommer-in): Var 5:e minut, som ett mätvärde.
 - [Se alla projekts användning](#se-alla-projekts-användning): Admin Dashboard, för instansadministratören.
 - [Hur länge användningen sparas](#hur-länge-användningen-sparas): 120 dagar om du inte ändrar det.
 :::
@@ -70,6 +71,36 @@ Telemetri som inte angav någon tjänst listas som **Okänd tjänst**. En resurs
 | Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem, Telemetritittare | Hur mycket varje resurs skickade och hur länge det sparas |
 
 Vad användningen kostade visas bara på OneUptime Cloud: en installation utan fakturering debiterar ingenting för den. Se [Fakturering och användning](/docs/configuration/billing#användningshistorik) för priserna.
+
+## Följ användningen medan den kommer in
+
+Användningsraderna kommer dagen efter. För att inom några minuter se i ett diagram vad varje tjänst skickar, och få ett larm när den skickar mer, kan en Projektägare eller Projektadministratör publicera projektets användning som ett mätvärde:
+
+:::steps
+### Slå på det
+
+Gå till **Projektinställningar → Telemetri och APM → Användning**, öppna **Fler inställningar** längst ned på sidan och slå på **Publicera användning som mätvärden** på kortet **Användning som mätvärden**. Det sparas så snart du slår på det.
+
+### Visa det i ett diagram
+
+Var 5:e minut skriver OneUptime det som varje tjänst och resurs har skickat av varje signal under de 5 minuterna som mätvärdet `oneuptime.telemetry.usage.bytes`, i byte (`By`). Visa summan i [Mätvärdesutforskare](/docs/telemetry/metrics-explorer), eller larma på den med en [metrikmonitor](/docs/monitor/metrics-monitor).
+:::
+
+Varje punkt har de här attributen:
+
+| Attribut | Värde |
+| --- | --- |
+| `projectId` | Projektets ID. |
+| `signal` | `logs`, `traces`, `metrics` eller `profiles`. |
+| `resourceType` | Typen av resurs: `OpenTelemetry` för en tjänst, `Host` för en värd och så vidare. |
+| `resourceId` | Tjänstens eller resursens ID. |
+| `resourceName` | Dess namn när punkten skrevs. |
+
+- **Räknas när den kommer in.** Varje punkt är resursens andel av det som kom in, dekomprimerat, som intagningsbudgetar räknar det, så den kan visa mer än användningsraderna, som räknar det som lagrades.
+- **Skickat över OpenTelemetry.** De loggar, spår, mätvärden och profiler som skickas över OTLP räknas. Säkerhetshändelser, sessionsuppspelningar och loggarna från Fluent Bit, Fluentd eller syslog gör det inte.
+- **Varje punkt hör till sin resurs.** Den som får läsa en tjänsts eller en resurs telemetri läser dess punkter: en roll som är begränsad till vissa etiketter ser bara deras.
+- **De kostar ingenting.** De här punkterna räknas inte mot någon budget eller som användning, och sparas lika länge som monitorernas mätvärden: 30 dagar om inte instansadministratören ändrar det. Namn på mätvärden som börjar med `oneuptime.telemetry.usage.` är reserverade för dem: mätvärden som dina applikationer skickar under ett sådant namn kasseras.
+- **Avstängt som standard.** Medan det är avstängt skrivs ingenting, och de punkter som redan har skrivits sparas tills de löper ut.
 
 ## Se alla projekts användning
 

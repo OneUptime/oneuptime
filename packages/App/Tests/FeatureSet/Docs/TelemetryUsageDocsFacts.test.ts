@@ -12,8 +12,20 @@ import { navTitle, toLatinDigits } from "./DocsTranslationChecks";
 import DocsNav from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES,
+  TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES,
   TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS,
 } from "Common/Server/Services/TelemetryUsageBillingService";
+import Project from "Common/Models/DatabaseModels/Project";
+import TelemetryUsageMetricType from "Common/Types/Telemetry/TelemetryUsageMetricType";
+import TelemetryUsageMetricTypeUtil, {
+  TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES,
+  TELEMETRY_USAGE_METRIC_NAME_PREFIX,
+  TELEMETRY_USAGE_METRIC_PROJECT_ID_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_RESOURCE_ID_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_RESOURCE_NAME_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_RESOURCE_TYPE_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_SIGNAL_ATTRIBUTE,
+} from "Common/Utils/Telemetry/TelemetryUsageMetricType";
 import {
   LogDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
@@ -30,7 +42,11 @@ import {
   TELEMETRY_USAGE_RANGE_OPTIONS_IN_DAYS,
   TELEMETRY_USAGE_SIGNALS,
 } from "Common/Types/Telemetry/TelemetryUsage";
-import { TELEMETRY_INGESTION_BUDGET_SIGNALS } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  getTelemetryIngestionBudgetSignalSlug,
+  TELEMETRY_INGESTION_BUDGET_SIGNALS,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { EVERY_DAY } from "Common/Utils/CronTime";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -64,6 +80,13 @@ const OVERVIEW: string = readCommonSource(
 );
 const USAGE_PAGE: string = readDashboardSource(
   "Pages/Settings/UsageHistory.tsx",
+);
+// Usage as metrics (#6355): the switch, and the sweep that writes them.
+const USAGE_METRICS_SWITCH: string = readDashboardSource(
+  "Components/TelemetryUsage/TelemetryUsageMetricsSwitch.tsx",
+);
+const USAGE_METRICS_SWEEP: string = readCommonSource(
+  "Server/Utils/Telemetry/TelemetryUsageMetrics.ts",
 );
 
 interface NavLink {
@@ -547,6 +570,140 @@ describe("exceptions, apart from traces", () => {
           return line.startsWith(":::details ");
         }).length,
       );
+    },
+  );
+});
+
+/*
+ * Issue #6355: a project can publish its usage as a metric, written every
+ * 5 minutes from the counts ingest already makes. Each thing the page says
+ * about it is held to the code that makes it so.
+ */
+describe("usage as a metric", () => {
+  test("is a switch under the Usage page's More settings, off until a Project Owner or Project Admin switches it on", () => {
+    const fold: number = USAGE_PAGE.indexOf("<AdvancedPageSection");
+
+    expect(fold).toBeGreaterThan(0);
+    expect(USAGE_PAGE.indexOf("<TelemetryUsageMetricsSwitch")).toBeGreaterThan(
+      fold,
+    );
+    expect(USAGE_METRICS_SWITCH).toContain(
+      'column="publishTelemetryUsageMetrics"',
+    );
+
+    for (const words of ["Usage as Metrics", "Publish usage as metrics"]) {
+      expect(USAGE_METRICS_SWITCH).toContain(`"${words}"`);
+    }
+
+    const project: Project = new Project();
+
+    expect(
+      project.getTableColumnMetadata("publishTelemetryUsageMetrics")
+        .defaultValue,
+    ).toBe(false);
+    expect(
+      project.getColumnAccessControlFor("publishTelemetryUsageMetrics")?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
+
+    expect(ENGLISH).toContain(
+      "a Project Owner or Project Admin can publish the project's usage as a metric:",
+    );
+    expect(ENGLISH).toContain(
+      "open **More settings** at the end of the page, and switch on **Publish usage as metrics** on the **Usage as Metrics** card.",
+    );
+    expect(ENGLISH).toContain("**Off by default.**");
+  });
+
+  test("writes one metric every 5 minutes, in bytes, with the attributes the page lists", () => {
+    expect(TelemetryUsageMetricTypeUtil.getAll()).toEqual([
+      TelemetryUsageMetricType.UsageBytes,
+    ]);
+    expect(TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES).toBe(5);
+    expect(
+      TelemetryUsageMetricTypeUtil.getUnit(TelemetryUsageMetricType.UsageBytes),
+    ).toBe("By");
+    expect(ENGLISH).toContain(
+      "Every 5 minutes, OneUptime writes what each service and resource sent of each signal in those 5 minutes as the metric `oneuptime.telemetry.usage.bytes`, in bytes (`By`).",
+    );
+
+    for (const attribute of [
+      TELEMETRY_USAGE_METRIC_PROJECT_ID_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_SIGNAL_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_RESOURCE_TYPE_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_RESOURCE_ID_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_RESOURCE_NAME_ATTRIBUTE,
+    ]) {
+      expect(ENGLISH).toContain(`| \`${attribute}\` |`);
+    }
+
+    // The signals ingest counts by resource: the budgets' slugs.
+    const slugs: string = TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.map(
+      (
+        signal: (typeof TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS)[number],
+      ): string => {
+        return `\`${getTelemetryIngestionBudgetSignalSlug(signal)}\``;
+      },
+    ).join(", ");
+    expect(ENGLISH).toContain(
+      `| \`signal\` | ${slugs.replace(/, ([^,]*)$/, " or $1")}. |`,
+    );
+    expect(ENGLISH).toContain(
+      `\`${ServiceType.OpenTelemetry}\` for a service, \`${ServiceType.Host}\` for a host`,
+    );
+  });
+
+  test("costs nothing, is kept as long as monitor metrics, and has its names to itself", () => {
+    expect(TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES).toContain(
+      TelemetryUsageMetricType.UsageBytes,
+    );
+    expect(USAGE_METRICS_SWEEP).toContain(
+      "const DEFAULT_RETENTION_DAYS: number = 30;",
+    );
+    expect(USAGE_METRICS_SWEEP).toContain("monitorMetricRetentionInDays: true");
+    expect(
+      TelemetryUsageMetricTypeUtil.isReservedMetricName(
+        "OneUptime.Telemetry.Usage.anything",
+      ),
+    ).toBe(true);
+    expect(ENGLISH).toContain(
+      "30 days unless the instance admin changes it. Metric names that start with `" +
+        TELEMETRY_USAGE_METRIC_NAME_PREFIX +
+        "` are reserved for them",
+    );
+  });
+
+  test.each(TRANSLATED_LANGUAGES)(
+    "%s names the switch and its card as its Dashboard draws them",
+    (language: string) => {
+      const page: string = readPage(language, PAGE);
+
+      for (const label of [
+        "More settings",
+        "Publish usage as metrics",
+        "Usage as Metrics",
+      ]) {
+        const drawn: string = drawnDashboardLabel(language, label);
+
+        expect({
+          language,
+          label,
+          named: page.includes(`**${drawn}**`),
+        }).toEqual({ language, label, named: true });
+      }
+
+      // The metric's name, its unit and its attributes are code.
+      for (const code of [
+        "`oneuptime.telemetry.usage.bytes`",
+        "`By`",
+        "`resourceName`",
+        "`oneuptime.telemetry.usage.`",
+      ]) {
+        expect({ language, code, kept: page.includes(code) }).toEqual({
+          language,
+          code,
+          kept: true,
+        });
+      }
     },
   );
 });

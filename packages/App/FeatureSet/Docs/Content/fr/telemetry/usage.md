@@ -5,6 +5,7 @@ Voyez combien de télémétrie envoie chaque projet, et chaque service ou ressou
 :::cards
 - [Comment l'utilisation est comptée](#comment-lutilisation-est-comptée): Une fois par jour, pour chaque ressource et chaque signal.
 - [Voir l'utilisation d'un projet](#voir-lutilisation-dun-projet): Paramètres du projet → Télémétrie & APM → Utilisation.
+- [Suivre l'utilisation à mesure qu'elle arrive](#suivre-lutilisation-à-mesure-quelle-arrive): Toutes les 5 minutes, sous forme de métrique.
 - [Voir l'utilisation de tous les projets](#voir-lutilisation-de-tous-les-projets): L'Admin Dashboard, pour l'administrateur de l'instance.
 - [Combien de temps l'utilisation est conservée](#combien-de-temps-lutilisation-est-conservée): 120 jours, sauf si vous changez ce nombre.
 :::
@@ -70,6 +71,36 @@ La télémétrie qui ne nommait aucun service est listée comme **Service inconn
 | Membre du projet, Lecteur, Administrateur de la télémétrie, Membre de la télémétrie, Lecteur de la télémétrie | Combien chaque ressource a envoyé et combien de temps c'est conservé |
 
 Le coût de l'utilisation n'est affiché que sur OneUptime Cloud : une installation sans facturation ne facture rien pour elle. Voir [Facturation et utilisation](/docs/configuration/billing#historique-dutilisation) pour les prix.
+
+## Suivre l'utilisation à mesure qu'elle arrive
+
+Les lignes d'utilisation arrivent le lendemain. Pour suivre dans un graphique ce que chaque service envoie en quelques minutes, et être alerté quand il envoie davantage, un Propriétaire du projet ou un Administrateur du projet peut publier l'utilisation du projet sous forme de métrique :
+
+:::steps
+### L'activer
+
+Allez dans **Paramètres du projet → Télémétrie & APM → Utilisation**, ouvrez **Plus de paramètres** en bas de la page, et activez **Publier l'utilisation sous forme de métriques** sur la carte **Utilisation sous forme de métriques**. Le réglage est enregistré dès que vous l'activez.
+
+### La suivre dans un graphique
+
+Toutes les 5 minutes, OneUptime écrit ce que chaque service et chaque ressource a envoyé de chaque signal pendant ces 5 minutes dans la métrique `oneuptime.telemetry.usage.bytes`, en octets (`By`). Suivez sa somme dans l'[Explorateur de métriques](/docs/telemetry/metrics-explorer), ou déclenchez des alertes dessus avec un [moniteur de métriques](/docs/monitor/metrics-monitor).
+:::
+
+Chaque point porte ces attributs :
+
+| Attribut | Valeur |
+| --- | --- |
+| `projectId` | L'ID du projet. |
+| `signal` | `logs`, `traces`, `metrics` ou `profiles`. |
+| `resourceType` | Le type de ressource : `OpenTelemetry` pour un service, `Host` pour un hôte, et ainsi de suite. |
+| `resourceId` | L'ID du service ou de la ressource. |
+| `resourceName` | Son nom au moment où le point a été écrit. |
+
+- **Comptée à son arrivée.** Chaque point est la part de la ressource dans ce qui est arrivé, décompressé, comme le comptent les budgets d'ingestion, il peut donc indiquer plus que les lignes d'utilisation, qui comptent ce qui a été stocké.
+- **Envoyée par OpenTelemetry.** Les journaux, traces, métriques et profils envoyés par OTLP sont comptés. Les événements de sécurité, les relectures de session et les journaux de Fluent Bit, Fluentd ou syslog ne le sont pas.
+- **Chaque point appartient à sa ressource.** Quiconque peut lire la télémétrie d'un service ou d'une ressource lit ses points : un rôle limité à certaines étiquettes ne voit que les leurs.
+- **Ils ne coûtent rien.** Ces points ne sont comptés sur aucun budget ni comme utilisation, et sont conservés aussi longtemps que les métriques de moniteur : 30 jours, sauf si l'administrateur de l'instance le change. Les noms de métriques qui commencent par `oneuptime.telemetry.usage.` leur sont réservés : les métriques que vos applications envoient sous un tel nom sont abandonnées.
+- **Désactivé par défaut.** Tant qu'il est désactivé, rien n'est écrit, et les points déjà écrits sont conservés jusqu'à leur expiration.
 
 ## Voir l'utilisation de tous les projets
 
