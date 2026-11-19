@@ -396,6 +396,8 @@ function buildPolicy(overrides?: Record<string, unknown>): unknown {
     frustrationSignals: CUSTOM_FRUSTRATION_SIGNALS,
     isProductAnalyticsEnabled: false,
     productAnalyticsUserPropertyKeys: [],
+    pageRules: { recordOnly: [], neverRecord: [] },
+    readableEventPropertyKeys: [],
     configEpoch: 77,
     ...overrides,
   };
@@ -1300,5 +1302,72 @@ describe("GET /session-replay/v1/config frustrationSignals", () => {
         getDefaultSessionReplayFrustrationSettings(),
       ),
     );
+  });
+});
+
+/*
+ * The replay policy's page rules (#7502) and readable event properties
+ * (#7501) reach the recorders on this response, the empty lists too: the
+ * browser recorder reads an absent field as every page recorded and no
+ * property readable, and the server always says which.
+ */
+describe("GET /session-replay/v1/config pageRules and readableEventPropertyKeys", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getRecorderVersionMock.mockImplementation((): string => {
+      return LATEST_RECORDER_VERSION;
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  test("a live config carries the rules and the keys as the gate read them", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({
+        pageRules: { recordOnly: ["/checkout*"], neverRecord: ["/admin*"] },
+        readableEventPropertyKeys: ["step", "setup"],
+      }) as never,
+    );
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["pageRules"]).toEqual({
+      recordOnly: ["/checkout*"],
+      neverRecord: ["/admin*"],
+    });
+    expect(body["readableEventPropertyKeys"]).toEqual(["step", "setup"]);
+  });
+
+  test("an application without them says so: every page, no readable property", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["pageRules"]).toEqual({ recordOnly: [], neverRecord: [] });
+    expect(body["readableEventPropertyKeys"]).toEqual([]);
+  });
+
+  test("the disabled response needs neither: it records nothing", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["readableEventPropertyKeys"]).toBeUndefined();
   });
 });

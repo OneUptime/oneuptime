@@ -25,6 +25,11 @@ import {
 import { getSessionReplaySignalIdsByName } from "../../../Types/Rum/SessionReplaySignalMetric";
 import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
 import { normalizeProductAnalyticsUserPropertyKeys } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  SessionReplayPageRules,
+  readSessionReplayPageRules,
+} from "../../../Types/Rum/SessionReplayPageRules";
+import { normalizeSessionReplayReadablePropertyKeys } from "../../../Types/Rum/SessionReplayReadableProperties";
 import { getApplicationSessionReplayRetentionInDays } from "./SessionReplayRetention";
 
 /*
@@ -84,6 +89,9 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayMaskingMode",
   "sessionReplayMaskSelectors",
   "sessionReplayBlockSelectors",
+  "sessionReplayRecordOnlyPages",
+  "sessionReplayNeverRecordPages",
+  "sessionReplayReadableEventProperties",
   "sessionReplayAllowedOrigins",
   "sessionReplayConsentMode",
   "sessionReplayCaptureTrigger",
@@ -151,6 +159,19 @@ export interface SessionReplayGatePolicy {
 
   maskSelectors: Array<string>;
   blockSelectors: Array<string>;
+
+  /*
+   * The pages a recording may hold (issue #7502): Record only these pages
+   * and Never record these pages. Read so that a damaged row records no
+   * page rather than every page (readSessionReplayPageRules).
+   */
+  pageRules: SessionReplayPageRules;
+
+  /*
+   * Readable event properties (issue #7501): the keys whose short token
+   * values stay readable under every masking mode. Empty: none.
+   */
+  readableEventPropertyKeys: Array<string>;
 
   recordCanvas: boolean;
   captureUserIdentity: boolean;
@@ -548,6 +569,13 @@ export default class SessionReplayGateCache {
         ),
         blockSelectors: this.readStringArray(
           appView["sessionReplayBlockSelectors"],
+        ),
+        pageRules: readSessionReplayPageRules({
+          recordOnly: appView["sessionReplayRecordOnlyPages"],
+          neverRecord: appView["sessionReplayNeverRecordPages"],
+        }),
+        readableEventPropertyKeys: normalizeSessionReplayReadablePropertyKeys(
+          appView["sessionReplayReadableEventProperties"],
         ),
         recordCanvas: appView["sessionReplayRecordCanvas"] === true,
         captureUserIdentity:

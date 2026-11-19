@@ -6,6 +6,7 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
+import { getSessionReplayIdentityPermissionTitle } from "./SessionReplayPermissionTitle";
 
 /*
  * Who a session (or a rollup row) belongs to, as the list should say it.
@@ -62,9 +63,16 @@ export interface SessionUserDescription {
 /*
  * The cells' hovers, in English: keys of the Dashboard's locales, looked up
  * with the translator a description is made with.
+ *
+ * A hidden user's hover is the player header's request, word for word,
+ * filled with the grant that reads the identity as the roles screen names
+ * it ("Watch Session Replays", getSessionReplayIdentityPermissionTitle).
+ * It used to stop at the reason ("... so the label is not sent to you."),
+ * and the list is where most people meet a hidden user first: the one
+ * place that left them with no next step (#7320).
  */
 export const HIDDEN_IDENTITY_TITLE: string = translationKey(
-  "Your role cannot read end-user identity, so the label is not sent to you.",
+  'Your role cannot read end-user identity. Ask a Project Admin for the "{{permission}}" permission.',
 );
 
 export const VISITOR_TITLE: string = translationKey(
@@ -171,7 +179,9 @@ function describeHidden(
   return {
     kind: "hidden",
     text: translateLine("Hidden", translator),
-    title: translateLine(HIDDEN_IDENTITY_TITLE, translator),
+    title: translator.translateTemplate(HIDDEN_IDENTITY_TITLE, {
+      permission: getSessionReplayIdentityPermissionTitle(),
+    }),
     initials: "?",
     hue: key ? stableHue(key) : null,
     filter: key ? { identifiedUserKey: key } : null,

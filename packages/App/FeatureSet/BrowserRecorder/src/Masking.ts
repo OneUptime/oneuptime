@@ -1,6 +1,7 @@
 import CommonMasking from "Common/Utils/Rum/Masking";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import { SESSION_REPLAY_READABLE_VALUE_PATTERN } from "Common/Types/Rum/SessionReplayReadableProperties";
 
 /*
  * The recorder's masking policy: the browser-side half of
@@ -167,9 +168,11 @@ const CONTENT_IS_TEXT_TAGS: Array<string> = ["meta"];
  * so masking them would break the replay's LAYOUT rather than protect
  * anything; a value with whitespace, an @, or real length is free text and
  * is masked. A short pseudonymous id survives, which URL scrubbing already
- * accepts for path segments under 32 characters.
+ * accepts for path segments under 32 characters. The same shape a listed
+ * event property's value keeps under Mask all text (issue #7501).
  */
-const DATA_ATTRIBUTE_TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_.:/-]{0,32}$/;
+const DATA_ATTRIBUTE_TOKEN_PATTERN: RegExp =
+  SESSION_REPLAY_READABLE_VALUE_PATTERN;
 
 /* Links that carry the contact detail in the URL itself. */
 const CONTACT_HREF_PATTERN: RegExp = /^(mailto|tel|sms|callto|facetime):/i;

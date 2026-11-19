@@ -40,7 +40,7 @@ flowchart TB
 
 ![A lista "Chaves de ingestão", com "Criar chave de ingestão" destacado](screen:ingestion-keys)
 
-A nova chave abre em uma página própria. Copie a **Chave secreta** dela: é o token que o SDK envia como `x-oneuptime-token`.
+A nova chave abre em uma página própria. Copie a **Chave secreta** dela: é o token que o SDK envia como `x-oneuptime-token`. Uma chave Browser foi feita para ser pública: só funciona a partir das origens que você lista, só envia telemetria do navegador e reproduções de sessão, e tem um limite de requisições. Nunca coloque uma chave Servidor em uma página.
 
 ![A página de uma chave de ingestão de telemetria, com a chave secreta](/docs/static/images/TelemetryIngestionKeyView.png)
 

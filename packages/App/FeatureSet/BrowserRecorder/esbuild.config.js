@@ -215,6 +215,19 @@ const FORBIDDEN_IN_BUNDLE = [
  * Measured after: recorder.js 354855 bytes raw / 106276 gzip; before it
  * 352802 / 105353, which had left 119 bytes of gzip headroom. The loader
  * carries none of it and is unchanged at 13333 bytes raw. Same rule.
+ *
+ * Held at 348 KB on 2026-11-19 for the replay policy's page rules and
+ * readable event properties (issues #7502, #7501): the recorder pauses as
+ * the address changes to a page the policy keeps out, before the router
+ * draws it, names that page nowhere, and goes on at the next page the
+ * policy records; and under Mask all text it keeps a listed event
+ * property's short code as written. The code nothing called, and the
+ * ingest's arithmetic and the loader's artifact URL the recorder carried,
+ * went first (issue #8019), and paid for most of it. Measured after:
+ * recorder.js 356274 bytes raw / 106688 gzip; before it 355297 / 106391.
+ * The loader is 13532 / 5008, against 13579 / 5019 before. That leaves 78
+ * bytes of raw headroom: the next feature raises this budget, by the same
+ * rule.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
 const RECORDER_MAX_BYTES = 348 * 1024;
@@ -310,6 +323,11 @@ const RECORDER_MAX_BYTES = 348 * 1024;
  * 9110 writes it (issue #8928; the raw budget's note above says what it
  * is). Measured after: recorder.js 106276 gzip; before it 105353, which had
  * left 119 bytes of headroom. Same rule.
+ *
+ * Held at 105 KB on 2026-11-19 for page rules and readable event
+ * properties (issues #7502, #7501, #8019; the raw budget's note above says
+ * what they are). Measured after: recorder.js 106688 gzip, 832 bytes under
+ * it; before it 106391.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
 const RECORDER_MAX_GZIP_BYTES = 105 * 1024;

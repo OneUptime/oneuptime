@@ -1085,7 +1085,7 @@ export default class Transport {
      * clientSendUnixMs is stamped HERE, as the request goes out, not when
      * the chunk closed: a chunk that waited out an outage says how long it
      * waited, which is what lets the server keep a recording uploaded hours
-     * later on its real timeline (SessionIdentity.getClientQueueDelayMs).
+     * later on its real timeline (SessionReplayIngestBounds.getClientQueueDelayMs).
      */
     const envelope: SessionReplayChunkEnvelope = {
       ...chunk.envelope,

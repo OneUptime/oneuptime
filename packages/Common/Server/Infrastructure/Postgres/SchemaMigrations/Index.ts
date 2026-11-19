@@ -1089,6 +1089,7 @@ import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020
 import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
 import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
 import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
+import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
 import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
 import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
 
@@ -2184,6 +2185,7 @@ export default [
   AddMonitorSecretType1809185030000,
   AddWorkflowRunAs1809185100000,
   AddWorkflowRunAsKeys1809185100100,
+  AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
   MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
   DropIncidentTemplateOwnerNotifiedFlag1809185210000,
 ];
