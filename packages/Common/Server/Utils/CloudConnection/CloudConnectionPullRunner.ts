@@ -1,5 +1,6 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import { readCloudAddedMetrics } from "../../../Types/Cloud/CloudAddedMetrics";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudStreamSummary,
@@ -312,8 +313,9 @@ export default class CloudConnectionPullRunner {
        * stream key: once Stop streaming refuses what its streams deliver,
        * the read reads and writes everything again at once. An AWS stream
        * writes each key metric its stack carries (CloudStreamStack): the
-       * read leaves those out of what it writes and, but where a resource's
-       * health is judged from one, out of what it reads.
+       * read leaves those out of what it writes and out of what it reads -
+       * one a resource's health is judged from only while the stream's
+       * readings of its account and Region are fresh (below).
        */
       const streamSummary: CloudStreamSummary | null =
         connection.streamKeyCreatedAt
@@ -333,7 +335,7 @@ export default class CloudConnectionPullRunner {
         readings: Map<string, CollectedCloudReadings>;
         freshSources: Set<string>;
       } | null =
-        awsCoverage.size > 0
+        connection.provider === CloudProvider.AWS && awsCoverage.size > 0
           ? await CloudStreamReadings.load({
               connectionId: connection.id!.toString(),
               now,

@@ -1677,6 +1677,21 @@ describe("a streaming account's readings, from its streams", () => {
     expect(written[0]!["streamedReadings"]).toBeUndefined();
   });
 
+  test("are not asked of another cloud's connection, whatever its streams deliver", async () => {
+    streams();
+    connection.provider = CloudProvider.Azure;
+    const load: jest.SpiedFunction<typeof CloudStreamReadings.load> =
+      jest.spyOn(CloudStreamReadings, "load");
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockResolvedValue({ written: 1, needingAttention: 0, cleared: 0 });
+
+    await run();
+
+    expect(load).not.toHaveBeenCalled();
+    expect(readCalls[0]!.awsStreamedReadingSources).toBeUndefined();
+  });
+
   test("a stream whose readings could not be had leaves every reading to the read", async () => {
     streams();
     jest.spyOn(CloudStreamReadings, "load").mockResolvedValue({
