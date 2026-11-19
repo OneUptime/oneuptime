@@ -140,7 +140,72 @@ Power BI ツールを追加または編集するときに **Alert on Failed Refr
 
 パイプラインの **所有者** タブには、それを担当する人やチームが表示され、パイプラインのアラートはその人たちに届きます。 **概要** と **問題** には、失敗したか遅れているパイプラインの所有者が表示されるか、 **所有者なし** と表示され、所有者を追加する方法が示されます。
 
+**所有者ルール** で、パイプラインの所有者を自動で指定できます。**パイプラインルール** タブでは、ルールがパイプラインの名前 (`orders_daily.load_orders` など) や、実行場所を表す Namespace (`airflow://prod` など) に正規表現で一致させ、OneUptime がそのパイプラインを初めて検出したときに、ルールのユーザーとチームをパイプラインの所有者として追加します。既存のパイプラインに追加するには、ルールを開いて **今すぐ実行** を選択します。
+
 パイプラインのページには **リネージ** カードがあり、実行が失敗したときや遅れているときにまず見る場所です: 左にはパイプラインが読み取るテーブル、右には書き込むテーブル、その間にパイプラインが描かれ、各カードには現在の状態が示されます。ステップ数を増やすと、それらのテーブルの作成元と、それらから作られるものが表示されます。任意のテーブルを開くと、そのテーブル自身の **リネージ** タブが表示されます。パイプラインのカードやテーブルのカードにある、描画されていないテーブルの数を選ぶと、ここでもその場に描き足せます。 書き込む列を 1 つ選ぶと、パイプラインをまたいでその列をたどれます。上流では読み取る各テーブルの構築元の列まで、下流では書き込む各テーブルまでたどります。
+
+## サーキットブレーカー
+
+チェックの失敗やテーブルの遅延は所有者に通知されますが、そのテーブルを読むパイプラインはそのまま実行され、不正なデータを下流にコピーしてしまいます。サーキットブレーカーは、その前にパイプラインを止めます。パイプラインの最初のステップが、読み取るテーブルが正常かどうかを OneUptime に問い合わせ、答えが go のときだけ残りが実行されます。
+
+- パイプラインが読み取るテーブルのチェックが失敗中なら、必ず停止します。アラートが開いているチェックや、失敗した dbt テストです。
+- パイプラインの **サーキットブレーカー** ページで **読み取るテーブルが遅延したら停止する** をオンにすると、遅延テーブルでも停止します。テーブルの遅延は単に静かな一日を意味することもあるため、どのパイプラインでもオフになっています。
+- 実行できなかったチェックやまだ実行されていないチェック、チェックのないテーブルでは、何も停止しません。
+
+ステップは、データオブザーバビリティを読み取れるプロジェクトの API キーで問い合わせ、パイプラインを `namespace/name`、名前のみ、または ID で指定します。サーキットブレーカーは、パイプラインが読み取るテーブルをリネージから取得します。リクエストでは `tables` も指定でき、それだけを指定することもできます。それぞれ `schema.table`、名前のみ、または ID で指定します。どのテーブルにも一致しない名前は `notFound` で返され、合格したテーブルとして数えられることはありません。判定されるのは、API キーが読み取れるテーブルだけです。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+回答の `verdict` は `go` または `stop` です。`reasons` には失敗中の各チェックとそのテーブル、遅延中の各テーブルとその遅延時間が並び、`tables` には判定したすべてのテーブルが並びます。`answer` は同じ内容を、ステップのログ向けにいくつかの文で伝えます。`failWithStatusCode` を指定すると、停止時に HTTP 412 が返るため、`curl -f` でステップが失敗します。1 つのリクエストだけで決めるには `stopsOnLateTables` に `true` または `false` を、回答を保存せずに問い合わせるには `dryRun` に `true` を送ります。
+
+Airflow では、テーブルを読むタスクの前に `ShortCircuitOperator` を置きます。その関数が false を返すと、後続のタスクはすべてスキップされます。
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt の `on-run-start` フックはウェブリクエストではなくウェアハウスで SQL を実行するため、dbt を開始するステップで問い合わせます。CI のジョブ、cron の行、または dbt を実行するタスクです。dbt プロジェクトのパイプライン名は、`dbt/` の後にプロジェクト名が続きます。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+パイプラインを指定したリクエストは、試行でない限りそのパイプラインに保存されます。サーキットブレーカーがパイプラインを停止している間、その **サーキットブレーカー** ページにはいつからなぜ停止しているかが表示され、**概要** は停止の表示から始まり、**要対応** と **問題** には失敗や遅延した実行の代わりに、停止として表示されます。停止は、サーキットブレーカーが次に go と答えたとき、または停止の後に実行が始まったときに終わります。同じページには、回答を保存せずにサーキットブレーカーに問い合わせる **今すぐテスト** と、パイプライン名を入力済みの curl、Airflow、dbt 向けのステップがあります。
+
+サーバーでデータオブザーバビリティがオフの間、サーキットブレーカーは go と答え、何も保存しません。製品をオフにしても、パイプラインが止まることはありません。
 
 ## 原因ごとに 1 件のアラート
 

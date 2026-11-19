@@ -346,9 +346,10 @@ describe("the words of a tool's summary", () => {
         }),
       ),
     ).toEqual(["1 dashboard read", "4 of 5 tables watched"]);
+    // Not the bare "Watched": that is the replay audit's watching time (#9658).
     expect(getBiSourceStanding(translator, SALES)).toEqual({
       standing: BiSourceStanding.Watched,
-      text: "Watched",
+      text: "Watched by OneUptime",
     });
     expect(getBiSourceStanding(translator, FACILITIES)).toEqual({
       standing: BiSourceStanding.NotConnected,
@@ -464,7 +465,9 @@ describe("the Tables Matched dialog", () => {
     expect(sources[2]).toHaveTextContent(
       "SQL Server · 3 datasets · 4 of 5 tables watched",
     );
-    expect(within(sources[2]!).getByText("Watched")).toBeInTheDocument();
+    expect(
+      within(sources[2]!).getByText("Watched by OneUptime"),
+    ).toBeInTheDocument();
     // Only a database OneUptime can watch, and does not, is offered to connect.
     expect(screen.getAllByTestId("bi-lineage-connect")).toHaveLength(1);
     expect(screen.getByText("And 2 more data sources.")).toBeInTheDocument();

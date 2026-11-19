@@ -305,6 +305,12 @@ describe("the Monitor model says the same", () => {
       indexName(["incomingRequestSecretKeyHash"]),
       indexName(["incomingEmailSecretKeyHash"]),
       "IDX_monitor_auto_provisioned_device_template_unique",
+      /*
+       * The network device a person tied the monitor to, which a device's
+       * pages and the duplicate check read by (#9545: built online by
+       * AddMonitorNetworkDeviceIdIndexAndKey, partial on non-null).
+       */
+      "IDX_monitor_network_device",
     ];
 
     expect(declared().map(nameOf).sort()).toEqual(

@@ -140,7 +140,72 @@ Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sin
 
 En pipelines fane **Ejere** nævner de personer og teams, der passer den, og dens advarsler går til dem. **Oversigt** og **Problemer** nævner ejerne af en pipeline, der fejlede eller er forsinket, eller viser **Ingen ejer** med en måde at tilføje en på.
 
+**Ejerregler** kan navngive en pipelines ejere for dig. På deres fane **Pipelineregler** matcher en regel en pipeline med et regulært udtryk på dens navn, som `orders_daily.load_orders`, eller på dens navnerum, hvor den kører, som `airflow://prod`, og tilføjer sine personer og teams som pipelinens ejere, når OneUptime første gang ser pipelinen. For at tilføje dem til de pipelines, du allerede har, skal du åbne reglen og vælge **Kør nu**.
+
 En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**. Et tal for tabeller, der ikke er tegnet, på pipelinens kort eller på en tabels, tegner også her flere af dem på stedet. Vælg en af de kolonner, den skriver, for at følge den hen over pipelinen: op til kolonnen i hver læst tabel, den er bygget fra, og ned til hver tabel, den skriver den til.
+
+## Circuit breakers
+
+En kontrol, der fejler, eller en forsinket tabel giver dens ejere besked, men de pipelines, der læser tabellen, ville stadig køre og kopiere de dårlige data videre. En circuit breaker stopper dem først: pipelinens første trin spørger OneUptime, om de tabeller, den læser, er sunde, og resten kører kun, når svaret er go.
+
+- En kontrol, der fejler, på en tabel, som pipelinen læser, stopper den altid: en kontrol, hvis alarm er åben, eller en dbt-test, der fejlede.
+- En forsinket tabel stopper den også, så snart **Stop, når en tabel, den læser, er forsinket** er slået til på pipelinens side **Circuit breaker**. Det er slået fra for alle pipelines, da en forsinket tabel også bare kan betyde en stille dag.
+- En kontrol, der ikke kunne køre eller ikke har kørt endnu, og en tabel uden kontroller, stopper intet.
+
+Trinnet spørger med en projekt-API-nøgle, der må læse Dataobservabilitet, og navngiver pipelinen som `namespace/name`, kun med dens navn eller med dens ID. Circuit breakeren læser de tabeller, pipelinen læser, ud fra dens afstamning. En forespørgsel kan også navngive `tables`, eller kun dem, hver som `schema.table`, kun med dens navn eller med dens ID; et navn, der ikke matcher nogen tabel, kommer tilbage i `notFound` og tælles aldrig som en tabel, der bestod. Kun de tabeller, som API-nøglen må læse, bliver vurderet.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Svarets `verdict` er `go` eller `stop`. `reasons` viser hver kontrol, der fejler, med dens tabel, og hver forsinket tabel med hvor forsinket den er; `tables` viser hver vurderet tabel; og `answer` siger det samme i et par sætninger til trinnets log. Med `failWithStatusCode` svarer et stop med HTTP 412, så `curl -f` får trinnet til at fejle. Send `stopsOnLateTables` som `true` eller `false` for at bestemme for én forespørgsel, og `dryRun` som `true` for at spørge, uden at svaret gemmes.
+
+Sæt i Airflow en `ShortCircuitOperator` før de opgaver, der læser tabellerne: når dens funktion returnerer false, springes alle opgaver efter den over.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbts `on-run-start`-hooks kører SQL i dit warehouse, ikke webforespørgsler, så spørg i det trin, der starter dbt: et CI-job, en cron-linje eller den opgave, der kører det. Et dbt-projekts pipeline hedder `dbt/` efterfulgt af projektets navn.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+En forespørgsel, der navngiver en pipeline, gemmes på den, medmindre det er en prøvekørsel. Så længe circuit breakeren har stoppet en pipeline, siger dens side **Circuit breaker**, siden hvornår og hvorfor, dens **Oversigt** åbner med stoppet, og **Kræver handling** og **Problemer** viser den som stoppet i stedet for dens fejlede eller forsinkede kørsel. Stoppet slutter, når circuit breakeren næste gang svarer go, eller når en kørsel starter efter det. Samme side har **Test nu**, som spørger circuit breakeren, uden at svaret gemmes, og trinnet til curl, Airflow og dbt med pipelinens navn udfyldt.
+
+Så længe Dataobservabilitet er slået fra på serveren, svarer circuit breakeren go og gemmer intet: at slå et produkt fra stopper aldrig en pipeline.
 
 ## Én advarsel pr. årsag
 

@@ -38,6 +38,7 @@ import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
 import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
 import DataPipelineAuditLogsPage from "../Pages/DataPipeline/View/AuditLogs";
 import DataPipelineOwnersPage from "../Pages/DataPipeline/View/Owners";
+import DataPipelineCircuitBreakerPage from "../Pages/DataPipeline/View/CircuitBreaker";
 import DataObservabilityIssuesPage from "../Pages/DataObservability/Issues";
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
 import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
@@ -47,6 +48,7 @@ import DataObservabilityOwnerRulesPage from "../Pages/DataObservability/OwnerRul
 import DataObservabilityLabelRulesPage from "../Pages/DataObservability/LabelRules";
 import TableOwners from "../Pages/DataObservability/TableView/Owners";
 import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
+import DataPipelineOwnerRule from "Common/Models/DatabaseModels/DataPipelineOwnerRule";
 import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
 import DataObservabilityBiDashboardsPage from "../Pages/DataObservability/BiDashboards";
 import DataObservabilitySpendPage from "../Pages/DataObservability/Spend";
@@ -186,6 +188,24 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
                 ] as Route
               }
               ruleViewModelType={DataAssetOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            DataObservabilityRoutePath[
+              PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DataObservabilityOwnerRulesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={DataPipelineOwnerRule}
             />
           }
         />
@@ -460,6 +480,22 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
+          )}
+          element={
+            <DataPipelineCircuitBreakerPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER
                 ] as Route
               }
             />

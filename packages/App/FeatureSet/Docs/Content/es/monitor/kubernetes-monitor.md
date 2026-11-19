@@ -5,7 +5,7 @@ Un monitor de Kubernetes alerta sobre las métricas que el agente de Kubernetes 
 :::cards
 - [Instalar el agente](/docs/monitor/kubernetes-agent): Un solo comando de Helm lleva el clúster a OneUptime.
 - [Crear el monitor](#crear-un-monitor-de-kubernetes): Elegir el clúster y luego una plantilla, una métrica o una consulta.
-- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Veinticuatro alertas listas para usar, de un clúster silencioso a etcd.
+- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Veinticinco alertas listas para usar, de un clúster silencioso a etcd.
 - [Criterios](#criterios-de-monitoreo): Umbrales estáticos y detección de anomalías.
 :::
 
@@ -86,7 +86,7 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 
 | Categoría | Métricas |
 | --- | --- |
-| Pod | Consumo de CPU del pod, Uso de memoria del pod, Fase del pod (código), Uso del sistema de archivos del pod, Utilización del límite de memoria del pod, Utilización del límite de CPU del pod, E/S de red del pod (acumulada, ambas direcciones) |
+| Pod | Consumo de CPU del pod, Uso de memoria del pod, Fase del pod (código), Uso del sistema de archivos del pod, Capacidad del volumen, Espacio libre del volumen, Utilización del límite de memoria del pod, Utilización del límite de CPU del pod, E/S de red del pod (acumulada, ambas direcciones) |
 | Nodo | Consumo de CPU del nodo, CPU asignable del nodo, Uso de memoria del nodo, Working set de memoria del nodo, Uso del sistema de archivos del nodo, Memoria asignable del nodo, Condición Ready del nodo, Condición MemoryPressure del nodo, Condición DiskPressure del nodo, Condición PIDPressure del nodo, Sistema de archivos disponible del nodo |
 | Contenedor | Reinicios del contenedor, Reinicios del contenedor (aumento), Límite de CPU del contenedor, Solicitud de CPU del contenedor, Límite de memoria del contenedor, Solicitud de memoria del contenedor, Contenedor listo |
 | Carga de trabajo | Réplicas disponibles del Deployment, Réplicas deseadas del Deployment, Nodos deseados del DaemonSet, Nodos mal programados del DaemonSet, Nodos listos del DaemonSet, Réplicas deseadas del StatefulSet, Réplicas listas del StatefulSet, Pods fallidos del Job, Pods fallidos del Job (aumento), Pods correctos del Job |
@@ -150,6 +150,7 @@ La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categ
 | API Server Request Saturation | Plano de control | El servidor de API mantiene 200 o más solicitudes en curso durante toda la ventana | Crítico |
 | Scheduler Backlog | Programación | La cola de pods pendientes del scheduler no está vacía durante 5 minutos | Advertencia |
 | High Node Disk Usage | Almacenamiento | El sistema de archivos de un nodo está lleno en más del 90 % | Advertencia |
+| PVC Almost Full | Almacenamiento | Una reclamación de volumen persistente está llena en más del 90 % | Advertencia |
 | DaemonSet Pods Not Ready | Carga de trabajo | Un DaemonSet tiene nodos sin un pod suyo listo durante 15 minutos | Advertencia |
 | DaemonSet Misscheduled Nodes | Carga de trabajo | Un DaemonSet ejecuta pods en nodos que ya no coinciden con su selector de nodos, su afinidad o sus tolerancias | Advertencia |
 | High Node CPU Request Commitment | Nodo | La suma de las solicitudes de CPU de los contenedores de un nodo supera el 90 % de su CPU asignable | Advertencia |

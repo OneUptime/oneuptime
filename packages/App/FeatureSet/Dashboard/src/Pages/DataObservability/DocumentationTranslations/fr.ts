@@ -202,7 +202,7 @@ Un backfill ou une migration ne devrait alerter personne. Indiquez la base de do
 
 ## Propriétaires et étiquettes
 
-L'onglet **Propriétaires** d'une table indique les personnes et les équipes à qui elle appartient, et une alerte de la table leur est adressée ; à défaut, aux propriétaires de sa base de données. Les **Règles de propriétaire** et les **Règles d'étiquettes** s'appliquent à chaque table dès sa première apparition, selon ses étiquettes, ou une expression régulière sur son nom, son schéma ou sa base de données. Une autorisation limitée à \`Owned\` ne porte que sur les tables que son titulaire ou ses équipes possèdent, avec leurs vérifications, leur activité et les problèmes signalés. Posséder une base de données ne fait pas de quelqu'un le propriétaire de ses tables : utilisez une règle de propriétaire pour confier toute une base de données à une équipe.
+L'onglet **Propriétaires** d'une table indique les personnes et les équipes à qui elle appartient, et une alerte de la table leur est adressée ; à défaut, aux propriétaires de sa base de données. Les **Règles de propriétaire** et les **Règles d'étiquettes** s'appliquent à chaque table dès sa première apparition, selon ses étiquettes, ou une expression régulière sur son nom, son schéma ou sa base de données. Une autorisation limitée à \`Owned\` ne porte que sur les tables que son titulaire ou ses équipes possèdent, avec leurs vérifications, leur activité et les problèmes signalés. Posséder une base de données ne fait pas de quelqu'un le propriétaire de ses tables : utilisez une règle de propriétaire pour confier toute une base de données à une équipe. Dans leur onglet **Règles de pipeline**, les règles de propriétaire nomment aussi les propriétaires d'un pipeline, par une expression régulière sur son nom ou son espace de noms, quand OneUptime voit le pipeline pour la première fois.
 
 ## Quand une alerte s'ouvre
 
@@ -322,6 +322,8 @@ Ils lisent ces métriques, chacune étiquetée avec \`oneuptime.data.pipeline.id
 - \`oneuptime.data.pipeline.overdue_seconds\` : de combien la prochaine exécution dépasse son planning, toutes les cinq minutes ; 0 tant qu'elle est à l'heure.
 
 La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : les tables qu'il lit à gauche, les tables qu'il écrit à droite, et l'état actuel de chacune. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles ; un nombre de tables non dessinées, sur la carte du pipeline ou d'une table, en dessine davantage sur place. Le même lignage est disponible sur \`POST /api/data-observability/pipelines/lineage\`, pour vos propres outils. Choisissez l'une des colonnes qu'il écrit pour la suivre à travers le pipeline : en amont jusqu'à la colonne de chaque table lue à partir de laquelle elle a été construite, et en aval jusqu'à chaque table où il l'écrit. Pour vos propres outils, envoyez \`"withColumns": true\` pour les colonnes que ses exécutions ont déplacées.
+
+La page **Disjoncteur** d'un pipeline met en place une étape qui demande, avant que le pipeline s'exécute, si les tables qu'il lit sont saines : un contrôle en échec arrête l'exécution, et une table en retard aussi tant que **Arrêter quand une table qu'il lit est en retard** est activé. Un pipeline arrêté figure dans **À traiter** jusqu'à ce que le disjoncteur réponde de nouveau go ou qu'une exécution démarre.
 
 
 

@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * backfilled: adding it rewrites no row, a server of the release before
  * ignores it, and a tool with none is read whole once, as before.
  */
-export class AddDataBiConnectionReadState1809184860000
+export class AddDataBiConnectionReadState1809184910000
   implements MigrationInterface
 {
-  public name: string = "AddDataBiConnectionReadState1809184860000";
+  public name: string = "AddDataBiConnectionReadState1809184910000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

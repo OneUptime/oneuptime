@@ -1,9 +1,15 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
+  CloudStreamSummary,
   getStreamedMetricKeys,
   readCloudStreamSummary,
 } from "../../../Types/CloudConnection/CloudStream";
+import {
+  AwsStreamCoverage,
+  NO_AWS_STREAM_COVERAGE,
+  getAwsStreamCoverage,
+} from "../../../Types/CloudConnection/CloudStreamStack";
 import {
   CloudConnectionFailureKind,
   CloudConnectionReadStatus,
@@ -294,6 +300,22 @@ export default class CloudConnectionPullRunner {
         connectionId: connection.id!,
       });
 
+      /*
+       * What the connection's streams deliver lately - only while it has a
+       * stream key: once Stop streaming refuses what its streams deliver,
+       * the read reads and writes everything again at once. An AWS stream
+       * writes each key metric its stack carries (CloudStreamStack): the
+       * read leaves those out of what it writes and, but where a resource's
+       * health is judged from one, out of what it reads.
+       */
+      const streamSummary: CloudStreamSummary | null =
+        connection.streamKeyCreatedAt
+          ? readCloudStreamSummary(connection.streamSummary)
+          : null;
+      const awsCoverage: AwsStreamCoverage = streamSummary
+        ? getAwsStreamCoverage({ summary: streamSummary, now })
+        : NO_AWS_STREAM_COVERAGE;
+
       const read: CloudReadResult = await connector.read(settings, {
         transport,
         now: clock,
@@ -304,6 +326,7 @@ export default class CloudConnectionPullRunner {
         maxRequests: CLOUD_READ_MAX_REQUESTS,
         maxDurationMs: CLOUD_READ_MAX_DURATION_MS,
         knownResources: CloudConnectionResourceSync.toKnownResources(linked),
+        awsStreamCoverage: awsCoverage,
       });
 
       // The resources first, so their metrics land on rows with the cloud's names.
@@ -317,19 +340,15 @@ export default class CloudConnectionPullRunner {
         });
 
       /*
-       * A namespace a stream delivered lately is the stream's to write: the
-       * read leaves out the datapoints the stream writes in its place
-       * (CloudStreamedMetrics: never an Azure metric a diagnostic setting
-       * cannot export, nor a Service Bus or Event Hubs namespace's), and
-       * keeps them for the resources' readings below. Only while the
-       * connection has a stream key: once Stop streaming refuses what its
-       * streams deliver, the read writes everything again at once.
+       * What a stream delivered lately is the stream's to write: the read
+       * leaves out the datapoints the stream writes in its place
+       * (CloudStreamedMetrics: an AWS key metric the stack carries; never
+       * an Azure metric a diagnostic setting cannot export, nor a Service
+       * Bus or Event Hubs namespace's), and keeps them for the resources'
+       * readings below.
        */
-      const streamedKeys: Set<string> = connection.streamKeyCreatedAt
-        ? getStreamedMetricKeys({
-            summary: readCloudStreamSummary(connection.streamSummary),
-            now,
-          })
+      const streamedKeys: Set<string> = streamSummary
+        ? getStreamedMetricKeys({ summary: streamSummary, now })
         : new Set<string>();
       let pointsLeftToStreams: number = 0;
 
@@ -355,7 +374,11 @@ export default class CloudConnectionPullRunner {
 
       for (const payload of read.payloads) {
         const toWrite: { payload: JSONObject | null; leftOut: number } =
-          withoutStreamedMetrics({ payload, streamedKeys });
+          withoutStreamedMetrics({
+            payload,
+            streamedKeys,
+            awsCoverage,
+          });
 
         pointsLeftToStreams += toWrite.leftOut;
 

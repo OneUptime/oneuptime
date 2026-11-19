@@ -1,4 +1,5 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -159,8 +160,7 @@ describe("what a device's monitor checks", () => {
   it("is nothing for a Network Device or any other kind: only its template tells it apart", () => {
     for (const monitorType of [
       MonitorType.NetworkDevice,
-      MonitorType.Website,
-      MonitorType.API,
+      MonitorType.DNS,
       MonitorType.Manual,
     ]) {
       expect(
@@ -553,5 +553,234 @@ describe("a monitor read for the rule", () => {
         monitorSteps: undefined,
       }).monitorTemplateId,
     ).toBeUndefined();
+  });
+});
+
+/*
+ * WEB MONITORS OF A DEVICE (issue #9546). A Website, API or SSL Certificate
+ * template gives each device a monitor of a URL on its own address. A second
+ * of the same kind on the same scheme, port and path - or, for a
+ * certificate, the same port - checks the same thing on the device, whatever
+ * template it came from or none, so it is a duplicate the way a second Ping
+ * monitor is. Another path, another port or another kind is a monitor in its
+ * own right.
+ */
+function urlSteps(monitorType: MonitorType, urls: Array<string>): MonitorSteps {
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+  monitorSteps.data = {
+    monitorStepsInstanceArray: urls.map(
+      (url: string, index: number): MonitorStep => {
+        const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+          monitorName: "PRN-0024",
+          monitorType: monitorType,
+          onlineMonitorStatusId: ONLINE_ID,
+          offlineMonitorStatusId: OFFLINE_ID,
+          defaultIncidentSeverityId: SEVERITY_ID,
+          defaultAlertSeverityId: SEVERITY_ID,
+        });
+        step.data!.id = `step-${index + 1}`;
+        step.setMonitorDestination(URL.fromString(url));
+        return step;
+      },
+    ),
+    defaultMonitorStatusId: ONLINE_ID,
+  };
+  return monitorSteps;
+}
+
+function webFacts(
+  monitorType: MonitorType,
+  urls: Array<string>,
+  monitorTemplateId?: string | undefined,
+): DeviceMonitorFacts {
+  return {
+    id: ObjectID.generate().toString(),
+    name: "PRN-0024",
+    monitorType: monitorType,
+    monitorTemplateId: monitorTemplateId,
+    checkKeys: getDeviceMonitorCheckKeys({
+      monitorType: monitorType,
+      monitorSteps: urlSteps(monitorType, urls),
+    }),
+  };
+}
+
+function webCandidate(
+  monitorType: MonitorType,
+  urls: Array<string>,
+  monitorTemplateId: string = KIOSK_PING_TEMPLATE,
+): DeviceMonitorCandidate {
+  return toDeviceMonitorCandidate({
+    monitorType: monitorType,
+    monitorTemplateId: monitorTemplateId,
+    monitorSteps: urlSteps(monitorType, urls),
+  });
+}
+
+describe("what a device's web monitor checks", () => {
+  it("is each URL's scheme, port and path for a Website or API monitor, never its host", () => {
+    for (const monitorType of [MonitorType.Website, MonitorType.API]) {
+      expect(
+        getDeviceMonitorCheckKeys({
+          monitorType: monitorType,
+          monitorSteps: urlSteps(monitorType, [
+            "https://10.40.12.7:8443/status",
+            "https://printer.example.com:8443/status",
+            "http://10.40.12.7/",
+          ]),
+        }),
+      ).toEqual(["https:8443/status", "http:80/"]);
+    }
+  });
+
+  it("is each port an SSL Certificate monitor's URLs ask on", () => {
+    expect(
+      getDeviceMonitorCheckKeys({
+        monitorType: MonitorType.SSLCertificate,
+        monitorSteps: urlSteps(MonitorType.SSLCertificate, [
+          "https://10.40.12.7/",
+          "https://10.40.12.7/admin",
+          "https://10.40.12.7:8443/",
+        ]),
+      }),
+    ).toEqual(["tls:443", "tls:8443"]);
+  });
+
+  it("reads steps stored as JSON, and nothing from a step that checks no URL", () => {
+    expect(
+      getDeviceMonitorCheckKeys({
+        monitorType: MonitorType.Website,
+        monitorSteps: urlSteps(MonitorType.Website, [
+          "https://10.40.12.7/",
+        ]).toJSON(),
+      }),
+    ).toEqual(["https:443/"]);
+    expect(
+      getDeviceMonitorCheckKeys({
+        monitorType: MonitorType.Website,
+        // A step on an address, which a Website monitor cannot check.
+        monitorSteps: steps(MonitorType.Port, [22]),
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("a duplicate of a device's web monitor", () => {
+  it("is a Website monitor of the same page from another template, or from none", () => {
+    const existing: DeviceMonitorFacts = webFacts(MonitorType.Website, [
+      "https://printer-01.example.net/hp/device/",
+    ]);
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(MonitorType.Website, [
+          "https://10.40.12.7/hp/device/",
+        ]),
+        monitors: [existing],
+      })?.id,
+    ).toBe(existing.id);
+  });
+
+  it("is an API monitor of the same endpoint, and an SSL Certificate monitor on the same port", () => {
+    const api: DeviceMonitorFacts = webFacts(MonitorType.API, [
+      "https://10.40.12.7:8443/api/health",
+    ]);
+    const certificate: DeviceMonitorFacts = webFacts(
+      MonitorType.SSLCertificate,
+      ["https://10.40.12.7/"],
+    );
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(MonitorType.API, [
+          "https://device:8443/api/health",
+        ]),
+        monitors: [api, certificate],
+      })?.id,
+    ).toBe(api.id);
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(MonitorType.SSLCertificate, [
+          "https://device/login",
+        ]),
+        monitors: [api, certificate],
+      })?.id,
+    ).toBe(certificate.id);
+  });
+
+  it("is the one from the same template, whatever URL it checks now", () => {
+    const fromTemplate: DeviceMonitorFacts = webFacts(
+      MonitorType.Website,
+      ["https://10.40.12.7/old"],
+      OTHER_PING_TEMPLATE,
+    );
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(
+          MonitorType.Website,
+          ["https://device/new"],
+          OTHER_PING_TEMPLATE,
+        ),
+        monitors: [fromTemplate],
+      })?.id,
+    ).toBe(fromTemplate.id);
+  });
+});
+
+describe("a web monitor in its own right, on purpose", () => {
+  it("is a Website monitor of another path, another port or another scheme", () => {
+    const existing: DeviceMonitorFacts = webFacts(MonitorType.Website, [
+      "https://10.40.12.7/status",
+    ]);
+
+    for (const url of [
+      "https://device/other",
+      "https://device:8443/status",
+      "http://device/status",
+    ]) {
+      expect(
+        findDuplicateDeviceMonitor({
+          candidate: webCandidate(MonitorType.Website, [url]),
+          monitors: [existing],
+        }),
+      ).toBeNull();
+    }
+  });
+
+  it("is a Website monitor beside an SSL Certificate or an API monitor of the same URL: other kinds of check", () => {
+    const monitors: Array<DeviceMonitorFacts> = [
+      webFacts(MonitorType.SSLCertificate, ["https://10.40.12.7/"]),
+      webFacts(MonitorType.API, ["https://10.40.12.7/"]),
+    ];
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(MonitorType.Website, ["https://device/"]),
+        monitors: monitors,
+      }),
+    ).toBeNull();
+  });
+
+  it("is an SSL Certificate monitor on another port", () => {
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(MonitorType.SSLCertificate, [
+          "https://device:8443/",
+        ]),
+        monitors: [
+          webFacts(MonitorType.SSLCertificate, ["https://10.40.12.7/"]),
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it("is a Website monitor beside a Ping monitor of the device", () => {
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: webCandidate(MonitorType.Website, ["https://device/"]),
+        monitors: [facts({ monitorType: MonitorType.Ping })],
+      }),
+    ).toBeNull();
   });
 });

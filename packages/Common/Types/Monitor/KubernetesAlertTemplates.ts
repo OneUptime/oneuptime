@@ -333,6 +333,14 @@ export function buildKubernetesRatioMonitorConfig(args: {
    * rescales query results, never a formula's.
    */
   resultLegendUnit?: string | undefined;
+  /*
+   * An attribute both queries must match - the same on each, so the two
+   * sides still join by fingerprint. PVC Almost Full reads only the volumes
+   * the agent says a claim backs (k8s.volume.type persistentVolumeClaim):
+   * every other volume of a pod - a configMap, a token - names no claim,
+   * and would otherwise fold into one group with no claim's name.
+   */
+  attributes?: Record<string, string> | undefined;
 }): MonitorStepKubernetesMonitor {
   const aggregationType: MetricsAggregationType =
     args.aggregationType || MetricsAggregationType.Sum;
@@ -352,7 +360,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
       metricQueryData: {
         filterData: {
           metricName: metricName,
-          attributes: {},
+          attributes: { ...(args.attributes || {}) },
           aggegationType: aggregationType,
           aggregateBy: {},
         },
@@ -1722,6 +1730,84 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
 };
 
 /*
+ * A persistent volume claim filling up (#9539): what its row on the claims
+ * list draws in red. A database that runs out of disk stops taking writes,
+ * and the volume was otherwise watched by nothing - its size was all
+ * OneUptime showed.
+ */
+const pvcAlmostFullTemplate: KubernetesAlertTemplate = {
+  id: "k8s-pvc-almost-full",
+  name: "PVC Almost Full",
+  summary: "A persistent volume claim is more than 90% full.",
+  description:
+    "Alert when a persistent volume claim's filesystem is more than 90% full for five minutes, one alert per claim. Computed per claim as (k8s.volume.capacity - k8s.volume.available) / k8s.volume.capacity x 100, from the volume stats the kubelet reports and the agent names by claim (k8s.persistentvolumeclaim.name). The kubelet measures a claim only while a running pod mounts it, a raw block device reports nothing, and an agent older than the one that names each volume's claim, or one with kubeletstats.volumeMetrics.enabled set to false, sends nothing for this monitor to read.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "pvc_usage";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.volume.available",
+        denominatorMetricName: "k8s.volume.capacity",
+        /*
+         * Per claim, in its namespace: claim names repeat across
+         * namespaces, and the alert names the one to grow or clean up. The
+         * kubeletstats receiver stamps both keys itself on both metrics, from
+         * the pod's spec (extra_metadata_labels k8s.volume.type), so the
+         * formula's fingerprint join holds.
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.persistentvolumeclaim.name",
+        ],
+        attributes: {
+          "resource.k8s.volume.type": "persistentVolumeClaim",
+        },
+        numeratorAlias: "free_bytes",
+        denominatorAlias: "capacity_bytes",
+        resultAlias: metricAlias,
+        resultLegend: "PVC Usage (%)",
+        /*
+         * Used is everything that is not available, as df's Avail and the
+         * claims list read it: 100% means nothing more can be written.
+         */
+        formula: "((capacity_bytes - free_bytes) / capacity_bytes) * 100",
+        resourceScope: KubernetesResourceScope.Namespace,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Both from the same kubeletstats volume scrape, one series per pod
+         * that mounts the claim, every one the same filesystem: Avg is that
+         * filesystem's value whatever the number of pods and scrapes.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[K8s] PVC Almost Full (>90%) - ${args.monitorName}`,
+        incidentDescription: `A persistent volume claim's filesystem is more than 90% full. When it fills, the workload writing to it fails: a database stops taking writes, a queue stops accepting messages. Free space on it (delete old data, logs or snapshots), or expand the claim if its storage class allows volume expansion. The claim and its namespace are named under "Affected resource" below.`,
+        criteriaName: "PVC Almost Full - Usage > 90%",
+        criteriaDescription:
+          "Triggers when a claim's used bytes exceed 90% of its capacity for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+/*
  * The nodes a DaemonSet should run on that have no ready pod of it: what
  * the DaemonSet's own page says ("Ready on 4 of 5 nodes", KubernetesHealth),
  * and what DaemonSet Misscheduled Nodes - pods on nodes they should NOT be
@@ -2446,6 +2532,7 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     apiServerThrottlingTemplate,
     schedulerBacklogTemplate,
     highDiskUsageTemplate,
+    pvcAlmostFullTemplate,
     daemonSetPodsNotReadyTemplate,
     daemonSetUnavailableTemplate,
     nodeCpuRequestUtilizationTemplate,

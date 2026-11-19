@@ -140,7 +140,72 @@ Each job, dbt project and sync appears under **Pipelines**, with its runs: when 
 
 A pipeline's **Owners** tab names the people and teams who look after it, and its alerts go to them. The **Overview** and **Issues** name a failed or late pipeline's owners, or say it has **No owner**, with a way to add one.
 
+**Owner Rules** can name a pipeline's owners for you. On their **Pipeline Rules** tab, a rule matches a pipeline by a regular expression on its name, such as `orders_daily.load_orders`, or on its namespace, where it runs, such as `airflow://prod`, and adds its people and teams as the pipeline's owners when OneUptime first sees the pipeline. To add them to the pipelines you already have, open the rule and select **Run Now**.
+
 A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too. Pick one of the columns it writes to follow it across the pipeline: up to the column of each table it reads that it was built from, and down to each table it writes it to.
+
+## Circuit breakers
+
+A failing check or a late table tells its owners, but the pipelines that read the table would still run and copy the bad data downstream. A circuit breaker stops them first: the pipeline's first step asks OneUptime whether the tables it reads are healthy, and the rest runs only when the answer is go.
+
+- A failing check of a table the pipeline reads always stops it: a check whose alert is open, or a dbt test that failed.
+- A late table stops it too once **Stop when a table it reads is late** is on, on the pipeline's **Circuit Breaker** page. It is off for every pipeline, since a late table may only mean a quiet day.
+- A check that could not run or has not run yet, and a table with no checks, stop nothing.
+
+The step asks with a project API key that may read Data Observability, and names the pipeline as `namespace/name`, by its name alone or by its ID. The circuit breaker reads the tables the pipeline reads from its lineage. A request can also name `tables`, or name only those, each as `schema.table`, by its name alone or by its ID; a name that matches no table comes back in `notFound`, and is never counted as a table that passed. Only the tables the API key may read are judged.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+The answer's `verdict` is `go` or `stop`. `reasons` lists each failing check with its table, and each late table with how late it is; `tables` lists every table judged; and `answer` says the same in a few sentences, for the step's log. With `failWithStatusCode`, a stop answers HTTP 412, so `curl -f` fails the step. Send `stopsOnLateTables` as `true` or `false` to decide for one request, and `dryRun` as `true` to ask without the answer being kept.
+
+In Airflow, put a `ShortCircuitOperator` before the tasks that read the tables: when its function returns false, every task after it is skipped.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt's `on-run-start` hooks run SQL in your warehouse, not web requests, so ask in the step that starts dbt: a CI job, a cron line or the task that runs it. A dbt project's pipeline is named `dbt/` followed by the project's name.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+A request that names a pipeline is kept on it, unless it is a dry run. While the circuit breaker has stopped a pipeline, its **Circuit Breaker** page says since when and why, its **Overview** opens on the stop, and **Needs Attention** and **Issues** list it as stopped, in place of its failed or late run. The stop ends when the circuit breaker next answers go, or when a run starts after it. The same page has **Test Now**, which asks the circuit breaker without the answer being kept, and the step for curl, Airflow and dbt with the pipeline's name filled in.
+
+While Data Observability is switched off on the server, the circuit breaker answers go and keeps nothing: switching a product off never stops a pipeline.
 
 ## One issue per cause
 

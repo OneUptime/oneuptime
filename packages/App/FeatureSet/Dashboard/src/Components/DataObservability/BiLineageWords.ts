@@ -317,7 +317,13 @@ export enum BiSourceStanding {
   Elsewhere = "Elsewhere",
 }
 
-const WATCHED: string = translationKey("Watched");
+/*
+ * A key of its own (#9658): the bare "Watched" is the session replay
+ * audit's column of time spent watching a replay, worded as watching time
+ * in every language ("Durée de visionnage", "مدة المشاهدة"). A source
+ * OneUptime watches is worded as each language's Tables Watched.
+ */
+const WATCHED: string = translationKey("Watched by OneUptime");
 const NOT_CONNECTED: string = translationKey("Not connected");
 const NOT_WATCHABLE: string = translationKey("Not a database OneUptime reads");
 const DATASETS: PluralTemplate = {

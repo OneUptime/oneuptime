@@ -140,7 +140,72 @@ Power BI 도구를 추가하거나 편집할 때 **Alert on Failed Refreshes**�
 
 파이프라인의 **소유자** 탭에는 그것을 돌보는 사람과 팀이 나오며, 파이프라인의 경고는 그들에게 갑니다. **개요** 와 **이슈** 는 실패했거나 지연된 파이프라인의 소유자를 보여 주거나, **소유자 없음** 을 표시하고 소유자를 추가하는 방법을 알려 줍니다.
 
+**소유자 규칙**으로 파이프라인의 소유자를 자동으로 지정할 수 있습니다. **파이프라인 규칙** 탭에서 규칙은 `orders_daily.load_orders` 같은 파이프라인의 이름이나, `airflow://prod` 같은 실행 위치인 네임스페이스에 정규식으로 파이프라인을 일치시키고, OneUptime이 그 파이프라인을 처음 확인할 때 규칙의 사람과 팀을 파이프라인의 소유자로 추가합니다. 이미 있는 파이프라인에 추가하려면 규칙을 열고 **지금 실행**을 선택하세요.
+
 파이프라인 페이지에는 **계보** 카드가 있으며, 실행이 실패하거나 늦어질 때 가장 먼저 볼 곳입니다. 왼쪽에는 파이프라인이 읽는 테이블, 오른쪽에는 파이프라인이 쓰는 테이블, 그 사이에 파이프라인이 그려지고, 각 카드는 지금의 상태를 보여 줍니다. 단계를 늘리면 그 테이블들을 만드는 원천과 그 테이블들로부터 만들어지는 것이 보이며, 아무 테이블이나 열면 그 테이블의 **계보** 탭이 열립니다. 파이프라인 카드나 테이블 카드에 있는 그려지지 않은 테이블 개수를 선택하면 여기서도 제자리에 더 그립니다. 파이프라인이 쓰는 열 하나를 선택하면 파이프라인을 가로질러 그 열을 따라갈 수 있습니다. 위로는 읽는 각 테이블에서 그 열의 원본 열까지, 아래로는 그 열을 쓰는 각 테이블까지 따라갑니다.
+
+## 서킷 브레이커
+
+검사 실패나 테이블 지연은 소유자에게 알려지지만, 그 테이블을 읽는 파이프라인은 그대로 실행되어 잘못된 데이터를 하류로 복사합니다. 서킷 브레이커는 그 전에 파이프라인을 멈춥니다. 파이프라인의 첫 단계가 읽는 테이블이 정상인지 OneUptime에 묻고, 답이 go일 때만 나머지가 실행됩니다.
+
+- 파이프라인이 읽는 테이블의 검사가 실패 중이면 항상 파이프라인을 중지합니다. 경고가 열려 있는 검사나 실패한 dbt 테스트입니다.
+- 파이프라인의 **서킷 브레이커** 페이지에서 **읽는 테이블이 지연되면 중지**를 켜면 지연된 테이블도 파이프라인을 중지합니다. 테이블 지연은 그저 조용한 하루일 수도 있으므로 모든 파이프라인에서 꺼져 있습니다.
+- 실행할 수 없었거나 아직 실행되지 않은 검사, 그리고 검사가 없는 테이블은 아무것도 중지하지 않습니다.
+
+단계는 데이터 관측 가능성을 읽을 수 있는 프로젝트 API 키로 묻고, 파이프라인을 `namespace/name`, 이름만, 또는 ID로 지정합니다. 서킷 브레이커는 파이프라인이 읽는 테이블을 계보에서 가져옵니다. 요청에서 `tables`도 지정하거나 그것만 지정할 수 있으며, 각각 `schema.table`, 이름만, 또는 ID로 지정합니다. 어떤 테이블과도 일치하지 않는 이름은 `notFound`로 돌아오며, 통과한 테이블로 세지 않습니다. API 키가 읽을 수 있는 테이블만 판정합니다.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+답의 `verdict`는 `go` 또는 `stop`입니다. `reasons`는 실패 중인 각 검사와 그 테이블, 지연된 각 테이블과 지연 정도를 나열하고, `tables`는 판정한 모든 테이블을 나열하며, `answer`는 같은 내용을 단계의 로그용으로 몇 문장으로 알려줍니다. `failWithStatusCode`를 사용하면 중지 시 HTTP 412로 응답하므로 `curl -f`가 단계를 실패시킵니다. 한 번의 요청에서만 정하려면 `stopsOnLateTables`를 `true` 또는 `false`로, 답을 저장하지 않고 물으려면 `dryRun`을 `true`로 보내세요.
+
+Airflow에서는 테이블을 읽는 작업 앞에 `ShortCircuitOperator`를 두세요. 그 함수가 false를 반환하면 뒤따르는 모든 작업을 건너뜁니다.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt의 `on-run-start` 훅은 웹 요청이 아니라 웨어하우스에서 SQL을 실행하므로, dbt를 시작하는 단계에서 물어보세요. CI 작업, cron 줄, 또는 dbt를 실행하는 작업입니다. dbt 프로젝트의 파이프라인 이름은 `dbt/` 뒤에 프로젝트 이름이 붙습니다.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+파이프라인을 지정한 요청은 시험 실행이 아니면 그 파이프라인에 저장됩니다. 서킷 브레이커가 파이프라인을 중지한 동안, 그 **서킷 브레이커** 페이지는 언제부터 왜 중지되었는지 보여 주고, **개요**는 중지 내용으로 시작하며, **조치 필요**와 **이슈**는 실패하거나 지연된 실행 대신 중지된 것으로 표시합니다. 중지는 서킷 브레이커가 다음에 go라고 답하거나, 중지 이후에 실행이 시작되면 끝납니다. 같은 페이지에는 답을 저장하지 않고 서킷 브레이커에 묻는 **지금 테스트**와, 파이프라인 이름이 채워진 curl, Airflow, dbt용 단계가 있습니다.
+
+서버에서 데이터 관측 가능성이 꺼져 있는 동안 서킷 브레이커는 go라고 답하고 아무것도 저장하지 않습니다. 제품을 꺼도 파이프라인이 멈추는 일은 없습니다.
 
 ## 원인 하나에 경고 하나
 

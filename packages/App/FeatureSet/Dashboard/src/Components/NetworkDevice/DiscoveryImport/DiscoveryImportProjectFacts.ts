@@ -16,8 +16,11 @@ import { NetworkAlertPolicyScopeUtil } from "Common/Types/NetworkDevice/NetworkA
 import ObjectID from "Common/Types/ObjectID";
 import DeviceMonitorTemplateUtil, {
   DEVICE_MONITOR_TEMPLATE_TYPES,
+  DEVICE_TEMPLATE_HAS_NO_STEPS,
   isDeviceAddressMonitorType,
   isDeviceMonitorTemplateType,
+  isDeviceTargetMonitorType,
+  isDeviceUrlMonitorType,
 } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { summarizeMonitorTemplateAlerts } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import NetworkAlertPolicyBootstrapUtil, {
@@ -47,8 +50,9 @@ export { NO_DEVICE_MONITOR_TEMPLATE_REASON };
 /*
  * What the import's monitoring step needs to know about the project, read
  * when the reader reaches that step: the monitor templates they can pick -
- * Network Device ones, and since issue #5145 Ping, IP, Port and NTP ones -
- * with what each raises, the names of the severities and statuses those
+ * Network Device ones, since issue #5145 Ping, IP, Port and NTP ones, and
+ * since #9546 Website, API and SSL Certificate ones - with what each
+ * raises, the names of the severities and statuses those
  * templates name, the alert policies that already cover devices, how much
  * room the plan has for monitors, and what the reader may do. Every read can
  * fail on its own - a reader who may not list templates still imports
@@ -133,13 +137,43 @@ export function toTemplateChoice(
     }),
   };
 
-  if (isDeviceAddressMonitorType(monitorType)) {
+  if (isDeviceTargetMonitorType(monitorType)) {
     if (template.monitoringInterval) {
       choice.monitoringInterval = template.monitoringInterval;
     }
 
     if (monitorType === MonitorType.Port) {
       choice.ports = DeviceMonitorTemplateUtil.readPorts(template.monitorSteps);
+    }
+
+    // What each device's monitor checks, with its address as the host (#9546).
+    if (isDeviceUrlMonitorType(monitorType)) {
+      const templateUrl: string = DeviceMonitorTemplateUtil.readTemplateUrl(
+        template.monitorSteps,
+      );
+
+      if (templateUrl) {
+        choice.templateUrl = templateUrl;
+      }
+
+      /*
+       * A URL no device's address can be the host of - none, a host
+       * written as a variable, a scheme other than http or https - is
+       * refused by the server when the import starts. Said here first,
+       * with the server's words, so Import waits for the template to be
+       * changed rather than fail.
+       */
+      try {
+        DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
+          monitorType: monitorType,
+          monitorSteps: template.monitorSteps,
+        });
+      } catch (err) {
+        choice.unusableReason =
+          err instanceof Error && err.message
+            ? err.message
+            : DEVICE_TEMPLATE_HAS_NO_STEPS;
+      }
     }
   }
 
@@ -153,9 +187,10 @@ export function toTemplateChoice(
  * templates and the project has the statuses and severities it is built
  * with. Then the project's other Network Device templates, which read each
  * device's polls, then its Ping, IP, Port and NTP templates, which check
- * each device's address (#5145) - each in the order they were read, by name.
- * A template of any other kind is not offered: nothing of a device's is for
- * it to check (DEVICE_MONITOR_TEMPLATE_TYPES).
+ * each device's address (#5145), then its Website, API and SSL Certificate
+ * templates, which check a URL on each device (#9546) - each in the order
+ * they were read, by name. A template of any other kind is not offered:
+ * nothing of a device's is for it to check (DEVICE_MONITOR_TEMPLATE_TYPES).
  */
 export function buildTemplateChoices(data: {
   templates: Array<MonitorTemplate>;
@@ -181,23 +216,26 @@ export function buildTemplateChoices(data: {
   const recommendedId: string = recommended?.id?.toString() || "";
 
   const byKind: (
-    readsPolls: boolean,
+    isOfKind: (monitorType: MonitorType | undefined) => boolean,
   ) => Array<DiscoveryImportTemplateChoice> = (
-    readsPolls: boolean,
+    isOfKind: (monitorType: MonitorType | undefined) => boolean,
   ): Array<DiscoveryImportTemplateChoice> => {
     return offered
       .filter((template: MonitorTemplate): boolean => {
         return (
           template.id!.toString() !== recommendedId &&
-          (template.monitorType === MonitorType.NetworkDevice) === readsPolls
+          isOfKind(template.monitorType)
         );
       })
       .map(toTemplateChoice);
   };
 
   const rest: Array<DiscoveryImportTemplateChoice> = [
-    ...byKind(true),
-    ...byKind(false),
+    ...byKind((monitorType: MonitorType | undefined): boolean => {
+      return monitorType === MonitorType.NetworkDevice;
+    }),
+    ...byKind(isDeviceAddressMonitorType),
+    ...byKind(isDeviceUrlMonitorType),
   ];
 
   if (recommended?.id) {

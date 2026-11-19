@@ -439,6 +439,128 @@ describe("merging what a server saw into what is stored", () => {
       names("New/", 5),
     );
   });
+
+  /*
+   * What a source's stack streams is what its newest delivery said
+   * (CloudStreamStack): a stack made again from a newer template says so
+   * from then on, and a server that still holds an older sighting cannot
+   * take it back.
+   */
+  test("keeps what the newest delivery said its stack streams", () => {
+    const source: (data: {
+      lastAt: string;
+      templateVersion?: number;
+      everyMetric?: boolean;
+    }) => CloudStreamSummary = (data: {
+      lastAt: string;
+      templateVersion?: number;
+      everyMetric?: boolean;
+    }): CloudStreamSummary => {
+      return summary({
+        metricSources: [
+          {
+            accountId: "1",
+            region: "us-east-1",
+            namespaces: ["AWS/EC2"],
+            ...data,
+          },
+        ],
+      });
+    };
+
+    // The stack was made again from template 2.
+    expect(
+      mergeCloudStreamSummary({
+        stored: source({ lastAt: minutesAgo(10), templateVersion: 1 }),
+        seen: source({
+          lastAt: minutesAgo(1),
+          templateVersion: 2,
+          everyMetric: false,
+        }),
+        now: NOW,
+      }).metricSources[0],
+    ).toMatchObject({ templateVersion: 2, everyMetric: false });
+
+    // An older sighting, written again by a server that still holds it.
+    expect(
+      mergeCloudStreamSummary({
+        stored: source({
+          lastAt: minutesAgo(1),
+          templateVersion: 2,
+          everyMetric: true,
+        }),
+        seen: source({ lastAt: minutesAgo(30), templateVersion: 1 }),
+        now: NOW,
+      }).metricSources[0],
+    ).toMatchObject({ templateVersion: 2, everyMetric: true });
+
+    // A sighting from a server that does not say a stack leaves what is stored.
+    expect(
+      mergeCloudStreamSummary({
+        stored: source({
+          lastAt: minutesAgo(10),
+          templateVersion: 2,
+          everyMetric: false,
+        }),
+        seen: source({ lastAt: minutesAgo(1) }),
+        now: NOW,
+      }).metricSources[0],
+    ).toMatchObject({ templateVersion: 2, everyMetric: false });
+
+    // Neither says: nothing is made up.
+    const neither: CloudStreamSummary = mergeCloudStreamSummary({
+      stored: source({ lastAt: minutesAgo(10) }),
+      seen: source({ lastAt: minutesAgo(1) }),
+      now: NOW,
+    });
+
+    expect(neither.metricSources[0]!.templateVersion).toBeUndefined();
+    expect(neither.metricSources[0]!.everyMetric).toBeUndefined();
+  });
+
+  test("reads a stored stack only when it is one: a whole version from 1, a boolean", () => {
+    const read: CloudStreamSummary = readCloudStreamSummary({
+      metricSources: [
+        {
+          accountId: "1",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: minutesAgo(1),
+          templateVersion: 2,
+          everyMetric: true,
+        },
+        {
+          accountId: "2",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: minutesAgo(1),
+          templateVersion: "3",
+          everyMetric: "yes",
+        },
+        ...[0, -1, 1.5, "x", null, 100000].map((templateVersion: unknown) => {
+          return {
+            accountId: "3",
+            region: String(templateVersion),
+            namespaces: ["AWS/EC2"],
+            lastAt: minutesAgo(1),
+            templateVersion,
+          };
+        }),
+      ],
+    });
+
+    expect(read.metricSources[0]).toMatchObject({
+      templateVersion: 2,
+      everyMetric: true,
+    });
+    // A version stored as text is still a version; "yes" is no boolean.
+    expect(read.metricSources[1]!.templateVersion).toBe(3);
+    expect(read.metricSources[1]!.everyMetric).toBeUndefined();
+
+    for (const source of read.metricSources.slice(2)) {
+      expect(source.templateVersion).toBeUndefined();
+    }
+  });
 });
 
 describe("the namespaces a connection's reads leave to its streams", () => {

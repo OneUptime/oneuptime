@@ -140,7 +140,72 @@ Hightouch 和 Census 是反向 ETL 工具：把表复制到 CRM 的同步，与�
 
 管道的 **所有者** 标签页列出负责它的人员和团队，它的警报会发给他们。**概览** 和 **问题** 会列出失败或延迟的管道的所有者，或显示 **无所有者**，并提供添加所有者的方式。
 
+**所有者规则** 可以替你指定管道的所有者。在其 **管道规则** 选项卡中，规则用正则表达式按管道的名称（例如 `orders_daily.load_orders`）或命名空间（即它运行的位置，例如 `airflow://prod`）匹配管道，并在 OneUptime 首次看到该管道时，把规则中的人员和团队添加为管道的所有者。要把他们添加到已有的管道，请打开该规则并选择 **立即运行**。
+
 管道的页面有一张 **血缘** 卡片，是运行失败或延迟时首先要看的地方：左边是它读取的表，右边是它写入的表，管道位于两者之间，每张卡片都会显示当前状态。选择更多步数，可以看到这些表由什么构建，以及由它们构建了什么；打开任意一张表，即可查看它自己的 **血缘** 标签页。管道卡片或表卡片上未绘制表的数量，在这里同样可以在原处画出更多。 选择它写入的某一列，即可跨管道追踪该列：向上追踪到它读取的每个表中构建该列的列，向下追踪到它写入该列的每个表。
+
+## 熔断器
+
+检查失败或表延迟会通知其所有者，但读取该表的管道仍会照常运行，把错误的数据复制到下游。熔断器会抢先拦住它们：管道的第一步询问 OneUptime 它读取的表是否健康，只有答案为 go 时其余步骤才会运行。
+
+- 管道读取的表有检查失败时，总会停止该管道：警报处于打开状态的检查，或失败的 dbt 测试。
+- 在管道的 **熔断器** 页面打开 **它读取的表延迟时停止** 后，延迟的表也会停止它。每个管道默认都关闭此项，因为表延迟可能只说明今天比较清闲。
+- 无法运行或尚未运行的检查，以及没有任何检查的表，都不会停止任何东西。
+
+该步骤使用可读取数据可观测性的项目 API 密钥发起询问，并以 `namespace/name`、仅名称或 ID 指定管道。熔断器从管道的血缘中读取它所读取的表。请求也可以指定 `tables`，或只指定这些表，每张表以 `schema.table`、仅名称或 ID 表示；没有匹配任何表的名称会在 `notFound` 中返回，绝不会被算作通过的表。只评判 API 密钥可以读取的表。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+应答中的 `verdict` 为 `go` 或 `stop`。`reasons` 列出每个失败的检查及其表，以及每张延迟的表及其延迟时长；`tables` 列出评判过的每张表；`answer` 用几句话说明同样的内容，供步骤的日志使用。使用 `failWithStatusCode` 时，停止会以 HTTP 412 应答，因此 `curl -f` 会让该步骤失败。将 `stopsOnLateTables` 设为 `true` 或 `false` 可只为一次请求做决定，将 `dryRun` 设为 `true` 可在不保留应答的情况下询问。
+
+在 Airflow 中，把 `ShortCircuitOperator` 放在读取这些表的任务之前：当它的函数返回 false 时，其后的所有任务都会被跳过。
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt 的 `on-run-start` 钩子在你的数据仓库中运行 SQL，而不是发出网络请求，所以请在启动 dbt 的步骤中询问：CI 作业、cron 行或运行它的任务。dbt 项目的管道名称是 `dbt/` 后接项目名称。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+指定了管道的请求会保留在该管道上，除非它是试运行。在熔断器停止某个管道期间，该管道的 **熔断器** 页面会说明从何时起以及为何停止，其 **概览** 会以停止开头，**需要处理** 和 **问题** 会将它列为已停止，取代其失败或延迟的运行。当熔断器下一次回答 go，或在停止之后有运行开始时，停止就会结束。同一页面还有 **立即测试**，它会询问熔断器但不保留应答，以及已填好管道名称的 curl、Airflow 和 dbt 步骤。
+
+当服务器上关闭了数据可观测性时，熔断器会回答 go 并且不保留任何内容：关闭产品绝不会停止管道。
 
 ## 一个原因，一个警报
 

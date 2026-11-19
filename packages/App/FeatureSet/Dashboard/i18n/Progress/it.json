@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 56526,
-    "untranslated": 7877
+    "keys": 57282,
+    "untranslated": 7985
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -139,6 +139,7 @@
     "Fluent Bit",
     "Formula",
     "Formula: {{formula}}",
+    "Framework",
     "Funnel",
     "GKE Autopilot",
     "Gateway",

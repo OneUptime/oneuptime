@@ -1144,6 +1144,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: `pipelines/${RouteParams.ModelID}/owners`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER]: `pipelines/${RouteParams.ModelID}/circuit-breaker`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS]: `pipelines/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_ISSUES]: "issues",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
@@ -1152,6 +1153,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_STORAGE_PATHS]: "storage-paths",
   [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW]: `settings/owner-rules/pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
@@ -9061,6 +9063,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER
+      ]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_ISSUES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_ISSUES]
@@ -9097,6 +9107,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW
       ]
     }`,
   ),

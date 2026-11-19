@@ -140,7 +140,72 @@ Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses
 
 L'onglet **Propriétaires** d'un pipeline nomme les personnes et les équipes qui s'en occupent, et ses alertes leur sont envoyées. La **Vue d'ensemble** et **Problèmes** nomment les propriétaires d'un pipeline en échec ou en retard, ou affichent **Aucun propriétaire**, avec un moyen d'en ajouter un.
 
+Les **Règles de propriétaire** peuvent nommer pour vous les propriétaires d'un pipeline. Dans leur onglet **Règles de pipeline**, une règle fait correspondre un pipeline par une expression régulière sur son nom, comme `orders_daily.load_orders`, ou sur son espace de noms, là où il s'exécute, comme `airflow://prod`, et ajoute ses personnes et ses équipes comme propriétaires du pipeline quand OneUptime voit le pipeline pour la première fois. Pour les ajouter aux pipelines que vous avez déjà, ouvrez la règle et sélectionnez **Exécuter maintenant**.
+
 La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**. Un nombre de tables non dessinées, sur la carte du pipeline ou sur celle d'une table, en dessine d'autres sur place ici aussi. Choisissez l'une des colonnes qu'il écrit pour la suivre à travers le pipeline : en amont jusqu'à la colonne de chaque table lue à partir de laquelle elle a été construite, et en aval jusqu'à chaque table où il l'écrit.
+
+## Disjoncteurs
+
+Un contrôle en échec ou une table en retard prévient ses propriétaires, mais les pipelines qui lisent la table s'exécuteraient quand même et recopieraient les mauvaises données en aval. Un disjoncteur les arrête avant : la première étape du pipeline demande à OneUptime si les tables qu'il lit sont saines, et le reste ne s'exécute que si la réponse est go.
+
+- Un contrôle en échec d'une table que le pipeline lit l'arrête toujours : un contrôle dont l'alerte est ouverte, ou un test dbt qui a échoué.
+- Une table en retard l'arrête aussi dès que **Arrêter quand une table qu'il lit est en retard** est activé, sur la page **Disjoncteur** du pipeline. C'est désactivé pour chaque pipeline, car une table en retard peut simplement signifier une journée calme.
+- Un contrôle qui n'a pas pu s'exécuter ou ne s'est pas encore exécuté, et une table sans contrôle, n'arrêtent rien.
+
+L'étape interroge avec une clé API de projet qui peut lire l'Observabilité des données, et nomme le pipeline sous la forme `namespace/name`, par son seul nom ou par son ID. Le disjoncteur lit les tables que lit le pipeline dans son lignage. Une requête peut aussi nommer des `tables`, ou seulement celles-ci, chacune sous la forme `schema.table`, par son seul nom ou par son ID ; un nom qui ne correspond à aucune table revient dans `notFound`, et ne compte jamais comme une table qui a réussi. Seules les tables que la clé API peut lire sont jugées.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Le `verdict` de la réponse est `go` ou `stop`. `reasons` liste chaque contrôle en échec avec sa table, et chaque table en retard avec son retard ; `tables` liste chaque table jugée ; et `answer` dit la même chose en quelques phrases, pour le journal de l'étape. Avec `failWithStatusCode`, un arrêt répond HTTP 412, donc `curl -f` fait échouer l'étape. Envoyez `stopsOnLateTables` à `true` ou `false` pour décider pour une seule requête, et `dryRun` à `true` pour demander sans que la réponse soit conservée.
+
+Dans Airflow, placez un `ShortCircuitOperator` avant les tâches qui lisent les tables : quand sa fonction renvoie false, toutes les tâches qui le suivent sont ignorées.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Les hooks `on-run-start` de dbt exécutent du SQL dans votre entrepôt, pas des requêtes web : interrogez donc dans l'étape qui lance dbt, une tâche de CI, une ligne cron ou la tâche qui l'exécute. Le pipeline d'un projet dbt se nomme `dbt/` suivi du nom du projet.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Une requête qui nomme un pipeline est conservée sur celui-ci, sauf s'il s'agit d'un essai. Tant que le disjoncteur a arrêté un pipeline, sa page **Disjoncteur** dit depuis quand et pourquoi, sa **Vue d'ensemble** s'ouvre sur l'arrêt, et **À traiter** et **Problèmes** le listent comme arrêté, à la place de son exécution en échec ou en retard. L'arrêt prend fin quand le disjoncteur répond go la fois suivante, ou quand une exécution démarre après lui. La même page propose **Tester maintenant**, qui interroge le disjoncteur sans que la réponse soit conservée, et l'étape pour curl, Airflow et dbt avec le nom du pipeline déjà rempli.
+
+Tant que l'Observabilité des données est désactivée sur le serveur, le disjoncteur répond go et ne conserve rien : désactiver un produit n'arrête jamais un pipeline.
 
 ## Un seul signalement par cause
 

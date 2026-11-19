@@ -143,6 +143,14 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
     why: "disk fills one node at a time; the fleet Avg would dilute it away",
   },
   {
+    id: "k8s-pvc-almost-full",
+    groupByKeys: [
+      "resource.k8s.namespace.name",
+      "resource.k8s.persistentvolumeclaim.name",
+    ],
+    why: "a claim fills on its own, and claim names repeat across namespaces",
+  },
+  {
     id: "k8s-daemonset-unavailable",
     groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.daemonset.name"],
     why: "the incident names one DaemonSet, which is namespace-scoped",
@@ -339,7 +347,7 @@ describe("KubernetesAlertTemplates - per-series group-by keys", () => {
      * single-query template silently reverts to whole-cluster alerting
      * and this count falls back toward four.
      */
-    expect(grouped).toBe(19);
+    expect(grouped).toBe(20);
     // The four cluster-scalar templates, and the whole-cluster heartbeat.
     expect(EXPECTED_GROUP_BY.length - grouped).toBe(5);
   });

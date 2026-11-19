@@ -5,7 +5,7 @@ Um monitor de Kubernetes alerta com base nas métricas que o agente de Kubernete
 :::cards
 - [Instalar o agente](/docs/monitor/kubernetes-agent): Um único comando do Helm coloca o cluster no OneUptime.
 - [Criar o monitor](#criar-um-monitor-de-kubernetes): Escolher o cluster e depois um modelo, uma métrica ou uma consulta.
-- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e quatro alertas prontos, de um cluster silencioso a etcd.
+- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e cinco alertas prontos, de um cluster silencioso a etcd.
 - [Critérios](#critérios-de-monitoramento): Limites estáticos e detecção de anomalias.
 :::
 
@@ -86,7 +86,7 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 
 | Categoria | Métricas |
 | --- | --- |
-| Pod | Consumo de CPU do Pod, Uso de memória do Pod, Fase do Pod (código), Uso do sistema de arquivos do Pod, Utilização do limite de memória do Pod, Utilização do limite de CPU do Pod, E/S de rede do Pod (acumulada, ambas as direções) |
+| Pod | Consumo de CPU do Pod, Uso de memória do Pod, Fase do Pod (código), Uso do sistema de arquivos do Pod, Capacidade do volume, Espaço livre do volume, Utilização do limite de memória do Pod, Utilização do limite de CPU do Pod, E/S de rede do Pod (acumulada, ambas as direções) |
 | Nó | Consumo de CPU do nó, CPU alocável do nó, Uso de memória do nó, Working set de memória do nó, Uso do sistema de arquivos do nó, Memória alocável do nó, Condição Ready do nó, Condição MemoryPressure do nó, Condição DiskPressure do nó, Condição PIDPressure do nó, Sistema de arquivos disponível do nó |
 | Contêiner | Reinicializações do contêiner, Reinicializações do contêiner (aumento), Limite de CPU do contêiner, Solicitação de CPU do contêiner, Limite de memória do contêiner, Solicitação de memória do contêiner, Contêiner pronto |
 | Carga de trabalho | Réplicas disponíveis do Deployment, Réplicas desejadas do Deployment, Nós desejados do DaemonSet, Nós agendados incorretamente do DaemonSet, Nós prontos do DaemonSet, Réplicas desejadas do StatefulSet, Réplicas prontas do StatefulSet, Pods com falha do Job, Pods com falha do Job (aumento), Pods bem-sucedidos do Job |
@@ -150,6 +150,7 @@ A lista de **Sobre o que alertar** traz estes modelos, agrupados por categoria. 
 | API Server Request Saturation | Plano de controle | O servidor de API mantém 200 ou mais requisições em andamento durante toda a janela | Crítico |
 | Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Aviso |
 | High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Aviso |
+| PVC Almost Full | Armazenamento | Uma reivindicação de volume persistente está mais de 90% cheia | Aviso |
 | DaemonSet Pods Not Ready | Carga de trabalho | Um DaemonSet tem nós sem um pod seu pronto por 15 minutos | Aviso |
 | DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Aviso |
 | High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Aviso |

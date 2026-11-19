@@ -24,7 +24,7 @@ flowchart TB
 
 - **Én stak i hver region.** Kommandoen udruller en CloudFormation-stak i hver region, du streamer fra. Dens metrikstrøm og abonnementsfiltre for logge giver alt videre til to Firehose-strømme, og Firehose leverer det til OneUptime over HTTPS.
 - **Streamnøglen siger, hvis det er.** Firehose sender forbindelsens streamnøgle med hver levering. Nøglen navngiver forbindelsen og dermed projektet: intet i en levering afgør, hvor den skrives. OneUptime gemmer kun nøglens SHA-256.
-- **Læsningerne overlader streamede metrikker til streamen.** Så længe en stream leverer et navnerum i en region, holder forbindelsens læsninger op med at skrive det navnerums metrikker, så intet datapunkt tælles to gange. De skriver stadig de vigtige metrikker, en stream overlader til dem, såsom en S3-buckets daglige størrelse og de vigtige metrikker, der er kommet til, efter at streams begyndte, og som en ældre stak ikke indeholder. Læsningerne bliver ved med at finde ressourcer, deres tilstand og deres ændringer, og tager et navnerum tilbage efter 15 minutter uden levering.
+- **Læsningerne overlader streamede metrikker til streamen.** Så længe en stream leverer et navnerum i en region, holder forbindelsens læsninger op med at læse og skrive hver vigtig metrik i det, som streamens stak indeholder, så CloudWatch ikke længere tager betaling for at læse det, streamen sender, og intet datapunkt tælles to gange. De læser stadig de få, en ressources tilstand bedømmes ud fra, og skriver stadig de vigtige metrikker, en stream overlader til dem, såsom en S3-buckets daglige størrelse og dem, en stak oprettet før dem ikke indeholder. Læsningerne bliver ved med at finde ressourcer, deres tilstand og deres ændringer, og tager et navnerum tilbage efter 15 minutter uden levering.
 - **Intet går tabt, mens OneUptime ikke kan tage imod det.** Firehose sender en afvist batch igen i op til en time og gemmer den derefter i 30 dage i stakkens S3-bucket.
 
 ## Før du begynder
@@ -138,7 +138,7 @@ done
 For en forbindelse, der læser en AWS Organization, skal du køre dialogens kommando i administrationskontoen: Hvis organisationen blev streamet, sletter den også hver medlemskontos stakke og StackSettet.
 :::
 
-For at ændre, hvad en stak streamer, åbner du **Stream metrikker og logge** igen, vælger **Opret en ny nøgle** og kører den nye kommando. Den nøgle, den erstatter, virker i 24 timer endnu, så ingen levering afvises, mens stakkene opdateres. Højst 3 erstattede nøgler virker på én gang.
+For at ændre, hvad en stak streamer, åbner du **Stream metrikker og logge** igen, vælger **Opret en ny nøgle** og kører den nye kommando. Den nøgle, den erstatter, virker i 24 timer endnu, så ingen levering afvises, mens stakkene opdateres. Højst 3 erstattede nøgler virker på én gang. Gør det samme, når kontoens række viser **Opdater streamen**: dens stakke blev oprettet, før OneUptime streamede alle vigtige metrikker, og indtil de er opdateret, læser forbindelsen de vigtige metrikker, de ikke indeholder, fra CloudWatch, så ingen mangler. AWS genstarter en metrikstrøm, hvis filtre ændres, og sender kun de datapunkter, der kommer bagefter.
 
 ## Sæt det op på en anden måde
 
@@ -153,7 +153,7 @@ Giv hver Firehose-strøm en HTTP-endepunktsdestination med disse værdier, og me
 | Buffer | 1 MiB eller 60 sekunder |
 | Varighed af genforsøg | 3600 sekunder, med en S3-bucket til det, der ikke kunne leveres |
 
-På en selvhostet OneUptime erstatter du `https://oneuptime.com` med din OneUptimes HTTPS-adresse. Endepunktet for metrikker tager også imod en metrikstrøm i JSON-formatet.
+På en selvhostet OneUptime erstatter du `https://oneuptime.com` med din OneUptimes HTTPS-adresse. Endepunktet for metrikker tager også imod en metrikstrøm i JSON-formatet. OneUptime går ud fra, at en metrikstrøm sat op på denne måde kun indeholder de vigtige metrikker, som streams begyndte med, og læser de øvrige fra CloudWatch.
 
 OneUptime besvarer hver levering, som Firehose forventer:
 

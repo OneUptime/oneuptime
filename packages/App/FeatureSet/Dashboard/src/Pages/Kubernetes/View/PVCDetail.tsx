@@ -29,10 +29,22 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import Card from "Common/UI/Components/Card/Card";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesVolumeUsageCard from "../../../Components/Kubernetes/KubernetesVolumeUsageCard";
+import { KubernetesVolumeClaimUsage } from "../Utils/KubernetesVolumeUsage";
+import { fetchKubernetesVolumeClaimUsage } from "../Utils/KubernetesVolumeUsageFetcher";
+import {
+  KubernetesVolumeUsageCharts,
+  getKubernetesVolumeUsageCharts,
+} from "../Utils/KubernetesVolumeUsageCharts";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterPVCDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const pvcName: string = Navigation.getLastParamAsString();
   // Which one: names repeat across namespaces.
@@ -43,6 +55,10 @@ const KubernetesClusterPVCDetail: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [pvcObject, setPvcObject] = useState<KubernetesPVCObject | null>(null);
   const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
+  // How full it is, as the agent last reported it (KubernetesVolumeUsage).
+  const [usage, setUsage] = useState<KubernetesVolumeClaimUsage | null>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState<boolean>(true);
+  const [usageError, setUsageError] = useState<string>("");
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -91,6 +107,27 @@ const KubernetesClusterPVCDetail: FunctionComponent<
 
     fetchPvcObject().catch(() => {});
   }, [cluster?.clusterIdentifier, pvcName, namespaceParam]);
+
+  useEffect(() => {
+    const fetchUsage: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingUsage(true);
+      setUsageError("");
+      try {
+        setUsage(
+          await fetchKubernetesVolumeClaimUsage({
+            kubernetesClusterId: modelId,
+            name: pvcName,
+            namespace: namespaceParam,
+          }),
+        );
+      } catch (err) {
+        setUsageError(API.getFriendlyMessage(err));
+      }
+      setIsLoadingUsage(false);
+    };
+
+    fetchUsage().catch(() => {});
+  }, [pvcName, namespaceParam]);
 
   /*
    * The PVC's Events, read as the page opens: the Events tab says how
@@ -200,19 +237,53 @@ const KubernetesClusterPVCDetail: FunctionComponent<
     );
   }
 
+  // The claim's usage over time, in its namespace (names repeat across them).
+  const charts: KubernetesVolumeUsageCharts = getKubernetesVolumeUsageCharts({
+    clusterIdentifier: clusterIdentifier,
+    namespace: pvcObject?.metadata.namespace || namespaceParam || "default",
+    claimName: pvcName,
+    hasInodes: Boolean(usage?.inodes),
+    translator: translator,
+  });
+
   const tabs: Array<Tab> = [
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={pvcObject?.metadata.labels || {}}
-          annotations={pvcObject?.metadata.annotations || {}}
-          isLoading={isLoadingObject}
-        />
+        <>
+          {/*
+           * How full it is first: what people open a claim for (#9539).
+           */}
+          <KubernetesVolumeUsageCard
+            usage={usage}
+            isLoading={isLoadingUsage}
+            error={usageError}
+            description="How much of this claim's filesystem is used and free, as the kubelet last measured it."
+          />
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={pvcObject?.metadata.labels || {}}
+            annotations={pvcObject?.metadata.annotations || {}}
+            isLoading={isLoadingObject}
+          />
+        </>
       ),
     },
     eventsTab,
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title="Usage Over Time"
+          description="How full this claim's filesystem has been over the selected time range (the past hour by default)."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={charts.queryConfigs}
+            formulaConfigs={charts.formulaConfigs}
+          />
+        </Card>
+      ),
+    },
     {
       name: "YAML",
       children: (

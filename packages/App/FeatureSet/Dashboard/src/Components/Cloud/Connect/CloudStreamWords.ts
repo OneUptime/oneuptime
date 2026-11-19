@@ -8,6 +8,7 @@ import {
   getCloudStreamState,
   readCloudStreamSummary,
 } from "Common/Types/CloudConnection/CloudStream";
+import { getOlderAwsStreamStacks } from "Common/Types/CloudConnection/CloudStreamStack";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -392,6 +393,57 @@ export function getCloudStreamStatusWords(data: {
       },
     },
   };
+}
+
+/*
+ * A stream whose stack was made before OneUptime streamed every key metric
+ * (CloudStreamStack): it streams the first ones only, and the connection
+ * reads the rest from CloudWatch - billed to the account - until the
+ * command is run again. The list offers the update, the dialog says why.
+ */
+export const STREAM_UPDATE_LABEL: string = translationKey("Update the stream");
+export const STREAM_OLDER_STACKS_SENTENCE: string = translationKey(
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.",
+);
+
+export interface CloudStreamUpdateWords {
+  // The Regions streaming from an older stack lately, each once.
+  regions: Array<string>;
+}
+
+/*
+ * What should be updated of an AWS connection's streams, or null: every
+ * stack it streams from lately is of the current template, or of every
+ * metric - or it does not stream (no key).
+ */
+export function getCloudStreamUpdateWords(data: {
+  // AWS when left out.
+  provider?: string | null | undefined;
+  streamKeyCreatedAt: Date | string | null | undefined;
+  streamSummary: unknown;
+  now: Date;
+}): CloudStreamUpdateWords | null {
+  if (
+    readCloudStreamProvider(data.provider) !== CloudProvider.AWS ||
+    !data.streamKeyCreatedAt
+  ) {
+    return null;
+  }
+
+  const regions: Array<string> = [];
+
+  for (const stack of getOlderAwsStreamStacks({
+    summary: readCloudStreamSummary(data.streamSummary),
+    now: data.now,
+  })) {
+    const region: string = stack.region || stack.accountId;
+
+    if (region && !regions.includes(region)) {
+      regions.push(region);
+    }
+  }
+
+  return regions.length > 0 ? { regions } : null;
 }
 
 const METRICS_FROM: PluralTemplate = {

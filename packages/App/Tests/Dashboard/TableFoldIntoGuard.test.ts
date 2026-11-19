@@ -70,8 +70,14 @@ const RESOURCE_TABLE: string = path.join(
   "ResourceTable.tsx",
 );
 const KEY: RegExp = /\bkey:\s*"([^"]+)"/g;
+/*
+ * A list of ResourceColumns: its columns typed from ResourceTable, a page
+ * that draws ResourceTable itself (a VMware datastore list), or one drawn
+ * through KubernetesResourceTable, which hands its columns to ResourceTable
+ * as they are (a Kubernetes claim list, #9539).
+ */
 const RESOURCE_TABLE_IMPORT: RegExp =
-  /\bResourceColumn\b[\s\S]*?from "[^"]*Infrastructure\/ResourceTable";/;
+  /\b(?:ResourceColumn|ResourceTable|KubernetesResourceTable)\b[\s\S]*?from "[^"]*(?:Infrastructure\/ResourceTable|Kubernetes\/KubernetesResourceTable)";/;
 
 // ResourceTable's own columns, by key: what a ResourceColumn may fold into.
 function resourceTableKeys(): Array<string> {

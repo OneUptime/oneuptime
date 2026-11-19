@@ -140,7 +140,72 @@ Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit s
 
 Der Tab **Eigentümer** einer Pipeline nennt die Personen und Teams, die sich um sie kümmern, und ihre Warnungen gehen an sie. Die **Übersicht** und **Probleme** nennen die Eigentümer einer fehlgeschlagenen oder verspäteten Pipeline, oder zeigen **Kein Eigentümer** und einen Weg, einen hinzuzufügen.
 
+**Eigentümerregeln** können die Eigentümer einer Pipeline für Sie benennen. Auf ihrem Tab **Pipeline-Regeln** gleicht eine Regel eine Pipeline per regulärem Ausdruck mit ihrem Namen ab, etwa `orders_daily.load_orders`, oder mit ihrem Namespace, also wo sie läuft, etwa `airflow://prod`, und fügt ihre Personen und Teams als Eigentümer der Pipeline hinzu, wenn OneUptime die Pipeline zum ersten Mal sieht. Um sie den Pipelines hinzuzufügen, die Sie schon haben, öffnen Sie die Regel und wählen Sie **Jetzt ausführen**.
+
 Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen. Eine Zahl nicht gezeichneter Tabellen, auf der Karte der Pipeline oder einer Tabelle, zeichnet auch hier weitere davon an Ort und Stelle. Wählen Sie eine der Spalten, die sie schreibt, um ihr über die Pipeline hinweg zu folgen: hinauf zur Spalte jeder gelesenen Tabelle, aus der sie erstellt wurde, und hinunter zu jeder Tabelle, in die sie sie schreibt.
+
+## Schutzschalter
+
+Eine fehlschlagende Prüfung oder eine verspätete Tabelle benachrichtigt ihre Eigentümer, doch die Pipelines, die die Tabelle lesen, würden trotzdem laufen und die fehlerhaften Daten weiter nach unten kopieren. Ein Schutzschalter hält sie vorher an: Der erste Schritt der Pipeline fragt OneUptime, ob die Tabellen, die sie liest, in Ordnung sind, und der Rest läuft nur, wenn die Antwort go lautet.
+
+- Eine fehlschlagende Prüfung einer Tabelle, die die Pipeline liest, stoppt sie immer: eine Prüfung, deren Warnung offen ist, oder ein fehlgeschlagener dbt-Test.
+- Eine verspätete Tabelle stoppt sie ebenfalls, sobald **Stoppen, wenn eine gelesene Tabelle verspätet ist** auf der Seite **Schutzschalter** der Pipeline eingeschaltet ist. Für jede Pipeline ist es ausgeschaltet, denn eine verspätete Tabelle kann auch nur einen ruhigen Tag bedeuten.
+- Eine Prüfung, die nicht laufen konnte oder noch nicht gelaufen ist, und eine Tabelle ohne Prüfungen stoppen nichts.
+
+Der Schritt fragt mit einem Projekt-API-Schlüssel, der Data Observability lesen darf, und nennt die Pipeline als `namespace/name`, nur mit ihrem Namen oder mit ihrer ID. Der Schutzschalter liest die Tabellen, die die Pipeline liest, aus ihrer Datenherkunft. Eine Anfrage kann zusätzlich `tables` nennen, oder nur diese, jeweils als `schema.table`, nur mit ihrem Namen oder mit ihrer ID; ein Name, der zu keiner Tabelle passt, kommt in `notFound` zurück und zählt nie als Tabelle, die bestanden hat. Beurteilt werden nur die Tabellen, die der API-Schlüssel lesen darf.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Das `verdict` der Antwort ist `go` oder `stop`. `reasons` listet jede fehlschlagende Prüfung mit ihrer Tabelle und jede verspätete Tabelle mit ihrer Verspätung; `tables` listet jede beurteilte Tabelle; und `answer` sagt dasselbe in wenigen Sätzen, für das Log des Schritts. Mit `failWithStatusCode` antwortet ein Stopp mit HTTP 412, sodass `curl -f` den Schritt fehlschlagen lässt. Senden Sie `stopsOnLateTables` als `true` oder `false`, um für eine einzelne Anfrage zu entscheiden, und `dryRun` als `true`, um zu fragen, ohne dass die Antwort gespeichert wird.
+
+Setzen Sie in Airflow einen `ShortCircuitOperator` vor die Aufgaben, die die Tabellen lesen: Gibt seine Funktion false zurück, wird jede Aufgabe nach ihm übersprungen.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Die `on-run-start`-Hooks von dbt führen SQL in Ihrem Warehouse aus, keine Webanfragen. Fragen Sie daher in dem Schritt, der dbt startet: ein CI-Job, eine Cron-Zeile oder die Aufgabe, die es ausführt. Die Pipeline eines dbt-Projekts heißt `dbt/`, gefolgt vom Namen des Projekts.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Eine Anfrage, die eine Pipeline nennt, wird an ihr gespeichert, außer bei einem Probelauf. Solange der Schutzschalter eine Pipeline gestoppt hat, sagt ihre Seite **Schutzschalter**, seit wann und warum, ihre **Übersicht** öffnet mit dem Stopp, und **Handlungsbedarf** und **Probleme** führen sie als gestoppt statt mit ihrem fehlgeschlagenen oder verspäteten Lauf. Der Stopp endet, wenn der Schutzschalter das nächste Mal go antwortet oder ein Lauf nach ihm beginnt. Dieselbe Seite hat **Jetzt testen**, das den Schutzschalter fragt, ohne dass die Antwort gespeichert wird, und den Schritt für curl, Airflow und dbt mit dem Namen der Pipeline schon eingetragen.
+
+Solange Data Observability auf dem Server ausgeschaltet ist, antwortet der Schutzschalter go und speichert nichts: Ein ausgeschaltetes Produkt stoppt nie eine Pipeline.
 
 ## Eine Meldung pro Ursache
 

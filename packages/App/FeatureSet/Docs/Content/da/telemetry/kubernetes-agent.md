@@ -410,7 +410,7 @@ Hændelser over flere linjer samles igen før filtreringen i begge tilstande, s�
 Drop nogle få støjende metrikker (en denylist, som regel det, du vil have):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Send kun et fast sæt (en tilladelsesliste: alt andet droppes):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antallet af forskellige serier, betyder lige så meget som hyppighed, fordi hver serie gemmes og faktureres for sig.
 
 - cAdvisor er med vilje begrænset af en tilladelsesliste. Receiveren cAdvisor (slået til som standard) kan udsende hundredvis af metrikker; chartet videresender kun tællerne for CPU-throttling og OOM-kills i `cadvisor.metricsAllowlist`, til dine egne grafer og metrikmonitorer: ingen indbygget skabelon læser dem. Hold listen kort: hver post beholdes pr. container, så én metrik mere ganges med klyngens antal containere. kube-state-metrics er slået fra som standard; slår du den til (`kubeStateMetrics.enabled=true`), virker dens `kubeStateMetrics.metricsAllowlist` på samme måde, og hver post skal matche hele navnet på en metrik.
-- Volumenmetrikker pr. PVC (`kubeletstats.volumeMetrics.enabled`, slået til som standard) udsender én serie pr. PVC pr. pod: fint for de fleste klynger, meget på tilstandsfulde workloads (Kafka, databaser) med tusindvis af PVC'er. Slå dem fra der, hvis du ikke overvåger PVC-diskplads, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volumenmetrikker (`kubeletstats.volumeMetrics.enabled`, slået til som standard) udsender et par serier pr. volumen pr. pod og fylder brugt, ledigt og kapacitet på siderne for Persistent Volume Claims og skabelonen PVC Almost Full: fint for de fleste klynger, meget på tilstandsfulde workloads (Kafka, databaser) med tusindvis af PVC'er. Slå dem fra der, hvis du ikke overvåger PVC-diskplads, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Mætningsmetrikker (`kubeletstats.utilizationMetrics.enabled`, slået til som standard) tilføjer 8 afledte familier for "% af request eller limit". De koster intet ekstra scrape, men bruger du ikke monitorerne for CPU og hukommelse i forhold til limit, så drop dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Drop metrikker efter navn med `filters.metrics.exclude`, som gælder for alle receivers, for alt, hvad receivernes tilladelseslister ikke kan udtrykke (se [Inkludering eller udelukkelse af metrikker efter navn](#inkludering-eller-udelukkelse-af-metrikker-efter-navn)):
 
@@ -1060,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Stram yderligere op efter behov: hæv `minSeverity` til `ERROR`, føj `metrics` til områderne i en namespace-regel, eller sæt `ebpf.enabled=false`, hvis du allerede sender traces fra OpenTelemetry-SDK'er.
 
 > [!CAUTION]
-> Hold øje med, hvad du skærer væk. Nogle monitorer afhænger af bestemte signaler: at slå `kubeletstats.utilizationMetrics` fra bringer de to skabeloner, der måler pods mod deres containergrænser, til tavshed, at slå logs fra fjerner logbaserede advarsler, og at slå `cadvisor` eller `kubeletstats.volumeMetrics` fra fjerner de serier for throttling, OOM-kills og PVC'er, som dine egne grafer og metrikmonitorer kan læse. `sampling.traces.percentage` fjerner ingen monitor, men skalerer de spanbaserede ned (**Spor** på `Span Count`, **Undtagelser** på `Exception Count`), så juster deres tærskler. Skær de signaler væk, du ikke handler på, ikke dem, en monitor overvåger.
+> Hold øje med, hvad du skærer væk. Nogle monitorer afhænger af bestemte signaler: at slå `kubeletstats.utilizationMetrics` fra bringer de to skabeloner, der måler pods mod deres containergrænser, til tavshed, at slå logs fra fjerner logbaserede advarsler, at slå `kubeletstats.volumeMetrics` fra gør skabelonen PVC Almost Full tavs og efterlader siderne for claims uden deres forbrug, og at slå `cadvisor` fra fjerner de serier for throttling og OOM-kills, som dine egne grafer og metrikmonitorer kan læse. `sampling.traces.percentage` fjerner ingen monitor, men skalerer de spanbaserede ned (**Spor** på `Span Count`, **Undtagelser** på `Exception Count`), så juster deres tærskler. Skær de signaler væk, du ikke handler på, ikke dem, en monitor overvåger.
 
 ### Mål effekten
 

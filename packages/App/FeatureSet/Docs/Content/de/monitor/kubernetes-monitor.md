@@ -5,7 +5,7 @@ Ein Kubernetes-Monitor warnt anhand der Metriken, die der OneUptime-Kubernetes-A
 :::cards
 - [Den Agent installieren](/docs/monitor/kubernetes-agent): Ein Helm-Befehl bringt den Cluster in OneUptime.
 - [Den Monitor erstellen](#einen-kubernetes-monitor-erstellen): Den Cluster wählen, dann eine Vorlage, eine Metrik oder eine Abfrage.
-- [Warnungsvorlagen](#fertige-warnungsvorlagen): Vierundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
+- [Warnungsvorlagen](#fertige-warnungsvorlagen): Fünfundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
 - [Kriterien](#überwachungskriterien): Statische Schwellenwerte und Anomalieerkennung.
 :::
 
@@ -86,7 +86,7 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 
 | Kategorie | Metriken |
 | --- | --- |
-| Pod | Pod-CPU-Nutzung, Pod-Speichernutzung, Pod-Phase (Code), Pod-Dateisystemnutzung, Pod-Auslastung des Speicherlimits, Pod-Auslastung des CPU-Limits, Pod-Netzwerk-I/O (kumuliert, beide Richtungen) |
+| Pod | Pod-CPU-Nutzung, Pod-Speichernutzung, Pod-Phase (Code), Pod-Dateisystemnutzung, Volume-Kapazität, Freier Volume-Speicher, Pod-Auslastung des Speicherlimits, Pod-Auslastung des CPU-Limits, Pod-Netzwerk-I/O (kumuliert, beide Richtungen) |
 | Knoten | Knoten-CPU-Nutzung, Zuweisbare CPU des Knotens, Knoten-Speichernutzung, Arbeitsspeicher-Working-Set des Knotens, Knoten-Dateisystemnutzung, Zuweisbarer Arbeitsspeicher des Knotens, Ready-Bedingung des Knotens, MemoryPressure-Bedingung des Knotens, DiskPressure-Bedingung des Knotens, PIDPressure-Bedingung des Knotens, Verfügbares Dateisystem des Knotens |
 | Container | Container-Neustarts, Container-Neustarts (Zuwachs), CPU-Limit des Containers, CPU-Anforderung des Containers, Speicherlimit des Containers, Speicheranforderung des Containers, Container bereit |
 | Workload | Verfügbare Replikate des Deployments, Gewünschte Replikate des Deployments, Gewünschte Knoten des DaemonSets, Falsch geplante Knoten des DaemonSets, Bereite Knoten des DaemonSets, Gewünschte Replikate des StatefulSets, Bereite Replikate des StatefulSets, Fehlgeschlagene Pods des Jobs, Fehlgeschlagene Pods des Jobs (Zuwachs), Erfolgreiche Pods des Jobs |
@@ -150,6 +150,7 @@ Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kat
 | API Server Request Saturation | Steuerungsebene | Der API-Server während des gesamten Zeitfensters 200 oder mehr laufende Anfragen hält | Kritisch |
 | Scheduler Backlog | Planung | Die Warteschlange ausstehender Pods des Schedulers 5 Minuten lang nicht leer ist | Warnung |
 | High Node Disk Usage | Speicher | Das Dateisystem eines Knotens zu mehr als 90 % voll ist | Warnung |
+| PVC Almost Full | Speicher | Ein Persistent Volume Claim zu mehr als 90 % voll ist | Warnung |
 | DaemonSet Pods Not Ready | Workload | Ein DaemonSet 15 Minuten lang Knoten ohne einen bereiten Pod von ihm hat | Warnung |
 | DaemonSet Misscheduled Nodes | Workload | Ein DaemonSet Pods auf Knoten ausführt, die nicht mehr zu seinem Node-Selector, seiner Affinität oder seinen Tolerations passen | Warnung |
 | High Node CPU Request Commitment | Knoten | Die summierten CPU-Requests der Container eines Knotens 90 % seiner zuweisbaren CPU übersteigen | Warnung |

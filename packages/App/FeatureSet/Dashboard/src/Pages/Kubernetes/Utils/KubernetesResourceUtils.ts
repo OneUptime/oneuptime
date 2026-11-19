@@ -28,6 +28,7 @@ import {
   KubernetesHealthText,
   assessKubernetesResource,
 } from "Common/Types/Kubernetes/KubernetesHealth";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 
 // The kinds the cluster's rules give a status of their own.
 const KINDS_WITH_HEALTH_RULES: ReadonlySet<string> = new Set<string>([
@@ -116,6 +117,10 @@ export interface KubernetesResource {
   statusReasons?: Array<KubernetesHealthText> | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
+  // A claim's used and free, for the Used and Free columns (ResourceTable).
+  storageUsage?:
+    | { usage: StorageUsage | null; noUsageText?: string | undefined }
+    | undefined;
 }
 
 export interface FetchResourceListOptions {
@@ -535,6 +540,11 @@ export default class KubernetesResourceUtils {
     kubernetesClusterId: ObjectID;
     kind: string;
     selectFullSpec?: boolean;
+    /*
+     * A claim's latest volume usage (latestVolume* columns), for its Used
+     * and Free columns (KubernetesVolumeUsage).
+     */
+    selectVolumeUsage?: boolean;
     transform?: (
       resource: KubernetesResource,
       row: KubernetesResourceModel,
@@ -559,6 +569,12 @@ export default class KubernetesResourceUtils {
     if (options.selectFullSpec) {
       select["spec"] = true;
       select["status"] = true;
+    }
+    if (options.selectVolumeUsage) {
+      select["latestVolumeCapacityBytes"] = true;
+      select["latestVolumeAvailableBytes"] = true;
+      select["latestVolumeInodes"] = true;
+      select["latestVolumeInodesFree"] = true;
     }
 
     const result: ListResult<KubernetesResourceModel> =

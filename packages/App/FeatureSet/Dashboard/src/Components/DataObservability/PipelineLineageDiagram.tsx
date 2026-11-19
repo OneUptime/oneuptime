@@ -89,7 +89,7 @@ const PipelineLineageDiagram: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Lineage"
-      description="The tables this pipeline reads and the tables it writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them."
+      description="The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them."
       rightElement={<LineageStepSwitch depth={depth} onChange={setDepth} />}
     >
       <div data-testid="pipeline-lineage-diagram">{body}</div>

@@ -6,6 +6,7 @@ import MonitorTemplateService, {
 } from "../../../Server/Services/MonitorTemplateService";
 import NetworkAlertPolicyEngineService from "../../../Server/Services/NetworkAlertPolicyEngineService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -499,12 +500,99 @@ describe("syncing a Ping, IP, Port or NTP template", () => {
   });
 });
 
+/*
+ * A WEBSITE, API OR SSL CERTIFICATE TEMPLATE'S MONITORS (issue #9546): each
+ * checks the template's URL with its own device's address as the host. A
+ * sync brings the template's criteria and its URL's scheme, port and path,
+ * and each monitor keeps its device's host.
+ */
+describe("syncing a Website, API or SSL Certificate template", () => {
+  function withUrl(steps: MonitorSteps, url: string): MonitorSteps {
+    steps.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+      URL.fromString(url),
+    );
+    return steps;
+  }
+
+  it("each device's monitor takes the template's URL but for its host, which stays the device's", async () => {
+    const template: MonitorTemplate = buildTemplate(MonitorType.Website);
+    template.monitorSteps = withUrl(
+      template.monitorSteps!,
+      "http://printer:8080/hp/device/",
+    );
+
+    const first: Monitor = buildMonitor({
+      deviceId: DEVICE_ONE_ID,
+      monitorType: MonitorType.Website,
+    });
+    first.monitorSteps = withUrl(first.monitorSteps!, "https://10.48.24.33/");
+
+    const second: Monitor = buildMonitor({
+      deviceId: DEVICE_TWO_ID,
+      monitorType: MonitorType.Website,
+    });
+    second.monitorSteps = withUrl(
+      second.monitorSteps!,
+      "https://[2001:db8::1]/",
+    );
+    devicesMonitorCount = 2;
+
+    jest
+      .spyOn(MonitorTemplateService, "findOneById")
+      .mockResolvedValue(template);
+    jest
+      .spyOn(MonitorTemplateService, "countLinkedMonitors")
+      .mockResolvedValue(2);
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([first, second]);
+    const updateOneSpy: SpyInstance<typeof MonitorService.updateOneById> = jest
+      .spyOn(MonitorService, "updateOneById")
+      .mockResolvedValue(1);
+    const bulkUpdateSpy: SpyInstance<typeof MonitorService.updateBy> =
+      jest.spyOn(MonitorService, "updateBy");
+
+    const result: SyncLinkedMonitorsResult =
+      await MonitorTemplateService.syncLinkedMonitors({
+        monitorTemplateId: TEMPLATE_ID,
+        fields: ["monitorSteps"],
+        props: { isRoot: true },
+      });
+
+    expect(result).toEqual({ totalLinkedMonitors: 2, syncedMonitors: 2 });
+    // One write each: one statement would give every device the template's host.
+    expect(bulkUpdateSpy).not.toHaveBeenCalled();
+
+    const written: Map<string, MonitorSteps> = new Map<string, MonitorSteps>(
+      updateOneSpy.mock.calls.map(
+        (call: Parameters<typeof MonitorService.updateOneById>) => {
+          return [
+            call[0].id.toString(),
+            call[0].data.monitorSteps as MonitorSteps,
+          ];
+        },
+      ),
+    );
+
+    expect(destinationsOf(written.get(first.id!.toString())!)).toEqual([
+      "http://10.48.24.33:8080/hp/device/",
+    ]);
+    expect(destinationsOf(written.get(second.id!.toString())!)).toEqual([
+      "http://[2001:db8::1]:8080/hp/device/",
+    ]);
+
+    for (const steps of written.values()) {
+      expect(criteriaNamesOf(steps)).toEqual(
+        criteriaNamesOf(template.monitorSteps!),
+      );
+    }
+  });
+});
+
 describe("MonitorTemplateService.hasMonitorsMadeForDevices", () => {
-  it("asks only about a Ping, IP, Port or NTP template that is saved", async () => {
+  it("asks only about a Ping, IP, Port, NTP, Website, API or SSL Certificate template that is saved", async () => {
     for (const monitorType of [
       MonitorType.NetworkDevice,
-      MonitorType.Website,
-      MonitorType.API,
+      MonitorType.DNS,
+      MonitorType.Manual,
     ]) {
       expect(
         await MonitorTemplateService.hasMonitorsMadeForDevices(
@@ -528,6 +616,10 @@ describe("MonitorTemplateService.hasMonitorsMadeForDevices", () => {
       MonitorType.IP,
       MonitorType.Port,
       MonitorType.NTP,
+      // A web UI's monitors are made for devices too (issue #9546).
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
     ]) {
       devicesMonitorCount = 0;
       expect(

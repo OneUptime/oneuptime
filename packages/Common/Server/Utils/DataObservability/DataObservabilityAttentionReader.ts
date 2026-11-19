@@ -25,6 +25,11 @@ import {
 } from "../../../Types/DataObservability/DataObservabilityApiTypes";
 import { DataCheckType } from "../../../Types/DataObservability/DataCheckType";
 import {
+  DataCircuitBreakerReason,
+  describeDataCircuitBreakerReason,
+  readDataCircuitBreakerReasons,
+} from "../../../Types/DataObservability/DataCircuitBreaker";
+import {
   DataPipelineLateness,
   DataPipelineTimeliness,
   MAX_LATENESS_WATCH_IN_SECONDS,
@@ -38,6 +43,7 @@ import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
 import AlertStateService from "../../Services/AlertStateService";
 import DataAlertService from "../../Services/DataAlertService";
+import DataAssetService from "../../Services/DataAssetService";
 import DataAssetOwnerRuleService from "../../Services/DataAssetOwnerRuleService";
 import DataAssetOwnerTeamService from "../../Services/DataAssetOwnerTeamService";
 import DataAssetOwnerUserService from "../../Services/DataAssetOwnerUserService";
@@ -127,6 +133,29 @@ function toAttentionAlert(alert: Alert): DataAttentionAlert {
   };
 }
 
+/*
+ * A stopped pipeline's message: its first reason, in a sentence, and how
+ * many more there are - of the reasons its reader may read. Null when
+ * there is none of those: the kind's own sentence says what a stop means.
+ */
+function describeStop(reasons: Array<DataCircuitBreakerReason>): string | null {
+  if (reasons.length === 0) {
+    return null;
+  }
+
+  const first: string = describeDataCircuitBreakerReason(reasons[0]!);
+
+  if (reasons.length === 1) {
+    return first;
+  }
+
+  return `${first} ${
+    reasons.length === 2
+      ? "1 more reason."
+      : `${reasons.length - 1} more reasons.`
+  }`;
+}
+
 // A source that cannot be read is left out of the answer, never the reason it fails.
 async function readOrNothing<T>(
   what: string,
@@ -198,6 +227,8 @@ export default class DataObservabilityAttentionReader {
             lastFailureAt: true,
             lastErrorMessage: true,
             expectedRunIntervalInSeconds: true,
+            circuitBreakerStoppedAt: true,
+            circuitBreakerReasons: true,
           },
           skip: 0,
           limit: MAX_ATTENTION_RECORDS_READ,
@@ -206,7 +237,13 @@ export default class DataObservabilityAttentionReader {
       },
     );
 
-    items.push(...this.getPipelineItems(pipelines, data.now));
+    items.push(
+      ...this.getPipelineItems(
+        pipelines,
+        data.now,
+        await this.getReadableStopTables({ pipelines, scope }),
+      ),
+    );
 
     const checks: Array<DataCheck> = await readOrNothing("checks", async () => {
       return await DataCheckService.findBy({
@@ -362,10 +399,19 @@ export default class DataObservabilityAttentionReader {
     };
   }
 
-  // A pipeline whose last run failed, or that has not started when it usually has.
+  /*
+   * A pipeline whose last run failed, or that has not started when it
+   * usually has - or, before either, one its circuit breaker stopped
+   * (#6548): the stop explains a run that failed or did not start, so the
+   * pipeline is told of once, as stopped. A stop, like a failure, is no
+   * longer told of a month on. The stop's message names a reason about a
+   * table its reader may read - the tables of `readableStopTables`, or
+   * every one when it is null - and never one they may not.
+   */
   public static getPipelineItems(
     pipelines: Array<DataPipeline>,
     now: Date,
+    readableStopTables?: Set<string> | null | undefined,
   ): Array<DataAttentionItem> {
     const items: Array<DataAttentionItem> = [];
 
@@ -382,6 +428,35 @@ export default class DataObservabilityAttentionReader {
       const startedAt: Date | null = pipeline.lastRunStartedAt
         ? OneUptimeDate.fromString(pipeline.lastRunStartedAt)
         : null;
+      const stoppedAt: Date | null = pipeline.circuitBreakerStoppedAt
+        ? OneUptimeDate.fromString(pipeline.circuitBreakerStoppedAt)
+        : null;
+
+      if (stoppedAt && Number.isFinite(stoppedAt.getTime())) {
+        if (
+          now.getTime() - stoppedAt.getTime() <=
+          MAX_LATENESS_WATCH_IN_SECONDS * 1000
+        ) {
+          items.push({
+            ...emptyItem(DataAttentionKind.PipelineStopped, name),
+            where,
+            message: describeStop(
+              readDataCircuitBreakerReasons(
+                pipeline.circuitBreakerReasons,
+              ).filter((reason: DataCircuitBreakerReason): boolean => {
+                return (
+                  !readableStopTables ||
+                  readableStopTables.has(reason.dataAssetId)
+                );
+              }),
+            ),
+            since: stoppedAt.toISOString(),
+            dataPipelineId: pipeline.id.toString(),
+          });
+        }
+
+        continue;
+      }
 
       if (isFailedState(pipeline.lastRunState)) {
         // A pipeline nobody has run for a month is retired, as lateness is: no longer told of.
@@ -425,6 +500,50 @@ export default class DataObservabilityAttentionReader {
     }
 
     return items;
+  }
+
+  /*
+   * Of the tables the stopped pipelines' reasons name, those the reader may
+   * read; null when they may read every one.
+   */
+  public static async getReadableStopTables(data: {
+    pipelines: Array<DataPipeline>;
+    scope: DataObservabilityScope;
+  }): Promise<Set<string> | null> {
+    if (data.scope.isWholeProject) {
+      return null;
+    }
+
+    const ids: Set<string> = new Set();
+
+    for (const pipeline of data.pipelines) {
+      if (!pipeline.circuitBreakerStoppedAt) {
+        continue;
+      }
+
+      for (const reason of readDataCircuitBreakerReasons(
+        pipeline.circuitBreakerReasons,
+      )) {
+        ids.add(reason.dataAssetId);
+      }
+    }
+
+    if (ids.size === 0) {
+      return new Set();
+    }
+
+    // A read that fails names no table: never one the reader may not read.
+    return new Set(
+      await readOrNothing("the tables of stopped pipelines", async () => {
+        return Array.from(
+          await DataObservabilityReadScope.getReadableIds({
+            service: DataAssetService,
+            query: data.scope.assetQuery,
+            ids: Array.from(ids),
+          }),
+        );
+      }),
+    );
   }
 
   /*

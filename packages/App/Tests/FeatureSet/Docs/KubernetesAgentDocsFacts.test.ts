@@ -331,9 +331,10 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
 
   /*
    * The rows used to promise a "PVC Low Disk Space" monitor and CPU and
-   * memory "saturation monitors" that read 0 for a pod without limits. No
-   * template reads the volume metrics, and kubeletstats emits no limit or
-   * request utilization at all where there is nothing to divide by.
+   * memory "saturation monitors" that read 0 for a pod without limits.
+   * kubeletstats emits no limit or request utilization at all where there is
+   * nothing to divide by. The volume metrics are read by the template that
+   * exists, PVC Almost Full, and by the claims pages (#9539).
    */
   it("promises only the templates that exist, and no series where kubeletstats emits none", () => {
     const names: Array<string> = getAllKubernetesAlertTemplates().map(
@@ -343,6 +344,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     );
 
     expect(names).not.toContain("PVC Low Disk Space");
+    expect(names).toContain("PVC Almost Full");
     expect(names).toEqual(
       expect.arrayContaining([
         "Pod CPU Saturating Container Limit",
@@ -353,7 +355,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       "which the Pod CPU and Pod Memory Saturating Container Limit templates read. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one.",
     );
     expect(rowsFor("kubeletstats.volumeMetrics.enabled")[0]![2]).toContain(
-      "for charts and metric monitors of your own: no built-in template reads them.",
+      "named by its claim: the used, free and capacity on the Persistent Volume Claims pages, and what the PVC Almost Full template reads.",
     );
     expect(english).not.toContain("PVC Low Disk Space monitor");
     expect(english).not.toContain("Always 0");

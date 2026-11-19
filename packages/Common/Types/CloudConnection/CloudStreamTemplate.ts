@@ -1,9 +1,10 @@
 import { isAwsRegion } from "../Cloud/AwsRegionCode";
 import {
-  AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
+  AWS_STREAM_TEMPLATE_VERSION,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  isAwsKeyMetricInTemplate,
 } from "../Cloud/CloudKeyMetrics";
 import { AWS_LOG_GROUP_NAME_MAX_LENGTH } from "../Cloud/CloudLogGroups";
 import { JSONObject } from "../JSON";
@@ -18,6 +19,10 @@ import {
   CloudStreamProblem,
   getCloudStreamSuffix,
 } from "./CloudStream";
+import {
+  CLOUD_STREAM_METRICS_ATTRIBUTE,
+  CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+} from "./CloudStreamStack";
 
 /*
  * THE CLOUDFORMATION STACK THAT STREAMS ONE AWS REGION INTO ONEUPTIME.
@@ -86,6 +91,13 @@ export const CLOUD_STREAM_MAX_REGIONS: number = 30;
  * body CloudFormation accepts without an S3 bucket.
  */
 export const CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES: number = 51_200;
+
+/*
+ * The most names a metric stream's filters may hold, namespaces and metric
+ * names together (CloudWatch's MetricStreamFilter): the key metrics'
+ * filters stay well under it (CloudStreamTemplate.test).
+ */
+export const CLOUDWATCH_METRIC_STREAM_MAX_FILTER_NAMES: number = 1000;
 
 export const CLOUD_STREAM_TEMPLATE_FILE: string = "oneuptime-stream.json";
 
@@ -339,19 +351,20 @@ export function getCloudStreamOptionsProblem(data: {
 }
 
 /*
- * The metric stream's filters for the key metrics: each namespace
- * OneUptime reads, with its key metrics - the ones read every five
- * minutes, which a stream brings a minute at a time. A metric published a
- * few times a day or once is left to the connection's own reads, which
- * keep reading it: S3's daily storage metrics, which a metric stream does
- * not carry, and ACM's DaysToExpiry, published twice a day and read once
- * an hour, which a stream would bring an hour or two sooner - nothing to a
- * count of days - for a bigger template. So is every key metric added
- * since streams began (AwsKeyMetric.isStreamed): a stack made before it
- * does not carry it, so the reads write it whatever the account streams,
- * and the filters stay the ones every stack has.
+ * The metric stream's filters for the key metrics of a template version
+ * (the current one, unless asked): each namespace OneUptime reads, with
+ * the key metrics that version carries (AwsKeyMetric.streamedSince) - the
+ * ones read every five minutes, which a stream brings a minute at a time.
+ * A metric published a few times a day or once is left to the
+ * connection's own reads, which keep reading it: S3's daily storage
+ * metrics, which a metric stream does not carry, and ACM's DaysToExpiry,
+ * published twice a day and read once an hour, which a stream would bring
+ * an hour or two sooner - nothing to a count of days - for a bigger
+ * template.
  */
-export function getCloudStreamKeyMetricFilters(): Array<{
+export function getCloudStreamKeyMetricFilters(
+  templateVersion: number = AWS_STREAM_TEMPLATE_VERSION,
+): Array<{
   Namespace: string;
   MetricNames: Array<string>;
 }> {
@@ -360,10 +373,7 @@ export function getCloudStreamKeyMetricFilters(): Array<{
   for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
     const metricNames: Array<string> = namespace.metrics
       .filter((metric: AwsKeyMetric): boolean => {
-        return (
-          metric.isStreamed &&
-          metric.periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS
-        );
+        return isAwsKeyMetricInTemplate(metric, templateVersion);
       })
       .map((metric: AwsKeyMetric): string => {
         return metric.metricName;
@@ -452,7 +462,18 @@ function deliveryStream(data: {
   backupPrefix: string;
   logStream: string;
   stackCondition?: string | undefined;
+  /*
+   * What Firehose tells OneUptime with every delivery, in its
+   * X-Amz-Firehose-Common-Attributes header (CloudStreamStack).
+   */
+  commonAttributes?: Record<string, string> | undefined;
 }): JSONObject {
+  const commonAttributes: Array<JSONObject> = Object.entries(
+    data.commonAttributes || {},
+  ).map(([name, value]: [string, string]): JSONObject => {
+    return { AttributeName: name, AttributeValue: value };
+  });
+
   return {
     Type: "AWS::KinesisFirehose::DeliveryStream",
     ...(data.stackCondition ? { Condition: data.stackCondition } : {}),
@@ -466,7 +487,12 @@ function deliveryStream(data: {
           Url: data.url,
           AccessKey: ref("StreamKey"),
         },
-        RequestConfiguration: { ContentEncoding: "GZIP" },
+        RequestConfiguration: {
+          ContentEncoding: "GZIP",
+          ...(commonAttributes.length > 0
+            ? { CommonAttributes: commonAttributes }
+            : {}),
+        },
         BufferingHints: {
           SizeInMBs: CLOUD_STREAM_BUFFER_SIZE_MIB,
           IntervalInSeconds: CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
@@ -634,6 +660,15 @@ export function getAwsCloudStreamTemplate(
       endpointName: "OneUptime metrics",
       backupPrefix: "metrics/",
       logStream: "MetricsDeliveryLogStream",
+      /*
+       * The template the stack is made from, and what its metric stream
+       * streams: OneUptime leaves to the stream every key metric it
+       * carries, and reads the rest (CloudStreamStack).
+       */
+      commonAttributes: {
+        [CLOUD_STREAM_TEMPLATE_ATTRIBUTE]: String(AWS_STREAM_TEMPLATE_VERSION),
+        [CLOUD_STREAM_METRICS_ATTRIBUTE]: options.metrics,
+      },
     });
 
     resources["MetricStreamRole"] = serviceRole({
@@ -799,6 +834,30 @@ export function getAwsCloudStreamTemplateBody(
   options: CloudStreamTemplateOptions,
 ): string {
   return JSON.stringify(getAwsCloudStreamTemplate(options));
+}
+
+export const STREAM_TEMPLATE_TOO_LARGE: string = translationKey(
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.",
+);
+
+/*
+ * What stops the command for the size of its template, or null: aws
+ * cloudformation deploy sends a template of at most
+ * CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES without an S3 bucket, and refuses
+ * a larger one before it does anything. Only named log groups grow it that
+ * far - each is a subscription of its own, its name included - beside the
+ * key metrics' filters: 50 groups with names of 400 characters fit.
+ */
+export function getCloudStreamTemplateSizeProblem(
+  options: CloudStreamTemplateOptions,
+): CloudStreamProblem | null {
+  const bytes: number = new TextEncoder().encode(
+    getAwsCloudStreamTemplateBody(options),
+  ).length;
+
+  return bytes > CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES
+    ? problem(STREAM_TEMPLATE_TOO_LARGE)
+    : null;
 }
 
 /*

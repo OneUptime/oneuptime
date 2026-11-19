@@ -18,11 +18,17 @@ import {
   StreamedSeriesMemory,
   countDimensions,
   decodeJsonMetricRecord,
+  isLeftToTheRead,
+  readDimensions,
   readJsonMetricUpdate,
   readStatisticValue,
   shapeStreamedMetrics,
   stampConnection,
 } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchMetricStream";
+import {
+  AwsStreamStack,
+  UNVERSIONED_AWS_STREAM_STACK,
+} from "Common/Types/CloudConnection/CloudStreamStack";
 import {
   AWS_KEY_METRICS,
   AwsKeyMetric,
@@ -742,13 +748,14 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
   async function shape(
     resources: Array<JSONObject>,
     memory: StreamedSeriesMemory = new StreamedSeriesMemory(),
-    data: { now?: Date; connectionId?: string } = {},
+    data: { now?: Date; connectionId?: string; stack?: AwsStreamStack } = {},
   ): Promise<Array<JSONObject>> {
     return await shapeStreamedMetrics({
       resources,
       connectionId: data.connectionId || CONNECTION_ID,
       now: data.now || NOW,
       memory,
+      stack: data.stack,
     });
   }
 
@@ -765,58 +772,116 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     });
   }
 
-  test("every key metric a stream writes is known by its stored name, with the one statistic and unit the read reads", () => {
-    const expected: Map<string, { statistic: string; unit: string }> =
-      new Map();
+  test("every key metric a stream can write is known by its stored name, with the one statistic and unit the read reads", () => {
+    const expected: Map<
+      string,
+      { statistic: string; unit: string; metric: AwsKeyMetric }
+    > = new Map();
     const readOnly: Set<string> = new Set<string>();
 
     for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of namespace.metrics as ReadonlyArray<AwsKeyMetric>) {
-        if (!metric.isStreamed) {
-          readOnly.add(
-            getAwsStoredMetricName(
-              namespace.namespace,
-              metric.metricName,
-            ).toLowerCase(),
-          );
-          continue;
-        }
-
         const name: string = getAwsStoredMetricName(
           namespace.namespace,
           metric.metricName,
         ).toLowerCase();
-        const known: { statistic: string; unit: string } | undefined =
-          expected.get(name);
+
+        // Read once an hour or a day: no stream writes it.
+        if (metric.streamedSince === null) {
+          readOnly.add(name);
+          continue;
+        }
+
+        const known:
+          | { statistic: string; unit: string; metric: AwsKeyMetric }
+          | undefined = expected.get(name);
 
         // A metric two namespaces' entries list is read one way.
         if (known) {
-          expect(known).toEqual({
+          expect({ statistic: known.statistic, unit: known.unit }).toEqual({
             statistic: metric.statistic,
             unit: metric.unit,
           });
           continue;
         }
 
-        expected.set(name, { statistic: metric.statistic, unit: metric.unit });
+        expected.set(name, {
+          statistic: metric.statistic,
+          unit: metric.unit,
+          metric,
+        });
       }
     }
 
     expect(new Map(STREAMED_KEY_METRICS)).toEqual(expected);
     expect(
       STREAMED_KEY_METRICS.get("amazonaws.com/aws/ec2/cpuutilization"),
-    ).toEqual({ statistic: "Average", unit: "Percent" });
-
-    // And every one the read writes whether the account streams or not.
-    expect(new Set(READ_ONLY_KEY_METRICS)).toEqual(readOnly);
+    ).toMatchObject({ statistic: "Average", unit: "Percent" });
+    // Added since streams began: a stream of template 2 on writes it.
     expect(
-      READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/ec2/cpucreditbalance"),
-    ).toBe(true);
+      STREAMED_KEY_METRICS.get("amazonaws.com/aws/ec2/cpucreditbalance")?.metric
+        .streamedSince,
+    ).toBe(2);
+
+    // And every one the read always writes: S3's daily storage, ACM's days to expiry.
+    expect(new Set(READ_ONLY_KEY_METRICS)).toEqual(readOnly);
     expect(
       READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/s3/bucketsizebytes"),
     ).toBe(true);
     expect(
+      READ_ONLY_KEY_METRICS.has(
+        "amazonaws.com/aws/certificatemanager/daystoexpiry",
+      ),
+    ).toBe(true);
+    expect(
+      READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/ec2/cpucreditbalance"),
+    ).toBe(false);
+    expect(
       READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/ec2/cpuutilization"),
+    ).toBe(false);
+  });
+
+  /*
+   * Who writes a key metric of a delivery: the stream, when its stack
+   * carries it (CloudStreamStack); else the read, which writes it as if
+   * the account did not stream.
+   */
+  test("a key metric the delivery's stack does not carry is the read's", () => {
+    const template1: AwsStreamStack = UNVERSIONED_AWS_STREAM_STACK;
+    const template2: AwsStreamStack = {
+      templateVersion: 2,
+      everyMetric: false,
+    };
+    const everyMetric1: AwsStreamStack = {
+      templateVersion: 1,
+      everyMetric: true,
+    };
+    const cpu: string = "amazonaws.com/AWS/EC2/CPUUtilization";
+    const credits: string = "amazonaws.com/AWS/EC2/CPUCreditBalance";
+    const size: string = "amazonaws.com/AWS/S3/BucketSizeBytes";
+
+    expect(isLeftToTheRead({ storedMetricName: cpu, stack: template1 })).toBe(
+      false,
+    );
+    expect(
+      isLeftToTheRead({ storedMetricName: credits, stack: template1 }),
+    ).toBe(true);
+    expect(
+      isLeftToTheRead({ storedMetricName: credits, stack: template2 }),
+    ).toBe(false);
+    expect(
+      isLeftToTheRead({ storedMetricName: credits, stack: everyMetric1 }),
+    ).toBe(false);
+    // No stack carries a daily metric.
+    for (const stack of [template1, template2, everyMetric1]) {
+      expect(isLeftToTheRead({ storedMetricName: size, stack })).toBe(true);
+    }
+    // A metric no connection reads is never the read's.
+    expect(
+      isLeftToTheRead({
+        storedMetricName: "amazonaws.com/AWS/EC2/DiskReadOps",
+        stack: template1,
+      }),
     ).toBe(false);
   });
 
@@ -917,6 +982,29 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     expect(countDimensions([attribute("Namespace", "AWS/Lambda")])).toBe(0);
   });
 
+  test("a datapoint's dimensions are read by name, from its Dimensions kvlist alone", () => {
+    expect(
+      readDimensions(
+        summaryPoint({
+          namespace: "AWS/NetworkFirewall",
+          metricName: "ReceivedPackets",
+          dimensions: { FirewallName: "edge", Engine: "System" },
+          count: 1,
+          sum: 1,
+        })["attributes"] as JSONArray,
+      ),
+    ).toEqual({ FirewallName: "edge", Engine: "System" });
+    expect(readDimensions([attribute("Namespace", "AWS/Lambda")])).toEqual({});
+    expect(
+      readDimensions([
+        {
+          key: "Dimensions",
+          value: { kvlistValue: { values: [null, { key: 3 }, "x"] } },
+        },
+      ] as unknown as JSONArray),
+    ).toEqual({});
+  });
+
   test("a key metric becomes the read's gauge: its name, its unit, the start of its minute, its attributes", async () => {
     const point: JSONObject = summaryPoint({
       namespace: "AWS/EC2",
@@ -992,12 +1080,13 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
   });
 
   /*
-   * A key metric added since streams began (AwsKeyMetric.isStreamed false)
-   * is the read's to write whether the account streams or not: a stream of
-   * every metric that brings it leaves it out, so it is one series of one
-   * shape - the read's gauge - never the read's and the stream's summary.
+   * A key metric added since streams began is carried from template 2 on
+   * (AwsKeyMetric.streamedSince): from a stack that says no template - one
+   * of every metric made before stacks said theirs - it is the read's to
+   * write, so it is left out, one series of one shape - the read's gauge -
+   * never the read's and the stream's summary.
    */
-  test("a key metric the read writes is left out of a delivery of every metric", async () => {
+  test("a key metric a stack of no template does not carry is left out of a delivery of every metric", async () => {
     const credits: JSONObject = summaryMetric(
       "amazonaws.com/AWS/EC2/CPUCreditBalance",
       [
@@ -1030,6 +1119,144 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
       }),
     ).toEqual(["amazonaws.com/AWS/EC2/CPUUtilization"]);
     expect(gaugeValues(shaped)).toEqual([42]);
+  });
+
+  /*
+   * A stack made, or made again, from template 2 carries every key metric
+   * read every five minutes, and says so with every delivery: the stream
+   * writes the ones added since streams began too, in the read's shape,
+   * and the read no longer reads or writes them.
+   */
+  test("a stack of template 2, or one of every metric that says its template, has its newer key metrics written as the read's gauge", async () => {
+    const credits: () => JSONObject = (): JSONObject => {
+      return summaryMetric("amazonaws.com/AWS/EC2/CPUCreditBalance", [
+        summaryPoint({
+          namespace: "AWS/EC2",
+          metricName: "CPUCreditBalance",
+          dimensions: { InstanceId: "i-1" },
+          count: 5,
+          sum: 390,
+        }),
+      ]);
+    };
+
+    for (const stack of [
+      { templateVersion: 2, everyMetric: false },
+      { templateVersion: 1, everyMetric: true },
+    ]) {
+      const shaped: Array<JSONObject> = await shape(
+        [resourceOf([credits()])],
+        new StreamedSeriesMemory(),
+        { stack },
+      );
+
+      expect(metricsOf(shaped)).toEqual([
+        expect.objectContaining({
+          name: "amazonaws.com/AWS/EC2/CPUCreditBalance",
+          // The read's unit, and the Average it reads: 390 / 5.
+          unit: "Count",
+        }),
+      ]);
+      expect(gaugeValues(shaped)).toEqual([78]);
+    }
+  });
+
+  test("a metric no stream writes is left to the read, whatever the stack", async () => {
+    for (const stack of [
+      UNVERSIONED_AWS_STREAM_STACK,
+      { templateVersion: 2, everyMetric: false },
+      { templateVersion: 2, everyMetric: true },
+    ]) {
+      const shaped: Array<JSONObject> = await shape(
+        [
+          resourceOf([
+            summaryMetric("amazonaws.com/AWS/CertificateManager/DaysToExpiry", [
+              summaryPoint({
+                namespace: "AWS/CertificateManager",
+                metricName: "DaysToExpiry",
+                dimensions: {
+                  CertificateArn:
+                    "arn:aws:acm:us-east-1:123456789012:certificate/abc",
+                },
+                count: 1,
+                sum: 41,
+              }),
+            ]),
+          ]),
+        ],
+        new StreamedSeriesMemory(),
+        { stack },
+      );
+
+      expect(metricsOf(shaped)).toEqual([]);
+    }
+  });
+
+  /*
+   * A Network Firewall publishes ReceivedPackets once for each engine that
+   * saw a packet: its Stateless (Classic policy) or System (Next Generation
+   * policy) series count every packet, the Firewall engine's again some of
+   * them. Only the ones the read reads are written; a packet is dropped by
+   * one engine, so every engine's DroppedPackets is.
+   */
+  test("a key metric read from some series only is written from those alone", async () => {
+    const packets: (
+      metricName: string,
+      engine: string,
+      zone: string,
+      sum: number,
+    ) => JSONObject = (
+      metricName: string,
+      engine: string,
+      zone: string,
+      sum: number,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "AWS/NetworkFirewall",
+        metricName,
+        dimensions: {
+          FirewallName: "edge",
+          AvailabilityZone: zone,
+          Engine: engine,
+        },
+        count: 1,
+        sum,
+      });
+    };
+
+    const shaped: Array<JSONObject> = await shape(
+      [
+        resourceOf([
+          summaryMetric("amazonaws.com/AWS/NetworkFirewall/ReceivedPackets", [
+            packets("ReceivedPackets", "System", "eu-west-1a", 1000),
+            packets("ReceivedPackets", "Firewall", "eu-west-1a", 900),
+            packets("ReceivedPackets", "System", "eu-west-1b", 500),
+            packets("ReceivedPackets", "Firewall", "eu-west-1b", 450),
+          ]),
+          summaryMetric("amazonaws.com/AWS/NetworkFirewall/DroppedPackets", [
+            packets("DroppedPackets", "Firewall", "eu-west-1a", 7),
+            packets("DroppedPackets", "IPS", "eu-west-1a", 3),
+          ]),
+        ]),
+      ],
+      new StreamedSeriesMemory(),
+      { stack: { templateVersion: 2, everyMetric: false } },
+    );
+
+    const byName: Record<string, Array<number>> = {};
+
+    for (const metric of metricsOf(shaped)) {
+      byName[metric["name"] as string] = (
+        (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
+      ).map((point: JSONObject) => {
+        return point["asDouble"] as number;
+      });
+    }
+
+    expect(byName).toEqual({
+      "amazonaws.com/AWS/NetworkFirewall/ReceivedPackets": [1000, 500],
+      "amazonaws.com/AWS/NetworkFirewall/DroppedPackets": [7, 3],
+    });
   });
 
   test("a resource's own aggregate is kept, and its splits left out", async () => {
