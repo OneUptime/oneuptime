@@ -33,7 +33,7 @@ flowchart TB
 
 ## Hva som gjør den annerledes
 
-- **Telemetrien din er et datalager.** Loggene, trasene, unntakene, øktavspillingene og AI-samtalene til hver tjeneste kontrolleres som en bucket, hver time. En e-postadresse i en logglinje er et funn, og **Rens** maskerer den ved inntak fra da av. Se [Sensitive data i telemetri](/docs/data-security/telemetry).
+- **Telemetrien din er et datalager.** Loggene, trasene, målingene, unntakene, øktavspillingene og AI-samtalene til hver tjeneste kontrolleres som en bucket, hver time. En e-postadresse i en logglinje er et funn, og **Rens** maskerer den ved inntak fra da av. Se [Sensitive data i telemetri](/docs/data-security/telemetry).
 - **Dataflyt kommer fra ekte trafikk.** Tjenestekartet viser hvilken tjeneste som bruker hvilken database, AI-kall navngir leverandøren de når, og kopier av produksjonsdata finnes ved å sammenligne fingeravtrykk. Se [Dataflyt, tilgang og residens](/docs/data-security/flows-access-residency).
 - **Tilgang leses fra begge sider.** Datasikkerhet leser hvem hvert datalagers egne innstillinger slipper inn, og på AWS hva hver rolle og hver bruker kan nå gjennom IAM-policyene sine, og når hver sist ble brukt. **Tilgang** rangerer hver identitet etter skaden den kunne gjøre, og tilgang til sensitive data som ikke er brukt på 90 dager, er et problem. Se [Hvem som kan nå et datalager](/docs/data-security/flows-access-residency#hvem-som-kan-nå-et-datalager).
 - **Bevis maskeres, alltid.** Et funn beholder tellinger og høyst tre maskerte prøver, som `j***@e******.com`, maskert inne i skanneren før noe forlater den. Slår du av prøver, beholder det bare tellinger.
@@ -70,7 +70,7 @@ Under **Flere felt** setter du **Datasikkerhet** til **Bare konfigurasjon** for 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler | Logger, traser, unntak, øktavspillinger, AI-samtaler |
+| OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger |
 
 Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder.
 

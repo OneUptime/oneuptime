@@ -189,7 +189,7 @@ Start de collector opnieuw. Elke service waarvan de traces erdoorheen gaan, vers
 | Kenmerk hernoemen | Geeft de sleutel van een attribuut op overeenkomende datapunten een andere naam. |
 | Attribuut toevoegen | Voegt een attribuut toe aan overeenkomende datapunten. |
 | Kenmerk verwijderen | Haalt een attribuut weg, zoals een met te veel waarden om nuttig te zijn. |
-| Kenmerk redigeren | Vervangt de waarde van een attribuut door een plaatshouder. |
+| Kenmerk weglakken | Vervangt de waarde van een attribuut door een plaatshouder. |
 | Voorbeeld | Houdt een percentage van de overeenkomende datapunten. |
 
 **Metrieken → Instellingen → Opnameregels** berekent elke minuut nieuwe metrieken uit andere metrieken. Zie [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules) voor hoe opnameregels werken.

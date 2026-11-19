@@ -33,7 +33,7 @@ flowchart TB
 
 ## O que a torna diferente
 
-- **A sua telemetria é um repositório de dados.** Os logs, traces, exceções, replays de sessão e conversas de IA de cada serviço são verificados como um bucket, a cada hora. Um endereço de e-mail em uma linha de log é uma descoberta, e **Limpar** passa a mascará-lo na ingestão daí em diante. Veja [Dados sensíveis na telemetria](/docs/data-security/telemetry).
+- **A sua telemetria é um repositório de dados.** Os logs, traces, métricas, exceções, replays de sessão e conversas de IA de cada serviço são verificados como um bucket, a cada hora. Um endereço de e-mail em uma linha de log é uma descoberta, e **Limpar** passa a mascará-lo na ingestão daí em diante. Veja [Dados sensíveis na telemetria](/docs/data-security/telemetry).
 - **Os fluxos vêm do tráfego real.** O mapa de serviços diz qual serviço usa qual banco de dados, as chamadas de IA nomeiam o provedor que alcançam, e as cópias de dados de produção são encontradas comparando impressões digitais. Veja [Fluxos de dados, acesso e residência](/docs/data-security/flows-access-residency).
 - **O acesso é lido dos dois lados.** A Segurança de dados lê quem as próprias configurações de cada repositório deixam entrar e, na AWS, o que cada função e cada usuário pode alcançar pelas suas políticas do IAM, e quando cada um foi usado pela última vez. **Acesso** classifica cada identidade pelo dano que ela poderia causar, e o acesso a dados sensíveis sem uso há 90 dias é um problema. Veja [Quem pode acessar um repositório](/docs/data-security/flows-access-residency#quem-pode-acessar-um-repositório).
 - **As evidências são sempre mascaradas.** Uma descoberta guarda contagens e no máximo três amostras mascaradas, como `j***@e******.com`, mascaradas dentro do scanner antes que qualquer coisa saia dele. Desative as amostras e ela guarda apenas contagens.
@@ -70,7 +70,7 @@ Abra **Segurança de dados**. Os repositórios aparecem em **Repositórios de da
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA | Logs, traces, exceções, replays de sessão, conversas de IA |
+| OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA, métricas | Logs, traces, exceções, replays de sessão, conversas de IA, métricas |
 
 Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha.
 
