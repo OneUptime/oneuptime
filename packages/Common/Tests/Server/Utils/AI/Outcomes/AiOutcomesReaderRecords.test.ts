@@ -45,6 +45,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE RECORDS BEHIND AN AI RESULTS NUMBER (issue #7768), and the numbers by
@@ -780,11 +781,10 @@ describe("what each record says", () => {
 
     install({ incidents: [INCIDENT_A], runs: [run] });
 
-    const summaries: jest.SpiedFunction<
-      typeof InvestigationReportSummary.getForRuns
-    > = jest
-      .spyOn(InvestigationReportSummary, "getForRuns")
-      .mockResolvedValue(new Map([[run._id, "The pool was too small."]]));
+    const summaries: SpyInstance<typeof InvestigationReportSummary.getForRuns> =
+      jest
+        .spyOn(InvestigationReportSummary, "getForRuns")
+        .mockResolvedValue(new Map([[run._id, "The pool was too small."]]));
 
     const records: AiOutcomesRecords = await readRecords(
       AiOutcomesPart.RootCauses,
@@ -822,8 +822,8 @@ describe("what each record says", () => {
       ],
     });
 
-    const find: jest.SpiedFunction<typeof IncidentService.findBy> =
-      IncidentService.findBy as unknown as jest.SpiedFunction<
+    const find: SpyInstance<typeof IncidentService.findBy> =
+      IncidentService.findBy as unknown as SpyInstance<
         typeof IncidentService.findBy
       >;
     const original: (...args: Array<unknown>) => unknown =
