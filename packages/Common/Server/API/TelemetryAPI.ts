@@ -41,6 +41,7 @@ import LogAggregationService, {
   TopErrorPattern,
   TopErrorPatternsRequest,
 } from "../Services/LogAggregationService";
+import { isNumericLogAnalyticsAggregation } from "../../Types/Log/LogAnalyticsAggregation";
 import TraceAggregationService, {
   HistogramBucket as TraceHistogramBucket,
   HistogramRequest as TraceHistogramRequest,
@@ -3465,9 +3466,17 @@ router.post(
         ? OneUptimeDate.fromString(body["endTime"] as string)
         : OneUptimeDate.getCurrentDate();
 
+      /*
+       * Whole minutes, at least one, as the trace analytics read them: a
+       * bucket of "abc" or 0 minutes compiled to an interval ClickHouse
+       * refuses, and a fraction of a minute to more buckets - each holding
+       * a percentile's state - than any chart draws.
+       */
+      const rawBucketSize: number = Number(body["bucketSizeInMinutes"]);
       const bucketSizeInMinutes: number =
-        (body["bucketSizeInMinutes"] as number) ||
-        computeDefaultBucketSize(startTime, endTime);
+        Number.isFinite(rawBucketSize) && rawBucketSize >= 1
+          ? Math.trunc(rawBucketSize)
+          : computeDefaultBucketSize(startTime, endTime);
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
@@ -3503,20 +3512,34 @@ router.post(
         ? (body["aggregationField"] as string)
         : undefined;
 
-      // A sum needs the field it adds up: there is no total of nothing.
-      if (aggregation === "sum" && !aggregationField) {
+      /*
+       * A sum, an average, a minimum, a maximum or a percentile reads the
+       * attribute it is of: there is no average of nothing.
+       */
+      if (isNumericLogAnalyticsAggregation(aggregation) && !aggregationField) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
-            "A sum needs an aggregationField: the attribute to add up.",
+            "A sum, an average, a minimum, a maximum or a percentile reads a numeric log attribute. Set aggregationField to its key, such as duration_ms.",
           ),
         );
       }
 
-      const limit: number | undefined = body["limit"]
-        ? (body["limit"] as number)
-        : undefined;
+      /*
+       * Clamped to a whole number from 1 to 1,000, as the trace analytics
+       * clamp theirs: `limit` flows into LIMIT, so a negative, fractional
+       * or huge one failed the read in ClickHouse. A number written as text
+       * is read as one.
+       */
+      const rawLimit: number = Number(body["limit"]);
+      const limit: number | undefined =
+        body["limit"] !== undefined &&
+        body["limit"] !== null &&
+        body["limit"] !== "" &&
+        Number.isFinite(rawLimit)
+          ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
+          : undefined;
 
       const resourceScopes: Array<ResourceEntityScope> | undefined =
         await resolveResourceScopesFromBody(body, databaseProps.tenantId);
