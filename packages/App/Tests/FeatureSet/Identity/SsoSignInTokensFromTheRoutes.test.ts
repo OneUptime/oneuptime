@@ -548,6 +548,19 @@ const FLOWS: Array<Flow> = [
 let idpKeys: SamlKeyPair;
 let responseCounter: number = 0;
 
+// The person's session at the identity provider, as its assertions name it.
+const SAML_SESSION_INDEX: string =
+  "_be9967abd904ddcae3c0eb4189adbe3f71e327cf93";
+
+/*
+ * What the identity provider's assertions carry besides who signed in: a
+ * SessionIndex, and the Name ID's attributes when a test sets them.
+ */
+const samlExtras: {
+  sessionIndex: string | null;
+  rawNameIdAttributes?: string | undefined;
+} = { sessionIndex: SAML_SESSION_INDEX };
+
 beforeAll(() => {
   idpKeys = generateRsaKeyPair();
 });
@@ -567,6 +580,8 @@ function signedResponse(data: { entityId: string; replyUrl: string }): string {
         recipient: data.replyUrl,
         destination: data.replyUrl,
         inResponseTo: "_request_1",
+        sessionIndex: samlExtras.sessionIndex,
+        rawNameIdAttributes: samlExtras.rawNameIdAttributes,
       }),
       "Assertion",
       idpKeys.privateKey,
@@ -690,6 +705,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   cacheEntries.clear();
   setTestBillingEnabled(false);
+  samlExtras.sessionIndex = SAML_SESSION_INDEX;
+  samlExtras.rawNameIdAttributes = undefined;
 
   userFindOneBy.mockResolvedValue(existingUser());
 
@@ -963,6 +980,145 @@ describe.each(OIDC_FLOWS)(
 
       expect(kept()).toBeUndefined();
       expect(cookies[CookieUtil.getUserTokenKey()]).toBeDefined();
+    });
+  },
+);
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE SAME FOR A SAML SIGN-IN (#9603): THROUGH A PROVIDER WITH THE SWITCH ON,
+ * IT KEEPS WHAT A LOGOUTREQUEST NAMES THE PERSON AND THEIR SESSION BY.
+ *
+ * The assertion's Name ID - its text, Format and qualifiers - and its
+ * SessionIndex, read from the signed assertion, kept with the session
+ * server-side, the Name ID and the SessionIndex encrypted
+ * (UserSessionService.createSession). The browser gets none of it; the
+ * mobile app's sign-in, and a provider without the switch, keep nothing.
+ * ---------------------------------------------------------------------------
+ */
+
+const SAML_FLOWS: Array<Flow> = FLOWS.filter((flow: Flow): boolean => {
+  return (
+    flow.providerType === SsoProviderType.ProjectSSO ||
+    flow.providerType === SsoProviderType.GlobalSSO
+  );
+});
+
+describe.each(SAML_FLOWS)(
+  "$name, signing people out of the provider too",
+  (flow: Flow) => {
+    // The provider as its row is read at the Reply URL: with or without the switch.
+    const switchIs: (on: boolean) => void = (on: boolean): void => {
+      const findOneBy: jest.Mock =
+        flow.providerType === SsoProviderType.GlobalSSO
+          ? globalSsoFindOneBy
+          : projectSsoFindOneBy;
+      const read: (() => Promise<unknown>) | undefined =
+        findOneBy.getMockImplementation() as
+          | (() => Promise<unknown>)
+          | undefined;
+
+      findOneBy.mockImplementation(async (): Promise<unknown> => {
+        return {
+          ...((await read?.()) as JSONObject),
+          signOutOfIdentityProvider: on,
+        };
+      });
+    };
+
+    const kept: () => unknown = (): unknown => {
+      return (createSession.mock.calls[0]![0] as JSONObject)[
+        "identityProviderSignOut"
+      ];
+    };
+
+    test("reads the switch with the provider", async () => {
+      switchIs(true);
+
+      await signIn(flow, "browser");
+
+      const findOneBy: jest.Mock =
+        flow.providerType === SsoProviderType.GlobalSSO
+          ? globalSsoFindOneBy
+          : projectSsoFindOneBy;
+
+      expect(
+        (findOneBy.mock.calls[0]![0] as { select: JSONObject }).select[
+          "signOutOfIdentityProvider"
+        ],
+      ).toBe(true);
+    });
+
+    test("a browser sign-in keeps the provider, the Name ID as the assertion had it, and the session index", async () => {
+      switchIs(true);
+
+      await signIn(flow, "browser");
+
+      expect(kept()).toEqual({
+        providerType: flow.providerType,
+        providerId: flow.providerId,
+        nameId: USER_EMAIL,
+        nameIdFormat: "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+        sessionIndex: SAML_SESSION_INDEX,
+      });
+    });
+
+    test("keeps the Name ID's qualifiers, as a LogoutRequest names them back", async () => {
+      switchIs(true);
+      samlExtras.rawNameIdAttributes =
+        ' Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" NameQualifier="https://idp.example.com/realms/acme" SPNameQualifier="oneuptime"';
+
+      await signIn(flow, "browser");
+
+      expect(kept()).toEqual({
+        providerType: flow.providerType,
+        providerId: flow.providerId,
+        nameId: USER_EMAIL,
+        nameIdFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        nameIdNameQualifier: "https://idp.example.com/realms/acme",
+        nameIdSpNameQualifier: "oneuptime",
+        sessionIndex: SAML_SESSION_INDEX,
+      });
+    });
+
+    test("an assertion with no SessionIndex keeps the person alone", async () => {
+      switchIs(true);
+      samlExtras.sessionIndex = null;
+
+      await signIn(flow, "browser");
+
+      expect(kept()).toEqual({
+        providerType: flow.providerType,
+        providerId: flow.providerId,
+        nameId: USER_EMAIL,
+        nameIdFormat: "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+      });
+    });
+
+    test("hands the browser no cookie that carries the session index", async () => {
+      switchIs(true);
+
+      const { cookies } = await signIn(flow, "browser");
+
+      expect(Object.values(cookies).join(" ")).not.toContain(
+        SAML_SESSION_INDEX,
+      );
+    });
+
+    test("the mobile app's sign-in keeps nothing: it signs out of OneUptime alone", async () => {
+      switchIs(true);
+
+      await signIn(flow, "mobile app");
+
+      expect(kept()).toBeUndefined();
+    });
+
+    test("a provider with the switch off keeps nothing, as every sign-in did before", async () => {
+      switchIs(false);
+
+      await signIn(flow, "browser");
+
+      expect(kept()).toBeUndefined();
     });
   },
 );

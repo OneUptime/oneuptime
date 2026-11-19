@@ -205,7 +205,7 @@ Restart-Service oneuptime-collector
 | `--key KEY` | `-Key KEY` | یک کلید دریافت تله‌متری از پروژه شما. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | به میزبان برچسب می‌زند. برای برچسب‌های بیشتر آن را تکرار کنید؛ روی Windows آن‌ها را با ویرگول فهرست کنید. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | برای پیکربندی‌هایی که `${env:NAME}` را می‌خوانند، یک متغیر محیطی به کالکتور می‌دهد. |
-| `--version VERSION` | `-Version VERSION` | انتشار کالکتوری که نصب می‌شود، به‌طور پیش‌فرض 0.161.0. |
+| `--version VERSION` | `-Version VERSION` | انتشار کالکتوری که نصب می‌شود، به‌طور پیش‌فرض 0.165.0. |
 | `--download-url URL` | `-DownloadUrl URL` | انتشارها را از آینه‌ای با همان ساختار پوشه GitHub دانلود می‌کند. |
 | `--proxy URL` | `-Proxy URL` | دانلودها و همه ترافیک کالکتور را از یک پراکسی HTTP عبور می‌دهد. |
 | `--replace-existing` | `-ReplaceExisting` | کالکتوری را که دستی نصب شده متوقف و غیرفعال می‌کند. |

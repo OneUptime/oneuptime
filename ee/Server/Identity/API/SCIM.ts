@@ -95,6 +95,13 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { getScimStoppedMessage } from "Common/Types/Billing/PlanCutoffCredentials";
 import { DocsClientUrl } from "Common/Server/EnvironmentConfig";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import OneUptimeDate from "Common/Types/Date";
+import SCIMGroupMatch, {
+  PushedGroupTeam,
+  SCIM_GROUP_SELECT,
+  getTeamsOfPushedGroup,
+  isTeamOfPushedGroup,
+} from "../Utils/SCIMGroupMatch";
 
 type SCIMMember = {
   value: string;
@@ -1180,6 +1187,23 @@ const includesGroupMembers: (req: ExpressRequest) => boolean = (
   return true;
 };
 
+/*
+ * A group the provider read or changed by its id is one it holds
+ * (Utils/SCIMGroupMatch, #9743): only a provider that keeps the team as a
+ * group asks for it so. Below the plan SCIM needs, the provider only takes
+ * access away, and nothing else is written.
+ */
+const noteGroupHeldByProvider: (
+  req: ExpressRequest,
+  team: Team,
+) => Promise<void> = async (req: ExpressRequest, team: Team): Promise<void> => {
+  if (getScimMissingPlan(req)) {
+    return;
+  }
+
+  await SCIMGroupMatch.markHeldByProvider(team);
+};
+
 // The filters a group list answers.
 const GROUP_FILTER_ATTRIBUTES: ReadonlyArray<string> = [
   "displayName",
@@ -1188,20 +1212,14 @@ const GROUP_FILTER_ATTRIBUTES: ReadonlyArray<string> = [
   "members",
 ];
 
-const SCIM_GROUP_SELECT: Select<Team> = {
-  _id: true,
-  name: true,
-  createdAt: true,
-  updatedAt: true,
-  projectId: true,
-};
-
 /*
  * The project's teams, as SCIM groups, that meet every equality of
  * `filters` - all of them when there are none, oldest first. Okta and
- * Microsoft Entra ID look a group up by its displayName, which is not
- * case-exact; members[value eq "<id>"] (or members eq) asks for the groups
- * a user is in.
+ * Microsoft Entra ID look a group up by its displayName before they push
+ * it, which is not case-exact: it answers the teams a push of that name
+ * would take (Utils/SCIMGroupMatch, #9743), the one a push takes first, so
+ * the id a provider keeps is the same whichever way it found the group.
+ * members[value eq "<id>"] (or members eq) asks for the groups a user is in.
  */
 const listProjectScimGroups: (data: {
   projectId: ObjectID;
@@ -1291,16 +1309,12 @@ const listProjectScimGroups: (data: {
   } else if (firstText === null) {
     teams = [];
   } else if (isScimAttribute(first.attribute, "displayName")) {
-    teams = await TeamService.findBy({
-      query: {
+    teams = getTeamsOfPushedGroup({
+      teams: await SCIMGroupMatch.findTeamsNamedAlike({
         projectId: data.projectId,
-        name: QueryHelper.findWithSameText(firstText),
-      },
-      select: SCIM_GROUP_SELECT,
-      sort: { createdAt: SortOrder.Ascending },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
+        displayName: firstText,
+      }),
+      displayName: firstText,
     });
   } else if (isScimAttribute(first.attribute, "id")) {
     const team: Team | null = isUuid(firstText)
@@ -1346,8 +1360,7 @@ const listProjectScimGroups: (data: {
       if (text === null) {
         matchesAll = false;
       } else if (isScimAttribute(filter.attribute, "displayName")) {
-        matchesAll =
-          (team.name?.toString() || "").toLowerCase() === text.toLowerCase();
+        matchesAll = isTeamOfPushedGroup({ team: team, displayName: text });
       } else if (isScimAttribute(filter.attribute, "id")) {
         matchesAll =
           (team.id?.toString() || "").toLowerCase() === text.toLowerCase();
@@ -2949,21 +2962,14 @@ router.post(
                 throw new BadRequestException("displayName is required");
               }
 
-              // Check if team already exists
-              const existingTeam: Team | null = await TeamService.findOneBy({
-                query: {
-                  projectId: projectId,
-                  name: displayName,
-                },
-                select: {
-                  _id: true,
-                  name: true,
-                  createdAt: true,
-                  updatedAt: true,
-                  projectId: true,
-                },
-                props: { isRoot: true },
-              });
+              // The team whose name reads as the group's (#9743), as POST /Groups takes it.
+              const existingTeam: Team | null =
+                (
+                  await SCIMGroupMatch.takeTeamForPushedGroup({
+                    projectId: projectId,
+                    displayName: displayName,
+                  })
+                )?.team || null;
 
               let targetTeam: Team;
 
@@ -2977,6 +2983,8 @@ router.post(
                 team.isTeamEditable = true;
                 team.isTeamDeleteable = true;
                 team.shouldHaveAtLeastOneMember = false;
+                // The provider's group from the start (Utils/SCIMGroupMatch).
+                team.scimGroupLinkedAt = OneUptimeDate.getCurrentDate();
 
                 targetTeam = await TeamService.create({
                   data: team,
@@ -3026,6 +3034,7 @@ router.post(
                   createdAt: true,
                   updatedAt: true,
                   projectId: true,
+                  scimGroupLinkedAt: true,
                 },
                 props: { isRoot: true },
               });
@@ -3035,6 +3044,9 @@ router.post(
                   "Group not found or not part of this project",
                 );
               }
+
+              // Addressed by its id: the provider holds it as a group (#9743).
+              await noteGroupHeldByProvider(req, team);
 
               /*
                * Below the plan the door lets no Bulk PUT through; were one
@@ -3114,6 +3126,7 @@ router.post(
                   createdAt: true,
                   updatedAt: true,
                   projectId: true,
+                  scimGroupLinkedAt: true,
                 },
                 props: { isRoot: true },
               });
@@ -3123,6 +3136,9 @@ router.post(
                   "Group not found or not part of this project",
                 );
               }
+
+              // Addressed by its id: the provider holds it as a group (#9743).
+              await noteGroupHeldByProvider(req, team);
 
               // Handle SCIM patch operations, as the PATCH route does.
               await applyGroupPatchActions({
@@ -3804,6 +3820,9 @@ router.get(
 
       executionSteps.push(`Found team: ${team.name?.toString()}`);
 
+      // Read by its id: the provider holds it as a group (#9743).
+      await noteGroupHeldByProvider(req, team);
+
       const group: JSONObject = await formatTeamForSCIM({
         req: req,
         team: team,
@@ -3884,22 +3903,17 @@ router.post(
         throw new BadRequestException("displayName is required");
       }
 
-      // Check if team already exists
+      /*
+       * The team whose name reads as the group's, as a team's name is
+       * compared (#9743, Utils/SCIMGroupMatch): taken instead of a twin.
+       */
       executionSteps.push("Checking if team already exists");
-      const existingTeam: Team | null = await TeamService.findOneBy({
-        query: {
+      const pushedGroupTeam: PushedGroupTeam | null =
+        await SCIMGroupMatch.takeTeamForPushedGroup({
           projectId: projectId,
-          name: displayName,
-        },
-        select: {
-          _id: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
-          projectId: true,
-        },
-        props: { isRoot: true },
-      });
+          displayName: displayName,
+        });
+      const existingTeam: Team | null = pushedGroupTeam?.team || null;
 
       let targetTeam: Team;
       let createdNewTeam: boolean = false;
@@ -3912,6 +3926,13 @@ router.post(
         executionSteps.push(
           `Team already exists with ID: ${existingTeam.id}, reusing`,
         );
+
+        if (pushedGroupTeam?.renamedFrom) {
+          executionSteps.push(
+            `Its name "${pushedGroupTeam.renamedFrom}" reads as the group's: renamed to "${displayName}"`,
+          );
+        }
+
         targetTeam = existingTeam;
       } else {
         // Create new team
@@ -3926,6 +3947,8 @@ router.post(
         team.isTeamEditable = true; // Allow editing SCIM-created teams
         team.isTeamDeleteable = true; // Allow deleting SCIM-created teams
         team.shouldHaveAtLeastOneMember = false; // SCIM groups can be empty
+        // The provider's group from the start (Utils/SCIMGroupMatch).
+        team.scimGroupLinkedAt = OneUptimeDate.getCurrentDate();
 
         const createdTeam: Team = await TeamService.create({
           data: team,
@@ -4097,6 +4120,7 @@ router.put(
           updatedAt: true,
           projectId: true,
           isTeamEditable: true,
+          scimGroupLinkedAt: true,
         },
         props: { isRoot: true },
       });
@@ -4114,6 +4138,9 @@ router.put(
         );
       }
       executionSteps.push(`Found existing team: ${team.name?.toString()}`);
+
+      // Addressed by its id: the provider holds it as a group (#9743).
+      await noteGroupHeldByProvider(req, team);
       const previousName: string | undefined = team.name?.toString();
 
       /*
@@ -4487,6 +4514,7 @@ router.patch(
           updatedAt: true,
           projectId: true,
           isTeamEditable: true,
+          scimGroupLinkedAt: true,
         },
         props: { isRoot: true },
       });
@@ -4504,6 +4532,9 @@ router.patch(
         );
       }
       executionSteps.push(`Found existing team: ${team.name?.toString()}`);
+
+      // Addressed by its id: the provider holds it as a group (#9743).
+      await noteGroupHeldByProvider(req, team);
       const previousName: string | undefined = team.name?.toString();
 
       /*

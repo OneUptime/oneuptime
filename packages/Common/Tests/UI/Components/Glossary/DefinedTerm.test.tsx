@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import * as fs from "fs";
 import * as path from "path";
-import React, { ReactElement, useRef } from "react";
+import React from "react";
 import {
   afterEach,
   beforeEach,
@@ -46,11 +46,13 @@ import {
  * the docs' Glossary - read from /docs/glossary/<lang>.json, in the
  * reader's language - with Read more to the term on the Glossary page.
  *
- * Tippy runs for real under jsdom: the popover is mounted beside its word
- * (an interactive popover is, so the keyboard reaches Read more), and its
- * box never finishes animating, so presence is what is asserted. The
- * dashboard's own locale files answer react-i18next, so the words asserted
- * in German are the words a German reader sees.
+ * Tippy runs for real under jsdom: the popover is mounted on the page's
+ * body, as every tooltip is (TooltipLayer), so no box its word is in can cut
+ * it off (#9863), and the keyboard still goes from the word to Read more
+ * and on from the word (keepTabOrder). Its box never finishes animating, so
+ * presence is what is asserted. The dashboard's own locale files answer
+ * react-i18next, so the words asserted in German are the words a German
+ * reader sees.
  */
 
 const LOCALES_DIR: string = path.join(
@@ -254,6 +256,59 @@ const leave: (element: HTMLElement) => void = (element: HTMLElement): void => {
   fireEvent.mouseMove(document, { clientX: 600, clientY: 600 });
 };
 
+/*
+ * Tab, or Shift+Tab, as the keyboard sends it to what has the focus; true
+ * when nothing took the browser's own move (it goes on from the focus).
+ */
+const pressTab: (options?: { shiftKey?: boolean }) => boolean = (options?: {
+  shiftKey?: boolean;
+}): boolean => {
+  return fireEvent.keyDown(document.activeElement || document.body, {
+    key: "Tab",
+    code: "Tab",
+    shiftKey: Boolean(options?.shiftKey),
+  });
+};
+
+// Tippy's root: the popover's element on the page.
+const rootOf: (element: HTMLElement) => HTMLElement = (
+  element: HTMLElement,
+): HTMLElement => {
+  const root: HTMLElement | null =
+    element.closest<HTMLElement>("[data-tippy-root]");
+
+  expect(root).not.toBeNull();
+
+  return root as HTMLElement;
+};
+
+/*
+ * Tab from the word through the popover's own (Read more, and whatever
+ * follows it), until a Tab is left to the browser: the focus is then back
+ * on the word, which the browser's own Tab moves on from.
+ */
+const tabThroughThePopover: () => Array<string> = (): Array<string> => {
+  const reached: Array<string> = [];
+
+  for (let press: number = 0; press < 10; press++) {
+    const isLeftToTheBrowser: boolean = pressTab();
+    const focused: Element | null = document.activeElement;
+
+    if (isLeftToTheBrowser) {
+      reached.push("(on from the word)");
+      break;
+    }
+
+    reached.push(
+      focused?.getAttribute("data-testid") ||
+        focused?.textContent?.trim() ||
+        "",
+    );
+  }
+
+  return reached;
+};
+
 // Lets Tippy's delays run out.
 const settle: () => Promise<void> = async (): Promise<void> => {
   await act(async () => {
@@ -444,19 +499,35 @@ describe("opening the definition", () => {
       DEFINED_TERM_READ_MORE_TEST_ID,
     );
 
-    // The popover sits right after its word, so Tab reaches Read more.
+    /*
+     * Drawn on the page's body, after Next: Tab still goes from the word to
+     * Read more, and past the popover's last back on from the word - to
+     * Next, as if it sat right after its word (keepTabOrder).
+     */
+    expect(rootOf(readMore).parentElement).toBe(document.body);
     expect(
-      word().compareDocumentPosition(readMore) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      readMore.compareDocumentPosition(screen.getByTestId("next")) &
+      screen.getByTestId("next").compareDocumentPosition(readMore) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
+    const reached: Array<string> = tabThroughThePopover();
+
+    expect(reached[0]).toBe(DEFINED_TERM_READ_MORE_TEST_ID);
+    expect(reached[reached.length - 1]).toBe("(on from the word)");
+    expect(word()).toHaveFocus();
+    await waitHidden();
+
+    // Again, and back to the word with Shift+Tab: it stays up.
     act(() => {
-      readMore.focus();
+      word().blur();
     });
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    act(() => {
+      word().focus();
+    });
+    await waitShown();
+    pressTab();
+    expect(readMore).toHaveFocus();
     await settle();
     expect(isShown()).toBe(true);
 
@@ -479,56 +550,74 @@ describe("opening the definition", () => {
 
   /*
    * A word inside something its words name - a form field's title names
-   * the field (FieldLabel) - is given a place after it for its definition,
-   * so the definition is no part of that name.
+   * the field (FieldLabel), a heading names its card - has its definition
+   * drawn on the page's body, so the definition is no part of that name,
+   * and the keyboard still goes from the word to Read more and on.
    */
-  test("is drawn in the place its word is given, still named by the word and reached by Tab from it", async () => {
-    const Title: () => ReactElement = (): ReactElement => {
-      const place: React.RefObject<HTMLSpanElement> =
-        useRef<HTMLSpanElement>(null);
+  test("is drawn on the body, outside what its word is in, still named by the word and reached by Tab from it", async () => {
+    render(
+      <div>
+        <span data-testid="title">
+          <DefinedTerm term={GlossaryTerm.Criteria}>Criteria</DefinedTerm>{" "}
+          (Optional)
+        </span>
+        <button type="button" data-testid="next">
+          Next
+        </button>
+      </div>,
+    );
 
-      return (
-        <div>
-          <span data-testid="title">
-            <DefinedTerm term={GlossaryTerm.Criteria} popoverPlace={place}>
-              Criteria
-            </DefinedTerm>{" "}
-            (Optional)
-          </span>
-          <span data-testid="place" ref={place} />
-          <button type="button" data-testid="next">
-            Next
-          </button>
-        </div>
-      );
-    };
-
-    render(<Title />);
-
-    fireEvent.mouseEnter(word());
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    act(() => {
+      word().focus();
+    });
     await definitionShown();
+    await waitShown();
 
     const box: HTMLElement = popover() as HTMLElement;
 
-    expect(screen.getByTestId("place")).toContainElement(box);
+    expect(rootOf(box).parentElement).toBe(document.body);
     expect(screen.getByTestId("title")).not.toContainElement(box);
+    expect(screen.getByTestId("title")).toHaveTextContent(
+      /^Criteria\s*\(Optional\)$/,
+    );
     expect(screen.getByRole("dialog", { name: "Criteria" })).toContainElement(
       box,
     );
 
-    const readMore: HTMLElement = screen.getByTestId(
-      DEFINED_TERM_READ_MORE_TEST_ID,
-    );
+    const reached: Array<string> = tabThroughThePopover();
 
-    expect(
-      word().compareDocumentPosition(readMore) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      readMore.compareDocumentPosition(screen.getByTestId("next")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(reached[0]).toBe(DEFINED_TERM_READ_MORE_TEST_ID);
+    expect(reached[reached.length - 1]).toBe("(on from the word)");
+    expect(word()).toHaveFocus();
   });
+
+  /*
+   * In a narrow box that clips - the traces explorer's facet list, 224px
+   * wide and scrolling - its 288px definition lost its end (#9863).
+   */
+  test.each([
+    ["a list that scrolls", { overflowY: "auto" } as React.CSSProperties],
+    ["a box that hides its overflow", { overflow: "hidden" }],
+    ["a box that clips", { overflow: "clip" }],
+  ])(
+    "inside %s, the definition is drawn on the body, outside it",
+    async (_name: string, style: React.CSSProperties) => {
+      render(
+        <div data-testid="narrow-box" style={{ ...style, width: 224 }}>
+          <DefinedTerm term={GlossaryTerm.Criteria}>Criteria</DefinedTerm>
+        </div>,
+      );
+
+      fireEvent.mouseEnter(word());
+      await definitionShown();
+
+      const box: HTMLElement = popover() as HTMLElement;
+
+      expect(screen.getByTestId("narrow-box")).not.toContainElement(box);
+      expect(rootOf(box).parentElement).toBe(document.body);
+    },
+  );
 
   test("every word on a page shares one read of the glossary, and sends nothing to analytics", async () => {
     render(
@@ -668,8 +757,13 @@ describe("what the popover says", () => {
 
     const box: HTMLElement = popover() as HTMLElement;
 
-    expect(box.closest(".uppercase")).not.toBeNull();
-    // Its own type, and the mark of the product's words, which draws nothing.
+    // Drawn on the body, out of the small capitals around its word...
+    expect(box.closest(".uppercase")).toBeNull();
+    expect(rootOf(box).parentElement).toBe(document.body);
+    /*
+     * ...and it says its own type itself, wherever it is drawn.
+     * Its own type, and the mark of the product's words, which draws nothing.
+     */
     expect(box.className).toBe(
       withProductText(DEFINED_TERM_POPOVER_CLASS_NAME),
     );

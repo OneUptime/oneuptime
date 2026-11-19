@@ -4331,5 +4331,10 @@
   "Domains": "Domeinen",
   "Select Domains": "Selecteer domeinen",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "‘Inloggen met SSO’ biedt deze provider aan iedereen van wie het e-mailadres op een van deze domeinen staat, die u verifieert in Projectinstellingen > Geavanceerd > Domeinen.",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Nog geen geverifieerde domeinen. Verifieer er een in Projectinstellingen > Geavanceerd > Domeinen."
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Nog geen geverifieerde domeinen. Verifieer er een in Projectinstellingen > Geavanceerd > Domeinen.",
+  "Sign Out URL": "Afmeldings-URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "De afmeldings-URL van je identiteitsprovider (Single Sign-out). Nodig om mensen ook daar af te melden.",
+  "Single Logout URL:": "Single Logout-URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Geef de identiteitsprovider ook de Single Logout-URL en het ondertekeningscertificaat van OneUptime om mensen ook daar af te melden.",
+  "Download Signing Certificate": "Ondertekeningscertificaat downloaden"
 }

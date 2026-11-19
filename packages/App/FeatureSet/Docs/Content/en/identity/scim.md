@@ -339,7 +339,7 @@ What `/ServiceProviderConfig` reports:
 | ETag | No |
 | Authentication | HTTP Bearer token, or an OAuth 2.0 access token |
 
-A group your identity provider creates becomes a team of the same name in the project; a team that already has that name is used instead of a new one.
+A group your identity provider creates becomes a team of the same name in the project. A team whose name reads the same, whatever its case or spacing, is used instead of a new one, and takes the group's spelling, unless an identity provider already holds that team as another of its groups: two groups whose names differ only in case or spacing, which Microsoft Entra ID allows, each get a team of their own, and are never made one. Owners and Admin, which cannot be renamed, are used only by their exact name. A group renamed in your identity provider renames its own team, even to a name another team has.
 
 :::details SCIM user schema
 ```json

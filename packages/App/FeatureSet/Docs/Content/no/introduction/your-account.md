@@ -41,7 +41,7 @@ Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt**
 
 Klikk på **Rediger Bruker**, og endre det du trenger:
 
-- **E-post**: adressen du logger inn med. Endrer du den, bekrefter du den nye adressen på nytt.
+- **E-post**: adressen du logger inn med. Endrer du den, sender OneUptime en lenke til den nye adressen, og adressen din endres når du åpner den. Frem til da logger du inn med den nåværende, og **Avbryt endring** stopper endringen. En hovedadministrators egen adresse endres med en gang.
 - **Fullt navn**: navnet teamet ditt ser overalt i OneUptime.
 - **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varslinger til deg.
 - **Språk**: språket i dashbordet i alle nettlesere du logger inn i, og i vakttilkallingene dine. Ikke valgt: tilkallingene er på engelsk, og dashbordet følger nettleseren din.
@@ -184,6 +184,14 @@ Temaet ditt lagres i nettleseren din, så still det inn på nytt i en annen nett
 
 :::details Jeg fikk ikke e-posten for å bekrefte adressen min
 Logger du inn på nytt, sendes en ny lenke: sjekk også søppelpostmappen. Kan du ikke logge inn, bruk **Glemt passord?** på innloggingssiden. Tilbakestillingslenken bekrefter også adressen din.
+:::
+
+:::details Registreringen sendte meg en e-post om at jeg allerede har en konto
+Den adressen har allerede en OneUptime-konto, så registreringen opprettet og endret ingenting. Logg inn med den, eller bruk **Glemt passord?** på innloggingssiden hvis du ikke husker passordet ditt. Registreringssiden sier det samme for alle adresser, så den forteller ingen hvilke adresser som har en konto.
+:::
+
+:::details E-postadressen min har ikke endret seg
+Adressen din endres først når du åpner lenken OneUptime sendte til den nye adressen. Lenken virker i 24 timer: Har den utløpt, endrer du e-posten din på nytt for å få en ny. Bruker en annen konto allerede den adressen, står det i e-posten som ble sendt dit, og adressen din forblir som den er.
 :::
 
 :::details Jeg har mistet autentiseringsappen min

@@ -3,8 +3,13 @@ import IdentityFeatureSet from "../../../FeatureSet/Identity/Index";
 import { SSO_SIGN_IN_CONFIRMATION_VIEW } from "../../../FeatureSet/Identity/API/ProjectSsoSignInConfirmation";
 import { MOBILE_SSO_CALLBACK_URL } from "../../../FeatureSet/Identity/Utils/MobileSso";
 import DomainService from "Common/Server/Services/DomainService";
+import {
+  SAML_SIGN_OUT_NOT_SET_UP_MESSAGE,
+  SAML_SIGN_OUT_NOT_SET_UP_TITLE,
+} from "../../../FeatureSet/Identity/Utils/SamlSingleLogoutEndpoint";
 import GlobalOIDCService from "Common/Server/Services/GlobalOidcService";
 import GlobalSSOService from "Common/Server/Services/GlobalSsoService";
+import InstanceSamlSigningKeyService from "Common/Server/Services/InstanceSamlSigningKeyService";
 import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import StatusPageOidcService from "Common/Server/Services/StatusPageOidcService";
@@ -78,8 +83,11 @@ export interface SsoProbe {
 
 export interface ExpectedSsoAnswer {
   status: number;
-  // The JSON body, exactly (a rendered view answers with its view and variables).
-  body?: JSONObject | undefined;
+  /*
+   * The JSON body, exactly (a rendered view answers with its view and
+   * variables), or the text of one that is not JSON.
+   */
+  body?: JSONObject | string | undefined;
   // For a redirect to the mobile app: every query parameter of the deep link.
   deepLink?: Record<string, string> | undefined;
 }
@@ -92,6 +100,24 @@ const badRequest: (message: string) => ExpectedSsoAnswer = (
 
 // What a value that is not one email address is refused with (Types/Email).
 const NOT_AN_ADDRESS: string = "Email nobody is not in valid format.";
+
+/*
+ * What a Single Logout URL answers for a provider that does not sign people
+ * out (#9603): the identity provider's sign-out is taken by none, so the
+ * page says so.
+ */
+const SIGN_OUT_NOT_SET_UP: ExpectedSsoAnswer = {
+  status: 200,
+  body: {
+    view: "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+    title: SAML_SIGN_OUT_NOT_SET_UP_TITLE,
+    message: SAML_SIGN_OUT_NOT_SET_UP_MESSAGE,
+  },
+};
+
+// The installation's SAML signing certificate, as the stubbed key service has it.
+export const PROBE_SIGNING_CERTIFICATE: string =
+  "-----BEGIN CERTIFICATE-----\nTUlJQ3Byb2Jl\n-----END CERTIFICATE-----\n";
 
 const EMPTY_PROVIDER_LIST: ExpectedSsoAnswer = {
   status: 200,
@@ -190,6 +216,31 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
     path: `/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
     form: { SAMLResponse: SAML_RESPONSE, RelayState: "mobile" },
     expected: badRequest("SSO Config not found"),
+  },
+  {
+    label: "project SAML Single Logout URL (GET) for an unknown provider",
+    router: "SSO",
+    method: "GET",
+    route: "/idp-logout/:projectId/:projectSsoId",
+    path: `/idp-logout/${PROJECT_ID}/${PROVIDER_ID}?SAMLResponse=abc`,
+    expected: SIGN_OUT_NOT_SET_UP,
+  },
+  {
+    label: "project SAML Single Logout URL (POST) for an unknown provider",
+    router: "SSO",
+    method: "POST",
+    route: "/idp-logout/:projectId/:projectSsoId",
+    path: `/idp-logout/${PROJECT_ID}/${PROVIDER_ID}`,
+    form: { SAMLRequest: SAML_RESPONSE },
+    expected: SIGN_OUT_NOT_SET_UP,
+  },
+  {
+    label: "the SAML signing certificate",
+    router: "SSO",
+    method: "GET",
+    route: "/saml-signing-certificate",
+    path: "/saml-signing-certificate",
+    expected: { status: 200, body: PROBE_SIGNING_CERTIFICATE },
   },
   {
     label: "project OIDC discovery without an email",
@@ -334,6 +385,23 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
     ),
   },
   {
+    label: "Global SSO Single Logout URL (GET) for an unknown provider",
+    router: "GlobalSSO",
+    method: "GET",
+    route: "/global-idp-logout/:globalSsoId",
+    path: `/global-idp-logout/${PROVIDER_ID}?SAMLRequest=abc`,
+    expected: SIGN_OUT_NOT_SET_UP,
+  },
+  {
+    label: "Global SSO Single Logout URL (POST) for an unknown provider",
+    router: "GlobalSSO",
+    method: "POST",
+    route: "/global-idp-logout/:globalSsoId",
+    path: `/global-idp-logout/${PROVIDER_ID}`,
+    form: { SAMLResponse: SAML_RESPONSE },
+    expected: SIGN_OUT_NOT_SET_UP,
+  },
+  {
     label: "Global OIDC discovery",
     router: "GlobalOIDC",
     method: "GET",
@@ -429,8 +497,8 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
 
 /*
  * Every provider, domain and account lookup the probes can reach finds
- * nothing, so no probe needs a database. Returns the spies (restored by
- * jest.restoreAllMocks).
+ * nothing, and the SAML signing certificate is a fixed one, so no probe
+ * needs a database. Returns the spies (restored by jest.restoreAllMocks).
  */
 export const stubSsoDatabaseReads: () => Array<jest.SpyInstance> =
   (): Array<jest.SpyInstance> => {
@@ -446,6 +514,9 @@ export const stubSsoDatabaseReads: () => Array<jest.SpyInstance> =
       jest.spyOn(GlobalOIDCService, "findOneBy").mockResolvedValue(null),
       jest.spyOn(StatusPageSsoService, "findOneBy").mockResolvedValue(null),
       jest.spyOn(StatusPageOidcService, "findOneBy").mockResolvedValue(null),
+      jest
+        .spyOn(InstanceSamlSigningKeyService, "getCertificate")
+        .mockResolvedValue(PROBE_SIGNING_CERTIFICATE),
     ] as Array<jest.SpyInstance>;
   };
 

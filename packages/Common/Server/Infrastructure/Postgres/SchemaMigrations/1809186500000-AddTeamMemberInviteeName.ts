@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Generated with npm run generate-postgres-migration.
  */
-export class AddTeamMemberInviteeName1809186200000
+export class AddTeamMemberInviteeName1809186500000
   implements MigrationInterface
 {
-  public name: string = "AddTeamMemberInviteeName1809186200000";
+  public name: string = "AddTeamMemberInviteeName1809186500000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

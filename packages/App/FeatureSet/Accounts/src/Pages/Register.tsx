@@ -815,10 +815,13 @@ const RegisterPage: () => JSX.Element = () => {
               }
 
               /*
-               * The account WAS created, so this is a completed signup for
-               * the funnel. There is just no session yet: the hosted service
-               * holds a new account until its email is verified, and the
-               * response carries no account to read the address from.
+               * A completed sign-up for the funnel, with no session yet. A
+               * server that proves addresses by email answers every address
+               * alike (#9816), so this counts sign-ups people finished, an
+               * address that already had an account included - its owner
+               * was emailed instead; the server's own server/user_created
+               * counts the accounts made. The response carries no account to
+               * read the address from.
                */
               const isEmailVerificationRequired: boolean = Boolean(
                 miscData && miscData["emailVerificationRequired"],

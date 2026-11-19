@@ -18,7 +18,7 @@ Lorsque vous créez un planning sur la page **Plannings d'astreinte**, le formul
 
 :::steps
 1. Allez dans **Astreinte** > **Plannings d'astreinte** et cliquez sur **Créer un planning d'astreinte**.
-2. Saisissez un **Nom**.
+2. Saisissez un **Nom**. Un nom que porte déjà un autre planning du projet est refusé, quels que soient sa casse ou ses espaces, afin que chaque sélecteur distingue les plannings.
 3. Sous **Qui assure l'astreinte à tour de rôle ?**, cliquez sur **Ajouter un utilisateur** et choisissez les personnes, dans l'ordre de leurs tours.
 4. Si vous le souhaitez, ouvrez **Plus de champs** pour changer la durée de chaque tour, le fuseau horaire, la description ou les étiquettes.
 5. Cliquez sur **Créer un planning d'astreinte**. Le nouveau planning s'ouvre ensuite sur sa page **Couches**, où vous pouvez modifier la rotation ou ajouter d'autres couches.
@@ -101,7 +101,7 @@ Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si b
 
 Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
-La **Vue d'ensemble** d'un planning a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent la personne d'astreinte, avec les règles qui le font. Quand aucune ne le fait, elle le dit et renvoie aux politiques d'astreinte. Supprimer le planning, sur sa page ou depuis la liste, dit d'abord quelles politiques appellent via lui. Les politiques que vous ne pouvez pas ouvrir sont comptées, pas nommées.
+La **Vue d'ensemble** d'un planning a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent la personne d'astreinte, avec les règles qui le font. Quand aucune ne le fait, elle le dit et renvoie aux politiques d'astreinte. Supprimer le planning, sur sa page ou depuis la liste, dit d'abord quelles politiques appellent via lui. Les politiques que vous ne pouvez pas ouvrir sont comptées, pas nommées. Un planning qui porte le même nom qu'un autre planning, datant d'avant l'obligation de noms distincts, est marqué **Même nom qu'un autre planning** dans la liste **Plannings d'astreinte**, qui indique combien il y en a : comparez leurs couches, puis renommez l'un d'eux avec **Renommer** sur sa ligne.
 
 ## Créer des plannings avec l'API ou Terraform
 

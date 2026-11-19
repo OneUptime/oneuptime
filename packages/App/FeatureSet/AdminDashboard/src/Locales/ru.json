@@ -4331,5 +4331,10 @@
   "Domains": "Домены",
   "Select Domains": "Выберите домены",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Вход через SSO» предлагает этого провайдера всем, чей адрес электронной почты на одном из этих доменов, которые вы подтверждаете в разделе Настройки проекта > Расширенный > Домены.",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Подтверждённых доменов пока нет. Подтвердите домен в разделе Настройки проекта > Расширенный > Домены."
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Подтверждённых доменов пока нет. Подтвердите домен в разделе Настройки проекта > Расширенный > Домены.",
+  "Sign Out URL": "URL выхода",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "URL единого выхода вашего поставщика удостоверений. Нужен, чтобы выходить и из него.",
+  "Single Logout URL:": "URL Single Logout:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Чтобы выходить и из поставщика удостоверений, передайте ему также URL Single Logout и сертификат подписи OneUptime.",
+  "Download Signing Certificate": "Скачать сертификат подписи"
 }

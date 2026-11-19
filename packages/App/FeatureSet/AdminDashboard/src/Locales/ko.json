@@ -4331,5 +4331,10 @@
   "Domains": "도메인",
   "Select Domains": "도메인 선택",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "‘SSO로 로그인’은 이메일이 이 도메인 중 하나에 있는 누구에게나 이 공급자를 제공합니다. 도메인은 프로젝트 설정 > 고급 > 도메인에서 인증합니다.",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "아직 인증된 도메인이 없습니다. 프로젝트 설정 > 고급 > 도메인에서 인증하세요."
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "아직 인증된 도메인이 없습니다. 프로젝트 설정 > 고급 > 도메인에서 인증하세요.",
+  "Sign Out URL": "로그아웃 URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다.",
+  "Single Logout URL:": "단일 로그아웃 URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
+  "Download Signing Certificate": "서명 인증서 다운로드"
 }

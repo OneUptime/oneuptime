@@ -98,6 +98,41 @@ const toTime: (value: Date | string | null | undefined) => number | null = (
 };
 
 /**
+ * Two rows' numbers in the order the list is shown in: the top first
+ * (lower numbers, or higher ones in a list that counts down), and a row
+ * without a number after every row that has one - never at a number made up
+ * for it, such as 0 or its place in a read, which would put it among the
+ * numbered rows. Zero for two rows at one place, or two without a number:
+ * the caller breaks that tie (compareListOrderItems: the older first; a
+ * reader that has no age keeps the order it read them in).
+ *
+ * The one rule for "no number" (issue #9655): every reader of a
+ * drag-ordered list that compares numbers itself compares them with this.
+ */
+export const compareListOrderValues: (
+  a: unknown,
+  b: unknown,
+  sortOrder: SortOrder,
+) => number = (a: unknown, b: unknown, sortOrder: SortOrder): number => {
+  const aValue: number | null = toListOrderNumber(a);
+  const bValue: number | null = toListOrderNumber(b);
+
+  if (aValue !== null && bValue === null) {
+    return -1;
+  }
+
+  if (aValue === null && bValue !== null) {
+    return 1;
+  }
+
+  if (aValue !== null && bValue !== null && aValue !== bValue) {
+    return toRank(aValue, sortOrder) - toRank(bValue, sortOrder);
+  }
+
+  return 0;
+};
+
+/**
  * The order a list is shown in: by number (rows without one at the bottom,
  * whichever way the list counts), then the older row first, then by id so
  * that two calls can never disagree.
@@ -111,19 +146,10 @@ export const compareListOrderItems: (
   b: ListOrderItem,
   sortOrder: SortOrder,
 ): number => {
-  const aValue: number | null = toListOrderNumber(a.value);
-  const bValue: number | null = toListOrderNumber(b.value);
+  const byValue: number = compareListOrderValues(a.value, b.value, sortOrder);
 
-  if (aValue !== null && bValue === null) {
-    return -1;
-  }
-
-  if (aValue === null && bValue !== null) {
-    return 1;
-  }
-
-  if (aValue !== null && bValue !== null && aValue !== bValue) {
-    return toRank(aValue, sortOrder) - toRank(bValue, sortOrder);
+  if (byValue !== 0) {
+    return byValue;
   }
 
   const aTime: number | null = toTime(a.createdAt);
@@ -146,6 +172,94 @@ export const compareListOrderItems: (
   }
 
   return a.id < b.id ? -1 : 1;
+};
+
+// A sort's direction for one column, as TypeORM reads it, or null.
+const toSortDirection: (value: unknown) => SortOrder | null = (
+  value: unknown,
+): SortOrder | null => {
+  const direction: unknown =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)["direction"]
+      : value;
+
+  if (typeof direction !== "string") {
+    return null;
+  }
+
+  const upper: string = direction.toUpperCase();
+
+  if (upper === SortOrder.Ascending) {
+    return SortOrder.Ascending;
+  }
+
+  return upper === SortOrder.Descending ? SortOrder.Descending : null;
+};
+
+/**
+ * The order the server reads a drag-ordered list's rows in, given the sort
+ * its caller asked for (DatabaseService.getReadSort), so that a read agrees
+ * with the list as it is shown (compareListOrderItems; issue #9654):
+ *
+ *   - asked for no order: the list's own, top first, two rows at one
+ *     number the older first. So "the project's created state" - a lookup
+ *     by a flag alone, findOneBy({ isCreatedState: true }) - is the
+ *     topmost row carrying it, as every rule and the Dashboard take it,
+ *     never the newest one, which a read in no order used to give;
+ *   - asked for the list's number last, in the list's direction: two rows
+ *     at that number the older first, as the list shows them, rather than
+ *     by id;
+ *   - asked for it against the list's direction - from the bottom up, as
+ *     "the least severe severity" is read: the newer of two rows at one
+ *     number first, and by id from the highest, so the first row read is
+ *     the last row the list shows.
+ *
+ * Any other order is read as asked, and so is one that already says how
+ * its ties go (by createdAt or _id).
+ */
+export const getListOrderReadSort: (data: {
+  sort: Record<string, unknown> | null | undefined;
+  column: string;
+  sortOrder: SortOrder;
+}) => Record<string, unknown> = (data: {
+  sort: Record<string, unknown> | null | undefined;
+  column: string;
+  sortOrder: SortOrder;
+}): Record<string, unknown> => {
+  const entries: Array<[string, unknown]> = Object.entries(
+    data.sort || {},
+  ).filter((entry: [string, unknown]): boolean => {
+    return entry[1] !== undefined && entry[1] !== null;
+  });
+
+  if (entries.length === 0) {
+    return {
+      [data.column]: data.sortOrder,
+      createdAt: SortOrder.Ascending,
+    };
+  }
+
+  const [lastColumn, lastValue] = entries[entries.length - 1]!;
+  const direction: SortOrder | null = toSortDirection(lastValue);
+  const saysHowTiesGo: boolean = entries.some(
+    (entry: [string, unknown]): boolean => {
+      return entry[0] === "createdAt" || entry[0] === "_id";
+    },
+  );
+
+  if (lastColumn !== data.column || direction === null || saysHowTiesGo) {
+    return data.sort || {};
+  }
+
+  if (direction === data.sortOrder) {
+    return { ...data.sort, createdAt: SortOrder.Ascending };
+  }
+
+  return {
+    ...data.sort,
+    createdAt: SortOrder.Descending,
+    _id: SortOrder.Descending,
+  };
 };
 
 /** A copy of the rows, top of the list first. */

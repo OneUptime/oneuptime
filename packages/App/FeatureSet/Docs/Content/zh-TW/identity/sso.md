@@ -127,7 +127,7 @@ Keycloak 是一款熱門的開放原始碼身分與存取管理解決方案。�
 4. **調整用戶端設定**
 
    - 將 **Name ID Format** 設為 `email`，並開啟 **Force Name ID Format**，讓 Keycloak 一律以電子郵件作為 Name ID 傳送
-   - 在用戶端的 **Keys** 分頁上，關閉 **Client signature required**（位於 **Signing keys config** 中）：OneUptime 不會為其請求簽章
+   - 在用戶端的 **Keys** 分頁上，關閉 **Client signature required**（位於 **Signing keys config** 中）：OneUptime 不會為其登入請求簽章
 
 5. **開啟提供者並進行測試**
 
@@ -259,11 +259,33 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 6. 在為專案要求使用 SSO 之前，開啟 **Test Single Sign On (SSO)** 卡片中的連結並選擇該提供者，透過它登入一次。
 :::
 
-### 同時登出身分提供者
+## 同時登出身分提供者
 
-登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，例如 NOC 螢幕或資訊站，下一個在登入頁面選擇該提供者的人，會以離開的那個人的身分進入。在 **更多欄位** 下開啟 **同時登出身分提供者**，即可在有人登出 OneUptime 時，也結束其在提供者那裡的工作階段。此設定預設為關閉：在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。
+登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，例如 NOC 螢幕或資訊站，下一個在登入頁面選擇該提供者的人，會以離開的那個人的身分進入。在 SAML 或 OIDC 提供者的 **更多欄位** 下開啟 **同時登出身分提供者**，即可在有人登出 OneUptime 時，也結束其在提供者那裡的工作階段。此設定預設為關閉：在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。它適用於開啟後在瀏覽器中登入的人；行動應用程式只登出 OneUptime。
 
-開啟後，OneUptime 讓瀏覽器登出後，瀏覽器會前往提供者自己的登出頁面，提供者再將它送回 OneUptime 登入頁面。請在提供者那裡註冊該頁面：**OIDC 設定** 對話方塊會將其顯示為登出後的重新導向 URI，提供者稱之為 post-logout redirect URI。像 Google 這樣探索文件中沒有 `end_session_endpoint` 的提供者無法開啟此設定。它適用於開啟後在瀏覽器中登入的人；行動應用程式只登出 OneUptime。SAML 提供者從不讓任何人登出身分提供者。
+:::tabs
+@tab SAML
+在 **更多欄位** 下，將身分提供者的登出 URL 填為提供者的 **登出 URL**：沒有它就無法開啟此開關。接著將 **SSO 設定** 對話方塊中的 **單一登出 URL**，以及 OneUptime 用來簽署其登出要求的憑證提供給身分提供者；憑證可在同一對話方塊的 **下載簽署憑證** 取得。
+
+| 身分提供者 | 登出 URL | 單一登出 URL 與憑證要填在哪裡 |
+| --- | --- | --- |
+| Okta | **Sign On** 索引標籤 **View SAML setup instructions** 中的 **Identity Provider Single Logout URL** | 在 **General** 索引標籤編輯 **SAML Settings**，按一下 **Show Advanced Settings** 並選取 **Allow application to initiate Single Logout**。將 **Single Logout URL** 設為單一登出 URL，將 **SP Issuer** 設為識別碼（Entity ID），並將憑證上傳為 **Signature Certificate**。 |
+| Microsoft Entra ID | **Set up OneUptime** 中的 **Logout URL** | 在 **Basic SAML Configuration** 中，將 **Logout Url (Optional)** 設為單一登出 URL。Entra ID 不需要憑證。 |
+| Keycloak | 領域的 SAML 端點，與登入 URL 相同 | 在用戶端的 **Advanced** 索引標籤，將 **Logout Service Redirect Binding URL** 設為單一登出 URL。保持 **Front channel logout** 開啟。只要 **Client signature required** 如上文設定保持關閉，Keycloak 就不需要憑證。 |
+
+在那裡登出後，身分提供者會將瀏覽器送回單一登出 URL，由它開啟登入頁面，或提示身分提供者未確認此次登出。當使用者在身分提供者那裡，或在使用它的其他應用程式中登出時，會向其應用程式傳送登出要求的身分提供者（例如 Keycloak 與 Microsoft Entra ID）也會讓其登出 OneUptime。OneUptime 只接受身分提供者簽署的要求。
+@tab OpenID Connect
+OneUptime 讓瀏覽器登出後，瀏覽器會前往提供者自己的登出頁面，提供者再將它送回 OneUptime 登入頁面。請在提供者那裡註冊該頁面：**OIDC 設定** 對話方塊會將其顯示為登出後的重新導向 URI，提供者稱之為 post-logout redirect URI。像 Google 這樣探索文件中沒有 `end_session_endpoint` 的提供者無法開啟此設定。
+
+| 身分提供者 | 在哪裡註冊登出後的重新導向 URI |
+| --- | --- |
+| Okta | 在應用程式整合的 **General** 索引標籤，按一下 **General Settings** 中的 **Edit**，將其加入 **Sign-out redirect URIs**。 |
+| Microsoft Entra ID | 在應用程式註冊的 **Authentication** 中，將其加入 **Web** 平台的 **Redirect URIs**。**Front-channel logout URL** 是另一項設定，OneUptime 不使用。 |
+| Auth0 | 在應用程式的 **Settings** 中，將其加入 **Allowed Logout URLs**。2023 年 11 月 14 日之前建立的租用戶，還需要在租用戶的 **Advanced** 設定中開啟 **RP-Initiated Logout End Session Endpoint Discovery**，其探索文件才會列出 `end_session_endpoint`。 |
+| Keycloak | 在用戶端設定中，將其加入 **Valid post logout redirect URIs**（Keycloak 19 及更新版本）。 |
+
+未註冊該位址的提供者，會在有人登出 OneUptime 後顯示自己的錯誤頁面，而不是將人送回；但使用者仍已登出 OneUptime。
+:::
 
 ## SSO 使用者的角色和團隊
 

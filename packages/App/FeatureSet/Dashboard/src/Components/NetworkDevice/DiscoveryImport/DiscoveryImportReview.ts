@@ -66,6 +66,8 @@ export const DEFAULT_DISCOVERY_REVIEW_QUERY: DiscoveredHostQuery = {
 export function getReviewHosts(data: {
   scan: NetworkDeviceDiscoveryScan | null;
   importedAddresses: Set<string>;
+  // The device each imported host is, by address (getImportedDeviceIds).
+  importedDeviceIds?: ReadonlyMap<string, string> | undefined;
 }): Array<DiscoveredNetworkDevice> {
   if (
     !data.scan ||
@@ -78,6 +80,7 @@ export function getReviewHosts(data: {
   return markDiscoveredHostsAsRegistered({
     hosts: normalizeDiscoveredHosts(getDiscoveredHosts(data.scan)),
     importedIpAddresses: data.importedAddresses,
+    importedDeviceIds: data.importedDeviceIds,
   });
 }
 
@@ -95,6 +98,31 @@ export function getImportedAddresses(
     .map((result: DiscoveryImportHostResult): string => {
       return result.ipAddress;
     });
+}
+
+/*
+ * The device an import created or found for each host, by address: the one
+ * the scan's probe sees there (issue #9677), so its monitors are read at
+ * once, before the scan is read again. A host whose devices could not be
+ * told apart names none.
+ */
+export function getImportedDeviceIds(
+  results: ReadonlyArray<DiscoveryImportHostResult> | undefined,
+): Map<string, string> {
+  const deviceIds: Map<string, string> = new Map<string, string>();
+
+  for (const result of results || []) {
+    if (
+      result.deviceId &&
+      result.ipAddress &&
+      (result.device === DiscoveryImportDeviceOutcome.Created ||
+        result.device === DiscoveryImportDeviceOutcome.AlreadyAdded)
+    ) {
+      deviceIds.set(result.ipAddress, result.deviceId);
+    }
+  }
+
+  return deviceIds;
 }
 
 /*

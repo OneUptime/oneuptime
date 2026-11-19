@@ -3078,10 +3078,11 @@ test.describe("Create Monitor's Probes definition", () => {
  * named by its word - was drawn inside the card's heading, beside the word,
  * and a heading is named by the words inside it: while it showed, Chromium
  * named the heading "Criteria Criteria", and a screen reader's list of
- * headings read it so. It is drawn right after the heading now
- * (Glossary/DefinitionsDrawnAfter): the heading holds its title alone, the
- * definition still shows by the word, and Tab goes from the word to Read
- * more, then on to the card's Learn more.
+ * headings read it so. It is drawn on the page's body now, as every
+ * tooltip is (Tooltip/TooltipLayer, #9863): the heading holds its title
+ * alone, the definition still shows by the word, and Tab goes from the word
+ * to Read more, then on from the word to the card's Learn more
+ * (keepTabOrder).
  */
 test.describe("Create Monitor's Criteria definition", () => {
   // The glossary is read from the product's host, as for Probes above.

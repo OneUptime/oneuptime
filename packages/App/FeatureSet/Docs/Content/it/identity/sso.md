@@ -127,7 +127,7 @@ Keycloak è una diffusa soluzione open source per la gestione delle identità e 
 4. **Regolare le impostazioni del client**
 
    - Imposta **Name ID Format** su `email` e attiva **Force Name ID Format**, così Keycloak invia sempre l'email come Name ID
-   - Nella scheda **Keys** del client, disattiva **Client signature required** (in **Signing keys config**): OneUptime non firma le sue richieste
+   - Nella scheda **Keys** del client, disattiva **Client signature required** (in **Signing keys config**): OneUptime non firma le sue richieste di accesso
 
 5. **Attivare il provider e provarlo**
 
@@ -259,11 +259,33 @@ Un progetto può anche accedere tramite un provider OpenID Connect, come Google 
 6. Apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider, per accedere tramite esso prima di richiedere l'SSO per il progetto.
 :::
 
-### Uscire anche dal provider di identità
+## Uscire anche dal provider di identità
 
-Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso, come uno schermo del NOC o un chiosco, la persona successiva che sceglie il provider nella pagina di accesso entra al posto di chi se n'è andato. Attiva **Esci anche dal provider di identità** in **Altri campi** perché l'uscita da OneUptime chiuda anche la sessione presso il provider. È disattivato per impostazione predefinita: su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
+Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso, come uno schermo del NOC o un chiosco, la persona successiva che sceglie il provider nella pagina di accesso entra al posto di chi se n'è andato. Su un provider SAML o OIDC, attiva **Esci anche dal provider di identità** in **Altri campi** perché l'uscita da OneUptime chiuda anche la sessione presso il provider. È disattivato per impostazione predefinita: su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider. Vale per le persone che accedono da un browser dopo che è stato attivato; l'app mobile esce solo da OneUptime.
 
-Con l'opzione attiva, il browser passa per l'uscita del provider appena OneUptime lo ha fatto uscire, e il provider lo rimanda alla pagina di accesso di OneUptime. Registra quella pagina presso il tuo provider: la finestra **Configurazione OIDC** la mostra come URI di reindirizzamento dopo l'uscita, che i provider chiamano post-logout redirect URI. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla. Vale per le persone che accedono da un browser dopo che è stata attivata; l'app mobile esce solo da OneUptime. I provider SAML non fanno mai uscire nessuno dal provider di identità.
+:::tabs
+@tab SAML
+Inserisci l'URL di uscita del tuo provider di identità come **URL di uscita** del provider, in **Altri campi**: senza di esso l'opzione non si può attivare. Poi fornisci al tuo provider di identità l'**URL di Single Logout** della finestra **Configurazione SSO** e il certificato con cui OneUptime firma le sue richieste di uscita, da **Scarica il certificato di firma** nella stessa finestra.
+
+| Provider di identità | URL di uscita | Dove vanno l'URL di Single Logout e il certificato |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, in **View SAML setup instructions** nella scheda **Sign On** | Nella scheda **General**, modifica le **SAML Settings**, fai clic su **Show Advanced Settings** e seleziona **Allow application to initiate Single Logout**. Imposta **Single Logout URL** sull'URL di Single Logout e **SP Issuer** sull'identificatore (Entity ID), e carica il certificato come **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, in **Set up OneUptime** | In **Basic SAML Configuration**, imposta **Logout Url (Optional)** sull'URL di Single Logout. Entra ID non ha bisogno di alcun certificato. |
+| Keycloak | L'endpoint SAML del realm, lo stesso dell'URL di accesso | Nella scheda **Advanced** del client, imposta **Logout Service Redirect Binding URL** sull'URL di Single Logout. Lascia attivo **Front channel logout**. Keycloak non ha bisogno di alcun certificato finché **Client signature required** è disattivato, come impostato sopra. |
+
+Dopo l'uscita lì, il provider di identità rimanda il browser all'URL di Single Logout, che apre la pagina di accesso o segnala che il provider di identità non ha confermato l'uscita. Quando la persona esce dal provider di identità, o da un'altra app che lo usa, un provider di identità che invia richieste di uscita alle sue app, come Keycloak e Microsoft Entra ID, la fa uscire anche da OneUptime. OneUptime accetta solo una richiesta firmata dal provider di identità.
+@tab OpenID Connect
+Il browser passa per l'uscita del provider appena OneUptime lo ha fatto uscire, e il provider lo rimanda alla pagina di accesso di OneUptime. Registra quella pagina presso il tuo provider: la finestra **Configurazione OIDC** la mostra come URI di reindirizzamento dopo l'uscita, che i provider chiamano post-logout redirect URI. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla.
+
+| Provider di identità | Dove registrare l'URI di reindirizzamento dopo l'uscita |
+| --- | --- |
+| Okta | Nella scheda **General** dell'integrazione, fai clic su **Edit** in **General Settings** e aggiungilo a **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Nella registrazione dell'app, in **Authentication**, aggiungilo ai **Redirect URIs** della piattaforma **Web**. La **Front-channel logout URL** è un'altra impostazione, che OneUptime non usa. |
+| Auth0 | Nelle **Settings** dell'applicazione, aggiungilo ad **Allowed Logout URLs**. Un tenant creato prima del 14 novembre 2023 deve anche attivare **RP-Initiated Logout End Session Endpoint Discovery** nelle sue impostazioni **Advanced**, perché il suo documento di discovery nomini un `end_session_endpoint`. |
+| Keycloak | Nelle impostazioni del client, aggiungilo a **Valid post logout redirect URIs** (Keycloak 19 e successivi). |
+
+Un provider che non lo ha registrato mostra la propria pagina di errore dopo un'uscita da OneUptime, invece di rimandare indietro la persona; la persona è comunque uscita da OneUptime.
+:::
 
 ## Ruoli e team degli utenti SSO
 

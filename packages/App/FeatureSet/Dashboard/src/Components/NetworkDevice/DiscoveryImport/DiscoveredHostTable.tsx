@@ -61,6 +61,8 @@ import {
   isAddingMonitorToExistingHost,
   countSelectableShownHosts,
   countSelectedDiscoveredHosts,
+  getAlreadyAddedDeviceIds,
+  getRegisteredDeviceIdOf,
   getDiscoveredHostFilterEmptyMessage,
   getDiscoveredHostFilterOptions,
   getDiscoveredHostNameFilterOptions,
@@ -250,8 +252,10 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
   /*
    * The monitors of the page's hosts that are already devices (issue
    * #9509), read once per page shown, and kept as pages are turned - unless
-   * the dialog read every one of them already (deviceMonitors). A read that
-   * fails leaves those hosts "Already added".
+   * the dialog read every one of them already (deviceMonitors). By the
+   * device each host is (issue #9677), never by its address: another site's
+   * device at the same address is not this host. A read that fails leaves
+   * those hosts "Already added".
    */
   const [pageMonitors, setDeviceMonitors] = useState<DeviceMonitorsByKey>(
     emptyDeviceMonitorsByKey(),
@@ -261,17 +265,11 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
   const monitorsRequestRef: React.MutableRefObject<number> = useRef<number>(0);
   const alreadyAddedOnPage: string = props.deviceMonitors
     ? ""
-    : pageHosts
-        .filter((shown: ShownDiscoveredHost): boolean => {
-          return Boolean(
-            shown.host.isAlreadyRegistered && shown.host.ipAddress,
-          );
-        })
-        .map((shown: ShownDiscoveredHost): string => {
-          return shown.host.ipAddress;
-        })
-        .sort()
-        .join(",");
+    : getAlreadyAddedDeviceIds(
+        pageHosts.map((shown: ShownDiscoveredHost): DiscoveredNetworkDevice => {
+          return shown.host;
+        }),
+      ).join(",");
 
   useEffect(() => {
     if (!alreadyAddedOnPage) {
@@ -281,7 +279,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
     monitorsRequestRef.current += 1;
     const request: number = monitorsRequestRef.current;
 
-    loadDeviceMonitors({ hostnames: alreadyAddedOnPage.split(",") })
+    loadDeviceMonitors({ deviceIds: alreadyAddedOnPage.split(",") })
       .then((loaded: DeviceMonitorsByKey) => {
         if (request !== monitorsRequestRef.current) {
           return;
@@ -290,7 +288,6 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
         setDeviceMonitors((current: DeviceMonitorsByKey) => {
           return {
             byDeviceId: new Map([...current.byDeviceId, ...loaded.byDeviceId]),
-            byHostname: new Map([...current.byHostname, ...loaded.byHostname]),
           };
         });
       })
@@ -627,7 +624,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                     shown.host.isAlreadyRegistered
                       ? getMonitorsOfRow({
                           monitors: deviceMonitors,
-                          hostname: shown.host.ipAddress,
+                          deviceId: getRegisteredDeviceIdOf(shown.host),
                         })
                       : undefined
                   }

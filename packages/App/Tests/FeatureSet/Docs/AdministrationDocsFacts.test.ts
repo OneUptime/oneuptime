@@ -790,9 +790,12 @@ describe("Inviting People", () => {
     expect(register).toContain(
       "miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY] = invitation.projectId;",
     );
-    // The server accepts it once the token has claimed the account.
+    /*
+     * The server accepts it once the token has claimed the account
+     * (claimInvitedAccount, where sign-up claims an invited account, #9816).
+     */
     expect(authentication).toContain(
-      "await SignUpInvitationUtil.acceptForClaimedAccount({ userId: alreadySavedUser.id!, projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY], });",
+      "await SignUpInvitationUtil.acceptForClaimedAccount({ userId: account.id!, projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY], });",
     );
     expect(signUpInvitation).toContain(
       "hasAcceptedInvitation: true, invitationAcceptedAt: OneUptimeDate.getCurrentDate(),",
@@ -1231,17 +1234,25 @@ describe("Inviting People", () => {
     });
 
     it("says signing up cannot email a new link there, and tells them to ask for their invitation link", () => {
+      /*
+       * A server that cannot send email cannot prove an address either, so
+       * its sign-ups go through signUpWithoutProvingTheAddress (#9816),
+       * which answers an invitation nobody has claimed.
+       */
       const authentication: string = collapsed(
         readPackageFile("App/FeatureSet/Identity/API/Authentication.ts"),
       );
-      const refusal: number = authentication.indexOf(
+      const withoutProof: string = authentication.slice(
+        authentication.indexOf("const signUpWithoutProvingTheAddress"),
+      );
+      const refusal: number = withoutProof.indexOf(
         "if (await ServerSendingStatus.isEmailKnownNotSetUp()) { return Response.sendErrorResponse( req, res, new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE), ); }",
       );
 
       // Refused before the new link would be emailed.
       expect(refusal).toBeGreaterThan(-1);
       expect(refusal).toBeLessThan(
-        authentication.indexOf(
+        withoutProof.indexOf(
           "AuthenticationEmail.sendCompleteRegistrationEmail({",
         ),
       );

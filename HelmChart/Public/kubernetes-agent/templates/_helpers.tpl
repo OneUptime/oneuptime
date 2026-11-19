@@ -363,6 +363,32 @@ false
 {{- end -}}
 {{- end -}}
 
+{{/*
+Whether the cluster collector pulls what the CIS Kubernetes Benchmark's policy
+controls read, for the cluster's Compliance page: RBAC (Roles, ClusterRoles
+and their bindings), ServiceAccounts and NetworkPolicies, read-only, with the
+other resource specs (resourceSpecs.enabled). On unless
+resourceSpecs.compliance is false: a release upgraded with --reuse-values
+keeps the values of the chart it came from, which have no such key, and gets
+them too. The Pod Security Standards need none of it: they are scored from
+the pods the collector already pulls.
+
+They come from a k8sobjects receiver of their own with error_mode: ignore,
+which collector 0.125.0 added, so a cluster that refuses one of them (a
+service account of your own, without the rules templates/rbac.yaml grants)
+skips it instead of stopping the events and every other spec. An older
+collector leaves them out until it is upgraded.
+Usage: {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.complianceObjectsEnabled" -}}
+{{- $specs := .Values.resourceSpecs | default dict -}}
+{{- if and $specs.enabled (or (not (hasKey $specs "compliance")) $specs.compliance) (eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.125.0")) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.openshiftDetector" -}}
 resourcedetection/openshift:
   detectors: [openshift]
@@ -703,7 +729,7 @@ ebpf.dropUnlinkedDatabaseCalls.
     emits; db.system is the older one, kept so an OBI that still emits it is
     covered too.
   - The calls condition adds parent_span_id == SpanID(0x0000000000000000),
-    "no parent" in a form both the pinned collector (0.161.0) and 0.96.0,
+    "no parent" in a form both the pinned collector (0.165.0) and 0.96.0,
     which a --reuse-values upgrade keeps, understand; IsRootSpan() is newer
     than 0.96.0.
 */}}
@@ -870,7 +896,7 @@ no parent that is none of the calls other features read from spans.
 
   - telemetry.distro.name and the "no parent" form as for the database
     condition above (parent_span_id == SpanID(0x0000000000000000) is what
-    both the pinned collector, 0.161.0, and 0.96.0 understand).
+    both the pinned collector, 0.165.0, and 0.96.0 understand).
   - kind == SPAN_KIND_CLIENT only: PRODUCER and CONSUMER spans are messaging
     and always kept, as are SERVER spans (a request is a trace's root) and
     INTERNAL ones.
@@ -1180,7 +1206,7 @@ renders for. Collector 0.157.0 renamed it cumulative_to_delta and keeps
 cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows only
 cumulativetodelta and refuses the whole config for the new name ("unknown type"),
 and 0.96.0 is what `helm upgrade --reuse-values` keeps (_stale-defaults.tpl).
-Both names were validated on 0.96.0, 0.156.0, 0.157.0 and 0.161.0.
+Both names were validated on 0.96.0, 0.156.0, 0.157.0, 0.161.0 and 0.165.0.
 Usage: {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
 */}}
 {{- define "kubernetes-agent.cumulativeToDeltaProcessor" -}}
@@ -1361,7 +1387,7 @@ delete every node metric. The guard also decides the tie-break for
 records we cannot classify: they are KEPT, never dropped.
 
 Metric name matching is written for the pinned otel-collector-contrib
-(.Values.image.tag, 0.161.0) and for 0.96.0, which a --reuse-values upgrade
+(.Values.image.tag, 0.165.0) and for 0.96.0, which a --reuse-values upgrade
 keeps: `IsMatch`, the `metric` / `datapoint` OTTL contexts and paths with no
 context prefix (`name`, not `metric.name`) exist in both. Keep it that way.
 */}}

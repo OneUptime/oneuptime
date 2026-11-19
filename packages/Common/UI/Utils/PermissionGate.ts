@@ -3,6 +3,7 @@ import Dictionary from "../../Types/Dictionary";
 import HeldPermissionsUtil, {
   HeldPermissions,
   HeldPermissionsOptions,
+  TeamGrants,
 } from "../../Types/HeldPermissions";
 import ObjectID from "../../Types/ObjectID";
 import Permission, {
@@ -662,6 +663,26 @@ export default class PermissionGate {
         sentence: data.options?.sentence,
       })} ${data.reason}`,
     };
+  }
+
+  /*
+   * The teams whose allow rows give the reader `permission`, as the stored
+   * snapshot names them, by the one rule (HeldPermissionsUtil
+   * .getTeamGrants) - each with whether one of its rows reaches the whole
+   * project. For a permission that reaches the people of the team it is
+   * given to (Manage On-Call Policy User Overrides for Own Team). Whether
+   * the reader holds it at all, blocks weighed, is holdsAnyOf's to say.
+   */
+  public static getTeamGrants(
+    permission: Permission,
+    options?: { rows?: ReadonlyArray<UserPermission> | undefined },
+  ): TeamGrants {
+    return HeldPermissionsUtil.getTeamGrants(
+      options?.rows ||
+        PermissionUtil.getProjectPermissions()?.permissions ||
+        [],
+      permission,
+    );
   }
 
   /*

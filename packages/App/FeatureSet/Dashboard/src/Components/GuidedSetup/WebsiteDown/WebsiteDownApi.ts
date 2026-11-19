@@ -58,6 +58,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { createWithFreeName } from "Common/Types/Database/UniqueName";
 
 /*
  * THE RECORDS THE WEBSITE-DOWN GUIDED SETUP READS AND WRITES (issue #6804),
@@ -614,12 +615,28 @@ export default class WebsiteDownApi {
       language: data.translator.language,
     });
 
-    const response: HTTPResponse<OnCallDutyPolicy> =
-      (await ModelAPI.create<OnCallDutyPolicy>({
-        model: create.policy,
-        modelType: OnCallDutyPolicy,
-        miscDataProps: create.miscDataProps,
-      })) as HTTPResponse<OnCallDutyPolicy>;
+    /*
+     * A policy's name is one policy's (#9742): while another has it - an
+     * archived one, or one this person may not see - the policy is made
+     * numbered, as Duplicate numbers a copy ("Default on-call policy 2").
+     */
+    const { created: response } = await createWithFreeName<
+      HTTPResponse<OnCallDutyPolicy>
+    >({
+      name: create.policy.name || "",
+      create: async (name: string): Promise<HTTPResponse<OnCallDutyPolicy>> => {
+        create.policy.name = name;
+
+        return (await ModelAPI.create<OnCallDutyPolicy>({
+          model: create.policy,
+          modelType: OnCallDutyPolicy,
+          miscDataProps: create.miscDataProps,
+        })) as HTTPResponse<OnCallDutyPolicy>;
+      },
+      readRefusal: (error: unknown): string => {
+        return API.getFriendlyMessage(error);
+      },
+    });
 
     const id: string | undefined = response.data?.id?.toString();
 

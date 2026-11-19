@@ -12,6 +12,11 @@ import UserOverrideEdit, {
   UserOverrideTimesChange,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideEdit";
 import { USER_OVERRIDE_CONFLICT_WHAT_TO_DO } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
+import UserOverrideTeamAccess, {
+  USER_OVERRIDE_TEAM_AWAY_REFUSAL,
+  USER_OVERRIDE_TEAM_COVER_REFUSAL,
+  USER_OVERRIDE_TEAM_EDIT_REFUSAL,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideTeamAccess";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -404,7 +409,113 @@ export interface UserOverrideFormOptions {
    * change them, and the form is not sent.
    */
   isKnownOverlap?: ((values: unknown) => boolean) | undefined;
+  /*
+   * For a reader whose permission reaches the people of their own team only
+   * (issue #9733, UserOverrideTeamLimit): the teams whose people "Who is
+   * away?" and "Who covers?" offer, the line above each list saying why
+   * (null while the teams' names are read), and - once known - who their
+   * accepted members are, so a person the form holds who is outside them
+   * is said under the field before anything is sent. Left out, the pickers
+   * offer everyone in the project.
+   */
+  teamLimit?: UserOverrideFormTeamLimit | undefined;
 }
+
+export interface UserOverrideFormTeamLimit {
+  teamIds: Array<string>;
+  hint: string | null;
+  memberIds: ReadonlySet<string> | null;
+}
+
+// What a picker kept to the teams says when it has nobody to offer.
+export const USER_OVERRIDE_TEAM_PICKER_EMPTY_TEXT: string = translationKey(
+  "No one in these teams can be picked.",
+);
+
+/*
+ * The server's refusal of the person `role` names - in English, for the
+ * form to translate - when they are outside the teams' accepted members,
+ * or null: nobody, somebody in them, or members not known yet.
+ */
+export const getUserOverrideTeamPersonError: (data: {
+  role: "away" | "cover";
+  userId: string | null | undefined;
+  memberIds: ReadonlySet<string> | null;
+}) => string | null = (data: {
+  role: "away" | "cover";
+  userId: string | null | undefined;
+  memberIds: ReadonlySet<string> | null;
+}): string | null => {
+  const userId: string = (data.userId || "").trim().toLowerCase();
+
+  if (!data.memberIds || !userId || data.memberIds.has(userId)) {
+    return null;
+  }
+
+  return data.role === "away"
+    ? USER_OVERRIDE_TEAM_AWAY_REFUSAL
+    : USER_OVERRIDE_TEAM_COVER_REFUSAL;
+};
+
+/*
+ * What a picker of the form is given for the team limit: the teams' people
+ * only, the line saying why, and words of its own for a list with nobody.
+ */
+const getTeamPickerConfig: (
+  teamLimit: UserOverrideFormTeamLimit | undefined,
+) => Partial<PeoplePickerFieldConfig> = (
+  teamLimit: UserOverrideFormTeamLimit | undefined,
+): Partial<PeoplePickerFieldConfig> => {
+  if (!teamLimit) {
+    return {};
+  }
+
+  return {
+    onlyMembersOfTeamIds: teamLimit.teamIds,
+    searchHint: teamLimit.hint || undefined,
+    emptyText: USER_OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+  };
+};
+
+/*
+ * The team rule's word on the person a picker holds: the server's own
+ * refusal, in the reader's language, when they are outside the teams. An
+ * edited override's person away stays as saved, so the refusal there is
+ * the edit's: the override is not the reader's to change.
+ */
+const getTeamPersonError: (data: {
+  teamLimit: UserOverrideFormTeamLimit | undefined;
+  role: "away" | "cover";
+  values: unknown;
+  isEditing?: boolean | undefined;
+}) => string | null = (data: {
+  teamLimit: UserOverrideFormTeamLimit | undefined;
+  role: "away" | "cover";
+  values: unknown;
+  isEditing?: boolean | undefined;
+}): string | null => {
+  if (!data.teamLimit) {
+    return null;
+  }
+
+  const people: UserOverridePeople = readUserOverridePeople(data.values);
+
+  const refusal: string | null = getUserOverrideTeamPersonError({
+    role: data.role,
+    userId: data.role === "away" ? people.awayUserId : people.coverUserId,
+    memberIds: data.teamLimit.memberIds,
+  });
+
+  if (!refusal) {
+    return null;
+  }
+
+  return translateValidationMessage(
+    data.isEditing && data.role === "away"
+      ? USER_OVERRIDE_TEAM_EDIT_REFUSAL
+      : refusal,
+  );
+};
 
 /*
  * The Add User Override form, in order: Who is away?, Who covers?, Starts,
@@ -463,6 +574,7 @@ export const getUserOverrideFormFields: <TEntity>(
        */
       peoplePicker: {
         ...getUserOverrideAwayPickerConfig(),
+        ...getTeamPickerConfig(options?.teamLimit),
         isReadOnly: Boolean(editing),
       },
       required: true,
@@ -474,7 +586,19 @@ export const getUserOverrideFormFields: <TEntity>(
       disabled: Boolean(editing),
       showEvenIfPermissionDoesNotExist: Boolean(editing),
       customValidation: (values: FormValues<TEntity>): string | null => {
-        return getUserOverrideAwayError(values);
+        return (
+          getUserOverrideAwayError(values) ||
+          getTeamPersonError({
+            teamLimit: options?.teamLimit,
+            role: "away",
+            values: values,
+            isEditing: Boolean(editing),
+          })
+        );
+      },
+      // The server's refusal of somebody outside the reader's teams: said here.
+      ownsServerError: (message: string): boolean => {
+        return UserOverrideTeamAccess.isAwayRefusal(message);
       },
     },
     {
@@ -488,11 +612,25 @@ export const getUserOverrideFormFields: <TEntity>(
       description:
         "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
       fieldType: FormFieldSchemaType.PeoplePicker,
-      peoplePicker: getUserOverrideCoverPickerConfig(),
+      peoplePicker: {
+        ...getUserOverrideCoverPickerConfig(),
+        ...getTeamPickerConfig(options?.teamLimit),
+      },
       required: false,
       hideOptionalLabel: true,
       customValidation: (values: FormValues<TEntity>): string | null => {
-        return getUserOverrideCoverError(values);
+        return (
+          getUserOverrideCoverError(values) ||
+          getTeamPersonError({
+            teamLimit: options?.teamLimit,
+            role: "cover",
+            values: values,
+          })
+        );
+      },
+      // The server's refusal of somebody outside the reader's teams: said here.
+      ownsServerError: (message: string): boolean => {
+        return UserOverrideTeamAccess.isCoverRefusal(message);
       },
     },
     {

@@ -4331,5 +4331,10 @@
   "Domains": "Domener",
   "Select Domains": "Velg domener",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Logg inn med SSO» tilbyr denne leverandøren til alle med e-post på et av disse domenene, som du verifiserer under Prosjektinnstillinger > Avansert > Domener.",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ingen verifiserte domener ennå. Verifiser et under Prosjektinnstillinger > Avansert > Domener."
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ingen verifiserte domener ennå. Verifiser et under Prosjektinnstillinger > Avansert > Domener.",
+  "Sign Out URL": "Utloggings-URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsleverandørens URL for felles utlogging (Single Sign-out). Trengs for å logge folk ut der også.",
+  "Single Logout URL:": "Single Logout-URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Skal folk logges ut av identitetsleverandøren også, gir du den også Single Logout-URL-en og OneUptimes signeringssertifikat.",
+  "Download Signing Certificate": "Last ned signeringssertifikat"
 }

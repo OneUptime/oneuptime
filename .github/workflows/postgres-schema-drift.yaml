@@ -2182,6 +2182,10 @@ jobs:
       # CronJob's Jobs and their pods. And the write of each persistent volume
       # claim's latest usage (bulkUpdateLatestVolumeStats): bigint bytes past
       # 2 GiB, a missing reading kept, an older point never over a newer one.
+      # And a claim's and a node's disk verdict (#9643, #9645): written with
+      # the reading, kept by the next snapshot, cleared once the reading goes
+      # stale or the claim is made again, a claim's fill baseline, a node's
+      # image disk, and the Overview's read naming the pod that mounts a claim.
       - name: Test the Kubernetes inventory's health SQL on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -2193,7 +2197,8 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/KubernetesResourceHealthPostgres.test.ts
-          Tests/Server/Services/KubernetesVolumeClaimUsagePostgres.test.ts --forceExit
+          Tests/Server/Services/KubernetesVolumeClaimUsagePostgres.test.ts
+          Tests/Server/Services/KubernetesDiskVerdictsPostgres.test.ts --forceExit
 
       # What a host last reported (1808830000000-AddHostReadings) and the Hosts
       # list's Needs attention read on it. Clones the migrated Host table into

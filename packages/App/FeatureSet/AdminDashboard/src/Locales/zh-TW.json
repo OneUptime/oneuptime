@@ -4331,5 +4331,10 @@
   "Domains": "網域",
   "Select Domains": "選擇網域",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「使用 SSO 登入」會向電子郵件屬於這些網域之一的任何人提供此提供者。網域在「專案設定 > 進階 > 網域」中驗證。",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚無已驗證的網域。請在「專案設定 > 進階 > 網域」中驗證一個。"
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚無已驗證的網域。請在「專案設定 > 進階 > 網域」中驗證一個。",
+  "Sign Out URL": "登出 URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身分提供者的單一登出 URL。要讓使用者同時登出身分提供者時需要它。",
+  "Single Logout URL:": "單一登出 URL：",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "若要讓使用者同時登出身分提供者，也請將單一登出 URL 與 OneUptime 的簽署憑證提供給身分提供者。",
+  "Download Signing Certificate": "下載簽署憑證"
 }

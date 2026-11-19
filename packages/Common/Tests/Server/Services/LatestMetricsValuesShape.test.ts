@@ -232,6 +232,33 @@ const CASES: Array<ServiceCase> = [
     },
   },
   {
+    // A node's disks: bulkUpdateLatestNodeFilesystems (#9645).
+    name: "KubernetesResourceService (node filesystems)",
+    service: KubernetesResourceService,
+    run: async (rows: number): Promise<void> => {
+      await KubernetesResourceService.bulkUpdateLatestNodeFilesystems({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: PARENT_ID,
+        nodes: indexes(rows).map((i: number) => {
+          return {
+            name: `node-${i}`,
+            capacityBytes: 1000 + i,
+            availableBytes: 500 + i,
+            imageFs:
+              i % 2 === 0
+                ? {
+                    state: "separate" as const,
+                    capacityBytes: 4000 + i,
+                    availableBytes: 3000 + i,
+                  }
+                : { state: "same" as const },
+            observedAt: OBSERVED_AT,
+          };
+        }),
+      });
+    },
+  },
+  {
     name: "KubernetesContainerService",
     service: KubernetesContainerService,
     run: async (rows: number): Promise<void> => {

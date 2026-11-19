@@ -38,6 +38,8 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
+import DataStoreOwnerTeam from "../../../Models/DatabaseModels/DataStoreOwnerTeam";
+import DataStoreOwnerUser from "../../../Models/DatabaseModels/DataStoreOwnerUser";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -181,6 +183,48 @@ describe("a cluster's Data Security page", () => {
       [ORDERS_STORE, CACHE_STORE].sort(),
     );
     expect(screen.getByText("Data Stores")).toBeInTheDocument();
+  });
+
+  /*
+   * A store has owners of its own (DataStoreOwnerUser, DataStoreOwnerTeam),
+   * so its list here is found by them as Data Stores is: the Owner chip
+   * over the stores, and the owners of the stores it lists read for its
+   * Owners column (OwnerChipOnEveryList holds the column).
+   */
+  test("its stores are found by their owners: the Owner chip over them, and each listed store's owners read", async () => {
+    const store: DataStore = new DataStore();
+    store._id = ORDERS_STORE;
+    store.name = "orders";
+
+    listSpy.mockImplementation((async (args: { modelType: unknown }) => {
+      return (
+        args.modelType === DataStore
+          ? { data: [store], count: 1, skip: 0, limit: 10 }
+          : { data: [], count: 0, skip: 0, limit: 10 }
+      ) as ListResult<DataStore>;
+    }) as never);
+
+    await renderPage();
+
+    expect(
+      await screen.findByRole("button", { name: /^Owner$/ }),
+    ).toBeVisible();
+
+    await waitFor(() => {
+      expect(queryOf(DataStoreOwnerUser)).toBeDefined();
+      expect(queryOf(DataStoreOwnerTeam)).toBeDefined();
+    });
+
+    expect(idsOf(queryOf(DataStoreOwnerUser)!["dataStoreId"])).toEqual([
+      ORDERS_STORE,
+    ]);
+    expect(idsOf(queryOf(DataStoreOwnerTeam)!["dataStoreId"])).toEqual([
+      ORDERS_STORE,
+    ]);
+    // The chip filters within the resource's own stores, never beyond them.
+    expect(idsOf(queryOf(DataStore)!["_id"]).sort()).toEqual(
+      [ORDERS_STORE, CACHE_STORE].sort(),
+    );
   });
 
   test("lists the open issues on those stores alone, each naming its store", async () => {

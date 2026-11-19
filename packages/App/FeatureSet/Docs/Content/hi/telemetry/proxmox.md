@@ -254,7 +254,7 @@ pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
 मानक `otel/opentelemetry-collector-contrib` इमेज `FROM scratch` बनाई गई है: इसमें `journalctl` नहीं है, जिसे journald रिसीवर चलाता है, और यह ऐसे उपयोगकर्ता के रूप में चलती है जो जर्नल नहीं पढ़ सकता। यह रैपर बनाएँ और `docker-compose.yml` में `image:` को उसकी ओर इंगित करें:
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

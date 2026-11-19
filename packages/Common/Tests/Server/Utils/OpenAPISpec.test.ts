@@ -5,6 +5,10 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import Models from "../../../Models/DatabaseModels/Index";
 import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  getListOrderFacts,
+  listOrderFactsToJSON,
+} from "../../../Utils/DeveloperDocs/ListOrderFacts";
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import { StringUtils } from "../../../../../Scripts/TerraformProvider/Core/StringUtils";
 import {
@@ -371,6 +375,117 @@ describe("OpenAPI specification", () => {
           "ScheduledMaintenance",
         ]),
       );
+    });
+  });
+
+  /*
+   * A drag-ordered list's tag says what a write of its number does
+   * (x-oneuptime-list-order, Utils/DeveloperDocs/ListOrderFacts): the
+   * Terraform provider writes the Order section of the resource's page from
+   * it (#9652). Since #9650 a write of the number places that row and moves
+   * no other on every such list, so every one of them says so, and nothing
+   * else does.
+   */
+  describe("drag-ordered lists", () => {
+    function documentedListModels(): Array<DatabaseBaseModel> {
+      return Models.map((ModelClass: { new (): DatabaseBaseModel }) => {
+        return new ModelClass();
+      }).filter((model: DatabaseBaseModel): boolean => {
+        return Boolean(
+          model.tableName &&
+            model.enableDocumentation &&
+            model.crudApiPath &&
+            model.getListOrder()?.column,
+        );
+      });
+    }
+
+    function tagOf(table: string): JSONObject | undefined {
+      return ((spec["tags"] || []) as Array<JSONObject>).find(
+        (tag: JSONObject): boolean => {
+          return tag["x-oneuptime-table"] === table;
+        },
+      );
+    }
+
+    it("marks every drag-ordered list's tag with the facts of its list", () => {
+      const models: Array<DatabaseBaseModel> = documentedListModels();
+
+      // Every @ListOrderColumn model of #9609.
+      expect(models.length).toBeGreaterThanOrEqual(39);
+
+      for (const model of models) {
+        expect({
+          table: model.tableName,
+          facts: tagOf(model.tableName!)?.["x-oneuptime-list-order"],
+        }).toEqual({
+          table: model.tableName,
+          facts: listOrderFactsToJSON(getListOrderFacts(model)!),
+        });
+      }
+    });
+
+    it("marks no other tag", () => {
+      const lists: Set<string> = new Set<string>(
+        documentedListModels().map((model: DatabaseBaseModel): string => {
+          return model.tableName!;
+        }),
+      );
+
+      const marked: Array<string> = ((spec["tags"] || []) as Array<JSONObject>)
+        .filter((tag: JSONObject): boolean => {
+          return tag["x-oneuptime-list-order"] !== undefined;
+        })
+        .map((tag: JSONObject): string => {
+          return tag["x-oneuptime-table"] as string;
+        });
+
+      expect(marked.sort()).toEqual(Array.from(lists).sort());
+      // The five lists numbered by `order` have their own page words.
+      expect(tagOf("StatusPageGroup")?.["x-oneuptime-list-order"]).toBe(
+        undefined,
+      );
+    });
+
+    it("gives the Terraform provider each list's facts, and the number is an attribute of its resource", () => {
+      const parser: OpenAPIParser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+
+      const resources: Array<TerraformResource> = parser
+        .getResources()
+        .filter((resource: TerraformResource): boolean => {
+          return Boolean(resource.listOrder);
+        });
+
+      expect(resources.length).toBe(documentedListModels().length);
+
+      for (const resource of resources) {
+        const attribute: string = StringUtils.toLegacySnakeCase(
+          resource.listOrder!.column,
+        );
+
+        expect({
+          resource: resource.name,
+          hasNumber: Boolean(resource.schema[attribute]),
+        }).toEqual({ resource: resource.name, hasNumber: true });
+      }
+
+      // A state list's page says where a new state goes, and what stays in order.
+      const incidentState: TerraformResource | undefined = resources.find(
+        (resource: TerraformResource): boolean => {
+          return resource.name === "incident_state";
+        },
+      );
+
+      expect(incidentState?.listOrder).toEqual({
+        column: "order",
+        descending: false,
+        singular: "incident state",
+        plural: "incident states",
+        parent: "project",
+        insertsAbove: "resolved state",
+        keepsInOrder: ["created state", "acknowledged state", "resolved state"],
+      });
     });
   });
 

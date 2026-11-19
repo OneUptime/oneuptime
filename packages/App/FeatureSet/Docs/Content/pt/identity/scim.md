@@ -339,7 +339,7 @@ O que o `/ServiceProviderConfig` informa:
 | ETag | Não |
 | Autenticação | Token HTTP Bearer, ou um token de acesso OAuth 2.0 |
 
-Um grupo criado pelo seu provedor de identidade vira uma equipe com o mesmo nome no projeto; se já existir uma equipe com esse nome, ela é usada em vez de criar uma nova.
+Um grupo criado pelo seu provedor de identidade vira uma equipe com o mesmo nome no projeto. Uma equipe cujo nome se lê igual, sem diferenciar maiúsculas de minúsculas nem espaços, é usada em vez de criar uma nova, e assume a grafia do grupo, a menos que um provedor de identidade já tenha essa equipe como outro de seus grupos: dois grupos cujos nomes diferem só em maiúsculas, minúsculas ou espaços, o que o Microsoft Entra ID permite, ganham cada um a sua própria equipe, e nunca viram uma só. Owners e Admin, que não podem ser renomeadas, só são usadas pelo nome exato. Um grupo renomeado no seu provedor de identidade renomeia a própria equipe, mesmo para um nome que outra equipe tem.
 
 :::details Esquema de usuário do SCIM
 ```json

@@ -127,7 +127,7 @@ Keycloak est une solution open source répandue de gestion des identités et des
 4. **Ajuster les paramètres du client**
 
    - Réglez **Name ID Format** sur `email` et activez **Force Name ID Format**, pour que Keycloak envoie toujours l'e-mail comme Name ID
-   - Dans l'onglet **Keys** du client, désactivez **Client signature required** (dans **Signing keys config**) : OneUptime ne signe pas ses requêtes
+   - Dans l'onglet **Keys** du client, désactivez **Client signature required** (dans **Signing keys config**) : OneUptime ne signe pas ses requêtes de connexion
 
 5. **Activer le fournisseur et le tester**
 
@@ -259,11 +259,33 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 6. Ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur, pour vous connecter avec lui avant d'exiger le SSO pour le projet.
 :::
 
-### Se déconnecter aussi du fournisseur d'identité
+## Se déconnecter aussi du fournisseur d'identité
 
-Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, comme un écran de NOC ou une borne, la personne suivante qui choisit le fournisseur sur la page de connexion entre donc à la place de celle qui est partie. Activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** pour qu'une déconnexion de OneUptime mette aussi fin à la session chez le fournisseur. C'est désactivé par défaut : sur un ordinateur portable personnel, cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
+Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, comme un écran de NOC ou une borne, la personne suivante qui choisit le fournisseur sur la page de connexion entre donc à la place de celle qui est partie. Sur un fournisseur SAML ou OIDC, activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** pour qu'une déconnexion de OneUptime mette aussi fin à la session chez le fournisseur. C'est désactivé par défaut : sur un ordinateur portable personnel, cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur. Cela s'applique aux personnes qui se connectent dans un navigateur après l'activation ; l'application mobile se déconnecte de OneUptime seulement.
 
-Une fois l'option activée, le navigateur passe par la déconnexion du fournisseur dès que OneUptime l'a déconnecté, et le fournisseur le renvoie vers la page de connexion de OneUptime. Enregistrez cette page auprès de votre fournisseur : la boîte de dialogue **Configuration OIDC** l'affiche comme URI de redirection après déconnexion, que les fournisseurs appellent post-logout redirect URI. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer. Elle s'applique aux personnes qui se connectent dans un navigateur après son activation ; l'application mobile se déconnecte de OneUptime seulement. Les fournisseurs SAML ne déconnectent jamais personne du fournisseur d'identité.
+:::tabs
+@tab SAML
+Saisissez l'URL de déconnexion de votre fournisseur d'identité comme **URL de déconnexion** du fournisseur, sous **Plus de champs** : sans elle, l'option ne peut pas être activée. Donnez ensuite à votre fournisseur d'identité l'**URL de Single Logout** de la boîte de dialogue **Configuration SSO**, ainsi que le certificat avec lequel OneUptime signe ses demandes de déconnexion, via **Télécharger le certificat de signature** dans la même boîte de dialogue.
+
+| Fournisseur d'identité | URL de déconnexion | Où vont l'URL de Single Logout et le certificat |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, dans **View SAML setup instructions** sur l'onglet **Sign On** | Sur l'onglet **General**, modifiez les **SAML Settings**, cliquez sur **Show Advanced Settings** et cochez **Allow application to initiate Single Logout**. Mettez dans **Single Logout URL** l'URL de Single Logout et dans **SP Issuer** l'identifiant (Entity ID), puis téléversez le certificat comme **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, dans **Set up OneUptime** | Dans **Basic SAML Configuration**, mettez l'URL de Single Logout dans **Logout Url (Optional)**. Entra ID n'a besoin d'aucun certificat. |
+| Keycloak | Le point de terminaison SAML du realm, le même que l'URL de connexion | Sur l'onglet **Advanced** du client, mettez l'URL de Single Logout dans **Logout Service Redirect Binding URL**. Laissez **Front channel logout** activé. Keycloak n'a besoin d'aucun certificat tant que **Client signature required** est désactivé, comme configuré plus haut. |
+
+Après une déconnexion là-bas, le fournisseur d'identité renvoie le navigateur vers l'URL de Single Logout, qui ouvre la page de connexion, ou indique que le fournisseur d'identité n'a pas confirmé la déconnexion. Quand la personne se déconnecte chez le fournisseur d'identité, ou d'une autre application qui l'utilise, un fournisseur d'identité qui envoie des demandes de déconnexion à ses applications, comme Keycloak et Microsoft Entra ID, la déconnecte aussi de OneUptime. OneUptime n'accepte qu'une demande signée par le fournisseur d'identité.
+@tab OpenID Connect
+Le navigateur passe par la déconnexion du fournisseur dès que OneUptime l'a déconnecté, et le fournisseur le renvoie vers la page de connexion de OneUptime. Enregistrez cette page auprès de votre fournisseur : la boîte de dialogue **Configuration OIDC** l'affiche comme URI de redirection après déconnexion, que les fournisseurs appellent post-logout redirect URI. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer.
+
+| Fournisseur d'identité | Où enregistrer l'URI de redirection après déconnexion |
+| --- | --- |
+| Okta | Sur l'onglet **General** de l'intégration, cliquez sur **Edit** dans **General Settings** et ajoutez-la à **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Dans l'inscription d'application, sous **Authentication**, ajoutez-la aux **Redirect URIs** de la plateforme **Web**. La **Front-channel logout URL** est un autre réglage, que OneUptime n'utilise pas. |
+| Auth0 | Dans les **Settings** de l'application, ajoutez-la aux **Allowed Logout URLs**. Un tenant créé avant le 14 novembre 2023 doit aussi activer **RP-Initiated Logout End Session Endpoint Discovery** dans ses réglages **Advanced**, pour que son document de découverte nomme un `end_session_endpoint`. |
+| Keycloak | Dans les réglages du client, ajoutez-la à **Valid post logout redirect URIs** (Keycloak 19 et versions ultérieures). |
+
+Un fournisseur chez qui elle n'est pas enregistrée affiche sa propre page d'erreur après une déconnexion de OneUptime, au lieu de renvoyer la personne ; elle est tout de même déconnectée de OneUptime.
+:::
 
 ## Rôles et équipes des utilisateurs SSO
 

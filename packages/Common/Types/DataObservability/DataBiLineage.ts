@@ -66,6 +66,13 @@ export enum DataBiLineageProblem {
   // The tables are in watched databases, but are not among their watched tables.
   TablesNotWatched = "TablesNotWatched",
   /*
+   * Tables Power BI's OData connectors name by their Dataverse entity set,
+   * in a watched environment whose tables keep no entity set name yet: a
+   * probe older than these names collects it, or it has not been
+   * collected since (#9696).
+   */
+  EntitySetsUnknown = "EntitySetsUnknown",
+  /*
    * Datasets read from Power BI dataflows whose tables OneUptime could not
    * read, or is still reading within Power BI's hourly limit (#9551).
    */
@@ -140,6 +147,12 @@ export interface DataBiLineageSummary {
   moreSourceCount: number;
   // A few tables read from watched databases that are not watched, as database.schema.table.
   unwatchedTables: Array<string>;
+  /*
+   * A few tables named by their Dataverse entity set (accounts) in watched
+   * environments that keep no entity set name yet (#9696). Left out by a
+   * summary kept before they were told apart.
+   */
+  unknownEntitySets?: Array<string> | undefined;
   // What keeps dashboards off their tables, the most to act on first.
   problems: Array<DataBiLineageProblem>;
 }
@@ -289,6 +302,14 @@ export function readDataBiLineageSummary(
       .map(readText)
       .filter(isPresent)
       .slice(0, MAX_DATA_BI_UNWATCHED_TABLES),
+    ...(summary["unknownEntitySets"] !== undefined
+      ? {
+          unknownEntitySets: readArray(summary["unknownEntitySets"])
+            .map(readText)
+            .filter(isPresent)
+            .slice(0, MAX_DATA_BI_UNWATCHED_TABLES),
+        }
+      : {}),
     problems: readArray(summary["problems"]).filter(
       (problem: unknown): problem is DataBiLineageProblem => {
         return (DATA_BI_LINEAGE_PROBLEMS as ReadonlyArray<unknown>).includes(

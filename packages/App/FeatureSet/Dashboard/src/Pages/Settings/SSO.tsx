@@ -14,12 +14,14 @@ import ProjectSsoCopy from "../../Components/Sso/ProjectSsoCopy";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
 import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableValueList";
+import Link from "Common/UI/Components/Link/Link";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
@@ -64,7 +66,9 @@ interface SamlConfigDialogTarget {
  * description are filled in under Advanced
  * (Common/UI/Components/Sso/SamlProviderFormFields).
  * Once it is saved, the dialog with the Entity ID and Reply URL to give the
- * identity provider opens straight away: that is the next thing to do.
+ * identity provider opens straight away: that is the next thing to do. It
+ * shows the Single Logout URL too, and the signing certificate to download,
+ * which an identity provider needs to sign people out of it too (#9603).
  */
 const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -130,6 +134,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           formFields={getSamlProviderFormFields<ProjectSSO>({
             withTeams: true,
             getTeamsFooterElement: getSsoTeamsGrantNote,
+            withIdentityProviderSignOut: true,
             withDomains: true,
           })}
           createInitialValues={createInitialValues}
@@ -278,8 +283,8 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
             description={
               <div className="space-y-4">
                 {/*
-                 * The two values to paste into the identity provider, each
-                 * with a button that copies it.
+                 * The values to paste into the identity provider, each with
+                 * a button that copies it.
                  */}
                 <CopyableValueList
                   dataTestId="sso-config-values"
@@ -296,8 +301,43 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
                         `/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`,
                       )}`,
                     },
+                    {
+                      /*
+                       * Where the identity provider answers a sign-out, and
+                       * sends its own (#9603).
+                       */
+                      label: "Single Logout URL:",
+                      value: `${URL.fromString(
+                        IDENTITY_URL.toString(),
+                      ).addRoute(
+                        `/idp-logout/${props.currentProject?._id}/${showSingleSignOnUrlId}`,
+                      )}`,
+                    },
                   ]}
                 />
+                {/*
+                 * What signing people out of the identity provider too takes
+                 * at the provider: the Single Logout URL above, and the
+                 * certificate OneUptime signs its sign-out requests with.
+                 */}
+                <div
+                  className="text-sm text-gray-500"
+                  data-testid="sso-config-sign-out-note"
+                >
+                  {translator.translateText(
+                    "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.",
+                  )}{" "}
+                  <Link
+                    openInNewTab={true}
+                    to={URL.fromString(IDENTITY_URL.toString()).addRoute(
+                      new Route("/saml-signing-certificate"),
+                    )}
+                    className="text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+                    dataTestId="sso-config-signing-certificate"
+                  >
+                    {translator.translateText("Download Signing Certificate")}
+                  </Link>
+                </div>
                 {!samlConfigTarget?.isEnabled && (
                   <div
                     className="text-sm text-gray-500"

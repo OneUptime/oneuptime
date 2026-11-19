@@ -228,6 +228,29 @@ describe("before the alerts are read", () => {
     expect(screen.queryByText(/^Last ran /)).toBeNull();
   });
 
+  /*
+   * A check the warehouse failed for a moment is started again once
+   * (#9679): one that then ran says so in a note, in grey, as it ran; only
+   * a check that could not run draws its message in red.
+   */
+  test("a check that ran at its second try says so in grey; an error stays red", async () => {
+    await openTable();
+
+    const note: string =
+      "Ran at its second try, started again after its first failed for a moment: The Databricks statement failed: The workspace is temporarily unavailable.";
+
+    renderStatus(check(PASSING, { lastRunMessage: note }));
+
+    expect(screen.getByText(note)).toHaveClass("text-gray-500");
+    expect(screen.getByText(note)).not.toHaveClass("text-red-600");
+
+    renderStatus(CHECKS[2]!);
+
+    expect(screen.getByText('column "email" does not exist')).toHaveClass(
+      "text-red-600",
+    );
+  });
+
   test("a check never run is waiting", async () => {
     await openTable();
 

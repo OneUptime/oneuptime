@@ -1,5 +1,6 @@
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   getGlobalTranslator,
   translationKey,
@@ -69,12 +70,17 @@ export function getCephShortVersion(version: string): string {
   return match[2] ? `${match[1]} (${match[2]})` : (match[1] as string);
 }
 
+/*
+ * A size, a share and a count as the Ceph pages write them, in the reader's
+ * digits, decimal sign and percent sign ("1,5 TiB", "۸۵٫۴٪"; #9646) with
+ * the decimals toFixed wrote, so English reads exactly as it always has.
+ */
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
     return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)}\u00A0B`;
+    return `${formatReaderFigure(Math.round(bytes), { decimals: 0 })}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
@@ -83,14 +89,16 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`;
+  return `${formatReaderFigure(value, {
+    decimals: value >= 100 ? 0 : 1,
+  })}\u00A0${units[idx]}`;
 }
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return EMPTY_VALUE_MARK;
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
 export function formatCount(value: number | null | undefined): string {
@@ -98,12 +106,12 @@ export function formatCount(value: number | null | undefined): string {
     return EMPTY_VALUE_MARK;
   }
   if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
+    return `${formatReaderFigure(value / 1_000_000, { decimals: 1 })}M`;
   }
   if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
+    return `${formatReaderFigure(value / 1_000, { decimals: 1 })}K`;
   }
-  return Math.round(value).toString();
+  return formatReaderFigure(Math.round(value), { decimals: 0 });
 }
 
 /*

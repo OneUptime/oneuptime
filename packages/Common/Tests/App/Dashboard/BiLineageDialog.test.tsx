@@ -326,6 +326,56 @@ describe("the words of a tool's summary", () => {
     ).toContain("3 datasets read Power BI dataflows whose definitions");
   });
 
+  /*
+   * A report on Dataverse's OData connectors names its tables by entity set
+   * (#9696): in an environment whose tables keep no entity set name yet,
+   * See Why says so, and that a probe that collects it is to be updated -
+   * not that the tables are not watched.
+   */
+  test("Dataverse tables named by an entity set no collection kept yet: the reason, and the probe to update", () => {
+    const translator: ReturnType<typeof getGlobalTranslator> =
+      getGlobalTranslator();
+    const two: DataBiLineageSummary = summary({
+      unknownEntitySets: ["accounts", "contacts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
+    const one: DataBiLineageSummary = summary({
+      unknownEntitySets: ["accounts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
+
+    expect(getBiLineageReason(translator, two)).toBe(
+      "2 Dataverse tables not matched yet",
+    );
+    expect(getBiLineageReason(translator, one)).toBe(
+      "1 Dataverse table not matched yet",
+    );
+
+    const step: { title: string; text: string } = getBiLineageStep(
+      translator,
+      DataBiLineageProblem.EntitySetsUnknown,
+      two,
+    );
+
+    expect(step.title).toBe("Dataverse Tables Named by Entity Set");
+    expect(step.text).toBe(
+      "Power BI names 2 Dataverse tables by their entity set (accounts, contacts), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+    );
+    expect(
+      getBiLineageStep(translator, DataBiLineageProblem.EntitySetsUnknown, one)
+        .text,
+    ).toBe(
+      "Power BI names 1 Dataverse table by its entity set (accounts), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+    );
+    // A summary kept before these were told apart names none, and says nothing wrong.
+    expect(
+      getBiLineageReason(
+        translator,
+        summary({ problems: [DataBiLineageProblem.EntitySetsUnknown] }),
+      ),
+    ).toBe("0 Dataverse tables not matched yet");
+  });
+
   test("what the read found, in a line, and each source's standing", () => {
     const translator: ReturnType<typeof getGlobalTranslator> =
       getGlobalTranslator();

@@ -4331,5 +4331,10 @@
   "Domains": "ドメイン",
   "Select Domains": "ドメインを選択",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「SSOでログイン」は、メールアドレスがこれらのドメインのいずれかにある人すべてにこのプロバイダーを表示します。ドメインは「プロジェクト設定 > 詳細 > ドメイン」で確認します。",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "確認済みのドメインはまだありません。「プロジェクト設定 > 詳細 > ドメイン」で確認してください。"
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "確認済みのドメインはまだありません。「プロジェクト設定 > 詳細 > ドメイン」で確認してください。",
+  "Sign Out URL": "サインアウト URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。",
+  "Single Logout URL:": "シングルログアウト URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID プロバイダーからもサインアウトさせるには、シングルログアウト URL と OneUptime の署名証明書もプロバイダーに登録してください。",
+  "Download Signing Certificate": "署名証明書をダウンロード"
 }

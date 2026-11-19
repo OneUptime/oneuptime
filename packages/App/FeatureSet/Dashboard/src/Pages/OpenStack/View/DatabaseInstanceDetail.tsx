@@ -2,18 +2,19 @@ import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
-  getOpenStackDatabaseVolumePercent,
-} from "Common/Types/OpenStack/OpenStackHealthRules";
+import { getOpenStackDatabaseVolumeUsage } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import React, { FunctionComponent, ReactElement } from "react";
-import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import GoldenMetricTile, {
+  STORAGE_USAGE_TILE_TONES,
+} from "../../../Components/Infrastructure/GoldenMetricTile";
 import {
   formatOpenStackBytes,
   formatOpenStackPercent,
@@ -64,6 +65,7 @@ const WORDS: OpenStackServicePartWords = {
 const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.DatabaseInstance,
   );
@@ -83,7 +85,11 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
         const datastore: string = getOpenStackFactText(row, "datastoreType");
         const version: string = getOpenStackFactText(row, "datastoreVersion");
         const health: string = getOpenStackFactText(row, "healthStatus");
-        const percent: number | null = getOpenStackDatabaseVolumePercent({
+        /*
+         * Its volume as the Databases list's bar reads it: used, free and
+         * size, amber at Trove's line (#9647).
+         */
+        const volume: StorageUsage | null = getOpenStackDatabaseVolumeUsage({
           usedBytes: row.diskAllocatedBytes,
           sizeBytes: row.diskCapacityBytes,
         });
@@ -182,20 +188,28 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
                   icon={IconProp.Disc}
                   iconColor="emerald"
                   value={
-                    percent === null
-                      ? undefined
-                      : formatOpenStackPercent(percent)
+                    volume
+                      ? formatOpenStackPercent(volume.usedPercent)
+                      : undefined
                   }
-                  percent={percent}
-                  thresholds={{
-                    warn: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
-                    danger: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
-                  }}
+                  percent={volume ? volume.usedPercent : null}
+                  tone={
+                    volume ? STORAGE_USAGE_TILE_TONES[volume.level] : undefined
+                  }
                   sublabel={
-                    row.diskCapacityBytes === null ||
-                    row.diskCapacityBytes === undefined
-                      ? undefined
-                      : formatOpenStackBytes(row.diskCapacityBytes)
+                    volume
+                      ? // What is still free, of the volume's size.
+                        translator.translateTemplate(
+                          "{{free}} free of {{total}}",
+                          {
+                            free: formatOpenStackBytes(volume.free),
+                            total: formatOpenStackBytes(volume.capacity),
+                          },
+                        )
+                      : row.diskCapacityBytes === null ||
+                          row.diskCapacityBytes === undefined
+                        ? undefined
+                        : formatOpenStackBytes(row.diskCapacityBytes)
                   }
                   isSublabelAsWritten={true}
                   description="What its database has used of its volume, as its guest reports. One that isn't running has nothing to report, however full it is."

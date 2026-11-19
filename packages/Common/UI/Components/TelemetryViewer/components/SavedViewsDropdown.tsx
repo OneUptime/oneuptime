@@ -17,9 +17,9 @@ import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
 import {
   DropdownHorizontalAlignment,
-  getDropdownAlignmentClassName,
   useDropdownHorizontalAlignment,
 } from "../../../Utils/DropdownAlignment";
+import LayeredPopover from "../../Tooltip/LayeredPopover";
 import SavedViewsSearchInput from "../../SavedViews/SavedViewsSearchInput";
 import SavedViewsShowMoreButton from "../../SavedViews/SavedViewsShowMoreButton";
 import {
@@ -173,9 +173,10 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   const [showAll, setShowAll] = useState<boolean>(false);
 
   /*
-   * Escape has to put focus back where it came from. Without this the panel
-   * closes out from under the caret and focus falls to <body>, which for a
-   * keyboard user is the same as being dropped at the top of the page.
+   * What the panel opens from (LayeredPopover): it is placed against it, and
+   * Escape puts the focus back on it. Without that the panel closed out
+   * from under the caret and focus fell to <body>, which for a keyboard
+   * user is the same as being dropped at the top of the page.
    */
   const triggerRef: React.MutableRefObject<HTMLButtonElement | null> =
     useRef<HTMLButtonElement | null>(null);
@@ -258,40 +259,14 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   }, [props.savedViews, props.selectedSavedViewId, activeSearchText, showAll]);
 
   /*
-   * Escape closes the panel, from anywhere. Deliberately a document listener
-   * rather than a handler on the wrapper: clicking the panel's own padding
-   * leaves focus on <body> (as does opening it by mouse at all, on Safari and
-   * Firefox), and a wrapper handler never sees a keydown whose target is
-   * outside its subtree. The page has its own Escape handling — the logs
-   * explorer closes the log detail panel with it — so a missed Escape here is
-   * not a no-op, it closes the wrong thing.
-   *
-   * Registered only while open, and in the capture phase ahead of those page
-   * handlers, so a closed dropdown never eats the page's Escape.
+   * Escape closes the panel, from anywhere - focus on <body> too, where a
+   * click on the panel's own padding leaves it (as does opening it by mouse
+   * at all, on Safari and Firefox) - and is spent there (LayeredPopover).
+   * The page has its own Escape handling - the logs explorer closes the log
+   * detail panel with it - so a missed Escape here is not a no-op, it
+   * closes the wrong thing. Only while open, so a closed dropdown never
+   * eats the page's Escape.
    */
-  useEffect(() => {
-    if (!isComponentVisible) {
-      return undefined;
-    }
-
-    const handleEscape: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      event.stopPropagation();
-      setIsComponentVisible(false);
-      triggerRef.current?.focus();
-    };
-
-    document.addEventListener("keydown", handleEscape, true);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape, true);
-    };
-  }, [isComponentVisible, setIsComponentVisible]);
 
   const clearSelection: () => void = (): void => {
     props.onClear?.();
@@ -301,8 +276,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   const triggerClassNames: TriggerClassNames =
     TRIGGER_CLASS_NAMES[props.triggerSize || "chip"];
 
+  /*
+   * The panel is drawn over the page from its trigger (LayeredPopover):
+   * inside a card, a table's header or an investigation drawer's scrolling
+   * body, the box around the trigger cut off the panel's foot (#9859).
+   */
   return (
-    <div className="relative" ref={ref} data-testid={props.dataTestId}>
+    <div ref={ref} data-testid={props.dataTestId}>
       <button
         ref={triggerRef}
         type="button"
@@ -355,271 +335,284 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
          * lets assistive tech tell this search box apart from the identically
          * named one in a facet sidebar behind it.
          */
-        <div
-          role="dialog"
-          aria-label={label("panel")}
-          data-align={panelAlignment}
-          className={`absolute z-20 mt-2 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-xl ${getDropdownAlignmentClassName(
-            panelAlignment,
-          )}`}
+        <LayeredPopover
+          anchorRef={triggerRef}
+          ownerRef={ref}
+          align={
+            panelAlignment === DropdownHorizontalAlignment.Right
+              ? "end"
+              : "start"
+          }
+          gap={8}
+          onClose={() => {
+            setIsComponentVisible(false);
+          }}
         >
-          {/*
-           * Explicit way back to the unfiltered explorer. Clicking the
-           * applied view also clears it, but that is only discoverable once
-           * you try it — this row says so out loud.
-           */}
-          {canClear && (
-            <div className="border-b border-gray-100 py-1">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-gray-50"
-                onClick={clearSelection}
-              >
-                <span
-                  className="w-4 shrink-0 text-center text-xs text-gray-400"
-                  aria-hidden="true"
+          <div
+            role="dialog"
+            aria-label={label("panel")}
+            data-align={panelAlignment}
+            className="w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-xl"
+          >
+            {/*
+             * Explicit way back to the unfiltered explorer. Clicking the
+             * applied view also clears it, but that is only discoverable once
+             * you try it — this row says so out loud.
+             */}
+            {canClear && (
+              <div className="border-b border-gray-100 py-1">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-gray-50"
+                  onClick={clearSelection}
                 >
-                  ✕
-                </span>
-                <span className="truncate text-sm text-gray-600">
-                  {translator.translateText("Clear view")}
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/*
-           * Search once the list is long enough that reading it is slower
-           * than typing — issue 3319. Same threshold the facet sections use.
-           */}
-          {showSearch && (
-            <div className="border-b border-gray-100 px-3 py-2">
-              <SavedViewsSearchInput
-                value={searchText}
-                label={props.labels?.search}
-                className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
-                onChange={(text: string) => {
-                  setSearchText(text);
-                }}
-              />
-            </div>
-          )}
-
-          {/* View list */}
-          <div className="max-h-72 overflow-y-auto py-1">
-            {props.savedViews.length === 0 &&
-              (props.emptyContent ? (
-                props.emptyContent
-              ) : (
-                <div className="px-3 py-6 text-center text-xs text-gray-500">
-                  {label("empty")}
-                </div>
-              ))}
-
-            {props.savedViews.length > 0 && visible.views.length === 0 && (
-              <div className="px-3 py-6 text-center text-xs text-gray-500">
-                {translator.translateText("No matches found")}
+                  <span
+                    className="w-4 shrink-0 text-center text-xs text-gray-400"
+                    aria-hidden="true"
+                  >
+                    ✕
+                  </span>
+                  <span className="truncate text-sm text-gray-600">
+                    {translator.translateText("Clear view")}
+                  </span>
+                </button>
               </div>
             )}
 
-            {visible.views.map((view: SavedViewOption) => {
-              const isSelected: boolean = view.id === props.selectedSavedViewId;
-              const nameClassName: string = isSelected
-                ? "font-medium text-indigo-700"
-                : "text-gray-700";
+            {/*
+             * Search once the list is long enough that reading it is slower
+             * than typing — issue 3319. Same threshold the facet sections use.
+             */}
+            {showSearch && (
+              <div className="border-b border-gray-100 px-3 py-2">
+                <SavedViewsSearchInput
+                  value={searchText}
+                  label={props.labels?.search}
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
+                  onChange={(text: string) => {
+                    setSearchText(text);
+                  }}
+                />
+              </div>
+            )}
 
-              return (
-                <div
-                  key={view.id}
-                  className={getSavedViewRowClassName(isSelected)}
-                >
-                  <button
-                    type="button"
-                    className={SAVED_VIEW_ROW_NAME_CLASS_NAME}
-                    /*
-                     * Spelled out so the row announces as its own name: the
-                     * ✓ is aria-hidden, and the "default" tag reads as a word
-                     * rather than a bare token appended to the view name.
-                     */
-                    aria-label={
-                      view.isDefault
-                        ? translator.translateTemplate("{{name}} (default)", {
-                            name: view.name,
-                          })
-                        : view.name
-                    }
-                    /*
-                     * The checkmark reads as a checkbox, so the row behaves
-                     * like one: clicking the applied view takes it off again
-                     * instead of silently re-applying what is already on.
-                     */
-                    aria-pressed={isSelected}
-                    onClick={() => {
-                      if (isSelected && props.onClear) {
-                        clearSelection();
-                        return;
-                      }
-
-                      props.onSelect(view.id);
-                      setIsComponentVisible(false);
-                    }}
-                  >
-                    {/* Checkmark for selected */}
-                    <span
-                      className="w-4 shrink-0 text-center text-xs"
-                      aria-hidden="true"
-                    >
-                      {isSelected ? (
-                        <span className="text-indigo-600">✓</span>
-                      ) : (
-                        ""
-                      )}
-                    </span>
-                    {!view.isDefault && view.detail ? (
-                      /*
-                       * A detail - a hunt's schedule - under the name, so
-                       * the name has the row's width: beside it, "Admin
-                       * sign-ins outside t..." was all a 288px panel kept.
-                       */
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        {/*
-                         * As wide as it is, from the line's start: an
-                         * English name on a Persian page starts where the
-                         * schedule under it does.
-                         */}
-                        <IsolatedText
-                          text={view.name}
-                          title={view.name}
-                          className={`max-w-full self-start truncate text-sm ${nameClassName}`}
-                        />
-                        <span className="truncate text-xs leading-4 text-gray-500">
-                          {view.detail}
-                        </span>
-                      </span>
-                    ) : (
-                      <>
-                        {/*
-                         * A long name is cut to the panel; the whole of it
-                         * on hover. In an isolate: an English name on a
-                         * Persian page is cut at its own end, not its start.
-                         */}
-                        <IsolatedText
-                          text={view.name}
-                          title={view.name}
-                          className={`truncate text-sm ${nameClassName}`}
-                        />
-                        {view.isDefault && (
-                          <span className="shrink-0 text-xs text-gray-500">
-                            {translator.translateText("default")}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </button>
-
-                  {/*
-                   * Shown while the row is hovered or focused, under the name
-                   * on a touch screen (SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).
-                   */}
-                  <div className={SAVED_VIEW_ROW_ACTIONS_CLASS_NAME}>
-                    {isSelected && props.onUpdateCurrent && (
-                      <button
-                        type="button"
-                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-indigo-600 hover:bg-indigo-100`}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>,
-                        ) => {
-                          event.stopPropagation();
-                          props.onUpdateCurrent?.();
-                          setIsComponentVisible(false);
-                        }}
-                      >
-                        {translator.translateText("Update")}
-                      </button>
-                    )}
-                    {props.onEdit && (
-                      <button
-                        type="button"
-                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-gray-500 hover:bg-gray-100 hover:text-gray-700`}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>,
-                        ) => {
-                          event.stopPropagation();
-                          props.onEdit?.(view.id);
-                          setIsComponentVisible(false);
-                        }}
-                      >
-                        {translator.translateText("Edit")}
-                      </button>
-                    )}
-                    {props.onDelete && (
-                      <button
-                        type="button"
-                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-red-500 hover:bg-red-50 hover:text-red-600`}
-                        onClick={(
-                          event: React.MouseEvent<HTMLButtonElement>,
-                        ) => {
-                          event.stopPropagation();
-                          props.onDelete?.(view.id);
-                          setIsComponentVisible(false);
-                        }}
-                      >
-                        {translator.translateText("Delete")}
-                      </button>
-                    )}
+            {/* View list */}
+            <div className="max-h-72 overflow-y-auto py-1">
+              {props.savedViews.length === 0 &&
+                (props.emptyContent ? (
+                  props.emptyContent
+                ) : (
+                  <div className="px-3 py-6 text-center text-xs text-gray-500">
+                    {label("empty")}
                   </div>
+                ))}
+
+              {props.savedViews.length > 0 && visible.views.length === 0 && (
+                <div className="px-3 py-6 text-center text-xs text-gray-500">
+                  {translator.translateText("No matches found")}
                 </div>
-              );
-            })}
+              )}
+
+              {visible.views.map((view: SavedViewOption) => {
+                const isSelected: boolean =
+                  view.id === props.selectedSavedViewId;
+                const nameClassName: string = isSelected
+                  ? "font-medium text-indigo-700"
+                  : "text-gray-700";
+
+                return (
+                  <div
+                    key={view.id}
+                    className={getSavedViewRowClassName(isSelected)}
+                  >
+                    <button
+                      type="button"
+                      className={SAVED_VIEW_ROW_NAME_CLASS_NAME}
+                      /*
+                       * Spelled out so the row announces as its own name: the
+                       * ✓ is aria-hidden, and the "default" tag reads as a word
+                       * rather than a bare token appended to the view name.
+                       */
+                      aria-label={
+                        view.isDefault
+                          ? translator.translateTemplate("{{name}} (default)", {
+                              name: view.name,
+                            })
+                          : view.name
+                      }
+                      /*
+                       * The checkmark reads as a checkbox, so the row behaves
+                       * like one: clicking the applied view takes it off again
+                       * instead of silently re-applying what is already on.
+                       */
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        if (isSelected && props.onClear) {
+                          clearSelection();
+                          return;
+                        }
+
+                        props.onSelect(view.id);
+                        setIsComponentVisible(false);
+                      }}
+                    >
+                      {/* Checkmark for selected */}
+                      <span
+                        className="w-4 shrink-0 text-center text-xs"
+                        aria-hidden="true"
+                      >
+                        {isSelected ? (
+                          <span className="text-indigo-600">✓</span>
+                        ) : (
+                          ""
+                        )}
+                      </span>
+                      {!view.isDefault && view.detail ? (
+                        /*
+                         * A detail - a hunt's schedule - under the name, so
+                         * the name has the row's width: beside it, "Admin
+                         * sign-ins outside t..." was all a 288px panel kept.
+                         */
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          {/*
+                           * As wide as it is, from the line's start: an
+                           * English name on a Persian page starts where the
+                           * schedule under it does.
+                           */}
+                          <IsolatedText
+                            text={view.name}
+                            title={view.name}
+                            className={`max-w-full self-start truncate text-sm ${nameClassName}`}
+                          />
+                          <span className="truncate text-xs leading-4 text-gray-500">
+                            {view.detail}
+                          </span>
+                        </span>
+                      ) : (
+                        <>
+                          {/*
+                           * A long name is cut to the panel; the whole of it
+                           * on hover. In an isolate: an English name on a
+                           * Persian page is cut at its own end, not its start.
+                           */}
+                          <IsolatedText
+                            text={view.name}
+                            title={view.name}
+                            className={`truncate text-sm ${nameClassName}`}
+                          />
+                          {view.isDefault && (
+                            <span className="shrink-0 text-xs text-gray-500">
+                              {translator.translateText("default")}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+
+                    {/*
+                     * Shown while the row is hovered or focused, under the name
+                     * on a touch screen (SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).
+                     */}
+                    <div className={SAVED_VIEW_ROW_ACTIONS_CLASS_NAME}>
+                      {isSelected && props.onUpdateCurrent && (
+                        <button
+                          type="button"
+                          className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-indigo-600 hover:bg-indigo-100`}
+                          onClick={(
+                            event: React.MouseEvent<HTMLButtonElement>,
+                          ) => {
+                            event.stopPropagation();
+                            props.onUpdateCurrent?.();
+                            setIsComponentVisible(false);
+                          }}
+                        >
+                          {translator.translateText("Update")}
+                        </button>
+                      )}
+                      {props.onEdit && (
+                        <button
+                          type="button"
+                          className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-gray-500 hover:bg-gray-100 hover:text-gray-700`}
+                          onClick={(
+                            event: React.MouseEvent<HTMLButtonElement>,
+                          ) => {
+                            event.stopPropagation();
+                            props.onEdit?.(view.id);
+                            setIsComponentVisible(false);
+                          }}
+                        >
+                          {translator.translateText("Edit")}
+                        </button>
+                      )}
+                      {props.onDelete && (
+                        <button
+                          type="button"
+                          className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-red-500 hover:bg-red-50 hover:text-red-600`}
+                          onClick={(
+                            event: React.MouseEvent<HTMLButtonElement>,
+                          ) => {
+                            event.stopPropagation();
+                            props.onDelete?.(view.id);
+                            setIsComponentVisible(false);
+                          }}
+                        >
+                          {translator.translateText("Delete")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/*
+             * The toggle sits outside the scrolling list on purpose. Inside it,
+             * expanding pushed "Show less" off the bottom of the scroll box and
+             * slid a view row under the cursor, so a second click in the same
+             * spot applied whichever view had taken its place.
+             */}
+            {visible.hasMore && (
+              <div className="border-t border-gray-100 px-3 py-1.5">
+                <SavedViewsShowMoreButton
+                  hasMore={visible.hasMore}
+                  hiddenCount={visible.hiddenCount}
+                  isShowingAll={showAll}
+                  onToggle={() => {
+                    setShowAll(!showAll);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Footer action */}
+            {props.onCreate && (
+              <div className="border-t border-gray-100 px-3 py-2">
+                <button
+                  type="button"
+                  className={`w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors ${getHandDrawnLookClassName(
+                    {
+                      className: "text-indigo-600 hover:bg-indigo-50",
+                      isLocked: Boolean(props.createDisabledReason),
+                    },
+                  )}`}
+                  disabled={Boolean(props.createDisabledReason)}
+                  onClick={() => {
+                    props.onCreate?.();
+                    setIsComponentVisible(false);
+                  }}
+                >
+                  {label("create")}
+                </button>
+                {/* Said, not hidden in a tooltip: a locked action says why. */}
+                {props.createDisabledReason ? (
+                  <p className="px-2 pb-0.5 text-xs leading-4 text-gray-500">
+                    {props.createDisabledReason}
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
-
-          {/*
-           * The toggle sits outside the scrolling list on purpose. Inside it,
-           * expanding pushed "Show less" off the bottom of the scroll box and
-           * slid a view row under the cursor, so a second click in the same
-           * spot applied whichever view had taken its place.
-           */}
-          {visible.hasMore && (
-            <div className="border-t border-gray-100 px-3 py-1.5">
-              <SavedViewsShowMoreButton
-                hasMore={visible.hasMore}
-                hiddenCount={visible.hiddenCount}
-                isShowingAll={showAll}
-                onToggle={() => {
-                  setShowAll(!showAll);
-                }}
-              />
-            </div>
-          )}
-
-          {/* Footer action */}
-          {props.onCreate && (
-            <div className="border-t border-gray-100 px-3 py-2">
-              <button
-                type="button"
-                className={`w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors ${getHandDrawnLookClassName(
-                  {
-                    className: "text-indigo-600 hover:bg-indigo-50",
-                    isLocked: Boolean(props.createDisabledReason),
-                  },
-                )}`}
-                disabled={Boolean(props.createDisabledReason)}
-                onClick={() => {
-                  props.onCreate?.();
-                  setIsComponentVisible(false);
-                }}
-              >
-                {label("create")}
-              </button>
-              {/* Said, not hidden in a tooltip: a locked action says why. */}
-              {props.createDisabledReason ? (
-                <p className="px-2 pb-0.5 text-xs leading-4 text-gray-500">
-                  {props.createDisabledReason}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </div>
+        </LayeredPopover>
       )}
     </div>
   );

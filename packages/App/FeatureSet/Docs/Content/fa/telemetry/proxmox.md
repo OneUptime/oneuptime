@@ -254,7 +254,7 @@ pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
 ایمیج استاندارد `otel/opentelemetry-collector-contrib` با `FROM scratch` ساخته شده است: `journalctl` را که گیرنده journald اجرا می‌کند ندارد، و با کاربری اجرا می‌شود که نمی‌تواند ژورنال را بخواند. این پوشش را بسازید و `image:` را در `docker-compose.yml` به آن نشانه بگیرید:
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

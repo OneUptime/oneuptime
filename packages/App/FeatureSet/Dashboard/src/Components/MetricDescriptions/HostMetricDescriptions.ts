@@ -60,7 +60,8 @@ export type HostMetric =
   | "diskSpaceChart"
   | "networkChart"
   // Host overview: Filesystems table and Hardware & Runtime card
-  | "filesystemUsedTotal"
+  | "filesystemSize"
+  | "filesystemFree"
   | "filesystemUtilization"
   | "processCountCached"
   // One process
@@ -133,8 +134,11 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
   networkChart: translationKey(
     "Bytes per second received (In) and sent (Out), added up across every network interface the host reports, including loopback when the collector sends it. Worked out from the change in each interface's byte counters between intervals.",
   ),
-  filesystemUsedTotal: translationKey(
-    "Space used on this mount and its total size (used, free and reserved space added up), each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.",
+  filesystemSize: translationKey(
+    "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.",
+  ),
+  filesystemFree: translationKey(
+    "Space anyone can still write on this mount, averaged over the selected range. The space reserved for root is not counted.",
   ),
   filesystemUtilization: translationKey(
     "How full this mount is, as df's Use%: used space over used plus free, space reserved for root not counted, averaged over the selected range. The bar turns amber above 85% and red above 95%.",

@@ -4331,5 +4331,10 @@
   "Domains": "النطاقات",
   "Select Domains": "اختيار النطاقات",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "يعرض «تسجيل الدخول باستخدام SSO» هذا الموفّر على كل من يقع بريده الإلكتروني في أحد هذه النطاقات، التي تتحقق منها في إعدادات المشروع ← متقدم ← النطاقات.",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "لا توجد نطاقات تم التحقق منها بعد. تحقّق من واحد في إعدادات المشروع ← متقدم ← النطاقات."
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "لا توجد نطاقات تم التحقق منها بعد. تحقّق من واحد في إعدادات المشروع ← متقدم ← النطاقات.",
+  "Sign Out URL": "عنوان URL لتسجيل الخروج",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "عنوان URL لتسجيل الخروج الموحّد لدى موفّر الهوية. يلزم لتسجيل خروج الأشخاص منه أيضًا.",
+  "Single Logout URL:": "عنوان URL لتسجيل الخروج الموحّد (Single Logout):",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "لتسجيل خروج الأشخاص من موفّر الهوية أيضًا، أعطه أيضًا عنوان URL لتسجيل الخروج الموحّد وشهادة التوقيع الخاصة بـ OneUptime.",
+  "Download Signing Certificate": "تنزيل شهادة التوقيع"
 }

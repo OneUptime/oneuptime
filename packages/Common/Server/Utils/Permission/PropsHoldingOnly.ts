@@ -18,7 +18,25 @@ import Permission, { UserPermission } from "../../../Types/Permission";
  * Runbook Member runs the runbooks theirs reaches
  * (Server/Utils/Runbook/RunbookRunAccess). The CRUD path then decides what
  * the rows reach.
+ *
+ * buildWithout is the other way round: everything the caller holds but
+ * some of their allow rows, for a check that asks which records they reach
+ * without a grant - the user overrides they reach without Manage On-Call
+ * Policy User Overrides for Own Team, or with only one team's rows of it
+ * (OnCallDutyPolicyUserOverrideService, issue #9733).
  */
+
+/*
+ * What getPermissionRows adds for every caller, as rows of the project: a
+ * permission held everywhere, never a project's row (no team, custom role
+ * or API key is given one). The CRUD path adds it back from the global
+ * permissions.
+ */
+const EVERY_CALLERS_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.Public,
+  Permission.CurrentUser,
+];
+
 export default class PropsHoldingOnly {
   public static build(data: {
     databaseProps: DatabaseCommonInteractionProps;
@@ -53,6 +71,50 @@ export default class PropsHoldingOnly {
         projectIds: [data.projectId],
       },
       userTenantAccessPermission: {
+        [data.projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: data.projectId,
+          permissions: rows,
+        },
+      },
+    };
+  }
+
+  /*
+   * The caller's props with the allow rows `isLeftOut` names taken out of
+   * the project's: every other row - allows and blocks, the project's and
+   * other projects' - and the global permissions kept as they are, and who
+   * the caller is. A block is never left out: it only ever takes away. The
+   * CRUD path then decides what the rows that are left reach.
+   */
+  public static buildWithout(data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    isLeftOut: (row: UserPermission) => boolean;
+  }): DatabaseCommonInteractionProps {
+    const rows: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getPermissionRows({
+        ...data.databaseProps,
+        tenantId: data.projectId,
+        userGlobalAccessPermission: undefined,
+      }).filter((row: UserPermission): boolean => {
+        if (HeldPermissionsUtil.isBlockRow(row)) {
+          return true;
+        }
+
+        // Every caller's, added back from the global permissions.
+        if (EVERY_CALLERS_PERMISSIONS.includes(row.permission) && !row.teamId) {
+          return false;
+        }
+
+        return !data.isLeftOut(row);
+      });
+
+    return {
+      ...data.databaseProps,
+      tenantId: data.projectId,
+      userTenantAccessPermission: {
+        ...(data.databaseProps.userTenantAccessPermission || {}),
         [data.projectId.toString()]: {
           _type: "UserTenantAccessPermission",
           projectId: data.projectId,

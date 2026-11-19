@@ -4331,5 +4331,10 @@
   "Domains": "डोमेन",
   "Select Domains": "डोमेन चुनें",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "‘SSO से लॉगिन’ यह प्रदाता हर उस व्यक्ति को दिखाता है जिसका ईमेल इनमें से किसी डोमेन पर है, जिन्हें आप प्रोजेक्ट सेटिंग्स > उन्नत > डोमेन में सत्यापित करते हैं।",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "अभी तक कोई सत्यापित डोमेन नहीं है। प्रोजेक्ट सेटिंग्स > उन्नत > डोमेन में एक सत्यापित करें।"
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "अभी तक कोई सत्यापित डोमेन नहीं है। प्रोजेक्ट सेटिंग्स > उन्नत > डोमेन में एक सत्यापित करें।",
+  "Sign Out URL": "साइन आउट URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।",
+  "Single Logout URL:": "सिंगल लॉगआउट URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "लोगों को पहचान प्रदाता से भी साइन आउट करने के लिए उसे सिंगल लॉगआउट URL और OneUptime का साइनिंग प्रमाणपत्र भी दें।",
+  "Download Signing Certificate": "साइनिंग प्रमाणपत्र डाउनलोड करें"
 }

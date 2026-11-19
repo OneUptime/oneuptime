@@ -6,7 +6,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import ResourceMetricsTab from "../../Infrastructure/ResourceMetricsTab";
-import { formatBytes } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
+import { formatBytesForChart } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 
 /*
  * An ESXi host's Metrics tab: every vcenter.host.* series the Overview
@@ -91,7 +91,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
     transformValue: (value: number): number => {
       return value * MIB;
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   /*

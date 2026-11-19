@@ -4331,5 +4331,10 @@
   "Domains": "Domaines",
   "Select Domains": "Sélectionner les domaines",
   "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "« Connexion avec SSO » propose ce fournisseur à toute personne dont l'e-mail est sur l'un de ces domaines, que vous vérifiez dans Paramètres du projet > Avancé > Domaines.",
-  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Aucun domaine vérifié pour le moment. Vérifiez-en un dans Paramètres du projet > Avancé > Domaines."
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Aucun domaine vérifié pour le moment. Vérifiez-en un dans Paramètres du projet > Avancé > Domaines.",
+  "Sign Out URL": "URL de déconnexion",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "L'URL de déconnexion unique de votre fournisseur d'identité. Nécessaire pour y déconnecter aussi les personnes.",
+  "Single Logout URL:": "URL de Single Logout :",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Pour déconnecter aussi les personnes du fournisseur d'identité, donnez-lui aussi l'URL de Single Logout et le certificat de signature de OneUptime.",
+  "Download Signing Certificate": "Télécharger le certificat de signature"
 }

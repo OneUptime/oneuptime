@@ -646,6 +646,8 @@ const PAGE_CASES: Array<PageCase> = [
     printed: [
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/identity/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
+      // Where the identity provider answers a sign-out, and sends its own (#9603).
+      `https://oneuptime.example.com/identity/idp-logout/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
     turnOnNote: SAML_TURN_ON_NOTE,
     startsOnMembersTeam: true,
@@ -655,7 +657,11 @@ const PAGE_CASES: Array<PageCase> = [
       model: "Project",
       modelId: PROJECT_ID,
     },
-    // What the identity provider gives, then how people sign in.
+    /*
+     * What the identity provider gives, then how people sign in, and last
+     * whether signing out signs people out of the provider too, with the
+     * provider's own sign-out URL (#9603).
+     */
     formFields: [
       "name",
       "signOnURL",
@@ -668,6 +674,8 @@ const PAGE_CASES: Array<PageCase> = [
       "signatureMethod",
       "digestMethod",
       "description",
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
     ],
     attachesToStatusPage: false,
     names: {
@@ -1563,6 +1571,68 @@ describe.each(PAGE_CASES)("$name: adding a provider", (pageCase: PageCase) => {
         pageCase.turnOnNote.testId,
       ),
     ).toHaveTextContent(pageCase.turnOnNote.text);
+  });
+});
+
+/*
+ * Signing people out of a project's SAML provider too (#9603) takes two
+ * things at the identity provider: the Single Logout URL the dialog prints,
+ * and the certificate OneUptime signs its sign-out requests with, which the
+ * dialog links to. A status page's SAML provider signs nobody out of its
+ * identity provider, so its dialog has neither.
+ */
+describe("a SAML provider's sign-out at the identity provider", () => {
+  const projectSaml: PageCase = PAGE_CASES.find((pageCase: PageCase) => {
+    return pageCase.name === "Settings > SSO";
+  })!;
+  const statusPageSaml: PageCase = PAGE_CASES.find((pageCase: PageCase) => {
+    return pageCase.name === "Status page > SSO";
+  })!;
+
+  test("a project's dialog says what the identity provider needs, and links to the signing certificate", () => {
+    renderPage(projectSaml);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: projectSaml.viewAction }),
+    );
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+    const note: HTMLElement = within(modal).getByTestId(
+      "sso-config-sign-out-note",
+    );
+
+    expect(note).toHaveTextContent(
+      "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate. Download Signing Certificate",
+    );
+
+    const link: HTMLElement = within(note).getByTestId(
+      "sso-config-signing-certificate",
+    );
+
+    expect(link).toHaveTextContent("Download Signing Certificate");
+    expect(link).toHaveAttribute(
+      "href",
+      "https://oneuptime.example.com/identity/saml-signing-certificate",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  test("a status page's dialog has no Single Logout URL and no certificate", () => {
+    renderPage(statusPageSaml);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: statusPageSaml.viewAction }),
+    );
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(
+      within(modal).queryByTestId("sso-config-sign-out-note"),
+    ).not.toBeInTheDocument();
+    expect(within(modal).queryByText(/idp-logout/)).not.toBeInTheDocument();
+    expect(statusPageSaml.formFields).not.toContain(
+      "signOutOfIdentityProvider",
+    );
   });
 });
 

@@ -341,6 +341,8 @@ Verktøyet **`get_data_table_freshness`** forteller en agent om en tabell som Da
 
 Verktøyet **`get_data_table_lineage`** forteller en agent hva en overvåket tabell er bygget fra og hva som er bygget fra den, før den endrer tabellen eller stoler på dataene: oppstrøms- og nedstrømstabellene som er forsinket, slettet, har åpne varsler eller der pipelinen feilet på siste kjøring, de nærmeste først, hver med hvor mange trinn unna den er, så resten, pipelinene som laster kildene dens utenfra, og BI-dashbordene som er bygget på den. Det går tre trinn i hver retning, eller opptil fem med `depth`. Oppgi `table` som for `get_data_table_freshness`. Det endrer ingenting.
 
+Verktøyet **`oneuptime_move_in_list`** flytter en rad i en ordnet liste, for eksempel en alvorlighetsgrad, en hendelsestilstand eller en monitorstatus, til en annen rads plass, slik det å dra den i dashbordet gjør: radene imellom flytter seg én plass, og det svarer med hver rad der nummeret endret seg. Oppgi `resource` (for eksempel `Incident Severity`), radens `id` og `placeOfId`, ID-en til raden den tar plassen til. Å skrive en rads nummer med dens `update_`-verktøy plasserer bare den raden, ved siden av en rad som allerede har det nummeret.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.

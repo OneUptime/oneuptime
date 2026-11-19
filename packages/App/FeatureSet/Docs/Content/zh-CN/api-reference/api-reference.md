@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 两个名称以同样方式检查。关于你所指定记录的规则，无论你用哪个名称发送都适用：状态页面分组的父分组必须位于同一个状态页面上，一个状态页面最多有三个页眉链接，分组名称在其状态页面上必须唯一。
 
+#### 其他记录已在使用的名称
+
+团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格：`Primary`、` primary` 和 `PRIMARY` 是同一个名称。以同类其他记录已有的名称创建记录，或通过更新重命名为这样的名称，都会被拒绝，并返回一个说明此情况的 `400`：
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来。对于团队、值班策略和值班计划，`GET /api/shared-names/team`（或 `on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。
+
 ### 开关
 
 开或关的字段——`isEnabled`、`isVisibleOnStatusPage`、`isArchived` 以及其他所有 `true` 或 `false` 字段——接受 `true` 或 `false`。数据库会读作其中之一的文本和数字会被当作该值接受，对 API、Terraform 和工作流都一样：`"true"`、`"yes"`、`"on"`、`"1"` 和 `1` 是 `true`，`"false"`、`"no"`、`"off"`、`"0"` 和 `0` 是 `false`，不区分大小写。OneUptime 对该记录所做的一切也都把它当作该值处理：以 `"isVisibleOnStatusPage": "true"` 发送的维护事件会在状态页面上显示其图片，而 `"isEnabled": "false"` 会像 `false` 一样在低于套餐时关闭资源。任何其他值，例如 `"maybe"`、`""` 或 `2`，都会被拒绝，并返回一个指明字段的 `400`：

@@ -22,11 +22,17 @@ import {
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
   getOidcProviderFormFields,
 } from "../../../../UI/Components/Sso/OidcProviderFormFields";
 import type { RadioButton } from "../../../../UI/Components/RadioButtons/GroupRadioButtons";
 import {
   SAML_ADVANCED_DEFAULTS_SUMMARY,
+  SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+  SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+  SAML_SIGN_OUT_URL_DESCRIPTION,
+  SAML_SIGN_OUT_URL_TITLE,
   SAML_DIGEST_METHOD_DESCRIPTION,
   SAML_DIGEST_METHOD_OPTIONS,
   SAML_ISSUER_DESCRIPTION,
@@ -729,5 +735,143 @@ describe("the folded Advanced section", () => {
 
     expect(section.isConfigured!(older)).toBe(true);
     expect(section.getSummary!(older)).toBeUndefined();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * SIGNING PEOPLE OUT OF THE IDENTITY PROVIDER TOO (#9603).
+ *
+ * A project's and the instance's provider - not a status page's, whose
+ * sign-in is to the status page - ask for the identity provider's Sign Out
+ * URL and whether to sign people out of it too: off, and folded last under
+ * More fields, in the OpenID Connect form's words for the switch.
+ * ---------------------------------------------------------------------------
+ */
+describe("signing people out of the identity provider too", () => {
+  const PROJECT_WITH_SIGN_OUT: Array<Field<ProjectSSO>> =
+    getSamlProviderFormFields<ProjectSSO>({
+      withTeams: true,
+      withIdentityProviderSignOut: true,
+    });
+  const GLOBAL_WITH_SIGN_OUT: Array<Field<GlobalSSO>> =
+    getSamlProviderFormFields<GlobalSSO>({
+      withGlobalAccessSwitches: true,
+      withIdentityProviderSignOut: true,
+    });
+
+  test("a project's provider asks last, after its description", () => {
+    expect(keysOn(PROJECT_WITH_SIGN_OUT, "sign-in")).toEqual([
+      "teams",
+      "isEnabled",
+      "signatureMethod",
+      "digestMethod",
+      "description",
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
+    ]);
+  });
+
+  test("the instance's provider asks last, after its two questions", () => {
+    expect(keysOn(GLOBAL_WITH_SIGN_OUT, "sign-in").slice(-2)).toEqual([
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
+    ]);
+  });
+
+  test("a form that does not ask has neither field", () => {
+    for (const fields of ALL_FORMS) {
+      expect(fields.map(keyOf)).not.toContain("singleLogoutURL");
+      expect(fields.map(keyOf)).not.toContain("signOutOfIdentityProvider");
+    }
+  });
+
+  test("both fold under the form's one More fields section", () => {
+    const section: FormFieldCollapsibleSection<ProjectSSO> | undefined =
+      fieldFor(PROJECT_WITH_SIGN_OUT, "signatureMethod").collapsibleSection;
+
+    expect(section?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+    expect(
+      fieldFor(PROJECT_WITH_SIGN_OUT, "singleLogoutURL").collapsibleSection,
+    ).toBe(section);
+    expect(
+      fieldFor(PROJECT_WITH_SIGN_OUT, "signOutOfIdentityProvider")
+        .collapsibleSection,
+    ).toBe(section);
+  });
+
+  test("the Sign Out URL is an optional URL, said in plain words", () => {
+    const field: Field<ProjectSSO> = fieldFor(
+      PROJECT_WITH_SIGN_OUT,
+      "singleLogoutURL",
+    );
+
+    expect(field.title).toBe(SAML_SIGN_OUT_URL_TITLE);
+    expect(SAML_SIGN_OUT_URL_TITLE).toBe("Sign Out URL");
+    expect(field.fieldType).toBe(FormFieldSchemaType.URL);
+    expect(field.required).toBe(false);
+    expect(field.description).toBe(SAML_SIGN_OUT_URL_DESCRIPTION);
+    expect(field.disableSpellCheck).toBe(true);
+    expect(SAML_SIGN_OUT_URL_DESCRIPTION.length).toBeLessThanOrEqual(150);
+    expect(SAML_SIGN_OUT_URL_DESCRIPTION).toMatch(/^[A-Z].*\.$/);
+  });
+
+  test("the switch is off, and named and explained as the OpenID Connect form's is", () => {
+    const field: Field<ProjectSSO> = fieldFor(
+      PROJECT_WITH_SIGN_OUT,
+      "signOutOfIdentityProvider",
+    );
+
+    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(field.defaultValue).toBe(false);
+    expect(field.required).toBe(false);
+    expect(field.title).toBe(SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE);
+    expect(field.description).toBe(SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION);
+    expect(SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE).toBe(
+      OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+    );
+    expect(SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION).toBe(
+      OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+    );
+  });
+
+  test("the folded section is at its defaults while the switch is off and no Sign Out URL is entered", () => {
+    const atDefaults: Record<string, unknown> = {
+      name: "Okta",
+      signatureMethod: "RSA-SHA256",
+      digestMethod: "SHA256",
+      description: "Sign in with Okta",
+      signOutOfIdentityProvider: false,
+      singleLogoutURL: "",
+    };
+
+    expect(
+      isSamlAdvancedAtDefaults(atDefaults, {
+        withIdentityProviderSignOut: true,
+      }),
+    ).toBe(true);
+    expect(
+      isSamlAdvancedAtDefaults(
+        { ...atDefaults, signOutOfIdentityProvider: true },
+        { withIdentityProviderSignOut: true },
+      ),
+    ).toBe(false);
+    expect(
+      isSamlAdvancedAtDefaults(
+        {
+          ...atDefaults,
+          singleLogoutURL: "https://idp.example.com/saml/slo",
+        },
+        { withIdentityProviderSignOut: true },
+      ),
+    ).toBe(false);
+    // A form without them never reads them.
+    expect(
+      isSamlAdvancedAtDefaults({
+        ...atDefaults,
+        signOutOfIdentityProvider: true,
+        singleLogoutURL: "https://idp.example.com/saml/slo",
+      }),
+    ).toBe(true);
   });
 });

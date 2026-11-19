@@ -208,8 +208,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "vCenter의 식별 이름은 `VMWARE_VCENTER_NAME`에서 오며, 모든 메트릭에 `vmware.vcenter.name`으로 찍힙니다. 이 vCenter의 이름은 **`vcenter-1`** 입니다. `.env`에서 고치고 `docker-compose.yml`이 있는 폴더에서 `docker compose up -d`로 적용하세요. 새 이름을 쓰면 새 vCenter로 등록된다는 점에 유의하세요.",
   "A Linux machine (x86_64 or arm64) with systemd 235 or later — Ubuntu 18.04, Debian 10, RHEL 8 or newer — and `sudo`, that can reach vCenter over HTTPS (TCP 443) — ideally not a VM on the cluster it watches":
     "systemd 235 이상(Ubuntu 18.04, Debian 10, RHEL 8 이상)과 `sudo`가 있는 Linux 머신(x86_64 또는 arm64). HTTPS(TCP 443)로 vCenter에 연결할 수 있어야 하며, 감시 대상 클러스터의 VM은 피하는 것이 좋습니다",
-  "Run these on the Linux machine that will host the agent. They download `otelcol-contrib` 0.161.0 — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime, and install them to `/opt/oneuptime-vmware-agent`:":
-    "에이전트를 둘 Linux 머신에서 이 명령들을 실행하세요. 에이전트가 고정하는 업스트림 OpenTelemetry Collector 릴리스인 `otelcol-contrib` 0.161.0을 에이전트의 `otel-collector-config.yaml` 및 systemd 유닛과 함께 이 OneUptime에서 내려받아 `/opt/oneuptime-vmware-agent`에 설치합니다:",
+  "Run these on the Linux machine that will host the agent. They download `otelcol-contrib` 0.165.0 — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime, and install them to `/opt/oneuptime-vmware-agent`:":
+    "에이전트를 둘 Linux 머신에서 이 명령들을 실행하세요. 에이전트가 고정하는 업스트림 OpenTelemetry Collector 릴리스인 `otelcol-contrib` 0.165.0을 에이전트의 `otel-collector-config.yaml` 및 systemd 유닛과 함께 이 OneUptime에서 내려받아 `/opt/oneuptime-vmware-agent`에 설치합니다:",
   "The agent's settings go in `/opt/oneuptime-vmware-agent/.env`. It holds a password, so make it readable by root alone, then open it (`sudoedit` uses your `$EDITOR`):":
     "에이전트 설정은 `/opt/oneuptime-vmware-agent/.env`에 넣습니다. 비밀번호가 들어 있으므로 root만 읽을 수 있게 한 다음 여세요(`sudoedit`는 `$EDITOR`를 사용합니다):",
   "Put this in it:": "다음 내용을 넣으세요:",
