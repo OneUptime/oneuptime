@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dette endepunktet avslutter en pågående overstyring etter serverens klokke: slutten blir nå, og fra da av er tilkallingene den fraværende personens igjen. Det krever samme tillatelse som en oppdatering og returnerer overstyringens nye endsAt.",
       "userOverrideEndNowRequestTitle": "Forespørsel om å avslutte nå",
       "userOverrideIdDescription": "ID-en til brukeroverstyringen",
-      "userOverrideEndNowRefused": "400 Bad Request: overstyringen har ikke startet ennå (slett den i stedet), er allerede avsluttet eller slutter uansett innen minuttet."
+      "userOverrideEndNowRefused": "400 Bad Request: overstyringen har ikke startet ennå (slett den i stedet), er allerede avsluttet eller slutter uansett innen minuttet.",
+      "moveInListHeading": "Flytt",
+      "moveInListIntro": "Dette endepunktet flytter en post i en liste som holdes i rekkefølge, til plassen til en annen post i samme liste, slik det å dra den i dashbordet gjør. Posten havner rett over den som er angitt i placeOfId når den kommer nedenfra, og rett under den når den kommer ovenfra, og postene mellom dem flytter seg én plass mot der den var. Listen nummereres deretter fra toppen: 1, 2, 3 og så videre, eller nedover til 1 for en liste der den øverste har det høyeste tallet. En opprettelse eller oppdatering som skriver tallet, plasserer bare den ene posten og flytter ingen andre, så et skript som nummererer en hel liste, får tallene det skrev: for å flytte en post forbi andre sender du i stedet denne forespørselen. Det kjører i én transaksjon som låser listen, så to flyttinger samtidig skjer etter hverandre. Det krever samme tillatelse som en oppdatering av postens tall, og returnerer changedRows: hver post det ga et annet tall, også den flyttede, med det nye tallet under order, uansett hva denne ressursen kaller tallet sitt.",
+      "moveInListRequestTitle": "Forespørsel om å flytte",
+      "moveInListIdDescription": "ID-en til posten som skal flyttes",
+      "placeOfIdDescription": "ID-en til posten hvis plass den tar: en post i samme liste.",
+      "moveInListOtherList": "400 Bad Request: placeOfId mangler, er ikke en ID eller angir en post som ikke er i samme liste som posten som skal flyttes.",
+      "moveInListGone": "404 Not Found: posten som skal flyttes, er ikke lenger i listen sin: den er slettet eller flyttet til en annen liste. Les listen på nytt.",
+      "moveInListPermission": "422: den som kaller, får ikke endre postens tall, siden også en oppdatering av tallet ville blitt avvist.",
+      "moveInListOrderKept": "400 Bad Request: flyttingen ville satt et prosjekts innebygde tilstander eller statuser ut av rekkefølge, som den løste tilstanden over den bekreftede."
     },
     "dataType": {
       "enumBadge": "Enum",

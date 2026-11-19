@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dieser Endpunkt beendet eine laufende Überschreibung nach der Uhr des Servers: Ihr Ende wird jetzt, und die Alarme gehören ab dann wieder der abwesenden Person. Er braucht dieselbe Berechtigung wie eine Aktualisierung und gibt das neue endsAt der Überschreibung zurück.",
       "userOverrideEndNowRequestTitle": "Anfrage zum Jetzt-Beenden",
       "userOverrideIdDescription": "ID der Benutzerüberschreibung",
-      "userOverrideEndNowRefused": "400 Bad Request: Die Überschreibung hat noch nicht begonnen (lösche sie stattdessen), hat schon geendet oder endet ohnehin innerhalb der Minute."
+      "userOverrideEndNowRefused": "400 Bad Request: Die Überschreibung hat noch nicht begonnen (lösche sie stattdessen), hat schon geendet oder endet ohnehin innerhalb der Minute.",
+      "moveInListHeading": "Verschieben",
+      "moveInListIntro": "Dieser Endpunkt verschiebt einen Datensatz einer geordneten Liste an den Platz eines anderen Datensatzes derselben Liste, wie es das Ziehen im Dashboard tut. Der Datensatz landet direkt über dem in placeOfId genannten Datensatz, wenn er von unten kommt, und direkt darunter, wenn er von oben kommt, und die Datensätze dazwischen rücken einen Platz in Richtung seiner bisherigen Position. Die Liste wird dann von oben nummeriert: 1, 2, 3 und so weiter, oder abwärts bis 1 bei einer Liste, deren oberster Eintrag die höchste Zahl hat. Ein Anlegen oder Aktualisieren, das die Zahl schreibt, platziert nur diesen einen Datensatz und verschiebt keinen anderen, sodass ein Skript, das eine ganze Liste nummeriert, die Zahlen bekommt, die es geschrieben hat: Um einen Datensatz an anderen vorbei zu verschieben, sende stattdessen diese Anfrage. Er läuft in einer Transaktion, die die Liste sperrt, sodass zwei gleichzeitige Verschiebungen nacheinander stattfinden. Er braucht dieselbe Berechtigung wie eine Aktualisierung der Zahl des Datensatzes und gibt changedRows zurück: jeden Datensatz, dem er eine andere Zahl gegeben hat, den verschobenen eingeschlossen, mit seiner neuen Zahl unter order, wie auch immer diese Ressource ihre Zahl nennt.",
+      "moveInListRequestTitle": "Anfrage zum Verschieben",
+      "moveInListIdDescription": "ID des zu verschiebenden Datensatzes",
+      "placeOfIdDescription": "Die ID des Datensatzes, dessen Platz er einnimmt: ein Datensatz derselben Liste.",
+      "moveInListOtherList": "400 Bad Request: placeOfId fehlt, ist keine ID oder nennt einen Datensatz, der nicht in derselben Liste ist wie der zu verschiebende Datensatz.",
+      "moveInListGone": "404 Not Found: Der zu verschiebende Datensatz ist nicht mehr in seiner Liste: Er wurde gelöscht oder in eine andere Liste verschoben. Lies die Liste erneut.",
+      "moveInListPermission": "422: Der Aufrufer darf die Zahl des Datensatzes nicht ändern, da auch eine Aktualisierung der Zahl abgelehnt würde.",
+      "moveInListOrderKept": "400 Bad Request: Die Verschiebung würde die eingebauten Status eines Projekts aus ihrer Reihenfolge bringen, etwa den behobenen Status über den bestätigten setzen."
     },
     "dataType": {
       "enumBadge": "Enum",

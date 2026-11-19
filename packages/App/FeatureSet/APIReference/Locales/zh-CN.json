@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "此端点按服务器的时钟结束进行中的覆盖：其结束时间变为现在，从那时起呼叫重新归不在岗的人所有。它需要与更新相同的权限，并返回覆盖新的 endsAt。",
       "userOverrideEndNowRequestTitle": "立即结束请求",
       "userOverrideIdDescription": "用户覆盖的 ID",
-      "userOverrideEndNowRefused": "400 Bad Request：覆盖尚未开始（请改为删除它）、已经结束，或者无论如何都会在一分钟内结束。"
+      "userOverrideEndNowRefused": "400 Bad Request：覆盖尚未开始（请改为删除它）、已经结束，或者无论如何都会在一分钟内结束。",
+      "moveInListHeading": "移动",
+      "moveInListIntro": "此端点把有序列表中的一条记录移动到同一列表中另一条记录的位置，就像在仪表板中拖动它一样。记录从下方移来时，会落在 placeOfId 指定的记录的正上方；从上方移来时，会落在其正下方；两者之间的记录会朝它原来的位置移动一位。随后列表从顶部开始编号：1、2、3 依此类推；对于顶部是最大编号的列表，则倒数到 1。写入编号的创建或更新只会放置这一条记录，不会移动其他记录，因此为整个列表编号的脚本会得到它写入的编号：要把一条记录移过其他记录，请改为发送此请求。它在一个锁定该列表的事务中运行，因此同时进行的两次移动会先后执行。它需要与更新记录编号相同的权限，并返回 changedRows：其中列出它赋予了其他编号的每条记录（包括被移动的记录），新编号都放在 order 中，无论此资源把它的编号叫作什么。",
+      "moveInListRequestTitle": "移动请求",
+      "moveInListIdDescription": "要移动的记录的 ID",
+      "placeOfIdDescription": "其位置将被占据的记录的 ID：同一列表中的一条记录。",
+      "moveInListOtherList": "400 Bad Request：缺少 placeOfId、它不是 ID，或者它指定的记录与要移动的记录不在同一列表中。",
+      "moveInListGone": "404 Not Found：要移动的记录已不在其列表中：它已被删除，或已移到另一个列表。请重新读取该列表。",
+      "moveInListPermission": "422：调用方无权更改该记录的编号，因为对该编号的更新同样会被拒绝。",
+      "moveInListOrderKept": "400 Bad Request：此次移动会打乱项目内置状态的顺序，例如把解决状态放到确认状态之上。"
     },
     "dataType": {
       "enumBadge": "枚举",

@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dette endpoint afslutter en igangværende tilsidesættelse efter serverens ur: dens slutning bliver nu, og fra da af er tilkaldene den fraværende persons igen. Det kræver samme tilladelse som en opdatering og returnerer tilsidesættelsens nye endsAt.",
       "userOverrideEndNowRequestTitle": "Anmodning om at afslutte nu",
       "userOverrideIdDescription": "ID for brugertilsidesættelsen",
-      "userOverrideEndNowRefused": "400 Bad Request: tilsidesættelsen er ikke startet endnu (slet den i stedet), er allerede slut eller slutter alligevel inden for minuttet."
+      "userOverrideEndNowRefused": "400 Bad Request: tilsidesættelsen er ikke startet endnu (slet den i stedet), er allerede slut eller slutter alligevel inden for minuttet.",
+      "moveInListHeading": "Flyt",
+      "moveInListIntro": "Dette endpoint flytter en post i en liste, der holdes i rækkefølge, til en anden posts plads i samme liste, som når du trækker den i dashboardet. Den lander lige over den post, der er angivet i placeOfId, når den kommer nedefra, og lige under den, når den kommer ovenfra, og posterne imellem dem rykker én plads mod dens tidligere plads. Listen nummereres derefter fra toppen: 1, 2, 3 og så videre, eller nedad til 1 for en liste, hvor den øverste har det højeste tal. En oprettelse eller opdatering, der skriver tallet, placerer kun den ene post og flytter ingen andre, så et script, der nummererer en hel liste, får de tal, det skrev: send i stedet denne anmodning for at flytte en post forbi andre. Det kører i én transaktion, der låser listen, så to flytninger på samme tid sker efter hinanden. Det kræver samme tilladelse som en opdatering af postens tal og returnerer changedRows: hver post, det gav et andet tal, også den flyttede, med dens nye tal under order, uanset hvad denne ressource kalder sit tal.",
+      "moveInListRequestTitle": "Anmodning om at flytte",
+      "moveInListIdDescription": "ID for den post, der skal flyttes",
+      "placeOfIdDescription": "ID'et for den post, hvis plads den tager: en post i samme liste.",
+      "moveInListOtherList": "400 Bad Request: placeOfId mangler, er ikke et ID eller angiver en post, der ikke er i samme liste som den post, der skal flyttes.",
+      "moveInListGone": "404 Not Found: den post, der skal flyttes, er ikke længere i sin liste: den er slettet eller flyttet til en anden liste. Læs listen igen.",
+      "moveInListPermission": "422: kalderen må ikke ændre postens tal, da en opdatering af tallet også ville blive afvist.",
+      "moveInListOrderKept": "400 Bad Request: flytningen ville bringe et projekts indbyggede tilstande eller statusser ud af rækkefølge, såsom den løste tilstand over den bekræftede."
     },
     "dataType": {
       "enumBadge": "Enum",

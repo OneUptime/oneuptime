@@ -32,6 +32,7 @@ import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import { getColumnsRequiredOnCreate } from "Common/Utils/DeveloperDocs/TerraformSchema";
 import { getModelEndpoints } from "../Utils/ModelEndpoints";
+import MoveInListUtil from "Common/Types/Database/MoveInList";
 
 interface ExampleObjects {
   simpleSelectExample: JSONObject;
@@ -886,11 +887,17 @@ export default class ServiceHandler {
     pageData["codeExamples"] = codeExamples;
     pageData["showAggregate"] = isAnalytics;
 
-    // The routes the resource answers beside its own operations (#9038).
+    /*
+     * The routes the resource answers beside its own operations (#9038),
+     * the move of a list kept in order's rows among them (#9613).
+     */
     pageData["moreEndpoints"] = getModelEndpoints({
       crudApiPath: currentResource.model.crudApiPath?.toString() || "",
       apiPath: apiPath,
       exampleObjectID: exampleObjectID,
+      movesInList:
+        !isAnalytics &&
+        MoveInListUtil.hasMoveRequest(currentResource.model as BaseModel),
     });
 
     // Check if the current resource is a master admin API

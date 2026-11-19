@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Este endpoint encerra uma substituição em andamento, pelo relógio do servidor: o fim dela passa a ser agora, e a partir daí os acionamentos voltam a ser da pessoa ausente. Ele exige a mesma permissão de uma atualização e retorna o novo endsAt da substituição.",
       "userOverrideEndNowRequestTitle": "Solicitação para encerrar agora",
       "userOverrideIdDescription": "ID da substituição de usuário",
-      "userOverrideEndNowRefused": "400 Bad Request: a substituição ainda não começou (exclua-a em vez disso), já terminou ou termina de qualquer forma dentro do minuto."
+      "userOverrideEndNowRefused": "400 Bad Request: a substituição ainda não começou (exclua-a em vez disso), já terminou ou termina de qualquer forma dentro do minuto.",
+      "moveInListHeading": "Mover",
+      "moveInListIntro": "Este endpoint move um registro de uma lista mantida em ordem para o lugar de outro registro da mesma lista, como faz arrastá-lo no painel. O registro vai para logo acima daquele indicado em placeOfId quando vem de baixo, e para logo abaixo quando vem de cima, e os registros entre eles se deslocam uma posição em direção a onde ele estava. A lista é então numerada a partir do topo: 1, 2, 3 e assim por diante, ou em contagem regressiva até 1 para uma lista cujo topo tem o número mais alto. Uma criação ou atualização que escreve o número posiciona só aquele registro e não move nenhum outro, então um script que numera uma lista inteira obtém os números que escreveu: para mover um registro para além de outros, envie esta solicitação em vez disso. Ele roda em uma única transação que bloqueia a lista, então dois movimentos ao mesmo tempo acontecem um depois do outro. Ele exige a mesma permissão de uma atualização do número do registro e retorna changedRows: cada registro a que deu outro número, incluindo o que foi movido, com o novo número em order, seja qual for o nome que este recurso dá ao seu número.",
+      "moveInListRequestTitle": "Solicitação para mover",
+      "moveInListIdDescription": "ID do registro a mover",
+      "placeOfIdDescription": "O ID do registro cujo lugar ele ocupa: um registro da mesma lista.",
+      "moveInListOtherList": "400 Bad Request: placeOfId está ausente, não é um ID ou indica um registro que não está na mesma lista que o registro a mover.",
+      "moveInListGone": "404 Not Found: o registro a mover não está mais na lista dele: foi excluído ou movido para outra lista. Leia a lista de novo.",
+      "moveInListPermission": "422: quem chama não pode mudar o número do registro, já que uma atualização desse número também seria recusada.",
+      "moveInListOrderKept": "400 Bad Request: o movimento tiraria de ordem os estados ou status integrados de um projeto, como o estado resolvido acima do confirmado."
     },
     "dataType": {
       "enumBadge": "Enum",

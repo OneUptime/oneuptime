@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Questo endpoint termina una sostituzione in corso, secondo l'orologio del server: la sua fine diventa adesso, e da quel momento gli avvisi tornano alla persona assente. Richiede lo stesso permesso di un aggiornamento e restituisce il nuovo endsAt della sostituzione.",
       "userOverrideEndNowRequestTitle": "Richiesta Termina ora",
       "userOverrideIdDescription": "ID della sostituzione utente",
-      "userOverrideEndNowRefused": "400 Bad Request: la sostituzione non è ancora iniziata (eliminala invece), è già terminata o termina comunque entro il minuto."
+      "userOverrideEndNowRefused": "400 Bad Request: la sostituzione non è ancora iniziata (eliminala invece), è già terminata o termina comunque entro il minuto.",
+      "moveInListHeading": "Sposta",
+      "moveInListIntro": "Questo endpoint sposta un record di un elenco tenuto in ordine al posto di un altro record dello stesso elenco, come fa trascinarlo nella dashboard. Il record finisce appena sopra quello indicato in placeOfId quando arriva da sotto, e appena sotto quando arriva da sopra, e i record tra i due si spostano di un posto verso quello che occupava. L'elenco viene poi numerato dall'alto: 1, 2, 3 e così via, oppure a scendere fino a 1 per un elenco la cui cima ha il numero più alto. Una creazione o un aggiornamento che scrive il numero colloca solo quel record e non ne sposta nessun altro, quindi uno script che numera un intero elenco ottiene i numeri che ha scritto: per spostare un record oltre altri, invia invece questa richiesta. Viene eseguito in un'unica transazione che blocca l'elenco, quindi due spostamenti contemporanei avvengono uno dopo l'altro. Richiede lo stesso permesso di un aggiornamento del numero del record e restituisce changedRows: ogni record a cui ha dato un altro numero, compreso quello spostato, con il nuovo numero sotto order, comunque questa risorsa chiami il proprio numero.",
+      "moveInListRequestTitle": "Richiesta di spostamento",
+      "moveInListIdDescription": "ID del record da spostare",
+      "placeOfIdDescription": "L'ID del record di cui prende il posto: un record dello stesso elenco.",
+      "moveInListOtherList": "400 Bad Request: placeOfId manca, non è un ID o indica un record che non è nello stesso elenco del record da spostare.",
+      "moveInListGone": "404 Not Found: il record da spostare non è più nel suo elenco: è stato eliminato o spostato in un altro elenco. Rileggi l'elenco.",
+      "moveInListPermission": "422: il chiamante non può cambiare il numero del record, perché anche un aggiornamento del numero verrebbe rifiutato.",
+      "moveInListOrderKept": "400 Bad Request: lo spostamento metterebbe fuori ordine gli stati predefiniti di un progetto, ad esempio lo stato risolto sopra quello riconosciuto."
     },
     "dataType": {
       "enumBadge": "Enum",

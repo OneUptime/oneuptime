@@ -5,6 +5,7 @@ import {
   ModelEndpoint,
   getDescribedModelEndpoints,
   getModelEndpoints,
+  getMoveInListEndpoint,
 } from "../../../FeatureSet/APIReference/Utils/ModelEndpoints";
 import {
   PAGE_FIXTURES,
@@ -12,6 +13,16 @@ import {
   renderPage,
 } from "./ReferenceFixtures";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import AllModelTypes from "Common/Models/DatabaseModels/Index";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import MoveInListUtil, {
+  CONTIGUOUS_ORDER_TABLES,
+  MOVE_IN_LIST_ROUTE,
+  MoveInListRequest,
+} from "Common/Types/Database/MoveInList";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import ScheduleLayersSaveUtil, {
@@ -103,9 +114,27 @@ function keysOf(endpoint: ModelEndpoint): Array<string> {
   });
 }
 
-const DESCRIBED: Array<ModelEndpoint> = Object.values(
-  getDescribedModelEndpoints(),
-).flat();
+const DESCRIBED: Array<ModelEndpoint> = [
+  ...Object.values(getDescribedModelEndpoints()).flat(),
+  getMoveInListEndpoint(),
+];
+
+const MOVE_ROUTE_EXAMPLE_ID: string = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+
+// The move of a list kept in order's rows, as a page of one draws it.
+function moveOf(crudApiPath: string): DrawnModelEndpoint {
+  return byId(
+    getModelEndpoints({
+      crudApiPath: crudApiPath,
+      apiPath: `/api${crudApiPath}`,
+      exampleObjectID: MOVE_ROUTE_EXAMPLE_ID,
+      movesInList: true,
+    }),
+    "move",
+  );
+}
+
+type ModelType = { new (): BaseModel; name: string };
 
 describe("the endpoints a resource has beside its own", () => {
   it("are the schedule's layers read and saved, and an override ended now", () => {
@@ -256,6 +285,152 @@ describe("the endpoints a resource has beside its own", () => {
   });
 });
 
+describe("the move of a row of a list kept in order (issue #9613)", () => {
+  it("is drawn on the page of every resource whose rows are moved, after its own endpoints", () => {
+    const severity: string = new IncidentSeverity().crudApiPath!.toString();
+
+    expect(
+      getModelEndpoints({
+        crudApiPath: severity,
+        apiPath: `/api${severity}`,
+        exampleObjectID: MOVE_ROUTE_EXAMPLE_ID,
+        movesInList: true,
+      }).map((endpoint: DrawnModelEndpoint) => {
+        return `${endpoint.method} ${endpoint.path}`;
+      }),
+    ).toEqual([`POST /api${severity}/:id/move`]);
+
+    // The schedule is no list kept in order, but a page may draw both.
+    expect(
+      getModelEndpoints({
+        crudApiPath: SCHEDULE_PATH,
+        apiPath: `/api${SCHEDULE_PATH}`,
+        exampleObjectID: MOVE_ROUTE_EXAMPLE_ID,
+        movesInList: true,
+      }).map((endpoint: DrawnModelEndpoint) => {
+        return endpoint.id;
+      }),
+    ).toEqual(["read-layers", "save-layers", "move"]);
+
+    expect(endpointsOf(severity)).toEqual([]);
+  });
+
+  it("is the route the server registers: BaseAPI's, for every drag-ordered list, and MoveInListAPI's for the five", () => {
+    expect(getMoveInListEndpoint().route).toBe(MOVE_IN_LIST_ROUTE);
+    expect(getMoveInListEndpoint().method).toBe("POST");
+
+    const baseApi: string = readCommon("Server/API/BaseAPI.ts");
+    expect(baseApi).toContain(
+      "if (new this.entityType().getListOrder()) {\n      this.addMoveInListRoute();",
+    );
+    expect(baseApi).toContain(
+      "`${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`",
+    );
+    expect(readCommon("Server/API/MoveInListAPI.ts")).toContain(
+      "this.addMoveInListRoute();",
+    );
+
+    // The five, registered with MoveInListAPI - and no other model.
+    const index: string = fs.readFileSync(
+      path.resolve(__dirname, "../../../FeatureSet/BaseAPI/Index.ts"),
+      "utf8",
+    );
+    const registered: Array<string> = Array.from(
+      index.matchAll(/new MoveInListAPI<\s*(\w+),/g),
+    )
+      .map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      })
+      .sort();
+
+    expect(registered).toEqual([...CONTIGUOUS_ORDER_TABLES].sort());
+  });
+
+  it("is drawn for every drag-ordered list and the five numbered lists, and for no other model", () => {
+    const moved: Array<string> = [];
+
+    for (const modelType of AllModelTypes as unknown as Array<ModelType>) {
+      const model: BaseModel = new modelType();
+
+      if (MoveInListUtil.hasMoveRequest(model)) {
+        moved.push(model.tableName || modelType.name);
+      }
+
+      expect({
+        model: model.tableName,
+        moves: MoveInListUtil.hasMoveRequest(model),
+      }).toEqual({
+        model: model.tableName,
+        moves:
+          Boolean(model.getListOrder()) ||
+          CONTIGUOUS_ORDER_TABLES.includes(model.tableName || ""),
+      });
+    }
+
+    expect(moved.length).toBeGreaterThan(40);
+    expect(MoveInListUtil.hasMoveRequest(new Monitor())).toBe(false);
+  });
+
+  it("gives a move the server reads, and the answer it gives", () => {
+    const move: DrawnModelEndpoint = moveOf(
+      new StatusPageGroup().crudApiPath!.toString(),
+    );
+
+    // The example move is one the server parses as it is written.
+    const parsed: MoveInListRequest = MoveInListUtil.parseRequest(
+      move.requestBody,
+    );
+    expect(MoveInListUtil.requestToJSON(parsed)).toEqual(move.requestBody);
+
+    // The answer, as the server writes it: the moved row first, at 1.
+    expect(
+      MoveInListUtil.resultToJSON(MoveInListUtil.resultFromJSON(move.response)),
+    ).toEqual(move.response);
+    expect(
+      (
+        move.response["changedRows"] as Array<{ _id: string; order: number }>
+      )[0],
+    ).toEqual({ _id: MOVE_ROUTE_EXAMPLE_ID, order: 1 });
+
+    // The answer moves the row up two places: the rows it passed step down one.
+    expect(
+      MoveInListUtil.getChanges({
+        rows: [
+          { id: "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e", order: 1 },
+          { id: "3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f", order: 2 },
+          { id: MOVE_ROUTE_EXAMPLE_ID, order: 3 },
+        ],
+        rowId: MOVE_ROUTE_EXAMPLE_ID,
+        placeOfId: parsed.placeOfId.toString(),
+      }),
+    ).toEqual({
+      kind: "moved",
+      changedRows: (
+        move.response["changedRows"] as Array<{ _id: string; order: number }>
+      ).map((row: { _id: string; order: number }) => {
+        return { id: row._id, order: row.order };
+      }),
+    });
+
+    expect(
+      move.bodyFields.map((field: { name: string }) => {
+        return field.name;
+      }),
+    ).toEqual(Object.keys(move.requestBody || {}));
+  });
+
+  it("gives request examples for the record, in every language the page offers", () => {
+    const move: DrawnModelEndpoint = moveOf(
+      new IncidentSeverity().crudApiPath!.toString(),
+    );
+
+    expect(move.codeExamples.curl).toContain(
+      `-X POST "https://oneuptime.com/api/incident-severity/${MOVE_ROUTE_EXAMPLE_ID}/move"`,
+    );
+    expect(move.codeExamples.curl).toContain('"placeOfId"');
+  });
+});
+
 describe("their words", () => {
   const keys: Array<string> = Array.from(
     new Set(
@@ -329,6 +504,32 @@ describe("their words", () => {
         language,
         t("pages.modelEndpoints.userOverrideEndNowIntro"),
       ]).toEqual([language, expect.stringContaining("endsAt")]);
+
+      // The move, by the names its request and answer use.
+      for (const name of ["placeOfId", "changedRows", "order"]) {
+        expect([language, t("pages.modelEndpoints.moveInListIntro")]).toEqual([
+          language,
+          expect.stringContaining(name),
+        ]);
+      }
+
+      expect([language, t("pages.modelEndpoints.moveInListOtherList")]).toEqual(
+        [language, expect.stringMatching(/^400 Bad Request/)],
+      );
+      expect([language, t("pages.modelEndpoints.moveInListOtherList")]).toEqual(
+        [language, expect.stringContaining("placeOfId")],
+      );
+      expect([language, t("pages.modelEndpoints.moveInListGone")]).toEqual([
+        language,
+        expect.stringMatching(/^404 Not Found/),
+      ]);
+      expect([
+        language,
+        t("pages.modelEndpoints.moveInListPermission"),
+      ]).toEqual([language, expect.stringMatching(/^422/)]);
+      expect([language, t("pages.modelEndpoints.moveInListOrderKept")]).toEqual(
+        [language, expect.stringMatching(/^400 Bad Request/)],
+      );
     }
   });
 });
@@ -455,5 +656,26 @@ describe("the model page", () => {
         },
       ),
     ).toEqual(["end-now"]);
+
+    // The move, on a drag-ordered list's page and a numbered list's (#9613).
+    for (const model of [new IncidentSeverity(), new StatusPageGroup()]) {
+      const page: Record<string, unknown> = await pageDataOf(
+        model.getAPIDocumentationPath(),
+      );
+
+      expect(
+        (page["moreEndpoints"] as Array<DrawnModelEndpoint>).map(
+          (endpoint: DrawnModelEndpoint) => {
+            return endpoint.path;
+          },
+        ),
+      ).toEqual([`${String(page["apiPath"])}/:id/move`]);
+    }
+
+    // And not on a resource whose rows are in no order.
+    const monitor: Record<string, unknown> = await pageDataOf(
+      new Monitor().getAPIDocumentationPath(),
+    );
+    expect(monitor["moreEndpoints"]).toEqual([]);
   }, 120000);
 });

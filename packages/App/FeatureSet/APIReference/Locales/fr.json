@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Ce point de terminaison termine un remplacement en cours, selon l'horloge du serveur : sa fin devient maintenant, et les alertes reviennent dès lors à la personne absente. Il demande la même permission qu'une mise à jour, et renvoie le nouveau endsAt du remplacement.",
       "userOverrideEndNowRequestTitle": "Requête Terminer maintenant",
       "userOverrideIdDescription": "ID du remplacement d'utilisateur",
-      "userOverrideEndNowRefused": "400 Bad Request : le remplacement n'a pas encore commencé (supprimez-le plutôt), est déjà terminé, ou se termine de toute façon dans la minute."
+      "userOverrideEndNowRefused": "400 Bad Request : le remplacement n'a pas encore commencé (supprimez-le plutôt), est déjà terminé, ou se termine de toute façon dans la minute.",
+      "moveInListHeading": "Déplacer",
+      "moveInListIntro": "Ce point de terminaison déplace un enregistrement d'une liste ordonnée à la place d'un autre enregistrement de la même liste, comme le fait un glisser-déposer dans le tableau de bord. L'enregistrement arrive juste au-dessus de celui nommé dans placeOfId quand il vient d'en dessous, et juste en dessous quand il vient d'au-dessus, et les enregistrements situés entre les deux se décalent d'une place vers celle qu'il occupait. La liste est ensuite numérotée depuis le haut : 1, 2, 3 et ainsi de suite, ou en décomptant jusqu'à 1 pour une liste dont le haut porte le plus grand numéro. Une création ou une mise à jour qui écrit le numéro place cet enregistrement seul et n'en déplace aucun autre, si bien qu'un script qui numérote une liste entière obtient les numéros qu'il a écrits : pour déplacer un enregistrement au-delà d'autres, envoyez plutôt cette requête. Il s'exécute en une seule transaction qui verrouille la liste, donc deux déplacements simultanés se font l'un après l'autre. Il demande la même permission qu'une mise à jour du numéro de l'enregistrement, et renvoie changedRows : chaque enregistrement auquel il a donné un autre numéro, y compris celui qui a été déplacé, avec son nouveau numéro sous order, quel que soit le nom que cette ressource donne à son numéro.",
+      "moveInListRequestTitle": "Requête de déplacement",
+      "moveInListIdDescription": "ID de l'enregistrement à déplacer",
+      "placeOfIdDescription": "L'ID de l'enregistrement dont il prend la place : un enregistrement de la même liste.",
+      "moveInListOtherList": "400 Bad Request : placeOfId est absent, n'est pas un ID ou nomme un enregistrement qui n'est pas dans la même liste que l'enregistrement à déplacer.",
+      "moveInListGone": "404 Not Found : l'enregistrement à déplacer n'est plus dans sa liste : il a été supprimé, ou déplacé vers une autre liste. Lisez à nouveau la liste.",
+      "moveInListPermission": "422 : l'appelant ne peut pas changer le numéro de l'enregistrement, car une mise à jour de ce numéro serait refusée elle aussi.",
+      "moveInListOrderKept": "400 Bad Request : le déplacement romprait l'ordre des états ou statuts intégrés d'un projet, par exemple en plaçant l'état résolu au-dessus de l'état pris en compte."
     },
     "dataType": {
       "enumBadge": "Énumération",

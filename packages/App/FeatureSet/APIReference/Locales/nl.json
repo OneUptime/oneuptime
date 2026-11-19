@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dit endpoint beëindigt een lopende overschrijving volgens de klok van de server: haar einde wordt nu, en vanaf dan zijn de oproepen weer van de afwezige persoon. Het vraagt hetzelfde recht als een update en geeft het nieuwe endsAt van de overschrijving terug.",
       "userOverrideEndNowRequestTitle": "Verzoek om nu te beëindigen",
       "userOverrideIdDescription": "ID van de gebruikersoverschrijving",
-      "userOverrideEndNowRefused": "400 Bad Request: de overschrijving is nog niet begonnen (verwijder haar in plaats daarvan), is al afgelopen of eindigt hoe dan ook binnen de minuut."
+      "userOverrideEndNowRefused": "400 Bad Request: de overschrijving is nog niet begonnen (verwijder haar in plaats daarvan), is al afgelopen of eindigt hoe dan ook binnen de minuut.",
+      "moveInListHeading": "Verplaatsen",
+      "moveInListIntro": "Dit endpoint verplaatst een record van een geordende lijst naar de plaats van een ander record van dezelfde lijst, zoals slepen in het dashboard doet. Het record komt net boven het record dat in placeOfId wordt genoemd als het van onderen komt, en net eronder als het van boven komt, en de records daartussen schuiven één plaats op naar waar het stond. De lijst wordt daarna vanaf boven genummerd: 1, 2, 3 enzovoort, of aflopend tot 1 bij een lijst waarvan de bovenste het hoogste nummer heeft. Een aanmaak- of updateverzoek dat het nummer schrijft, plaatst alleen dat ene record en verschuift geen ander, zodat een script dat een hele lijst nummert de nummers krijgt die het schreef: stuur in plaats daarvan dit verzoek om een record langs andere te verplaatsen. Het draait in één transactie die de lijst vergrendelt, zodat twee gelijktijdige verplaatsingen na elkaar gebeuren. Het vraagt hetzelfde recht als een update van het nummer van het record en geeft changedRows terug: elk record dat het een ander nummer gaf, het verplaatste record inbegrepen, met zijn nieuwe nummer onder order, hoe deze resource zijn nummer ook noemt.",
+      "moveInListRequestTitle": "Verzoek om te verplaatsen",
+      "moveInListIdDescription": "ID van het record dat wordt verplaatst",
+      "placeOfIdDescription": "Het ID van het record waarvan het de plaats inneemt: een record van dezelfde lijst.",
+      "moveInListOtherList": "400 Bad Request: placeOfId ontbreekt, is geen ID of noemt een record dat niet in dezelfde lijst staat als het record dat wordt verplaatst.",
+      "moveInListGone": "404 Not Found: het record dat wordt verplaatst, staat niet meer in zijn lijst: het is verwijderd of naar een andere lijst verplaatst. Lees de lijst opnieuw.",
+      "moveInListPermission": "422: de aanroeper mag het nummer van het record niet wijzigen, omdat ook een update van dat nummer geweigerd zou worden.",
+      "moveInListOrderKept": "400 Bad Request: de verplaatsing zou de ingebouwde statussen van een project uit volgorde brengen, zoals de opgeloste status boven de bevestigde."
     },
     "dataType": {
       "enumBadge": "Enum",

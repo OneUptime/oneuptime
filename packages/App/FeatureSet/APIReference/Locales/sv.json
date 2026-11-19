@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Den här slutpunkten avslutar en pågående åsidosättning enligt serverns klocka: dess slut blir nu, och från och med då är utlarmningarna den frånvarande personens egna igen. Den kräver samma behörighet som en uppdatering och returnerar åsidosättningens nya endsAt.",
       "userOverrideEndNowRequestTitle": "Begäran om att avsluta nu",
       "userOverrideIdDescription": "ID för användaråsidosättningen",
-      "userOverrideEndNowRefused": "400 Bad Request: åsidosättningen har inte börjat än (ta bort den i stället), har redan slutat eller slutar ändå inom minuten."
+      "userOverrideEndNowRefused": "400 Bad Request: åsidosättningen har inte börjat än (ta bort den i stället), har redan slutat eller slutar ändå inom minuten.",
+      "moveInListHeading": "Flytta",
+      "moveInListIntro": "Den här slutpunkten flyttar en post i en lista som hålls i ordning till platsen för en annan post i samma lista, som när du drar den i instrumentpanelen. Posten hamnar precis ovanför den post som anges i placeOfId när den kommer nedifrån, och precis nedanför den när den kommer ovanifrån, och posterna mellan dem flyttas en plats mot där den var. Listan numreras sedan uppifrån: 1, 2, 3 och så vidare, eller nedåt till 1 för en lista där den översta har det högsta numret. Att skapa eller uppdatera med ett nummer placerar bara den posten och flyttar ingen annan, så ett skript som numrerar en hel lista får de nummer det skrev: för att flytta en post förbi andra skickar du i stället den här begäran. Den körs i en enda transaktion som låser listan, så två samtidiga flyttar sker efter varandra. Den kräver samma behörighet som en uppdatering av postens nummer och returnerar changedRows: varje post som den gav ett annat nummer, den flyttade posten inräknad, med sitt nya nummer under order, oavsett vad den här resursen kallar sitt nummer.",
+      "moveInListRequestTitle": "Begäran om att flytta",
+      "moveInListIdDescription": "ID för posten som ska flyttas",
+      "placeOfIdDescription": "ID för posten vars plats den tar: en post i samma lista.",
+      "moveInListOtherList": "400 Bad Request: placeOfId saknas, är inget ID eller anger en post som inte finns i samma lista som posten som ska flyttas.",
+      "moveInListGone": "404 Not Found: posten som ska flyttas finns inte längre i sin lista: den har tagits bort eller flyttats till en annan lista. Läs listan igen.",
+      "moveInListPermission": "422: anroparen får inte ändra postens nummer, eftersom även en uppdatering av numret skulle avvisas.",
+      "moveInListOrderKept": "400 Bad Request: flytten skulle bryta ordningen för ett projekts inbyggda tillstånd eller statusar, till exempel med det lösta tillståndet ovanför det bekräftade."
     },
     "dataType": {
       "enumBadge": "Enum",

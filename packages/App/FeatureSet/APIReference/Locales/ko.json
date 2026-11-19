@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "이 엔드포인트는 진행 중인 재정의를 서버 시계 기준으로 끝냅니다. 종료 시각이 지금이 되고, 그때부터 호출은 다시 부재 중이던 사람에게 갑니다. 업데이트와 같은 권한이 필요하며, 재정의의 새 endsAt 을 반환합니다.",
       "userOverrideEndNowRequestTitle": "지금 종료 요청",
       "userOverrideIdDescription": "사용자 재정의의 ID",
-      "userOverrideEndNowRefused": "400 Bad Request: 재정의가 아직 시작되지 않았거나 (대신 삭제하세요), 이미 끝났거나, 어차피 1분 안에 끝납니다."
+      "userOverrideEndNowRefused": "400 Bad Request: 재정의가 아직 시작되지 않았거나 (대신 삭제하세요), 이미 끝났거나, 어차피 1분 안에 끝납니다.",
+      "moveInListHeading": "이동",
+      "moveInListIntro": "이 엔드포인트는 순서가 있는 목록의 레코드를 같은 목록의 다른 레코드 자리로 옮깁니다. 대시보드에서 끌어다 놓는 것과 같습니다. 레코드는 아래에서 오면 placeOfId로 지정한 레코드 바로 위에, 위에서 오면 바로 아래에 들어가고, 그 사이의 레코드는 원래 자리 쪽으로 한 칸씩 움직입니다. 그런 다음 목록에 위에서부터 번호가 다시 매겨집니다. 1, 2, 3 순서로 이어지거나, 맨 위가 가장 큰 번호인 목록에서는 1까지 줄어듭니다. 번호를 쓰는 생성이나 업데이트는 그 레코드 하나만 배치하고 다른 레코드는 움직이지 않으므로, 목록 전체에 번호를 매기는 스크립트는 쓴 그대로의 번호를 얻습니다. 레코드를 다른 레코드 너머로 옮기려면 대신 이 요청을 보내세요. 목록을 잠그는 하나의 트랜잭션으로 실행되므로, 동시에 일어난 두 이동은 차례로 처리됩니다. 레코드 번호 업데이트와 같은 권한이 필요하며, changedRows 를 반환합니다. 여기에는 다른 번호를 받은 각 레코드가 옮긴 레코드를 포함해 들어 있고, 이 리소스가 번호를 무엇이라고 부르든 새 번호는 order 에 들어 있습니다.",
+      "moveInListRequestTitle": "이동 요청",
+      "moveInListIdDescription": "옮길 레코드의 ID",
+      "placeOfIdDescription": "옮긴 레코드가 자리를 차지할 레코드의 ID입니다. 같은 목록의 레코드여야 합니다.",
+      "moveInListOtherList": "400 Bad Request: placeOfId 가 없거나, ID가 아니거나, 옮길 레코드와 같은 목록에 없는 레코드를 지정했습니다.",
+      "moveInListGone": "404 Not Found: 옮길 레코드가 더 이상 목록에 없습니다. 삭제되었거나 다른 목록으로 옮겨졌습니다. 목록을 다시 읽으세요.",
+      "moveInListPermission": "422: 호출자는 레코드 번호를 바꿀 수 없습니다. 번호 업데이트도 거부되기 때문입니다.",
+      "moveInListOrderKept": "400 Bad Request: 이 이동은 해결 상태를 인지 상태보다 위로 올리는 것처럼 프로젝트의 기본 제공 상태 순서를 깨뜨립니다."
     },
     "dataType": {
       "enumBadge": "Enum",

@@ -5,6 +5,7 @@ import {
   SCHEDULE_LAYERS_SAVE_ROUTE,
 } from "Common/Types/OnCallDutyPolicy/ScheduleLayersSave";
 import { USER_OVERRIDE_END_NOW_ROUTE } from "Common/Types/OnCallDutyPolicy/UserOverrideEdit";
+import { MOVE_IN_LIST_ROUTE } from "Common/Types/Database/MoveInList";
 
 /*
  * THE ENDPOINTS A RESOURCE HAS BESIDE LIST, GET, COUNT, CREATE, UPDATE AND
@@ -15,7 +16,9 @@ import { USER_OVERRIDE_END_NOW_ROUTE } from "Common/Types/OnCallDutyPolicy/UserO
  * find them. Each is described here once - its method and route, what it
  * does, the fields it takes and an answer - and the model page draws one
  * section for each, after the resource's own operations, with request
- * examples in every language the page offers (issue #9038).
+ * examples in every language the page offers (issue #9038). The move of a
+ * row of a list kept in order is one route of many resources, drawn on
+ * each of their pages (issue #9613).
  *
  * Words are keys of their own strings (pages.modelEndpoints.<key>: the
  * page writes the prefix, so a check of the page's templates reads which
@@ -193,6 +196,49 @@ const MODEL_ENDPOINTS: Readonly<Record<string, ReadonlyArray<ModelEndpoint>>> =
     ],
   };
 
+const EXAMPLE_PLACE_OF_ID: string = "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e";
+const EXAMPLE_BETWEEN_ID: string = "3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f";
+
+/*
+ * The move of a row of a numbered list (issues #9573, #9609, #9613): every
+ * list kept in order - every drag-ordered list (@ListOrderColumn) and the
+ * five ContiguousOrder keeps - answers it, under its own path
+ * (Types/Database/MoveInList). A write of the number places the row alone,
+ * so an API script that used to move a row by writing its number sends
+ * this instead. The example moves the row up two places: it, and the two
+ * rows it passes, are given other numbers.
+ */
+const MOVE_IN_LIST_ENDPOINT: ModelEndpoint = {
+  id: "move",
+  method: "POST",
+  route: MOVE_IN_LIST_ROUTE,
+  headingKey: "moveInListHeading",
+  introKey: "moveInListIntro",
+  requestTitleKey: "moveInListRequestTitle",
+  idDescriptionKey: "moveInListIdDescription",
+  bodyFields: [
+    {
+      name: "placeOfId",
+      type: "text",
+      descriptionKey: "placeOfIdDescription",
+    },
+  ],
+  requestBody: { placeOfId: EXAMPLE_PLACE_OF_ID },
+  response: {
+    changedRows: [
+      { _id: "<id>", order: 1 },
+      { _id: EXAMPLE_PLACE_OF_ID, order: 2 },
+      { _id: EXAMPLE_BETWEEN_ID, order: 3 },
+    ],
+  },
+  refusalKeys: [
+    "moveInListOtherList",
+    "moveInListGone",
+    "moveInListPermission",
+    "moveInListOrderKept",
+  ],
+};
+
 // Every endpoint described here, by the resource path it is under.
 export function getDescribedModelEndpoints(): Readonly<
   Record<string, ReadonlyArray<ModelEndpoint>>
@@ -200,29 +246,50 @@ export function getDescribedModelEndpoints(): Readonly<
   return MODEL_ENDPOINTS;
 }
 
+// The move every list kept in order answers (MoveInListUtil.hasMoveRequest).
+export function getMoveInListEndpoint(): ModelEndpoint {
+  return MOVE_IN_LIST_ENDPOINT;
+}
+
 /*
  * The endpoints of a resource beyond its own operations, as its page draws
  * them: none for most. `crudApiPath` is the model's (/on-call-duty-policy-
  * schedule), `apiPath` the whole path the page writes (/api/...), and
- * `exampleObjectID` the record the examples name.
+ * `exampleObjectID` the record the examples name. `movesInList` says the
+ * resource is a list kept in order, whose rows are moved by a request of
+ * their own (MoveInListUtil.hasMoveRequest).
  */
 export function getModelEndpoints(data: {
   crudApiPath: string;
   apiPath: string;
   exampleObjectID: string;
+  movesInList?: boolean | undefined;
 }): Array<DrawnModelEndpoint> {
-  return (MODEL_ENDPOINTS[data.crudApiPath] || []).map(
-    (endpoint: ModelEndpoint): DrawnModelEndpoint => {
-      return {
-        ...endpoint,
-        path: `${data.apiPath}${endpoint.route}`,
-        codeExamples: CodeExampleGenerator.generate({
-          method: endpoint.method,
-          endpoint: `${data.apiPath}${endpoint.route.replace(":id", data.exampleObjectID)}`,
-          // A read sends no body.
-          ...(endpoint.requestBody ? { body: endpoint.requestBody } : {}),
-        }),
-      };
-    },
-  );
+  const endpoints: Array<ModelEndpoint> = [
+    ...(MODEL_ENDPOINTS[data.crudApiPath] || []),
+    ...(data.movesInList ? [MOVE_IN_LIST_ENDPOINT] : []),
+  ];
+
+  return endpoints.map((endpoint: ModelEndpoint): DrawnModelEndpoint => {
+    return {
+      ...endpoint,
+      // The moved row of the move's answer is the record the examples name.
+      response:
+        endpoint === MOVE_IN_LIST_ENDPOINT
+          ? JSON.parse(
+              JSON.stringify(endpoint.response).replace(
+                '"<id>"',
+                JSON.stringify(data.exampleObjectID),
+              ),
+            )
+          : endpoint.response,
+      path: `${data.apiPath}${endpoint.route}`,
+      codeExamples: CodeExampleGenerator.generate({
+        method: endpoint.method,
+        endpoint: `${data.apiPath}${endpoint.route.replace(":id", data.exampleObjectID)}`,
+        // A read sends no body.
+        ...(endpoint.requestBody ? { body: endpoint.requestBody } : {}),
+      }),
+    };
+  });
 }

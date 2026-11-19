@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "This endpoint ends an override that is under way, at the server's clock: its end becomes now, and the pages are the away person's again from then on. It takes the same permission as an update, and answers the override's new endsAt.",
       "userOverrideEndNowRequestTitle": "End Now Request",
       "userOverrideIdDescription": "ID of the user override",
-      "userOverrideEndNowRefused": "400 Bad Request: the override has not started yet (delete it instead), has already ended, or ends within the minute anyway."
+      "userOverrideEndNowRefused": "400 Bad Request: the override has not started yet (delete it instead), has already ended, or ends within the minute anyway.",
+      "moveInListHeading": "Move",
+      "moveInListIntro": "This endpoint moves a record of a list kept in order to the place of another record of the same list, as dragging it in the dashboard does. It lands just above the record named in placeOfId when it comes from below it, and just below it when it comes from above, and the records between them move one place towards where it was. The list is then numbered from the top: 1, 2, 3 and so on, or counting down to 1 for a list whose top is its highest number. A create or update that writes the number places that one record and moves no other, so a script that numbers a whole list gets the numbers it wrote: to move a record past others, send this request instead. It runs in one transaction that holds the list, so two moves at once happen one after the other. It takes the same permission as an update of the record's number, and answers changedRows: each record it gave another number, the moved record among them, with its new number under order, whatever this resource calls its number.",
+      "moveInListRequestTitle": "Move Request",
+      "moveInListIdDescription": "ID of the record to move",
+      "placeOfIdDescription": "The ID of the record whose place it takes: a record of the same list.",
+      "moveInListOtherList": "400 Bad Request: placeOfId is missing, is not an ID, or names a record that is not in the same list as the record to move.",
+      "moveInListGone": "404 Not Found: the record to move is no longer in its list: it was deleted, or moved to another list. Read the list again.",
+      "moveInListPermission": "422: the caller may not change the record's number, as an update of it would be refused.",
+      "moveInListOrderKept": "400 Bad Request: the move would put a project's built-in states or statuses out of order, such as the resolved state above the acknowledged one."
     },
     "dataType": {
       "enumBadge": "Enum",
