@@ -1,4 +1,6 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/ProjectSso";
 import ObjectID from "../../Types/ObjectID";
@@ -18,9 +20,23 @@ import SsoProviderTeamGrant, {
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Exception from "../../Types/Exception/Exception";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * What a provider names must be its own project's: its teams are held to
+   * that by SsoProviderTeamGrant, in its own words, for every caller; the
+   * rest - the verified domains it serves at Sign in with SSO (#9824) - by
+   * the project check every service whose records name others makes
+   * (ProjectReferencesService), which answers another project's domain as
+   * one that does not exist.
+   */
+  protected override getListsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return ["teams"];
   }
 
   /*
@@ -56,6 +72,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     fillSamlProviderDefaults(createBy.data);
 
     await SsoProviderTeamGrant.assertCanCreate({
@@ -78,6 +96,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const checkedUpdateBy: UpdateBy<Model> =
       await SsoProviderTeamGrant.checkUpdate<Model>({
         kind: SsoProviderKind.Saml,
