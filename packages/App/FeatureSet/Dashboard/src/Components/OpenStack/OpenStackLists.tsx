@@ -6,11 +6,19 @@ import Query from "Common/Types/BaseDatabase/Query";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
-import { isOpenStackBareMetalNodeInMaintenance } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  getOpenStackDatabaseVolumeUsage,
+  getOpenStackStoragePoolUsage,
+  isOpenStackBareMetalNodeInMaintenance,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Column from "Common/UI/Components/ModelTable/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { fetchOpenStackCounts } from "../../Pages/OpenStack/Utils/OpenStackPartData";
@@ -67,7 +75,7 @@ import OpenStackResourceList, {
   formatOpenStackBytes,
   formatOpenStackCount,
   getOpenStackAllocationColumn,
-  getOpenStackAmountColumn,
+  getOpenStackStorageUsageColumn,
   getOpenStackFactColumn,
   getOpenStackLinkColumn,
   getOpenStackSizeColumn,
@@ -1168,22 +1176,38 @@ export const OpenStackVolumeList: FunctionComponent<OpenStackListProps> = (
  * ---------------------------------------------------------------------------
  * Storage pools
  * ---------------------------------------------------------------------------
+ *
+ * How full each pool is with the shared storage bar (#9647), amber past 85%
+ * and red past 95% as the pool's rules and alerts read it, then what is free
+ * and its capacity, so the fullest pool is a click away.
  */
 const STORAGE_POOL_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
   OpenStackColumn.Status,
-  getOpenStackAmountColumn({
+  getOpenStackStorageUsageColumn({
+    id: "used",
     title: "Used",
     field: "diskAllocatedBytes",
-    capacityField: "diskCapacityBytes",
-    format: formatOpenStackBytes,
+    getUsage: (row: OpenStackResource) => {
+      return getOpenStackStoragePoolUsage({
+        allocatedBytes: row.diskAllocatedBytes,
+        capacityBytes: row.diskCapacityBytes,
+      });
+    },
   }),
   getOpenStackFactColumn({
     id: "free",
-    title: "Free",
+    // The room left, never the price (MeaningKeys).
+    title: "Free (storage space)",
     getText: (row: OpenStackResource): string => {
       const free: number | null = getOpenStackFactNumber(row, "freeBytes");
       return free === null ? "" : formatOpenStackBytes(free);
     },
+  }),
+  getOpenStackSizeColumn({
+    title: "Capacity",
+    field: "diskCapacityBytes",
+    format: formatOpenStackBytes,
+    hideOnMobile: true,
   }),
   getOpenStackFactColumn({
     id: "backend",
@@ -2002,8 +2026,10 @@ export const OpenStackAmphoraList: FunctionComponent<OpenStackListProps> = (
  * ---------------------------------------------------------------------------
  *
  * Only on a cloud that runs Trove. What its volume holds reads as nothing on an instance that isn't
- * running: it says 0, recorded, whatever is in it. How much of it is used is on the instance's own page.
+ * running: it says 0, recorded, whatever is in it, so its bar says Not reported there.
  */
+const DATABASE_VOLUME_NOT_REPORTED: string = translationKey("Not reported");
+
 const DATABASE_INSTANCE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> =
   [
     OpenStackColumn.Status,
@@ -2016,10 +2042,28 @@ const DATABASE_INSTANCE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> =
         return version ? `${datastore} ${version}` : datastore;
       },
     }),
-    getOpenStackSizeColumn({
+    /*
+     * How full its volume is (#9647): what its database used of the volume,
+     * with the shared bar. One that isn't running reads 0, recorded, so it
+     * says Not reported rather than an empty volume.
+     */
+    getOpenStackStorageUsageColumn({
+      id: "volumeUsed",
       title: "Volume",
       field: "diskCapacityBytes",
+      getUsage: (row: OpenStackResource) => {
+        return getOpenStackDatabaseVolumeUsage({
+          usedBytes: row.diskAllocatedBytes,
+          sizeBytes: row.diskCapacityBytes,
+        });
+      },
+      noUsageText: DATABASE_VOLUME_NOT_REPORTED,
+    }),
+    getOpenStackSizeColumn({
+      title: "Size",
+      field: "diskCapacityBytes",
       format: formatOpenStackBytes,
+      hideOnMobile: true,
     }),
     OpenStackColumn.TimeInState,
     OpenStackColumn.Project,

@@ -18,7 +18,6 @@ import Route from "Common/Types/API/Route";
 import ResourceTable, {
   InfrastructureResource,
   ResourceColumn,
-  ResourceColumnTone,
 } from "../../../Components/Infrastructure/ResourceTable";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils from "../Utils/CephResourceUtils";
@@ -30,12 +29,9 @@ import {
   getCephPoolReadings,
 } from "../Utils/CephHealth";
 import {
-  CEPH_USED_PERCENT_ATTRIBUTE,
   CephPoolPgSummary,
-  formatCephReadingNumber,
   getCephPoolPgSummary,
-  getCephPoolUsedTone,
-  readCephRowNumber,
+  getCephPoolStorageUsage,
   withCephStatus,
 } from "../Utils/CephPartFacts";
 import { CephPgStateReadings, loadCephPgStates } from "../Utils/CephReadings";
@@ -54,7 +50,8 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 /*
  * The Pools list reads the CephResource Postgres inventory (kind=Pool).
@@ -74,35 +71,18 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 const IOPS_WINDOW_MINUTES: number = 15;
 
 /*
- * The list's own columns beside ResourceTable's Name and Status: how full
- * each pool is, what it stores, its placement groups and its I/O. Max Avail
- * and Objects fold into Stored when the table is short of room.
+ * What a pool's Used cell says when it sent neither STORED nor MAX AVAIL in
+ * the last 15 minutes: in words, never an empty bar or a 0% it never measured.
+ */
+const POOL_USAGE_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * The list's own columns after ResourceTable's Name, Status, Used and Free
+ * (how full each pool is: what it stores, as a bar, and what Ceph says can
+ * still be written): its placement groups, its objects and its I/O. Objects
+ * folds under Used when the table is short of room.
  */
 const POOL_COLUMNS: Array<ResourceColumn> = [
-  {
-    title: "Used",
-    key: "usedPercent",
-    description: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn,
-    getTone: (
-      resource: InfrastructureResource,
-    ): ResourceColumnTone | undefined => {
-      return getCephPoolUsedTone(
-        readCephRowNumber(resource, CEPH_USED_PERCENT_ATTRIBUTE),
-      );
-    },
-  },
-  {
-    title: "Stored",
-    key: "stored",
-    description: CEPH_METRIC_DESCRIPTIONS.poolStoredColumn,
-  },
-  {
-    title: "Max Avail",
-    key: "maxAvail",
-    description: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn,
-    foldInto: "stored",
-    showTitleWhenFolded: true,
-  },
   {
     title: "PGs",
     key: "pgs",
@@ -113,10 +93,10 @@ const POOL_COLUMNS: Array<ResourceColumn> = [
     key: "objects",
     description: CEPH_METRIC_DESCRIPTIONS.poolObjectsColumn,
     /*
-     * Under what the pool stores, not under its name: folded under the
+     * Under how full the pool is, not under its name: folded under the
      * name, it left a long pool name a column too narrow to read whole.
      */
-    foldInto: "stored",
+    foldInto: "storageUsage",
     showTitleWhenFolded: true,
   },
   {
@@ -258,11 +238,6 @@ const CephClusterPools: FunctionComponent<
               age: CephResourceUtils.formatAge(row.createdAt),
               additionalAttributes: {
                 externalId: poolId,
-                stored: CephResourceUtils.formatBytes(readings.storedBytes),
-                maxAvail: CephResourceUtils.formatBytes(readings.maxAvailBytes),
-                usedPercent: CephResourceUtils.formatPercent(
-                  readings.usedPercent,
-                ),
                 pgs: pgSummary
                   ? translator.translateTemplate(
                       "{{clean}} of {{total}} clean",
@@ -275,15 +250,20 @@ const CephClusterPools: FunctionComponent<
                 objects: CephResourceUtils.formatCount(readings.objects),
                 readIops:
                   readRate !== undefined
-                    ? `${readRate.toFixed(1)}/s`
+                    ? `${formatReaderFigure(readRate, { decimals: 1 })}/s`
                     : EMPTY_VALUE_MARK,
                 writeIops:
                   writeRate !== undefined
-                    ? `${writeRate.toFixed(1)}/s`
+                    ? `${formatReaderFigure(writeRate, { decimals: 1 })}/s`
                     : EMPTY_VALUE_MARK,
-                [CEPH_USED_PERCENT_ATTRIBUTE]: formatCephReadingNumber(
-                  readings.usedPercent,
-                ),
+              },
+              /*
+               * What it stores of what it could hold (STORED of STORED +
+               * MAX AVAIL), as the Used and Free columns draw it.
+               */
+              storageUsage: {
+                usage: getCephPoolStorageUsage(readings),
+                noUsageText: POOL_USAGE_NOT_REPORTED,
               },
             },
             assessCephPool(row, {
@@ -334,6 +314,10 @@ const CephClusterPools: FunctionComponent<
       showResourceMetrics={false}
       builtInColumnDescriptions={{
         status: CEPH_METRIC_DESCRIPTIONS.poolStatusColumn,
+      }}
+      storageUsageColumns={{
+        usedDescription: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn,
+        freeDescription: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn,
       }}
       columns={POOL_COLUMNS}
       emptyMessage="No pools in the inventory yet. Pools appear here a few minutes after the Ceph agent starts sending metrics."

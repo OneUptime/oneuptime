@@ -2,15 +2,18 @@ import { HEALTH_PORT } from "./TestEnv";
 import * as assert from "assert";
 import * as http from "http";
 import { after, before, test } from "node:test";
+import { toScrapeTargetGroups } from "../EngineMetrics";
 import { assessHealth, startHealthServer } from "../Health";
 import { Poller } from "../Poller";
 import { Shipper } from "../Shipper";
 import {
   CostEngineSource,
   EngineAllocation,
+  EngineMetricsSource,
   HealthReport,
   KubernetesCostEngineInfo,
   PollerStatus,
+  ScrapeTargetGroup,
   ShipperStatus,
 } from "../Types";
 
@@ -269,6 +272,12 @@ const engineStubState: {
   url: string | undefined;
 } = { info: undefined, url: undefined };
 
+// Where the engine's price metrics are; nothing found until a test sets it.
+const metricsStubState: { url: string | null; reason: string } = {
+  url: null,
+  reason: "",
+};
+
 before(async (): Promise<void> => {
   const pollerStub: Poller = {
     status: (): PollerStatus => {
@@ -293,10 +302,23 @@ before(async (): Promise<void> => {
     },
   };
 
+  const metricsStub: EngineMetricsSource = {
+    url: (): string | null => {
+      return metricsStubState.url;
+    },
+    reason: (): string => {
+      return metricsStubState.reason;
+    },
+    targetGroups: (): Array<ScrapeTargetGroup> => {
+      return toScrapeTargetGroups(metricsStubState.url);
+    },
+  };
+
   server = startHealthServer({
     poller: pollerStub,
     shipper: shipperStub,
     engine: engineStub,
+    metrics: metricsStub,
   });
   await new Promise<void>((resolve: () => void): void => {
     server.once("listening", resolve);
@@ -433,4 +455,146 @@ test("/healthz says nothing of an engine before the agent has one", async (): Pr
 
   assert.ok(!("costEngine" in body));
   assert.ok(!("costEngineUrl" in body));
+  assert.ok(!("costEngineMetricsUrl" in body));
+  assert.ok(!("costEngineMetricsError" in body));
+});
+
+/*
+ * #9776: the collector's cost-engine job asks /scrape-targets where the
+ * engine in use serves its price metrics (Prometheus http_sd), so a Kubecost
+ * named by its frontend is not scraped at its web UI.
+ */
+async function getScrapeTargets(): Promise<{
+  statusCode: number;
+  contentType: string;
+  groups: unknown;
+}> {
+  return new Promise(
+    (
+      resolve: (value: {
+        statusCode: number;
+        contentType: string;
+        groups: unknown;
+      }) => void,
+      reject: (reason: Error) => void,
+    ): void => {
+      const req: http.ClientRequest = http.get(
+        { host: "127.0.0.1", port: HEALTH_PORT, path: "/scrape-targets" },
+        (res: http.IncomingMessage): void => {
+          const chunks: Array<Buffer> = [];
+          res.on("data", (chunk: Buffer): void => {
+            chunks.push(chunk);
+          });
+          res.on("end", (): void => {
+            resolve({
+              statusCode: res.statusCode || 0,
+              contentType: String(res.headers["content-type"] || ""),
+              groups: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+            });
+          });
+        },
+      );
+      req.on("error", reject);
+    },
+  );
+}
+
+test("/scrape-targets tells the collector where the engine's price metrics are, as http_sd JSON", async (): Promise<void> => {
+  metricsStubState.url =
+    "http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090/model/metrics";
+
+  const res: { statusCode: number; contentType: string; groups: unknown } =
+    await getScrapeTargets();
+
+  assert.strictEqual(res.statusCode, 200);
+  // Prometheus' http_sd refuses any other content type.
+  assert.strictEqual(res.contentType, "application/json");
+  assert.deepStrictEqual(res.groups, [
+    {
+      targets: ["kubecost-cost-analyzer.kubecost.svc.cluster.local:9090"],
+      labels: { __scheme__: "http", __metrics_path__: "/model/metrics" },
+    },
+  ]);
+
+  metricsStubState.url = null;
+});
+
+test("/scrape-targets is an empty list until the price metrics are found", async (): Promise<void> => {
+  const res: { statusCode: number; contentType: string; groups: unknown } =
+    await getScrapeTargets();
+
+  assert.strictEqual(res.statusCode, 200);
+  assert.deepStrictEqual(res.groups, []);
+});
+
+test("/scrape-targets answers while the allocations are degraded: prices do not wait on them", async (): Promise<void> => {
+  stubs.poller = pollerStatus({
+    startedAtMs: Date.now() - 6 * 60 * 60 * 1000,
+    consecutivePollFailures: 40,
+    lastPollError: "Cost engine answered HTTP 500 for /model/allocation",
+  });
+  stubs.shipper = shipperStatus();
+  metricsStubState.url = "http://kubecost-finopsagent.kubecost.svc:80/metrics";
+
+  const ready: { statusCode: number; body: string } = await get("/healthz");
+  const targets: { statusCode: number; contentType: string; groups: unknown } =
+    await getScrapeTargets();
+
+  assert.strictEqual(ready.statusCode, 503);
+  assert.strictEqual(targets.statusCode, 200);
+  assert.deepStrictEqual(targets.groups, [
+    {
+      targets: ["kubecost-finopsagent.kubecost.svc:80"],
+      labels: { __scheme__: "http", __metrics_path__: "/metrics" },
+    },
+  ]);
+
+  metricsStubState.url = null;
+});
+
+test("/healthz says where the engine's price metrics are scraped", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+  engineStubState.url = "http://kubecost-frontend.kubecost.svc:9090";
+  metricsStubState.url = "http://kubecost-finopsagent.kubecost.svc:80/metrics";
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.strictEqual(
+    body["costEngineMetricsUrl"],
+    "http://kubecost-finopsagent.kubecost.svc:80/metrics",
+  );
+  assert.ok(!("costEngineMetricsError" in body));
+  // Near the start, beside the engine, where troubleshoot.sh reads it.
+  assert.ok(
+    res.body.indexOf('"costEngineMetricsUrl"') < res.body.indexOf('"status"'),
+  );
+
+  engineStubState.url = undefined;
+  metricsStubState.url = null;
+});
+
+test("/healthz says why no price metrics were found", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+  metricsStubState.reason =
+    "https://kubecost.example.com/metrics: a web page (text/html), not metrics";
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.ok(!("costEngineMetricsUrl" in body));
+  assert.strictEqual(
+    body["costEngineMetricsError"],
+    "https://kubecost.example.com/metrics: a web page (text/html), not metrics",
+  );
+
+  metricsStubState.reason = "";
 });

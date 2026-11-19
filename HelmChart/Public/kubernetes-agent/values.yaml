@@ -810,6 +810,13 @@ cost:
     #         or `https://`: the poller and the metrics scrape both follow
     #         the scheme, and both verify an https engine's certificate
     #         against public CAs only (no setting yet trusts a private one).
+    #         Any of the engine's Services will do, e.g. Kubecost 2's
+    #         http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090,
+    #         Kubecost 3's
+    #         http://kubecost-frontend.kubecost.svc.cluster.local:9090 or
+    #         OpenCost's http://opencost.opencost.svc.cluster.local:9003:
+    #         the cost agent finds where that engine serves its price metrics
+    #         (see cost.metrics.endpoint).
     url: ""
     # With the bundled engine (url empty): read the cluster's own OpenCost
     # or Kubecost instead when it runs one and answers, so the cluster is
@@ -967,13 +974,24 @@ cost:
   # deployment collector's existing OTLP export.
   metrics:
     enabled: true
-    # Metrics endpoint. Empty defaults to <cost.engine.url>/metrics.
+    # Metrics endpoint. Empty: the bundled OpenCost's /metrics; with
+    # cost.engine.url set to auto or a URL, wherever the engine the cost
+    # agent reads serves its price metrics, which the agent finds and the
+    # collector asks it for (Prometheus http_sd). A Kubecost frontend or
+    # OpenCost's UI answers /metrics with its web page, so the agent tries
+    # the engine's /metrics, then the /model/metrics a frontend proxies to
+    # the engine (Kubecost 2, OpenCost's UI), then the finops agent in the
+    # engine's namespace (Kubecost 3, whose frontend serves its prices at no
+    # path), and takes the first with price series. Until it finds them
+    # nothing is scraped, and its /healthz says why (troubleshoot.sh shows
+    # it). With cost.agent.enabled false, <cost.engine.url>/metrics.
     #
-    # Set it when the engine serves its metrics somewhere else. It is a
-    # URL and is scraped where it points: `https://` over TLS, and a path
-    # other than /metrics at that path. As with kubeStateMetrics.endpoint,
-    # a URL with credentials, a query string or a fragment is refused; so
-    # is such a cost.engine.url while this is empty and stands in for it.
+    # Set it to name the endpoint yourself, e.g. a Kubecost 3 behind an
+    # ingress: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics.
+    # It is a URL and is scraped where it points: `https://` over TLS, and a
+    # path other than /metrics at that path. As with
+    # kubeStateMetrics.endpoint, a URL with credentials, a query string or a
+    # fragment is refused; so is such a cost.engine.url while this is empty.
     endpoint: ""
     scrapeInterval: 60s
     # Exact-match allowlist — the engine exports many more series. These

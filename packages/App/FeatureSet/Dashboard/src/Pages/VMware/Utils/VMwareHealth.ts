@@ -5,6 +5,12 @@ import { JSONObject } from "Common/Types/JSON";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  StorageReadingValue,
+  StorageUsage,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
   ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -79,6 +85,58 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
 
 export const VMWARE_DATASTORE_WARNING_PERCENT: number = 80;
 export const VMWARE_DATASTORE_CRITICAL_PERCENT: number = 90;
+
+/*
+ * Where a datastore's bar turns amber and red, and the vCenter's total
+ * across its datastores: the levels its alerts and Needs attention flag a
+ * datastore at, and that mark the vCenter Degraded and Unhealthy. Past the
+ * line, as its alerts and Needs attention flag it.
+ */
+export const VMWARE_DATASTORE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: VMWARE_DATASTORE_WARNING_PERCENT,
+  criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,
+  isPastLineOnly: true,
+};
+
+/*
+ * A VM's datastore space against what is provisioned for it has no line: a
+ * thick-provisioned disk takes all of it from the start, so a full bar is
+ * how such a VM always reads, never a problem by itself. Its bar stays calm;
+ * the datastore filling up is what the rules watch (#9646).
+ */
+export const VMWARE_VM_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: Number.POSITIVE_INFINITY,
+  criticalPercent: Number.POSITIVE_INFINITY,
+};
+
+/*
+ * A VM's storage as its list's bar reads it: the datastore space its files
+ * take (vcenter.vm.disk.usage, used) of all that is provisioned for it (used
+ * plus what its disks may still grow into). Null when vSphere reported none.
+ */
+export function getVMwareVmStorageUsage(data: {
+  usedBytes: StorageReadingValue;
+  provisionedBytes: StorageReadingValue;
+}): StorageUsage | null {
+  return getStorageUsage(
+    { capacity: data.provisionedBytes, used: data.usedBytes },
+    VMWARE_VM_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * A vCenter's storage: the used and capacity of every datastore it reports,
+ * added up (VMwareVCenter's datastore totals), at the datastores' levels.
+ */
+export function getVMwareVCenterStorageUsage(data: {
+  datastoreUsedBytes: StorageReadingValue;
+  datastoreCapacityBytes: StorageReadingValue;
+}): StorageUsage | null {
+  return getStorageUsage(
+    { capacity: data.datastoreCapacityBytes, used: data.datastoreUsedBytes },
+    VMWARE_DATASTORE_USAGE_THRESHOLDS,
+  );
+}
 export const VMWARE_HOST_SATURATION_PERCENT: number = 90;
 export const VMWARE_CPU_READY_WARNING_PERCENT: number = 10;
 

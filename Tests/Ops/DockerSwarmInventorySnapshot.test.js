@@ -103,10 +103,17 @@ describeWithJq("inventory-snapshot.sh --once, against a manager's API", () => {
       expect(first.slice(0, FINGERPRINT_BYTES)).not.toBe(
         second.slice(0, FINGERPRINT_BYTES),
       );
-      // Past the snapshot's own line, the same swarm reads the same.
-      expect(first.slice(first.indexOf("\n"))).toBe(
-        second.slice(second.indexOf("\n")),
-      );
+      /*
+       * Past the snapshot's own line, the same swarm reads the same - but
+       * for the disk its volumes live on, a live reading of free space that
+       * moves as anything is written (#9648).
+       */
+      const withoutDisk = (text) => {
+        return text
+          .slice(text.indexOf("\n"))
+          .replace(/"Disk(Total|Available)Bytes":\d+/g, '"Disk$1Bytes":0');
+      };
+      expect(withoutDisk(first)).toBe(withoutDisk(second));
     });
 
     test("the metrics line carries its reading's time in its first bytes", () => {
@@ -305,6 +312,72 @@ describeWithJq("inventory-snapshot.sh --once, against a manager's API", () => {
       expect(running.Node).toBe("swarm-manager-01");
       expect(running.ContainerID).toBe("c".repeat(64));
       expect(running.ExitCode).toBe("0");
+    });
+  });
+
+  /*
+   * Each local volume's size and the disk it lives on (#9648): its size as
+   * Docker measures it (/system/df), and df on the poller's own volume,
+   * which Docker keeps beside the others.
+   */
+  describe("volumes", () => {
+    let volumes;
+
+    beforeAll(() => {
+      volumes = new Map(
+        recordsOf(result.inventory, "Volume").map((volume) => {
+          return [volume.Name, volume];
+        }),
+      );
+    });
+
+    test("a local volume carries its size and the disk Docker keeps it on", () => {
+      const data = volumes.get("shop_data");
+
+      expect(data.SizeBytes).toBe(10920104);
+      expect(data.DiskTotalBytes).toBeGreaterThan(0);
+      expect(data.DiskAvailableBytes).toBeGreaterThanOrEqual(0);
+      expect(data.DiskAvailableBytes).toBeLessThanOrEqual(data.DiskTotalBytes);
+      // df counts in KiB: whole KiB, in bytes.
+      expect(data.DiskTotalBytes % 1024).toBe(0);
+    });
+
+    test("a volume mounted from elsewhere, or of another driver, carries neither", () => {
+      for (const name of ["shop_media", "shared_cache"]) {
+        expect([name, volumes.get(name).SizeBytes]).toEqual([name, null]);
+        expect([name, volumes.get(name).DiskTotalBytes]).toEqual([name, null]);
+        expect([name, volumes.get(name).DiskAvailableBytes]).toEqual([
+          name,
+          null,
+        ]);
+      }
+    });
+
+    test("measuring sizes switched off still names every volume and its disk", () => {
+      const off = snapshotOf(
+        tempDir("swarm-inventory-sizes-off-"),
+        buildSwarmApi(now),
+        { DOCKER_VOLUME_USAGE_INTERVAL_SECONDS: "0" },
+      );
+      const data = recordsOf(off.inventory, "Volume").find((volume) => {
+        return volume.Name === "shop_data";
+      });
+
+      expect(data.SizeBytes).toBeNull();
+      expect(data.DiskTotalBytes).toBeGreaterThan(0);
+    });
+
+    test("a daemon that cannot measure them leaves the sizes out, and the volumes in", () => {
+      const api = buildSwarmApi(now);
+      api["system-df"] = null;
+      const failed = snapshotOf(tempDir("swarm-inventory-no-df-"), api);
+
+      expect(recordsOf(failed.inventory, "Volume")).toHaveLength(3);
+      expect(
+        recordsOf(failed.inventory, "Volume").every((volume) => {
+          return volume.SizeBytes === null;
+        }),
+      ).toBe(true);
     });
   });
 

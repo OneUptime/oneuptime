@@ -249,6 +249,12 @@ Then hand `token` to `baseHeaders` in place of `BuildConfig.ONEUPTIME_TOKEN`, an
 
 Converge the devices after a change, so they read the new values. Declare the same keys in an `app_restrictions.xml` if your MDM asks for a schema. Esper refuses an APK that has no v1 signature, so sign the release with the v1 scheme as well as v2 or v3.
 
+### Import the fleet from Esper
+
+Connect your Esper tenant to Inventory, and every device Esper enrolls is listed, including the devices whose app never started, with what only Esper knows: its group, Android version, security patch level, serial number, battery, storage, installed apps and last check-in. A device that stops checking in shows as offline, with how long ago it last did. See [Import devices from Esper](/docs/inventory/overview#import-devices-from-esper).
+
+A device whose app names it as above is one item with what the app sends: `host.name` is its name in Esper. OneUptime finds a device's item by `host.name`, then by `host.serial_number`, so give each device the same name and serial number in every app that reports from it, and in the Android Agent's `device_name` and `device_serial` settings.
+
 ### Keep what is recorded while offline
 
 The agent writes every span, log and metric to disk before it sends it. While the network is down it keeps them there, and sends them once it is back, up to 18 hours later. It keeps 10 MB; raise it for a device that is often offline:

@@ -67,6 +67,11 @@ export const AZURE_INVENTORY_PROPERTIES: ReadonlyArray<string> = [
   // A network security group's rules, one line each (#9375).
   "inbound",
   "outbound",
+  /*
+   * A managed disk's size in GiB (properties.diskSizeGB), so its page says
+   * how big it is (#9648): one more column of the same query, no call.
+   */
+  "diskSizeGB",
 ];
 
 // The fields a resource's host names are read from, as the query names them.
@@ -185,7 +190,9 @@ export function buildAzureInventoryQuery(): string {
     "  gatewayBackendPools = iff(type =~ 'microsoft.network/applicationgateways', properties.backendAddressPools, dynamic(null)),",
     // A network security group's own rules; a cluster's node resource group.
     "  securityRules = iff(type =~ 'microsoft.network/networksecuritygroups', properties.securityRules, dynamic(null)),",
-    "  nodeResourceGroup = tostring(properties.nodeResourceGroup)",
+    "  nodeResourceGroup = tostring(properties.nodeResourceGroup),",
+    // A managed disk's size; nothing for any other type.
+    "  diskSizeGB = iff(type =~ 'microsoft.compute/disks', tolong(properties.diskSizeGB), long(null))",
   ].join("\n");
 }
 

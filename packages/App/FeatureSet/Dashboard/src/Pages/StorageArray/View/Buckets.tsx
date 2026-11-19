@@ -15,11 +15,16 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
+import {
+  getStorageArrayBucketNoUsageText,
+  getStorageArrayBucketUsage,
+} from "../Utils/StorageArrayHealth";
 
 /*
  * FlashBlade S3 buckets (kind=Bucket), from purefb_buckets_* via the
- * inventory: the account a bucket belongs to (groupName), its quota
- * (capacityBytes), what it holds (usedBytes) and its object count.
+ * inventory: the account a bucket belongs to (groupName), how full it is
+ * against its quota (what it stores before data reduction, of capacityBytes;
+ * #9647), its quota, the flash it uses (usedBytes) and its object count.
  */
 const StorageArrayBuckets: FunctionComponent<
   PageComponentProps
@@ -54,14 +59,17 @@ const StorageArrayBuckets: FunctionComponent<
           title: "Account",
           description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketAccountColumn,
         }),
+        StorageArrayResourceColumns.getUsageColumn({
+          title: "Used",
+          description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketUsedColumn,
+          getUsage: getStorageArrayBucketUsage,
+          getNoUsageText: getStorageArrayBucketNoUsageText,
+        }),
         StorageArrayResourceColumns.getProvisionedColumn({
           title: "Quota",
           description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketQuotaColumn,
         }),
-        StorageArrayResourceColumns.getPhysicalColumn({
-          title: "Used",
-          description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketUsedColumn,
-        }),
+        StorageArrayResourceColumns.getPhysicalColumn(),
         {
           field: {
             details: true,

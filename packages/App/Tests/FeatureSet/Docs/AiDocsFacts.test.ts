@@ -2271,7 +2271,10 @@ describe("MCP Server", () => {
      */
     expect(records()).toHaveLength(55);
     expect(namesIn(0)).toEqual(records());
-    // Every database model with MCP on gets all six tools.
+    /*
+     * Every database model with MCP on gets these tools, the update tool
+     * when it has a field to change (Tools/ToolGenerator).
+     */
     for (const tool of [
       "createCreateTool(",
       "createReadTool(",

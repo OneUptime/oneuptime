@@ -606,12 +606,8 @@ export function getProxmoxMemoryPercent(row: ProxmoxResource): number | null {
   return (used / total) * 100;
 }
 
-// The share of a part's disk in use (a node's root disk, a container's), or null.
-export function getProxmoxDiskPercent(row: ProxmoxResource): number | null {
-  const used: number | null = toProxmoxNumber(row.latestDiskBytes);
-  const total: number | null = toProxmoxNumber(row.maxDiskBytes);
-  if (used === null || total === null || total <= 0) {
-    return null;
-  }
-  return (used / total) * 100;
-}
+/*
+ * A part's disk (a node's root filesystem, a container's root disk) is read
+ * by getProxmoxDiskUsage in ProxmoxHealth: the shared storage reading, at
+ * the lines Needs attention uses.
+ */
