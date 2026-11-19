@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
   "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط.",
+  "Left axis": "المحور الأيسر",
+  "Left axis: {{unit}}": "المحور الأيسر: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "مزيد من استعلامات المقاييس، كلٌّ منها على مخطط خاص به ما لم يُراكَب على مخطط الاستعلام السابق",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "لا تناسب الاستعلامات بوحدة {{units}} أيًّا من محوري هذا المخطط ({{axisUnits}})، لذا تُرسم مقابل المحور الأيسر وقد لا تكون قابلة للمقارنة مباشرة.",
+  "Right axis": "المحور الأيمن",
+  "Right axis: {{unit}}": "المحور الأيمن: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا يُرسم مقابل المحور الأيمن للمخطط.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "هذا الاستعلام بوحدة {{unit}}، ومحورا مخطط الاستعلام السابق بوحدتي {{chartUnit}} و{{secondUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على أيٍّ من المحورين."
 }

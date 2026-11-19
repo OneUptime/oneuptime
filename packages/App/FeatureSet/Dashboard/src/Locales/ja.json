@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "私のモニターを表示するステータスページを公開してください。",
   "Publish a status page called {{name}} that shows my monitors.": "私のモニターを表示する {{name}} という名前のステータスページを公開してください。",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。",
+  "Left axis": "左軸",
+  "Left axis: {{unit}}": "左軸: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "追加のメトリクスクエリ。前のクエリのチャートに重ねない限り、それぞれ独自のチャートに描かれます",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "{{units}} のクエリはこのチャートのどの軸（{{axisUnits}}）にも合わないため、左軸に対して描かれ、値を直接比較できない場合があります。",
+  "Right axis": "右軸",
+  "Right axis: {{unit}}": "右軸: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリはチャートの右軸に対して描かれます。",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "このクエリの単位は {{unit}} で、前のクエリのチャートの軸の単位は {{chartUnit}} と {{secondUnit}} のため、このクエリの値はどちらの軸でも正しく読み取れません。"
 }

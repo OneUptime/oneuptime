@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "Udgiv en statusside, der viser mine monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Udgiv en statusside med navnet {{name}}, der viser mine monitorer.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse.",
+  "Left axis": "Venstre akse",
+  "Left axis: {{unit}}": "Venstre akse: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Flere metrikforespørgsler, hver tegnet i sit eget diagram, medmindre den lægges oven på den forrige forespørgsels diagram",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Forespørgsler i {{units}} passer ikke til nogen af dette diagrams akser ({{axisUnits}}), så de tegnes mod venstre akse og er måske ikke direkte sammenlignelige.",
+  "Right axis": "Højre akse",
+  "Right axis: {{unit}}": "Højre akse: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så den tegnes mod diagrammets højre akse.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Denne forespørgsel er i {{unit}}, og den forrige forespørgsels diagram har akser i {{chartUnit}} og {{secondUnit}}, så dens værdier kan ikke aflæses korrekt på nogen af akserne."
 }

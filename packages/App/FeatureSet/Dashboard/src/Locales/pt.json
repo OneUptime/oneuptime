@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "Publique uma página de status que mostre meus monitores.",
   "Publish a status page called {{name}} that shows my monitors.": "Publique uma página de status chamada {{name}} que mostre meus monitores.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Me ajude a enviar os logs, métricas e traces do meu serviço para o OneUptime, e me alerte quando ele tiver erros.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico.",
+  "Left axis": "Eixo esquerdo",
+  "Left axis: {{unit}}": "Eixo esquerdo: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Mais consultas de métricas, cada uma em um gráfico próprio, a menos que seja sobreposta ao gráfico da consulta anterior",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "As consultas em {{units}} não se encaixam em nenhum eixo deste gráfico ({{axisUnits}}), então são desenhadas no eixo esquerdo e podem não ser diretamente comparáveis.",
+  "Right axis": "Eixo direito",
+  "Right axis: {{unit}}": "Eixo direito: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então ela é desenhada no eixo direito do gráfico.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Esta consulta está em {{unit}}, e o gráfico da consulta anterior tem eixos em {{chartUnit}} e {{secondUnit}}, então os valores dela não serão lidos corretamente em nenhum dos dois eixos."
 }

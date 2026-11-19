@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "Опубликуй страницу статуса, на которой видны мои мониторы.",
   "Publish a status page called {{name}} that shows my monitors.": "Опубликуй страницу статуса с названием {{name}}, на которой видны мои мониторы.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Помоги отправить логи, метрики и трассировки моего сервиса в OneUptime и оповещай меня, когда в нём появляются ошибки.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы.",
+  "Left axis": "Левая ось",
+  "Left axis: {{unit}}": "Левая ось: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Дополнительные запросы метрик, каждый на своей диаграмме, если он не наложен на диаграмму предыдущего запроса",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Запросы в единицах {{units}} не подходят ни к одной оси этой диаграммы ({{axisUnits}}), поэтому они построены по левой оси, и их значения могут быть несопоставимы напрямую.",
+  "Right axis": "Правая ось",
+  "Right axis: {{unit}}": "Правая ось: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому он построен по правой оси диаграммы.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Этот запрос в единицах «{{unit}}», а у диаграммы предыдущего запроса оси в «{{chartUnit}}» и «{{secondUnit}}», поэтому его значения нельзя правильно прочитать ни по одной из осей."
 }

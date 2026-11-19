@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "Publica una página de estado que muestre mis monitores.",
   "Publish a status page called {{name}} that shows my monitors.": "Publica una página de estado llamada {{name}} que muestre mis monitores.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Ayúdame a enviar los logs, métricas y trazas de mi servicio a OneUptime, y avísame cuando tenga errores.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está en {{unit}} y el gráfico de la consulta anterior en {{chartUnit}}, así que sus valores no se leerán bien en el eje de ese gráfico."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está en {{unit}} y el gráfico de la consulta anterior en {{chartUnit}}, así que sus valores no se leerán bien en el eje de ese gráfico.",
+  "Left axis": "Eje izquierdo",
+  "Left axis: {{unit}}": "Eje izquierdo: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Más consultas de métricas, cada una en un gráfico propio salvo que se superponga al gráfico de la consulta anterior",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Las consultas en {{units}} no encajan en ningún eje de este gráfico ({{axisUnits}}), así que se dibujan sobre el eje izquierdo y pueden no ser comparables directamente.",
+  "Right axis": "Eje derecho",
+  "Right axis: {{unit}}": "Eje derecho: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Esta consulta está en {{unit}} y el gráfico de la consulta anterior en {{chartUnit}}, así que se dibuja sobre el eje derecho del gráfico.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Esta consulta está en {{unit}}, y el gráfico de la consulta anterior tiene ejes en {{chartUnit}} y {{secondUnit}}, así que sus valores no se leerán bien en ninguno de los dos ejes."
 }

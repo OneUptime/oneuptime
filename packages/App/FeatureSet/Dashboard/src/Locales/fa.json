@@ -59022,5 +59022,13 @@
   "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
   "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند.",
+  "Left axis": "محور چپ",
+  "Left axis: {{unit}}": "محور چپ: {{unit}}",
+  "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "کوئری‌های متریک بیشتر، هر کدام روی نمودار خودش، مگر آنکه روی نمودار کوئری قبلی قرار گیرد",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "کوئری‌های بر حسب {{units}} با هیچ‌یک از محورهای این نمودار ({{axisUnits}}) جور نیستند، پس نسبت به محور چپ کشیده می‌شوند و شاید مستقیماً قابل مقایسه نباشند.",
+  "Right axis": "محور راست",
+  "Right axis: {{unit}}": "محور راست: {{unit}}",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس نسبت به محور راست نمودار کشیده می‌شود.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "این کوئری بر حسب {{unit}} است و محورهای نمودار کوئری قبلی بر حسب {{chartUnit}} و {{secondUnit}}، پس مقدارهای آن روی هیچ‌یک از دو محور درست خوانده نمی‌شوند."
 }
