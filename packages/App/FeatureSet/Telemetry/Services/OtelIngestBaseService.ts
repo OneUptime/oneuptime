@@ -5717,7 +5717,8 @@ export default abstract class OtelIngestBaseService {
      * selectPrimaryEntity reads a hostId before a rumApplicationId, and the
      * RUM application's own pages went empty. The device still reaches
      * Inventory: its `host.name` is a host entity's identity
-     * (TelemetryEntity), with the make, model and OS the SDK reports.
+     * (Utils/Telemetry/TelemetryEntity), with the make, model and OS the
+     * SDK reports.
      */
     if (this.getRumClientType(data.attributes)) {
       return null;
