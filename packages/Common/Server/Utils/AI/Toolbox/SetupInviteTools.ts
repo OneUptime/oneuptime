@@ -484,11 +484,11 @@ export const InvitePeopleTool: ObservabilityTool = {
 
     if (invited.length === 0) {
       throw new BadDataException(
-        `Nobody was invited: ${failed
+        `Nobody was invited, as each invitation was refused (${failed
           .map((failure: { email: string; reason: string }): string => {
-            return `${failure.email} (${failure.reason})`;
+            return `${failure.email}: ${failure.reason.replace(/\.$/, "")}`;
           })
-          .join("; ")}`,
+          .join("; ")}).`,
       );
     }
 

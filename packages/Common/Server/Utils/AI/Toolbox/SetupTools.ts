@@ -91,7 +91,6 @@ import {
 } from "../../../../Utils/GuidedSetup/StatusPageRecords";
 import {
   GUIDED_SETUP_MONITORING_INTERVAL,
-  MONITORS_CHECKING_ADDRESS_READ_LIMIT,
   WEBSITE_MONITOR_SEEDS_MISSING,
   WebsiteAddress,
   WebsiteMonitorSeeds,
@@ -100,7 +99,6 @@ import {
   parseWebsiteAddress,
   pickWebsiteMonitorSeeds,
 } from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
-import MonitorType from "../../../../Types/Monitor/MonitorType";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import AlertOnCallRuleService from "../../../Services/AlertOnCallRuleService";
 import AlertSeverityService from "../../../Services/AlertSeverityService";
@@ -138,6 +136,7 @@ import {
   quotedName,
   readMonitorPlanRefusal,
   readNames,
+  readWebsiteMonitors,
 } from "./SetupPlan";
 import { InvitePeopleTool, readInviteEmails } from "./SetupInviteTools";
 import { SetHowToReachMeTool } from "./SetupLadderTools";
@@ -634,32 +633,6 @@ export interface FoundMonitors {
 export interface MonitorCheckingAddress extends SetupMonitor {
   // Made by the person asking.
   isOwn: boolean;
-}
-
-/*
- * The project's newest Website and API monitors the person may read, with
- * what isMonitorCheckingAddress reads of each: as many as the website
- * guided setup reads to find one for an address (#7254).
- */
-async function readWebsiteMonitors(ctx: ToolContext): Promise<Array<Monitor>> {
-  return await MonitorService.findBy({
-    query: {
-      projectId: ctx.projectId,
-      monitorType: QueryHelper.any([MonitorType.Website, MonitorType.API]),
-    },
-    select: {
-      _id: true,
-      name: true,
-      monitorSteps: true,
-      isArchived: true,
-      disableActiveMonitoring: true,
-      createdByUserId: true,
-    },
-    sort: { createdAt: SortOrder.Descending },
-    limit: MONITORS_CHECKING_ADDRESS_READ_LIMIT,
-    skip: 0,
-    props: ctx.props,
-  });
 }
 
 /*
@@ -3384,7 +3357,11 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
 
     if (!added) {
       throw new BadDataException(
-        `Nobody was added to the on-call policy "${addition.policyName}": ${failures.join("; ")}`,
+        `Nobody was added to the on-call policy "${addition.policyName}", as each addition was refused (${failures
+          .map((failure: string): string => {
+            return failure.replace(/\.$/, "");
+          })
+          .join("; ")}).`,
       );
     }
 

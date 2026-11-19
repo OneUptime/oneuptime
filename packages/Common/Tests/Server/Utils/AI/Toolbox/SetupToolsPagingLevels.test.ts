@@ -987,7 +987,7 @@ describe("add_to_on_call_policy", () => {
         ctx,
       ),
     ).rejects.toThrow(
-      'Nobody was added to the on-call policy "Payments on-call": No permission.',
+      'Nobody was added to the on-call policy "Payments on-call", as each addition was refused (No permission).',
     );
   });
 });

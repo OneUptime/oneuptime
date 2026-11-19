@@ -11,7 +11,13 @@ import {
   SetupActionRefusal,
   ToolContext,
 } from "../../../../../Server/Utils/AI/Toolbox/ToolTypes";
+import {
+  countMonitorsSetUpInPlan,
+  readMonitorPlanRefusal,
+} from "../../../../../Server/Utils/AI/Toolbox/SetupPlan";
 import MonitorService from "../../../../../Server/Services/MonitorService";
+import PayAsYouGoBillingService from "../../../../../Server/Services/PayAsYouGoBillingService";
+import ActiveMonitorLimit from "../../../../../Server/Utils/Billing/ActiveMonitorLimit";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import StatusPageResourceService from "../../../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../../../Server/Services/StatusPageService";
@@ -527,4 +533,107 @@ test("what the model is told names the monitor and what can be done instead", ()
   ).toBe(
     'Nothing proposed: the monitor "Acme website" already checks https://example.com, so no second monitor is made, as the website guided setup makes none. Say so in one sentence, naming it. who_is_told says who it reaches; to show it on a status page, name it in publish_status_page or add_monitors_to_status_page.',
   );
+});
+
+/*
+ * The plan's room for monitors counts only the monitors it makes: an
+ * address a monitor checks already gets none, so a plan near the project's
+ * active monitor limit is not refused for it. The quick count is asked
+ * first, and only a refusal reads the project's monitors - as the person -
+ * to count again.
+ */
+describe("the plan's room counts no monitor for an address a monitor checks already", () => {
+  const plannedCalls: ToolContext["plannedCalls"] = [
+    {
+      name: SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+      arguments: { address: "example.com" },
+    },
+    // The same address again: one monitor at most.
+    {
+      name: SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+      arguments: { address: "https://example.com" },
+    },
+    {
+      name: SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+      arguments: { address: "api.example.com" },
+    },
+  ];
+
+  function payAsYouGoIsSetUp(): void {
+    jest
+      .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+      .mockResolvedValue(true as never);
+  }
+
+  test("an address named twice is one monitor, and one checked already none", () => {
+    expect(countMonitorsSetUpInPlan(plannedCalls)).toBe(2);
+    expect(
+      countMonitorsSetUpInPlan(
+        plannedCalls,
+        (address: WebsiteAddress): boolean => {
+          return address.url === EXAMPLE.url;
+        },
+      ),
+    ).toBe(1);
+  });
+
+  test("refused for two, the plan is counted again without the address checked already, and has room for one", async () => {
+    payAsYouGoIsSetUp();
+    const reads: Spy = projectHasMonitors([
+      websiteMonitor({
+        id: TEAMMATES_ID,
+        name: "Acme website",
+        address: "https://example.com",
+        createdBy: TEAMMATE_ID,
+      }),
+    ]);
+    const room: Spy = jest
+      .spyOn(ActiveMonitorLimit, "getRefusal")
+      .mockImplementation((data: { adding: number }) => {
+        return Promise.resolve(
+          data.adding > 1 ? "Your plan allows 5 active monitors." : null,
+        ) as never;
+      });
+
+    expect(
+      await readMonitorPlanRefusal({ ...ctx, plannedCalls: plannedCalls }),
+    ).toBeNull();
+    expect(
+      room.mock.calls.map((call: Array<unknown>): unknown => {
+        return call[0];
+      }),
+    ).toEqual([
+      { projectId: PROJECT_ID, adding: 2 },
+      { projectId: PROJECT_ID, adding: 1 },
+    ]);
+    // Read as the person, as the website monitoring call reads them.
+    expect(reads).toHaveBeenCalledWith(
+      expect.objectContaining({ props: ctx.props }),
+    );
+  });
+
+  test("with room for them all, the project's monitors are not read", async () => {
+    payAsYouGoIsSetUp();
+    const reads: Spy = projectHasMonitors([]);
+    jest
+      .spyOn(ActiveMonitorLimit, "getRefusal")
+      .mockResolvedValue(null as never);
+
+    expect(
+      await readMonitorPlanRefusal({ ...ctx, plannedCalls: plannedCalls }),
+    ).toBeNull();
+    expect(reads).not.toHaveBeenCalled();
+  });
+
+  test("still no room once counted again: the plan's own words", async () => {
+    payAsYouGoIsSetUp();
+    projectHasMonitors([]);
+    jest
+      .spyOn(ActiveMonitorLimit, "getRefusal")
+      .mockResolvedValue("Your plan allows 5 active monitors." as never);
+
+    expect(
+      await readMonitorPlanRefusal({ ...ctx, plannedCalls: plannedCalls }),
+    ).toBe("Your plan allows 5 active monitors.");
+  });
 });

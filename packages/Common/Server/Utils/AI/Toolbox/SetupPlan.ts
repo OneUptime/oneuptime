@@ -1,3 +1,4 @@
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import {
@@ -10,8 +11,16 @@ import {
   SET_UP_SERVICE_MONITOR_TOOL_NAME,
   SET_UP_WEBSITE_MONITORING_TOOL_NAME,
 } from "../../../../Types/AI/AISetupActions";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../Types/JSON";
-import { parseWebsiteAddress } from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import {
+  MONITORS_CHECKING_ADDRESS_READ_LIMIT,
+  WebsiteAddress,
+  isMonitorCheckingAddress,
+  parseWebsiteAddress,
+} from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import MonitorService from "../../../Services/MonitorService";
 import PayAsYouGoBillingService, {
   PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
 } from "../../../Services/PayAsYouGoBillingService";
@@ -151,35 +160,78 @@ export async function addMemberUsers(
 }
 
 /*
- * How many monitors the same plan sets up: one for each website monitoring
- * call whose address is one, one for each of a service's recommended
- * monitors it names (#7243), and at least the one being checked.
+ * The project's newest Website and API monitors the person may read, with
+ * what isMonitorCheckingAddress reads of each: as many as the website
+ * guided setup reads to find one for an address (#7254, #7292).
+ */
+export async function readWebsiteMonitors(
+  ctx: ToolContext,
+): Promise<Array<Monitor>> {
+  return await MonitorService.findBy({
+    query: {
+      projectId: ctx.projectId,
+      monitorType: QueryHelper.any([MonitorType.Website, MonitorType.API]),
+    },
+    select: {
+      _id: true,
+      name: true,
+      monitorSteps: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+      createdByUserId: true,
+    },
+    sort: { createdAt: SortOrder.Descending },
+    limit: MONITORS_CHECKING_ADDRESS_READ_LIMIT,
+    skip: 0,
+    props: ctx.props,
+  });
+}
+
+/*
+ * How many monitors the same plan sets up: one for each address its website
+ * monitoring calls name - once, however many calls name it, and none for an
+ * address isChecked says a monitor checks already, which gets no second one
+ * (#7292) - one for each of a service's recommended monitors it names
+ * (#7243), and at least the one being checked.
  */
 export function countMonitorsSetUpInPlan(
   plannedCalls: ReadonlyArray<PlannedToolCall> | undefined,
+  isChecked?: ((address: WebsiteAddress) => boolean) | undefined,
 ): number {
-  const count: number = (plannedCalls || []).filter(
-    (call: PlannedToolCall): boolean => {
-      const args: JSONObject = call.arguments || {};
+  const monitors: Set<string> = new Set<string>();
 
-      if (call.name === SET_UP_WEBSITE_MONITORING_TOOL_NAME) {
-        return Boolean(
-          parseWebsiteAddress(ToolArgs.getString(args, "address") || ""),
-        );
+  for (const call of plannedCalls || []) {
+    const args: JSONObject = call.arguments || {};
+
+    if (call.name === SET_UP_WEBSITE_MONITORING_TOOL_NAME) {
+      const address: WebsiteAddress | null = parseWebsiteAddress(
+        ToolArgs.getString(args, "address") || "",
+      );
+
+      if (address && !isChecked?.(address)) {
+        monitors.add(`website ${address.url}`);
       }
+    }
 
-      if (call.name === SET_UP_SERVICE_MONITOR_TOOL_NAME) {
-        return (
-          Boolean(ToolArgs.getString(args, "service")) &&
-          Boolean(ToolArgs.getString(args, "monitor"))
-        );
+    if (call.name === SET_UP_SERVICE_MONITOR_TOOL_NAME) {
+      const service: string = ToolArgs.getString(args, "service") || "";
+      const monitor: string = ToolArgs.getString(args, "monitor") || "";
+
+      if (service && monitor) {
+        monitors.add(`service ${service.toLowerCase()} ${monitor}`);
       }
+    }
+  }
 
-      return false;
-    },
-  ).length;
+  return Math.max(1, monitors.size);
+}
 
-  return Math.max(1, count);
+function hasWebsiteMonitoringCall(
+  plannedCalls: ReadonlyArray<PlannedToolCall> | undefined,
+): boolean {
+  return (plannedCalls || []).some((call: PlannedToolCall): boolean => {
+    return call.name === SET_UP_WEBSITE_MONITORING_TOOL_NAME;
+  });
 }
 
 /*
@@ -199,8 +251,34 @@ export async function readMonitorPlanRefusal(
     return PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE;
   }
 
-  return await ActiveMonitorLimit.getRefusal({
+  const refusal: string | null = await ActiveMonitorLimit.getRefusal({
     projectId: ctx.projectId,
     adding: countMonitorsSetUpInPlan(ctx.plannedCalls),
+  });
+
+  if (!refusal || !hasWebsiteMonitoringCall(ctx.plannedCalls)) {
+    return refusal;
+  }
+
+  /*
+   * No room for them all: counted again without the addresses a monitor
+   * checks already, as those get no second monitor (#7292) - read as the
+   * person, as the website monitoring call reads them.
+   */
+  const websiteMonitors: Array<Monitor> = await readWebsiteMonitors(ctx);
+
+  return await ActiveMonitorLimit.getRefusal({
+    projectId: ctx.projectId,
+    adding: countMonitorsSetUpInPlan(
+      ctx.plannedCalls,
+      (address: WebsiteAddress): boolean => {
+        return websiteMonitors.some((monitor: Monitor): boolean => {
+          return isMonitorCheckingAddress({
+            monitor: monitor,
+            address: address,
+          });
+        });
+      },
+    ),
   });
 }

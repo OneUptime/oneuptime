@@ -392,7 +392,7 @@ describe("approved", () => {
         ctx,
       ),
     ).rejects.toThrow(
-      "Nobody was invited: ana@acme.example (No permission to invite.)",
+      "Nobody was invited, as each invitation was refused (ana@acme.example: No permission to invite).",
     );
   });
 
