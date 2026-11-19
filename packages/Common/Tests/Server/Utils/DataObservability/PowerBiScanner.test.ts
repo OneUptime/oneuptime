@@ -617,6 +617,8 @@ describe("picking up a scan an earlier read stopped waiting for", () => {
             return { id, name: `Workspace ${id}`, state: "Active" };
           }),
         },
+        // What it read is as old as its start, not the read that picked it up (#9901).
+        startedAt: STARTED_AT,
       },
     ]);
     expect(run.running).toEqual([]);
