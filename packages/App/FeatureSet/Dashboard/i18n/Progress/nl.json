@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57477,
-    "untranslated": 8109
+    "keys": 57627,
+    "untranslated": 8048
   },
   "sameAsEnglish": [
     " is",
@@ -445,6 +445,7 @@
     "Scans",
     "ScheduledMaintenance",
     "Schema",
+    "Score",
     "Script",
     "Selector",
     "Server",
