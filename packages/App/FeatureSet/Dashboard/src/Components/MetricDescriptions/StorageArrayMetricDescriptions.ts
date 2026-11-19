@@ -91,6 +91,7 @@ export type StorageArrayMetric =
   // File systems (Pages/StorageArray/View/FileSystems.tsx, FileSystemDetail.tsx)
   | "fileSystemStatusColumn"
   | "fileSystemProvisionedColumn"
+  | "fileSystemUsedColumn"
   | "fileSystemProtocolsColumn"
   // Buckets (Pages/StorageArray/View/Buckets.tsx, BucketDetail.tsx)
   | "bucketAccountColumn"
@@ -255,6 +256,9 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
   fileSystemProvisionedColumn: translationKey(
     "The size the file system was given on the FlashBlade, from its latest report. Clients see this as the size of the share.",
   ),
+  fileSystemUsedColumn: translationKey(
+    "How much of its provisioned size is used, from the FlashBlade's latest report. Amber past 90%, where the File System Near Full alert fires.",
+  ),
   fileSystemStatusColumn: translationKey(
     "Near full, in amber, when less than 10% of the file system's provisioned size is left in its latest reading — the File System Near Full alert's line — with how much is used under it; otherwise Available.",
   ),
@@ -268,7 +272,7 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
     "The size limit set on it in the FlashBlade's object store, from the latest report. A dash means no quota is set.",
   ),
   bucketUsedColumn: translationKey(
-    "Flash its objects use on the FlashBlade after data reduction (Pure's total_physical space), from the latest report.",
+    "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.",
   ),
   bucketObjectsColumn: translationKey(
     "Number of objects stored in it, from the FlashBlade's latest report.",

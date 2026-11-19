@@ -146,11 +146,12 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * inventory snapshot read again (each used to start with the same bytes, so
  * the collector read a calm swarm's only once), each manager's
  * reachability, each service's rolling update and recent task failures, and
- * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch).
+ * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch);
+ * and 0.161.4, each local volume's size and the disk it lives on (#9648).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.3";
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.4";
 
 /*
  * The version the Database agent reports: the oneuptime.agent.version every

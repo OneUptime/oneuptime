@@ -19,7 +19,10 @@ import API from "Common/UI/Utils/API/API";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { formatBytes, formatMhz } from "../Utils/VMwareResourceUtils";
+import {
+  formatBytesForChart,
+  formatMhzForChart,
+} from "../Utils/VMwareResourceUtils";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -158,7 +161,7 @@ function getHostQueries(vcenter: string): Array<MetricQueryConfigData> {
         metricName: "vcenter.host.memory.usage",
         aggregation: AggregationType.Avg,
         transformValue: mibToBytes,
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       vcenter,
     ),
@@ -232,7 +235,7 @@ function getVirtualMachineQueries(
         metricName: "vcenter.vm.memory.ballooned",
         aggregation: AggregationType.Max,
         transformValue: mibToBytes,
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       vcenter,
     ),
@@ -247,7 +250,7 @@ function getVirtualMachineQueries(
         metricName: "vcenter.vm.memory.swapped",
         aggregation: AggregationType.Max,
         transformValue: mibToBytes,
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       vcenter,
     ),
@@ -279,7 +282,7 @@ function getDatastoreQueries(vcenter: string): Array<MetricQueryConfigData> {
         metricName: "vcenter.datastore.disk.usage",
         aggregation: AggregationType.Avg,
         attributes: { disk_state: "used" },
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       vcenter,
     ),
@@ -368,7 +371,7 @@ function getClusterQueries(vcenter: string): Array<MetricQueryConfigData> {
         legendUnit: "MHz",
         metricName: "vcenter.cluster.cpu.effective",
         aggregation: AggregationType.Max,
-        yAxisFormatter: formatMhz,
+        yAxisFormatter: formatMhzForChart,
       },
       vcenter,
     ),
@@ -386,7 +389,7 @@ function getResourcePoolQueries(vcenter: string): Array<MetricQueryConfigData> {
         legendUnit: "MHz",
         metricName: "vcenter.resource_pool.cpu.usage",
         aggregation: AggregationType.Avg,
-        yAxisFormatter: formatMhz,
+        yAxisFormatter: formatMhzForChart,
       },
       vcenter,
     ),
@@ -401,7 +404,7 @@ function getResourcePoolQueries(vcenter: string): Array<MetricQueryConfigData> {
         metricName: "vcenter.resource_pool.memory.usage",
         aggregation: AggregationType.Avg,
         transformValue: mibToBytes,
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       vcenter,
     ),

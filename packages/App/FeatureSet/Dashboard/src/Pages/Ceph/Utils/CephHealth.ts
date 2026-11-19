@@ -2,6 +2,7 @@ import CephResource from "Common/Models/DatabaseModels/CephResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { StorageUsageThresholds } from "Common/Utils/Storage/StorageUsage";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -87,6 +88,24 @@ export const CEPH_POOL_FULL_PERCENT: number = 95;
 // The Cluster Near Full and Cluster Full alerts' lines.
 export const CEPH_CLUSTER_NEARFULL_PERCENT: number = 85;
 export const CEPH_CLUSTER_FULL_PERCENT: number = 95;
+
+/*
+ * Where the shared storage bar (StorageUsageBar) turns amber and red for an
+ * OSD and a pool: at the lines above, which the rules below and the alerts
+ * read. Only past a line, as Ceph's ratios are crossed: an OSD at exactly
+ * 85% is not nearfull.
+ */
+export const CEPH_OSD_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: CEPH_OSD_NEARFULL_PERCENT,
+  criticalPercent: CEPH_OSD_FULL_PERCENT,
+  isPastLineOnly: true,
+};
+
+export const CEPH_POOL_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: CEPH_POOL_NEARFULL_PERCENT,
+  criticalPercent: CEPH_POOL_FULL_PERCENT,
+  isPastLineOnly: true,
+};
 
 /*
  * Latest readings older than this are no readings: the cleanup's cutoff

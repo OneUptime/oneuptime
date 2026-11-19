@@ -4,6 +4,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  StorageUsage,
+  StorageUsageLevel,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   ResourceAttentionText,
@@ -25,11 +31,12 @@ import { OpenIssueRecord } from "../../../Components/ResourceTopology/ResourceTo
  *
  *   Critical - broken, or about to be:
  *     a node offline; a node or guest HA fenced or in error; a storage no
- *     longer available, or more than 95% full; the cluster not quorate.
+ *     longer available, or more than 95% full; a node's or a container's
+ *     root disk more than 95% full; the cluster not quorate.
  *   Warning - needs a look soon:
  *     a guest stopped although it starts on boot; a guest in no backup job;
- *     a guest whose last backup failed; a storage more than 85% full; a
- *     replication job failing.
+ *     a guest whose last backup failed; a storage, or a node's or a
+ *     container's root disk, more than 85% full; a replication job failing.
  *
  * A template never runs and is never "stopped": it is left out of every
  * rule a running guest is held to. A lock is not a problem by itself - a
@@ -42,6 +49,18 @@ import { OpenIssueRecord } from "../../../Components/ResourceTopology/ResourceTo
 
 export const PROXMOX_STORAGE_NEAR_FULL_PERCENT: number = 85;
 export const PROXMOX_STORAGE_FULL_PERCENT: number = 95;
+
+/*
+ * Where the shared storage bar turns amber and red, and the rules below
+ * call a disk nearly full and full: a storage, a node's root filesystem and
+ * a container's root disk alike. Only past a line, as the rules read it: a
+ * storage at exactly 85% has not crossed it.
+ */
+export const PROXMOX_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: PROXMOX_STORAGE_NEAR_FULL_PERCENT,
+  criticalPercent: PROXMOX_STORAGE_FULL_PERCENT,
+  isPastLineOnly: true,
+};
 
 export type ProxmoxPartKind = "Node" | "Guest" | "Storage";
 
@@ -71,6 +90,9 @@ const REASON_NO_BACKUP_JOB: string = translationKey("In no backup job");
 const REASON_BACKUP_FAILED: string = translationKey("Last backup failed");
 const REASON_UNAVAILABLE: string = translationKey("Unavailable");
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
+const REASON_ROOT_DISK_FULL: string = translationKey(
+  "Root disk {{percent}} full",
+);
 const REASON_FAILED_SYNCS: { one: string; other: string } = {
   one: "{{count}} failed sync",
   other: "{{count}} failed syncs",
@@ -121,6 +143,57 @@ function formatPercentForReason(percent: number): string {
   return `${Math.round(percent)}%`;
 }
 
+/*
+ * How full a node's root filesystem or a guest's root disk is, as the
+ * shared storage bar reads it: what Proxmox VE reports used (disk) of its
+ * size (maxdisk), at Proxmox's own lines. Null when it reported nothing to
+ * measure: a QEMU VM's root image reads 0 used, since Proxmox cannot see
+ * inside the guest, and a stopped container's 0 too - a page says so in
+ * words, never 0%. A storage has its own bar (its list's Used column).
+ */
+export function getProxmoxDiskUsage(
+  row: Pick<
+    ProxmoxResource,
+    "kind" | "latestDiskBytes" | "maxDiskBytes" | "isTemplate"
+  >,
+): StorageUsage | null {
+  if (row.kind !== "Node" && row.kind !== "Guest") {
+    return null;
+  }
+  if (row.kind === "Guest" && row.isTemplate === true) {
+    return null;
+  }
+  const used: number | null = finite(row.latestDiskBytes);
+  if (used === null || used <= 0) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: row.maxDiskBytes, used: used },
+    PROXMOX_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+// A node's or a container's root disk past Proxmox's lines, with why.
+function rootDiskFinding(row: ProxmoxResource): {
+  severity: ResourceAttentionSeverity;
+  reason: ResourceAttentionText;
+} | null {
+  const usage: StorageUsage | null = getProxmoxDiskUsage(row);
+  if (!usage || usage.level === StorageUsageLevel.Normal) {
+    return null;
+  }
+  return {
+    severity:
+      usage.level === StorageUsageLevel.Critical
+        ? ResourceAttentionSeverity.Critical
+        : ResourceAttentionSeverity.Warning,
+    reason: {
+      text: REASON_ROOT_DISK_FULL,
+      values: { percent: formatPercentForReason(usage.usedPercent) },
+    },
+  };
+}
+
 function haReason(row: ProxmoxResource): ResourceAttentionText | null {
   if (row.haState && HA_CRITICAL_STATES.has(row.haState)) {
     return { text: REASON_HA_STATE, values: { state: row.haState } };
@@ -130,15 +203,29 @@ function haReason(row: ProxmoxResource): ResourceAttentionText | null {
 
 export function assessProxmoxNode(row: ProxmoxResource): ProxmoxAssessment {
   const reasons: Array<ResourceAttentionText> = [];
+  const severities: Array<ResourceAttentionSeverity> = [];
   if (row.isUp === false) {
     reasons.push({ text: REASON_OFFLINE });
+    severities.push(ResourceAttentionSeverity.Critical);
   }
   const ha: ResourceAttentionText | null = haReason(row);
   if (ha) {
     reasons.push(ha);
+    severities.push(ResourceAttentionSeverity.Critical);
+  }
+  // An offline node's last reading is no reading of its disk now.
+  if (row.isUp !== false) {
+    const disk: {
+      severity: ResourceAttentionSeverity;
+      reason: ResourceAttentionText;
+    } | null = rootDiskFinding(row);
+    if (disk) {
+      reasons.push(disk.reason);
+      severities.push(disk.severity);
+    }
   }
   return {
-    severity: reasons.length > 0 ? ResourceAttentionSeverity.Critical : null,
+    severity: mergeResourceAttentionSeverity(severities),
     reasons: reasons,
   };
 }
@@ -166,6 +253,19 @@ export function assessProxmoxGuest(row: ProxmoxResource): ProxmoxAssessment {
     if (row.lastBackupStatus === "failed") {
       reasons.push({ text: REASON_BACKUP_FAILED });
       severities.push(ResourceAttentionSeverity.Warning);
+    }
+    /*
+     * A container's root disk filling up: services inside it start to
+     * fail (the Container Root Disk Near Full alert's concern). A VM's is
+     * never read here - Proxmox cannot see inside it.
+     */
+    const disk: {
+      severity: ResourceAttentionSeverity;
+      reason: ResourceAttentionText;
+    } | null = rootDiskFinding(row);
+    if (disk) {
+      reasons.push(disk.reason);
+      severities.push(disk.severity);
     }
   }
 

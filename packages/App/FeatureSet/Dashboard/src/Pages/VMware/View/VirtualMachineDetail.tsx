@@ -25,7 +25,7 @@ import {
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
   fetchVMwareInventoryRows,
-  formatBytes,
+  formatBytesForChart,
   displayNameForResource,
   identityAttributesForResource,
 } from "../Utils/VMwareResourceUtils";
@@ -271,7 +271,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     transformValue: (value: number): number => {
       return value * MIB;
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const balloonedQuery: MetricQueryConfigData = {
@@ -298,7 +298,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     transformValue: (value: number): number => {
       return value * MIB;
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const swappedQuery: MetricQueryConfigData = {
@@ -325,7 +325,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     transformValue: (value: number): number => {
       return value * MIB;
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const diskUsageQuery: MetricQueryConfigData = {
@@ -349,7 +349,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const diskUtilizationQuery: MetricQueryConfigData = {

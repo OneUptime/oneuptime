@@ -21,7 +21,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
-import { formatBytes } from "../Utils/ProxmoxResourceUtils";
+import { formatBytesForChart } from "../Utils/ProxmoxResourceUtils";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -133,7 +133,7 @@ function getComputeQueries(cluster: string): Array<MetricQueryConfigData> {
         metricName: "pve_memory_usage_bytes",
         aggregation: AggregationType.Avg,
         scope: "node",
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       cluster,
     ),
@@ -167,7 +167,7 @@ function getGuestQueries(cluster: string): Array<MetricQueryConfigData> {
         metricName: "pve_memory_usage_bytes",
         aggregation: AggregationType.Avg,
         scope: "guest",
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       cluster,
     ),
@@ -224,7 +224,7 @@ function getStorageQueries(cluster: string): Array<MetricQueryConfigData> {
         metricName: "pve_disk_usage_bytes",
         aggregation: AggregationType.Avg,
         scope: "storage",
-        yAxisFormatter: formatBytes,
+        yAxisFormatter: formatBytesForChart,
       },
       cluster,
     ),

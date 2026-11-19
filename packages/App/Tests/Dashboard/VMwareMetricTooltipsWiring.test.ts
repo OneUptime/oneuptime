@@ -365,6 +365,11 @@ describe("the VMware pages and the description record agree", () => {
        * the same measure, its capacity minus what is used (#9539).
        */
       datastoreFree: ["datastoreOverview", "datastores"],
+      /*
+       * A VM's Disk tile and the VMs lists' Storage column are the same
+       * measure, its datastore space of what is provisioned (#9646).
+       */
+      vmDisk: ["vmOverview", "resourceTables"],
     });
   });
 });

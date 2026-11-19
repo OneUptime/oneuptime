@@ -32,7 +32,7 @@ import {
   VMwareResourceKind,
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
-  formatBytes,
+  formatBytesForChart,
   displayNameForResource,
   identityAttributesForResource,
 } from "../Utils/VMwareResourceUtils";
@@ -303,7 +303,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const availableQuery: MetricQueryConfigData = {
@@ -327,7 +327,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const utilizationQuery: MetricQueryConfigData = {

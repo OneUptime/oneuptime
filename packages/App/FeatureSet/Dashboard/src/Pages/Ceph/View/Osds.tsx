@@ -18,6 +18,7 @@ import ResourceTable, {
   InfrastructureResource,
   ResourceColumnTone,
 } from "../../../Components/Infrastructure/ResourceTable";
+import { formatStorageBytes } from "Common/Utils/Storage/StorageUsage";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils, {
   getOsdPlacementText,
@@ -30,10 +31,9 @@ import {
 } from "../Utils/CephHealth";
 import {
   CEPH_APPLY_LATENCY_ATTRIBUTE,
-  CEPH_USED_PERCENT_ATTRIBUTE,
   formatCephReadingNumber,
   getCephOsdLatencyTone,
-  getCephOsdUsedTone,
+  getCephOsdStorageUsage,
   readCephRowNumber,
   withCephStatus,
 } from "../Utils/CephPartFacts";
@@ -42,9 +42,15 @@ import {
   getCephPartRoutes,
 } from "../../../Components/Ceph/Part/CephPartRoutes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
+
+/*
+ * What an OSD's Used cell says when it sent no size in the last 15 minutes:
+ * in words, never an empty bar or a 0% it never measured.
+ */
+const OSD_USAGE_NOT_REPORTED: string = translationKey("Not reported");
 
 /*
  * An OSD's apply or commit latency, whole, in the reader's words ("12 ms",
@@ -68,8 +74,11 @@ export const formatOsdLatency: (
  * OSD down while still in the cluster in red, one down and out or up but
  * out in amber, a running one in amber past Ceph's nearfull ratio or the
  * OSD High Latency alert's 100 ms and in red past the full ratio - with
- * why under it, as the Overview's Needs attention says it. The detail route
- * param is the OSD's externalId (its `ceph_daemon` name, osd.3).
+ * why under it, as the Overview's Needs attention says it. How full its
+ * disk is reads in the shared Used and Free columns (#9646), amber and red
+ * at the same two ratios, so the fullest OSD is a click away; its size
+ * folds under them as Capacity. The detail route param is the OSD's
+ * externalId (its `ceph_daemon` name, osd.3).
  */
 const CephClusterOsds: FunctionComponent<
   PageComponentProps
@@ -116,9 +125,12 @@ const CephClusterOsds: FunctionComponent<
               additionalAttributes: {
                 in: getOsdPlacementText(row.isIn),
                 deviceClass: row.deviceClass || EMPTY_VALUE_MARK,
-                used:
-                  readings.usedPercent !== null
-                    ? `${CephResourceUtils.formatBytes(readings.usedBytes)} / ${CephResourceUtils.formatBytes(readings.totalBytes)} (${readings.usedPercent.toFixed(1)}%)`
+                capacity:
+                  readings.totalBytes !== null && readings.totalBytes > 0
+                    ? formatStorageBytes(
+                        readings.totalBytes,
+                        translator.language,
+                      )
                     : EMPTY_VALUE_MARK,
                 pgs:
                   readings.pgCount !== null
@@ -129,12 +141,14 @@ const CephClusterOsds: FunctionComponent<
                   readings.commitLatencyMs !== null
                     ? `${formatOsdLatency(readings.applyLatencyMs, translator)} / ${formatOsdLatency(readings.commitLatencyMs, translator)}`
                     : EMPTY_VALUE_MARK,
-                [CEPH_USED_PERCENT_ATTRIBUTE]: formatCephReadingNumber(
-                  readings.usedPercent,
-                ),
                 [CEPH_APPLY_LATENCY_ATTRIBUTE]: formatCephReadingNumber(
                   readings.applyLatencyMs,
                 ),
+              },
+              // Its disk, as the Used and Free columns draw it.
+              storageUsage: {
+                usage: getCephOsdStorageUsage(readings),
+                noUsageText: OSD_USAGE_NOT_REPORTED,
               },
             },
             assessCephOsd(row, { now: now, newestSeenAt: newestSeenAt }),
@@ -185,6 +199,10 @@ const CephClusterOsds: FunctionComponent<
       builtInColumnDescriptions={{
         status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn,
       }}
+      storageUsageColumns={{
+        usedDescription: CEPH_METRIC_DESCRIPTIONS.osdUsedColumn,
+        freeDescription: CEPH_METRIC_DESCRIPTIONS.osdFreeColumn,
+      }}
       columns={[
         {
           title: "In / Out",
@@ -200,16 +218,11 @@ const CephClusterOsds: FunctionComponent<
         },
         { title: "Class", key: "deviceClass" },
         {
-          title: "Used / Total",
-          key: "used",
-          description: CEPH_METRIC_DESCRIPTIONS.osdUsedColumn,
-          getTone: (
-            resource: InfrastructureResource,
-          ): ResourceColumnTone | undefined => {
-            return getCephOsdUsedTone(
-              readCephRowNumber(resource, CEPH_USED_PERCENT_ATTRIBUTE),
-            );
-          },
+          // The disk's size, under its Used and Free when room is short.
+          title: "Capacity",
+          key: "capacity",
+          foldInto: "storageUsage",
+          showTitleWhenFolded: true,
         },
         {
           title: "PGs",

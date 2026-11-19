@@ -17,6 +17,11 @@ import Column from "Common/UI/Components/ModelTable/Column";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import {
+  StorageUsage,
+  formatStorageUsedPercent,
+} from "Common/Utils/Storage/StorageUsage";
 import {
   translateTemplate,
   translateText,
@@ -517,6 +522,51 @@ export function getOpenStackAmountColumn(data: {
       );
     },
     getExportValue: getText,
+  };
+}
+
+/*
+ * How full a store on the row is - a Cinder pool, a database's volume - as
+ * the shared storage bar draws it (#9647): a bar that turns amber and red at
+ * the rules' lines, its percent, and the amount used under it. A row that
+ * reports nothing says why in words (noUsageText), never 0%.
+ */
+export function getOpenStackStorageUsageColumn(data: {
+  id: string;
+  title: string;
+  // Sorted by, and what tells the list the column has a value.
+  field: "diskAllocatedBytes" | "diskCapacityBytes";
+  getUsage: (row: OpenStackResource) => StorageUsage | null;
+  // English, looked up where it is drawn.
+  noUsageText?: string | undefined;
+  description?: string | undefined;
+  hideOnMobile?: boolean | undefined;
+}): OpenStackListColumn {
+  return {
+    id: data.id,
+    field: { [data.field]: true },
+    title: data.title,
+    type: FieldType.Element,
+    hideOnMobile: data.hideOnMobile,
+    headerTooltip: data.description,
+    hasValue: (row: OpenStackResource): boolean => {
+      return Boolean(data.getUsage(row));
+    },
+    getElement: (row: OpenStackResource): ReactElement => {
+      return (
+        <StorageUsageBar
+          usage={data.getUsage(row)}
+          noUsageText={data.noUsageText}
+          formatAmount={(amount: number): string => {
+            return formatOpenStackBytes(amount);
+          }}
+        />
+      );
+    },
+    getExportValue: (row: OpenStackResource): string => {
+      const usage: StorageUsage | null = data.getUsage(row);
+      return usage ? formatStorageUsedPercent(usage, "en") : "";
+    },
   };
 }
 

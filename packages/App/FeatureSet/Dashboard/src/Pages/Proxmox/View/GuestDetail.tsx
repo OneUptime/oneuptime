@@ -42,7 +42,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
-  formatBytes,
+  formatBytesForChart,
   displayNameForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -259,7 +259,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   /*
