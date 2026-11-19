@@ -35,6 +35,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import Toast from "Common/UI/Utils/Toast";
+import API from "Common/UI/Utils/API/API";
 import { translationKey } from "Common/Types/Translator";
 
 export interface ComponentProps {
@@ -132,6 +133,9 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isAddingMonitor, setIsAddingMonitor] = useState<boolean>(false);
+  const [isSavingAddExisting, setIsSavingAddExisting] =
+    useState<boolean>(false);
+  const [addExistingError, setAddExistingError] = useState<string>("");
 
   type GetCardContentFunction = () => ReactElement;
 
@@ -295,6 +299,55 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const closeAddExisting: () => void = (): void => {
+    setIsAddingMonitor(false);
+    setAddExistingError("");
+  };
+
+  /*
+   * Ties the picked monitor to the device, and nothing else about it. The
+   * dialog stays open while it saves, and says why when the server refuses -
+   * a monitor an import made for another device, a device the reader may
+   * not read - rather than close as if it had worked.
+   */
+  const addExistingMonitor: (
+    formData: AddExistingMonitorFormData,
+  ) => Promise<void> = async (
+    formData: AddExistingMonitorFormData,
+  ): Promise<void> => {
+    const monitorId: string = String(formData.monitorId || "").trim();
+
+    if (!monitorId || !props.networkDeviceId) {
+      closeAddExisting();
+      return;
+    }
+
+    setIsSavingAddExisting(true);
+    setAddExistingError("");
+
+    try {
+      await ModelAPI.updateById<Monitor>({
+        modelType: Monitor,
+        id: new ObjectID(monitorId),
+        data: {
+          networkDeviceId: new ObjectID(props.networkDeviceId),
+        },
+      });
+    } catch (err) {
+      setAddExistingError(API.getFriendlyMessage(err));
+      setIsSavingAddExisting(false);
+      return;
+    }
+
+    setIsSavingAddExisting(false);
+    closeAddExisting();
+    Toast.success(
+      translator.translateText("Monitor added to this device.") ||
+        "Monitor added to this device.",
+    );
+    props.onMonitorAdded?.();
+  };
+
   /*
    * The monitor to add, from the ones a person made that check a host and
    * are no device's yet. The server checks the reader may read the device
@@ -306,31 +359,11 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
         title="Add Existing Monitor"
         description="A monitor someone made that checks this device. It is listed here, and an import never gives the device a second one like it."
         submitButtonText="Add Monitor"
-        onClose={() => {
-          setIsAddingMonitor(false);
-        }}
-        onSubmit={async (formData: AddExistingMonitorFormData) => {
-          const monitorId: string = String(formData.monitorId || "").trim();
-
-          if (!monitorId) {
-            setIsAddingMonitor(false);
-            return;
-          }
-
-          await ModelAPI.updateById<Monitor>({
-            modelType: Monitor,
-            id: new ObjectID(monitorId),
-            data: {
-              networkDeviceId: new ObjectID(props.networkDeviceId as string),
-            },
-          });
-
-          setIsAddingMonitor(false);
-          Toast.success(
-            translator.translateText("Monitor added to this device.") ||
-              "Monitor added to this device.",
-          );
-          props.onMonitorAdded?.();
+        isSubmitting={isSavingAddExisting}
+        error={addExistingError || undefined}
+        onClose={closeAddExisting}
+        onSubmit={(formData: AddExistingMonitorFormData) => {
+          void addExistingMonitor(formData);
         }}
         formProps={{
           fields: [

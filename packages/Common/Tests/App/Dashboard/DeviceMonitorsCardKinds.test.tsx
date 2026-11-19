@@ -482,4 +482,58 @@ describe("Add Existing Monitor", () => {
     expect(onMonitorAdded).toHaveBeenCalledTimes(1);
     expect(ADDABLE_MONITOR_QUERY["networkDeviceId"]).toBeInstanceOf(IsNull);
   });
+
+  test("a tie the server refuses is said in the dialog, which stays open, and the page reads nothing again", async () => {
+    grant([Permission.ProjectOwner]);
+
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [HAND_MADE_PING],
+      count: 1,
+      skip: 0,
+      limit: 10,
+    } as never);
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(
+        new Error(
+          "An import, an auto import rule or an alert policy made this monitor for its network device, so it is that device's already. Its Network Device cannot be changed.",
+        ),
+      );
+    const onMonitorAdded: jest.Mock = jest.fn();
+
+    renderAddable(onMonitorAdded);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Add Existing Monitor" }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    const combobox: HTMLElement = within(dialog).getByRole("combobox");
+
+    await act(async () => {
+      fireEvent.focus(combobox);
+      fireEvent.keyDown(combobox, { key: "ArrowDown", keyCode: 40 });
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        await screen.findByRole("option", {
+          name: /Kiosk ping \(made by hand\)/,
+        }),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add Monitor" }),
+      );
+    });
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Its Network Device cannot be changed.",
+    );
+    expect(onMonitorAdded).not.toHaveBeenCalled();
+  });
 });

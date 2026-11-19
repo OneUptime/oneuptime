@@ -543,7 +543,11 @@ describe("a monitor made by hand is tied to its device (#9545)", () => {
     expect(card).toContain("query: ADDABLE_MONITOR_QUERY,");
     // The tie is the whole write: nothing else about the monitor changes.
     expect(card).toContain(
-      "data: { networkDeviceId: new ObjectID(props.networkDeviceId as string), },",
+      "data: { networkDeviceId: new ObjectID(props.networkDeviceId), },",
+    );
+    // A refusal is said in the dialog, which stays open; nothing is read again.
+    expect(card).toContain(
+      "} catch (err) { setAddExistingError(API.getFriendlyMessage(err)); setIsSavingAddExisting(false); return; }",
     );
     // For a reader who may write the tie, on a page that reads the card again.
     expect(card).toContain(
