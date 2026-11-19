@@ -85,6 +85,18 @@ export interface RouteRecorderOptions {
    * still works on its own.
    */
   isSuspended?: () => boolean;
+
+  /*
+   * Asked first, every time the address changes, before anything here
+   * reads it: may the recording name the page now at the address? The
+   * replay policy's page rules say no for a page they keep out of
+   * recordings (issue #7502), and the recorder holds capture there and then
+   * - inside the history call, before the router draws the page. A page it
+   * may not name is never the current URL: no route to it is recorded, and
+   * no chunk is sent as if from it. Optional, so the module still works on
+   * its own.
+   */
+  allowsPage?: (kind: RecordedRoute["kind"]) => boolean;
 }
 
 type HistoryMethod = (
@@ -124,13 +136,21 @@ export default class RouteRecorder {
     };
   }
 
-  public start(windowRef: Window = window): void {
+  /*
+   * `isPageRecorded` false: the page the recorder starts on is one the
+   * replay policy keeps out (issue #7502), and is never the current URL -
+   * the first route recorded starts from no page at all.
+   */
+  public start(
+    windowRef: Window = window,
+    isPageRecorded: boolean = true,
+  ): void {
     if (this.started) {
       return;
     }
 
     this.started = true;
-    this.currentUrl = windowRef.location.href;
+    this.currentUrl = isPageRecorded ? windowRef.location.href : "";
 
     const historyRecord: Record<string, unknown> =
       windowRef.history as unknown as Record<string, unknown>;
@@ -173,8 +193,14 @@ export default class RouteRecorder {
       };
     }
 
-    windowRef.addEventListener("popstate", this.popstateListener);
-    windowRef.addEventListener("hashchange", this.hashchangeListener);
+    /*
+     * In the capture phase: at the window, capturing listeners run before
+     * the others, so the page's own router - listening the ordinary way -
+     * draws the page it navigated back to only after the replay policy was
+     * asked about it (allowsPage).
+     */
+    windowRef.addEventListener("popstate", this.popstateListener, true);
+    windowRef.addEventListener("hashchange", this.hashchangeListener, true);
   }
 
   public stop(windowRef: Window = window): void {
@@ -197,8 +223,8 @@ export default class RouteRecorder {
       this.originalReplaceState = null;
     }
 
-    windowRef.removeEventListener("popstate", this.popstateListener);
-    windowRef.removeEventListener("hashchange", this.hashchangeListener);
+    windowRef.removeEventListener("popstate", this.popstateListener, true);
+    windowRef.removeEventListener("hashchange", this.hashchangeListener, true);
 
     this.cancelDeferredSnapshot(windowRef);
   }
@@ -215,9 +241,23 @@ export default class RouteRecorder {
   /*
    * Not private: the recorder also calls this on a bfcache restore, where the
    * URL may have changed while the page was frozen and no history event
-   * fired at all.
+   * fired at all, and once it goes on recording on a page the replay policy
+   * records (`hasSnapshot`: capture began on a fresh snapshot of it, so no
+   * second one is asked for).
    */
-  public handle(kind: RecordedRoute["kind"], windowRef: Window = window): void {
+  public handle(
+    kind: RecordedRoute["kind"],
+    windowRef: Window = window,
+    hasSnapshot?: boolean,
+  ): void {
+    /*
+     * The replay policy first (issue #7502), before the address is read: a
+     * page it keeps out is never the current URL, never a route.
+     */
+    if (this.options.allowsPage && !this.options.allowsPage(kind)) {
+      return;
+    }
+
     const rawUrl: string = windowRef.location.href;
 
     const from: string = this.describe(this.currentUrl);
@@ -255,6 +295,10 @@ export default class RouteRecorder {
 
     this.options.emitCustomEvent(ROUTE_CUSTOM_EVENT_TAG, route);
     this.options.onRouteChange(atUnixMs, route);
+
+    if (hasSnapshot) {
+      this.lastForcedSnapshotAtMs = atUnixMs;
+    }
 
     if (
       atUnixMs - this.lastForcedSnapshotAtMs >=

@@ -3,6 +3,11 @@ import {
   SessionReplayFrustrationSignalsConfig,
   readSessionReplayFrustrationSignalsConfig,
 } from "Common/Types/Rum/SessionReplayFrustrationSignals";
+import {
+  SessionReplayPageRules,
+  readSessionReplayPageRules,
+} from "Common/Types/Rum/SessionReplayPageRules";
+import { normalizeSessionReplayReadablePropertyKeys } from "Common/Types/Rum/SessionReplayReadableProperties";
 
 /*
  * Normalisation for the config fields the ARTIFACT acts on but the loader
@@ -65,6 +70,21 @@ export interface ExtendedReplayConfig {
    * what every recorder before it detected, never no detection at all.
    */
   frustrationSignals: SessionReplayFrustrationSignalsConfig;
+
+  /*
+   * Which pages a recording may hold (issue #7502). Absent - an older
+   * server, a cached stub - every page, which is what every recorder before
+   * it recorded. There but unreadable, none: a privacy setting this build
+   * cannot read never records more than it would have.
+   */
+  pageRules: SessionReplayPageRules;
+
+  /*
+   * Readable event properties (issue #7501): the property keys whose short
+   * token values stay as written. Absent or unreadable: none, so every
+   * value is masked as before.
+   */
+  readableEventPropertyKeys: Array<string>;
 }
 
 export function readExtendedConfig(
@@ -89,6 +109,10 @@ export function readExtendedConfig(
     isTargeted: source["isTargeted"] === true,
     frustrationSignals: readSessionReplayFrustrationSignalsConfig(
       source["frustrationSignals"],
+    ),
+    pageRules: readSessionReplayPageRules(source["pageRules"]),
+    readableEventPropertyKeys: normalizeSessionReplayReadablePropertyKeys(
+      source["readableEventPropertyKeys"],
     ),
   };
 }
