@@ -287,7 +287,7 @@ describe("the Connected Signals page", () => {
       "A cloud resource's come from its cloud's audit log, which names it by its own ID - CloudTrail, the Azure Activity Log, Google Cloud's audit logs, read with **Cloud audit logs** or from your logs - and from the logs its account's stream sends;",
     );
     expect(where).toContain(
-      "one OneUptime knows only by a name its metrics give it, with no logs and no name or address of its own, has no entry: no event can name it.",
+      "one OneUptime knows only by a name its metrics give it, with no logs and no name or address of its own, has neither the entry nor a **Security** card: no event can name it.",
     );
     expect(where).toContain(
       "A serverless function's come from its logs and traces, whatever service they are filed under, and from its cloud's audit log once its telemetry sets `cloud.account.id` and `cloud.region`; an Azure function's audit records reach its Function App's page instead.",
