@@ -58207,5 +58207,14 @@
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} 件のタスクを再試行できませんでした: それぞれの理由は下に表示されています。",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 件のタスクを再試行できませんでした: それぞれの理由は下に表示されています。",
   "{{name}} asked OneUptime AI to try again.": "{{name}} さんが OneUptime AI に再試行を依頼しました。",
-  "{{value}} of {{total}}": "{{total}} 件中 {{value}} 件"
+  "{{value}} of {{total}}": "{{total}} 件中 {{value}} 件",
+  "Download Signing Certificate": "署名証明書をダウンロード",
+  "Instance SAML Signing Key": "インスタンスの SAML 署名鍵",
+  "Instance SAML Signing Keys": "インスタンスの SAML 署名鍵一覧",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "内部用: このインストールが SAML のサインアウトメッセージの署名に使う鍵ペアです。",
+  "Private Key": "秘密鍵",
+  "Sign Out URL": "サインアウト URL",
+  "Single Logout URL:": "シングルログアウト URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID プロバイダーからもサインアウトさせるには、シングルログアウト URL と OneUptime の署名証明書もプロバイダーに登録してください。",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。"
 }

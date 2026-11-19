@@ -58207,5 +58207,14 @@
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} opgaver kunne ikke prøves igen: Hver siger nedenfor hvorfor.",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} opgave kunne ikke prøves igen: Den siger nedenfor hvorfor.",
   "{{name}} asked OneUptime AI to try again.": "{{name}} bad OneUptime AI om at prøve igen.",
-  "{{value}} of {{total}}": "{{value}} af {{total}}"
+  "{{value}} of {{total}}": "{{value}} af {{total}}",
+  "Download Signing Certificate": "Download signeringscertifikat",
+  "Instance SAML Signing Key": "Instansens SAML-signeringsnøgle",
+  "Instance SAML Signing Keys": "Instansens SAML-signeringsnøgler",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "Intern: det nøglepar, som denne installation signerer sine SAML-beskeder om log ud med.",
+  "Private Key": "Privat nøgle",
+  "Sign Out URL": "Log ud-URL",
+  "Single Logout URL:": "Single Logout-URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Hvis folk også skal logges ud af identitetsudbyderen, skal du også give den Single Logout-URL'en og OneUptimes signeringscertifikat.",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsudbyderens URL til fælles log ud (Single Sign-out). Kræves for også at logge folk ud der."
 }

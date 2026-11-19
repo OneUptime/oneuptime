@@ -58207,5 +58207,14 @@
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} 个任务无法重试：各自的原因见下方。",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 个任务无法重试：各自的原因见下方。",
   "{{name}} asked OneUptime AI to try again.": "{{name}} 请 OneUptime AI 重试。",
-  "{{value}} of {{total}}": "{{total}} 个中有 {{value}} 个"
+  "{{value}} of {{total}}": "{{total}} 个中有 {{value}} 个",
+  "Download Signing Certificate": "下载签名证书",
+  "Instance SAML Signing Key": "实例 SAML 签名密钥",
+  "Instance SAML Signing Keys": "实例 SAML 签名密钥列表",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "内部：此安装用来签名其 SAML 退出登录消息的密钥对。",
+  "Private Key": "私钥",
+  "Sign Out URL": "退出登录 URL",
+  "Single Logout URL:": "单点注销 URL：",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "要让用户同时退出身份提供商的登录，还需将单点注销 URL 和 OneUptime 的签名证书提供给身份提供商。",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身份提供商的单点退出登录 URL。要让用户同时退出身份提供商的登录时需要它。"
 }

@@ -58207,5 +58207,14 @@
   "{{count}} tasks could not be tried again: each says why below.": "No se pudieron reintentar {{count}} tareas: cada una dice por qué abajo.",
   "{{count}} tasks could not be tried again: each says why below._one": "No se pudo reintentar {{count}} tarea: dice por qué abajo.",
   "{{name}} asked OneUptime AI to try again.": "{{name}} pidió a OneUptime AI que lo volviera a intentar.",
-  "{{value}} of {{total}}": "{{value}} de {{total}}"
+  "{{value}} of {{total}}": "{{value}} de {{total}}",
+  "Download Signing Certificate": "Descargar certificado de firma",
+  "Instance SAML Signing Key": "Clave de firma SAML de la instancia",
+  "Instance SAML Signing Keys": "Claves de firma SAML de la instancia",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "Interno: el par de claves con el que esta instalación firma sus mensajes de cierre de sesión SAML.",
+  "Private Key": "Clave privada",
+  "Sign Out URL": "URL de cierre de sesión",
+  "Single Logout URL:": "URL de Single Logout:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Para cerrar también la sesión de las personas en el proveedor de identidad, dale también la URL de Single Logout y el certificado de firma de OneUptime.",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "La URL de cierre de sesión único de tu proveedor de identidad. Necesaria para cerrar también allí la sesión de las personas."
 }

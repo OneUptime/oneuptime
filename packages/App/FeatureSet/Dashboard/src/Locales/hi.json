@@ -58207,5 +58207,14 @@
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} कार्य फिर से नहीं आज़माए जा सके: हर एक नीचे कारण बताता है।",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} कार्य फिर से नहीं आज़माया जा सका: वह नीचे कारण बताता है।",
   "{{name}} asked OneUptime AI to try again.": "{{name}} ने OneUptime AI से फिर से प्रयास करने को कहा।",
-  "{{value}} of {{total}}": "{{total}} में से {{value}}"
+  "{{value}} of {{total}}": "{{total}} में से {{value}}",
+  "Download Signing Certificate": "साइनिंग प्रमाणपत्र डाउनलोड करें",
+  "Instance SAML Signing Key": "इंस्टेंस SAML साइनिंग कुंजी",
+  "Instance SAML Signing Keys": "इंस्टेंस SAML साइनिंग कुंजियां",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "आंतरिक: वह कुंजी जोड़ी जिससे यह इंस्टॉलेशन अपने SAML साइन आउट संदेश साइन करता है।",
+  "Private Key": "निजी कुंजी",
+  "Sign Out URL": "साइन आउट URL",
+  "Single Logout URL:": "सिंगल लॉगआउट URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "लोगों को पहचान प्रदाता से भी साइन आउट करने के लिए उसे सिंगल लॉगआउट URL और OneUptime का साइनिंग प्रमाणपत्र भी दें।",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।"
 }
