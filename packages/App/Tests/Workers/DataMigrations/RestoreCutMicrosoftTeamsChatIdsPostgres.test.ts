@@ -7,6 +7,7 @@ import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/Mic
 import MicrosoftTeamsCutChatIds from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCutChatIds";
 import ObjectID from "Common/Types/ObjectID";
 import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
+import type { SpyInstance } from "jest-mock";
 import {
   afterAll,
   afterEach,
@@ -636,7 +637,7 @@ describePostgres(
       );
 
       // Again: nothing is left to match.
-      (logger.info as jest.Mock).mockClear();
+      jest.mocked(logger.info).mockClear();
       await MicrosoftTeamsCutChatIds.restoreKeptMessages({
         projectId: new ObjectID(PROJECT_A),
         chatId: AMIT_CHAT,
@@ -734,10 +735,9 @@ describePostgres(
       expect(logger.error).not.toHaveBeenCalled();
 
       // Registered again - a re-capture of a listed chat - nothing is put back.
-      const restores: jest.SpyInstance = jest.spyOn(
-        MicrosoftTeamsCutChatIds,
-        "restoreKeptMessages",
-      );
+      const restores: SpyInstance<
+        typeof MicrosoftTeamsCutChatIds.restoreKeptMessages
+      > = jest.spyOn(MicrosoftTeamsCutChatIds, "restoreKeptMessages");
 
       await MicrosoftTeamsUtil.saveChatToProjectAuthTokens({
         tenantId: "tenant",

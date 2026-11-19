@@ -35,6 +35,13 @@ import { WORKSPACE_STORED_ID_MAX_LENGTH } from "../WorkspaceStoredValue";
  *     then, and a page asked for in it before the upgrade still had its
  *     updates to post (#9330).
  *
+ * Neither puts back a place a server of the release before kept cut during
+ * a rolling upgrade, after the data migration ran, in a chat the connection
+ * already listed: that would take a statement on every message to the bot,
+ * or a lookup by part of an id when sending. It is a page asked for in the
+ * minutes of one upgrade, its run's other places still get its updates, and
+ * paging again from the chat keeps a new place whole.
+ *
  * Every statement is idempotent: a restored id is no chat's first 100
  * characters, so no row matches it again.
  */

@@ -100,6 +100,7 @@ import {
   type TeamsPagedMembersResult,
   type TurnContext,
 } from "botbuilder";
+import type { SpyInstance } from "jest-mock";
 
 // Personal chats' ids as the Bot Framework gives them: 131 characters.
 const JANE_CHAT: string =
@@ -807,7 +808,7 @@ describe("Through the bot's activities", () => {
 
   test("the bot added to the chat (conversationUpdate) does the same, and still welcomes", async () => {
     connect({ projectId: PROJECT_A });
-    const welcome: jest.SpyInstance = jest
+    const welcome: SpyInstance<() => Promise<void>> = jest
       .spyOn(
         MicrosoftTeamsUtil as unknown as {
           sendWelcomeAdaptiveCard: () => Promise<void>;
