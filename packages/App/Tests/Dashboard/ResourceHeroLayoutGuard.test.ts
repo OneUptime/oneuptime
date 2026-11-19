@@ -1223,6 +1223,8 @@ const PART_HERO_RENDER_SITES: Array<string> = [
   "Components/Ceph/Part/CephPartHero.tsx",
   "Components/ContainerHost/ContainerHostContainerHero.tsx",
   "Components/DockerSwarm/Part/DockerSwarmPartHero.tsx",
+  // A Kubernetes container's own page (#9595).
+  "Components/Kubernetes/Part/KubernetesContainerHero.tsx",
   "Components/Kubernetes/Part/KubernetesPartHero.tsx",
   "Components/OpenStack/Part/OpenStackHostGroups.tsx",
   "Components/OpenStack/Part/OpenStackPartHero.tsx",
@@ -1374,6 +1376,16 @@ describe("rule 10: a part page's status opens why", () => {
       "Components/Kubernetes/Part/KubernetesPartHero.tsx",
     ).source.getFullText();
     expect(kubernetes).toContain("getKubernetesPartAttentionItems({");
+
+    /*
+     * A container's hero reads its pod's status for it: the container's
+     * reason, exit code and since when, by the pod's rules.
+     */
+    const container: string = parsedFile(
+      "Components/Kubernetes/Part/KubernetesContainerHero.tsx",
+    ).source.getFullText();
+    expect(container).toContain("getKubernetesContainerAttentionItems({");
+    expect(container).toContain("assessKubernetesContainer(pod,");
   });
 
   test.each(Object.entries(PART_HERO_WRAPPERS))(
