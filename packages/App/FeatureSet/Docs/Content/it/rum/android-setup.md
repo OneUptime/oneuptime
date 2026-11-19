@@ -107,6 +107,8 @@ OpenTelemetry Android registra tutto questo da solo. Gli attributi del dispositi
 
 Crash e ANR arrivano in **Eccezioni** come non gestiti, raggruppati per stack trace, con la sessione in cui sono avvenuti. L'agente salva un crash su disco mentre l'app muore e lo invia da lì, quindi un crash avvenuto offline arriva comunque quando l'app torna a girare con una rete.
 
+La **Panoramica** dell'applicazione li riassume per te: **Sessioni**, **Sessioni senza crash**, **Crash**, **ANR**, **Avvii dell'app**, **Avvio a freddo (p95)** e **Frame bloccati**, e ognuno apre le eccezioni, gli span o gli eventi che conta. Finché l'app non invia avvii o frame, i loro grafici dicono cosa li attiva. Le sue **Raccomandazioni** offrono monitor per crash, ANR, avvii a freddo lenti, frame bloccati e un'app che smette di inviare dati.
+
 Una sessione termina dopo 15 minuti in background, o dopo 4 ore. Un'app che non va mai in background, come un chiosco, mantiene una sola sessione per 4 ore, quindi traccia la visita di ogni cliente come uno span a sé, come mostra [Tracciare i propri flussi di lavoro](#tracciare-i-propri-flussi-di-lavoro).
 
 Anche le chiamate `android.util.Log` della tua app diventano log quando aggiungi `android-log-library` e `android-log-agent` accanto ai moduli OkHttp qui sotto: il tag di ogni chiamata va in `android.log.tag`, e una chiamata con un throwable è un'eccezione in **Eccezioni**. OpenTelemetry Android non legge Logcat.

@@ -107,6 +107,8 @@ OpenTelemetry Android registra todo esto por su cuenta. Los atributos de disposi
 
 Los fallos y los ANR llegan a **Excepciones** como no controlados, agrupados por su stack trace, con la sesión en la que ocurrieron. El agente guarda un fallo en disco mientras la aplicación muere y lo envía desde ahí, así que un fallo que ocurre sin conexión llega igualmente cuando la aplicación vuelve a ejecutarse con red.
 
+La **Vista general** de la aplicación te los resume: **Sesiones**, **Sesiones sin fallos**, **Fallos**, **ANR**, **Inicios de la aplicación**, **Inicio en frío (p95)** y **Fotogramas congelados**, y cada uno abre las excepciones, los spans o los eventos que cuenta. Mientras la aplicación no envíe inicios ni fotogramas, sus gráficos indican qué los activa. Sus **Recomendaciones** ofrecen monitores para fallos, ANR, inicios en frío lentos, fotogramas congelados y una aplicación que deja de informar.
+
 Una sesión termina tras 15 minutos en segundo plano, o tras 4 horas. Una aplicación que nunca pasa a segundo plano, como un quiosco, mantiene una misma sesión durante 4 horas, así que traza la visita de cada cliente como un span propio, como muestra [Trazar tus propios flujos de trabajo](#trazar-tus-propios-flujos-de-trabajo).
 
 Las propias llamadas a `android.util.Log` de tu aplicación también se convierten en registros cuando añades `android-log-library` y `android-log-agent` junto a los módulos de OkHttp de abajo: la etiqueta de cada llamada va en `android.log.tag`, y una llamada con un throwable es una excepción en **Excepciones**. OpenTelemetry Android no lee Logcat.

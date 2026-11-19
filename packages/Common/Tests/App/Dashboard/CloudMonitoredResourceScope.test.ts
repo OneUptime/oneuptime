@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+  CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
   CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
@@ -576,6 +577,57 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
     },
   );
 
+  /*
+   * A metric Azure Monitor keeps at five minutes at its finest, read every
+   * 15 minutes (#9566): its row says its points come five minutes apart,
+   * read as every other row is.
+   */
+  test("an App Service app's health check and a Cosmos DB account's storage say they come every 5 minutes; the rest read as before", () => {
+    const sites: CloudMonitoredResourceRowAggregation | undefined = rowsOf(
+      CloudProvider.Azure,
+      "Microsoft.Web/sites",
+    );
+
+    expect(readOf(sites, "azure_healthcheckstatus_average")).toEqual({
+      aggregationType: AggregationType.Avg,
+      caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+    });
+    // Whatever range the list reads, and whatever case the name is in.
+    expect(
+      readOf(sites, "AZURE_HEALTHCHECKSTATUS_AVERAGE", pastHours(24)),
+    ).toEqual({
+      aggregationType: AggregationType.Avg,
+      caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+    });
+    // Its minute metrics, and anything else, read as they did, uncaptioned.
+    expect(readOf(sites, "azure_requests_total")).toBeUndefined();
+    expect(readOf(sites, "http.server.request.duration")).toBeUndefined();
+    expect(sites!.defaultRowValueCaption).toBeUndefined();
+
+    const cosmos: CloudMonitoredResourceRowAggregation | undefined = rowsOf(
+      CloudProvider.Azure,
+      "Microsoft.DocumentDB/databaseAccounts",
+    );
+
+    for (const metric of [
+      "azure_datausagev2_total",
+      "azure_indexusagev2_total",
+      "azure_documentcountv2_total",
+    ]) {
+      expect(readOf(cosmos, metric)?.caption).toBe(
+        CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+      );
+    }
+
+    expect(readOf(cosmos, "azure_totalrequests_count")).toBeUndefined();
+    // Its deprecated latency is no key metric: read as before.
+    expect(readOf(cosmos, "azure_serversidelatency_average")).toBeUndefined();
+    // A Static Web App's five-minute metrics are read every read, unmarked.
+    expect(rowsOf(CloudProvider.Azure, "Microsoft.Web/staticSites")).toBe(
+      undefined,
+    );
+  });
+
   test("a row read without its provider or type reads as before", () => {
     expect(getCloudMonitoredResourceRowAggregation(null)).toBeUndefined();
     expect(getCloudMonitoredResourceRowAggregation(undefined)).toBeUndefined();
@@ -585,7 +637,7 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
     expect(rowsOf(CloudProvider.Azure, { type: SERVICE_BUS })).toBeUndefined();
   });
 
-  test("both captions are the Dashboard's own words, in every language it ships", () => {
+  test("the captions are the Dashboard's own words, in every language it ships", () => {
     const localesDir: string = path.join(
       __dirname,
       "..",
@@ -619,6 +671,7 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
       for (const caption of [
         CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
         CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+        CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
       ]) {
         expect([file, caption, typeof locale[caption]]).toEqual([
           file,
