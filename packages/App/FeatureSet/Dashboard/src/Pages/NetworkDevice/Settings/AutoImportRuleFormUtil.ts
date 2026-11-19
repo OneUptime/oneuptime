@@ -14,12 +14,14 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import DeviceMonitorTemplateUtil, {
   isDeviceAddressMonitorType,
   isDeviceMonitorTemplateType,
+  isDeviceUrlMonitorType,
 } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import {
   ADDRESS_TEMPLATES_GROUP_TITLE,
   POLL_TEMPLATES_GROUP_TITLE,
   UNNAMED_TEMPLATE_NAME,
-  describeAddressTemplate,
+  WEB_TEMPLATES_GROUP_TITLE,
+  describeDeviceTemplate,
 } from "../../../Components/NetworkDevice/DiscoveryImport/DiscoveryImportTemplateCopy";
 
 /*
@@ -54,15 +56,17 @@ export const AUTO_IMPORT_MONITOR_TEMPLATE_SELECT: {
  * reads the templates again whenever it is opened.
  */
 export const NO_DEVICE_MONITOR_TEMPLATE_YET: string = translationKey(
-  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.",
+  "No Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.",
 );
 
 /*
  * The picker's options: Network Device templates, whose monitors read each
  * device's polls, then Ping, IP, Port and NTP templates, whose monitors
- * check each device's address - under a heading each when both kinds are
- * there, one kind alone needs none. A template of another kind, which the
- * list request should not have returned, is left out.
+ * check each device's address, then web templates (issue #9546) - Website,
+ * API and SSL Certificate - whose monitors check a URL on each device, the
+ * device's address as its host. Under a heading each when two kinds or more
+ * are there; one kind alone needs none. A template of another kind, which
+ * the list request should not have returned, is left out.
  */
 export function getAutoImportMonitorTemplateOptions(data: {
   templates: ReadonlyArray<MonitorTemplate>;
@@ -72,19 +76,25 @@ export function getAutoImportMonitorTemplateOptions(data: {
     template: MonitorTemplate,
   ): DropdownOption => {
     const name: string = template.templateName?.trim() || "";
+    const description: string | undefined = template.monitorType
+      ? describeDeviceTemplate(data.translator, {
+          monitorType: template.monitorType,
+          ports: DeviceMonitorTemplateUtil.readPorts(template.monitorSteps),
+          templateUrl: DeviceMonitorTemplateUtil.readTemplateUrl(
+            template.monitorSteps,
+          ),
+        })
+      : undefined;
 
     return {
       value: template.id?.toString() || "",
       // Its own name as written; the word for none in the reader's words.
       label: name || UNNAMED_TEMPLATE_NAME,
       isUserContent: Boolean(name),
-      ...(isDeviceAddressMonitorType(template.monitorType)
+      ...(description
         ? {
-            description: describeAddressTemplate(data.translator, {
-              monitorType: template.monitorType,
-              ports: DeviceMonitorTemplateUtil.readPorts(template.monitorSteps),
-            }),
-            // Worded above, in the reader's language.
+            description: description,
+            // Worded above, in the reader's language, a URL as written.
             isDescriptionUserContent: true,
           }
         : {}),
@@ -100,35 +110,44 @@ export function getAutoImportMonitorTemplateOptions(data: {
     },
   );
 
-  const pollOptions: Array<DropdownOption> = offered
-    .filter((template: MonitorTemplate): boolean => {
-      return template.monitorType === MonitorType.NetworkDevice;
-    })
-    .map(toOption);
-  const addressOptions: Array<DropdownOption> = offered
-    .filter((template: MonitorTemplate): boolean => {
-      return isDeviceAddressMonitorType(template.monitorType);
-    })
-    .map(toOption);
+  const groups: Array<DropdownOptionGroup> = [
+    {
+      label: data.translator.translateText(
+        POLL_TEMPLATES_GROUP_TITLE,
+      ) as string,
+      options: offered
+        .filter((template: MonitorTemplate): boolean => {
+          return template.monitorType === MonitorType.NetworkDevice;
+        })
+        .map(toOption),
+    },
+    {
+      label: data.translator.translateText(
+        ADDRESS_TEMPLATES_GROUP_TITLE,
+      ) as string,
+      options: offered
+        .filter((template: MonitorTemplate): boolean => {
+          return isDeviceAddressMonitorType(template.monitorType);
+        })
+        .map(toOption),
+    },
+    {
+      label: data.translator.translateText(WEB_TEMPLATES_GROUP_TITLE) as string,
+      options: offered
+        .filter((template: MonitorTemplate): boolean => {
+          return isDeviceUrlMonitorType(template.monitorType);
+        })
+        .map(toOption),
+    },
+  ].filter((group: DropdownOptionGroup): boolean => {
+    return group.options.length > 0;
+  });
 
-  if (pollOptions.length > 0 && addressOptions.length > 0) {
-    return [
-      {
-        label: data.translator.translateText(
-          POLL_TEMPLATES_GROUP_TITLE,
-        ) as string,
-        options: pollOptions,
-      },
-      {
-        label: data.translator.translateText(
-          ADDRESS_TEMPLATES_GROUP_TITLE,
-        ) as string,
-        options: addressOptions,
-      },
-    ];
+  if (groups.length > 1) {
+    return groups;
   }
 
-  return [...pollOptions, ...addressOptions];
+  return groups[0]?.options || [];
 }
 
 /*

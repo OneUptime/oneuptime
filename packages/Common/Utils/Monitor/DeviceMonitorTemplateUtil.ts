@@ -10,6 +10,7 @@ import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
+import { translationKey } from "../../Types/Translator";
 import { buildPingMonitorDestination } from "../NetworkDiscovery/PingMonitorBuilder";
 import DeviceUrlTarget from "./DeviceUrlTarget";
 import MonitorTemplateCustomFieldUtil from "./MonitorTemplateCustomFieldUtil";
@@ -140,6 +141,14 @@ export function isDeviceMonitorTemplateType(
  */
 export const DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL: string =
   "Pick a Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate monitor template: a monitor made from any other kind cannot check a device.";
+
+/*
+ * The refusal for a template with no steps. Also shown before an import
+ * starts, in the reader's language (DiscoveryImportProjectFacts).
+ */
+export const DEVICE_TEMPLATE_HAS_NO_STEPS: string = translationKey(
+  "This monitor template has no steps, so a monitor made from it would check nothing. Add a step to the template, then pick it again.",
+);
 
 /*
  * Why a device whose address is a name gets no monitor from an IP template,
@@ -433,9 +442,7 @@ export default class DeviceMonitorTemplateUtil {
     const steps: Array<MonitorStep> = this.readSteps(data.monitorSteps);
 
     if (steps.length === 0) {
-      throw new BadDataException(
-        "This monitor template has no steps, so a monitor made from it would check nothing. Add a step to the template, then pick it again.",
-      );
+      throw new BadDataException(DEVICE_TEMPLATE_HAS_NO_STEPS);
     }
 
     if (

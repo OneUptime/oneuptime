@@ -3,6 +3,7 @@ import URL from "../../Types/API/URL";
 import BadDataException from "../../Types/Exception/BadDataException";
 import IP from "../../Types/IP/IP";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import { translationKey } from "../../Types/Translator";
 import DeviceWebUiUtil from "../NetworkDevice/DeviceWebUiUtil";
 
 /*
@@ -40,21 +41,31 @@ import DeviceWebUiUtil from "../NetworkDevice/DeviceWebUiUtil";
  * Pure: no database, no permission work.
  */
 
-// What the refusals below say, so a caller and its tests use the same words.
-export const URL_TEMPLATE_NEEDS_URL: string =
-  "Every step of a Website, API or SSL Certificate template must check a URL. Add one to the template, then pick it again.";
+/*
+ * What the refusals below say, so a caller and its tests use the same words.
+ * The template ones are also shown before an import starts, in the
+ * reader's language: the import's Monitoring step says why a template it
+ * lists cannot give each device a monitor.
+ */
+export const URL_TEMPLATE_NEEDS_URL: string = translationKey(
+  "Every step of a Website, API or SSL Certificate template must check a URL. Add one to the template, then pick it again.",
+);
 
-export const URL_TEMPLATE_NEEDS_WEB_SCHEME: string =
-  "A Website, API or SSL Certificate template's URL must start with http:// or https:// for each device's address to be put in it. Change the template's URL, then pick it again.";
+export const URL_TEMPLATE_NEEDS_WEB_SCHEME: string = translationKey(
+  "A Website, API or SSL Certificate template's URL must start with http:// or https:// for each device's address to be put in it. Change the template's URL, then pick it again.",
+);
 
-export const URL_TEMPLATE_NEEDS_HOST: string =
-  "Each device's address takes the place of the host in the template's URL, and this URL has none. Write one in, such as https://device/, then pick it again.";
+export const URL_TEMPLATE_NEEDS_HOST: string = translationKey(
+  "Each device's address takes the place of the host in the template's URL, and this URL has none. Write one in, such as https://device/, then pick it again.",
+);
 
-export const URL_TEMPLATE_HOST_IS_VARIABLE: string =
-  "This template's URL names its host with a variable, which is read when the check runs, so each device's address cannot take its place. Write a host into the URL, such as https://device/, then pick it again.";
+export const URL_TEMPLATE_HOST_IS_VARIABLE: string = translationKey(
+  "This template's URL names its host with a variable, which is read when the check runs, so each device's address cannot take its place. Write a host into the URL, such as https://device/, then pick it again.",
+);
 
-export const URL_TEMPLATE_PORT_NOT_A_NUMBER: string =
-  "The port in this template's URL is not a number. Write the port each device answers on, such as https://device:8443/, then pick it again.";
+export const URL_TEMPLATE_PORT_NOT_A_NUMBER: string = translationKey(
+  "The port in this template's URL is not a number. Write the port each device answers on, such as https://device:8443/, then pick it again.",
+);
 
 export const DEVICE_ADDRESS_NOT_A_URL_HOST: string =
   "This device's address cannot be the host of a URL, so a Website, API or SSL Certificate monitor cannot check it.";
