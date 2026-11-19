@@ -1714,7 +1714,7 @@ Imagene er festet i `docker-compose.yml`, så det du speiler er nøyaktig det ag
 
 | Image | Hvor det kommer fra | Hva det er til |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | Collectoren. Alltid, og profilene for [logger](#tjenestelogger) og [spor](#spor-forespørsler-gjennom-kontrollplanet) kjører den samme |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | Collectoren. Alltid, og profilene for [logger](#tjenestelogger) og [spor](#spor-forespørsler-gjennom-kontrollplanet) kjører den samme |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | Den medfølgende exporteren, og den som leser prosjektkvoter. Ikke nødvendig hvis du [kjører din egen exporter](#installer-og-start-agenten) |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [KI-agenten](#ai-agent). Ikke nødvendig hvis du tar tjenesten dens ut av `docker-compose.yml`. Taggen `release` flytter seg med hver OneUptime-utgave, så kopier den igjen når du oppgraderer |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | Bare [databasestien](/docs/telemetry/openstack-very-large-clouds#databaseveien) |
@@ -1722,7 +1722,7 @@ Imagene er festet i `docker-compose.yml`, så det du speiler er nøyaktig det ag
 De to som navngir en digest kopieres etter digest, så et speil som beholder digesten har de samme bytene. På en maskin som når internett og registeret ditt beholder `crane copy` den (`skopeo copy --all --preserve-digests` gjør det også). Eller lagre dem til en fil med `docker save`, bær den over, og `docker load` den på agentens maskin.
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

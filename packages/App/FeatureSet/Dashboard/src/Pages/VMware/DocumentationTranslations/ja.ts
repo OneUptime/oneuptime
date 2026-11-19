@@ -208,8 +208,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "vCenter の識別名は `VMWARE_VCENTER_NAME` から取られ、すべてのメトリクスに `vmware.vcenter.name` として付与されます。この vCenter は **`vcenter-1`** です。`.env` で修正し、`docker-compose.yml` のあるフォルダーで `docker compose up -d` を実行して適用します。なお、新しい名前を付けると新しい vCenter として登録されます。",
   "A Linux machine (x86_64 or arm64) with systemd 235 or later — Ubuntu 18.04, Debian 10, RHEL 8 or newer — and `sudo`, that can reach vCenter over HTTPS (TCP 443) — ideally not a VM on the cluster it watches":
     "systemd 235 以降 (Ubuntu 18.04、Debian 10、RHEL 8 以降) と `sudo` を備えた Linux マシン (x86_64 または arm64)。HTTPS (TCP 443) で vCenter に到達できる必要があります。監視対象のクラスター上の VM は避けるのが理想です",
-  "Run these on the Linux machine that will host the agent. They download `otelcol-contrib` 0.161.0 — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime, and install them to `/opt/oneuptime-vmware-agent`:":
-    "エージェントを動かす Linux マシンでこれらを実行します。エージェントが固定しているアップストリームの OpenTelemetry Collector のリリースである `otelcol-contrib` 0.161.0 を、エージェントの `otel-collector-config.yaml` と systemd ユニットとともにこの OneUptime からダウンロードし、`/opt/oneuptime-vmware-agent` にインストールします:",
+  "Run these on the Linux machine that will host the agent. They download `otelcol-contrib` 0.165.0 — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's `otel-collector-config.yaml` and its systemd unit from this OneUptime, and install them to `/opt/oneuptime-vmware-agent`:":
+    "エージェントを動かす Linux マシンでこれらを実行します。エージェントが固定しているアップストリームの OpenTelemetry Collector のリリースである `otelcol-contrib` 0.165.0 を、エージェントの `otel-collector-config.yaml` と systemd ユニットとともにこの OneUptime からダウンロードし、`/opt/oneuptime-vmware-agent` にインストールします:",
   "The agent's settings go in `/opt/oneuptime-vmware-agent/.env`. It holds a password, so make it readable by root alone, then open it (`sudoedit` uses your `$EDITOR`):":
     "エージェントの設定は `/opt/oneuptime-vmware-agent/.env` に書きます。パスワードが含まれるので、root だけが読めるようにしてから開きます (`sudoedit` は `$EDITOR` を使います):",
   "Put this in it:": "次の内容を書きます:",

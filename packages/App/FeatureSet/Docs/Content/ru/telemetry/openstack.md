@@ -1714,7 +1714,7 @@ sudo userdel oneuptime-openstack
 
 | Образ | Откуда он берётся | Для чего |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | Коллектор. Всегда, и профили [журналов](#журналы-служб) и [трассировок](#трассировка-запросов-через-плоскость-управления) запускают тот же |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | Коллектор. Всегда, и профили [журналов](#журналы-служб) и [трассировок](#трассировка-запросов-через-плоскость-управления) запускают тот же |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | Встроенный экспортер и тот, что читает квоты проектов. Не нужен, если вы [запускаете собственный экспортер](#установите-и-запустите-агент) |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [ИИ-агент](#ии-агент). Не нужен, если убрать его службу из `docker-compose.yml`. Тег `release` движется с каждым релизом OneUptime, поэтому копируйте его снова при обновлении |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | Только [путь через базу данных](/docs/telemetry/openstack-very-large-clouds#путь-через-базу-данных) |
@@ -1722,7 +1722,7 @@ sudo userdel oneuptime-openstack
 Два образа, называющие digest, копируются по digest, поэтому зеркало, сохраняющее digest, содержит те же байты. На машине, которая достаёт и до интернета, и до вашего реестра, digest сохраняет `crane copy` (`skopeo copy --all --preserve-digests` тоже). Либо сохраните их в файл командой `docker save`, перенесите его и загрузите командой `docker load` на машине агента.
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```
