@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "इस माउंट का कुल आकार: इस्तेमाल हुई, खाली और root के लिए आरक्षित जगह का योग, हर एक चुनी गई अवधि का औसत। आकार 1024-आधारित इकाइयों में हैं, इसलिए 1 GiB, 1,024 MiB के बराबर है।",
   "Up to {{percent}} used": "{{percent}} तक इस्तेमाल",
   "Used, free and total space across every datastore in this vCenter, added up.": "इस vCenter के सभी डेटास्टोर की इस्तेमाल हुई, खाली और कुल जगह, जोड़कर।",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "डेटा रिडक्शन से पहले उसके ऑब्जेक्ट कितनी जगह लेते हैं, उसके कोटा के मुकाबले: ऐरे के क्षमता अलर्ट की तरह 80% से ऊपर पीला और 90% से ऊपर लाल। कोटा न हो तो यह ऐरे भरने तक बढ़ता है।",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "डेटा रिडक्शन से पहले उसके ऑब्जेक्ट कितनी जगह लेते हैं, उसके कोटा के मुकाबले: ऐरे के क्षमता अलर्ट की तरह 80% पर पीला और 90% पर लाल। कोटा न हो तो यह ऐरे भरने तक बढ़ता है।",
   "What the bucket stores, before data reduction, against its quota.": "डेटा रिडक्शन से पहले बकेट कितना रखता है, उसके कोटा के मुकाबले।",
   "{{free}} free of {{total}}": "{{total}} में से {{free}} खाली",
   "{{percent}} of its quota used": "कोटा का {{percent}} इस्तेमाल",

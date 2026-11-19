@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "الحجم الإجمالي لنقطة التحميل هذه: مجموع المساحة المستخدمة والحرة والمحجوزة لـ root، وكلٌّ منها كمتوسط على مدى النطاق المحدد. وتستخدم الأحجام وحدات أساسها 1024، لذا فإن 1 GiB يساوي 1,024 MiB.",
   "Up to {{percent}} used": "استُخدم حتى {{percent}}",
   "Used, free and total space across every datastore in this vCenter, added up.": "المساحة المستخدمة والحرة والإجمالية لكل مخازن البيانات في vCenter هذا، مجتمعة.",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "ما تشغله كائناته قبل تقليل البيانات، مقارنةً بحصته: كهرماني فوق 80% وأحمر فوق 90%، كتنبيهات سعة المصفوفة. ومن دون حصة ينمو حتى تمتلئ المصفوفة.",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "ما تشغله كائناته قبل تقليل البيانات، مقارنةً بحصته: كهرماني عند 80% وأحمر عند 90%، كتنبيهات سعة المصفوفة. ومن دون حصة ينمو حتى تمتلئ المصفوفة.",
   "What the bucket stores, before data reduction, against its quota.": "ما تخزّنه الحاوية قبل تقليل البيانات، مقارنةً بحصتها.",
   "{{free}} free of {{total}}": "{{free}} حرة من {{total}}",
   "{{percent}} of its quota used": "استُخدم {{percent}} من حصته",

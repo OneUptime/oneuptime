@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "このマウントの総サイズ（使用、空き、root 用の予約領域の合計）で、それぞれ選択した範囲で平均しています。サイズは 1024 進単位のため、1 GiB は 1,024 MiB です。",
   "Up to {{percent}} used": "{{percent}} まで使用",
   "Used, free and total space across every datastore in this vCenter, added up.": "この vCenter のすべてのデータストアの使用、空き、合計の容量を足し合わせたものです。",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "データ削減前にオブジェクトが占める容量をクォータと比べたものです。アレイの容量アラートと同じく 80% を超えると黄、90% を超えると赤になります。クォータがない場合、アレイが満杯になるまで増え続けます。",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "データ削減前にオブジェクトが占める容量をクォータと比べたものです。アレイの容量アラートと同じく 80% で黄、90% で赤になります。クォータがない場合、アレイが満杯になるまで増え続けます。",
   "What the bucket stores, before data reduction, against its quota.": "データ削減前にバケットが保存している量を、クォータと比べたものです。",
   "{{free}} free of {{total}}": "{{total}} 中 {{free}} が空き",
   "{{percent}} of its quota used": "クォータの {{percent}} を使用",

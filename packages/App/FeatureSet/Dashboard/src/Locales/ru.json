@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "Общий размер этой точки монтирования: сумма занятого, свободного и зарезервированного для root места; каждое значение — в среднем за выбранный период. Размеры указаны в единицах с основанием 1024, так что 1 GiB — это 1024 MiB.",
   "Up to {{percent}} used": "Занято до {{percent}}",
   "Used, free and total space across every datastore in this vCenter, added up.": "Занятое, свободное и общее место всех хранилищ данных этого vCenter, вместе.",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Сколько занимают его объекты до сокращения данных, относительно квоты: жёлтым выше 80 % и красным выше 90 %, как оповещения о ёмкости массива. Без квоты он растёт, пока массив не заполнится.",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Сколько занимают его объекты до сокращения данных, относительно квоты: жёлтым с 80 % и красным с 90 %, как оповещения о ёмкости массива. Без квоты он растёт, пока массив не заполнится.",
   "What the bucket stores, before data reduction, against its quota.": "Сколько хранит бакет до сокращения данных, относительно его квоты.",
   "{{free}} free of {{total}}": "Свободно {{free}} из {{total}}",
   "{{percent}} of its quota used": "Занято {{percent}} квоты",

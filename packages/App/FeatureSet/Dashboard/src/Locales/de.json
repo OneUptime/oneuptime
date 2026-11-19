@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "Die Gesamtgröße dieses Einhängepunkts: belegter, freier und für root reservierter Platz zusammen, jeweils gemittelt über den ausgewählten Zeitraum. Die Größen verwenden Einheiten zur Basis 1024, 1 GiB sind also 1.024 MiB.",
   "Up to {{percent}} used": "Bis {{percent}} belegt",
   "Used, free and total space across every datastore in this vCenter, added up.": "Belegter, freier und gesamter Platz aller Datastores in diesem vCenter, zusammengezählt.",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Was seine Objekte vor der Datenreduktion belegen, gemessen an seinem Kontingent: gelb über 80 % und rot über 90 %, wie die Kapazitätswarnungen des Arrays. Ohne Kontingent wächst er, bis das Array voll ist.",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Was seine Objekte vor der Datenreduktion belegen, gemessen an seinem Kontingent: gelb ab 80 % und rot ab 90 %, wie die Kapazitätswarnungen des Arrays. Ohne Kontingent wächst er, bis das Array voll ist.",
   "What the bucket stores, before data reduction, against its quota.": "Was der Bucket vor der Datenreduktion speichert, gemessen an seinem Kontingent.",
   "{{free}} free of {{total}}": "{{free}} frei von {{total}}",
   "{{percent}} of its quota used": "{{percent}} seines Kontingents belegt",

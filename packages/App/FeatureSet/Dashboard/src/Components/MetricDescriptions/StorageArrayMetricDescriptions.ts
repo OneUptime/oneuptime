@@ -272,7 +272,7 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
     "The size limit set on it in the FlashBlade's object store, from the latest report. A dash means no quota is set.",
   ),
   bucketUsedColumn: translationKey(
-    "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.",
+    "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.",
   ),
   bucketObjectsColumn: translationKey(
     "Number of objects stored in it, from the FlashBlade's latest report.",

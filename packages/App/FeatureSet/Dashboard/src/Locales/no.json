@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "Den totale størrelsen på dette monteringspunktet: brukt, ledig og for root reservert plass lagt sammen, hver i gjennomsnitt over det valgte tidsrommet. Størrelser bruker 1024-baserte enheter, så 1 GiB er 1 024 MiB.",
   "Up to {{percent}} used": "Opptil {{percent}} brukt",
   "Used, free and total space across every datastore in this vCenter, added up.": "Brukt, ledig og total plass på alle datalagre i denne vCenter-en, lagt sammen.",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Det objektene tar før datareduksjon, målt mot kvoten: gul over 80 % og rød over 90 %, som arrayets kapasitetsvarsler. Uten kvote vokser den til arrayet er fullt.",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Det objektene tar før datareduksjon, målt mot kvoten: gul fra 80 % og rød fra 90 %, som arrayets kapasitetsvarsler. Uten kvote vokser den til arrayet er fullt.",
   "What the bucket stores, before data reduction, against its quota.": "Det bucketen lagrer, før datareduksjon, målt mot kvoten.",
   "{{free}} free of {{total}}": "{{free}} ledig av {{total}}",
   "{{percent}} of its quota used": "{{percent}} av kvoten brukt",

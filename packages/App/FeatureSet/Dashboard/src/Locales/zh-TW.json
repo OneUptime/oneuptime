@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "此掛載點的總大小：已用、可用與保留給 root 的空間總和，各自取所選範圍內的平均值。大小採用以 1024 為基數的單位，因此 1 GiB 為 1,024 MiB。",
   "Up to {{percent}} used": "已用不超過 {{percent}}",
   "Used, free and total space across every datastore in this vCenter, added up.": "此 vCenter 中所有資料存放區的已用、可用與總空間總和。",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "其物件在資料縮減前占用的空間，相對於其配額：與陣列的容量警示相同，超過 80% 時為黃色，超過 90% 時為紅色。沒有配額時，它會持續成長直到陣列滿載。",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "其物件在資料縮減前占用的空間，相對於其配額：與陣列的容量警示相同，達到 80% 時為黃色，達到 90% 時為紅色。沒有配額時，它會持續成長直到陣列滿載。",
   "What the bucket stores, before data reduction, against its quota.": "儲存貯體在資料縮減前儲存的量，相對於其配額。",
   "{{free}} free of {{total}}": "{{total}} 中可用 {{free}}",
   "{{percent}} of its quota used": "已用配額的 {{percent}}",

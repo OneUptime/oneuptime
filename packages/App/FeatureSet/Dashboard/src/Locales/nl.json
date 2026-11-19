@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "De totale grootte van dit koppelpunt: gebruikte, vrije en voor root gereserveerde ruimte opgeteld, elk gemiddeld over het geselecteerde bereik. Groottes gebruiken eenheden op basis van 1024, dus 1 GiB is 1.024 MiB.",
   "Up to {{percent}} used": "Tot {{percent}} gebruikt",
   "Used, free and total space across every datastore in this vCenter, added up.": "Gebruikte, vrije en totale ruimte van alle datastores in deze vCenter, opgeteld.",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Wat de objecten innemen vóór datareductie, afgezet tegen het quotum: oranje boven 80% en rood boven 90%, zoals de capaciteitsmeldingen van de array. Zonder quotum groeit hij tot de array vol is.",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "Wat de objecten innemen vóór datareductie, afgezet tegen het quotum: oranje vanaf 80% en rood vanaf 90%, zoals de capaciteitsmeldingen van de array. Zonder quotum groeit hij tot de array vol is.",
   "What the bucket stores, before data reduction, against its quota.": "Wat de bucket opslaat, vóór datareductie, afgezet tegen het quotum.",
   "{{free}} free of {{total}}": "{{free}} vrij van {{total}}",
   "{{percent}} of its quota used": "{{percent}} van het quotum gebruikt",

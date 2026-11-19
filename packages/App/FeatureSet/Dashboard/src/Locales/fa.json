@@ -58124,7 +58124,7 @@
   "This mount's total size: used, free and the space reserved for root added up, each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.": "اندازه کل این نقطه اتصال: مجموع فضای مصرف‌شده، آزاد و رزروشده برای root، هر کدام میانگین در محدوده انتخاب‌شده. اندازه‌ها با واحدهای مبنای ۱۰۲۴ بیان می‌شوند، پس ۱ GiB برابر ۱٬۰۲۴ MiB است.",
   "Up to {{percent}} used": "تا {{percent}} استفاده‌شده",
   "Used, free and total space across every datastore in this vCenter, added up.": "فضای استفاده‌شده، آزاد و کل همه دیتااستورهای این vCenter، روی هم.",
-  "What its objects take before data reduction, against its quota: amber past 80% and red past 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "فضایی که اشیای آن پیش از کاهش داده می‌گیرند، در برابر سهمیه‌اش: مانند هشدارهای ظرفیت آرایه، بالای ۸۰٪ کهربایی و بالای ۹۰٪ قرمز. بدون سهمیه، تا پر شدن آرایه بزرگ می‌شود.",
+  "What its objects take before data reduction, against its quota: amber at 80% and red at 90%, as the array's capacity alerts. With no quota it grows until the array is full.": "فضایی که اشیای آن پیش از کاهش داده می‌گیرند، در برابر سهمیه‌اش: مانند هشدارهای ظرفیت آرایه، از ۸۰٪ کهربایی و از ۹۰٪ قرمز. بدون سهمیه، تا پر شدن آرایه بزرگ می‌شود.",
   "What the bucket stores, before data reduction, against its quota.": "آنچه باکت پیش از کاهش داده نگه می‌دارد، در برابر سهمیه‌اش.",
   "{{free}} free of {{total}}": "{{free}} آزاد از {{total}}",
   "{{percent}} of its quota used": "{{percent}} از سهمیه‌اش استفاده‌شده",

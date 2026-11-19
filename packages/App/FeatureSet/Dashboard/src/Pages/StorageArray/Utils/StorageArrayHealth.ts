@@ -69,7 +69,7 @@ import { ResourceTopologyHealth } from "../../../Components/ResourceTopology/Res
  *
  * A volume and a directory have no rule of their own: no template watches
  * one. Whether the array as a whole is slow or full says it. A bucket with
- * a quota is nearly full past the array's own 80% and 90% (#9647): past its
+ * a quota is nearly full at the array's own 80% and 90% (#9647): past its
  * quota, a hard limit refuses writes and a soft one alerts.
  *
  * The words are English, marked as keys of the Dashboard's locales and
@@ -87,13 +87,12 @@ export const STORAGE_ARRAY_CAPACITY_CRITICAL_PERCENT: number = 90;
 
 /*
  * Where the shared storage bar turns amber and red for the array and for a
- * bucket against its quota: the capacity alerts' lines above, only past
- * them, as the rules read them.
+ * bucket against its quota: at the capacity alerts' lines above, the levels
+ * Pure raises them at and the arrays list's text names.
  */
 export const STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS: StorageUsageThresholds = {
   warningPercent: STORAGE_ARRAY_CAPACITY_WARNING_PERCENT,
   criticalPercent: STORAGE_ARRAY_CAPACITY_CRITICAL_PERCENT,
-  isPastLineOnly: true,
 };
 
 // The FlashArray's High Read and High Write Latency alerts' line (5 ms).
