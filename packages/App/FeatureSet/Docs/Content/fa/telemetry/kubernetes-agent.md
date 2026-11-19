@@ -32,7 +32,7 @@ flowchart TB
 | ابزارگذاری eBPF (OBI) | DaemonSet | ترِیس‌ها و متریک‌های درخواست HTTP، gRPC، SQL و Redis از هر پاد، و نقشه سرویس. | به‌طور پیش‌فرض، جز روی GKE Autopilot و EKS Fargate |
 | عامل هوش مصنوعی Kubernetes | Deployment | `kubectl` فقط‌خواندنی برای OneUptime AI هنگام بررسی یک حادثه یا هشدار. | به‌طور پیش‌فرض |
 | دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که کالکتور گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot`، `eks-fargate` و `openshift-restricted` |
-| موتور و پرسشگر هزینه | Deployments | خرج برای هر namespace، بار کاری و پاد. | با `cost.enabled=true` |
+| موتور و پرسشگر هزینه | Deployments | خرج برای هر namespace، بار کاری و پاد. | به‌طور پیش‌فرض، جز روی GKE Autopilot و EKS Fargate |
 
 همه ایمیج‌های عامل فقط برای Linux ساخته شده‌اند، پس هر بار کاری به گره‌های Linux سنجاق شده است.
 
@@ -199,7 +199,8 @@ kubectl get pods -n oneuptime-agent
 - `oneuptime.labels`: برچسب‌های پروژه برای هر چیزی که این خوشه می‌فرستد، مانند `{"team": "payments"}`.
 - `preset`: `eks-fargate` برای خوشه‌ای که فقط روی Fargate اجرا می‌شود، و در غیر این صورت `standard`، که پیش‌فرض است.
 - `logs.enabled`، `ebpf.enabled` و `aiAgent.enabled`: لاگ‌های پاد، ترِیس‌های eBPF و [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes)، که هر سه به‌طور پیش‌فرض روشن‌اند.
-- `kubeStateMetrics.enabled` و `cost.enabled`: kube-state-metrics و [مشاهده‌پذیری هزینه](/docs/telemetry/kubernetes-cost)، که هر دو به‌طور پیش‌فرض خاموش‌اند.
+- `kubeStateMetrics.enabled`: kube-state-metrics، که به‌طور پیش‌فرض خاموش است.
+- `cost.enabled`: [مشاهده‌پذیری هزینه](/docs/telemetry/kubernetes-cost)، که پیش‌فرضش `auto` است: روشن، جز با پیش‌تنظیم `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | گراف سرویس (eBPF) | لبه‌های نرخ درخواست، تأخیر و خطا از فراخواننده به فراخوانده، که نقشه سرویس را می‌کشند |
 | متریک‌های جریان شبکه (eBPF) | شمارنده‌های بایت و بسته TCP و UDP میان پادها، با فراداده Kubernetes |
 | آمار TCP (eBPF) | زمان رفت‌وبرگشت، اتصال‌های ناموفق و شمارنده‌های ارسال دوباره در سطح گره |
-| هزینه بارهای کاری (اختیاری، `cost.enabled=true`) | خرج برای هر namespace، بار کاری و پاد، با ظرفیت بیکار و کارایی، و هزینه ساعتی گره‌ها و حجم‌ها: ببینید [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) |
+| هزینه بارهای کاری (به‌طور پیش‌فرض روشن، جز روی GKE Autopilot و EKS Fargate) | خرج برای هر namespace، بار کاری و پاد، با ظرفیت بیکار و کارایی، همچنین به‌صورت متریک‌هایی برای هشدار، و هزینه ساعتی گره‌ها و حجم‌ها: ببینید [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) |
 
 ## رویدادهای Kubernetes
 
@@ -594,7 +595,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن مشاهده‌پذیری هزینه
 
-ببینید هر namespace، بار کاری و پاد چقدر هزینه دارد، همراه با ظرفیت بیکار و اینکه چه مقدار از هر request مصرف می‌شود، در صفحه **هزینه‌ها** خوشه:
+مشاهده‌پذیری هزینه به‌طور پیش‌فرض روشن است: نمای کلی خوشه و صفحه **هزینه‌ها** آن نشان می‌دهند هر namespace، بار کاری و پاد چقدر هزینه دارد، همراه با ظرفیت بیکار و اینکه چه مقدار از هر request مصرف می‌شود، و متریک‌های هزینه را می‌توان در نمودار نشان داد و برایشان هشدار گذاشت. روی پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate`، که صورت‌حساب هر پاد را بر پایه آنچه درخواست می‌کند می‌نویسند، و روی عاملی که پیش از پیش‌فرض شدن آن نصب شده، به‌طور پیش‌فرض خاموش است. آنجا روشنش کنید:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-همین به‌تنهایی یک نصب کامل است: چارت موتور متن‌باز [OpenCost](https://opencost.io) را (همراه با Prometheus کوچکی که لازم دارد) با خود دارد و گره‌ها و حجم‌های شما را بر پایه قیمت‌های فهرست عمومی ارائه‌دهنده ابری‌تان و بدون هیچ اعتبارنامه‌ای قیمت‌گذاری می‌کند. دو پاد کوچک می‌افزاید و نخستین هزینه‌ها پس از نخستین ساعت بسته‌شده دیده می‌شوند. از پیش Kubecost یا OpenCost دارید؟ به‌جایش `--set cost.engine.url=<its service URL>` را بیفزایید، و هیچ چیزی همراه نمی‌شود. خوشه‌های درون‌سازمانی می‌توانند با `cost.opencost.customPricing` کارت نرخ تنظیم کنند. راهنمای کامل، با قیمت‌گذاری درون‌سازمانی و رفع اشکال، [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) است.
+همین به‌تنهایی یک نصب کامل است: چارت موتور متن‌باز [OpenCost](https://opencost.io) را (همراه با Prometheus کوچکی که لازم دارد) با خود دارد و گره‌ها و حجم‌های شما را بر پایه قیمت‌های فهرست عمومی ارائه‌دهنده ابری‌تان و بدون هیچ اعتبارنامه‌ای قیمت‌گذاری می‌کند. سه پاد کوچک می‌افزاید و نخستین هزینه‌ها پس از نخستین ساعت بسته‌شده دیده می‌شوند. برای خاموش کردنش، `--set cost.enabled=false` را به همین شیوه تنظیم کنید. از پیش Kubecost یا OpenCost دارید؟ به‌جایش `--set cost.engine.url=<its service URL>` را بیفزایید، و هیچ چیزی همراه نمی‌شود. خوشه‌های درون‌سازمانی می‌توانند با `cost.opencost.customPricing` کارت نرخ تنظیم کنند. راهنمای کامل، با قیمت‌گذاری درون‌سازمانی و رفع اشکال، [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) است.
 
 ### برچسب‌گذاری خودکار با برچسب‌های پروژه
 
@@ -990,7 +991,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | متریک‌های CrashLoop، ImagePull و دلیل‌های زمان‌بندی (یک Deployment از kube-state-metrics و یک برداشت می‌افزاید) |
 | `ebpf.features.networkInterZoneMetrics` | سری‌های جریان شبکه را دو برابر می‌کند |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | کارهای برداشت Prometheus بیشتر |
-| `cost.enabled` | هزینه بارهای کاری (OpenCost و یک Prometheus کوچک را همراه دارد؛ سطرهای هزینه ساعتی و یک برداشت متریک با فهرست مجاز تنگ؛ دریافت میانه، دو پاد بیشتر) |
+
+در عوض، مشاهده‌پذیری هزینه (`cost.enabled`) به‌طور پیش‌فرض روشن است: سه پاد کوچک، یک سطر هزینه ساعتی برای هر کانتینر، و برداشت یک سری قیمت برای هر گره، حجم و متعادل‌کننده بار. اگر از آن استفاده نمی‌کنید، با `--set cost.enabled=false` خاموشش کنید.
 
 ### به‌جای کنار گذاشتن، ترِیس‌ها را نمونه‌برداری کنید
 

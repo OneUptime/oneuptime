@@ -14,6 +14,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { LogRecordingRuleDefinitionUtil } from "../../../Types/Log/LogRecordingRuleDefinition";
 import ObjectID from "../../../Types/ObjectID";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
+import { KubernetesCostMetric } from "../../../Types/Kubernetes/KubernetesCostMetrics";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -37,6 +38,10 @@ const RESERVED_NAMES: Array<string> = [
   "oneuptime.rum.session.replay.anything.new",
   "OneUptime.RUM.Session.Replay.Budget.Project.Daily.Used.Percent",
   "  oneuptime.rum.session.replay.budget.project.daily.used.bytes  ",
+  // The Kubernetes cost metrics the cost ingest writes (#9548).
+  ...Object.values(KubernetesCostMetric),
+  "oneuptime.kubernetes.cost.anything.new",
+  "OneUptime.Kubernetes.Cost.Workload",
 ];
 
 const ALLOWED_NAMES: Array<string> = [
@@ -45,6 +50,8 @@ const ALLOWED_NAMES: Array<string> = [
   "oneuptime.llm.budget.percent.used",
   "oneuptime.rum.application.id",
   "oneuptime.rum.session.replayed",
+  "oneuptime.kubernetes.costs",
+  "node_total_hourly_cost",
 ];
 
 interface ServiceCase {
@@ -109,6 +116,16 @@ describe("MetricRecordingRuleService.assertOutputMetricNameAllowed", () => {
       );
     }).toThrow(
       'Metric names that start with "oneuptime.rum.session.replay." are reserved for OneUptime\'s session replay budget metrics. Choose another output metric name.',
+    );
+  });
+
+  test("says the Kubernetes cost prefix is reserved, and what to do", () => {
+    expect(() => {
+      MetricRecordingRuleServiceClass.assertOutputMetricNameAllowed(
+        KubernetesCostMetric.Workload,
+      );
+    }).toThrow(
+      'Metric names that start with "oneuptime.kubernetes.cost." are reserved for OneUptime\'s Kubernetes cost metrics. Choose another output metric name.',
     );
   });
 

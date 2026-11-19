@@ -230,6 +230,57 @@ describe("a kept event's snapshot", () => {
     }
   });
 
+  /*
+   * A kept event kept its who and what but not its request, so its panel
+   * on the case's Evidence page could not open the trace or the session of
+   * the request it happened in (#9556).
+   */
+  test("keeps the request the event happened in: its trace, span, session and outcome", () => {
+    expect(SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS).toEqual(
+      expect.arrayContaining([
+        "traceId",
+        "spanId",
+        "sessionId",
+        "requestOutcome",
+      ]),
+    );
+
+    const snapshot: SecurityCaseEventSnapshot = buildSecurityCaseEventSnapshot({
+      event: {
+        ...EVENT_ROW,
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        spanId: "00f067aa0ba902b7",
+        sessionId: "session-1",
+        requestOutcome: "Reached App",
+      },
+    });
+
+    expect(snapshot.traceId).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
+    expect(snapshot.spanId).toBe("00f067aa0ba902b7");
+    expect(snapshot.sessionId).toBe("session-1");
+    expect(snapshot.requestOutcome).toBe("Reached App");
+    expect(
+      readSecurityCaseEventSnapshot(JSON.parse(JSON.stringify(snapshot))),
+    ).toEqual(snapshot);
+  });
+
+  test("reads an event kept before it kept its request as one with none", () => {
+    const snapshot: SecurityCaseEventSnapshot | null =
+      readSecurityCaseEventSnapshot({
+        eventUid: "evt-old",
+        time: "2026-10-28T22:42:00.000Z",
+        message: "kept last month",
+      });
+
+    expect(snapshot).not.toBeNull();
+    expect([
+      snapshot!.traceId,
+      snapshot!.spanId,
+      snapshot!.sessionId,
+      snapshot!.requestOutcome,
+    ]).toEqual(["", "", "", ""]);
+  });
+
   test("never trusts a stored value's type: a list of objects, a hunt without a name", () => {
     const snapshot: SecurityCaseEventSnapshot | null =
       readSecurityCaseEventSnapshot({

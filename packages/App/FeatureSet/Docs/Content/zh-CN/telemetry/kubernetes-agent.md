@@ -32,7 +32,7 @@ flowchart TB
 | eBPF 插桩（OBI） | DaemonSet | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis 追踪与请求指标，以及服务地图。 | 默认运行，GKE Autopilot 和 EKS Fargate 除外 |
 | Kubernetes AI 代理 | Deployment | OneUptime AI 调查事件或警报时使用的只读 `kubectl`。 | 默认运行 |
 | 日志尾随器 | Deployment | 在节点 Collector 无法读取时，通过 Kubernetes API 获取 Pod 日志。 | 使用 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 预设时 |
-| 成本引擎和轮询器 | Deployments | 按命名空间、工作负载和 Pod 统计的支出。 | 设置 `cost.enabled=true` 时 |
+| 成本引擎和轮询器 | Deployments | 按命名空间、工作负载和 Pod 统计的支出。 | 默认运行，GKE Autopilot 和 EKS Fargate 除外 |
 
 所有代理镜像都只支持 Linux，因此所有工作负载都被固定在 Linux 节点上。
 
@@ -199,7 +199,8 @@ kubectl get pods -n oneuptime-agent
 - `oneuptime.labels`：附加到此集群发送的所有数据上的项目标签，例如 `{"team": "payments"}`。
 - `preset`：仅在 Fargate 上运行的集群使用 `eks-fargate`，否则使用默认值 `standard`。
 - `logs.enabled`、`ebpf.enabled` 和 `aiAgent.enabled`：Pod 日志、eBPF 追踪和 [Kubernetes AI 代理](#kubernetes-ai-代理)，均默认开启。
-- `kubeStateMetrics.enabled` 和 `cost.enabled`：kube-state-metrics 和 [成本可观测性](/docs/telemetry/kubernetes-cost)，均默认关闭。
+- `kubeStateMetrics.enabled`：kube-state-metrics，默认关闭。
+- `cost.enabled`：[成本可观测性](/docs/telemetry/kubernetes-cost)，默认为 `auto`：开启，但使用 `eks-fargate` 预设时除外。
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 服务图（eBPF） | 调用方到被调用方的请求速率、延迟和错误边，用于绘制服务地图 |
 | 网络流指标（eBPF） | Pod 之间的 TCP 和 UDP 字节与数据包计数器，附带 Kubernetes 元数据 |
 | TCP 统计（eBPF） | 节点级的往返时间、连接失败和重传计数器 |
-| 工作负载成本（需选择启用，`cost.enabled=true`） | 按命名空间、工作负载和 Pod 统计的支出（含空闲和效率），以及节点和卷的每小时成本：见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost) |
+| 工作负载成本（默认开启，GKE Autopilot 和 EKS Fargate 除外） | 按命名空间、工作负载和 Pod 统计的支出（含空闲和效率，也以可设置警报的指标形式提供），以及节点和卷的每小时成本：见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes 事件
 
@@ -594,7 +595,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 启用成本可观测性
 
-在集群的 **成本** 页面上查看每个命名空间、工作负载和 Pod 的成本，以及空闲容量和每个 request 的使用比例：
+成本可观测性默认开启：集群的概览和它的 **成本** 页面会显示每个命名空间、工作负载和 Pod 的成本，以及空闲容量和每个 request 的使用比例，成本指标也可以绘制成图表并设置警报。在按每个 Pod 的 request 计费的 `gke-autopilot` 和 `eks-fargate` 预设下，以及在默认开启之前安装的代理上，它默认关闭。在这些地方这样开启它：
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-仅此一项就是完整的安装：chart 内置了开源的 [OpenCost](https://opencost.io) 引擎（以及它所需的小型 Prometheus），无需凭据即可根据云厂商的公开价格为你的节点和卷定价。它会增加两个小 Pod，第一批成本会在第一个小时结束后出现。已经在运行 Kubecost 或 OpenCost？改为添加 `--set cost.engine.url=<its service URL>`，就不会内置任何东西。本地集群可以用 `cost.opencost.customPricing` 设置费率卡。包含本地定价和故障排查的完整指南见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。
+仅此一项就是完整的安装：chart 内置了开源的 [OpenCost](https://opencost.io) 引擎（以及它所需的小型 Prometheus），无需凭据即可根据云厂商的公开价格为你的节点和卷定价。它会增加三个小 Pod，第一批成本会在第一个小时结束后出现。要关闭它，以同样的方式设置 `--set cost.enabled=false`。已经在运行 Kubecost 或 OpenCost？改为添加 `--set cost.engine.url=<its service URL>`，就不会内置任何东西。本地集群可以用 `cost.opencost.customPricing` 设置费率卡。包含本地定价和故障排查的完整指南见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。
 
 ### 使用项目标签自动打标签
 
@@ -990,7 +991,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | CrashLoop、ImagePull 和调度原因指标（增加一个 kube-state-metrics Deployment 和一项抓取） |
 | `ebpf.features.networkInterZoneMetrics` | 网络流序列翻倍 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 更多 Prometheus 抓取任务 |
-| `cost.enabled` | 工作负载成本（内置 OpenCost 和一个小型 Prometheus；每小时成本行和严格限定允许列表的指标抓取；摄取量适中，多两个 Pod） |
+
+而成本可观测性（`cost.enabled`）是默认开启的：三个小 Pod、每个容器每小时一行成本，以及对每个节点、卷和负载均衡器各一个价格序列的抓取。如果你不用它，请用 `--set cost.enabled=false` 关闭它。
 
 ### 对追踪采样而不是丢弃
 

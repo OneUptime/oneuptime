@@ -86,7 +86,7 @@ Tilkoblinger som er pålogget som samme konto, deler én pålogging, i alle pros
 
 Å slette en tilkobling trekker tilbake OneUptimes tilgang hos Zoom og Google så snart ingen annen tilkobling bruker påloggingen. For Microsoft fjerner du OneUptime under kontoens **My Apps** (myapps.microsoft.com). Å fjerne OneUptime fra Zoom-kontoen din i Zoom App Marketplace sletter påloggingen fra alle tilkoblinger som er pålogget som den kontoen, og de viser **Fungerer ikke** til de kobles til på nytt.
 
-Transkripsjoner OneUptime allerede har lest, blir værende på hendelsene sine: Å slette en tilkobling beholder samtalene den startet, med transkripsjonene deres, og det samme gjør det å fjerne OneUptime fra kontoen hos Zoom, Google eller Microsoft. **Fjern transkripsjon** på en samtale sletter transkripsjonen og det OneUptime AI leste i den, men ikke det OneUptime AI publiserte i hendelsens feed og kanaler. Å slette en hendelse sletter samtalene og transkripsjonene deres.
+Å fjerne OneUptime fra Zoom-kontoen din sletter også i løpet av få minutter samtaletranskripsjonene OneUptime leste via påloggingen, og det OneUptime AI leste i dem: fra samtalene, fra hendelsenes feeder og fra meldingene OneUptime publiserte i hendelsenes Slack-, Microsoft Teams- og Mattermost-kanaler. Feeden til hver hendelse sier det, og en transkripsjon noen har lagt til, blir værende. Å slette en tilkobling beholder samtalene den startet, med transkripsjonene deres, og det samme gjør det å fjerne OneUptime fra en Google- eller Microsoft-konto. **Fjern transkripsjon** på en samtale sletter transkripsjonen og det OneUptime AI leste i den, fra de samme stedene. Hvis OneUptime ikke lenger kan slette en melding der, fordi arbeidsområdet ble koblet fra eller appen ble fjernet fra kanalen, sier den hvor meldingen blir værende. En rotårsak eller en etteranalyse som noen skrev ut fra samtalen, blir værende. Å slette en hendelse sletter samtalene og transkripsjonene deres.
 
 ### Hvis Microsoft ber om en administrator
 
@@ -100,7 +100,7 @@ For å koble til med en tjenesteidentitet i stedet for en persons pålogging —
 
 Kortet **Video Call** på siden til en hendelse eller et varsel har **Start call** (eller **Start another** når det finnes én). Velg en av prosjektets tilkoblinger, huddlen i hendelsens Slack-kanal, eller lim inn en egen møtelenke. Samtalen publiseres i hendelsens kanaler og feed, slik som en samtale en regel starter.
 
-**Fjern** på kortet tar en samtale av hendelsens side. Selve møtet slettes ikke, og alle med lenken kan fortsatt bli med.
+**Fjern** på kortet tar en samtale av hendelsens side, med transkripsjonen og det OneUptime AI leste i den. Selve møtet slettes ikke, og alle med lenken kan fortsatt bli med.
 
 Å starte og fjerne samtaler krever tillatelse til å jobbe med hendelser (eller varsler): **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Hendelsesadministrator** eller **Hendelsesmedlem**, eller **Create Incident Video Call** og **Delete Incident Video Call** i en egendefinert rolle. Alle som kan lese hendelsen, ser samtalene.
 
@@ -152,7 +152,7 @@ Microsoft lar apper lese transkripsjoner bare fra Teams-møter som står i en ka
 
 ### Hva OneUptime AI leser
 
-Å lese en transkripsjon er AI-arbeid som en undersøkelse: Det kjører bare mens AI er slått på for prosjektet, og teller med i prosjektets AI-bruk og daglige grenser (se [Kostnadskontroll](/docs/ai/ai-sre#kostnadskontroll)). En lang transkripsjon leses i deler. Når AI er slått av, beholdes transkripsjonen, og kortet sier at den ikke ble lest. Å fjerne en transkripsjon fjerner det OneUptime AI leste i den, og beholder hendelsens rotårsak. Et AI-utkast til etteranalyse leser også hva som ble sagt i hendelsens samtaler (se [Etteranalyser](/docs/incidents/postmortems)).
+Å lese en transkripsjon er AI-arbeid som en undersøkelse: Det kjører bare mens AI er slått på for prosjektet, og teller med i prosjektets AI-bruk og daglige grenser (se [Kostnadskontroll](/docs/ai/ai-sre#kostnadskontroll)). En lang transkripsjon leses i deler. Når AI er slått av, beholdes transkripsjonen, og kortet sier at den ikke ble lest. Å fjerne en transkripsjon fjerner det OneUptime AI leste i den, fra samtalen, hendelsens feed og kanalene, og beholder hendelsens rotårsak. Et AI-utkast til etteranalyse leser også hva som ble sagt i hendelsens samtaler (se [Etteranalyser](/docs/incidents/postmortems)).
 
 ## Leverandører
 

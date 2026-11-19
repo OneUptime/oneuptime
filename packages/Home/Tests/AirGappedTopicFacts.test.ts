@@ -1755,9 +1755,9 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     ),
     fact("Cluster collector", AGENT_INSTALL, 'collector["Cluster collector"]'),
     fact(
-      "Twenty-one templates",
+      "Twenty-four templates",
       KUBERNETES_MONITOR,
-      "Twenty-one ready-made alerts, from a silent cluster to etcd.",
+      "Twenty-four ready-made alerts, from a silent cluster to etcd.",
     ),
   ],
   "kubernetes/install": [
@@ -1813,7 +1813,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "from a silent cluster to etcd",
       KUBERNETES_MONITOR,
-      "Twenty-one ready-made alerts, from a silent cluster to etcd.",
+      "Twenty-four ready-made alerts, from a silent cluster to etcd.",
     ),
   ],
   "kubernetes/capability/openshift": [
@@ -1856,7 +1856,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact("ghcr.io", AGENT_VALUES, "repository: ghcr.io/opencost/opencost"),
     fact("quay.io", AGENT_VALUES, "repository: quay.io/prometheus/prometheus"),
     fact(
-      "such as cost or profiling",
+      "such as profiling",
       AGENT_VALUES,
       "repository: otel/opentelemetry-collector-ebpf-profiler",
     ),
@@ -1935,7 +1935,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "These are the images a default install runs",
       "HelmChart/Tests/suites/air-gapped.sh",
-      'assert_eq "a stock agent chart runs the three images the values name" "3"',
+      'assert_eq "a stock agent chart runs the six images the values name" "6"',
     ),
   ],
   "kubernetes/faq/0": [
@@ -3545,6 +3545,8 @@ describe("what the pages say the agent chart does", () => {
       "otel/opentelemetry-collector-contrib",
       "otel/ebpf-instrument",
       "oneuptime/kubernetes-ai-agent",
+      // Cost is on by default, so a default install runs its images too.
+      "oneuptime/kubernetes-cost-agent",
     ]) {
       expect(values).toContain(`repository: ${repository}\n`);
       expect(getAirGappedTopicPage("kubernetes").configure.code.text).toContain(

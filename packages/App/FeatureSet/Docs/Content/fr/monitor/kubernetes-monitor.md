@@ -5,7 +5,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 :::cards
 - [Installer l'agent](/docs/monitor/kubernetes-agent): Une seule commande Helm fait entrer le cluster dans OneUptime.
 - [Créer le moniteur](#créer-un-moniteur-kubernetes): Choisir le cluster, puis un modèle, une métrique ou une requête.
-- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt et une alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
+- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt-quatre alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
 - [Critères](#critères-de-surveillance): Seuils statiques et détection d'anomalies.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - L'agent Kubernetes de OneUptime en cours d'exécution dans le cluster. Voir [Agent Kubernetes (installation Helm)](/docs/monitor/kubernetes-agent) ; le cluster apparaît sous **Kubernetes** quelques minutes après l'installation.
 - Pour les modèles du plan de contrôle (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**) : la collecte du plan de contrôle par l'agent, `controlPlane.enabled`, qui lit l'API server d'emblée ; etcd et le scheduler ont aussi besoin que leurs points de terminaison soient indiqués (voir [Activer la surveillance du plan de contrôle](/docs/telemetry/kubernetes-agent#activer-la-surveillance-du-plan-de-contrôle)). Les clusters managés (EKS, GKE, AKS) n'exposent pas ces points de terminaison, si bien que ces moniteurs n'y reçoivent jamais de données.
+- Pour les modèles de coûts (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**) : la surveillance des coûts de l'agent, activée par défaut sauf avec les presets `gke-autopilot` et `eks-fargate` (voir [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost)).
 
 ## Créer un moniteur Kubernetes
 
@@ -91,6 +92,7 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 | Charge de travail | Réplicas disponibles du Deployment, Réplicas souhaités du Deployment, Nœuds souhaités du DaemonSet, Nœuds mal planifiés du DaemonSet, Nœuds prêts du DaemonSet, Réplicas souhaités du StatefulSet, Réplicas prêts du StatefulSet, Pods en échec du Job, Pods en échec du Job (hausse), Pods réussis du Job |
 | HPA | Réplicas actuels du HPA, Réplicas souhaités du HPA, Réplicas maximum du HPA, Réplicas minimum du HPA |
 | Plan de contrôle | etcd a un leader, Requêtes en cours du serveur d'API, Pods en attente du planificateur |
+| Coût | Coût du cluster, Coût inactif, Coût de la charge de travail, Efficacité des coûts de la charge de travail |
 
 > [!NOTE]
 > **Consommation CPU du pod** et **Consommation CPU du nœud** sont exprimés en cœurs, pas en pourcentage : `0.18` correspond à 0,18 cœur. **Phase du pod (code)** est un code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agrégez-le avec Maximum ou Minimum, jamais avec Somme. Les métriques du plan de contrôle n'arrivent que si la collecte du plan de contrôle par l'agent est activée. **Condition Ready du nœud** vaut 1 pour Ready, 0 pour NotReady et -1 pour Unknown, ce que signale un nœud tombé : alertez en dessous de 1. **Redémarrages du conteneur** est le compteur cumulé des redémarrages du conteneur ; **Redémarrages du conteneur (hausse)** est ce que l'agent envoie avec chaque échantillon : les redémarrages depuis son échantillon précédent du conteneur, si bien que leur somme sur une fenêtre donne les redémarrages qu'elle contient. Elle porte ce que porte **Redémarrages du conteneur**, noms des charges de travail du pod du conteneur compris, mais pas l'identifiant du conteneur, qui change à chaque redémarrage. **Pods en échec du Job** est le compteur cumulé des pods en échec d'un Job ; **Pods en échec du Job (hausse)** est ce que l'agent envoie avec chaque échantillon : les pods du Job en échec depuis son échantillon précédent du Job, si bien que leur somme sur une fenêtre donne les échecs qu'elle contient. Elle porte ce que porte **Pods en échec du Job** : le nom et l'espace de noms du Job.
@@ -156,8 +158,13 @@ La liste de **Sur quoi alerter** présente ces modèles, regroupés par catégor
 | HPA Saturated at Max Replicas | Charge de travail | Un HPA mis à l'échelle au-dessus de ses `minReplicas` tourne à 90 % ou plus de ses `maxReplicas` | Critique |
 | Pod Memory Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de mémoire de ses conteneurs | Critique |
 | Pod CPU Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de CPU de ses conteneurs | Avertissement |
+| Cluster Daily Cost Over Budget | Coût | Le coût du cluster sur la dernière journée dépasse 100, un budget à ajuster au vôtre | Avertissement |
+| Namespace Daily Cost Over Budget | Coût | Le coût d'un espace de noms sur la dernière journée dépasse 20, un budget à ajuster au vôtre | Avertissement |
+| High Idle Spend | Coût | Plus de 40 % du coût du cluster sur la dernière journée a servi à payer de la capacité inutilisée | Avertissement |
 
 Les modèles fondés sur des métriques par objet évaluent chaque nœud, pod, deployment, job, DaemonSet ou HPA séparément, si bien qu'un cluster avec plusieurs pods défaillants reçoit un incident par pod plutôt qu'un seul pour tout le cluster.
+
+Les modèles de coûts lisent les métriques que OneUptime écrit à partir des lignes de coûts horaires de l'agent, un point par heure : ils additionnent donc la dernière journée, et leurs budgets sont exprimés dans la devise du cluster, USD par défaut.
 
 **High Node CPU Request Commitment** et **High Node Memory Request Commitment** ne comptent que les requêtes (requests) des pods qui ne sont pas terminés, comme le fait le planificateur. Le cluster continue de signaler les requêtes d'un pod Succeeded ou Failed, comme celui d'un Job terminé, jusqu'à la suppression du pod : elles ne sont pas comptées.
 

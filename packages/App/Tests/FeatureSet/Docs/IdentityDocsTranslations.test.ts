@@ -450,6 +450,8 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Every project",
     "Attached projects only",
     "Require SSO to Sign In",
+    // An OIDC provider's switch that signs people out of it too (#9535).
+    "Sign Out of the Identity Provider Too",
   ],
 };
 

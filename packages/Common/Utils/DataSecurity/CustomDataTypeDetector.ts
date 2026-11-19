@@ -112,18 +112,17 @@ export function compileCustomDataType(
   }
 
   let regex: LinearRegExp;
+  const flags: string = definition.ignoreCase ? "gi" : "g";
 
   try {
-    regex = getLinearRegExp(
-      definition.pattern,
-      definition.ignoreCase ? "gi" : "g",
-    );
+    regex = getLinearRegExp(definition.pattern, flags);
   } catch {
     return null;
   }
 
   return {
     dataTypeId: definition.dataTypeId,
+    patternSource: { source: definition.pattern, flags },
     findCandidates: (
       text: string,
     ): Array<{ start: number; end: number; value: string }> => {

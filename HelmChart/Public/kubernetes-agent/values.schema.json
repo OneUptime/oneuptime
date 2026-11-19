@@ -576,9 +576,13 @@
     },
     "cost": {
       "type": "object",
-      "description": "Kubernetes cost observability. `cost.enabled=true` alone is a complete install: the chart bundles OpenCost plus a minimal dedicated Prometheus. Set cost.engine.url to use an existing OpenCost/Kubecost instead (nothing is bundled then).",
+      "description": "Kubernetes cost monitoring, on by default: the chart bundles OpenCost plus a minimal dedicated Prometheus, and the cost agent ships what they work out. Set cost.engine.url to use an existing OpenCost/Kubecost instead (nothing is bundled then).",
       "properties": {
-        "enabled": { "type": "boolean" },
+        "enabled": {
+          "type": ["boolean", "string"],
+          "enum": [true, false, "auto", "true", "false"],
+          "description": "auto (the default): on, except on the gke-autopilot and eks-fargate presets. true: on, whatever the preset. false: off."
+        },
         "engine": {
           "type": "object",
           "properties": {
@@ -603,7 +607,7 @@
         },
         "opencost": {
           "type": "object",
-          "description": "Bundled OpenCost engine. Deployed only when cost.enabled is true and cost.engine.url is empty.",
+          "description": "Bundled OpenCost engine. Deployed while cost monitoring is on (cost.enabled) and cost.engine.url is empty.",
           "properties": {
             "image": {
               "type": "object",
@@ -666,6 +670,11 @@
             },
             "retention": { "type": "string" },
             "scrapeInterval": { "type": "string" },
+            "cadvisorMetricsAllowlist": {
+              "type": "array",
+              "description": "The cAdvisor series the bundled Prometheus keeps, as regular expressions the whole metric name must match: the ones OpenCost queries. Empty keeps every series.",
+              "items": { "type": "string" }
+            },
             "resources": {
               "type": "object",
               "properties": {

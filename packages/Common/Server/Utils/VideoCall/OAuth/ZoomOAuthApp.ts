@@ -25,7 +25,11 @@ import VideoCallOAuthUtil, {
  *
  * The app's scopes are set on the app in the Zoom App Marketplace rather
  * than asked for here: meeting:write:meeting to create the user's meetings,
- * user:read:user to learn who signed in. Every refresh answers with a new
+ * user:read:user to learn who signed in, and, for call transcripts,
+ * cloud_recording:read:list_recording_files and
+ * cloud_recording:read:meeting_transcript to read the transcripts of the
+ * meetings it created (ZoomTranscriptClient). A sign-in without the two
+ * transcript scopes still starts calls. Every refresh answers with a new
  * refresh token and the old one stops working, so the token store saves
  * each one before anything else (VideoCallOAuthTokenStore). A refresh token
  * not used for 90 days expires, which the daily keep-alive never lets

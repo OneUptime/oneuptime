@@ -26,7 +26,7 @@ Fai clic sulla tua foto in alto a destra nella dashboard.
 | **Profilo** | Apre **Profilo utente**: il tuo nome, la tua e-mail, il fuso orario, la lingua, la foto e la sicurezza dell'accesso. |
 | **Impostazioni admin** | Apre l'Admin Dashboard. La vedono solo gli amministratori principali di un'installazione self-hosted. |
 | **Tema** | Imposta il tema della dashboard: **Chiaro**, **Scuro** o **Sistema**, che è chiaro o scuro in base all'impostazione del tuo dispositivo. |
-| **Esci** | Ti disconnette. |
+| **Esci** | Ti disconnette, subito su ogni server OneUptime. Dove il tuo amministratore l'ha configurato, ti disconnette anche dal tuo provider di identità. |
 
 **Profilo utente** ha un proprio menu laterale. **Base** contiene **Panoramica** e **Immagine del profilo**. **Sicurezza** e **Zona pericolosa** sono compresse: fai clic sul titolo di una sezione per aprirla.
 

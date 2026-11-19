@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Ja, det var tydelig",
   "No, it was not clear": "Nei, det var ikke tydelig",
   "Thanks for telling us.": "Takk for at du sa ifra.",
+  "Thanks for your answer.": "Takk for svaret ditt.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" overskrider grensen på {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Disse filene overskrider grensen på {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" er ikke en filtype dette feltet godtar.",
@@ -4277,5 +4278,9 @@
   "Send their invitation email to {{email}} again?": "Send invitasjonsmeldingen til {{email}} på nytt?",
   "Send their invitation email again?": "Send invitasjonsmeldingen på nytt?",
   "Invitation sent to {{email}}": "Invitasjon sendt til {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "For mange invitasjoner ble sendt til denne adressen den siste timen. Du kan sende den på nytt etter kl. {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "For mange invitasjoner ble sendt til denne adressen den siste timen. Du kan sende den på nytt etter kl. {{time}}.",
+  "Sign Out of the Identity Provider Too": "Logg også ut av identitetsleverandøren",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Når man logger ut av OneUptime, logges man også ut av denne leverandøren og av alle andre apper som bruker den. Slå på for delte datamaskiner.",
+  "Sign-out Redirect URI:": "Omdirigerings-URI etter utlogging:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrer omdirigerings-URI-en hos OIDC-identitetsleverandøren din, og også omdirigerings-URI-en etter utlogging når «Logg også ut av identitetsleverandøren» er slått på."
 }

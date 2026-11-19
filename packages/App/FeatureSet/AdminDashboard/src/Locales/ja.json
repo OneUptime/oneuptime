@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "はい、わかりやすかった",
   "No, it was not clear": "いいえ、わかりにくかった",
   "Thanks for telling us.": "教えていただきありがとうございます。",
+  "Thanks for your answer.": "ご回答ありがとうございます。",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」は {{size}} の上限を超えています。",
   "These files exceed the {{size}} limit: {{fileNames}}.": "次のファイルは {{size}} の上限を超えています: {{fileNames}}。",
   "\"{{fileName}}\" is not a type of file this field takes.": "「{{fileName}}」は、このフィールドで受け付けていない種類のファイルです。",
@@ -4277,5 +4278,9 @@
   "Send their invitation email to {{email}} again?": "{{email}} に招待メールを再送信しますか？",
   "Send their invitation email again?": "招待メールを再送信しますか？",
   "Invitation sent to {{email}}": "{{email}} に招待を送信しました",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去1時間にこのアドレスへ送信された招待が多すぎます。{{time}} 以降に再送信できます。"
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去1時間にこのアドレスへ送信された招待が多すぎます。{{time}} 以降に再送信できます。",
+  "Sign Out of the Identity Provider Too": "ID プロバイダーからもサインアウト",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime からサインアウトすると、このプロバイダーと、それを使うほかのすべてのアプリからもサインアウトします。共用コンピューターではオンにしてください。",
+  "Sign-out Redirect URI:": "サインアウト後のリダイレクト URI:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "リダイレクト URI を OIDC の ID プロバイダーに登録してください。「ID プロバイダーからもサインアウト」がオンの場合は、サインアウト後のリダイレクト URI も登録してください。"
 }

@@ -91,6 +91,12 @@ Zwei Fragen am Anbieter ändern das, eingeklappt unter **Weitere Felder**. Jede 
 
 Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.
 
+## Auch beim Identitätsanbieter abmelden
+
+Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer kommt die nächste Person, die sich mit diesem Anbieter anmeldet, deshalb als die Person hinein, die gegangen ist. Klicken Sie bei einem OpenID-Connect-Anbieter auf **Konfiguration bearbeiten** und schalten Sie **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein: Eine Abmeldung von OneUptime beendet dann auch die Sitzung beim Anbieter, und der Anbieter schickt den Browser zur Anmeldeseite von OneUptime zurück. Die Einstellung ist standardmäßig aus, da sie auf einem persönlichen Laptop die Person auch bei jeder anderen App abmelden würde, die den Anbieter nutzt.
+
+Registrieren Sie die Weiterleitungs-URI nach der Abmeldung, die die Karte **URL des Identitätsanbieters** zeigt, bei Ihrem Anbieter als erlaubte Post-Logout-Redirect-URI. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten.
+
 ## SSO durchsetzen
 
 Einen globalen Anbieter einzurichten zwingt niemanden, ihn zu nutzen; die Anmeldung mit Passwort funktioniert weiter. Um SSO zu verlangen, schalten Sie die Anforderung für ein Projekt oder für die ganze Instanz ein:

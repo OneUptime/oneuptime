@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Да, это было понятно",
   "No, it was not clear": "Нет, это было непонятно",
   "Thanks for telling us.": "Спасибо, что рассказали.",
+  "Thanks for your answer.": "Спасибо за ответ.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» превышает ограничение в {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "Это поле не принимает файлы такого типа, как «{{fileName}}».",
@@ -4277,5 +4278,9 @@
   "Send their invitation email to {{email}} again?": "Отправить письмо с приглашением на {{email}} ещё раз?",
   "Send their invitation email again?": "Отправить письмо с приглашением ещё раз?",
   "Invitation sent to {{email}}": "Приглашение отправлено на {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}.",
+  "Sign Out of the Identity Provider Too": "Выходить и из поставщика удостоверений",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Выход из OneUptime также завершает сеанс у этого поставщика и во всех других приложениях, которые его используют. Включайте для общих компьютеров.",
+  "Sign-out Redirect URI:": "URI перенаправления после выхода:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Зарегистрируйте URI перенаправления у вашего поставщика удостоверений OIDC, а если включено «Выходить и из поставщика удостоверений», — и URI перенаправления после выхода."
 }

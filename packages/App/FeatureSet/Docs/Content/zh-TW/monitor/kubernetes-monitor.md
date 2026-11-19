@@ -5,7 +5,7 @@ Kubernetes 監測器依據 OneUptime Kubernetes 代理程式從叢集傳送的�
 :::cards
 - [安裝代理程式](/docs/monitor/kubernetes-agent): 一個 Helm 指令就能把叢集接入 OneUptime。
 - [建立監測器](#建立-kubernetes-監測器): 選擇叢集，然後選擇範本、指標或查詢。
-- [警示範本](#現成的警示範本): 二十一個現成的警示，從停止回報的叢集到 etcd。
+- [警示範本](#現成的警示範本): 二十四個現成的警示，從停止回報的叢集到 etcd。
 - [條件](#監控條件): 靜態閾值和異常偵測。
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - 叢集中正在執行 OneUptime Kubernetes 代理程式。請參閱 [Kubernetes 代理程式(Helm 安裝)](/docs/monitor/kubernetes-agent)；安裝後幾分鐘，叢集就會出現在 **Kubernetes** 下。
 - 控制平面範本（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）需要代理程式的控制平面擷取，也就是 `controlPlane.enabled`，它開箱即可讀取 API 伺服器；etcd 和排程器還需要列出它們的端點（請參閱 [啟用控制平面監控](/docs/telemetry/kubernetes-agent#啟用控制平面監控)）。代管叢集（EKS、GKE、AKS）不公開這些端點，因此在那裡這些監測器永遠收不到資料。
+- 成本範本（**Cluster Daily Cost Over Budget**、**Namespace Daily Cost Over Budget**、**High Idle Spend**）需要代理程式的成本監控，它預設為開啟，但 `gke-autopilot` 和 `eks-fargate` 預設組合除外（請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)）。
 
 ## 建立 Kubernetes 監測器
 
@@ -91,6 +92,7 @@ flowchart TB
 | 工作負載 | Deployment 可用副本數, Deployment 期望副本數, DaemonSet 期望節點數, DaemonSet 錯誤排程的節點數, DaemonSet 就緒節點數, StatefulSet 期望副本數, StatefulSet 就緒副本數, Job 失敗的 Pod 數, Job 失敗的 Pod 數（增量）, Job 成功的 Pod 數 |
 | HPA | HPA 目前副本數, HPA 期望副本數, HPA 最大副本數, HPA 最小副本數 |
 | 控制平面 | etcd 有領導者, API 伺服器進行中的請求, 排程器待處理的 Pod |
+| 成本 | 叢集成本, 閒置成本, 工作負載成本, 工作負載成本效率 |
 
 > [!NOTE]
 > **Pod CPU 使用量** 和 **節點 CPU 使用量** 的單位是核心而不是百分比：`0.18` 表示 0.18 個核心。**Pod 階段（代碼）** 指標是一個代碼（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），請以最大值或最小值彙總，切勿使用總和。只有在代理程式的控制平面擷取開啟時，才會收到控制平面指標。**節點 Ready 狀況** 在 Ready 時為 1，NotReady 時為 0，Unknown 時為 -1，當機的節點回報的正是 Unknown：請在小於 1 時告警。 **容器重新啟動次數** 是容器的累計重新啟動計數；**容器重新啟動次數（增量）** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該容器以來的重新啟動次數，所以它在一個視窗內的總和就是該視窗內的重新啟動次數。它帶有 **容器重新啟動次數** 帶有的屬性，包括容器所在 Pod 的工作負載名稱，但不包括每次重新啟動都會改變的容器 ID。**Job 失敗的 Pod 數** 是 Job 的累計失敗 Pod 計數；**Job 失敗的 Pod 數（增量）** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該 Job 以來失敗的 Pod 數，所以它在一個視窗內的總和就是該視窗內的失敗次數。它和 **Job 失敗的 Pod 數** 一樣，帶有 Job 的名稱和命名空間。
@@ -156,8 +158,13 @@ flowchart TB
 | HPA Saturated at Max Replicas | 工作負載 | 擴展到高於其 `minReplicas` 的 HPA 執行在其 `maxReplicas` 的 90% 以上 | 嚴重 |
 | Pod Memory Saturating Container Limit | 工作負載 | Pod 使用了超過其容器記憶體限制的 90% | 嚴重 |
 | Pod CPU Saturating Container Limit | 工作負載 | Pod 使用了超過其容器 CPU 限制的 90% | 警告 |
+| Cluster Daily Cost Over Budget | 成本 | 叢集過去一天的成本超過 100，這是需要你依自己的情況設定的預算 | 警告 |
+| Namespace Daily Cost Over Budget | 成本 | 某個命名空間過去一天的成本超過 20，這是需要你依自己的情況設定的預算 | 警告 |
+| High Idle Spend | 成本 | 叢集過去一天的成本中有超過 40% 花在閒置容量上 | 警告 |
 
 以個別物件指標為基礎的範本會分別評估每個節點、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多個不健康 Pod 的叢集會為每個 Pod 建立一個事件，而不是整個叢集只建立一個。
+
+成本範本讀取 OneUptime 根據代理程式每小時的成本列寫入的指標，每小時一個資料點，因此它們會把過去一天的資料加總；它們的預算以叢集的貨幣計，預設為 USD。
 
 **High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 與排程器一樣，只計算尚未結束的 Pod 的請求（request）。處於 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被刪除之前，叢集仍會回報其請求：這些不計入。
 

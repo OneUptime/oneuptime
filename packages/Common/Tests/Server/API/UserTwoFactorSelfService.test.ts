@@ -30,6 +30,7 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -436,6 +437,7 @@ describe("User two-factor self-service API integration", () => {
        * and MasterAdminRemovalOverHttp.test.ts cover the other answers).
        */
       getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+      treatEverySessionAsLive();
       getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
       const request: OneUptimeRequest = requestFor();
       request.params = { userId: OTHER_ID };

@@ -39,7 +39,7 @@ import WorkspaceBase, {
   WorkspaceThread,
 } from "../WorkspaceBase";
 import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
-import SlackRefusal from "./SlackRefusal";
+import SlackRefusal, { SlackRefusalException } from "./SlackRefusal";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
@@ -2489,6 +2489,67 @@ export default class SlackUtil extends WorkspaceBase {
       );
 
       throw SlackRefusal.fromAnswer(response.jsonData);
+    }
+  }
+
+  /*
+   * Deletes a message the bot posted (chat.delete, which chat:write
+   * allows for the bot's own messages). One Slack no longer has
+   * (message_not_found) was deleted already.
+   */
+  @CaptureSpan()
+  public static override async deleteMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+  }): Promise<void> {
+    const deleteLogAttributes: LogAttributes = {
+      projectId: data.projectId?.toString(),
+      channelId: data.location.channelId,
+    };
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/chat.delete"),
+        data: {
+          channel: data.location.channelId,
+          ts: data.messageId,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error(
+        "Error response from Slack API when deleting a message:",
+        deleteLogAttributes,
+      );
+      logger.error(response, deleteLogAttributes);
+      throw SlackRefusal.fromHttpError(response);
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      const refusal: SlackRefusalException = SlackRefusal.fromAnswer(
+        response.jsonData,
+      );
+
+      if (this.isMessageGoneError(refusal)) {
+        return;
+      }
+
+      logger.error(
+        `Slack refused to delete a message: ${refusal.slackCode}`,
+        deleteLogAttributes,
+      );
+
+      throw refusal;
     }
   }
 

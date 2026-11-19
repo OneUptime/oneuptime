@@ -19,6 +19,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import {
   taskAddedMarkdown,
   taskAssignedMarkdown,
@@ -71,6 +72,26 @@ export function normalizeTaskTitle(value: unknown): string {
 }
 
 /*
+ * A response plan step's key as it is kept: trimmed, at most 100
+ * characters; none for anything else.
+ */
+export function normalizeResponseStepKey(value: unknown): string | undefined {
+  const key: string = typeof value === "string" ? value.trim() : "";
+
+  if (!key) {
+    return undefined;
+  }
+
+  if (key.length > ColumnLength.ShortText) {
+    throw new BadDataException(
+      `A response plan step's key can be at most ${ColumnLength.ShortText.toString()} characters.`,
+    );
+  }
+
+  return key;
+}
+
+/*
  * The assignee a write names, in its ID column. A cleared assignee
  * ({ assignedToUser: null }) is cleared in its ID column too, written with
  * stamp so no other name of it is left beside the null.
@@ -111,6 +132,34 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.title = normalizeTaskTitle(createBy.data.title);
     readAssignee(data);
 
+    const stepKey: string | undefined = normalizeResponseStepKey(
+      createBy.data.responseStepKey,
+    );
+
+    if (stepKey) {
+      createBy.data.responseStepKey = stepKey;
+
+      // One task a step: a step ticked off twice at once is done once.
+      if (createBy.data.securityCaseId) {
+        const existing: PositiveNumber = await this.countBy({
+          query: {
+            securityCaseId: createBy.data.securityCaseId,
+            responseStepKey: stepKey,
+          },
+          props: { isRoot: true },
+        });
+
+        if (existing.toNumber() > 0) {
+          throw new BadDataException(
+            "This step of the response plan is a task on this case already. Tick it off on the case's Tasks page.",
+          );
+        }
+      }
+    } else {
+      // A blank one is no step.
+      delete data["responseStepKey"];
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -141,17 +190,25 @@ export class Service extends ProjectReferencesService<Model> {
         });
       }
 
+      /*
+       * A task added already done - a step of the case's response plan,
+       * ticked off where it is suggested - reads on the timeline as what
+       * happened: it was done.
+       */
       await SecurityCaseFeedService.createSecurityCaseFeedItem({
         projectId: createdItem.projectId,
         securityCaseId: createdItem.securityCaseId,
-        feedInfoInMarkdown: taskAddedMarkdown({
-          title: createdItem.title || "",
-          assigneeName: createdItem.assignedToUserId
-            ? await this.getUserName(createdItem.assignedToUserId)
-            : undefined,
-        }).toString(),
+        feedInfoInMarkdown: (createdItem.isDone
+          ? taskDoneMarkdown({ title: createdItem.title || "" })
+          : taskAddedMarkdown({
+              title: createdItem.title || "",
+              assigneeName: createdItem.assignedToUserId
+                ? await this.getUserName(createdItem.assignedToUserId)
+                : undefined,
+            })
+        ).toString(),
         eventType: SecurityCaseFeedEventType.Task,
-        displayColor: Gray500,
+        displayColor: createdItem.isDone ? Green500 : Gray500,
         userId: createdItem.createdByUserId || actorUserId,
       });
 

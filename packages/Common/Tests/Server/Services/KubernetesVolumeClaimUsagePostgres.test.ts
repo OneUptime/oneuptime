@@ -11,7 +11,7 @@ import { DataSource } from "typeorm";
 /*
  * A persistent volume claim's latest usage (#9539), written and read on
  * Postgres against the migrated "KubernetesResource" table
- * (1809184639539-AddKubernetesVolumeClaimUsage).
+ * (1809184859539-AddKubernetesVolumeClaimUsage).
  *
  * Opt in as KubernetesResourceHealthPostgres does, with
  * RUN_POSTGRES_KUBERNETES_HEALTH_TESTS=true against a database the registered

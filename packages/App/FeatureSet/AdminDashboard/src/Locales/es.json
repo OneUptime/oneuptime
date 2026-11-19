@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Sí, ha quedado claro",
   "No, it was not clear": "No, no estaba claro",
   "Thanks for telling us.": "Gracias por contárnoslo.",
+  "Thanks for your answer.": "Gracias por tu respuesta.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" supera el límite de {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Estos archivos superan el límite de {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "«{{fileName}}» no es un tipo de archivo que admita este campo.",
@@ -4277,5 +4278,9 @@
   "Send their invitation email to {{email}} again?": "¿Reenviar el correo de invitación a {{email}}?",
   "Send their invitation email again?": "¿Reenviar el correo de invitación?",
   "Invitation sent to {{email}}": "Invitación enviada a {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Se enviaron demasiadas invitaciones a esta dirección en la última hora. Puedes volver a enviarla después de las {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Se enviaron demasiadas invitaciones a esta dirección en la última hora. Puedes volver a enviarla después de las {{time}}.",
+  "Sign Out of the Identity Provider Too": "Cerrar sesión también en el proveedor de identidad",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Cerrar sesión en OneUptime también cierra la sesión en este proveedor y en todas las demás aplicaciones que lo usan. Actívalo para ordenadores compartidos.",
+  "Sign-out Redirect URI:": "URI de redirección tras cerrar sesión:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registre la URI de redirección en su proveedor de identidad OIDC, y también la URI de redirección tras cerrar sesión cuando «Cerrar sesión también en el proveedor de identidad» esté activado."
 }

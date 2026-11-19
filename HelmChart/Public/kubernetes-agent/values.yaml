@@ -739,16 +739,32 @@ kubeStateMetrics:
       cpu: 200m
       memory: 256Mi
 
-# Kubernetes cost observability. Ships pre-priced workload cost
-# allocations to OneUptime, where they power the cluster "Costs" pages
-# and the Kubernetes Cost dashboard template.
+# Kubernetes cost monitoring: what each namespace and workload costs, the
+# capacity you pay for that nothing uses (idle), and how much of what each
+# workload reserves it uses (efficiency). OneUptime shows it on the cluster's
+# overview and Costs pages, and keeps it as metrics you can chart and alert
+# on (oneuptime.kubernetes.cost.*, written by OneUptime from what the cost
+# agent sends, so they cost nothing extra to ingest).
 #
-# **One command**: `--set cost.enabled=true` is a complete install. The
-# chart bundles the open-source OpenCost engine (Apache-2.0, CNCF) plus
-# a minimal, dedicated Prometheus it needs for usage history — two small
-# pods, invisible plumbing. OpenCost prices nodes/volumes from your
-# cloud provider's public list prices automatically (no credentials);
-# on-prem clusters can set `cost.opencost.customPricing` rates instead.
+# **On by default** (`auto`). The chart bundles the open-source OpenCost
+# engine (Apache-2.0, CNCF) and the small Prometheus it needs for usage
+# history, and the cost agent below ships what they work out: three small
+# pods, about 150m CPU and 450Mi of memory requested between them. OpenCost
+# prices your nodes and volumes at your cloud's public list prices on AWS,
+# Azure and Google Cloud, with no credentials, and at its default rates
+# anywhere else; set your own with `cost.opencost.customPricing`.
+#
+#   auto  - on, except on the gke-autopilot and eks-fargate presets. Those
+#           platforms bill every pod by what it requests, so the cost pods
+#           would add to the bill they measure, and OpenCost prices nodes,
+#           which is not how either platform charges.
+#   true  - on, whatever the preset.
+#   false - off. The one line that turns it off:
+#             --set cost.enabled=false
+#
+# On an air-gapped cluster, mirror the three images (cost.opencost.image,
+# cost.prometheus.image, cost.agent.image) as you do the others, or turn
+# cost off.
 #
 # Already running Kubecost or OpenCost? Set `cost.engine.url` to its
 # Service and nothing is bundled — the chart just reads from it:
@@ -762,13 +778,14 @@ kubeStateMetrics:
 #      Allocation API once per closed window (hourly by default) and
 #      POSTs per-workload cost rows (cpu/ram/gpu/pv/network/idle,
 #      efficiency) to OneUptime's /kubernetes-cost/ingest endpoint.
-#      This is the source of record for the Costs UI.
+#      This is the source of record for the Costs UI and for the
+#      oneuptime.kubernetes.cost.* metrics.
 #   2. `cost.metrics` — a Prometheus-receiver scrape of the engine's
-#      /metrics (node_total_hourly_cost, container_cpu_allocation, ...)
-#      through the existing OTLP pipeline, for charting raw cost
-#      metrics in Metric Explorer and dashboards.
+#      /metrics (node_total_hourly_cost, pv_hourly_cost, ...) through the
+#      existing OTLP pipeline, for the engine's own price metrics in
+#      Metric Explorer and the Kubernetes Cost dashboard.
 cost:
-  enabled: false
+  enabled: auto
   engine:
     # Base URL of an EXISTING cost engine. Empty (the default) bundles
     # OpenCost + a minimal Prometheus instead; setting it disables the
@@ -797,8 +814,8 @@ cost:
     # kubernetes-nodes-cadvisor; override when reusing your own Prometheus,
     # whose job will be named differently.
     prometheusCadvisorJob: ""
-  # Bundled OpenCost engine. Deployed only when `cost.enabled` is true
-  # and `cost.engine.url` is empty.
+  # Bundled OpenCost engine. Deployed while cost monitoring is on (see
+  # `cost.enabled`) and `cost.engine.url` is empty.
   opencost:
     image:
       repository: ghcr.io/opencost/opencost
@@ -832,10 +849,11 @@ cost:
   # Minimal Prometheus for the bundled engine — OpenCost hard-requires a
   # PromQL endpoint for usage/price history; this one exists solely for
   # that. Single replica, short retention, scrapes exactly two targets
-  # (cAdvisor via the API-server node proxy, and OpenCost itself — which
-  # emits its own KSM-style request metrics, so no kube-state-metrics is
-  # needed). Deployed only alongside the bundled engine; never scraped
-  # into OneUptime and never reachable outside the cluster.
+  # (cAdvisor via the API-server node proxy, keeping only the series in
+  # cadvisorMetricsAllowlist below, and OpenCost itself — which emits its
+  # own KSM-style request metrics, so no kube-state-metrics is needed).
+  # Deployed only alongside the bundled engine; never scraped into
+  # OneUptime and never reachable outside the cluster.
   prometheus:
     image:
       repository: quay.io/prometheus/prometheus
@@ -851,6 +869,24 @@ cost:
     # the recommendation silently loses that day's evidence.
     retention: 7d
     scrapeInterval: 60s
+    # The cAdvisor series this Prometheus keeps: the ones OpenCost queries
+    # (CPU and memory use, filesystem use and size, network bytes, CPU
+    # throttling), memory use also being what the cost agent reads peaks
+    # from. cAdvisor exports some sixty families, at least one series per
+    # container each, and nothing else reads this Prometheus, so keeping
+    # only these cuts its series, and the memory that grows with them,
+    # several times over. Each entry is a regular expression the whole
+    # metric name must match. Add a family here only if a newer OpenCost
+    # queries it.
+    cadvisorMetricsAllowlist:
+      - container_cpu_usage_seconds_total
+      - container_memory_working_set_bytes
+      - container_fs_usage_bytes
+      - container_fs_limit_bytes
+      - container_network_receive_bytes_total
+      - container_network_transmit_bytes_total
+      - container_cpu_cfs_throttled_periods_total
+      - container_cpu_cfs_periods_total
     resources:
       requests:
         cpu: 50m
@@ -913,18 +949,23 @@ cost:
     # is such a cost.engine.url while this is empty and stands in for it.
     endpoint: ""
     scrapeInterval: 60s
-    # Exact-match allowlist — the engine exports many more series, and
-    # per-container allocation metrics multiply cardinality by the
-    # cluster's container count. Keep it tight.
+    # Exact-match allowlist — the engine exports many more series. These
+    # are its prices: one series per node, volume or load balancer, so they
+    # stay cheap however many pods the cluster runs.
+    #
+    # The per-container allocation series (container_cpu_allocation,
+    # container_memory_allocation_bytes, container_gpu_allocation,
+    # pod_pvc_allocation) are left out: they are one series per container,
+    # every scrape, so they grew a cluster's metrics with its pod count,
+    # and they are cores and bytes, not money. What each workload and
+    # namespace costs arrives as oneuptime.kubernetes.cost.* instead,
+    # priced, from the cost agent's hourly allocations. Add them back here
+    # if you chart them.
     metricsAllowlist:
       - node_cpu_hourly_cost
       - node_gpu_hourly_cost
       - node_ram_hourly_cost
       - node_total_hourly_cost
-      - container_cpu_allocation
-      - container_gpu_allocation
-      - container_memory_allocation_bytes
-      - pod_pvc_allocation
       - pv_hourly_cost
       - kubecost_cluster_management_cost
       - kubecost_load_balancer_cost

@@ -273,9 +273,12 @@ tests:
 
   - it: renders no job and no receiver while the control plane is off, a Secret or not
     template: templates/configmap-deployment.yaml
+    # Cost monitoring, on by default, scrapes its engine through the same
+    # receiver; off here, so the receiver would hold only the control plane's.
     set:
       preset: openshift
       controlPlane.etcd.clientCertSecret: etcd-client-cert
+      cost.enabled: false
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -291,6 +294,7 @@ tests:
     template: templates/configmap-deployment.yaml
     set:
       preset: openshift-restricted
+      cost.enabled: false
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -431,6 +435,7 @@ tests:
     set:
       controlPlane.enabled: true
       controlPlane.apiServer.endpoints: []
+      cost.enabled: false
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]

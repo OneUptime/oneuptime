@@ -111,6 +111,12 @@ export interface OidcCallbackResult {
   name: Name | null;
   issuer: string;
   rawClaims: JSONObject;
+  /*
+   * The ID token the provider issued, as it came: the id_token_hint of a
+   * sign-out at the provider (Types/SSO/IdentityProviderSignOut), kept only
+   * when the provider asks for that. Null when the provider sent none.
+   */
+  idToken: string | null;
 }
 
 export default class OIDCUtil {
@@ -261,6 +267,24 @@ export default class OIDCUtil {
       name,
       issuer: claims["iss"] as string,
       rawClaims: claims,
+      idToken:
+        typeof tokenSet.id_token === "string" && tokenSet.id_token
+          ? tokenSet.id_token
+          : null,
     };
+  }
+
+  /*
+   * Where the provider ends its sessions (OpenID Connect RP-Initiated
+   * Logout 1.0): the end_session_endpoint of the discovery document the
+   * client was made from, or null when it names none - Google's does not.
+   */
+  public static getEndSessionEndpoint(client: Client): string | null {
+    const endSessionEndpoint: unknown =
+      client.issuer?.metadata?.["end_session_endpoint"];
+
+    return typeof endSessionEndpoint === "string" && endSessionEndpoint
+      ? endSessionEndpoint
+      : null;
   }
 }

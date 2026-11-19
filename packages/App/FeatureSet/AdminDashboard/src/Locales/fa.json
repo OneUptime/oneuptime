@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "بله، روشن بود",
   "No, it was not clear": "نه، روشن نبود",
   "Thanks for telling us.": "از اینکه به ما گفتید سپاسگزاریم.",
+  "Thanks for your answer.": "از پاسخ شما سپاسگزاریم.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» از سقف {{size}} بزرگ‌تر است.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "«{{fileName}}» از نوع فایلی نیست که این فیلد می‌پذیرد.",
@@ -4277,5 +4278,9 @@
   "Send their invitation email to {{email}} again?": "ایمیل دعوتش دوباره به {{email}} فرستاده شود؟",
   "Send their invitation email again?": "ایمیل دعوتش دوباره فرستاده شود؟",
   "Invitation sent to {{email}}": "دعوت به {{email}} فرستاده شد",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "در یک ساعت گذشته دعوت‌های زیادی به این نشانی فرستاده شده است. پس از {{time}} می‌توانید دوباره آن را بفرستید."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "در یک ساعت گذشته دعوت‌های زیادی به این نشانی فرستاده شده است. پس از {{time}} می‌توانید دوباره آن را بفرستید.",
+  "Sign Out of the Identity Provider Too": "از ارائه‌دهندهٔ هویت هم خارج شود",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "خروج از OneUptime افراد را از این ارائه‌دهنده و از هر برنامهٔ دیگری که از آن استفاده می‌کند هم خارج می‌کند. برای رایانه‌های مشترک روشن کنید.",
+  "Sign-out Redirect URI:": "URI هدایت پس از خروج:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "URI هدایت را نزد ارائه‌دهندهٔ هویت OIDC خود ثبت کنید، و وقتی «از ارائه‌دهندهٔ هویت هم خارج شود» روشن است، URI هدایت پس از خروج را هم."
 }

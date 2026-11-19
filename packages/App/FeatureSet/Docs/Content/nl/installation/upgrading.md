@@ -6,7 +6,7 @@ Upgrade een zelf gehoste OneUptime-installatie – met Docker Compose, of met Ku
 - [Hoe u upgradet](#hoe-u-upgradet): De procedure, voor Docker Compose en Kubernetes.
 - [De notities per versie](#de-notities-voor-uw-versie-vinden): Wat elke hoofdversie van u vraagt, in één oogopslag.
 - [Images van de Community Edition en de Enterprise Edition](#images-van-de-community-edition-en-de-enterprise-edition): Welke image u vanaf 14 draait.
-- [Upgraden van OneUptime 15 → 16](#upgraden-van-oneuptime-15-16): De nieuwste hoofdversie.
+- [Upgraden van OneUptime 16 → 17](#upgraden-van-oneuptime-16-17): De nieuwste hoofdversie.
 :::
 
 ## Hoe u upgradet
@@ -80,6 +80,7 @@ Controleer daarna opnieuw uw versie, zoals in de eerste stap. Hebt u uw doelvers
 
 | Upgrade | Wat u moet doen |
 | --- | --- |
+| [16 → 17](#upgraden-van-oneuptime-16-17) | Verplaats in API-scripts een rij met het verplaatsverzoek ervan in plaats van de `order` ervan te schrijven, en voeg een rij midden in een lijst toe door hem aan te maken en daarna te verplaatsen. Terraform en OpenTofu hebben geen wijziging nodig. |
 | [15 → 16](#upgraden-van-oneuptime-15-16) | Upgrade de Terraform-provider samen met de server, en haal de SCIM-bearer-tokens, webhookadressen en SNMP-inloggegevens die 16 niet meer teruggeeft uit leesverzoeken aan de API. Werk uw Runners bij. Vervang elke server van 15 snel, en ga alleen binnen een dag terug naar 15. |
 | [14 → 15](#upgraden-van-oneuptime-14-15) | Kopieer eerst de master API-sleutel als u hem in het Admin-dashboard afleest. Upgrade de Terraform-provider samen met de server, en haal de inloggegevens die 15 niet meer teruggeeft uit leesverzoeken aan de API. Staat de server achter een proxy, laat die dan uw identiteitsprovider, agenda's, MCP-servers en back-upopslag bereiken. Controleer monitors voor inkomende verzoeken die platte tekst ontvangen. Vervang elke server van 14 snel. |
 | [13 → 14](#upgraden-van-oneuptime-13-14) | Een editie kiezen. Docker Compose-installaties die `IS_ENTERPRISE_EDITION=true` instellen, stappen over op `APP_TAG=enterprise-release`. Een licentie activeren op de Enterprise Edition. IPv6-monitors voor Ping, Port en SSL opnieuw opslaan. AI-codecorrecties verhuizen naar de globale Runner: die aan laten staan, en op Helm `runner.keda` verplaatsen naar `globalRunner.keda`. |
@@ -124,6 +125,25 @@ Voor u verandert er niets. OneUptime Cloud draait de Enterprise Edition, en uw a
 - Zelf gehoste installaties bieden de licentieserver-endpoints onder `/api/enterprise-license/` niet meer aan. Alleen oneuptime.com gebruikt ze.
 - De SCIM-endpoints houden op de Enterprise Edition exact hun paden, dus de configuratie van de identiteitsprovider verandert niet. Op de Community Edition geven ze `404` terug. Op de Enterprise Edition weigeren ze verzoeken zolang de licentie verlopen is (na de proefperiode of de respijtperiode), en ze antwoorden weer zodra er een licentie is geactiveerd.
 - De SSO- en OIDC-endpoints (de SAML-aanmeld- en ACS-URL's, de OIDC-redirect-URI's en de endpoints van de globale SSO) houden exact hun paden en worden door beide edities aangeboden, in elke licentiestatus.
+
+## Upgraden van OneUptime 16 → 17
+
+Met OneUptime 17 nummeren Terraform en OpenTofu een lijst in één apply. Vijf lijsten zijn genummerd met `order`: de groepen en de resources van een statuspagina, de escalatieregels van een bereikbaarheidsbeleid, de lagen van een bereikbaarheidsschema en de mensen in een laag. Het schrijven van de `order` van een rij verplaatste die rij, en de rijen die hij passeerde, schoven opzij. Terraform en OpenTofu nummeren een lijst met één schrijfactie per rij, in willekeurige volgorde, dus een apply kwam nooit tot rust: het volgende plan toonde nieuwe verschillen, waaronder twee rijen met hetzelfde nummer. Nu plaatst het schrijven van `order` alleen de eigen rij, en is het verplaatsen van een rij een apart verzoek. Upgrade vanaf 16 – staat u nog op 15, doe dan eerst 15 → 16.
+
+Terraform en OpenTofu hebben geen wijziging nodig: de provider stuurt alleen de attributen die zijn gewijzigd, dus ook de al uitgebrachte versies van de provider komen tot rust zodra de server is geüpgraded. De volgende apply zet elke rij op het geconfigureerde nummer, en het plan daarna is leeg. Een rij verplaatsen in het dashboard werkt zoals voorheen.
+
+### Wat u moet doen voor 17
+
+1. **Verplaatst een API-script een rij door de `order` ervan te schrijven, laat het dan in plaats daarvan het verplaatsverzoek sturen.** Een `PUT` van de `order` van een rij plaatst nu alleen die rij: de rijen die hij passeert, schuiven niet meer opzij. Om een rij te verplaatsen, stuurt u `POST /api/<resource>/<id>/move` met `{ "placeOfId": "<id>" }`. De rij neemt de plaats in van de genoemde rij, de rijen ertussen schuiven één plaats op naar waar de verplaatste rij stond, en de lijst wordt in de nieuwe volgorde genummerd als 1..n.
+2. **Voegt een API-script een rij midden in een lijst toe, laat het de rij dan aanmaken en daarna verplaatsen.** Een rij die wordt aangemaakt met een nummer dat een andere rij al heeft, deelt dat nummer nu met die rij, in plaats van de rijen vanaf daar omlaag te duwen. Maak de rij aan zonder `order`, waardoor hij na de laatste rij komt, en verplaats hem daarna naar de plaats van de rij waar hij vóór moet staan.
+
+### Andere wijzigingen in 17
+
+Deze wijzigingen veranderen hoe OneUptime zich na de upgrade gedraagt. Lees ze als u deze lijsten nummert via de API, Terraform of OpenTofu.
+
+:::details Lees de andere wijzigingen in 17
+- **Rijen met hetzelfde nummer worden gelezen in de volgorde van hun ID's, en een gat in de nummers verandert niets.** Twee rijen van een lijst kunnen een nummer delen terwijl een apply bezig is, of voorgoed als een configuratie ze hetzelfde geeft, en een verwijderde rij laat nu zijn gat achter in plaats van dat de rijen erna opschuiven. Groepen en resources met hetzelfde nummer worden getoond in de volgorde van hun ID's, lagen worden zo gerangschikt, en de mensen van een laag zijn zo aan de beurt. Een bereikbaarheidsbeleid roept twee niveaus met hetzelfde nummer na elkaar op, in de volgorde van hun ID's: vóór 17 werd het tweede nooit opgeroepen. Het volgende niveau van een beleid is het eerste na het huidige, nooit het niveau met het nummer één hoger.
+:::
 
 ## Upgraden van OneUptime 15 → 16
 

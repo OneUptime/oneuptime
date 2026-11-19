@@ -500,9 +500,15 @@ describe("ProductAnalyticsUsers tiles", () => {
     expect(requestsTo("summary")).toHaveLength(1);
     expect(summaryRequest["rumApplicationId"]).toBe(APP_ID);
     expect(summaryRequest["dormantAfterDays"]).toBe(30);
-    /* A month: 28 to 31 days. */
-    expect((end - start) / DAY_MS).toBeGreaterThanOrEqual(28);
-    expect((end - start) / DAY_MS).toBeLessThanOrEqual(31);
+    /*
+     * Past 1 Month: a calendar month back on the reader's clock, at the same
+     * time of day (RangeStartAndEndDateTimeUtil). An hour longer or shorter
+     * than its days when the reader's clocks changed inside it: 31 days and
+     * an hour in London from 18 October to 18 November 2026.
+     */
+    expect(new Date(start).toISOString()).toBe(
+      OneUptimeDate.addRemoveMonths(new Date(end), -1).toISOString(),
+    );
 
     expect(requestsTo("trend")).toHaveLength(1);
     expect(requestsTo("trend")[0]!.data).toEqual(

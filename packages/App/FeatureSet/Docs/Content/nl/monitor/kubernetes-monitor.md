@@ -5,7 +5,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 :::cards
 - [De agent installeren](/docs/monitor/kubernetes-agent): Eén Helm-opdracht brengt het cluster in OneUptime.
 - [De monitor maken](#een-kubernetes-monitor-maken): Het cluster kiezen, dan een sjabloon, een metriek of een query.
-- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Eenentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
+- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Vierentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
 - [Criteria](#bewakingscriteria): Statische drempels en anomaliedetectie.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - De OneUptime-Kubernetes-agent draait in het cluster. Zie [Kubernetes-agent (Helm-installatie)](/docs/monitor/kubernetes-agent); het cluster verschijnt een paar minuten na de installatie onder **Kubernetes**.
 - Voor de control-plane-sjablonen (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): het uitlezen van het control plane door de agent, `controlPlane.enabled`, dat de API-server direct leest; etcd en de scheduler hebben daarnaast hun opgegeven endpoints nodig (zie [Controlevlakmonitoring inschakelen](/docs/telemetry/kubernetes-agent#controlevlakmonitoring-inschakelen)). Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen die monitors nooit gegevens.
+- Voor de kostensjablonen (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): de kostenmonitoring van de agent, die standaard aan staat, behalve met de presets `gke-autopilot` en `eks-fargate` (zie [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost)).
 
 ## Een Kubernetes-monitor maken
 
@@ -91,6 +92,7 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 | Werklast | Beschikbare replica's van de Deployment, Gewenste replica's van de Deployment, Gewenste nodes van de DaemonSet, Verkeerd ingeplande nodes van de DaemonSet, Gereede nodes van de DaemonSet, Gewenste replica's van de StatefulSet, Gereede replica's van de StatefulSet, Mislukte pods van de Job, Mislukte pods van de Job (toename), Geslaagde pods van de Job |
 | HPA | Huidige replica's van de HPA, Gewenste replica's van de HPA, Maximum aantal replica's van de HPA, Minimum aantal replica's van de HPA |
 | Controlevlak | etcd heeft een leider, Lopende aanvragen van de API-server, Wachtende pods van de scheduler |
+| Kosten | Clusterkosten, Inactieve kosten, Workloadkosten, Kostenefficiëntie van de workload |
 
 > [!NOTE]
 > **CPU-verbruik van de pod** en **CPU-verbruik van de node** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Fase van de pod (code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat. **Ready-conditie van de node** is 1 bij Ready, 0 bij NotReady en -1 bij Unknown, wat een uitgevallen node meldt: waarschuw bij minder dan 1. **Herstarts van de container** is de doorlopende herstartteller van de container; **Herstarts van de container (toename)** is wat de agent met elke meting stuurt: de herstarts sinds zijn vorige meting van de container, dus de som over een venster is het aantal herstarts erin. Hij draagt wat **Herstarts van de container** draagt, inclusief de werklastnamen van de pod van de container, maar niet de ID van de container, die bij elke herstart verandert. **Mislukte pods van de Job** is de doorlopende teller van mislukte pods van een Job; **Mislukte pods van de Job (toename)** is wat de agent met elke meting stuurt: de pods van de Job die sinds zijn vorige meting van de Job zijn mislukt, dus de som over een venster is het aantal fouten erin. Hij draagt wat **Mislukte pods van de Job** draagt: de naam en de naamruimte van de Job.
@@ -156,8 +158,13 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 | HPA Saturated at Max Replicas | Werklast | Een boven zijn `minReplicas` geschaalde HPA op 90% of meer van zijn `maxReplicas` draait | Kritiek |
 | Pod Memory Saturating Container Limit | Werklast | Een pod meer dan 90% van de geheugenlimiet van zijn containers gebruikt | Kritiek |
 | Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Waarschuwing |
+| Cluster Daily Cost Over Budget | Kosten | De kosten van het cluster over de afgelopen dag boven 100 uitkomen, een budget dat u zelf instelt | Waarschuwing |
+| Namespace Daily Cost Over Budget | Kosten | De kosten van een naamruimte over de afgelopen dag boven 20 uitkomen, een budget dat u zelf instelt | Waarschuwing |
+| High Idle Spend | Kosten | Meer dan 40% van de kosten van het cluster over de afgelopen dag naar inactieve capaciteit ging | Waarschuwing |
 
 Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, DaemonSet of HPA afzonderlijk, zodat een cluster met meerdere ongezonde pods een incident per pod krijgt in plaats van één voor het hele cluster.
+
+De kostensjablonen lezen de metrieken die OneUptime uit de kostenrijen per uur van de agent schrijft, één punt per uur, dus ze tellen de afgelopen dag op; hun budgetten staan in de valuta van het cluster, standaard USD.
 
 **High Node CPU Request Commitment** en **High Node Memory Request Commitment** tellen alleen de requests van pods die nog niet klaar zijn, zoals de scheduler dat doet. Het cluster blijft de requests melden van een pod die Succeeded of Failed is, zoals die van een afgeronde Job, tot de pod wordt verwijderd: die tellen niet mee.
 

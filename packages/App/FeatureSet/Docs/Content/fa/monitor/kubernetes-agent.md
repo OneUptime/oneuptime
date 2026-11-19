@@ -35,6 +35,7 @@ flowchart LR
 | گردآورنده گره | DaemonSet | لاگ‌های پاد از `/var/log/pods`، متریک‌های kubelet و cAdvisor، و متریک‌های سیستم‌عامل گره. | بله |
 | ابزارگذاری eBPF (OBI) | DaemonSet | ترِیس‌ها و متریک‌های درخواست HTTP، gRPC، SQL و Redis از هر پاد، و نقشه سرویس. | بله |
 | عامل AI در Kubernetes | Deployment | به OneUptime AI اجازه می‌دهد هنگام بررسی یک حادثه یا هشدار روی این خوشه، `kubectl` فقط‌خواندنی اجرا کند. | بله |
+| موتور و پرسشگر هزینه | Deployments | اینکه هر namespace و بار کاری چقدر هزینه دارد: OpenCost، Prometheus کوچکی که لازم دارد، و عامل هزینه که حاصل محاسبه آن‌ها را می‌فرستد. | بله، جز با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate` |
 | دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که گردآورنده گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot`، `eks-fargate` و `openshift-restricted` |
 | پروفایلر eBPF | DaemonSet | نمودارهای شعله‌ای پیوسته CPU از هر فرایند. | خیر |
 | kube-state-metrics | Deployment | فازهای پاد، دلیل‌های انتظار کانتینر و سهمیه‌های منابع. | خیر |
@@ -364,7 +365,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `csi.enabled` | خاموش | متریک‌های درایورهای ذخیره‌سازی CSI، از پادهایی با برچسب `app=csi-driver` یا `app.kubernetes.io/component=csi-driver`: زمان‌های attach و detach حجم، شکست‌های تأمین، IOPS. |
 | `coreDns.enabled` | خاموش | متریک‌های CoreDNS روی `:9153/metrics`: نرخ پرس‌وجو، تأخیر، برخوردهای حافظه نهان و خطاها. |
 | `controlPlane.enabled` | خاموش | سرور API در نشانی‌اش درون خوشه، و etcd، زمان‌بند و controller manager در نقطه‌های پایانی‌ای که فهرست می‌کنید ([روشن کردن پایش صفحه کنترل](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-صفحه-کنترل)). فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده آن‌ها را در دسترس نمی‌گذارند. |
-| `cost.enabled` | خاموش | هزینه هر بار کاری. [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) را ببینید. |
+| `cost.enabled` | `auto` | هزینه هر namespace و بار کاری، با ظرفیت بیکار و کارایی، همچنین به‌صورت متریک‌هایی برای هشدار: روشن، جز با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate`؛ `false` آن را خاموش می‌کند. [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) را ببینید. |
 
 ## گزینه‌های رایج
 

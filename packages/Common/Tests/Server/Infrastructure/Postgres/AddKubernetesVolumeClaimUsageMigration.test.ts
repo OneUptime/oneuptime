@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddKubernetesVolumeClaimUsage1809184639539 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184639539-AddKubernetesVolumeClaimUsage";
+import { AddKubernetesVolumeClaimUsage1809184859539 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184859539-AddKubernetesVolumeClaimUsage";
 import KubernetesResource from "../../../../Models/DatabaseModels/KubernetesResource";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -23,13 +23,13 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809184639539";
+const MIGRATION_TIMESTAMP: string = "1809184859539";
 const MIGRATION_BASE_NAME: string = "AddKubernetesVolumeClaimUsage";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddBiLineageSummaryAndDashboardUpstream1809184620000";
-const PREVIOUS_TIMESTAMP: number = 1809184620000;
+  "AddIncidentCallTranscriptSignInIndexes1809184840000";
+const PREVIOUS_TIMESTAMP: number = 1809184840000;
 
 const COLUMNS: Array<string> = [
   "latestVolumeCapacityBytes",
@@ -51,7 +51,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddKubernetesVolumeClaimUsage1809184639539();
+    new AddKubernetesVolumeClaimUsage1809184859539();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -62,7 +62,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddKubernetesVolumeClaimUsage1809184639539", () => {
+describe("AddKubernetesVolumeClaimUsage1809184859539", () => {
   test("adds a claim's capacity, available bytes and inodes to KubernetesResource, nullable", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "KubernetesResource" ADD "latestVolumeCapacityBytes" bigint`,
@@ -123,7 +123,7 @@ describe("AddKubernetesVolumeClaimUsage1809184639539", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddKubernetesVolumeClaimUsage1809184639539().name).toBe(
+    expect(new AddKubernetesVolumeClaimUsage1809184859539().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

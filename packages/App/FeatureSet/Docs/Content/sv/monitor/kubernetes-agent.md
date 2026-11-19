@@ -35,6 +35,7 @@ flowchart LR
 | Nod-collector | DaemonSet | Poddloggar från `/var/log/pods`, kubelet- och cAdvisor-mätvärden och nodens operativsystemmätvärden. | Ja |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- och Redis-spår och förfrågningsmätvärden från varje podd, och tjänstekartan. | Ja |
 | Kubernetes AI-agent | Deployment | Låter OneUptime AI köra skrivskyddad `kubectl` medan den utreder en incident eller larm i det här klustret. | Ja |
+| Kostnadsmotor och poller | Deployments | Vad varje namespace och workload kostar: OpenCost, den lilla Prometheus den behöver och kostnadsagenten som skickar det som de räknar fram. | Ja, utom med presets `gke-autopilot` och `eks-fargate` |
 | Logg-tailer | Deployment | Poddloggar via Kubernetes-API:et, där nod-collectorn inte kan läsa dem. | Med presets `gke-autopilot`, `eks-fargate` och `openshift-restricted` |
 | eBPF-profilerare | DaemonSet | Kontinuerliga CPU-flamgrafer för varje process. | Nej |
 | kube-state-metrics | Deployment | Poddfaser, containrars vänteorsaker och resurskvoter. | Nej |
@@ -364,7 +365,7 @@ Profilering kräver **Linux 5.10** eller senare och en privilegierad podd med no
 | `csi.enabled` | av | Mätvärden från CSI-lagringsdrivrutiner, från poddar med etiketten `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider för att ansluta och koppla från volymer, provisioneringsfel, IOPS. |
 | `coreDns.enabled` | av | CoreDNS mätvärden på `:9153/metrics`: frågefrekvens, latens, cacheträffar och fel. |
 | `controlPlane.enabled` | av | API-servern på sin adress inuti klustret, och etcd, schemaläggaren och controller managern på de slutpunkter du anger ([Aktivera övervakning av kontrollplanet](/docs/telemetry/kubernetes-agent#aktivera-övervakning-av-kontrollplanet)). Bara självhanterade kluster: hanterade exponerar dem inte. |
-| `cost.enabled` | av | Vad varje workload kostar. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Vad varje namespace och workload kostar, med ledig kapacitet och effektivitet, även som mätvärden att larma på: på, utom med presets `gke-autopilot` och `eks-fargate`; `false` stänger av det. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
 
 ## Vanliga inställningar
 

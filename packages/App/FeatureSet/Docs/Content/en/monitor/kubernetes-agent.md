@@ -35,6 +35,7 @@ flowchart LR
 | Node collector | DaemonSet | Pod logs from `/var/log/pods`, kubelet and cAdvisor metrics, and the node's OS metrics. | Yes |
 | eBPF instrumentation (OBI) | DaemonSet | HTTP, gRPC, SQL and Redis traces and request metrics from every pod, and the service map. | Yes |
 | Kubernetes AI agent | Deployment | Lets OneUptime AI run read-only `kubectl` while it investigates an incident or alert on this cluster. | Yes |
+| Cost engine and poller | Deployments | What each namespace and workload costs: OpenCost, the small Prometheus it needs, and the cost agent that sends what they work out. | Yes, except with the `gke-autopilot` and `eks-fargate` presets |
 | Log tailer | Deployment | Pod logs through the Kubernetes API, where the node collector cannot read them. | With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets |
 | eBPF profiler | DaemonSet | Continuous CPU flame graphs of every process. | No |
 | kube-state-metrics | Deployment | Pod phases, container waiting reasons and resource quotas. | No |
@@ -364,7 +365,7 @@ Profiling needs **Linux 5.10** or later, and a privileged pod with the node's pr
 | `csi.enabled` | off | The metrics of CSI storage drivers, from pods labelled `app=csi-driver` or `app.kubernetes.io/component=csi-driver`: volume attach and detach times, provisioning failures, IOPS. |
 | `coreDns.enabled` | off | CoreDNS's metrics on `:9153/metrics`: query rate, latency, cache hits and errors. |
 | `controlPlane.enabled` | off | The API server, at its in-cluster address, and etcd, the scheduler and the controller manager at the endpoints you list ([Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Self-managed clusters only: managed ones do not expose them. |
-| `cost.enabled` | off | What each workload costs. See [Kubernetes Cost](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | What each namespace and workload costs, with idle capacity and efficiency, also as metrics to alert on: on, except with the `gke-autopilot` and `eks-fargate` presets; `false` turns it off. See [Kubernetes Cost](/docs/telemetry/kubernetes-cost). |
 
 ## Common options
 

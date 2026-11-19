@@ -35,6 +35,7 @@ flowchart LR
 | 노드 컬렉터 | DaemonSet | `/var/log/pods` 의 파드 로그, kubelet 및 cAdvisor 메트릭, 노드의 OS 메트릭. | 예 |
 | eBPF 계측(OBI) | DaemonSet | 모든 파드의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 예 |
 | Kubernetes AI 에이전트 | Deployment | OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 읽기 전용 `kubectl` 을 실행할 수 있게 합니다. | 예 |
+| 비용 엔진과 폴러 | Deployments | 각 네임스페이스와 워크로드의 비용: OpenCost, 그에 필요한 작은 Prometheus, 그리고 이들이 계산한 결과를 보내는 비용 에이전트. | 예. 단, `gke-autopilot` 및 `eks-fargate` 프리셋에서는 제외 |
 | 로그 테일러 | Deployment | 노드 컬렉터가 읽을 수 없는 곳에서 Kubernetes API를 통해 파드 로그를 가져옵니다. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋에서 |
 | eBPF 프로파일러 | DaemonSet | 모든 프로세스의 지속적인 CPU 플레임 그래프. | 아니요 |
 | kube-state-metrics | Deployment | 파드 단계, 컨테이너 대기 사유, 리소스 쿼터. | 아니요 |
@@ -364,7 +365,7 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 | `csi.enabled` | 꺼짐 | `app=csi-driver` 또는 `app.kubernetes.io/component=csi-driver` 레이블이 붙은 파드에서 가져오는 CSI 스토리지 드라이버 메트릭: 볼륨 연결 및 분리 시간, 프로비저닝 실패, IOPS. |
 | `coreDns.enabled` | 꺼짐 | `:9153/metrics` 의 CoreDNS 메트릭: 쿼리 속도, 지연 시간, 캐시 적중, 오류. |
 | `controlPlane.enabled` | 꺼짐 | 클러스터 안의 주소에 있는 API 서버, 그리고 지정한 엔드포인트에 있는 etcd, 스케줄러, 컨트롤러 관리자([컨트롤 플레인 모니터링 활성화](/docs/telemetry/kubernetes-agent#컨트롤-플레인-모니터링-활성화)). 자체 관리형 클러스터만 해당하며, 관리형 클러스터는 이를 노출하지 않습니다. |
-| `cost.enabled` | 꺼짐 | 각 워크로드의 비용. [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)를 참고하세요. |
+| `cost.enabled` | `auto` | 각 네임스페이스와 워크로드의 비용. 유휴 용량과 효율을 포함하며, 경고를 설정할 수 있는 메트릭으로도 제공됩니다. `gke-autopilot` 및 `eks-fargate` 프리셋을 제외하면 켜지며, `false`로 끕니다. [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)를 참고하세요. |
 
 ## 주요 옵션
 

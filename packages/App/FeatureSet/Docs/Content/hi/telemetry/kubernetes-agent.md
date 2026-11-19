@@ -32,7 +32,7 @@ flowchart TB
 | eBPF इंस्ट्रुमेंटेशन (OBI) | DaemonSet | हर पॉड से HTTP, gRPC, SQL और Redis ट्रेस और अनुरोध मेट्रिक्स, और सेवा मैप। | डिफ़ॉल्ट रूप से, GKE Autopilot और EKS Fargate को छोड़कर |
 | Kubernetes AI एजेंट | Deployment | किसी घटना या अलर्ट की जाँच करते समय OneUptime AI के लिए केवल-पढ़ने वाला `kubectl`। | डिफ़ॉल्ट रूप से |
 | लॉग टेलर | Deployment | Kubernetes API के ज़रिए पॉड लॉग, जहाँ नोड कलेक्टर उन्हें नहीं पढ़ सकता। | `gke-autopilot`, `eks-fargate` और `openshift-restricted` प्रीसेट के साथ |
-| लागत इंजन और पोलर | Deployments | हर नेमस्पेस, वर्कलोड और पॉड का खर्च। | `cost.enabled=true` के साथ |
+| लागत इंजन और पोलर | Deployments | हर नेमस्पेस, वर्कलोड और पॉड का खर्च। | डिफ़ॉल्ट रूप से, GKE Autopilot और EKS Fargate को छोड़कर |
 
 हर एजेंट इमेज सिर्फ़ Linux के लिए है, इसलिए हर वर्कलोड Linux नोड पर पिन है।
 
@@ -199,7 +199,8 @@ kubectl get pods -n oneuptime-agent
 - `oneuptime.labels`: यह क्लस्टर जो कुछ भी भेजता है, उस सब के लिए प्रोजेक्ट लेबल, जैसे `{"team": "payments"}`।
 - `preset`: सिर्फ़ Fargate पर चलने वाले क्लस्टर के लिए `eks-fargate`, वरना `standard`, जो डिफ़ॉल्ट है।
 - `logs.enabled`, `ebpf.enabled` और `aiAgent.enabled`: पॉड लॉग, eBPF ट्रेस और [Kubernetes AI एजेंट](#kubernetes-ai-एजेंट), तीनों डिफ़ॉल्ट रूप से चालू हैं।
-- `kubeStateMetrics.enabled` और `cost.enabled`: kube-state-metrics और [लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost), दोनों डिफ़ॉल्ट रूप से बंद हैं।
+- `kubeStateMetrics.enabled`: kube-state-metrics, डिफ़ॉल्ट रूप से बंद।
+- `cost.enabled`: [लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost), डिफ़ॉल्ट रूप से `auto`: `eks-fargate` प्रीसेट को छोड़कर चालू।
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ SCC बनाने के लिए cluster-admin अधिकार चाह�
 | सेवा ग्राफ़ (eBPF) | कॉल करने वाले से कॉल पाने वाले तक अनुरोध दर, लेटेंसी और त्रुटि वाले किनारे, जो सेवा मैप बनाते हैं |
 | नेटवर्क फ़्लो मेट्रिक्स (eBPF) | पॉड से पॉड तक TCP और UDP बाइट और पैकेट काउंटर, Kubernetes मेटाडेटा के साथ |
 | TCP आँकड़े (eBPF) | नोड स्तर पर राउंड-ट्रिप समय, विफल कनेक्शन और रीट्रांसमिट काउंटर |
-| वर्कलोड लागत (वैकल्पिक, `cost.enabled=true`) | हर नेमस्पेस, वर्कलोड और पॉड का खर्च, निष्क्रिय क्षमता और दक्षता के साथ, और नोड और वॉल्यूम की प्रति घंटा लागत: [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost) देखें |
+| वर्कलोड लागत (डिफ़ॉल्ट रूप से चालू, GKE Autopilot और EKS Fargate को छोड़कर) | हर नेमस्पेस, वर्कलोड और पॉड का खर्च, निष्क्रिय क्षमता और दक्षता के साथ, अलर्ट करने लायक मेट्रिक्स के रूप में भी, और नोड और वॉल्यूम की प्रति घंटा लागत: [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost) देखें |
 
 ## Kubernetes इवेंट
 
@@ -594,7 +595,7 @@ Istio के लिए यह हर `istio-proxy` साइडकार (पो
 
 ### लागत ऑब्ज़र्वेबिलिटी चालू करें
 
-क्लस्टर के **लागत** पेज पर देखें कि हर नेमस्पेस, वर्कलोड और पॉड की लागत कितनी है, निष्क्रिय क्षमता और हर request का कितना हिस्सा उपयोग होता है, इसके साथ:
+लागत ऑब्ज़र्वेबिलिटी डिफ़ॉल्ट रूप से चालू है: क्लस्टर का अवलोकन और उसका **लागत** पेज दिखाते हैं कि हर नेमस्पेस, वर्कलोड और पॉड की लागत कितनी है, निष्क्रिय क्षमता और हर request का कितना हिस्सा उपयोग होता है, इसके साथ, और लागत मेट्रिक्स को चार्ट किया जा सकता है और उन पर अलर्ट किया जा सकता है। यह `gke-autopilot` और `eks-fargate` प्रीसेट पर डिफ़ॉल्ट रूप से बंद है, जो हर पॉड का बिल उसके request के हिसाब से बनाते हैं, और उस एजेंट पर भी जो इसके डिफ़ॉल्ट रूप से चालू होने से पहले इंस्टॉल हुआ था। वहाँ इसे चालू करें:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-बस इतना ही एक पूरा इंस्टॉल है: चार्ट ओपन-सोर्स [OpenCost](https://opencost.io) इंजन (उसके लिए ज़रूरी छोटे Prometheus के साथ) बंडल करता है और आपके नोड और वॉल्यूम की कीमत आपके क्लाउड प्रदाता के सार्वजनिक सूची मूल्यों से, बिना किसी क्रेडेंशियल के, तय करता है। यह दो छोटे पॉड जोड़ता है, और पहली लागत पहले बंद घंटे के बाद दिखती है। पहले से Kubecost या OpenCost चला रहे हैं? इसके बजाय `--set cost.engine.url=<its service URL>` जोड़ें, और कुछ भी बंडल नहीं होता। ऑन-प्रेम क्लस्टर `cost.opencost.customPricing` से रेट कार्ड सेट कर सकते हैं। ऑन-प्रेम मूल्य निर्धारण और समस्या निवारण के साथ पूरी गाइड [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost) है।
+बस इतना ही एक पूरा इंस्टॉल है: चार्ट ओपन-सोर्स [OpenCost](https://opencost.io) इंजन (उसके लिए ज़रूरी छोटे Prometheus के साथ) बंडल करता है और आपके नोड और वॉल्यूम की कीमत आपके क्लाउड प्रदाता के सार्वजनिक सूची मूल्यों से, बिना किसी क्रेडेंशियल के, तय करता है। यह तीन छोटे पॉड जोड़ता है, और पहली लागत पहले बंद घंटे के बाद दिखती है। इसे बंद करने के लिए, इसी तरह `--set cost.enabled=false` सेट करें। पहले से Kubecost या OpenCost चला रहे हैं? इसके बजाय `--set cost.engine.url=<its service URL>` जोड़ें, और कुछ भी बंडल नहीं होता। ऑन-प्रेम क्लस्टर `cost.opencost.customPricing` से रेट कार्ड सेट कर सकते हैं। ऑन-प्रेम मूल्य निर्धारण और समस्या निवारण के साथ पूरी गाइड [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost) है।
 
 ### प्रोजेक्ट लेबल से अपने-आप टैग करें
 
@@ -990,7 +991,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | CrashLoop, ImagePull और शेड्यूलिंग-कारण मेट्रिक्स (एक kube-state-metrics Deployment और एक स्क्रैप जोड़ता है) |
 | `ebpf.features.networkInterZoneMetrics` | नेटवर्क फ़्लो सीरीज़ दोगुनी करता है |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | ज़्यादा Prometheus स्क्रैप जॉब |
-| `cost.enabled` | वर्कलोड लागत (OpenCost और एक छोटा Prometheus बंडल करता है; प्रति घंटा लागत पंक्तियाँ और कड़ी अलाउलिस्ट वाला एक मेट्रिक्स स्क्रैप; मामूली इंजेशन, दो और पॉड) |
+
+इसके उलट, लागत ऑब्ज़र्वेबिलिटी (`cost.enabled`) डिफ़ॉल्ट रूप से चालू है: तीन छोटे पॉड, हर कंटेनर की प्रति घंटा एक लागत पंक्ति, और हर नोड, वॉल्यूम और लोड बैलेंसर की एक मूल्य सीरीज़ का स्क्रैप। अगर आप इसका उपयोग नहीं करते, तो इसे `--set cost.enabled=false` से बंद करें।
 
 ### ट्रेस हटाने के बजाय उन्हें सैंपल करें
 

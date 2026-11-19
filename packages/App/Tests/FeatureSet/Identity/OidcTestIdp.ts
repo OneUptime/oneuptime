@@ -140,6 +140,8 @@ export interface IdpOptions {
   failUserInfo?: boolean | undefined;
   // Leave userinfo_endpoint out of discovery.
   omitUserInfoEndpoint?: boolean | undefined;
+  // Advertise an end_session_endpoint (RP-initiated logout) in discovery.
+  advertiseEndSessionEndpoint?: boolean | undefined;
   // Return an OAuth error from the token endpoint instead of tokens.
   tokenError?: { error: string; description: string } | undefined;
 }
@@ -257,6 +259,10 @@ export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
 
         if (!options.omitUserInfoEndpoint) {
           discovery["userinfo_endpoint"] = `${issuerUrl}/userinfo`;
+        }
+
+        if (options.advertiseEndSessionEndpoint) {
+          discovery["end_session_endpoint"] = `${issuerUrl}/logout`;
         }
 
         return sendJson(res, 200, discovery);

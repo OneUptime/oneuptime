@@ -35,6 +35,7 @@ flowchart LR
 | Сборщик узла | DaemonSet | Логи подов из `/var/log/pods`, метрики kubelet и cAdvisor и метрики ОС узла. | Да |
 | eBPF-инструментирование (OBI) | DaemonSet | Трассировки HTTP, gRPC, SQL и Redis и метрики запросов от каждого пода, а также карта сервисов. | Да |
 | ИИ-агент Kubernetes | Deployment | Позволяет OneUptime AI выполнять `kubectl` только для чтения, пока он расследует инцидент или оповещение в этом кластере. | Да |
+| Движок затрат и опросчик | Deployments | Сколько стоит каждое пространство имён и каждая рабочая нагрузка: OpenCost, небольшой Prometheus, который ему нужен, и агент затрат, который отправляет то, что они рассчитали. | Да, кроме пресетов `gke-autopilot` и `eks-fargate` |
 | Считыватель логов | Deployment | Логи подов через Kubernetes API там, где сборщик узла не может их прочитать. | С пресетами `gke-autopilot`, `eks-fargate` и `openshift-restricted` |
 | eBPF-профилировщик | DaemonSet | Непрерывные flame-графы CPU для каждого процесса. | Нет |
 | kube-state-metrics | Deployment | Фазы подов, причины ожидания контейнеров и квоты ресурсов. | Нет |
@@ -364,7 +365,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `csi.enabled` | выкл. | Метрики драйверов хранилища CSI из подов с метками `app=csi-driver` или `app.kubernetes.io/component=csi-driver`: время подключения и отключения томов, ошибки выделения, IOPS. |
 | `coreDns.enabled` | выкл. | Метрики CoreDNS на `:9153/metrics`: частота запросов, задержка, попадания в кеш и ошибки. |
 | `controlPlane.enabled` | выкл. | API-сервер по его адресу внутри кластера, а etcd, планировщик и controller manager — по указанным вами конечным точкам ([Включение мониторинга плоскости управления](/docs/telemetry/kubernetes-agent#включение-мониторинга-плоскости-управления)). Только самостоятельно управляемые кластеры: управляемые их не открывают. |
-| `cost.enabled` | выкл. | Сколько стоит каждая рабочая нагрузка. См. [Наблюдаемость затрат Kubernetes](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Сколько стоит каждое пространство имён и каждая рабочая нагрузка, с простаивающими мощностями и эффективностью, в том числе в виде метрик для оповещений: включено, кроме пресетов `gke-autopilot` и `eks-fargate`; `false` выключает. См. [Наблюдаемость затрат Kubernetes](/docs/telemetry/kubernetes-cost). |
 
 ## Основные параметры
 

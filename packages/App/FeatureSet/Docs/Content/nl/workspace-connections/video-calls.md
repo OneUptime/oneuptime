@@ -86,7 +86,7 @@ Koppelingen die met hetzelfde account zijn aangemeld, delen één aanmelding, in
 
 Een koppeling verwijderen trekt de toegang van OneUptime bij Zoom en Google in zodra geen andere koppeling de aanmelding gebruikt. Verwijder OneUptime bij Microsoft onder **My Apps** (myapps.microsoft.com) van het account. OneUptime uit je Zoom-account verwijderen in de Zoom App Marketplace verwijdert de aanmelding uit elke koppeling die met dat account is aangemeld, en die tonen **Werkt niet** tot ze opnieuw zijn gekoppeld.
 
-Transcripties die OneUptime al heeft gelezen, blijven bij hun incidenten: een koppeling verwijderen behoudt de gesprekken die de koppeling heeft gestart, met hun transcripties, en OneUptime uit het account bij Zoom, Google of Microsoft verwijderen ook. **Transcriptie verwijderen** bij een gesprek verwijdert de transcriptie en wat OneUptime AI erin heeft gelezen, maar niet wat OneUptime AI in de feed van het incident en de kanalen ervan heeft geplaatst. Een incident verwijderen verwijdert ook de gesprekken en hun transcripties.
+OneUptime uit je Zoom-account verwijderen verwijdert binnen enkele minuten ook de gesprekstranscripties die OneUptime via de aanmelding heeft gelezen, en wat OneUptime AI erin heeft gelezen: uit hun gesprekken, uit de feeds van de incidenten en uit de berichten die OneUptime in de Slack-, Microsoft Teams- en Mattermost-kanalen van de incidenten heeft geplaatst. De feed van elk incident zegt dat, en een transcriptie die iemand heeft toegevoegd, blijft. Een koppeling verwijderen behoudt de gesprekken die de koppeling heeft gestart, met hun transcripties, en OneUptime uit een Google- of Microsoft-account verwijderen ook. **Transcriptie verwijderen** bij een gesprek verwijdert de transcriptie en wat OneUptime AI erin heeft gelezen van dezelfde plekken. Kan OneUptime een bericht daar niet meer verwijderen, omdat de werkruimte is ontkoppeld of de app uit het kanaal is verwijderd, dan zegt het waar het bericht blijft. Een hoofdoorzaak of een postmortem die iemand op basis van het gesprek heeft geschreven, blijft. Een incident verwijderen verwijdert ook de gesprekken en hun transcripties.
 
 ### Als Microsoft om een beheerder vraagt
 
@@ -100,7 +100,7 @@ Om te koppelen met een service-identiteit in plaats van de aanmelding van een pe
 
 De kaart **Video Call** op de pagina van een incident of waarschuwing heeft **Start call** (of **Start another** zodra er een is). Kies een van de koppelingen van het project, de huddle van het Slack-kanaal van het incident, of plak een eigen vergaderlink. Het gesprek wordt in de kanalen en de feed van het incident geplaatst, net als een gesprek dat een regel start.
 
-**Verwijderen** op de kaart haalt een gesprek van de pagina van het incident. De vergadering zelf wordt niet verwijderd, en iedereen met de link kan er nog steeds aan meedoen.
+**Verwijderen** op de kaart haalt een gesprek van de pagina van het incident, met de transcriptie en wat OneUptime AI erin heeft gelezen. De vergadering zelf wordt niet verwijderd, en iedereen met de link kan er nog steeds aan meedoen.
 
 Gesprekken starten en verwijderen vereist rechten om aan incidenten (of waarschuwingen) te werken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Incidentbeheerder** of **Incidentlid**, of **Create Incident Video Call** en **Delete Incident Video Call** in een aangepaste rol. Iedereen die het incident mag lezen, ziet de gesprekken ervan.
 
@@ -152,7 +152,7 @@ Een transcriptie ophalen, toevoegen, vervangen en verwijderen, haar opnieuw late
 
 ### Wat OneUptime AI leest
 
-Een transcriptie lezen is AI-werk zoals een onderzoek: het draait alleen zolang AI aan staat voor het project, en telt mee voor het AI-gebruik en de daglimieten van het project (zie [Kostenbeheersing](/docs/ai/ai-sre#kostenbeheersing)). Een lange transcriptie wordt in delen gelezen. Staat AI uit, dan blijft de transcriptie bewaard en zegt de kaart dat ze niet is gelezen. Een transcriptie verwijderen verwijdert wat OneUptime AI erin heeft gelezen, en behoudt de hoofdoorzaak van het incident. Een AI-concept van het postmortem leest ook wat er in de gesprekken van het incident is gezegd (zie [Postmortems](/docs/incidents/postmortems)).
+Een transcriptie lezen is AI-werk zoals een onderzoek: het draait alleen zolang AI aan staat voor het project, en telt mee voor het AI-gebruik en de daglimieten van het project (zie [Kostenbeheersing](/docs/ai/ai-sre#kostenbeheersing)). Een lange transcriptie wordt in delen gelezen. Staat AI uit, dan blijft de transcriptie bewaard en zegt de kaart dat ze niet is gelezen. Een transcriptie verwijderen verwijdert wat OneUptime AI erin heeft gelezen, uit het gesprek, de feed van het incident en de kanalen ervan, en behoudt de hoofdoorzaak van het incident. Een AI-concept van het postmortem leest ook wat er in de gesprekken van het incident is gezegd (zie [Postmortems](/docs/incidents/postmortems)).
 
 ## Providers
 

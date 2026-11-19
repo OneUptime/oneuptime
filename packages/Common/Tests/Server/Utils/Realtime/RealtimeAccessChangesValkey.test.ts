@@ -6,6 +6,7 @@ import type RealtimeSessionsType from "../../../../Server/Utils/Realtime/Realtim
 import type { RealtimeSessionSocket } from "../../../../Server/Utils/Realtime/RealtimeSessions";
 import type RedisType from "../../../../Server/Infrastructure/Redis";
 import UserService from "../../../../Server/Services/UserService";
+import UserSessionService from "../../../../Server/Services/UserSessionService";
 import ObjectID from "../../../../Types/ObjectID";
 import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOptions";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -32,6 +33,20 @@ jest.mock("../../../../Server/Services/TeamMemberService", () => {
       forgetTeamIdsForUser: (...args: Array<unknown>): unknown => {
         return mockForgetTeamIdsForUser(...args);
       },
+    },
+  };
+});
+
+/*
+ * Whether a session is live is kept per server (UserSessionService
+ * .isSessionLive): an end is told to it, on every server, through Valkey.
+ */
+jest.mock("../../../../Server/Services/UserSessionService", () => {
+  return {
+    __esModule: true,
+    default: {
+      forgetEndedSessions: jest.fn(),
+      forgetSessionsOfUser: jest.fn(),
     },
   };
 });
@@ -199,6 +214,42 @@ describe("access changes reach every server through Valkey", () => {
         issuedAtMs: Date.now(),
       }),
     ).toBe(true);
+  });
+
+  /*
+   * A sign-out answered by server A: server B, which a copy of the session's
+   * access token may reach next, refuses it at once - not when what it read
+   * of the session runs out (#9534). Both servers reach the one
+   * UserSessionService the modules load: A's own end comes first, at once;
+   * B's arrives through Valkey.
+   */
+  test("signing out on one server makes the other refuse the session's access token", async () => {
+    const sessionId: string = ObjectID.generate().toString();
+    const forgetEndedSessions: jest.Mock =
+      UserSessionService.forgetEndedSessions as unknown as jest.Mock;
+
+    const toldTimes: () => number = (): number => {
+      return forgetEndedSessions.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return (call[0] as Array<string>).includes(sessionId);
+        },
+      ).length;
+    };
+
+    serverA.changes.announce({
+      kind: RealtimeAccessChangeKind.SessionsEnded,
+      sessionIds: [sessionId],
+    });
+
+    // Server A applies its own announcement at once.
+    expect(toldTimes()).toBe(1);
+
+    // Server B hears it through Valkey, and refuses the session as well.
+    await expect(
+      eventually((): boolean => {
+        return toldTimes() === 2;
+      }),
+    ).resolves.toBe(true);
   });
 
   test("a permission change on one server makes the other read the person again", async () => {

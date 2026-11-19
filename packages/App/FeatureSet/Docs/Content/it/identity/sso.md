@@ -259,6 +259,12 @@ Un progetto può anche accedere tramite un provider OpenID Connect, come Google 
 6. Apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider, per accedere tramite esso prima di richiedere l'SSO per il progetto.
 :::
 
+### Uscire anche dal provider di identità
+
+Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso, come uno schermo del NOC o un chiosco, la persona successiva che sceglie il provider nella pagina di accesso entra al posto di chi se n'è andato. Attiva **Esci anche dal provider di identità** in **Altri campi** perché l'uscita da OneUptime chiuda anche la sessione presso il provider. È disattivato per impostazione predefinita: su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
+
+Con l'opzione attiva, il browser passa per l'uscita del provider appena OneUptime lo ha fatto uscire, e il provider lo rimanda alla pagina di accesso di OneUptime. Registra quella pagina presso il tuo provider: la finestra **Configurazione OIDC** la mostra come URI di reindirizzamento dopo l'uscita, che i provider chiamano post-logout redirect URI. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla. Vale per le persone che accedono da un browser dopo che è stata attivata; l'app mobile esce solo da OneUptime. I provider SAML non fanno mai uscire nessuno dal provider di identità.
+
 ## Ruoli e team degli utenti SSO
 
 OneUptime non associa ruoli o gruppi del tuo provider di identità. Ciò che una persona può fare dipende dai team di cui fa parte: un provider aggiunge i nuovi arrivati ai suoi **Team**, e tu gestisci i team e le loro autorizzazioni in OneUptime, come descritto in [Utenti, team e autorizzazioni](/docs/permissions/index). Per tenere l'appartenenza ai team allineata al tuo provider di identità, usa [SCIM](/docs/identity/scim). Ogni team a cui qualcuno si unisce accedendo è registrato nella pagina **Log di audit** di quel team, come una modifica fatta dalla persona che ha effettuato l'accesso.

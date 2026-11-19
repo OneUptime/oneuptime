@@ -32,7 +32,7 @@ flowchart TB
 | Instrumentação eBPF (OBI) | DaemonSet | Traces e métricas de requisições HTTP, gRPC, SQL e Redis de cada pod, e o mapa de serviços. | Por padrão, exceto no GKE Autopilot e no EKS Fargate |
 | Agente de IA do Kubernetes | Deployment | `kubectl` somente leitura para a OneUptime AI enquanto ela investiga um incidente ou alerta. | Por padrão |
 | Leitor de logs | Deployment | Logs de pods pela API do Kubernetes, onde o coletor de nó não consegue lê-los. | Com os presets `gke-autopilot`, `eks-fargate` e `openshift-restricted` |
-| Motor de custos e coletor de custos | Deployments | Gastos por namespace, carga de trabalho e pod. | Com `cost.enabled=true` |
+| Motor de custos e coletor de custos | Deployments | Gastos por namespace, carga de trabalho e pod. | Por padrão, exceto no GKE Autopilot e no EKS Fargate |
 
 Toda imagem do agente é só para Linux, então toda carga de trabalho fica fixada em nós Linux.
 
@@ -199,7 +199,8 @@ Defina-os em **Optional configuration settings**, no console do EKS, ou com `--c
 - `oneuptime.labels`: rótulos do projeto para tudo o que este cluster envia, como `{"team": "payments"}`.
 - `preset`: `eks-fargate` para um cluster que roda só no Fargate; caso contrário, `standard`, o padrão.
 - `logs.enabled`, `ebpf.enabled` e `aiAgent.enabled`: logs de pods, traces de eBPF e o [agente de IA do Kubernetes](#agente-de-ia-do-kubernetes), os três ativados por padrão.
-- `kubeStateMetrics.enabled` e `cost.enabled`: kube-state-metrics e a [observabilidade de custos](/docs/telemetry/kubernetes-cost), os dois desativados por padrão.
+- `kubeStateMetrics.enabled`: kube-state-metrics, desativado por padrão.
+- `cost.enabled`: [observabilidade de custos](/docs/telemetry/kubernetes-cost), `auto` por padrão: ativada, exceto com o preset `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ Para recuperá-los, mude para `openshift` com `--set preset=openshift` em um upg
 | Grafo de serviços (eBPF) | Arestas de taxa de requisições, latência e erros entre chamador e chamado, que desenham o mapa de serviços |
 | Métricas de fluxo de rede (eBPF) | Contadores de bytes e pacotes TCP e UDP de pod para pod, com metadados do Kubernetes |
 | Estatísticas de TCP (eBPF) | Contadores de tempo de ida e volta, conexões com falha e retransmissões por nó |
-| Custos de cargas de trabalho (opcional, `cost.enabled=true`) | Gastos por namespace, carga de trabalho e pod, com ociosidade e eficiência, e custos por hora de nós e volumes: veja [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost) |
+| Custos de cargas de trabalho (ativados por padrão, exceto no GKE Autopilot e no EKS Fargate) | Gastos por namespace, carga de trabalho e pod, com ociosidade e eficiência, também como métricas para alertas, e custos por hora de nós e volumes: veja [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost) |
 
 ## Eventos do Kubernetes
 
@@ -594,7 +595,7 @@ Alguns gráficos mostram métricas para as quais o agente não tem coleta: **kub
 
 ### Ative a observabilidade de custos
 
-Veja na página **Custos** do cluster quanto custa cada namespace, carga de trabalho e pod, com a capacidade ociosa e quanto de cada request é usado:
+A observabilidade de custos vem ativada por padrão: a visão geral do cluster e a página **Custos** dele mostram quanto custa cada namespace, carga de trabalho e pod, com a capacidade ociosa e quanto de cada request é usado, e as métricas de custo podem ser exibidas em gráficos e usadas em alertas. Ela vem desativada por padrão nos presets `gke-autopilot` e `eks-fargate`, que cobram cada pod pelos requests dele, e em um agente instalado antes de ela vir ativada por padrão. Ative-a nesses casos:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Só isso já é uma instalação completa: o chart traz o motor de código aberto [OpenCost](https://opencost.io) (com o pequeno Prometheus de que ele precisa) e precifica os seus nós e volumes a partir dos preços de tabela públicos do seu provedor de nuvem, sem credenciais. Ele adiciona dois pods pequenos, e os primeiros custos aparecem depois da primeira hora fechada. Já usa Kubecost ou OpenCost? Adicione `--set cost.engine.url=<its service URL>` em vez disso, e nada é incluído. Clusters on-premises podem definir uma tabela de preços com `cost.opencost.customPricing`. O guia completo, com preços on-premises e solução de problemas, é [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost).
+Só isso já é uma instalação completa: o chart traz o motor de código aberto [OpenCost](https://opencost.io) (com o pequeno Prometheus de que ele precisa) e precifica os seus nós e volumes a partir dos preços de tabela públicos do seu provedor de nuvem, sem credenciais. Ele adiciona três pods pequenos, e os primeiros custos aparecem depois da primeira hora fechada. Para desativar a observabilidade de custos, defina `--set cost.enabled=false` da mesma forma. Já usa Kubecost ou OpenCost? Adicione `--set cost.engine.url=<its service URL>` em vez disso, e nada é incluído. Clusters on-premises podem definir uma tabela de preços com `cost.opencost.customPricing`. O guia completo, com preços on-premises e solução de problemas, é [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost).
 
 ### Rotule automaticamente com rótulos do projeto
 
@@ -990,7 +991,8 @@ Eles vêm desativados por padrão porque adicionam carga. Ative um só quando us
 | `kubeStateMetrics.enabled` | Métricas de CrashLoop, ImagePull e motivos de agendamento (adiciona um Deployment do kube-state-metrics e uma coleta) |
 | `ebpf.features.networkInterZoneMetrics` | Dobra as séries de fluxo de rede |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Mais jobs de coleta do Prometheus |
-| `cost.enabled` | Custos de cargas de trabalho (traz o OpenCost e um Prometheus pequeno; linhas de custo por hora e uma coleta de métricas com allowlist restrita; ingestão modesta, dois pods a mais) |
+
+Já a observabilidade de custos (`cost.enabled`) vem ativada por padrão: três pods pequenos, uma linha de custo por hora para cada contêiner e uma coleta de uma série de preço por nó, volume e load balancer. Desative-a com `--set cost.enabled=false` se você não a usa.
 
 ### Amostre traces em vez de descartá-los
 

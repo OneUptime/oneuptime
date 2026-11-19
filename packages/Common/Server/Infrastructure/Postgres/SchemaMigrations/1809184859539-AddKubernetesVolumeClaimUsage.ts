@@ -6,10 +6,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * onto its KubernetesResource row by OtelMetricsIngestService. Nullable
  * columns with no default: adding them rewrites nothing.
  */
-export class AddKubernetesVolumeClaimUsage1809184639539
+export class AddKubernetesVolumeClaimUsage1809184859539
   implements MigrationInterface
 {
-  public name: string = "AddKubernetesVolumeClaimUsage1809184639539";
+  public name: string = "AddKubernetesVolumeClaimUsage1809184859539";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

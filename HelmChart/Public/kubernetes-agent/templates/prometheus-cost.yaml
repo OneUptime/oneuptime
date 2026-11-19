@@ -45,6 +45,15 @@ data:
             regex: (.+)
             target_label: __metrics_path__
             replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+        {{- with .Values.cost.prometheus.cadvisorMetricsAllowlist }}
+        # Only the series OpenCost queries, and the cost agent's memory
+        # peaks: cAdvisor's other families are one series per container
+        # each, read by nothing here, and held in memory all the same.
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: "^({{ join "|" . }})$"
+            action: keep
+        {{- end }}
       # OpenCost's own metrics: node/PV hourly prices, per-container
       # allocation, and the KSM-style resource-request series it emits.
       - job_name: opencost
