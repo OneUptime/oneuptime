@@ -5,7 +5,7 @@ L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : 
 :::cards
 - [Comment les éléments arrivent dans l'inventaire](#comment-les-éléments-arrivent-dans-linventaire): Découverts, répliqués ou ajoutés par vous.
 - [S'y retrouver](#sy-retrouver): Les pages de l'inventaire et les pages propres à chaque élément.
-- [Importer des appareils depuis Esper](#importer-des-appareils-depuis-esper): Chaque appareil Android qu'enrôle votre tenant Esper, tenu à jour.
+- [Importer des appareils depuis Esper](#importer-des-appareils-depuis-esper): Chaque appareil Android et Apple qu'enrôle votre tenant Esper, tenu à jour.
 - [Ajouter quelque chose à la main](#ajouter-quelque-chose-à-la-main): Une API tierce, une base de données externe ou une appliance.
 - [Archiver plutôt que supprimer](#archiver-plutôt-que-supprimer): La façon de ranger la liste qui tient dans le temps.
 :::
@@ -26,14 +26,14 @@ flowchart TB
 | Source | Dans l'API | D'où elle vient | Combien de temps elle reste |
 | --- | --- | --- | --- |
 | **Découvert** | `discovered` | Les attributs de ressource OpenTelemetry, lus à l'arrivée de la télémétrie : un service, un hôte, un objet Kubernetes ou une machine virtuelle qui envoie de la télémétrie. | Réenregistré à chaque lot. Retiré une fois resté silencieux plus longtemps que la fenêtre de son type (voir plus bas). |
-| **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker, hôtes Podman et les appareils Android qu'importe une connexion Esper. Copié toutes les 15 minutes, et un appareil Esper chaque fois que sa connexion est lue. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
+| **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker, hôtes Podman et les appareils Android et Apple qu'importe une connexion Esper. Copié toutes les 15 minutes, et un appareil Esper chaque fois que sa connexion est lue. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
 | **Ajouté par vous** | `manual` | Ajouté par vous, pour quelque chose que OneUptime ne peut pas voir : une API tierce, une base de données gérée par un fournisseur, une appliance dans une baie. | Jusqu'à ce que vous le supprimiez. Rien ne le fait expirer. |
 
 Un élément découvert ou répliqué ne peut pas être renommé ni changer de type : sa source écraserait la modification à son prochain passage. La page **Paramètres** de l'élément indique où faire plutôt une modification durable. Ce que vous pouvez toujours ajouter à n'importe quel élément, quelle que soit sa source, ce sont des valeurs de champs personnalisés : voir [Champs personnalisés de l'inventaire](/docs/inventory/custom-fields).
 
 ### Combien de temps reste un élément silencieux
 
-Un élément découvert a un battement de cœur. Chaque fois que de la télémétrie arrive pour lui, son heure de dernière observation avance, et la colonne **Statut** de la liste indique à quel point elle est récente. Il en va de même d'un appareil Android venu d'Esper : chaque fois qu'il contacte Esper. Les autres éléments répliqués et ceux que vous avez ajoutés n'ont pas de battement de cœur, donc leur statut reste vide plutôt que d'alarmer.
+Un élément découvert a un battement de cœur. Chaque fois que de la télémétrie arrive pour lui, son heure de dernière observation avance, et la colonne **Statut** de la liste indique à quel point elle est récente. Il en va de même d'un appareil venu d'Esper : chaque fois qu'il contacte Esper. Les autres éléments répliqués et ceux que vous avez ajoutés n'ont pas de battement de cœur, donc leur statut reste vide plutôt que d'alarmer.
 
 | Statut | Ce que cela signifie |
 | --- | --- |
@@ -59,7 +59,7 @@ Ouvrez **Produits → Ressources → Inventaire**. Son menu latéral contient ce
 | --- | --- |
 | **Vue d'ensemble** | Combien d'éléments vous avez, ce qu'ils sont, combien sont devenus silencieux, et ce qui a été ajouté le plus récemment. |
 | **Tous les éléments** | Chaque élément. Cherchez par nom, description ou clé d'identité, filtrez la liste par type, source, statut ou champ personnalisé, et ajoutez un élément à la main. |
-| **Appareils gérés** | Vos connexions Esper, et chaque appareil Android qu'elles importent, avec son statut, son groupe, son modèle et sa version d'Android. |
+| **Appareils gérés** | Vos connexions Esper, et chaque appareil qu'elles importent, avec son statut, son groupe, son modèle et son système d'exploitation. |
 | **Carte de topologie** | Comment les éléments sont reliés : les services, ce qu'ils appellent, et les hôtes, pods et équipements sur lesquels ils tournent. |
 | **Devenu silencieux** | Les éléments dont on n'a pas eu de nouvelles depuis plus d'une journée : les éléments découverts qui n'ont pas envoyé de télémétrie, et les appareils qui ont cessé de contacter Esper. |
 | **Par source** | Les éléments d'une source : **Découvert**, **Répliqué** ou **Ajouté par vous**. |
@@ -89,7 +89,7 @@ La page **Connexions** d'un élément liste ses voisins dans les deux sens, regr
 
 ## Importer des appareils depuis Esper
 
-Connectez un tenant Esper, et chaque appareil Android qu'il enrôle figure dans l'inventaire, y compris les appareils dont l'application n'a jamais démarré. Chaque appareil est un hôte, avec ce que seul Esper sait de lui : son groupe, sa version d'Android, son build et son niveau de correctif de sécurité, son numéro de série et son IMEI, sa batterie et son stockage, et ses applications installées. Esper n'envoie rien de lui-même, donc OneUptime le lit selon une planification : les appareils toutes les 15 minutes, et les applications de chaque appareil toutes les 6 heures.
+Connectez un tenant Esper, et chaque appareil qu'il enrôle figure dans l'inventaire : ses appareils Android, y compris ceux dont l'application n'a jamais démarré, et ses iPhone, iPad et Apple TV. Chaque appareil est un hôte, avec ce que seul Esper sait de lui : son groupe, son système d'exploitation et son build, son numéro de série et son IMEI, sa batterie et son stockage, et, pour un appareil Android, son niveau de correctif de sécurité et ses applications installées. Esper n'envoie rien de lui-même, donc OneUptime le lit selon une planification : les appareils toutes les 15 minutes, et les applications de chaque appareil Android toutes les 6 heures.
 
 :::steps
 ### Créer une clé API dans Esper
@@ -102,12 +102,12 @@ Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés*
 
 ### Vérifier la première lecture
 
-**Connecter** teste la clé avant d'enregistrer quoi que ce soit : il indique combien d'appareils Android une lecture importera, ou ce qui ne va pas et comment le corriger. La première lecture commence dans la minute, et la ligne de la connexion indique comment elle s'est déroulée.
+**Connecter** teste la clé avant d'enregistrer quoi que ce soit : il indique combien d'appareils une lecture importera, ou ce qui ne va pas et comment le corriger. La première lecture commence dans la minute, et la ligne de la connexion indique comment elle s'est déroulée.
 :::
 
 | Ce qu'Esper signale | Où cela apparaît |
 | --- | --- |
-| Modèle, fabricant, numéro de série, version d'Android, build, et adresses IP et MAC | La carte **Détails de l’actif** de l'appareil, et les colonnes de **Tous les éléments** |
+| Modèle, fabricant, numéro de série, système d'exploitation et sa version, build, et adresses IP et MAC | La carte **Détails de l’actif** de l'appareil, et les colonnes de **Tous les éléments** |
 | Statut, dernier contact, groupe, niveau de correctif de sécurité, IMEI, batterie, stockage et agent Esper | La carte **Esper** de l'appareil, et la liste **Appareils** de la page **Appareils gérés** |
 | Les applications et leurs versions | La liste **Applications installées** de l'appareil |
 
@@ -124,13 +124,13 @@ OneUptime trouve l'élément d'un appareil par son nom dans Esper, puis par son 
 
 ### Quand un appareil devient silencieux, ou quitte Esper
 
-Un appareil qui n'a pas contacté Esper depuis 30 minutes est **Hors ligne**, et indique à quand remonte son dernier contact. Le **Statut** de son élément suit son dernier contact, ou sa télémétrie quand elle est plus récente, si bien qu'un appareil silencieux depuis une journée figure sur la page **Devenu silencieux**.
+Un appareil Android qui n'a pas contacté Esper depuis 30 minutes est **Hors ligne**, et indique à quand remonte son dernier contact ; un iPhone, un iPad ou une Apple TV, qui contacte Esper quand le service push d'Apple le réveille, souvent à des heures d'intervalle, est **Hors ligne** après une journée. Le **Statut** de son élément suit son dernier contact, ou sa télémétrie quand elle est plus récente, si bien qu'un appareil silencieux depuis une journée figure sur la page **Devenu silencieux**.
 
 Un appareil retiré d'Esper est marqué **Retiré**, et son élément est archivé : il quitte la liste, et attend sous **Avancé → Archivé**. Un appareil qui revient dans Esper revient dans la liste. 30 jours après son départ, l'appareil est supprimé, et son élément aussi, sauf si quelque chose y a été ajouté, par la télémétrie ou par vous.
 
 ### Recevoir une alerte quand un appareil ne se manifeste plus
 
-Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Esper depuis plus d'une heure, au nom de l'appareil, et la résout dès que l'appareil se manifeste à nouveau.
+Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Android Device Stopped Checking In** et **Esper Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android qui n'a pas contacté Esper depuis plus d'une heure, le second pour chaque appareil Apple après plus d'une journée, chacune au nom de l'appareil et résolue dès qu'il se manifeste à nouveau.
 
 Chaque lecture de la connexion enregistre il y a combien de minutes chaque appareil a contacté Esper pour la dernière fois, sous la forme de la métrique `oneuptime.managed_device.check_in.age`, et le moniteur vérifie la dernière valeur de chaque appareil toutes les 5 minutes. Un appareil qui exécute aussi l'Agent Android est laissé à **Host Stopped Reporting**, si bien qu'il n'alerte jamais deux fois, et un appareil retiré d'Esper résout son alerte. Une lecture qui échoue n'enregistre rien, si bien qu'aucune alerte ne s'ouvre ni ne se résout avant la suivante. Pour une flotte éteinte la nuit, relevez le seuil du moniteur.
 

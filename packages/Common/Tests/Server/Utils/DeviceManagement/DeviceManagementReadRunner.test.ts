@@ -30,6 +30,7 @@ import {
   MANAGED_DEVICE_RESOURCE_TYPE,
   ManagedDeviceHostMatch,
 } from "../../../../Types/DeviceManagement/ManagedDeviceIdentity";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 import ObjectID from "../../../../Types/ObjectID";
@@ -40,6 +41,7 @@ import {
   ESPER_ENTERPRISE_ID,
   ESPER_TENANT,
   buildEsperApp,
+  buildEsperAppleDevice,
   buildEsperDevice,
   buildEsperGroup,
 } from "./EsperFixtures";
@@ -77,6 +79,7 @@ const DAY: number = 24 * HOUR;
 const KIOSK_A: string = "aaaaaaaa-0000-4000-8000-000000000001";
 const KIOSK_B: string = "aaaaaaaa-0000-4000-8000-000000000002";
 const IPAD: string = "aaaaaaaa-0000-4000-8000-000000000003";
+const PC: string = "aaaaaaaa-0000-4000-8000-000000000004";
 const GROUP_WEST: string = "bbbbbbbb-0000-4000-8000-000000000001";
 
 let clock: TestClock;
@@ -102,8 +105,25 @@ function devices(): Array<JSONObject> {
       isKiosk: false,
       state: 60,
     }),
-    buildEsperDevice({ id: IPAD, name: "ESP-ID-IPAD1", platform: "APPLE" }),
+    // Esper's Windows devices are not imported.
+    buildEsperDevice({ id: PC, name: "ESP-ID-WIN01", platform: "WINDOWS" }),
   ];
+}
+
+// An iPad of the tenant, last seen three hours ago (#9837).
+function ipad(
+  overrides: Partial<Parameters<typeof buildEsperAppleDevice>[0]> = {},
+): JSONObject {
+  return buildEsperAppleDevice({
+    id: IPAD,
+    name: "ESP-ID-IPAD1",
+    alias: "Front counter iPad",
+    serial: "DMPXK2ABQ1GC",
+    os: "iPadOS",
+    groupId: GROUP_WEST,
+    lastSeen: new Date(START.getTime() - 3 * HOUR).toISOString(),
+    ...overrides,
+  });
 }
 
 /*
@@ -286,8 +306,9 @@ describe("the first read", () => {
     const outcome: DeviceManagementReadOutcome = await run();
 
     expect(outcome.status).toBe("success");
-    // The iPad is not an Android device.
+    // The Windows device is not imported.
     expect(db.devices.size).toBe(2);
+    expect(deviceRow(KIOSK_A)["platform"]).toBe(ManagedDevicePlatform.Android);
 
     const kiosk: JSONObject = deviceRow(KIOSK_A);
 
@@ -1011,6 +1032,49 @@ describe("the devices' check-ins, as a metric", () => {
     expect(checkInRecords).toEqual([]);
   });
 
+  test("a read whose device list was cut short writes none, even with every check-in read: a device it left out keeps an older one", async () => {
+    const connector: DeviceManagementConnector =
+      DeviceManagementConnectorRegistry.getConnector(
+        DeviceManagementProvider.Esper,
+      );
+    const openSession: (
+      settings: DeviceManagementSettings,
+      options: DeviceManagementSessionOptions,
+    ) => DeviceManagementSession = connector.openSession.bind(connector);
+
+    jest
+      .spyOn(connector, "openSession")
+      .mockImplementation(
+        (
+          settings: DeviceManagementSettings,
+          options: DeviceManagementSessionOptions,
+        ): DeviceManagementSession => {
+          const session: DeviceManagementSession = openSession(
+            settings,
+            options,
+          );
+          const readFleet: DeviceManagementSession["readFleet"] =
+            session.readFleet.bind(session);
+
+          // A list stopped at its page limit: the window was still read whole.
+          session.readFleet = async (data: {
+            checkInSince: Date;
+          }): Promise<DeviceManagementFleetRead> => {
+            const fleet: DeviceManagementFleetRead = await readFleet(data);
+            expect(fleet.checkInWindowEnd).toBeDefined();
+            return { ...fleet, isDeviceListComplete: false };
+          };
+
+          return session;
+        },
+      );
+
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("partial");
+    expect(checkInRecords).toEqual([]);
+  });
+
   test("a read that fails writes none", async () => {
     connection.secrets = JSON.stringify({ apiKey: "revoked-key-0123456789" });
 
@@ -1032,6 +1096,128 @@ describe("the devices' check-ins, as a metric", () => {
     });
 
     expect(checkInRecords).toEqual([]);
+  });
+});
+
+/*
+ * #9837: an Esper tenant's iPhones, iPads and Apple TVs are imported beside
+ * its Android devices, each one host in Inventory that runs what it runs,
+ * online while it checked in within a day - Apple's push wakes it hours
+ * apart - and with no apps read, since Esper lists an Apple device's by ID
+ * alone.
+ */
+describe("Esper's Apple devices", () => {
+  beforeEach(() => {
+    api.state.devices.push(ipad());
+  });
+
+  test("an iPad is imported with what it runs, and its last_seen as its check-in", async () => {
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    expect(db.devices.size).toBe(3);
+    expect(deviceRow(IPAD)).toMatchObject({
+      platform: ManagedDevicePlatform.IPadOS,
+      deviceName: "ESP-ID-IPAD1",
+      alias: "Front counter iPad",
+      serialNumber: "DMPXK2ABQ1GC",
+      manufacturer: "Apple",
+      model: "iPad (10th generation)",
+      osVersion: "17.4.1",
+      buildNumber: "21E236",
+      groupName: "West",
+    });
+    // Android's alone.
+    expect(deviceRow(IPAD)["securityPatchLevel"] ?? null).toBeNull();
+    expect(deviceRow(IPAD)["agentVersion"] ?? null).toBeNull();
+    expect(new Date(deviceRow(IPAD)["lastCheckInAt"] as string)).toEqual(
+      new Date(START.getTime() - 3 * HOUR),
+    );
+  });
+
+  test("it is one host in Inventory that runs iPadOS, with no patch level", async () => {
+    await run();
+
+    const host: JSONObject = itemOf(IPAD);
+
+    expect(host).toMatchObject({
+      entityKey: hostKey("ESP-ID-IPAD1"),
+      identifyingAttributes: { "host.name": "esp-id-ipad1" },
+      displayName: "Front counter iPad",
+      resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+    });
+    expect(host["descriptiveAttributes"]).toEqual({
+      "host.serial_number": "DMPXK2ABQ1GC",
+      "device.manufacturer": "Apple",
+      "device.model.name": "iPad (10th generation)",
+      "device.firmware.version": "21E236",
+      "os.name": "iPadOS",
+      "os.version": "17.4.1",
+      "host.mac": "3C-22-FB-10-AA-21",
+      "esper.device.id": IPAD,
+      "esper.device.name": "ESP-ID-IPAD1",
+      "esper.group": "All Devices/Stores/West",
+    });
+    expect(new Date(host["lastSeenAt"] as string)).toEqual(
+      new Date(START.getTime() - 3 * HOUR),
+    );
+  });
+
+  test("seen three hours ago it is online - an Android device would be offline - and its apps are not read", async () => {
+    await run();
+
+    const summary: DeviceManagementReadSummary = lastRecord()[
+      "lastPullResult"
+    ] as unknown as DeviceManagementReadSummary;
+
+    // The kiosk seen 4 minutes ago and the iPad: online. Kiosk B, 3 hours: offline.
+    expect(summary).toMatchObject({
+      deviceCount: 3,
+      onlineCount: 2,
+      offlineCount: 1,
+      addedCount: 3,
+      appsReadDeviceCount: 2,
+      appsWaitingDeviceCount: 0,
+    });
+    expect(
+      api.requestsTo(
+        `/api/enterprise/${ESPER_ENTERPRISE_ID}/device/${IPAD}/app/`,
+      ),
+    ).toEqual([]);
+    expect(deviceRow(IPAD)["appsReadAt"] ?? null).toBeNull();
+    // Nor is it waiting for them: the next read is on the interval.
+    expect(new Date(lastRecord()["nextPullAt"] as string).getTime()).toBe(
+      START.getTime() + 15 * MINUTE,
+    );
+  });
+
+  test("its check-in is never asked about on its own when its record says it", async () => {
+    await run();
+
+    expect(api.requestsTo(`/api/device/v0/heartbeat/${IPAD}/`)).toEqual([]);
+  });
+
+  test("an iPad that has never checked in is asked about on its own, as an Android device is", async () => {
+    api.state.devices[api.state.devices.length - 1] = ipad({ lastSeen: null });
+
+    await run();
+
+    expect(api.requestsTo(`/api/device/v0/heartbeat/${IPAD}/`)).toHaveLength(1);
+  });
+
+  test("a device whose platform changed is no change to count, and gains its platform once", async () => {
+    await run();
+
+    // A row written before the platform was kept.
+    deviceRow(KIOSK_A)["platform"] = null;
+    clock.advance(15 * MINUTE);
+    await run();
+
+    expect(deviceRow(KIOSK_A)["platform"]).toBe(ManagedDevicePlatform.Android);
+    expect(
+      (lastRecord()["lastPullResult"] as unknown as DeviceManagementReadSummary)
+        .changedCount,
+    ).toBe(0);
   });
 });
 

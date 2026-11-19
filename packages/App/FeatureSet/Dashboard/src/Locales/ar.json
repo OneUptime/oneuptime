@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "يجب أن تعمل: {{count}}",
   "{{count}} should be running_one": "{{count}} يجب أن يعمل",
   "{{count}} undersized placement groups": "مجموعات الوضع ناقصة النسخ: {{count}}",
-  "{{count}} undersized placement groups_one": "{{count}} مجموعة وضع ناقصة النسخ"
+  "{{count}} undersized placement groups_one": "{{count}} مجموعة وضع ناقصة النسخ",
+  "Connected. {{count}} devices to import.": "تم الربط. الأجهزة المطلوب استيرادها: {{count}}.",
+  "Connected. {{count}} devices to import._one": "تم الربط. {{count}} جهاز للاستيراد.",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "لا توجد أجهزة مُدارة بعد. تظهر بعد دقيقة من ربط خدمة لإدارة الأجهزة.",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "لا يوصي OneUptime بعد بأي مراقبة لأجهزة هذا الاتصال.",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "الأجهزة التي تستوردها اتصالاتك. افتح أحدها لترى تطبيقاته وما تقوله خدمة إدارة الأجهزة عنه والقياس عن بُعد الذي يرسله."
 }

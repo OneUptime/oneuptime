@@ -5,7 +5,7 @@ Inventaret er én liste over alt, hvad OneUptime ved om dit miljø: tjenester, v
 :::cards
 - [Sådan kommer elementer ind i inventaret](#sådan-kommer-elementer-ind-i-inventaret): Fundet, spejlet eller tilføjet af dig.
 - [Find rundt](#find-rundt): Inventarets sider og hvert elements egne sider.
-- [Importer enheder fra Esper](#importer-enheder-fra-esper): Alle Android-enheder, som din Esper-lejer tilmelder, holdt ajour.
+- [Importer enheder fra Esper](#importer-enheder-fra-esper): Alle Android- og Apple-enheder, som din Esper-lejer tilmelder, holdt ajour.
 - [Tilføj noget manuelt](#tilføj-noget-manuelt): En tredjeparts-API, en ekstern database eller en appliance.
 - [Arkiver i stedet for at slette](#arkiver-i-stedet-for-at-slette): Den måde at rydde op i listen på, der holder.
 :::
@@ -26,14 +26,14 @@ flowchart TB
 | Kilde | I API'et | Hvor det kommer fra | Hvor længe det bliver |
 | --- | --- | --- | --- |
 | **Opdaget** | `discovered` | OpenTelemetry-ressourceattributter, læst efterhånden som telemetri ankommer: en tjeneste, vært, et Kubernetes-objekt eller en virtuel maskine, der sender telemetri. | Registreres igen med hver batch. Fjernes, når det har været stille længere end vinduet for dets type (se nedenfor). |
-| **Spejlet** | `inventory` | En post, som en OneUptime-poller vedligeholder: netværksenheder, cloudressourcer, IoT-enheder, serverless-funktioner, RUM-applikationer, Docker-værter, Podman-værter og de Android-enheder, som en Esper-forbindelse importerer. Kopieres hvert 15. minut. En Esper-enhed, hver gang dens forbindelse læses. | Så længe dets post findes. Slet posten, og elementet forsvinder med den. |
+| **Spejlet** | `inventory` | En post, som en OneUptime-poller vedligeholder: netværksenheder, cloudressourcer, IoT-enheder, serverless-funktioner, RUM-applikationer, Docker-værter, Podman-værter og de Android- og Apple-enheder, som en Esper-forbindelse importerer. Kopieres hvert 15. minut. En Esper-enhed, hver gang dens forbindelse læses. | Så længe dets post findes. Slet posten, og elementet forsvinder med den. |
 | **Tilføjet af dig** | `manual` | Tilføjet af dig, for noget OneUptime ikke kan se: en tredjeparts-API, en database, som en leverandør administrerer, en appliance i et rack. | Indtil du sletter det. Intet får det til at udløbe. |
 
 Et fundet eller spejlet element kan ikke omdøbes eller få en anden type: kilden ville overskrive ændringen ved næste gennemløb. Elementets side **Indstillinger** fortæller i stedet, hvor en varig ændring skal foretages. Det, du altid kan tilføje til ethvert element, uanset kilde, er værdier i brugerdefinerede felter: se [Brugerdefinerede inventarfelter](/docs/inventory/custom-fields).
 
 ### Hvor længe et stille element bliver
 
-Et fundet element har et hjerteslag. Hver gang der ankommer telemetri for det, rykker tidspunktet for, hvornår det sidst blev set, frem, og listens kolonne **Status** viser, hvor nyligt det er. Det samme gør en Android-enhed fra Esper: hver gang den tjekker ind hos Esper. Andre spejlede elementer og dem, du har tilføjet, har intet hjerteslag, så deres status forbliver tom i stedet for at slå alarm.
+Et fundet element har et hjerteslag. Hver gang der ankommer telemetri for det, rykker tidspunktet for, hvornår det sidst blev set, frem, og listens kolonne **Status** viser, hvor nyligt det er. Det samme gør en enhed fra Esper: hver gang den tjekker ind hos Esper. Andre spejlede elementer og dem, du har tilføjet, har intet hjerteslag, så deres status forbliver tom i stedet for at slå alarm.
 
 | Status | Hvad det betyder |
 | --- | --- |
@@ -59,7 +59,7 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 | --- | --- |
 | **Oversigt** | Hvor mange elementer du har, hvad de er, hvor mange der er blevet stille, og hvad der senest er tilføjet. |
 | **Alle elementer** | Alle elementer. Søg efter navn, beskrivelse eller identitetsnøgle, afgræns listen efter type, kilde, status eller brugerdefineret felt, og tilføj et element manuelt. |
-| **Administrerede enheder** | Dine Esper-forbindelser og alle de Android-enheder, de importerer, med deres status, gruppe, model og Android-version. |
+| **Administrerede enheder** | Dine Esper-forbindelser og alle de enheder, de importerer, med deres status, gruppe, model og operativsystem. |
 | **Topologikort** | Hvordan elementerne hænger sammen: tjenester, hvad de kalder, og de værter, pods og enheder, de kører på. |
 | **Blevet stille** | De elementer, der ikke er hørt fra i mere end et døgn: fundne elementer, der ikke har sendt telemetri, og enheder, der er holdt op med at tjekke ind hos Esper. |
 | **Efter kilde** | Elementerne fra én kilde: **Opdaget**, **Spejlet** eller **Tilføjet af dig**. |
@@ -89,7 +89,7 @@ Et elements side **Forbindelser** viser dets naboer i begge retninger, grupperet
 
 ## Importer enheder fra Esper
 
-Forbind en Esper-lejer, og alle de Android-enheder, den tilmelder, er i inventaret, også de enheder, hvis app aldrig er startet. Hver enhed er én vært med det, kun Esper ved om den: dens gruppe, dens Android-version, build og sikkerhedspatchniveau, dens serienummer og IMEI, dens batteri og lagerplads og dens installerede apps. Esper sender intet af sig selv, så OneUptime læser lejeren efter en tidsplan: enhederne hvert 15. minut og hver enheds apps hver 6. time.
+Forbind en Esper-lejer, og alle de enheder, den tilmelder, er i inventaret: dens Android-enheder, også dem, hvis app aldrig er startet, og dens iPhones, iPads og Apple TV'er. Hver enhed er én vært med det, kun Esper ved om den: dens gruppe, dens operativsystem og build, dens serienummer og IMEI, dens batteri og lagerplads og, for en Android-enhed, dens sikkerhedspatchniveau og installerede apps. Esper sender intet af sig selv, så OneUptime læser lejeren efter en tidsplan: enhederne hvert 15. minut og hver Android-enheds apps hver 6. time.
 
 :::steps
 ### Opret en API-nøgle i Esper
@@ -102,12 +102,12 @@ Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enh
 
 ### Tjek den første læsning
 
-**Forbind** tester nøglen, før noget gemmes: den fortæller, hvor mange Android-enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes. Den første læsning starter inden for et minut, og forbindelsens række viser, hvordan det gik.
+**Forbind** tester nøglen, før noget gemmes: den fortæller, hvor mange enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes. Den første læsning starter inden for et minut, og forbindelsens række viser, hvordan det gik.
 :::
 
 | Hvad Esper rapporterer | Hvor det vises |
 | --- | --- |
-| Model, producent, serienummer, Android-version, build samt IP- og MAC-adresser | Enhedens kort **Aktivdetaljer** og kolonnerne i **Alle elementer** |
+| Model, producent, serienummer, operativsystem og dets version, build samt IP- og MAC-adresser | Enhedens kort **Aktivdetaljer** og kolonnerne i **Alle elementer** |
 | Status, seneste check-in, gruppe, sikkerhedspatchniveau, IMEI, batteri, lagerplads og Esper-agent | Enhedens kort **Esper** og listen **Enheder** under **Administrerede enheder** |
 | Apps og deres versioner | Enhedens liste **Installerede apps** |
 
@@ -124,13 +124,13 @@ OneUptime finder en enheds element ud fra dens navn i Esper og derefter ud fra d
 
 ### Når en enhed bliver stille eller forlader Esper
 
-En enhed, der ikke har tjekket ind i 30 minutter, er **Offline** og viser, hvor længe siden den sidst gjorde det. Dens elements **Status** følger dens seneste check-in, eller dens telemetri, når den er nyere, så en enhed, der har været stille i et døgn, står på siden **Blevet stille**.
+En Android-enhed, der ikke har tjekket ind i 30 minutter, er **Offline** og viser, hvor længe siden den sidst gjorde det; en iPhone, iPad eller Apple TV, der tjekker ind, når Apples push-tjeneste vækker den, ofte med timers mellemrum, er **Offline** efter et døgn. Dens elements **Status** følger dens seneste check-in, eller dens telemetri, når den er nyere, så en enhed, der har været stille i et døgn, står på siden **Blevet stille**.
 
 En enhed, der fjernes fra Esper, markeres som **Fjernet**, og dens element arkiveres: det forsvinder fra listen og venter under **Avanceret → Arkiveret**. En enhed, der kommer tilbage til Esper, kommer tilbage på listen. 30 dage efter at den forsvandt, slettes enheden, og det samme gør dens element, medmindre telemetri eller du har tilføjet noget til det.
 
 ### Få en advarsel, når en enhed holder op med at tjekke ind
 
-Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Esper i mere end en time, opkaldt efter enheden, og løser den, så snart enheden tjekker ind igen.
+Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Android Device Stopped Checking In** og **Esper Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-enhed, der ikke har tjekket ind hos Esper i mere end en time, den anden for hver Apple-enhed efter mere end et døgn, hver opkaldt efter enheden og løst, så snart den tjekker ind igen.
 
 Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet, så ingen advarsel åbnes eller løses før den næste. Hæv monitorens tærskel for en flåde, der slukkes om natten.
 

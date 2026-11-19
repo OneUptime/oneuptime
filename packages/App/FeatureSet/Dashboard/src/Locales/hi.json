@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "कनेक्ट हो गया। {{count}} डिवाइस आयात किए जाएँगे।",
+  "Connected. {{count}} devices to import._one": "कनेक्ट हो गया। {{count}} डिवाइस आयात किया जाएगा।",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "अभी तक कोई प्रबंधित डिवाइस नहीं। डिवाइस मैनेजर कनेक्ट करने के एक मिनट बाद वे दिखने लगते हैं।",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "OneUptime इस कनेक्शन के डिवाइस के लिए अभी कोई मॉनिटर नहीं सुझाता।",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "आपके कनेक्शन द्वारा आयात किए गए डिवाइस। किसी एक को खोलकर उसके ऐप, उसका डिवाइस मैनेजर उसके बारे में क्या बताता है, और उसकी भेजी टेलीमेट्री देखें।"
 }

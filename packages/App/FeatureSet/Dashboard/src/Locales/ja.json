@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "接続しました。インポートするデバイスは {{count}} 台です。",
+  "Connected. {{count}} devices to import._one": "接続しました。インポートするデバイスは {{count}} 台です。",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "管理対象デバイスはまだありません。デバイス管理サービスを接続すると、1 分後に表示されます。",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "この接続のデバイスに対して OneUptime が推奨するモニターはまだありません。",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "接続がインポートするデバイス。デバイスを開くと、そのアプリ、デバイス管理サービスが把握している情報、デバイスが送るテレメトリを確認できます。"
 }

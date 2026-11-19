@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "연결되었습니다. 가져올 디바이스는 {{count}}대입니다.",
+  "Connected. {{count}} devices to import._one": "연결되었습니다. 가져올 디바이스는 {{count}}대입니다.",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "아직 관리형 디바이스가 없습니다. 디바이스 관리 서비스를 연결하면 1분 뒤에 나타납니다.",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "이 연결의 디바이스에 대해 OneUptime이 권장하는 모니터가 아직 없습니다.",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "연결이 가져오는 디바이스입니다. 디바이스를 열면 앱, 디바이스 관리 서비스가 알려 주는 정보, 디바이스가 보내는 텔레메트리를 볼 수 있습니다."
 }

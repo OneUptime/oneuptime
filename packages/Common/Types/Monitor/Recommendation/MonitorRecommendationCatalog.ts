@@ -124,6 +124,7 @@ import {
 import {
   ManagedDeviceAlertTemplate,
   getAllManagedDeviceAlertTemplates,
+  getManagedDeviceAlertTemplatesFor,
 } from "../ManagedDeviceAlertTemplates";
 
 /*
@@ -1155,7 +1156,20 @@ function normalizeManagedDeviceTemplate(
   });
 }
 
-function getManagedDeviceRecommendations(): Array<MonitorRecommendation> {
+/*
+ * A connection is offered its own service's templates (#9837): each says
+ * the silence that means a device of that service is gone. A connection
+ * whose service is not known is Esper's, as every connection was before.
+ */
+function getManagedDeviceRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getManagedDeviceAlertTemplatesFor(
+    context?.deviceManagementProvider,
+  ).map(normalizeManagedDeviceTemplate);
+}
+
+function getAllManagedDeviceRecommendations(): Array<MonitorRecommendation> {
   return getAllManagedDeviceAlertTemplates().map(
     normalizeManagedDeviceTemplate,
   );
@@ -1359,10 +1373,11 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       resourceType:
         MonitorRecommendationResourceType.DeviceManagementConnection,
       monitorTypes: [MonitorType.Metrics],
-      resourceLabel: "Esper Connection",
+      resourceLabel: "Device Management Connection",
       identifierFieldName: "deviceManagementConnectionId",
       icon: IconProp.DevicePhoneMobile,
       getRecommendations: getManagedDeviceRecommendations,
+      getAllPossibleRecommendations: getAllManagedDeviceRecommendations,
     },
   ];
 

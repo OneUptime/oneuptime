@@ -66,11 +66,59 @@ export const ESPER_PLACEHOLDERS_MIN_AGENT_VERSION: string = "8.00.0764";
 
 /*
  * The facts the import keeps on a device's host beside the asset details:
- * namespaced, so no telemetry attribute is ever overwritten by one.
+ * namespaced by the device's service, so no telemetry attribute is ever
+ * overwritten by one, and a device two services enroll keeps each one's.
  */
 export const ESPER_DEVICE_ID_ATTRIBUTE: string = "esper.device.id";
 export const ESPER_DEVICE_NAME_ATTRIBUTE: string = "esper.device.name";
 export const ESPER_GROUP_ATTRIBUTE: string = "esper.group";
+
+export interface ManagedDeviceServiceAttributeKeys {
+  // The service's ID of the device.
+  deviceId: string;
+  // The device's name in the service.
+  deviceName: string;
+  // Its group in the service, as a path where it has one.
+  group: string;
+}
+
+/*
+ * The namespace of a service's facts on a host: "esper" for Esper. Every
+ * service's keys are listed in MANAGED_DEVICE_SERVICE_ATTRIBUTE_NAMESPACES,
+ * so a host let go of loses whichever service's facts it carried.
+ */
+const SERVICE_ATTRIBUTE_NAMESPACES: Readonly<Record<string, string>> = {
+  esper: "esper",
+};
+
+export const MANAGED_DEVICE_SERVICE_ATTRIBUTE_NAMESPACES: ReadonlyArray<string> =
+  Object.values(SERVICE_ATTRIBUTE_NAMESPACES);
+
+export function getManagedDeviceServiceAttributeKeys(
+  provider: string | undefined | null,
+): ManagedDeviceServiceAttributeKeys {
+  const namespace: string =
+    SERVICE_ATTRIBUTE_NAMESPACES[provider || ""] || "esper";
+
+  return {
+    deviceId: `${namespace}.device.id`,
+    deviceName: `${namespace}.device.name`,
+    group: `${namespace}.group`,
+  };
+}
+
+// Every service's keys: what only the import writes, and takes back.
+export function getAllManagedDeviceServiceAttributeKeys(): Array<string> {
+  return MANAGED_DEVICE_SERVICE_ATTRIBUTE_NAMESPACES.flatMap(
+    (namespace: string): Array<string> => {
+      return [
+        `${namespace}.device.id`,
+        `${namespace}.device.name`,
+        `${namespace}.group`,
+      ];
+    },
+  );
+}
 /*
  * Android's security patch level (Build.VERSION.SECURITY_PATCH), under the
  * key the Android agent sends it with, so a device both report keeps one.

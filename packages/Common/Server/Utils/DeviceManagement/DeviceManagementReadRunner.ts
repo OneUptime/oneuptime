@@ -9,7 +9,13 @@ import {
   MAX_DEVICE_MANAGEMENT_READ_WARNINGS,
   readDeviceManagementReadSummary,
 } from "../../../Types/DeviceManagement/DeviceManagementReadSummary";
-import { getDeviceManagementProviderTitle } from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import DeviceManagementProvider, {
+  getDeviceManagementProviderTitle,
+} from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import {
+  ManagedDevicePlatform,
+  readManagedDevicePlatform,
+} from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 import {
   ManagedDeviceStatus,
   getManagedDeviceStatus,
@@ -141,6 +147,7 @@ export interface DeviceManagementReadDependencies {
     | ((data: {
         projectId: ObjectID;
         connectionId: ObjectID;
+        provider: DeviceManagementProvider;
         now: Date;
       }) => Promise<ManagedDeviceInventoryOutcome>)
     | undefined;
@@ -423,19 +430,28 @@ export default class DeviceManagementReadRunner {
 
       let isPartial: boolean = !fleet.isDeviceListComplete;
 
-      for (const id of getCheckInLookups({
-        listedDeviceIds: listedIds,
-        knownCheckIns,
-        lookups,
-        now,
-      })) {
+      /*
+       * Only for a service that answers one device's check-in on its own:
+       * another one's device list said every check-in it knows.
+       */
+      const readCheckIn: ((id: string) => Promise<Date | null>) | undefined =
+        session.readCheckIn ? session.readCheckIn.bind(session) : undefined;
+
+      for (const id of readCheckIn
+        ? getCheckInLookups({
+            listedDeviceIds: listedIds,
+            knownCheckIns,
+            lookups,
+            now,
+          })
+        : []) {
         if (!session.hasBudgetFor(1)) {
           isPartial = true;
           break;
         }
 
         try {
-          const lastCheckIn: Date | null = await session.readCheckIn(id);
+          const lastCheckIn: Date | null = await readCheckIn!(id);
           lookups[id] = now.toISOString();
 
           if (lastCheckIn) {
@@ -509,11 +525,17 @@ export default class DeviceManagementReadRunner {
           ((data: {
             projectId: ObjectID;
             connectionId: ObjectID;
+            provider: DeviceManagementProvider;
             now: Date;
           }): Promise<ManagedDeviceInventoryOutcome> => {
             return ManagedDeviceInventory.record(data);
           })
-        )({ projectId, connectionId: connection.id!, now });
+        )({
+          projectId,
+          connectionId: connection.id!,
+          provider: settings.provider,
+          now,
+        });
       } catch (error) {
         logger.error(
           `Device management connection ${connection.id!.toString()}: its devices' hosts in Inventory could not be updated: ${
@@ -525,12 +547,14 @@ export default class DeviceManagementReadRunner {
 
       /*
        * How long since each device checked in, as a metric a monitor reads
-       * (#9835): only after a read that read every check-in up to its end,
-       * at that end, when every device's last check-in is known. A read cut
-       * short says nothing rather than an age too old, and the readings
-       * before it are still in the monitor's window.
+       * (#9835): only after a read that read the whole device list and
+       * every check-in up to its end, at that end, when every device's last
+       * check-in is known. A read cut short says nothing rather than an age
+       * too old - a device a list cut short left out keeps the check-in of
+       * an older read - and the readings before it are still in the
+       * monitor's window.
        */
-      if (fleet.checkInWindowEnd) {
+      if (fleet.isDeviceListComplete && fleet.checkInWindowEnd) {
         try {
           await (
             dependencies.recordCheckIns ||
@@ -577,6 +601,8 @@ export default class DeviceManagementReadRunner {
             read && known
               ? new Date(Math.max(read.getTime(), known.getTime()))
               : read || known || null,
+          provider: settings.provider,
+          platform: device.platform,
           now,
         });
 
@@ -712,6 +738,7 @@ export default class DeviceManagementReadRunner {
           projectId: true,
           connectionId: true,
           providerDeviceId: true,
+          platform: true,
           deviceName: true,
           alias: true,
           serialNumber: true,
@@ -874,7 +901,12 @@ export default class DeviceManagementReadRunner {
         connectionId: data.connectionId,
         removedAt: QueryHelper.isNull(),
       },
-      select: { _id: true, providerDeviceId: true, appsReadAt: true },
+      select: {
+        _id: true,
+        providerDeviceId: true,
+        appsReadAt: true,
+        platform: true,
+      },
       skip: 0,
       limit: 100000,
       props: { isRoot: true },
@@ -886,23 +918,34 @@ export default class DeviceManagementReadRunner {
       appsReadAt: Date | null;
       isRemoved: boolean;
     }> = getAppsDueDevices(
-      devices.map(
-        (
-          device: ManagedDevice,
-        ): {
-          id: string;
-          providerDeviceId: string;
-          appsReadAt: Date | null;
-          isRemoved: boolean;
-        } => {
-          return {
-            id: device._id!.toString(),
-            providerDeviceId: device.providerDeviceId || "",
-            appsReadAt: device.appsReadAt ? new Date(device.appsReadAt) : null,
-            isRemoved: false,
-          };
-        },
-      ),
+      devices
+        // A device whose apps its service does not list is never due.
+        .filter((device: ManagedDevice): boolean => {
+          const platform: ManagedDevicePlatform = readManagedDevicePlatform(
+            device.platform,
+          );
+
+          return data.session.readsAppsOf({ platform });
+        })
+        .map(
+          (
+            device: ManagedDevice,
+          ): {
+            id: string;
+            providerDeviceId: string;
+            appsReadAt: Date | null;
+            isRemoved: boolean;
+          } => {
+            return {
+              id: device._id!.toString(),
+              providerDeviceId: device.providerDeviceId || "",
+              appsReadAt: device.appsReadAt
+                ? new Date(device.appsReadAt)
+                : null,
+              isRemoved: false,
+            };
+          },
+        ),
       data.now,
     );
 

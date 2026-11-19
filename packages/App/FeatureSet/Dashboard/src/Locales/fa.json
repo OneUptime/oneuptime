@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} باید در حال اجرا باشند",
   "{{count}} should be running_one": "{{count}} باید در حال اجرا باشد",
   "{{count}} undersized placement groups": "{{count}} Placement Group ناقص",
-  "{{count}} undersized placement groups_one": "{{count}} Placement Group ناقص"
+  "{{count}} undersized placement groups_one": "{{count}} Placement Group ناقص",
+  "Connected. {{count}} devices to import.": "متصل شد. {{count}} دستگاه وارد خواهد شد.",
+  "Connected. {{count}} devices to import._one": "متصل شد. {{count}} دستگاه وارد خواهد شد.",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "هنوز هیچ دستگاه مدیریت‌شده‌ای وجود ندارد. یک دقیقه پس از اتصال یک سرویس مدیریت دستگاه نمایان می‌شوند.",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "OneUptime هنوز هیچ مانیتوری را برای دستگاه‌های این اتصال پیشنهاد نمی‌کند.",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "دستگاه‌هایی که اتصال‌های شما وارد می‌کنند. یکی را باز کنید تا برنامه‌هایش، آنچه سرویس مدیریت دستگاهش درباره‌اش می‌گوید و تله‌متری‌ای را که می‌فرستد ببینید."
 }

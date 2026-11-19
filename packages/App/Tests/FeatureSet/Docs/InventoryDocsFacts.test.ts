@@ -147,8 +147,15 @@ import {
 import {
   MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
   MANAGED_DEVICE_STATUS_LABELS,
+  MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES,
   ManagedDeviceStatus,
+  getManagedDeviceOnlineWindowMinutes,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
+import DeviceManagementProvider from "Common/Types/DeviceManagement/DeviceManagementProvider";
+import { ManagedDevicePlatform } from "Common/Types/DeviceManagement/ManagedDevicePlatform";
+import EsperConnector from "Common/Server/Utils/DeviceManagement/Esper/EsperConnector";
+import { ESPER_IMPORTED_PLATFORMS } from "Common/Server/Utils/DeviceManagement/Esper/EsperParsers";
+import { DeviceManagementSession } from "Common/Server/Utils/DeviceManagement/DeviceManagementTypes";
 import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
 import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import { MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
@@ -687,7 +694,7 @@ describe("Inventory Overview: where items come from", () => {
       }),
     ).toBe(false);
     expect(overview).toContain(
-      "So does an Android device from Esper: each time it checks in with Esper. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
+      "So does a device from Esper: each time it checks in with Esper. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
     );
     expect(
       statusRows.map((row: Array<string>): string => {
@@ -1926,7 +1933,45 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
 
   it("reads the devices on the default schedule and the apps on theirs", () => {
     expect(esper()).toContain(
-      `OneUptime reads it on a schedule: the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+      `OneUptime reads it on a schedule: the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each Android device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+  });
+
+  /*
+   * #9837: an Esper tenant's Apple devices are imported too - its iPhones,
+   * iPads and Apple TVs (Esper manages no Mac) - and their apps are not
+   * read, since Esper lists an Apple device's by ID alone.
+   */
+  it("imports the tenant's Android and Apple devices, and only an Android device's apps", () => {
+    const connector: EsperConnector = new EsperConnector();
+    const session: DeviceManagementSession = connector.openSession(
+      {
+        provider: DeviceManagementProvider.Esper,
+        projectId: "11111111-1111-4111-8111-111111111111",
+        config: { tenant: "acme", readIntervalInMinutes: 15 },
+        apiKey: "esper-key-0123456789abcdefGHIJKL",
+      },
+      {
+        transport: async (): Promise<never> => {
+          throw new Error("no request is sent");
+        },
+        maxRequests: 1,
+        maxDurationMs: 1000,
+      },
+    );
+
+    expect(ESPER_IMPORTED_PLATFORMS).toEqual(["ANDROID", "APPLE"]);
+    expect(esper()).toContain(
+      "its Android devices, including the ones whose app never started, and its iPhones, iPads and Apple TVs.",
+    );
+    expect(
+      session.readsAppsOf({ platform: ManagedDevicePlatform.Android }),
+    ).toBe(true);
+    expect(
+      session.readsAppsOf({ platform: ManagedDevicePlatform.IPadOS }),
+    ).toBe(false);
+    expect(esper()).toContain(
+      "an Android device's security patch level and installed apps",
     );
   });
 
@@ -1994,7 +2039,18 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     );
 
     expect(quiet).toContain(
-      `A device that has not checked in for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}`,
+      `An Android device that has not checked in for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}`,
+    );
+    // #9837: an Apple device checks in hours apart, and is offline after a day.
+    expect(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES).toBe(24 * 60);
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Esper,
+        platform: ManagedDevicePlatform.IPadOS,
+      }),
+    ).toBe(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES);
+    expect(quiet).toContain(
+      `an iPhone, iPad or Apple TV, which checks in when Apple's push service wakes it, often hours apart, is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])} after a day.`,
     );
     expect(quiet).toContain(
       `A device removed from Esper is marked ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Removed])}`,
@@ -2016,15 +2072,24 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     );
     const template: { name: string } | undefined =
       getManagedDeviceAlertTemplateById("esper-device-stopped-checking-in");
+    const appleTemplate:
+      | { name: string; thresholdInMinutes: number }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "esper-apple-device-stopped-checking-in",
+    );
     const table: string = readRepoFile(CONNECTIONS_TABLE);
 
     expect(table).toContain('title: "Set up alerts"');
     expect(alerts).toContain(
-      `On **Managed Devices**, click **Set up alerts** on the connection's row, and create ${bold(template!.name)}.`,
+      `On **Managed Devices**, click **Set up alerts** on the connection's row, and create ${bold(template!.name)} and ${bold(appleTemplate!.name)}.`,
     );
     expect(MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES).toBe(60);
     expect(alerts).toContain(
-      "has not checked in with Esper for more than an hour",
+      "each Android device that has not checked in with Esper for more than an hour",
+    );
+    expect(appleTemplate!.thresholdInMinutes).toBe(24 * 60);
+    expect(alerts).toContain(
+      "each Apple device that has not for more than a day",
     );
     expect(alerts).toContain(`\`${MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME}\``);
     expect(MANAGED_DEVICE_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");

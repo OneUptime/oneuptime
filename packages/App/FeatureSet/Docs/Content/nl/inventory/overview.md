@@ -5,7 +5,7 @@ De inventaris is één lijst van alles wat OneUptime over je omgeving weet: serv
 :::cards
 - [Hoe items in de inventaris komen](#hoe-items-in-de-inventaris-komen): Ontdekt, gespiegeld of door jou toegevoegd.
 - [Je weg vinden](#je-weg-vinden): De pagina's van de inventaris en de eigen pagina's van elk item.
-- [Apparaten uit Esper importeren](#apparaten-uit-esper-importeren): Elk Android-apparaat dat je Esper-tenant inschrijft, actueel gehouden.
+- [Apparaten uit Esper importeren](#apparaten-uit-esper-importeren): Elk Android- en Apple-apparaat dat je Esper-tenant inschrijft, actueel gehouden.
 - [Iets handmatig toevoegen](#iets-handmatig-toevoegen): Een API van een derde partij, een externe database of een appliance.
 - [Archiveren in plaats van verwijderen](#archiveren-in-plaats-van-verwijderen): De manier om de lijst op te ruimen die blijft.
 :::
@@ -26,14 +26,14 @@ flowchart TB
 | Bron | In de API | Waar het vandaan komt | Hoe lang het blijft |
 | --- | --- | --- | --- |
 | **Ontdekt** | `discovered` | OpenTelemetry-resourceattributen, gelezen zodra telemetrie binnenkomt: een service, host, Kubernetes-object of virtuele machine die telemetrie stuurt. | Wordt bij elke batch opnieuw geregistreerd. Wordt verwijderd zodra het langer stil is dan het venster van zijn soort (zie hieronder). |
-| **Gespiegeld** | `inventory` | Een record dat een poller van OneUptime bijhoudt: netwerkapparaten, cloudresources, IoT-apparaten, serverless functies, RUM-applicaties, Docker-hosts, Podman-hosts en de Android-apparaten die een Esper-koppeling importeert. Elke 15 minuten gekopieerd. Een Esper-apparaat telkens wanneer zijn koppeling wordt gelezen. | Zolang het record bestaat. Verwijder het record en het item gaat mee. |
+| **Gespiegeld** | `inventory` | Een record dat een poller van OneUptime bijhoudt: netwerkapparaten, cloudresources, IoT-apparaten, serverless functies, RUM-applicaties, Docker-hosts, Podman-hosts en de Android- en Apple-apparaten die een Esper-koppeling importeert. Elke 15 minuten gekopieerd. Een Esper-apparaat telkens wanneer zijn koppeling wordt gelezen. | Zolang het record bestaat. Verwijder het record en het item gaat mee. |
 | **Door u toegevoegd** | `manual` | Door jou toegevoegd, voor iets wat OneUptime niet kan zien: een API van een derde partij, een database die een leverancier beheert, een appliance in een rack. | Tot je het verwijdert. Niets laat het verlopen. |
 
 Een ontdekt of gespiegeld item kan niet worden hernoemd of een ander type krijgen: de bron zou de wijziging bij de volgende ronde overschrijven. De pagina **Instellingen** van het item zegt waar je in plaats daarvan een blijvende wijziging maakt. Wat je altijd aan elk item kunt toevoegen, ongeacht de bron, zijn waarden van aangepaste velden: zie [Aangepaste inventarisvelden](/docs/inventory/custom-fields).
 
 ### Hoe lang een stil item blijft
 
-Een ontdekt item heeft een hartslag. Elke keer dat er telemetrie voor binnenkomt, schuift het tijdstip waarop het voor het laatst is gezien op, en de kolom **Status** van de lijst laat zien hoe recent dat is. Dat geldt ook voor een Android-apparaat uit Esper: telkens wanneer het bij Esper incheckt. Andere gespiegelde items en de items die jij hebt toegevoegd hebben geen hartslag, dus hun status blijft leeg in plaats van alarm te slaan.
+Een ontdekt item heeft een hartslag. Elke keer dat er telemetrie voor binnenkomt, schuift het tijdstip waarop het voor het laatst is gezien op, en de kolom **Status** van de lijst laat zien hoe recent dat is. Dat geldt ook voor een apparaat uit Esper: telkens wanneer het bij Esper incheckt. Andere gespiegelde items en de items die jij hebt toegevoegd hebben geen hartslag, dus hun status blijft leeg in plaats van alarm te slaan.
 
 | Status | Wat het betekent |
 | --- | --- |
@@ -59,7 +59,7 @@ Open **Producten → Bronnen → Inventaris**. Het zijmenu heeft deze pagina's. 
 | --- | --- |
 | **Overzicht** | Hoeveel items je hebt, wat ze zijn, hoeveel er stil zijn geworden en wat het laatst is toegevoegd. |
 | **Alle items** | Elk item. Zoek op naam, beschrijving of identiteitssleutel, beperk de lijst op type, bron, status of aangepast veld, en voeg handmatig een item toe. |
-| **Beheerde apparaten** | Je Esper-koppelingen, en elk Android-apparaat dat ze importeren, met zijn status, groep, model en Android-versie. |
+| **Beheerde apparaten** | Je Esper-koppelingen, en elk apparaat dat ze importeren, met zijn status, groep, model en besturingssysteem. |
 | **Topologiekaart** | Hoe de items met elkaar verbonden zijn: services, wat ze aanroepen, en de hosts, pods en apparaten waarop ze draaien. |
 | **Stilgevallen** | De items waarvan al meer dan een dag niets is vernomen: ontdekte items die geen telemetrie hebben gestuurd, en apparaten die niet meer bij Esper inchecken. |
 | **Per bron** | De items van één bron: **Ontdekt**, **Gespiegeld** of **Door u toegevoegd**. |
@@ -89,7 +89,7 @@ De pagina **Verbindingen** van een item toont zijn buren in beide richtingen, ge
 
 ## Apparaten uit Esper importeren
 
-Koppel een Esper-tenant, en elk Android-apparaat dat die inschrijft, staat in de inventaris, ook de apparaten waarvan de app nooit is gestart. Elk apparaat is één host, met wat alleen Esper erover weet: zijn groep, zijn Android-versie, build en beveiligingspatchniveau, zijn serienummer en IMEI, zijn batterij en opslag, en zijn geïnstalleerde apps. Esper stuurt zelf niets, dus OneUptime leest de tenant volgens een schema: de apparaten elke 15 minuten, en de apps van elk apparaat elke 6 uur.
+Koppel een Esper-tenant, en elk apparaat dat die inschrijft, staat in de inventaris: zijn Android-apparaten, ook die waarvan de app nooit is gestart, en zijn iPhones, iPads en Apple TV's. Elk apparaat is één host, met wat alleen Esper erover weet: zijn groep, zijn besturingssysteem en build, zijn serienummer en IMEI, zijn batterij en opslag, en bij een Android-apparaat zijn beveiligingspatchniveau en geïnstalleerde apps. Esper stuurt zelf niets, dus OneUptime leest de tenant volgens een schema: de apparaten elke 15 minuten, en de apps van elk Android-apparaat elke 6 uur.
 
 :::steps
 ### Een API-sleutel maken in Esper
@@ -102,12 +102,12 @@ Ga naar **Producten → Bronnen → Inventaris**, dan naar **Beheerde apparaten*
 
 ### De eerste leesactie controleren
 
-**Koppelen** test de sleutel voordat er iets wordt opgeslagen: het zegt hoeveel Android-apparaten een leesactie zal importeren, of wat er mis is en hoe je dat oplost. De eerste leesactie begint binnen een minuut, en de rij van de koppeling laat zien hoe die is verlopen.
+**Koppelen** test de sleutel voordat er iets wordt opgeslagen: het zegt hoeveel apparaten een leesactie zal importeren, of wat er mis is en hoe je dat oplost. De eerste leesactie begint binnen een minuut, en de rij van de koppeling laat zien hoe die is verlopen.
 :::
 
 | Wat Esper meldt | Waar het staat |
 | --- | --- |
-| Model, fabrikant, serienummer, Android-versie, build, en IP- en MAC-adressen | De kaart **Assetgegevens** van het apparaat, en de kolommen van **Alle items** |
+| Model, fabrikant, serienummer, besturingssysteem en zijn versie, build, en IP- en MAC-adressen | De kaart **Assetgegevens** van het apparaat, en de kolommen van **Alle items** |
 | Status, laatste check-in, groep, beveiligingspatchniveau, IMEI, batterij, opslag en Esper-agent | De kaart **Esper** van het apparaat, en de lijst **Apparaten** van **Beheerde apparaten** |
 | Apps en hun versies | De lijst **Geïnstalleerde apps** van het apparaat |
 
@@ -124,13 +124,13 @@ OneUptime vindt het item van een apparaat op zijn naam in Esper, daarna op zijn 
 
 ### Als een apparaat stilvalt of Esper verlaat
 
-Een apparaat dat al 30 minuten niet heeft ingecheckt, is **Offline** en laat zien hoe lang geleden het dat voor het laatst deed. De **Status** van zijn item volgt zijn laatste check-in, of zijn telemetrie als die nieuwer is, dus een apparaat dat een dag stil is, staat op de pagina **Stilgevallen**.
+Een Android-apparaat dat al 30 minuten niet heeft ingecheckt, is **Offline** en laat zien hoe lang geleden het dat voor het laatst deed; een iPhone, iPad of Apple TV, die incheckt wanneer de pushdienst van Apple hem wekt, vaak uren na elkaar, is na een dag **Offline**. De **Status** van zijn item volgt zijn laatste check-in, of zijn telemetrie als die nieuwer is, dus een apparaat dat een dag stil is, staat op de pagina **Stilgevallen**.
 
 Een apparaat dat uit Esper is verwijderd, krijgt de status **Verwijderd**, en zijn item wordt gearchiveerd: het verdwijnt uit de lijst en wacht onder **Geavanceerd → Gearchiveerd**. Een apparaat dat terugkomt in Esper, komt terug in de lijst. 30 dagen nadat het is vertrokken, wordt het apparaat verwijderd, en zijn item ook, tenzij telemetrie of jij er iets aan hebt toegevoegd.
 
 ### Een waarschuwing krijgen als een apparaat niet meer incheckt
 
-Klik bij **Beheerde apparaten** op **Waarschuwingen instellen** in de rij van de koppeling en maak **Esper Device Stopped Checking In** aan. Die opent een waarschuwing voor elk apparaat dat al meer dan een uur niet bij Esper heeft ingecheckt, genoemd naar het apparaat, en lost die op zodra het apparaat weer incheckt.
+Klik bij **Beheerde apparaten** op **Waarschuwingen instellen** in de rij van de koppeling en maak **Esper Android Device Stopped Checking In** en **Esper Apple Device Stopped Checking In** aan. De eerste opent een waarschuwing voor elk Android-apparaat dat al meer dan een uur niet bij Esper heeft ingecheckt, de tweede voor elk Apple-apparaat na meer dan een dag, elk genoemd naar het apparaat en opgelost zodra het weer incheckt.
 
 Elke lezing van de koppeling legt als de metriek `oneuptime.managed_device.check_in.age` vast hoeveel minuten geleden elk apparaat voor het laatst incheckte, en de monitor controleert elke 5 minuten de nieuwste waarde van elk apparaat. Een apparaat waarop ook de Android Agent draait, wordt aan **Host Stopped Reporting** overgelaten, zodat het nooit twee keer waarschuwt, en een apparaat dat uit Esper is verwijderd, lost zijn waarschuwing op. Een lezing die mislukt, legt niets vast, dus tot de volgende wordt er geen waarschuwing geopend of opgelost. Verhoog voor een vloot die 's nachts uit staat de drempel van de monitor.
 

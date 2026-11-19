@@ -15,6 +15,7 @@ import {
   MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
 } from "../../../Types/DeviceManagement/ManagedDeviceStatus";
 import DeviceManagementProvider from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 
 /*
  * How long since each managed device checked in, as the reading each read
@@ -71,10 +72,85 @@ describe("the metric", () => {
         "oneuptime.managed_device.group",
         "oneuptime.managed_device.is_host",
         "oneuptime.managed_device.name",
+        "oneuptime.managed_device.platform",
         "oneuptime.managed_device.provider",
         "resource.host.name",
       ].sort(),
     );
+  });
+});
+
+/*
+ * #9837: an Apple device checks in hours apart, so a reading is written
+ * for an iPad last seen hours ago - it is online - and says what it runs,
+ * which a monitor of an Esper connection reads apart.
+ */
+describe("getManagedDeviceCheckInReadings: what each device runs", () => {
+  test("each reading says its device's platform; a row read before the platform was kept is Android", () => {
+    const readings: Array<ManagedDeviceCheckInReading> = readingsOf([
+      device(),
+      device({
+        providerDeviceId: "aaaaaaaa-0000-4000-8000-000000000009",
+        deviceName: "ESP-ID-IPAD1",
+        platform: ManagedDevicePlatform.IPadOS,
+      }),
+      device({
+        providerDeviceId: "aaaaaaaa-0000-4000-8000-000000000010",
+        deviceName: "ESP-ID-OLD01",
+        platform: null,
+      }),
+    ]);
+
+    expect(
+      readings.map((reading: ManagedDeviceCheckInReading) => {
+        return [reading.deviceName, reading.platform];
+      }),
+    ).toEqual([
+      ["ESP-ID-AAAAW", ManagedDevicePlatform.Android],
+      ["ESP-ID-IPAD1", ManagedDevicePlatform.IPadOS],
+      ["ESP-ID-OLD01", ManagedDevicePlatform.Android],
+    ]);
+    expect(
+      getManagedDeviceCheckInAttributes({
+        reading: readings[1]!,
+        connectionId: "c-1",
+        provider: "esper",
+      })[ManagedDeviceCheckInAttribute.Platform],
+    ).toBe("ipados");
+  });
+
+  test("an iPad last seen hours ago is in service, with its age: its window is a day", () => {
+    const [reading]: Array<ManagedDeviceCheckInReading> =
+      getManagedDeviceCheckInReadings({
+        devices: [
+          device({
+            platform: ManagedDevicePlatform.IPadOS,
+            lastCheckInAt: minutesAgo(5 * 60),
+          }),
+        ],
+        hostNames: new Set<string>(),
+        asOf: AS_OF,
+        provider: "esper",
+      });
+
+    expect(reading!.ageInMinutes).toBe(5 * 60);
+    expect(reading!.platform).toBe(ManagedDevicePlatform.IPadOS);
+  });
+
+  test("an iPad being set up has no age to say, as an Android device being set up has none", () => {
+    expect(
+      getManagedDeviceCheckInReadings({
+        devices: [
+          device({
+            platform: ManagedDevicePlatform.IOS,
+            providerState: 80,
+          }),
+        ],
+        hostNames: new Set<string>(),
+        asOf: AS_OF,
+        provider: "esper",
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -261,6 +337,7 @@ describe("getManagedDeviceCheckInReadings: which devices", () => {
       hostName: "esp-id-aaaaw",
       alias: "Store 12 Kiosk 3",
       group: "All devices / West / Kiosks",
+      platform: ManagedDevicePlatform.Android,
       ageInMinutes: 5,
       isHost: false,
     });
@@ -314,9 +391,10 @@ describe("getManagedDeviceCheckInAttributes", () => {
     group: "West / Kiosks",
     ageInMinutes: 75,
     isHost: false,
+    platform: ManagedDevicePlatform.Android,
   };
 
-  test("names the connection, the service, the device and its host", () => {
+  test("names the connection, the service, the device, what it runs and its host", () => {
     expect(
       getManagedDeviceCheckInAttributes({
         reading,
@@ -331,6 +409,7 @@ describe("getManagedDeviceCheckInAttributes", () => {
       "oneuptime.managed_device.alias": "Store 12 Kiosk 3",
       "oneuptime.managed_device.group": "West / Kiosks",
       "oneuptime.managed_device.is_host": "false",
+      "oneuptime.managed_device.platform": "android",
       "resource.host.name": "esp-id-aaaaw",
     });
   });

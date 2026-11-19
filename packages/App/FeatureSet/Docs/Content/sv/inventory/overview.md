@@ -5,7 +5,7 @@ Inventariet är en enda lista över allt OneUptime vet om din miljö: tjänster,
 :::cards
 - [Så hamnar objekt i inventariet](#så-hamnar-objekt-i-inventariet): Upptäckta, speglade eller tillagda av dig.
 - [Hitta rätt](#hitta-rätt): Inventariets sidor och varje objekts egna sidor.
-- [Importera enheter från Esper](#importera-enheter-från-esper): Varje Android-enhet som din Esper-tenant registrerar, alltid aktuell.
+- [Importera enheter från Esper](#importera-enheter-från-esper): Varje Android- och Apple-enhet som din Esper-tenant registrerar, alltid aktuell.
 - [Lägg till något manuellt](#lägg-till-något-manuellt): Ett API från tredje part, en extern databas eller en appliance.
 - [Arkivera i stället för att radera](#arkivera-i-stället-för-att-radera): Sättet att städa listan som består.
 :::
@@ -26,14 +26,14 @@ flowchart TB
 | Källa | I API:t | Var det kommer ifrån | Hur länge det stannar |
 | --- | --- | --- | --- |
 | **Upptäckt** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, en värd, ett Kubernetes-objekt eller en virtuell maskin som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
-| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar, Podman-värdar och de Android-enheter som en Esper-anslutning importerar. Kopieras var 15:e minut. En Esper-enhet kopieras varje gång dess anslutning läses. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
+| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar, Podman-värdar och de Android- och Apple-enheter som en Esper-anslutning importerar. Kopieras var 15:e minut. En Esper-enhet kopieras varje gång dess anslutning läses. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
 | **Tillagt av dig** | `manual` | Tillagt av dig, för något OneUptime inte kan se: ett API från tredje part, en databas som en leverantör sköter, en appliance i ett rack. | Tills du raderar det. Inget får det att löpa ut. |
 
 Ett upptäckt eller speglat objekt kan inte byta namn eller få en annan typ: källan skulle skriva över ändringen vid nästa genomgång. Objektets sida **Inställningar** berättar i stället var en bestående ändring ska göras. Det du alltid kan lägga till på vilket objekt som helst, oavsett källa, är värden i anpassade fält: se [Anpassade inventariefält](/docs/inventory/custom-fields).
 
 ### Hur länge ett tyst objekt stannar
 
-Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för det flyttas tidpunkten då det senast sågs fram, och listans kolumn **Status** visar hur nyligen det var. Detsamma gäller en Android-enhet från Esper: varje gång den checkar in hos Esper. Andra speglade objekt och de du har lagt till har inget hjärtslag, så deras status förblir tom i stället för att larma.
+Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för det flyttas tidpunkten då det senast sågs fram, och listans kolumn **Status** visar hur nyligen det var. Detsamma gäller en enhet från Esper: varje gång den checkar in hos Esper. Andra speglade objekt och de du har lagt till har inget hjärtslag, så deras status förblir tom i stället för att larma.
 
 | Status | Vad det betyder |
 | --- | --- |
@@ -59,7 +59,7 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 | --- | --- |
 | **Översikt** | Hur många objekt du har, vad de är, hur många som har tystnat och vad som lades till senast. |
 | **Alla objekt** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
-| **Hanterade enheter** | Dina Esper-anslutningar och varje Android-enhet som de importerar, med dess status, grupp, modell och Android-version. |
+| **Hanterade enheter** | Dina Esper-anslutningar och varje enhet som de importerar, med dess status, grupp, modell och operativsystem. |
 | **Topologikarta** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
 | **Tystnat** | De objekt som inget har hörts från på mer än ett dygn: upptäckta objekt som inte har skickat någon telemetri och enheter som har slutat checka in hos Esper. |
 | **Efter källa** | Objekten från en källa: **Upptäckt**, **Speglat** eller **Tillagt av dig**. |
@@ -89,7 +89,7 @@ Ett objekts sida **Anslutningar** listar dess grannar i båda riktningarna, grup
 
 ## Importera enheter från Esper
 
-Anslut en Esper-tenant, så finns varje Android-enhet som den registrerar i inventariet, även de enheter vars app aldrig har startat. Varje enhet är en värd, med det som bara Esper vet om den: dess grupp, dess Android-version, byggnummer och säkerhetspatchnivå, dess serienummer och IMEI, dess batteri och lagring samt dess installerade appar. Esper skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje enhets appar var 6:e timme.
+Anslut en Esper-tenant, så finns varje enhet som den registrerar i inventariet: dess Android-enheter, även de vars app aldrig har startat, och dess iPhone, iPad och Apple TV. Varje enhet är en värd, med det som bara Esper vet om den: dess grupp, dess operativsystem och byggnummer, dess serienummer och IMEI, dess batteri och lagring samt, för en Android-enhet, dess säkerhetspatchnivå och installerade appar. Esper skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje Android-enhets appar var 6:e timme.
 
 :::steps
 ### Skapa en API-nyckel i Esper
@@ -102,12 +102,12 @@ Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade en
 
 ### Kontrollera den första läsningen
 
-**Anslut** testar nyckeln innan något sparas: den visar hur många Android-enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det. Den första läsningen startar inom en minut, och anslutningens rad visar hur den gick.
+**Anslut** testar nyckeln innan något sparas: den visar hur många enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det. Den första läsningen startar inom en minut, och anslutningens rad visar hur den gick.
 :::
 
 | Vad Esper rapporterar | Var det visas |
 | --- | --- |
-| Modell, tillverkare, serienummer, Android-version, byggnummer samt IP- och MAC-adresser | Enhetens kort **Tillgångsdetaljer** och kolumnerna i **Alla objekt** |
+| Modell, tillverkare, serienummer, operativsystem och dess version, byggnummer samt IP- och MAC-adresser | Enhetens kort **Tillgångsdetaljer** och kolumnerna i **Alla objekt** |
 | Status, senaste incheckning, grupp, säkerhetspatchnivå, IMEI, batteri, lagring och Esper-agent | Enhetens kort **Esper** och listan **Enheter** under **Hanterade enheter** |
 | Appar och deras versioner | Enhetens lista **Installerade appar** |
 
@@ -124,13 +124,13 @@ OneUptime hittar en enhets objekt efter dess namn i Esper och sedan efter dess s
 
 ### När en enhet tystnar eller lämnar Esper
 
-En enhet som inte har checkat in på 30 minuter är **Offline** och visar hur länge sedan den senast gjorde det. Objektets **Status** följer enhetens senaste incheckning, eller dess telemetri när den är nyare, så en enhet som har varit tyst i ett dygn finns på sidan **Tystnat**.
+En Android-enhet som inte har checkat in på 30 minuter är **Offline** och visar hur länge sedan den senast gjorde det; en iPhone, iPad eller Apple TV, som checkar in när Apples push-tjänst väcker den, ofta med timmar emellan, är **Offline** efter ett dygn. Objektets **Status** följer enhetens senaste incheckning, eller dess telemetri när den är nyare, så en enhet som har varit tyst i ett dygn finns på sidan **Tystnat**.
 
 En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt arkiveras: det försvinner från listan och väntar under **Avancerad → Arkiverad**. En enhet som kommer tillbaka till Esper kommer tillbaka till listan. 30 dagar efter att den försvann raderas enheten, och dess objekt likaså, såvida inte telemetri eller du har lagt till något i det.
 
 ### Få ett larm när en enhet slutar checka in
 
-Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Esper på mer än en timme, namngivet efter enheten, och löser det så snart enheten checkar in igen.
+Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Android Device Stopped Checking In** och **Esper Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-enhet som inte har checkat in hos Esper på mer än en timme, den andra för varje Apple-enhet efter mer än ett dygn, vart och ett namngivet efter enheten och löst så snart den checkar in igen.
 
 Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
 

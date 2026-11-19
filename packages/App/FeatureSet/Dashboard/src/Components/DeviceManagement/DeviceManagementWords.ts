@@ -7,8 +7,16 @@ import {
   getManagedDeviceStatusTone,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
 import { ManagedDeviceHostMatch } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
+import {
+  MANAGED_DEVICE_OPERATING_SYSTEM_NAMES,
+  MANAGED_DEVICE_PLATFORMS,
+  ManagedDevicePlatform,
+  getManagedDeviceOperatingSystemName,
+} from "Common/Types/DeviceManagement/ManagedDevicePlatform";
+import { JSONObject } from "Common/Types/JSON";
 import { LlmConnectionFailureKind } from "Common/Types/LlmObservability/LlmConnectionTest";
 import { PluralTemplate, translationKey } from "Common/Types/Translator";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 
 /*
@@ -133,8 +141,8 @@ export function getDeviceManagementFailureWords(
 
 // A test that passed: how many devices a read will import.
 export const TEST_PASSED_WITH_DEVICES: PluralTemplate = {
-  one: "Connected. {{count}} Android device to import.",
-  other: "Connected. {{count}} Android devices to import.",
+  one: "Connected. {{count}} device to import.",
+  other: "Connected. {{count}} devices to import.",
 };
 
 export const TEST_PASSED: string = translationKey("Connected.");
@@ -186,6 +194,51 @@ export function getManagedDeviceMatchWords(
     default:
       return undefined;
   }
+}
+
+// What a device runs, for the devices list's Platform filter: product names, as written.
+export const MANAGED_DEVICE_PLATFORM_OPTIONS: Array<DropdownOption> =
+  MANAGED_DEVICE_PLATFORMS.map(
+    (platform: ManagedDevicePlatform): DropdownOption => {
+      return platform === ManagedDevicePlatform.Other
+        ? { value: platform, label: translationKey("Other") }
+        : {
+            value: platform,
+            label: MANAGED_DEVICE_OPERATING_SYSTEM_NAMES[platform],
+            isUserContent: true,
+          };
+    },
+  );
+
+/*
+ * What a device runs, its version after its name: "iOS 17.4", "Android 13".
+ * A product name and a version, the same in every language; a version that
+ * names its system already ("Windows 11 Pro") is not named twice.
+ */
+export function getManagedDeviceOperatingSystemLine(device: {
+  platform?: string | undefined | null;
+  osVersion?: string | undefined | null;
+  details?: JSONObject | undefined | null;
+}): string {
+  const details: JSONObject =
+    device.details && typeof device.details === "object"
+      ? (device.details as JSONObject)
+      : {};
+  const serviceOperatingSystem: unknown = details["operatingSystem"];
+  const name: string = getManagedDeviceOperatingSystemName({
+    platform: device.platform,
+    serviceOperatingSystem:
+      typeof serviceOperatingSystem === "string"
+        ? serviceOperatingSystem
+        : undefined,
+  });
+  const version: string = (device.osVersion || "").trim();
+
+  if (!name || version.toLowerCase().startsWith(name.toLowerCase())) {
+    return version;
+  }
+
+  return version ? `${name}\u00A0${version}` : name;
 }
 
 /*

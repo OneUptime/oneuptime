@@ -2,6 +2,10 @@ import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
 import OneUptimeDate from "Common/Types/Date";
 import { readDeviceManagementConfig } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
 import { isManagedDeviceHostMatch } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
+import {
+  ManagedDevicePlatform,
+  readManagedDevicePlatform,
+} from "Common/Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -22,7 +26,10 @@ import React, {
 } from "react";
 import AgentVersion from "../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../Components/AgentVersion/AgentKind";
-import { getManagedDeviceMatchWords } from "./DeviceManagementWords";
+import {
+  getManagedDeviceMatchWords,
+  getManagedDeviceOperatingSystemLine,
+} from "./DeviceManagementWords";
 import ManagedDeviceStatusPill from "./ManagedDeviceStatusPill";
 
 /*
@@ -80,6 +87,7 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
         imei: true,
         manufacturer: true,
         model: true,
+        platform: true,
         osVersion: true,
         buildNumber: true,
         securityPatchLevel: true,
@@ -95,7 +103,7 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
         removedAt: true,
         appCount: true,
         inventoryMatch: true,
-        connection: { name: true, config: true },
+        connection: { name: true, config: true, provider: true },
       },
     })
       .then((loaded: ManagedDevice | null) => {
@@ -154,6 +162,10 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
         : undefined,
     );
     const hasAgentVersion: boolean = Boolean(device.agentVersion);
+    const isAndroid: boolean =
+      readManagedDevicePlatform(device.platform) ===
+      ManagedDevicePlatform.Android;
+    const operatingSystem: string = getManagedDeviceOperatingSystemLine(device);
 
     const facts: Array<Fact> = [
       {
@@ -180,17 +192,24 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
           ) : undefined,
       },
       {
-        label: "Android Version",
-        value: text(device.osVersion) || undefined,
+        label: "Operating System",
+        value: operatingSystem ? (
+          <IsolatedLine text={operatingSystem} />
+        ) : undefined,
       },
       {
         label: "Build Number",
         value: text(device.buildNumber) || undefined,
       },
-      {
-        label: "Security Patch Level",
-        value: text(device.securityPatchLevel) || undefined,
-      },
+      // Android's alone.
+      ...(isAndroid
+        ? [
+            {
+              label: "Security Patch Level",
+              value: text(device.securityPatchLevel) || undefined,
+            },
+          ]
+        : []),
       {
         label: "Serial Number",
         value: text(device.serialNumber) || undefined,
@@ -229,19 +248,25 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
               ? translator.translateText("Off")
               : undefined,
       },
-      {
-        label: "Esper Agent",
-        /*
-         * Drawn as every agent version is (AgentVersion): Esper releases
-         * and updates its agent, so it is never called outdated.
-         */
-        value: hasAgentVersion ? (
-          <AgentVersion
-            kind={AgentKind.EsperAgent}
-            version={device.agentVersion}
-          />
-        ) : undefined,
-      },
+      // The Esper agent runs on Android: an Apple device has none.
+      ...(isAndroid
+        ? [
+            {
+              label: "Esper Agent",
+              /*
+               * Drawn as every agent version is (AgentVersion): Esper
+               * releases and updates its agent, so it is never called
+               * outdated.
+               */
+              value: hasAgentVersion ? (
+                <AgentVersion
+                  kind={AgentKind.EsperAgent}
+                  version={device.agentVersion}
+                />
+              ) : undefined,
+            },
+          ]
+        : []),
       {
         label: "Enrolled",
         value: device.provisionedAt
@@ -267,6 +292,8 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
           providerState={device.providerState}
           lastCheckInAt={device.lastCheckInAt}
           removedAt={device.removedAt}
+          provider={device.connection?.provider}
+          platform={device.platform}
           now={now}
           showAge={true}
         />

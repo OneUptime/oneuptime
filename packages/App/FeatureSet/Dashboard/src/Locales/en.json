@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "Connected. {{count}} devices to import.",
+  "Connected. {{count}} devices to import._one": "Connected. {{count}} device to import.",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "No managed devices yet. They appear a minute after you connect a device manager.",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "OneUptime has no recommended monitor for this connection's devices yet.",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends."
 }

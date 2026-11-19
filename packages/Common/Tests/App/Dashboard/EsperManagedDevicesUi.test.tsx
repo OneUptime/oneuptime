@@ -58,14 +58,17 @@ import ManagedDeviceStatusPill, {
   getMinutesSinceCheckIn,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceStatusPill";
 import {
+  MANAGED_DEVICE_PLATFORM_OPTIONS,
   READ_INTERVAL_WORDS,
   TEST_PASSED,
   getDeviceManagementFailureWords,
   getDeviceManagementHealthWords,
   getDeviceManagementTestWords,
   getManagedDeviceMatchWords,
+  getManagedDeviceOperatingSystemLine,
   getManagedDeviceStatusWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagementWords";
+import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 import {
   getTestFailureSentence,
   getTestPassedSentence,
@@ -514,6 +517,202 @@ describe("a device's Esper card", () => {
   });
 });
 
+/*
+ * #9837: an Esper tenant's Apple devices are listed beside its Android
+ * ones, each saying what it runs; an Apple device's card has no patch level
+ * and no Esper agent, which are Android's.
+ */
+describe("a device's platform", () => {
+  // A fact of the card, as its words read: what follows its label.
+  function factOf(label: string): string {
+    const row: HTMLElement = screen.getByText(label)
+      .parentElement as HTMLElement;
+
+    return (
+      row.querySelector("dd")?.textContent?.replace(/[⁦-⁩]/g, "") || ""
+    ).trim();
+  }
+
+  test("the devices list reads each device's platform and service, and filters by what it runs", () => {
+    render(
+      <MemoryRouter>
+        <ManagedDevicesTable refreshToggle="0" />
+      </MemoryRouter>,
+    );
+    const props: Record<string, unknown> = lastTableProps();
+    const filters: Array<{
+      title: string;
+      filterDropdownOptions?: Array<{
+        value: unknown;
+        label: string;
+        isUserContent?: boolean;
+      }>;
+    }> = props["filters"] as Array<{
+      title: string;
+      filterDropdownOptions?: Array<{
+        value: unknown;
+        label: string;
+        isUserContent?: boolean;
+      }>;
+    }>;
+    const platform:
+      | {
+          title: string;
+          filterDropdownOptions?: Array<{
+            value: unknown;
+            label: string;
+            isUserContent?: boolean;
+          }>;
+        }
+      | undefined = filters.find((filter: { title: string }): boolean => {
+      return filter.title === "Platform";
+    });
+
+    expect(props["selectMoreFields"]).toMatchObject({
+      platform: true,
+      details: true,
+      connection: { provider: true },
+    });
+    expect(
+      platform!.filterDropdownOptions!.map(
+        (option: { value: unknown; label: string }): string => {
+          return `${String(option.value)}=${option.label}`;
+        },
+      ),
+    ).toEqual([
+      "android=Android",
+      "ios=iOS",
+      "ipados=iPadOS",
+      "tvos=tvOS",
+      "macos=macOS",
+      "windows=Windows",
+      "linux=Linux",
+      "other=Other",
+    ]);
+    // Product names are drawn as written; "Other" is a word to translate.
+    expect(
+      MANAGED_DEVICE_PLATFORM_OPTIONS.filter(
+        (option: { isUserContent?: boolean | undefined }): boolean => {
+          return option.isUserContent !== true;
+        },
+      ).map((option: { label: string }): string => {
+        return option.label;
+      }),
+    ).toEqual(["Other"]);
+  });
+
+  test("a device's system is its name and its version, once", () => {
+    expect(
+      getManagedDeviceOperatingSystemLine({
+        platform: "ipados",
+        osVersion: "17.4.1",
+      }),
+    ).toBe("iPadOS 17.4.1");
+    // A row written before the platform was kept runs Android.
+    expect(getManagedDeviceOperatingSystemLine({ osVersion: "13" })).toBe(
+      "Android 13",
+    );
+    // A version that names its system already is not named twice.
+    expect(
+      getManagedDeviceOperatingSystemLine({
+        platform: "windows",
+        osVersion: "Windows 11 Pro 23H2",
+      }),
+    ).toBe("Windows 11 Pro 23H2");
+    expect(
+      getManagedDeviceOperatingSystemLine({
+        platform: "other",
+        osVersion: "120.0",
+        details: { operatingSystem: "ChromeOS" },
+      }),
+    ).toBe("ChromeOS 120.0");
+    expect(getManagedDeviceOperatingSystemLine({ platform: "ios" })).toBe(
+      "iOS",
+    );
+    expect(getManagedDeviceOperatingSystemLine({ platform: "other" })).toBe("");
+  });
+
+  test("an iPad's card says what it runs, with no patch level and no Esper agent", async () => {
+    const device: ManagedDevice = new ManagedDevice();
+    device._id = DEVICE_ID;
+    device.deviceName = "ESP-ID-IPAD1";
+    device.platform = ManagedDevicePlatform.IPadOS;
+    device.osVersion = "17.4.1";
+    device.lastCheckInAt = new Date("2026-11-19T09:00:00.000Z");
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(device);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ManagedDeviceCard managedDeviceId={new ObjectID(DEVICE_ID)} />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(factOf("Operating System")).toMatch(/^iPadOS\s17\.4\.1$/);
+    expect(screen.queryByText("Security Patch Level")).toBeNull();
+    expect(screen.queryByText("Esper Agent")).toBeNull();
+  });
+
+  test("an Android device's card keeps its patch level and its Esper agent", async () => {
+    const device: ManagedDevice = new ManagedDevice();
+    device._id = DEVICE_ID;
+    device.deviceName = "ESP-ID-AAAAW";
+    device.osVersion = "13";
+    device.securityPatchLevel = "2024-09-01";
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(device);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ManagedDeviceCard managedDeviceId={new ObjectID(DEVICE_ID)} />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(factOf("Operating System")).toMatch(/^Android\s13$/);
+    expect(screen.getByText("Security Patch Level")).toBeInTheDocument();
+    expect(screen.getByText("Esper Agent")).toBeInTheDocument();
+  });
+
+  test("an iPad seen three hours ago is online, how long ago said; an Android device is offline", () => {
+    render(
+      <div>
+        <div data-testid="ipad">
+          <ManagedDeviceStatusPill
+            providerState={EsperDeviceState.Online}
+            lastCheckInAt={new Date("2026-11-19T09:00:00.000Z")}
+            provider={DeviceManagementProvider.Esper}
+            platform={ManagedDevicePlatform.IPadOS}
+            now={NOW}
+            showAge={true}
+          />
+        </div>
+        <div data-testid="kiosk">
+          <ManagedDeviceStatusPill
+            providerState={EsperDeviceState.Online}
+            lastCheckInAt={new Date("2026-11-19T09:00:00.000Z")}
+            provider={DeviceManagementProvider.Esper}
+            platform={ManagedDevicePlatform.Android}
+            now={NOW}
+            showAge={true}
+          />
+        </div>
+      </div>,
+    );
+
+    expect(
+      within(screen.getByTestId("ipad")).getByTestId("managed-device-status"),
+    ).toHaveAttribute("data-status", ManagedDeviceStatus.Online);
+    expect(
+      within(screen.getByTestId("ipad")).getByText("3h ago"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("kiosk")).getByTestId("managed-device-status"),
+    ).toHaveAttribute("data-status", ManagedDeviceStatus.Offline);
+  });
+});
+
 describe("a device's status chip", () => {
   test("says Offline after half an hour without a check-in, and how long ago", () => {
     render(
@@ -647,13 +846,13 @@ describe("the words", () => {
         testResult({ status: "pass", message: "", deviceCount: 1 }),
         english,
       ),
-    ).toBe("Connected. 1 Android device to import.");
+    ).toBe("Connected. 1 device to import.");
     expect(
       getTestPassedSentence(
         testResult({ status: "pass", message: "", deviceCount: 1250 }),
         english,
       ),
-    ).toBe("Connected. 1,250 Android devices to import.");
+    ).toBe("Connected. 1,250 devices to import.");
     expect(
       getTestPassedSentence(
         testResult({ status: "pass", message: "" }),

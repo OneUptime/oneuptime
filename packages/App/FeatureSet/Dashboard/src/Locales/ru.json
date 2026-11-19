@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "Подключено. Устройств для импорта: {{count}}.",
+  "Connected. {{count}} devices to import._one": "Подключено. {{count}} устройство для импорта.",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "Управляемых устройств пока нет. Они появятся через минуту после подключения системы управления устройствами.",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "OneUptime пока не рекомендует мониторов для устройств этого подключения.",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "Устройства, которые импортируют ваши подключения. Откройте устройство, чтобы увидеть его приложения, что о нём сообщает его система управления устройствами и какую телеметрию оно отправляет."
 }

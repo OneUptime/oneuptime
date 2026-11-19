@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "已连接。将导入 {{count}} 台设备。",
+  "Connected. {{count}} devices to import._one": "已连接。将导入 {{count}} 台设备。",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "还没有托管设备。连接设备管理服务一分钟后，它们就会出现。",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "OneUptime 还没有为此连接的设备推荐监视器。",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "你的连接导入的设备。打开一台设备，即可查看其应用、其设备管理服务提供的信息及其发送的遥测。"
 }

@@ -59010,5 +59010,10 @@
   "{{count}} should be running": "{{count}} should be running",
   "{{count}} should be running_one": "{{count}} should be running",
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
-  "{{count}} undersized placement groups_one": "{{count}} undersized placement group"
+  "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
+  "Connected. {{count}} devices to import.": "Tilkoblet. {{count}} enheter å importere.",
+  "Connected. {{count}} devices to import._one": "Tilkoblet. {{count}} enhet å importere.",
+  "No managed devices yet. They appear a minute after you connect a device manager.": "Ingen administrerte enheter ennå. De vises et minutt etter at du kobler til en MDM.",
+  "OneUptime has no recommended monitor for this connection's devices yet.": "OneUptime anbefaler ennå ingen monitor for enhetene til denne tilkoblingen.",
+  "The devices your connections import. Open one for its apps, what its device manager says about it and the telemetry it sends.": "Enhetene som tilkoblingene dine importerer. Åpne en for å se appene, hva MDM-en sier om den, og telemetrien den sender."
 }

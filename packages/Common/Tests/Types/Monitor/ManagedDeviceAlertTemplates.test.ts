@@ -1,20 +1,29 @@
 import {
   MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+  MANAGED_DEVICE_APPLE_PLATFORMS,
   MANAGED_DEVICE_CHECK_IN_GROUP_BY_ATTRIBUTES,
   MANAGED_DEVICE_CHECK_IN_ROLLING_TIME,
   MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+  MANAGED_DEVICE_STOPPED_SYNCING_MINUTES,
   ManagedDeviceAlertTemplate,
   ManagedDeviceAlertTemplateArgs,
   buildManagedDeviceCheckInMetricMonitor,
   getAllManagedDeviceAlertTemplates,
   getManagedDeviceAlertTemplateById,
+  getManagedDeviceAlertTemplatesFor,
 } from "../../../Types/Monitor/ManagedDeviceAlertTemplates";
 import {
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
   ManagedDeviceCheckInAttribute,
 } from "../../../Types/DeviceManagement/ManagedDeviceCheckIn";
-import { MANAGED_DEVICE_ONLINE_WINDOW_MINUTES } from "../../../Types/DeviceManagement/ManagedDeviceStatus";
+import DeviceManagementProvider from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDevicePlatform";
+import {
+  MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
+  MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES,
+} from "../../../Types/DeviceManagement/ManagedDeviceStatus";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import { DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES } from "../../../Types/DeviceManagement/DeviceManagementConnectionSettings";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -74,6 +83,12 @@ function template(): ManagedDeviceAlertTemplate {
   return getManagedDeviceAlertTemplateById("esper-device-stopped-checking-in")!;
 }
 
+function appleTemplate(): ManagedDeviceAlertTemplate {
+  return getManagedDeviceAlertTemplateById(
+    "esper-apple-device-stopped-checking-in",
+  )!;
+}
+
 function stepOf(
   args: ManagedDeviceAlertTemplateArgs = buildArgs(),
 ): MonitorStep {
@@ -97,44 +112,76 @@ function filterOf(instance: MonitorCriteriaInstance): CriteriaFilter {
 }
 
 describe("the catalog of a connection's alerts", () => {
-  test("is Esper Device Stopped Checking In", () => {
+  test("is an Esper connection's Android devices and its Apple devices, each stopped checking in", () => {
     expect(
       getAllManagedDeviceAlertTemplates().map(
         (candidate: ManagedDeviceAlertTemplate) => {
           return candidate.id;
         },
       ),
-    ).toEqual(["esper-device-stopped-checking-in"]);
-    expect(template().name).toBe("Esper Device Stopped Checking In");
+    ).toEqual([
+      "esper-device-stopped-checking-in",
+      "esper-apple-device-stopped-checking-in",
+    ]);
+    expect(template().name).toBe("Esper Android Device Stopped Checking In");
+    expect(appleTemplate().name).toBe("Esper Apple Device Stopped Checking In");
     expect(getManagedDeviceAlertTemplateById("nope")).toBeUndefined();
   });
 
   test("says when it fires in one sentence, and why on the card behind it", () => {
     expect(template().summary).toBe(
-      "A device has not checked in with Esper for more than an hour.",
+      "An Android device has not checked in with Esper for more than an hour.",
     );
     expect(template().description).toContain("one alert per device");
     expect(template().description).toContain("Host Stopped Reporting");
     expect(template().category).toBe("Availability");
     expect(template().severity).toBe("Warning");
+    expect(appleTemplate().summary).toBe(
+      "An iPhone, iPad or Apple TV has not checked in with Esper for more than a day.",
+    );
+    expect(appleTemplate().description).toContain("one alert per device");
+    expect(appleTemplate().description).toContain("Apple's push service");
   });
 
-  test("is offered to every connection, as a recommendation of its own resource type", () => {
+  test("is offered to every Esper connection, and to one whose service is not known, as recommendations of its own resource type", () => {
+    for (const context of [
+      undefined,
+      { deviceManagementProvider: null },
+      { deviceManagementProvider: DeviceManagementProvider.Esper },
+    ]) {
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DeviceManagementConnection,
+          context,
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.recommendationId;
+        }),
+      ).toEqual([
+        "DeviceManagementConnection:esper-device-stopped-checking-in",
+        "DeviceManagementConnection:esper-apple-device-stopped-checking-in",
+      ]);
+    }
+
     const recommendations: Array<MonitorRecommendation> =
       MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.DeviceManagementConnection,
       );
 
-    expect(
-      recommendations.map((recommendation: MonitorRecommendation) => {
-        return recommendation.recommendationId;
-      }),
-    ).toEqual(["DeviceManagementConnection:esper-device-stopped-checking-in"]);
     expect(recommendations[0]!.monitorType).toBe(MonitorType.Metrics);
     expect(recommendations[0]!.summary).toBe(template().summary);
     // Evaluated as often as a reading can arrive, not every minute.
     expect(recommendations[0]!.monitoringInterval).toBe("*/5 * * * *");
+    expect(recommendations[1]!.monitoringInterval).toBe("*/5 * * * *");
     expect(MANAGED_DEVICE_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");
+
+    // A service with no templates of its own is offered none of Esper's.
+    expect(
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+        { deviceManagementProvider: "another-service" },
+      ),
+    ).toEqual([]);
+    expect(getManagedDeviceAlertTemplatesFor("another-service")).toEqual([]);
 
     const definition: ReturnType<
       typeof MonitorRecommendationCatalog.getResourceTypeDefinition
@@ -142,7 +189,7 @@ describe("the catalog of a connection's alerts", () => {
       MonitorRecommendationResourceType.DeviceManagementConnection,
     );
 
-    expect(definition!.resourceLabel).toBe("Esper Connection");
+    expect(definition!.resourceLabel).toBe("Device Management Connection");
     expect(definition!.identifierFieldName).toBe(
       "deviceManagementConnectionId",
     );
@@ -160,10 +207,86 @@ describe("what the monitor reads", () => {
     expect(query.metricQueryData.filterData.attributes).toEqual({
       [ManagedDeviceCheckInAttribute.ConnectionId]: CONNECTION_ID,
       [ManagedDeviceCheckInAttribute.IsHost]: "false",
+      // An Apple device checks in hours apart: it has a template of its own.
+      [ManagedDeviceCheckInAttribute.Platform]: ManagedDevicePlatform.Android,
     });
     expect(query.metricAliasData!.legendUnit).toBe(
       MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
     );
+  });
+
+  test("the Apple template reads the connection's iPhones, iPads, Apple TVs and Macs, and no Android device", () => {
+    const query: MetricQueryConfigData = queryOf(
+      appleTemplate().getMonitorStep(buildArgs()),
+    );
+    const attributes: Record<string, unknown> = query.metricQueryData.filterData
+      .attributes as Record<string, unknown>;
+    const platforms: unknown =
+      attributes[ManagedDeviceCheckInAttribute.Platform];
+
+    expect(attributes[ManagedDeviceCheckInAttribute.ConnectionId]).toBe(
+      CONNECTION_ID,
+    );
+    expect(attributes[ManagedDeviceCheckInAttribute.IsHost]).toBe("false");
+    expect(platforms).toBeInstanceOf(Includes);
+    expect((platforms as Includes).values).toEqual([
+      ManagedDevicePlatform.IOS,
+      ManagedDevicePlatform.IPadOS,
+      ManagedDevicePlatform.TvOS,
+      ManagedDevicePlatform.MacOS,
+    ]);
+    expect(MANAGED_DEVICE_APPLE_PLATFORMS).not.toContain(
+      ManagedDevicePlatform.Android,
+    );
+  });
+
+  test("the Apple template fires after a day, its offline window, and resolves the same way", () => {
+    const [unhealthy, healthy]: Array<MonitorCriteriaInstance> = instancesOf(
+      appleTemplate().getMonitorStep(buildArgs()),
+    );
+
+    expect(MANAGED_DEVICE_STOPPED_SYNCING_MINUTES).toBe(24 * 60);
+    expect(MANAGED_DEVICE_STOPPED_SYNCING_MINUTES).toBe(
+      MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES,
+    );
+    expect(appleTemplate().thresholdInMinutes).toBe(24 * 60);
+    expect(filterOf(unhealthy!).filterType).toBe(FilterType.GreaterThan);
+    expect(Number(filterOf(unhealthy!).value)).toBe(24 * 60);
+    expect(filterOf(healthy!).filterType).toBe(FilterType.LessThanOrEqualTo);
+    expect(Number(filterOf(healthy!).value)).toBe(24 * 60);
+    expect(unhealthy!.data!.alerts[0]!.title).toBe(
+      "[Esper] Apple device stopped checking in",
+    );
+    expect(unhealthy!.data!.alerts[0]!.description).toContain(
+      "more than a day",
+    );
+  });
+
+  test("the two Esper templates are told apart when one is made: neither covers the other", () => {
+    const recommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+      );
+    const args: MonitorRecommendationArgs = {
+      resourceIdentifier: CONNECTION_ID,
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+      monitorName: "Esper acme",
+    };
+
+    expect(
+      Array.from(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations,
+          existingMonitorSteps: [recommendations[1]!.getMonitorStep(args)],
+          args,
+        }),
+      ),
+    ).toEqual([
+      "DeviceManagementConnection:esper-apple-device-stopped-checking-in",
+    ]);
   });
 
   test("leaves out every device the Android agent reports: Host Stopped Reporting watches those", () => {
@@ -218,8 +341,22 @@ describe("what the monitor reads", () => {
     expect(
       buildManagedDeviceCheckInMetricMonitor({
         deviceManagementConnectionId: CONNECTION_ID,
+        platforms: [ManagedDevicePlatform.Android],
       }),
     ).toEqual(metricMonitorOf(stepOf()));
+
+    // With no platforms, it reads every device of the connection.
+    expect(
+      Object.keys(
+        buildManagedDeviceCheckInMetricMonitor({
+          deviceManagementConnectionId: CONNECTION_ID,
+        }).metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+          .attributes || {},
+      ),
+    ).toEqual([
+      ManagedDeviceCheckInAttribute.ConnectionId,
+      ManagedDeviceCheckInAttribute.IsHost,
+    ]);
   });
 
   test("is a valid monitor step", () => {

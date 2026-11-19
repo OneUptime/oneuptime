@@ -4,6 +4,10 @@ import {
   getManagedDeviceHostName,
 } from "./ManagedDeviceIdentity";
 import {
+  ManagedDevicePlatform,
+  readManagedDevicePlatform,
+} from "./ManagedDevicePlatform";
+import {
   ManagedDeviceStatus,
   getManagedDeviceStatus,
 } from "./ManagedDeviceStatus";
@@ -83,6 +87,12 @@ export enum ManagedDeviceCheckInAttribute {
   Group = "oneuptime.managed_device.group",
   // "true" while the device is a host in Hosts (it runs the Android agent).
   IsHost = "oneuptime.managed_device.is_host",
+  /*
+   * What it runs (ManagedDevicePlatform): "android", "ios", "ipados"... A
+   * monitor of an Esper connection reads its Android devices and its Apple
+   * devices apart, since an Apple device checks in hours apart (#9837).
+   */
+  Platform = "oneuptime.managed_device.platform",
   // Its host, as telemetry names it.
   HostName = "resource.host.name",
 }
@@ -97,6 +107,8 @@ const STATUSES_WITH_A_CHECK_IN_AGE: ReadonlySet<ManagedDeviceStatus> =
 // What a reading reads of a device.
 export interface ManagedDeviceCheckInDevice {
   providerDeviceId?: string | undefined;
+  // What it runs; none (a row read before the platform was kept) is Android.
+  platform?: string | undefined | null;
   deviceName?: string | undefined;
   alias?: string | undefined;
   serialNumber?: string | undefined;
@@ -114,6 +126,7 @@ export interface ManagedDeviceCheckInReading {
   hostName: string;
   alias: string;
   group: string;
+  platform: ManagedDevicePlatform;
   ageInMinutes: number;
   // Whether it is a host in Hosts, which Host Stopped Reporting watches.
   isHost: boolean;
@@ -160,15 +173,22 @@ export function getManagedDeviceCheckInReadings(data: {
   devices: ReadonlyArray<ManagedDeviceCheckInDevice>;
   hostNames: ReadonlySet<string>;
   asOf: Date;
+  // The connection's service; Esper when absent.
+  provider?: string | undefined;
 }): Array<ManagedDeviceCheckInReading> {
   const readings: Array<ManagedDeviceCheckInReading> = [];
   const seen: Set<string> = new Set<string>();
 
   for (const device of data.devices) {
+    const platform: ManagedDevicePlatform = readManagedDevicePlatform(
+      device.platform,
+    );
     const status: ManagedDeviceStatus = getManagedDeviceStatus({
       providerState: device.providerState,
       lastCheckInAt: device.lastCheckInAt,
       removedAt: device.removedAt,
+      provider: data.provider,
+      platform: platform,
       now: data.asOf,
     });
 
@@ -201,6 +221,7 @@ export function getManagedDeviceCheckInReadings(data: {
       hostName,
       alias: (device.alias || "").trim(),
       group: (device.groupPath || device.groupName || "").trim(),
+      platform,
       ageInMinutes,
       isHost: data.hostNames.has(hostName),
     });
@@ -225,6 +246,7 @@ export function getManagedDeviceCheckInAttributes(data: {
     [ManagedDeviceCheckInAttribute.IsHost]: data.reading.isHost
       ? "true"
       : "false",
+    [ManagedDeviceCheckInAttribute.Platform]: data.reading.platform,
     [ManagedDeviceCheckInAttribute.HostName]: data.reading.hostName,
   };
 

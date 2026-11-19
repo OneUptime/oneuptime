@@ -14,6 +14,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { ManagedDeviceHostMatch } from "../../Types/DeviceManagement/ManagedDeviceIdentity";
+import { ManagedDevicePlatform } from "../../Types/DeviceManagement/ManagedDevicePlatform";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -278,12 +279,37 @@ export default class ManagedDevice extends BaseModel {
   })
   public model?: string = undefined;
 
+  /*
+   * What the device runs (ManagedDevicePlatform): its operating system in
+   * Inventory, and how long it may go without checking in before it is
+   * offline. Empty on a row written before #9837, when every device was an
+   * Esper Android device: read as Android.
+   */
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
-    title: "Android Version",
-    description: "The Android version the device runs.",
+    allowedValues: Object.values(ManagedDevicePlatform),
+    canReadOnRelationQuery: true,
+    title: "Platform",
+    description:
+      "What the device runs: 'android', 'ios', 'ipados', 'tvos', 'macos', 'windows', 'linux' or 'other'. Empty is Android.",
+    example: "ipados",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public platform?: ManagedDevicePlatform = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OS Version",
+    description:
+      "The version of the operating system the device runs: Android's, iOS's or iPadOS's, Windows' or macOS's.",
     example: "13",
   })
   @Column({
@@ -298,7 +324,7 @@ export default class ManagedDevice extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "Build Number",
-    description: "The Android build the device runs.",
+    description: "The operating system build the device runs.",
     example: "TQ3A.230901.001",
   })
   @Column({

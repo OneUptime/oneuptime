@@ -5,7 +5,7 @@ L'inventario è un unico elenco di tutto ciò che OneUptime sa della tua infrast
 :::cards
 - [Come gli elementi entrano nell'inventario](#come-gli-elementi-entrano-nellinventario): Scoperti, replicati o aggiunti da te.
 - [Orientarsi](#orientarsi): Le pagine dell'inventario e le pagine di ogni elemento.
-- [Importare dispositivi da Esper](#importare-dispositivi-da-esper): Ogni dispositivo Android registrato dal tuo tenant Esper, sempre aggiornato.
+- [Importare dispositivi da Esper](#importare-dispositivi-da-esper): Ogni dispositivo Android e Apple registrato dal tuo tenant Esper, sempre aggiornato.
 - [Aggiungere qualcosa a mano](#aggiungere-qualcosa-a-mano): Un'API di terze parti, un database esterno o un'appliance.
 - [Archiviare invece di eliminare](#archiviare-invece-di-eliminare): Il modo di riordinare l'elenco che dura nel tempo.
 :::
@@ -26,14 +26,14 @@ flowchart TB
 | Fonte | Nell'API | Da dove viene | Quanto resta |
 | --- | --- | --- | --- |
 | **Rilevato** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un oggetto Kubernetes o una macchina virtuale che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
-| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker, host Podman e i dispositivi Android importati da una connessione Esper. Copiato ogni 15 minuti; un dispositivo Esper, ogni volta che viene letta la sua connessione. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
+| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker, host Podman e i dispositivi Android e Apple importati da una connessione Esper. Copiato ogni 15 minuti; un dispositivo Esper, ogni volta che viene letta la sua connessione. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
 | **Aggiunto da te** | `manual` | Aggiunto da te, per qualcosa che OneUptime non può vedere: un'API di terze parti, un database gestito da un fornitore, un'appliance in un rack. | Finché non lo elimini. Niente lo fa scadere. |
 
 Un elemento scoperto o replicato non può essere rinominato né cambiare tipo: la sua fonte sovrascriverebbe la modifica al passaggio successivo. La pagina **Impostazioni** dell'elemento indica invece dove fare una modifica duratura. Quello che puoi sempre aggiungere a qualsiasi elemento, qualunque sia la sua fonte, sono i valori dei campi personalizzati: vedi [Campi personalizzati dell'inventario](/docs/inventory/custom-fields).
 
 ### Quanto resta un elemento silenzioso
 
-Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la sua ora dell'ultima osservazione avanza, e la colonna **Stato** dell'elenco dice quanto è recente. Lo stesso vale per un dispositivo Android di Esper: ogni volta che contatta Esper. Gli altri elementi replicati e quelli che hai aggiunto non hanno battito, quindi il loro stato resta vuoto invece di allarmare.
+Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la sua ora dell'ultima osservazione avanza, e la colonna **Stato** dell'elenco dice quanto è recente. Lo stesso vale per un dispositivo di Esper: ogni volta che contatta Esper. Gli altri elementi replicati e quelli che hai aggiunto non hanno battito, quindi il loro stato resta vuoto invece di allarmare.
 
 | Stato | Cosa significa |
 | --- | --- |
@@ -59,7 +59,7 @@ Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pag
 | --- | --- |
 | **Panoramica** | Quanti elementi hai, cosa sono, quanti sono diventati silenziosi e cosa è stato aggiunto più di recente. |
 | **Tutti gli elementi** | Ogni elemento. Cerca per nome, descrizione o chiave d'identità, filtra l'elenco per tipo, fonte, stato o campo personalizzato e aggiungi un elemento a mano. |
-| **Dispositivi gestiti** | Le tue connessioni Esper e ogni dispositivo Android che importano, con il suo stato, il gruppo, il modello e la versione di Android. |
+| **Dispositivi gestiti** | Le tue connessioni Esper e ogni dispositivo che importano, con il suo stato, il gruppo, il modello e il sistema operativo. |
 | **Mappa della topologia** | Come sono collegati gli elementi: i servizi, cosa chiamano e gli host, i pod e i dispositivi su cui girano. |
 | **In silenzio** | Gli elementi di cui non si hanno notizie da più di un giorno: elementi scoperti che non hanno inviato telemetria e dispositivi che hanno smesso di contattare Esper. |
 | **Per origine** | Gli elementi di una fonte: **Rilevato**, **Replicato** o **Aggiunto da te**. |
@@ -89,7 +89,7 @@ La pagina **Connessioni** di un elemento elenca i suoi vicini in entrambe le dir
 
 ## Importare dispositivi da Esper
 
-Collega un tenant Esper, e ogni dispositivo Android che registra è nell'inventario, compresi i dispositivi la cui app non è mai partita. Ogni dispositivo è un host, con ciò che solo Esper sa di lui: il suo gruppo, la sua versione di Android, la build e il livello patch di sicurezza, il numero di serie e l'IMEI, la batteria e l'archiviazione, e le app installate. Esper non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo ogni 6 ore.
+Collega un tenant Esper, e ogni dispositivo che registra è nell'inventario: i suoi dispositivi Android, compresi quelli la cui app non è mai partita, e i suoi iPhone, iPad e Apple TV. Ogni dispositivo è un host, con ciò che solo Esper sa di lui: il suo gruppo, il sistema operativo e la build, il numero di serie e l'IMEI, la batteria e l'archiviazione, e, per un dispositivo Android, il livello patch di sicurezza e le app installate. Esper non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo Android ogni 6 ore.
 
 :::steps
 ### Creare una chiave API in Esper
@@ -102,12 +102,12 @@ Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, 
 
 ### Controllare la prima lettura
 
-**Collega** verifica la chiave prima di salvare qualsiasi cosa: dice quanti dispositivi Android importerà una lettura, oppure cosa non va e come risolverlo. La prima lettura inizia entro un minuto, e la riga della connessione dice com'è andata.
+**Collega** verifica la chiave prima di salvare qualsiasi cosa: dice quanti dispositivi importerà una lettura, oppure cosa non va e come risolverlo. La prima lettura inizia entro un minuto, e la riga della connessione dice com'è andata.
 :::
 
 | Cosa segnala Esper | Dove compare |
 | --- | --- |
-| Modello, produttore, numero di serie, versione di Android, build, e indirizzi IP e MAC | La scheda **Dettagli dell'asset** del dispositivo e le colonne di **Tutti gli elementi** |
+| Modello, produttore, numero di serie, sistema operativo e la sua versione, build, e indirizzi IP e MAC | La scheda **Dettagli dell'asset** del dispositivo e le colonne di **Tutti gli elementi** |
 | Stato, ultimo contatto, gruppo, livello patch di sicurezza, IMEI, batteria, archiviazione e agente Esper | La scheda **Esper** del dispositivo e l'elenco **Dispositivi** di **Dispositivi gestiti** |
 | Le app e le loro versioni | L'elenco **App installate** del dispositivo |
 
@@ -124,13 +124,13 @@ OneUptime trova l'elemento di un dispositivo per il suo nome in Esper, poi per i
 
 ### Quando un dispositivo tace o lascia Esper
 
-Un dispositivo che non contatta Esper da 30 minuti è **Offline**, e dice quanto tempo è passato dal suo ultimo contatto. Lo **Stato** del suo elemento segue il suo ultimo contatto, o la sua telemetria quando è più recente, quindi un dispositivo silenzioso da un giorno compare nella pagina **In silenzio**.
+Un dispositivo Android che non contatta Esper da 30 minuti è **Offline**, e dice quanto tempo è passato dal suo ultimo contatto; un iPhone, un iPad o un'Apple TV, che contatta Esper quando il servizio push di Apple lo risveglia, spesso a ore di distanza, è **Offline** dopo un giorno. Lo **Stato** del suo elemento segue il suo ultimo contatto, o la sua telemetria quando è più recente, quindi un dispositivo silenzioso da un giorno compare nella pagina **In silenzio**.
 
 Un dispositivo rimosso da Esper viene contrassegnato come **Rimosso**, e il suo elemento viene archiviato: esce dall'elenco e resta in attesa in **Avanzato → Archiviato**. Un dispositivo che torna in Esper torna nell'elenco. 30 giorni dopo la sua uscita, il dispositivo viene eliminato, e con lui il suo elemento, a meno che non gli sia stato aggiunto qualcosa, dalla telemetria o da te.
 
 ### Ricevere un avviso quando un dispositivo smette di comunicare
 
-In **Dispositivi gestiti**, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Esper Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non contatta Esper da più di un'ora, con il nome del dispositivo, e lo risolve appena il dispositivo torna a comunicare.
+In **Dispositivi gestiti**, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Esper Android Device Stopped Checking In** e **Esper Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android che non contatta Esper da più di un'ora, il secondo per ogni dispositivo Apple dopo più di un giorno, ciascuno con il nome del dispositivo e risolto appena il dispositivo torna a comunicare.
 
 Ogni lettura della connessione registra quanti minuti fa ogni dispositivo ha contattato Esper l'ultima volta, come metrica `oneuptime.managed_device.check_in.age`, e il monitor controlla l'ultimo valore di ogni dispositivo ogni 5 minuti. Un dispositivo su cui gira anche l'Agent Android è lasciato a **Host Stopped Reporting**, così non genera mai due avvisi, e un dispositivo rimosso da Esper risolve il suo avviso. Una lettura che non riesce non registra nulla, quindi nessun avviso si apre né si risolve fino alla successiva. Per una flotta che viene spenta di notte, alza la soglia del monitor.
 
