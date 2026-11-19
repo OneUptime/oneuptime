@@ -23,12 +23,11 @@ fun versionCodeOf(version: String): Int {
 }
 
 /*
- * Release signing, from the environment so no key is ever in the repository.
- * The release workflow decodes the keystore from a repository secret and sets
- * these (RELEASING.md). Without them a release build is unsigned.
+ * The release build is unsigned: scripts/sign-release.sh signs it with
+ * apksigner, from the keystore in a repository secret (RELEASING.md). Not
+ * Gradle's signingConfig: with a minSdk of 24 AGP leaves out the v1 (JAR)
+ * signature even when asked for it, and Esper refuses an APK without one.
  */
-val releaseKeystore: String? = System.getenv("ANDROID_AGENT_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
-
 android {
     namespace = "com.oneuptime.androidagent"
     compileSdk = 36
@@ -42,30 +41,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        if (releaseKeystore != null) {
-            create("release") {
-                storeFile = file(releaseKeystore)
-                storePassword = System.getenv("ANDROID_AGENT_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ANDROID_AGENT_KEY_ALIAS")
-                keyPassword = System.getenv("ANDROID_AGENT_KEY_PASSWORD")
-                // Esper refuses an APK without a v1 (JAR) signature, which a
-                // minSdk of 24 would otherwise leave out.
-                enableV1Signing = true
-                enableV2Signing = true
-                enableV3Signing = true
-            }
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (releaseKeystore != null) {
-                signingConfig = signingConfigs.getByName("release")
-            }
         }
     }
 
