@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57477,
-    "untranslated": 2486
+    "keys": 57551,
+    "untranslated": 2483
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -45,6 +45,7 @@
     "AES-256",
     "AM",
     "AND",
+    "ANRs",
     "APIs",
     "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",

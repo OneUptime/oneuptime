@@ -8,7 +8,7 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import { APP_SCREEN_NAME_ATTRIBUTE } from "Common/Types/Rum/MobileAppTelemetry";
@@ -21,6 +21,14 @@ import { MobileFrames, ScreenFrames } from "./MobileRumSignalData";
  * Android sent the app.jank event (its app.screen.name). It is the mobile
  * Overview's counterpart of a browser app's INP by route.
  */
+
+/*
+ * The column of the app's screens: a screen of the app, such as its menu or
+ * its cart, never a device's display, which the bare "Screen" names (the
+ * Playlist player's keys). A key of its own (Common/Types/MeaningKeys), read
+ * as "Screen" in English: zh-TW writes 畫面 for one and 螢幕 for the other.
+ */
+export const APP_SCREEN_COLUMN: string = translationKey("Screen (app screen)");
 
 export interface FramesByScreenCardProps {
   frames: MobileFrames | null;
@@ -92,12 +100,12 @@ const FramesByScreenCard: FunctionComponent<FramesByScreenCardProps> = (
                 className="py-2 pe-4 text-start text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={screenColumns.getResize(
                   "screen",
-                  translator.translateText("Screen") || "Screen",
+                  translator.translateText(APP_SCREEN_COLUMN),
                   ColumnWidthKind.Name,
                 )}
               >
                 <span>
-                  {translator.translateText("Screen")}
+                  {translator.translateText(APP_SCREEN_COLUMN)}
                   <span className="ms-1 font-mono normal-case tracking-normal text-gray-500">
                     ({APP_SCREEN_NAME_ATTRIBUTE})
                   </span>

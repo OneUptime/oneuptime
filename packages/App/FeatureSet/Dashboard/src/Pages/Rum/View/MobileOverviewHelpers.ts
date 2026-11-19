@@ -425,7 +425,7 @@ const EMPTY_WORDS: Readonly<
   appStarts: {
     notReportedTitle: translationKey("No app starts reported yet"),
     notReportedDetail: translationKey(
-      "OpenTelemetry Android records an AppStart span every time the app starts, cold or warm. Another SDK sends them only if your app records a span named AppStart with start.type set.",
+      "OpenTelemetry Android records an AppStart span every time the app starts, whether cold, warm or hot. Another SDK sends them only if your app records a span named AppStart with start.type set.",
     ),
     quietTitle: translationKey("No app starts in this range"),
     quietDetail: translationKey("The last app start was {{time}}."),

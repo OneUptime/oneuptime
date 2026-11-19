@@ -244,6 +244,20 @@ describe("one meaning per key", () => {
   });
 
   /*
+   * #9588: a mobile app's screens (app.screen.name) are its menu, its cart,
+   * its checkout - not a device's display, which the bare "Screen" names.
+   * zh-TW words them 畫面 and 螢幕.
+   */
+  test("an app's screen is its own key, looked up only by the frames-by-screen card", () => {
+    expect(filesLookingUp("Screen (app screen)")).toEqual([
+      "Components/Rum/MobileOverview/FramesByScreenCard.tsx",
+    ]);
+    expect(filesLookingUp("Screen")).not.toContain(
+      "Components/Rum/MobileOverview/FramesByScreenCard.tsx",
+    );
+  });
+
+  /*
    * #7108: "Search" is the Search button's verb in every language. A
    * filter's name, an AI call's kind and a family of data stores are
    * nouns, each with a key of its own.

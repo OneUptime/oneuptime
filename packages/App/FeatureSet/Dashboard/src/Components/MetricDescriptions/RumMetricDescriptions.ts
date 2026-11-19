@@ -135,7 +135,7 @@ export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
     "Frames slower than 16 ms, and frames slower than 700 ms, in each interval of the selected range, from the app.jank events OpenTelemetry Android sends.",
   ),
   eventsChartMobile: translationKey(
-    "Spans your app reported in each interval - app starts, screens and network requests - with the ones marked as errors as a second line.",
+    "Events (spans) your app reported in each interval, such as app starts, screens and network requests, with the ones marked as errors as a second line.",
   ),
   logsChartMobile: translationKey(
     "Log records your app sent in each interval, with Error and Fatal ones as a second line. OpenTelemetry Android sends its crash, ANR, frame and session events as log records too.",
