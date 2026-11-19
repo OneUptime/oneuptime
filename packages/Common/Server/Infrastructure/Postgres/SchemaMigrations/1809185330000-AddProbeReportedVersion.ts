@@ -9,10 +9,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * until its next request says what it runs. Adding a nullable column
  * rewrites nothing, and Probe is a small table.
  */
-export class AddProbeReportedVersion1809185040000
+export class AddProbeReportedVersion1809185330000
   implements MigrationInterface
 {
-  public name: string = "AddProbeReportedVersion1809185040000";
+  public name: string = "AddProbeReportedVersion1809185330000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

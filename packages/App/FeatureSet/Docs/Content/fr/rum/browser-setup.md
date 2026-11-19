@@ -40,7 +40,7 @@ flowchart TB
 
 ![La liste « Clés d'ingestion », avec « Créer une clé d'ingestion » entouré](screen:ingestion-keys)
 
-La nouvelle clé s'ouvre sur sa propre page. Copiez sa **Clé secrète** : c'est le jeton que le SDK envoie dans `x-oneuptime-token`.
+La nouvelle clé s'ouvre sur sa propre page. Copiez sa **Clé secrète** : c'est le jeton que le SDK envoie dans `x-oneuptime-token`. Une clé Navigateur est faite pour être publique : elle ne fonctionne que depuis les origines que vous listez, n'envoie que la télémétrie du navigateur et les relectures de session, et son nombre de requêtes est limité. Ne mettez jamais une clé Serveur dans une page.
 
 ![La page d'une clé d'ingestion de télémétrie, avec sa clé secrète](/docs/static/images/TelemetryIngestionKeyView.png)
 

@@ -23,7 +23,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * ADDING AN ON-CALL OVERRIDE ASKS WHO IS AWAY AND WHO COVERS, IN PLAIN
  * WORDS, STARTING NOW - on the real User Overrides pages (a policy's own
- * page, and On-Call Duty > Advanced > User Overrides for every policy), with
+ * page, and On-Call > Schedules > User Overrides for every policy), with
  * only the network stubbed.
  *
  * The dialog used to ask "Override User - Select the user who will override
@@ -618,7 +618,7 @@ describe.each(["global", "policy"] as Array<Page>)(
 
       const description: string =
         page === "policy"
-          ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides."
+          ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides."
           : "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.";
 
       expect(await screen.findByText(description)).toBeInTheDocument();

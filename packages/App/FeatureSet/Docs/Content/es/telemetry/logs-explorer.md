@@ -63,7 +63,7 @@ Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: 
 Haga clic en una fila. Sus detalles se abren junto a la lista.
 :::
 
-Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros.
+Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros. Un enlace a una sola línea de registro, como **Ver línea de registro** de un evento de seguridad, abre esa línea encima de la lista, leída con sus propios permisos.
 
 ## Leer un registro
 

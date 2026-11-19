@@ -283,11 +283,44 @@ export const getCustomRoleDuplicatePermissionMessage: (data: {
 export const getCustomRoleGrantRefusedMessage: (data: {
   roleName: string;
   permission: Permission | string;
+  /*
+   * Refused to a workflow's step (Types/Workflow/WorkflowRunAs): said of
+   * the permissions the workflow runs with, not of a person's access.
+   */
+  isWorkflow?: boolean | undefined;
 }) => string = (data: {
   roleName: string;
   permission: Permission | string;
+  isWorkflow?: boolean | undefined;
 }): string => {
-  return `You can't give ${data.roleName}: it has ${getPermissionTitleForSentence(data.permission)}, and your own access doesn't include that permission at the same or a broader scope.`;
+  const permission: string = getPermissionTitleForSentence(data.permission);
+
+  if (data.isWorkflow) {
+    return `This workflow can't give ${data.roleName}: it has ${permission}, and the permissions this workflow runs with don't include that permission at the same or a broader scope.`;
+  }
+
+  return `You can't give ${data.roleName}: it has ${permission}, and your own access doesn't include that permission at the same or a broader scope.`;
+};
+
+/*
+ * Why a permission is not handed on: the giver does not hold it at the
+ * scope it is given at (TeamPermissionService.assertCanGrantPermission) -
+ * said of a person's access, or of the permissions a workflow runs with.
+ */
+export const getPermissionGrantRefusedMessage: (data: {
+  permission: Permission | string;
+  isWorkflow?: boolean | undefined;
+}) => string = (data: {
+  permission: Permission | string;
+  isWorkflow?: boolean | undefined;
+}): string => {
+  const permission: string = getPermissionTitleForSentence(data.permission);
+
+  if (data.isWorkflow) {
+    return `This workflow cannot grant ${permission} because the permissions it runs with do not include that permission at an equal or broader scope.`;
+  }
+
+  return `You cannot grant ${permission} because your own access does not include that permission at an equal or broader scope.`;
 };
 
 /*

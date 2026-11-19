@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreService from "../../../../Server/Services/DataStoreService";
 import { BiTableRef } from "../../../../Server/Utils/DataObservability/Bi/BiTables";
@@ -324,10 +325,10 @@ describe("asking a watched environment with its own connection", () => {
   }
 
   test("its table definitions, the project's own store only, through the egress guard", async () => {
-    const find: jest.SpiedFunction<typeof DataStoreService.findOneBy> = jest
+    const find: SpyInstance<typeof DataStoreService.findOneBy> = jest
       .spyOn(DataStoreService, "findOneBy")
       .mockResolvedValue(store({}));
-    const guard: jest.SpiedFunction<
+    const guard: SpyInstance<
       typeof DatabaseConnectionGuard.assertDatabaseConnectionAllowed
     > = jest
       .spyOn(DatabaseConnectionGuard, "assertDatabaseConnectionAllowed")
@@ -357,11 +358,12 @@ describe("asking a watched environment with its own connection", () => {
   });
 
   test("never one a probe collects, one with no connection string, or one gone", async () => {
-    const listTables: jest.SpiedFunction<
-      typeof DataverseApi.prototype.listTables
-    > = jest.spyOn(DataverseApi.prototype, "listTables").mockResolvedValue([]);
-    const find: jest.SpiedFunction<typeof DataStoreService.findOneBy> =
-      jest.spyOn(DataStoreService, "findOneBy");
+    const listTables: SpyInstance<typeof DataverseApi.prototype.listTables> =
+      jest.spyOn(DataverseApi.prototype, "listTables").mockResolvedValue([]);
+    const find: SpyInstance<typeof DataStoreService.findOneBy> = jest.spyOn(
+      DataStoreService,
+      "findOneBy",
+    );
 
     find.mockResolvedValueOnce(store({ scanProbeId: ObjectID.generate() }));
     await expect(

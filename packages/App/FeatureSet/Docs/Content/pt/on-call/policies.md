@@ -26,7 +26,7 @@ O formulário também pergunta **Dispará-la a cada novo incidente e a cada novo
 
 Para ser guiado passo a passo, do seu celular até um acionamento de teste, clique em **Configuração guiada**: na lista vazia de **Políticas de plantão** ou em **Como funciona**. Veja [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
 
-A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
+A lista **Políticas de plantão** mostra de cada política o **Nome**, os **Acionados primeiro**, a **Descrição**, os **Rótulos** e os **Proprietários**. **Acionados primeiro** mostra quem é acionado pela primeira regra de escalonamento da política: seus agendamentos de plantão, cada um com quem está de plantão nele agora, suas equipes e as pessoas que ela nomeia, ou **Nenhuma regra de escalonamento** ou **Nenhum destinatário** quando ela não aciona ninguém. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
 
 ## O que executa uma política
 

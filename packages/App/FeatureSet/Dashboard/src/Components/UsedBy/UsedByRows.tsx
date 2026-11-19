@@ -57,10 +57,13 @@ export function getUsedByRowFacts(
 export const UsedByRowList: FunctionComponent<{
   rows: Array<UsedByRow>;
   rowKind: UsedByRowKind;
+  // The relation the rows are of: it may open them on a page of its own.
+  relation?: UsedByRelation | undefined;
   testId?: string | undefined;
 }> = (props: {
   rows: Array<UsedByRow>;
   rowKind: UsedByRowKind;
+  relation?: UsedByRelation | undefined;
   testId?: string | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
@@ -76,6 +79,7 @@ export const UsedByRowList: FunctionComponent<{
           getUsedByRowKindOfRow(row, props.rowKind),
           row.id,
           row.linkId,
+          props.relation,
         );
         const name: ReactElement = (
           <span dir="auto">{getUsedByRowName(row, translator)}</span>
@@ -179,7 +183,11 @@ const UsedByGroups: FunctionComponent<{
               </span>
             </div>
             <div className="mt-1.5">
-              <UsedByRowList rows={group.rows} rowKind={group.rowKind} />
+              <UsedByRowList
+                rows={group.rows}
+                rowKind={group.rowKind}
+                relation={group.relation}
+              />
             </div>
             {hiddenNote ? (
               <p

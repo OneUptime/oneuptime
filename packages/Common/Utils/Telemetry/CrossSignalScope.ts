@@ -50,7 +50,9 @@ const PERCENT: RegExp = /%/;
  *    compiles it, so it is escaped by that grammar's buildSearchTokenValue
  *    here, like the traces chips. `range` is a TimeRange enum value; a
  *    Custom range additionally needs `start` and `end` (parsed with
- *    `new Date(...)`). There is no `search` param.
+ *    `new Date(...)`). There is no `search` param. `log` opens one line by
+ *    its id above the list, and `logTime` says when it was written, so it is
+ *    read in the second around then (#9620).
  *
  *  - Traces explorer (App/FeatureSet/Dashboard/src/Components/Traces/
  *    TracesViewer.tsx, readInitialUrlState + TracesSearchCompile): `search`
@@ -114,9 +116,21 @@ export interface TelemetryCrossSignalScope {
    * nothing. Traces and metrics report it as dropped.
    */
   bodyContains?: string | undefined;
+  /*
+   * One log line to open, by its id (a Log row's `_id`), and when it was
+   * written: the logs explorer opens it above its list, read with the
+   * reader's own permissions (#9620). Only the logs explorer opens a line;
+   * traces and metrics report it as dropped.
+   */
+  logId?: string | undefined;
+  logTime?: Date | undefined;
   startTime?: Date | undefined;
   endTime?: Date | undefined;
 }
+
+// The logs explorer's own params for the line it opens.
+export const LOGS_EXPLORER_LOG_PARAM: string = "log";
+export const LOGS_EXPLORER_LOG_TIME_PARAM: string = "logTime";
 
 /**
  * Result of a scope translation: the query params to append to the target
@@ -289,7 +303,8 @@ function resolveTimeWindow(
  * -> `spanId`, attributes -> `attributes.<key>` tuples (values escaped with
  * the search grammar's buildSearchTokenValue, because the explorer re-parses
  * a chip value as grammar), bodyContains -> `body` (a contains-match chip),
- * startTime+endTime -> `range=Custom` + `start`/`end`. Every scope field is
+ * startTime+endTime -> `range=Custom` + `start`/`end`, logId (+ logTime)
+ * -> `log` (+ `logTime`), the line it opens. Every scope field is
  * expressible in the logs grammar, so `dropped` only ever reports a lone
  * time endpoint.
  */
@@ -373,6 +388,18 @@ export function toLogsExplorerQueryParams(
     params["range"] = TimeRange.CUSTOM;
     params["start"] = OneUptimeDate.toString(window.startTime);
     params["end"] = OneUptimeDate.toString(window.endTime);
+  }
+
+  const logId: string = (scope.logId || "").trim();
+
+  if (logId) {
+    params[LOGS_EXPLORER_LOG_PARAM] = logId;
+
+    if (isValidDate(scope.logTime)) {
+      params[LOGS_EXPLORER_LOG_TIME_PARAM] = OneUptimeDate.toString(
+        scope.logTime,
+      );
+    }
   }
 
   dropped.push(...window.dropped);
@@ -526,6 +553,10 @@ export function toTracesExplorerQueryParams(
     dropped.push("bodyContains");
   }
 
+  if ((scope.logId || "").trim()) {
+    dropped.push("logId");
+  }
+
   dropped.push(...window.dropped);
 
   return { params, dropped };
@@ -614,6 +645,10 @@ export function toMetricsExplorerQueryParams(
 
   if (sanitizeBodyContains(scope.bodyContains).length > 0) {
     dropped.push("bodyContains");
+  }
+
+  if ((scope.logId || "").trim()) {
+    dropped.push("logId");
   }
 
   dropped.push(...window.dropped);

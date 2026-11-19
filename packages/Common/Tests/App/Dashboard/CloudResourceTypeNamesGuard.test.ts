@@ -128,7 +128,7 @@ const SITES: Readonly<Record<string, NameSite>> = {
   },
   [`${DASHBOARD}/Components/Cloud/CloudResourceAttention.ts`]: {
     asWritten:
-      "The kind on a Needs attention row, which the card draws as written (kindAsWritten).",
+      "The kind on a Needs attention row, which the card draws as written (kindAsWritten) through the shared row.",
     drawnBy: [
       {
         file: `${DASHBOARD}/Components/Cloud/CloudResourceAttention.ts`,
@@ -136,6 +136,10 @@ const SITES: Readonly<Record<string, NameSite>> = {
       },
       {
         file: `${DASHBOARD}/Components/ResourcePart/NeedsAttentionCard.tsx`,
+        call: /<ResourceAttentionRow\s+item=\{item\}/,
+      },
+      {
+        file: `${DASHBOARD}/Components/ResourcePart/ResourceAttentionRow.tsx`,
         call: /item\.kindAsWritten \? \(\s*<bdi>\{item\.kind\}<\/bdi>/,
       },
     ],
@@ -150,6 +154,11 @@ const SITES: Readonly<Record<string, NameSite>> = {
       },
     ],
   },
+  [`${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics.tsx`]:
+    {
+      asWritten:
+        'The type in the add dialog\'s "Every {{type}} this connection reads ({{count}})", a value its sentence takes as it is.',
+    },
   [`${DASHBOARD}/Components/Monitor/Overview/MonitorCloudLinkSuggestions.tsx`]:
     {
       asWritten:

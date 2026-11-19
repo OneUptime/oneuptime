@@ -9,6 +9,8 @@ import {
   CloudReadResult,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import GcpCloudConnector, {
+  GcpAddedMetricAsk,
+  getGcpAddedMetricsToAsk,
   GCP_OPS_AGENT_ASK_EVERY_MS,
   GCP_OPS_AGENT_SEEN_MS,
   GCP_RESOURCE_TYPE_SEEN_MS,
@@ -41,6 +43,11 @@ import {
 } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+  getCloudAddedMetricKey,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
 import {
   FakeProviderApi,
   FakeResponse,
@@ -162,6 +169,9 @@ interface FakeGcp extends FakeProviderApi {
 
 const METRIC_TYPE_IN_FILTER: RegExp = /metric\.type="([^"]+)"/;
 const METRIC_LABEL_IN_FILTER: RegExp = /metric\.labels\.([a-z_]+)="([^"]*)"/g;
+const RESOURCE_TYPE_IN_FILTER: RegExp = /resource\.type="([^"]+)"/;
+const RESOURCE_LABEL_IN_FILTER: RegExp =
+  /resource\.labels\.([a-z_]+)="([^"]*)"/g;
 
 // The metric type a call's filter names.
 function metricTypeOf(filter: string): string {
@@ -209,6 +219,13 @@ function createFakeGcp(
         const filter: string = url.searchParams.get("filter") || "";
         const metricType: string = metricTypeOf(filter);
         const wantedLabels: Record<string, string> = metricLabelsOf(filter);
+        const wantedType: string =
+          RESOURCE_TYPE_IN_FILTER.exec(filter)?.[1] || "";
+        const wantedResourceLabels: Array<[string, string]> = Array.from(
+          filter.matchAll(RESOURCE_LABEL_IN_FILTER),
+        ).map((match: RegExpMatchArray): [string, string] => {
+          return [match[1]!, match[2]!];
+        });
         const project: string = url.pathname.split("/")[3]!;
 
         if (options.errors?.[metricType]) {
@@ -230,6 +247,13 @@ function createFakeGcp(
             Object.entries(wantedLabels).every(
               ([name, value]: [string, string]): boolean => {
                 return metricLabels[name] === value;
+              },
+            ) &&
+            (!wantedType ||
+              (series["resource"] as JSONObject)["type"] === wantedType) &&
+            wantedResourceLabels.every(
+              ([name, value]: [string, string]): boolean => {
+                return labels[name] === value;
               },
             )
           );
@@ -1602,5 +1626,215 @@ describe("a call's filter", () => {
     ).toBe(
       `metric.type="${AGENT_DISK}" AND metric.labels.device="/dev/sda1" AND metric.labels.state="used"`,
     );
+  });
+
+  test("an added metric's narrows it to its resource type, and to one resource by its labels, in name order", () => {
+    expect(
+      GcpMonitoring.buildFilter({
+        metricType: "compute.googleapis.com/instance/uptime",
+        resourceType: "gce_instance",
+        resourceLabels: { zone: "us-central1-a", instance_id: "1234" },
+      }),
+    ).toBe(
+      'metric.type="compute.googleapis.com/instance/uptime" AND resource.type="gce_instance" AND resource.labels.instance_id="1234" AND resource.labels.zone="us-central1-a"',
+    );
+  });
+});
+
+/*
+ * ---- Metrics a person added to the reads (#9563) -------------------------
+ *
+ * One call per added metric type, as a key metric is, narrowed to the
+ * resources it is for: Cloud Monitoring bills a call by the series it
+ * returns, so a call narrowed to one resource costs one series.
+ */
+describe("metrics a person added to the reads", () => {
+  const UPTIME: string = "compute.googleapis.com/instance/uptime";
+
+  function added(overrides: Partial<CloudAddedMetric> = {}): CloudAddedMetric {
+    const metric: CloudAddedMetric = {
+      key: "",
+      provider: CloudProvider.GCP,
+      scope: CloudAddedMetricScope.Type,
+      resourceType: "gce_instance",
+      name: UPTIME,
+      aggregation: "ALIGN_RATE",
+      unit: "s/s",
+      addedAt: NOW.toISOString(),
+      ...overrides,
+    };
+
+    return { ...metric, key: getCloudAddedMetricKey(metric) };
+  }
+
+  function ownAddition(
+    overrides: Partial<CloudAddedMetric> = {},
+  ): CloudAddedMetric {
+    return added({
+      scope: CloudAddedMetricScope.Resource,
+      cloudResourceId: "c1d2e3f4-0000-4000-8000-000000000001",
+      accountId: PROJECT_ID,
+      resourceLabels: {
+        project_id: PROJECT_ID,
+        zone: "us-central1-a",
+        instance_id: "1001",
+      },
+      ...overrides,
+    });
+  }
+
+  // A project known to have VMs: its VM metrics are asked every read.
+  const WITH_VMS: CloudConnectionPullState = {
+    gcpResourceTypesSeen: {
+      [PROJECT_ID]: {
+        gce_instance: new Date(NOW.getTime() - 60 * 1000).toISOString(),
+      },
+    },
+  };
+
+  function twoVms(): FakeGcp {
+    return createFakeGcp({
+      series: {
+        [CPU]: [vmSeries(CPU, "1001", "web-1"), vmSeries(CPU, "1002", "web-2")],
+        [UPTIME]: [
+          vmSeries(UPTIME, "1001", "web-1"),
+          vmSeries(UPTIME, "1002", "web-2"),
+        ],
+      },
+    });
+  }
+
+  function uptimeCalls(fake: FakeGcp): Array<string> {
+    return fake.seriesCalls
+      .filter((url: URL): boolean => {
+        return metricTypeOf(url.searchParams.get("filter") || "") === UPTIME;
+      })
+      .map((url: URL): string => {
+        return `${url.pathname.split("/")[3]} ${url.searchParams.get("filter")} ${url.searchParams.get("aggregation.perSeriesAligner")}`;
+      });
+  }
+
+  function writtenInstances(result: CloudReadResult): Array<string> {
+    const instances: Array<string> = [];
+
+    for (const payload of result.payloads) {
+      for (const rm of payload["resourceMetrics"] as JSONArray) {
+        const resourceAttributes: JSONArray = (
+          (rm as JSONObject)["resource"] as JSONObject
+        )["attributes"] as JSONArray;
+
+        for (const sm of (rm as JSONObject)["scopeMetrics"] as JSONArray) {
+          for (const metric of (sm as JSONObject)["metrics"] as JSONArray) {
+            if ((metric as JSONObject)["name"] !== UPTIME) {
+              continue;
+            }
+
+            for (const point of ((metric as JSONObject)["gauge"] as JSONObject)[
+              "dataPoints"
+            ] as JSONArray) {
+              const stored: JSONObject = storedAttributesOf(
+                resourceAttributes as never,
+                (point as JSONObject)["attributes"] as never,
+              ) as JSONObject;
+
+              instances.push(String(stored["resource.instance_id"]));
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(new Set(instances)).sort();
+  }
+
+  test("a type's addition is asked of a project with resources of its type, narrowed to them, and written for each", async () => {
+    const fake: FakeGcp = twoVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, { addedMetrics: [added()] }),
+    );
+
+    expect(uptimeCalls(fake)).toEqual([
+      `${PROJECT_ID} metric.type="${UPTIME}" AND resource.type="gce_instance" ALIGN_RATE`,
+    ]);
+    expect(writtenInstances(result)).toEqual(["1001", "1002"]);
+  });
+
+  test("a project with no resource of the type is not asked a type's addition", async () => {
+    const fake: FakeGcp = twoVms();
+
+    await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, {}, { addedMetrics: [added()] }),
+    );
+
+    expect(uptimeCalls(fake)).toEqual([]);
+  });
+
+  test("a resource's own addition is asked of its project alone, narrowed to its series", async () => {
+    const fake: FakeGcp = twoVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: `${PROJECT_ID},${OTHER_PROJECT}` }),
+      readOptions(fake, WITH_VMS, { addedMetrics: [ownAddition()] }),
+    );
+
+    expect(uptimeCalls(fake)).toEqual([
+      `${PROJECT_ID} metric.type="${UPTIME}" AND resource.type="gce_instance" AND resource.labels.instance_id="1001" AND resource.labels.project_id="${PROJECT_ID}" AND resource.labels.zone="us-central1-a" ALIGN_RATE`,
+    ]);
+    expect(writtenInstances(result)).toEqual(["1001"]);
+  });
+
+  test("which additions a project is asked: a type's where it has the type, a resource's own in its project, none that is a key metric", () => {
+    const asks: Array<GcpAddedMetricAsk> = getGcpAddedMetricsToAsk({
+      added: [
+        added(),
+        added({
+          resourceType: "cloudsql_database",
+          name: "cloudsql.googleapis.com/database/postgresql/num_backends",
+        }),
+        ownAddition({
+          name: "compute.googleapis.com/instance/disk/max_read_ops_count",
+        }),
+        ownAddition({ accountId: OTHER_PROJECT, cloudResourceId: "other-row" }),
+        added({ name: CPU }),
+        added({
+          provider: CloudProvider.AWS,
+          name: "SwapUsage",
+          namespace: "AWS/RDS",
+        }),
+      ],
+      projectId: PROJECT_ID,
+      seenResourceTypes: new Set<string>(["gce_instance"]),
+    });
+
+    expect(
+      asks.map((ask: GcpAddedMetricAsk) => {
+        return {
+          metricType: ask.metric.metricType,
+          resourceType: ask.resourceType,
+          resourceLabels: ask.resourceLabels,
+        };
+      }),
+    ).toEqual([
+      {
+        metricType: UPTIME,
+        resourceType: "gce_instance",
+        resourceLabels: undefined,
+      },
+      {
+        metricType: "compute.googleapis.com/instance/disk/max_read_ops_count",
+        resourceType: "gce_instance",
+        resourceLabels: {
+          project_id: PROJECT_ID,
+          zone: "us-central1-a",
+          instance_id: "1001",
+        },
+      },
+    ]);
+    // Stored under its metric type, read with its aligner.
+    expect(asks[0]!.metric.storedName).toBe(UPTIME);
+    expect(asks[0]!.metric.aligner).toBe("ALIGN_RATE");
   });
 });

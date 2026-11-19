@@ -518,42 +518,4 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.IncidentViewer,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.IncidentViewer,
-      Permission.ReadIncidentTemplateOwnerUser,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.Boolean,
-    computed: true,
-    hideColumnInDocumentation: true,
-    required: true,
-    isDefaultValueColumn: true,
-    title: "Are Owners Notified",
-    description: "Are owners notified of this resource ownership?",
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public isOwnerNotified?: boolean = undefined;
 }

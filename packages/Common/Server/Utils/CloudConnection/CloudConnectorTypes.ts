@@ -2,6 +2,7 @@ import {
   CloudCostState,
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudAddedMetric } from "../../../Types/Cloud/CloudAddedMetrics";
 import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
@@ -275,6 +276,12 @@ export interface CloudReadOptions extends CloudConnectorCallOptions {
    * judged from it. None for a connection that does not stream.
    */
   awsStreamCoverage?: AwsStreamCoverage | undefined;
+  /*
+   * The metrics people added to what the connection reads, beyond each
+   * type's key metrics (CloudAddedMetrics): read with them, in the same
+   * calls wherever a call can carry them. None when nobody added any.
+   */
+  addedMetrics?: Array<CloudAddedMetric> | undefined;
 }
 
 // One resource a read saw, with a friendlier name when the cloud has one.

@@ -44,6 +44,11 @@ enum NotificationSettingEventType {
   SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION = "Send monitor status changed notification when I am the owner of the monitor",
   SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES = "Send monitor notification when probe status changes",
   SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR = "Send monitor notification when no probes are monitoring the monitor",
+  /*
+   * Being made an owner of a monitor group, by a person on its Owners page
+   * (#9758; Workers MonitorGroupOwners, on ResourceOwnersAdded).
+   */
+  SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a monitor group",
 
   // Scheduled Maintenance
   SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION = "Send event created notification when I am the owner of the event",
@@ -93,6 +98,12 @@ enum NotificationSettingEventType {
   SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a dashboard",
   SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a workflow",
   SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a runbook",
+  /*
+   * A runner, which runs runbooks' steps and AI code fixes on the project's
+   * own machines: being made its owner on its page (#9758; Workers
+   * RunnerOwners, on ResourceOwnersAdded).
+   */
+  SEND_RUNNER_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a runner",
   // On-call policies and schedules (#9700).
   SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of an on-call policy",
   SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of an on-call schedule",

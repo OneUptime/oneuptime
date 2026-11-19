@@ -68,11 +68,15 @@ Menyen til en ressurs får en **Sikkerhet**-del, som er lukket til du åpner den
 - **Datasikkerhet** viser disse datalagrene, de mest risikable først, og de åpne problemene på dem. Hvert av dem åpnes i Datasikkerhet, der det behandles.
 - **Samsvar** gir rammeverkene en score ut fra bare disse datalagrene. Rammeverkene som dataene deres bringer inn i omfanget, kommer først; de som er slått av, og de som ingen av datalagrene inneholder data for, ligger lukket nedenfor.
 
-Hvert rammeverk har en bryter, **Applies Here**, og det har hvert av kravene også. Slår du en av, holdes ressursens datalagre utenfor det rammeverket, eller utenfor det kravet, både på ressursens side og på **Datasikkerhet → Samsvar**, som viser hvor mange datalagre som er slått av på ressursene sine. Slår du den på igjen, kommer de med igjen. Hver bryter lagres med en gang, og hver endring tas vare på i prosjektets [Revisjonslogger](/docs/configuration/audit-logs).
+Hvert rammeverk har en bryter, **Gjelder her**, og det har hvert av kravene også. Slår du en av, holdes ressursens datalagre utenfor det rammeverket, eller utenfor det kravet, både på ressursens side og på **Datasikkerhet → Samsvar**, som viser hvor mange datalagre som er slått av på ressursene sine. Slår du den på igjen, kommer de med igjen. Hver bryter lagres med en gang, og hver endring tas vare på i prosjektets [Revisjonslogger](/docs/configuration/audit-logs).
+
+Slår du en av, spør siden deretter under den: **Hvorfor gjelder dette ikke her?** En årsak er valgfri: skriv en kort årsak og velg **Lagre årsak**, eller **Ikke nå** for å la være. Fra da av står det hvem som slo den av og når, og årsaken, med **Legg til årsak** eller **Rediger årsak** for å skrive eller endre den senere. I likhet med bryteren tas årsaken vare på i revisjonsloggen.
+
+**Datasikkerhet → Samsvar** viser det samme for hver ressurs. Et valgt rammeverk viser under **Slått av for hele rammeverket** ressursene som har slått av hele rammeverket, og hvert krav nevner under statusen sin ressursene som har slått av akkurat det kravet: hver lenket til sin egen samsvarsside, med hvem som slo det av, når og hvorfor. Sidens **Eksporter CSV** har dem i kolonnen `Turned Off On`, og **Eksporter JSON** i listen `turnedOff`.
 
 Et datalager følger bryterne til én ressurs. En database som kjører på en Kubernetes-klynge, eller på en Docker- eller Podman-vert, følger bryterne til den klyngen eller verten: slå av et rammeverk for klyngen, så er det av for hver database på den. Databasens egen samsvarsside sier dette og lenker dit, med bryterne låst.
 
-Sikkerhetsmedlem, Sikkerhetsadministrator, Prosjektadministrator og Prosjekteier kan slå rammeverk og krav av og på, slik de også kan justere en kontroll. Sikkerhetsleser ser hva som er slått av.
+Sikkerhetsmedlem, Sikkerhetsadministrator, Prosjektadministrator og Prosjekteier kan slå rammeverk og krav av og på, slik de også kan justere en kontroll. Sikkerhetsleser ser hva som er slått av, og hvorfor.
 
 ## Kravene og kontrollene deres
 

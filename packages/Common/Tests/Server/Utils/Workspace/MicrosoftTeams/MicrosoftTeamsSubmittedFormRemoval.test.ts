@@ -137,7 +137,7 @@ import ScheduledMaintenancePublicNoteService from "../../../../../Server/Service
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
 import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
-import ServerProducts from "../../../../../Server/Utils/ServerProducts/ServerProducts";
+import { everyServerProductIsOn } from "../../../TestingUtils/ServerProductsOn";
 import {
   MicrosoftTeamsAlertActionType,
   MicrosoftTeamsAlertEpisodeActionType,
@@ -1740,7 +1740,7 @@ beforeEach((): void => {
    * before it acts (WorkspaceProductRefusal), a read of the database, which
    * nothing connects here.
    */
-  jest.spyOn(ServerProducts, "getOff").mockResolvedValue({});
+  everyServerProductIsOn();
   // A declared incident is on no monitor.
   stubSubscriberAudience();
 

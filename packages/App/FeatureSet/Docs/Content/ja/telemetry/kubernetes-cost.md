@@ -5,7 +5,7 @@
 :::cards
 - [有効にする](#コストオブザーバビリティを有効にする): 既定で有効。そうでない場合は `helm upgrade` 1 回。
 - [コストに対するアラート](#コストに対するアラート): クラスター、namespace、ワークロードごとのコストを、メトリクスとして。
-- [独自のエンジンを使う](#kubecost-や-opencost-をすでに実行している場合): エージェントの接続先を Kubecost または OpenCost にします。
+- [独自のエンジン](#kubecost-や-opencost-をすでに実行している場合): すでに実行している Kubecost や OpenCost を見つけて読み取ります。
 - [適正サイズ](#適正サイズ): request の推奨値と、その算出方法。
 - [トラブルシューティング](#トラブルシューティング): 空のページ、推奨値が表示されない場合。
 :::
@@ -63,28 +63,33 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 コストメトリクス (`node_total_hourly_cost`、`pv_hourly_cost` など) は通常のメトリクスなので、メトリクスエクスプローラー、カスタムダッシュボード、メトリクスモニターで使えます。既製のダッシュボードを使うには、**製品 → ダッシュボード** に移動し、**ダッシュボードを作成** を選択して **Kubernetes Cost Dashboard** を選びます。ノードの時間あたりのコストの推移、CPU とメモリの単価、ボリュームとロードバランサーの支出が表示されます。
 
+概要と **コスト** ページには、数値の下に価格の出どころが表示されます。クラウドの定価、独自の料金表、OpenCost の既定の料金のいずれかです。効率は、効率のメトリクスも含め、どこでも同じ 1 つの数値です。request した CPU とメモリのうち実際に使われた割合を表し、各コンテナの 1 時間ごとの値は、その CPU とメモリのコストで加重されます。そのため、何も使わない安価なジョブが、よく使われているクラスターの効率を引き下げることはありません。また、アイドル容量は計算に含めません。
+
 ## Kubecost や OpenCost をすでに実行している場合
 
-代わりにエージェントの接続先をそのエンジンにすると、何も同梱されません:
+コストエージェントはそのエンジンを見つけ、同梱の OpenCost の代わりにそれを読み取ります。そのため、クラスターの価格は、独自の料金表や Kubecost と連携したクラウドの請求額など、設定したとおりに算出されます。エージェントは起動時に、その後は 1 時間ごとに、Kubernetes API を通じて、各エンジン自身のチャートが作成する Service をすべての namespace から探します (Kubecost の `cost-analyzer` または `frontend`、OpenCost のチャートが作成する Service、OpenCost のマニフェストが作成する `opencost` Service)。Kubecost を優先します。応答しないエンジン、サインインが必要なエンジン、複数のクラスターについて応答するエンジンは見送り、代わりに同梱のエンジンを読み取ります。
+
+すると、クラスターの概要にそのエンジンの名前が表示され、同梱の OpenCost は不要であることが示されます。次のようにして、同梱の OpenCost の実行を止めてください:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+`cost.engine.url=auto` を指定すると何も同梱されず、エージェントはエンジンがどこで実行されていてもそれを読み取ります。エンジンがインストールされていなければ、何の価格も算出されません。チャート自体がエンジンを探すことはできません。Helm の `lookup` は、`helm template`、Argo CD、ドライランのもとでは何も見えないためです。独自のエンジンと並べて同梱の OpenCost も残すには、`cost.engine.preferExisting=false` を設定します。読み取るエンジンを指定するには、`cost.engine.url` にその Service の URL を設定します:
 
 | エンジン | 一般的なサービス URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Allocation API のパスは自動で見つかります (Kubecost では `/model/allocation`、OpenCost では `/allocation/compute` または `/allocation`)。`cost.engine.allocationPath` を設定するのは、一般的でないインストールの場合だけです。メモリの推奨値には、`cost.engine.prometheusUrl` も設定してください ([推奨値の基になるデータ](#推奨値の基になるデータ) を参照)。
+Allocation API のパスは自動で見つかります (Kubecost では `/model/allocation`、OpenCost では `/allocation/compute` または `/allocation`)。`cost.engine.allocationPath` を設定するのは、一般的でないインストールの場合だけです。`auto` または URL を指定すると何も同梱されないため、メモリの推奨値には `cost.engine.prometheusUrl` も設定してください ([推奨値の基になるデータ](#推奨値の基になるデータ) を参照)。
 
 ## オンプレミスとベアメタルの価格設定
 
-ノードにパブリッククラウドの定価がないクラスターでは、料金表を設定できます。OpenCost はその数値からすべてのリソースの価格を算出します。単位はすべて、リソース 1 時間あたりの USD です:
+ノードにパブリッククラウドの定価がないクラスターでは、料金表を設定できます。料金表がなければ、OpenCost はそうしたノード (オンプレミス、ベアメタル、kind、k3s) の価格を既定の料金で算出します。これは実際のハードウェアのコストとは大きく異なることがあり、クラスターの概要と **コスト** ページにはその旨が表示されます。OpenCost が認識するクラウドでは、ノードは定価のままで、料金表は定価の一覧にないものの価格だけを決めます。料金表を設定すると、OpenCost はその数値からすべてのリソースの価格を算出します。単位はすべて、リソース 1 時間あたりの USD です:
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+これらは OpenCost 自身の既定の料金です。独自の数値を入れてください。そうしないと、**コスト** ページには、クラスターの価格が OpenCost の既定の料金で算出されていると表示されたままになります。
 
 ## 知っておきたい設定
 
@@ -148,7 +155,7 @@ cost:
 メモリにはもう 1 つのデータ源が必要です。Allocation API が報告するのは各ウィンドウの平均だけで、1 時間の平均はコンテナを OOM kill するバーストを隠してしまうため、それでメモリのサイズを決めるのは危険です。そこでポーラーは、各コンテナのメモリのピークを Prometheus から読み取り、`(namespace, pod, container)` で結合します:
 
 - 同梱のエンジン (既定) では、チャート自身の Prometheus を使います。設定は不要です。
-- 独自のエンジン (`cost.engine.url`) では、`cost.engine.prometheusUrl` を cAdvisor をスクレイプしている Prometheus に向け、そのスクレイプジョブの名前が `kubernetes-nodes-cadvisor` でない場合は `cost.engine.prometheusCadvisorJob` を設定します。
+- `cost.engine.url` を設定している場合 (`auto` または独自のエンジンの URL)、`cost.engine.prometheusUrl` を cAdvisor をスクレイプしている Prometheus に向け、そのスクレイプジョブの名前が `kubernetes-nodes-cadvisor` でない場合は `cost.engine.prometheusCadvisorJob` を設定します。
 - Prometheus がない場合でも、CPU の推奨は保存された 1 時間ごとの平均から機能し、メモリの推奨は推測せずに省かれます。
 
 Prometheus が停止しても、支出の収集は止まりません。ピークは追加の情報であり、その時間はピークなしで送信されます。CPU では意図的に Prometheus を使いません。CPU の request が大きすぎても起きるのはスロットリングだけですが、メモリの request が小さすぎるとコンテナが強制終了されるため、CPU には 1 時間ごとの平均で十分安全です。また、クラスター全体ですべてのコンテナの CPU レートをクエリするのは、小さな Prometheus を倒してしまうほど重い処理です。
@@ -180,6 +187,14 @@ Kubernetes モニターには、これらのメトリクス用のテンプレー
 
 :::details 同梱の OpenCost が準備完了にならない
 そのログを確認してください: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`。検出したクラウドプロバイダーと、価格データを読み込めたかどうかが表示されます。
+:::
+
+:::details 概要に同梱の OpenCost は不要と表示される
+クラスターでは独自の Kubecost または OpenCost が実行されていて、コストエージェントはそれを読み取っています。そのため、チャートが同梱した OpenCost と Prometheus は何の価格も算出していません。それらの実行を止めるには、`--set cost.engine.url=auto` でアップグレードしてください。代わりに同梱のエンジンを読み取るには、`cost.engine.preferExisting=false` を設定します。
+:::
+
+:::details コストエージェントが独自のエンジンを読み取らない
+どのエンジンを読み取っているか、ほかのエンジンをなぜ見送ったかは、そのログに表示されます: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。エージェントは、応答しないエンジン (たとえば namespace 間に NetworkPolicy がある場合)、サインインが必要なエンジン、ほかのクラスターをフェデレーションしている Kubecost のように複数のクラスターについて応答するエンジンを見送ります。読み取るエンジンは `cost.engine.url` で指定してください。
 :::
 
 :::details OpenCost のログに mkdir /var/configs: permission denied と出る

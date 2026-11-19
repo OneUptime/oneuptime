@@ -181,8 +181,12 @@ export interface TelemetryViewerProps<T> {
   emptyContent?: ReactNode;
 
   // -- Layout --
-  /** Render one item row in the main list. */
-  renderRow: (item: T, index: number) => ReactElement;
+  /*
+   * Render one item row in the main list. Null draws no row: an item that
+   * only stands for its section's heading (a metrics list's section none
+   * of whose metrics reported), which renderGroupHeading draws.
+   */
+  renderRow: (item: T, index: number) => ReactElement | null;
   /** Unique key accessor per row (used for React keys). */
   getRowKey: (item: T, index: number) => string;
   /*
@@ -967,10 +971,29 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                     ) : null;
 
                     if (!bulk) {
+                      const row: ReactElement | null = props.renderRow(
+                        item,
+                        index,
+                      );
+
                       return (
                         <React.Fragment key={props.getRowKey(item, index)}>
                           {headingItem}
-                          <li>{props.renderRow(item, index)}</li>
+                          {row ? <li>{row}</li> : null}
+                        </React.Fragment>
+                      );
+                    }
+
+                    const bulkRow: ReactElement | null = props.renderRow(
+                      item,
+                      index,
+                    );
+
+                    // An item that draws no row has no box to tick either.
+                    if (!bulkRow) {
+                      return (
+                        <React.Fragment key={props.getRowKey(item, index)}>
+                          {headingItem}
                         </React.Fragment>
                       );
                     }
@@ -1043,9 +1066,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                               }}
                             />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            {props.renderRow(item, index)}
-                          </div>
+                          <div className="min-w-0 flex-1">{bulkRow}</div>
                         </li>
                       </React.Fragment>
                     );

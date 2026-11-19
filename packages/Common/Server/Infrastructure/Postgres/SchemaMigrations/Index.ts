@@ -1087,7 +1087,16 @@ import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-Add
 import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
 import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
 import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
-import { AddProbeReportedVersion1809185040000 } from "./1809185040000-AddProbeReportedVersion";
+import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
+import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
+import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
+import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddProbeReportedVersion1809185330000 } from "./1809185330000-AddProbeReportedVersion";
 
 export default [
   InitialMigration,
@@ -2179,5 +2188,14 @@ export default [
   MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
   AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
   AddMonitorSecretType1809185030000,
-  AddProbeReportedVersion1809185040000,
+  AddWorkflowRunAs1809185100000,
+  AddWorkflowRunAsKeys1809185100100,
+  AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
+  DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
+  AddCloudConnectionAddedMetrics1809185310000,
+  AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
+  AddProbeReportedVersion1809185330000,
 ];

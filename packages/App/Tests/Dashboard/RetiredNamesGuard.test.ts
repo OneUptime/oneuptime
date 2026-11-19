@@ -370,7 +370,7 @@ describe("the retired names are told apart from the ordinary words they look lik
     "How often on-call duty passes to the next person in the layer.",
     "You are on call now.",
     "On-Call Policies",
-    "On-Call > Advanced > User Overrides",
+    "On-Call > Schedules > User Overrides",
     "User On-Call Time",
     "On-Call Schedules",
     "How to Reach Me",

@@ -87,8 +87,8 @@ Ett projekts första policy kan göra det redan när den skapas: låt **Utlös d
 | Avsnitt | Sidor |
 | --- | --- |
 | **Policyer** | **Jourpolicyer**, **Beredskap**: vem dina policyer faktiskt kan nå, och **Inkommande samtalspolicyer**: ett telefonnummer som ringer till den som har jour |
-| **Scheman** | **Jourscheman**, **Tidslinje för jourscheman** och **Kalenderflöden** |
-| **Avancerad** | **Användaråsidosättningar**, **Exekveringsloggar** och **Arkiverade policyer** |
+| **Scheman** | **Jourscheman**, **Tidslinje för jourscheman**, **Användaråsidosättningar**: vem som täcker upp för någon medan hen är borta, och **Kalenderflöden** |
+| **Avancerad** | **Exekveringsloggar** och **Arkiverade policyer** |
 | **Rapporter** | **Användarens jourtid**: hur länge varje person hade jour |
 | **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**: regler som publicerar jourhändelser i en kanal |
 | **Inställningar** | **Anpassade fält**, **Etikettregler** och **Ägarregler** |
@@ -109,7 +109,7 @@ När du har jour för en policy visar klockan uppe till höger det. Klicka på d
 :::
 
 :::details En person på semester larmas fortfarande
-Lägg till en användaråsidosättning med personen under **Vem är borta?**. En under **Jour → Avancerad → Användaråsidosättningar** gäller för varje policy; en på en policys egen sida **Användaråsidosättningar** gäller bara för den policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
+Lägg till en användaråsidosättning med personen under **Vem är borta?**. En under **Jour → Scheman → Användaråsidosättningar** gäller för varje policy; en på en policys egen sida **Användaråsidosättningar** gäller bara för den policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 :::
 
 ## Nästa steg

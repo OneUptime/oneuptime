@@ -9,7 +9,13 @@ import {
 import Logger from "./Logger";
 import { Poller } from "./Poller";
 import { Shipper } from "./Shipper";
-import { HealthReport, PollerStatus, ShipperStatus } from "./Types";
+import {
+  CostEngineSource,
+  HealthReport,
+  KubernetesCostEngineInfo,
+  PollerStatus,
+  ShipperStatus,
+} from "./Types";
 
 /*
  * Is the cost pipeline actually working?
@@ -144,9 +150,11 @@ export const assessHealth: (args: {
 export const startHealthServer: (args: {
   poller: Poller;
   shipper: Shipper;
+  engine?: CostEngineSource | undefined;
 }) => http.Server = (args: {
   poller: Poller;
   shipper: Shipper;
+  engine?: CostEngineSource | undefined;
 }): http.Server => {
   const server: http.Server = http.createServer(
     (req: http.IncomingMessage, res: http.ServerResponse): void => {
@@ -165,7 +173,31 @@ export const startHealthServer: (args: {
         res.writeHead(report.healthy ? 200 : 503, {
           "Content-Type": "application/json",
         });
-        res.end(JSON.stringify(report));
+
+        /*
+         * Which engine the agent reads, and where its prices come from, so
+         * `kubectl port-forward` to /healthz answers "which engine?".
+         */
+        const costEngine: KubernetesCostEngineInfo | undefined =
+          args.engine && typeof args.engine.describe === "function"
+            ? args.engine.describe()
+            : undefined;
+        const costEngineUrl: string | undefined =
+          args.engine && typeof args.engine.engineUrl === "function"
+            ? args.engine.engineUrl()
+            : undefined;
+
+        res.end(
+          /*
+           * The engine first: troubleshoot.sh reads only the start of a
+           * long answer, and the reasons can run long.
+           */
+          JSON.stringify({
+            ...(costEngineUrl ? { costEngineUrl } : {}),
+            ...(costEngine ? { costEngine } : {}),
+            ...report,
+          }),
+        );
         return;
       }
 

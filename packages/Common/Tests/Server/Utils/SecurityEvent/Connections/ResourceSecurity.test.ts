@@ -42,6 +42,7 @@ import {
   RESOURCE_SECURITY_MAX_CASES,
   RESOURCE_SECURITY_WINDOW_IN_DAYS,
   ResourceSecurityJson,
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
 } from "../../../../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
@@ -579,7 +580,12 @@ describe("ResourceSecurity.read", () => {
     });
   });
 
-  test("an OpenStack cloud by its openstack.cloud.name, which every audit event names it by", async () => {
+  /*
+   * An OpenStack audit event keeps its cloud's name in an attribute, not
+   * among what it names, so the cloud's own audit trail is the events read
+   * from the logs the agent files under it (#9628).
+   */
+  test("an OpenStack cloud by its openstack.cloud.name, and by the events read from its own logs", async () => {
     jest.spyOn(OpenStackCloudService, "findOneBy").mockResolvedValue({
       id: HOST_ID,
       name: "prod-eu",
@@ -596,9 +602,15 @@ describe("ResourceSecurity.read", () => {
       type: SecurityEntityType.Host,
       value: "prod-eu",
     });
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      attribute: {
+        key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+        value: HOST_ID.toString(),
+      },
+    });
   });
 
-  test("an OpenStack cloud of no name is searched for by the logs it sent", async () => {
+  test("an OpenStack cloud of no name is still searched for by the events read from its own logs", async () => {
     jest.spyOn(OpenStackCloudService, "findOneBy").mockResolvedValue({
       id: HOST_ID,
     } as never);
@@ -608,8 +620,14 @@ describe("ResourceSecurity.read", () => {
     );
 
     expect(security?.values).toEqual([]);
-    expect(security?.isSearchedByLogs).toBe(true);
     expect(security?.entity).toBeNull();
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: [],
+      attribute: {
+        key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+        value: HOST_ID.toString(),
+      },
+    });
   });
 
   test("an OpenStack cloud the caller may not read is nobody's business", async () => {

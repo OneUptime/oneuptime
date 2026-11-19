@@ -749,6 +749,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
       { page: PageMap.SERVICE_VIEW_FEED, section: "Basic", title: "Feed" },
       { page: PageMap.SERVICE_VIEW_LOGS, section: "Telemetry", title: "Logs" },
       {
+        page: PageMap.SERVICE_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
+      {
         page: PageMap.SERVICE_VIEW_TRACES,
         section: "Telemetry",
         title: "Traces",
@@ -987,6 +993,8 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.WORKFLOW_VIEW_SETTINGS,
         section: "Advanced",
         title: "Settings",
+        // What a workflow runs as is set here (#9695).
+        keywords: ["run as", "permissions"],
       },
       {
         page: PageMap.WORKFLOW_VIEW_OWNERS,
@@ -2187,6 +2195,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Logs",
       },
       {
+        page: PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
+      {
         page: PageMap.DOCKER_HOST_VIEW_TRACES,
         section: "Observability",
         title: "Traces",
@@ -2446,6 +2460,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.PODMAN_HOST_VIEW_LOGS,
         section: "Observability",
         title: "Logs",
+      },
+      {
+        page: PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
       },
       {
         page: PageMap.PODMAN_HOST_VIEW_TRACES,
@@ -3073,6 +3093,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.OPENSTACK_CLOUD_VIEW_LOGS,
         section: "Telemetry",
         title: "Logs",
+      },
+      {
+        page: PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
       },
       {
         page: PageMap.OPENSTACK_CLOUD_VIEW_TRACES,

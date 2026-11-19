@@ -13,6 +13,13 @@ import TeamMemberService, {
 } from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
 import ProjectMemberSearch from "../Utils/Team/ProjectMemberSearch";
+import InviteSuggestions from "../Utils/Team/InviteSuggestions";
+import {
+  InviteSuggestion,
+  InviteSuggestionsRequest,
+  readInviteSuggestionsRequest,
+  toInviteSuggestionsAnswerJSON,
+} from "../../Types/Team/InviteSuggestions";
 import ReadableTeamNames from "../Utils/Team/ReadableTeamNames";
 import InvitationEmailsNotSent from "../Utils/TeamMember/InvitationEmailsNotSent";
 import EditionEnforcement from "../Utils/EditionEnforcement";
@@ -155,6 +162,52 @@ export default class TeamMemberAPI extends BaseAPI<
             req,
             res,
             toProjectMemberSearchAnswerJSON(members),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/invite-suggestions - the people an invitation's
+     * email box suggests as it is typed in (#9701,
+     * Types/Team/InviteSuggestions): the project's people whose name or
+     * email holds what was typed, found as Search finds them, with the
+     * caller's own permissions, each with where they stand for the team the
+     * invitation is for; and, on a server somebody runs, its other accounts
+     * for its master admin (Utils/Team/InviteSuggestions). Never anyone of
+     * another project on Cloud. For a signed-in member of the project or a
+     * project API key; fewer than two letters are refused rather than
+     * answered with everyone. Nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invite-suggestions`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const request: InviteSuggestionsRequest =
+            readInviteSuggestionsRequest(req.body);
+
+          const suggestions: Array<InviteSuggestion> =
+            await InviteSuggestions.suggest({
+              projectId: projectId,
+              request: request,
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toInviteSuggestionsAnswerJSON(suggestions),
           );
         } catch (err) {
           return next(err);

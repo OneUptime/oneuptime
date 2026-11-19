@@ -1,8 +1,10 @@
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/UserWebAuthn";
 import UserService from "./UserService";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import Hostname from "../../Types/API/Hostname";
@@ -284,6 +286,14 @@ export class Service extends DatabaseService<Model> {
     userId: ObjectID;
     isPasskey?: boolean;
   }): Promise<{ options: any; challenge: string }> {
+    /*
+     * A passkey or a security key, while the person's sign-in is managed by
+     * single sign-on (SsoManagedSignIn, #9688): refused before a challenge
+     * is made, and again when one is answered (verifyRegistration), for a
+     * challenge made before the server came to require SSO.
+     */
+    await SsoManagedSignIn.assertMayChangeLocalSignIn(data.userId);
+
     const user: User | null = await UserService.findOneById({
       id: data.userId,
       select: {
@@ -376,6 +386,9 @@ export class Service extends DatabaseService<Model> {
     if (!data.props.userId) {
       throw new BadDataException("User ID not found in request");
     }
+
+    // See generateRegistrationOptions. Before the challenge is spent.
+    await SsoManagedSignIn.assertMayChangeLocalSignIn(data.props.userId);
 
     const storedChallenge: RegistrationChallenge = JSON.parse(
       await this.consumeChallenge(
@@ -904,29 +917,34 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * There is no `onBeforeDelete` here any more.
+   * Removing the last second step while two factor authentication is on is
+   * refused (UserService.assertTwoFactorAuthKeepsASecondStep, #9666): a
+   * passkey is one, as a security key is, since the second step of a
+   * sign-in with a password asks for any of the account's keys. A passkey
+   * removed from the Passkeys page counts the same as one removed here.
    *
-   * It used to refuse the deletion of a user's LAST verified factor while
-   * `enableTwoFactorAuth` was on, telling them to "disable two factor auth
-   * before deleting this item". Both halves of that stopped being true:
-   *
-   *  - the advice is impossible to follow for a user whose two factor auth was
-   *    mandated by an admin. They cannot turn the requirement off, so the
-   *    guard did not protect them, it stranded them on an authenticator they
-   *    may have been trying to replace;
-   *  - the lockout it protected against no longer exists. An account that is
-   *    required to use two factor auth and has nothing set up is now sent
-   *    through enrolment at its next sign-in rather than refused, so deleting
-   *    the last factor costs a QR code, not an account.
-   *
-   * It was also wrong on its own terms: it counted the verified factors that
-   * existed BEFORE the delete, once per item, inside a loop over the whole
-   * `deleteBy` set -- so removing two verified factors in a single call passed
-   * the check twice and landed in exactly the state it existed to prevent.
-   *
-   * The same guard has been removed from UserTotpAuthService for the same
-   * reasons; the two were mirror images and had to move together.
+   * UserTotpAuthService says why the guard is back, and how it answers the
+   * reasons it was once taken out for; the two move together.
    */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
+          _id: true,
+          userId: true,
+          isVerified: true,
+        },
+      );
+
+      await UserService.assertTwoFactorAuthKeepsASecondStep(rows);
+    }
+
+    return { deleteBy, carryForward: null };
+  }
 }
 
 export default new Service();

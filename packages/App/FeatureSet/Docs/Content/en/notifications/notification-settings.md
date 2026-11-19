@@ -19,6 +19,7 @@ flowchart TB
 ```
 
 - Each row is an event, and each column a channel: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and Webhook. Slack, Microsoft Teams and Mattermost are columns only when the project has connected them. A channel you have not set up yet is not a column: it is listed under **Channels not set up yet**, above the tabs, as a link to set it up.
+- WhatsApp delivers only messages Meta has approved, and OneUptime has them for updates about incidents, alerts, episodes, monitors, probes, AI agents, status pages, maintenance events and most on-call shifts. Other updates, such as an SLO's status, a missed call, a security case or being made an owner of a service, have no WhatsApp switch, and their card says WhatsApp is not available. They reach you on your other channels.
 - A channel that is on sends to every verified method you have on it in this project, not just one.
 - A channel that is on, with no verified method behind it, sends nothing. Its column says **Set up** under its name, and its switches can only be turned off. **Your setup checklist** says so too, under **Staying informed**.
 - An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the Project Owners instead. Someone the on-call page of a new incident, alert or episode has reached already is not notified again that it was created. An event about being added as an owner goes only to the person added. If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
@@ -49,7 +50,7 @@ When you join a project, these events start on, by email. Everything else starts
 | --- | --- | --- |
 | **Incidents** | **Incident created**, **Incident state changed**, **Incident reminder**, **Incident SLA breached**, **Incident episode created**, **Incident episode state changed**, **Incident added to incident episode** | **Incident note posted**, **Added as incident owner**, **Assigned to an incident**, **Incident episode note posted**, **Added as incident episode owner** |
 | **Alerts** | **Alert created**, **Alert state changed**, **Alert reminder**, **Alert episode created**, **Alert episode state changed**, **Alert added to alert episode** | **Alert note posted**, **Added as alert owner**, **Alert episode note posted**, **Added as alert episode owner** |
-| **Monitoring** | **Probe status changed for your monitor**, **Monitor has no active probes**, **SLO status changed**, **Added as SLO owner**, **Exception assigned to me**, **Probe status changed**, **Added as probe owner**, **Added as table owner**, **Added as pipeline owner**, **Added as service or infrastructure owner**, **Added as dashboard owner**, **Added as workflow owner**, **Added as runbook owner** | **Monitor created**, **Monitor status changed**, **Added as monitor owner**, **AI agent status changed**, **Added as AI agent owner** |
+| **Monitoring** | **Probe status changed for your monitor**, **Monitor has no active probes**, **SLO status changed**, **Added as SLO owner**, **Exception assigned to me**, **Probe status changed**, **Added as probe owner**, **Added as table owner**, **Added as pipeline owner**, **Added as service or infrastructure owner**, **Added as dashboard owner**, **Added as workflow owner**, **Added as runbook owner**, **Added as monitor group owner**, **Added as Runner owner** | **Monitor created**, **Monitor status changed**, **Added as monitor owner**, **AI agent status changed**, **Added as AI agent owner** |
 | **Status Pages** | **My public note approved or rejected**, and by push too: **Public note waiting for my approval** | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
 | **Scheduled Maintenance** | **Maintenance reminder** | **Maintenance event created**, **Maintenance state changed**, **Maintenance note posted**, **Added as maintenance owner** |
 | **On-Call** | **You go on-call**, **You are up next on-call**, **You go off-call**, **Added to on-call policy**, **Removed from on-call policy**, **Missed call**, **Added as on-call policy owner**, **Added as on-call schedule owner**, **Added as incoming call policy owner**, and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned** | None |
@@ -59,6 +60,8 @@ When you join a project, these events start on, by email. Everything else starts
 > **Monitor status changed** starts off. To hear when a monitor you own goes down or comes back, switch it on, on the **Monitoring** tab.
 
 **Added as service or infrastructure owner**, on the **Services and Infrastructure** card, is one switch for every service, RUM application, database, queue, host, cluster, cloud resource and other piece of infrastructure you are made an owner of. The message says which one it is.
+
+**Added as monitor group owner**, on the **Monitors** card, and **Added as Runner owner**, on the **Dashboards & Automation** card, tell you when someone adds you as an owner of a monitor group or a Runner.
 
 ## Your shifts
 
@@ -102,6 +105,10 @@ See [Notification Rollup](/docs/emails/notification-rollup).
 
 :::details A switch is on, but nothing arrives
 Check that you have a verified method on that channel under **User Settings → Notification Methods**. For SMS, Call, WhatsApp and Telegram, the project must have the channel turned on too.
+:::
+
+:::details There is no WhatsApp switch for an update
+WhatsApp delivers only messages Meta has approved, and OneUptime has none for that update, so its card says WhatsApp is not available. Choose another channel for it, such as SMS or Push.
 :::
 
 :::details I own a monitor, but I never hear when it goes down

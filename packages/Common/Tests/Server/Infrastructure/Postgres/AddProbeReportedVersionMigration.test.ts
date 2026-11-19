@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProbeReportedVersion1809185040000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185040000-AddProbeReportedVersion";
+import { AddProbeReportedVersion1809185330000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185330000-AddProbeReportedVersion";
 import Probe from "../../../../Models/DatabaseModels/Probe";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Permission from "../../../../Types/Permission";
@@ -23,11 +23,11 @@ import Permission from "../../../../Types/Permission";
  * to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809185040000";
+const MIGRATION_TIMESTAMP: string = "1809185330000";
 const MIGRATION_BASE_NAME: string = "AddProbeReportedVersion";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddMonitorSecretType1809185030000";
+const PREVIOUS_MIGRATION: string = "AddDetectionMatchedEventsAndRuleResponseSteps1809185320000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -42,7 +42,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddProbeReportedVersion1809185040000();
+    new AddProbeReportedVersion1809185330000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -53,7 +53,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddProbeReportedVersion1809185040000", () => {
+describe("AddProbeReportedVersion1809185330000", () => {
   test("adds reportedVersion to Probe, a nullable text column as wide as the model's", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "Probe" ADD "reportedVersion" character varying(100)`,
@@ -115,7 +115,7 @@ describe("AddProbeReportedVersion1809185040000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddProbeReportedVersion1809185040000().name).toBe(
+    expect(new AddProbeReportedVersion1809185330000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
@@ -131,7 +131,7 @@ describe("AddProbeReportedVersion1809185040000", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809185030000;
+          return value <= 1809185320000;
         }),
       ),
     );

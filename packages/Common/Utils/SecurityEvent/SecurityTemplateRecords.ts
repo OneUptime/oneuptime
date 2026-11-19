@@ -5,6 +5,7 @@ import ObjectID from "../../Types/ObjectID";
 import SecurityCasePriorityLevel from "../../Types/SecurityCase/SecurityCasePriorityLevel";
 import SecurityCaseStage from "../../Types/SecurityCase/SecurityCaseStage";
 import { DetectionRuleLibraryEntry } from "../../Types/SecurityEvent/DetectionRuleLibrary";
+import { getDetectionRuleLibraryResponseSteps } from "../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
 import {
   SecurityPlaybookTemplateDefinition,
   SecurityPlaybookTemplateValues,
@@ -58,7 +59,11 @@ export function findRuleOfLibraryEntry<
   });
 }
 
-// A library entry as a detection rule of the project: on, opening cases rather than alerts.
+/*
+ * A library entry as a detection rule of the project: on, opening cases
+ * rather than alerts, with the library's response steps for what to do when
+ * it fires (#9621), which the team can change from there.
+ */
 export function buildDetectionRuleFromLibrary(data: {
   projectId: ObjectID;
   entry: DetectionRuleLibraryEntry;
@@ -75,6 +80,9 @@ export function buildDetectionRuleFromLibrary(data: {
   rule.shouldCreateAlert = false;
   rule.shouldCreateIncident = false;
   rule.shouldWriteDetectionFinding = true;
+  rule.responseSteps = getDetectionRuleLibraryResponseSteps(
+    data.entry.id,
+  ) as unknown as JSONArray;
 
   if (data.entry.groupByField) {
     rule.groupByField = data.entry.groupByField;

@@ -10,6 +10,7 @@ import {
   KubernetesStatusChip,
   getKubernetesStatusChips,
 } from "../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesPodStatus";
+import { isKubernetesCostSentinelNamespace } from "Common/Types/Kubernetes/KubernetesCostIngest";
 
 /*
  * Every metric on the Kubernetes cluster pages carries an (i) that says what
@@ -835,10 +836,14 @@ describe("cluster Costs page", () => {
       "Pages/Kubernetes/Utils/KubernetesCostUtils.ts",
     );
 
-    expectCode(
-      utils,
-      "return namespace === IDLE_NAMESPACE || namespace === UNALLOCATED_NAMESPACE;",
-    );
+    /*
+     * The page splits idle off by the ingest contract's sentinels, the ones
+     * the server's metrics and efficiency split it off by - both of them.
+     */
+    expectCode(utils, "return isKubernetesCostSentinelNamespace(namespace);");
+    expect(isKubernetesCostSentinelNamespace("__idle__")).toBe(true);
+    expect(isKubernetesCostSentinelNamespace("__unallocated__")).toBe(true);
+    expect(isKubernetesCostSentinelNamespace("shop")).toBe(false);
     expect(KUBERNETES_COST_METRIC_DESCRIPTIONS.workloadSpend).toContain(
       "minus idle and unallocated",
     );

@@ -87,6 +87,12 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+import {
+  KUBERNETES_COST_ENGINE_AUTO_COMMAND,
+  KUBERNETES_COST_PRICING_TEST_ID,
+  KUBERNETES_COST_RATE_CARD_DOCS_ROUTE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/KubernetesCostPricingNote";
+import { KubernetesCostPricingSource } from "../../../Types/Kubernetes/KubernetesCostPricing";
 import KubernetesCostOverviewCard, {
   COST_OVERVIEW_RELOAD_AFTER_MS,
   KUBERNETES_COST_DOCS_ROUTE,
@@ -135,6 +141,7 @@ function overview(
       },
     ],
     lastDayWorkloadSpend: 90,
+    engine: null,
     ...overrides,
   };
 }
@@ -491,5 +498,105 @@ describe("getWorkloadKindName", () => {
     ["", ""],
   ])("names %p as %p", (kind: string, name: string) => {
     expect(getWorkloadKindName(kind)).toBe(name);
+  });
+});
+
+/*
+ * #9634: the card says where its figures' prices come from, under the
+ * tiles; #9633: and when the cluster runs its own engine, which one, and
+ * that the bundled one can go.
+ */
+describe("the cost card says how the cluster is priced", () => {
+  test("names the cloud whose list prices price it", async () => {
+    mockFetchOverview.mockResolvedValue(
+      overview({
+        engine: {
+          engine: "OpenCost",
+          service: "",
+          bundledEngineUnused: false,
+          pricingSource: KubernetesCostPricingSource.ListPrices,
+          pricingProvider: "GCP",
+        },
+      }) as never,
+    );
+
+    renderCard();
+    await settled();
+
+    expect(
+      textOf(
+        within(card()).getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-line`),
+      ),
+    ).toContain("Prices: Google Cloud list prices");
+  });
+
+  test("says OpenCost's default rates price it, with the way to set your own", async () => {
+    mockFetchOverview.mockResolvedValue(
+      overview({
+        engine: {
+          engine: "OpenCost",
+          service: "",
+          bundledEngineUnused: false,
+          pricingSource: KubernetesCostPricingSource.DefaultRates,
+          pricingProvider: "",
+        },
+      }) as never,
+    );
+
+    renderCard();
+    await settled();
+
+    const line: HTMLElement = within(card()).getByTestId(
+      `${KUBERNETES_COST_PRICING_TEST_ID}-line`,
+    );
+
+    expect(textOf(line)).toContain("Prices: OpenCost's default rates.");
+    expect(
+      within(line)
+        .getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-rate-card-docs`)
+        .getAttribute("href"),
+    ).toContain(KUBERNETES_COST_RATE_CARD_DOCS_ROUTE);
+  });
+
+  test("says the bundled OpenCost is not needed when the agent reads the cluster's own Kubecost", async () => {
+    mockFetchOverview.mockResolvedValue(
+      overview({
+        engine: {
+          engine: "Kubecost",
+          service: "kubecost/kubecost-cost-analyzer",
+          bundledEngineUnused: true,
+          pricingSource: KubernetesCostPricingSource.ListPrices,
+          pricingProvider: "AWS",
+        },
+      }) as never,
+    );
+
+    renderCard();
+    await settled();
+
+    expect(textOf(card())).toContain(
+      "Priced by your Kubecost (kubecost/kubecost-cost-analyzer)",
+    );
+
+    const notice: HTMLElement = within(card()).getByTestId(
+      `${KUBERNETES_COST_PRICING_TEST_ID}-bundled-unused`,
+    );
+
+    expect(textOf(notice)).toContain("The bundled OpenCost is not needed");
+    expect(textOf(notice)).toContain("--set cost.engine.url=auto");
+    expect(KUBERNETES_COST_ENGINE_AUTO_COMMAND).toContain(
+      "--reset-then-reuse-values",
+    );
+  });
+
+  test("says nothing of prices when the agent says nothing", async () => {
+    mockFetchOverview.mockResolvedValue(overview({ engine: null }) as never);
+
+    renderCard();
+    await settled();
+
+    expect(
+      within(card()).queryByTestId(KUBERNETES_COST_PRICING_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 });
