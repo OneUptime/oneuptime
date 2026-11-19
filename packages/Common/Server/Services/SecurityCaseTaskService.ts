@@ -1,6 +1,7 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import Model from "../../Models/DatabaseModels/SecurityCaseTask";
 import { SecurityCaseFeedEventType } from "../../Models/DatabaseModels/SecurityCaseFeed";
 import User from "../../Models/DatabaseModels/User";
@@ -217,7 +218,10 @@ export class Service extends ProjectReferencesService<Model> {
           : taskAddedMarkdown({
               title: createdItem.title || "",
               assigneeName: createdItem.assignedToUserId
-                ? await this.getUserName(createdItem.assignedToUserId)
+                ? await this.getUserName(
+                    createdItem.assignedToUserId,
+                    createdItem.projectId,
+                  )
                 : undefined,
             })
         ).toString(),
@@ -398,7 +402,7 @@ export class Service extends ProjectReferencesService<Model> {
           feedInfoInMarkdown: taskAssignedMarkdown({
             title,
             assigneeName: assigneeId
-              ? await this.getUserName(new ObjectID(assigneeId))
+              ? await this.getUserName(new ObjectID(assigneeId), projectId)
               : undefined,
           }).toString(),
           eventType: SecurityCaseFeedEventType.Task,
@@ -478,7 +482,15 @@ export class Service extends ProjectReferencesService<Model> {
     return onDelete;
   }
 
-  private async getUserName(userId: ObjectID): Promise<string> {
+  /*
+   * A person as the project names them: someone only invited to it by the
+   * name typed for them, else their address - never their account's own
+   * name, which it does not see until they join (#9823).
+   */
+  private async getUserName(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<string> {
     const user: User | null = await UserService.findOneById({
       id: userId,
       select: {
@@ -488,6 +500,11 @@ export class Service extends ProjectReferencesService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    await PendingInviteeProfiles.nameInProject({
+      users: [user],
+      projectId: projectId,
     });
 
     return user?.name?.toString() || user?.email?.toString() || "a user";

@@ -31,6 +31,7 @@ import {
 import { OwnedThroughMetadata } from "../../../../Types/Database/AccessControl/OwnedThrough";
 import Dictionary from "../../../../Types/Dictionary";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
+import PendingInviteeProfiles from "../../../Utils/TeamMember/PendingInviteeProfiles";
 
 // The labelled records a label-less model's rows name, by key column.
 export interface LabelledReferences {
@@ -212,6 +213,18 @@ export default class ReadPermission {
 
     // upate query
     query = baseFunctionReturn.query;
+
+    /*
+     * A filter through a relation on a person's name, picture or two-factor
+     * flag matches nobody only invited to the reader's projects, whose
+     * profile the rows withhold (#9823, PendingInviteeProfiles): a search
+     * must not spell it out instead.
+     */
+    query = PendingInviteeProfiles.narrowRelationFilters({
+      modelType: modelType,
+      query: query,
+      props: props,
+    });
 
     let relationSelect: RelationSelect<TBaseModel> = {};
 

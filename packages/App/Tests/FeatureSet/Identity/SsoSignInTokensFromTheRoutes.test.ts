@@ -162,6 +162,10 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
       },
       create: jest.fn(),
       findBy: jest.fn(),
+      // Signing in accepts an invitation into the project still pending (#9819).
+      updateBy: (): Promise<number> => {
+        return Promise.resolve(0);
+      },
     },
   };
 });

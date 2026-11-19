@@ -124,6 +124,8 @@ interface FindByCall {
 let findBySpy: jest.SpyInstance;
 let byName: Array<TeamMember> = [];
 let byEmail: Array<TeamMember> = [];
+// Invitations found by the name typed for them (#9823).
+let byTypedName: Array<TeamMember> = [];
 
 function calls(): Array<FindByCall> {
   return findBySpy.mock.calls.map((call: Array<unknown>): FindByCall => {
@@ -131,21 +133,40 @@ function calls(): Array<FindByCall> {
   });
 }
 
-// Which of the user's columns each read searched, in order.
+/*
+ * Which of the user's columns each read searched, in order - or
+ * "inviteeName" for the read of invitations by the name typed for them.
+ */
 function searchedColumns(): Array<string> {
   return calls().map((call: FindByCall): string => {
+    if (call.query["inviteeName"] !== undefined) {
+      return "inviteeName";
+    }
+
     return Object.keys(call.query["user"] as JSONObject)[0]!;
+  });
+}
+
+// The reads through the person's own columns, without the typed name's.
+function userCalls(): Array<FindByCall> {
+  return calls().filter((call: FindByCall): boolean => {
+    return call.query["user"] !== undefined;
   });
 }
 
 beforeEach(() => {
   byName = [];
   byEmail = [];
+  byTypedName = [];
   findBySpy = jest
     .spyOn(TeamMemberService, "findBy")
     .mockImplementation((async (
       data: FindByCall,
     ): Promise<Array<TeamMember>> => {
+      if (data.query["inviteeName"] !== undefined) {
+        return byTypedName;
+      }
+
       const column: string = Object.keys(data.query["user"] as JSONObject)[0]!;
       return column === "email" ? byEmail : byName;
     }) as never);
@@ -321,7 +342,7 @@ describe("the search", () => {
       props: member,
     });
 
-    expect(searchedColumns()).toEqual(["name", "email"]);
+    expect(searchedColumns()).toEqual(["name", "email", "inviteeName"]);
 
     const [nameRead, emailRead] = calls() as [FindByCall, FindByCall];
 
@@ -389,12 +410,19 @@ describe("the search", () => {
       props: member,
     });
 
-    for (const call of calls()) {
+    for (const call of userCalls()) {
       const column: string = Object.keys(call.query["user"] as JSONObject)[0]!;
       expect((call.query["user"] as JSONObject)[column]).toEqual(
         new Search("50\\%\\_off\\\\"),
       );
     }
+
+    // The typed name's read too.
+    expect(
+      calls().find((call: FindByCall): boolean => {
+        return call.query["inviteeName"] !== undefined;
+      })!.query["inviteeName"],
+    ).toEqual(new Search("50\\%\\_off\\\\"));
   });
 
   test("one person found by name and by email, and on several teams, is one result, best match first", async () => {
@@ -571,7 +599,7 @@ describe("a reader who may not see emails", () => {
       });
 
     // The name only: no read by email, and no email selected.
-    expect(searchedColumns()).toEqual(["name"]);
+    expect(searchedColumns()).toEqual(["name", "inviteeName"]);
     expect(calls()[0]!.select).toEqual({
       _id: true,
       userId: true,
@@ -579,5 +607,62 @@ describe("a reader who may not see emails", () => {
     });
     // An email the read handed back anyway is not answered.
     expect(found).toEqual([{ userId: ADA_ID, name: "Ada Lovelace" }]);
+  });
+});
+
+/*
+ * SOMEONE ONLY INVITED IS FOUND AS THE PROJECT KNOWS THEM (#9823).
+ *
+ * Until they accept, the project sees what it invited - the address, and
+ * the name typed for them - never their account's own name: the reads by
+ * the person's name match nobody pending for the reader
+ * (PendingInviteeProfiles narrows them), so a search cannot spell that name
+ * out. They are found by their address, and by the name typed for them.
+ */
+describe("someone only invited", () => {
+  const member: DatabaseCommonInteractionProps = propsHolding([
+    Permission.ProjectMember,
+  ]);
+
+  test("is found by the name typed for them, among invitations only, with the reader's own props", async () => {
+    const invited: TeamMember = membership({
+      userId: EVE_ID,
+      name: "Eve (typed)",
+      email: "eve@acme.test",
+    });
+    byTypedName = [invited];
+
+    expect(
+      await ProjectMemberSearch.search({
+        projectId: PROJECT_ID,
+        text: "typed",
+        props: member,
+      }),
+    ).toEqual([
+      { userId: EVE_ID, name: "Eve (typed)", email: "eve@acme.test" },
+    ]);
+
+    const typedRead: FindByCall = calls().find((call: FindByCall): boolean => {
+      return call.query["inviteeName"] !== undefined;
+    })!;
+
+    expect(typedRead.query["inviteeName"]).toEqual(new Search("typed"));
+    expect(typedRead.query["hasAcceptedInvitation"]).toBe(false);
+    expect(String(typedRead.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(typedRead.props).toBe(member);
+    expect(typedRead.limit).toBe(PROJECT_MEMBER_SEARCH_READ_LIMIT);
+  });
+
+  test("found by a name and by the typed name both, is one result", async () => {
+    byName = [membership({ userId: ADA_ID, name: "Ada Lovelace" })];
+    byTypedName = [membership({ userId: ADA_ID, name: "Ada Lovelace" })];
+
+    expect(
+      await ProjectMemberSearch.search({
+        projectId: PROJECT_ID,
+        text: "ada",
+        props: member,
+      }),
+    ).toHaveLength(1);
   });
 });

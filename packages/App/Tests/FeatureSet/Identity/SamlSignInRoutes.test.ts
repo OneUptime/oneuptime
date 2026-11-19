@@ -204,6 +204,10 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
         return teamMemberCreate(...args);
       },
       findBy: jest.fn(),
+      // Signing in accepts an invitation into the project still pending (#9819).
+      updateBy: (): Promise<number> => {
+        return Promise.resolve(0);
+      },
     },
   };
 });
@@ -815,6 +819,15 @@ beforeEach(() => {
 describe.each(FLOWS)("$name", (flow: Flow) => {
   beforeEach(() => {
     setTestBillingEnabled(flow.billing);
+
+    /*
+     * On the hosted service a project's own SSO signs in only an account
+     * that has confirmed it (#9824, ProjectSsoSignInGate) - an address with
+     * no account yet is mailed a link instead - so here it is one.
+     */
+    if (flow.billing) {
+      userFindOneBy.mockResolvedValue(existingUser());
+    }
   });
 
   test("signs in with a fresh response made for this provider", async () => {
@@ -1008,6 +1021,15 @@ async function startSignIn(flow: Flow): Promise<string> {
 describe.each(FLOWS)("$name - the sign-in it starts", (flow: Flow) => {
   beforeEach(() => {
     setTestBillingEnabled(flow.billing);
+
+    /*
+     * On the hosted service a project's own SSO signs in only an account
+     * that has confirmed it (#9824, ProjectSsoSignInGate) - an address with
+     * no account yet is mailed a link instead - so here it is one.
+     */
+    if (flow.billing) {
+      userFindOneBy.mockResolvedValue(existingUser());
+    }
   });
 
   test("asks the identity provider for a response to this provider's Reply URL, naming its Entity ID", async () => {
@@ -1047,6 +1069,15 @@ describe.each(FLOWS)("$name - the sign-in it starts", (flow: Flow) => {
 describe.each(FLOWS)("$name - Audiences older setups send", (flow: Flow) => {
   beforeEach(() => {
     setTestBillingEnabled(flow.billing);
+
+    /*
+     * On the hosted service a project's own SSO signs in only an account
+     * that has confirmed it (#9824, ProjectSsoSignInGate) - an address with
+     * no account yet is mailed a link instead - so here it is one.
+     */
+    if (flow.billing) {
+      userFindOneBy.mockResolvedValue(existingUser());
+    }
   });
 
   test("signs in with the server's address as the Audience, the Entity ID shown before May 2024", async () => {
@@ -1111,6 +1142,15 @@ describe.each(FLOWS)("$name - Audiences older setups send", (flow: Flow) => {
 describe.each(FLOWS)("$name - the order of the steps", (flow: Flow) => {
   beforeEach(() => {
     setTestBillingEnabled(flow.billing);
+
+    /*
+     * On the hosted service a project's own SSO signs in only an account
+     * that has confirmed it (#9824, ProjectSsoSignInGate) - an address with
+     * no account yet is mailed a link instead - so here it is one.
+     */
+    if (flow.billing) {
+      userFindOneBy.mockResolvedValue(existingUser());
+    }
   });
 
   test("a response refused for its time is not recorded as used", async () => {
@@ -1564,6 +1604,11 @@ describe.each(FLOWS)(
     beforeEach(() => {
       setTestBillingEnabled(flow.billing);
       providerFound = false;
+
+      // On the hosted service, an account that has confirmed (#9824).
+      if (flow.billing) {
+        userFindOneBy.mockResolvedValue(existingUser());
+      }
 
       const answer: (
         stored: (...args: Array<unknown>) => unknown,

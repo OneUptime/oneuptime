@@ -1051,10 +1051,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
         /*
-         * Its invite suggestions read only (#9701); is-user-registered is
-         * gone (#9745).
+         * Its invite suggestions read only (#9701), and so do the Admin
+         * Dashboard's, in the project the path names (#9826);
+         * is-user-registered is gone (#9745).
          */
-        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
+        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
         // #9762: a master admin clearing one person's sign-in settings.
         "packages/Common/Server/API/UserAPI.ts": 8,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,

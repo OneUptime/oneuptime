@@ -28,6 +28,9 @@ import OnCallChatByWorkspace, {
   OnCallChatWriter,
 } from "../Utils/OnCall/OnCallChatByWorkspace";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -1549,6 +1552,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     throw new BadDataException(
       await this.getOverlapRefusal({
         manager: data.manager,
+        projectId: data.projectId,
         conflict: conflict,
         props: data.props,
       }),
@@ -1563,6 +1567,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
    */
   private async getOverlapRefusal(data: {
     manager: EntityManager;
+    projectId: ObjectID;
     conflict: OnCallDutyPolicyUserOverride;
     props: DatabaseCommonInteractionProps;
   }): Promise<string> {
@@ -1600,11 +1605,29 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       });
     };
 
+    /*
+     * Someone only invited to the project is named as the project knows
+     * them - the name typed for them, else their address - never by their
+     * account's own name, which it does not see until they join (#9823).
+     */
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: [awayUserId, coverUserId].filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+        projectId: data.projectId,
+      });
+
     const nameOf: (id: string) => string = (id: string): string => {
       const user: User | undefined = findUser(id);
 
       return (
-        user?.name?.toString() || user?.email?.toString() || "Someone else"
+        PendingInviteeProfiles.getNameInProject({
+          userId: id,
+          name: user?.name,
+          email: user?.email,
+          withheld: withheld,
+        }) || "Someone else"
       );
     };
 

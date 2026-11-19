@@ -27,6 +27,9 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 import { securityCaseGroupingKey } from "./SecurityCaseIngest";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
@@ -1954,6 +1957,41 @@ export default class SecurityCaseNotifications {
     return user ? this.toRecipient(userId, user) : null;
   }
 
+  /*
+   * Whom a case is assigned to, as the project names them: someone only
+   * invited to it by the name typed for them, else their address - never
+   * their account's own name, which it does not see until they join
+   * (#9823). Empty for a person who is gone.
+   */
+  private static async getAssigneeName(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<string> {
+    const user: SecurityCaseRecipient | null = await this.getUser(data.userId);
+
+    if (!user) {
+      return "";
+    }
+
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: [data.userId.toString()],
+        projectId: data.projectId,
+      });
+
+    return PendingInviteeProfiles.getWithheldProfile({
+      userId: data.userId,
+      withheld: withheld,
+    })
+      ? PendingInviteeProfiles.getNameInProject({
+          userId: data.userId,
+          name: null,
+          email: user.email,
+          withheld: withheld,
+        })
+      : user.name;
+  }
+
   private static async getTeamName(teamId: ObjectID): Promise<string> {
     const team: Team | null = await TeamService.findOneById({
       id: teamId,
@@ -2127,7 +2165,10 @@ export default class SecurityCaseNotifications {
 
     if (securityCase.assignedToUserId) {
       assignee =
-        (await this.getUser(securityCase.assignedToUserId))?.name || assignee;
+        (await this.getAssigneeName({
+          userId: securityCase.assignedToUserId,
+          projectId: projectId,
+        })) || assignee;
     } else if (securityCase.assignedToTeamId) {
       assignee = await this.getTeamName(securityCase.assignedToTeamId);
     }

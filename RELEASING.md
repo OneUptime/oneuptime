@@ -57,7 +57,15 @@ release (`gh release list --limit 1`).
 
 ### Decide on the release version
 
-If the release only has fixes, bump the patch version. If it has new features, bump the minor version. If we are releasing new products or breaking changes then bump up the major version. If you are bumping up the major version, please update the upgrading guide. 
+- **Major** - only when the release ships a new product: a new entry in the
+  products menu, with a new key in `packages/Common/Types/Product/ProductKey.ts`.
+  Then give the upgrading guide (`installation/upgrading.md`) its section for
+  the new major version, in every docs language.
+- **Minor** - new features, or breaking changes, and no new product. A breaking
+  change alone never makes a major version: its title's `!` lists it under
+  "Breaking changes" in the release notes, so its title says what anyone who
+  upgrades must do.
+- **Patch** - only fixes.
 
 ### 1. Cut the release branch from `main`
 

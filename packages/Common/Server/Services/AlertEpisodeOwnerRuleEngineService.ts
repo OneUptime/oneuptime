@@ -406,7 +406,7 @@ class AlertEpisodeOwnerRuleEngineServiceClass
         },
       )}\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
-      } to the episode:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}`;
+      } to the episode:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: episode.projectId })}`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id,

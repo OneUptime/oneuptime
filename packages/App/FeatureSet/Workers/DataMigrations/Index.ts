@@ -1477,21 +1477,25 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new LinkMonitorsToTheirNetworkDevices(),
   /*
+   * What a workflow's step ran as, and with whose permissions (#9766): adds
+   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
+   * the four beside it). Metadata-only and idempotent; rows written before
+   * it read NULL. After AddAuditLogWorkflowColumns; before the last slot
+   * AddAuditLogMcpClientColumns keeps, and before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before it (the two are independent).
+   */
+  new AddAuditLogWorkflowRunAsColumns(),
+  /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams
    * (IncidentVideoCall.transcriptSignInAccountId, #9289), and marks for
    * deletion those read through a sign-in Zoom already removed. After the
-   * schema migration that adds the column; before the last slot
-   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   * schema migration that adds the column; idempotent. It keeps the slot
+   * just before the last one, which AddAuditLogMcpClientColumns asserts for
+   * itself: a migration added after it goes before it.
    */
   new BackfillIncidentCallTranscriptSignInAccount(),
-  /*
-   * What a workflow's step ran as, and with whose permissions (#9766): adds
-   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
-   * the four beside it). Metadata-only and idempotent; rows written before
-   * it read NULL. Before the last slot AddAuditLogMcpClientColumns keeps.
-   */
-  new AddAuditLogWorkflowRunAsColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
