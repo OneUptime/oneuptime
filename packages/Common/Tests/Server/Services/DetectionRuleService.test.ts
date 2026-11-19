@@ -567,4 +567,26 @@ describe("DetectionRuleService response steps", () => {
 
     expect("responseSteps" in result.updateBy.data).toBe(false);
   });
+
+  /*
+   * Regression: null - none written - was saved as an empty list, the
+   * author's "no steps", so a library rule saved from a form that left the
+   * field alone lost its library's steps.
+   */
+  test("none written (null) stays null, so a library rule keeps reading its library's", async () => {
+    const updated: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ responseSteps: null as never }),
+    );
+
+    expect(updated.updateBy.data.responseSteps).toBeNull();
+
+    const rule: DetectionRule = buildRule({ name: "My Rule" });
+    rule.responseSteps = null as never;
+
+    const created: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(created.createBy.data.responseSteps).toBeNull();
+  });
 });

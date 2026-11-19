@@ -1,6 +1,7 @@
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
+import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
@@ -127,7 +128,8 @@ export function getSecurityEventLogLineRoute(
   const time: Date | null = eventTime(event);
   const logId: string = getSecurityEventLogId(event);
 
-  if (!logId || !time) {
+  // A line is opened by its id: one that is not an id opens nothing.
+  if (!ObjectID.isValidUUID(logId) || !time) {
     return null;
   }
 

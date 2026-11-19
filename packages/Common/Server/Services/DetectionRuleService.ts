@@ -479,10 +479,11 @@ export class Service extends ProjectReferencesService<Model> {
    * left without words is left out - or the reason they cannot be saved.
    * Undefined is left as it is: an update that does not name them keeps
    * the rule's own, and a create that does not leaves a library rule to
-   * read its library's.
+   * read its library's. So is null - none written: a library rule reads its
+   * library's, where an empty list is an author's "no steps".
    */
   private normalizeResponseSteps(data: JSONObject): void {
-    if (data["responseSteps"] === undefined) {
+    if (data["responseSteps"] === undefined || data["responseSteps"] === null) {
       return;
     }
 

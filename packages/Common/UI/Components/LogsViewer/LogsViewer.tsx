@@ -1640,7 +1640,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                         serviceMap={drawnServiceMap}
                         resourceEntityMaps={entityLookupMaps}
                         entityNameMap={entityNameMap}
-                        onClose={props.openedLog?.onClose}
+                        onClose={() => {
+                          props.openedLog?.onClose();
+                        }}
                         getTraceRoute={props.getTraceRoute}
                         getSpanRoute={props.getSpanRoute}
                         resolveSpanRoute={props.resolveSpanRoute}
