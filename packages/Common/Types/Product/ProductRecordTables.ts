@@ -836,6 +836,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
         "InstanceHealthLog",
         "InstanceReceivingPeriod",
         "InstanceTokenSigningKey",
+        "InstanceSamlSigningKey",
       ],
     ),
   ]);

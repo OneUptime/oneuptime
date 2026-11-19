@@ -148,6 +148,7 @@ import ServerEmailLog from "./ServerEmailLog";
 import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
+import InstanceSamlSigningKey from "./InstanceSamlSigningKey";
 // Incidents
 import Incident from "./Incident";
 import IncidentFeed from "./IncidentFeed";
@@ -1081,6 +1082,7 @@ const AllModelTypes: Array<{
   ProductFeedback,
   InstanceReceivingPeriod,
   InstanceTokenSigningKey,
+  InstanceSamlSigningKey,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,
