@@ -2085,7 +2085,7 @@
   "Security Events": "安全事件",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "跨度。在异常单独显示之前统计的日期，也包含其异常。",
   "Exceptions recorded from spans and logs.": "从跨度和日志中记录的异常。",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "从跨度和日志中记录的异常。它们作为追踪的一部分计费。",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "从跨度和日志中记录的异常。在跨度中发现的异常随追踪计费，在日志中发现的异常随日志计费。",
   "Profiles, and the samples recorded with them.": "性能剖析数据，以及随之记录的样本。",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

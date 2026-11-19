@@ -2085,7 +2085,7 @@
   "Security Events": "Beveiligingsgebeurtenissen",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Spans. Dagen die zijn geteld voordat uitzonderingen apart werden getoond, bevatten ook hun uitzonderingen.",
   "Exceptions recorded from spans and logs.": "Uitzonderingen vastgelegd uit spans en logboeken.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Uitzonderingen vastgelegd uit spans en logboeken. Ze worden gefactureerd als onderdeel van Traces.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Uitzonderingen vastgelegd uit spans en logboeken. Die uit spans worden gefactureerd met Traces, en die uit logboeken met Logboeken.",
   "Profiles, and the samples recorded with them.": "Profielen, en de samples die ermee zijn vastgelegd.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

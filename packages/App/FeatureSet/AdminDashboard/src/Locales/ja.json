@@ -2085,7 +2085,7 @@
   "Security Events": "セキュリティイベント",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "スパン。例外が別に表示される前に集計された日は、その例外も含みます。",
   "Exceptions recorded from spans and logs.": "スパンとログから記録された例外。",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "スパンとログから記録された例外。トレースの一部として課金されます。",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "スパンとログから記録された例外。スパンで見つかった例外はトレースとして、ログで見つかった例外はログとして課金されます。",
   "Profiles, and the samples recorded with them.": "プロファイルと、それとともに記録されたサンプル。",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

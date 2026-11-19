@@ -2085,7 +2085,7 @@
   "Security Events": "События безопасности",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Спаны. Дни, подсчитанные до того, как исключения стали показываться отдельно, включают и их исключения.",
   "Exceptions recorded from spans and logs.": "Исключения, записанные из спанов и журналов.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Исключения, записанные из спанов и журналов. Они оплачиваются в составе трассировок.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Исключения, записанные из спанов и журналов. Найденные в спанах оплачиваются в составе трассировок, а найденные в журналах — в составе журналов.",
   "Profiles, and the samples recorded with them.": "Профили и записанные вместе с ними сэмплы.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

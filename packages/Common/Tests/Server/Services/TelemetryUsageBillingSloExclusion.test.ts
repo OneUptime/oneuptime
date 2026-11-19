@@ -553,7 +553,8 @@ describe("stageTelemetryUsageForProject excludes the budget and product analytic
 
   test.each([
     [ProductType.Traces, ["spans", "exceptions"]],
-    [ProductType.Logs, ["logs"]],
+    // And the exceptions found in the logs, billed with them (issue #6590).
+    [ProductType.Logs, ["logs", "exceptions"]],
     [ProductType.SecurityEvents, ["securityEvents"]],
     [ProductType.Profiles, ["profiles", "profileSamples"]],
     [ProductType.SessionReplay, ["sessionReplay"]],

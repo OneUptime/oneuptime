@@ -24,11 +24,11 @@ flowchart TB
 
 - **Ein Tag wird gezählt, sobald er vorbei ist.** Jeder Tag ist bis etwa 08:00 UTC am nächsten Tag gezählt, die heutige Nutzung erscheint also morgen. Ein Tag, der nicht gezählt werden konnte, wird eine Woche lang erneut versucht.
 - **Die Größe ist die gespeicherte Größe.** Jedes Signal wird als die Größe der Zeilen gezählt, in denen es gespeichert ist, vor der Komprimierung. Sitzungswiedergaben werden als die Bytes gezählt, die die Rekorder hochgeladen haben.
-- **Ausnahmen werden separat angezeigt.** Die aus Spans und Protokollen erfassten Ausnahmen haben eine eigene Summe, eine eigene Spalte und einen eigenen Teil des Diagramms, und **Traces** zählt die Spans. Eine eigene Zeile haben sie nicht: Jede Traces-Zeile gibt an, wie viel davon Ausnahmen waren. Ein Tag, der gezählt wurde, bevor Ausnahmen separat angezeigt wurden, führt sie weiterhin unter **Traces**, wie bisher.
+- **Ausnahmen werden separat angezeigt.** Die aus Spans und Protokollen erfassten Ausnahmen haben eine eigene Summe, eine eigene Spalte und einen eigenen Teil des Diagramms, **Traces** zählt die Spans und **Protokolle** die Protokolleinträge. Eine eigene Zeile haben sie nicht: Jede Traces- oder Protokollzeile gibt an, wie viel davon Ausnahmen waren. Ein Tag, der gezählt wurde, bevor Ausnahmen separat angezeigt wurden, führt sie weiterhin unter **Traces**, wie bisher.
 - **Profile enthalten ihre Samples.**
 - **Die eigene Telemetrie von OneUptime wird nicht gezählt.** Messwerte von Monitoren, Warnungen, Vorfällen und SLOs, Messwerte von Data Observability und die Budgetmetriken der Sitzungswiedergabe schreibt OneUptime selbst.
 - **In OneUptime Cloud wird Telemetrie nach diesen Zeilen abgerechnet.** Auf einer Installation ohne Abrechnung wird die Nutzung kostenlos gezählt, und es wird nichts dafür berechnet, auch wenn die Abrechnung später eingeschaltet wird.
-- **Ausnahmen werden als Teil von Traces abgerechnet.** In OneUptime Cloud werden Traces für ihre Spans und ihre Ausnahmen zusammen abgerechnet, zum Preis für Traces, wie schon immer. Dass Ausnahmen separat angezeigt werden, ändert nichts an dem, was Ihnen in Rechnung gestellt wird, und sie werden nie doppelt berechnet.
+- **Ausnahmen werden mit dem abgerechnet, worin sie gefunden wurden.** In OneUptime Cloud wird eine in einem Span gefundene Ausnahme mit **Traces** abgerechnet und eine in einem Protokolleintrag gefundene mit **Protokolle**. Protokolle und Traces kosten pro GB dasselbe, daher wird jede Ausnahme einmal und zum selben Preis abgerechnet, und einem Projekt, das nur Protokolle sendet, werden nie Traces berechnet. Ein Tag, der gezählt wurde, bevor in Protokollen gefundene Ausnahmen zu **Protokolle** wechselten, führt sie weiterhin unter **Traces**.
 - **Ein Budget wird getrennt von der Nutzung gezählt.** Ein [Ingestion-Budget](/docs/telemetry/ingestion-budgets) zählt Telemetrie beim Eintreffen, dekomprimiert, und kann daher die Telemetrie eines Tages noch am selben Tag stoppen. Solange eines festgelegt ist, öffnet diese Seite mit den heutigen Budgets. Ausnahmen haben kein eigenes Budget, sondern zählen zum Budget der Traces oder Protokolle, in denen sie eintreffen.
 
 ## Bevor Sie beginnen
@@ -58,7 +58,7 @@ Die Seite hat drei Karten:
 | --- | --- |
 | **Telemetrie-Nutzung** | Den Wert **Gesamt** des Zeitraums, eine Summe für jedes Signal und ein Diagramm jedes Tages mit seinen Signalen gestapelt. |
 | **Nutzung nach Ressource** | Jede **Ressource** mit ihrer Art, eine Spalte für jedes Signal, **Gesamt** und unter **Aufbewahrung**, wie lange ihre Telemetrie aufbewahrt wird. |
-| **Telemetrie-Nutzungsverlauf** | Eine Zeile pro Produkt, Ressource und Tag, mit Filtern für **Produkt**, **Tag** und **Dienst**. Eine Zeile für **Traces** enthält Spans und Ausnahmen zusammen, so wie Traces abgerechnet werden, und gibt unter **Aufgenommene Daten (in GB)** an, wie viel davon Ausnahmen waren. |
+| **Telemetrie-Nutzungsverlauf** | Eine Zeile pro Produkt, Ressource und Tag, mit Filtern für **Produkt**, **Tag** und **Dienst**. Eine Zeile für **Traces** enthält die Spans und die darin gefundenen Ausnahmen, eine Zeile für **Protokolle** die Protokolleinträge und die darin gefundenen Ausnahmen, so wie sie abgerechnet werden. Jede gibt unter **Aufgenommene Daten (in GB)** an, wie viel davon Ausnahmen waren. |
 
 Telemetrie, die keinen Dienst genannt hat, wird als **Unbekannter Dienst** aufgeführt. Eine Ressource, die inzwischen gelöscht wurde oder deren Art Ihre Rolle nicht liest, wird mit ihrer Art und dem Anfang ihrer ID aufgeführt.
 
@@ -114,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` und `endDay` sind Tage im Format `YYYY-MM-DD`, beide eingeschlossen, und ein Zeitraum kann bis zu 1095 Tage lang sein. Die Antwort enthält die Summen, jeden Tag nach Signal und jede Ressource nach Signal, in GB, mit den Kosten nur dort, wo die Abrechnung aktiv ist und der Schlüssel die Abrechnung liest. Ausnahmen stehen unter `Exceptions`, getrennt von `Traces`, und bei einem Tag, der gezählt wurde, bevor Ausnahmen separat angezeigt wurden, sind sie in `Traces` enthalten.
+`startDay` und `endDay` sind Tage im Format `YYYY-MM-DD`, beide eingeschlossen, und ein Zeitraum kann bis zu 1095 Tage lang sein. Die Antwort enthält die Summen, jeden Tag nach Signal und jede Ressource nach Signal, in GB, mit den Kosten nur dort, wo die Abrechnung aktiv ist und der Schlüssel die Abrechnung liest. Ausnahmen stehen unter `Exceptions`, getrennt von `Traces` und `Logs`, und bei einem Tag, der gezählt wurde, bevor Ausnahmen separat angezeigt wurden, sind sie in `Traces` enthalten.
 
 ## Fehlerbehebung
 
@@ -132,6 +132,10 @@ Die Ressource wurde gelöscht, nachdem sie die Telemetrie gesendet hat, oder Ihr
 
 :::details Traces sind an dem Tag gesunken, an dem Ausnahmen erschienen sind
 Ausnahmen wurden früher in **Traces** mitgezählt. Ab dem ersten Tag, an dem Ausnahmen getrennt gezählt wurden, zählt **Traces** die Spans und **Ausnahmen** die Ausnahmen. Zusammen ergeben sie, was **Traces** vorher war, und das, wofür Traces abgerechnet werden.
+:::
+
+:::details Protokolle kosten ab einem Tag mehr und Traces weniger
+In Protokolleinträgen gefundene Ausnahmen wurden früher mit **Traces** abgerechnet. Ab dem ersten Tag, der nach der Änderung gezählt wurde, werden sie mit **Protokolle** abgerechnet, dem Produkt, das sie gefunden hat. Protokolle und Traces kosten pro GB dasselbe, daher kosten beide zusammen so viel wie vorher.
 :::
 
 ## Nächste Schritte

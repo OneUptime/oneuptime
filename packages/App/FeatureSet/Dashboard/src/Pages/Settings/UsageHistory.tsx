@@ -28,6 +28,7 @@ import ModelTableColumn from "Common/UI/Components/ModelTable/Column";
 import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
 import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { isExceptionBillingProductType } from "Common/Types/Telemetry/ExceptionSource";
 
 export type ComponentProps = PageComponentProps;
 
@@ -228,9 +229,11 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           /*
            * What the row is billed for. A Traces row is billed for its spans
-           * and its exceptions together, so it says, under that, how much
-           * of it the exceptions were - the overview above shows them apart
-           * (issue #6356). A row counted before then says nothing more.
+           * and the exceptions found in them, and a Logs row for its log
+           * records and the exceptions found in them (issue #6590), so each
+           * says, under that, how much of it the exceptions were - the
+           * overview above shows them apart (issue #6356). A row counted
+           * before then says nothing more.
            */
           {
             field: {
@@ -250,7 +253,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   <div>{`${DiskSize.convertToDecimalPlaces(
                     (item["dataIngestedInGB"] as Decimal).value as number,
                   )}\u00A0GB`}</div>
-                  {item["productType"] === ProductType.Traces &&
+                  {isExceptionBillingProductType(item["productType"]) &&
                   exceptionDataIngestedInGB > 0 ? (
                     <div
                       className="text-xs text-gray-500"

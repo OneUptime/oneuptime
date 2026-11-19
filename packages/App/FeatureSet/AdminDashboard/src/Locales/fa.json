@@ -2085,7 +2085,7 @@
   "Security Events": "رویدادهای امنیتی",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "اسپن‌ها. روزهایی که پیش از جداگانه نشان‌دادن استثناها شمرده شده‌اند، استثناهای خود را هم شامل می‌شوند.",
   "Exceptions recorded from spans and logs.": "استثناهایی که از اسپن‌ها و لاگ‌ها ثبت شده‌اند.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "استثناهایی که از اسپن‌ها و لاگ‌ها ثبت شده‌اند. هزینه آن‌ها به‌عنوان بخشی از ترِیس‌ها محاسبه می‌شود.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "استثناهایی که از اسپن‌ها و لاگ‌ها ثبت شده‌اند. هزینه آن‌هایی که در اسپن‌ها پیدا می‌شوند با ترِیس‌ها و آن‌هایی که در لاگ‌ها پیدا می‌شوند با لاگ‌ها محاسبه می‌شود.",
   "Profiles, and the samples recorded with them.": "پروفایل‌ها، و نمونه‌هایی که همراهشان ثبت شده‌اند.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

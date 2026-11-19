@@ -24,11 +24,11 @@ flowchart TB
 
 - **A day is counted once it is over.** Each day is counted by about 08:00 UTC the next day, so today's usage shows up tomorrow. A day that could not be counted is tried again for a week.
 - **The size is the stored size.** Each signal is counted as the size of the rows it is stored in, before compression. Session replays are counted as the bytes the recorders uploaded.
-- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, and **Traces** counts spans. They have no row of their own: each traces row says how much of it was exceptions. A day counted before exceptions were shown apart still has them inside **Traces**, as it did.
+- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, **Traces** counts spans and **Logs** counts log records. They have no row of their own: each traces or logs row says how much of it was exceptions. A day counted before exceptions were shown apart still has them inside **Traces**, as it did.
 - **Profiles include their samples.**
 - **OneUptime's own telemetry is not counted.** Monitor, alert, incident and SLO readings, Data Observability readings and the session replay budget metrics are written by OneUptime itself.
 - **On OneUptime Cloud, these rows are what telemetry is billed from.** On an installation without billing, usage is counted at no cost, and nothing is charged for it, even if billing is turned on later.
-- **Exceptions are billed as part of Traces.** On OneUptime Cloud, traces are billed for their spans and their exceptions together, at the traces price, as they always were. Showing exceptions apart changes nothing you are billed, and they are never charged twice.
+- **Exceptions are billed with what they were found in.** On OneUptime Cloud, an exception found in a span is billed with **Traces**, and one found in a log record with **Logs**. Logs and traces cost the same per GB, so each exception is billed once, at the same price, and a project that sends only logs is never billed for traces. A day counted before exceptions found in logs moved to **Logs** keeps them in **Traces**.
 - **A budget is counted apart from usage.** An [ingestion budget](/docs/telemetry/ingestion-budgets) counts telemetry as it arrives, decompressed, so it can stop a day's telemetry the same day. While one is set, this page opens with today's budgets. Exceptions have no budget of their own: they count in the budget of the traces or logs they arrive in.
 
 ## Before you begin
@@ -58,7 +58,7 @@ The page has three cards:
 | --- | --- |
 | **Telemetry Usage** | The range's **Total**, a total for each signal, and a chart of each day, its signals stacked. |
 | **Usage by Resource** | Each **Resource** with its kind, a column for each signal, the **Total** and the **Retention** its telemetry is kept for. |
-| **Telemetry Usage History** | One row per product, resource and day, with filters for **Product**, **Day** and **Service**. A **Traces** row holds its spans and exceptions together, as traces are billed, and says under **Data Ingested (in GB)** how much of it was exceptions. |
+| **Telemetry Usage History** | One row per product, resource and day, with filters for **Product**, **Day** and **Service**. A **Traces** row holds its spans and the exceptions found in them, and a **Logs** row its log records and the exceptions found in them, as they are billed. Each says under **Data Ingested (in GB)** how much of it was exceptions. |
 
 Telemetry that did not name a service is listed as **Unknown Service**. A resource that has been deleted since, or whose kind your role does not read, is listed by its kind and the start of its ID.
 
@@ -114,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` and `endDay` are days written `YYYY-MM-DD`, both included, and a range can be up to 1095 days long. The answer has the totals, each day by signal and each resource by signal, in GB, with the cost only where billing is on and the key reads billing. Exceptions are under `Exceptions`, apart from `Traces`, and a day counted before exceptions were shown apart has them inside `Traces`.
+`startDay` and `endDay` are days written `YYYY-MM-DD`, both included, and a range can be up to 1095 days long. The answer has the totals, each day by signal and each resource by signal, in GB, with the cost only where billing is on and the key reads billing. Exceptions are under `Exceptions`, apart from `Traces` and `Logs`, and a day counted before exceptions were shown apart has them inside `Traces`.
 
 ## Troubleshooting
 
@@ -132,6 +132,10 @@ The resource has been deleted since it sent the telemetry, or your role does not
 
 :::details Traces went down on the day Exceptions appeared
 Exceptions used to be counted inside **Traces**. From the first day counted with exceptions apart, **Traces** counts spans and **Exceptions** counts the exceptions. Together they are what **Traces** was, and what traces are billed for.
+:::
+
+:::details Logs cost more and Traces less from one day on
+Exceptions found in log records used to be billed with **Traces**. From the first day counted after the change, they are billed with **Logs**, the product that found them. Logs and traces cost the same per GB, so together the two cost what they did.
 :::
 
 ## Next steps

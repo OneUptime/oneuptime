@@ -46772,7 +46772,7 @@
   "Deliveries to subscriptions that failed in each CloudWatch period (NumberOfNotificationsFailed); for HTTP/S endpoints every failed attempt, retries included, counts.": "每個 CloudWatch 期間內傳遞到訂閱失敗的次數（NumberOfNotificationsFailed）；對於 HTTP/S 端點，每次失敗的嘗試（包括重試）都會計入。",
   "Exceptions Ingested (in GB)": "已擷取的例外（GB）",
   "Exceptions recorded from spans and logs.": "從跨度和日誌記錄的例外。",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "從跨度和日誌記錄的例外。它們作為追蹤的一部分計費。",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "從跨度和日誌記錄的例外。在跨度中發現的例外隨追蹤計費，在日誌中發現的例外隨日誌計費。",
   "Exceptions: {{size}}": "例外：{{size}}",
   "Deployments allowed again": "部署已重新允許",
   "Disk space left for data on the node with the least of it.": "在剩餘空間最少的節點上，仍可供資料使用的磁碟空間。",

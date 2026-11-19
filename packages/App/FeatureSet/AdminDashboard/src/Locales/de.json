@@ -2085,7 +2085,7 @@
   "Security Events": "Sicherheitsereignisse",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Spans. Tage, die gezählt wurden, bevor Ausnahmen getrennt angezeigt wurden, enthalten auch ihre Ausnahmen.",
   "Exceptions recorded from spans and logs.": "Aus Spans und Protokollen aufgezeichnete Ausnahmen.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Aus Spans und Protokollen aufgezeichnete Ausnahmen. Sie werden als Teil der Traces abgerechnet.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Aus Spans und Protokollen aufgezeichnete Ausnahmen. In Spans gefundene werden mit den Traces abgerechnet, in Protokollen gefundene mit den Protokollen.",
   "Profiles, and the samples recorded with them.": "Profile und die mit ihnen aufgezeichneten Samples.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

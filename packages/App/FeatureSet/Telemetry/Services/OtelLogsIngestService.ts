@@ -155,6 +155,10 @@ import OpenStackEventRecorder, {
 } from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
 import OpenStackLogDefaults from "Common/Server/Utils/OpenStack/OpenStackLogDefaults";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "Common/Types/Telemetry/ExceptionSource";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -1868,7 +1872,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     const ingestionTimestamp: string = getIngestionStamp().db;
     const exceptionAttributes: JSONObject = {
-      "exception.source": "log",
+      /*
+       * Found in a log record: billed with Logs, beside the record it was
+       * found in (ExceptionSource, issue #6590).
+       */
+      [EXCEPTION_SOURCE_ATTRIBUTE]: ExceptionSource.Log,
       "log.severityText": String(data.severityText),
     };
 

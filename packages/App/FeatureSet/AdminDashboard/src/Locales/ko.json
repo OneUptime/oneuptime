@@ -2085,7 +2085,7 @@
   "Security Events": "보안 이벤트",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "스팬. 예외가 따로 표시되기 전에 집계된 날에는 그 예외도 포함됩니다.",
   "Exceptions recorded from spans and logs.": "스팬과 로그에서 기록된 예외.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "스팬과 로그에서 기록된 예외. 트레이스의 일부로 청구됩니다.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "스팬과 로그에서 기록된 예외. 스팬에서 발견된 예외는 트레이스로, 로그에서 발견된 예외는 로그로 청구됩니다.",
   "Profiles, and the samples recorded with them.": "프로필, 그리고 함께 기록된 샘플.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

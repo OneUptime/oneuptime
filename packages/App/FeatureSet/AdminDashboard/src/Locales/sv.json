@@ -2085,7 +2085,7 @@
   "Security Events": "Säkerhetshändelser",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Spans. Dagar som räknades innan undantag visades separat innehåller också sina undantag.",
   "Exceptions recorded from spans and logs.": "Undantag registrerade från spans och loggar.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Undantag registrerade från spans och loggar. De faktureras som en del av Spår.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Undantag registrerade från spans och loggar. De som hittas i spans faktureras med Spår, och de som hittas i loggar med Loggar.",
   "Profiles, and the samples recorded with them.": "Profiler och de prov som registrerades med dem.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",

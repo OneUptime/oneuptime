@@ -24,11 +24,11 @@ flowchart TB
 
 - **En dag tælles, når den er slut.** Hver dag tælles senest omkring kl. 08:00 UTC dagen efter, så dagens forbrug vises i morgen. En dag, der ikke kunne tælles, forsøges igen i en uge.
 - **Størrelsen er den lagrede størrelse.** Hvert signal tælles som størrelsen af de rækker, det gemmes i, før komprimering. Sessionsafspilninger tælles som de bytes, optagerne uploadede.
-- **Undtagelser vises for sig.** De undtagelser, der registreres på spans og i protokoller, har deres egen total, kolonne og del af diagrammet, og **Spor** tæller spans. De har ikke deres egen række: hver række for spor angiver, hvor meget af den der var undtagelser. En dag, der blev talt, før undtagelser blev vist for sig, har dem stadig med i **Spor**, som før.
+- **Undtagelser vises for sig.** De undtagelser, der registreres på spans og i protokoller, har deres egen total, kolonne og del af diagrammet, **Spor** tæller spans, og **Protokoller** tæller protokolposter. De har ikke deres egen række: hver række for spor eller protokoller angiver, hvor meget af den der var undtagelser. En dag, der blev talt, før undtagelser blev vist for sig, har dem stadig med i **Spor**, som før.
 - **Profiler omfatter deres samples.**
 - **OneUptimes egen telemetri tælles ikke.** Målinger fra monitorer, advarsler, hændelser og SLO'er, målinger fra Dataobservabilitet og budgetmetrikkerne for sessionsafspilninger skrives af OneUptime selv.
 - **På OneUptime Cloud er det disse rækker, telemetri faktureres ud fra.** På en installation uden fakturering tælles forbrug uden omkostninger, og der opkræves intet for det, heller ikke hvis fakturering slås til senere.
-- **Undtagelser faktureres som en del af Spor.** På OneUptime Cloud faktureres spor for deres spans og deres undtagelser samlet, til prisen for spor, som de altid er blevet. At undtagelser vises for sig, ændrer ikke noget ved din faktura, og de opkræves aldrig to gange.
+- **Undtagelser faktureres med det, de blev fundet i.** På OneUptime Cloud faktureres en undtagelse, der findes i et span, med **Spor**, og en, der findes i en protokolpost, med **Protokoller**. Protokoller og spor koster det samme pr. GB, så hver undtagelse faktureres én gang, til samme pris, og et projekt, der kun sender protokoller, faktureres aldrig for spor. En dag, der blev talt, før undtagelser fundet i protokoller flyttede til **Protokoller**, har dem stadig i **Spor**.
 - **Et budget tælles adskilt fra forbruget.** Et [indtagelsesbudget](/docs/telemetry/ingestion-budgets) tæller telemetri, efterhånden som den ankommer, dekomprimeret, så det kan stoppe en dags telemetri samme dag. Mens et er angivet, åbner denne side med dagens budgetter. Undtagelser har ikke deres eget budget: de tælles med i budgettet for de spor eller protokoller, de ankommer i.
 
 ## Før du begynder
@@ -58,7 +58,7 @@ Siden har tre kort:
 | --- | --- |
 | **Telemetriforbrug** | Periodens **Total**, en total for hvert signal og et diagram over hver dag med signalerne stablet. |
 | **Forbrug pr. ressource** | Hver **Ressource** med dens type, en kolonne for hvert signal, **Total** og **Opbevaring** for dens telemetri. |
-| **Telemetri-forbrugshistorik** | Én række pr. produkt, ressource og dag, med filtre for **Produkt**, **Dag** og **Tjeneste**. En række for **Spor** rummer spans og undtagelser samlet, sådan som spor faktureres, og angiver under **Indtaget data (i GB)**, hvor meget af den der var undtagelser. |
+| **Telemetri-forbrugshistorik** | Én række pr. produkt, ressource og dag, med filtre for **Produkt**, **Dag** og **Tjeneste**. En række for **Spor** rummer spans og de undtagelser, der findes i dem, og en række for **Protokoller** protokolposter og de undtagelser, der findes i dem, sådan som de faktureres. Hver angiver under **Indtaget data (i GB)**, hvor meget af den der var undtagelser. |
 
 Telemetri, der ikke angav en tjeneste, vises som **Ukendt tjeneste**. En ressource, der er slettet siden, eller hvis type din rolle ikke læser, vises med sin type og begyndelsen af sit ID.
 
@@ -114,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` og `endDay` er dage skrevet `YYYY-MM-DD`, begge medregnet, og en periode kan være op til 1095 dage lang. Svaret indeholder totalerne, hver dag pr. signal og hver ressource pr. signal, i GB, med omkostningen kun der, hvor fakturering er slået til, og nøglen kan læse fakturering. Undtagelser ligger under `Exceptions`, adskilt fra `Traces`, og en dag, der blev talt, før undtagelser blev vist for sig, har dem med i `Traces`.
+`startDay` og `endDay` er dage skrevet `YYYY-MM-DD`, begge medregnet, og en periode kan være op til 1095 dage lang. Svaret indeholder totalerne, hver dag pr. signal og hver ressource pr. signal, i GB, med omkostningen kun der, hvor fakturering er slået til, og nøglen kan læse fakturering. Undtagelser ligger under `Exceptions`, adskilt fra `Traces` og `Logs`, og en dag, der blev talt, før undtagelser blev vist for sig, har dem med i `Traces`.
 
 ## Fejlfinding
 
@@ -132,6 +132,10 @@ Ressourcen er slettet, siden den sendte telemetrien, eller din rolle læser ikke
 
 :::details Spor faldt den dag, Undtagelser dukkede op
 Undtagelser blev tidligere talt med i **Spor**. Fra den første dag, der blev talt med undtagelser for sig, tæller **Spor** spans, og **Undtagelser** tæller undtagelserne. Tilsammen er de det, **Spor** var, og det, spor faktureres for.
+:::
+
+:::details Protokoller koster mere og Spor mindre fra en bestemt dag
+Undtagelser fundet i protokolposter blev tidligere faktureret med **Spor**. Fra den første dag, der blev talt efter ændringen, faktureres de med **Protokoller**, det produkt, der fandt dem. Protokoller og spor koster det samme pr. GB, så tilsammen koster de to det samme som før.
 :::
 
 ## Næste skridt

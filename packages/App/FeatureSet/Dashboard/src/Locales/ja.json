@@ -46772,7 +46772,7 @@
   "Deliveries to subscriptions that failed in each CloudWatch period (NumberOfNotificationsFailed); for HTTP/S endpoints every failed attempt, retries included, counts.": "CloudWatch の各期間に失敗した、サブスクリプションへの配信の数です（NumberOfNotificationsFailed）。HTTP/S エンドポイントでは、再試行を含め、失敗したすべての試行を数えます。",
   "Exceptions Ingested (in GB)": "取り込まれた例外（GB 単位）",
   "Exceptions recorded from spans and logs.": "スパンとログから記録された例外。",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "スパンとログから記録された例外。トレースの一部として課金されます。",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "スパンとログから記録された例外。スパンで見つかった例外はトレースとして、ログで見つかった例外はログとして課金されます。",
   "Exceptions: {{size}}": "例外: {{size}}",
   "Deployments allowed again": "Deployment 再許可",
   "Disk space left for data on the node with the least of it.": "空きが最も少ないノードで、データ用に残っているディスク容量です。",

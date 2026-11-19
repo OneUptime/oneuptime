@@ -108,6 +108,10 @@ import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
 import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
 import { withAppInstallationId } from "Common/Types/Rum/MobileAppTelemetry";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "Common/Types/Telemetry/ExceptionSource";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -1563,11 +1567,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            * names (#9716): the event's bag never holds a resource
            * attribute, and a mobile app's crash-free installs counts the
            * installs of its crashes as it counts their sessions.
+           *
+           * And where it was found: a span, billed with Traces
+           * (ExceptionSource, issue #6590). Written over whatever the
+           * emitter's event put under the key, so only the logs ingest
+           * can mark an occurrence as found in a log.
            */
-          attributes: withAppInstallationId({
-            attributes: scrubbed.attributes,
-            from: spanContext.spanAttributes,
-          }),
+          attributes: {
+            ...withAppInstallationId({
+              attributes: scrubbed.attributes,
+              from: spanContext.spanAttributes,
+            }),
+            [EXCEPTION_SOURCE_ATTRIBUTE]: ExceptionSource.Span,
+          },
           time: rawException.time,
           fingerprint: fingerprint,
           fingerprintV2: fingerprintV2,

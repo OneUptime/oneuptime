@@ -24,11 +24,11 @@ flowchart TB
 
 - **Un día se cuenta cuando termina.** Cada día queda contado a más tardar hacia las 08:00 UTC del día siguiente, así que el uso de hoy aparece mañana. Un día que no se pudo contar se vuelve a intentar durante una semana.
 - **El tamaño es el tamaño almacenado.** Cada señal se cuenta como el tamaño de las filas en las que se almacena, antes de la compresión. Las reproducciones de sesiones se cuentan como los bytes que subieron las grabadoras.
-- **Las excepciones se muestran aparte.** Las excepciones recogidas de spans y registros tienen su propio total, su propia columna y su propia parte del gráfico, y **Trazas** cuenta los spans. No tienen fila propia: cada fila de trazas indica qué parte de ella corresponde a excepciones. Un día contado antes de que las excepciones se mostraran aparte las sigue incluyendo en **Trazas**, como antes.
+- **Las excepciones se muestran aparte.** Las excepciones recogidas de spans y registros tienen su propio total, su propia columna y su propia parte del gráfico, **Trazas** cuenta los spans y **Registros** cuenta las entradas de registro. No tienen fila propia: cada fila de trazas o de registros indica qué parte de ella corresponde a excepciones. Un día contado antes de que las excepciones se mostraran aparte las sigue incluyendo en **Trazas**, como antes.
 - **Los perfiles incluyen sus muestras.**
 - **La telemetría propia de OneUptime no se cuenta.** Las lecturas de monitores, alertas, incidentes y SLO, las lecturas de Observabilidad de datos y las métricas de presupuesto de las reproducciones de sesiones las escribe el propio OneUptime.
 - **En OneUptime Cloud, la telemetría se factura a partir de estas filas.** En una instalación sin facturación, el uso se cuenta sin costo, y no se cobra nada por él, aunque la facturación se active más adelante.
-- **Las excepciones se facturan como parte de las trazas.** En OneUptime Cloud, las trazas se facturan por sus spans y sus excepciones en conjunto, al precio de las trazas, como siempre. Mostrar las excepciones aparte no cambia nada de lo que se le factura, y nunca se cobran dos veces.
+- **Las excepciones se facturan con aquello en lo que se encontraron.** En OneUptime Cloud, una excepción encontrada en un span se factura con **Trazas**, y una encontrada en una entrada de registro, con **Registros**. Los registros y las trazas cuestan lo mismo por GB, así que cada excepción se factura una sola vez, al mismo precio, y a un proyecto que solo envía registros nunca se le facturan trazas. Un día contado antes de que las excepciones encontradas en registros pasaran a **Registros** las mantiene en **Trazas**.
 - **Un presupuesto se cuenta aparte del uso.** Un [presupuesto de ingesta](/docs/telemetry/ingestion-budgets) cuenta la telemetría a medida que llega, descomprimida, así que puede detener la telemetría de un día el mismo día. Mientras haya uno fijado, esta página se abre con los presupuestos de hoy. Las excepciones no tienen presupuesto propio: cuentan en el presupuesto de las trazas o los registros en los que llegan.
 
 ## Antes de empezar
@@ -58,7 +58,7 @@ La página tiene tres tarjetas:
 | --- | --- |
 | **Uso de telemetría** | El **Total** del intervalo, un total por cada señal y un gráfico de cada día, con sus señales apiladas. |
 | **Uso por recurso** | Cada **Recurso** con su tipo, una columna por cada señal, el **Total** y, en **Retención**, cuánto tiempo se conserva su telemetría. |
-| **Historial de uso de telemetría** | Una fila por producto, recurso y día, con filtros por **Producto**, **Día** y **Servicio**. Una fila de **Trazas** reúne sus spans y sus excepciones, tal como se facturan las trazas, e indica en **Datos ingeridos (en GB)** qué parte corresponde a excepciones. |
+| **Historial de uso de telemetría** | Una fila por producto, recurso y día, con filtros por **Producto**, **Día** y **Servicio**. Una fila de **Trazas** reúne sus spans y las excepciones encontradas en ellos, y una fila de **Registros**, sus entradas de registro y las excepciones encontradas en ellas, tal como se facturan. Cada una indica en **Datos ingeridos (en GB)** qué parte corresponde a excepciones. |
 
 La telemetría que no indicaba ningún servicio aparece como **Servicio desconocido**. Un recurso que se ha eliminado desde entonces, o cuyo tipo su rol no lee, aparece con su tipo y el comienzo de su ID.
 
@@ -114,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` y `endDay` son días escritos `YYYY-MM-DD`, ambos incluidos, y un intervalo puede durar hasta 1095 días. La respuesta tiene los totales, cada día por señal y cada recurso por señal, en GB, con el costo solo donde la facturación está activada y la clave lee la facturación. Las excepciones están en `Exceptions`, separadas de `Traces`, y un día contado antes de que las excepciones se mostraran aparte las incluye en `Traces`.
+`startDay` y `endDay` son días escritos `YYYY-MM-DD`, ambos incluidos, y un intervalo puede durar hasta 1095 días. La respuesta tiene los totales, cada día por señal y cada recurso por señal, en GB, con el costo solo donde la facturación está activada y la clave lee la facturación. Las excepciones están en `Exceptions`, separadas de `Traces` y `Logs`, y un día contado antes de que las excepciones se mostraran aparte las incluye en `Traces`.
 
 ## Solución de problemas
 
@@ -132,6 +132,10 @@ El recurso se eliminó después de enviar la telemetría, o su rol no lee ese ti
 
 :::details Las Trazas bajaron el día en que aparecieron las Excepciones
 Antes, las excepciones se contaban dentro de **Trazas**. Desde el primer día contado con las excepciones aparte, **Trazas** cuenta los spans y **Excepciones** cuenta las excepciones. Juntas suman lo que era **Trazas**, y aquello por lo que se facturan las trazas.
+:::
+
+:::details Los Registros cuestan más y las Trazas menos a partir de un día
+Las excepciones encontradas en entradas de registro se facturaban antes con **Trazas**. Desde el primer día contado después del cambio, se facturan con **Registros**, el producto que las encontró. Los registros y las trazas cuestan lo mismo por GB, así que juntos cuestan lo mismo que antes.
 :::
 
 ## Próximos pasos

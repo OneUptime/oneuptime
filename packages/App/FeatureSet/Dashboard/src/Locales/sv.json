@@ -46772,7 +46772,7 @@
   "Deliveries to subscriptions that failed in each CloudWatch period (NumberOfNotificationsFailed); for HTTP/S endpoints every failed attempt, retries included, counts.": "Leveranser till prenumerationer som misslyckades under varje CloudWatch-period (NumberOfNotificationsFailed); för HTTP/S-slutpunkter räknas varje misslyckat försök, återförsök inräknade.",
   "Exceptions Ingested (in GB)": "Inmatade undantag (i GB)",
   "Exceptions recorded from spans and logs.": "Undantag registrerade från spans och loggar.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Undantag registrerade från spans och loggar. De faktureras som en del av Spår.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Undantag registrerade från spans och loggar. De som hittas i spans faktureras med Spår, och de som hittas i loggar med Loggar.",
   "Exceptions: {{size}}": "Undantag: {{size}}",
   "Deployments allowed again": "Distributioner tillåtna igen",
   "Disk space left for data on the node with the least of it.": "Diskutrymme som finns kvar för data på den nod som har minst kvar.",

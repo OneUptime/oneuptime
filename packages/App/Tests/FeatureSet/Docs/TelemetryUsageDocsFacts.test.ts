@@ -15,6 +15,10 @@ import {
   TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS,
 } from "Common/Server/Services/TelemetryUsageBillingService";
 import {
+  LogDataIngestMeteredPlan,
+  TracesDataIngestMetredPlan,
+} from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import {
   TELEMETRY_USAGE_DEFAULT_RANGE_IN_DAYS,
   TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS,
   TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
@@ -374,7 +378,7 @@ describe("exceptions, apart from traces", () => {
       "sends: logs, metrics, traces, exceptions, profiles, session replays and security events.",
     );
     expect(ENGLISH).toContain(
-      "- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, and **Traces** counts spans.",
+      "- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, **Traces** counts spans and **Logs** counts log records.",
     );
     // The overview draws a tile, a column and a part of the chart per signal.
     expect(OVERVIEW).toContain("TELEMETRY_USAGE_SIGNALS.filter(");
@@ -414,17 +418,33 @@ describe("exceptions, apart from traces", () => {
     );
   });
 
-  test("have no row of their own: the traces row says how much of it was exceptions", () => {
+  test("have no row of their own: the traces or logs row says how much of it was exceptions", () => {
     expect(ENGLISH).toContain(
-      "They have no row of their own: each traces row says how much of it was exceptions.",
+      "They have no row of their own: each traces or logs row says how much of it was exceptions.",
     );
     expect(BILLING_SERVICE).toContain("exceptionDataIngestedInGB:");
     expect(READS).toContain('AS "exceptionDataIngestedInGB"');
   });
 
-  test("are billed inside Traces, at the traces price, from all the row holds", () => {
+  test("are billed with what they were found in, at the same price, from all the row holds (issue #6590)", () => {
     expect(ENGLISH).toContain(
-      "- **Exceptions are billed as part of Traces.** On OneUptime Cloud, traces are billed for their spans and their exceptions together, at the traces price, as they always were. Showing exceptions apart changes nothing you are billed, and they are never charged twice.",
+      "- **Exceptions are billed with what they were found in.** On OneUptime Cloud, an exception found in a span is billed with **Traces**, and one found in a log record with **Logs**. Logs and traces cost the same per GB, so each exception is billed once, at the same price, and a project that sends only logs is never billed for traces. A day counted before exceptions found in logs moved to **Logs** keeps them in **Traces**.",
+    );
+
+    // The same price per GB, and the same fewest days billed, is what keeps it true.
+    expect(LogDataIngestMeteredPlan.unitCostInUSD).toBe(
+      TracesDataIngestMetredPlan.unitCostInUSD,
+    );
+    expect(LogDataIngestMeteredPlan.minimumBillableRetentionInDays).toBe(
+      TracesDataIngestMetredPlan.minimumBillableRetentionInDays,
+    );
+
+    // Each product reads the exception table by the source it bills.
+    expect(BILLING_SERVICE).toContain(
+      "attributeFilter: getBilledExceptionsFilter(ProductType.Logs),",
+    );
+    expect(BILLING_SERVICE).toContain(
+      "attributeFilter: getBilledExceptionsFilter(ProductType.Traces),",
     );
 
     // The cost is the price of everything the row holds; the part is never priced.
@@ -433,7 +453,7 @@ describe("exceptions, apart from traces", () => {
     );
     expect(METERED_PLAN).not.toContain("exceptionDataIngestedInGB");
     expect(WORDS).toContain(
-      '"Exceptions recorded from spans and logs. They are billed as part of Traces."',
+      '"Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs."',
     );
   });
 
@@ -461,19 +481,32 @@ describe("exceptions, apart from traces", () => {
     );
   });
 
-  test("a Traces row of the history says how much of it was exceptions, under Data Ingested (in GB)", () => {
+  test("a Traces or Logs row of the history says how much of it was exceptions, under Data Ingested (in GB)", () => {
     expect(USAGE_PAGE).toContain('title: "Data Ingested (in GB)"');
     expect(USAGE_PAGE).toContain("exceptionDataIngestedInGB: true,");
     expect(USAGE_PAGE).toContain("formatTelemetryUsageExceptionsPart(");
+    expect(USAGE_PAGE).toContain(
+      'isExceptionBillingProductType(item["productType"])',
+    );
     expect(ENGLISH).toContain(
-      "A **Traces** row holds its spans and exceptions together, as traces are billed, and says under **Data Ingested (in GB)** how much of it was exceptions.",
+      "A **Traces** row holds its spans and the exceptions found in them, and a **Logs** row its log records and the exceptions found in them, as they are billed. Each says under **Data Ingested (in GB)** how much of it was exceptions.",
     );
   });
 
-  test("the API answers them under Exceptions, apart from Traces", () => {
+  test("say why Logs cost more and Traces less from the day the exceptions found in logs moved (issue #6590)", () => {
     expect(ENGLISH).toContain(
-      "Exceptions are under `Exceptions`, apart from `Traces`, and a day counted before exceptions were shown apart has them inside `Traces`.",
+      ":::details Logs cost more and Traces less from one day on",
     );
+    expect(ENGLISH).toContain(
+      "Exceptions found in log records used to be billed with **Traces**. From the first day counted after the change, they are billed with **Logs**, the product that found them. Logs and traces cost the same per GB, so together the two cost what they did.",
+    );
+  });
+
+  test("the API answers them under Exceptions, apart from Traces and Logs", () => {
+    expect(ENGLISH).toContain(
+      "Exceptions are under `Exceptions`, apart from `Traces` and `Logs`, and a day counted before exceptions were shown apart has them inside `Traces`.",
+    );
+    expect(`\`${ProductType.Logs}\``).toBe("`Logs`");
     expect(`\`${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}\``).toBe("`Exceptions`");
     expect(`\`${ProductType.Traces}\``).toBe("`Traces`");
   });
@@ -485,6 +518,7 @@ describe("exceptions, apart from traces", () => {
 
       for (const label of [
         "Traces",
+        "Logs",
         "Exceptions",
         "Data Ingested (in GB)",
         "Telemetry Usage History",
