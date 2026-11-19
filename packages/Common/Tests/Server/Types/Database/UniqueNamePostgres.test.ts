@@ -11,9 +11,13 @@ import {
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Label from "../../../../Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../../Models/DatabaseModels/Team";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import LabelService from "../../../../Server/Services/LabelService";
+import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import TeamService from "../../../../Server/Services/TeamService";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
@@ -55,7 +59,11 @@ const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
  *   - TeamService refuses a new team and a rename onto a name another team
  *     of the project holds, however either was saved, and lets through a
  *     team written with its own name again, though another shares it;
- *   - LabelService refuses a rename onto another label's name.
+ *   - LabelService refuses a rename onto another label's name;
+ *   - OnCallDutyPolicyService and OnCallDutyPolicyScheduleService refuse a
+ *     new one, and a rename, onto a name another of the project has
+ *     (#9742), and a policy's refusal says where to unarchive an archived
+ *     one, naming a policy in service first.
  *
  * Needs only a bare Postgres: each model's table is made from its own column
  * metadata in a schema of its own, dropped afterwards. CI's Common test job
@@ -79,7 +87,12 @@ const describePostgres: typeof describe.skip =
 
 const SCHEMA: string = `unique_name_${process.pid}_${Date.now()}`;
 
-const MODELS: Array<{ new (): BaseModel }> = [Team, Label];
+const MODELS: Array<{ new (): BaseModel }> = [
+  Team,
+  Label,
+  OnCallDutyPolicy,
+  OnCallDutyPolicySchedule,
+];
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
@@ -415,5 +428,174 @@ describePostgres("a name as it reads, on Postgres", () => {
     ).toBe(
       "There is already a label called production in this project. Pick another name.",
     );
+  });
+
+  /*
+   * #9742: an on-call policy's and an on-call schedule's name, held to the
+   * same rule through the same helper, on real rows: an archived policy
+   * keeps its name, and a policy in service is the one named when both have
+   * it - Postgres sorts false before true.
+   */
+  async function onCallPolicy(
+    name: string,
+    options?: { isArchived?: boolean; projectId?: ObjectID },
+  ): Promise<string> {
+    return await insert(OnCallDutyPolicy, {
+      projectId: (options?.projectId || PROJECT_ID).toString(),
+      name: name,
+      slug: name,
+      isArchived: Boolean(options?.isArchived),
+    });
+  }
+
+  async function onCallSchedule(name: string): Promise<string> {
+    return await insert(OnCallDutyPolicySchedule, {
+      projectId: PROJECT_ID.toString(),
+      name: name,
+      slug: name,
+    });
+  }
+
+  test("a new on-call policy named as another, in service or archived, is refused with the words for each", async () => {
+    await onCallPolicy("Primary ", { isArchived: true });
+    await onCallPolicy(`Weekend${NO_BREAK_SPACE}Cover`, { isArchived: true });
+    await onCallPolicy("weekend cover");
+    await onCallPolicy("Elsewhere", { projectId: OTHER_PROJECT_ID });
+
+    const hook: (createBy: CreateBy<OnCallDutyPolicy>) => Promise<void> = (
+      OnCallDutyPolicyService as unknown as {
+        onBeforeCreateUniqueCheck: (
+          createBy: CreateBy<OnCallDutyPolicy>,
+        ) => Promise<void>;
+      }
+    ).onBeforeCreateUniqueCheck.bind(OnCallDutyPolicyService);
+
+    const createBy: (name: string) => CreateBy<OnCallDutyPolicy> = (
+      name: string,
+    ): CreateBy<OnCallDutyPolicy> => {
+      const model: OnCallDutyPolicy = new OnCallDutyPolicy();
+      model.name = name;
+      model.projectId = PROJECT_ID;
+
+      return {
+        data: model,
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+      } as unknown as CreateBy<OnCallDutyPolicy>;
+    };
+
+    expect(await refusal(hook(createBy("PRIMARY")))).toBe(
+      "There is already an archived on-call policy called PRIMARY in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.",
+    );
+    // Both have the name: the one in service is named.
+    expect(await refusal(hook(createBy("Weekend  Cover")))).toBe(
+      "There is already an on-call policy called Weekend Cover in this project. Pick another name.",
+    );
+    await expect(hook(createBy("Elsewhere"))).resolves.toBeUndefined();
+    await expect(hook(createBy("Primary Two"))).resolves.toBeUndefined();
+  });
+
+  test("an on-call policy or schedule renamed onto another's name is refused; one written with its own name again is not", async () => {
+    const primaryId: string = await onCallPolicy("Primary");
+    const secondaryId: string = await onCallPolicy("Secondary");
+    const scheduleId: string = await onCallSchedule("Weekdays");
+    const twinId: string = await onCallSchedule("weekdays");
+    const weekendsId: string = await onCallSchedule("Weekends");
+
+    async function rename<TBaseModel extends BaseModel>(data: {
+      service: {
+        findRowsAndHoldUpdateToThem: unknown;
+      };
+      model: { new (): TBaseModel };
+      id: string;
+      name: string;
+    }): Promise<void> {
+      jest
+        .spyOn(
+          data.service as unknown as {
+            findRowsAndHoldUpdateToThem: () => Promise<Array<TBaseModel>>;
+          },
+          "findRowsAndHoldUpdateToThem",
+        )
+        .mockImplementation(async (): Promise<Array<TBaseModel>> => {
+          return await database.getRepository(data.model).find({
+            where: { _id: data.id } as never,
+            select: { _id: true, name: true, projectId: true } as never,
+          });
+        });
+
+      await (
+        data.service as unknown as {
+          onBeforeUpdateUniqueCheck: (
+            updateBy: UpdateBy<TBaseModel>,
+          ) => Promise<void>;
+        }
+      ).onBeforeUpdateUniqueCheck.call(data.service, {
+        query: { _id: data.id },
+        data: { name: data.name, description: "Weekday cover." },
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<TBaseModel>);
+    }
+
+    const policyService: { findRowsAndHoldUpdateToThem: unknown } =
+      OnCallDutyPolicyService as unknown as {
+        findRowsAndHoldUpdateToThem: unknown;
+      };
+    const scheduleService: { findRowsAndHoldUpdateToThem: unknown } =
+      OnCallDutyPolicyScheduleService as unknown as {
+        findRowsAndHoldUpdateToThem: unknown;
+      };
+
+    expect(
+      await refusal(
+        rename({
+          service: policyService,
+          model: OnCallDutyPolicy,
+          id: secondaryId,
+          name: " primary",
+        }),
+      ),
+    ).toBe(
+      "There is already an on-call policy called primary in this project. Pick another name.",
+    );
+    await expect(
+      rename({
+        service: policyService,
+        model: OnCallDutyPolicy,
+        id: primaryId,
+        name: "PRIMARY",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(
+      await refusal(
+        rename({
+          service: scheduleService,
+          model: OnCallDutyPolicySchedule,
+          id: weekendsId,
+          name: `Weekdays${IDEOGRAPHIC_SPACE}`,
+        }),
+      ),
+    ).toBe(
+      "There is already an on-call schedule called Weekdays in this project. Pick another name.",
+    );
+    // Twins from before: each can still be edited, and renamed apart.
+    await expect(
+      rename({
+        service: scheduleService,
+        model: OnCallDutyPolicySchedule,
+        id: twinId,
+        name: "Weekdays",
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      rename({
+        service: scheduleService,
+        model: OnCallDutyPolicySchedule,
+        id: scheduleId,
+        name: "Weekdays (EU)",
+      }),
+    ).resolves.toBeUndefined();
   });
 });
