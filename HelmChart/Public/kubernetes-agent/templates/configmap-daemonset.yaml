@@ -4,6 +4,18 @@
   only parts gated on pod-log collection. Everything else here is metrics.
 */}}
 {{- $wantLogs := eq (include "kubernetes-agent.daemonSetLogsEnabled" .) "true" }}
+{{- /*
+  The types the renamed components go by on the collector this renders for:
+  kubelet_stats, host_metrics, file_log, k8s_attributes, resource_detection
+  and otlp_http, or the old types on a collector from before the rename
+  (kubernetes-agent.componentType).
+*/}}
+{{- $kubeletStats := include "kubernetes-agent.componentType" (dict "root" . "type" "kubelet_stats") }}
+{{- $hostMetrics := include "kubernetes-agent.componentType" (dict "root" . "type" "host_metrics") }}
+{{- $fileLog := include "kubernetes-agent.componentType" (dict "root" . "type" "file_log") }}
+{{- $k8sAttributes := include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_attributes") }}
+{{- $resourceDetection := include "kubernetes-agent.componentType" (dict "root" . "type" "resource_detection") }}
+{{- $otlpHttp := include "kubernetes-agent.componentType" (dict "root" . "type" "otlp_http") }}
 {{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
 apiVersion: v1
 kind: ConfigMap
@@ -20,7 +32,7 @@ data:
 
     receivers:
       # Collect node, pod, and container resource metrics from kubelet
-      kubeletstats:
+      {{ $kubeletStats }}:
         collection_interval: {{ .Values.collectionInterval }}
         auth_type: serviceAccount
         endpoint: "https://${env:NODE_IP}:10250"
@@ -143,7 +155,7 @@ data:
       # queue depth, filesystem inode usage, NIC error counters, load
       # average, paging stats. Reads /proc and /sys directly (mounted
       # under /host).
-      hostmetrics:
+      {{ $hostMetrics }}:
         collection_interval: {{ .Values.hostMetrics.collectionInterval }}
         root_path: /host
         scrapers:
@@ -178,7 +190,7 @@ data:
       # Kubernetes API server audit log. Self-managed clusters only;
       # managed K8s (EKS / GKE / AKS / DOKS) routes audit logs to the
       # cloud provider's sink instead of writing them to a file.
-      filelog/audit:
+      {{ $fileLog }}/audit:
         include:
           {{- range .Values.auditLogs.paths }}
           - {{ . | quote }}
@@ -217,7 +229,7 @@ data:
       {{- $podLogExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "podLogs") | fromJsonArray }}
       {{- $openStack := (.Values.logs).openStack | default dict }}
       {{- $openStackCloud := $openStack.cloudName | default "" }}
-      filelog:
+      {{ $fileLog }}:
         include:
           {{- if $podLogInclude }}
           {{- range $podLogInclude }}
@@ -596,7 +608,7 @@ data:
               - delete_key(attributes, "oneuptime.k8s.pod_level")
 
       # Enrich with K8s metadata
-      k8sattributes:
+      {{ $k8sAttributes }}:
         auth_type: serviceAccount
         extract:
           metadata:
@@ -708,7 +720,7 @@ data:
         {{- include "kubernetes-agent.memoryLimiter" (.Values.logs.resources.limits.memory | default "512Mi") | nindent 8 }}
 
     exporters:
-      otlphttp:
+      {{ $otlpHttp }}:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
@@ -741,12 +753,12 @@ data:
       pipelines:
         metrics:
           receivers:
-            - kubeletstats
+            - {{ $kubeletStats }}
             {{- if .Values.cadvisor.enabled }}
             - prometheus/cadvisor
             {{- end }}
             {{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
-            - hostmetrics
+            - {{ $hostMetrics }}
             {{- end }}
           processors:
             - memory_limiter
@@ -759,7 +771,7 @@ data:
             - transform/cpu-utilization
             # Around k8sattributes: pod-level telemetry stays pod-level.
             - transform/pod-level-mark
-            - k8sattributes
+            - {{ $k8sAttributes }}
             - transform/pod-level-unmark
             {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
             # After k8sattributes so namespace conditions can match; before
@@ -768,22 +780,22 @@ data:
             {{- end }}
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             - transform
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         {{- if $wantLogs }}
         logs:
           receivers:
-            - filelog
+            - {{ $fileLog }}
             {{- if .Values.auditLogs.enabled }}
-            - filelog/audit
+            - {{ $fileLog }}/audit
             {{- end }}
           processors:
             - memory_limiter
-            - k8sattributes
+            - {{ $k8sAttributes }}
             {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
             # Severity is set by the receiver's operator chain above, so the
             # filter sees a real severity_number by the time it runs here.
@@ -791,11 +803,11 @@ data:
             {{- end }}
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             - transform
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         {{- end }}
 {{- end }}
