@@ -114,7 +114,7 @@ Clique em **Configurar o e-mail**. Ele abre **Configurações > Notificações >
 
 ### Escolher quem pode se cadastrar
 
-Qualquer pessoa que consiga abrir seu endereço pode se cadastrar. Quando sua equipe tiver as contas dela, desligue **Permitir cadastro** em **Configurações > Autenticação**: quem você convidar para um projeto ainda pode entrar. Para deixar os cadastros abertos, clique em **Manter os registros abertos**.
+Qualquer pessoa que consiga abrir seu endereço pode se cadastrar. Quando o seu servidor puder enviar e-mail, uma conta nova abre o link que o OneUptime envia a ela antes de poder entrar, e um endereço que já tem conta fica sabendo disso por e-mail. Quando sua equipe tiver as contas dela, desligue **Permitir cadastro** em **Configurações > Autenticação**: quem você convidar para um projeto ainda pode entrar. Para deixar os cadastros abertos, clique em **Manter os registros abertos**.
 
 **Funcionou quando** a lista marca os cadastros como feitos.
 

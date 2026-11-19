@@ -996,8 +996,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Signing in, and keeping a session, which every product needs: what a person proves to get in is of no one product.",
       {
-        // #9764: a security key set up at sign-in - its options, and the key's answer.
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 20,
+        /*
+         * #9764: a security key set up at sign-in - its options, and the
+         * key's answer. #9822: a security key's sign-in options, asked for
+         * with the password again rather than by an address alone.
+         */
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 21,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
@@ -1007,7 +1011,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/MCP/OAuth/OAuthRoutes.ts": 7,
         "packages/Common/Server/API/UserTotpAuthAPI.ts": 1,
         "packages/Common/Server/API/UserTwoFactorBackupCodeAPI.ts": 1,
-        "packages/Common/Server/API/UserWebAuthnAPI.ts": 3,
+        // #9822: the anonymous authentication options are gone.
+        "packages/Common/Server/API/UserWebAuthnAPI.ts": 2,
       },
     ),
     ...decided(

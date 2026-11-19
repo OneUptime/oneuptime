@@ -1,0 +1,44 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="You Already Have an Account" }}
+
+{{!--
+  Sent when a sign-up names an address that already has an account (#9816,
+  Identity's AuthenticationEmail.sendAccountAlreadyExistsEmail). The sign-up
+  page tells whoever typed the address to check their email, as it tells
+  everybody, so nobody learns from it whether the address has an account:
+  this email, to the address, is where that is said. Nothing was created or
+  changed. The likeliest sender is the owner, who forgot they had an account
+  or its password, so it offers both ways back in; when, from where and on
+  which device the sign-up came (Partials/RequestOriginFields.hbs) lets the
+  owner tell their own from a stranger's.
+--}}
+
+{{> InfoBlock info=(concat "Someone, maybe you, tried to sign up for " (brandNameHtml) " with this email address. It already has an account, so nothing was created or changed.")}}
+
+{{> ButtonBlock buttonUrl=signInLink buttonText="Sign In"}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=forgotPasswordUrl linkLabel="Forgot your password?" linkText="Reset your password"}}
+
+{{> VerticalSpace this}}
+
+{{#if requestedAt}}
+{{> InfoBlock info="Details of the sign-up:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Requested at:" plainText=requestedAt }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+{{/if}}
+
+{{> InfoBlock info="<strong>Didn't try to sign up?</strong> You can safely ignore this email. Your account is unchanged, and whoever typed your address was not told that it has an account."}}
+
+{{> SupportBlock this }}
+
+{{> Footer this}}
+
+{{> End this}}

@@ -41,7 +41,7 @@ Clique na sua foto, no canto superior direito, e escolha **Perfil**. A página *
 
 Clique em **Editar: Usuário** e mude o que precisar:
 
-- **E-mail**: o endereço com que você entra. Se você o mudar, vai verificar o novo endereço de novo.
+- **E-mail**: o endereço com que você entra. Se você o mudar, o OneUptime envia um link para o novo endereço, e o seu endereço muda assim que você o abrir. Até lá, você entra com o atual, e **Cancelar alteração** interrompe a alteração. O endereço de um administrador principal muda na hora.
 - **Nome completo**: o nome que sua equipe vê em todo o OneUptime.
 - **Fuso horário**: o fuso horário em que o painel mostra e lê os horários, e o dos horários nas notificações enviadas a você.
 - **Idioma**: o idioma do painel em cada navegador em que você entra, e o dos seus acionamentos de plantão. Sem definir, seus acionamentos ficam em inglês e o painel segue o seu navegador.
@@ -184,6 +184,14 @@ Abra **Zona de perigo → Excluir conta**. Você só pode excluir sua conta quan
 
 :::details Não recebi o e-mail para verificar meu endereço
 Entrar de novo envia um link novo: confira também sua pasta de spam. Se você não conseguir entrar, use **Esqueceu a senha?** na página de login. O link de redefinição também verifica o seu endereço.
+:::
+
+:::details Ao me cadastrar, recebi um e-mail dizendo que já tenho uma conta
+Esse endereço já tem uma conta no OneUptime, então o cadastro não criou nem mudou nada. Entre com ele, ou use **Esqueceu a senha?** na página de login se você não lembrar a sua senha. A página de cadastro diz o mesmo para qualquer endereço, então não conta a ninguém quais endereços têm uma conta.
+:::
+
+:::details Meu endereço de e-mail não mudou
+O seu endereço só muda quando você abre o link que o OneUptime enviou para o novo endereço. O link funciona por 24 horas: se ele expirou, mude o seu e-mail de novo para receber um novo. Se outra conta já usa esse endereço, o e-mail enviado para lá diz isso, e o seu endereço continua como está.
 :::
 
 :::details Perdi meu aplicativo autenticador

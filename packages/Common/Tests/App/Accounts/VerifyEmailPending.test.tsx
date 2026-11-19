@@ -45,26 +45,28 @@ const EMAIL: string = "ada@example.com";
 const RESEND_TOKEN: string =
   "v1.eyJ2IjoxLCJ1IjoiMzMzMyJ9.c2lnbmF0dXJlLXNpZ25hdHVyZS1zaWduYXR1cmUtc2ln";
 
-// Straight out of en.json.
-const TITLE: string = "Verify your email to finish signing up";
+/*
+ * Straight out of en.json. The screen every sign-up lands on where the
+ * server proves addresses by email, whatever the address (#9816): it says
+ * an email went, never which.
+ */
+const TITLE: string = "Check your email to finish signing up";
 const SENT_TO: (email: string) => string = (email: string): string => {
-  return `We've sent a verification link to ${email}.`;
+  return `We've sent an email to ${email}.`;
 };
-const SENT_GENERIC: string = "We've sent you a verification link.";
-const INSTRUCTIONS: string =
-  "Open the link in that email to activate your account, then sign in.";
-const SPAM_HINT: string =
-  "Can't find it? Check your spam or junk folder. The link expires in 24 hours.";
+const SENT_GENERIC: string = "We've sent you an email.";
+const INSTRUCTIONS: string = "Open the link in it to finish signing up.";
+const SPAM_HINT: string = "Can't find it? Check your spam or junk folder.";
 const SIGN_IN_FALLBACK_HINT: string =
-  "Can't find it? Check your spam folder. The link expires in 24 hours, and signing in with your email and password sends you a new one.";
+  "Can't find it? Check your spam or junk folder, or sign up again and we'll send it again.";
 const OPENS_IN_NEW_TAB: string = "(opens in a new tab)";
-const ALREADY_VERIFIED_PROMPT: string = "Already verified your email?";
+const ALREADY_VERIFIED_PROMPT: string = "Ready to sign in?";
 const GO_TO_SIGN_IN: string = "Go to sign in";
 const WRONG_ADDRESS: string = "Wrong email address?";
 const USE_DIFFERENT_EMAIL: string = "Sign up with a different email";
-const RESEND_BUTTON: string = "Resend verification email";
+const RESEND_BUTTON: string = "Send Email Again";
 const SENT: string =
-  "We've sent a new verification link. It can take a minute or two to arrive.";
+  "We've sent the email again. It can take a minute or two to arrive.";
 
 const TEST_UTILS_ACT_DEPRECATION: string =
   "`ReactDOMTestUtils.act` is deprecated";
@@ -200,9 +202,9 @@ describe("VerifyEmailPending", () => {
       const sentence: HTMLElement | null = address.closest("p");
       expect(sentence).not.toBeNull();
       expect(sentence!.textContent).toBe(SENT_TO(EMAIL));
-      expect(
-        sentence!.textContent!.startsWith("We've sent a verification link to "),
-      ).toBe(true);
+      expect(sentence!.textContent!.startsWith("We've sent an email to ")).toBe(
+        true,
+      );
       expect(within(card()).getAllByText(EMAIL, { exact: false })).toHaveLength(
         1,
       );
@@ -225,7 +227,7 @@ describe("VerifyEmailPending", () => {
       expect(
         screen.queryByTestId("verify-email-address"),
       ).not.toBeInTheDocument();
-      expect(card()).not.toHaveTextContent("We've sent a verification link to");
+      expect(card()).not.toHaveTextContent("We've sent an email to");
       expect(screen.queryByTestId("open-webmail")).not.toBeInTheDocument();
     });
 
