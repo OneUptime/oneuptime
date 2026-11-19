@@ -11,6 +11,7 @@ import ComplianceFrameworkTile, {
 } from "../DataSecurity/ComplianceFrameworkTile";
 import { ComplianceTurnedOffNote } from "../ResourceDataSecurity/ComplianceTurnedOffNote";
 import { getKubernetesPartRoute } from "../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
+import { formatMinutesAgo } from "../Inventory/InventoryLiveness";
 import KubernetesComplianceApi from "./KubernetesComplianceApi";
 import {
   downloadKubernetesFrameworkReportCsv,
@@ -19,8 +20,11 @@ import {
 import {
   KubernetesAcceptScope,
   KubernetesComplianceSwitchKey,
+  NODE_COUNT,
   NOT_EVALUATED_REASONS,
   NOT_ON_CLUSTER,
+  NotScoredGroup,
+  NotScoredLine,
   POD_COUNT,
   findAcceptanceEntry,
   findTurnedOff,
@@ -33,6 +37,8 @@ import {
   getKubernetesAcceptanceKey,
   getKubernetesSwitchKey,
   getNamespaceRows,
+  getNotScoredCount,
+  getNotScoredGroups,
   getObjectName,
   isAcceptanceRow,
   isSwitchOn,
@@ -50,15 +56,18 @@ import {
   KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
   KubernetesComplianceNamespace,
+  KubernetesComplianceNodeBenchmark,
+  KubernetesComplianceNodeBenchmarkNode,
   KubernetesComplianceResponse,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
 import {
-  CIS_NOT_SCORED,
-  CIS_NOT_SCORED_REASON_WORDS,
-  CisNotScoredGroup,
-  CisNotScoredReason,
-  KubernetesComplianceControlInfo,
-} from "Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
+  ONEUPTIME_AGENT_COMPONENT_WORDS,
+  ONEUPTIME_AGENT_OWN_WORKLOAD,
+  OneUptimeAgentComponent,
+  OneUptimeAgentComponentWords,
+} from "Common/Types/Kubernetes/Compliance/KubernetesAgentWorkloads";
+import { KubernetesComplianceControlInfo } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
+import { NODE_BENCHMARK_FOR_PROVIDER } from "Common/Types/Kubernetes/KubernetesNodeBenchmark";
 import {
   KubernetesComplianceAcceptedFinding,
   KubernetesComplianceAgentObject,
@@ -178,7 +187,7 @@ const CONTROLS_PER_PAGE: number = 30;
 const TITLE: string = translationKey("Cluster Hardening");
 
 const DESCRIPTION: string = translationKey(
-  "How this cluster stands against the Pod Security Standards and the CIS Kubernetes Benchmark, from what it runs. Turn off what does not apply to it.",
+  "How this cluster stands against the Pod Security Standards, the CIS Kubernetes Benchmark and the NSA/CISA Kubernetes Hardening Guide, from what it runs. Turn off what does not apply to it.",
 );
 
 const READ_FAILED: string = translationKey(
@@ -385,16 +394,72 @@ const AGENT_NODES_PROXY_OLDER_CHART: string = translationKey(
 // The control a binding's nodes/proxy fails.
 const NODES_PROXY_CONTROL: string = "5.1.10";
 
+/*
+ * The OneUptime agent's own workload (#9929): the button that accepts its
+ * finding with why it needs what the control fails, filled in.
+ */
+const ACCEPT_WITH_REASON: string = translationKey("Accept With This Reason");
+
+const ACCEPT_WITH_REASON_ARIA_LABEL: string = translationKey(
+  "Accept {{object}}'s finding as the OneUptime agent's own",
+);
+
+/*
+ * What kube-bench read of the nodes (#9873), under the CIS benchmark's
+ * score: the benchmark and the nodes, a run that could not finish, and the
+ * benchmark of the cluster's own platform, where the generic one ran.
+ */
+const NODE_BENCHMARK_READ: PluralTemplate = {
+  one: translationKey(
+    "kube-bench read {{count}} node with {{benchmark}}, for the controls read on the nodes.",
+  ),
+  other: translationKey(
+    "kube-bench read {{count}} nodes with {{benchmark}}, for the controls read on the nodes.",
+  ),
+};
+
+const NODE_BENCHMARK_SUGGESTED: string = translationKey(
+  "{{provider}} has a CIS benchmark of its own: upgrade the agent with {{setting}} to score its nodes with it.",
+);
+
+// No kube-bench on the cluster: how to turn it on, in the CIS benchmark's Not Scored Here.
+const NODE_BENCHMARK_OFF: string = translationKey(
+  "Upgrade the agent with {{setting}} to score the node and control plane controls with kube-bench, which reads the nodes as root.",
+);
+
+const NODE_BENCHMARK_FOLD_TITLE: string = translationKey(
+  "Nodes Read by kube-bench",
+);
+
+const NODE_BENCHMARK_FOLD_DESCRIPTION: string = translationKey(
+  "The nodes kube-bench last ran on, with the benchmark it scored and when.",
+);
+
+const NODE_FINISHED: string = translationKey("Finished {{age}}");
+
+const NODE_BENCHMARK_ERROR: string = translationKey(
+  "kube-bench could not finish here: {{error}}",
+);
+
+const CONTROL_PLANE_NODE: string = translationKey("Control plane");
+
+const MANAGED_CONTROL_PLANE_WITH_NODE_BENCHMARK: string = translationKey(
+  "{{provider}} runs this cluster's control plane: kube-bench scores its worker nodes, and the control plane's controls stay the provider's.",
+);
+
 // A field, a value or a setting, drawn as code.
 const INLINE_CODE_CLASS_NAME: string =
   "rounded bg-white px-1.5 py-0.5 font-mono text-xs text-gray-800 ring-1 ring-gray-200";
 
-// The reasons a CIS control is not scored here, in the order the fold lists them.
-const NOT_SCORED_REASONS: ReadonlyArray<CisNotScoredReason> = [
-  CisNotScoredReason.NodeAccess,
-  CisNotScoredReason.ControlPlaneAccess,
-  CisNotScoredReason.Manual,
-];
+/*
+ * The setting that turns kube-bench on, for a cluster's platform: AKS's
+ * benchmark is set by name, as AKS's version names no provider.
+ */
+export function getNodeBenchmarkOnSetting(provider: string | null): string {
+  return provider === "AKS"
+    ? `--set compliance.nodeBenchmark.enabled=true --set compliance.nodeBenchmark.benchmark=${NODE_BENCHMARK_FOR_PROVIDER["AKS"]}`
+    : "--set compliance.nodeBenchmark.enabled=true";
+}
 
 export interface ComponentProps {
   clusterId: ObjectID;
@@ -428,11 +493,17 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
   const [acceptanceRows, setAcceptanceRows] = useState<
     Record<string, DataSecurityComplianceSetting>
   >({});
-  // The finding being accepted, in the dialog.
+  /*
+   * The finding being accepted, in the dialog: for the agent's own workload
+   * (#9929), with why it needs what the control fails filled in, for every
+   * control of the framework.
+   */
   const [accepting, setAccepting] = useState<{
     framework: KubernetesComplianceFramework;
     requirement: string;
     object: KubernetesComplianceObject;
+    reason?: string | undefined;
+    scope?: KubernetesAcceptScope | undefined;
   } | null>(null);
   const [revoking, setRevoking] = useState<Record<string, boolean>>({});
   const [revokeErrors, setRevokeErrors] = useState<Record<string, string>>({});
@@ -1009,7 +1080,7 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
               icon: IconProp.Download,
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
-                downloadKubernetesFrameworkReportCsv(framework);
+                downloadKubernetesFrameworkReportCsv(framework, compliance);
               },
             },
             {
@@ -1080,11 +1151,18 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
                         frameworkResponse={framework}
                         row={row}
                         lockedReason={lockedReason}
-                        onAccept={(finding: KubernetesComplianceFinding) => {
+                        onAccept={(
+                          finding: KubernetesComplianceFinding,
+                          reason?: string,
+                        ) => {
                           setAccepting({
                             framework: framework.framework,
                             requirement: row.requirement,
                             object: finding.object,
+                            reason,
+                            scope: reason
+                              ? KubernetesAcceptScope.Framework
+                              : undefined,
                           });
                         }}
                         renderAcceptance={(
@@ -1356,8 +1434,24 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {framework?.framework === KubernetesComplianceFramework.CisKubernetes ? (
-        <NotScoredFold compliance={compliance} translator={translator} />
+      {framework?.framework === KubernetesComplianceFramework.CisKubernetes &&
+      compliance.nodeBenchmark ? (
+        <NodeBenchmarkFold
+          clusterId={props.clusterId}
+          nodeBenchmark={compliance.nodeBenchmark}
+          translator={translator}
+        />
+      ) : (
+        <></>
+      )}
+
+      {framework &&
+      getNotScoredGroups(framework.framework, compliance).length > 0 ? (
+        <NotScoredFold
+          framework={framework.framework}
+          compliance={compliance}
+          translator={translator}
+        />
       ) : (
         <></>
       )}
@@ -1366,6 +1460,7 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
         <AcceptFindingModal
           object={accepting.object}
           initialReason={
+            accepting.reason ||
             (
               acceptanceRows[
                 getKubernetesAcceptanceKey({
@@ -1381,8 +1476,10 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
                   object: accepting.object,
                 })
               ]
-            )?.note || ""
+            )?.note ||
+            ""
           }
+          initialScope={accepting.scope}
           onClose={(): void => {
             setAccepting(null);
           }}
@@ -1502,9 +1599,18 @@ const FrameworkFigures: FunctionComponent<{
 }): ReactElement => {
   const { compliance, framework, translator } = props;
   const isPodSecurity: boolean =
-    framework.framework !== KubernetesComplianceFramework.CisKubernetes;
+    framework.framework === KubernetesComplianceFramework.PssBaseline ||
+    framework.framework === KubernetesComplianceFramework.PssRestricted;
+  const isCis: boolean =
+    framework.framework === KubernetesComplianceFramework.CisKubernetes;
+  // The frameworks whose pod controls a workload fails.
+  const countsWorkloads: boolean =
+    isPodSecurity ||
+    framework.framework === KubernetesComplianceFramework.NsaCisaHardening;
   const failingWorkloads: number =
     framework.workloadsEvaluated - framework.workloadsPassing;
+  const nodeBenchmark: KubernetesComplianceNodeBenchmark | null | undefined =
+    isCis ? compliance.nodeBenchmark : null;
   // Each reason a control cannot be scored yet, said once for the framework.
   const reasons: Array<KubernetesComplianceNotEvaluatedReason> = Array.from(
     new Set(
@@ -1568,7 +1674,7 @@ const FrameworkFigures: FunctionComponent<{
     });
   }
 
-  if (!isPodSecurity && compliance.policyEngine) {
+  if (isCis && compliance.policyEngine) {
     notes.push({
       key: "engine",
       text: translator.translateTemplate(POLICY_ENGINE_RUNS, {
@@ -1600,7 +1706,7 @@ const FrameworkFigures: FunctionComponent<{
             framework.workloadsEvaluated,
           )}
         </div>
-        {isPodSecurity && failingWorkloads > 0 ? (
+        {countsWorkloads && failingWorkloads > 0 ? (
           <div className="text-sm text-gray-600">
             {translator.translatePlural(WORKLOADS_FAILING, failingWorkloads)}
           </div>
@@ -1651,6 +1757,46 @@ const FrameworkFigures: FunctionComponent<{
           </p>
         );
       })}
+      {nodeBenchmark ? (
+        <p
+          className="text-sm text-gray-600"
+          data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-note-node-benchmark`}
+        >
+          <TranslatedSentence
+            template={NODE_BENCHMARK_READ}
+            count={nodeBenchmark.nodes.length}
+            slots={{
+              benchmark: (
+                <code className={INLINE_CODE_CLASS_NAME}>
+                  {nodeBenchmark.benchmark}
+                </code>
+              ),
+            }}
+          />
+        </p>
+      ) : (
+        <></>
+      )}
+      {nodeBenchmark?.suggestedBenchmark && compliance.provider ? (
+        <p
+          className="text-sm text-gray-600"
+          data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-note-node-benchmark-suggested`}
+        >
+          <TranslatedSentence
+            template={NODE_BENCHMARK_SUGGESTED}
+            values={{ provider: compliance.provider }}
+            slots={{
+              setting: (
+                <code className={`${INLINE_CODE_CLASS_NAME} break-words`}>
+                  {`--set compliance.nodeBenchmark.benchmark=${nodeBenchmark.suggestedBenchmark}`}
+                </code>
+              ),
+            }}
+          />
+        </p>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
@@ -1664,7 +1810,11 @@ interface ControlCellProps {
   onToggleExpanded: () => void;
   // Set when the person may not accept or revoke: why.
   lockedReason?: string | undefined;
-  onAccept: (finding: KubernetesComplianceFinding) => void;
+  /*
+   * Opens the accept dialog for a finding; with a reason, filled in with it,
+   * for the agent's own workload (#9929).
+   */
+  onAccept: (finding: KubernetesComplianceFinding, reason?: string) => void;
   renderAcceptance: (
     entry: KubernetesComplianceAcceptanceEntry,
     dataTestId: string,
@@ -1696,6 +1846,16 @@ const ControlCell: FunctionComponent<ControlCellProps> = (
       className="min-w-[14rem] space-y-2"
       data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-control-${row.requirement}`}
     >
+      {info?.section ? (
+        <div
+          className="text-xs font-medium uppercase tracking-wide text-gray-500"
+          data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-control-section-${row.requirement}`}
+        >
+          {translator.translateText(info.section) || info.section}
+        </div>
+      ) : (
+        <></>
+      )}
       <div className="text-sm font-medium text-gray-900">
         {info?.isNumbered ? (
           <span className="me-2 font-mono text-xs text-gray-500">
@@ -1731,14 +1891,18 @@ const ControlCell: FunctionComponent<ControlCellProps> = (
       )}
       {isFailing && info ? (
         <div className="space-y-2">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              {translator.translateText(HOW_TO_FIX)}
+          {info.fix ? (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {translator.translateText(HOW_TO_FIX)}
+              </div>
+              <p className="text-sm text-gray-700">
+                <FixSentence info={info} translator={translator} />
+              </p>
             </div>
-            <p className="text-sm text-gray-700">
-              {translator.translateText(info.fix) || info.fix}
-            </p>
-          </div>
+          ) : (
+            <></>
+          )}
           <div className="text-xs font-medium text-red-700">
             {translator.translatePlural(
               getFailingCountTemplate(row.findings),
@@ -1757,8 +1921,8 @@ const ControlCell: FunctionComponent<ControlCellProps> = (
                   requirement={row.requirement}
                   finding={finding}
                   lockedReason={props.lockedReason}
-                  onAccept={(): void => {
-                    props.onAccept(finding);
+                  onAccept={(reason?: string): void => {
+                    props.onAccept(finding, reason);
                   }}
                   translator={translator}
                 />
@@ -1851,8 +2015,11 @@ interface FindingLineProps {
   finding: KubernetesComplianceFinding;
   // Set when the person may not accept it: why.
   lockedReason?: string | undefined;
-  // A failing finding's Accept (#9874); none for one accepted already.
-  onAccept?: (() => void) | undefined;
+  /*
+   * A failing finding's Accept (#9874), with a reason filled in for the
+   * agent's own workload (#9929); none for one accepted already.
+   */
+  onAccept?: ((reason?: string) => void) | undefined;
   // An accepted finding's acceptance: who, when, why, and Revoke.
   acceptance?: ReactElement | undefined;
   translator: Translator;
@@ -1918,7 +2085,9 @@ const FindingLine: FunctionComponent<FindingLineProps> = (
                 object: getAcceptedObjectName(finding.object),
               })}
               isAriaLabelTranslated={true}
-              onClick={props.onAccept}
+              onClick={(): void => {
+                props.onAccept?.();
+              }}
               dataTestId={`${KUBERNETES_COMPLIANCE_TEST_ID}-accept-${props.requirement}-${finding.object.name}`}
             />
           </div>
@@ -1943,7 +2112,16 @@ const FindingLine: FunctionComponent<FindingLineProps> = (
       ) : (
         <></>
       )}
-      {finding.oneUptimeAgent ? (
+      {finding.oneUptimeAgent?.component ? (
+        <AgentWorkloadNote
+          component={finding.oneUptimeAgent.component}
+          object={finding.object}
+          lockedReason={props.lockedReason}
+          onAccept={props.onAccept}
+          requirement={props.requirement}
+          translator={translator}
+        />
+      ) : finding.oneUptimeAgent ? (
         <AgentBindingNote
           agent={finding.oneUptimeAgent}
           isNodesProxyControl={props.requirement === NODES_PROXY_CONTROL}
@@ -1954,6 +2132,141 @@ const FindingLine: FunctionComponent<FindingLineProps> = (
       )}
       {props.acceptance || <></>}
     </li>
+  );
+};
+
+/*
+ * A control's fix: a sentence, with what it says to set or run drawn as
+ * code in every language (a node control's `--profiling=false`, #9873).
+ */
+const FixSentence: FunctionComponent<{
+  info: KubernetesComplianceControlInfo;
+  translator: Translator;
+}> = (props: {
+  info: KubernetesComplianceControlInfo;
+  translator: Translator;
+}): ReactElement => {
+  const { info, translator } = props;
+  const slots: Record<string, string> = info.fixSlots || {};
+
+  if (Object.keys(slots).length === 0) {
+    return <>{translator.translateText(info.fix) || info.fix}</>;
+  }
+
+  return (
+    <TranslatedSentence
+      template={info.fix}
+      slots={Object.fromEntries(
+        Object.entries(slots).map(
+          ([name, value]: [string, string]): [string, ReactElement] => {
+            return [
+              name,
+              <code
+                key={name}
+                className={`${INLINE_CODE_CLASS_NAME} break-words`}
+              >
+                {value}
+              </code>,
+            ];
+          },
+        ),
+      )}
+    />
+  );
+};
+
+/*
+ * The OneUptime agent's own workload (#9929): whose it is, why it needs what
+ * the control fails, the value that removes it, and Accept With This Reason,
+ * which opens the accept dialog with that reason filled in, for every control
+ * of the framework. A workload of the agent's that needs nothing a control
+ * fails says only whose it is: it is the agent's to fix, not to accept.
+ */
+const AgentWorkloadNote: FunctionComponent<{
+  component: OneUptimeAgentComponent;
+  object: KubernetesComplianceObject;
+  requirement: string;
+  lockedReason?: string | undefined;
+  onAccept?: ((reason?: string) => void) | undefined;
+  translator: Translator;
+}> = (props: {
+  component: OneUptimeAgentComponent;
+  object: KubernetesComplianceObject;
+  requirement: string;
+  lockedReason?: string | undefined;
+  onAccept?: ((reason?: string) => void) | undefined;
+  translator: Translator;
+}): ReactElement => {
+  const { translator } = props;
+  const words: OneUptimeAgentComponentWords | undefined =
+    ONEUPTIME_AGENT_COMPONENT_WORDS[props.component];
+  const why: string = words
+    ? translator.translateText(words.why) || words.why
+    : translator.translateText(ONEUPTIME_AGENT_OWN_WORKLOAD) ||
+      ONEUPTIME_AGENT_OWN_WORKLOAD;
+  const turnOffs: Array<{ template: string; setting: string }> = words
+    ? [
+        { template: words.turnOff, setting: words.setting },
+        ...(words.secondTurnOff && words.secondSetting
+          ? [{ template: words.secondTurnOff, setting: words.secondSetting }]
+          : []),
+      ]
+    : [];
+
+  return (
+    <div
+      className="mt-2 flex items-start gap-2 text-xs text-gray-600"
+      data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-workload`}
+    >
+      <Icon
+        icon={IconProp.Info}
+        className="mt-0.5 h-3.5 w-3.5 flex-none text-gray-400"
+      />
+      <div className="min-w-0 space-y-1">
+        <p data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-workload-why`}>
+          {why}
+        </p>
+        {turnOffs.map(
+          (turnOff: { template: string; setting: string }): ReactElement => {
+            return (
+              <p key={turnOff.setting}>
+                <TranslatedSentence
+                  template={turnOff.template}
+                  slots={{
+                    setting: (
+                      // One long token: it breaks only where a phone's row is too narrow for it.
+                      <code className={`${INLINE_CODE_CLASS_NAME} break-words`}>
+                        {turnOff.setting}
+                      </code>
+                    ),
+                  }}
+                />
+              </p>
+            );
+          },
+        )}
+        {words && props.onAccept ? (
+          <Button
+            title={ACCEPT_WITH_REASON}
+            buttonStyle={ButtonStyleType.LINK}
+            buttonSize={ButtonSize.Small}
+            disabled={Boolean(props.lockedReason)}
+            tooltip={props.lockedReason}
+            ariaLabel={translator.translateTemplate(
+              ACCEPT_WITH_REASON_ARIA_LABEL,
+              { object: getAcceptedObjectName(props.object) },
+            )}
+            isAriaLabelTranslated={true}
+            onClick={(): void => {
+              props.onAccept?.(why);
+            }}
+            dataTestId={`${KUBERNETES_COMPLIANCE_TEST_ID}-accept-agent-${props.requirement}-${props.object.name}`}
+          />
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -2216,90 +2529,282 @@ const DetailChip: FunctionComponent<{
   );
 };
 
-// The CIS benchmark's controls not scored here, by why: plainly, never as passing or failing.
+// The nodes kube-bench last ran on (#9873): each with its benchmark, when, and what failed.
+const NodeBenchmarkFold: FunctionComponent<{
+  clusterId: ObjectID;
+  nodeBenchmark: KubernetesComplianceNodeBenchmark;
+  translator: Translator;
+}> = (props: {
+  clusterId: ObjectID;
+  nodeBenchmark: KubernetesComplianceNodeBenchmark;
+  translator: Translator;
+}): ReactElement => {
+  const { nodeBenchmark, translator } = props;
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  return (
+    <FoldedSection
+      title={NODE_BENCHMARK_FOLD_TITLE}
+      icon={IconProp.ServerStack}
+      description={NODE_BENCHMARK_FOLD_DESCRIPTION}
+      summary={
+        // In the reader's words already: an element, so it is not looked up again.
+        <span>
+          {translator.translatePlural(NODE_COUNT, nodeBenchmark.nodes.length)}
+        </span>
+      }
+      isElevated={true}
+      dataTestId={`${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark`}
+    >
+      <ul className="divide-y divide-gray-100">
+        {nodeBenchmark.nodes.map(
+          (node: KubernetesComplianceNodeBenchmarkNode): ReactElement => {
+            const route: Route | undefined = getKubernetesPartRoute(
+              props.clusterId,
+              { kind: "Node", name: node.node },
+            );
+
+            return (
+              <li
+                key={node.node}
+                className="space-y-1 px-5 py-4 md:px-6"
+                data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-${node.node}`}
+              >
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {route ? (
+                    <AppLink
+                      to={route}
+                      className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                    >
+                      <span>{node.node}</span>
+                    </AppLink>
+                  ) : (
+                    <span className="font-medium text-gray-900">
+                      {node.node}
+                    </span>
+                  )}
+                  {node.isControlPlane ? (
+                    <Pill
+                      text={CONTROL_PLANE_NODE}
+                      tone={PillTone.Neutral}
+                      isDotHidden={true}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  <code className={INLINE_CODE_CLASS_NAME}>
+                    {node.benchmark}
+                  </code>
+                  {node.finishedAt ? (
+                    <span className="text-xs text-gray-500">
+                      {translator.translateTemplate(NODE_FINISHED, {
+                        age: formatMinutesAgo(
+                          Math.max(
+                            0,
+                            (now.getTime() -
+                              new Date(node.finishedAt).getTime()) /
+                              60000,
+                          ),
+                          translator,
+                        ),
+                      })}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+                {node.error ? (
+                  <p
+                    className="text-xs text-red-700"
+                    data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-error-${node.node}`}
+                  >
+                    <TranslatedSentence
+                      template={NODE_BENCHMARK_ERROR}
+                      slots={{
+                        error: (
+                          <code
+                            className={`${INLINE_CODE_CLASS_NAME} break-words`}
+                          >
+                            {node.error}
+                          </code>
+                        ),
+                      }}
+                    />
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </li>
+            );
+          },
+        )}
+      </ul>
+    </FoldedSection>
+  );
+};
+
+// The fold's description: what of its document a framework does not score.
+const NOT_SCORED_DESCRIPTIONS: Readonly<
+  Partial<Record<KubernetesComplianceFramework, string>>
+> = {
+  [KubernetesComplianceFramework.CisKubernetes]: translationKey(
+    "The benchmark's controls that need access to the nodes or the control plane, or a person's review. They are neither passing nor failing here.",
+  ),
+  [KubernetesComplianceFramework.NsaCisaHardening]: translationKey(
+    "The guide's recommendations that the cluster's objects and nodes do not answer. They are neither passing nor failing here.",
+  ),
+};
+
+/*
+ * What a framework does not score, by why: the CIS benchmark's controls that
+ * need the nodes or a person's review, as kube-bench leaves them (#9873), and
+ * the NSA/CISA guide's recommendations no source answers (#9875). Plainly,
+ * never as passing or failing.
+ */
 const NotScoredFold: FunctionComponent<{
+  framework: KubernetesComplianceFramework;
   compliance: KubernetesComplianceResponse;
   translator: Translator;
 }> = (props: {
+  framework: KubernetesComplianceFramework;
   compliance: KubernetesComplianceResponse;
   translator: Translator;
 }): ReactElement => {
   const { compliance, translator } = props;
-  const total: number = CIS_NOT_SCORED.reduce(
-    (sum: number, group: CisNotScoredGroup): number => {
-      return sum + group.controlCount;
-    },
-    0,
+  const isCis: boolean =
+    props.framework === KubernetesComplianceFramework.CisKubernetes;
+  const groups: Array<NotScoredGroup> = getNotScoredGroups(
+    props.framework,
+    compliance,
   );
 
   return (
     <FoldedSection
       title="Not Scored Here"
       icon={IconProp.Info}
-      description="The benchmark's controls that need access to the nodes or the control plane, or a person's review. They are neither passing nor failing here."
+      description={NOT_SCORED_DESCRIPTIONS[props.framework] || ""}
       summary={
-        <span>{translator.translatePlural(NOT_SCORED_COUNT, total)}</span>
+        <span>
+          {translator.translatePlural(
+            NOT_SCORED_COUNT,
+            getNotScoredCount(groups),
+          )}
+        </span>
       }
       isElevated={true}
       dataTestId={`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored`}
     >
       <div className="space-y-5 px-5 py-4 md:px-6">
-        {compliance.isManagedControlPlane && compliance.provider ? (
+        {isCis && compliance.isManagedControlPlane && compliance.provider ? (
           <p
             className="text-sm text-gray-700"
             data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-managed-control-plane`}
           >
-            {translator.translateTemplate(MANAGED_CONTROL_PLANE, {
-              provider: compliance.provider,
-            })}
+            {translator.translateTemplate(
+              compliance.nodeBenchmark
+                ? MANAGED_CONTROL_PLANE_WITH_NODE_BENCHMARK
+                : MANAGED_CONTROL_PLANE,
+              { provider: compliance.provider },
+            )}
           </p>
         ) : (
           <></>
         )}
-        {NOT_SCORED_REASONS.map((reason: CisNotScoredReason): ReactElement => {
-          const groups: Array<CisNotScoredGroup> = CIS_NOT_SCORED.filter(
-            (group: CisNotScoredGroup): boolean => {
-              return group.reason === reason;
-            },
-          );
-
+        {isCis && !compliance.nodeBenchmark ? (
+          <p
+            className="text-sm text-gray-700"
+            data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-off`}
+          >
+            <TranslatedSentence
+              template={NODE_BENCHMARK_OFF}
+              slots={{
+                setting: (
+                  <code className={`${INLINE_CODE_CLASS_NAME} break-words`}>
+                    {getNodeBenchmarkOnSetting(compliance.provider)}
+                  </code>
+                ),
+              }}
+            />
+          </p>
+        ) : (
+          <></>
+        )}
+        {groups.map((group: NotScoredGroup): ReactElement => {
           return (
             <div
-              key={reason}
-              data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-${reason}`}
+              key={group.key}
+              data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-${group.key}`}
             >
               <p className="text-sm font-medium text-gray-900">
-                {translator.translateText(CIS_NOT_SCORED_REASON_WORDS[reason])}
+                {translator.translateText(group.reason) || group.reason}
               </p>
-              <ul className="mt-2 space-y-1.5">
-                {groups.map((group: CisNotScoredGroup): ReactElement => {
-                  return (
-                    <li key={group.id} className="text-sm text-gray-700">
-                      <span className="me-2 font-mono text-xs text-gray-500">
-                        {group.id}
-                      </span>
-                      <span>{translator.translateText(group.title)}</span>
-                      {group.controlCount > 1 ? (
-                        <span className="ms-2 text-xs text-gray-500">
-                          {translator.translatePlural(
-                            CONTROL_COUNT,
-                            group.controlCount,
-                          )}
-                        </span>
-                      ) : (
-                        <></>
-                      )}
-                      {group.why ? (
-                        <p className="text-xs text-gray-500">
-                          {translator.translateText(group.why)}
-                        </p>
-                      ) : (
-                        <></>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+              {group.lines.length > 0 ? (
+                <ul className="mt-2 space-y-1.5">
+                  {group.lines.map((line: NotScoredLine): ReactElement => {
+                    return (
+                      <li
+                        key={line.id || line.title}
+                        className="text-sm text-gray-700"
+                      >
+                        {line.id ? (
+                          <span className="me-2 font-mono text-xs text-gray-500">
+                            {line.id}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        <span>{translator.translateText(line.title)}</span>
+                        {line.controlCount > 1 ? (
+                          <span className="ms-2 text-xs text-gray-500">
+                            {translator.translatePlural(
+                              CONTROL_COUNT,
+                              line.controlCount,
+                            )}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        {line.section ? (
+                          <span className="ms-2 text-xs text-gray-500">
+                            {translator.translateText(line.section)}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        {line.why ? (
+                          <p className="text-xs text-gray-500">
+                            {translator.translateText(line.why)}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <></>
+              )}
+              {(group.manualChecks || []).length > 0 ? (
+                <ul
+                  className="mt-2 flex flex-wrap gap-1.5"
+                  data-testid={`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-manual-checks`}
+                >
+                  {(group.manualChecks || []).map(
+                    (check: string): ReactElement => {
+                      return (
+                        <li key={check}>
+                          <code className={INLINE_CODE_CLASS_NAME}>
+                            {check}
+                          </code>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              ) : (
+                <></>
+              )}
             </div>
           );
         })}
