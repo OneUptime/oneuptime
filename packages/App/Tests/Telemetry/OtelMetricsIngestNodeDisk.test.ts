@@ -143,11 +143,11 @@ function block(
 ): JSONObject {
   return {
     resource: {
-      attributes: [["k8s.cluster.name", "prod"], ...attributes].map(
-        ([key, value]: [string, string]): JSONObject => {
-          return { key, value: { stringValue: value } };
-        },
-      ),
+      attributes: (
+        [["k8s.cluster.name", "prod"], ...attributes] as Array<[string, string]>
+      ).map(([key, value]: [string, string]): JSONObject => {
+        return { key, value: { stringValue: value } };
+      }),
     },
     scopeMetrics: [
       {
