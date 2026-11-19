@@ -25,6 +25,16 @@ export default interface NormalizedSecurityEvent {
    */
   eventUid: string;
 
+  /*
+   * Other ids the same record may already be stored under, by another way
+   * that reads it or by an older reading of it: an Azure Activity Log
+   * record read from the REST API was stored by its eventDataId before its
+   * id was made of what both of its shapes say (#10032). Only ever looked
+   * up, before the record is stored (SecurityEventStoreOnce): never a
+   * column of its own.
+   */
+  eventUidAliases?: Array<string> | undefined;
+
   categoryUid: number;
   categoryName: string;
   classUid: number;
