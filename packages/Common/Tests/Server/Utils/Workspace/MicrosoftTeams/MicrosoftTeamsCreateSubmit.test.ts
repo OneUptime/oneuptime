@@ -20,6 +20,7 @@ import TeamMemberService from "../../../../../Server/Services/TeamMemberService"
 import { ProjectScopedReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
+import { everyServerProductIsOn } from "../../../TestingUtils/ServerProductsOn";
 import {
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -345,6 +346,8 @@ let dashboardUrlSpy: SpyInstance<typeof DatabaseConfig.getDashboardUrl>;
 let errorLogSpy: SpyInstance<typeof logger.error>;
 
 beforeEach((): void => {
+  // A submit asks what the server has switched off: every product is on.
+  everyServerProductIsOn();
   // A declared incident is on no monitor.
   stubSubscriberAudience();
 

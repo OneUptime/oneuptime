@@ -123,7 +123,7 @@ import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../../../../Server/Utils/Logger";
-import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import { everyServerProductIsOn } from "../../TestingUtils/ServerProductsOn";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -296,7 +296,7 @@ beforeEach(() => {
    * WorkspaceActionAuthorization), a read of the database, which nothing
    * connects here.
    */
-  jest.spyOn(ServerProducts, "getOff").mockResolvedValue({});
+  everyServerProductIsOn();
 
   /*
    * The dedupe claims an activity in Redis first. Nothing connects Redis in
