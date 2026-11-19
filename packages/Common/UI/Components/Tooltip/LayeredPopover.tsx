@@ -5,6 +5,7 @@ import React, {
   ReactNode,
   RefObject,
   useEffect,
+  useInsertionEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -412,6 +413,30 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
       popper.removeAttribute("data-testid");
     }
   }, [popper, props.dataTestId]);
+
+  /*
+   * On the page before what it holds is: a field in it that focuses itself
+   * as it is drawn (autoFocus - the security events' column search) takes
+   * the focus as React commits it, before this component's own layout
+   * effects run, and a field off the page cannot take the focus. Held at
+   * the window's top corner until Popper places it a moment later, in the
+   * same frame: a focus there scrolls nothing. On the full-screen part of
+   * the page when there is one, as getTooltipLayer would put it.
+   */
+  useInsertionEffect(() => {
+    if (!popper || popper.isConnected || typeof document === "undefined") {
+      return undefined;
+    }
+
+    popper.style.position = "fixed";
+    popper.style.top = "0px";
+    popper.style.left = "0px";
+    (document.fullscreenElement || document.body).appendChild(popper);
+
+    return () => {
+      popper.remove();
+    };
+  }, [popper]);
 
   // Opens it against its control, once the control is on the page.
   useLayoutEffect(() => {
