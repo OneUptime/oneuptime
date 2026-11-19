@@ -243,6 +243,7 @@ describe("reporting a walk", () => {
       "probeCapabilities",
       "probeId",
       "probeKey",
+      "probeVersion",
       "snmpWalkResult",
       "status",
     ]);
