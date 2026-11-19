@@ -11,6 +11,7 @@ import {
   MAX_FINDING_SAMPLE_RECORDS,
   toFindingSampleRecord,
 } from "../../../../Types/DataSecurity/FindingSampleRecord";
+import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -36,9 +37,14 @@ import {
   FieldClassifierOptions,
 } from "../../../../Utils/DataSecurity/FieldClassifier";
 import FieldCollector from "../../../../Utils/DataSecurity/FieldCollector";
+import {
+  findSensitiveValues,
+  ScanDetector,
+} from "../../../../Utils/DataSecurity/TextScanner";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
 import LogService from "../../../Services/LogService";
+import MetricService from "../../../Services/MetricService";
 import RumApplicationService from "../../../Services/RumApplicationService";
 import RumSessionService from "../../../Services/RumSessionService";
 import ServiceService from "../../../Services/ServiceService";
@@ -82,7 +88,42 @@ import {
  *    chunk (RumSessionChunkV1.payload) holds the text of the pages people
  *    saw, which takes a permission of its own to watch, and a finding read
  *    out of it would show masked page text to everyone who reads Data
- *    Security.
+ *    Security;
+ *  - metrics: every attribute of a data point (attributes.<key>), its
+ *    resource's among them (attributes.resource.<key>), and the metrics'
+ *    names (name) - a name a project builds from a user's email is as
+ *    much a leak as a label. Never a value of a point: a number.
+ *
+ * A metric is read by what it can hold, not by how much it writes. Its
+ * attributes are its series' labels, the same on every point of a series,
+ * so a thousand points every minute may carry three values, and the ones
+ * that leak (a user's email, an IP) are new series, not new points. So a
+ * metric's sample is the points of its newest minute - one of each series
+ * that reported then, from every pod of the service - at most
+ * TELEMETRY_SCAN_MAX_POINTS_PER_METRIC of them, and a value is classified
+ * once however many points repeat it: what a location's findings count is
+ * its distinct values, its cardinality, not the points that carried them.
+ *
+ * What a metric costs is the table's granules its newest minute sits in:
+ * the table is ordered by (projectId, name, primaryEntityId, time), so the
+ * newest minute of each metric is a short range of its own, and reading
+ * any of it reads a granule of the wide attributes column (measured on
+ * ClickHouse 26.7: the newest minute of 842 metrics of 20 services read
+ * 4.5 of 5.9 million points, 1.1 GiB). So a scan reads few metrics - at
+ * most TELEMETRY_SCAN_MAX_METRICS_PER_READ, shared between the services -
+ * and reads them so each granule is read once:
+ *
+ *  - which metrics a service wrote, how many points each wrote and its
+ *    newest minute come from the per-minute rollup (MetricItemAggMV1m), a
+ *    row per metric per minute, never a point;
+ *  - each scan reads a service's busiest metrics, the likeliest to have
+ *    many series, and half its share of the others in turn, by the hour,
+ *    so every metric is read within hours (planMetricsToRead);
+ *  - the metrics are read in one statement, by their ranges of the primary
+ *    key - but a metric whose newest minute alone holds more points than a
+ *    few granules (a label of a user's email, a million series) is read by
+ *    a branch of its own that stops at its first points (a LIMIT with no
+ *    ORDER BY ends the read), so it costs what any metric costs.
  *
  * Every read is one project's (projectId is its first condition), of the
  * last hour or so (never more than TELEMETRY_SCAN_MAX_WINDOW_IN_HOURS), of
@@ -145,6 +186,40 @@ export const TELEMETRY_SCAN_MAX_EVENT_NAME_LENGTH: number = 128;
 // Different locations one store's sample may name.
 export const TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE: number = 500;
 
+// The metrics of one service read in one scan: its busiest, and others in turn.
+export const TELEMETRY_SCAN_MAX_METRICS_PER_OWNER: number = 10;
+
+/*
+ * The metrics read in one scan: shared between the services, so a project
+ * with many services reads fewer metrics of each, and each one in turn.
+ */
+export const TELEMETRY_SCAN_MAX_METRICS_PER_READ: number = 100;
+
+// The metrics of one service the rollup lists, to choose the read ones from.
+export const TELEMETRY_SCAN_MAX_METRICS_LISTED_PER_OWNER: number = 1_000;
+export const TELEMETRY_SCAN_MAX_METRICS_LISTED: number = 20_000;
+
+/*
+ * The data points of one metric read - of its newest minute, one per
+ * series that reported then, so the series it has, not its volume. Never
+ * more than the scan's sample size either.
+ */
+export const TELEMETRY_SCAN_MAX_POINTS_PER_METRIC: number = 100;
+
+/*
+ * A metric whose newest minute holds more points than this - two granules
+ * of the metrics table - is read by a branch of its own, stopped at its
+ * first points, rather than with the others, which read the whole minute.
+ */
+export const TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS: number = 16_384;
+
+// The metrics read by one statement of either kind.
+export const TELEMETRY_SCAN_METRICS_PER_STATEMENT: number = 100;
+export const TELEMETRY_SCAN_LARGE_METRICS_PER_STATEMENT: number = 20;
+
+// The most of a metric's name read.
+export const TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH: number = 1_024;
+
 // How long one read may run, and how much it may answer.
 export const TELEMETRY_SCAN_READ_TIME_LIMIT_IN_SECONDS: number = 30;
 export const TELEMETRY_SCAN_MAX_RESULT_BYTES: number = 128 * 1024 * 1024;
@@ -163,6 +238,7 @@ export enum TelemetrySampleSource {
   RumLogs = "RumLogs",
   RumSpans = "RumSpans",
   RumSessions = "RumSessions",
+  Metrics = "Metrics",
 }
 
 // Who a source's records belong to: a Service, or a RUM application.
@@ -302,6 +378,21 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
       return RumSessionService;
     },
   },
+  [TelemetrySampleSource.Metrics]: {
+    source: TelemetrySampleSource.Metrics,
+    kind: DataStoreKind.TelemetryMetrics,
+    label: "data points",
+    table: AnalyticsTableName.Metric,
+    timeColumn: "time",
+    ownerColumn: "primaryEntityId",
+    owner: "service",
+    countExpression: "count()",
+    // Read metric by metric, at each one's newest minute (sampleMetrics).
+    readsKeysFirst: false,
+    get runner(): TelemetryQueryRunner {
+      return MetricService;
+    },
+  },
 };
 
 // How one source is read: its table, its columns, whose records they are.
@@ -320,6 +411,7 @@ export const TELEMETRY_SAMPLE_SOURCES: ReadonlyArray<TelemetrySampleSource> = [
   TelemetrySampleSource.RumLogs,
   TelemetrySampleSource.RumSpans,
   TelemetrySampleSource.RumSessions,
+  TelemetrySampleSource.Metrics,
 ];
 
 // The sources whose reads must leave the restricted services out.
@@ -623,6 +715,15 @@ function appendColumnsRead(
         caps.attributeValueLength,
       );
       break;
+    case TelemetrySampleSource.Metrics:
+      // The metric's own name: a point's key, and a place data can sit.
+      appendText(
+        statement,
+        "name",
+        "readMetricName",
+        TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH,
+      );
+      break;
     default:
       break;
   }
@@ -737,6 +838,265 @@ export function buildTelemetrySampleStatement(
   statement.append(readSettings());
 
   return statement;
+}
+
+/*
+ * One metric of one service: how many points it wrote in the window, the
+ * minute it last wrote in, and how many points that minute holds - which
+ * says how many series it has, and so how it is read.
+ */
+export interface MetricToRead {
+  ownerId: string;
+  metricName: string;
+  points: number;
+  newestMinute: Date;
+  newestMinutePoints: number;
+}
+
+// The minute a moment is in: a rollup row's bucket.
+function startOfMinute(moment: Date): Date {
+  return new Date(Math.floor(moment.getTime() / 60_000) * 60_000);
+}
+
+/*
+ * Which metrics each of the given services wrote in the window, the
+ * busiest first, at most `perOwner` of each and `total` in all: how many
+ * points each wrote, the minute it last wrote in and how many points that
+ * minute holds. Read from the per-minute rollup the metrics table keeps
+ * (MetricItemAggMV1m) - a row per metric per minute, never a point - or,
+ * when the rollup cannot answer, from the points' light columns
+ * (`fromRollup` false). Only ids, names and counts leave the database.
+ */
+export function buildTelemetryMetricsStatement(
+  data: TelemetryReadWindow & {
+    ownerIds: Array<string>;
+    perOwner: number;
+    total: number;
+    fromRollup: boolean;
+  },
+): Statement {
+  const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
+  const statement: Statement = SQL`SELECT ownerId, metricName, sum(minutePoints) AS points, toUnixTimestamp(max(minute)) AS newestMinute, argMax(minutePoints, minute) AS newestMinutePoints FROM (SELECT primaryEntityId AS ownerId, name AS metricName, `;
+
+  if (data.fromRollup) {
+    statement.append(
+      "bucketTime AS minute, countMerge(valueCountState) AS minutePoints FROM ",
+    );
+    statement.append(tableOf(AnalyticsTableName.MetricItemAggMV1m));
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND bucketTime >= ${{
+        type: TableColumnType.DateTime64,
+        value: startOfMinute(data.since),
+      }} AND bucketTime <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.until,
+      }} AND retentionDate >= now()`,
+    );
+  } else {
+    statement.append(
+      "toStartOfMinute(time) AS minute, count() AS minutePoints FROM ",
+    );
+    statement.append(tableOf(source.table));
+    appendWhere(statement, source, data);
+  }
+
+  appendOwnersIn(statement, source, data.ownerIds);
+  statement.append(
+    SQL` GROUP BY ownerId, metricName, minute) GROUP BY ownerId, metricName ORDER BY points DESC, ownerId ASC, metricName ASC LIMIT ${{
+      type: TableColumnType.Number,
+      value: whole(data.perOwner, 1),
+    }} BY ownerId LIMIT ${{
+      type: TableColumnType.Number,
+      value: whole(data.total, 1),
+    }}`,
+  );
+  statement.append(readSettings());
+
+  return statement;
+}
+
+// The points of a metric's newest minute, read as every sample reads a point.
+function appendMetricPointColumns(
+  statement: Statement,
+  caps: TelemetrySampleCaps,
+): void {
+  const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
+
+  statement.append("SELECT ");
+  statement.append(source.ownerColumn);
+  statement.append(" AS ownerId");
+  appendColumnsRead(statement, source, caps);
+  statement.append(" FROM ");
+  statement.append(tableOf(source.table));
+}
+
+// A metric's newest minute, by its place in the primary key.
+function appendNewestMinuteOf(
+  statement: Statement,
+  metric: MetricToRead,
+): void {
+  statement.append(
+    SQL`(name = ${{
+      type: TableColumnType.Text,
+      value: metric.metricName,
+    }} AND primaryEntityId = ${{
+      type: TableColumnType.Text,
+      value: metric.ownerId,
+    }} AND time >= ${{
+      type: TableColumnType.DateTime64,
+      value: metric.newestMinute,
+    }})`,
+  );
+}
+
+/*
+ * The points of the given metrics' newest minutes, at least one metric,
+ * at most `perMetric` of each: one read of the metrics table by each
+ * metric's range of its primary key (projectId, name, primaryEntityId,
+ * time), so a granule two metrics share is read once. Every value is cut
+ * short in the database.
+ */
+export function buildTelemetryMetricSampleStatement(
+  data: TelemetryReadWindow & {
+    metrics: Array<MetricToRead>;
+    perMetric: number;
+    caps: TelemetrySampleCaps;
+  },
+): Statement {
+  const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
+  const statement: Statement = new Statement();
+
+  appendMetricPointColumns(statement, data.caps);
+  appendWhere(statement, source, data);
+  statement.append(" AND (");
+  data.metrics.forEach((metric: MetricToRead, index: number): void => {
+    if (index > 0) {
+      statement.append(" OR ");
+    }
+
+    appendNewestMinuteOf(statement, metric);
+  });
+  statement.append(
+    SQL`) LIMIT ${{
+      type: TableColumnType.Number,
+      value: whole(data.perMetric, 1),
+    }} BY primaryEntityId, name LIMIT ${{
+      type: TableColumnType.Number,
+      value: whole(data.perMetric * data.metrics.length, 1),
+    }}`,
+  );
+  statement.append(readSettings());
+
+  return statement;
+}
+
+/*
+ * The first points of the given metrics' newest minutes, at least one
+ * metric: a branch of its own for each, stopped at `perMetric` points - a
+ * LIMIT with no ORDER BY ends the read there - for a metric whose newest
+ * minute holds far more points than that (a label of a user's email, a
+ * million series), which then costs what any metric costs.
+ */
+export function buildTelemetryLargeMetricSampleStatement(
+  data: TelemetryReadWindow & {
+    metrics: Array<MetricToRead>;
+    perMetric: number;
+    caps: TelemetrySampleCaps;
+  },
+): Statement {
+  const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
+  const statement: Statement = SQL`SELECT * FROM (`;
+
+  data.metrics.forEach((metric: MetricToRead, index: number): void => {
+    statement.append(index === 0 ? "(" : " UNION ALL (");
+    appendMetricPointColumns(statement, data.caps);
+    appendWhere(statement, source, data);
+    statement.append(" AND ");
+    appendNewestMinuteOf(statement, metric);
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: whole(data.perMetric, 1),
+      }})`,
+    );
+  });
+
+  statement.append(")");
+  statement.append(readSettings());
+
+  return statement;
+}
+
+/*
+ * Which of each service's metrics a scan reads: at most `perOwner` of
+ * each and `total` in all, the services sharing them - its busiest half,
+ * the likeliest to have many series, and the other half from its other
+ * metrics in turn: the scan of hour `turn` takes the next ones, so every
+ * metric of a service is read within as many hours as its metrics take.
+ * Busiest is most points in the window; ties go by name, so the turns are
+ * the same whoever counts them.
+ */
+export function planMetricsToRead(data: {
+  metrics: ReadonlyArray<MetricToRead>;
+  perOwner: number;
+  total: number;
+  turn: number;
+}): Array<MetricToRead> {
+  const byOwner: Map<string, Array<MetricToRead>> = new Map();
+
+  for (const metric of data.metrics) {
+    const owner: string = metric.ownerId.toLowerCase();
+    const metrics: Array<MetricToRead> = byOwner.get(owner) || [];
+
+    metrics.push(metric);
+    byOwner.set(owner, metrics);
+  }
+
+  if (byOwner.size === 0) {
+    return [];
+  }
+
+  const perOwner: number = Math.max(
+    1,
+    Math.min(whole(data.perOwner, 1), Math.floor(data.total / byOwner.size)),
+  );
+  const turn: number = Math.max(0, Math.trunc(data.turn) || 0);
+  const planned: Array<MetricToRead> = [];
+
+  for (const metrics of byOwner.values()) {
+    const ordered: Array<MetricToRead> = [...metrics].sort(
+      (a: MetricToRead, b: MetricToRead): number => {
+        return (
+          b.points - a.points ||
+          (a.metricName < b.metricName
+            ? -1
+            : a.metricName > b.metricName
+              ? 1
+              : 0)
+        );
+      },
+    );
+
+    if (ordered.length <= perOwner) {
+      planned.push(...ordered);
+      continue;
+    }
+
+    const busiest: number = Math.floor(perOwner / 2);
+    const others: Array<MetricToRead> = ordered.slice(busiest);
+    const inTurn: number = perOwner - busiest;
+
+    planned.push(...ordered.slice(0, busiest));
+
+    for (let index: number = 0; index < inTurn; index++) {
+      planned.push(others[(turn * inTurn + index) % others.length]!);
+    }
+  }
+
+  return planned.slice(0, Math.max(whole(data.total, 1), byOwner.size));
 }
 
 // Reading the rows: ClickHouse answers a tuple as an array, a map as an object.
@@ -1008,12 +1368,16 @@ interface ScanContext {
   stores: Map<string, StoreSample>;
   // Owners whose store of a kind turned content scanning off: never read.
   ownersNotScanned: TelemetryOwnersNotScanned;
+  // By metric name: whether it is a key a finding may keep (isMetricNameAKey).
+  metricNamesAsKeys: Map<string, boolean>;
 }
 
 interface SourceRead {
   label: string;
   recordsInWindow: number;
   recordsRead: number;
+  // Metrics only: how many of the service's metrics were read.
+  metricsRead?: number | undefined;
 }
 
 // What one store's sample holds while it is read.
@@ -1044,17 +1408,25 @@ class StoreSample {
   public outOfBudget: boolean = false;
 
   private readonly maxValuesPerLocation: number;
+  /*
+   * A metric's sample: each value is classified once at its location,
+   * however many points and series repeat it (seenValues).
+   */
+  private readonly isDistinctValues: boolean;
+  private readonly seenValues: Map<string, Set<string>> = new Map();
 
   public constructor(data: {
     ownerId: string;
     kind: DataStoreKind;
     isRumApplication: boolean;
     maxValuesPerLocation: number;
+    isDistinctValues?: boolean | undefined;
   }) {
     this.ownerId = data.ownerId;
     this.kind = data.kind;
     this.isRumApplication = data.isRumApplication;
     this.maxValuesPerLocation = data.maxValuesPerLocation;
+    this.isDistinctValues = Boolean(data.isDistinctValues);
     this.collector = new FieldCollector({
       maxFields: TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE,
       maxValuesPerField: data.maxValuesPerLocation,
@@ -1095,6 +1467,15 @@ class StoreSample {
       this.locationKinds.set(location, locationKind);
     }
 
+    const seen: Set<string> | undefined = this.isDistinctValues
+      ? this.seenValues.get(location) || new Set()
+      : undefined;
+
+    // A value this location already holds, from another point or series.
+    if (seen?.has(value)) {
+      return;
+    }
+
     const count: number = this.valueCounts.get(location) || 0;
 
     if (count >= this.maxValuesPerLocation) {
@@ -1113,6 +1494,11 @@ class StoreSample {
     this.valueCounts.set(location, count + 1);
     this.collector.addValue(location, value);
 
+    if (seen) {
+      seen.add(value);
+      this.seenValues.set(location, seen);
+    }
+
     const records: Array<FindingSampleRecord | null> =
       this.recordsByLocation.get(location) || [];
 
@@ -1123,7 +1509,8 @@ class StoreSample {
 
 /*
  * A sampled row as a reference to its record: when it was written and the
- * keys it carries (appendSampleRecordKeys). Null for a row with no time.
+ * keys it carries (appendSampleRecordKeys) - for a metric's point, the
+ * metric's name. Null for a row with no time.
  */
 export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
   return toFindingSampleRecord({
@@ -1131,7 +1518,47 @@ export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
     traceId: readText(row["readTraceId"]),
     spanId: readText(row["readSpanId"]),
     sessionId: readText(row["readSessionId"]),
+    metricName: readText(row["readMetricName"]),
   });
+}
+
+// A reference without the metric it is a point of.
+function withoutMetricName(
+  record: FindingSampleRecord | null,
+): FindingSampleRecord | null {
+  if (!record || record.metricName === undefined) {
+    return record;
+  }
+
+  const kept: FindingSampleRecord = { ...record };
+
+  delete kept.metricName;
+
+  return kept;
+}
+
+/*
+ * Whether a metric's name is a key a finding may keep with its records:
+ * no detector of any type finds anything in it, the project's own types
+ * included, whatever the project turned off - a name built from a user's
+ * email is a value, which a reference never holds.
+ */
+export function isMetricNameAKey(
+  metricName: string,
+  customDetectors: ReadonlyArray<ScanDetector> = [],
+): boolean {
+  if (!metricName) {
+    return false;
+  }
+
+  return (
+    findSensitiveValues(metricName, {
+      detectors:
+        customDetectors.length > 0
+          ? [...BUILT_IN_DETECTORS, ...customDetectors]
+          : BUILT_IN_DETECTORS,
+    }).length === 0
+  );
 }
 
 /*
@@ -1195,6 +1622,8 @@ function sampleOf(
       kind: source.kind,
       isRumApplication: source.owner !== "service",
       maxValuesPerLocation: context.perOwnerLimit,
+      // A series' labels repeat on every point: each is classified once.
+      isDistinctValues: source.source === TelemetrySampleSource.Metrics,
     });
     context.stores.set(key, sample);
   }
@@ -1429,6 +1858,21 @@ export function readTelemetryRecordValues(
         value: readText(row["readLabel"]).slice(0, caps.attributeValueLength),
       });
       break;
+    case TelemetrySampleSource.Metrics:
+      // The metric's name, then its point's attributes, its resource's among them.
+      values.push({
+        location: METRIC_NAME_LOCATION,
+        locationKind: DataStoreLocationKind.Field,
+        value: readText(row["readMetricName"]).slice(
+          0,
+          TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH,
+        ),
+      });
+      readAttributeValues(
+        { base: "attributes.", pairs: attributes, caps, isConversation: false },
+        values,
+      );
+      break;
     default:
       return null;
   }
@@ -1472,6 +1916,29 @@ function addRecord(data: {
   }
 
   const record: FindingSampleRecord | null = readSampleRecord(row);
+  /*
+   * A metric's point keeps its metric's name as its key - but never for a
+   * finding in the name itself, nor when the name holds sensitive data.
+   */
+  const recordWithoutName: FindingSampleRecord | null =
+    withoutMetricName(record);
+  let recordOfAttributes: FindingSampleRecord | null = recordWithoutName;
+
+  if (record?.metricName) {
+    let isKey: boolean | undefined = context.metricNamesAsKeys.get(
+      record.metricName,
+    );
+
+    if (isKey === undefined) {
+      isKey = isMetricNameAKey(
+        record.metricName,
+        context.options.customDetectors || [],
+      );
+      context.metricNamesAsKeys.set(record.metricName, isKey);
+    }
+
+    recordOfAttributes = isKey ? record : recordWithoutName;
+  }
 
   for (const value of values) {
     sample.addValue(
@@ -1479,7 +1946,10 @@ function addRecord(data: {
       value.locationKind,
       value.value,
       context,
-      record,
+      value.location === METRIC_NAME_LOCATION &&
+        source.source === TelemetrySampleSource.Metrics
+        ? recordWithoutName
+        : recordOfAttributes,
     );
   }
 
@@ -1666,6 +2136,309 @@ async function sampleSource(
   }
 }
 
+// The metrics a statement of the metrics read lists, as the scan reads them.
+export function readMetricsToRead(
+  rows: ReadonlyArray<JSONObject>,
+  ownerIds: ReadonlySet<string>,
+): Array<MetricToRead> {
+  const metrics: Array<MetricToRead> = [];
+  const seen: Set<string> = new Set();
+
+  for (const row of rows) {
+    const ownerId: string = readText(row["ownerId"]);
+    const metricName: string = readText(row["metricName"]);
+    const newestMinute: number = Number(readText(row["newestMinute"]));
+    const key: string = `${ownerId.toLowerCase()}|${metricName}`;
+
+    if (
+      !ownerId ||
+      !metricName ||
+      metricName.length > TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH ||
+      !ownerIds.has(ownerId.toLowerCase()) ||
+      !Number.isFinite(newestMinute) ||
+      newestMinute <= 0 ||
+      seen.has(key)
+    ) {
+      continue;
+    }
+
+    seen.add(key);
+    metrics.push({
+      ownerId,
+      metricName,
+      points: readCount(row["points"]),
+      newestMinute: new Date(newestMinute * 1000),
+      newestMinutePoints: readCount(row["newestMinutePoints"]),
+    });
+  }
+
+  return metrics;
+}
+
+// Which metrics of a scan are read by a branch of their own, stopped early.
+export function isLargeMetric(metric: MetricToRead): boolean {
+  return metric.newestMinutePoints > TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS;
+}
+
+// The scan's turn: the hour it reads, so the metrics read in turn move on each hour.
+export function getMetricTurn(until: Date): number {
+  return Math.floor(until.getTime() / (60 * 60 * 1000));
+}
+
+/*
+ * A project's metrics: which services wrote metrics in the window (the
+ * owners' read every source makes), which metrics each wrote and their
+ * newest minute (the rollup's), which of them this scan reads
+ * (planMetricsToRead), then the points of each one's newest minute, a few
+ * of each: the ordinary metrics in one read of their ranges of the table,
+ * a metric of many series by a branch of its own that stops early.
+ */
+async function sampleMetrics(
+  source: SourceDefinition,
+  context: ScanContext,
+): Promise<void> {
+  const projectId: string = context.window.projectId.toString();
+  const notScanned: ReadonlySet<string> =
+    context.ownersNotScanned.get(source.kind) || new Set();
+  let ownerRows: Array<JSONObject>;
+
+  try {
+    ownerRows = await runRead(
+      source,
+      buildTelemetryOwnersStatement({
+        ...context.window,
+        source: source.source,
+        excludedOwnerIds: Array.from(notScanned),
+        limit: context.maxOwners,
+      }),
+    );
+  } catch (error) {
+    logger.warn(
+      `DataSecurity: could not list which services of project ${projectId} have metrics to sample:`,
+    );
+    logger.warn(error);
+    return;
+  }
+
+  const owners: Map<string, { ownerId: string; records: number }> = new Map();
+
+  for (const row of ownerRows) {
+    const ownerId: string = readText(row["ownerId"]);
+
+    if (!ownerId || notScanned.has(ownerId.toLowerCase())) {
+      continue;
+    }
+
+    sampleOf(context, source, ownerId);
+    owners.set(ownerId.toLowerCase(), {
+      ownerId,
+      records: readCount(row["records"]),
+    });
+  }
+
+  if (owners.size === 0) {
+    return;
+  }
+
+  const ownerIds: Array<string> = Array.from(owners.values()).map(
+    (owner: { ownerId: string; records: number }): string => {
+      return owner.ownerId;
+    },
+  );
+  const warnOwners: (warning: string, ids: Iterable<string>) => void = (
+    warning: string,
+    ids: Iterable<string>,
+  ): void => {
+    for (const ownerId of ids) {
+      const sample: StoreSample = sampleOf(context, source, ownerId);
+      sample.warn(warning);
+      sample.isComplete = false;
+    }
+  };
+  const listMetrics: (fromRollup: boolean) => Promise<Array<JSONObject>> = (
+    fromRollup: boolean,
+  ): Promise<Array<JSONObject>> => {
+    return runRead(
+      source,
+      buildTelemetryMetricsStatement({
+        ...context.window,
+        ownerIds,
+        perOwner: TELEMETRY_SCAN_MAX_METRICS_LISTED_PER_OWNER,
+        total: TELEMETRY_SCAN_MAX_METRICS_LISTED,
+        fromRollup,
+      }),
+    );
+  };
+  let metricRows: Array<JSONObject>;
+
+  try {
+    metricRows = await listMetrics(true);
+  } catch (error) {
+    // The rollup missing or busy: the points' light columns say the same.
+    logger.warn(
+      `DataSecurity: could not list the metrics of project ${projectId} from their per-minute rollup; reading them from the data points:`,
+    );
+    logger.warn(error);
+
+    try {
+      metricRows = await listMetrics(false);
+    } catch (retryError) {
+      logger.warn(
+        `DataSecurity: could not list the metrics of project ${projectId}:`,
+      );
+      logger.warn(retryError);
+      warnOwners(
+        "Could not read this service's metrics in this scan; the next scan reads them again.",
+        ownerIds,
+      );
+      return;
+    }
+  }
+
+  // The metrics this scan reads: each service's busiest, and others in turn.
+  const metrics: Array<MetricToRead> = planMetricsToRead({
+    metrics: readMetricsToRead(metricRows, new Set(owners.keys())),
+    perOwner: TELEMETRY_SCAN_MAX_METRICS_PER_OWNER,
+    total: TELEMETRY_SCAN_MAX_METRICS_PER_READ,
+    turn: getMetricTurn(context.window.until),
+  });
+  const caps: TelemetrySampleCaps = capsOf(source, context.options);
+  const perMetric: number = Math.max(
+    1,
+    Math.min(TELEMETRY_SCAN_MAX_POINTS_PER_METRIC, context.perOwnerLimit),
+  );
+  const readCounts: Map<string, number> = new Map();
+  const metricCounts: Map<string, number> = new Map();
+  /*
+   * The ordinary metrics in reads of a hundred, each reading its ranges of
+   * the table once; the ones of many series in reads of a branch each.
+   */
+  const reads: Array<{ metrics: Array<MetricToRead>; isLarge: boolean }> = [];
+  const ordinary: Array<MetricToRead> = metrics.filter(
+    (metric: MetricToRead): boolean => {
+      return !isLargeMetric(metric);
+    },
+  );
+  const large: Array<MetricToRead> = metrics.filter(isLargeMetric);
+
+  for (
+    let start: number = 0;
+    start < ordinary.length;
+    start += TELEMETRY_SCAN_METRICS_PER_STATEMENT
+  ) {
+    reads.push({
+      metrics: ordinary.slice(
+        start,
+        start + TELEMETRY_SCAN_METRICS_PER_STATEMENT,
+      ),
+      isLarge: false,
+    });
+  }
+
+  for (
+    let start: number = 0;
+    start < large.length;
+    start += TELEMETRY_SCAN_LARGE_METRICS_PER_STATEMENT
+  ) {
+    reads.push({
+      metrics: large.slice(
+        start,
+        start + TELEMETRY_SCAN_LARGE_METRICS_PER_STATEMENT,
+      ),
+      isLarge: true,
+    });
+  }
+
+  for (let index: number = 0; index < reads.length; index++) {
+    const read: { metrics: Array<MetricToRead>; isLarge: boolean } =
+      reads[index]!;
+    const chunk: Array<MetricToRead> = read.metrics;
+    const chunkOwners: Set<string> = new Set(
+      chunk.map((metric: MetricToRead): string => {
+        return metric.ownerId;
+      }),
+    );
+
+    if (isPastDeadline(context.options) || context.bytesLeft <= 0) {
+      warnOwners(
+        "The scan read as much as it may this time: some of this service's metrics were not read.",
+        new Set(
+          reads
+            .slice(index)
+            .flatMap(
+              (left: {
+                metrics: Array<MetricToRead>;
+                isLarge: boolean;
+              }): Array<string> => {
+                return left.metrics.map((metric: MetricToRead): string => {
+                  return metric.ownerId;
+                });
+              },
+            ),
+        ),
+      );
+      break;
+    }
+
+    let rows: Array<JSONObject>;
+
+    try {
+      const statementData: TelemetryReadWindow & {
+        metrics: Array<MetricToRead>;
+        perMetric: number;
+        caps: TelemetrySampleCaps;
+      } = { ...context.window, metrics: chunk, perMetric, caps };
+
+      rows = await runRead(
+        source,
+        read.isLarge
+          ? buildTelemetryLargeMetricSampleStatement(statementData)
+          : buildTelemetryMetricSampleStatement(statementData),
+      );
+    } catch (error) {
+      logger.warn(
+        `DataSecurity: could not sample the metrics of project ${projectId}:`,
+      );
+      logger.warn(error);
+      warnOwners(
+        "Could not read some of this service's metrics in this scan; the next scan reads them again.",
+        chunkOwners,
+      );
+      continue;
+    }
+
+    for (const metric of chunk) {
+      const ownerKey: string = metric.ownerId.toLowerCase();
+      metricCounts.set(ownerKey, (metricCounts.get(ownerKey) || 0) + 1);
+    }
+
+    for (const row of rows) {
+      const ownerId: string = readText(row["ownerId"]).toLowerCase();
+      const sample: StoreSample | undefined = context.stores.get(
+        storeKey(source.kind, ownerId),
+      );
+
+      // Only the services the read was for.
+      if (!sample || !owners.has(ownerId)) {
+        continue;
+      }
+
+      if (addRecord({ sample, source, row, context, caps })) {
+        readCounts.set(ownerId, (readCounts.get(ownerId) || 0) + 1);
+      }
+    }
+  }
+
+  for (const [ownerKey, owner] of owners) {
+    sampleOf(context, source, owner.ownerId).reads.push({
+      label: source.label,
+      recordsInWindow: owner.records,
+      recordsRead: readCounts.get(ownerKey) || 0,
+      metricsRead: metricCounts.get(ownerKey) || 0,
+    });
+  }
+}
+
 function classifierOptionsOf(
   options: ContentScanOptions,
 ): FieldClassifierOptions {
@@ -1839,7 +2612,13 @@ function toResult(data: {
   const owner: string = describeOwner(sample, data.name);
   const readLog: Array<string> = sample.reads.map(
     (read: SourceRead): string => {
-      return `${owner}: read the ${read.recordsRead} newest ${read.label} of the ${read.recordsInWindow} written between ${data.window.since.toISOString()} and ${data.window.until.toISOString()}.`;
+      const window: string = `between ${data.window.since.toISOString()} and ${data.window.until.toISOString()}`;
+
+      if (read.metricsRead !== undefined) {
+        return `${owner}: read ${read.recordsRead} ${read.label} of the newest minute of ${read.metricsRead} of its metrics - its busiest, and others in turn - of the ${read.recordsInWindow} written ${window}.`;
+      }
+
+      return `${owner}: read the ${read.recordsRead} newest ${read.label} of the ${read.recordsInWindow} written ${window}.`;
     },
   );
 
@@ -1899,8 +2678,8 @@ function lowerCaseOwners(
 }
 
 /*
- * A sample of every service's logs, traces, exceptions and AI
- * conversations, and of every RUM application's sessions, since `since`
+ * A sample of every service's logs, traces, exceptions, AI conversations
+ * and metrics, and of every RUM application's sessions, since `since`
  * (at most TELEMETRY_SCAN_MAX_WINDOW_IN_HOURS before now): one result per
  * store, classified. A read that fails is logged and named in the warnings
  * of the stores it was for; the scan goes on with the next. An owner whose
@@ -1951,6 +2730,7 @@ export async function scanProjectTelemetry(data: {
       limits.maxBytesTotal > 0 ? limits.maxBytesTotal : DEFAULT_BYTES_PER_SCAN,
     stores: new Map(),
     ownersNotScanned: lowerCaseOwners(data.ownersNotScanned),
+    metricNamesAsKeys: new Map(),
   };
 
   let restrictedServiceIds: ReadonlySet<string> | null;
@@ -1983,6 +2763,12 @@ export async function scanProjectTelemetry(data: {
     }
 
     if (restrictedServiceIds === null && SPANS_OF_SERVICES.has(sourceName)) {
+      continue;
+    }
+
+    // Metrics hold no conversation: none of a service's is left out.
+    if (sourceName === TelemetrySampleSource.Metrics) {
+      await sampleMetrics(source, context);
       continue;
     }
 
