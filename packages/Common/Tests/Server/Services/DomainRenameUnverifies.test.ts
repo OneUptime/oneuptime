@@ -7,15 +7,14 @@ import {
   test,
 } from "@jest/globals";
 import DomainModel from "../../../Models/DatabaseModels/Domain";
-import DomainService, {
-  Service as DomainServiceType,
-} from "../../../Server/Services/DomainService";
+import DomainService from "../../../Server/Services/DomainService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ServerDomain from "../../../Server/Types/Domain";
 import DomainType from "../../../Types/Domain";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * A DOMAIN IS VERIFIED BY ITS NAME (#9824).
@@ -56,10 +55,8 @@ const MASTER_ADMIN: DatabaseCommonInteractionProps = {
 
 const SERVER: DatabaseCommonInteractionProps = { isRoot: true };
 
-let rowsRead: jest.SpiedFunction<
-  DomainServiceType["findRowsAndHoldUpdateToThem"]
->;
-let txtLookups: jest.SpiedFunction<typeof ServerDomain.verifyTxtRecord>;
+let rowsRead: ReturnType<typeof getJestSpyOn>;
+let txtLookups: ReturnType<typeof getJestSpyOn>;
 
 // The domain as it is saved: verified, under `name`.
 const savedAs: (name: string) => void = (name: string): void => {
@@ -98,10 +95,10 @@ const update: (
 };
 
 beforeEach(() => {
-  rowsRead = jest.spyOn(DomainService, "findRowsAndHoldUpdateToThem");
-  txtLookups = jest
-    .spyOn(ServerDomain, "verifyTxtRecord")
-    .mockResolvedValue(true);
+  rowsRead = getJestSpyOn(DomainService, "findRowsAndHoldUpdateToThem");
+  txtLookups = getJestSpyOn(ServerDomain, "verifyTxtRecord").mockResolvedValue(
+    true,
+  );
 });
 
 afterEach(() => {
@@ -123,7 +120,7 @@ describe.each([
       );
 
       expect(written.data.isVerified).toBe(false);
-      expect(written.data.domain?.toString()).toBe("victim.com");
+      expect(String(written.data.domain)).toBe("victim.com");
     });
 
     test("cannot verify the new name in the same write, and no record is looked up for the old one", async () => {
@@ -147,7 +144,7 @@ describe.each([
       );
 
       expect(written.data.domain).toBeInstanceOf(DomainType);
-      expect(written.data.domain?.toString()).toBe("victim.com");
+      expect(String(written.data.domain)).toBe("victim.com");
       expect(written.data.isVerified).toBe(false);
     });
 

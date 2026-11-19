@@ -62,6 +62,7 @@ import {
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { getJestSpyOn } from "../../Spy";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "d0000000-0000-4000-8000-000000000001",
@@ -300,9 +301,10 @@ describe.each(PROVIDERS)("$label", (providerCase: ProviderCase) => {
   });
 
   test("the domain check comes before the teams are weighed", async () => {
-    const teamCheck: jest.SpiedFunction<
-      typeof SsoProviderTeamGrant.assertCanCreate
-    > = jest.spyOn(SsoProviderTeamGrant, "assertCanCreate");
+    const teamCheck: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SsoProviderTeamGrant,
+      "assertCanCreate",
+    );
 
     await refusalOf(
       callHook(providerCase.service, "onBeforeCreate", {

@@ -148,7 +148,7 @@ function relationOf(
 }
 
 function sortedAccess(
-  access: ColumnAccessControl | undefined,
+  access: ColumnAccessControl | null | undefined,
 ): Record<string, Array<Permission>> {
   return {
     create: [...(access?.create || [])].sort(),
