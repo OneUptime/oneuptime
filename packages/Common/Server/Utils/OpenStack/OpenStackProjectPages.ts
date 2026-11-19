@@ -17,6 +17,10 @@ import {
   readOpenStackProjectPageRows,
 } from "../../../Types/OpenStack/OpenStackStatusPagePlan";
 import { OpenStackProjectNoticeMessage } from "../../../Utils/OpenStack/OpenStackProjectNoticeText";
+import {
+  OPENSTACK_PROJECT_USES_BACK,
+  OPENSTACK_PROJECT_USES_INCIDENT,
+} from "../../../Utils/Monitor/StatusChangeNotes";
 import MonitorService from "../../Services/MonitorService";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
@@ -243,9 +247,10 @@ export default class OpenStackProjectPages {
     timeline.projectId = data.projectId;
     timeline.monitorId = data.monitorId;
     timeline.monitorStatusId = status.id;
+    // StatusChangeNotes words both on the Status Timeline's View Cause.
     timeline.rootCause = data.isRed
-      ? "Something this project uses has an incident."
-      : "What this project uses is back.";
+      ? OPENSTACK_PROJECT_USES_INCIDENT
+      : OPENSTACK_PROJECT_USES_BACK;
 
     await MonitorStatusTimelineService.create({
       data: timeline,

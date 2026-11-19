@@ -16,6 +16,7 @@ import {
   ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
+  ResourceAttentionSince,
   ResourceAttentionText,
 } from "./ResourceAttention";
 import { withSentenceDigits } from "./SentenceDigits";
@@ -98,6 +99,22 @@ function relativeTimeValue(
       language: sentence.language,
     });
   });
+}
+
+/*
+ * Since when, as a row says it - "Failed 2 hours ago", in the reader's
+ * words - so a page saying it beside the row's dialog says the same.
+ */
+export function getResourceAttentionSinceText(
+  translator: Translator,
+  since: ResourceAttentionSince,
+  now: Date,
+): string {
+  return translator.translateTemplate(
+    since.template,
+    { time: relativeTimeValue(since.at, now) },
+    { setsValuesApart: true },
+  );
 }
 
 export interface ComponentProps {
@@ -322,11 +339,7 @@ const ResourceAttentionRow: FunctionComponent<ComponentProps> = (
             data-testid={`${testId}-since`}
             className="mt-1 text-xs text-gray-500"
           >
-            {translator.translateTemplate(
-              item.since.template,
-              { time: relativeTimeValue(item.since.at, now) },
-              { setsValuesApart: true },
-            )}
+            {getResourceAttentionSinceText(translator, item.since, now)}
           </p>
         ) : (
           <></>
