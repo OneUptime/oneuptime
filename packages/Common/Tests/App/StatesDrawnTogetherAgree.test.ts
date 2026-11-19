@@ -182,6 +182,26 @@ export const STATE_SETS: Array<StateSet> = [
       `${DASHBOARD_SOURCE}/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts`,
     ],
   },
+  {
+    /*
+     * One pill per row of Inventory > Managed Devices, and on a device's
+     * Esper card (ManagedDeviceStatusPill), each worded from
+     * MANAGED_DEVICE_STATUS_LABELS (#9838).
+     */
+    thing:
+      "a managed device's status, on the Managed Devices list and its Esper card",
+    app: "Dashboard",
+    keys: [
+      "Online",
+      "Offline",
+      "Provisioning",
+      "Onboarding Failed",
+      "Disabled",
+      "Factory Reset",
+      "Removed",
+    ],
+    drawnIn: ["packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts"],
+  },
 ];
 
 export const GENDERED_LANGUAGES: Array<string> = [
@@ -210,9 +230,12 @@ const NEGATION: Record<string, Array<string>> = {
 
 /*
  * A phrase that opens with a preposition ("En pause", "In pausa") shows no
- * gender.
+ * gender. Russian's too: a managed device's "В сети" and "Не в сети" (online,
+ * offline: "in the network") describe no gender, where the bare "в" read as
+ * a masculine word ending in a consonant (#9838).
  */
 const PREPOSITION: Record<string, Array<string>> = {
+  ru: ["в", "во", "на", "без", "из", "с", "со", "под", "по", "до", "при"],
   fr: ["en", "hors", "à", "au"],
   es: ["en", "con"],
   it: ["in", "fuori", "da"],
@@ -811,6 +834,46 @@ describe("the checks above (negative control)", () => {
     expect(getStateGender("hi", "सक्रिय")).toBeUndefined();
     expect(agrees("ru", ["Активно", "Неактивно"])).toBe(true);
     expect(agrees("it", ["Attivo", "Svuotato", "In pausa"])).toBe(true);
+  });
+
+  /*
+   * #9838: Russian's online and offline are "in the network" and "not in the
+   * network". The preposition read as a masculine word ending in a
+   * consonant, so the managed device's neuter "Отключено" and "Удалено"
+   * seemed to disagree with them.
+   */
+  test("a Russian state that opens with a preposition shows no gender, and a word after it still does", () => {
+    expect(getStateGender("ru", "В сети")).toBeUndefined();
+    expect(getStateGender("ru", "Не в сети")).toBeUndefined();
+    expect(getStateGender("ru", "На паузе")).toBeUndefined();
+    expect(getStateGender("ru", "Без изменений")).toBeUndefined();
+    expect(agrees("ru", ["В сети", "Не в сети", "Отключено", "Удалено"])).toBe(
+      true,
+    );
+
+    // A word that only begins like one is still read.
+    expect(getStateGender("ru", "Включено")).toBe("neuter");
+    expect(getStateGender("ru", "Выведен из работы")).toBe("masculine");
+    expect(getStateGender("ru", "Не удалось зарегистрировать")).toBe("neuter");
+
+    // And a set that disagrees beside them is still caught.
+    expect(agrees("ru", ["В сети", "Отключено", "Удалён"])).toBe(false);
+  });
+
+  test("the managed device's states read as Russian words them today", () => {
+    const russian: Record<string, unknown> = readLocale("Dashboard", "ru");
+
+    expect({
+      online: russian["Online"],
+      offline: russian["Offline"],
+      disabled: russian["Disabled"],
+      removed: russian["Removed"],
+    }).toEqual({
+      online: "В сети",
+      offline: "Не в сети",
+      disabled: "Отключено",
+      removed: "Удалено",
+    });
   });
 
   test("a verb's past and a 'yet' before it are read as a reader reads them (#8659)", () => {
