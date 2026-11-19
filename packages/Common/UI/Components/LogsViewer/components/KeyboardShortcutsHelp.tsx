@@ -63,9 +63,11 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
           <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
             {translator.translateText("Keyboard shortcuts")}
           </span>
+          {/* Its X alone: named, so a screen reader says what it does. */}
           <button
             type="button"
             className="text-gray-400 transition-colors hover:text-gray-600"
+            aria-label={translator.translateText("Close")}
             onClick={props.onClose}
           >
             <svg
