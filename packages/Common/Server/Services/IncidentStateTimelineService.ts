@@ -45,6 +45,7 @@ import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChange
 import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import AIIncidentPostmortemRunner from "../Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
+import StateChangeRootCause from "../Utils/StateChangeRootCause";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
@@ -192,6 +193,29 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     try {
       if (!createBy.data.incidentId) {
         throw new BadDataException("incidentId is null");
+      }
+
+      /*
+       * The root cause that can come with the change - the Resolve dialog's
+       * "Add the root cause", under writtenRootCause (#7765). It becomes the
+       * incident's root cause once the change is saved, written as the
+       * person changing the state, and whether they may write it is asked
+       * now, before the incident is locked, with the incident's own update
+       * check: a change whose root cause they may not write is refused
+       * whole (StateChangeRootCause).
+       */
+      const writtenRootCause: string | undefined =
+        StateChangeRootCause.getRootCause(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
+
+      if (writtenRootCause) {
+        await StateChangeRootCause.assertCallerMayWrite({
+          modelType: Incident,
+          recordId: createBy.data.incidentId,
+          rootCause: writtenRootCause,
+          props: createBy.props,
+        });
       }
 
       // The incident's lock: given back in onCreateSuccess or onCreateError.
@@ -457,6 +481,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
           publicNote: publicNote,
           publicNoteToPost: publicNoteToPost,
           privateNotesToPost: privateNotesToPost,
+          writtenRootCause: writtenRootCause,
           mutex: mutex,
         },
       };
@@ -798,6 +823,33 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
       });
     }
 
+    /*
+     * The root cause that came with the change (#7765): the incident's own
+     * now, written as the person who changed the state, so the incident's
+     * feed says who changed its root cause, as for any edit of it - before
+     * the resolve below grades the investigation against it. Never fails
+     * the change, which is saved (StateChangeRootCause.save).
+     */
+    const writtenRootCause: string | undefined =
+      onCreate.carryForward.writtenRootCause;
+    const isRootCauseWritten: boolean = writtenRootCause
+      ? await StateChangeRootCause.save({
+          write: (): Promise<unknown> => {
+            return IncidentService.updateOneById({
+              id: createdItem.incidentId!,
+              data: {
+                rootCause: writtenRootCause,
+              },
+              props: onCreate.createBy.props,
+            });
+          },
+          logAttributes: {
+            projectId: createdItem.projectId?.toString(),
+            incidentId: createdItem.incidentId?.toString(),
+          } as LogAttributes,
+        })
+      : false;
+
     if (resolvesIncident) {
       const incident: Incident | null = await IncidentService.findOneBy({
         query: {
@@ -858,12 +910,15 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
 
       /*
        * AI measurement layer: grade the completed investigation (if
-       * any) against the human-recorded root cause. Fire-and-forget like
-       * the postmortem draft above — must never block or fail the resolve.
+       * any) against the root cause people wrote - the one written with
+       * this resolve, or the one a person-declared incident holds.
+       * Fire-and-forget like the postmortem draft above — must never block
+       * or fail the resolve.
        */
       InvestigationGrader.gradeInvestigationOnResolve({
         incidentId: createdItem.incidentId!,
         projectId: createdItem.projectId!,
+        writtenRootCause: isRootCauseWritten ? writtenRootCause : undefined,
       }).catch((error: Error) => {
         logger.error(`AI investigation grading failed on resolve:`, {
           projectId: createdItem.projectId?.toString(),

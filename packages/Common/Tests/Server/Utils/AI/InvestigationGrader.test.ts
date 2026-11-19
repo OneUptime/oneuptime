@@ -16,12 +16,15 @@ import { beforeEach, describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * On-resolve investigation grading (Phase 2 measurement layer): when an
- * incident resolves with a human-recorded root cause and a completed
+ * incident resolves with a root cause people wrote and a completed
  * investigation exists, ONE constrained LLM call grades the posted analysis
  * MATCH / PARTIAL / MISMATCH. Under test: the pure gate
  * (shouldGradeInvestigation), the defensive one-token parse
  * (parseAutoGradeToken — including the MATCH-inside-MISMATCH trap), and the
  * end-to-end skip/store/swallow behavior of gradeInvestigationOnResolve.
+ * Alerts, and which root cause is people's (#7765), are covered by
+ * InvestigationGraderPeoplesRootCause.test.ts. The incidents here were
+ * declared by a person, so the root cause they hold is people's.
  */
 
 const incidentId: ObjectID = ObjectID.generate();
@@ -36,8 +39,14 @@ function fakeRun(autoGrade?: AIRunAutoGrade): AIRun {
   } as unknown as AIRun;
 }
 
-function fakeIncident(rootCause?: string | undefined): Incident {
-  return { id: incidentId, rootCause } as unknown as Incident;
+// Who declared the incident: a person, unless a test says OneUptime did.
+const personId: ObjectID = ObjectID.generate();
+
+function fakeIncident(
+  rootCause?: string | undefined,
+  createdByUserId: ObjectID | undefined = personId,
+): Incident {
+  return { id: incidentId, rootCause, createdByUserId } as unknown as Incident;
 }
 
 function fakeLlmResponse(content: string): AILogResponse {

@@ -43,7 +43,7 @@ Fai clic su **Invita utente**. Si apre la finestra **Invita nuovo utente**.
 
 ### Inserire l'indirizzo email
 
-Scrivi il suo indirizzo in **E-mail**. Mentre scrivi, **E-mail** suggerisce le persone del progetto per nome o indirizzo, e indica chi è **Invitato** e chi è **Già in questo team**: fai clic su una di esse per inserirne l'indirizzo. Su un server self-hosted, a un amministratore principale vengono proposti anche gli altri account del server, contrassegnati con **Non ancora in questo progetto**, e così a chiunque possa invitare persone, una volta che un amministratore principale lo consente nell'Admin Dashboard. Per un indirizzo che scrivi tu, la finestra chiede anche un **Nome**, facoltativo: se questa persona non ha ancora un account OneUptime, verrà creato con questo nome.
+Scrivi il suo indirizzo in **E-mail**. Mentre scrivi, **E-mail** suggerisce le persone del progetto per nome o indirizzo, e indica chi è **Invitato** e chi è **Già in questo team**: fai clic su una di esse per inserirne l'indirizzo. Su un server self-hosted, a un amministratore principale vengono proposti anche gli altri account del server, contrassegnati con **Non ancora in questo progetto**, e così a chiunque possa invitare persone, una volta che un amministratore principale lo consente nell'Admin Dashboard. Per un indirizzo che scrivi tu, la finestra chiede anche un **Nome**, facoltativo: se questa persona non ha ancora un account OneUptime, verrà creato con questo nome. Finché non accetta, il progetto la mostra con quel nome, o solo con il suo indirizzo, mai con il nome o la foto del suo account. I moduli di invito dell'Admin Dashboard suggeriscono le persone nello stesso modo.
 
 ### Scegliere il team
 
@@ -61,9 +61,9 @@ Su un server self-hosted che non può ancora inviare email, non parte nessuna em
 
 ## Accettare un invito
 
-L'email di invito nomina il progetto e chi ha invitato la persona. Il suo pulsante è **Create Your Account** per chi non ha ancora un account OneUptime, e **Sign In to OneUptime** per chi ne ha già uno.
+L'email di invito nomina il progetto e chi ha invitato la persona. Il suo pulsante è **Create Your Account** per chi non ha ancora un account OneUptime, e **Sign In to OneUptime** per chi ne ha già uno. Quando sarà l'SSO a gestire il suo accesso, perché il progetto gestisce l'accesso delle sue persone con l'SSO e così ogni altro progetto a cui appartiene, o perché l'intero server richiede l'SSO, l'email lo dice invece, e il suo pulsante è **Sign In with SSO**.
 
-**Create Your Account** apre la pagina di registrazione con il suo indirizzo e il nome che hai inserito già compilati, e dice quale progetto l'ha invitata e chi. Registrarsi lì la fa entrare nel progetto, senza altro da accettare.
+**Create Your Account** apre la pagina di registrazione con il suo indirizzo e il nome che hai inserito già compilati, e dice quale progetto l'ha invitata e chi. Registrarsi lì la fa entrare nel progetto, senza altro da accettare. **Sign In with SSO** apre la stessa pagina, che offre il single sign-on al posto di una password: accedere lì con uno dei provider di identità del progetto la fa entrare nel progetto.
 
 Su un server self-hosted che non può ancora inviare email, nessuno riceve un'email: il link di invito che la persona riceve al suo posto apre la stessa pagina di registrazione, o la pagina di accesso per chi ha già un account.
 
@@ -82,7 +82,7 @@ Accettando entra subito nel progetto, con le autorizzazioni del suo team e la co
 
 | Colonna | Che cosa mostra |
 | --- | --- |
-| **Utente** | Il suo nome e il suo indirizzo email. |
+| **Utente** | Il suo nome e il suo indirizzo email. Finché non accetta, il nome che hai inserito per lei, se c'è. |
 | **Team** | Ogni team del progetto di cui fa parte, o in cui è invitata. |
 | **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora, oppure **Email non inviata** quando il servizio di posta ha rifiutato la sua ultima email di invito. Su un server self-hosted che non può ancora inviare email, invece **Invitato**: l'invito viene creato, ma non parte nessuna email. |
 

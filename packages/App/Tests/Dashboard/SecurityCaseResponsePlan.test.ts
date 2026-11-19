@@ -1364,4 +1364,90 @@ describe("a rule's own response steps", () => {
       }),
     ).toBe("Rotate the key in Vault.");
   });
+
+  /*
+   * Reordered on the rule's form (#9796): the plan shows the steps in their
+   * new order, and a step ticked off before the move is still ticked - it
+   * is kept under the same key, `rule:<id>`, wherever it goes.
+   */
+  test("reordered, the plan shows the new order, and the steps ticked off before stay ticked", () => {
+    const CONTAIN_STEPS: Array<{ id: string; phase: string; text: string }> = [
+      {
+        id: "page-payments",
+        phase: "Contain",
+        text: "Page the payments on-call.",
+      },
+      { id: "lock-account", phase: "Contain", text: "Lock the account." },
+      {
+        id: "rotate-vault-key",
+        phase: "Contain",
+        text: "Rotate the key in Vault.",
+      },
+    ];
+    const tasks: Array<{
+      id: string;
+      responseStepKey: string;
+      isDone: boolean;
+      doneByName?: string;
+    }> = [
+      {
+        id: "task-1",
+        responseStepKey: "rule:rotate-vault-key",
+        isDone: true,
+        doneByName: "Maya",
+      },
+      { id: "task-2", responseStepKey: "rule:page-payments", isDone: true },
+    ];
+    const ruleKeys: (
+      built: ReturnType<Plan["buildResponsePlan"]>,
+    ) => Array<string> = (
+      built: ReturnType<Plan["buildResponsePlan"]>,
+    ): Array<string> => {
+      return keys(built).filter((key: string): boolean => {
+        return key.startsWith("rule:");
+      });
+    };
+
+    const before: ReturnType<Plan["buildResponsePlan"]> =
+      plan.buildResponsePlan(
+        input({ matches: matches(withSteps(CONTAIN_STEPS)), tasks }),
+      );
+
+    expect(ruleKeys(before)).toEqual([
+      "rule:page-payments",
+      "rule:lock-account",
+      "rule:rotate-vault-key",
+    ]);
+
+    // Rotate the key moved to the top of Contain it, Page the payments on-call down.
+    const reordered: Array<{ id: string; phase: string; text: string }> = [
+      CONTAIN_STEPS[2]!,
+      CONTAIN_STEPS[1]!,
+      CONTAIN_STEPS[0]!,
+    ];
+    const after: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({ matches: matches(withSteps(reordered)), tasks }),
+    );
+
+    expect(ruleKeys(after)).toEqual([
+      "rule:rotate-vault-key",
+      "rule:lock-account",
+      "rule:page-payments",
+    ]);
+    // Each still first in its part of the plan, after taking the case.
+    expect(keys(after).indexOf("rule:rotate-vault-key")).toBeLessThan(
+      keys(after).indexOf("contain:block-ip:35.196.249.14"),
+    );
+
+    const rotate: ReturnType<typeof step> = step(
+      after,
+      "rule:rotate-vault-key",
+    );
+
+    expect(rotate.isDone).toBe(true);
+    expect(rotate.taskId).toBe("task-1");
+    expect(rotate.doneByName).toBe("Maya");
+    expect(step(after, "rule:page-payments").isDone).toBe(true);
+    expect(step(after, "rule:lock-account").isDone).toBe(false);
+  });
 });

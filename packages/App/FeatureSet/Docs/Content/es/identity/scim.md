@@ -454,7 +454,7 @@ Los usuarios que crea el propio SCIM y los usuarios que son miembros de tu proye
 La dirección de correo electrónico de una cuenta de OneUptime es con la que esa persona inicia sesión en todos los proyectos a los que pertenece, y adonde llegan sus enlaces para restablecer la contraseña. Por eso:
 
 - **OneUptime Cloud**: SCIM nunca cambia una dirección de correo electrónico. Una solicitud que la cambiaría se completa igualmente: la conexión guarda la dirección que envió tu proveedor de identidad y responde con ella, mientras que la cuenta conserva la dirección con la que inicia sesión. Los registros SCIM de la conexión indican que el cambio no se aplicó. Pide al usuario que cambie su dirección desde su propio perfil de OneUptime.
-- **Autoalojado**: SCIM cambia la dirección de correo electrónico solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, la conexión guarda la dirección nueva y la cuenta conserva la suya, como en OneUptime Cloud.
+- **Autoalojado**: SCIM cambia la dirección de correo electrónico solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, la conexión guarda la dirección nueva y la cuenta conserva la suya, como en OneUptime Cloud. Lo mismo ocurre con una dirección con la que ya inicia sesión otra cuenta de OneUptime.
 
 Los nombres siguen la misma regla en todos los casos: SCIM actualiza el nombre solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, el nombre se deja como está y el resto de la solicitud se completa igualmente.
 :::

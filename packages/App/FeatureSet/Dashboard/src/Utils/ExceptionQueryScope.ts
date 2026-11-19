@@ -1,12 +1,14 @@
 import Dictionary from "Common/Types/Dictionary";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import { toExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import { SearchQueryValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import { ExceptionInstanceScope } from "./ExceptionsAttributeScope";
 import {
@@ -122,6 +124,50 @@ function chipLabelForColumn(column: string): string {
   return COLUMN_CHIP_LABELS[column] || column;
 }
 
+// A stored boolean, as the query holds it or as its text; null for anything else.
+function readStoredBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const lower: string = value.trim().toLowerCase();
+
+    if (lower === "true" || lower === "false") {
+      return lower === "true";
+    }
+  }
+
+  return null;
+}
+
+/*
+ * The values an exclusion leaves out - an IncludesNone, as an instance or
+ * in its `{_type, value}` wire shape - or null when the value is no
+ * exclusion. An empty exclusion leaves nothing out, so it is none.
+ */
+function readExcludedValues(value: unknown): Array<string> | null {
+  let raw: unknown = undefined;
+
+  if (value instanceof IncludesNone) {
+    raw = value.values;
+  } else if (
+    value &&
+    typeof value === "object" &&
+    (value as JSONObject)["_type"] === ObjectType.IncludesNone
+  ) {
+    raw = (value as JSONObject)["value"];
+  }
+
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+
+  const values: Array<string> = getFilterStringValues(raw);
+
+  return values.length > 0 ? values : null;
+}
+
 /**
  * Read a stored exception-instance query as a viewer scope. A null /
  * non-object query, or one that scopes nothing, yields
@@ -195,8 +241,51 @@ export function buildExceptionQueryScope(
     (columnQuery as JSONObject)["attributes"] = record["attributes"] as never;
   }
 
+  /*
+   * The two filters an Exceptions monitor can hold that are no list of
+   * values (#9713): unhandled only (`escaped = true`) and the types it leaves
+   * out (`exceptionType NOT IN (...)`). Each rides the instance query as it
+   * was stored, so the list is as narrow as the count, and is drawn as a
+   * chip: "Unhandled: Yes", and a chip that leaves a type out for each type
+   * (a `!exceptionType` chip reads as one that excludes).
+   */
+  const handledKeys: Set<string> = new Set<string>();
+
+  const escaped: boolean | null = readStoredBoolean(record["escaped"]);
+
+  if (escaped !== null) {
+    (columnQuery as JSONObject)["escaped"] = escaped;
+    chips.push({
+      facetKey: "escaped",
+      value: String(escaped),
+      displayKey: "Unhandled",
+      displayValue: escaped ? "Yes" : "No",
+    });
+    handledKeys.add("escaped");
+  }
+
+  const excludedTypes: Array<string> | null = readExcludedValues(
+    record["exceptionType"],
+  );
+
+  if (excludedTypes !== null) {
+    (columnQuery as JSONObject)["exceptionType"] = record[
+      "exceptionType"
+    ] as never;
+
+    for (const excludedType of excludedTypes) {
+      addChip(
+        toExcludeFacetKey("exceptionType"),
+        excludedType,
+        chipLabelForColumn("exceptionType"),
+      );
+    }
+
+    handledKeys.add("exceptionType");
+  }
+
   for (const key of Object.keys(record)) {
-    if (CONSUMED_QUERY_KEYS.has(key)) {
+    if (CONSUMED_QUERY_KEYS.has(key) || handledKeys.has(key)) {
       continue;
     }
 

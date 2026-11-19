@@ -8,13 +8,17 @@ import EmailVerificationTokenService from "../../../Server/Services/EmailVerific
 import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamMemberService, {
+  TeamMemberService as TeamMemberServiceClass,
+} from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
+import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../../Types/SSO/SsoManagedSignIn";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -370,4 +374,189 @@ describe("the invitation goes on alike, whoever the address belongs to", () => {
       ).toBe(INVITEE_EMAIL.toString());
     },
   );
+});
+
+describe("the name typed is kept on the membership, whoever the address belongs to (#9823)", () => {
+  /*
+   * Until the person accepts, the project sees only what it invited: the
+   * address, and this name (PendingInviteeProfiles reads it in place of
+   * the account's own). So it is the same on the membership whether the
+   * address had an account, an unclaimed one, or none.
+   */
+  test.each([
+    ["nobody", null],
+    [
+      "an unclaimed invitation",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: false });
+      },
+    ],
+    [
+      "someone signed up",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: true });
+      },
+    ],
+  ])(
+    "an address that belongs to %s: the membership keeps the name typed, trimmed",
+    async (_case: string, account: (() => User) | null) => {
+      findUserSpy.mockResolvedValue(account ? account() : null);
+      findUserByIdSpy.mockResolvedValue(withName("Their Own Name"));
+
+      const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy("  Grace Hopper  "),
+      )) as { createBy: CreateBy<TeamMember> };
+
+      expect(result.createBy.data.inviteeName).toBe("Grace Hopper");
+    },
+  );
+
+  test.each([
+    ["no name", undefined],
+    ["an empty name", ""],
+    ["a name of spaces", "   "],
+  ])(
+    "the membership keeps no name when the form sent %s",
+    async (_case: string, name: string | undefined) => {
+      findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
+
+      const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy(name),
+      )) as { createBy: CreateBy<TeamMember> };
+
+      expect(result.createBy.data.inviteeName).toBeUndefined();
+    },
+  );
+
+  test("a name longer than the column is cut to fit", async () => {
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      inviteBy("G".repeat(250)),
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeName).toBe("G".repeat(100));
+  });
+
+  test("an API client's own inviteeName is kept as the form's is, and the form's Name wins", async () => {
+    const fromApi: CreateBy<TeamMember> = inviteBy();
+    fromApi.data.inviteeName = "  Ada Lovelace ";
+
+    const kept: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      fromApi,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(kept.createBy.data.inviteeName).toBe("Ada Lovelace");
+
+    const both: CreateBy<TeamMember> = inviteBy("Grace Hopper");
+    both.data.inviteeName = "Ada Lovelace";
+
+    const won: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      both,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(won.createBy.data.inviteeName).toBe("Grace Hopper");
+  });
+
+  test("an API client's blank inviteeName is no name at all", async () => {
+    const blank: CreateBy<TeamMember> = inviteBy();
+    blank.data.inviteeName = "   ";
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      blank,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeName).toBeUndefined();
+    expect("inviteeName" in result.createBy.data).toBe(false);
+  });
+});
+
+describe("an invitation into a project that manages sign-in with SSO is emailed as one (#9819)", () => {
+  // The email the hook asked the mail service for: its variables.
+  function emailVars(): Record<string, string> {
+    expect(sendMailSpy).toHaveBeenCalledTimes(1);
+
+    return (sendMailSpy.mock.calls[0]![0] as { vars: Record<string, string> })
+      .vars;
+  }
+
+  test("someone with no account yet: Sign In with SSO, on the link the invitation opens", async () => {
+    const asked: jest.SpyInstance = jest
+      .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
+      .mockResolvedValue(SsoManagedBy.Projects);
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy("Grace"));
+
+    const vars: Record<string, string> = emailVars();
+
+    expect(vars["isSsoSignIn"]).toBe("true");
+    // The sign-up link with its token: the page then offers the providers.
+    expect(vars["ssoSignInLink"]).toBe(vars["registerLink"]);
+    expect(vars["ssoSignInLink"]).toContain("/accounts/register");
+    // Asked about nobody's other projects: the invitation just made them.
+    expect(asked).toHaveBeenCalledWith({
+      userId: null,
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("someone signed up already: Sign In with SSO, on Sign in with SSO", async () => {
+    findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
+    const asked: jest.SpyInstance = jest
+      .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
+      .mockResolvedValue(SsoManagedBy.Projects);
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy());
+
+    const vars: Record<string, string> = emailVars();
+
+    expect(vars["isSsoSignIn"]).toBe("true");
+    expect(vars["ssoSignInLink"]).toBe("https://oneuptime.test/accounts/sso");
+    // Their own projects count: asked about this account.
+    expect(String(asked.mock.calls[0]![0]["userId"])).toBe(USER_ID.toString());
+  });
+
+  test("someone who also belongs to a project that keeps their own sign-in: the invitation it always was", async () => {
+    jest
+      .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
+      .mockResolvedValue(null);
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy("Grace"));
+
+    expect(emailVars()["isSsoSignIn"]).toBe("false");
+  });
+
+  test("a rule that cannot be read sends the invitation it always was, never no invitation", async () => {
+    jest
+      .spyOn(SsoManagedSignIn, "getManagedByOnceIn")
+      .mockRejectedValue(new Error("database down"));
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy("Grace"));
+
+    expect(emailVars()["isSsoSignIn"]).toBe("false");
+  });
+});
+
+describe("TeamMemberService.toInviteeName", () => {
+  test.each([
+    [undefined, undefined],
+    [null, undefined],
+    [42, undefined],
+    ["", undefined],
+    ["   ", undefined],
+    [" Grace ", "Grace"],
+    ["G".repeat(101), "G".repeat(100)],
+  ])("%p is kept as %p", (value: unknown, expected: string | undefined) => {
+    expect(TeamMemberServiceClass.toInviteeName(value)).toBe(expected);
+  });
 });

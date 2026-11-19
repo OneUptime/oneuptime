@@ -8,6 +8,9 @@ import ProjectService from "../../Services/ProjectService";
 import UserService from "../../Services/UserService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -50,7 +53,8 @@ import { UserOverrideRecord } from "../../../Types/OnCallDutyPolicy/UserOverride
  *      with the base one and every interval where a DIFFERENT person is
  *      paged becomes an extra shift tagged policyVariantOf.
  *   4. One user lookup for display names and timezones, one project lookup
- *      for project names.
+ *      for project names. Each project names someone only invited to it by
+ *      the name typed for them, else their address (#9823).
  *
  * The public entry points differ only in how they choose schedules:
  *   - materializeForSchedule(s): everything on those schedules (shared feeds,
@@ -187,6 +191,14 @@ export default class OnCallShiftMaterializer {
         OnCallShiftMaterializer.collectUserIds(resolved),
       );
 
+    const usersByProject: Map<
+      string,
+      Map<string, MaterializedUserInfo>
+    > = await OnCallShiftMaterializer.nameUsersAsEachProjectKnowsThem({
+      resolved: resolved,
+      users: users,
+    });
+
     const projectNames: Map<string, string> =
       await OnCallShiftMaterializer.loadProjectNames(
         resolved.map((item: ResolvedShiftSegments) => {
@@ -206,7 +218,7 @@ export default class OnCallShiftMaterializer {
       shifts.push(
         ...OnCallShiftMaterializer.materializeResolved(item, {
           now,
-          users,
+          users: usersByProject.get(item.schedule.projectId) || users,
           projectName,
         }),
       );
@@ -1054,6 +1066,81 @@ export default class OnCallShiftMaterializer {
     }
 
     return users;
+  }
+
+  /*
+   * The people of each project's schedules, by project id, as that project
+   * names them on its calendars, feeds and shift lists: someone only
+   * invited to it by the name typed for them, else their address - never
+   * their account's own name, which it does not see until they join
+   * (#9823, PendingInviteeProfiles). A feed can span projects, and the
+   * same person can have joined one and only be invited to another, so
+   * each project is asked about its own people: one read per project.
+   */
+  private static async nameUsersAsEachProjectKnowsThem(data: {
+    resolved: Array<ResolvedShiftSegments>;
+    users: Map<string, MaterializedUserInfo>;
+  }): Promise<Map<string, Map<string, MaterializedUserInfo>>> {
+    const resolvedByProject: Map<
+      string,
+      Array<ResolvedShiftSegments>
+    > = new Map<string, Array<ResolvedShiftSegments>>();
+
+    for (const item of data.resolved) {
+      const list: Array<ResolvedShiftSegments> =
+        resolvedByProject.get(item.schedule.projectId) || [];
+      list.push(item);
+      resolvedByProject.set(item.schedule.projectId, list);
+    }
+
+    const usersByProject: Map<
+      string,
+      Map<string, MaterializedUserInfo>
+    > = new Map<string, Map<string, MaterializedUserInfo>>();
+
+    for (const [projectId, items] of resolvedByProject.entries()) {
+      const withheld: Map<string, WithheldProfile> =
+        await PendingInviteeProfiles.readWithheldProfilesInProject({
+          userIds: OnCallShiftMaterializer.collectUserIds(items),
+          projectId: new ObjectID(projectId),
+        });
+
+      if (withheld.size === 0) {
+        usersByProject.set(projectId, data.users);
+        continue;
+      }
+
+      const users: Map<string, MaterializedUserInfo> = new Map<
+        string,
+        MaterializedUserInfo
+      >(data.users);
+
+      for (const [userId, info] of data.users.entries()) {
+        if (
+          !PendingInviteeProfiles.getWithheldProfile({
+            userId: userId,
+            withheld: withheld,
+          })
+        ) {
+          continue;
+        }
+
+        users.set(userId, {
+          ...info,
+          userName:
+            PendingInviteeProfiles.getNameInProject({
+              userId: userId,
+              name: null,
+              email: info.email,
+              withheld: withheld,
+            }) || OnCallCalendarFeedUtil.FALLBACK_USER_NAME,
+        });
+      }
+
+      usersByProject.set(projectId, users);
+    }
+
+    return usersByProject;
   }
 
   private static async loadProjectNames(

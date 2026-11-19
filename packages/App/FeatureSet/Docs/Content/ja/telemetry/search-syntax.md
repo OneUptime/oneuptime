@@ -129,7 +129,7 @@ name:"SELECT wp_options"
 
 ### トレース
 
-トレースのフィールドには単純な値か `status:(ok OR unset)` のようなリストを指定でき、`duration` には `>` と `<` も使えます。ワイルドカード、`~`、`!`、先頭の `-` は、ここでは属性にしか効きません。
+トレースのフィールドには単純な値か `status:(ok OR unset)` のようなリストを指定でき、`duration` には `>`、`>=`、`<`、`<=` も使えます。ワイルドカード、`~`、`!`、先頭の `-` は、ここでは属性にしか効きません。
 
 | フィールド | 備考 |
 | --- | --- |
@@ -137,7 +137,7 @@ name:"SELECT wp_options"
 | `name` | スパン名。値が 1 つなら名前のどの部分にも一致する。単語だけの項目もここを検索する |
 | `status` | `ok`、`error`、`unset` (unset = エラーステータスは設定されていません、OpenTelemetry のデフォルト) |
 | `kind` | `server`、`client`、`producer`、`consumer`、`internal` |
-| `duration` | ミリ秒: `duration:>500`、`duration:<200`、または正確な値 |
+| `duration` | ミリ秒: `duration:>500`、`duration:>=500`、`duration:<200`、`duration:<=200`、または正確な値 |
 | `statusMessage` | ステータスメッセージのテキスト。値が 1 つならどの部分にも一致する |
 | `hasException` | `true` または `false` |
 | `trace`、`span` | ID |

@@ -129,7 +129,7 @@ Veldnamen zijn niet hoofdlettergevoelig: `statusMessage:` en `statusmessage:` zi
 
 ### Traces
 
-Tracevelden nemen een gewone waarde of een lijst zoals `status:(ok OR unset)`, en `duration` neemt ook `>` en `<`. Jokertekens, `~`, `!` en een `-` vooraan werken hier alleen op attributen.
+Tracevelden nemen een gewone waarde of een lijst zoals `status:(ok OR unset)`, en `duration` neemt ook `>`, `>=`, `<` en `<=`. Jokertekens, `~`, `!` en een `-` vooraan werken hier alleen op attributen.
 
 | Veld | Opmerkingen |
 | --- | --- |
@@ -137,7 +137,7 @@ Tracevelden nemen een gewone waarde of een lijst zoals `status:(ok OR unset)`, e
 | `name` | Spannaam. Eén waarde komt overeen met elk deel ervan. Losse woorden doorzoeken die ook |
 | `status` | `ok`, `error`, `unset` (unset = Geen foutstatus ingesteld, de OpenTelemetry-standaard) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Milliseconden: `duration:>500`, `duration:<200` of een exacte waarde |
+| `duration` | Milliseconden: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` of een exacte waarde |
 | `statusMessage` | Tekst van het statusbericht. Eén waarde komt overeen met elk deel ervan |
 | `hasException` | `true` of `false` |
 | `trace`, `span` | ID's |

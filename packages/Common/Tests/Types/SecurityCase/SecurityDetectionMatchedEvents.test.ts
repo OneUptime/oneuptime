@@ -1,5 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS,
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX_BYTES,
+  SECURITY_DETECTION_MATCHED_EVENTS_FULL_SHARE,
   SECURITY_DETECTION_MATCHED_EVENTS_MAX,
   SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES,
   SECURITY_DETECTION_MATCHED_EVENT_ATTRIBUTES_MAX,
@@ -9,12 +13,15 @@ import {
   SECURITY_DETECTION_MATCHED_EVENT_VALUE_MAX_LENGTH,
   SecurityDetectionMatchedEvent,
   SecurityDetectionMatchedEvents,
+  SecurityDetectionMatchedEventsShare,
   buildSecurityDetectionMatchedEvent,
+  getSecurityDetectionMatchedEventsShare,
   isSecurityDetectionMatchedEventPastRetention,
   isSecurityDetectionMatchedEventsFull,
   keepSecurityDetectionMatchedEvents,
   readSecurityDetectionMatchedEvents,
 } from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
+import { DETECTION_MAX_GROUPS_PER_EVALUATION } from "../../../Types/SecurityEvent/DetectionFindingConstants";
 import { SECURITY_CASE_MATCHES_MAX_EVENTS } from "../../../Types/SecurityCase/SecurityCaseMatches";
 import { SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS } from "../../../Types/SecurityCase/SecurityCaseEventEvidence";
 
@@ -327,6 +334,160 @@ describe("what a detection keeps when it fires", () => {
       });
 
     expect(result.events).toHaveLength(2);
+  });
+});
+
+/*
+ * One firing's budget, across every group it fires for (#9795): as much
+ * as 40 full detections keep - 1,000 events and 2.5 MB - shared equally by
+ * its groups, never more than a detection's bound and never less than one
+ * event.
+ */
+describe("what one firing keeps, shared by its groups", () => {
+  test("the budget is 40 full detections: 1,000 events and 2.5 MB", () => {
+    expect(SECURITY_DETECTION_MATCHED_EVENTS_FIRING_DETECTIONS).toBe(40);
+    expect(SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX).toBe(1000);
+    expect(SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX_BYTES).toBe(
+      2.5 * 1024 * 1024,
+    );
+    expect(SECURITY_DETECTION_MATCHED_EVENTS_FULL_SHARE).toEqual({
+      maxEvents: SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+      maxBytes: SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES,
+    });
+  });
+
+  test.each([
+    [1, 25, 64 * 1024],
+    [10, 25, 64 * 1024],
+    [40, 25, 64 * 1024],
+    [41, 24, Math.floor((2.5 * 1024 * 1024) / 41)],
+    [64, 15, 40 * 1024],
+    [100, 10, Math.floor((2.5 * 1024 * 1024) / 100)],
+  ])(
+    "a firing for %i groups keeps %i events of each, in %i bytes",
+    (groups: number, events: number, bytes: number) => {
+      expect(getSecurityDetectionMatchedEventsShare(groups)).toEqual({
+        maxEvents: events,
+        maxBytes: bytes,
+      });
+    },
+  );
+
+  test("at the most groups a run opens, each keeps twice the five the card lists first", () => {
+    expect(
+      getSecurityDetectionMatchedEventsShare(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      ).maxEvents,
+    ).toBe(10);
+  });
+
+  test("however many groups fire, all of them together keep no more than the budget", () => {
+    for (let groups: number = 1; groups <= 1000; groups++) {
+      const share: SecurityDetectionMatchedEventsShare =
+        getSecurityDetectionMatchedEventsShare(groups);
+
+      expect(share.maxEvents).toBeGreaterThanOrEqual(1);
+      expect(share.maxEvents).toBeLessThanOrEqual(
+        SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+      );
+      expect(share.maxBytes).toBeLessThanOrEqual(
+        SECURITY_DETECTION_MATCHED_EVENTS_MAX_BYTES,
+      );
+
+      // Past the budget only where each group keeps its one first event.
+      if (share.maxEvents > 1) {
+        expect(share.maxEvents * groups).toBeLessThanOrEqual(
+          SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
+        );
+      }
+
+      expect(share.maxBytes * groups).toBeLessThanOrEqual(
+        SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX_BYTES,
+      );
+    }
+  });
+
+  test("a count it cannot read is one group", () => {
+    for (const groups of [0, -3, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(getSecurityDetectionMatchedEventsShare(groups)).toEqual(
+        SECURITY_DETECTION_MATCHED_EVENTS_FULL_SHARE,
+      );
+    }
+  });
+
+  test("a group keeps its share of a firing, the earliest first", () => {
+    const share: SecurityDetectionMatchedEventsShare =
+      getSecurityDetectionMatchedEventsShare(100);
+
+    const result: SecurityDetectionMatchedEvents =
+      keepSecurityDetectionMatchedEvents({
+        kept: null,
+        firing: {
+          events: Array.from({ length: 30 }, (_: unknown, index: number) => {
+            return kept(29 - index);
+          }),
+          outcomes: { Rejected: 30 },
+        },
+        share,
+      });
+
+    expect(
+      result.events.map((event: SecurityDetectionMatchedEvent): string => {
+        return event.eventUid;
+      }),
+    ).toEqual(
+      Array.from({ length: 10 }, (_: unknown, index: number) => {
+        return `log:abc:${index}`;
+      }),
+    );
+    // How far all of their requests got, not only the kept ones'.
+    expect(result.outcomes).toEqual({ Rejected: 30 });
+  });
+
+  test("a share never lets a detection keep more than its own bound", () => {
+    const result: SecurityDetectionMatchedEvents =
+      keepSecurityDetectionMatchedEvents({
+        kept: null,
+        firing: {
+          events: Array.from({ length: 40 }, (_: unknown, index: number) => {
+            return kept(index);
+          }),
+          outcomes: {},
+        },
+        share: { maxEvents: 500, maxBytes: 10 * 1024 * 1024 },
+      });
+
+    expect(result.events).toHaveLength(SECURITY_DETECTION_MATCHED_EVENTS_MAX);
+  });
+
+  test("a detection that fires again tops its events up to the full 25, past its first firing's share", () => {
+    const first: SecurityDetectionMatchedEvents =
+      keepSecurityDetectionMatchedEvents({
+        kept: null,
+        firing: {
+          events: Array.from({ length: 30 }, (_: unknown, index: number) => {
+            return kept(index);
+          }),
+          outcomes: {},
+        },
+        share: getSecurityDetectionMatchedEventsShare(100),
+      });
+
+    expect(first.events).toHaveLength(10);
+
+    // Its next firing, joined to what it kept as the case's detection does.
+    const again: SecurityDetectionMatchedEvents =
+      keepSecurityDetectionMatchedEvents({
+        kept: first,
+        firing: {
+          events: Array.from({ length: 30 }, (_: unknown, index: number) => {
+            return kept(100 + index);
+          }),
+          outcomes: {},
+        },
+      });
+
+    expect(again.events).toHaveLength(SECURITY_DETECTION_MATCHED_EVENTS_MAX);
   });
 });
 

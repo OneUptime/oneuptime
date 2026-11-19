@@ -49,7 +49,7 @@ En **Excepciones que vigilar**, rellena **El mensaje contiene**, **Tipos de exce
 
 ### Acotarlas (opcional)
 
-Abre **Más campos** para filtrar por servicio de telemetría o entidad de infraestructura, o para contar también las excepciones resueltas y archivadas.
+Abre **Más campos** para filtrar por servicio de telemetría o entidad de infraestructura, para contar solo las excepciones no controladas o excluir algunos tipos, o para contar también las excepciones resueltas y archivadas.
 
 ### Decir cuándo alertar
 
@@ -74,6 +74,8 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Ventana de tiempo** (en **Cuándo alertar**) | Excepciones de los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
 | **Filtrar por servicio** (en **Más campos**) | Excepciones de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Excepciones de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
+| **Solo excepciones no controladas** (en **Más campos**) | Solo las excepciones que nada capturó, como un fallo: las que el explorador de excepciones marca como **No controlado**. Una excepción que no indica si se capturó cuenta como gestionada. | Desactivado |
+| **Excluir tipos de excepción** (en **Más campos**) | Todas las excepciones salvo las de estos tipos, separados por comas, como `ANR, Hang`. El nombre del tipo debe coincidir exactamente. Un tipo indicado aquí queda fuera aunque **Tipos de excepción** también lo indique. | Vacío: no se excluye ningún tipo |
 | **Incluir excepciones resueltas** (en **Más campos**) | Contar también las excepciones marcadas como resueltas. | Desactivado |
 | **Incluir excepciones archivadas** (en **Más campos**) | Contar también las excepciones archivadas. | Desactivado |
 
@@ -103,6 +105,17 @@ Al crear el monitor mediante la API, define `environments` en el `exceptionMonit
 }
 ```
 
+Mediante la API, **Solo excepciones no controladas** es `unhandledOnly` y **Excluir tipos de excepción** es `excludedExceptionTypes`, una lista de nombres de tipo. La recomendación **App Crashes** de una aplicación móvil define ambos, para contar sus fallos y no sus bloqueos:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Cómo se evalúa
 
 - **Cada minuto.** Un monitor de excepciones no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.
@@ -116,7 +129,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de excepciones tienen cuatro clases de **Tipo de filtro**: **Número de excepciones**, el número de excepciones que coincidieron en la ventana, y **Excepciones nuevas**, **Excepciones con regresión** y **Aumento de excepciones (en %)**, descritos más abajo. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
+Los criterios de un monitor de excepciones tienen seis clases de **Tipo de filtro**: **Número de excepciones**, el número de excepciones que coincidieron en la ventana, y **Excepciones nuevas**, **Excepciones con regresión**, **Aumento de excepciones (en %)**, **Sesiones con excepciones (en %)** y **Sesiones**, descritos más abajo. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de excepciones está… |
 | --- | --- |
@@ -160,6 +173,17 @@ Además de cuántas excepciones hubo, un monitor de excepciones puede alertar so
 | **Aumento de excepciones (en %)** | Cuánto supera el número de excepciones coincidentes a lo habitual: el día anterior a la ventana, por ventana de su duración, al menos una. Diez excepciones tras un día tranquilo dan 900 %. |
 
 Las excepciones nuevas y las que vuelven se filtran por servicio, tipo de excepción, entorno y mensaje, y también por entidad de infraestructura: una excepción cuenta cuando una de sus ocurrencias en la ventana vino de una de las entidades elegidas.
+
+## Una proporción de sesiones
+
+Una aplicación instalada en miles de teléfonos siempre tiene algunos fallos, así que lo que su equipo quiere saber es si la tasa de fallos sube. Para una aplicación cuyos spans llevan `session.id`, como una aplicación móvil, un monitor de excepciones puede alertar sobre la proporción de sesiones en las que ocurrió una excepción. Ambos se leen solo cuando un criterio los comprueba.
+
+| Tipo de filtro | Qué lee en la ventana |
+| --- | --- |
+| **Sesiones con excepciones (en %)** | La proporción de las sesiones de la ventana en las que ocurrió una excepción coincidente. Sin ninguna sesión en la ventana no hay proporción, y ningún criterio sobre ella coincide. |
+| **Sesiones** | Las sesiones de la ventana: los `session.id` distintos de los spans de los servicios del monitor. Combínalo con la proporción, para que una proporción calculada sobre unas pocas sesiones no alerte. |
+
+Con **Solo excepciones no controladas** activado y los tipos `ANR` y `Hang` excluidos, la proporción es la tasa de fallos de una aplicación móvil. La recomendación **App Crash Rate** de una aplicación móvil alerta cuando falla más del 1,09 % de las sesiones de una hora, la tasa que Android vitals considera mal comportamiento, siempre que la hora tenga al menos 250 sesiones. **App ANR Rate** cuenta solo `ANR` y `Hang`, por encima del 0,47 %. Para escribir tú mismo una regla así, elige **Una proporción de sesiones** en **Alertar sobre** de **Cuándo alertar**.
 
 ## Picos frente a lo normal
 

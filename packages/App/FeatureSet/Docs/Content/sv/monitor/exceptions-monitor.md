@@ -49,7 +49,7 @@ I **Undantag att bevaka** anger du **Meddelandet innehåller**, **Undantagstyper
 
 ### Begränsa dem (valfritt)
 
-Öppna **Fler fält** för att filtrera efter telemetritjänst eller infrastrukturentitet, eller för att även räkna lösta och arkiverade undantag.
+Öppna **Fler fält** för att filtrera efter telemetritjänst eller infrastrukturentitet, för att bara räkna ohanterade undantag eller utelämna vissa typer, eller för att även räkna lösta och arkiverade undantag.
 
 ### Säg när det ska larmas
 
@@ -74,6 +74,8 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Tidsfönster** (i **När det ska larmas**) | Undantag från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
 | **Filtrera efter tjänst** (under **Fler fält**) | Undantag från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Undantag från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
+| **Endast ohanterade undantag** (under **Fler fält**) | Bara de undantag som inget fångade, till exempel en krasch: de som undantagsutforskaren markerar som **Ohanterad**. Ett undantag som inte anger om det fångades räknas som hanterat. | Av |
+| **Utelämna undantagstyper** (under **Fler fält**) | Inte undantagen av dessa typer, separerade med kommatecken, som `ANR, Hang`. Typnamnet måste matcha exakt. En typ som anges här utelämnas även när **Undantagstyper** också anger den. | Tomt: ingen typ utelämnas |
 | **Inkludera lösta undantag** (under **Fler fält**) | Räkna även undantag som är markerade som lösta. | Av |
 | **Inkludera arkiverade undantag** (under **Fler fält**) | Räkna även arkiverade undantag. | Av |
 
@@ -103,6 +105,17 @@ När du skapar monitorn via API:et anger du `environments` på stegets `exceptio
 }
 ```
 
+Via API:et är **Endast ohanterade undantag** `unhandledOnly` och **Utelämna undantagstyper** `excludedExceptionTypes`, en lista med typnamn. En mobilapps rekommendation **App Crashes** sätter båda, så att den räknar appens krascher och inte när appen fryser:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Så utvärderas den
 
 - **Varje minut.** En undantagsmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
@@ -116,7 +129,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Antal undantag**, antalet undantag som matchade i fönstret, samt **Nya undantag**, **Undantag med regression** och **Ökning av undantag (i %)**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
+En undantagsmonitors kriterier har sex sorters **Filtertyp**: **Antal undantag**, antalet undantag som matchade i fönstret, samt **Nya undantag**, **Undantag med regression**, **Ökning av undantag (i %)**, **Sessioner med undantag (i %)** och **Sessioner**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
@@ -160,6 +173,17 @@ Utöver hur många undantag som inträffade kan en undantagsmonitor larma om det
 | **Ökning av undantag (i %)** | Hur långt antalet matchande undantag ligger över det vanliga: dagen före fönstret, per fönster av samma längd, minst ett. Tio undantag efter en lugn dag ger 900 %. |
 
 Nya och återkomna undantag filtreras på tjänst, undantagstyp, miljö och meddelande, och även på infrastrukturentitet: ett undantag räknas när en av dess förekomster i fönstret kom från en av de valda entiteterna.
+
+## En andel av sessionerna
+
+En app på tusentals telefoner har alltid några krascher, så det teamet vill få veta är när andelen ökar. För en app vars spans har `session.id`, till exempel en mobilapp, kan en undantagsmonitor larma om andelen sessioner där ett undantag inträffade. Båda filtertyperna läses bara när ett kriterium kontrollerar dem.
+
+| Filtertyp | Vad den läser i fönstret |
+| --- | --- |
+| **Sessioner med undantag (i %)** | Andelen av fönstrets sessioner där ett matchande undantag inträffade. Utan sessioner i fönstret finns ingen andel, och inget kriterium på den matchar. |
+| **Sessioner** | Fönstrets sessioner: de distinkta `session.id` i spans från monitorns tjänster. Kombinera den med andelen, så att en andel av några få sessioner inte larmar. |
+
+Med **Endast ohanterade undantag** påslaget och typerna `ANR` och `Hang` utelämnade är andelen en mobilapps kraschfrekvens. En mobilapps rekommendation **App Crash Rate** larmar när mer än 1,09 % av en timmes sessioner kraschar, den nivå som Android vitals kallar dåligt beteende, så snart timmen har minst 250 sessioner. **App ANR Rate** räknar bara `ANR` och `Hang`, över 0,47 %. För att skriva en sådan regel själv väljer du **En andel av sessionerna** under **Larma vid** i **När det ska larmas**.
 
 ## Toppar jämfört med det normala
 

@@ -15,13 +15,20 @@ import InvestigationBenchmark, {
   BENCHMARK_EXCLUDED_TOOL_NAMES,
   BENCHMARK_RUN_LIMITS,
   BenchmarkScenarioResult,
+  BenchmarkScenarioSummary,
   BenchmarkSummary,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/InvestigationBenchmark";
 import {
+  BenchmarkExpectationKind,
   BenchmarkFaultKind,
   BenchmarkScenario,
+  BenchmarkSubjectKind,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScenario";
-import { BenchmarkScore } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScorer";
+import {
+  BenchmarkScore,
+  INCONCLUSIVE_WORDS,
+} from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScorer";
+import AIConfidenceSignal from "../../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import ScenarioTools from "../../../../../../Server/Utils/AI/Eval/Benchmark/ScenarioTools";
 import { PinnedModelCall } from "../../../../../../Server/Utils/AI/Eval/PinnedModel";
 import AIInvestigationEngine, {
@@ -554,6 +561,175 @@ describe("the result says what the run did", () => {
   });
 });
 
+/*
+ * A scenario whose evidence names no cause (#7766): the right answer says
+ * it could not tell. A judge reads it as production's confidence classifier
+ * does, not against a cause.
+ */
+const NO_CAUSE_SCENARIO: BenchmarkScenario = {
+  ...SCENARIO,
+  id: "benchmark-runner-no-cause-test",
+  faultKind: BenchmarkFaultKind.NoEvidence,
+  subjectKind: BenchmarkSubjectKind.Alert,
+  contextText: "# Alert\nTitle: Checkout latency above 2 s",
+  expectation: {
+    kind: BenchmarkExpectationKind.Inconclusive,
+    rootCause:
+      "Inconclusive: nothing the telemetry shows explains the latency, which recovered on its own.",
+    mustMention: [INCONCLUSIVE_WORDS],
+    distractors: [{ name: "Redis latency", terms: ["redis"] }],
+  },
+};
+
+function couldNotTellModel(): ScriptedModel {
+  return scriptedModel({
+    rounds: [[{ toolName: "top_exceptions", arguments: {} }]],
+    answer: ([citationId]: Array<string | null>): string => {
+      return [
+        "## Summary",
+        "Checkout was slow for two minutes.",
+        "",
+        "## Most likely root cause",
+        `Inconclusive: no exception, log line or change explains it [${citationId}].`,
+      ].join("\n");
+    },
+  });
+}
+
+describe("each result says what its scenario is about, and which run it was", () => {
+  test("an incident scenario's result, run once", async () => {
+    const result: BenchmarkScenarioResult =
+      await InvestigationBenchmark.runScenario({
+        scenario: SCENARIO,
+        callModel: rightModel().callModel,
+      });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        subjectKind: BenchmarkSubjectKind.Incident,
+        expectationKind: BenchmarkExpectationKind.Cause,
+        run: 1,
+      }),
+    );
+  });
+
+  test("an alert scenario whose evidence names no cause, on its third run", async () => {
+    const result: BenchmarkScenarioResult =
+      await InvestigationBenchmark.runScenario({
+        scenario: NO_CAUSE_SCENARIO,
+        callModel: couldNotTellModel().callModel,
+        run: 3,
+      });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        scenarioId: NO_CAUSE_SCENARIO.id,
+        subjectKind: BenchmarkSubjectKind.Alert,
+        expectationKind: BenchmarkExpectationKind.Inconclusive,
+        run: 3,
+      }),
+    );
+    expect(result.score?.passed).toBe(true);
+  });
+
+  test("a run that fails keeps what it was about", async () => {
+    const result: BenchmarkScenarioResult =
+      await InvestigationBenchmark.runScenario({
+        scenario: NO_CAUSE_SCENARIO,
+        callModel: async (): Promise<ObservabilityAssistantModelReply> => {
+          throw new Error("The provider is down.");
+        },
+        run: 2,
+      });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        subjectKind: BenchmarkSubjectKind.Alert,
+        expectationKind: BenchmarkExpectationKind.Inconclusive,
+        run: 2,
+        error: "The provider is down.",
+      }),
+    );
+  });
+});
+
+describe("where the evidence names no cause, the judge reads the answer as production's confidence classifier does", () => {
+  test("it is asked in the classifier's own words, and its INCONCLUSIVE passes the answer", async () => {
+    const judge: ScriptedModel = judgeSaying("INCONCLUSIVE");
+
+    const result: BenchmarkScenarioResult =
+      await InvestigationBenchmark.runScenario({
+        scenario: NO_CAUSE_SCENARIO,
+        callModel: couldNotTellModel().callModel,
+        judge: judge.callModel,
+      });
+
+    expect(judge.calls).toHaveLength(1);
+    expect(judge.calls[0]?.messages).toEqual(
+      AIConfidenceSignal.getClassificationMessages({
+        analysisMarkdown: result.analysisMarkdown,
+      }),
+    );
+    expect(judge.calls[0]?.tools).toBeUndefined();
+    expect(judge.calls[0]?.temperature).toBe(0);
+    expect(result.score?.judgeClassification).toBe("INCONCLUSIVE");
+    expect(result.score && "judgeGrade" in result.score).toBe(false);
+    expect(result.score?.passed).toBe(true);
+  });
+
+  test.each(["CODE_FIX", "NO_CODE_FIX"])(
+    "a %s - a confident answer - fails it, whatever its words",
+    async (verdict: string) => {
+      const result: BenchmarkScenarioResult =
+        await InvestigationBenchmark.runScenario({
+          scenario: NO_CAUSE_SCENARIO,
+          callModel: couldNotTellModel().callModel,
+          judge: judgeSaying(verdict).callModel,
+        });
+
+      expect(result.score?.namesCause).toBe(true);
+      expect(result.score?.judgeClassification).toBe(verdict);
+      expect(result.score?.passed).toBe(false);
+    },
+  );
+
+  test("a judge that fails leaves no reading, says why, and the run still ends with a score", async () => {
+    const result: BenchmarkScenarioResult =
+      await InvestigationBenchmark.runScenario({
+        scenario: NO_CAUSE_SCENARIO,
+        callModel: couldNotTellModel().callModel,
+        judge: (async (): Promise<ObservabilityAssistantModelReply> => {
+          throw new Error("the judge's provider is down");
+        }) as PinnedModelCall,
+      });
+
+    expect(result.error).toBe(
+      "The judge could not grade the answer: the judge's provider is down",
+    );
+    expect(result.score?.judgeClassification).toBeNull();
+    expect(result.score?.passed).toBe(false);
+  });
+
+  test("a scenario that names a cause is still graded against it, never classified", async () => {
+    const judge: ScriptedModel = judgeSaying("MATCH");
+
+    const result: BenchmarkScenarioResult =
+      await InvestigationBenchmark.runScenario({
+        scenario: SCENARIO,
+        callModel: rightModel().callModel,
+        judge: judge.callModel,
+      });
+
+    expect(judge.calls[0]?.messages).toEqual(
+      InvestigationGrader.getGradingMessages({
+        rootCause: SCENARIO.expectation.rootCause,
+        analysisMarkdown: result.analysisMarkdown,
+      }),
+    );
+    expect(result.score && "judgeClassification" in result.score).toBe(false);
+  });
+});
+
 describe("nothing is read from a database", () => {
   test("a judged scenario reads no run limits, no AI context, no tool and no project's model", async () => {
     const refuse: () => never = (): never => {
@@ -595,6 +771,7 @@ function scoreWith(overrides: Partial<BenchmarkScore>): BenchmarkScore {
     missingTerms: [],
     namedDistractors: [],
     citesKeyEvidence: false,
+    foundCause: false,
     passed: false,
     ...overrides,
   };
@@ -603,12 +780,18 @@ function scoreWith(overrides: Partial<BenchmarkScore>): BenchmarkScore {
 function resultWith(
   score: BenchmarkScore | undefined,
   counts: { totalTokens: number; toolCallCount: number },
+  identity: { scenarioId?: string; run?: number } = {},
 ): BenchmarkScenarioResult {
+  const scenarioId: string = identity.scenarioId || "a-scenario";
+
   return {
-    scenarioId: "a-scenario",
-    title: "A scenario",
+    scenarioId,
+    title: `Scenario ${scenarioId}`,
     faultKind: BenchmarkFaultKind.BadDeploy,
+    subjectKind: BenchmarkSubjectKind.Incident,
+    expectationKind: BenchmarkExpectationKind.Cause,
     plantedFault: "A planted fault.",
+    run: identity.run ?? 1,
     analysisMarkdown: "",
     citationCount: 0,
     llmCallCount: 1,
@@ -618,22 +801,42 @@ function resultWith(
   };
 }
 
+const PASSED: BenchmarkScore = scoreWith({
+  namesCause: true,
+  citesKeyEvidence: true,
+  foundCause: true,
+  passed: true,
+});
+const FAILED: BenchmarkScore = scoreWith({ citesKeyEvidence: true });
+const NO_COUNTS: { totalTokens: number; toolCallCount: number } = {
+  totalTokens: 0,
+  toolCallCount: 0,
+};
+
 describe("a run's summary adds its scenarios up", () => {
-  test("passed, found, named, cited, fooled and failed scenarios, tokens and tool calls", () => {
+  test("passed, found, named, cited, fooled and failed runs, tokens and tool calls", () => {
     const summary: BenchmarkSummary = InvestigationBenchmark.summarize([
       // Named and cited: passed by its words.
       resultWith(
-        scoreWith({ namesCause: true, citesKeyEvidence: true, passed: true }),
+        scoreWith({
+          namesCause: true,
+          citesKeyEvidence: true,
+          foundCause: true,
+          passed: true,
+        }),
         { totalTokens: 100, toolCallCount: 2 },
+        { scenarioId: "s1" },
       ),
       // In other words, but the judge said MATCH.
       resultWith(
         scoreWith({
           citesKeyEvidence: true,
           judgeGrade: AIRunAutoGrade.Match,
+          foundCause: true,
           passed: true,
         }),
         { totalTokens: 200, toolCallCount: 3 },
+        { scenarioId: "s2" },
       ),
       // The right words, a distractor too, and the judge said MISMATCH.
       resultWith(
@@ -644,42 +847,81 @@ describe("a run's summary adds its scenarios up", () => {
           judgeGrade: AIRunAutoGrade.Mismatch,
         }),
         { totalTokens: 300, toolCallCount: 4 },
+        { scenarioId: "s3" },
       ),
       // Failed: no score, but its tokens and calls were spent.
-      resultWith(undefined, { totalTokens: 50, toolCallCount: 1 }),
+      resultWith(
+        undefined,
+        { totalTokens: 50, toolCallCount: 1 },
+        {
+          scenarioId: "s4",
+        },
+      ),
       // The right words, uncited, and a judge that could not be read.
-      resultWith(scoreWith({ namesCause: true, judgeGrade: null }), {
-        totalTokens: 400,
-        toolCallCount: 5,
-      }),
+      resultWith(
+        scoreWith({ namesCause: true, judgeGrade: null }),
+        {
+          totalTokens: 400,
+          toolCallCount: 5,
+        },
+        { scenarioId: "s5" },
+      ),
       // Two distractors, one scenario.
-      resultWith(scoreWith({ namedDistractors: ["Redis latency", "flag"] }), {
-        totalTokens: 0,
-        toolCallCount: 0,
-      }),
+      resultWith(
+        scoreWith({ namedDistractors: ["Redis latency", "flag"] }),
+        NO_COUNTS,
+        { scenarioId: "s6" },
+      ),
     ]);
 
-    expect(summary).toEqual({
-      scenarioCount: 6,
-      passedCount: 2,
-      foundCauseCount: 2,
-      namedCauseCount: 3,
-      citedKeyEvidenceCount: 3,
-      namedDistractorCount: 2,
-      erroredCount: 1,
-      judged: true,
-      totalTokens: 1050,
-      toolCallCount: 15,
-    });
+    expect(summary).toEqual(
+      expect.objectContaining({
+        scenarioCount: 6,
+        runCount: 6,
+        passedCount: 2,
+        passedRunCount: 2,
+        passRate: 2 / 6,
+        foundCauseCount: 2,
+        namedCauseCount: 3,
+        citedKeyEvidenceCount: 3,
+        namedDistractorCount: 2,
+        erroredCount: 1,
+        judged: true,
+        totalTokens: 1050,
+        toolCallCount: 15,
+      }),
+    );
+    expect(
+      summary.scenarios.map((scenario: BenchmarkScenarioSummary): string => {
+        return `${scenario.scenarioId} ${scenario.passedRunCount}/${scenario.runCount} ${scenario.passed}`;
+      }),
+    ).toEqual([
+      "s1 1/1 true",
+      "s2 1/1 true",
+      "s3 0/1 false",
+      "s4 0/1 false",
+      "s5 0/1 false",
+      "s6 0/1 false",
+    ]);
   });
 
   test("a run no judge graded is not judged, and with no judge the cause is found by its words", () => {
     const summary: BenchmarkSummary = InvestigationBenchmark.summarize([
-      resultWith(scoreWith({ namesCause: true }), {
-        totalTokens: 10,
-        toolCallCount: 1,
-      }),
-      resultWith(undefined, { totalTokens: 5, toolCallCount: 0 }),
+      resultWith(
+        scoreWith({ namesCause: true, foundCause: true }),
+        {
+          totalTokens: 10,
+          toolCallCount: 1,
+        },
+        { scenarioId: "s1" },
+      ),
+      resultWith(
+        undefined,
+        { totalTokens: 5, toolCallCount: 0 },
+        {
+          scenarioId: "s2",
+        },
+      ),
     ]);
 
     expect(summary.judged).toBe(false);
@@ -687,10 +929,31 @@ describe("a run's summary adds its scenarios up", () => {
     expect(summary.erroredCount).toBe(1);
   });
 
+  test("a judge's reading of an answer where the evidence names no cause makes the run judged", () => {
+    const summary: BenchmarkSummary = InvestigationBenchmark.summarize([
+      resultWith(
+        scoreWith({
+          judgeClassification: "INCONCLUSIVE",
+          foundCause: true,
+          citesKeyEvidence: true,
+          passed: true,
+        }),
+        NO_COUNTS,
+      ),
+    ]);
+
+    expect(summary.judged).toBe(true);
+    expect(summary.foundCauseCount).toBe(1);
+    expect(summary.passedCount).toBe(1);
+  });
+
   test("an empty run counts nothing", () => {
     expect(InvestigationBenchmark.summarize([])).toEqual({
       scenarioCount: 0,
+      runCount: 0,
       passedCount: 0,
+      passedRunCount: 0,
+      passRate: 0,
       foundCauseCount: 0,
       namedCauseCount: 0,
       citedKeyEvidenceCount: 0,
@@ -699,6 +962,104 @@ describe("a run's summary adds its scenarios up", () => {
       judged: false,
       totalTokens: 0,
       toolCallCount: 0,
+      scenarios: [],
     });
+  });
+});
+
+/*
+ * A scenario run several times (--repeat, #7766): one run's luck is not a
+ * pass. Each scenario gets its runs' pass rate, and passes when more than
+ * half its runs did; the summary's passedCount - what --fail-under counts -
+ * counts the scenarios that passed so, and passedRunCount every run.
+ */
+describe("a scenario run several times passes when more than half its runs did", () => {
+  test.each([
+    [1, 1, true],
+    [0, 1, false],
+    [2, 2, true],
+    [1, 2, false],
+    [2, 3, true],
+    [1, 3, false],
+    [3, 4, true],
+    [2, 4, false],
+    [0, 0, false],
+  ] as Array<[number, number, boolean]>)(
+    "%i of %i runs passed: %s",
+    (passed: number, runs: number, verdict: boolean) => {
+      expect(InvestigationBenchmark.passesByMajority(passed, runs)).toBe(
+        verdict,
+      );
+    },
+  );
+
+  test("each scenario's runs are added up on their own, in the order the run first took them", () => {
+    const summary: BenchmarkSummary = InvestigationBenchmark.summarize([
+      resultWith(PASSED, NO_COUNTS, { scenarioId: "steady", run: 1 }),
+      resultWith(FAILED, NO_COUNTS, { scenarioId: "flaky", run: 1 }),
+      resultWith(PASSED, NO_COUNTS, { scenarioId: "steady", run: 2 }),
+      resultWith(PASSED, NO_COUNTS, { scenarioId: "flaky", run: 2 }),
+      resultWith(PASSED, NO_COUNTS, { scenarioId: "steady", run: 3 }),
+      resultWith(undefined, NO_COUNTS, { scenarioId: "flaky", run: 3 }),
+    ]);
+
+    expect(summary.scenarios).toEqual([
+      {
+        scenarioId: "steady",
+        title: "Scenario steady",
+        faultKind: BenchmarkFaultKind.BadDeploy,
+        subjectKind: BenchmarkSubjectKind.Incident,
+        expectationKind: BenchmarkExpectationKind.Cause,
+        runCount: 3,
+        passedRunCount: 3,
+        erroredRunCount: 0,
+        passRate: 1,
+        passed: true,
+      },
+      {
+        scenarioId: "flaky",
+        title: "Scenario flaky",
+        faultKind: BenchmarkFaultKind.BadDeploy,
+        subjectKind: BenchmarkSubjectKind.Incident,
+        expectationKind: BenchmarkExpectationKind.Cause,
+        runCount: 3,
+        passedRunCount: 1,
+        erroredRunCount: 1,
+        passRate: 1 / 3,
+        passed: false,
+      },
+    ]);
+    expect(summary).toEqual(
+      expect.objectContaining({
+        scenarioCount: 2,
+        runCount: 6,
+        passedCount: 1,
+        passedRunCount: 4,
+        passRate: 4 / 6,
+        erroredCount: 1,
+      }),
+    );
+  });
+
+  test("a scenario that passed in half its runs did not pass", () => {
+    const summary: BenchmarkSummary = InvestigationBenchmark.summarize([
+      resultWith(PASSED, NO_COUNTS, { run: 1 }),
+      resultWith(FAILED, NO_COUNTS, { run: 2 }),
+    ]);
+
+    expect(summary.scenarios[0]?.passRate).toBe(0.5);
+    expect(summary.scenarios[0]?.passed).toBe(false);
+    expect(summary.passedCount).toBe(0);
+    expect(summary.passedRunCount).toBe(1);
+  });
+
+  test("run once, a scenario passes exactly when its run did", () => {
+    const summary: BenchmarkSummary = InvestigationBenchmark.summarize([
+      resultWith(PASSED, NO_COUNTS, { scenarioId: "a" }),
+      resultWith(FAILED, NO_COUNTS, { scenarioId: "b" }),
+    ]);
+
+    expect(summary.passedCount).toBe(summary.passedRunCount);
+    expect(summary.scenarioCount).toBe(summary.runCount);
   });
 });

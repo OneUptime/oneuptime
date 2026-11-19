@@ -69,9 +69,31 @@ const InvitedSignUpHeader: (props: ComponentProps) => ReactElement = (
 
   const { invitation } = props;
 
+  /*
+   * An invitation whose sign-in is single sign-on (#9819) says so in
+   * place of "Create your account": there is no password to create.
+   */
+  const isSsoSignIn: boolean = Boolean(invitation.ssoSignIn);
+
+  const subtitleKey: string = invitation.inviterName
+    ? isSsoSignIn
+      ? invitation.isAccepted
+        ? "register.ssoAddedBy"
+        : "register.ssoInvitedBy"
+      : invitation.isAccepted
+        ? "register.addedBy"
+        : "register.invitedBy"
+    : isSsoSignIn
+      ? invitation.isAccepted
+        ? "register.ssoAdded"
+        : "register.ssoInvited"
+      : invitation.isAccepted
+        ? "register.added"
+        : "register.invited";
+
   const subtitle: ReactNode = invitation.inviterName
     ? withName(
-        invitation.isAccepted ? "register.addedBy" : "register.invitedBy",
+        subtitleKey,
         "inviter",
         invitation.inviterName,
         (name: ReactNode): ReactNode => {
@@ -82,7 +104,7 @@ const InvitedSignUpHeader: (props: ComponentProps) => ReactElement = (
           );
         },
       )
-    : t(invitation.isAccepted ? "register.added" : "register.invited");
+    : t(subtitleKey);
 
   return (
     <>

@@ -300,6 +300,7 @@ export default class OpenStackScopedRules {
         labels: MarkdownText | null;
         owners: MarkdownText | null;
       } = await OpenStackScopedRules.getFeedLines({
+        projectId,
         subject: "alert",
         match,
         addedOwners,
@@ -384,6 +385,7 @@ export default class OpenStackScopedRules {
         labels: MarkdownText | null;
         owners: MarkdownText | null;
       } = await OpenStackScopedRules.getFeedLines({
+        projectId,
         subject: "incident",
         match,
         addedOwners,
@@ -425,6 +427,7 @@ export default class OpenStackScopedRules {
 
   // Which rules did this, and what they added: someone asking "why am I on this?" reads it.
   private static async getFeedLines(data: {
+    projectId: ObjectID;
     subject: "alert" | "incident";
     match: OpenStackScopedRulesMatch;
     addedOwners: OwnersToAssign;
@@ -508,7 +511,7 @@ export default class OpenStackScopedRules {
               emoji: "🛡️",
               ruleKind: "OpenStack Owner Rule",
               ruleNames: match.ownerRuleNames,
-            })}\n\nAssigned the following owner${users.length + teams.length === 1 ? "" : "s"} to the ${subject}:\n${RuleFeedMarkdown.ownersList({ users, teams })}${
+            })}\n\nAssigned the following owner${users.length + teams.length === 1 ? "" : "s"} to the ${subject}:\n${await RuleFeedMarkdown.readOwnersList({ users, teams, projectId: data.projectId })}${
               theirOwn.length > 0
                 ? mdText`\n\nWhich of this is each rule's own:\n${FeedMarkdown.bulletList(theirOwn)}`
                 : FeedMarkdown.empty()

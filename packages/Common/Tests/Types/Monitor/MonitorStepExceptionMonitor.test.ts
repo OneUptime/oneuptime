@@ -1,6 +1,7 @@
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import Query from "../../../Types/BaseDatabase/Query";
 import Search from "../../../Types/BaseDatabase/Search";
 import { JSONObject } from "../../../Types/JSON";
@@ -417,6 +418,196 @@ describe("MonitorStepExceptionMonitorUtil", () => {
           lastXSecondsOfExceptions: 120,
         }).lastXSecondsOfExceptions,
       ).toBe(120);
+    });
+  });
+
+  /*
+   * #9713: an Exceptions monitor can count only unhandled exceptions and
+   * leave chosen types out - how a mobile app's App Crashes counts a crash
+   * and never an ANR or a hang. Both reach the check, the rule's preview
+   * and the "view exceptions" query through toAnalyticsQuery.
+   */
+  describe("unhandled only, and the types left out", () => {
+    const base: MonitorStepExceptionMonitor =
+      MonitorStepExceptionMonitorUtil.getDefault();
+
+    test("unhandled only counts the escaped occurrences", () => {
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...base,
+          unhandledOnly: true,
+        });
+
+      expect(query.escaped).toBe(true);
+    });
+
+    test("off, or unset, counts handled and unhandled alike", () => {
+      for (const unhandledOnly of [false, undefined]) {
+        expect(
+          MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+            ...base,
+            unhandledOnly: unhandledOnly,
+          }).escaped,
+        ).toBeUndefined();
+      }
+    });
+
+    test("types left out alone are NOT IN, matched exactly", () => {
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...base,
+          excludedExceptionTypes: ["ANR", "Hang"],
+        });
+
+      expect(query.exceptionType).toBeInstanceOf(IncludesNone);
+      expect((query.exceptionType as IncludesNone).values).toEqual([
+        "ANR",
+        "Hang",
+      ]);
+    });
+
+    test("kept types less the ones left out stay a plain IN", () => {
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...base,
+          exceptionTypes: ["TypeError", "ANR", "RangeError"],
+          excludedExceptionTypes: ["ANR"],
+        });
+
+      expect(query.exceptionType).toBeInstanceOf(Includes);
+      expect((query.exceptionType as Includes).values).toEqual([
+        "TypeError",
+        "RangeError",
+      ]);
+    });
+
+    test("a type both kept and left out is left out; when that is every kept type, nothing matches", () => {
+      const config: MonitorStepExceptionMonitor = {
+        ...base,
+        exceptionTypes: ["ANR"],
+        excludedExceptionTypes: ["ANR"],
+      };
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery(config);
+
+      expect(MonitorStepExceptionMonitorUtil.keepsNoType(config)).toBe(true);
+      // An empty IN, which ClickHouse answers with no row.
+      expect(query.exceptionType).toBeInstanceOf(Includes);
+      expect((query.exceptionType as Includes).values).toEqual([]);
+    });
+
+    test("no type kept and none left out means every type, as before", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery(base).exceptionType,
+      ).toBeUndefined();
+      expect(MonitorStepExceptionMonitorUtil.keepsNoType(base)).toBe(false);
+    });
+
+    test("both filters compose with every other one", () => {
+      const serviceId: ObjectID = ObjectID.generate();
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...base,
+          telemetryServiceIds: [serviceId],
+          environments: ["production"],
+          message: "crash",
+          unhandledOnly: true,
+          excludedExceptionTypes: ["ANR", "Hang"],
+        });
+
+      expect(query.primaryEntityId).toBeInstanceOf(Includes);
+      expect(query.environment).toBeInstanceOf(Includes);
+      expect(query.message).toBeInstanceOf(Search);
+      expect(query.escaped).toBe(true);
+      expect(query.exceptionType).toBeInstanceOf(IncludesNone);
+    });
+
+    test("a step written through the API is read as the form writes it", () => {
+      // A bare string for the list, and the flag as text.
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...base,
+          excludedExceptionTypes: " ANR " as unknown as Array<string>,
+          unhandledOnly: "true" as unknown as boolean,
+        });
+
+      expect((query.exceptionType as IncludesNone).values).toEqual(["ANR"]);
+      expect(query.escaped).toBe(true);
+    });
+
+    test.each([
+      ["a yes in other words", "yes"],
+      ["a number", 1],
+      ["an object", {}],
+    ])("%s is not unhandled only", (_label: string, value: unknown) => {
+      expect(
+        MonitorStepExceptionMonitorUtil.isUnhandledOnly({
+          unhandledOnly: value as boolean,
+        }),
+      ).toBe(false);
+    });
+
+    test("left-out types are trimmed, de-duplicated and stripped of blanks", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.normalizeExceptionTypes([
+          " ANR",
+          "ANR",
+          "",
+          "  ",
+          "Hang ",
+          42,
+        ]),
+      ).toEqual(["ANR", "Hang"]);
+    });
+
+    test("they round-trip through toJSON and fromJSON", () => {
+      const original: MonitorStepExceptionMonitor = {
+        ...base,
+        telemetryServiceIds: [ObjectID.generate()],
+        unhandledOnly: true,
+        excludedExceptionTypes: ["ANR", "Hang"],
+      };
+
+      const restored: MonitorStepExceptionMonitor =
+        MonitorStepExceptionMonitorUtil.fromJSON(
+          MonitorStepExceptionMonitorUtil.toJSON(original),
+        );
+
+      expect(restored.unhandledOnly).toBe(true);
+      expect(restored.excludedExceptionTypes).toEqual(["ANR", "Hang"]);
+    });
+
+    test("unset, they are left out of the JSON, as a step saved before them is", () => {
+      const json: JSONObject = MonitorStepExceptionMonitorUtil.toJSON({
+        ...base,
+        unhandledOnly: false,
+        excludedExceptionTypes: [],
+      });
+
+      expect(json).not.toHaveProperty("unhandledOnly");
+      expect(json).not.toHaveProperty("excludedExceptionTypes");
+    });
+
+    test("a monitor saved before them counts what it always did", () => {
+      const legacy: JSONObject = {
+        telemetryServiceIds: [],
+        entityKeys: [],
+        exceptionTypes: [],
+        message: "",
+        includeResolved: false,
+        includeArchived: false,
+        lastXSecondsOfExceptions: 60,
+      };
+
+      const monitor: MonitorStepExceptionMonitor =
+        MonitorStepExceptionMonitorUtil.fromJSON(legacy);
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitor);
+
+      expect(monitor.unhandledOnly).toBeUndefined();
+      expect(monitor.excludedExceptionTypes).toBeUndefined();
+      expect(query.escaped).toBeUndefined();
+      expect(query.exceptionType).toBeUndefined();
     });
   });
 

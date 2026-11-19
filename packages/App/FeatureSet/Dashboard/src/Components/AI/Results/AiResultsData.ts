@@ -45,7 +45,7 @@ import {
  *      pull requests it opened whose check finished, how many worked.
  *   3. Root Causes Confirmed - was it right? Of the investigations that were
  *      judged, by a responder on the AI card or against the root cause
- *      written when the incident was resolved, how many found it.
+ *      written when the incident or alert was resolved, how many found it.
  *
  * Each card says its number out of what it counts ("12 of 40"), never a
  * bare count; shows the 12 weeks one bar a week, so a team sees whether it
@@ -1008,7 +1008,7 @@ export const ROOT_CAUSES_CONFIRMED_TITLE: string = translationKey(
 );
 
 export const ROOT_CAUSES_CONFIRMED_DESCRIPTION: string = translationKey(
-  "Investigations OneUptime AI finished over the last 12 weeks, judged by a responder or against the root cause written when the incident was resolved.",
+  "Investigations OneUptime AI finished over the last 12 weeks, judged by a responder or against the root cause written when the incident or alert was resolved.",
 );
 
 export const ROOT_CAUSES_CONFIRMED_HEADLINE: PluralTemplate = {
@@ -1035,7 +1035,7 @@ export const ROOT_CAUSE_FACT_LABELS: Record<
   string
 > = {
   judgedByPeople: translationKey("Judged by a responder"),
-  graded: translationKey("Graded against the incident's root cause"),
+  graded: translationKey("Graded against the root cause people wrote"),
   notJudged: translationKey("Not judged yet"),
 };
 
@@ -1046,7 +1046,7 @@ export const ROOT_CAUSES_WEEK_LEGEND: AiResultsWeekLegend = {
 
 // How an investigation comes to be judged, for a card with none judged yet.
 export const ROOT_CAUSES_HOW_JUDGED: string = translationKey(
-  "An investigation is judged when a responder confirms or rejects it on its AI card, or when someone writes the root cause as they resolve its incident.",
+  "An investigation is judged when a responder confirms or rejects it on its AI card, or when someone writes the root cause as they resolve its incident or alert.",
 );
 
 function getRootCausesCard(

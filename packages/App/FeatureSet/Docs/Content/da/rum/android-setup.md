@@ -107,7 +107,9 @@ OpenTelemetry Android registrerer alt dette af sig selv. De enhedsattributter, d
 
 Nedbrud og ANR'er når **Undtagelser** som ikke-håndterede, grupperet efter deres stack traces, med den session, de skete i. Agenten gemmer et nedbrud på disk, mens appen dør, og sender det derfra, så et nedbrud, der sker offline, stadig kommer frem, når appen kører igen med netværk.
 
-Applikationens side **Oversigt** læser dem for dig: **Sessioner**, **Sessioner uden nedbrud**, **Nedbrud**, **ANR'er**, **Appstarter**, **Koldstart (p95)** og **Frosne frames**, og hvert felt åbner de undtagelser, spans eller hændelser, det tæller. Indtil appen sender appstarter eller frames, fortæller de tilhørende diagrammer, hvordan du slår dem til. Siden **Anbefalinger** tilbyder monitorer for nedbrud, ANR'er, langsomme koldstarter, frosne frames og en app, der holder op med at rapportere.
+Applikationens side **Oversigt** læser dem for dig: **Sessioner**, **Sessioner uden nedbrud**, **Nedbrud**, **ANR'er**, **Appstarter**, **Koldstart (p95)** og **Frosne frames**, og hvert felt åbner de undtagelser, spans eller hændelser, det tæller. Indtil appen sender appstarter eller frames, fortæller de tilhørende diagrammer, hvordan du slår dem til. Siden **Anbefalinger** tilbyder monitorer for nedbrud, ANR'er, langsomme koldstarter, frosne frames og en app eller en af dens enheder, der holder op med at rapportere.
+
+Under **Sessioner uden nedbrud** viser linjen den samme andel for installationerne: det `app.installation.id`, som OpenTelemetry Android 1.1 og nyere sætter på hvert span og hver log, et id, der bevares, så længe appen er installeret, så det står for appens brugere. For en app med hundredvis af sessioner i timen, hvor et nedbrud om dagen er normalt, advarer **App Crash Rate** og **App ANR Rate** ved andelen af en times sessioner, der gik ned eller frøs, over Android vitals' 1,09 % og 0,47 %, i stedet for ved hvert enkelt nedbrud.
 
 En session slutter efter 15 minutter i baggrunden eller efter 4 timer. En app, der aldrig går i baggrunden, som en kiosk, beholder én session i 4 timer, så spor hver kundes besøg som sit eget span, som [Spor dine egne arbejdsgange](#spor-dine-egne-arbejdsgange) viser.
 
@@ -222,6 +224,35 @@ resource {
 ```
 
 Appens telemetri bliver hos dens RUM-applikation, og enheden bliver ikke en vært i **Værter**: En app rapporterer ingen værtsmetrikker, så der ville ikke være noget at vise der. Enhedens side i **Inventar** viser dens egne logs, spor og undtagelser, og `@resource.host.name:` finder dem i **Spor** og **Protokoller**. En enhed, der ikke sender noget i 30 dage, forsvinder fra **Inventar**. Hvis du vil se selve enheden, dens hukommelse, lagerplads og genstarter og nedbrud i alle apps på den, så tilføj [Android-agent](/docs/telemetry/android-agent), og giv den samme navn i dens `device_name`: Enheden er så også en vært i **Værter** og stadig ét element i **Inventar**.
+
+### Få besked, når en enhed bliver stille
+
+Applikationens side **Anbefalinger** tilbyder **Device Stopped Reporting**: en advarsel for hver enhed, der ikke sender nogen spans i en time efter at have sendt nogle i den seneste uge, skelnet fra hinanden ved det `app.installation.id`, agenten sætter. Hver enheds advarsel nævner dens installation og løses, så snart enheden rapporterer igen. Når alle enheder bliver stille på én gang, fx når en butiks netværk går ned, advarer ingen enhed: **App Stopped Reporting** rapporterer det én gang for hele appen.
+
+En kiosk, der står på én skærm, sender intet, før nogen bruger den. Send et span med få minutters mellemrum, mens appen kører, så en kiosk, der ikke bruges, ikke forveksles med en, der er blevet stille:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Start den, når agenten er startet, med `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Et span hvert femte minut holder en kiosk, der virker, et godt stykke inden for timen.
 
 ### Konfigurer flåden fra din MDM
 

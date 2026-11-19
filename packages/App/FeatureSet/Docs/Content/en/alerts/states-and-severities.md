@@ -129,9 +129,9 @@ Archive a state or severity that your team should stop using, instead of deletin
 
 | Way                  | Where                                                                                     | What it asks                                                                                                                         |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Header buttons**   | The alert's header: **Acknowledge**, **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation, **Acknowledge Alert**, **Resolve Alert** or **Mark Alert as {{state}}**, with an optional note under **Add a private note**. |
+| **Header buttons**   | The alert's header: **Acknowledge**, **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation, **Acknowledge Alert**, **Resolve Alert** or **Mark Alert as {{state}}**, with an optional note under **Add a private note**. A resolve also folds an optional root cause under **Add the root cause**. |
 | **State timeline**   | **State Timeline** in the alert's side menu                                               | A row you add by hand, with **Alert Status** and **Starts At**.                                                                       |
-| **List row** | The **⋯** menu on an alert's row in the alerts list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the alert. An alert another change moved on meanwhile is left alone, and the dialog says why. |
+| **List row** | The **⋯** menu on an alert's row in the alerts list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the alert. An alert another change moved on meanwhile is left alone, and the dialog says why. It does not ask for the root cause. |
 | **Bulk change**      | **Acknowledge**, **Resolve** or **Change State** on a selection in the alerts list                                        | The state, and one private note added to every alert. Alerts already at or past the state are skipped.                               |
 | **Automatically**    | A monitor, an episode, a linked incident or your own code                                 | **Auto Resolve Alert** on a monitor's criteria, an episode's state change, the incident switches on [Linked Alerts](/docs/incidents/linked-alerts), or a row created at `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ An alert is resolved when it moves into your resolved state, or into any state a
 - **Its monitor can raise a new alert.** A criteria keeps one open alert at a time; once that one is resolved, the next match opens another.
 
 Moving on from **Resolved** to a state after it, "Closed" say, changes none of this: the alert was resolved already.
+
+## Writing the root cause as you resolve
+
+When the alert's header resolves it, with **Resolve** or with **Change state to** a resolved state, the confirmation folds an optional **Root Cause** under **Add the root cause**: why it happened. What you write there becomes the alert's root cause, as if you had written it on its **Root Cause** page, and OneUptime AI's investigation of the alert is graded against it (see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing)). Leave it empty and the alert resolves as before, keeping the root cause it has.
+
+Writing it needs permission to edit the alert, apart from the permission to change its state: someone without it is not offered **Add the root cause**, and a state change they send with a root cause is refused whole, so the alert keeps its state. Through the API, send it with the row you create at `/api/alert-state-timeline`, as `writtenRootCause` in `miscDataProps`.
 
 ## The state timeline
 

@@ -15,8 +15,13 @@
  * Renderer-free so the App jest suite can exercise it in plain Node.
  */
 
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import LessThan from "Common/Types/BaseDatabase/LessThan";
+import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
@@ -521,18 +526,30 @@ export const toNumericQueryValue: ToNumericQueryValueFunction = (
   return distinct.length === 1 ? distinct[0]! : new Includes(distinct);
 };
 
+/*
+ * A span duration filter, in nanoseconds, as both transports carry it:
+ * strict bounds (`>` / `<`), inclusive ones (`>=` / `<=`, which a Traces
+ * monitor's "Takes at least (ms)" stores) and exact equality.
+ */
 export interface TraceDurationFilter {
   minDurationNano?: number | undefined;
   maxDurationNano?: number | undefined;
   exactDurationNano?: number | undefined;
+  atLeastDurationNano?: number | undefined;
+  atMostDurationNano?: number | undefined;
 }
 
 type ToTraceDurationFilterFunction = (rawValue: string) => TraceDurationFilter;
 
 /**
- * `duration:>500` / `duration:<200` / `duration:500`, in milliseconds, as the
- * nanosecond bounds both transports carry. A value that names no number at all
- * yields no bound rather than a `NaN` comparison that matches nothing.
+ * `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` and
+ * `duration:500`, in milliseconds, as the nanosecond bounds both transports
+ * carry. A value that names no number at all yields no bound rather than a
+ * `NaN` comparison that matches nothing.
+ *
+ * The two-character operators are read first: `>=500` used to be read as
+ * `>` followed by "=500", which is no number, so the filter the search bar
+ * showed applied nothing.
  */
 export const toTraceDurationFilter: ToTraceDurationFilterFunction = (
   rawValue: string,
@@ -553,6 +570,18 @@ export const toTraceDurationFilter: ToTraceDurationFilterFunction = (
     return isNaN(milliseconds) ? null : milliseconds * MS_TO_NANO;
   };
 
+  if (trimmed.startsWith(">=")) {
+    const nano: number | null = toNano(trimmed.substring(2));
+
+    return nano === null ? {} : { atLeastDurationNano: nano };
+  }
+
+  if (trimmed.startsWith("<=")) {
+    const nano: number | null = toNano(trimmed.substring(2));
+
+    return nano === null ? {} : { atMostDurationNano: nano };
+  }
+
   if (trimmed.startsWith(">")) {
     const nano: number | null = toNano(trimmed.substring(1));
 
@@ -569,6 +598,105 @@ export const toTraceDurationFilter: ToTraceDurationFilterFunction = (
 
   return nano === null ? {} : { exactDurationNano: nano };
 };
+
+type HasTraceDurationFilterFunction = (
+  filter: TraceDurationFilter | null | undefined,
+) => boolean;
+
+// Whether a duration filter holds any bound at all.
+export const hasTraceDurationFilter: HasTraceDurationFilterFunction = (
+  filter: TraceDurationFilter | null | undefined,
+): boolean => {
+  if (!filter) {
+    return false;
+  }
+
+  return [
+    filter.minDurationNano,
+    filter.maxDurationNano,
+    filter.exactDurationNano,
+    filter.atLeastDurationNano,
+    filter.atMostDurationNano,
+  ].some((bound: number | undefined): boolean => {
+    return bound !== undefined && Number.isFinite(bound);
+  });
+};
+
+type ToTraceDurationQueryValueFunction = (
+  filter: TraceDurationFilter,
+) => unknown;
+
+/**
+ * The span list's `durationUnixNano` predicate for a duration filter, or
+ * undefined for none. `Query<Span>` holds one predicate per column, so an
+ * inclusive floor and ceiling together are one InBetween (BETWEEN is
+ * inclusive at both ends); any other pair keeps its floor, the bound a
+ * monitor and the search bar write.
+ */
+export const toTraceDurationQueryValue: ToTraceDurationQueryValueFunction = (
+  filter: TraceDurationFilter,
+): unknown => {
+  if (filter.exactDurationNano !== undefined) {
+    return filter.exactDurationNano;
+  }
+
+  if (
+    filter.atLeastDurationNano !== undefined &&
+    filter.atMostDurationNano !== undefined
+  ) {
+    return new InBetween<number>(
+      filter.atLeastDurationNano,
+      filter.atMostDurationNano,
+    );
+  }
+
+  if (filter.atLeastDurationNano !== undefined) {
+    return new GreaterThanOrEqual<number>(filter.atLeastDurationNano);
+  }
+
+  if (filter.minDurationNano !== undefined) {
+    return new GreaterThan<number>(filter.minDurationNano);
+  }
+
+  if (filter.atMostDurationNano !== undefined) {
+    return new LessThanOrEqual<number>(filter.atMostDurationNano);
+  }
+
+  if (filter.maxDurationNano !== undefined) {
+    return new LessThan<number>(filter.maxDurationNano);
+  }
+
+  return undefined;
+};
+
+type ApplyTraceDurationToPayloadFunction = (
+  payload: JSONObject,
+  filter: TraceDurationFilter,
+) => void;
+
+/**
+ * The same filter on the histogram / facets / analytics body, one key per
+ * bound (parseTraceFilterBody), so the chart above the list counts exactly
+ * the spans the list shows.
+ */
+export const applyTraceDurationToPayload: ApplyTraceDurationToPayloadFunction =
+  (payload: JSONObject, filter: TraceDurationFilter): void => {
+    const keys: Array<keyof TraceDurationFilter> = [
+      "minDurationNano",
+      "maxDurationNano",
+      "exactDurationNano",
+      "atLeastDurationNano",
+      "atMostDurationNano",
+    ];
+
+    for (const key of keys) {
+      const bound: number | undefined = filter[key];
+
+      if (bound !== undefined && Number.isFinite(bound)) {
+        payload[key] = bound;
+      }
+    }
+  };
 
 // The key the facets endpoint counts the Service facet under.
 const SERVICE_FACET_COUNT_KEY: string = "primaryEntityId";

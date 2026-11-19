@@ -371,7 +371,7 @@ flowchart TB
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
 4. Em **Ao corresponder**, deixe **Abrir um caso ao corresponder** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
 5. Em **Alertas e incidentes**, escolha o que mais uma correspondência gera: **Criar um alerta** (o padrão), **Declarar um incidente**, **Ambos** ou **Nenhum**, com uma **Severidade do alerta** ou uma **Severidade do incidente** opcionais.
-6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado), **Executar em tempo real** (desativado), como as correspondências são contadas e as **Etapas de resposta**: o que fazer quando a regra abre um caso, cada etapa sob a parte que você escolher do Plano de resposta do caso, no máximo 10. Veja [Configurações de avaliação](#configurações-de-avaliação).
+6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado), **Executar em tempo real** (desativado), como as correspondências são contadas e as **Etapas de resposta**: o que fazer quando a regra abre um caso, cada etapa sob a parte que você escolher do Plano de resposta do caso, no máximo 10. Arraste uma etapa pela alça, ou use **Mover para cima** e **Mover para baixo**: o plano do caso mostra as etapas de cada parte na ordem que você der a elas. Veja [Configurações de avaliação](#configurações-de-avaliação).
 :::
 
 Uma primeira regra, que corresponde a logins com falha vindos de fora de `10.x.x.x`:

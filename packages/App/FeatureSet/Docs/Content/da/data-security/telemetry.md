@@ -8,6 +8,7 @@ Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre
 - [Hvad der læses](#hvad-der-læses): Attributterne, brødteksterne, beskederne og prompterne i hvert signal.
 - [Sådan tager en scanning prøver](#sådan-tager-en-scanning-prøver): De nyeste poster fra hver tjeneste, hver time.
 - [Rens](#rens): Maskér et fund ved indtagelse med ét klik.
+- [Kassér denne metrik](#kassér-denne-metrik): Stop med at gemme de metrikker, hvis navne indeholder følsomme data.
 - [Hvad der tæller som renset](#hvad-der-tæller-som-renset): Når en rensningsregel allerede dækker et fund.
 :::
 
@@ -42,8 +43,9 @@ Nummererede nøgler samles i én placering: `gen_ai.prompt.3.content` er `gen_ai
 
 En metriks attributter er dens seriers labels. De er de samme på hvert datapunkt i en serie, så en metrik, der skriver tusind punkter i minuttet, rummer måske kun tre værdier, og en label, der lækker en brugers e-mail, tilføjer en serie, ikke et punkt. Derfor tages der prøver af en metrik efter dens serier, ikke efter dens punkter:
 
-- **Dens nyeste minut.** Hver metrik læses i det nyeste minut, den skrev i den seneste time: op til 100 af minuttets datapunkter, hvilket for en metrik, der sendes én gang i minuttet, som OpenTelemetry gør som standard, er ét punkt fra hver serie. En værdi klassificeres én gang, uanset hvor mange punkter der gentager den, så et fund tæller de forskellige værdier på sin placering.
-- **De travleste først, resten på skift.** Hvilke metrikker en tjeneste skrev, kommer fra den minutvise opsummering, som metriktabellen fører, aldrig fra selve punkterne. Hver scanning læser en tjenestes travleste metrikker, dem med størst sandsynlighed for mange serier, og nogle af dens andre, de næste hver time, så hver metrik får sin tur.
+- **Ét punkt fra hver serie.** Hver metrik læses i det nyeste minut, den skrev i den seneste time: ét datapunkt fra hver af op til 100 af minuttets serier, uanset hvor ofte metrikken sendes, så en travl serie aldrig fortrænger en stille. En værdi klassificeres én gang, uanset hvor mange serier der gentager den, så et fund tæller de forskellige værdier på sin placering.
+- **Nye metrikker først, derefter resten på skift.** Hvilke metrikker en tjeneste skrev, og hvornår hver af dem første gang skrev i det seneste døgn, kommer fra den minutvise opsummering, som metriktabellen fører, aldrig fra selve punkterne. Hver scanning læser en tjenestes travleste metrikker, dem med størst sandsynlighed for mange serier. Derefter kommer de metrikker, den begyndte at skrive i de seneste 2 timer, fordi et nyt læk som regel kommer fra ny kode, og så de næste af dens andre metrikker i en fast rækkefølge, fra hvor den seneste scanning stoppede. Nye metrikker får højst halvdelen af de pladser, så de andre altid beholder deres.
+- **Hver metrik inden for en fast tid.** For en tjeneste med M metrikker, hvoraf hver scanning læser 10, læses hver af dem mindst én gang hver M ÷ 5 timer, rundet op: 60 timer for en tjeneste med 300 metrikker. Så længe den bliver ved med at starte nye metrikker hver time, er det højst det dobbelte.
 - **Hver metriks eget interval.** Metrikkerne læses samlet, hver over sit eget interval af tabellens primærnøgle. En metrik, hvis nyeste minut rummer mere end 16.384 punkter, f.eks. en med hver brugers e-mail som label, læses for sig, og læsningen stopper ved dens første punkter, så den ikke koster mere end nogen anden metrik.
 
 Et fund angiver attributten, f.eks. `attributes.user.email`, eller `name` for data i en metriks navn. Dets poster er de datapunkter, det blev fundet i: hver viser sin metrik og attributtens værdi, maskeret, og åbner i **Metrikker** på den metrik, grupperet efter den attribut. Hvor en metriks navn indeholder følsomme data, maskeres navnet også, og posten åbner i stedet tjenestens metrikker.
@@ -73,8 +75,9 @@ Hver time læses hvert signals nyeste poster fra den seneste time, og de klassif
 | Attributter i én post | 128; 64 for et AI-kald |
 | Hændelser i ét span og attributter i én hændelse | 16 og 32 |
 | Placeringer i ét datalager | 500 |
-| Metrikker, der læses i én scanning | 100, delt mellem tjenesterne, mindst én fra hver; højst 10 fra én tjeneste, halvdelen dens travleste og halvdelen dens andre på skift |
-| Datapunkter i én metrik | Dem fra dens nyeste minut, højst 100 |
+| Metrikker, der læses i én scanning | 100, delt mellem tjenesterne, mindst én fra hver; højst 10 fra én tjeneste, halvdelen dens travleste og halvdelen dens nye og andre på skift |
+| En ny metrik | En metrik, hvis første punkt i de seneste 24 timer kom i de seneste 2 timer |
+| Serier i én metrik | Ét datapunkt fra hver, fra dens nyeste minut, højst 100 |
 
 Hver værdi afkortes i databasen, så ingen lang værdi forlader den, og hver læsning stopper efter 30 sekunder. En læsning, der fejler, noteres som en advarsel på de datalagre, den gjaldt; scanningen fortsætter med den næste.
 
@@ -114,9 +117,20 @@ Nogle fund kan ikke renses af en regel, og **Rens** siger hvorfor. En metriks at
 - En dokumentmærkning: at skjule ordet ville ikke skjule dokumentet.
 - En af dine egne datatyper: tilføj selv en brugerdefineret rensningsregel med dens mønster.
 - En sessions egne detaljer (`sessions.*`): indtagelse af sessionsafspilninger kører ingen rensningsregler.
-- En metriks navn (`name`): den kode, der opretter metrikken, sætter det, og en pipelineregel kan kun omdøbe en metrik som helhed. Omdøb metrikken, og send det, der varierer i dens navn, som en attribut i stedet.
+- En metriks navn (`name`): den kode, der opretter metrikken, sætter det, og en pipelineregel kan kun omdøbe en metrik som helhed. Omdøb metrikken, og send det, der varierer i dens navn, som en attribut i stedet. Indtil da kan **Kassér denne metrik** stoppe med at gemme de metrikker.
 
 **Rens** opretter reglen som dig, med dine egne tilladelser: Projektejere og Projektadministratorer kan trykke på den, og det kan et team også, der må oprette logrensningsregler, trace-rensningsregler for spans, undtagelser og AI-kald og metrik-pipelineregler for metrikker.
+
+## Kassér denne metrik
+
+Ingen regel fjerner dataene fra en metriks navn, så indtil koden, der navngiver metrikken, er rettet, bliver dataene ved med at komme. **Kassér denne metrik** på et fund i en metriks navn stopper med at gemme de metrikker, hvis navne indeholder dem, på bekostning af deres data, så det sker kun, når du beder om det:
+
+- **Én tjenestes metrikker.** Den opretter en metrik-pipelineregel af typen **Kassér** for fundets tjeneste: hvert nyt datapunkt fra en metrik, hvis navn indeholder den datatype, kasseres, før det gemmes. Dens filter er det mønster, **Rens** bruger for typen, så en type, som intet mønster kan finde, som en persons navn, kan ikke kasseres, og dialogen siger hvorfor.
+- **Sagt, før det sker.** Dialogen siger, at de datapunkter går tabt for altid, hvor mange af tjenestens metrikker skrevet det seneste døgn der har sådan et navn, hvilke monitorer og dashboards der læser dem og derfor ikke får nye data, at det, der allerede er gemt, bliver, indtil opbevaringen udløber, og hvordan det fortrydes. Intet kasseres, før du har markeret, at du forstår det.
+- **Som dig, og registreret.** Reglen oprettes med din egen tilladelse til at oprette metrik-pipelineregler: Projektejere og Projektadministratorer kan oprette den, og det kan et team også, der må oprette metrik-pipelineregler. Auditloggen registrerer, hvem der oprettede den.
+- **Fortrydes ved at slette reglen.** Reglen navngives efter det, den kasserer, for eksempel "Data Security: drop metrics named with Email address", og står sammen med dine andre metrik-pipelineregler under **Metrikker → Indstillinger → Pipelineregler**. Slet den eller slå den fra, og de metrikker gemmes igen fra da af. Det, der blev kasseret i mellemtiden, kommer ikke tilbage.
+
+Fundet markeres så som **Kasseret** og tæller som renset: intet mere af de data gemmes.
 
 ## Hvad der tæller som renset
 
@@ -127,6 +141,7 @@ Et fund markeres kun som renset, når indtagelsen ville køre en aktiveret regel
 - **Et mønster, der finder typen.** En indbygget **Mønstertype** finder sin egen datatype: **E-mailadresse** finder e-mailadresser, **Kreditkortnummer** kortnumre, **SSN (CPR-nummer)** amerikanske socialsikringsnumre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Følsomme attributnøgler** dækker hver værdi under en nøgle, der ligner noget følsomt, uanset hvad værdien er.
 - **Dine egne brugerdefinerede mønstre tæller aldrig.** En **Brugerdefineret regex** dækker kun et fund, når den er præcis det mønster, **Rens** opretter for dets type. Et fund gemmer kun maskerede prøver, som intet mønster kan afprøves på, så OneUptime kan ikke bevise, at dit mønster skjuler dataene, og et fund, der fejlagtigt kaldes renset, er en lækage, ingen kigger på.
 - **En metriks attribut.** En metrik-pipelineregel af typen **Redigér attribut bort** eller **Fjern attribut** for den attributs nøgle, for fundets tjeneste eller hele projektet, dækker det, når den ikke har noget filter, eller præcis det filter, **Rens** opretter. Et filter, du selv har skrevet, tæller aldrig, af samme grund.
+- **En metriks navn.** En metrik-pipelineregel af typen **Kassér** for fundets tjeneste eller hele projektet dækker det, når den har præcis det filter, **Kassér denne metrik** opretter, eller slet intet filter, hvor den ikke gemmer nogen af tjenestens metrikker. Sådan en regel uden filter dækker hvert fund i de metrikker.
 
 En regel, der er slået fra, eller som intet renser, tæller aldrig. Dækningen beregnes igen efter hver scanning, så en regel, du tilføjer eller fjerner manuelt, ændrer inden for en time, hvad der er markeret som renset.
 

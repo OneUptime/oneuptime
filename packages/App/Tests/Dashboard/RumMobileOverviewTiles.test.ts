@@ -31,6 +31,7 @@ import {
   describeFrozenFramesTile,
   describeSessionsTile,
   formatSessionShare,
+  getCrashFreeInstallsPercent,
   getCrashFreeSessionsPercent,
   getMobileSignalEmptyCopy,
   getMobileSignalEmptyState,
@@ -55,16 +56,18 @@ function sessions(
   count: number,
   spans: number = count * 10,
   failed: boolean = false,
+  installs: number | null = null,
 ): MobileSessions {
-  return { sessions: count, spans, failed };
+  return { sessions: count, spans, installs, failed };
 }
 
 function fault(
   total: number,
   sessionCount: number | null,
   failed: boolean = false,
+  installs: number | null = null,
 ): MobileFaultCount {
-  return { total, series: [], sessions: sessionCount, failed };
+  return { total, series: [], sessions: sessionCount, installs, failed };
 }
 
 function appStarts(
@@ -263,6 +266,121 @@ describe("crash-free sessions", () => {
         crashes: fault(2, null),
       }),
     ).toEqual({ value: undefined, sublabel: "could not load" });
+  });
+});
+
+/*
+ * #9716: crash-free installs, a good stand-in for a phone app's users,
+ * counted as crash-free sessions are - the distinct app.installation.id of
+ * the app's spans, less the ones its crashes named - and drawn under the
+ * sessions' share.
+ */
+describe("Crash-free installs", () => {
+  test("is the share of installs no crash happened on", () => {
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(200, 2000, false, 80),
+        crashes: fault(3, 2, false, 2),
+      }),
+    ).toBe(97.5);
+  });
+
+  test("no crash in range is every install", () => {
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(200, 2000, false, 80),
+        crashes: fault(0, 0, false, 0),
+      }),
+    ).toBe(100);
+    // Even before the installs of the crashes could be read.
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(200, 2000, false, 80),
+        crashes: fault(0, 0, false, null),
+      }),
+    ).toBe(100);
+  });
+
+  test("an app that names no install has no share: spans with no app.installation.id, or none counted", () => {
+    for (const installs of [0, null]) {
+      expect(
+        getCrashFreeInstallsPercent({
+          sessions: sessions(200, 2000, false, installs),
+          crashes: fault(3, 2, false, 2),
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("a crash that named no install leaves the share unknown, never better than it is", () => {
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(200, 2000, false, 80),
+        crashes: fault(3, 2, false, null),
+      }),
+    ).toBeNull();
+  });
+
+  test("a failed read on either side has no share", () => {
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(200, 2000, true, 80),
+        crashes: fault(3, 2, false, 2),
+      }),
+    ).toBeNull();
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(200, 2000, false, 80),
+        crashes: fault(3, 2, true, 2),
+      }),
+    ).toBeNull();
+    expect(
+      getCrashFreeInstallsPercent({ sessions: null, crashes: null }),
+    ).toBeNull();
+  });
+
+  test("never below 0%: a crash's install the range's spans did not name counts once", () => {
+    expect(
+      getCrashFreeInstallsPercent({
+        sessions: sessions(5, 50, false, 2),
+        crashes: fault(4, 3, false, 3),
+      }),
+    ).toBe(0);
+  });
+
+  test("the tile draws it under the sessions' share, in the share's own format", () => {
+    const tile: MobileTileText = describeCrashFreeTile({
+      sessions: sessions(200, 2000, false, 80),
+      crashes: fault(3, 2, false, 2),
+    });
+
+    expect(tile.value).toBe("99.00%");
+    expect(tile.percent).toBe(99);
+    expect(tile.sublabel).toBe("97.50% of installs crash-free");
+  });
+
+  test("no crash reads 100% of installs", () => {
+    expect(
+      describeCrashFreeTile({
+        sessions: sessions(10, 100, false, 4),
+        crashes: fault(0, 0, false, 0),
+      }).sublabel,
+    ).toBe("100% of installs crash-free");
+  });
+
+  test("without a share of installs the line says how many sessions crashed, as before", () => {
+    expect(
+      describeCrashFreeTile({
+        sessions: sessions(200, 2000, false, 0),
+        crashes: fault(3, 2, false, null),
+      }).sublabel,
+    ).toBe("2 sessions crashed");
+    expect(
+      describeCrashFreeTile({
+        sessions: sessions(200, 2000, false, 80),
+        crashes: fault(3, 2, false, null),
+      }).sublabel,
+    ).toBe("2 sessions crashed");
   });
 });
 
@@ -583,7 +701,7 @@ describe("where the tiles link", () => {
     );
   });
 
-  test("Crashes open the app's exceptions, ANRs only the type ANR", () => {
+  test("Crashes open the app's exceptions, ANRs only the types ANR and Hang", () => {
     expect(
       JSON.parse(
         paramsOf(
@@ -605,9 +723,11 @@ describe("where the tiles link", () => {
       }),
     );
 
+    // An iOS app's hang is its ANR (#9712): both chips, one any-of filter.
     expect(JSON.parse(anrs.get("filters") || "[]")).toEqual([
       ["rumApplicationId", APP_ID],
       ["exceptionType", "ANR"],
+      ["exceptionType", "Hang"],
     ]);
     expect(anrs.get("range")).toBe("Past 1 Hour");
   });

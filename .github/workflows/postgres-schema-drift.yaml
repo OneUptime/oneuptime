@@ -3031,6 +3031,24 @@ jobs:
           Tests/Server/Services/SsoFilterWritesPostgres.test.ts
           --forceExit
 
+      # Clones the migrated Project, Domain and SSO provider tables, with the
+      # providers' domain lists, into an isolated schema: "Sign in with SSO"
+      # offers the providers that are on and list a verified domain of their
+      # own project with the address's exact domain, whatever case it was
+      # saved in, and nothing for a deleted domain or provider (#9824).
+      - name: Test Sign in with SSO's lookup by domain on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SSO_DISCOVERY_TESTS: "true"
+          SSO_DISCOVERY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SSO_DISCOVERY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SSO_DISCOVERY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/ProjectSsoDiscoveryPostgres.test.ts
+          --forceExit
+
       - name: Test team member reads across tenants on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common

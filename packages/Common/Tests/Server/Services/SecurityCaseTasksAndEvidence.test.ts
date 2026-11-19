@@ -46,9 +46,13 @@ import ArchivableValueGuard from "../../../Server/Utils/Database/ArchivableValue
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import StateOrderGuard from "../../../Server/Utils/Database/StateOrderGuard";
 import SecurityCaseNotifications from "../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Green500, Red500 } from "../../../Types/BrandColors";
+import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import MimeType from "../../../Types/File/MimeType";
 import { JSONObject } from "../../../Types/JSON";
@@ -323,6 +327,59 @@ describe("adding a task", () => {
     ]);
     // Not done: nobody ticked it off.
     expect(columnWrites).toEqual([]);
+  });
+
+  /*
+   * A task can be assigned to someone invited to the project who has not
+   * accepted: the project sees only what it invited of them - the name
+   * typed for them, else their address - never their own name (#9823).
+   */
+  test("for somebody only invited to the project: named by the name typed for them, else their address", async () => {
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockImplementation(async (args: unknown) => {
+        const user: User = new User();
+        user._id = (args as { id: ObjectID }).id.toString();
+        user.name = "Ana Account" as never;
+        user.email = new Email("ana@example.com");
+        return user;
+      });
+    const withheldIn: SpyInstance<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            ANA_ID.toString().toLowerCase(),
+            { inviteeName: "Ana from Security" },
+          ],
+        ]),
+      );
+
+    await taskHooks.onCreateSuccess(
+      onCreate(task()),
+      created({ assignedToUserId: ANA_ID, createdByUserId: MAYA_ID }),
+    );
+
+    withheldIn.mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [ANA_ID.toString().toLowerCase(), { inviteeName: null }],
+      ]),
+    );
+
+    await taskHooks.onCreateSuccess(
+      onCreate(task()),
+      created({ assignedToUserId: ANA_ID, createdByUserId: MAYA_ID }),
+    );
+
+    expect(feedTexts()).toEqual([
+      "📋 Added the task **Reset the admin password** and assigned it to **Ana from Security**.",
+      "📋 Added the task **Reset the admin password** and assigned it to **ana@example.com**.",
+    ]);
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
   });
 
   test("for nobody: on the timeline, and nobody told", async () => {

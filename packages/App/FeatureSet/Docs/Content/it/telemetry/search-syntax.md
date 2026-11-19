@@ -129,7 +129,7 @@ I nomi dei campi non distinguono maiuscole e minuscole: `statusMessage:` e `stat
 
 ### Tracce
 
-I campi delle tracce accettano un valore semplice o un elenco come `status:(ok OR unset)`, e `duration` accetta anche `>` e `<`. Caratteri jolly, `~`, `!` e un `-` iniziale qui funzionano solo sugli attributi.
+I campi delle tracce accettano un valore semplice o un elenco come `status:(ok OR unset)`, e `duration` accetta anche `>`, `>=`, `<` e `<=`. Caratteri jolly, `~`, `!` e un `-` iniziale qui funzionano solo sugli attributi.
 
 | Campo | Note |
 | --- | --- |
@@ -137,7 +137,7 @@ I campi delle tracce accettano un valore semplice o un elenco come `status:(ok O
 | `name` | Nome dello span. Un singolo valore corrisponde a qualsiasi parte del nome. Anche le parole semplici lo cercano |
 | `status` | `ok`, `error`, `unset` (unset = Nessuno stato di errore impostato, il predefinito di OpenTelemetry) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Millisecondi: `duration:>500`, `duration:<200` o un valore esatto |
+| `duration` | Millisecondi: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` o un valore esatto |
 | `statusMessage` | Testo del messaggio di stato. Un singolo valore corrisponde a qualsiasi parte del testo |
 | `hasException` | `true` o `false` |
 | `trace`, `span` | ID |

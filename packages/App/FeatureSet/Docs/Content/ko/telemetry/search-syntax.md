@@ -129,7 +129,7 @@ name:"SELECT wp_options"
 
 ### 트레이스
 
-트레이스 필드에는 단순한 값이나 `status:(ok OR unset)` 같은 목록을 지정할 수 있고, `duration` 에는 `>` 와 `<` 도 쓸 수 있습니다. 와일드카드, `~`, `!`, 앞에 붙인 `-` 는 여기서는 속성에만 동작합니다.
+트레이스 필드에는 단순한 값이나 `status:(ok OR unset)` 같은 목록을 지정할 수 있고, `duration` 에는 `>`, `>=`, `<`, `<=` 도 쓸 수 있습니다. 와일드카드, `~`, `!`, 앞에 붙인 `-` 는 여기서는 속성에만 동작합니다.
 
 | 필드 | 참고 |
 | --- | --- |
@@ -137,7 +137,7 @@ name:"SELECT wp_options"
 | `name` | 스팬 이름. 값이 하나면 이름의 어느 부분과도 일치. 단어만 입력한 항목도 여기를 검색 |
 | `status` | `ok`, `error`, `unset` (unset = 오류 상태가 설정되지 않음, OpenTelemetry 기본값) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | 밀리초: `duration:>500`, `duration:<200` 또는 정확한 값 |
+| `duration` | 밀리초: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` 또는 정확한 값 |
 | `statusMessage` | 상태 메시지 텍스트. 값이 하나면 어느 부분과도 일치 |
 | `hasException` | `true` 또는 `false` |
 | `trace`, `span` | ID |

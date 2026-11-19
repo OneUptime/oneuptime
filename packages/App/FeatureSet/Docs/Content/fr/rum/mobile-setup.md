@@ -5,6 +5,7 @@ Instrumentez une application Android, iOS ou React Native avec OpenTelemetry afi
 :::cards
 - [Ce dont OneUptime a besoin](#ce-dont-oneuptime-a-besoin): Deux attributs de ressource, envoyés avec une clé Serveur.
 - [Configurer votre plateforme](#configurer-votre-plateforme): Android, iOS, React Native et les autres.
+- [Plantages et blocages iOS](#plantages-et-blocages-ios): Les diagnostics de MetricKit dans Exceptions et sur la vue d'ensemble.
 - [Vérifier que tout arrive](#vérifier-que-tout-arrive): Tester la clé, puis trouver l'application.
 - [Relecture de session sur mobile](#relecture-de-session-sur-mobile): Des enregistrements pour les applications React Native.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 Le SDK ajoute lui-même `/v1/traces`, `/v1/metrics` et `/v1/logs` au point de terminaison.
 :::
+
+## Plantages et blocages iOS
+
+opentelemetry-swift 2.3 et ultérieur signale les plantages et les blocages d'une application iOS via son instrumentation MetricKit, qui transmet chacun des diagnostics d'Apple à OpenTelemetry sous forme d'enregistrement de journal. OneUptime les classe comme il classe les plantages et les ANR d'OpenTelemetry Android : ils apparaissent donc dans **Exceptions** et sur la page **Vue d'ensemble** de l'application :
+
+| Diagnostic d'Apple | Nom de l'événement | Dans Exceptions |
+| --- | --- | --- |
+| Un plantage | `metrickit.diagnostic.crash` | Une exception non gérée, typée d'après ce qui a mis fin à l'application : l'exception Objective-C sur iOS 17 et ultérieur, sinon l'exception Mach (`EXC_BAD_ACCESS`), sinon le signal (`SIGSEGV`) |
+| Un blocage | `metrickit.diagnostic.hang` | Une exception non gérée de type **Hang**, l'équivalent iOS d'un ANR, qui conserve la durée du blocage |
+
+La tuile **Plantages** de la vue d'ensemble compte les plantages, et sa tuile **ANR** compte les blocages avec les ANR d'Android. Chaque stack trace est dessinée comme les threads d'un rapport de plantage, en commençant par le thread qui a planté ou s'est bloqué. Les frames ne sont pas symbolisées : chacune nomme son binaire et la position du code dans celui-ci, et **Binary Images** liste l'UUID de chaque binaire, qui indique avec le dSYM de quel build le symboliser.
+
+:::steps
+### Exporter les journaux en plus des spans
+
+MetricKit signale les diagnostics sous forme d'enregistrements de journal : enregistrez donc un fournisseur de loggers à côté du fournisseur de traceurs, avec la même ressource, le même point de terminaison et le même en-tête :
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Enregistrer l'instrumentation MetricKit
+
+Ajoutez le produit `MetricKitInstrumentation` d'opentelemetry-swift, et enregistrez-le auprès de MetricKit une fois le fournisseur de loggers enregistré :
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Enregistrer les sessions
+
+Les tuiles **Sessions** et **Sessions sans plantage** comptent le `session.id` de vos spans. Le produit `Sessions` d'opentelemetry-swift le définit : ajoutez `SessionSpanProcessor` au fournisseur de traceurs, et enveloppez le processeur de journaux dans `SessionLogRecordProcessor`, pour que les diagnostics portent aussi une session. Ses versions ne définissent pas encore d'`app.installation.id` : la tuile **Sessions sans plantage** d'une application iOS indique donc combien de sessions ont planté, et non ses installations sans plantage.
+:::
+
+> [!NOTE]
+> Apple remet les diagnostics de MetricKit à l'application lors d'un lancement ultérieur, immédiatement sur iOS 15 et ultérieur, une fois par jour sur les versions antérieures, si bien qu'un plantage ou un blocage peut arriver quelques minutes ou un jour après s'être produit, et il est compté à son arrivée. « 0 plantage au cours de la dernière heure » sur la vue d'ensemble d'une application iOS n'est donc pas encore une bonne nouvelle. Un diagnostic porte la session qui l'a signalé, pas celle à laquelle il a mis fin.
+
+opentelemetry-swift n'enregistre aucun span au démarrage de l'application : les tuiles **Démarrages de l'application** et **Démarrage à froid (p95)** restent donc vides jusqu'à ce que votre application en enregistre un, à savoir un span nommé `AppStart`, avec `start.type` défini à `cold`, `warm` ou `hot`, du démarrage du processus jusqu'au moment où le premier écran est prêt.
 
 ## Vérifier que tout arrive
 

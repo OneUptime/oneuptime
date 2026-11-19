@@ -93,7 +93,13 @@ export const ADMINISTRATION_PAGES: ReadonlyArray<AdministrationDocsPageEntry> =
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [INVITING_PEOPLE]: ["Create Your Account", "Sign In to OneUptime", "⋯"],
+    [INVITING_PEOPLE]: [
+      "Create Your Account",
+      "Sign In to OneUptime",
+      // The email's button for someone SSO will sign in (#9819).
+      "Sign In with SSO",
+      "⋯",
+    ],
     [PROJECT_SETTINGS]: ["⋯"],
     [BILLING]: ["⋯"],
     [AUDIT_LOGS]: [],

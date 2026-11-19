@@ -69,6 +69,9 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ProjectMembership from "../TeamMember/ProjectMembership";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 import MattermostUtil, {
   MattermostChannel,
   MattermostRequestError,
@@ -983,6 +986,19 @@ export default class WorkspaceChannelMembers {
         userIds: data.people,
       });
 
+    /*
+     * Someone only invited to the project - not added, as not a member yet
+     * - is named as the project knows them: the name typed for them, else
+     * their address, never their account's own name (#9823).
+     */
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: data.people.map((userId: ObjectID): string => {
+          return userId.toString();
+        }),
+        projectId: data.projectId,
+      });
+
     const answer: WorkspaceChannelAddAnswer = { results: [] };
 
     for (const userId of data.people) {
@@ -1003,7 +1019,13 @@ export default class WorkspaceChannelMembers {
 
       answer.results.push({
         userId: userId.toString(),
-        name: user?.name?.toString() || user?.email?.toString() || "Someone",
+        name:
+          PendingInviteeProfiles.getNameInProject({
+            userId: userId,
+            name: user?.name,
+            email: user?.email,
+            withheld: withheld,
+          }) || "Someone",
         outcome: attempt.outcome,
       });
     }

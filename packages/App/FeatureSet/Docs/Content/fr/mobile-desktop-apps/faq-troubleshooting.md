@@ -109,7 +109,7 @@ L'application n'a pas pu joindre `https://<your-oneuptime>/api/status`. Vérifie
 :::
 
 :::details « No SSO configuration found for the email »
-Aucun des projets dont cet e-mail est membre n'a configuré l'authentification unique, ou l'e-mail n'a pas de compte sur ce OneUptime. Vérifiez l'e-mail, ou connectez-vous avec votre mot de passe. Les fournisseurs que votre administrateur a configurés pour toute l'installation sont listés avant le champ e-mail.
+Aucun projet de ce OneUptime ne propose encore l'authentification unique pour le domaine de cet e-mail : un administrateur du projet ajoute le domaine à son fournisseur SSO, quel que soit le titulaire de l'e-mail. Vérifiez l'e-mail, ou connectez-vous avec votre mot de passe. Les fournisseurs que votre administrateur a configurés pour toute l'installation sont listés avant le champ e-mail.
 :::
 
 :::details Une clé de sécurité est votre seul second facteur

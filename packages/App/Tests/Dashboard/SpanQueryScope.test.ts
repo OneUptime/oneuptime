@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import LessThan from "Common/Types/BaseDatabase/LessThan";
+import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import ObjectID from "Common/Types/ObjectID";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -11,10 +15,14 @@ import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTra
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import {
+  DURATION_FACET_KEY,
   EMPTY_SPAN_QUERY_SCOPE,
   SpanQueryScope,
   SpanScopeChip,
   buildSpanQueryScope,
+  describeDurationBounds,
+  readStoredDurationFilter,
+  toDurationSearchValue,
 } from "../../FeatureSet/Dashboard/src/Utils/SpanQueryScope";
 
 /*
@@ -363,6 +371,155 @@ describe("scope the payload cannot express is reported, never dropped", () => {
     expect(scope.notCarried).toEqual([]);
     expect(scope.passthrough).toEqual({});
     expect(scope.hasScope).toBe(false);
+  });
+});
+
+/*
+ * #9714: a Traces monitor's "Takes at least (ms)" - the mobile Slow Cold
+ * Start recommendation's AppStart spans of 5 s or more - used to reach the
+ * explorer as un-carried scope: the list kept the floor, the chart and the
+ * facet counts above it did not, and a hint said so. It is now read once and
+ * rendered into both transports, and drawn as a chip.
+ */
+describe("a Traces monitor's duration floor (Takes at least)", () => {
+  const SLOW_COLD_START_NANOS: number = 5000 * 1_000_000;
+
+  const slowColdStart: Query<Span> = traceMonitorQuery({
+    telemetryServiceIds: [new ObjectID(SERVICE_ID_A)],
+    attributes: { "start.type": "cold" },
+    spanName: "AppStart",
+    minimumDurationInMs: 5000,
+    lastXSecondsOfSpans: 900,
+  });
+
+  test("the monitor stores it on the duration column", () => {
+    expect(Object.keys(slowColdStart).sort()).toEqual([
+      "attributes",
+      "durationUnixNano",
+      "name",
+      "primaryEntityId",
+      "startTime",
+    ]);
+  });
+
+  test("is read as an inclusive floor, whether or not the page deserialized it", () => {
+    for (const stored of [
+      roundTrip(slowColdStart),
+      storedOnly(slowColdStart) as unknown as Query<Span>,
+    ]) {
+      const scope: SpanQueryScope = buildSpanQueryScope(stored);
+
+      expect(scope.duration).toEqual({
+        atLeastDurationNano: SLOW_COLD_START_NANOS,
+      });
+      expect(scope.hasScope).toBe(true);
+    }
+  });
+
+  test("is carried, so nothing is left over and no hint is drawn", () => {
+    const scope: SpanQueryScope = buildSpanQueryScope(roundTrip(slowColdStart));
+
+    expect(scope.passthrough).toEqual({});
+    expect(scope.notCarried).toEqual([]);
+  });
+
+  test("is drawn as a Duration chip whose value is the search bar's spelling", () => {
+    const scope: SpanQueryScope = buildSpanQueryScope(roundTrip(slowColdStart));
+
+    expect(chipFor(scope, DURATION_FACET_KEY)).toEqual([
+      {
+        facetKey: DURATION_FACET_KEY,
+        value: ">=5000",
+        displayKey: "Duration",
+        displayValue: "≥\u00A05000\u00A0ms",
+      },
+    ]);
+  });
+
+  test("every comparison the explorer writes is read back", () => {
+    expect(readStoredDurationFilter(new GreaterThan<number>(7))).toEqual({
+      minDurationNano: 7,
+    });
+    expect(readStoredDurationFilter(new LessThan<number>(7))).toEqual({
+      maxDurationNano: 7,
+    });
+    expect(readStoredDurationFilter(new LessThanOrEqual<number>(7))).toEqual({
+      atMostDurationNano: 7,
+    });
+    expect(readStoredDurationFilter(new GreaterThanOrEqual<number>(7))).toEqual(
+      { atLeastDurationNano: 7 },
+    );
+    expect(readStoredDurationFilter(new InBetween<number>(1, 9))).toEqual({
+      atLeastDurationNano: 1,
+      atMostDurationNano: 9,
+    });
+    expect(readStoredDurationFilter(750)).toEqual({ exactDurationNano: 750 });
+    // A LongNumber column can come back as its digits.
+    expect(
+      readStoredDurationFilter({ _type: "GreaterThanOrEqual", value: "5000" }),
+    ).toEqual({ atLeastDurationNano: 5000 });
+  });
+
+  test("a comparison it cannot model is still forwarded and named", () => {
+    expect(readStoredDurationFilter(new Includes([1, 2]))).toBeNull();
+    expect(
+      readStoredDurationFilter({ _type: "GreaterThanOrEqual", value: "x" }),
+    ).toBeNull();
+    expect(
+      readStoredDurationFilter({ _type: "GreaterThanOrEqual", value: -1 }),
+    ).toBeNull();
+  });
+
+  test("its search spelling is one comparison, or none for two bounds", () => {
+    expect(
+      toDurationSearchValue({ atLeastDurationNano: SLOW_COLD_START_NANOS }),
+    ).toBe(">=5000");
+    expect(toDurationSearchValue({ minDurationNano: 500_000_000 })).toBe(
+      ">500",
+    );
+    expect(toDurationSearchValue({ atMostDurationNano: 2_500_000 })).toBe(
+      "<=2.5",
+    );
+    expect(toDurationSearchValue({ maxDurationNano: 200_000_000 })).toBe(
+      "<200",
+    );
+    expect(toDurationSearchValue({ exactDurationNano: 750_000_000 })).toBe(
+      "750",
+    );
+    expect(
+      toDurationSearchValue({
+        atLeastDurationNano: 1_000_000,
+        atMostDurationNano: 9_000_000,
+      }),
+    ).toBeNull();
+  });
+
+  test("its words put a symbol before each bound, kept on the number's line", () => {
+    const words: string = describeDurationBounds(
+      { atLeastDurationNano: SLOW_COLD_START_NANOS },
+      (milliseconds: number): string => {
+        return `${milliseconds / 1000}\u00A0s`;
+      },
+    );
+
+    expect(words).toBe("≥\u00A05\u00A0s");
+    expect(
+      describeDurationBounds(
+        { atLeastDurationNano: 1_000_000, atMostDurationNano: 9_000_000 },
+        (milliseconds: number): string => {
+          return `${milliseconds}\u00A0ms`;
+        },
+      ),
+    ).toBe("≥\u00A01\u00A0ms, ≤\u00A09\u00A0ms");
+  });
+
+  test("a monitor with no floor stores no duration, and scopes none", () => {
+    const scope: SpanQueryScope = buildSpanQueryScope(
+      roundTrip(traceMonitorQuery({ spanName: "AppStart" })),
+    );
+
+    expect(scope.duration).toBeNull();
+    expect(chipFor(scope, DURATION_FACET_KEY)).toEqual([]);
   });
 });
 

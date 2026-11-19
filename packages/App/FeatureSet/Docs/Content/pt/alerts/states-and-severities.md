@@ -129,9 +129,9 @@ Arquive um estado ou uma severidade que sua equipe não deve mais usar, em vez d
 
 | Forma                     | Onde                                                                                      | O que é pedido                                                                                                                       |
 | ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Botões do cabeçalho**   | O cabeçalho do alerta: **Confirmar**, **Resolver** e **Alterar estado para** no menu **⋯**    | Uma confirmação breve, **Confirmar alerta**, **Resolver alerta** ou **Marcar alerta como {{state}}**, com uma nota opcional em **Adicionar uma nota privada**. |
+| **Botões do cabeçalho**   | O cabeçalho do alerta: **Confirmar**, **Resolver** e **Alterar estado para** no menu **⋯**    | Uma confirmação breve, **Confirmar alerta**, **Resolver alerta** ou **Marcar alerta como {{state}}**, com uma nota opcional em **Adicionar uma nota privada**. Uma resolução também recolhe uma causa raiz opcional em **Adicionar a causa raiz**. |
 | **Linha do tempo do estado**        | **Linha do tempo de estado** no menu lateral do alerta                                    | Uma linha que você adiciona manualmente, com **Status do alerta** e **Começa em**.                                                    |
-| **Linha da lista** | O menu **⋯** na linha de um alerta na lista de alertas: **Confirmar**, **Resolver** e **Alterar estado** | A confirmação do cabeçalho, com o nome do alerta. Um alerta que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. |
+| **Linha da lista** | O menu **⋯** na linha de um alerta na lista de alertas: **Confirmar**, **Resolver** e **Alterar estado** | A confirmação do cabeçalho, com o nome do alerta. Um alerta que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. Ela não pede a causa raiz. |
 | **Mudança em massa**      | **Confirmar**, **Resolver** ou **Alterar estado** em uma seleção na lista de alertas                                     | O estado e uma nota privada adicionada a cada alerta. Os alertas que já estão nesse estado ou depois dele são ignorados.              |
 | **Automaticamente**       | Um monitor, um episódio, um incidente vinculado ou seu próprio código                     | **Resolver alerta automaticamente** nos critérios de um monitor, a mudança de estado de um episódio, os interruptores de incidente em [Alertas vinculados](/docs/incidents/linked-alerts) ou uma linha criada em `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Um alerta está resolvido quando passa para o seu estado resolvido, ou para qual
 - **Seu monitor pode gerar um novo alerta.** Um critério mantém um alerta aberto por vez; quando esse é resolvido, a próxima correspondência abre outro.
 
 Passar de **Resolvido** para um estado posterior, "Fechado" por exemplo, não muda nada disso: o alerta já estava resolvido.
+
+## Escrever a causa raiz ao resolver
+
+Quando o cabeçalho do alerta o resolve, com **Resolver** ou com **Alterar estado para** um estado resolvido, a confirmação recolhe uma **Causa raiz** opcional em **Adicionar a causa raiz**: por que aconteceu. O que você escreve ali passa a ser a causa raiz do alerta, como se você tivesse escrito na página **Causa raiz** dele, e a investigação da OneUptime AI sobre o alerta é comparada com ela (veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo)). Se deixar vazio, o alerta é resolvido como antes e mantém a causa raiz que tem.
+
+Escrevê-la exige permissão para editar o alerta, além da permissão para alterar o estado dele: quem não a tem não vê **Adicionar a causa raiz**, e uma mudança de estado que essa pessoa envie com uma causa raiz é recusada inteira, então o alerta mantém o estado. Pela API, envie-a com a linha que você cria em `/api/alert-state-timeline`, como `writtenRootCause` em `miscDataProps`.
 
 ## A linha do tempo de estados
 
