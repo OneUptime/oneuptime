@@ -52,7 +52,11 @@ jest.mock("react-i18next", () => {
 import KubernetesComplianceSection, {
   FINDINGS_SHOWN,
   KUBERNETES_COMPLIANCE_TEST_ID,
+  getSwitchControlName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceSection";
+import { Translator, createTranslator } from "../../../Types/Translator";
+import fs from "fs";
+import path from "path";
 import KubernetesComplianceApi from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceApi";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import { ComplianceRequirementStatus } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
@@ -67,6 +71,7 @@ import {
 import { KubernetesComplianceFramework } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import {
   KubernetesComplianceFrameworkResult,
+  KubernetesComplianceRequirementResult,
   KubernetesComplianceSetting,
   scoreKubernetesFrameworks,
 } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceScoring";
@@ -911,6 +916,89 @@ describe("the CIS benchmark", () => {
         `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`,
       ),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * A control's switch, named to a screen reader: a Pod Security Standards
+ * control by its title in the reader's language (its requirement is the
+ * standard's English name), a CIS control by its number.
+ */
+describe("a control's switch", () => {
+  function dashboardTranslator(language: string): Translator {
+    const words: Record<string, unknown> =
+      language === "en"
+        ? {}
+        : (JSON.parse(
+            fs.readFileSync(
+              path.join(
+                __dirname,
+                "../../../../App/FeatureSet/Dashboard/src/Locales",
+                `${language}.json`,
+              ),
+              "utf8",
+            ),
+          ) as Record<string, unknown>);
+
+    return createTranslator((key: string): string => {
+      const value: unknown = words[key];
+
+      return typeof value === "string" ? value : key;
+    }, language);
+  }
+
+  function row(requirement: string): KubernetesComplianceRequirementResult {
+    return {
+      requirement,
+      title: requirement,
+      status: ComplianceRequirementStatus.Passing,
+      failingCount: 0,
+      findings: [],
+      turnedOffNamespaces: [],
+    } as unknown as KubernetesComplianceRequirementResult;
+  }
+
+  test("names a Pod Security Standards control by its title in the reader's language, and a CIS control by its number", () => {
+    const english: Translator = dashboardTranslator("en");
+    const german: Translator = dashboardTranslator("de");
+    const japanese: Translator = dashboardTranslator("ja");
+
+    expect(
+      getSwitchControlName(BASELINE, row("Privileged Containers"), english),
+    ).toBe("Privileged Containers");
+    expect(
+      getSwitchControlName(BASELINE, row("Privileged Containers"), german),
+    ).toBe(german.translateText("Privileged Containers"));
+    expect(
+      getSwitchControlName(BASELINE, row("Privileged Containers"), german),
+    ).not.toBe("Privileged Containers");
+    // Linux's capabilities, by the key that names that meaning.
+    expect(getSwitchControlName(BASELINE, row("Capabilities"), english)).toBe(
+      "Capabilities",
+    );
+    expect(getSwitchControlName(BASELINE, row("Capabilities"), japanese)).toBe(
+      "ケーパビリティ",
+    );
+    expect(getSwitchControlName(CIS, row("5.1.10"), japanese)).toBe("5.1.10");
+  });
+
+  test("labels each switch so, where the page draws it", async () => {
+    await drawSection();
+    await pick(BASELINE);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${BASELINE}-Privileged Containers`,
+      ),
+    ).toHaveAttribute("aria-label", "Privileged Containers applies here");
+
+    await pick(CIS);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${CIS}-5.2.2`,
+      ),
+    ).toHaveAttribute("aria-label", "5.2.2 applies here");
   });
 });
 

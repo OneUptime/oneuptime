@@ -122,6 +122,29 @@ export const KUBERNETES_COMPLIANCE_TEST_ID: string = "kubernetes-compliance";
 // How many objects a failing control shows before Show all.
 export const FINDINGS_SHOWN: number = 5;
 
+/*
+ * A control as its switch names it to a screen reader: a CIS control by its
+ * number, as the table shows it, and a Pod Security Standards control by its
+ * title in the reader's language - its requirement is the standard's English
+ * name, which would read English on every page.
+ */
+export function getSwitchControlName(
+  framework: KubernetesComplianceFramework,
+  row: KubernetesComplianceRequirementResult,
+  translator: Translator,
+): string {
+  const info: KubernetesComplianceControlInfo | undefined = getControlInfo(
+    framework,
+    row.requirement,
+  );
+
+  if (!info || info.isNumbered) {
+    return row.requirement;
+  }
+
+  return translator.translateText(info.title) || info.title;
+}
+
 // Every framework's controls on one page: at most the CIS benchmark's 27.
 const CONTROLS_PER_PAGE: number = 30;
 
@@ -871,7 +894,13 @@ const KubernetesComplianceSection: FunctionComponent<ComponentProps> = (
                       {
                         ariaLabel: translator.translateTemplate(
                           CONTROL_APPLIES_LABEL,
-                          { requirement: row.requirement },
+                          {
+                            requirement: getSwitchControlName(
+                              framework.framework,
+                              row,
+                              translator,
+                            ),
+                          },
                         ),
                         dataTestId: `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${framework.framework}-${row.requirement}`,
                       },
