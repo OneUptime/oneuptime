@@ -602,6 +602,7 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
   Permission.IncidentAdmin,
   Permission.IncidentMember,
   Permission.IncidentViewer,
+  Permission.ManageTeamOnCallDutyPolicyUserOverride,
   Permission.MonitorAdmin,
   Permission.MonitorMember,
   Permission.MonitorViewer,
