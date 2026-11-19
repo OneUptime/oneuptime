@@ -55,7 +55,7 @@ const { getExpectedTwilioSignature } = jest.requireActual("twilio") as {
 
 const environment: { Host: string; HttpProtocol: string } = jest.requireMock(
   "Common/Server/EnvironmentConfig",
-);
+) as { Host: string; HttpProtocol: string };
 
 const CONFIG: TwilioConfig = {
   accountSid: "AC-account",
