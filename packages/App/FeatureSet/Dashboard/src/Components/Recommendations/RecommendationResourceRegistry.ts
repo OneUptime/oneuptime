@@ -95,6 +95,7 @@ import {
   fetchOpenStackInventorySummary,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { readRumClientKind } from "Common/Types/Rum/RumClientKind";
 
 /*
  * The App-side half of the recommendation registry.
@@ -1002,15 +1003,16 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     displayNameFieldName: "name",
   },
   /*
-   * A RUM application is offered the same recommendations as every other
-   * one, except its session replay storage budget alerts: the budget sweep
-   * only writes the series they watch for an application that has session
-   * replay on and has recorded at least one replay, and the monthly series
-   * only while it has a monthly budget (see `getRumAlertTemplates`). These
-   * three columns are that, and each is readable by exactly the roles that
-   * can read `name` — a context column a viewer cannot read would fail
-   * `ModelAPI.getItem` for them, and the page would show an error instead
-   * of any recommendation.
+   * A RUM application is offered the recommendations for its kind of app
+   * (`clientType`, #9589): a browser app the Web Vitals, a mobile app its
+   * crash, ANR, cold start, frozen frame and stopped-reporting monitors. Its
+   * session replay storage budget alerts wait for their series: the budget
+   * sweep only writes them for an application that has session replay on and
+   * has recorded at least one replay, and the monthly series only while it
+   * has a monthly budget (see `getRumAlertTemplates`). These four columns are
+   * that, and each is readable by exactly the roles that can read `name` — a
+   * context column a viewer cannot read would fail `ModelAPI.getItem` for
+   * them, and the page would show an error instead of any recommendation.
    *
    * The project's own switch (`Project.isSessionReplayAllowed`), which the
    * sweep also requires, is not read: context columns are this row's own. A
@@ -1023,6 +1025,7 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "_id",
     displayNameFieldName: "name",
     contextFieldNames: [
+      "clientType",
       "isSessionReplayEnabled",
       "sessionReplayLastChunkReceivedAt",
       "sessionReplayMonthlyBudgetInGB",
@@ -1038,6 +1041,8 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         record["sessionReplayLastChunkReceivedAt"];
 
       return {
+        // Null until ingest has said; the browser set is offered meanwhile.
+        rumClientKind: readRumClientKind(record["clientType"]),
         // Anything but a boolean is "not known", which withholds.
         sessionReplayEnabled:
           typeof isSessionReplayEnabled === "boolean"
