@@ -93,9 +93,16 @@ Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter,
 
 ## Log også ud af identitetsudbyderen
 
-Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer kommer den næste, der logger ind med den udbyder, ind som den, der gik. Klik på **Rediger konfiguration** ved en OpenID Connect-udbyder, og slå **Log også ud af identitetsudbyderen** til under **Flere felter**: Når man logger ud af OneUptime, afsluttes sessionen hos udbyderen så også, og udbyderen sender browseren tilbage til OneUptimes login-side. Den er slået fra som standard, da den på en personlig bærbar også ville logge personen ud af alle andre apps, der bruger udbyderen.
+Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer kommer den næste, der logger ind med den udbyder, ind som den, der gik. Klik på **Rediger konfiguration** på en SAML- eller OpenID Connect-udbyder, og slå **Log også ud af identitetsudbyderen** til under **Flere felter**: Når man logger ud af OneUptime, afsluttes sessionen hos udbyderen så også, og udbyderen sender browseren tilbage til OneUptime. Den er slået fra som standard, da den på en personlig bærbar også ville logge personen ud af alle andre apps, der bruger udbyderen.
 
-Registrer den omdirigerings-URI efter log ud, som kortet **Identitetsudbyderens URL** viser, hos din udbyder som en tilladt post-logout redirect URI. En udbyder, hvis discovery-dokument ikke nævner noget `end_session_endpoint`, som Google, kan ikke slå den til.
+:::tabs
+@tab SAML
+Angiv din identitetsudbyders log ud-URL som **Log ud-URL** under **Flere felter**: Uden den kan kontakten ikke slås til. Giv derefter din identitetsudbyder den **Single Logout URL**, som kortet **Identitetsudbyderens URL'er** viser, og det certifikat, som OneUptime signerer sine log ud-anmodninger med, via **Download signeringscertifikat** på samme kort. Når personen logger ud hos identitetsudbyderen eller af en anden app, der bruger den, logger en identitetsudbyder, der sender log ud-anmodninger til sine apps, også personen ud af OneUptime.
+@tab OpenID Connect
+Registrer den omdirigerings-URI efter log ud, som kortet **Identitetsudbyderens URL** viser, hos din udbyder som tilladt post-logout redirect URI. En udbyder, hvis discovery-dokument ikke nævner noget `end_session_endpoint`, som Google, kan ikke slå den til.
+:::
+
+Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse indstillinger, står på siden [SSO](/docs/identity/sso).
 
 ## Gennemtving SSO
 

@@ -259,11 +259,33 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
-### Auch beim Identitätsanbieter abmelden
+## Auch beim Identitätsanbieter abmelden
 
-Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt.
+Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie bei einem SAML- oder OIDC-Anbieter **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab.
 
-Ist sie eingeschaltet, geht der Browser zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab. SAML-Anbieter melden niemanden beim Identitätsanbieter ab.
+:::tabs
+@tab SAML
+Tragen Sie die Abmelde-URL Ihres Identitätsanbieters als **Abmelde-URL** des Anbieters unter **Weitere Felder** ein: Ohne sie lässt sich der Schalter nicht einschalten. Geben Sie Ihrem Identitätsanbieter dann die **Single-Logout-URL** aus dem Dialog **SSO-Konfiguration** und das Zertifikat, mit dem OneUptime seine Abmeldeanfragen signiert, über **Signaturzertifikat herunterladen** im selben Dialog.
+
+| Identitätsanbieter | Abmelde-URL | Wohin die Single-Logout-URL und das Zertifikat gehören |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, unter **View SAML setup instructions** auf dem Tab **Sign On** | Bearbeiten Sie auf dem Tab **General** die **SAML Settings**, klicken Sie auf **Show Advanced Settings** und wählen Sie **Allow application to initiate Single Logout**. Setzen Sie **Single Logout URL** auf die Single-Logout-URL und **SP Issuer** auf die Kennung (Entity ID), und laden Sie das Zertifikat als **Signature Certificate** hoch. |
+| Microsoft Entra ID | **Logout URL**, unter **Set up OneUptime** | Setzen Sie in **Basic SAML Configuration** die **Logout Url (Optional)** auf die Single-Logout-URL. Entra ID braucht kein Zertifikat. |
+| Keycloak | Der SAML-Endpunkt des Realms, derselbe wie die Anmelde-URL | Setzen Sie auf dem Tab **Advanced** des Clients die **Logout Service Redirect Binding URL** auf die Single-Logout-URL. Lassen Sie **Front channel logout** eingeschaltet. |
+
+Nach einer Abmeldung dort schickt der Identitätsanbieter den Browser zur Single-Logout-URL zurück, die die Anmeldeseite öffnet oder meldet, dass der Identitätsanbieter die Abmeldung nicht bestätigt hat. Meldet sich die Person beim Identitätsanbieter oder bei einer anderen App ab, die ihn nutzt, meldet ein Identitätsanbieter, der seinen Apps Abmeldeanfragen schickt, wie Keycloak und Microsoft Entra ID, sie auch von OneUptime ab. OneUptime nimmt nur eine Anfrage an, die der Identitätsanbieter signiert hat.
+@tab OpenID Connect
+Der Browser geht zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten.
+
+| Identitätsanbieter | Wo die Weiterleitungs-URI nach der Abmeldung registriert wird |
+| --- | --- |
+| Okta | Klicken Sie auf dem Tab **General** der App-Integration in **General Settings** auf **Edit** und fügen Sie sie zu **Sign-out redirect URIs** hinzu. |
+| Microsoft Entra ID | Fügen Sie sie in der App-Registrierung unter **Authentication** zu den **Redirect URIs** der Plattform **Web** hinzu. Die **Front-channel logout URL** ist eine andere Einstellung, die OneUptime nicht nutzt. |
+| Auth0 | Fügen Sie sie in den **Settings** der Anwendung zu **Allowed Logout URLs** hinzu. Ein Tenant, der vor dem 14. November 2023 angelegt wurde, braucht außerdem **RP-Initiated Logout End Session Endpoint Discovery** in seinen **Advanced**-Einstellungen eingeschaltet, damit sein Discovery-Dokument einen `end_session_endpoint` nennt. |
+| Keycloak | Fügen Sie sie in den Einstellungen des Clients zu **Valid post logout redirect URIs** hinzu (Keycloak 19 und neuer). |
+
+Ein Anbieter, bei dem sie nicht registriert ist, zeigt nach einer Abmeldung von OneUptime seine eigene Fehlerseite, statt die Person zurückzuschicken; von OneUptime ist sie trotzdem abgemeldet.
+:::
 
 ## Rollen und Teams für SSO-Benutzer
 

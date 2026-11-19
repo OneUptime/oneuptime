@@ -259,11 +259,33 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 6. Öppna länken i kortet **Test Single Sign On (SSO)** och välj leverantören för att logga in via den innan du kräver SSO för projektet.
 :::
 
-### Logga även ut från identitetsleverantören
+## Logga även ut från identitetsleverantören
 
-När man loggar ut från OneUptime förblir man inloggad hos identitetsleverantören, så på en delad dator, som en NOC-skärm eller en kiosk, kommer nästa person som väljer leverantören på inloggningssidan in som den som gick. Slå på **Logga även ut från identitetsleverantören** under **Fler fält** för att avsluta sessionen hos leverantören när någon loggar ut från OneUptime. Den är avstängd som standard: på en personlig bärbar dator skulle den även logga ut personen från alla andra appar som använder leverantören.
+När man loggar ut från OneUptime förblir man inloggad hos identitetsleverantören, så på en delad dator, som en NOC-skärm eller en kiosk, kommer nästa person som väljer leverantören på inloggningssidan in som den som gick. Slå på **Logga även ut från identitetsleverantören** under **Fler fält** på en SAML- eller OIDC-leverantör för att avsluta sessionen hos leverantören när någon loggar ut från OneUptime. Den är avstängd som standard: på en personlig bärbar dator skulle den även logga ut personen från alla andra appar som använder leverantören. Den gäller personer som loggar in i en webbläsare efter att den har slagits på; mobilappen loggar bara ut från OneUptime.
 
-När den är på går webbläsaren till leverantörens egen utloggning så snart OneUptime har loggat ut den, och leverantören skickar tillbaka den till OneUptimes inloggningssida. Registrera den sidan hos din leverantör: dialogrutan **OIDC-konfiguration** visar den som omdirigerings-URI efter utloggning, som leverantörer kallar en post-logout redirect URI. En leverantör vars discovery-dokument inte nämner någon `end_session_endpoint`, som Google, kan inte slå på den. Den gäller personer som loggar in i en webbläsare efter att den har slagits på; mobilappen loggar bara ut från OneUptime. SAML-leverantörer loggar aldrig ut någon från identitetsleverantören.
+:::tabs
+@tab SAML
+Ange identitetsleverantörens utloggnings-URL som leverantörens **Utloggnings-URL** under **Fler fält**: utan den går reglaget inte att slå på. Ge sedan identitetsleverantören **Single Logout-URL** från dialogrutan **SSO-konfiguration** och certifikatet som OneUptime signerar sina utloggningsbegäranden med, via **Ladda ned signeringscertifikat** i samma dialogruta.
+
+| Identitetsleverantör | Utloggnings-URL | Vart Single Logout-URL:en och certifikatet ska |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, under **View SAML setup instructions** på fliken **Sign On** | Redigera **SAML Settings** på fliken **General**, klicka på **Show Advanced Settings** och välj **Allow application to initiate Single Logout**. Ställ in **Single Logout URL** på Single Logout-URL:en och **SP Issuer** på identifieraren (Entity ID), och ladda upp certifikatet som **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, under **Set up OneUptime** | Ställ in **Logout Url (Optional)** i **Basic SAML Configuration** på Single Logout-URL:en. Entra ID behöver inget certifikat. |
+| Keycloak | Realmens SAML-slutpunkt, samma som inloggnings-URL:en | Ställ in **Logout Service Redirect Binding URL** på klientens flik **Advanced** på Single Logout-URL:en. Låt **Front channel logout** vara på. |
+
+Efter en utloggning där skickar identitetsleverantören tillbaka webbläsaren till Single Logout-URL:en, som öppnar inloggningssidan eller säger att identitetsleverantören inte bekräftade utloggningen. När personen loggar ut hos identitetsleverantören eller från en annan app som använder den, loggar en identitetsleverantör som skickar utloggningsbegäranden till sina appar, som Keycloak och Microsoft Entra ID gör, även ut personen från OneUptime. OneUptime tar bara emot en begäran som identitetsleverantören har signerat.
+@tab OpenID Connect
+Webbläsaren går till leverantörens egen utloggning så snart OneUptime har loggat ut den, och leverantören skickar tillbaka den till OneUptimes inloggningssida. Registrera den sidan hos din leverantör: dialogrutan **OIDC-konfiguration** visar den som omdirigerings-URI efter utloggning, som leverantörer kallar en post-logout redirect URI. En leverantör vars discovery-dokument inte nämner någon `end_session_endpoint`, som Google, kan inte slå på den.
+
+| Identitetsleverantör | Var omdirigerings-URI:n efter utloggning registreras |
+| --- | --- |
+| Okta | Klicka på **Edit** i **General Settings** på appintegrationens flik **General** och lägg till den i **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Lägg till den i appregistreringens **Authentication** under **Redirect URIs** för plattformen **Web**. **Front-channel logout URL** är en annan inställning, som OneUptime inte använder. |
+| Auth0 | Lägg till den i programmets **Settings** under **Allowed Logout URLs**. En tenant som skapades före den 14 november 2023 behöver även ha **RP-Initiated Logout End Session Endpoint Discovery** påslaget i sina **Advanced**-inställningar, så att dess discovery-dokument nämner en `end_session_endpoint`. |
+| Keycloak | Lägg till den i klientens inställningar under **Valid post logout redirect URIs** (Keycloak 19 och senare). |
+
+En leverantör där den inte är registrerad visar sin egen felsida efter att någon har loggat ut från OneUptime, i stället för att skicka tillbaka personen; personen är utloggad från OneUptime ändå.
+:::
 
 ## Roller och team för SSO-användare
 

@@ -259,11 +259,33 @@ Un proyecto también puede iniciar sesión mediante un proveedor OpenID Connect,
 6. Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
 :::
 
-### Cerrar sesión también en el proveedor de identidad
+## Cerrar sesión también en el proveedor de identidad
 
-Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido, como una pantalla del NOC o un quiosco, la siguiente persona que elige el proveedor en la página de inicio de sesión entra como la que se fue. Activa **Cerrar sesión también en el proveedor de identidad** en **Más campos** para que cerrar sesión en OneUptime también termine la sesión en el proveedor. Está desactivado por defecto: en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor.
+Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido, como una pantalla del NOC o un quiosco, la siguiente persona que elige el proveedor en la página de inicio de sesión entra como la que se fue. En un proveedor SAML u OIDC, activa **Cerrar sesión también en el proveedor de identidad** en **Más campos** para que cerrar sesión en OneUptime también termine la sesión en el proveedor. Está desactivado por defecto: en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor. Se aplica a las personas que inician sesión en un navegador después de activarlo; la aplicación móvil solo cierra la sesión en OneUptime.
 
-Con la opción activada, el navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo ha cerrado, y el proveedor lo devuelve a la página de inicio de sesión de OneUptime. Registra esa página en tu proveedor: el diálogo **Configuración de OIDC** la muestra como URI de redirección tras cerrar sesión, que los proveedores llaman post-logout redirect URI. Un proveedor cuyo documento de descubrimiento no nombra ningún `end_session_endpoint`, como Google, no puede activarla. Se aplica a las personas que inician sesión en un navegador después de activarla; la aplicación móvil solo cierra la sesión en OneUptime. Los proveedores SAML nunca cierran la sesión de nadie en el proveedor de identidad.
+:::tabs
+@tab SAML
+Introduce la URL de cierre de sesión de tu proveedor de identidad como **URL de cierre de sesión** del proveedor, en **Más campos**: sin ella no se puede activar el interruptor. Después da a tu proveedor de identidad la **URL de Single Logout** del diálogo **Configuración de SSO** y el certificado con el que OneUptime firma sus solicitudes de cierre de sesión, desde **Descargar certificado de firma** en el mismo diálogo.
+
+| Proveedor de identidad | URL de cierre de sesión | Dónde van la URL de Single Logout y el certificado |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, en **View SAML setup instructions** de la pestaña **Sign On** | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y selecciona **Allow application to initiate Single Logout**. Pon en **Single Logout URL** la URL de Single Logout y en **SP Issuer** el identificador (Entity ID), y sube el certificado como **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, en **Set up OneUptime** | En **Basic SAML Configuration**, pon la URL de Single Logout en **Logout Url (Optional)**. Entra ID no necesita ningún certificado. |
+| Keycloak | El punto de conexión SAML del realm, el mismo que la URL de inicio de sesión | En la pestaña **Advanced** del cliente, pon la URL de Single Logout en **Logout Service Redirect Binding URL**. Deja activado **Front channel logout**. |
+
+Tras cerrar la sesión allí, el proveedor de identidad devuelve el navegador a la URL de Single Logout, que abre la página de inicio de sesión o indica que el proveedor de identidad no confirmó el cierre de sesión. Cuando la persona cierra sesión en el proveedor de identidad, o en otra aplicación que lo usa, un proveedor de identidad que envía solicitudes de cierre de sesión a sus aplicaciones, como Keycloak y Microsoft Entra ID, también la saca de OneUptime. OneUptime solo acepta una solicitud firmada por el proveedor de identidad.
+@tab OpenID Connect
+El navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo ha cerrado, y el proveedor lo devuelve a la página de inicio de sesión de OneUptime. Registra esa página en tu proveedor: el diálogo **Configuración de OIDC** la muestra como URI de redirección tras cerrar sesión, que los proveedores llaman post-logout redirect URI. Un proveedor cuyo documento de descubrimiento no nombra ningún `end_session_endpoint`, como Google, no puede activarlo.
+
+| Proveedor de identidad | Dónde registrar la URI de redirección tras cerrar sesión |
+| --- | --- |
+| Okta | En la pestaña **General** de la integración, haz clic en **Edit** en **General Settings** y añádela a **Sign-out redirect URIs**. |
+| Microsoft Entra ID | En el registro de la aplicación, en **Authentication**, añádela a las **Redirect URIs** de la plataforma **Web**. La **Front-channel logout URL** es otro ajuste, que OneUptime no usa. |
+| Auth0 | En los **Settings** de la aplicación, añádela a **Allowed Logout URLs**. Un tenant creado antes del 14 de noviembre de 2023 también necesita activar **RP-Initiated Logout End Session Endpoint Discovery** en sus ajustes **Advanced**, para que su documento de descubrimiento nombre un `end_session_endpoint`. |
+| Keycloak | En los ajustes del cliente, añádela a **Valid post logout redirect URIs** (Keycloak 19 y posteriores). |
+
+Un proveedor que no la tiene registrada muestra su propia página de error después de cerrar sesión en OneUptime, en lugar de devolver a la persona; aun así, la sesión en OneUptime queda cerrada.
+:::
 
 ## Roles y equipos de los usuarios de SSO
 

@@ -259,11 +259,33 @@ OneUptime 的 SSO 使用 SAML 2.0，可与任何兼容的身份提供商配合�
 6. 在为项目要求使用 SSO 之前，打开 **Test Single Sign On (SSO)** 卡片中的链接并选择该提供商，通过它登录一次。
 :::
 
-### 同时退出身份提供商的登录
+## 同时退出身份提供商的登录
 
-退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，例如 NOC 屏幕或自助终端，下一个在登录页面选择该提供商的人会以离开的那个人的身份进入。在 **更多字段** 下开启 **同时退出身份提供商的登录**，即可在有人退出 OneUptime 时也结束其在提供商处的会话。该设置默认关闭：在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。
+退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，例如 NOC 屏幕或自助终端，下一个在登录页面选择该提供商的人会以离开的那个人的身份进入。在 SAML 或 OIDC 提供商的 **更多字段** 下开启 **同时退出身份提供商的登录**，即可在有人退出 OneUptime 时也结束其在提供商处的会话。该设置默认关闭：在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。它适用于开启后在浏览器中登录的人；移动应用只退出 OneUptime。
 
-开启后，OneUptime 让浏览器退出登录后，浏览器会转到提供商自己的退出页面，提供商再把它送回 OneUptime 登录页面。请在提供商处注册该页面：**OIDC 配置** 对话框会将其显示为退出登录后的重定向 URI，提供商称之为 post-logout redirect URI。像 Google 这样发现文档中没有 `end_session_endpoint` 的提供商无法开启此设置。它适用于开启后在浏览器中登录的人；移动应用只退出 OneUptime。SAML 提供商从不让任何人退出身份提供商的登录。
+:::tabs
+@tab SAML
+在 **更多字段** 下，把身份提供商的退出登录 URL 填为提供商的 **退出登录 URL**：没有它就无法开启该开关。然后把 **SSO 配置** 对话框中的 **单点注销 URL**，以及 OneUptime 用来签名其退出请求的证书提供给身份提供商；证书可在同一对话框的 **下载签名证书** 中获取。
+
+| 身份提供商 | 退出登录 URL | 单点注销 URL 和证书填在哪里 |
+| --- | --- | --- |
+| Okta | **Sign On** 标签页 **View SAML setup instructions** 中的 **Identity Provider Single Logout URL** | 在 **General** 标签页编辑 **SAML Settings**，点击 **Show Advanced Settings** 并选中 **Allow application to initiate Single Logout**。将 **Single Logout URL** 设为单点注销 URL，将 **SP Issuer** 设为标识符（Entity ID），并把证书上传为 **Signature Certificate**。 |
+| Microsoft Entra ID | **Set up OneUptime** 中的 **Logout URL** | 在 **Basic SAML Configuration** 中，将 **Logout Url (Optional)** 设为单点注销 URL。Entra ID 不需要证书。 |
+| Keycloak | 领域的 SAML 端点，与登录 URL 相同 | 在客户端的 **Advanced** 标签页，将 **Logout Service Redirect Binding URL** 设为单点注销 URL。保持 **Front channel logout** 开启。 |
+
+在那里退出后，身份提供商会把浏览器送回单点注销 URL，由它打开登录页面，或提示身份提供商未确认这次退出。当用户在身份提供商处，或在使用它的其他应用中退出时，会向其应用发送退出请求的身份提供商（如 Keycloak 和 Microsoft Entra ID）也会让其退出 OneUptime。OneUptime 只接受身份提供商签名的请求。
+@tab OpenID Connect
+OneUptime 让浏览器退出登录后，浏览器会转到提供商自己的退出页面，提供商再把它送回 OneUptime 登录页面。请在提供商处注册该页面：**OIDC 配置** 对话框会将其显示为退出登录后的重定向 URI，提供商称之为 post-logout redirect URI。像 Google 这样发现文档中没有 `end_session_endpoint` 的提供商无法开启此设置。
+
+| 身份提供商 | 在哪里注册退出登录后的重定向 URI |
+| --- | --- |
+| Okta | 在应用集成的 **General** 标签页，点击 **General Settings** 中的 **Edit**，将其添加到 **Sign-out redirect URIs**。 |
+| Microsoft Entra ID | 在应用注册的 **Authentication** 中，将其添加到 **Web** 平台的 **Redirect URIs**。**Front-channel logout URL** 是另一项设置，OneUptime 不使用。 |
+| Auth0 | 在应用的 **Settings** 中，将其添加到 **Allowed Logout URLs**。2023 年 11 月 14 日之前创建的租户还需要在租户的 **Advanced** 设置中开启 **RP-Initiated Logout End Session Endpoint Discovery**，这样其发现文档才会列出 `end_session_endpoint`。 |
+| Keycloak | 在客户端设置中，将其添加到 **Valid post logout redirect URIs**（Keycloak 19 及更高版本）。 |
+
+未注册该地址的提供商会在有人退出 OneUptime 后显示自己的错误页面，而不是把人送回；但用户仍已退出 OneUptime。
+:::
 
 ## SSO 用户的角色和团队
 

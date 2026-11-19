@@ -195,13 +195,52 @@ const OKTA_SSO_LABELS: Array<string> = [
 ];
 
 /*
+ * Where Okta, Microsoft Entra ID, Keycloak and Auth0 keep their sign-out
+ * settings, for SAML Single Logout and for an OpenID Connect provider's
+ * post-logout redirect URI (#9603, #9626).
+ */
+const SIGN_OUT_LABELS: Array<string> = [
+  // Okta: a SAML app's Single Logout, and an OIDC app's sign-out redirect URIs.
+  "Identity Provider Single Logout URL",
+  "View SAML setup instructions",
+  "Show Advanced Settings",
+  "Allow application to initiate Single Logout",
+  "Single Logout URL",
+  "SP Issuer",
+  "Signature Certificate",
+  "General Settings",
+  "Sign-out redirect URIs",
+  // Microsoft Entra ID: an enterprise app's, and an app registration's.
+  "Logout URL",
+  "Logout Url (Optional)",
+  "Authentication",
+  "Redirect URIs",
+  "Web",
+  "Front-channel logout URL",
+  // Keycloak: a SAML client's, and an OIDC client's.
+  "Advanced",
+  "Logout Service Redirect Binding URL",
+  "Front channel logout",
+  "Valid post logout redirect URIs",
+  // Auth0: an application's, and a tenant's.
+  "Settings",
+  "Allowed Logout URLs",
+  "RP-Initiated Logout End Session Endpoint Discovery",
+];
+
+/*
  * Labels of another product's console, by page. A translation keeps each
  * one bold and in English: OneUptime cannot know which language that
  * console is set to, and its English names are the ones its own docs and
  * search use.
  */
 const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
-  [SSO]: [...KEYCLOAK_LABELS, ...ENTRA_SSO_LABELS, ...OKTA_SSO_LABELS],
+  [SSO]: [
+    ...KEYCLOAK_LABELS,
+    ...ENTRA_SSO_LABELS,
+    ...OKTA_SSO_LABELS,
+    ...SIGN_OUT_LABELS,
+  ],
   [SCIM]: [
     // Microsoft Entra ID.
     "Identity",
@@ -470,6 +509,13 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Require SSO to Sign In",
     // An OIDC provider's switch that signs people out of it too (#9535).
     "Sign Out of the Identity Provider Too",
+    /*
+     * A SAML provider's too (#9603): its Sign Out URL, and on its page the
+     * Single Logout URL and the signing certificate to download.
+     */
+    "Sign Out URL",
+    "Single Logout URL",
+    "Download Signing Certificate",
   ],
 };
 
@@ -514,6 +560,8 @@ const DIALOG_LABELS: Record<string, Record<string, string>> = {
     "Identifier (Entity ID)": "Identifier (Entity ID):",
     "Reply URL (Assertion Consumer Service URL)":
       "Reply URL (Assertion Consumer Service URL):",
+    // Where a SAML provider answers a sign-out (#9603).
+    "Single Logout URL": "Single Logout URL:",
   },
   // The SCIM URLs dialog's field names, and its OAuth 2.0 client credentials'.
   [SCIM]: {
@@ -1162,6 +1210,9 @@ describe("the lists this test keeps", () => {
       "Test this SSO provider",
       "Attached Projects",
       "Edit Configuration",
+      // A SAML provider's sign-out (#9603).
+      "Sign Out URL",
+      "Download Signing Certificate",
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
