@@ -12,7 +12,9 @@ import {
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
 import { collectBiSources } from "../../../../Server/Utils/DataObservability/Bi/BiSources";
 import { BiTableRef } from "../../../../Server/Utils/DataObservability/Bi/BiTables";
-import DataBiSync from "../../../../Server/Utils/DataObservability/Bi/DataBiSync";
+import DataBiSync, {
+  MAX_TOOLS_READ_AT_ONCE,
+} from "../../../../Server/Utils/DataObservability/Bi/DataBiSync";
 import { readPowerQueryTables } from "../../../../Server/Utils/DataObservability/Bi/PowerQuery";
 import * as DatabaseConnectionGuard from "../../../../Server/Utils/DataObservability/DatabaseConnectionGuard";
 import DataverseApi from "../../../../Server/Utils/DataObservability/DataverseApi";
@@ -257,6 +259,61 @@ describe("a BI tool's read state", () => {
       "Dataverse contoso.crm.dynamics.com was not asked for its tables' entity set names",
     );
     expect(written["matchedTableCount"]).toBe(0);
+  });
+
+  test("the hourly read reads every tool, a few at a time, as the hourly read; one that fails stops none", async () => {
+    const connections: Array<DataBiConnection> = Array.from(
+      { length: 9 },
+      (): DataBiConnection => {
+        return connectionWith(undefined);
+      },
+    );
+    let running: number = 0;
+    let mostRunning: number = 0;
+    const read: Array<string> = [];
+
+    jest
+      .spyOn(DataBiConnectionService, "findBy")
+      .mockResolvedValue(connections);
+    const sync: jest.SpyInstance = jest
+      .spyOn(DataBiSync, "syncConnection")
+      .mockImplementation(
+        async (
+          connectionId: ObjectID,
+        ): Promise<{
+          dashboardCount: number;
+          matchedTableCount: number;
+          error: string | null;
+        }> => {
+          running++;
+          mostRunning = Math.max(mostRunning, running);
+          await new Promise((resolve: (value: unknown) => void) => {
+            setTimeout(resolve, 5);
+          });
+          running--;
+          read.push(connectionId.toString());
+
+          if (connectionId.toString() === connections[1]!.id!.toString()) {
+            throw new Error("Power BI answered 401: Unauthorized");
+          }
+
+          return { dashboardCount: 1, matchedTableCount: 0, error: null };
+        },
+      ) as unknown as jest.SpyInstance;
+
+    await DataBiSync.syncAll();
+
+    expect(read.sort()).toEqual(
+      connections
+        .map((connection: DataBiConnection): string => {
+          return connection.id!.toString();
+        })
+        .sort(),
+    );
+    expect(mostRunning).toBe(MAX_TOOLS_READ_AT_ONCE);
+    for (const call of sync.mock.calls) {
+      expect(call[1]).toEqual({ isScheduled: true });
+    }
   });
 
   test("a read that fails keeps what the last one kept", async () => {

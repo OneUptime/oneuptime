@@ -80,6 +80,12 @@ import {
  * Matched says why it is 0. Each dashboard keeps what its tool says it is
  * built on (Power BI's datasets and their data sources), whether or not
  * OneUptime watches them.
+ *
+ * A read keeps what lets the next one read less (BiReadState): Power BI's
+ * workspaces as last scanned, so the hourly read scans only those that
+ * changed (#9552), and each Dataverse environment's entity set names, for
+ * the tables Power BI's OData connectors name by them (#9554). A read that
+ * fails keeps what the last one kept.
  */
 
 export interface DataBiSyncResult {
@@ -90,6 +96,9 @@ export interface DataBiSyncResult {
 
 const MAX_ERROR_LENGTH: number = 500;
 const MAX_WARNING_LENGTH: number = 1_000;
+
+// How many tools the hourly read reads at once.
+export const MAX_TOOLS_READ_AT_ONCE: number = 4;
 
 // What a read could not read, each warning whole, and never the credentials.
 export function getWarningText(
@@ -154,7 +163,11 @@ export function getRefreshFields(refresh: DataDashboardRefreshHistory | null): {
 }
 
 export default class DataBiSync {
-  // Every enabled tool, one after another: one that fails never stops the others.
+  /*
+   * Every enabled tool, a few at a time: one that fails never stops the
+   * others, and one whose scans are slow (a big Power BI tenant's can take
+   * many minutes) never holds the rest past the hourly job's time.
+   */
   public static async syncAll(): Promise<void> {
     const connections: Array<DataBiConnection> =
       await DataBiConnectionService.findBy({
@@ -164,17 +177,35 @@ export default class DataBiSync {
         skip: 0,
         props: { isRoot: true },
       });
+    let next: number = 0;
 
-    for (const connection of connections) {
-      try {
-        await DataBiSync.syncConnection(connection.id!, { isScheduled: true });
-      } catch (error) {
-        logger.error(
-          `Data Observability: reading BI tool ${connection.id?.toString()} failed`,
-        );
-        logger.error(error);
+    const syncNext: () => Promise<void> = async (): Promise<void> => {
+      while (next < connections.length) {
+        const connection: DataBiConnection = connections[next]!;
+
+        next++;
+
+        try {
+          await DataBiSync.syncConnection(connection.id!, {
+            isScheduled: true,
+          });
+        } catch (error) {
+          logger.error(
+            `Data Observability: reading BI tool ${connection.id?.toString()} failed`,
+          );
+          logger.error(error);
+        }
       }
-    }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(MAX_TOOLS_READ_AT_ONCE, connections.length) },
+        (): Promise<void> => {
+          return syncNext();
+        },
+      ),
+    );
   }
 
   public static async syncConnection(

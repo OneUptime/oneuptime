@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  BiDashboardRead,
   BiToolRead,
   PowerBiConnector,
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
@@ -675,7 +676,10 @@ describe("Power BI's reader", () => {
       }
 
       if (url.includes("/scanStatus/")) {
-        return answer(routes.scanStatus || { status: "Succeeded" });
+        // Read each time, so a test can say Running before it says Succeeded.
+        const status: JSONObject | undefined = routes.scanStatus;
+
+        return answer(status || { status: "Succeeded" });
       }
 
       if (url.includes("/scanResult/")) {
@@ -753,6 +757,41 @@ describe("Power BI's reader", () => {
     });
   });
 
+  test("a scan that takes minutes is waited for, not failed after one (#9552)", async () => {
+    let now: number = Date.parse("2026-11-18T10:00:00.000Z");
+    let statusAsks: number = 0;
+    const waits: Array<number> = [];
+    const read: BiToolRead = await PowerBiConnector.read({
+      baseUrl: "",
+      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+      isScheduled: true,
+      now: new Date(now),
+      clock: (): number => {
+        return now;
+      },
+      wait: async (ms: number): Promise<void> => {
+        waits.push(ms);
+        now += ms;
+      },
+      transport: transport({
+        scanResult: SCAN,
+        get scanStatus(): JSONObject {
+          statusAsks++;
+          // Running for about six minutes, as a big tenant's scan with schemas and expressions can.
+          return { status: statusAsks < 14 ? "Running" : "Succeeded" };
+        },
+      }),
+    });
+
+    expect(read.dashboards).toHaveLength(4);
+    expect(statusAsks).toBe(14);
+    expect(
+      waits.reduce((total: number, ms: number): number => {
+        return total + ms;
+      }, 0),
+    ).toBeGreaterThan(5 * 60 * 1000);
+  });
+
   test("a scan Power BI failed says Power BI's reason", async () => {
     await expect(
       PowerBiConnector.read({
@@ -773,5 +812,368 @@ describe("Power BI's reader", () => {
     ).rejects.toThrow(
       "Power BI's workspace scan failed: The workspace scan could not complete.",
     );
+  });
+});
+
+/*
+ * A big tenant's hourly read scanned every workspace, every hour (#9552).
+ * Now a read keeps each workspace as scanned, and the next asks Power BI
+ * only for those changed since a half hour before the last read began,
+ * and scans only those - the whole tenant once a day, for the hourly read.
+ */
+describe("Power BI's reader, scanning only what changed", () => {
+  const START: Date = new Date("2026-11-19T08:00:00.000Z");
+  const HOUR: number = 60 * 60 * 1000;
+
+  function workspaceOf(id: string, reports: Array<string>): JSONObject {
+    return {
+      id,
+      name: `Workspace ${id}`,
+      state: "Active",
+      isOnDedicatedCapacity: false,
+      reports: reports.map((name: string, index: number): JSONObject => {
+        return {
+          id: `${id}-r${index}`,
+          name,
+          datasetId: `${id}-ds`,
+        };
+      }),
+      datasets: [
+        {
+          id: `${id}-ds`,
+          name: `Model ${id}`,
+          tables: [
+            {
+              name: "Orders",
+              source: [
+                {
+                  expression: `let Source = Sql.Database("sql01", "${id}"), T = Source{[Schema="dbo",Item="Orders"]}[Data] in T`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  interface Tenant {
+    workspaces: Map<string, JSONObject>;
+    // What admin/workspaces/modified lists when asked for changes.
+    changed: Array<string>;
+    // Workspaces whose scan Power BI fails.
+    failing: Set<string>;
+    requests: Array<string>;
+    scanned: Array<Array<string>>;
+  }
+
+  function tenant(workspaces: Array<JSONObject>): Tenant {
+    return {
+      workspaces: new Map(
+        workspaces.map((workspace: JSONObject): [string, JSONObject] => {
+          return [workspace["id"] as string, workspace];
+        }),
+      ),
+      changed: [],
+      failing: new Set(),
+      requests: [],
+      scanned: [],
+    };
+  }
+
+  function transportOf(
+    fake: Tenant,
+  ): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
+    const scans: Map<string, Array<string>> = new Map();
+
+    return async (
+      request: DataSourceHttpRequest,
+    ): Promise<DataSourceHttpResponse> => {
+      const url: string = request.url;
+      const answer: (body: unknown) => DataSourceHttpResponse = (
+        body: unknown,
+      ): DataSourceHttpResponse => {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(body),
+          bodyJson: body,
+        };
+      };
+
+      fake.requests.push(url);
+
+      if (url.startsWith("https://login.microsoftonline.com/")) {
+        return answer({ access_token: "aad" });
+      }
+
+      if (url.includes("/admin/workspaces/modified")) {
+        return answer(
+          (url.includes("modifiedSince=")
+            ? fake.changed
+            : Array.from(fake.workspaces.keys())
+          ).map((id: string): JSONObject => {
+            return { id };
+          }),
+        );
+      }
+
+      if (url.includes("/admin/workspaces/getInfo")) {
+        const ids: Array<string> = (
+          JSON.parse(request.body as string) as { workspaces: Array<string> }
+        ).workspaces;
+        const scanId: string = `scan-${scans.size + 1}`;
+
+        scans.set(scanId, ids);
+        fake.scanned.push(ids);
+
+        return answer({ id: scanId, status: "NotStarted" });
+      }
+
+      if (url.includes("/scanStatus/")) {
+        const ids: Array<string> = scans.get(url.split("/").pop()!)!;
+
+        return answer(
+          ids.some((id: string): boolean => {
+            return fake.failing.has(id);
+          })
+            ? {
+                status: "Failed",
+                error: { message: "The workspace scan could not complete." },
+              }
+            : { status: "Succeeded" },
+        );
+      }
+
+      if (url.includes("/scanResult/")) {
+        const ids: Array<string> = scans.get(url.split("/").pop()!)!;
+
+        return answer({
+          workspaces: ids
+            .map((id: string): JSONObject | undefined => {
+              return fake.workspaces.get(id);
+            })
+            .filter(Boolean),
+        });
+      }
+
+      return answer({
+        value: [],
+        activityEventEntities: [],
+        lastResultSet: true,
+      });
+    };
+  }
+
+  async function readAt(
+    fake: Tenant,
+    at: Date,
+    readState: JSONObject | null | undefined,
+    isScheduled: boolean = false,
+  ): Promise<BiToolRead> {
+    fake.requests.length = 0;
+    fake.scanned.length = 0;
+
+    return await PowerBiConnector.read({
+      baseUrl: "",
+      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+      readState,
+      isScheduled,
+      now: at,
+      wait: async (): Promise<void> => {},
+      transport: transportOf(fake),
+    });
+  }
+
+  function reportNames(read: BiToolRead): Array<string> {
+    return read.dashboards.map((dashboard: BiDashboardRead): string => {
+      return dashboard.name;
+    });
+  }
+
+  function listing(fake: Tenant): string {
+    return fake.requests.find((url: string): boolean => {
+      return url.includes("/admin/workspaces/modified");
+    })!;
+  }
+
+  test("the first read scans the whole tenant, and keeps each workspace", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const read: BiToolRead = await readAt(fake, START, undefined);
+
+    expect(listing(fake)).not.toContain("modifiedSince");
+    expect(fake.scanned).toEqual([["sales", "finance"]]);
+    expect(reportNames(read)).toEqual(["Pipeline", "Budget"]);
+    expect(read.readState).toMatchObject({
+      version: 1,
+      scannedFrom: START.toISOString(),
+      fullScanAt: START.toISOString(),
+      pendingWorkspaceIds: [],
+    });
+  });
+
+  test("the next asks only for what changed since a half hour before the last read began, and keeps the rest", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast"]),
+    );
+    fake.changed = ["finance"];
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    expect(listing(fake)).toContain(
+      `modifiedSince=${encodeURIComponent("2026-11-19T07:30:00.000Z")}`,
+    );
+    // Only the workspace that changed is scanned; the other is kept as it was.
+    expect(fake.scanned).toEqual([["finance"]]);
+    expect(reportNames(next)).toEqual(["Pipeline", "Budget", "Forecast"]);
+    // Its reports still chart their tables.
+    expect(next.dashboards[0]!.tables.map(getBiTableName)).toEqual([
+      "sales.dbo.Orders",
+    ]);
+    expect(next.readState).toMatchObject({
+      scannedFrom: new Date(START.getTime() + HOUR).toISOString(),
+      fullScanAt: START.toISOString(),
+    });
+  });
+
+  test("nothing changed: no scan at all, and every report as it was", async () => {
+    const fake: Tenant = tenant([workspaceOf("sales", ["Pipeline"])]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    expect(fake.scanned).toEqual([]);
+    expect(
+      fake.requests.filter((url: string): boolean => {
+        return url.includes("/admin/workspaces/getInfo");
+      }),
+    ).toEqual([]);
+    expect(reportNames(next)).toEqual(["Pipeline"]);
+  });
+
+  test("the hourly read scans the whole tenant once a day, which drops a workspace that is gone", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.delete("finance");
+
+    const asked: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 25 * HOUR),
+      first.readState,
+      false,
+    );
+
+    // A read someone asked for scans only what changed.
+    expect(listing(fake)).toContain("modifiedSince");
+    expect(reportNames(asked)).toEqual(["Pipeline", "Budget"]);
+
+    const daily: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 25 * HOUR),
+      asked.readState,
+      true,
+    );
+
+    expect(listing(fake)).not.toContain("modifiedSince");
+    expect(reportNames(daily)).toEqual(["Pipeline"]);
+    expect(daily.readState).toMatchObject({
+      fullScanAt: new Date(START.getTime() + 25 * HOUR).toISOString(),
+    });
+  });
+
+  test("a workspace Power BI says is deleted holds nothing", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set("finance", {
+      ...workspaceOf("finance", ["Budget"]),
+      state: "Deleted",
+    });
+    fake.changed = ["finance"];
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+    );
+
+    expect(reportNames(next)).toEqual(["Pipeline"]);
+  });
+
+  test("a scan that fails keeps what was read before, says so, and is scanned again by the next read", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast"]),
+    );
+    fake.changed = ["finance"];
+    fake.failing.add("finance");
+
+    const failed: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+    );
+
+    expect(reportNames(failed)).toEqual(["Pipeline", "Budget"]);
+    expect(failed.warnings).toContain(
+      "1 workspace was not scanned this time: Power BI's workspace scan failed: The workspace scan could not complete. The next read scans it again, and until then it shows what was read before.",
+    );
+    expect(failed.readState).toMatchObject({
+      pendingWorkspaceIds: ["finance"],
+    });
+
+    // Power BI lists no change since; the next read scans it all the same.
+    fake.changed = [];
+    fake.failing.clear();
+
+    const recovered: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 2 * HOUR),
+      failed.readState,
+    );
+
+    expect(fake.scanned).toEqual([["finance"]]);
+    expect(reportNames(recovered)).toEqual(["Pipeline", "Budget", "Forecast"]);
+    expect(recovered.readState).toMatchObject({ pendingWorkspaceIds: [] });
+  });
+
+  test("a state that cannot be read is no state: the read scans the whole tenant", async () => {
+    const fake: Tenant = tenant([workspaceOf("sales", ["Pipeline"])]);
+
+    await readAt(fake, START, { version: 99, workspaces: [] });
+
+    expect(listing(fake)).not.toContain("modifiedSince");
+    expect(fake.scanned).toEqual([["sales"]]);
   });
 });
