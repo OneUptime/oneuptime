@@ -80,8 +80,13 @@ export const COST_OVERVIEW_RELOAD_AFTER_MS: number = 5 * 60 * 1000;
 const NO_COST_TITLE: string = translationKey(
   "No cost data from this cluster yet",
 );
+/*
+ * Within an empty state's two short lines (ShortDescriptionsGuard): the
+ * upgrade command under it, and the Kubernetes Cost docs it links to, say
+ * the rest - OpenCost's prices, and an older agent or one with cost off.
+ */
 const NO_COST_DESCRIPTION: string = translationKey(
-  "The Kubernetes agent sends what each namespace and workload costs, priced by OpenCost. It does so by default, except on the {{autopilot}} and {{fargate}} presets. On an older agent, or one with cost turned off, upgrade it with {{flag}}; costs appear within the hour.",
+  "The Kubernetes agent sends costs by default, except on the {{autopilot}} and {{fargate}} presets. Upgrade with {{flag}}; costs appear within the hour.",
 );
 // The run-rate's line once a whole week of hours is in it.
 const FULL_WEEK_RUN_RATE: string = translationKey(

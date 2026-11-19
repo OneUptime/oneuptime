@@ -57462,6 +57462,7 @@
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "서킷 브레이커가 {{time}}에 이 파이프라인을 중지했습니다. 읽는 테이블이 검사에 실패했거나 지연되었습니다.",
   "The tables that stopped it are not ones you may read.": "중지시킨 테이블은 읽을 수 있는 권한이 없는 테이블입니다.",
   "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "녹취록({{call}})과 OneUptime AI가 그 안에서 읽은 내용이 제거되며, 인시던트의 피드와 채팅 채널에서도 제거됩니다. 인시던트의 근본 원인은 유지됩니다.",
+  "The Kubernetes agent sends costs by default, except on the {{autopilot}} and {{fargate}} presets. Upgrade with {{flag}}; costs appear within the hour.": "Kubernetes 에이전트는 {{autopilot}} 및 {{fargate}} 프리셋을 제외하고 기본적으로 비용을 보냅니다. {{flag}}(으)로 업그레이드하세요. 비용은 한 시간 안에 표시됩니다.",
   "View Pipeline Rule": "파이프라인 규칙 보기",
   "What Stops It": "중지 조건",
   "Where the pipeline runs": "파이프라인 실행 위치",

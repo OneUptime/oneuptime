@@ -57462,6 +57462,7 @@
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "De circuit breaker heeft deze pipeline {{time}} gestopt: een tabel die hij leest is voor een controle gezakt of is te laat.",
   "The tables that stopped it are not ones you may read.": "De tabellen die hem hebben gestopt, mag je niet lezen.",
   "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "De transcriptie ({{call}}) en wat OneUptime AI erin heeft gelezen, worden verwijderd, ook uit de feed en de chatkanalen van het incident. De hoofdoorzaak van het incident blijft behouden.",
+  "The Kubernetes agent sends costs by default, except on the {{autopilot}} and {{fargate}} presets. Upgrade with {{flag}}; costs appear within the hour.": "De Kubernetes-agent stuurt standaard kosten, behalve met de presets {{autopilot}} en {{fargate}}. Werk hem bij met {{flag}}; de kosten verschijnen binnen het uur.",
   "View Pipeline Rule": "Pipelineregel bekijken",
   "What Stops It": "Wat hem stopt",
   "Where the pipeline runs": "Waar de pipeline draait",

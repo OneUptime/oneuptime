@@ -57462,6 +57462,7 @@
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "सर्किट ब्रेकर ने इस पाइपलाइन को {{time}} रोका: जिस टेबल को यह पढ़ती है वह किसी जाँच में विफल हुई या देर से है।",
   "The tables that stopped it are not ones you may read.": "जिन टेबल ने इसे रोका, उन्हें पढ़ने की अनुमति आपके पास नहीं है।",
   "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "ट्रांसक्रिप्ट ({{call}}) और OneUptime AI ने उसमें जो पढ़ा, वह हटा दिया जाता है, घटना की फ़ीड और चैट चैनलों से भी। घटना का मूल कारण बना रहता है।",
+  "The Kubernetes agent sends costs by default, except on the {{autopilot}} and {{fargate}} presets. Upgrade with {{flag}}; costs appear within the hour.": "Kubernetes एजेंट डिफ़ॉल्ट रूप से लागत भेजता है, सिवाय {{autopilot}} और {{fargate}} प्रीसेट के। {{flag}} के साथ अपग्रेड करें; लागत एक घंटे के भीतर दिखने लगती है।",
   "View Pipeline Rule": "पाइपलाइन नियम देखें",
   "What Stops It": "इसे क्या रोकता है",
   "Where the pipeline runs": "पाइपलाइन कहाँ चलती है",
