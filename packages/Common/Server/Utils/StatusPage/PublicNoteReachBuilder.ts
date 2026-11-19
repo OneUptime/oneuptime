@@ -22,17 +22,10 @@ import PublicNoteReach, {
 } from "../../../Types/StatusPage/PublicNoteReach";
 import StatusPageVisibility from "../../../Types/StatusPage/StatusPageVisibility";
 import { isSendingSubscriberNotifications } from "../../../Types/StatusPage/SubscriberNotificationsSwitch";
-import DatabaseService from "../../Services/DatabaseService";
-import IncidentEpisodePublicNoteService from "../../Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeService from "../../Services/IncidentEpisodeService";
-import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
-import ScheduledMaintenancePublicNoteService from "../../Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import StatusPageSubscriberService from "../../Services/StatusPageSubscriberService";
-import ModelPermission from "../../Types/Database/Permissions/Index";
-import Query from "../../Types/Database/Query";
-import Select from "../../Types/Database/Select";
-import { ProjectScopedReferenceException } from "../Database/ProjectScopedReferenceRefusal";
+import CallerPermission from "../Permission/CallerPermission";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "./IncidentStatusPageScope";
@@ -67,8 +60,7 @@ import SubscriberNotificationPreviewBuilder from "./SubscriberNotificationPrevie
  * sends notifications, which the notification preview already tells the
  * same people. The event itself is read with the caller's own permissions,
  * inside the caller's project: another project's event, and one the caller
- * may not read, are not found. Who may ask is decided for the event too
- * (assertCallerMayAsk), and refuses alike an event that is not there.
+ * may not read, are not found.
  */
 export default class PublicNoteReachBuilder {
   // The public note each event's composer writes.
@@ -83,154 +75,37 @@ export default class PublicNoteReachBuilder {
     }
   }
 
-  // The service of the public notes each event's composer writes.
-  public static getNoteService(
-    event: PublicNoteReachEvent,
-  ): DatabaseService<BaseModel> {
-    switch (event) {
-      case PublicNoteReachEvent.Incident:
-        return IncidentPublicNoteService as unknown as DatabaseService<BaseModel>;
-      case PublicNoteReachEvent.IncidentEpisode:
-        return IncidentEpisodePublicNoteService as unknown as DatabaseService<BaseModel>;
-      case PublicNoteReachEvent.ScheduledMaintenance:
-        return ScheduledMaintenancePublicNoteService as unknown as DatabaseService<BaseModel>;
-    }
-  }
-
-  // The column a public note names its event by.
-  public static getEventIdColumn(event: PublicNoteReachEvent): string {
-    switch (event) {
-      case PublicNoteReachEvent.Incident:
-        return "incidentId";
-      case PublicNoteReachEvent.IncidentEpisode:
-        return "incidentEpisodeId";
-      case PublicNoteReachEvent.ScheduledMaintenance:
-        return "scheduledMaintenanceId";
-    }
-  }
-
   /*
-   * Who may ask: whoever may write this event's public notes - post one on
-   * it, or edit one of it - since the answer is what the composer says to
-   * them. Decided for the event itself, as the post or the edit through the
-   * API decides it, never by the note table alone (TableHalfWriteGuard): a
-   * grant limited to labels the event does not carry, or to records nobody
-   * on the caller's teams owns, does not reach it, a block on one of its
-   * labels takes it away, and a team's block is no grant. Root and master
-   * admin callers are not asked.
+   * Who may ask: whoever may write the event's public notes - post one, or
+   * edit one - since the answer is what the composer says to them. Read the
+   * way every permission check reads it (CallerPermission): a team's block
+   * is no grant.
    */
-  public static async assertCallerMayAsk(data: {
-    projectId: ObjectID;
+  public static assertCallerMayAsk(data: {
     props: DatabaseCommonInteractionProps;
     event: PublicNoteReachEvent;
-    eventId: ObjectID;
-  }): Promise<void> {
-    if (data.props.isRoot || data.props.isMasterAdmin) {
+  }): void {
+    if (data.props.isMasterAdmin) {
       return;
     }
 
-    if ((await this.mayPostNote(data)) || (await this.mayEditNote(data))) {
-      return;
-    }
-
-    throw new NotAuthorizedException(
-      `You do not have permission to see where this ${this.getEventName(data.event)}'s public notes are shown. You need a permission that lets you post or edit them.`,
-    );
-  }
-
-  /*
-   * Whether the caller may post a public note on the event: the note's own
-   * create, asked without creating it (DatabaseService.checkCallerMayCreate),
-   * of a note on that event - the table and the columns it is written with,
-   * the event it goes under, and what a grant limited to labels or to owned
-   * records reaches.
-   */
-  private static async mayPostNote(data: {
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-    event: PublicNoteReachEvent;
-    eventId: ObjectID;
-  }): Promise<boolean> {
     const note: BaseModel = this.getNoteModel(data.event);
-    note.setColumnValue("projectId", data.projectId);
-    note.setColumnValue(this.getEventIdColumn(data.event), data.eventId);
 
-    try {
-      await this.getNoteService(data.event).checkCallerMayCreate({
-        data: note,
-        props: data.props,
+    const mayWrite: boolean =
+      CallerPermission.holdsModelPermission(data.props, {
+        model: note,
+        operation: "create",
+      }) ||
+      CallerPermission.holdsModelPermission(data.props, {
+        model: note,
+        operation: "update",
       });
-    } catch (error) {
-      if (this.isRefusal(error)) {
-        return false;
-      }
 
-      throw error;
-    }
-
-    return true;
-  }
-
-  /*
-   * Whether the caller may edit a public note the event has: one of its
-   * notes among the rows their edit reaches, narrowed as an update narrows
-   * its rows (ModelPermission.getUpdatableQuery: the project, and the
-   * labels and owners of the event a note is read through). An event with
-   * no notes has none to edit.
-   */
-  private static async mayEditNote(data: {
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-    event: PublicNoteReachEvent;
-    eventId: ObjectID;
-  }): Promise<boolean> {
-    const service: DatabaseService<BaseModel> = this.getNoteService(data.event);
-
-    let updatable: Query<BaseModel>;
-
-    try {
-      updatable = await ModelPermission.getUpdatableQuery(
-        service.modelType,
-        {
-          projectId: data.projectId,
-          [this.getEventIdColumn(data.event)]: data.eventId,
-        } as Query<BaseModel>,
-        data.props,
+    if (!mayWrite) {
+      throw new NotAuthorizedException(
+        `You do not have permission to see where this ${this.getEventName(data.event)}'s public notes are shown. You need a permission that lets you post or edit them.`,
       );
-    } catch (error) {
-      if (this.isRefusal(error)) {
-        return false;
-      }
-
-      throw error;
     }
-
-    // Already narrowed to what the caller may edit, as an update reads it.
-    const editable: BaseModel | null = await service.findOneBy({
-      query: updatable,
-      select: {
-        _id: true,
-      } as Select<BaseModel>,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Boolean(editable);
-  }
-
-  /*
-   * What a check refuses the caller with: not allowed, not found, or an
-   * event that is not one of the project's they may read - which a create
-   * under it is refused as, a missing one alike
-   * (ProjectScopedReferenceException).
-   */
-  private static isRefusal(error: unknown): boolean {
-    return (
-      error instanceof NotAuthorizedException ||
-      error instanceof NotFoundException ||
-      error instanceof ProjectScopedReferenceException
-    );
   }
 
   // The request body: {eventId}.

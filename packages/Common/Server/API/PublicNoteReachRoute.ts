@@ -59,15 +59,12 @@ export default class PublicNoteReachRoute {
 
     const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
 
-    const eventId: ObjectID = PublicNoteReachBuilder.parseEventId(req.body);
-
-    // Whoever may post or edit this event's public notes, decided for it.
-    await PublicNoteReachBuilder.assertCallerMayAsk({
-      projectId: projectId,
+    PublicNoteReachBuilder.assertCallerMayAsk({
       props: props,
       event: event,
-      eventId: eventId,
     });
+
+    const eventId: ObjectID = PublicNoteReachBuilder.parseEventId(req.body);
 
     const result: PublicNoteReachResult = await PublicNoteReachBuilder.build({
       projectId: projectId,
