@@ -58299,5 +58299,20 @@
   "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.": "مستأجرو Esper الذين يستورد OneUptime منهم أجهزة Android عبر واجهة API لدى Esper، وفق جدول زمني: كل جهاز ومجموعته وتطبيقاته المثبّتة وآخر إشارة حضور له.",
   "Every Android device Esper enrolls is imported into Inventory, with its group, apps and last check-in, and kept current. OneUptime only reads.": "يُستورد إلى الجرد كل جهاز Android يسجّله Esper، مع مجموعته وتطبيقاته وآخر إشارة حضور له، ويبقى محدَّثًا. ويكتفي OneUptime بالقراءة.",
   "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.": "أجهزة Android التي تستوردها اتصالات Esper لديك. افتح أحدها لترى تطبيقاته وما يقوله Esper عنه والقياس عن بُعد الذي يرسله.",
-  "{{value}} of {{total}}": "{{value}} من {{total}}"
+  "{{value}} of {{total}}": "{{value}} من {{total}}",
+  "Monitor removed from this device.": "أُزيلت المراقبة من هذا الجهاز.",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "لدى أكثر من جهاز هذا العنوان، ولا يستطيع مسبار الفحص أن يعرف أيها وجد، لذا لم يُمنح أي منها مراقبة. امنح الجهاز الصحيح مراقبته من صفحته.",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "لا يمكن إضافة أي من الأجهزة المحددة: فلكل منها مراقبة بالفعل أو ليس له عنوان IP بعد.",
+  "Remove from Device": "إزالة من الجهاز",
+  "Remove {{monitorName}} from this device": "إزالة {{monitorName}} من هذا الجهاز",
+  "The devices you picked are already added. Give them a monitor from a template.": "الأجهزة التي اخترتها مُضافة بالفعل. امنحها مراقبة من قالب.",
+  "{{count}} devices already added get a monitor: {{names}}": "ستحصل الأجهزة المُضافة بالفعل على مراقبة ({{count}}): {{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "سيحصل {{count}} جهاز مُضاف بالفعل على مراقبة: {{names}}",
+  "{{count}} devices already added: {{names}}": "الأجهزة المُضافة بالفعل ({{count}}): {{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} جهاز مُضاف بالفعل: {{names}}",
+  "{{count}} new devices: {{names}}": "الأجهزة الجديدة ({{count}}): {{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} جهاز جديد: {{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} من الأجهزة المحددة لديها مراقبة بالفعل، لذا تُستبعد.",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} جهاز محدد لديه مراقبة بالفعل، لذا يُستبعد.",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "يتوقف إدراج {{monitorName}} على هذا الجهاز، ولا يُربط ما تثيره من الآن فصاعدًا بالجهاز. وتتوقف عمليات الاستيراد وقواعد الاستيراد التلقائي عن احتسابها، لذا قد تمنح الجهاز مراقبة مثلها. وتواصل المراقبة نفسها الفحص دون تغيير."
 }

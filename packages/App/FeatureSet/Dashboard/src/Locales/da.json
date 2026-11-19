@@ -58299,5 +58299,20 @@
   "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper-lejere, som OneUptime importerer Android-enheder fra gennem Espers API efter en tidsplan: hver enhed, dens gruppe, dens installerede apps og dens seneste check-in.",
   "Every Android device Esper enrolls is imported into Inventory, with its group, apps and last check-in, and kept current. OneUptime only reads.": "Alle Android-enheder, som Esper tilmelder, importeres til inventaret med gruppe, apps og seneste check-in og holdes ajour. OneUptime læser kun.",
   "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.": "De Android-enheder, som dine Esper-forbindelser importerer. Åbn en for at se dens apps, hvad Esper siger om den, og den telemetri, den sender.",
-  "{{value}} of {{total}}": "{{value}} af {{total}}"
+  "{{value}} of {{total}}": "{{value}} af {{total}}",
+  "Monitor removed from this device.": "Monitor fjernet fra denne enhed.",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "Mere end én enhed har denne adresse, og scanningens sonde kan ikke se, hvilken af dem den fandt, så ingen af dem fik en monitor. Giv den rigtige enhed dens monitor fra enhedens egen side.",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "Ingen af de valgte enheder kan tilføjes: hver enkelt har allerede en monitor eller har ingen IP-adresse endnu.",
+  "Remove from Device": "Fjern fra enheden",
+  "Remove {{monitorName}} from this device": "Fjern {{monitorName}} fra denne enhed",
+  "The devices you picked are already added. Give them a monitor from a template.": "De enheder, du valgte, er allerede tilføjet. Giv dem en monitor fra en skabelon.",
+  "{{count}} devices already added get a monitor: {{names}}": "{{count}} allerede tilføjede enheder får en monitor: {{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "{{count}} allerede tilføjet enhed får en monitor: {{names}}",
+  "{{count}} devices already added: {{names}}": "{{count}} allerede tilføjede enheder: {{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} allerede tilføjet enhed: {{names}}",
+  "{{count}} new devices: {{names}}": "{{count}} nye enheder: {{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} ny enhed: {{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} valgte enheder har allerede en monitor, så de udelades.",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} valgt enhed har allerede en monitor, så den udelades.",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke længere på denne enhed, og det, den udløser fra nu af, knyttes ikke til enheden. Importer og regler for automatisk import holder op med at tælle den med, så de kan give enheden en monitor af samme slags. Selve monitoren bliver ved med at tjekke, uændret."
 }

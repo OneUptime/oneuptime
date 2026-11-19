@@ -58299,5 +58299,20 @@
   "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime 依排程透過 Esper 的 API 從中匯入 Android 裝置的 Esper 租用戶：每台裝置、其所屬群組、已安裝的應用程式和上次簽入。",
   "Every Android device Esper enrolls is imported into Inventory, with its group, apps and last check-in, and kept current. OneUptime only reads.": "Esper 中註冊的每台 Android 裝置都會匯入資產清單（包括其所屬群組、應用程式和上次簽入），並保持最新。OneUptime 只會讀取資料。",
   "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.": "你的 Esper 連線匯入的 Android 裝置。開啟一台裝置，即可查看其應用程式、Esper 提供的資訊以及它傳送的遙測。",
-  "{{value}} of {{total}}": "{{total}} 個中有 {{value}} 個"
+  "{{value}} of {{total}}": "{{total}} 個中有 {{value}} 個",
+  "Monitor removed from this device.": "已從此裝置移除監測器。",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "有多台裝置使用此位址，掃描的探測器無法判斷它找到的是哪一台，因此沒有為任何裝置提供監測器。請在正確裝置的頁面上為它提供監測器。",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "所選裝置都無法新增：每台裝置要麼已有監測器，要麼還沒有 IP 位址。",
+  "Remove from Device": "從裝置移除",
+  "Remove {{monitorName}} from this device": "從此裝置移除 {{monitorName}}",
+  "The devices you picked are already added. Give them a monitor from a template.": "你選擇的裝置都已新增。請用範本為它們提供監測器。",
+  "{{count}} devices already added get a monitor: {{names}}": "{{count}} 台已新增的裝置將取得監測器：{{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "{{count}} 台已新增的裝置將取得監測器：{{names}}",
+  "{{count}} devices already added: {{names}}": "{{count}} 台已新增的裝置：{{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} 台已新增的裝置：{{names}}",
+  "{{count}} new devices: {{names}}": "{{count}} 台新裝置：{{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} 台新裝置：{{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "所選裝置中有 {{count}} 台已有監測器，因此被排除。",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "所選裝置中有 {{count}} 台已有監測器，因此被排除。",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} 將不再列在此裝置上，它今後觸發的內容也不會關聯到此裝置。匯入和自動匯入規則不再將它計入，因此可能為此裝置提供一個同類監測器。監測器本身會繼續檢查，不做任何變更。"
 }

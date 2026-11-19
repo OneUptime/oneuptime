@@ -58299,5 +58299,20 @@
   "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Tenant Esper da cui OneUptime importa i dispositivi Android tramite l'API di Esper, secondo una pianificazione: ogni dispositivo, il suo gruppo, le sue app installate e il suo ultimo contatto.",
   "Every Android device Esper enrolls is imported into Inventory, with its group, apps and last check-in, and kept current. OneUptime only reads.": "Ogni dispositivo Android registrato da Esper viene importato nell'Inventario, con il suo gruppo, le app e l'ultimo contatto, e mantenuto aggiornato. OneUptime si limita a leggere.",
   "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.": "I dispositivi Android importati dalle tue connessioni Esper. Aprine uno per vederne le app, cosa ne dice Esper e la telemetria che invia.",
-  "{{value}} of {{total}}": "{{value}} su {{total}}"
+  "{{value}} of {{total}}": "{{value}} su {{total}}",
+  "Monitor removed from this device.": "Monitor rimosso da questo dispositivo.",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "Più di un dispositivo ha questo indirizzo e la sonda della scansione non può sapere quale ha trovato, quindi nessuno ha ricevuto un monitor. Dai al dispositivo giusto il suo monitor dalla sua pagina.",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "Nessuno dei dispositivi selezionati può essere aggiunto: ognuno ha già un monitor o non ha ancora un indirizzo IP.",
+  "Remove from Device": "Rimuovi dal dispositivo",
+  "Remove {{monitorName}} from this device": "Rimuovi {{monitorName}} da questo dispositivo",
+  "The devices you picked are already added. Give them a monitor from a template.": "I dispositivi che hai scelto sono già stati aggiunti. Dai loro un monitor da un modello.",
+  "{{count}} devices already added get a monitor: {{names}}": "{{count}} dispositivi già aggiunti ricevono un monitor: {{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "{{count}} dispositivo già aggiunto riceve un monitor: {{names}}",
+  "{{count}} devices already added: {{names}}": "{{count}} dispositivi già aggiunti: {{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} dispositivo già aggiunto: {{names}}",
+  "{{count}} new devices: {{names}}": "{{count}} nuovi dispositivi: {{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} nuovo dispositivo: {{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} dispositivi selezionati hanno già un monitor, quindi vengono esclusi.",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} dispositivo selezionato ha già un monitor, quindi viene escluso.",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} non è più elencato su questo dispositivo, e ciò che genera da ora in poi non è collegato al dispositivo. Le importazioni e le regole di importazione automatica smettono di contarlo, quindi possono dare al dispositivo un monitor uguale. Il monitor in sé continua a controllare, senza modifiche."
 }

@@ -58299,5 +58299,20 @@
   "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Тенанты Esper, из которых OneUptime по расписанию импортирует устройства Android через API Esper: каждое устройство, его группу, установленные приложения и последний выход на связь.",
   "Every Android device Esper enrolls is imported into Inventory, with its group, apps and last check-in, and kept current. OneUptime only reads.": "Каждое устройство Android, зарегистрированное в Esper, импортируется в инвентарь — с его группой, приложениями и последним выходом на связь — и поддерживается в актуальном состоянии. OneUptime только читает.",
   "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.": "Устройства Android, которые импортируют ваши подключения Esper. Откройте устройство, чтобы увидеть его приложения, что о нём сообщает Esper и какую телеметрию оно отправляет.",
-  "{{value}} of {{total}}": "{{value}} из {{total}}"
+  "{{value}} of {{total}}": "{{value}} из {{total}}",
+  "Monitor removed from this device.": "Монитор убран с этого устройства.",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "Этот адрес есть у нескольких устройств, и зонд сканирования не может определить, какое из них он нашёл, поэтому монитор не получило ни одно. Дайте нужному устройству монитор на его собственной странице.",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "Ни одно из выбранных устройств нельзя добавить: у каждого уже есть монитор или ещё нет IP-адреса.",
+  "Remove from Device": "Убрать с устройства",
+  "Remove {{monitorName}} from this device": "Убрать {{monitorName}} с этого устройства",
+  "The devices you picked are already added. Give them a monitor from a template.": "Выбранные устройства уже добавлены. Дайте им монитор из шаблона.",
+  "{{count}} devices already added get a monitor: {{names}}": "Монитор получат уже добавленные устройства ({{count}}): {{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "{{count}} уже добавленное устройство получит монитор: {{names}}",
+  "{{count}} devices already added: {{names}}": "Уже добавленные устройства ({{count}}): {{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} уже добавленное устройство: {{names}}",
+  "{{count}} new devices: {{names}}": "Новые устройства ({{count}}): {{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} новое устройство: {{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "Пропущены выбранные устройства, у которых уже есть монитор: {{count}}.",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "У {{count}} выбранного устройства уже есть монитор, поэтому оно пропущено.",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} больше не показывается на этом устройстве, а то, что он вызовет с этого момента, не связывается с устройством. Импорт и правила автоимпорта перестают его учитывать, поэтому могут дать устройству такой же монитор. Сам монитор продолжает проверки без изменений."
 }

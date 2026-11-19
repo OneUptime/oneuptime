@@ -58299,5 +58299,20 @@
   "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Tenants de Esper de los que OneUptime importa dispositivos Android mediante la API de Esper, de forma programada: cada dispositivo, su grupo, sus aplicaciones instaladas y su último contacto.",
   "Every Android device Esper enrolls is imported into Inventory, with its group, apps and last check-in, and kept current. OneUptime only reads.": "Cada dispositivo Android que inscribe Esper se importa al inventario, con su grupo, sus aplicaciones y su último contacto, y se mantiene al día. OneUptime solo lee.",
   "The Android devices your Esper connections import. Open one for its apps, what Esper says about it and the telemetry it sends.": "Los dispositivos Android que importan tus conexiones de Esper. Abre uno para ver sus aplicaciones, lo que Esper dice de él y la telemetría que envía.",
-  "{{value}} of {{total}}": "{{value}} de {{total}}"
+  "{{value}} of {{total}}": "{{value}} de {{total}}",
+  "Monitor removed from this device.": "Monitor quitado de este dispositivo.",
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.": "Más de un dispositivo tiene esta dirección, y la sonda del escaneo no puede saber cuál de ellos encontró, así que ninguno recibió un monitor. Dale al dispositivo correcto su monitor desde su propia página.",
+  "None of the selected devices can be added: each one already has a monitor or has no IP address yet.": "No se puede añadir ninguno de los dispositivos seleccionados: cada uno ya tiene un monitor o aún no tiene dirección IP.",
+  "Remove from Device": "Quitar del dispositivo",
+  "Remove {{monitorName}} from this device": "Quitar {{monitorName}} de este dispositivo",
+  "The devices you picked are already added. Give them a monitor from a template.": "Los dispositivos que elegiste ya están añadidos. Dales un monitor de una plantilla.",
+  "{{count}} devices already added get a monitor: {{names}}": "{{count}} dispositivos ya añadidos reciben un monitor: {{names}}",
+  "{{count}} devices already added get a monitor: {{names}}_one": "{{count}} dispositivo ya añadido recibe un monitor: {{names}}",
+  "{{count}} devices already added: {{names}}": "{{count}} dispositivos ya añadidos: {{names}}",
+  "{{count}} devices already added: {{names}}_one": "{{count}} dispositivo ya añadido: {{names}}",
+  "{{count}} new devices: {{names}}": "{{count}} dispositivos nuevos: {{names}}",
+  "{{count}} new devices: {{names}}_one": "{{count}} dispositivo nuevo: {{names}}",
+  "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} dispositivos seleccionados ya tienen un monitor, así que se dejan fuera.",
+  "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} dispositivo seleccionado ya tiene un monitor, así que se deja fuera.",
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} deja de aparecer en este dispositivo, y lo que genere a partir de ahora no se vincula al dispositivo. Las importaciones y las reglas de importación automática dejan de contarlo, así que pueden darle al dispositivo un monitor igual. El monitor en sí sigue comprobando, sin cambios."
 }
