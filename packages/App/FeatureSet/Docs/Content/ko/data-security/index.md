@@ -33,7 +33,7 @@ flowchart TB
 
 ## 다른 점
 
-- **텔레메트리도 데이터 저장소입니다.** 각 서비스의 로그, 트레이스, 예외, 세션 리플레이, AI 대화는 버킷처럼 매시간 검사됩니다. 로그 줄에 있는 이메일 주소는 발견 사항이 되고, **정리** 는 그때부터 수집 시점에 그 값을 마스킹합니다. [텔레메트리의 민감한 데이터](/docs/data-security/telemetry)를 참고하세요.
+- **텔레메트리도 데이터 저장소입니다.** 각 서비스의 로그, 트레이스, 메트릭, 예외, 세션 리플레이, AI 대화는 버킷처럼 매시간 검사됩니다. 로그 줄에 있는 이메일 주소는 발견 사항이 되고, **정리** 는 그때부터 수집 시점에 그 값을 마스킹합니다. [텔레메트리의 민감한 데이터](/docs/data-security/telemetry)를 참고하세요.
 - **데이터 흐름은 실제 트래픽에서 나옵니다.** 서비스 맵은 어떤 서비스가 어떤 데이터베이스를 사용하는지 알려 주고, AI 호출은 자신이 도달하는 공급자를 밝히며, 프로덕션 데이터의 복사본은 핑거프린트를 비교해 찾아냅니다. [데이터 흐름, 접근 및 상주](/docs/data-security/flows-access-residency)를 참고하세요.
 - **접근은 양쪽에서 읽습니다.** 데이터 보안은 각 저장소 자체의 설정이 누구를 들여보내는지 읽고, AWS에서는 각 역할과 각 사용자가 자신의 IAM 정책으로 무엇에 도달할 수 있는지와 각각 마지막으로 언제 사용되었는지도 읽습니다. **접근** 은 모든 ID를 끼칠 수 있는 피해 순으로 정렬하며, 90일 동안 사용되지 않은 민감한 데이터 접근은 이슈가 됩니다. [저장소에 접근할 수 있는 대상](/docs/data-security/flows-access-residency#저장소에-접근할-수-있는-대상)을 참고하세요.
 - **증거는 항상 마스킹됩니다.** 발견 사항은 개수와 최대 세 개의 마스킹된 샘플(예: `j***@e******.com`)만 보관하며, 샘플은 무엇이든 스캐너 밖으로 나가기 전에 스캐너 안에서 마스킹됩니다. 샘플을 끄면 개수만 보관합니다.
@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 |
+| OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭 |
 
 모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다.
 

@@ -33,7 +33,7 @@ flowchart TB
 
 ## ほかとの違い
 
-- **テレメトリもデータストアです。** 各サービスのログ、トレース、例外、セッションリプレイ、AI の会話は、バケットと同じように 1 時間ごとにチェックされます。ログ行にあるメールアドレスは検出結果になり、 **スクラブ** を使うと、それ以降は取り込み時にマスクされます。 [テレメトリ内の機密データ](/docs/data-security/telemetry) を参照してください。
+- **テレメトリもデータストアです。** 各サービスのログ、トレース、メトリクス、例外、セッションリプレイ、AI の会話は、バケットと同じように 1 時間ごとにチェックされます。ログ行にあるメールアドレスは検出結果になり、 **スクラブ** を使うと、それ以降は取り込み時にマスクされます。 [テレメトリ内の機密データ](/docs/data-security/telemetry) を参照してください。
 - **データフローは実際のトラフィックから得られます。** サービスマップはどのサービスがどのデータベースを使っているかを示し、AI の呼び出しは到達先のプロバイダーを名指しし、本番データのコピーはフィンガープリントの比較で見つかります。 [データフロー、アクセス、データ所在地](/docs/data-security/flows-access-residency) を参照してください。
 - **アクセスは両側から読み取ります。** データセキュリティは、各データストア自身の設定が誰を受け入れるかに加えて、AWS では各ロールと各ユーザーが自身の IAM ポリシーで何に到達できるか、それぞれが最後にいつ使われたかを読み取ります。 **アクセス** はすべての ID を与えうる損害の大きさで並べ、90 日間使われていない機密データへのアクセスは問題になります。 [データストアにアクセスできる人](/docs/data-security/flows-access-residency#データストアにアクセスできる人) を参照してください。
 - **証拠は常にマスクされます。** 検出結果が保持するのは件数と、 `j***@e******.com` のような最大 3 つのマスクされたサンプルだけで、マスクは何かがスキャナーの外に出る前にスキャナーの中で行われます。サンプルをオフにすると、件数だけを保持します。
@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話 | ログ、トレース、例外、セッションリプレイ、AI の会話 |
+| OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス |
 
 すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。
 

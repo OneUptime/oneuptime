@@ -1,6 +1,6 @@
 # Datos sensibles en la telemetría
 
-La telemetría contiene todo lo que escribe tu código: una dirección de correo electrónico en una línea de registro, un número de tarjeta en un atributo de span, un token en una traza de pila, la pregunta de un cliente en un prompt. Seguridad de datos trata los registros, las trazas, las excepciones y las conversaciones de IA de cada servicio, y las sesiones de cada aplicación RUM, como almacenes de datos propios. Los muestrea cada hora, encuentra datos sensibles en ellos igual que en un bucket, y **Depurar** convierte un hallazgo en una regla de depuración que enmascara esos datos en la ingesta a partir de entonces.
+La telemetría contiene todo lo que escribe tu código: una dirección de correo electrónico en una línea de registro, un número de tarjeta en un atributo de span, un token en una traza de pila, la pregunta de un cliente en un prompt, la dirección IP de un usuario en la etiqueta de una métrica. Seguridad de datos trata los registros, las trazas, las métricas, las excepciones y las conversaciones de IA de cada servicio, y las sesiones de cada aplicación RUM, como almacenes de datos propios. Los muestrea cada hora, encuentra datos sensibles en ellos igual que en un bucket, y **Depurar** convierte un hallazgo en una regla que enmascara esos datos en la ingesta a partir de entonces.
 
 No hay nada que configurar: la telemetría de cada servicio se escanea cada hora, salvo que **Escanear telemetría** esté desactivado en los ajustes del proyecto. Para dejar fuera los registros, las trazas u otra de las señales de un servicio, desactiva **Escanear contenido** en los **Ajustes** de ese almacén: desde el siguiente escaneo, no se lee nada de ello.
 
@@ -34,8 +34,19 @@ Un hallazgo que cubre una regla de depuración se marca como depurado: lo que qu
 | Excepciones | El mensaje, la traza de pila y los atributos | `message`, `stackTrace`, `attributes.<key>` |
 | Conversaciones de IA | Los prompts y las respuestas de cada llamada de IA, bajo las claves en las que los ponen las convenciones de GenAI, y todos los demás atributos | La clave en la que están, como `gen_ai.input.messages` o `gen_ai.prompt[].content` |
 | Reproducciones de sesiones | Los atributos de los spans y los registros de una aplicación RUM, los atributos de sus sesiones, los rasgos que `identify()` dio a sus usuarios y la referencia de usuario que se le indicó | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Métricas | Cada atributo de un punto de datos, incluidos los de su recurso, y los nombres de las métricas | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Las claves numeradas se agrupan en una sola ubicación: `gen_ai.prompt.3.content` es `gen_ai.prompt[].content`, así que los veinte mensajes de un chat son un solo hallazgo, no veinte. Los atributos que añade el propio OneUptime, que empiezan por `oneuptime.`, no se leen.
+
+### Métricas
+
+Los atributos de una métrica son las etiquetas de sus series. Son los mismos en cada punto de datos de una serie, así que una métrica que escribe mil puntos por minuto puede contener solo tres valores, y una etiqueta que expone el correo electrónico de un usuario añade una serie, no un punto. Por eso una métrica se muestrea por sus series, no por sus puntos:
+
+- **Su minuto más reciente.** Cada métrica se lee en el minuto más reciente en el que escribió durante la última hora: hasta 100 puntos de datos de ese minuto, lo que, para una métrica que se envía una vez por minuto, como hace OpenTelemetry por defecto, es un punto de cada serie. Un valor se clasifica una sola vez, por muchos puntos que lo repitan, así que un hallazgo cuenta los valores distintos de su ubicación.
+- **Las de más actividad primero, el resto por turnos.** Qué métricas escribió un servicio se sabe por la agregación por minuto que mantiene la tabla de métricas, nunca por sus puntos. Cada escaneo lee las métricas con más actividad de un servicio, las que más probabilidades tienen de tener muchas series, y algunas de las demás, las siguientes cada hora, así que a cada métrica le llega su turno.
+- **El rango propio de cada métrica.** Las métricas se leen juntas, cada una por su propio rango de la clave primaria de la tabla. Una métrica cuyo minuto más reciente contiene más de 16.384 puntos, como una etiquetada con el correo electrónico de cada usuario, se lee por separado, y la lectura se detiene en sus primeros puntos, así que no cuesta más que cualquier otra métrica.
+
+Un hallazgo nombra el atributo, como `attributes.user.email`, o `name` para los datos del nombre de una métrica. Sus entradas son los puntos de datos en los que se encontró: cada una muestra su métrica y el valor del atributo, enmascarado, y se abre en **Métricas** sobre esa métrica, agrupada por ese atributo. Cuando el nombre de una métrica contiene datos sensibles, el nombre también se enmascara, y la entrada abre en su lugar las métricas del servicio.
 
 ### Por qué nunca se lee la grabación de una reproducción
 
@@ -62,6 +73,8 @@ Cada hora se leen las entradas más recientes de la última hora de cada señal,
 | Atributos de una entrada | 128; 64 para una llamada de IA |
 | Eventos de un span, y atributos de un evento | 16 y 32 |
 | Ubicaciones de un almacén | 500 |
+| Métricas leídas en un escaneo | 100, repartidas entre los servicios, al menos una de cada uno; como máximo 10 de un mismo servicio, la mitad entre las de más actividad y la otra mitad entre las demás, por turnos |
+| Puntos de datos de una métrica | Los de su minuto más reciente, como máximo 100 |
 
 Cada valor se recorta en la propia base de datos, así que ningún valor largo sale de ella, y cada lectura se detiene a los 30 segundos. Una lectura que falla es una advertencia en los almacenes para los que era; el escaneo continúa con la siguiente.
 
@@ -69,16 +82,16 @@ Para dejar algo fuera, añádelo a las **Exclusiones del escaneo** del almacén:
 
 ## Depurar
 
-**Depurar** en un hallazgo crea la regla de depuración que oculta ese tipo de datos en esa ubicación a partir de entonces, o señala la regla habilitada que ya lo hace:
+**Depurar** en un hallazgo crea la regla que oculta ese tipo de datos en esa ubicación a partir de entonces, o señala la regla habilitada que ya lo hace:
 
 :::steps
 ### Abre el hallazgo
 
-Abre el almacén de telemetría (por ejemplo, los **Registros** de un servicio) y el hallazgo.
+Abre el problema - **Dónde se encontró** enumera cada hallazgo que lo causa - o **Seguridad de datos > En tu telemetría**, donde **Mostrar entradas** abre junto a la lista las entradas en las que se encontró un hallazgo.
 
 ### Pulsa Depurar
 
-Haz clic en **Depurar**. OneUptime crea una regla de depuración de registros para los registros y los registros de una aplicación RUM, y una regla de depuración de trazas para los spans, las excepciones y las llamadas de IA, sobre la parte de la entrada en la que está el hallazgo.
+Haz clic en **Depurar**. OneUptime crea una regla de depuración de registros para los registros y los registros de una aplicación RUM, una regla de depuración de trazas para los spans, las excepciones y las llamadas de IA, sobre la parte de la entrada en la que está el hallazgo, y una regla de canalización de métricas para el atributo de una métrica.
 
 ### Corrige también el código
 
@@ -92,16 +105,18 @@ La regla se nombra por lo que oculta, como «Data Security: Email address in att
 | Dirección de correo electrónico, número de tarjeta, número de la Seguridad Social de EE. UU., número de teléfono o dirección IP | El patrón integrado de ese tipo. Los números de tarjeta, los números de la Seguridad Social y los números de teléfono se enmascaran, y el resto se oculta por completo. |
 | Un valor bajo una clave que parece sensible, como `password` o `token` | Una regla de **Claves de atributos sensibles**, que oculta el valor completo de cada atributo de ese tipo |
 | Cualquier otro tipo de datos que un patrón pueda encontrar | Una regla de **Expresión regular personalizada** creada a partir de los propios patrones del tipo de datos, que oculta cada valor con su forma |
+| Cualquier tipo de datos en el atributo de una métrica | Una regla de canalización de métricas **Redactar atributo** para el servicio, que sustituye por `[REDACTED]` los valores del atributo con la forma del tipo de datos, o cada valor del atributo cuando ningún patrón encuentra el tipo de datos |
 
-Algunos hallazgos no se pueden depurar con una regla, y **Depurar** dice por qué:
+Algunos hallazgos no se pueden depurar con una regla, y **Depurar** dice por qué. El atributo de una métrica siempre se puede depurar, ya que su regla puede ocultar cada valor del atributo:
 
 - Un tipo de datos encontrado solo por los nombres de campo, como el nombre de una persona: ningún patrón puede encontrarlo. Cambia el nombre del atributo a una clave que oculte una regla de claves sensibles, o deja de enviarlo.
 - Un tipo de datos que solo se distingue de otros valores por las palabras que lo rodean, como un número de ruta bancaria: una regla ocultaría mucho más que ese tipo de datos.
 - Una marca de documento: ocultar la palabra no ocultaría el documento.
 - Uno de tus propios tipos de datos: añade tú mismo una regla de depuración personalizada con su patrón.
 - Los propios detalles de una sesión (`sessions.*`): la ingesta de reproducciones de sesiones no ejecuta reglas de depuración.
+- El nombre de una métrica (`name`): lo establece el código que crea la métrica, y una regla de canalización solo puede renombrar una métrica entera. Cambia el nombre de la métrica y, en su lugar, envía como atributo lo que varía en su nombre.
 
-**Depurar** crea la regla en tu nombre, con tus propios permisos: pueden pulsarlo los roles Propietario del proyecto y Administrador del proyecto, y también un equipo que pueda crear reglas de depuración de registros, y reglas de depuración de trazas para los spans, las excepciones y las llamadas de IA.
+**Depurar** crea la regla en tu nombre, con tus propios permisos: pueden pulsarlo los roles Propietario del proyecto y Administrador del proyecto, y también un equipo que pueda crear reglas de depuración de registros, reglas de depuración de trazas para los spans, las excepciones y las llamadas de IA, y reglas de canalización de métricas para las métricas.
 
 ## Qué cuenta como depurado
 
@@ -111,6 +126,7 @@ Un hallazgo se marca como depurado solo cuando la ingesta le aplicaría una regl
 - **La parte correcta.** Los **Campos a depurar** de la regla incluyen la parte de la entrada en la que está el hallazgo, o la regla los deja en su valor por defecto.
 - **Un patrón que encuentra el tipo.** Un **Tipo de patrón** integrado encuentra su propio tipo de datos: **Dirección de correo electrónico** encuentra direcciones de correo electrónico, **Número de tarjeta de crédito** números de tarjeta, **SSN (número de la Seguridad Social)** números de la Seguridad Social de EE. UU., **Número de teléfono** números de teléfono y **Dirección IP** direcciones IP. **Claves de atributos sensibles** cubre cada valor bajo una clave que parece sensible, sea cual sea el valor.
 - **Tus propios patrones personalizados nunca cuentan.** Una **Expresión regular personalizada** cubre un hallazgo solo cuando es exactamente el patrón que crea **Depurar** para su tipo. Un hallazgo solo conserva muestras enmascaradas, sobre las que no se puede probar ningún patrón, así que OneUptime no podría demostrar que tu patrón oculta los datos, y un hallazgo marcado como depurado por error es una fuga que nadie mira.
+- **El atributo de una métrica.** Una regla de canalización de métricas **Redactar atributo** o **Eliminar atributo** sobre la clave de ese atributo, para el servicio del hallazgo o para todo el proyecto, lo cubre cuando no tiene ningún filtro, o tiene exactamente el filtro que crea **Depurar**. Un filtro que escribiste tú nunca cuenta, por la misma razón.
 
 Una regla desactivada, o que no depura nada, nunca cuenta. La cobertura se vuelve a calcular después de cada escaneo, así que una regla que añadas o quites a mano cambia lo que está marcado como depurado en menos de una hora.
 

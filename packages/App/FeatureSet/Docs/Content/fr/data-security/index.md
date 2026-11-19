@@ -33,7 +33,7 @@ flowchart TB
 
 ## Ce qui la distingue
 
-- **Votre télémétrie est un magasin de données.** Les journaux, traces, exceptions, relectures de session et conversations IA de chaque service sont contrôlés comme un bucket, toutes les heures. Une adresse e-mail dans une ligne de journal est une détection, et **Nettoyer** la masque à l'ingestion à partir de là. Voir [Données sensibles dans la télémétrie](/docs/data-security/telemetry).
+- **Votre télémétrie est un magasin de données.** Les journaux, traces, métriques, exceptions, relectures de session et conversations IA de chaque service sont contrôlés comme un bucket, toutes les heures. Une adresse e-mail dans une ligne de journal est une détection, et **Nettoyer** la masque à l'ingestion à partir de là. Voir [Données sensibles dans la télémétrie](/docs/data-security/telemetry).
 - **Les flux viennent du trafic réel.** La carte des services indique quel service utilise quelle base de données, les appels d'IA nomment le fournisseur qu'ils atteignent, et les copies de données de production sont trouvées en comparant des empreintes. Voir [Flux de données, accès et résidence](/docs/data-security/flows-access-residency).
 - **L'accès est lu des deux côtés.** Sécurité des données lit ce que les propres paramètres de chaque magasin de données laissent entrer et, sur AWS, ce que chaque rôle et chaque utilisateur peut atteindre par ses stratégies IAM, et quand chacun a été utilisé pour la dernière fois. **Accès** classe chaque identité selon le préjudice qu'elle pourrait causer, et un accès à des données sensibles inutilisé depuis 90 jours est un problème. Voir [Qui peut accéder à un magasin de données](/docs/data-security/flows-access-residency#qui-peut-accéder-à-un-magasin-de-données).
 - **Les preuves sont toujours masquées.** Une détection conserve des comptages et au plus trois échantillons masqués, comme `j***@e******.com`, masqués dans le scanner avant que quoi que ce soit n'en sorte. Désactivez les échantillons et elle ne conserve que des comptages.
@@ -70,7 +70,7 @@ Ouvrez **Sécurité des données**. Les magasins de données apparaissent sous *
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA | Journaux, Traces, Exceptions, Relectures de session, Conversations IA |
+| OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques |
 
 Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne.
 
