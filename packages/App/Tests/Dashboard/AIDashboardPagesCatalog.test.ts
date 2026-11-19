@@ -9,8 +9,11 @@ import {
 import { getPageSearchAreas } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex";
 import RouteMap from "../../FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
+import { getProductsOfPath } from "../../FeatureSet/Dashboard/src/Utils/ProjectProducts/ProductOfRoute";
 import { isDashboardRouteTemplate } from "../../FeatureSet/Dashboard/src/Components/AIChat/AskAiPageLinks";
 import Route from "Common/Types/API/Route";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { getProductsOfDashboardPage } from "Common/Server/Utils/AI/Docs/DashboardPageProducts";
 import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
 import DashboardPageFinder, {
   AI_DASHBOARD_PAGES,
@@ -275,15 +278,52 @@ const DERIVED: Array<AIDashboardPage> = [
   ...deriveCatalog(),
 ];
 
-if (process.env["UPDATE_AI_DASHBOARD_PAGES"] === "1") {
-  fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(DERIVED, null, 2)}\n`);
-}
-
 const routeOf: (page: AIDashboardPage) => string = (
   page: AIDashboardPage,
 ): string => {
   return page.path.split(/[?#]/)[0]!;
 };
+
+/*
+ * THE PRODUCTS EACH PAGE NEEDS ON (#7065): Ask AI never offers a page of a
+ * product switched off on the server. Read with the Dashboard's own rule
+ * (getProductsOfPath), for each route of the catalog that needs one, into
+ * DashboardPageProducts.json beside it.
+ */
+const PRODUCTS_PATH: string = path.resolve(
+  __dirname,
+  "../../../Common/Server/Utils/AI/Docs/DashboardPageProducts.json",
+);
+
+const deriveProducts: (
+  pages: ReadonlyArray<AIDashboardPage>,
+) => Record<string, Array<ProductKey>> = (
+  pages: ReadonlyArray<AIDashboardPage>,
+): Record<string, Array<ProductKey>> => {
+  const products: Record<string, Array<ProductKey>> = {};
+
+  for (const page of pages) {
+    const route: string = routeOf(page);
+    const needed: Array<ProductKey> = getProductsOfPath(route);
+
+    if (needed.length > 0) {
+      products[route] = needed;
+    }
+  }
+
+  return products;
+};
+
+const DERIVED_PRODUCTS: Record<string, Array<ProductKey>> =
+  deriveProducts(DERIVED);
+
+if (process.env["UPDATE_AI_DASHBOARD_PAGES"] === "1") {
+  fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(DERIVED, null, 2)}\n`);
+  fs.writeFileSync(
+    PRODUCTS_PATH,
+    `${JSON.stringify(DERIVED_PRODUCTS, null, 2)}\n`,
+  );
+}
 
 describe("Ask AI's catalog of the Dashboard's pages", () => {
   test("is the page index Search reads, as generated from it (run with UPDATE_AI_DASHBOARD_PAGES=1 to write it again)", () => {
@@ -303,6 +343,40 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
       expect(isDashboardRouteTemplate(page.path)).toBe(true);
       expect(routeOf(page).replace(":projectId", "")).not.toContain(":");
     }
+  });
+
+  test("keeps the products each page needs on, as the Dashboard reads them (run with UPDATE_AI_DASHBOARD_PAGES=1 to write it again)", () => {
+    expect(JSON.parse(fs.readFileSync(PRODUCTS_PATH, "utf8"))).toEqual(
+      DERIVED_PRODUCTS,
+    );
+
+    for (const page of AI_DASHBOARD_PAGES) {
+      expect({
+        path: page.path,
+        products: [...getProductsOfDashboardPage(page.path)],
+      }).toEqual({ path: page.path, products: getProductsOfPath(routeOf(page)) });
+    }
+  });
+
+  test("names a product's pages by it, a guided setup's by every product it needs, and the project's own pages by none", () => {
+    expect(
+      getProductsOfDashboardPage("/dashboard/:projectId/monitors/create"),
+    ).toEqual([ProductKey.Monitors]);
+    expect(
+      getProductsOfDashboardPage("/dashboard/:projectId/status-pages?create=1"),
+    ).toEqual([ProductKey.StatusPages]);
+    // "Know when my website is down" pages people through On-Call too.
+    expect(
+      getProductsOfDashboardPage("/dashboard/:projectId/monitors/setup"),
+    ).toEqual([ProductKey.Monitors, ProductKey.OnCall]);
+    expect(
+      getProductsOfDashboardPage(
+        "/dashboard/:projectId/user-settings/notification-methods",
+      ),
+    ).toEqual([]);
+    expect(
+      getProductsOfDashboardPage("/dashboard/:projectId/settings/api-keys"),
+    ).toEqual([]);
   });
 
   test("marks the pages only OneUptime Cloud's billing shows, and offers them nowhere else", () => {

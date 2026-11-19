@@ -112,7 +112,9 @@ Gemte visninger hører til projektet, så alle i det ser de samme visninger, og 
 
 ## Vis dine protokoller i diagrammer
 
-Skift listen til **Analyser** for at tælle protokoller i stedet for at læse dem. Vælg en tidsserie, en topliste eller en tabel; tæl hver protokol eller de unikke værdier i ét felt; og gruppér efter alvorlighed, tjeneste, spor, span eller en vilkårlig attribut og derefter efter et andet felt. En topliste eller en tabel viser de øverste 5, 10, 25 eller 50 grupper.
+Skift listen til **Analyser** for at vise protokoller i diagrammer i stedet for at læse dem. Vælg en tidsserie, en topliste eller en tabel, og hvad den måler: hver protokol talt, de unikke værdier i ét felt, eller summen, gennemsnittet, medianen, P90, P95, P99, minimum eller maksimum af en numerisk attribut, som P95 af `duration_ms`. Gruppér efter alvorlighed, tjeneste, spor, span eller en vilkårlig attribut og derefter efter et andet felt. En topliste eller en tabel viser de øverste 5, 10, 25 eller 50 grupper.
+
+En numerisk attribut læses kun, hvor dens værdi er et tal: et heltal eller et decimaltal, med eller uden fortegn, i videnskabelig notation eller ej, som `42`, `-7`, `3.14` eller `1e3`. En protokol uden attributten, eller med noget andet i den, som `12ms` eller `n/a`, udelades i stedet for at blive læst som 0. En percentil beregnes ud fra op til 8.192 værdier pr. punkt, så et punkt med flere protokoller har et nært skøn i stedet for den nøjagtige værdi.
 
 Klik på **Liste** for at gå tilbage til selve linjerne.
 

@@ -1,4 +1,5 @@
 import ScheduledMaintenanceTemplateService from "../../../Server/Services/ScheduledMaintenanceTemplateService";
+import UserService from "../../../Server/Services/UserService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
@@ -254,6 +255,12 @@ beforeEach(() => {
   }
 
   stubProjectDirectory({});
+
+  /*
+   * A template created without a time zone takes its creator's
+   * (ScheduledMaintenanceTemplateTimezone.test.ts): these creators have none.
+   */
+  getJestSpyOn(UserService, "findOneById").mockResolvedValue(null as never);
 });
 
 afterEach(() => {

@@ -1116,6 +1116,9 @@ import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessi
 import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-AddProjectDetectVoicemailOnCalls";
 import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
 import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
+import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
+import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
 import { AddCloudResourceProviderResourceIdIndex1809186900000 } from "./1809186900000-AddCloudResourceProviderResourceIdIndex";
 
 export default [
@@ -2237,5 +2240,8 @@ export default [
   AddProjectDetectVoicemailOnCalls1809186610000,
   BackfillSsoProviderDomains1809186620000,
   AddMonitorNetworkDeviceTieSource1809186700000,
+  AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
+  AddScheduledMaintenanceTemplateTimezone1809186800000,
+  AddManagedDevicePlatform1809186810000,
   AddCloudResourceProviderResourceIdIndex1809186900000,
 ];

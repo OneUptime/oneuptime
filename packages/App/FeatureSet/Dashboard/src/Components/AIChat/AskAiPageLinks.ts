@@ -1,10 +1,12 @@
 import RouteMap from "../../Utils/RouteMap";
+import RouteParams from "../../Utils/RouteParams";
 import Route from "Common/Types/API/Route";
 import {
   AIChatCitation,
   AIChatCitationTarget,
   AIChatCitationTargetType,
 } from "Common/Types/AI/AIChatTypes";
+import ObjectID from "Common/Types/ObjectID";
 import { getDocsPagePath } from "Common/Types/Docs/DocsLanguage";
 
 /*
@@ -18,6 +20,11 @@ import { getDocsPagePath } from "Common/Types/Docs/DocsLanguage";
  * page only when its route is one of RouteMap's, in this project, and a
  * docs page only when its address is a docs page's shape.
  *
+ * A page of one record (#7065) - this status page's Custom Domains - is a
+ * route that also waits for the record's id: the citation carries the id
+ * the server read the record by, with the person's own permissions, and
+ * the route is opened only with an id that is one.
+ *
  * React-free, so App's tests read the same rules.
  */
 
@@ -25,6 +32,9 @@ import { getDocsPagePath } from "Common/Types/Docs/DocsLanguage";
 const SAFE_SUFFIX: RegExp = /^[\w\-.=&%]*$/;
 const DOCS_PAGE: RegExp = /^[a-z0-9-]+(\/[a-z0-9-]+)*$/;
 const DOCS_ANCHOR: RegExp = /^[\p{L}\p{N}_-]+$/u;
+
+// The most of a record's name a button draws.
+const MAX_RECORD_TITLE_CHARS: number = 200;
 
 let routeTemplates: Set<string> | null = null;
 
@@ -39,13 +49,26 @@ const getRouteTemplates: () => Set<string> = (): Set<string> => {
   return routeTemplates;
 };
 
+// Whether `value` is a record's id: an ObjectID, never a word a route could read.
+const isRecordId: (value: unknown) => value is string = (
+  value: unknown,
+): value is string => {
+  return typeof value === "string" && ObjectID.isValidUUID(value);
+};
+
 /*
  * Whether `path` is one of the Dashboard's own pages: a route template of
  * RouteMap that waits for nothing but the project, with at most a plain
- * query string and anchor.
+ * query string and anchor. Given a record's id, a page of that record is
+ * one too: a route that waits for the project and the record's id once
+ * each (RouteParams.ModelID), and nothing else.
  */
-export const isDashboardRouteTemplate: (path: unknown) => boolean = (
+export const isDashboardRouteTemplate: (
   path: unknown,
+  options?: { recordId?: unknown } | undefined,
+) => boolean = (
+  path: unknown,
+  options?: { recordId?: unknown } | undefined,
 ): boolean => {
   if (typeof path !== "string" || path.length === 0 || path.length > 512) {
     return false;
@@ -62,13 +85,52 @@ export const isDashboardRouteTemplate: (path: unknown) => boolean = (
   const route: string = match[1] || "";
   const query: string = match[2] || "";
   const anchor: string = match[3] || "";
+  const params: Array<string> = route
+    .split("/")
+    .filter((segment: string): boolean => {
+      return segment.includes(":");
+    });
+  const allowed: Array<string> = isRecordId(options?.recordId)
+    ? [RouteParams.ProjectID, RouteParams.ModelID]
+    : [RouteParams.ProjectID];
+  const waitsForAllowedOnly: boolean =
+    params.every((param: string): boolean => {
+      return allowed.includes(param);
+    }) && new Set<string>(params).size === params.length;
 
   return (
     getRouteTemplates().has(route) &&
-    !route.replace(":projectId", "").includes(":") &&
+    waitsForAllowedOnly &&
     SAFE_SUFFIX.test(query) &&
     SAFE_SUFFIX.test(anchor)
   );
+};
+
+/*
+ * The record a DashboardPage citation opens a page of (#7065), by its id,
+ * or undefined: only for a route that waits for one, and an id that is one.
+ */
+export const getDashboardPageRecordId: (
+  target: AIChatCitationTarget | undefined,
+) => string | undefined = (
+  target: AIChatCitationTarget | undefined,
+): string | undefined => {
+  if (target?.type !== AIChatCitationTargetType.DashboardPage) {
+    return undefined;
+  }
+
+  const path: string | undefined = target.params?.["path"];
+  const recordId: string | undefined = target.params?.["recordId"];
+
+  if (
+    typeof path !== "string" ||
+    !path.split(/[?#]/)[0]!.split("/").includes(RouteParams.ModelID) ||
+    !isRecordId(recordId)
+  ) {
+    return undefined;
+  }
+
+  return recordId;
 };
 
 // The Dashboard page a DashboardPage citation opens, as a route template, or undefined.
@@ -83,7 +145,40 @@ export const getDashboardPageTemplate: (
 
   const path: string | undefined = target.params?.["path"];
 
-  return isDashboardRouteTemplate(path) ? path : undefined;
+  return isDashboardRouteTemplate(path, {
+    recordId: getDashboardPageRecordId(target),
+  })
+    ? path
+    : undefined;
+};
+
+/*
+ * The name of the record a DashboardPage citation opens a page of, as the
+ * server read it for the person (#7065), trimmed, or undefined.
+ */
+export const getDashboardPageRecordTitle: (
+  target: AIChatCitationTarget | undefined,
+) => string | undefined = (
+  target: AIChatCitationTarget | undefined,
+): string | undefined => {
+  if (!getDashboardPageRecordId(target)) {
+    return undefined;
+  }
+
+  const title: unknown = target?.params?.["recordTitle"];
+
+  if (typeof title !== "string") {
+    return undefined;
+  }
+
+  const trimmed: string = title
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001F\u007F]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_RECORD_TITLE_CHARS);
+
+  return trimmed || undefined;
 };
 
 /*
@@ -129,6 +224,11 @@ export interface AskAiAnswerPageLink {
    * tool: "PagerDuty" }, #8834).
    */
   titleValues?: Record<string, string> | undefined;
+  /*
+   * For a page of one record (#7065), the record's name as the server
+   * read it for the person: "Acme Status", drawn beside the page's name.
+   */
+  recordTitle?: string | undefined;
   target: AIChatCitationTarget;
 }
 
@@ -190,7 +290,8 @@ export const readTitleValues: (
  * The Dashboard pages an answer sends the reader to: each DashboardPage
  * citation the answer's text cites, that opens one of the Dashboard's own
  * pages, once, in the order the answer names them - drawn under it as
- * buttons. A page the model looked up but did not cite is not one.
+ * buttons. A page the model looked up but did not cite is not one. The
+ * same page of two records is two pages.
  */
 export const getAnswerPageLinks: (
   text: string,
@@ -200,7 +301,7 @@ export const getAnswerPageLinks: (
   citations: ReadonlyArray<AIChatCitation>,
 ): Array<AskAiAnswerPageLink> => {
   const links: Array<AskAiAnswerPageLink> = [];
-  const seenPaths: Set<string> = new Set<string>();
+  const seenPages: Set<string> = new Set<string>();
 
   for (const match of text.matchAll(CITATION_MARK)) {
     const citation: AIChatCitation | undefined = citations.find(
@@ -209,24 +310,32 @@ export const getAnswerPageLinks: (
       },
     );
     const path: string | undefined = getDashboardPageTemplate(citation?.target);
+    const recordId: string | undefined = getDashboardPageRecordId(
+      citation?.target,
+    );
+    const pageKey: string = `${path || ""} ${recordId || ""}`;
 
-    if (!citation || !path || seenPaths.has(path)) {
+    if (!citation || !path || seenPages.has(pageKey)) {
       continue;
     }
 
-    seenPaths.add(path);
+    seenPages.add(pageKey);
 
     const title: string = citation.target?.params?.["title"] || citation.label;
     const titleKey: string | undefined = citation.target?.params?.["titleKey"];
     const titleValues: Record<string, string> | undefined = titleKey
       ? readTitleValues(citation.target?.params?.["titleValues"])
       : undefined;
+    const recordTitle: string | undefined = getDashboardPageRecordTitle(
+      citation.target,
+    );
 
     links.push({
       citationId: citation.id,
       title,
       titleKey: titleKey || title,
       ...(titleValues ? { titleValues } : {}),
+      ...(recordTitle ? { recordTitle } : {}),
       target: citation.target!,
     });
   }

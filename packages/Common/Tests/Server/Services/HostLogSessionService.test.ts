@@ -160,6 +160,12 @@ beforeEach(() => {
   }) => {
     return matching(args.query);
   }) as never);
+  // The sessions a cancel writes, as the update path reads and holds them.
+  jest
+    .spyOn(HostLogSessionService, "findRowsAndHoldUpdateToThem")
+    .mockImplementation((async (updateBy: UpdateBy<HostLogSession>) => {
+      return matching(updateBy.query as Record<string, unknown>);
+    }) as never);
   jest
     .spyOn(HostLogSessionService, "updateOneById")
     .mockImplementation((async (args: {
@@ -306,6 +312,26 @@ describe("changing a log session", () => {
     expect(data.status).toBe(HostLogSessionStatus.Cancelled);
     expect(data.statusMessage).toBe(CANCELLED_MESSAGE);
     expect(data.endedAt).toBeInstanceOf(Date);
+  });
+
+  test("the sessions it checks are the ones it cancels: read held, never by its query", async () => {
+    const open: HostLogSession = session({
+      status: HostLogSessionStatus.Collecting,
+    });
+    sessions = [open];
+
+    const update: UpdateBy<HostLogSession> = updateBy(
+      { status: HostLogSessionStatus.Cancelled },
+      open._id!.toString(),
+    );
+
+    await hooks.onBeforeUpdate(update);
+
+    // UpdateChecksReadHeldRows: the cancel is held to the sessions read.
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledWith(update, { _id: true, status: true });
+    expect(HostLogSessionService.findBy).not.toHaveBeenCalled();
   });
 
   test("cancelling is the only change a person makes", async () => {

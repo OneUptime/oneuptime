@@ -145,6 +145,7 @@ import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
 import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
+import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -1522,6 +1523,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * keeps.
    */
   new RequireTokenToAcknowledgeOnCallPages(),
+  /*
+   * Keeps every Metrics monitor over a device management connection's
+   * check-ins reading the Android devices it read when it was made
+   * (oneuptime.managed_device.platform = "android"), now that an Esper
+   * connection imports its Apple devices too (#9837): an iPad checks in
+   * hours apart, and would open an alert within the hour. Postgres only,
+   * idempotent, a page of monitors at a time by id; independent of the ones
+   * before it, before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new KeepManagedDeviceCheckInMonitorsOnAndroid(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

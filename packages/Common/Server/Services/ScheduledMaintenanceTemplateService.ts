@@ -31,6 +31,20 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment, {
   OwnersAdded,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import MaintenanceTemplateSchedule, {
+  MaintenanceTemplateScheduleColumns,
+} from "../../Types/ScheduledMaintenance/MaintenanceTemplateSchedule";
+import Timezone from "../../Types/Timezone";
+import User from "../../Models/DatabaseModels/User";
+import UserService from "./UserService";
+
+// A template's time zone that is not one.
+export const TIMEZONE_NOT_A_TIME_ZONE: string =
+  'The timezone must be an IANA time zone name, such as "Europe/Berlin", "America/New_York" or "UTC". Events from the template keep the same time of day there all year.';
+
+// A recurring template whose interval cannot be stepped through.
+export const RECURRING_INTERVAL_NOT_READABLE: string =
+  "The recurring interval must be a number of hours, days, weeks, months or years.";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -125,19 +139,61 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
-  public getNextEventTime(data: {
-    dateAndTime: Date;
-    recurringInterval: Recurring;
-  }): Date {
-    // check if firstScheduledAt is in the future, and if yes return that.
+  /*
+   * When a template on this schedule creates its next event: its first
+   * event while that is still ahead, else the schedule's first event after
+   * now, every event its first one moved on whole intervals of the
+   * template's own clock (MaintenanceTemplateSchedule) - so a daily 02:00
+   * window stays at 02:00 there when the clocks change, and a monthly one
+   * on the 1st stays on the 1st. Undefined while any part of the schedule
+   * is missing.
+   */
+  public getNextEventTime(
+    template: MaintenanceTemplateScheduleColumns,
+  ): Date | undefined {
+    return MaintenanceTemplateSchedule.getNextEventAt(template);
+  }
 
-    if (OneUptimeDate.isInTheFuture(data.dateAndTime)) {
-      return data.dateAndTime;
+  /*
+   * The time zone a template is created with: the one it is sent with,
+   * else the one in the profile of the person creating it - the clock the
+   * dashboard showed them its times on - else UTC, for a template no
+   * person creates (an API key, a workflow). One that is not a time zone is
+   * refused.
+   */
+  private async getCreateTimezone(
+    written: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Timezone> {
+    if (!MaintenanceTemplateSchedule.isTimezoneWritable(written)) {
+      throw new BadDataException(TIMEZONE_NOT_A_TIME_ZONE);
     }
 
-    // if not then calculate the next event time.
+    const sent: Timezone | undefined =
+      MaintenanceTemplateSchedule.toTimezone(written);
 
-    return Recurring.getNextDate(data.dateAndTime, data.recurringInterval);
+    if (sent) {
+      return sent;
+    }
+
+    if (!props.userId) {
+      return MaintenanceTemplateSchedule.DEFAULT_TIMEZONE;
+    }
+
+    const user: User | null = await UserService.findOneById({
+      id: props.userId,
+      select: {
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return (
+      MaintenanceTemplateSchedule.toCurrentTimezone(user?.timezone) ||
+      MaintenanceTemplateSchedule.DEFAULT_TIMEZONE
+    );
   }
 
   @CaptureSpan()
@@ -159,6 +215,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.validateEventTemplate(createBy.data);
 
+    createBy.data.timezone = await this.getCreateTimezone(
+      createBy.data.timezone,
+      createBy.props,
+    );
+
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: createBy.props.tenantId || createBy.data.projectId,
       subject: "scheduled maintenance template",
@@ -173,10 +234,15 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (createBy.data.isRecurringEvent) {
       // if all is good then the next scheduled at time should be set.
-      createBy.data.scheduleNextEventAt = this.getNextEventTime({
-        dateAndTime: createBy.data.firstEventScheduledAt!,
-        recurringInterval: createBy.data.recurringInterval!,
-      });
+      const nextEventAt: Date | undefined = this.getNextEventTime(
+        createBy.data,
+      );
+
+      if (!nextEventAt) {
+        throw new BadDataException(RECURRING_INTERVAL_NOT_READABLE);
+      }
+
+      createBy.data.scheduleNextEventAt = nextEventAt;
     } else {
       /*
        * A template that does not recur has no next event (see
@@ -200,6 +266,22 @@ export class Service extends ProjectReferencesService<Model> {
 
     const newTemplate: QueryDeepPartialEntity<Model> = updateBy.data;
 
+    /*
+     * A time zone sent as nothing reads as UTC, as a template without one
+     * always has; one that is not a time zone is refused.
+     */
+    if (Object.keys(newTemplate).includes("timezone")) {
+      if (
+        !MaintenanceTemplateSchedule.isTimezoneWritable(newTemplate.timezone)
+      ) {
+        throw new BadDataException(TIMEZONE_NOT_A_TIME_ZONE);
+      }
+
+      newTemplate.timezone = MaintenanceTemplateSchedule.getTimezone(
+        newTemplate.timezone,
+      );
+    }
+
     const existingTemplates: Array<Model> =
       await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
@@ -209,6 +291,7 @@ export class Service extends ProjectReferencesService<Model> {
         firstEventEndsAt: true,
         firstEventStartsAt: true,
         scheduleNextEventAt: true,
+        timezone: true,
       });
 
     // Whether any template the update writes still recurs once it is written.
@@ -251,6 +334,12 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (Object.keys(newTemplate).includes("firstEventStartsAt")) {
         firstEventStartsAt = newTemplate.firstEventStartsAt as Date;
+      }
+
+      let timezone: unknown = template.timezone;
+
+      if (Object.keys(newTemplate).includes("timezone")) {
+        timezone = newTemplate.timezone;
       }
 
       if (isRecurring) {
@@ -307,20 +396,23 @@ export class Service extends ProjectReferencesService<Model> {
           );
         }
 
-        // check if firstEventScheduledAt is in the future, and if yes return that.
-        if (OneUptimeDate.isInTheFuture(firstEventScheduledAt)) {
-          // if it is in the future, then we do not need to change the next scheduled time.
-          newTemplate.scheduleNextEventAt = firstEventScheduledAt;
-        } else {
-          // if it is not in the future, then we need to calculate the next scheduled time.
+        /*
+         * The first event while it is still ahead, else the schedule's
+         * first event after now, on the template's clock.
+         */
+        const nextEventAt: Date | undefined = this.getNextEventTime({
+          firstEventScheduledAt: firstEventScheduledAt,
+          firstEventStartsAt: firstEventStartsAt,
+          firstEventEndsAt: firstEventEndsAt,
+          recurringInterval: recurringInterval,
+          timezone: timezone,
+        });
 
-          // now get next interval time.
-
-          newTemplate.scheduleNextEventAt = this.getNextEventTime({
-            dateAndTime: firstEventScheduledAt,
-            recurringInterval: recurringInterval,
-          });
+        if (!nextEventAt) {
+          throw new BadDataException(RECURRING_INTERVAL_NOT_READABLE);
         }
+
+        newTemplate.scheduleNextEventAt = nextEventAt;
       }
     }
 

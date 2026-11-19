@@ -366,15 +366,24 @@ describe("LogAggregationService analytics: a sum of an attribute", () => {
   }
 
   test("sum is one of the aggregations the route accepts", () => {
-    expect(ANALYTICS_AGGREGATIONS).toEqual(["count", "unique", "sum"]);
+    expect(ANALYTICS_AGGREGATIONS).toContain("sum");
   });
 
+  /*
+   * Read as every aggregation of a number reads it (#7716,
+   * LogNumericAttributeSql): a missing or non-numeric frame count is left
+   * out by the WHERE clause, and a "nan" or "inf" one no longer turns the
+   * whole bucket's total into NaN.
+   */
   test("adds up the attribute read as a number, which a missing or non-numeric value leaves out", () => {
     const statement: Statement = tableStatement(frames);
     const sql: string = normalized(statement);
 
     expect(sql).toMatch(
-      /SELECT sum\(toFloat64OrZero\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
+      /SELECT sum\(toFloat64OrNull\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
+    );
+    expect(sql).toMatch(
+      /AND isFinite\(toFloat64OrNull\(attributes\[\{p\d+:String\}\]\)\) GROUP BY/,
     );
     expect(params(statement)).toContain("app.jank.frame_count");
   });
@@ -405,20 +414,19 @@ describe("LogAggregationService analytics: a sum of an attribute", () => {
     );
 
     expect(sql).toMatch(
-      /sum\(toFloat64OrZero\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
+      /sum\(toFloat64OrNull\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
     );
     expect(sql).toContain("GROUP BY bucket");
   });
 
-  // Only the code path: the logs' top-level columns hold no number to add up.
-  test("a top-level column is read through its text", () => {
-    const sql: string = normalized(
-      tableStatement({ ...frames, aggregationField: "severityText" }),
-    );
-
-    expect(sql).toContain(
-      "SELECT sum(toFloat64OrZero(toString(severityText))) AS cnt",
-    );
+  /*
+   * The logs' top-level columns hold no number to add up: their sum was
+   * always 0, and is refused now, saying what a sum reads.
+   */
+  test("a top-level column is refused", () => {
+    expect(() => {
+      return tableStatement({ ...frames, aggregationField: "severityText" });
+    }).toThrow(BadDataException);
   });
 
   test("an attribute key that is not one refuses the read", () => {

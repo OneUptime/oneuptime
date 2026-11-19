@@ -112,7 +112,9 @@ Sparade vyer hör till projektet, så alla i det ser samma vyer, och varje vy st
 
 ## Visa dina loggar i diagram
 
-Växla listan till **Analyser** för att räkna loggar i stället för att läsa dem. Välj en tidsserie, en topplista eller en tabell; räkna varje logg, eller de unika värdena i ett fält; och gruppera efter allvarlighetsgrad, tjänst, spår, span eller valfritt attribut, och sedan efter ett andra fält. En topplista eller en tabell visar de översta 5, 10, 25 eller 50 grupperna.
+Växla listan till **Analyser** för att visa loggar i diagram i stället för att läsa dem. Välj en tidsserie, en topplista eller en tabell, och vad den mäter: varje logg räknad, de unika värdena i ett fält, eller summan, genomsnittet, medianen, P90, P95, P99, minimum eller maximum av ett numeriskt attribut, som P95 av `duration_ms`. Gruppera efter allvarlighetsgrad, tjänst, spår, span eller valfritt attribut, och sedan efter ett andra fält. En topplista eller en tabell visar de översta 5, 10, 25 eller 50 grupperna.
+
+Ett numeriskt attribut läses bara där värdet är ett tal: ett heltal eller ett decimaltal, med eller utan tecken, i vetenskaplig notation eller inte, som `42`, `-7`, `3.14` eller `1e3`. En logg utan attributet, eller med något annat i det, som `12ms` eller `n/a`, utelämnas i stället för att läsas som 0. En percentil beräknas utifrån upp till 8 192 värden per punkt, så en punkt med fler loggar har en nära uppskattning i stället för det exakta värdet.
 
 Klicka på **Lista** för att gå tillbaka till själva raderna.
 

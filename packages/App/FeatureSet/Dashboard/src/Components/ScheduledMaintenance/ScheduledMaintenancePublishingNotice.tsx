@@ -1,4 +1,8 @@
-import { PublishingNoticeCopy } from "./ScheduledMaintenancePublishing";
+import {
+  PublishingNoticeCopy,
+  PublishingNoticeSentences,
+  getPublishingNoticeSentences,
+} from "./ScheduledMaintenancePublishing";
 import {
   atContainerWidth,
   EVENT_HEADER_PHONE_WIDTH_REM,
@@ -8,6 +12,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { PUBLISH_ON_STATUS_PAGE_AT_COLUMN } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
+import { MaintenanceStatusPagesReason } from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -39,6 +44,10 @@ import React, {
  * is scheduled at once. Publish Now clears the publish time, so the event is
  * published from that moment; moving the time is the Maintenance Details
  * card's Edit.
+ *
+ * It says it shows on its pages only once the server has said one of them
+ * shows maintenance events (#9974): until then that it can, and when none
+ * does, that instead of the time (getPublishingNoticeSentences).
  *
  * Words and decisions: ScheduledMaintenancePublishing.
  */
@@ -82,6 +91,11 @@ export interface ComponentProps {
   publishAt: Date;
   // Whether its subscribers are told it is scheduled when it is published.
   areSubscribersTold: boolean;
+  /*
+   * The server's answer for the status pages it is on: why none shows or
+   * notifies, null when one does, undefined while it is not known.
+   */
+  statusPagesReason: MaintenanceStatusPagesReason;
   // Called once the event is published, to read it again.
   onPublished: () => void;
 }
@@ -134,6 +148,11 @@ const ScheduledMaintenancePublishingNotice: FunctionComponent<
 
   const isButtonShown: boolean = gate.isAllowed || Boolean(gate.disabledReason);
 
+  const sentences: PublishingNoticeSentences = getPublishingNoticeSentences({
+    statusPagesReason: props.statusPagesReason,
+    areSubscribersTold: props.areSubscribersTold,
+  });
+
   const publishNow: () => Promise<void> = async (): Promise<void> => {
     if (isPublishingRef.current) {
       return;
@@ -179,15 +198,20 @@ const ScheduledMaintenancePublishingNotice: FunctionComponent<
             {translator.translateText(PublishingNoticeCopy.title)}
           </p>
           <p className="mt-0.5 text-sm text-gray-700">
+            {/*
+             * A slot the sentence does not name would read as a translation
+             * that lost it, and fall back to English: the time is handed
+             * over only to a sentence that says it.
+             */}
             <TranslatedSentence
-              template={
-                props.areSubscribersTold
-                  ? PublishingNoticeCopy.showsFromAndTold
-                  : PublishingNoticeCopy.showsFrom
+              template={sentences.band}
+              slots={
+                sentences.namesTheTime
+                  ? {
+                      time: <PublishTime date={props.publishAt} />,
+                    }
+                  : {}
               }
-              slots={{
-                time: <PublishTime date={props.publishAt} />,
-              }}
             />
           </p>
         </div>
@@ -221,11 +245,7 @@ const ScheduledMaintenancePublishingNotice: FunctionComponent<
       {isConfirming ? (
         <ConfirmModal
           title={PublishingNoticeCopy.confirmTitle}
-          description={
-            props.areSubscribersTold
-              ? PublishingNoticeCopy.confirmDescriptionAndTold
-              : PublishingNoticeCopy.confirmDescription
-          }
+          description={sentences.confirmation}
           submitButtonText={PublishingNoticeCopy.publishNow}
           submitButtonType={ButtonStyleType.PRIMARY}
           isLoading={isPublishing}

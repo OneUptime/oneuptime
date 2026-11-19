@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CLOUD_ADDED_METRIC_REFUSALS,
   CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
   CLOUD_MAX_ADDED_METRICS_PER_RESOURCE,
@@ -7,9 +8,11 @@ import {
   CloudAddedMetricScope,
   addCloudAddedMetric,
   getCloudAddedMetricKey,
+  getCloudAddedMetricSplitAttribute,
   getCloudAddedMetricStoredName,
   getCloudAddedMetricsOfResource,
   getCloudAddedMetricsOfType,
+  isCloudAddedMetricSplit,
   readCloudAddedMetrics,
   removeCloudAddedMetric,
   toStoredCloudAddedMetrics,
@@ -491,5 +494,98 @@ describe("removing one", () => {
     expect(
       removeCloudAddedMetric({ added: [azure()], key: "not-there" }),
     ).toEqual([azure()]);
+  });
+});
+
+/*
+ * #9808: an addition split by one of its dimensions - an Azure dimension,
+ * a CloudWatch dimension, a Cloud Monitoring label - kept only where a
+ * split read can name it, and the attribute its series carry the value in.
+ */
+describe("an addition split by a dimension", () => {
+  test("is kept with its split, read back from the connection as stored", () => {
+    const [read] = readCloudAddedMetrics(
+      toStoredCloudAddedMetrics([azure({ splitBy: "ApiName" })]),
+    );
+
+    expect(read!.splitBy).toBe("ApiName");
+    // The split is no part of its key: a metric is read once, split or whole.
+    expect(read!.key).toBe(azure().key);
+  });
+
+  test("a split no read could name is dropped as it is read back, and refused as it is added", () => {
+    const [read] = readCloudAddedMetrics({
+      metrics: [{ ...azure(), splitBy: "Api Name' or 1 eq 1" }],
+    });
+
+    expect(read!.splitBy).toBeUndefined();
+    expect(() => {
+      validateCloudAddedMetric(azure({ splitBy: "Api Name" }));
+    }).toThrow(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]!);
+    expect(() => {
+      validateCloudAddedMetric(azure({ splitBy: "ApiName" }));
+    }).not.toThrow();
+    expect(isCloudAddedMetricSplit(CloudProvider.AWS, "AvailabilityZone")).toBe(
+      true,
+    );
+    expect(isCloudAddedMetricSplit(CloudProvider.AWS, " Padded ")).toBe(false);
+    expect(isCloudAddedMetricSplit(CloudProvider.AWS, "Tab\there")).toBe(false);
+    expect(isCloudAddedMetricSplit(CloudProvider.GCP, "response_code")).toBe(
+      true,
+    );
+    expect(isCloudAddedMetricSplit(CloudProvider.GCP, "response-code")).toBe(
+      false,
+    );
+  });
+
+  test("Google Cloud splits a rate or a level, by the resource's labels it keeps", () => {
+    const gcp: (overrides: Partial<CloudAddedMetric>) => CloudAddedMetric = (
+      overrides: Partial<CloudAddedMetric>,
+    ): CloudAddedMetric => {
+      return azure({
+        provider: CloudProvider.GCP,
+        resourceType: "gce_instance",
+        name: "compute.googleapis.com/instance/disk/max_read_ops_count",
+        aggregation: "ALIGN_RATE",
+        grain: undefined,
+        splitBy: "device_name",
+        resourceLabelKeys: ["instance_id", "project_id", "zone"],
+        ...overrides,
+      });
+    };
+
+    expect(() => {
+      validateCloudAddedMetric(gcp({}));
+    }).not.toThrow();
+    expect(() => {
+      validateCloudAddedMetric(gcp({ aggregation: "ALIGN_PERCENTILE_95" }));
+    }).toThrow(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]!);
+    expect(() => {
+      validateCloudAddedMetric(gcp({ resourceLabelKeys: undefined }));
+    }).toThrow(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]!);
+    expect(
+      readCloudAddedMetrics(
+        toStoredCloudAddedMetrics([
+          gcp({ resourceLabelKeys: ["zone", "bad-key", "instance_id"] }),
+        ]),
+      )[0]!.resourceLabelKeys,
+    ).toEqual(["zone", "instance_id"]);
+  });
+
+  test("its series carry the value as each cloud's receivers write the dimension", () => {
+    expect(
+      getCloudAddedMetricSplitAttribute(azure({ splitBy: "ApiName" })),
+    ).toBe("metadata_apiname");
+    expect(
+      getCloudAddedMetricSplitAttribute(aws({ splitBy: "AvailabilityZone" })),
+    ).toBe("Dimensions.AvailabilityZone");
+    expect(
+      getCloudAddedMetricSplitAttribute({
+        provider: CloudProvider.GCP,
+        splitBy: "response_code_class",
+      }),
+    ).toBe("response_code_class");
+    expect(getCloudAddedMetricSplitAttribute(azure())).toBe("");
+    expect(CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES).toBe(10);
   });
 });

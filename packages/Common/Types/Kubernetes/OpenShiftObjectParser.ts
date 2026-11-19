@@ -8,7 +8,9 @@ import {
   getKvValue,
   parseConditions,
   parseMetadata,
+  readPodTemplateSecurity,
 } from "./KubernetesObjectParser";
+import { PodSecurity } from "./KubernetesPodSecurity";
 
 /*
  * ------------------------------------------------------------------
@@ -115,6 +117,11 @@ export interface OpenShiftDeploymentConfigObject {
     // spec.triggers[].type: ConfigChange, ImageChange.
     triggers: Array<string>;
     paused: boolean;
+    /*
+     * What its pod template says about its pods' security (#9880), scored
+     * while it runs no pod. Optional: stored before it was read.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     latestVersion: number;
@@ -279,6 +286,15 @@ export function parseRouteObject(
   }
 }
 
+// Its pod template's security block, only when the template was read (#9880).
+function readTemplateSecurity(specKv: JSONObject | undefined): {
+  security?: PodSecurity;
+} {
+  const security: PodSecurity | undefined = readPodTemplateSecurity(specKv);
+
+  return security ? { security } : {};
+}
+
 export function parseDeploymentConfigObject(
   objectKvList: JSONObject,
 ): OpenShiftDeploymentConfigObject | null {
@@ -307,6 +323,7 @@ export function parseDeploymentConfigObject(
             return type.length > 0;
           }),
         paused: kvBoolean(specKv, "paused"),
+        ...readTemplateSecurity(specKv),
       },
       status: {
         latestVersion: kvInteger(statusKv, "latestVersion"),

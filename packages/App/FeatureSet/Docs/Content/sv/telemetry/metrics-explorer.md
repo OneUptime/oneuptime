@@ -72,6 +72,8 @@ Under **Aggregera efter** väljer du hur värdena i varje punkt i diagrammet kom
 
 Varje fråga ritar sitt eget diagram. För att rita en fråga i samma diagram som den före den slår du på **Lägg över föregående fråga** i dess **Visningsinställningar**.
 
+Ett överlagrat diagram läser sin vänstra värdeaxel i sin första frågas enhet och räknar om en fråga i en annan enhet av samma slag till den, som megabyte i ett diagram i gigabyte. En fråga i en enhet av ett annat slag, som byte i ett diagram i procent, ritas mot en andra värdeaxel till höger i diagrammet, i sin egen enhet, och förklaringen under diagrammet anger vilken axel varje serie ritas mot. Bara ett tredje slags enhet passar inte på någon av axlarna: den ritas mot vänster axel, och både diagrammet och brytaren säger det.
+
 ## Kombinera frågor med en formel
 
 :::steps

@@ -837,7 +837,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                      * query first, with no chart before it to join.
                      */
                     canOverlayWithPreviousQuery={index + primaryOffset > 0}
-                    overlayChartQuery={MetricQueryOverlay.getChartLead(
+                    overlayChartQueries={MetricQueryOverlay.getChartQueriesBefore(
                       chartQueryConfigs,
                       index + primaryOffset,
                     )}

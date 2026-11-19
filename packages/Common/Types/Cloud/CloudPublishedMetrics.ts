@@ -55,6 +55,17 @@ export const CLOUD_PUBLISHED_METRIC_BLOCK_REASONS: Readonly<
   ),
 };
 
+/*
+ * A dimension a metric can be read split by (#9808): its name as its cloud
+ * names it, in words where the cloud gives them, and - where the listing
+ * saw them (AWS) - how many values the resource has of it now.
+ */
+export interface CloudPublishedMetricSplit {
+  name: string;
+  displayName?: string | undefined;
+  values?: number | undefined;
+}
+
 export interface CloudPublishedMetric {
   /*
    * The cloud's own name: Azure Monitor's, CloudWatch's, or a Cloud
@@ -77,6 +88,15 @@ export interface CloudPublishedMetric {
   grain?: string | undefined;
   // AWS: the resource's own series of it.
   dimensions?: Array<CloudAddedMetricDimension> | undefined;
+  /*
+   * The dimensions it can be split by when added (#9808), and whether its
+   * cloud reads it only so: an Azure metric whose definition requires a
+   * dimension, an AWS metric the resource publishes only per value of one.
+   */
+  splits?: Array<CloudPublishedMetricSplit> | undefined;
+  isSplitRequired?: boolean | undefined;
+  // An addition's: the dimension it is split by.
+  addedSplitBy?: string | undefined;
   status: CloudPublishedMetricStatus;
   // An added metric's key (CloudAddedMetric.key) and for what it is read.
   addedKey?: string | undefined;
@@ -114,6 +134,17 @@ function readText(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/*
+ * A listed metric's unit as the list shows it: as its cloud writes it, but
+ * nothing for a cloud's own word for no unit - CloudWatch's "None", Azure
+ * Monitor's "Unspecified" - which is not one (#9809).
+ */
+export function getCloudPublishedMetricUnitText(unit: string): string {
+  const trimmed: string = (unit || "").trim();
+
+  return ["none", "unspecified"].includes(trimmed.toLowerCase()) ? "" : trimmed;
+}
+
 function readMetric(value: unknown): CloudPublishedMetric | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -145,6 +176,7 @@ function readMetric(value: unknown): CloudPublishedMetric | null {
     "namespace",
     "grain",
     "addedKey",
+    "addedSplitBy",
   ] as const) {
     const text: string = readText(raw[field]);
 
@@ -165,6 +197,46 @@ function readMetric(value: unknown): CloudPublishedMetric | null {
     (Object.values(CloudPublishedMetricBlock) as Array<string>).includes(block)
   ) {
     metric.block = block as CloudPublishedMetricBlock;
+  }
+
+  if (Array.isArray(raw["splits"])) {
+    metric.splits = (raw["splits"] as Array<unknown>)
+      .map((item: unknown): CloudPublishedMetricSplit | null => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return null;
+        }
+
+        const split: Record<string, unknown> = item as Record<string, unknown>;
+        const splitName: string = readText(split["name"]);
+
+        if (!splitName) {
+          return null;
+        }
+
+        const displayName: string = readText(split["displayName"]);
+        const values: unknown = split["values"];
+
+        return {
+          name: splitName,
+          ...(displayName && displayName !== splitName ? { displayName } : {}),
+          ...(typeof values === "number" &&
+          Number.isFinite(values) &&
+          values >= 0
+            ? { values: Math.floor(values) }
+            : {}),
+        };
+      })
+      .filter(
+        (
+          item: CloudPublishedMetricSplit | null,
+        ): item is CloudPublishedMetricSplit => {
+          return item !== null;
+        },
+      );
+  }
+
+  if (raw["isSplitRequired"] === true) {
+    metric.isSplitRequired = true;
   }
 
   if (Array.isArray(raw["dimensions"])) {

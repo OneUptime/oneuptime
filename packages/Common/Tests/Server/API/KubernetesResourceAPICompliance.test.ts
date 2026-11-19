@@ -5,6 +5,7 @@ import KubernetesResourceAPI from "../../../Server/API/KubernetesResourceAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import KubernetesClusterCompliance from "../../../Server/Utils/Kubernetes/KubernetesClusterCompliance";
+import KubernetesClusterComplianceSummary from "../../../Server/Utils/Kubernetes/KubernetesClusterComplianceSummary";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
 import ProductSwitchedOffException from "../../../Types/Exception/ProductSwitchedOffException";
@@ -83,6 +84,7 @@ describe("KubernetesResourceAPI compliance", () => {
   let nextFunction: NextFunction;
   let findOneById: jest.SpyInstance;
   let readCompliance: jest.SpyInstance;
+  let storeSummary: jest.SpyInstance;
   let answer: KubernetesComplianceResponse;
 
   beforeAll(() => {
@@ -122,6 +124,9 @@ describe("KubernetesResourceAPI compliance", () => {
     readCompliance = jest
       .spyOn(KubernetesClusterCompliance, "readCompliance")
       .mockResolvedValue(answer);
+    storeSummary = jest
+      .spyOn(KubernetesClusterComplianceSummary, "storeQuietly")
+      .mockResolvedValue(undefined);
 
     mockResponse = {
       cookie: jest.fn(),
@@ -230,6 +235,8 @@ describe("KubernetesResourceAPI compliance", () => {
     );
     expect(findOneById).not.toHaveBeenCalled();
     expect(readCompliance).not.toHaveBeenCalled();
+    // Nor is a summary kept (#9876).
+    expect(storeSummary).not.toHaveBeenCalled();
   });
 
   test("goes on to score the cluster while Kubernetes is on, whatever else is off", async () => {
@@ -303,7 +310,7 @@ describe("KubernetesResourceAPI compliance", () => {
     ).toBe("arn:eks:prod");
   });
 
-  test("passes a read that fails on to the error handler", async () => {
+  test("passes a read that fails on to the error handler, keeping no summary", async () => {
     findOneById.mockResolvedValue(cluster());
     readCompliance.mockRejectedValue(new Error("database is down"));
 
@@ -311,5 +318,34 @@ describe("KubernetesResourceAPI compliance", () => {
 
     expect(call.nextCallCount).toBe(1);
     expect((call.thrown as Error).message).toBe("database is down");
+    expect(storeSummary).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #9876: the answer just worked out is the cluster's summary now, so
+   * Kubernetes' Compliance page shows a switch just flipped, or a finding
+   * just accepted, without waiting for the next refresh.
+   */
+  test("keeps the answer it read as the cluster's compliance summary, then answers", async () => {
+    findOneById.mockResolvedValue(cluster());
+
+    const before: number = Date.now();
+    const call: RouteCall = await callRoute(clusterId.toString());
+
+    expect(call.nextCallCount).toBe(0);
+    expect(storeSummary).toHaveBeenCalledTimes(1);
+
+    const stored: {
+      clusterId: ObjectID;
+      compliance: KubernetesComplianceResponse;
+      refreshedAt: Date;
+    } = storeSummary.mock.calls[0]![0] as never;
+
+    expect(stored.clusterId.toString()).toBe(clusterId.toString());
+    expect(stored.compliance).toBe(answer);
+    expect(stored.refreshedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(
+      (Response.sendJsonObjectResponse as jest.Mock).mock.calls[0]![2],
+    ).toEqual(answer);
   });
 });
