@@ -118,6 +118,29 @@ export interface StreamedReadingPeriod {
 }
 
 /*
+ * Whether a type keeps a reading of this key (isCloudReadingKeyOfType),
+ * asked for every datapoint of a key metric a delivery writes: answered
+ * once for each type and key. There are a few thousand of those at most.
+ */
+const READING_OF_TYPE: Map<string, boolean> = new Map<string, boolean>();
+
+function isAwsReadingOfType(resourceType: string, key: string): boolean {
+  const pair: string = `${resourceType}\n${key}`;
+  let isReading: boolean | undefined = READING_OF_TYPE.get(pair);
+
+  if (isReading === undefined) {
+    isReading = isCloudReadingKeyOfType({
+      provider: CloudProvider.AWS,
+      resourceType,
+      key,
+    });
+    READING_OF_TYPE.set(pair, isReading);
+  }
+
+  return isReading;
+}
+
+/*
  * One streamed minute of a key metric's series, as a minute of a reading -
  * or null when the resource's type keeps no reading of it
  * (isCloudReadingKeyOfType), or the minute holds no value.
@@ -144,11 +167,7 @@ export function toStreamedReadingMinute(data: {
 
   if (
     !key ||
-    !isCloudReadingKeyOfType({
-      provider: CloudProvider.AWS,
-      resourceType: data.resource.resourceType,
-      key,
-    }) ||
+    !isAwsReadingOfType(data.resource.resourceType, key) ||
     !(data.count > 0) ||
     !Number.isFinite(data.sum) ||
     !Number.isFinite(data.minuteMs)
