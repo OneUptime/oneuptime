@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "La URL de cierre de sesión único de tu proveedor de identidad. Necesaria para cerrar también allí la sesión de las personas.",
   "Single Logout URL:": "URL de Single Logout:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Para cerrar también la sesión de las personas en el proveedor de identidad, dale también la URL de Single Logout y el certificado de firma de OneUptime.",
-  "Download Signing Certificate": "Descargar certificado de firma"
+  "Download Signing Certificate": "Descargar certificado de firma",
+  "Team and Label Budgets Today": "Presupuestos de equipos y etiquetas de hoy",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "Lo que enviaron hoy los servicios de cada equipo y etiqueta. Cuando un presupuesto se agota, su telemetría se descarta hasta el {{resetsAt}}, y el resto del proyecto sigue enviando.",
+  "Label": "Etiqueta",
+  "Team or Label": "Equipo o etiqueta",
+  "This team's own": "Propio de este equipo",
+  "This label's own": "Propio de esta etiqueta"
 }

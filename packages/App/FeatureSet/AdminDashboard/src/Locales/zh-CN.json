@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身份提供商的单点退出登录 URL。要让用户同时退出身份提供商的登录时需要它。",
   "Single Logout URL:": "单点注销 URL：",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "要让用户同时退出身份提供商的登录，还需将单点注销 URL 和 OneUptime 的签名证书提供给身份提供商。",
-  "Download Signing Certificate": "下载签名证书"
+  "Download Signing Certificate": "下载签名证书",
+  "Team and Label Budgets Today": "今天的团队和标签预算",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "每个团队和标签的服务今天发送的量。预算一旦用完，它们的遥测数据会被丢弃，直到 {{resetsAt}}，项目的其余部分仍可继续发送。",
+  "Label": "标签",
+  "Team or Label": "团队或标签",
+  "This team's own": "此团队自有",
+  "This label's own": "此标签自有"
 }

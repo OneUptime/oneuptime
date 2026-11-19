@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다.",
   "Single Logout URL:": "단일 로그아웃 URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
-  "Download Signing Certificate": "서명 인증서 다운로드"
+  "Download Signing Certificate": "서명 인증서 다운로드",
+  "Team and Label Budgets Today": "오늘의 팀 및 레이블 예산",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "각 팀과 레이블의 서비스가 오늘 보낸 양입니다. 예산이 소진되면 {{resetsAt}}까지 해당 텔레메트리가 삭제되며, 프로젝트의 나머지는 계속 전송합니다.",
+  "Label": "레이블",
+  "Team or Label": "팀 또는 레이블",
+  "This team's own": "이 팀의 자체 예산",
+  "This label's own": "이 레이블의 자체 예산"
 }

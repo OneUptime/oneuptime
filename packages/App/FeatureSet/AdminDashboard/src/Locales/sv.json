@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsleverantörens URL för gemensam utloggning (Single Sign-out). Behövs för att logga ut personer där också.",
   "Single Logout URL:": "Single Logout-URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Om personer också ska loggas ut från identitetsleverantören ger du den även Single Logout-URL:en och OneUptimes signeringscertifikat.",
-  "Download Signing Certificate": "Ladda ned signeringscertifikat"
+  "Download Signing Certificate": "Ladda ned signeringscertifikat",
+  "Team and Label Budgets Today": "Team- och etikettbudgetar i dag",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "Vad tjänsterna för varje team och etikett har skickat i dag. När en budget är förbrukad kastas deras telemetri till {{resetsAt}}, och resten av projektet fortsätter att skicka.",
+  "Label": "Etikett",
+  "Team or Label": "Team eller etikett",
+  "This team's own": "Teamets egen",
+  "This label's own": "Etikettens egen"
 }

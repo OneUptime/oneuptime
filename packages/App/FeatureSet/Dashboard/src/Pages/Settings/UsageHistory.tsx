@@ -14,7 +14,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -29,6 +34,19 @@ import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIn
 import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { isExceptionBillingProductType } from "Common/Types/Telemetry/ExceptionSource";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import {
+  FOLDED_SECTION_ON,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import TeamLabelBudgetsTable, {
+  TEAM_LABEL_BUDGETS_CARD_TITLE,
+} from "../../Components/TelemetryIngestionBudget/TeamLabelBudgetsTable";
+import TelemetryUsageMetricsSwitch, {
+  TELEMETRY_USAGE_METRICS_CARD_TITLE,
+} from "../../Components/TelemetryUsage/TelemetryUsageMetricsSwitch";
+
+export const USAGE_MORE_SETTINGS_TEST_ID: string = "usage-more-settings";
 
 export type ComponentProps = PageComponentProps;
 
@@ -50,6 +68,10 @@ const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // What the More settings fold names while folded (issues #6355, #6386).
+  const [teamLabelBudgetCount, setTeamLabelBudgetCount] = useState<number>(0);
+  const [isPublishingUsageMetrics, setIsPublishingUsageMetrics] =
+    useState<boolean>(false);
 
   return (
     <Fragment>
@@ -248,10 +270,19 @@ const Settings: FunctionComponent<ComponentProps> = (
                   ?.value || 0,
               );
 
+              const dataIngestedInGB: Decimal | undefined = item[
+                "dataIngestedInGB"
+              ] as Decimal | undefined;
+
+              // A row read without its amount (a column the reader may not read) says so.
+              if (!dataIngestedInGB) {
+                return <TableEmptyValue />;
+              }
+
               return (
                 <div>
                   <div>{`${DiskSize.convertToDecimalPlaces(
-                    (item["dataIngestedInGB"] as Decimal).value as number,
+                    dataIngestedInGB.value as number,
                   )}\u00A0GB`}</div>
                   {isExceptionBillingProductType(item["productType"]) &&
                   exceptionDataIngestedInGB > 0 ? (
@@ -309,6 +340,40 @@ const Settings: FunctionComponent<ComponentProps> = (
             : []),
         ]}
       />
+
+      {/*
+       * The project's own usage settings, which most projects never change,
+       * folded under More settings: budgets for its teams and labels inside
+       * its own (#6386), and its usage as metrics (#6355). Folded, the
+       * header says how many budgets there are, and whether usage is
+       * published.
+       */}
+      <AdvancedPageSection
+        items={[
+          foldedSectionItem(TEAM_LABEL_BUDGETS_CARD_TITLE, {
+            isSet: teamLabelBudgetCount > 0,
+            value: String(teamLabelBudgetCount),
+          }),
+          foldedSectionItem(TELEMETRY_USAGE_METRICS_CARD_TITLE, {
+            isSet: isPublishingUsageMetrics,
+            value: FOLDED_SECTION_ON,
+            translateValue: true,
+          }),
+        ]}
+        dataTestId={USAGE_MORE_SETTINGS_TEST_ID}
+      >
+        <TeamLabelBudgetsTable
+          onCountChange={(count: number) => {
+            setTeamLabelBudgetCount(count);
+          }}
+        />
+
+        <TelemetryUsageMetricsSwitch
+          onChange={(isOn: boolean) => {
+            setIsPublishingUsageMetrics(isOn);
+          }}
+        />
+      </AdvancedPageSection>
     </Fragment>
   );
 };

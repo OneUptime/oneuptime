@@ -76,7 +76,7 @@ export const TEAM_LABEL_BUDGETS_STATUS_CARD_TITLE: string = translationKey(
 );
 export const TEAM_LABEL_BUDGETS_STATUS_CARD_DESCRIPTION: string =
   translationKey(
-    "What the services of each team and label sent today. Once a budget is used up, their telemetry of that signal is dropped until the budget resets at {{resetsAt}}, and the rest of the project keeps sending.",
+    "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.",
   );
 export const TEAM_SCOPE_LABEL: string = translationKey("Team");
 export const LABEL_SCOPE_LABEL: string = translationKey("Label");

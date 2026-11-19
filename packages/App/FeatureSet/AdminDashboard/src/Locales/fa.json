@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "نشانی خروج یکپارچهٔ ارائه‌دهندهٔ هویت شما. برای خارج کردن افراد از آن هم لازم است.",
   "Single Logout URL:": "نشانی خروج یکپارچه (Single Logout):",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "برای اینکه افراد از ارائه‌دهندهٔ هویت هم خارج شوند، نشانی خروج یکپارچه و گواهی امضای OneUptime را هم به آن بدهید.",
-  "Download Signing Certificate": "دانلود گواهی امضا"
+  "Download Signing Certificate": "دانلود گواهی امضا",
+  "Team and Label Budgets Today": "بودجه‌های تیم و برچسب امروز",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "آنچه سرویس‌های هر تیم و برچسب امروز فرستاده‌اند. وقتی بودجه‌ای تمام شود، تله‌متری آن‌ها تا {{resetsAt}} حذف می‌شود و بقیه پروژه به فرستادن ادامه می‌دهد.",
+  "Label": "برچسب",
+  "Team or Label": "تیم یا برچسب",
+  "This team's own": "اختصاصی این تیم",
+  "This label's own": "اختصاصی این برچسب"
 }

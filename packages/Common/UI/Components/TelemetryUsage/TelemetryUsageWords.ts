@@ -59,25 +59,6 @@ export const TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP: string = translationKey(
   "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.",
 );
 
-/*
- * The project's usage as metrics (issue #6355): a switch on the Usage page,
- * under More settings, that publishes oneuptime.telemetry.usage.bytes.
- */
-export const TELEMETRY_USAGE_METRICS_CARD_TITLE: string =
-  translationKey("Usage as Metrics");
-export const TELEMETRY_USAGE_METRICS_CARD_DESCRIPTION: string = translationKey(
-  "Chart and alert on how much telemetry each service sends, within minutes instead of the next day.",
-);
-export const TELEMETRY_USAGE_METRICS_SWITCH_TITLE: string = translationKey(
-  "Publish usage as metrics",
-);
-export const TELEMETRY_USAGE_METRICS_ON_DESCRIPTION: string = translationKey(
-  "Every 5 minutes, what each service sent of each signal is written as the metric oneuptime.telemetry.usage.bytes. It is free.",
-);
-export const TELEMETRY_USAGE_METRICS_OFF_DESCRIPTION: string = translationKey(
-  "Nothing is written, and ingest does no extra work.",
-);
-
 // What a signal's (i) says, in English: its words, or none.
 export const getTelemetryUsageSignalTooltip: (
   signal: TelemetryUsageSignal | string,
