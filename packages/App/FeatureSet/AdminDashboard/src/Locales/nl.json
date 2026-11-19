@@ -549,7 +549,12 @@
         "projectCreationCardDescription": "Bepaal wie nieuwe projecten op deze OneUptime-server kan aanmaken.",
         "projectCreationSwitchTitle": "Gebruikers projecten laten aanmaken",
         "projectCreationSwitchOnDescription": "Iedereen die op deze server is ingelogd, kan een project aanmaken.",
-        "projectCreationSwitchOffDescription": "Alleen hoofdbeheerders kunnen projecten aanmaken."
+        "projectCreationSwitchOffDescription": "Alleen hoofdbeheerders kunnen projecten aanmaken.",
+        "inviteSuggestionsCardTitle": "Uitnodigingssuggesties",
+        "inviteSuggestionsCardDescription": "Of mensen die voor een project uitnodigen iedereen met een account op deze server kunnen vinden. Laat het uit als de server meer dan één organisatie host.",
+        "inviteSuggestionsSwitchTitle": "Elk account op deze server voorstellen",
+        "inviteSuggestionsSwitchOnDescription": "Iedereen die mensen voor een project mag uitnodigen, ziet tijdens het typen de naam en het e-mailadres van elk account, gemarkeerd als Nog niet in dit project.",
+        "inviteSuggestionsSwitchOffDescription": "De uitnodigingsformulieren stellen de eigen mensen van het project voor. Hoofdbeheerders krijgen ook de andere accounts van de server aangeboden."
       },
       "email": {
         "adminNotificationCardTitle": "Admin-meldings-e-mail",
@@ -4302,5 +4307,9 @@
   "Sign Out of the Identity Provider Too": "Ook afmelden bij de identiteitsprovider",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Afmelden bij OneUptime meldt mensen ook af bij deze provider en bij elke andere app die hem gebruikt. Zet dit aan voor gedeelde computers.",
   "Sign-out Redirect URI:": "Omleidings-URI na afmelden:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registreer de omleidings-URI bij uw OIDC-identiteitsprovider, en ook de omleidings-URI na afmelden wanneer 'Ook afmelden bij de identiteitsprovider' aanstaat."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registreer de omleidings-URI bij uw OIDC-identiteitsprovider, en ook de omleidings-URI na afmelden wanneer 'Ook afmelden bij de identiteitsprovider' aanstaat.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Heeft deze persoon nog geen OneUptime-account, dan wordt het met deze naam aangemaakt.",
+  "Suggest every account on this server?": "Elk account op deze server voorstellen?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Iedereen die mensen mag uitnodigen, ziet tijdens het typen de naam en het e-mailadres van elk account. Zet dit alleen aan als elk account hier bij één organisatie hoort.",
+  "Suggest Every Account": "Elk account voorstellen"
 }

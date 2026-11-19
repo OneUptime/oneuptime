@@ -58138,5 +58138,7 @@
   "Never record these pages": "Никогда не записывать эти страницы",
   "Readable event properties": "Читаемые свойства событий",
   "Record only these pages": "Записывать только эти страницы",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "Если у этого человека ещё нет учётной записи OneUptime, она будет создана с этим именем.",
+  "Suggest Every Account When Inviting": "Предлагать все учётные записи при приглашении"
 }

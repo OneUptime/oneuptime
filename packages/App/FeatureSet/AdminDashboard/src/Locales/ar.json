@@ -549,7 +549,12 @@
         "projectCreationCardDescription": "تحكّم في من يمكنه إنشاء مشاريع جديدة على خادم OneUptime هذا.",
         "projectCreationSwitchTitle": "السماح للمستخدمين بإنشاء مشاريع",
         "projectCreationSwitchOnDescription": "يمكن لأي شخص مسجّل الدخول إلى هذا الخادم إنشاء مشروع.",
-        "projectCreationSwitchOffDescription": "يمكن للمسؤولين الرئيسيين فقط إنشاء مشاريع."
+        "projectCreationSwitchOffDescription": "يمكن للمسؤولين الرئيسيين فقط إنشاء مشاريع.",
+        "inviteSuggestionsCardTitle": "اقتراحات الدعوة",
+        "inviteSuggestionsCardDescription": "ما إذا كان بإمكان من يدعون أشخاصًا إلى مشروع العثور على أي شخص لديه حساب على هذا الخادم. اتركه متوقفًا إذا كان الخادم يستضيف أكثر من مؤسسة.",
+        "inviteSuggestionsSwitchTitle": "اقتراح كل الحسابات على هذا الخادم",
+        "inviteSuggestionsSwitchOnDescription": "يرى كل من يمكنه دعوة أشخاص إلى مشروع اسم كل حساب وبريده الإلكتروني أثناء الكتابة، مع علامة «ليس في هذا المشروع بعد».",
+        "inviteSuggestionsSwitchOffDescription": "تقترح نماذج الدعوة أشخاص المشروع نفسه. ويُعرض على المسؤولين الرئيسيين أيضًا حسابات الخادم الأخرى."
       },
       "email": {
         "adminNotificationCardTitle": "البريد الإلكتروني لإشعارات المسؤول",
@@ -4302,5 +4307,9 @@
   "Sign Out of the Identity Provider Too": "تسجيل الخروج من موفّر الهوية أيضًا",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "يؤدي تسجيل الخروج من OneUptime أيضًا إلى تسجيل خروج الأشخاص من هذا الموفّر ومن كل تطبيق آخر يستخدمه. شغّله للحواسيب المشتركة.",
   "Sign-out Redirect URI:": "عنوان URI لإعادة التوجيه بعد تسجيل الخروج:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "سجّل عنوان URI لإعادة التوجيه لدى موفّر هوية OIDC، وسجّل أيضًا عنوان URI لإعادة التوجيه بعد تسجيل الخروج عندما يكون «تسجيل الخروج من موفّر الهوية أيضًا» مشغّلًا."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "سجّل عنوان URI لإعادة التوجيه لدى موفّر هوية OIDC، وسجّل أيضًا عنوان URI لإعادة التوجيه بعد تسجيل الخروج عندما يكون «تسجيل الخروج من موفّر الهوية أيضًا» مشغّلًا.",
+  "If they have no OneUptime account yet, it is set up with this name.": "إن لم يكن لديهم حساب OneUptime بعد، فسيُعدّ بهذا الاسم.",
+  "Suggest every account on this server?": "هل تريد اقتراح كل الحسابات على هذا الخادم؟",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "سيرى كل من يمكنه دعوة أشخاص اسم كل حساب وبريده الإلكتروني أثناء الكتابة. لا تفعّل هذا إلا إذا كان كل حساب هنا ينتمي إلى مؤسسة واحدة.",
+  "Suggest Every Account": "اقتراح كل الحسابات"
 }

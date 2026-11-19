@@ -15,8 +15,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  * The people an invitation's email box suggests for what was typed, as the
  * server finds them for this reader (#9701, Common/Types/Team/
  * InviteSuggestions): the project's people, and on a server somebody runs
- * its other accounts for its master admin, each with where they stand for
- * the team the invitation is for. A refusal or a failure is thrown, for the
+ * its other accounts for its master admin, or for anyone who may invite
+ * while the server lets them (#9744), each with where they stand for the
+ * team the invitation is for. A refusal or a failure is thrown, for the
  * box to suggest nothing: typing an address works without it.
  */
 export default class InviteSuggestionsApi {

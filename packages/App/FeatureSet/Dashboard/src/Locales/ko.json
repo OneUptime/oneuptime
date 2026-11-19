@@ -58138,5 +58138,7 @@
   "Never record these pages": "이 페이지는 녹화하지 않음",
   "Readable event properties": "읽을 수 있는 이벤트 속성",
   "Record only these pages": "이 페이지만 녹화",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "이 사람에게 아직 OneUptime 계정이 없으면 이 이름으로 계정이 만들어집니다.",
+  "Suggest Every Account When Inviting": "초대할 때 모든 계정 제안"
 }

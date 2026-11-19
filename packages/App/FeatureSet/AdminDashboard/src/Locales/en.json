@@ -549,7 +549,12 @@
         "projectCreationCardDescription": "Control who can create new projects on this OneUptime Server.",
         "projectCreationSwitchTitle": "Let users create projects",
         "projectCreationSwitchOnDescription": "Anyone signed in to this server can create a project.",
-        "projectCreationSwitchOffDescription": "Only master admins can create projects."
+        "projectCreationSwitchOffDescription": "Only master admins can create projects.",
+        "inviteSuggestionsCardTitle": "Invite Suggestions",
+        "inviteSuggestionsCardDescription": "Whether people who invite to a project can find anyone with an account on this server. Leave it off if the server hosts more than one organization.",
+        "inviteSuggestionsSwitchTitle": "Suggest every account on this server",
+        "inviteSuggestionsSwitchOnDescription": "Anyone who may invite people to a project sees every account's name and email as they type, marked Not in this project yet.",
+        "inviteSuggestionsSwitchOffDescription": "The invite forms suggest a project's own people. Master admins are also offered the server's other accounts."
       },
       "email": {
         "adminNotificationCardTitle": "Admin Notification Email",
@@ -4302,5 +4307,9 @@
   "Sign Out of the Identity Provider Too": "Sign Out of the Identity Provider Too",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.",
   "Sign-out Redirect URI:": "Sign-out Redirect URI:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.",
+  "If they have no OneUptime account yet, it is set up with this name.": "If they have no OneUptime account yet, it is set up with this name.",
+  "Suggest every account on this server?": "Suggest every account on this server?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.",
+  "Suggest Every Account": "Suggest Every Account"
 }

@@ -549,7 +549,12 @@
         "projectCreationCardDescription": "控制谁可以在此 OneUptime 服务器上创建新项目。",
         "projectCreationSwitchTitle": "允许用户创建项目",
         "projectCreationSwitchOnDescription": "任何登录此服务器的人都可以创建项目。",
-        "projectCreationSwitchOffDescription": "只有主管理员可以创建项目。"
+        "projectCreationSwitchOffDescription": "只有主管理员可以创建项目。",
+        "inviteSuggestionsCardTitle": "邀请建议",
+        "inviteSuggestionsCardDescription": "邀请他人加入项目的人能否找到此服务器上拥有帐户的任何人。如果服务器托管多个组织，请保持关闭。",
+        "inviteSuggestionsSwitchTitle": "建议此服务器上的所有帐户",
+        "inviteSuggestionsSwitchOnDescription": "可以邀请他人加入项目的任何人在输入时都会看到每个帐户的名称和邮箱，并标有“尚未加入此项目”。",
+        "inviteSuggestionsSwitchOffDescription": "邀请表单建议项目自己的成员。主管理员还会看到服务器上的其他帐户。"
       },
       "email": {
         "adminNotificationCardTitle": "管理员通知电子邮件",
@@ -4302,5 +4307,9 @@
   "Sign Out of the Identity Provider Too": "同时退出身份提供商的登录",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "退出 OneUptime 时，也会退出此提供商以及所有使用它的其他应用。共享计算机请开启。",
   "Sign-out Redirect URI:": "退出登录后的重定向 URI：",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身份提供商中注册重定向 URI；开启“同时退出身份提供商的登录”时，还要注册退出登录后的重定向 URI。"
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身份提供商中注册重定向 URI；开启“同时退出身份提供商的登录”时，还要注册退出登录后的重定向 URI。",
+  "If they have no OneUptime account yet, it is set up with this name.": "如果此人还没有 OneUptime 账户，将用这个名字创建账户。",
+  "Suggest every account on this server?": "要建议此服务器上的所有帐户吗？",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "任何可以邀请他人的人在输入时都会看到每个帐户的名称和邮箱。只有当这里的每个帐户都属于同一个组织时，才开启此项。",
+  "Suggest Every Account": "建议所有帐户"
 }

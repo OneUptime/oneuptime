@@ -1096,6 +1096,7 @@ import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-Ad
 import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
 import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
 import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
 import { AddProjectManageSignInWithSso1809185400000 } from "./1809185400000-AddProjectManageSignInWithSso";
 
 export default [
@@ -2197,5 +2198,6 @@ export default [
   AddComplianceSettingTurnedOffByKey1809185300100,
   AddCloudConnectionAddedMetrics1809185310000,
   AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
   AddProjectManageSignInWithSso1809185400000,
 ];

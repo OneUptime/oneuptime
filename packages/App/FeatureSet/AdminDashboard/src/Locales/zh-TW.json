@@ -549,7 +549,12 @@
         "projectCreationCardDescription": "控制誰可以在此 OneUptime 伺服器上建立新專案。",
         "projectCreationSwitchTitle": "允許使用者建立專案",
         "projectCreationSwitchOnDescription": "任何登入此伺服器的人都可以建立專案。",
-        "projectCreationSwitchOffDescription": "只有主管理員可以建立專案。"
+        "projectCreationSwitchOffDescription": "只有主管理員可以建立專案。",
+        "inviteSuggestionsCardTitle": "邀請建議",
+        "inviteSuggestionsCardDescription": "邀請他人加入專案的人能否找到此伺服器上擁有帳戶的任何人。如果伺服器託管多個組織，請保持關閉。",
+        "inviteSuggestionsSwitchTitle": "建議此伺服器上的所有帳戶",
+        "inviteSuggestionsSwitchOnDescription": "可以邀請他人加入專案的任何人在輸入時都會看到每個帳戶的名稱和電子郵件，並標示「尚未加入此專案」。",
+        "inviteSuggestionsSwitchOffDescription": "邀請表單建議專案自己的成員。主管理員還會看到伺服器上的其他帳戶。"
       },
       "email": {
         "adminNotificationCardTitle": "管理員通知電子郵件",
@@ -4302,5 +4307,9 @@
   "Sign Out of the Identity Provider Too": "同時登出身分提供者",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "登出 OneUptime 時，也會登出此提供者以及所有使用它的其他應用程式。共用電腦請開啟。",
   "Sign-out Redirect URI:": "登出後的重新導向 URI：",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身分提供者中註冊重新導向 URI；開啟「同時登出身分提供者」時，也要註冊登出後的重新導向 URI。"
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身分提供者中註冊重新導向 URI；開啟「同時登出身分提供者」時，也要註冊登出後的重新導向 URI。",
+  "If they have no OneUptime account yet, it is set up with this name.": "如果此人還沒有 OneUptime 帳戶，將用這個名稱建立帳戶。",
+  "Suggest every account on this server?": "要建議此伺服器上的所有帳戶嗎？",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "任何可以邀請他人的人在輸入時都會看到每個帳戶的名稱和電子郵件。只有當這裡的每個帳戶都屬於同一個組織時，才開啟此項。",
+  "Suggest Every Account": "建議所有帳戶"
 }

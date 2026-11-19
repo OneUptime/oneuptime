@@ -57,6 +57,7 @@ Two containers start as root, on purpose:
 - **Sign-in links.** The sign-in page offers to email people a link that signs them in without their password; two-factor authentication still applies. Turn off **Let people sign in with an emailed link** in **Admin Dashboard > Settings > Authentication** to take it off the page and stop links already sent. See [Sign in with an emailed link](/docs/introduction/your-account#ईमेल-किए-गए-लिंक-से-साइन-इन-करें).
 - **Two factors.** People who sign in with a password can add an authenticator app or a security key as a second factor.
 - **Accounts.** Create and remove accounts from your identity provider with [SCIM](/docs/identity/scim) (Enterprise Edition), so someone who leaves loses access when their account goes.
+- **Invite suggestions.** As people type an address to invite, OneUptime suggests their project's own people, and offers every account on the server to master admins alone. Leave **Suggest every account on this server** off in **Admin Dashboard > Settings > Authentication** if the server hosts more than one organization: turned on, it shows anyone who may invite people to a project the name and email of every account on the server.
 - **Sessions.** Limit how long a sign-in lasts, and how long it may sit unused, with [Session Length](/docs/self-hosted/session-length) (Enterprise Edition).
 - **Least privilege.** Give each person, team and API key only the permissions it needs, and an expiry date to each API key. See [Permissions](/docs/permissions/index).
 

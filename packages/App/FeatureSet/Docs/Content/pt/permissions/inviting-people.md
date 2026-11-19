@@ -43,7 +43,7 @@ Clique em **Convidar Usuário**. A caixa de diálogo **Convidar Novo Usuário** 
 
 ### Informar o endereço de e-mail
 
-Digite o endereço em **E-mail**. Se nenhuma conta do OneUptime usa esse endereço ainda, a caixa de diálogo também pede um **Nome**, com o qual a nova conta começa. Enquanto você digita, **E-mail** sugere as pessoas do projeto por nome ou endereço e mostra quem está **Convidado** e quem **Já está nesta equipe**: clique em uma delas para preencher o endereço. Em um servidor auto-hospedado, um administrador mestre também recebe como sugestão as outras contas do servidor, marcadas como **Ainda não está neste projeto**.
+Digite o endereço em **E-mail**. Enquanto você digita, **E-mail** sugere as pessoas do projeto por nome ou endereço e mostra quem está **Convidado** e quem **Já está nesta equipe**: clique em uma delas para preencher o endereço. Em um servidor auto-hospedado, um administrador mestre também recebe como sugestão as outras contas do servidor, marcadas como **Ainda não está neste projeto**, assim como qualquer pessoa que possa convidar, depois que um administrador mestre permitir isso no Admin Dashboard. Para um endereço que você digita, a caixa de diálogo também pede um **Nome**, que é opcional: se essa pessoa ainda não tiver conta no OneUptime, ela será criada com esse nome.
 
 ### Escolher a equipe
 
