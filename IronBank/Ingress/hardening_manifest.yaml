@@ -10,7 +10,7 @@ name: "oneuptime/ingress"
 
 # The first tag is the release the Dockerfile copies.
 tags:
-  - "14.0.102"
+  - "16.0.0"
   - "latest"
 
 # The Iron Bank image the Dockerfile builds on. renovate.json moves BASE_TAG
@@ -27,7 +27,7 @@ labels:
   org.opencontainers.image.licenses: "Apache-2.0"
   org.opencontainers.image.url: "https://oneuptime.com"
   org.opencontainers.image.vendor: "OneUptime"
-  org.opencontainers.image.version: "14.0.102"
+  org.opencontainers.image.version: "16.0.0"
   mil.dso.ironbank.image.keywords: "observability, monitoring, ingress, nginx, reverse proxy, tls"
   mil.dso.ironbank.image.type: "opensource"
   mil.dso.ironbank.product.name: "OneUptime"
@@ -36,8 +36,8 @@ labels:
 # pipeline pulls it and gives it the name in `tag`, which the Dockerfile's
 # release stage starts from.
 resources:
-  - tag: "oneuptime/nginx:14.0.102"
-    url: "docker://docker.io/oneuptime/nginx@sha256:a402eed531c57d80bc5942ff9d68164596aa3760cb3ab6a7d0babea4b3e9ed69"
+  - tag: "oneuptime/nginx:16.0.0"
+    url: "docker://docker.io/oneuptime/nginx@sha256:16a483d1677d710e9930a82622340672fe8407c6c3bb1a1744d5383761d9fe43"
 
 # The engineers the onboarding request names, by their Platform One (Repo1)
 # usernames.

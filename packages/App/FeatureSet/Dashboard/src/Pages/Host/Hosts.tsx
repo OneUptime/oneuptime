@@ -13,6 +13,10 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import HostOperatingSystem, {
+  ANDROID_HOST_OS_TYPE,
+} from "Common/Utils/Host/HostOperatingSystem";
 import React, {
   Fragment,
   FunctionComponent,
@@ -273,6 +277,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         { value: "darwin", label: "macOS" },
         { value: "windows", label: "Windows" },
         { value: "freebsd", label: "FreeBSD" },
+        // The devices the Android agent reports: their kernel is Linux, their OS Android (#9804).
+        { value: ANDROID_HOST_OS_TYPE, label: "Android" },
       ],
       toQueryValue: (
         values: Array<string>,
@@ -504,8 +510,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   modelId: new ObjectID(item._id as string),
                 },
               );
+              // "Android", "Linux", "macOS": the OS as people write it, with Android's mark (#9804).
               const osLabel: string =
-                osType || translator.translateText("unknown") || "unknown";
+                HostOperatingSystem.getLabel(osType) ||
+                translator.translateText("unknown") ||
+                "unknown";
+              const osIcon: IconProp | undefined =
+                HostOperatingSystem.getIcon(osType);
               /*
                * Its name, its host name where that is another, and what it
                * runs: the OS and architecture a column of their own held.
@@ -564,7 +575,16 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       className={osLine.className}
                       data-testid="host-os"
                     >
-                      <span className="capitalize">{osLabel}</span>
+                      {osIcon ? (
+                        <Icon
+                          icon={osIcon}
+                          className="me-1 inline h-3.5 w-3.5 align-[-2px] text-gray-500"
+                          data-testid="host-os-icon"
+                        />
+                      ) : (
+                        <></>
+                      )}
+                      <span>{osLabel}</span>
                       {arch ? (
                         <>
                           {" "}

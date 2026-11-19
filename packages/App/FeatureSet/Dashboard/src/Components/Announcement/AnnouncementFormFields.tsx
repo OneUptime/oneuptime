@@ -19,10 +19,10 @@ import FetchMonitors from "../Monitor/FetchMonitors";
 import FetchStatusPages from "../StatusPage/FetchStatusPages";
 import { getStatusPageSuggestionsFooter } from "../StatusPage/StatusPageSuggestions";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
-import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { getNotifySubscribersOfUpdateFormField } from "../StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import {
   ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
   AnnouncementFormKind,
   getAnnouncementEndsAtError,
   getAnnouncementReachQuestion,
@@ -34,6 +34,7 @@ import {
   AnnouncementNoMonitorsLine,
   AnnouncementNotifyBoxReason,
   AnnouncementScheduleLine,
+  AnnouncementUpdateBoxReason,
 } from "./AnnouncementReachLines";
 import { getKeptAnnouncementReach } from "./useAnnouncementReach";
 
@@ -176,17 +177,17 @@ export const getAnnouncementFormFields: (
           "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
       }),
       /*
-       * Ticked, why nobody would be sent it: the update goes to the pages
-       * picked as the announcement itself did.
+       * Ticked, why nobody would be sent it: the announcement's own state
+       * first - not shown until its start, or its own notification not gone
+       * out yet (#9921) - then the pages picked, which the update goes to
+       * as the announcement itself did.
        */
       getFooterElement: (
         values: FormValues<StatusPageAnnouncement>,
       ): ReactElement => {
         return (
-          <AnnouncementNotifyBoxReason
+          <AnnouncementUpdateBoxReason
             values={values}
-            fieldKey={SubscriberUpdateNotification.miscDataKey}
-            isTickedByDefault={false}
             announcementId={announcementId}
             dataTestId="announcement-update-notify-reason"
           />
@@ -489,14 +490,18 @@ export const getAnnouncementTemplateFormFields: () => Array<
       required: false,
       placeholder: "Select Monitors",
     },
+    /*
+     * What ticking it asks for, as Create's switch says it: whether the
+     * subscribers are told is the status pages' to say, which Create
+     * Announcement does for an announcement made from it (#9921).
+     */
     {
       field: {
         shouldStatusPageSubscribersBeNotified: true,
       },
       title: "Notify Status Page Subscribers",
       stepId: "status-pages",
-      description:
-        "Subscribers of these status pages are told when an announcement made from this template starts showing.",
+      description: ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
     },

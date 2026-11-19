@@ -1,7 +1,10 @@
+import com.github.triplet.gradle.androidpublisher.ReleaseStatus
+import com.github.triplet.gradle.androidpublisher.ResolutionStrategy
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.play.publisher)
 }
 
 /*
@@ -27,6 +30,9 @@ fun versionCodeOf(version: String): Int {
  * apksigner, from the keystore in a repository secret (RELEASING.md). Not
  * Gradle's signingConfig: with a minSdk of 24 AGP leaves out the v1 (JAR)
  * signature even when asked for it, and Esper refuses an APK without one.
+ * The release bundle (bundleRelease) is unsigned too: scripts/sign-bundle.sh
+ * signs it with the upload key Google Play takes it with, so the key never
+ * signs the APK, and no build needs either key.
  */
 android {
     namespace = "com.oneuptime.androidagent"
@@ -89,6 +95,29 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+}
+
+/*
+ * Google Play, through Gradle Play Publisher (RELEASING.md, "Google Play").
+ * release.yml's publish-android-agent-to-google-play job builds the release
+ * bundle, signs it with the upload key (scripts/sign-bundle.sh) and has this
+ * upload it, with the store listing and release notes in src/main/play. The
+ * service account's key comes from ANDROID_PUBLISHER_CREDENTIALS, read only
+ * when a task that talks to Play runs: every other task, and every build on
+ * a machine without the key, works without it.
+ */
+play {
+    // A draft on the internal testing track: no device gets it until a
+    // maintainer rolls it out in the Play Console. It is also the only kind
+    // of release Play takes from its API while the app has never been
+    // published.
+    track.set("internal")
+    releaseStatus.set(ReleaseStatus.DRAFT)
+    // publishApps uploads the bundle, as the release does, never an APK.
+    defaultToAppBundles.set(true)
+    // A version code Play already has, as on a re-run of a release that was
+    // published, is skipped with a warning instead of failing the job.
+    resolutionStrategy.set(ResolutionStrategy.IGNORE)
 }
 
 dependencies {

@@ -4,6 +4,9 @@ build/
 local.properties
 *.keystore
 *.jks
+# What RELEASING.md's Google Play setup makes on a maintainer's machine.
+*.aab
+service-account*.json
 captures/
 .idea/
 *.iml

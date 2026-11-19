@@ -1390,10 +1390,79 @@ export default class CloudResourceMetrics {
     since: Date;
     until: Date;
   }): Statement {
+    return CloudResourceMetrics.buildReportedStatement({
+      ...data,
+      select: "toUnixTimestamp64Milli(max(time)) AS lastAtMs",
+    });
+  }
+
+  /*
+   * How many points each of `names` reported for what the attributes
+   * match (as findLastReported matches them), within [since, until]: one
+   * ClickHouse read, grouped by name. A Cosmos DB monitor of the
+   * ServerSideLatency Microsoft retires moves to the latency its account
+   * reported most (MoveMonitorsOffRetiredCloudMetrics, #9739).
+   */
+  public static async findReportedPoints(data: {
+    projectId: ObjectID;
+    attributes: Record<string, string>;
+    names: Array<string>;
+    since: Date;
+    until: Date;
+  }): Promise<Map<string, number>> {
+    const found: Map<string, number> = new Map<string, number>();
+
+    if (data.names.length === 0) {
+      return found;
+    }
+
+    const result: Awaited<ReturnType<typeof MetricService.executeQuery>> =
+      await MetricService.executeQuery(
+        CloudResourceMetrics.buildReportedPointsStatement(data),
+      );
+    const response: { data?: Array<JSONObject> } = (await result.json()) as {
+      data?: Array<JSONObject>;
+    };
+
+    for (const row of response.data || []) {
+      const name: string = String(row["name"] || "").toLowerCase();
+      const points: number = Number(row["points"]);
+
+      if (name && Number.isFinite(points) && points > 0) {
+        found.set(name, points);
+      }
+    }
+
+    return found;
+  }
+
+  public static buildReportedPointsStatement(data: {
+    projectId: ObjectID;
+    attributes: Record<string, string>;
+    names: Array<string>;
+    since: Date;
+    until: Date;
+  }): Statement {
+    return CloudResourceMetrics.buildReportedStatement({
+      ...data,
+      select: "count() AS points",
+    });
+  }
+
+  // Each of `names`, its `select` over the points the attributes match in the range.
+  private static buildReportedStatement(data: {
+    projectId: ObjectID;
+    attributes: Record<string, string>;
+    names: Array<string>;
+    since: Date;
+    until: Date;
+    // What is read of each name's points: a column named after what it is.
+    select: string;
+  }): Statement {
     const statement: Statement = new Statement();
 
     statement.append(
-      `SELECT name, toUnixTimestamp64Milli(max(time)) AS lastAtMs FROM ${AnalyticsTableName.Metric}`,
+      `SELECT name, ${data.select} FROM ${AnalyticsTableName.Metric}`,
     );
     statement.append(
       SQL` WHERE projectId = ${{

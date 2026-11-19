@@ -209,4 +209,27 @@ class HostMetricsTest {
         )
         assertNull(names.firstOrNull { it.startsWith("system.paging") })
     }
+
+    @Test
+    fun `the boots of the last hour, for the Restart Loop template, sent every collection`() {
+        val metric: Metric = HostMetrics.from(snapshot().copy(bootsInLastHour = 3)).named("android.boot.recent_count")
+
+        assertEquals("{boot}", metric.unit)
+        assertTrue(metric.data is MetricData.Gauge)
+        assertEquals(NumberValue.Whole(3L), metric.data.points.single().value)
+        // A device up for more than an hour has had none: 0, so a monitor reads it as healthy rather than as no data.
+        assertEquals(NumberValue.Whole(0L), HostMetrics.from(snapshot().copy(bootsInLastHour = 0)).named("android.boot.recent_count").data.points.single().value)
+        // Unknown is not sent.
+        assertTrue(HostMetrics.from(snapshot()).none { it.name == "android.boot.recent_count" })
+    }
+
+    @Test
+    fun `CPU use read as the device owner has only user and idle, and still reads as busy`() {
+        val metric: Metric =
+            HostMetrics.from(snapshot(cpu = mapOf("cpu0" to mapOf("user" to 0.3, "idle" to 0.7)))).named("system.cpu.utilization")
+
+        val states: Map<Any?, Double> =
+            metric.data.points.associate { point -> point.attributes.toMap()["state"] to (point.value as NumberValue.Fraction).value }
+        assertEquals(mapOf("user" to 0.3, "idle" to 0.7), states)
+    }
 }

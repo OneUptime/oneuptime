@@ -148,6 +148,9 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   [ProviderLogo.Kubernetes]: () => {
     return import("../../../Types/ProviderLogo/Marks/kubernetes");
   },
+  [ProviderLogo.Android]: () => {
+    return import("../../../Types/ProviderLogo/Marks/android");
+  },
   [ProviderLogo.NodeJs]: () => {
     return import("../../../Types/ProviderLogo/Marks/nodejs");
   },

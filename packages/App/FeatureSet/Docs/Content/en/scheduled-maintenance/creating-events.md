@@ -43,7 +43,7 @@ Click **Next** to reach **Resources Affected**. Pick the **Monitors** the work t
 
 ### Choose who hears about it
 
-Pick the status pages under **Show event on these status pages**. **Subscriber Notifications**, folded, says in one line when the event shows on them and who is told when; open it to pick **At a date and time** under **Publish on Status Pages**, or to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.
+Pick the status pages under **Show event on these status pages**. **Subscriber Notifications**, folded, says in one line when the event shows on them and who is told when; open it to pick **At a date and time** under **Publish on Status Pages**, or to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**. The line follows the status pages picked: when none is picked, none of them shows maintenance events, or the ones that do send their subscribers nothing, it says so instead of saying who is told.
 
 ### Create it
 

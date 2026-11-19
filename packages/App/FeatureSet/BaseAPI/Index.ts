@@ -1140,6 +1140,9 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
+import HostLogSessionService, {
+  Service as HostLogSessionServiceType,
+} from "Common/Server/Services/HostLogSessionService";
 import HostCollectorConfigService, {
   Service as HostCollectorConfigServiceType,
 } from "Common/Server/Services/HostCollectorConfigService";
@@ -1777,6 +1780,7 @@ import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabe
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
 import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -1904,12 +1908,9 @@ import WorkspaceNotificationLogService, {
 } from "Common/Server/Services/WorkspaceNotificationLogService";
 
 // scheduled maintenance template
-import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateAPI from "Common/Server/API/ScheduledMaintenanceTemplateAPI";
 import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
-import ScheduledMaintenanceTemplateService, {
-  Service as ScheduledMaintenanceTemplateServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService, {
   Service as ScheduledMaintenanceTemplateOwnerTeamServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
@@ -4112,16 +4113,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // scheduled maintenance template
+    /*
+     * scheduled maintenance template: its CRUD, and whether an event made
+     * from it on the status pages picked notifies anyone (#9920).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateServiceType
-      >(
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateService,
-      ).getRouter(),
+      new ScheduledMaintenanceTemplateAPI().getRouter(),
     );
 
     app.use(
@@ -6437,6 +6435,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<HostOwnerUser, HostOwnerUserServiceType>(
         HostOwnerUser,
         HostOwnerUserService,
+      ).getRouter(),
+    );
+
+    /*
+     * Log sessions (#9806): every app's logs from an Android device for a
+     * while, asked for and cancelled here; the device moves them on through
+     * the Android agent's own route (Telemetry, AndroidAgentLogSessions).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostLogSession, HostLogSessionServiceType>(
+        HostLogSession,
+        HostLogSessionService,
       ).getRouter(),
     );
 
