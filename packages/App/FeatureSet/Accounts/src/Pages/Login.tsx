@@ -9,7 +9,14 @@ import {
   GENERATE_BACKUP_CODES_API_URL,
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
+  SECURITY_KEY_ENROLMENT_OPTIONS_API_URL,
+  VERIFY_SECURITY_KEY_ENROLMENT_API_URL,
 } from "../Utils/ApiPaths";
+import {
+  getSecondStepEnrolmentChoices,
+  SecondStepEnrolmentChoice,
+} from "Common/Types/Accounts/SecondStepEnrolment";
+import CardSelect from "Common/UI/Components/CardSelect/CardSelect";
 import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -454,6 +461,36 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     TotpEnrolment | undefined
   >(undefined);
 
+  /*
+   * WHICH SECOND STEP AN ENROLMENT SETS UP (#9764,
+   * Common/Types/Accounts/SecondStepEnrolment): an authenticator app - the
+   * QR code /login sent - or a security key, which is a USB or NFC key or
+   * this device's own fingerprint, face or screen lock. Null while the
+   * person chooses. A browser that cannot register a key (an insecure page,
+   * no WebAuthn) has only the app to offer, and goes straight to it, as the
+   * page always did.
+   */
+  const enrolmentChoices: Array<SecondStepEnrolmentChoice> =
+    getSecondStepEnrolmentChoices(isPasskeySupported);
+
+  const [enrolmentChoice, setEnrolmentChoice] =
+    React.useState<SecondStepEnrolmentChoice | null>(null);
+
+  // The choice the person has picked, before they press Continue.
+  const [pickedEnrolmentChoice, setPickedEnrolmentChoice] =
+    React.useState<SecondStepEnrolmentChoice>(
+      SecondStepEnrolmentChoice.AuthenticatorApp,
+    );
+
+  const [isRegisteringSecurityKey, setIsRegisteringSecurityKey] =
+    React.useState<boolean>(false);
+
+  // Where an enrolment starts: the choice, or the only way there is.
+  const getFirstEnrolmentChoice: () => SecondStepEnrolmentChoice | null =
+    (): SecondStepEnrolmentChoice | null => {
+      return enrolmentChoices.length > 1 ? null : enrolmentChoices[0]!;
+    };
+
   type TwoFactorMethod = {
     type: "totp" | "webauthn";
     item: UserTotpAuth | UserWebAuthn;
@@ -646,6 +683,8 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
         twoFactorAuthId: miscData["twoFactorAuthId"] as string,
         twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
       });
+      setPickedEnrolmentChoice(SecondStepEnrolmentChoice.AuthenticatorApp);
+      setEnrolmentChoice(getFirstEnrolmentChoice());
       return;
     }
 
@@ -1045,6 +1084,114 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
 
     login(user, miscData);
   };
+
+  type GetSecurityKeyErrorFunction = (error: unknown) => string;
+
+  /*
+   * What a registration the browser did not finish says, in the reader's
+   * language: the prompt closed or timed out, or the key is one this
+   * account has already. Anything else - the server's refusal, a network
+   * failure - is said as every other error on this page is.
+   */
+  const getSecurityKeyError: GetSecurityKeyErrorFunction = (
+    error: unknown,
+  ): string => {
+    if (error instanceof Error || error instanceof DOMException) {
+      if (error.name === "NotAllowedError" || error.name === "AbortError") {
+        return t("login.twoFactorEnrolment.securityKeyNotCompleted");
+      }
+
+      if (error.name === "InvalidStateError") {
+        return t("login.twoFactorEnrolment.securityKeyAlreadyRegistered");
+      }
+    }
+
+    return API.getFriendlyErrorMessage(error as Error);
+  };
+
+  type RegisterSecurityKeyFunction = () => Promise<void>;
+
+  /*
+   * Sets up a security key to finish an enrolment (#9764): the options for
+   * the browser's prompt, the prompt itself, then the key's answer, which
+   * signs the person in. There is no session until then, so both requests
+   * carry the email and password again - or the sign-in link's token - as
+   * the authenticator app's code does. The backup codes a first second step
+   * comes with are shown once, before the dashboard opens
+   * (completeTwoFactorLogin).
+   */
+  const registerSecurityKey: RegisterSecurityKeyFunction =
+    async (): Promise<void> => {
+      if (isRegisteringSecurityKey) {
+        return;
+      }
+
+      setIsRegisteringSecurityKey(true);
+      setTwoFactorAuthError("");
+
+      try {
+        const optionsResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.post({
+            url: SECURITY_KEY_ENROLMENT_OPTIONS_API_URL,
+            data: {
+              data: {
+                ...initialValues,
+              },
+            },
+          });
+
+        if (optionsResult instanceof HTTPErrorResponse) {
+          throw optionsResult;
+        }
+
+        let credential: JSONObject;
+
+        try {
+          credential = await WebAuthn.register(
+            optionsResult.data["options"] as JSONObject,
+          );
+        } catch (error) {
+          setTwoFactorAuthError(getSecurityKeyError(error));
+          return;
+        }
+
+        const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.post({
+            url: VERIFY_SECURITY_KEY_ENROLMENT_API_URL,
+            data: {
+              data: {
+                ...initialValues,
+                credential: credential,
+              },
+            },
+          });
+
+        if (result instanceof HTTPErrorResponse) {
+          throw result;
+        }
+
+        const user: User = User.fromJSON(
+          result["data"] as JSONObject,
+          User,
+        ) as User;
+
+        /*
+         * The recovery codes minted behind this enrolment, and whether the
+         * account already had some, as for the authenticator app's code.
+         */
+        const enrolmentMiscData: JSONObject = getMiscData(result);
+
+        completeTwoFactorLogin(
+          user,
+          enrolmentMiscData,
+          enrolmentMiscData["hasBackupCodes"] !== true,
+        );
+      } catch (error) {
+        setTwoFactorAuthError(getSecurityKeyError(error));
+      } finally {
+        setIsRegisteringSecurityKey(false);
+      }
+    };
 
   type GenerateBackupCodesFunction = () => Promise<void>;
 
@@ -2090,65 +2237,172 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
               />
             )}
 
-          {!pendingLogin && !showTwoFactorAuth && totpEnrolment && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                {t("login.twoFactorEnrolment.scanInstruction")}
-              </p>
+          {/*
+           * THE CHOICE OF SECOND STEP (#9764), as the profile's own setup
+           * offers it: an authenticator app or a security key, one tap
+           * each, then Continue. Drawn only where this browser can register
+           * a key; elsewhere the app's QR code is all there is to show.
+           */}
+          {!pendingLogin &&
+            !showTwoFactorAuth &&
+            totpEnrolment &&
+            enrolmentChoice === null && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  {t("login.twoFactorEnrolment.chooseInstruction")}
+                </p>
 
-              {/*
-               * Rendered as a plain element, deliberately NOT as a `required`
-               * CustomComponent field of the form below. A QR code collects
-               * nothing, so making it a field means inventing a fake value to
-               * keep validation happy -- and a form whose validity depends on
-               * a decoration is a form that fails for reasons nobody can see.
-               *
-               * The code AND its setup key (issue #6638): every QR code once
-               * failed to draw, and this screen had nothing else, so somebody
-               * whose administrator requires two factor auth could not finish
-               * signing in. Whoever cannot scan - or is shown no code - types
-               * the key in instead.
-               */}
-              <AuthenticatorAppSetupCode
-                otpUrl={totpEnrolment.twoFactorOtpUrl}
-              />
-
-              <BasicForm
-                id="two-factor-enrolment-form"
-                name="Two Factor Auth Enrolment"
-                fields={[
-                  {
-                    field: {
-                      code: true,
+                <CardSelect
+                  dataTestId="enrolment-choice"
+                  layout="list"
+                  value={pickedEnrolmentChoice}
+                  onChange={(value: string) => {
+                    setPickedEnrolmentChoice(
+                      value as SecondStepEnrolmentChoice,
+                    );
+                  }}
+                  options={[
+                    {
+                      value: SecondStepEnrolmentChoice.AuthenticatorApp,
+                      title: t("login.twoFactorEnrolment.authenticatorApp"),
+                      description: t(
+                        "login.twoFactorEnrolment.authenticatorAppDescription",
+                      ),
+                      icon: IconProp.DevicePhoneMobile,
+                      // In the reader's language already (t).
+                      isUserContent: true,
                     },
-                    title: t("common.code"),
-                    description: t(
-                      "login.twoFactorEnrolment.codeFieldDescription",
-                    ),
-                    required: true,
-                    dataTestId: "enrolment-code",
-                    fieldType: FormFieldSchemaType.Text,
-                  },
-                ]}
-                submitButtonText={t("login.twoFactorEnrolment.submitButton")}
-                maxPrimaryButtonWidth={true}
-                isLoading={isTwoFactorAuthLoading}
-                error={twofactorAuthError}
-                onSubmit={async (data: JSONObject) => {
-                  setIsTwoFactorAuthLoading(true);
-                  setTwoFactorAuthError("");
+                    {
+                      value: SecondStepEnrolmentChoice.SecurityKey,
+                      title: t("login.twoFactorEnrolment.securityKey"),
+                      description: t(
+                        "login.twoFactorEnrolment.securityKeyDescription",
+                      ),
+                      icon: IconProp.Key,
+                      isUserContent: true,
+                    },
+                  ]}
+                />
 
-                  try {
-                    /*
-                     * `initialValues` still holds the email and password the
-                     * user submitted a moment ago, because there is no session
-                     * to authenticate this request with -- the server issues
-                     * one only if the code below verifies. It re-checks the
-                     * password and the email verification exactly as /login
-                     * did.
-                     */
-                    const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-                      await API.post({
+                <Button
+                  title={t("login.twoFactorEnrolment.continue")}
+                  isTitleTranslated={true}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  dataTestId="enrolment-choice-continue"
+                  style={BACKUP_CODES_ACTION_STYLE}
+                  onClick={() => {
+                    setTwoFactorAuthError("");
+                    setEnrolmentChoice(pickedEnrolmentChoice);
+                  }}
+                />
+              </div>
+            )}
+
+          {/*
+           * A SECURITY KEY (#9764): one button that opens the browser's
+           * prompt - a USB or NFC key, or this device's fingerprint, face or
+           * screen lock - and signs in once the key is registered. On a
+           * phone the prompt is the phone's own: the page only asks for one
+           * tap.
+           */}
+          {!pendingLogin &&
+            !showTwoFactorAuth &&
+            totpEnrolment &&
+            enrolmentChoice === SecondStepEnrolmentChoice.SecurityKey && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  {t("login.twoFactorEnrolment.securityKeyInstruction")}
+                </p>
+
+                {twofactorAuthError ? (
+                  <ErrorMessage message={twofactorAuthError} />
+                ) : (
+                  <></>
+                )}
+
+                <Button
+                  title={
+                    isRegisteringSecurityKey
+                      ? t("login.twoFactorEnrolment.securityKeyWaiting")
+                      : t("login.twoFactorEnrolment.securityKeyButton")
+                  }
+                  isTitleTranslated={true}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  icon={IconProp.Key}
+                  dataTestId="enrolment-security-key"
+                  style={BACKUP_CODES_ACTION_STYLE}
+                  isLoading={isRegisteringSecurityKey}
+                  disabled={isRegisteringSecurityKey}
+                  onClick={() => {
+                    void registerSecurityKey();
+                  }}
+                />
+              </div>
+            )}
+
+          {!pendingLogin &&
+            !showTwoFactorAuth &&
+            totpEnrolment &&
+            enrolmentChoice === SecondStepEnrolmentChoice.AuthenticatorApp && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  {t("login.twoFactorEnrolment.scanInstruction")}
+                </p>
+
+                {/*
+                 * Rendered as a plain element, deliberately NOT as a `required`
+                 * CustomComponent field of the form below. A QR code collects
+                 * nothing, so making it a field means inventing a fake value to
+                 * keep validation happy -- and a form whose validity depends on
+                 * a decoration is a form that fails for reasons nobody can see.
+                 *
+                 * The code AND its setup key (issue #6638): every QR code once
+                 * failed to draw, and this screen had nothing else, so somebody
+                 * whose administrator requires two factor auth could not finish
+                 * signing in. Whoever cannot scan - or is shown no code - types
+                 * the key in instead.
+                 */}
+                <AuthenticatorAppSetupCode
+                  otpUrl={totpEnrolment.twoFactorOtpUrl}
+                />
+
+                <BasicForm
+                  id="two-factor-enrolment-form"
+                  name="Two Factor Auth Enrolment"
+                  fields={[
+                    {
+                      field: {
+                        code: true,
+                      },
+                      title: t("common.code"),
+                      description: t(
+                        "login.twoFactorEnrolment.codeFieldDescription",
+                      ),
+                      required: true,
+                      dataTestId: "enrolment-code",
+                      fieldType: FormFieldSchemaType.Text,
+                    },
+                  ]}
+                  submitButtonText={t("login.twoFactorEnrolment.submitButton")}
+                  maxPrimaryButtonWidth={true}
+                  isLoading={isTwoFactorAuthLoading}
+                  error={twofactorAuthError}
+                  onSubmit={async (data: JSONObject) => {
+                    setIsTwoFactorAuthLoading(true);
+                    setTwoFactorAuthError("");
+
+                    try {
+                      /*
+                       * `initialValues` still holds the email and password the
+                       * user submitted a moment ago, because there is no session
+                       * to authenticate this request with -- the server issues
+                       * one only if the code below verifies. It re-checks the
+                       * password and the email verification exactly as /login
+                       * did.
+                       */
+                      const result:
+                        | HTTPErrorResponse
+                        | HTTPResponse<JSONObject> = await API.post({
                         url: VERIFY_TOTP_ENROLMENT_API_URL,
                         data: {
                           data: {
@@ -2159,52 +2413,52 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                         },
                       });
 
-                    if (result instanceof HTTPErrorResponse) {
-                      throw result;
+                      if (result instanceof HTTPErrorResponse) {
+                        throw result;
+                      }
+
+                      const user: User = User.fromJSON(
+                        result["data"] as JSONObject,
+                        User,
+                      ) as User;
+
+                      /*
+                       * The misc bag is read here now, where it used to be
+                       * discarded with a literal `{}`. It carries the recovery
+                       * codes the server minted behind this enrolment, and that
+                       * response is the only copy of them there will ever be --
+                       * dropping it would sign the user in with ten codes on
+                       * their account that nobody has ever seen.
+                       */
+                      const enrolmentMiscData: JSONObject = getMiscData(result);
+
+                      /*
+                       * The challenge response never happened on this path --
+                       * /login answered with a QR code -- so there is no count to
+                       * read and `backupCodeCount` is still null. The server says
+                       * it directly instead: `hasBackupCodes` is sent only when
+                       * the enrolment found a set already on the account and so
+                       * minted none. Its absence therefore means the account
+                       * genuinely has nothing to fall back on, whether that is
+                       * because the codes are in this response or because minting
+                       * them failed.
+                       */
+                      completeTwoFactorLogin(
+                        user,
+                        enrolmentMiscData,
+                        enrolmentMiscData["hasBackupCodes"] !== true,
+                      );
+                    } catch (error) {
+                      setTwoFactorAuthError(
+                        API.getFriendlyErrorMessage(error as Error),
+                      );
                     }
 
-                    const user: User = User.fromJSON(
-                      result["data"] as JSONObject,
-                      User,
-                    ) as User;
-
-                    /*
-                     * The misc bag is read here now, where it used to be
-                     * discarded with a literal `{}`. It carries the recovery
-                     * codes the server minted behind this enrolment, and that
-                     * response is the only copy of them there will ever be --
-                     * dropping it would sign the user in with ten codes on
-                     * their account that nobody has ever seen.
-                     */
-                    const enrolmentMiscData: JSONObject = getMiscData(result);
-
-                    /*
-                     * The challenge response never happened on this path --
-                     * /login answered with a QR code -- so there is no count to
-                     * read and `backupCodeCount` is still null. The server says
-                     * it directly instead: `hasBackupCodes` is sent only when
-                     * the enrolment found a set already on the account and so
-                     * minted none. Its absence therefore means the account
-                     * genuinely has nothing to fall back on, whether that is
-                     * because the codes are in this response or because minting
-                     * them failed.
-                     */
-                    completeTwoFactorLogin(
-                      user,
-                      enrolmentMiscData,
-                      enrolmentMiscData["hasBackupCodes"] !== true,
-                    );
-                  } catch (error) {
-                    setTwoFactorAuthError(
-                      API.getFriendlyErrorMessage(error as Error),
-                    );
-                  }
-
-                  setIsTwoFactorAuthLoading(false);
-                }}
-              />
-            </div>
-          )}
+                    setIsTwoFactorAuthLoading(false);
+                  }}
+                />
+              </div>
+            )}
         </div>
         <div className="mt-6 sm:mt-10 text-center">
           {/*
@@ -2332,11 +2586,38 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
            * re-submit -- leaving them behind would let the previous account's
            * password ride along into a fresh attempt.
            */}
+          {/*
+           * Back to the choice of second step (#9764), from either one -
+           * somebody who picked a security key and has none to hand takes
+           * the authenticator app instead. Not while a key's prompt is open.
+           */}
+          {!pendingLogin &&
+          totpEnrolment &&
+          enrolmentChoice !== null &&
+          enrolmentChoices.length > 1 &&
+          !isRegisteringSecurityKey ? (
+            <div className="text-muted mb-0 text-gray-500">
+              <Link
+                onClick={() => {
+                  setEnrolmentChoice(null);
+                  setTwoFactorAuthError("");
+                }}
+                className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+                dataTestId="enrolment-choose-another-way"
+              >
+                {t("login.twoFactorEnrolment.chooseAnotherWay")}
+              </Link>
+            </div>
+          ) : (
+            <></>
+          )}
+
           {!pendingLogin && totpEnrolment ? (
             <div className="text-muted mb-0 text-gray-500">
               <Link
                 onClick={() => {
                   setTotpEnrolment(undefined);
+                  setEnrolmentChoice(null);
                   setTwoFactorAuthError("");
                   setInitialValues({});
                 }}

@@ -23,29 +23,13 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import {
-  StorageUsageThresholds,
   formatStorageBytes,
   getStorageUsage,
 } from "Common/Utils/Storage/StorageUsage";
-import {
-  VMWARE_DATASTORE_CRITICAL_PERCENT,
-  VMWARE_DATASTORE_WARNING_PERCENT,
-} from "../Utils/VMwareHealth";
+import { VMWARE_DATASTORE_USAGE_THRESHOLDS } from "../Utils/VMwareHealth";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
-
-/*
- * Where a datastore's bar turns amber and red: the levels its alerts and
- * Needs attention flag it at, and that mark the vCenter Degraded and
- * Unhealthy (VMwareHealth).
- */
-const VMWARE_DATASTORE_USAGE_THRESHOLDS: StorageUsageThresholds = {
-  warningPercent: VMWARE_DATASTORE_WARNING_PERCENT,
-  criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,
-  // Past the line, as its alerts and Needs attention flag it.
-  isPastLineOnly: true,
-};
 
 const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");
 

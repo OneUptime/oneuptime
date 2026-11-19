@@ -33,6 +33,7 @@ import {
   getProxmoxPartRoutes,
 } from "../../../Components/Proxmox/Part/ProxmoxPartRoutes";
 import {
+  PROXMOX_GUEST_DISK_COLUMNS,
   getProxmoxGuestColumns,
   PROXMOX_STORAGE_USAGE_COLUMNS,
   getProxmoxStorageColumns,
@@ -44,7 +45,7 @@ import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
   fetchProxmoxRowsOnNode,
-  formatBytes,
+  formatBytesForChart,
 } from "../Utils/ProxmoxResourceUtils";
 import {
   getProxmoxNodeName,
@@ -354,7 +355,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const rootDiskQuery: MetricQueryConfigData = {
@@ -379,7 +380,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   /*
@@ -464,6 +465,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
             age: PROXMOX_METRIC_DESCRIPTIONS.guestsTableUptime,
           }}
           tableIdPrefix="proxmox-node-guests"
+          storageUsageColumns={PROXMOX_GUEST_DISK_COLUMNS}
           emptyMessage="No guests on this node."
           columns={getProxmoxGuestColumns({
             rows: guests,

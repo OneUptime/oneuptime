@@ -119,11 +119,13 @@ describe("Monitor template custom field defaults reach the monitor create page",
   /*
    * ModelForm submits only the keys of its declared form fields, so a value
    * merely seeded into initialValues is dropped. onBeforeCreate is the one
-   * hook that reaches the model actually sent to the API.
+   * hook that reaches the model actually sent to the API. The model is its
+   * first parameter; it also reads the form's values since What to Monitor
+   * asks the address with the type (ee4da51c7e2).
    */
   test("the defaults are applied in onBeforeCreate, not left to the form", () => {
     expect(code).toMatch(
-      /onBeforeCreate=\{async \(item: Monitor\)[\s\S]*?item\.customFields =/,
+      /onBeforeCreate=\{async \( ?item: Monitor[,)][\s\S]*?item\.customFields =/,
     );
     expect(code).toContain("MonitorTemplateCustomFieldUtil.clone(");
   });

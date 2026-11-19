@@ -123,12 +123,28 @@ The first time you add an app, a key or a passkey, OneUptime shows **Your backup
 
 If you already have an app under **Authenticator apps** or a key under **Security keys**, **Enable two-factor authentication** asks you to confirm instead. While it is on, your last app, key or passkey cannot be removed: add another one first, or turn two-factor authentication off. If the card reads **Setup needed**, two-factor authentication is on with nothing set up yet, often because an administrator required it: click **Finish setup**, or you are asked to set it up at your next sign-in.
 
+### Set up two-factor authentication while signing in
+
+When an administrator requires two-factor authentication and you have nothing set up yet, your next sign-in with a password or an emailed link asks you to set it up before it lets you in. Choose **Authenticator app** or **Security key**, and click **Continue**:
+
+- **Authenticator app**: scan the QR code, enter the 6-digit code your app shows, and click **Verify and Sign In**.
+- **Security key**: click **Register Security Key** and follow your browser's prompt. Touch a USB or NFC key, or use your phone's or computer's fingerprint, face or screen lock.
+
+If you have no backup codes yet, OneUptime then shows them once, and you are signed in. **Choose another way** goes back to the choice. A browser that cannot register a security key, such as one on a page without HTTPS, offers only the authenticator app.
+
 > [!TIP]
 > Running low on backup codes? **Regenerate codes** on the same page gives you a new set, and the old codes stop working at once.
 
 ### When your organization manages your sign-in
 
-On a server that requires single sign-on, you sign in only through your organization's identity provider, such as Okta or Microsoft Entra ID, and OneUptime sets no password, passkey or two-factor authentication for you. **User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**. Change your password and your second step with your identity provider. Anything you set up before stays saved: it works again only if the server stops requiring single sign-on. Master admins keep their own **Security** settings.
+On a server that requires single sign-on, you sign in only through your organization's identity provider, such as Okta or Microsoft Entra ID, and OneUptime sets no password, passkey or two-factor authentication for you. **User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**. Change your password and your second step with your identity provider. Anything you set up before stays saved: it works again only if the server stops requiring single sign-on, unless a server admin clears it. Master admins keep their own **Security** settings.
+
+The same happens when every project you belong to requires single sign-on and has **Manage Sign-In with SSO** on. Your password still signs you in to OneUptime, but every project asks for SSO, so OneUptime sets no new password, passkey or second step for you:
+
+- **A project that does not**: as soon as you are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, your **Security** section comes back. **Overview** then names those projects under **Single Sign-On**, as the reason your settings are yours. Leaving that project takes them away again.
+- **Projects with different providers**: if all your projects manage sign-in, each with its own identity provider, **Overview** names every provider.
+- **Master admins** always keep their own **Security** settings.
+- **What you set up before** stays saved, and a server admin can clear it.
 
 ## Your projects
 

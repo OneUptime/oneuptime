@@ -118,6 +118,7 @@ const WAITED_FOR_BEFORE = {
     "helm-chart-deploy",
     "generate-sboms",
     "infrastructure-agent-build",
+    "android-agent-build",
     "mobile-app-android-build",
     "mobile-app-ios-build",
   ],
@@ -819,6 +820,19 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/vulnerabilities",
       attach: "Attach vulnerability reports to release",
       files: "release-assets/vulnerabilities/*",
+      required: false,
+    },
+    /*
+     * The Android device agent's signed APK and its SHA-256: optional like
+     * the apps, so a release made before its signing secrets exist still
+     * goes out (agents/AndroidAgent/RELEASING.md).
+     */
+    {
+      job: "android-agent-build",
+      artifact: "release-android-agent",
+      directory: "release-assets/android-agent",
+      attach: "Attach the Android agent to release",
+      files: "release-assets/android-agent/*",
       required: false,
     },
     {

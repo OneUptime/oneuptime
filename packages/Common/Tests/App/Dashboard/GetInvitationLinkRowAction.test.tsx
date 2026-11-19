@@ -99,18 +99,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/UserEmailRegistrationStatus", () => {
-  return {
-    __esModule: true,
-    useUserEmailRegistrationStatus: () => {
-      return {
-        isEmailRegistered: true,
-        checkEmail: (): void => {},
-      };
-    },
-  };
-});
-
 type CapturedAction = {
   title: string;
   icon?: unknown;

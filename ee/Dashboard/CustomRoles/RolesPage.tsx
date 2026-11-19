@@ -24,6 +24,7 @@ import {
   CustomRoleReachDetails,
   loadCustomRoleReach,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleReach";
+import { getCustomRoleDeleteConfirmation } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleDeleteWorkflowsChoice";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import Route from "Common/Types/API/Route";
 import { JSONObject } from "Common/Types/JSON";
@@ -76,7 +77,9 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
  *
  * Deleting a role says first who loses what: the teams it is given to and
  * the people on them, and the API keys it is given to (CustomRoleReach),
- * who lose its permissions at once.
+ * who lose its permissions at once - and the workflows that run as it,
+ * which would stop, with what they run as instead (#9767,
+ * CustomRoleDeleteWorkflowsChoice).
  */
 
 interface CreateNotice {
@@ -230,8 +233,14 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
             projectId: ProjectUtil.getCurrentProjectId()!,
           });
 
-          return {
-            description: (
+          /*
+           * And the workflows that run as it (#9767): which, that they
+           * would stop, and what they run as instead.
+           */
+          return await getCustomRoleDeleteConfirmation({
+            customRoleId: item.id!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            question: (
               <DeleteConfirmationMessage
                 kind="question"
                 name={item.name || ""}
@@ -246,7 +255,7 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
                   .join(" ")}
               />
             ),
-          };
+          });
         }}
         showRefreshButton={true}
         searchableFields={["name"]}

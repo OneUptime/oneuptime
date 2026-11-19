@@ -18,6 +18,8 @@ import TeamMemberService from "./TeamMemberService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ProjectService from "./ProjectService";
 import Dictionary from "../../Types/Dictionary";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import { ProbeVersionReport } from "../../Types/Probe/ProbeReportedVersion";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
@@ -501,7 +503,15 @@ export class Service extends ProjectReferencesService<Model> {
     return true;
   }
 
-  public async updateLastAlive(probeId: ObjectID): Promise<void> {
+  public async updateLastAlive(
+    probeId: ObjectID,
+    /*
+     * What the request says of the release the probe runs
+     * (ProbeReportedVersionUtil.readFromRequest), kept in the same write:
+     * a request that says nothing of it leaves the kept release alone.
+     */
+    versionReport?: ProbeVersionReport | undefined,
+  ): Promise<void> {
     if (!probeId) {
       throw new BadDataException("probeId is required");
     }
@@ -515,6 +525,19 @@ export class Service extends ProjectReferencesService<Model> {
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
+    const data: PartialEntity<Model> = {
+      lastAlive: now,
+    };
+
+    /*
+     * The release rides along with the liveness stamp (issue #9759): one
+     * statement, at most once per probe per 30 seconds. Nothing kept for a
+     * probe that says no release: it is older than the first that says one.
+     */
+    if (versionReport?.isReported) {
+      (data as Dictionary<unknown>)["reportedVersion"] = versionReport.version;
+    }
+
     /*
      * Heartbeat write: a single-statement UPDATE with no hooks and no
      * `version` bump. This fires from the probe-auth middleware on every
@@ -527,9 +550,7 @@ export class Service extends ProjectReferencesService<Model> {
     try {
       await this.updateColumnsByIdWithoutHooks({
         id: probeId,
-        data: {
-          lastAlive: now,
-        },
+        data: data,
       });
     } catch (err) {
       /*

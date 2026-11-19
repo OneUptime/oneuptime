@@ -118,6 +118,16 @@ export interface AzureMetricDefinition {
   primaryAggregationType: string;
   // ISO 8601 durations the metric is available at: PT1M, PT5M, PT1H...
   timeGrains: Array<string>;
+  /*
+   * What a resource's list of the metrics it publishes shows
+   * (CloudResourceMetrics): its name in words (name.localizedValue), its
+   * description (displayDescription), the aggregations it may be read with,
+   * and whether a call must split it by a dimension to read it at all.
+   */
+  displayName?: string | undefined;
+  description?: string | undefined;
+  supportedAggregationTypes?: Array<string> | undefined;
+  isDimensionRequired?: boolean | undefined;
 }
 
 export interface AzureMetricSeriesPoint {
@@ -671,6 +681,19 @@ export default class AzureArm {
     return readArray(response["value"])
       .map((raw: unknown): AzureMetricDefinition => {
         const definition: JSONObject = readObject(raw);
+        const displayName: string = readText(
+          readObject(definition["name"])["localizedValue"],
+        );
+        const description: string = readText(definition["displayDescription"]);
+        const supported: Array<string> = readArray(
+          definition["supportedAggregationTypes"],
+        )
+          .map((aggregation: unknown): string => {
+            return readText(aggregation);
+          })
+          .filter((aggregation: string): boolean => {
+            return Boolean(aggregation) && aggregation !== "None";
+          });
 
         return {
           name: readText(readObject(definition["name"])["value"]),
@@ -685,6 +708,14 @@ export default class AzureArm {
             .filter((grain: string): boolean => {
               return Boolean(grain);
             }),
+          ...(displayName ? { displayName } : {}),
+          ...(description ? { description } : {}),
+          ...(supported.length > 0
+            ? { supportedAggregationTypes: supported }
+            : {}),
+          ...(definition["isDimensionRequired"] === true
+            ? { isDimensionRequired: true }
+            : {}),
         };
       })
       .filter((definition: AzureMetricDefinition): boolean => {

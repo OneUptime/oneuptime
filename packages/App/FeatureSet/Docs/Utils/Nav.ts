@@ -844,6 +844,11 @@ const DocsNav: NavGroup[] = [
         title: "IoT Devices",
         url: "/docs/telemetry/iot-devices",
       },
+      // Kiosks, POS terminals and other Android devices an organization owns.
+      {
+        title: "Android Agent",
+        url: "/docs/telemetry/android-agent",
+      },
       {
         title: "Podman Agent",
         url: "/docs/telemetry/podman-host",

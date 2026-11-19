@@ -402,10 +402,17 @@ describe("Status page /login - attempt limiting", () => {
       requireSsoForLogin: false,
     });
 
+    /*
+     * A private user who has set a password: only theirs is checked. One
+     * with none yet is refused after a derivation spent in place of the
+     * check, as an unknown address is (#9745).
+     */
     privateUserFindOneBy.mockResolvedValue({
       id: ObjectID.generate(),
       email: USER_EMAIL,
       statusPageId: new ObjectID(STATUS_PAGE_ID),
+      password: "stored-password-hash",
+      passwordSalt: "stored-password-salt",
     });
 
     privateUserVerifyHashedColumnValue.mockResolvedValue(false);

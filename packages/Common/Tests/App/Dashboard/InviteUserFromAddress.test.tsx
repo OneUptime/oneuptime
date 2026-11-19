@@ -83,18 +83,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/UserEmailRegistrationStatus", () => {
-  return {
-    __esModule: true,
-    useUserEmailRegistrationStatus: () => {
-      return {
-        isEmailRegistered: true,
-        checkEmail: (): void => {},
-      };
-    },
-  };
-});
-
 let tableIsDrawn: boolean = false;
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {

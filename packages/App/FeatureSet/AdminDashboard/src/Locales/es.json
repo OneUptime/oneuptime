@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "Enviaremos por correo a este usuario un enlace para establecer una nueva contraseña. El enlace caduca en 24 horas y sustituye a cualquier enlace enviado anteriormente.",
       "resetLinkModalSubmit": "Enviar enlace",
       "resetLinkSuccess": "Enlace de restablecimiento de contraseña enviado.",
-      "resetLinkSentTo": "Enlace de restablecimiento de contraseña enviado a {{email}}."
+      "resetLinkSentTo": "Enlace de restablecimiento de contraseña enviado a {{email}}.",
+      "ssoManagedByServerWarning": "Mientras este servidor requiera SSO, una contraseña no permitirá que esta persona inicie sesión.",
+      "ssoManagedByProjectsWarning": "Todos los proyectos de esta persona gestionan el inicio de sesión con SSO, así que una contraseña no abre ninguno.",
+      "clearSignInCardTitle": "Borrar configuración de inicio de sesión",
+      "clearSignInCardDescription": "Elimine su contraseña, llaves de acceso, llaves de seguridad, apps de autenticación y códigos de respaldo, y desactive la autenticación de dos factores.",
+      "clearSignInButton": "Borrar configuración de inicio de sesión",
+      "clearSignInOwnAccountTooltip": "Cambie su propia configuración de inicio de sesión en Perfil de usuario.",
+      "clearSignInModalTitle": "Borrar configuración de inicio de sesión",
+      "clearSignInModalDescription": "Elimina su contraseña, llaves de acceso, llaves de seguridad, apps de autenticación y códigos de respaldo, y desactiva la autenticación de dos factores. Esto no se puede deshacer.",
+      "clearSignInMasterAdminConfirmation": "Esta persona es administrador maestro. Entiendo que necesitará SSO o un enlace de restablecimiento de contraseña para iniciar sesión.",
+      "clearSignInModalSubmit": "Borrar configuración de inicio de sesión",
+      "clearSignInSuccess": "Configuración de inicio de sesión borrada. Las sesiones que inició sin SSO han terminado."
     },
     "userProjects": {
       "title": "Proyectos del usuario",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "Controle quién puede crear nuevos proyectos en este servidor OneUptime.",
         "projectCreationSwitchTitle": "Permitir que los usuarios creen proyectos",
         "projectCreationSwitchOnDescription": "Cualquiera que haya iniciado sesión en este servidor puede crear un proyecto.",
-        "projectCreationSwitchOffDescription": "Solo los administradores maestros pueden crear proyectos."
+        "projectCreationSwitchOffDescription": "Solo los administradores maestros pueden crear proyectos.",
+        "inviteSuggestionsCardTitle": "Sugerencias de invitación",
+        "inviteSuggestionsCardDescription": "Si quienes invitan a un proyecto pueden encontrar a cualquier persona con cuenta en este servidor. Déjelo desactivado si el servidor aloja más de una organización.",
+        "inviteSuggestionsSwitchTitle": "Sugerir todas las cuentas de este servidor",
+        "inviteSuggestionsSwitchOnDescription": "Cualquiera que pueda invitar a personas a un proyecto ve el nombre y el correo de cada cuenta mientras escribe, marcada como Aún no está en este proyecto.",
+        "inviteSuggestionsSwitchOffDescription": "Los formularios de invitación sugieren las personas del propio proyecto. A los administradores maestros también se les ofrecen las demás cuentas del servidor."
       },
       "email": {
         "adminNotificationCardTitle": "Correo de notificación admin",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "La versión 2 también indica qué cambió en los pasos de un flujo de trabajo y en JSON. La versión 1 es el registro original, para lectores creados para ella.",
   "Version 2 (newest)": "Versión 2 (la más reciente)",
   "Version 1 (original)": "Versión 1 (original)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "La versión 3 añade como qué se ejecutó cada paso de un flujo de trabajo. La versión 2 añade qué cambió en los pasos y en JSON. La versión 1 es la original.",
+  "Version 3 (newest)": "Versión 3 (la más reciente)",
+  "Version 2": "Versión 2",
   "Unchanged": "Sin cambios",
   "Setup guide": "Guía de configuración",
   "Write a test file": "Escribir un archivo de prueba",
@@ -4110,6 +4129,13 @@
   "Sign them out": "Cerrar su sesión",
   "Sign out everyone signed in without SSO?": "¿Cerrar la sesión de todos los que la iniciaron sin SSO?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Sus sesiones terminan ahora en todos los dispositivos y vuelven a iniciar sesión con SSO. Los administradores maestros siguen con la sesión iniciada.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} personas siguen teniendo una contraseña o la autenticación de dos factores guardada en OneUptime. Con ella podrían volver a iniciar sesión si SSO dejara de ser obligatorio.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} persona sigue teniendo una contraseña o la autenticación de dos factores guardada en OneUptime. Con ella podría volver a iniciar sesión si SSO dejara de ser obligatorio.",
+  "Clear Sign-In Settings": "Borrar configuración de inicio de sesión",
+  "Clear everyone's saved sign-in settings?": "¿Borrar la configuración de inicio de sesión guardada de todos?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Se eliminan sus contraseñas, llaves de acceso, llaves de seguridad, apps de autenticación y códigos de respaldo. Esto no se puede deshacer. Los administradores maestros conservan los suyos.",
+  "Cleared the sign-in settings of {{count}} people.": "Se borró la configuración de inicio de sesión de {{count}} personas.",
+  "Cleared the sign-in settings of {{count}} people._one": "Se borró la configuración de inicio de sesión de {{count}} persona.",
   "Made by {{name}} on {{date}}": "Creada por {{name}} el {{date}}",
   "Made on {{date}}": "Creada el {{date}}",
   "Ends in {{hint}}": "Termina en {{hint}}",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "Cerrar sesión también en el proveedor de identidad",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Cerrar sesión en OneUptime también cierra la sesión en este proveedor y en todas las demás aplicaciones que lo usan. Actívalo para ordenadores compartidos.",
   "Sign-out Redirect URI:": "URI de redirección tras cerrar sesión:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registre la URI de redirección en su proveedor de identidad OIDC, y también la URI de redirección tras cerrar sesión cuando «Cerrar sesión también en el proveedor de identidad» esté activado."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registre la URI de redirección en su proveedor de identidad OIDC, y también la URI de redirección tras cerrar sesión cuando «Cerrar sesión también en el proveedor de identidad» esté activado.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Si esta persona aún no tiene cuenta de OneUptime, se creará con este nombre.",
+  "Suggest every account on this server?": "¿Sugerir todas las cuentas de este servidor?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Cualquiera que pueda invitar a personas verá el nombre y el correo de cada cuenta mientras escribe. Actívelo solo si todas las cuentas de aquí pertenecen a una sola organización.",
+  "Suggest Every Account": "Sugerir todas las cuentas"
 }

@@ -16,6 +16,11 @@ import IncidentOwnerTeamService from "../../../Services/IncidentOwnerTeamService
 import IncidentOwnerUserService from "../../../Services/IncidentOwnerUserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
+import MeaningSearch, {
+  MAX_SEARCH_CANDIDATES,
+  MeaningSearchCandidate,
+  MeaningSearchMatch,
+} from "../MeaningSearch";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -487,17 +492,29 @@ export const QueryIncidentsTool: ObservabilityTool = {
   },
 };
 
+/*
+ * The texts search_incidents looks in, as the Incident model names them:
+ * what happened, why, how it was fixed and what was learned.
+ */
+export const SEARCHED_INCIDENT_COLUMNS: Array<string> = [
+  "title",
+  "description",
+  "rootCause",
+  "remediationNotes",
+  "postmortemNote",
+];
+
 export const SearchIncidentsTool: ObservabilityTool = {
   name: "search_incidents",
   description:
-    "Search PAST incidents by free text across their title, description, root cause, remediation notes and postmortem. Use this to ground root-cause analysis in history — e.g. 'have we seen this error before, and how was it resolved?'. Returns matching incidents (most recent first) with their root cause and postmortem so you can reuse prior resolutions.",
+    "Search PAST incidents by what happened, across their title, description, root cause, remediation notes and postmortem. Matches by meaning, not one exact phrase: 'too many connections' finds an incident whose root cause says 'connection pool exhausted', and '503s' one that says 'service unavailable'. Use this to ground root-cause analysis in history — e.g. 'have we seen this error before, and how was it resolved?'. Returns the closest matches first, each with what it matched on (matchedOn) and its root cause, remediation notes and postmortem so you can reuse prior resolutions. A match by meaning alone is a lead to check, not proof.",
   inputSchema: {
     type: "object",
     properties: {
       searchText: {
         type: "string",
         description:
-          "Text to match (case-insensitive substring) across incident title, description, root cause, remediation notes and postmortem.",
+          "What happened, in your words or the error's (e.g. 'database connections exhausted', 'checkout returns 503'). Matched by meaning across incident title, description, root cause, remediation notes and postmortem; an id or error code is matched as typed too.",
       },
       createdWithinHours: {
         type: "number",
@@ -551,28 +568,24 @@ export const SearchIncidentsTool: ObservabilityTool = {
       -1 * createdWithinHours,
     );
 
-    const incidents: Array<Incident> = await IncidentService.findBy({
+    /*
+     * The candidates: the newest incidents the caller may read whose text
+     * says what the search says, in any of the words that say it, or holds
+     * it as typed (MeaningSearch). The condition sits on title and names
+     * every searched column, as multiSearch does.
+     */
+    const candidates: Array<Incident> = await IncidentService.findBy({
       query: {
         createdAt: QueryHelper.inBetween(startTime, endTime),
-        /*
-         * The OR-joined ILIKE Raw references the listed columns, not the
-         * attached property — this is the established multiSearch attachment
-         * pattern (see QueryUtil).
-         */
-        title: QueryHelper.multiSearch(
-          [
-            "title",
-            "description",
-            "rootCause",
-            "remediationNotes",
-            "postmortemNote",
-          ],
-          searchText,
-        ),
+        title: MeaningSearch.getCondition({
+          columns: SEARCHED_INCIDENT_COLUMNS,
+          text: searchText,
+        }),
       },
       select: {
         _id: true,
         title: true,
+        description: true,
         incidentNumber: true,
         createdAt: true,
         currentIncidentState: {
@@ -582,34 +595,81 @@ export const SearchIncidentsTool: ObservabilityTool = {
           name: true,
         },
         rootCause: true,
+        remediationNotes: true,
         postmortemNote: true,
       },
       sort: {
         createdAt: SortOrder.Descending,
       },
-      limit: limit,
+      limit: MAX_SEARCH_CANDIDATES,
       skip: 0,
       props: ctx.props,
     });
 
-    const rows: Array<JSONObject> = incidents.map((incident: Incident) => {
-      return {
-        id: incident.id?.toString(),
-        incidentNumber: incident.incidentNumber,
-        title: incident.title,
-        state: incident.currentIncidentState?.name,
-        severity: incident.incidentSeverity?.name,
-        createdAt: incident.createdAt,
-        rootCause: incident.rootCause,
-        postmortemNote: incident.postmortemNote,
-      };
+    // Ranked by meaning: the closest first, each with what it matched on.
+    const matches: Array<MeaningSearchMatch<Incident>> = MeaningSearch.rank({
+      text: searchText,
+      limit: limit,
+      candidates: candidates.map(
+        (incident: Incident): MeaningSearchCandidate<Incident> => {
+          return {
+            record: incident,
+            text: MeaningSearch.documentText({
+              title: incident.title,
+              texts: [
+                incident.rootCause,
+                incident.remediationNotes,
+                incident.description,
+                incident.postmortemNote,
+              ],
+            }),
+            wholeText: [
+              incident.title,
+              incident.description,
+              incident.rootCause,
+              incident.remediationNotes,
+              incident.postmortemNote,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          };
+        },
+      ),
     });
+
+    const rows: Array<JSONObject> = matches.map(
+      (match: MeaningSearchMatch<Incident>) => {
+        const incident: Incident = match.record;
+
+        return {
+          id: incident.id?.toString(),
+          incidentNumber: incident.incidentNumber,
+          title: incident.title,
+          state: incident.currentIncidentState?.name,
+          severity: incident.incidentSeverity?.name,
+          createdAt: incident.createdAt,
+          matchedOn: MeaningSearch.describeMatch({
+            match: match,
+            text: searchText,
+          }),
+          similarity: Number(match.score.similarity.toFixed(2)),
+          rootCause: MeaningSearch.resultField(incident.rootCause),
+          remediationNotes: MeaningSearch.resultField(
+            incident.remediationNotes,
+          ),
+          postmortemNote: MeaningSearch.resultField(incident.postmortemNote),
+        };
+      },
+    );
 
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
     return {
-      dataForLlm: serialized.text,
+      dataForLlm:
+        rows.length > 0
+          ? serialized.text
+          : `No past incident created in the last ${createdWithinHours} hours matches "${searchText}", by meaning or as typed. Try other words for what happened, or a longer createdWithinHours.`,
       rowCount: serialized.rowCount,
       ...citationSentence(AI_READ_CITATIONS.incidentSearch, {
         query: searchText,

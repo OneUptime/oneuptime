@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import { AUDIT_LOG_REDACTED_VALUE } from "../../../../Types/AuditLog/AuditLogRedaction";
 import {
-  AUDIT_LOG_EXPORT_RECORD_KEYS,
   AuditLogExportChange,
   AuditLogExportRecord,
   AuditLogExportSchemaVersion,
+  getAuditLogExportRecordKeys,
   readAuditLogExportTypedValues,
   serializeAuditLogExportRecord,
   toAuditLogExportRecord,
@@ -177,9 +177,9 @@ describe("an old entry's typed value goes out as what it holds", () => {
       exported([RELEASED_NUMBER], 2),
     );
 
-    expect(Object.keys(JSON.parse(line))).toEqual([
-      ...AUDIT_LOG_EXPORT_RECORD_KEYS,
-    ]);
+    expect(Object.keys(JSON.parse(line))).toEqual(
+      getAuditLogExportRecordKeys(2),
+    );
     expect(line).not.toContain("_type");
     expect(line).toContain('"oldValue":"+14155550100"');
   });
@@ -357,7 +357,7 @@ describe("a seeded sweep of old entries", () => {
     return entry;
   }
 
-  test("1,500 rows, both versions", () => {
+  test("1,500 rows, every version", () => {
     const random: SeededRandom = seededRandom(6325);
     const problems: Array<string> = [];
 
@@ -368,7 +368,7 @@ describe("a seeded sweep of old entries", () => {
         changes.push(change(random));
       }
 
-      for (const version of [1, 2] as Array<AuditLogExportSchemaVersion>) {
+      for (const version of [1, 2, 3] as Array<AuditLogExportSchemaVersion>) {
         const record: AuditLogExportRecord = toAuditLogExportRecord(
           rowWith(changes),
           version,
@@ -383,7 +383,7 @@ describe("a seeded sweep of old entries", () => {
 
         if (
           JSON.stringify(Object.keys(JSON.parse(line))) !==
-          JSON.stringify(AUDIT_LOG_EXPORT_RECORD_KEYS)
+          JSON.stringify(getAuditLogExportRecordKeys(version))
         ) {
           problems.push(`${index} v${version}: keys moved`);
         }

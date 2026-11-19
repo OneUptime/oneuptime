@@ -72,6 +72,11 @@ export default class StateChangeFollowOn {
       props.workflowName = changedBy.workflowName;
     }
 
+    // What that workflow ran as, and with whose permissions (#9766).
+    if (changedBy.workflowRunAsAudit) {
+      props.workflowRunAsAudit = changedBy.workflowRunAsAudit;
+    }
+
     return props;
   }
 }

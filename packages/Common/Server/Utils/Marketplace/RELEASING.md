@@ -332,13 +332,12 @@ see the hosting rule under
 **Where it stands** (19 November 2026): the SaaS product `oneuptime-cloud`
 ("OneUptime") is in Producer Portal next to the self-hosted Kubernetes app
 ([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)),
-with steps 2 to 5 and 8 done; its product details and pricing are in
-Google's review, submitted that morning with the maintainer's go-ahead.
-**Left**: the production settings (step 7), the Pub/Sub subscription (step
-6), a test purchase (step 9), the technical integration's review once the
-pricing is approved (step 10), then **Publish** once all three reviews are
-approved (the maintainer's go-ahead). Until step 7, the integration's URLs
-answer "not available here".
+with steps 2 to 8 done: its product details and pricing are in Google's
+review, submitted that morning with the maintainer's go-ahead; production has
+the settings (step 7); and the Pub/Sub subscription pushes to it (step 6).
+**Left**: a test purchase (step 9), the technical integration's review once
+the pricing is approved (step 10), then **Publish** once all three reviews
+are approved (the maintainer's go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listings,
@@ -423,35 +422,53 @@ rules do.
 5. **Technical integration > Billing integration** (19 November 2026):
    `marketplace@oneuptime-marketplace.iam.gserviceaccount.com` is linked for
    the **Procurement API**, **Pub/Sub** and **Service Control**. Linking it
-   does not grant `roles/servicemanagement.serviceController` on the
-   service, so grant it with `gcloud endpoints services add-iam-policy-binding`
-   (done). Its JSON key is `GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY`: the
-   maintainer creates it straight into production's Secret (step 7), so it
-   never sits in a file. The partner ID on the same page, `oneuptime-marketplace`,
-   is `GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID`.
-6. **Pub/Sub push subscription** to the topic Producer Portal names,
+   for Service Control grants `roles/servicemanagement.serviceController` on
+   the project; it has the role on the service too
+   (`gcloud endpoints services add-iam-policy-binding`). Its JSON key is
+   `GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY`: the maintainer made it on
+   19 November (`gcloud iam service-accounts keys create`), put it straight
+   into production's values (step 7) and deleted the downloaded file. The
+   partner ID on the same page, `oneuptime-marketplace`, is
+   `GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID`.
+6. **Pub/Sub push subscription** (created on 19 November 2026,
+   `oneuptime-marketplace-events`) to the topic Producer Portal names,
    `projects/cloudcommerceproc-prod/topics/oneuptime-marketplace`, signed
-   with an OIDC token for the push service account, which exists:
+   with an OIDC token for the push service account. Google's topic takes only
+   the service account linked for Pub/Sub: a maintainer's own login gets
+   "User not authorized to perform this action". So create it as
+   `marketplace@`, with three grants that last only as long as that takes:
 
    ```bash
+   PROJECT=oneuptime-marketplace
+   SA=marketplace@oneuptime-marketplace.iam.gserviceaccount.com
+   PUSH_SA=marketplace-pubsub-push@oneuptime-marketplace.iam.gserviceaccount.com
+   ME="user:$(gcloud config get-value account)"
+   gcloud iam service-accounts add-iam-policy-binding "$SA" --project="$PROJECT" --member="$ME" --role=roles/iam.serviceAccountTokenCreator
+   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role=roles/pubsub.editor --condition=None
+   gcloud iam service-accounts add-iam-policy-binding "$PUSH_SA" --project="$PROJECT" --member="serviceAccount:$SA" --role=roles/iam.serviceAccountUser
+   # A minute later: IAM takes that long to apply them.
    gcloud pubsub subscriptions create oneuptime-marketplace-events \
-     --project=oneuptime-marketplace \
+     --project="$PROJECT" \
      --topic=projects/cloudcommerceproc-prod/topics/oneuptime-marketplace \
      --push-endpoint=https://oneuptime.com/api/marketplace/google-cloud/events \
-     --push-auth-service-account=marketplace-pubsub-push@oneuptime-marketplace.iam.gserviceaccount.com \
-     --ack-deadline=60
+     --push-auth-service-account="$PUSH_SA" \
+     --ack-deadline=60 \
+     --expiration-period=never \
+     --impersonate-service-account="$SA"
+   # Then remove the three grants: remove-iam-policy-binding, same arguments.
    ```
 
-   `GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL` is that push service
-   account. The subscription must be created by the service account linked for
-   Pub/Sub (or a person with its permissions). Create it after step 7: it
-   sends production every purchase. If push deliveries are refused with 401
+   Keep `--expiration-period=never`: by default Pub/Sub deletes a
+   subscription after 31 idle days, and nothing is bought before the listing
+   is public. `GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL` is the
+   push service account. Create the subscription after step 7: it sends
+   production every purchase. If push deliveries are refused with 401
    in OneUptime's logs, the Pub/Sub service agent
    (`service-<project number>@gcp-sa-pubsub.iam.gserviceaccount.com`) needs
    `roles/iam.serviceAccountTokenCreator` on the push service account.
 
-7. **Deploy** the values (table above) to production. In OneUptime Cloud's
-   Helm values:
+7. **Deploy** the values (table above) to production (done on 19 November
+   2026). In OneUptime Cloud's Helm values:
 
    ```yaml
    cloudMarketplace:
@@ -460,17 +477,31 @@ rules do.
        serviceName: oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog
        usageMetric: oneuptime-cloud.endpoints.oneuptime-marketplace.cloud.goog/usage_units
        pubSubServiceAccountEmail: marketplace-pubsub-push@oneuptime-marketplace.iam.gserviceaccount.com
-       existingSecret:
-         name: google-cloud-marketplace-secret
-         serviceAccountKeyKey: serviceAccountKey
+       # marketplace@'s JSON key, base64 on one line
+       serviceAccountKey: "<base64>"
    ```
 
-   with `marketplace@`'s JSON key in that Secret, under `serviceAccountKey`
-   (`signupAudience` and `pubSubAudience` stay unset: they default to the
-   host and to the push endpoint's URL). `enterpriseMarketplace.googleCloud`
-   is the self-hosted edition's, not this. Then check
-   `https://oneuptime.com/api/marketplace/google-cloud/signup` answers (a GET
-   shows "Open OneUptime from Google Cloud Marketplace").
+   `base64 -i <key file> | tr -d '\n' | pbcopy` puts the key on the clipboard
+   without showing it; the code takes it raw or base64. Production has it so,
+   in its values; `existingSecret` (`name`, `serviceAccountKeyKey`) reads it
+   from a Secret instead, and wins when set. `signupAudience` and
+   `pubSubAudience` stay unset: they default to the host and to the push
+   endpoint's URL. `enterpriseMarketplace.googleCloud` is the self-hosted
+   edition's, not this. The deployments that take the common settings (app,
+   home, nginx and worker) all get them.
+
+   Then check. A GET of the sign-up URL shows "Open OneUptime from Google
+   Cloud Marketplace" whether or not the settings are in, so POST to it:
+
+   ```bash
+   curl -s -X POST https://oneuptime.com/api/marketplace/google-cloud/signup | grep -o "did not receive your Google Cloud Marketplace purchase\|not available here"
+   ```
+
+   "did not receive your Google Cloud Marketplace purchase" means the
+   settings are in; "not available here", that some are missing. The events
+   URL answers a request without Google's token with 401. On 19 November an
+   app pod also exchanged the key for a token and listed
+   `oneuptime-marketplace`'s entitlements on the Procurement API: HTTP 200.
 8. **Listing** (submitted for review on 19 November 2026 with the
    maintainer's go-ahead): the copy above, one line per paragraph and per
    bullet; "link to more product info" `https://oneuptime.com`; categories
@@ -734,6 +765,9 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-19 | Google Cloud | SaaS product `oneuptime-cloud` ("OneUptime") created; listing, pricing and integration links filled in                | Agent      |
 | 2026-11-19 | Google Cloud | Product image, Tax Category and EULA (OneUptime's terms) entered                                                      | Maintainer |
 | 2026-11-19 | Google Cloud | Product details and pricing (`usage_units` at USD 0.01) submitted for review, with the maintainer's go-ahead          | Agent      |
+| 2026-11-19 | Google Cloud | Production configured: `marketplace@`'s key (made by the maintainer), the IDs and the push account                    | Maintainer |
+| 2026-11-19 | Google Cloud | Checked: sign-up URL configured; from an app pod the key gets a token, the Procurement API answers 200                | Agent      |
+| 2026-11-19 | Google Cloud | Pub/Sub push subscription created as `marketplace@` (temporary grants, revoked); set never to expire                  | Agent      |
 
 ## Notes for agents driving the browser
 

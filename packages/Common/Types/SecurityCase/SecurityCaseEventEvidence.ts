@@ -72,6 +72,16 @@ export interface SecurityCaseEventHunt {
   name: string;
 }
 
+/*
+ * The detection on the case a kept event was matched by - kept from the
+ * case's "Why This Case Was Opened" (#9622) - as it was named when the
+ * event was kept.
+ */
+export interface SecurityCaseEventDetection {
+  id: string;
+  name: string;
+}
+
 // An event as it was kept on a case.
 export interface SecurityCaseEventSnapshot {
   // When the event happened, as an ISO string.
@@ -111,6 +121,8 @@ export interface SecurityCaseEventSnapshot {
   sessionId: string;
   requestOutcome: string;
   hunt: SecurityCaseEventHunt | null;
+  // The detection it was matched by, when it was kept from what one matched.
+  detection?: SecurityCaseEventDetection | null | undefined;
 }
 
 // An event a request names to keep: its id and when it happened.
@@ -287,16 +299,33 @@ function readHunt(value: unknown): SecurityCaseEventHunt | null {
   return id && name ? { id, name } : null;
 }
 
+// A detection's name is its rule's, or its title: as long as either may be.
+function readDetection(value: unknown): SecurityCaseEventDetection | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const id: string = readText((value as { id?: unknown }).id, 100);
+  const name: string = readText((value as { name?: unknown }).name, 500);
+
+  return id && name ? { id, name } : null;
+}
+
 /*
  * An event, as a snapshot: every column of
  * SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS read from the row OneUptime read
- * (each kept to its limit), and the hunt that found it.
+ * (each kept to its limit), the hunt that found it, and the detection it
+ * was matched by.
  */
 export function buildSecurityCaseEventSnapshot(data: {
   event: { [column: string]: unknown };
   hunt?: SecurityCaseEventHunt | null | undefined;
+  detection?: SecurityCaseEventDetection | null | undefined;
 }): SecurityCaseEventSnapshot {
   const row: { [column: string]: unknown } = data.event;
+  const detection: SecurityCaseEventDetection | null = data.detection
+    ? readDetection(data.detection)
+    : null;
   const text: (column: string) => string = (column: string): string => {
     return readText(row[column], SECURITY_CASE_EVENT_SNAPSHOT_TEXT_MAX_LENGTH);
   };
@@ -332,6 +361,8 @@ export function buildSecurityCaseEventSnapshot(data: {
     sessionId: readText(row["sessionId"], 200),
     requestOutcome: readText(row["requestOutcome"], 100),
     hunt: data.hunt ? readHunt(data.hunt) : null,
+    // Only when it names one, so a snapshot of before reads as it did.
+    ...(detection ? { detection } : {}),
   };
 }
 
@@ -357,6 +388,7 @@ export function readSecurityCaseEventSnapshot(
       primaryEntityId: record["sourceId"],
     },
     hunt: readHunt(record["hunt"]),
+    detection: readDetection(record["detection"]),
   });
 
   return snapshot.eventUid || snapshot.time ? snapshot : null;

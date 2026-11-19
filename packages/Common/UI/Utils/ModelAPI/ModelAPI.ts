@@ -646,6 +646,12 @@ export default class ModelAPI {
     modelType: { new (): TBaseModel };
     id: ObjectID;
     requestOptions?: RequestOptions | undefined;
+    /*
+     * Choices beside the id the delete's hooks read (the server's
+     * DeleteOneBy.miscDataProps): what the workflows that run as a custom
+     * role run as once it is deleted, for one. Sent in the request's body.
+     */
+    miscDataProps?: JSONObject | undefined;
   }): Promise<void> {
     const apiPath: Route | null = new data.modelType().getCrudApiPath();
     if (!apiPath) {
@@ -673,6 +679,9 @@ export default class ModelAPI {
         method: HTTPMethod.DELETE,
         url: apiUrl,
         headers: headers,
+        ...(data.miscDataProps
+          ? { data: { miscDataProps: data.miscDataProps } }
+          : {}),
         ...(data.requestOptions?.apiRequestOptions
           ? { options: data.requestOptions.apiRequestOptions }
           : {}),

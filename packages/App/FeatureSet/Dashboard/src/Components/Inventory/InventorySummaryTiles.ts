@@ -84,7 +84,12 @@ export const INVENTORY_SUMMARY_TILES: Array<InventorySummaryTile> = [
     countField: "stale",
     caption: "No telemetry for over a day.",
     attentionClassName: "text-red-600",
-    scope: { source: EntitySource.Discovered, staleOnly: true },
+    /*
+     * Every item with a heartbeat that went quiet: discovered ones, and the
+     * hosts of managed devices that stopped checking in (issue #9586). Only
+     * those can be stale (getInventoryLivenessSql), so no source narrows it.
+     */
+    scope: { staleOnly: true },
   },
 ];
 

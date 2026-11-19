@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57990,
-    "untranslated": 4618
+    "keys": 58167,
+    "untranslated": 4615
   },
   "sameAsEnglish": [
     " incidents",
@@ -529,6 +529,7 @@
     "TTL",
     "TX",
     "Tables",
+    "Tenant",
     "Threads",
     "Top",
     "Top P",
@@ -572,6 +573,7 @@
     "Verdict",
     "Verdicts",
     "Version",
+    "Version 2",
     "Version {{number}}",
     "Version {{version}}",
     "Versions",

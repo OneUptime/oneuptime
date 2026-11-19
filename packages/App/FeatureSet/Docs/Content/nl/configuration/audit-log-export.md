@@ -121,7 +121,7 @@ De **Inloggegevens**, zoals `Bearer <token>`, worden verzonden in de header die 
 Elke vermelding is één RFC 5424-bericht naar de **Host** en **Poort**, via TLS op poort `6514` tenzij **Protocol** TCP of UDP aangeeft, met facility 13 (log audit) en severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":3,"id":"..."}
 ```
 
 Via TLS en TCP worden berichten gescheiden met octettelling (RFC 5425), tenzij **Berichtscheiding** één bericht per regel aangeeft. Een ontvanger waarvan een privé-CA het certificaat heeft ondertekend, heeft het certificaat van die CA nodig in **CA-certificaat**. Beide wachten onder **Meer velden**.
@@ -136,7 +136,7 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 
 | Sleutel | Wat erin staat |
 | --- | --- |
-| `schemaVersion` | `2` voor een nieuwe export, `1` voor een export die vóór versie 2 is opgeslagen. Een versie voegt alleen sleutels toe. |
+| `schemaVersion` | `3` voor een nieuwe export, `1` voor een export die vóór versie 2 is opgeslagen. Een versie voegt alleen sleutels toe. |
 | `id` | De id van de vermelding. Dezelfde vermelding die twee keer wordt verzonden, heeft dezelfde id. |
 | `createdAt` | Wanneer de wijziging is vastgelegd, in UTC. |
 | `projectId` | Het project waarin de wijziging is gedaan. |
@@ -147,6 +147,8 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 | `apiKeyId`, `apiKeyName` | De API-sleutel waarmee ze is gedaan, als die er is. |
 | `mcpOAuthGrantId`, `mcpClientName` | De MCP-client waarlangs ze is gedaan, als die er is. |
 | `workflowId`, `workflowName` | De workflow die ze heeft gedaan, als die er is. |
+| `workflowRunAs`, `workflowRunAsCustomRoleName` | In versie 3, waarmee de stap van de workflow draaide: `Default`, `ProjectOwner` of `CustomRole`, en de naam die de rol toen had. |
+| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | In versie 3, met wiens machtigingen hij draaide: de id van de persoon of van de API-sleutel van het project, en de naam die die toen had. Elk van deze vijf sleutels is `null` als geen workflow de wijziging heeft gedaan. |
 | `changes` | Elk gewijzigd veld: `field`, met `oldValue` en `newValue`, en in versie 2 `summary`. |
 
 Een bestand bevat één vermelding per regel, gecomprimeerd met gzip, en wordt opgeborgen onder het uur van zijn eerste vermelding: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
@@ -159,10 +161,11 @@ Sleutels, tokens en wachtwoorden gaan nooit naar buiten: ze worden vastgelegd al
 
 | Versie | Wat ze verzendt |
 | --- | --- |
+| `3` | Elke vermelding zegt ook waarmee de stap van de workflow die de wijziging deed draaide, en met wiens machtigingen, in vijf sleutels na `workflowName`. |
 | `2` | Elke wijziging bevat ook `summary`: wat er veranderde, in de regels die het auditlogboek toont, zoals `Added "Send Email" (send-email-1)` voor een stap van een workflow of het pad dat in JSON veranderde, anders `null`. De regels noemen instellingen en paden, nooit waarden. |
 | `1` | De vermelding zoals die eerst werd verzonden, zonder `summary`. De stappen van een workflow gaan mee als hun omvang ervoor en erna, zoals `3 steps and 2 connections`. |
 
-Een nieuwe export verzendt versie 2. Een export die vóór versie 2 is opgeslagen, blijft versie 1 verzenden, zodat wat hem leest niets hoeft te veranderen: is het klaar voor `summary`, klik dan bij de export op **Bewerken** en kies versie 2 in **Recordversie**, onder **Meer velden**. De versie geldt voor de vermeldingen die vanaf dan worden verzonden, en elke vermelding noemt de hare in `schemaVersion`.
+Een nieuwe export verzendt versie 3. Een export die vóór versie 2 is opgeslagen, blijft versie 1 verzenden, en een die vóór versie 3 is opgeslagen, blijft versie 2 verzenden, zodat wat hem leest niets hoeft te veranderen: is het klaar voor wat een nieuwere versie toevoegt, klik dan bij de export op **Bewerken** en kies versie 3 in **Recordversie**, onder **Meer velden**. De versie geldt voor de vermeldingen die vanaf dan worden verzonden, en elke vermelding noemt de hare in `schemaVersion`.
 
 ## Wanneer vermeldingen worden verzonden
 

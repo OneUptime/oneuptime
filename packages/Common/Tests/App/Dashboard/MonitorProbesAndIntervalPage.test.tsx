@@ -277,6 +277,8 @@ describe("the Probes & Interval page", () => {
       monitorType: true,
       monitoringInterval: true,
       minimumProbeAgreement: true,
+      // Whether its steps need one-time codes its old probes cannot make (#9759).
+      monitorSteps: true,
     });
   });
 

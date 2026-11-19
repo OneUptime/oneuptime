@@ -37,6 +37,7 @@ const getItemMock: MockFunction = getJestMockFunction();
 const getCommonHeadersMock: MockFunction = getJestMockFunction();
 const deleteItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+const moveInListMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the compiled
@@ -75,6 +76,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       updateById: (...args: Array<any>) => {
         return updateByIdMock(...args);
+      },
+      moveInList: (...args: Array<any>) => {
+        return moveInListMock(...args);
       },
     },
   };
@@ -155,6 +159,7 @@ afterEach(() => {
   getCommonHeadersMock.mockReset();
   deleteItemMock.mockReset();
   updateByIdMock.mockReset();
+  moveInListMock.mockReset();
   localStorage.clear();
   sessionStorage.clear();
 });
@@ -431,14 +436,21 @@ describe("Escalation level actions: the ⋯ menu", () => {
 
     fireEvent.click(menuItem(menu, "Move up"));
 
+    expect(moveInListMock).not.toHaveBeenCalled();
     expect(updateByIdMock).not.toHaveBeenCalled();
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 });
 
+/*
+ * A move is its own request since #9611: the level takes the place of the
+ * level named, by id (ModelAPI.moveInList), and the server steps the levels
+ * between aside. A write of its `order` would place it alone. These levels
+ * are not named after their place, so nothing is renamed behind the move.
+ */
 describe("Escalation level actions: each acts on its own level", () => {
   test("Move down on the first level swaps it with the second", async () => {
-    updateByIdMock.mockResolvedValue({} as never);
+    moveInListMock.mockResolvedValue({ changedRows: [] } as never);
 
     const cards: Array<HTMLElement> = await renderPage([
       FIRST_RESPONDERS,
@@ -450,14 +462,15 @@ describe("Escalation level actions: each acts on its own level", () => {
     fireEvent.click(menuItem(openMenu(cards[0]!), "Move down"));
 
     await waitFor(() => {
-      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(moveInListMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(updateByIdMock).toHaveBeenCalledWith({
+    expect(moveInListMock).toHaveBeenCalledWith({
       modelType: OnCallDutyEscalationRule,
       id: RULE_ONE_ID,
-      data: { order: 2 },
+      placeOfId: RULE_TWO_ID,
     });
+    expect(updateByIdMock).not.toHaveBeenCalled();
 
     // The menu closes behind the choice, and the ladder is read again.
     expect(screen.queryByRole("menu")).toBeNull();
@@ -467,8 +480,8 @@ describe("Escalation level actions: each acts on its own level", () => {
     });
   });
 
-  test("Move up on the last level takes the order of the level above it", async () => {
-    updateByIdMock.mockResolvedValue({} as never);
+  test("Move up on the last level takes the place of the level above it", async () => {
+    moveInListMock.mockResolvedValue({ changedRows: [] } as never);
 
     const cards: Array<HTMLElement> = await renderPage([
       FIRST_RESPONDERS,
@@ -479,22 +492,23 @@ describe("Escalation level actions: each acts on its own level", () => {
     fireEvent.click(menuItem(openMenu(cards[2]!), "Move up"));
 
     await waitFor(() => {
-      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(moveInListMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(updateByIdMock).toHaveBeenCalledWith({
+    expect(moveInListMock).toHaveBeenCalledWith({
       modelType: OnCallDutyEscalationRule,
       id: RULE_THREE_ID,
-      data: { order: 2 },
+      placeOfId: RULE_TWO_ID,
     });
+    expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
   test("a reorder holds its card - translucent and unclickable - until it lands", async () => {
-    let finishUpdate: (value: unknown) => void = (): void => {};
+    let finishMove: (value: unknown) => void = (): void => {};
 
-    updateByIdMock.mockImplementation((): Promise<unknown> => {
+    moveInListMock.mockImplementation((): Promise<unknown> => {
       return new Promise((resolve: (value: unknown) => void) => {
-        finishUpdate = resolve;
+        finishMove = resolve;
       });
     });
 
@@ -513,7 +527,7 @@ describe("Escalation level actions: each acts on its own level", () => {
     // Only the level being moved is held; its neighbour stays usable.
     expect(cards[0]).not.toHaveClass("pointer-events-none");
 
-    finishUpdate({});
+    finishMove({ changedRows: [] });
 
     await waitFor(() => {
       expect(
@@ -527,7 +541,7 @@ describe("Escalation level actions: each acts on its own level", () => {
   });
 
   test("a failed reorder is reported rather than swallowed", async () => {
-    updateByIdMock.mockRejectedValue(
+    moveInListMock.mockRejectedValue(
       new Error("The order could not be saved.") as never,
     );
 

@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import ObjectID from "../ObjectID";
 
 /*
  * WHAT A WORKFLOW RUNS AS (#9695).
@@ -22,20 +23,22 @@ import { JSONObject } from "../JSON";
  *     only what the role holds.
  *
  * Anything but Default is RAISED, and a raised workflow is held to one rule:
- * its permissions come from a person who holds them, and only such a person
- * changes what it does.
+ * its permissions come from someone who holds them - a person, or one of
+ * the project's API keys (#9765) - and only such a one changes what it does.
  *
- *   - Only a person gives a workflow raised permissions, and only ones they
- *     could give a team themselves (WorkflowRunAsAuthority). They are
- *     recorded as having given them.
- *   - Only a person who holds them may change a raised workflow - its steps,
- *     its own variables, its Run As - delete it, archive it, run it by hand
- *     or see the keys that start it. Anyone who may edit it may turn it off.
- *     A person who saves a change to its steps, its variables or its Run As
- *     gives it its permissions anew: the workflow runs with them only while
- *     that person still holds them.
- *   - Every run checks that the person who gave them still does. If they
- *     left the project or lost the permissions, the run does not start.
+ *   - Only a person or a project API key gives a workflow raised
+ *     permissions, and only ones it could give a team itself
+ *     (WorkflowRunAsAuthority): a key's own permissions are its ceiling, as
+ *     a person's are theirs. They are recorded as having given them.
+ *   - Only a person or a key who holds them may change a raised workflow -
+ *     its steps, its own variables, its Run As - delete it, archive it, run
+ *     it by hand or see the keys that start it. Anyone who may edit it may
+ *     turn it off. Whoever saves a change to its steps, its variables or its
+ *     Run As gives it its permissions anew: the workflow runs with them only
+ *     while they still hold them.
+ *   - Every run checks that whoever gave them still does. If the person left
+ *     the project or lost the permissions, or the key was deleted, expired
+ *     or narrowed, the run does not start.
  *   - A raised workflow reads only its own variables: anyone who may edit
  *     workflow variables may change the project's global ones.
  *   - Another workflow starts a raised one only if its own permissions
@@ -152,20 +155,45 @@ export const getWorkflowRunAsVariableRefusedMessage: (
 
 /*
  * Raised permissions given, or a raised workflow changed, by something that
- * is no person: an API key, or OneUptime acting for nobody in particular.
+ * is neither a person nor one of the project's API keys: a workflow's step,
+ * the server's master API key, or OneUptime acting for nobody in particular.
+ * Their permissions in the project can't be read again as each run starts.
  */
-export const WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE: string =
-  "Only a person can choose what a workflow runs as, or change a workflow that runs with more than the default permissions, because the workflow runs with that person's permissions. API keys can't.";
+export const WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE: string =
+  "Only a person, or one of this project's API keys, can choose what a workflow runs as, or change a workflow that runs with more than the default permissions, because the workflow runs with their permissions. A workflow's steps and the master API key can't.";
 
 /*
- * A raised workflow acted on by something that is no person, which may do
- * nothing a person who holds its permissions alone may: the refusal for
- * the act, and why.
+ * A raised workflow acted on by something that may not give it its
+ * permissions (WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE): the refusal for the act,
+ * and why.
  */
-export const getWorkflowRunAsPersonOnlyRefusedMessage: (
+export const getWorkflowRunAsGiverOnlyRefusedMessage: (
   refusal: string,
 ) => string = (refusal: string): string => {
-  return `${refusal} ${WORKFLOW_RUN_AS_PERSON_ONLY_MESSAGE}`;
+  return `${refusal} ${WORKFLOW_RUN_AS_GIVER_ONLY_MESSAGE}`;
+};
+
+/*
+ * WHO GAVE A RAISED WORKFLOW ITS PERMISSIONS (#9765): a person, by their
+ * name, or one of the project's API keys.
+ */
+export interface WorkflowRunAsGiverName {
+  // The person's name (or email), or the key's name.
+  name?: string | null | undefined;
+  isApiKey?: boolean | undefined;
+}
+
+// Who gave them, as a sentence names them: Jane Doe, or the API key "Terraform".
+export const describeWorkflowRunAsGiver: (
+  giver: WorkflowRunAsGiverName,
+) => string = (giver: WorkflowRunAsGiverName): string => {
+  const name: string = (giver.name || "").trim();
+
+  if (giver.isApiKey) {
+    return name ? `the API key "${name}"` : "an API key";
+  }
+
+  return name || "a person";
 };
 
 // Run As Project Owner chosen by someone who is not one.
@@ -283,6 +311,51 @@ export const getWorkflowRunAsGiverLostMessage: (data: {
   return `This workflow didn't run: it runs as ${what}, which ${name} gave it, and ${why}. ${giveAgain(data.choice)}`;
 };
 
+/*
+ * THE SAME, WHEN AN API KEY GAVE THEM (#9765): every run reads the key
+ * again, as it is in the project now.
+ */
+
+// The key that gave them was deleted, or is no longer one of the project's.
+export const getWorkflowRunAsKeyGoneMessage: (
+  choice: WorkflowRunAsChoice,
+) => string = (choice: WorkflowRunAsChoice): string => {
+  return `This workflow didn't run: it runs as ${describeWorkflowRunAs(choice)}, and the API key that gave it those permissions was deleted. ${giveAgain(choice)}`;
+};
+
+// The key that gave them has expired.
+export const getWorkflowRunAsKeyExpiredMessage: (data: {
+  choice: WorkflowRunAsChoice;
+  keyName: string;
+}) => string = (data: {
+  choice: WorkflowRunAsChoice;
+  keyName: string;
+}): string => {
+  return `This workflow didn't run: it runs as ${describeWorkflowRunAs(data.choice)}, which ${describeWorkflowRunAsGiver({ name: data.keyName, isApiKey: true })} gave it, and that key has expired. ${giveAgain(data.choice)}`;
+};
+
+/*
+ * The key could not give them now: its permissions were narrowed, or the
+ * custom role holds one it doesn't.
+ */
+export const getWorkflowRunAsKeyLostMessage: (data: {
+  choice: WorkflowRunAsChoice;
+  keyName: string;
+  // The permission the key's own permissions lack, by its title.
+  missingPermissionTitle: string;
+}) => string = (data: {
+  choice: WorkflowRunAsChoice;
+  keyName: string;
+  missingPermissionTitle: string;
+}): string => {
+  const why: string =
+    data.choice.runAs === WorkflowRunAs.CustomRole
+      ? `that key can't give that role any more: it has ${data.missingPermissionTitle}, which the key's own permissions don't include`
+      : "that key no longer has Project Owner";
+
+  return `This workflow didn't run: it runs as ${describeWorkflowRunAs(data.choice)}, which ${describeWorkflowRunAsGiver({ name: data.keyName, isApiKey: true })} gave it, and ${why}. ${giveAgain(data.choice)}`;
+};
+
 // The custom role it runs as was deleted.
 export const WORKFLOW_RUN_AS_ROLE_DELETED_MESSAGE: string =
   "This workflow didn't run: the custom role it runs as was deleted. Open the workflow's Settings and choose what it runs as.";
@@ -290,6 +363,112 @@ export const WORKFLOW_RUN_AS_ROLE_DELETED_MESSAGE: string =
 // A Run As that cannot be read.
 export const WORKFLOW_RUN_AS_UNREADABLE_MESSAGE: string =
   "This workflow didn't run: what it runs as can't be read. Open the workflow's Settings and choose what it runs as.";
+
+/*
+ * DELETING A CUSTOM ROLE THAT WORKFLOWS RUN AS (#9767). Deleted, the role
+ * would leave them running nothing until someone chose again, so a delete
+ * says what they run as instead - Default, or another custom role the
+ * deleter could give a team - and they are switched as the role goes. The
+ * API's names for that choice, in a delete's miscDataProps:
+ */
+export const WORKFLOWS_RUN_AS_INSTEAD_KEY: string = "workflowsRunAs";
+export const WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY: string =
+  "workflowsRunAsCustomRoleId";
+
+// The workflows a sentence names, in quotes, at most five, then how many more.
+const nameWorkflows: (data: {
+  workflowNames: ReadonlyArray<string>;
+  workflowCount: number;
+}) => string = (data: {
+  workflowNames: ReadonlyArray<string>;
+  workflowCount: number;
+}): string => {
+  const shown: Array<string> = data.workflowNames
+    .filter((name: string): boolean => {
+      return Boolean(name && name.trim());
+    })
+    .slice(0, 5)
+    .map((name: string): string => {
+      return `"${name.trim()}"`;
+    });
+  const more: number = Math.max(0, data.workflowCount - shown.length);
+
+  if (shown.length === 0) {
+    return data.workflowCount === 1
+      ? "A workflow"
+      : `${data.workflowCount} workflows`;
+  }
+
+  const listed: Array<string> =
+    more > 0 ? [...shown, `${more} more`] : [...shown];
+  const list: string =
+    listed.length === 1
+      ? listed[0]!
+      : `${listed.slice(0, -1).join(", ")} and ${listed[listed.length - 1]}`;
+
+  return data.workflowCount === 1
+    ? `The workflow ${list}`
+    : `The workflows ${list}`;
+};
+
+/*
+ * A custom role that workflows run as, deleted without saying what they run
+ * as instead: which workflows - those the deleter may read by name, the
+ * rest counted - why, and the two ways to say it.
+ */
+export const getCustomRoleDeleteWorkflowsMessage: (data: {
+  // The roles being deleted, by name.
+  roleNames: ReadonlyArray<string>;
+  // The names of the workflows the deleter may read.
+  workflowNames: ReadonlyArray<string>;
+  // How many workflows run as the roles, read or not.
+  workflowCount: number;
+}) => string = (data: {
+  roleNames: ReadonlyArray<string>;
+  workflowNames: ReadonlyArray<string>;
+  workflowCount: number;
+}): string => {
+  const isOne: boolean = data.workflowCount === 1;
+  const roleName: string =
+    data.roleNames.length === 1 ? (data.roleNames[0] || "").trim() : "";
+  const role: string =
+    data.roleNames.length > 1
+      ? "the custom roles being deleted"
+      : roleName
+        ? `the custom role "${roleName}"`
+        : "this custom role";
+  const deleting: string =
+    data.roleNames.length > 1 ? "Deleting them" : "Deleting the role";
+
+  return `${nameWorkflows(data)} ${isOne ? "runs" : "run"} as ${role}. ${deleting} would stop ${isOne ? "it" : "them"} until someone changes what ${isOne ? "it runs" : "they run"} as, so say what ${isOne ? "it runs" : "they run"} as instead: choose it as you delete the role in the Dashboard, or send miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_KEY} as "${WorkflowRunAs.Default}", or as "${WorkflowRunAs.CustomRole}" with miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY} naming another custom role you could give a team.`;
+};
+
+// What the workflows run as instead, when it is none of the choices.
+export const WORKFLOWS_RUN_AS_INSTEAD_UNKNOWN_MESSAGE: string = `miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_KEY} says what the workflows that run as a deleted custom role run as instead: "${WorkflowRunAs.Default}", or "${WorkflowRunAs.CustomRole}" with miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY}.`;
+
+// Another custom role, named by nothing.
+export const WORKFLOWS_RUN_AS_INSTEAD_ROLE_MISSING_MESSAGE: string = `Name the custom role the workflows run as instead in miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY}.`;
+
+// Another custom role that is one being deleted.
+export const WORKFLOWS_RUN_AS_INSTEAD_ROLE_DELETED_MESSAGE: string =
+  "The workflows can't run as a custom role that is being deleted. Choose Default or another custom role.";
+
+/*
+ * A deleter who may not change one of the workflows: what they run as is
+ * the workflows' to change, held to who may edit them.
+ */
+export const getCustomRoleDeleteWorkflowEditRefusedMessage: (data: {
+  // The workflow's name, when the deleter may read it.
+  workflowName?: string | null | undefined;
+}) => string = (data: { workflowName?: string | null | undefined }): string => {
+  const name: string = (data.workflowName || "").trim();
+
+  if (name) {
+    return `You can't change what the workflow "${name}" runs as, so this custom role can't be deleted yet: deleting it changes what every workflow that runs as it runs as. Ask someone who can edit that workflow to choose what it runs as in its Settings, or to delete the role.`;
+  }
+
+  return `You can't change what one of the workflows that run as this custom role runs as, so the role can't be deleted yet: deleting it changes what every workflow that runs as it runs as. Ask someone who can edit those workflows to choose what they run as in their Settings, or to delete the role.`;
+};
 
 // Another workflow's Run Workflow step, starting a raised workflow it may not.
 export const getWorkflowRunAsChildRefusedMessage: (data: {
@@ -306,15 +485,119 @@ export const getWorkflowRunAsChildRefusedMessage: (data: {
   return `${child} runs as ${describeWorkflowRunAs(data.childChoice)}, which this workflow's own permissions don't include, so this workflow can't start it. Start it from a workflow that runs with the same permissions or more.`;
 };
 
-// The first line of a raised run's log: what it runs as, and for whom.
+/*
+ * The first line of a raised run's log: what it runs as, and whose
+ * permissions - a person's, or an API key's.
+ */
 export const getWorkflowRunAsRunLogLine: (data: {
   choice: WorkflowRunAsChoice;
   giverName: string;
+  isGivenByApiKey?: boolean | undefined;
 }) => string = (data: {
   choice: WorkflowRunAsChoice;
   giverName: string;
+  isGivenByApiKey?: boolean | undefined;
 }): string => {
-  return `Running as ${describeWorkflowRunAs(data.choice)}, with the permissions ${data.giverName} gave this workflow.`;
+  return `Running as ${describeWorkflowRunAs(data.choice)}, with the permissions ${describeWorkflowRunAsGiver({ name: data.giverName, isApiKey: data.isGivenByApiKey })} gave this workflow.`;
+};
+
+/*
+ * WHAT A WORKFLOW'S STEP RAN AS, FOR THE AUDIT LOG (#9766). A step acts as
+ * no person, so its audit entries name the workflow (workflowId,
+ * workflowName); these say what it ran as - Default, Project Owner or a
+ * custom role, by the role's name at the time - and, for Project Owner or a
+ * role, with whose permissions: the person or the project API key that gave
+ * them, by name at the time, as the run checked them when it started.
+ *
+ * Carried on a step's props for the audit trail only
+ * (DatabaseCommonInteractionProps.workflowRunAsAudit, set by
+ * WorkflowPrincipal): no permission check reads it. What a step may do is in
+ * its permission rows, and whether it may change who has access is
+ * workflowRunAs.
+ */
+export interface WorkflowRunAsAudit {
+  runAs: WorkflowRunAs;
+  // The custom role's name when the run started (CustomRole only).
+  customRoleName?: string | undefined;
+  // The person who gave the permissions, when a person did.
+  givenByUserId?: ObjectID | undefined;
+  // The project API key that gave them, when a key did.
+  givenByApiKeyId?: ObjectID | undefined;
+  // The person's name (or email), or the key's name, when the run started.
+  givenByName?: string | undefined;
+}
+
+/*
+ * The audit log's columns for it, as stored and exported, and the values
+ * one holds - the Run As as stored, "Default" for a step of a workflow that
+ * runs with the default permissions.
+ */
+export const WORKFLOW_RUN_AS_AUDIT_COLUMNS: ReadonlyArray<
+  keyof WorkflowRunAsAuditColumns
+> = [
+  "workflowRunAs",
+  "workflowRunAsCustomRoleName",
+  "workflowRunAsGivenByUserId",
+  "workflowRunAsGivenByApiKeyId",
+  "workflowRunAsGivenByName",
+];
+
+// What a workflow's audit entry stores of what it ran as.
+export interface WorkflowRunAsAuditColumns {
+  workflowRunAs: WorkflowRunAs;
+  workflowRunAsCustomRoleName?: string | undefined;
+  workflowRunAsGivenByUserId?: ObjectID | undefined;
+  workflowRunAsGivenByApiKeyId?: ObjectID | undefined;
+  workflowRunAsGivenByName?: string | undefined;
+}
+
+/*
+ * A step's record of what it ran as, as the audit log's columns hold it -
+ * or null for none. Only what it says: a Run As that is no WorkflowRunAs
+ * is none; a role's name only beside a custom role; a giver only beside
+ * Project Owner or a role, a key's id winning over a person's, as the run
+ * asked the key; names trimmed, and empty ones left out.
+ */
+export const getWorkflowRunAsAuditColumns: (
+  audit: WorkflowRunAsAudit | null | undefined,
+) => WorkflowRunAsAuditColumns | null = (
+  audit: WorkflowRunAsAudit | null | undefined,
+): WorkflowRunAsAuditColumns | null => {
+  if (!audit) {
+    return null;
+  }
+
+  const runAs: WorkflowRunAs | null = readWorkflowRunAs(audit.runAs);
+
+  if (!runAs) {
+    return null;
+  }
+
+  const columns: WorkflowRunAsAuditColumns = { workflowRunAs: runAs };
+
+  if (runAs === WorkflowRunAs.Default) {
+    return columns;
+  }
+
+  const roleName: string = (audit.customRoleName || "").trim();
+
+  if (runAs === WorkflowRunAs.CustomRole && roleName) {
+    columns.workflowRunAsCustomRoleName = roleName;
+  }
+
+  if (audit.givenByApiKeyId) {
+    columns.workflowRunAsGivenByApiKeyId = audit.givenByApiKeyId;
+  } else if (audit.givenByUserId) {
+    columns.workflowRunAsGivenByUserId = audit.givenByUserId;
+  }
+
+  const givenByName: string = (audit.givenByName || "").trim();
+
+  if (givenByName) {
+    columns.workflowRunAsGivenByName = givenByName;
+  }
+
+  return columns;
 };
 
 /*

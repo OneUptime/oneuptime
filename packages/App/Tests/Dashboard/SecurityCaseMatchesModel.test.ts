@@ -33,6 +33,7 @@ const CASE_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const SERVICE_ID: string = "33333333-3333-4333-8333-333333333333";
 const BASE: string = `/dashboard/${PROJECT_ID}`;
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
+const LOG_ID: string = "0192f1a0-0000-7000-8000-000000000001";
 
 beforeAll(async () => {
   (globalThis as Record<string, unknown>)["window"] = {
@@ -113,6 +114,7 @@ function rule(
     falsePositives: [],
     references: [],
     lookFor: [{ field: "targetResource", values: ["../../"] }],
+    responseSteps: [],
     ...overrides,
   };
 }
@@ -184,6 +186,9 @@ function detection(
     windowStart: "2026-11-17T19:22:00.000Z",
     windowEnd: "2026-11-17T19:29:00.000Z",
     events: [event()],
+    isKept: false,
+    keptPastRetentionCount: 0,
+    hiddenEventCount: 0,
     matchedEventCount: 12,
     outcomes: { [SecurityEventRequestOutcome.Rejected]: 12 },
     ...overrides,
@@ -413,6 +418,7 @@ describe("an event's row", () => {
       }),
     );
 
+    // "abc" is not a line's id: there is no line to open.
     expect(
       links.map((link: { key: string }): string => {
         return link.key;
@@ -430,10 +436,107 @@ describe("an event's row", () => {
     expect(links[2]!.route.toString()).toContain("fp-1");
   });
 
+  /*
+   * #9620: the line an event was read from is its row's first link - named
+   * as the row named where it came from - opening the Logs explorer on the
+   * line itself, by its id, with its service's lines around it.
+   */
+  test("names the log line it was read from, and opens the Logs explorer on it", () => {
+    const fromLine: SecurityCaseMatchedEventJson = event({
+      attributes: { ...event().attributes, "oneuptime.log.id": LOG_ID },
+    });
+    const links: ReturnType<typeof model.getEventLinks> =
+      model.getEventLinks(fromLine);
+
+    expect(
+      links.map((link: { key: string }): string => {
+        return link.key;
+      }),
+    ).toEqual(["logLine", "trace", "logs"]);
+    expect(links[0]).toMatchObject({
+      label: copy.EVENT_FROM_LOG_LINE_OF,
+      values: { service: "oneuptime-nginx" },
+      icon: IconProp.DocumentText,
+    });
+
+    const line: { path: string; query: Record<string, string> } = open(
+      links[0]!.route,
+    );
+
+    expect(line.path).toBe(`${BASE}/logs`);
+    expect(line.query["log"]).toBe(LOG_ID);
+    expect(new Date(line.query["logTime"]!).toISOString()).toBe(
+      "2026-11-17T19:22:14.000Z",
+    );
+    expect(JSON.parse(line.query["filters"]!)).toEqual([
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+  });
+
+  test("a line sent under no service is named a log line, and still opens", () => {
+    const links: ReturnType<typeof model.getEventLinks> = model.getEventLinks(
+      event({
+        traceId: "",
+        spanId: "",
+        attributes: { "oneuptime.log.id": LOG_ID },
+      }),
+    );
+
+    expect(links).toHaveLength(1);
+    expect(links[0]).toMatchObject({
+      key: "logLine",
+      label: copy.EVENT_FROM_LOG_LINE,
+      values: {},
+    });
+    expect(open(links[0]!.route).query["log"]).toBe(LOG_ID);
+  });
+
   test("an event with no request opens nothing it cannot", () => {
     expect(
       model.getEventLinks(event({ traceId: "", attributes: {}, spanId: "" })),
     ).toEqual([]);
+  });
+});
+
+/*
+ * #9619: a detection keeps the events it matched when it fires. Those past
+ * the events table's retention are listed as kept, and said to be; those of
+ * sources the reader's role cannot read are counted, never shown.
+ */
+describe("what a detection kept", () => {
+  test("says how many of its events are past their retention, shown as kept", () => {
+    expect(
+      model.getKeptPastRetentionNote(
+        detection({ isKept: true, keptPastRetentionCount: 2 }),
+      ),
+    ).toEqual({ template: copy.KEPT_PAST_RETENTION, count: 2 });
+  });
+
+  test("says nothing when none is past, or the events were read again rather than kept", () => {
+    expect(
+      model.getKeptPastRetentionNote(
+        detection({ isKept: true, keptPastRetentionCount: 0 }),
+      ),
+    ).toBeNull();
+    expect(
+      model.getKeptPastRetentionNote(
+        detection({ isKept: false, keptPastRetentionCount: 3 }),
+      ),
+    ).toBeNull();
+  });
+
+  test("counts the ones the reader's role cannot read", () => {
+    expect(
+      model.getHiddenEventsNote(detection({ hiddenEventCount: 4 })),
+    ).toEqual({ template: copy.HIDDEN_EVENTS, count: 4 });
+    expect(model.getHiddenEventsNote(detection())).toBeNull();
+  });
+
+  test("the words are a plural each, counting what they say", () => {
+    for (const template of [copy.KEPT_PAST_RETENTION, copy.HIDDEN_EVENTS]) {
+      expect(template.one).toContain("{{count}}");
+      expect(template.other).toContain("{{count}}");
+    }
   });
 });
 

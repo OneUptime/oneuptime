@@ -121,6 +121,25 @@ export interface ResourceStorageUsageColumns {
   freeDescription?: string | undefined;
   // How an amount is written: binary bytes ("36.2 GiB") by default.
   formatAmount?: ((amount: number) => string) | undefined;
+  /*
+   * The Used column's title, in English, when the list is more than one of
+   * storage: a Proxmox node's or container's root disk reads "Disk", a VM's
+   * datastore space "Storage". Left out, "Used".
+   */
+  usedTitle?: string | undefined;
+  /*
+   * After the CPU and Memory columns (and a page's own columns) rather than
+   * right after Status: a list whose rows are not stores but use one - a
+   * node, a guest, a VM - reads its disk as a third resource, beside the
+   * other two.
+   */
+  isAfterResourceMetrics?: boolean | undefined;
+  /*
+   * Free drawn only while a row reports usage: a cluster of VMs that cannot
+   * see inside their guests says why under Disk once, rather than a column
+   * of dashes beside it. Left out, Free is always drawn.
+   */
+  isFreeOnlyWhenReported?: boolean | undefined;
 }
 
 export const STORAGE_USED_COLUMN_KEY: string = "storageUsage";
@@ -136,6 +155,85 @@ export function getStorageSortValue(
     return -1;
   }
   return column === "used" ? usage.usedPercent : usage.free;
+}
+
+/*
+ * The Used and Free columns a list is handed storageUsageColumns for, or
+ * none. Both sort (getStorageSortValue), so the fullest store, or the one
+ * with least room left, is a click away. Free folds under Used when the
+ * table runs out of room, its title kept ("Free 12 GiB").
+ */
+export function getStorageUsageTableColumns(data: {
+  columns: ResourceStorageUsageColumns | undefined;
+  resources: Array<Pick<InfrastructureResource, "storageUsage">>;
+  translator: Translator;
+}): Array<Column<InfrastructureResource>> {
+  const storageColumns: ResourceStorageUsageColumns | undefined = data.columns;
+
+  if (!storageColumns) {
+    return [];
+  }
+
+  const formatFree: (amount: number) => string = (amount: number): string => {
+    return storageColumns.formatAmount
+      ? storageColumns.formatAmount(amount)
+      : formatStorageBytes(amount, data.translator.language);
+  };
+
+  const columns: Array<Column<InfrastructureResource>> = [
+    {
+      title: storageColumns.usedTitle || "Used",
+      type: FieldType.Element,
+      // STORAGE_USED_COLUMN_KEY, written out: a page's column folds into it.
+      key: "storageUsage",
+      headerTooltip: storageColumns.usedDescription,
+      getElement: (resource: InfrastructureResource): ReactElement => {
+        return (
+          <StorageUsageBar
+            usage={resource.storageUsage?.usage || null}
+            noUsageText={resource.storageUsage?.noUsageText}
+            formatAmount={storageColumns.formatAmount}
+          />
+        );
+      },
+    },
+  ];
+
+  const isFreeDrawn: boolean =
+    !storageColumns.isFreeOnlyWhenReported ||
+    data.resources.some(
+      (resource: Pick<InfrastructureResource, "storageUsage">): boolean => {
+        return Boolean(resource.storageUsage?.usage);
+      },
+    );
+
+  if (isFreeDrawn) {
+    columns.push({
+      // The room left, never the price (MeaningKeys).
+      title: "Free (storage space)",
+      type: FieldType.Element,
+      // STORAGE_FREE_COLUMN_KEY: no field of the row, as a custom column's key.
+      key: "storageFree" as keyof InfrastructureResource,
+      headerTooltip: storageColumns.freeDescription,
+      hideBelowLargeScreen: true,
+      foldInto: STORAGE_USED_COLUMN_KEY,
+      showTitleWhenFolded: true,
+      getElement: (resource: InfrastructureResource): ReactElement => {
+        const usage: StorageUsage | null | undefined =
+          resource.storageUsage?.usage;
+        if (!usage) {
+          return <TableEmptyValue />;
+        }
+        return (
+          <span className="text-sm tabular-nums text-gray-700" dir="auto">
+            {formatFree(usage.free)}
+          </span>
+        );
+      },
+    });
+  }
+
+  return columns;
 }
 
 export interface ResourceStatusReason {
@@ -738,53 +836,16 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     });
   }
 
-  const storageColumns: ResourceStorageUsageColumns | undefined =
-    props.storageUsageColumns;
+  const storageColumns: Array<Column<InfrastructureResource>> =
+    getStorageUsageTableColumns({
+      columns: props.storageUsageColumns,
+      resources: props.resources,
+      translator: translator,
+    });
 
-  if (storageColumns) {
-    tableColumns.push(
-      {
-        title: "Used",
-        type: FieldType.Element,
-        // STORAGE_USED_COLUMN_KEY, written out: a page's column folds into it.
-        key: "storageUsage",
-        headerTooltip: storageColumns.usedDescription,
-        getElement: (resource: InfrastructureResource): ReactElement => {
-          return (
-            <StorageUsageBar
-              usage={resource.storageUsage?.usage || null}
-              noUsageText={resource.storageUsage?.noUsageText}
-              formatAmount={storageColumns.formatAmount}
-            />
-          );
-        },
-      },
-      {
-        // The room left, never the price (MeaningKeys).
-        title: "Free (storage space)",
-        type: FieldType.Element,
-        // STORAGE_FREE_COLUMN_KEY: no field of the row, as a custom column's key.
-        key: "storageFree" as keyof InfrastructureResource,
-        headerTooltip: storageColumns.freeDescription,
-        hideBelowLargeScreen: true,
-        foldInto: STORAGE_USED_COLUMN_KEY,
-        showTitleWhenFolded: true,
-        getElement: (resource: InfrastructureResource): ReactElement => {
-          const usage: StorageUsage | null | undefined =
-            resource.storageUsage?.usage;
-          if (!usage) {
-            return <TableEmptyValue />;
-          }
-          return (
-            <span className="text-sm tabular-nums text-gray-700" dir="auto">
-              {storageColumns.formatAmount
-                ? storageColumns.formatAmount(usage.free)
-                : formatStorageBytes(usage.free, translator.language)}
-            </span>
-          );
-        },
-      },
-    );
+  // A list of stores reads how full each is first, right after its status.
+  if (!props.storageUsageColumns?.isAfterResourceMetrics) {
+    tableColumns.push(...storageColumns);
   }
 
   if (props.columns) {
@@ -1022,6 +1083,11 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         },
       },
     );
+  }
+
+  // A row's disk is read beside its CPU and Memory.
+  if (props.storageUsageColumns?.isAfterResourceMetrics) {
+    tableColumns.push(...storageColumns);
   }
 
   if (showStatus && props.showAge !== false) {

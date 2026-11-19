@@ -106,6 +106,11 @@ export const InventorySourceBadge: FunctionComponent<
 
 export interface InventoryLivenessBadgeProps {
   source: string | undefined;
+  /*
+   * What a mirrored item points at: a managed device's host has a
+   * heartbeat (its check-ins), where other mirrored items have none.
+   */
+  resourceType?: string | undefined | null;
   lastSeenAt: Date | string | undefined | null;
   now?: Date | undefined;
   /** Append "· 4m ago" to the pill. Off in dense table cells. */
@@ -126,6 +131,7 @@ export const InventoryLivenessBadge: FunctionComponent<
   const translator: Translator = useTranslator();
   const result: InventoryLivenessResult = getInventoryLiveness({
     source: props.source,
+    resourceType: props.resourceType,
     lastSeenAt: props.lastSeenAt,
     now: props.now || new Date(),
   });

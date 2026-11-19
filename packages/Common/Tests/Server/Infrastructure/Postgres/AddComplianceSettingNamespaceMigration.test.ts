@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddComplianceSettingNamespace1809185400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185400000-AddComplianceSettingNamespace";
+import { AddComplianceSettingNamespace1809186000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186000000-AddComplianceSettingNamespace";
 import DataSecurityComplianceSetting from "../../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -40,11 +40,11 @@ function timestampOf(migration: unknown): number {
   );
 }
 
-describe("AddComplianceSettingNamespace1809185400000", () => {
+describe("AddComplianceSettingNamespace1809186000000", () => {
   test("adds the namespace column, nullable, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddComplianceSettingNamespace1809185400000().up(runner);
+        return new AddComplianceSettingNamespace1809186000000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "${TABLE}" ADD "namespace" character varying(100)`,
@@ -53,7 +53,7 @@ describe("AddComplianceSettingNamespace1809185400000", () => {
 
   test("adds no key, index, default or backfill", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddComplianceSettingNamespace1809185400000().up(runner);
+      return new AddComplianceSettingNamespace1809186000000().up(runner);
     })) {
       expect(statement).not.toMatch(
         /CREATE (UNIQUE )?INDEX|FOREIGN KEY|DEFAULT|NOT NULL|UPDATE /i,
@@ -64,7 +64,7 @@ describe("AddComplianceSettingNamespace1809185400000", () => {
   test("down drops the column up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddComplianceSettingNamespace1809185400000().down(runner);
+        return new AddComplianceSettingNamespace1809186000000().down(runner);
       }),
     ).toEqual([`ALTER TABLE "${TABLE}" DROP COLUMN "namespace"`]);
   });
@@ -72,19 +72,19 @@ describe("AddComplianceSettingNamespace1809185400000", () => {
   test("is registered once, numbered after every migration before it", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
     const position: number = registered.indexOf(
-      AddComplianceSettingNamespace1809185400000,
+      AddComplianceSettingNamespace1809186000000,
     );
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddComplianceSettingNamespace1809185400000;
+        return candidate === AddComplianceSettingNamespace1809186000000;
       }),
     ).toHaveLength(1);
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddComplianceSettingNamespace1809185400000));
-    expect(new AddComplianceSettingNamespace1809185400000().name).toBe(
-      "AddComplianceSettingNamespace1809185400000",
+    ).toBeLessThan(timestampOf(AddComplianceSettingNamespace1809186000000));
+    expect(new AddComplianceSettingNamespace1809186000000().name).toBe(
+      "AddComplianceSettingNamespace1809186000000",
     );
   });
 

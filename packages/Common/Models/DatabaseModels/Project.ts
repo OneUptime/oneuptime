@@ -838,6 +838,53 @@ export default class Project extends TenantModel {
   })
   public requireSsoWithSsoProviderId?: ObjectID = undefined;
 
+  /*
+   * Whether the project manages its people's sign-in with SSO (#9763,
+   * Types/SSO/SsoManagedSignIn): while it requires SSO, someone whose every
+   * project requires SSO and has this on - master admins aside - sets no
+   * password, passkey, security key, authenticator app, backup codes or
+   * two-factor authentication in OneUptime. Changed by whoever may require
+   * SSO for the project, on the plans that may.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Manage Sign-In with SSO",
+    description:
+      "When on, while the project requires SSO, people whose every project requires SSO and has this on set no password, passkeys or two-factor authentication in OneUptime.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public manageSignInWithSso?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [],

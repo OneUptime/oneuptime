@@ -26,6 +26,7 @@ import React, {
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import ProbeVersionElement from "../../../Components/Probe/ProbeVersion";
 import ProbeChecksElement, {
   PROBE_CHECKS_COPY,
   PROBE_DEVICE_POLLS_COPY,
@@ -257,6 +258,22 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
                 return (
                   <ProbeStatusElement probe={item} isConnectionOnly={true} />
                 );
+              },
+            },
+            {
+              /*
+               * The release the probe says it runs (#9759) - and, for one
+               * too old to make one-time codes, that it cannot run the
+               * monitors that use a one-time code secret, with how to
+               * update it.
+               */
+              field: {
+                reportedVersion: true,
+              },
+              title: "Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Probe): ReactElement => {
+                return <ProbeVersionElement probe={item} />;
               },
             },
             {

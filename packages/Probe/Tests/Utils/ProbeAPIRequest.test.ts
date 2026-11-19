@@ -7,6 +7,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import URL from "Common/Types/API/URL";
 import { RequestOptions } from "Common/Utils/API";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 
 /*
  * Every control-plane request the probe sends (alive heartbeat, list
@@ -50,8 +51,54 @@ describe("getDefaultRequestBody", () => {
         "dataObservabilityCollect",
         "retryWhenBusy",
         "retryAllWorkWhenBusy",
+        /*
+         * Only a probe that declares "totpCodes" is handed a step that
+         * needs a one-time code; an older custom probe's step fails with a
+         * sentence saying to update it (#9759).
+         */
+        "totpCodes",
       ],
+      /*
+       * The release this probe runs, from APP_VERSION: kept with its
+       * liveness stamp, so its page and the monitor forms can say when it
+       * is too old for something (#9759). "unknown" for a build without
+       * one, as this test's is.
+       */
+      probeVersion: "unknown",
     });
+  });
+
+  test("says the release baked into the image", () => {
+    jest.isolateModules(() => {
+      const previous: string | undefined = process.env["APP_VERSION"];
+      process.env["APP_VERSION"] = "17.0.1";
+
+      try {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        const fresh: typeof import("../../Utils/ProbeAPIRequest") = require("../../Utils/ProbeAPIRequest");
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+        expect(fresh.default.getDefaultRequestBody()["probeVersion"]).toBe(
+          "17.0.1",
+        );
+        expect(fresh.getProbeBuildDeclaration()).toEqual({
+          probeCapabilities: fresh.PROBE_CAPABILITIES,
+          probeVersion: "17.0.1",
+        });
+      } finally {
+        if (previous === undefined) {
+          delete process.env["APP_VERSION"];
+        } else {
+          process.env["APP_VERSION"] = previous;
+        }
+      }
+    });
+  });
+
+  test("declares one-time codes, so the server hands this probe steps that need them", () => {
+    expect(
+      ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
+    ).toContain(ProbeCapability.TotpCodes);
   });
 });
 

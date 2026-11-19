@@ -609,17 +609,32 @@ describe("Inviting People", () => {
     );
   });
 
-  it("asks for a Name only for an address no account uses yet", () => {
+  /*
+   * #9745: the dialog no longer asks the server whether an address has an
+   * account; it offers an optional Name for any address typed, and the
+   * server uses it only for an account nobody has signed up to yet.
+   */
+  it("asks for an optional Name for any address typed, never only for one no account uses", () => {
     const nameField: string = between(
       users,
       'title: "Name"',
       "},\n              {",
     );
 
-    expect(nameField).toContain("isEmailRegistered === false");
+    expect(nameField).toContain("shouldAskForInviteeName");
+    expect(nameField).toContain("description: INVITEE_NAME_DESCRIPTION");
     expect(nameField).toContain("required: false");
+    expect(nameField).not.toContain("isEmailRegistered");
     expect(page).toContain(
-      "If no OneUptime account uses it yet, the dialog also asks for a **Name**",
+      "For an address you type, the dialog also asks for a **Name**, which is optional: if they have no OneUptime account yet, it is set up with that name.",
+    );
+    expect(page).not.toContain("If no OneUptime account uses it yet");
+  });
+
+  // #9744: anyone who may invite, once a master admin allows it.
+  it("says who else is offered the server's other accounts on a self-hosted server", () => {
+    expect(page).toContain(
+      "marked **Not in this project yet**, and so is anyone who may invite people, once a master admin allows it in the Admin Dashboard.",
     );
   });
 
@@ -3144,10 +3159,16 @@ describe("Audit Logs", () => {
       "Resource Name",
       "Action",
       "User Email",
+      // What a workflow's step ran as, and whose permissions (#9766).
+      "Workflow Ran As",
+      "Workflow Permissions Given By",
       "Time",
     ]);
     expect(section(page, "## Read the audit log")).toContain(
-      "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**.",
+      "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email**, **Workflow Ran As**, **Workflow Permissions Given By** or **Time**.",
+    );
+    expect(section(page, "## Read the audit log")).toContain(
+      "A workflow's change says what it ran as and with whose permissions.",
     );
     expect(table).toContain("sortOrder={SortOrder.Descending}");
     // A change OneUptime made by itself is drawn as System.

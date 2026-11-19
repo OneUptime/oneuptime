@@ -33,6 +33,7 @@ import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUse
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import logger from "../../../Server/Utils/Logger";
+import { everyServerProductIsOn } from "../TestingUtils/ServerProductsOn";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
@@ -286,6 +287,9 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
   });
 
   beforeEach(() => {
+    // A command asks what the server has switched off: every product is on.
+    everyServerProductIsOn();
+
     slackCalls = [];
     workspaceConnected = true;
     linkedUser = MEMBER_ID;

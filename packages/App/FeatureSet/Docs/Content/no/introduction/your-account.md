@@ -123,12 +123,28 @@ Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUpt
 
 Har du allerede en app under **Autentiseringsapper** eller en nøkkel under **Sikkerhetsnøkler**, ber **Aktiver tofaktorautentisering** deg bare bekrefte. Så lenge den er slått på, kan ikke den siste appen, nøkkelen eller passnøkkelen din fjernes: Legg til en annen først, eller slå av tofaktorautentisering. Viser kortet **Oppsett mangler**, er tofaktorautentisering slått på uten at noe er satt opp, ofte fordi en administrator har krevd det: Klikk på **Fullfør oppsettet**, ellers blir du bedt om det ved neste pålogging.
 
+### Sett opp tofaktorautentisering når du logger på
+
+Når en administrator krever tofaktorautentisering og du ikke har satt opp noe ennå, ber neste pålogging med passord eller en lenke på e-post deg om å sette det opp før du slippes inn. Velg **Autentiseringsapp** eller **Sikkerhetsnøkkel**, og klikk på **Fortsett**:
+
+- **Autentiseringsapp**: Skann QR-koden, skriv inn den sekssifrede koden appen viser, og klikk på **Bekreft og logg inn**.
+- **Sikkerhetsnøkkel**: Klikk på **Registrer sikkerhetsnøkkel**, og følg nettleserens veiledning. Berør en USB- eller NFC-nøkkel, eller bruk fingeravtrykk, ansikt eller skjermlås på telefonen eller datamaskinen.
+
+Har du ingen reservekoder ennå, viser OneUptime dem deretter én gang, og du er pålogget. **Velg en annen måte** går tilbake til valget. En nettleser som ikke kan registrere en sikkerhetsnøkkel, for eksempel på en side uten HTTPS, tilbyr bare autentiseringsappen.
+
 > [!TIP]
 > Holder reservekodene på å ta slutt? **Generer nye koder** på samme side gir deg et nytt sett, og de gamle kodene slutter å virke med en gang.
 
 ### Når organisasjonen din styrer påloggingen din
 
-På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
+På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging, med mindre en serveradministrator fjerner det. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
+
+Det samme skjer når alle prosjektene du hører til, krever enkel pålogging og har **Styr pålogging med SSO** slått på. Passordet ditt logger deg fortsatt på OneUptime, men alle prosjektene ber om SSO, så OneUptime setter ikke opp nytt passord, ny passnøkkel eller nytt andre trinn for deg:
+
+- **Et prosjekt som ikke gjør det**: Så snart du er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, kommer delen **Sikkerhet** tilbake. **Oversikt** viser da disse prosjektene under **Enkel pålogging**, som grunnen til at innstillingene er dine. Forlater du det prosjektet, mister du dem igjen.
+- **Prosjekter med ulike leverandører**: Styrer alle prosjektene dine påloggingen, hvert med sin egen identitetsleverandør, viser **Oversikt** hver leverandør.
+- **Hovedadministratorer** beholder alltid sine egne innstillinger under **Sikkerhet**.
+- **Det du har satt opp før**, blir lagret, og en serveradministrator kan fjerne det.
 
 ## Prosjektene dine
 

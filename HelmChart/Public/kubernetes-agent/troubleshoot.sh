@@ -834,6 +834,19 @@ else
       elif [ -z "$COST_ENGINE_URL" ]; then
         warn "The cost agent has not found an OpenCost or Kubecost in this cluster yet; its last poll error below says why."
       fi
+      # Where the engine serves its price metrics, which the collector asks
+      # the agent for when cost.engine.url is auto or a URL (#9776): a
+      # Kubecost frontend answers /metrics with its web page. The bundled
+      # engine is scraped where the chart put it, so it is not reported here.
+      COST_METRICS_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineMetricsUrl":"\([^"]*\)".*/\1/p' | head -1)
+      COST_METRICS_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineMetricsError":"\([^"]*\)".*/\1/p' | head -1)
+      if [ "$COST_BUNDLED" != 1 ] && [ -n "$COST_METRICS_URL" ]; then
+        info "The collector scrapes the engine's price metrics at $COST_METRICS_URL, where the cost agent found them."
+      elif [ "$COST_BUNDLED" != 1 ] && [ -n "$COST_METRICS_ERR" ]; then
+        warn "The cost agent has not found the engine's price metrics, so the Kubernetes Cost dashboard gets none."
+        detail "$COST_METRICS_ERR"
+        add_finding "The cost agent found no price metrics for the engine at ${COST_ENGINE_URL:-?}, so the collector has nothing to scrape for the Kubernetes Cost dashboard and Metric Explorer. It tried: $COST_METRICS_ERR. Name them yourself with --set cost.metrics.endpoint=<url> (Kubecost 3 keeps them on its finops agent: http://<release>-finopsagent.<namespace>.svc.cluster.local:80/metrics)."
+      fi
       COST_POLL_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastPollError":"\([^"]*\)".*/\1/p' | head -1)
       COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)
       info "cost-agent /healthz → HTTP $RESP_CODE (status=${COST_STATUS:-?})"

@@ -53,12 +53,18 @@ class FakeQuery {
     this.count = data.count;
   }
 
+  public parameters: Record<string, unknown> = {};
+
   public where(condition: string): this {
     return this.andWhere(condition);
   }
 
-  public andWhere(condition: string): this {
+  public andWhere(
+    condition: string,
+    parameters?: Record<string, unknown> | undefined,
+  ): this {
     this.conditions.push(condition);
+    Object.assign(this.parameters, parameters || {});
     return this;
   }
 
@@ -203,6 +209,104 @@ describe("signing out everyone who signed in without SSO", () => {
     ).resolves.toBe(0);
 
     expect(updates).toHaveLength(0);
+  });
+});
+
+/*
+ * SIGNING OUT THE PEOPLE WHOSE SIGN-IN SETTINGS A MASTER ADMIN CLEARED
+ * (#9762, Utils/LocalSignInClearing): their sessions not signed in with SSO
+ * end with the password or key they were signed in with, through the same
+ * path - and theirs alone, a master admin cleared by name included. A
+ * session signed in with SSO stays.
+ */
+describe("signing out the people whose sign-in settings were cleared", () => {
+  const PERSON_A: ObjectID = new ObjectID(
+    "91919191-9191-4191-8191-919191919191",
+  );
+  const PERSON_B: ObjectID = new ObjectID(
+    "92929292-9292-4292-8292-929292929292",
+  );
+  const THESE_PEOPLE: string = "session.userId IN (:...clearedUserIds)";
+
+  test("ends only these people's live sessions that are not SSO sign-ins, revoked with words of their own", async () => {
+    const asked: Array<FakeQuery> = stubQueries([
+      new FakeQuery({ batches: [[SESSION_A, SESSION_B]] }),
+    ]);
+    const updates: Array<UpdateBy<UserSession>> = stubUpdates();
+
+    await expect(
+      UserSessionService.endSessionsOfPeopleSignedInWithoutSso([
+        PERSON_A,
+        PERSON_B,
+      ]),
+    ).resolves.toBe(2);
+
+    expect(asked[0]!.conditions).toEqual([...LIVE, NOT_SSO, THESE_PEOPLE]);
+    expect(asked[0]!.parameters["clearedUserIds"]).toEqual([
+      PERSON_A.toString(),
+      PERSON_B.toString(),
+    ]);
+    // A master admin cleared by name is signed out too: nobody is left out.
+    expect(asked[0]!.conditions).not.toContain(NOT_A_MASTER_ADMIN);
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]!.data).toMatchObject({
+      isRevoked: true,
+      revokedReason: getSessionEndCauseRevokedReason(
+        SessionEndCause.SignInSettingsCleared,
+      ),
+    });
+    expect(updates[0]!.data.revokedAt).toBeInstanceOf(Date);
+    expect((updates[0]!.query as Record<string, unknown>)["isRevoked"]).toBe(
+      false,
+    );
+    expect(updates[0]!.props).toEqual({ isRoot: true });
+  });
+
+  test("nobody to sign out asks nothing and ends nothing", async () => {
+    const asked: Array<FakeQuery> = stubQueries([]);
+    const updates: Array<UpdateBy<UserSession>> = stubUpdates();
+
+    await expect(
+      UserSessionService.endSessionsOfPeopleSignedInWithoutSso([]),
+    ).resolves.toBe(0);
+
+    expect(asked).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  test("works through more of their sessions than one batch holds", async () => {
+    const fullBatch: Array<string> = Array.from({ length: 500 }, (): string => {
+      return ObjectID.generate().toString();
+    });
+
+    stubQueries([
+      new FakeQuery({ batches: [fullBatch] }),
+      new FakeQuery({ batches: [[SESSION_A]] }),
+    ]);
+    const updates: Array<UpdateBy<UserSession>> = stubUpdates();
+
+    await expect(
+      UserSessionService.endSessionsOfPeopleSignedInWithoutSso([PERSON_A]),
+    ).resolves.toBe(501);
+    expect(updates).toHaveLength(2);
+  });
+
+  test("the audit log records each as a session revoked, saying a server admin cleared their sign-in settings", () => {
+    const reason: string = getSessionEndCauseRevokedReason(
+      SessionEndCause.SignInSettingsCleared,
+    );
+
+    expect(reason.length).toBeLessThanOrEqual(100);
+    expect(readSessionEndCause(reason)).toBe(
+      SessionEndCause.SignInSettingsCleared,
+    );
+    expect(
+      getSessionEndAuditLogAction(SessionEndCause.SignInSettingsCleared),
+    ).toBe(AuditLogAction.SessionRevoked);
+    expect(
+      SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.SignInSettingsCleared],
+    ).toBe("Signed out by a server admin who cleared their sign-in settings");
   });
 });
 

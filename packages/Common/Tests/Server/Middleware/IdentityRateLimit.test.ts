@@ -658,6 +658,45 @@ describe("IdentityRateLimit", () => {
     it("names the sign-in link bucket with a stable key segment", () => {
       expect(IdentityRateLimitBucket.MagicLink).toBe("magic-link");
     });
+
+    /*
+     * A hundred and fifty a quarter hour, on BOTH counters. The ask names the
+     * invited address, but its token cannot be guessed, so the account
+     * counter has nothing to hold back and gets the address counter's number
+     * (Types/Accounts/SignUpInvitation).
+     */
+    it("ships the documented sign-up invitation budget", () => {
+      expect(
+        IdentityRateLimit.getBucketConfig(
+          IdentityRateLimitBucket.SignUpInvitation,
+        ),
+      ).toEqual({
+        windowSeconds: 15 * 60,
+        perAccountLimit: 150,
+        perIpLimit: 150,
+      });
+    });
+
+    it("hands the sign-up invitation bucket its own budget, not the login or sign-in link one", () => {
+      const signUpInvitationConfig: ReturnType<
+        typeof IdentityRateLimit.getBucketConfig
+      > = IdentityRateLimit.getBucketConfig(
+        IdentityRateLimitBucket.SignUpInvitation,
+      );
+
+      expect(signUpInvitationConfig).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+      expect(signUpInvitationConfig).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.MagicLink),
+      );
+    });
+
+    it("names the sign-up invitation bucket with a stable key segment", () => {
+      expect(IdentityRateLimitBucket.SignUpInvitation).toBe(
+        "sign-up-invitation",
+      );
+    });
   });
 
   describe("the per-account counter", () => {
@@ -1582,6 +1621,8 @@ describe("IdentityRateLimit", () => {
           IdentityRateLimitBucket.StatusPageLogin,
           IdentityRateLimitBucket.Passkey,
           IdentityRateLimitBucket.MagicLink,
+          // Not a sign-in, but its one caller shows no refusal at all.
+          IdentityRateLimitBucket.SignUpInvitation,
         ]),
       );
       expect(SIGN_IN_BUCKETS).toHaveLength(
@@ -1925,6 +1966,147 @@ describe("the sign-in link bucket's configuration", () => {
           IDENTITY_MAGIC_LINK_RATE_LIMIT_WINDOW_SECONDS: value,
           IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW: value,
         }).magicLink,
+      ).toEqual({
+        windowSeconds: 900,
+        perAccountLimit: 150,
+        perIpLimit: 150,
+      });
+    },
+  );
+});
+
+/*
+ * The sign-up invitation bucket's budget, from its own settings (POST
+ * /sign-up-invitation). Read once, at module load, so these reload the
+ * module.
+ */
+describe("the sign-up invitation bucket's configuration", () => {
+  type BucketConfigShape = {
+    windowSeconds: number;
+    perAccountLimit: number;
+    perIpLimit: number;
+  };
+
+  type ReloadedConfigs = {
+    signUpInvitation: BucketConfigShape;
+    magicLink: BucketConfigShape;
+    login: BucketConfigShape;
+  };
+
+  interface IdentityRateLimitModule {
+    default: {
+      getBucketConfig: (bucket: IdentityRateLimitBucket) => BucketConfigShape;
+    };
+  }
+
+  const ENV_KEYS: Array<string> = [
+    "IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_WINDOW_SECONDS",
+    "IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+  ];
+
+  const configsUnderEnv: (env: Record<string, string>) => ReloadedConfigs = (
+    env: Record<string, string>,
+  ): ReloadedConfigs => {
+    const previous: Record<string, string | undefined> = {};
+
+    for (const key of ENV_KEYS) {
+      previous[key] = process.env[key];
+
+      const configured: string | undefined = env[key];
+
+      if (configured === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = configured;
+      }
+    }
+
+    let configs: ReloadedConfigs | null = null;
+
+    try {
+      jest.isolateModules((): void => {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        const freshModule: IdentityRateLimitModule = require("../../../Server/Middleware/IdentityRateLimit");
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+        configs = {
+          signUpInvitation: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.SignUpInvitation,
+          ),
+          magicLink: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.MagicLink,
+          ),
+          login: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.Login,
+          ),
+        };
+      });
+    } finally {
+      for (const key of ENV_KEYS) {
+        const restored: string | undefined = previous[key];
+
+        if (restored === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = restored;
+        }
+      }
+    }
+
+    if (!configs) {
+      throw new Error("The reloaded module produced no bucket configuration");
+    }
+
+    return configs;
+  };
+
+  it("falls back to the documented defaults when nothing is configured", () => {
+    expect(configsUnderEnv({}).signUpInvitation).toEqual({
+      windowSeconds: 900,
+      perAccountLimit: 150,
+      perIpLimit: 150,
+    });
+  });
+
+  it("reads its window and its limit from its own settings, one limit for both counters", () => {
+    expect(
+      configsUnderEnv({
+        IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_WINDOW_SECONDS: "321",
+        IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_PER_IP_PER_WINDOW: "7",
+      }).signUpInvitation,
+    ).toEqual({
+      windowSeconds: 321,
+      perAccountLimit: 7,
+      perIpLimit: 7,
+    });
+  });
+
+  it("neither moves with the sign-in link or login settings nor moves them", () => {
+    const signUpInvitation: BucketConfigShape = configsUnderEnv({
+      IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW: "1111",
+      IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW: "2222",
+    }).signUpInvitation;
+
+    expect(signUpInvitation.perIpLimit).toBe(150);
+
+    const others: ReloadedConfigs = configsUnderEnv({
+      IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_PER_IP_PER_WINDOW: "9",
+    });
+
+    expect(others.magicLink.perIpLimit).toBe(150);
+    expect(others.login.perIpLimit).toBe(150);
+  });
+
+  it.each(["0", "-5", "not-a-number", ""])(
+    "ignores an unusable setting (%p) and keeps the default",
+    (value: string) => {
+      expect(
+        configsUnderEnv({
+          IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_WINDOW_SECONDS: value,
+          IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_PER_IP_PER_WINDOW: value,
+        }).signUpInvitation,
       ).toEqual({
         windowSeconds: 900,
         perAccountLimit: 150,

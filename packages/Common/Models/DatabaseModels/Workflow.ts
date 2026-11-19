@@ -1,3 +1,4 @@
+import ApiKey from "./ApiKey";
 import CustomRole from "./CustomRole";
 import Label from "./Label";
 import Project from "./Project";
@@ -771,10 +772,11 @@ export default class Workflow extends BaseModel {
    * /WorkflowRunAs, #9695): Default - a Project Admin's permissions, with
    * no change to who has access - or Project Owner, or one of the
    * project's custom roles (runAsCustomRoleId). Anyone who may create or
-   * edit a workflow may send it; WorkflowService lets only a person choose
-   * anything but Default, only what they could give a team themselves, and
-   * lets a workflow that runs as more than Default be changed only by who
-   * holds what it runs as (WorkflowRunAsAuthority).
+   * edit a workflow may send it; WorkflowService lets only a person or a
+   * project API key choose anything but Default (#9765), only what they
+   * could give a team themselves, and lets a workflow that runs as more than
+   * Default be changed only by who holds what it runs as
+   * (WorkflowRunAsAuthority).
    */
   @ColumnAccessControl({
     create: [
@@ -807,7 +809,7 @@ export default class Workflow extends BaseModel {
     allowedValues: Object.values(WorkflowRunAs),
     title: "Run As",
     description:
-      "What the workflow's steps can do in the project. Default: what a Project Admin can, except change who has access. ProjectOwner: what a Project Owner can. CustomRole: exactly what the custom role in runAsCustomRoleId allows. Only a person who has those permissions can choose anything but Default, and only such a person can then change the workflow or run it by hand.",
+      "What the workflow's steps can do in the project. Default: what a Project Admin can, except change who has access. ProjectOwner: what a Project Owner can. CustomRole: exactly what the custom role in runAsCustomRoleId allows. Only a person or a project API key that has those permissions can choose anything but Default, and only such a person or key can then change the workflow or run it by hand.",
     defaultValue: WorkflowRunAs.Default,
     example: WorkflowRunAs.Default,
   })
@@ -908,7 +910,8 @@ export default class Workflow extends BaseModel {
   /*
    * The person whose permissions a workflow that runs as more than Default
    * runs with: whoever last chose its Run As, or saved its steps or its own
-   * variables, while it ran as more than Default. Every run checks they
+   * variables, while it ran as more than Default - unless a project API key
+   * did (runAsGivenByApiKeyId). Every run checks they
    * still hold what it runs as, and does not start if they don't (left the
    * project, lost the role). Stamped by OneUptime from the person making the
    * change once it has passed its checks (UserAttribution); empty for a
@@ -976,6 +979,80 @@ export default class Workflow extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public runAsGivenByUserId?: ObjectID = undefined;
+
+  /*
+   * The project API key whose permissions a workflow that runs as more than
+   * Default runs with, when a key - Terraform, a script - last chose its Run
+   * As or saved its steps or variables (#9765), in place of a person
+   * (runAsGivenByUserId: a workflow names one of the two). Every run checks
+   * the key is still the project's, unexpired, and still holds what the
+   * workflow runs as. Written by OneUptime alone (WorkflowService); deleting
+   * the key clears it, and the workflow then runs nothing raised until
+   * someone gives it its permissions again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runAsGivenByApiKeyId",
+    type: TableColumnType.Entity,
+    modelType: ApiKey,
+    title: "Run As Given by API Key",
+    description:
+      "The project API key whose permissions the workflow runs with when it runs as more than Default and a key, not a person, last chose its Run As or saved its steps or variables. Set by OneUptime.",
+  })
+  @ManyToOne(
+    () => {
+      return ApiKey;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runAsGivenByApiKeyId" })
+  public runAsGivenByApiKey?: ApiKey = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "Run As Given by API Key ID",
+    description:
+      "ID of the project API key whose permissions the workflow runs with when it runs as more than Default and a key gave them. Set by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runAsGivenByApiKeyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

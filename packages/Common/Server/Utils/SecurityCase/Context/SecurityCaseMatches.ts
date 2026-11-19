@@ -28,6 +28,17 @@ import {
   readSecurityEntities,
 } from "../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
+import {
+  SecurityDetectionMatchedEvent,
+  SecurityDetectionMatchedEvents,
+  isSecurityDetectionMatchedEventPastRetention,
+  readSecurityDetectionMatchedEvents,
+} from "../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
+import {
+  DetectionRuleResponseStep,
+  readDetectionRuleResponseSteps,
+} from "../../../../Types/SecurityEvent/DetectionRuleResponseSteps";
+import { getDetectionRuleLibraryResponseStepsForYaml } from "../../../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
 import { getDetectionDefinitionRules } from "../../../../Types/SecurityEvent/RealTimeDetection";
 import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
@@ -69,8 +80,13 @@ import {
  * (Types/SecurityCase/SecurityCaseMatches.ts says what it holds).
  *
  * The detection that opened the case and the latest others, each with the
- * events it matched, read again from the events table with the reader's
- * own permissions:
+ * events it matched. A detection keeps them when it fires
+ * (SecurityDetection.matchedEvents, #9619): those are listed first, exactly
+ * as they were matched - after its rule is edited, and after the events
+ * pass their retention - each only when the reader's role can read its
+ * source. A detection that kept none (it fired before OneUptime kept them,
+ * or its source keeps none) has them read again from the events table with
+ * the reader's own permissions:
  *
  *   a rule's        its condition - compiled as its runs compile it, with
  *                   the watchlists it names - for the detection's group,
@@ -99,6 +115,7 @@ const RULE_SELECT: Select<DetectionRule> = {
   distinctCountField: true,
   matchCountThreshold: true,
   evaluationIntervalInMinutes: true,
+  responseSteps: true,
 };
 
 const DETECTION_SELECT: Select<SecurityDetection> = {
@@ -182,6 +199,90 @@ export function toMatchRule(data: {
     falsePositives: guidance.falsePositives,
     references: guidance.references,
     lookFor: getSigmaRuleLookFor(rules),
+    responseSteps: getRuleResponseSteps(rule),
+  };
+}
+
+/*
+ * A rule's response steps (#9621): its own, once it has any written - an
+ * empty list when its author took them all out - else, for a Rule Library
+ * rule added before rules had steps, its library entry's.
+ */
+export function getRuleResponseSteps(
+  rule: Pick<DetectionRule, "responseSteps" | "sigmaRuleYaml">,
+): Array<DetectionRuleResponseStep> {
+  if (Array.isArray(rule.responseSteps)) {
+    return readDetectionRuleResponseSteps(rule.responseSteps);
+  }
+
+  return getDetectionRuleLibraryResponseStepsForYaml(rule.sigmaRuleYaml);
+}
+
+/*
+ * Whether the reader may read a kept event: one from a source their role
+ * reads (TelemetryReadAccess's filter, as the events table is read with).
+ * An event that names no source is read only by a role that reads every
+ * source.
+ */
+export function isKeptEventReadable(data: {
+  event: Pick<SecurityDetectionMatchedEvent, "sourceId">;
+  serviceFilter: TelemetryServiceFilter;
+}): boolean {
+  const sourceId: string = data.event.sourceId
+    ? TelemetryReadScopeUtil.normalizeId(data.event.sourceId)
+    : "";
+  const isSource: (id: ObjectID) => boolean = (id: ObjectID): boolean => {
+    return TelemetryReadScopeUtil.normalizeId(id) === sourceId;
+  };
+
+  if (
+    sourceId &&
+    (data.serviceFilter.excludedServiceIds || []).some(isSource)
+  ) {
+    return false;
+  }
+
+  if (
+    data.serviceFilter.serviceIds &&
+    data.serviceFilter.serviceIds.length > 0
+  ) {
+    return Boolean(sourceId) && data.serviceFilter.serviceIds.some(isSource);
+  }
+
+  return true;
+}
+
+/*
+ * What a detection kept, as the reader may see it: the events of the
+ * sources their role reads (and how many others it kept), and how many of
+ * those are past the events table's retention.
+ */
+export function getKeptEventsForReader(data: {
+  kept: SecurityDetectionMatchedEvents;
+  serviceFilter: TelemetryServiceFilter;
+  now: Date;
+}): {
+  events: Array<SecurityDetectionMatchedEvent>;
+  hiddenEventCount: number;
+  pastRetentionCount: number;
+} {
+  const events: Array<SecurityDetectionMatchedEvent> = data.kept.events.filter(
+    (event: SecurityDetectionMatchedEvent): boolean => {
+      return isKeptEventReadable({ event, serviceFilter: data.serviceFilter });
+    },
+  );
+
+  return {
+    events,
+    hiddenEventCount: data.kept.events.length - events.length,
+    pastRetentionCount: events.filter(
+      (event: SecurityDetectionMatchedEvent): boolean => {
+        return isSecurityDetectionMatchedEventPastRetention({
+          event,
+          now: data.now,
+        });
+      },
+    ).length,
   };
 }
 
@@ -592,6 +693,10 @@ export default class SecurityCaseMatches {
       }),
     ]);
 
+    // What each detection kept when it fired, read as OneUptime: shown only as the reader may read it.
+    const keptById: Map<string, SecurityDetectionMatchedEvents> =
+      await this.readKeptEvents(detections);
+
     const rulesById: Map<string, DetectionRule> = new Map();
 
     for (const rule of rules || []) {
@@ -619,6 +724,10 @@ export default class SecurityCaseMatches {
               rule: detection.detectionRuleId
                 ? rulesById.get(detection.detectionRuleId.toString()) || null
                 : null,
+              kept:
+                keptById.get(
+                  detection.id?.toString() || detection._id?.toString() || "",
+                ) || null,
               serviceFilter,
               tracker,
               now,
@@ -687,6 +796,8 @@ export default class SecurityCaseMatches {
     detection: SecurityDetection;
     isOpening: boolean;
     rule: DetectionRule | null;
+    // What it kept when it fired, if it kept anything.
+    kept: SecurityDetectionMatchedEvents | null;
     serviceFilter: TelemetryServiceFilter | null;
     tracker: SecurityCaseSourceTracker<SecurityCaseMatchesSource>;
     now: Date;
@@ -753,9 +864,51 @@ export default class SecurityCaseMatches {
       windowStart: null,
       windowEnd: null,
       events: [],
+      isKept: false,
+      keptPastRetentionCount: 0,
+      hiddenEventCount: 0,
       matchedEventCount: null,
       outcomes: {},
     };
+
+    /*
+     * What it kept when it fired: exactly what it matched then, read from
+     * no table now. Shown as the reader may read each event's source; a
+     * reader who may read no security events sees none of them, as the
+     * events table would show them none.
+     */
+    if (data.kept && data.kept.events.length > 0) {
+      answer.isKept = true;
+
+      if (lookup) {
+        answer.windowStart = lookup.window.start.toISOString();
+        answer.windowEnd = lookup.window.end.toISOString();
+      }
+
+      answer.outcomes = { ...data.kept.outcomes };
+      answer.matchedEventCount = Math.max(
+        answer.eventCount,
+        data.kept.events.length,
+      );
+
+      if (!data.serviceFilter) {
+        answer.hiddenEventCount = data.kept.events.length;
+        return answer;
+      }
+
+      const readable: ReturnType<typeof getKeptEventsForReader> =
+        getKeptEventsForReader({
+          kept: data.kept,
+          serviceFilter: data.serviceFilter,
+          now: data.now,
+        });
+
+      answer.events = readable.events;
+      answer.hiddenEventCount = readable.hiddenEventCount;
+      answer.keptPastRetentionCount = readable.pastRetentionCount;
+
+      return answer;
+    }
 
     if (!lookup || !data.serviceFilter) {
       return answer;
@@ -783,6 +936,54 @@ export default class SecurityCaseMatches {
     }
 
     return answer;
+  }
+
+  /*
+   * What each detection the reader may read kept when it fired, by its id:
+   * read as OneUptime, since no role reads the column itself, and handed
+   * on only as the reader may read each event (getKeptEventsForReader). A
+   * read that fails keeps nothing: the events are read again, as before.
+   */
+  private static async readKeptEvents(
+    detections: Array<SecurityDetection>,
+  ): Promise<Map<string, SecurityDetectionMatchedEvents>> {
+    const kept: Map<string, SecurityDetectionMatchedEvents> = new Map();
+    const ids: Array<string> = detections
+      .map((detection: SecurityDetection): string => {
+        return detection.id?.toString() || detection._id?.toString() || "";
+      })
+      .filter(Boolean);
+
+    if (ids.length === 0) {
+      return kept;
+    }
+
+    try {
+      const rows: Array<SecurityDetection> =
+        await SecurityDetectionService.findBy({
+          query: { _id: new Includes(ids) },
+          select: { _id: true, matchedEvents: true },
+          limit: ids.length,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      for (const row of rows) {
+        const id: string = row.id?.toString() || row._id?.toString() || "";
+        const events: SecurityDetectionMatchedEvents | null =
+          readSecurityDetectionMatchedEvents(row.matchedEvents);
+
+        if (id && events) {
+          kept.set(id, events);
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `Security case matches: what the detections kept could not be read: ${error}`,
+      );
+    }
+
+    return kept;
   }
 
   /*

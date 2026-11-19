@@ -22,6 +22,11 @@ import StorageArrayResourceUtils, {
   getFileSystemProtocols,
   getFileSystemProvisionedBytes,
 } from "../Utils/StorageArrayResourceUtils";
+import { getStorageArrayFileSystemUsage } from "../Utils/StorageArrayHealth";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+// Until the FlashBlade's available share of a file system arrives.
+const FILE_SYSTEM_USAGE_NOT_REPORTED: string = translationKey("Not reported");
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import TableEmptyValue, {
   getValueOrQuietDash,
@@ -122,6 +127,23 @@ const StorageArrayFileSystems: FunctionComponent<
             return <span className="text-sm text-gray-700">{protocols}</span>;
           },
         },
+        /*
+         * How full it is, with the shared bar (#9647): its provisioned size
+         * and the available share the File System Near Full alert reads.
+         */
+        StorageArrayResourceColumns.getUsageColumn({
+          title: "Used",
+          description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemUsedColumn,
+          getUsage: (item: StorageArrayResource) => {
+            return getStorageArrayFileSystemUsage({
+              provisionedBytes: getFileSystemProvisionedBytes(item),
+              availableRatio: availableRatios.get(item.name || "") ?? null,
+            });
+          },
+          getNoUsageText: (): string => {
+            return FILE_SYSTEM_USAGE_NOT_REPORTED;
+          },
+        }),
         {
           field: {
             capacityBytes: true,

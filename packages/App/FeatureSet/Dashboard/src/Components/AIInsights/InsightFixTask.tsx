@@ -14,7 +14,6 @@ import { CodeTaskTurnDuration } from "../Code/CodeTaskWorkTime";
 import CodeTimeAgo from "../Code/CodeTimeAgo";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import { CodeTaskState, CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import CodeTaskStageUtil, {
   CodeTaskStage,
@@ -95,11 +94,16 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
     props.onChanged?.();
   };
 
-  // The server asks again only what someone asked in Code.
-  const isRequest: boolean = task?.recipe === CodeFixTaskType.CodeRequest;
+  /*
+   * The server says whether the reader may try the task again now: a
+   * request, or a fix OneUptime started that has no pull request it would
+   * open a second of (#6509), in a repository the reader may ask AI in.
+   */
   const isFailed: boolean = task?.state === CodeTaskState.Failed;
   const canTryAgain: boolean = Boolean(
-    task && isRequest && (isFailed || task.state === CodeTaskState.Stopped),
+    task &&
+      task.canTryAgain === true &&
+      (isFailed || task.state === CodeTaskState.Stopped),
   );
 
   // The product's Try again, as every AI card offers it.

@@ -27,6 +27,7 @@ import {
   selectAzureMetrics,
 } from "../../../Server/Utils/CloudConnection/Azure/AzureCloudConnector";
 import { AzureMetricDefinition } from "../../../Server/Utils/CloudConnection/Azure/AzureArm";
+import { CloudKeyMetricCondition } from "../../../Types/Cloud/CloudKeyMetricCondition";
 
 /*
  * EVERY KEY METRIC, HELD TO ITS CLOUD'S OWN REFERENCE.
@@ -972,6 +973,50 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
             : expect.stringMatching(
                 /^(default|only-when-nonzero|only-some-resources)$/,
               ),
+        });
+      }
+    }
+  });
+
+  /*
+   * A resource's page says why it did not report a key metric
+   * (CloudUnreportedKeyMetrics, #9569): a metric its page says is published
+   * only when it is not zero is filed NonZero, one it says only some
+   * resources publish (or once a free feature is on) under the condition
+   * that says which, and no other has a condition.
+   */
+  test("each one's condition is what its page says of when it is published", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const publishedBy: string | null = awsReferenceOf(
+          entry.namespace,
+          metric.metricName,
+        ).publishedBy;
+        const expected: string =
+          publishedBy === "only-when-nonzero"
+            ? "non-zero"
+            : publishedBy === "free-once-turned-on"
+              ? "setup"
+              : publishedBy === "only-some-resources"
+                ? "some-resources"
+                : "always";
+        const filed: string = !metric.onlyWhen
+          ? "always"
+          : metric.onlyWhen === CloudKeyMetricCondition.NonZero
+            ? "non-zero"
+            : expected === "setup" &&
+                metric.onlyWhen === CloudKeyMetricCondition.Setup
+              ? "setup"
+              : "some-resources";
+
+        expect({
+          namespace: entry.namespace,
+          metric: metric.metricName,
+          filed,
+        }).toEqual({
+          namespace: entry.namespace,
+          metric: metric.metricName,
+          filed: expected,
         });
       }
     }
