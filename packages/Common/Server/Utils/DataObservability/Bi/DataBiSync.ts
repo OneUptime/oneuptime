@@ -35,7 +35,12 @@ import {
 } from "./BiConnectors";
 import { summarizeBiLineage } from "./BiLineageSummary";
 import { BiCatalog, matchBiTables } from "./BiMatching";
-import { BiReadState, readBiReadState, writeBiReadState } from "./BiReadState";
+import {
+  BiReadKeptStateError,
+  BiReadState,
+  readBiReadState,
+  writeBiReadState,
+} from "./BiReadState";
 import { BiTableRef } from "./BiTables";
 import {
   DataverseEntitySetsRead,
@@ -374,6 +379,18 @@ export default class DataBiSync {
         data: {
           lastSyncedAt: OneUptimeDate.getCurrentDate(),
           lastSyncError: message,
+          /*
+           * A read with nothing to show yet, but scans the next read picks
+           * up (#9697): what it kept, so the next read does not start over.
+           */
+          ...(error instanceof BiReadKeptStateError
+            ? {
+                readState: writeBiReadState({
+                  ...readBiReadState(connection.readState),
+                  powerBi: error.readState,
+                }) as never,
+              }
+            : {}),
         },
         props: { isRoot: true },
       });

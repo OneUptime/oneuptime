@@ -25,6 +25,23 @@ export interface BiReadState {
   dataverseEntitySets: DataverseEntitySetState;
 }
 
+/*
+ * A read that has nothing to show yet, but something the next read goes
+ * on from - Power BI's scans still running when it stopped waiting
+ * (#9697): the read fails, saying why, and the tool keeps the state, so
+ * the next read picks the scans up rather than starting over.
+ */
+export class BiReadKeptStateError extends Error {
+  // The tool's own reader's state, as it wrote it (Power BI's).
+  public readonly readState: JSONObject | null;
+
+  public constructor(message: string, readState: JSONObject | null) {
+    super(message);
+    this.name = "BiReadKeptStateError";
+    this.readState = readState;
+  }
+}
+
 function readObject(value: unknown): JSONObject | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JSONObject)

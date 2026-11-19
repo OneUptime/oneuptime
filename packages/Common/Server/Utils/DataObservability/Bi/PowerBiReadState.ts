@@ -14,6 +14,7 @@ import {
   PowerBiItem,
   PowerBiWorkspaceRead,
 } from "./PowerBiScan";
+import { MAX_WORKSPACES_PER_SCAN, PowerBiPendingScan } from "./PowerBiScanner";
 import { PowerQueryDataflowEntity } from "./PowerQuery";
 
 /*
@@ -35,7 +36,17 @@ import { PowerQueryDataflowEntity } from "./PowerQuery";
  * the workspaces that are gone. A read someone asked for (Read Now) scans
  * only what changed, so they are not kept waiting, unless there is nothing
  * kept to start from. A workspace whose scan failed or did not finish keeps
- * what it was, and is scanned again next time.
+ * what it was. One whose scan failed is scanned again next time.
+ *
+ * A scan still running when the read stopped waiting is kept by its id
+ * (#9697), and the next read picks it up rather than scanning its
+ * workspaces again (PowerBiScanner) - as long as Power BI keeps its result,
+ * 24 hours from its start; one older is not asked about, and its
+ * workspaces are scanned anew. A workspace a kept scan was to give that
+ * changed again since is scanned anew, so no change slips by: the next
+ * read's list of changes reaches back to before the scan started. A
+ * workspace has one newest scan, and what it says - a result, a failure, a
+ * scan still running - is what the next read goes on from.
  *
  * It keeps the definitions of the dataflows its datasets read too, and the
  * exports of the last hour (PowerBiDataflows, #9551), so a dataflow is
@@ -62,6 +73,19 @@ export const POWER_BI_MAX_CHANGES_AGE_IN_MS: number = 29 * 24 * 60 * 60 * 1000;
 // The most characters of JSON kept: a tenant past it is scanned whole each time.
 export const MAX_POWER_BI_READ_STATE_LENGTH: number = 8_000_000;
 
+/*
+ * Power BI keeps a scan's result for 24 hours. A kept scan started longer
+ * ago than this is not asked about, so its result is never read as it goes:
+ * an hour is kept to spare for the read's own wait.
+ */
+export const MAX_POWER_BI_PICK_UP_AGE_IN_MS: number = 23 * 60 * 60 * 1000;
+
+// The most kept scans: as many as Power BI starts in an hour (500 getInfo calls).
+export const MAX_POWER_BI_PENDING_SCANS: number = 500;
+
+// A scan's id, as Power BI gives it (a GUID): anything else is no id kept.
+const SCAN_ID: RegExp = /^[0-9a-z-]{1,100}$/i;
+
 export interface PowerBiReadState {
   version: number;
   // When the read whose listing this holds began (ISO).
@@ -70,6 +94,8 @@ export interface PowerBiReadState {
   fullScanAt: string;
   // Workspaces that changed but could not be scanned: the next read scans them.
   pendingWorkspaceIds: Array<string>;
+  // Scans still running when the read stopped waiting: the next read picks them up (#9697).
+  pendingScans: Array<PowerBiPendingScan>;
   // Every workspace as its last scan read it, in the order they are listed.
   workspaces: Array<PowerBiWorkspaceRead>;
   // The dataflows' definitions read, by id (PowerBiDataflows, #9551).
@@ -122,24 +148,70 @@ export function planPowerBiScan(data: {
 }
 
 /*
- * The workspaces after a read's scans. A whole scan keeps the workspaces it
- * listed, in its order; one that changed keeps every workspace kept, with
- * those it scanned replaced. Either way a workspace whose scan failed or
- * did not finish keeps what it was and is scanned again next time, and one
- * a scan that worked did not return - deleted, or no longer the tenant's -
- * is gone.
+ * The kept scans the next read picks up: those Power BI still keeps the
+ * result of; the workspaces of one started too long ago are scanned anew.
+ */
+export function getPowerBiPickUps(data: {
+  state: PowerBiReadState | null;
+  now: Date;
+}): {
+  pickUp: Array<PowerBiPendingScan>;
+  expiredWorkspaceIds: Array<string>;
+} {
+  const pickUp: Array<PowerBiPendingScan> = [];
+  const expired: Set<string> = new Set();
+
+  for (const scan of data.state?.pendingScans || []) {
+    if (
+      data.now.getTime() - new Date(scan.startedAt).getTime() <
+      MAX_POWER_BI_PICK_UP_AGE_IN_MS
+    ) {
+      pickUp.push(scan);
+      continue;
+    }
+
+    for (const id of scan.workspaceIds) {
+      expired.add(id);
+    }
+  }
+
+  return { pickUp, expiredWorkspaceIds: Array.from(expired) };
+}
+
+/*
+ * One of a read's scans, as the workspaces after it are worked out from:
+ * the workspaces it was to give, and what its result holds, when it worked
+ * - a workspace it was to give and does not hold is gone - or the scan
+ * itself, when it was still running. Neither: it failed or never started.
+ */
+export interface PowerBiScanMerge {
+  workspaceIds: Array<string>;
+  read?: Array<PowerBiWorkspaceRead> | undefined;
+  pending?: PowerBiPendingScan | undefined;
+}
+
+/*
+ * The workspaces after a read's scans, which are in the order they started
+ * (PowerBiScanner): of two that name a workspace, the later is the newer.
+ * A workspace takes what the newest scan that worked read of it - gone,
+ * when that scan did not return it (deleted, or no longer the tenant's) -
+ * and keeps what it was when none worked. A whole scan keeps the
+ * workspaces it listed, in its order; one of what changed keeps every
+ * workspace kept, with those its scans read replaced, and adds those new
+ * since. What the newest scan of a workspace left says what the next read
+ * does with it: scanned anew when that scan failed, its scan picked up
+ * when it was still running.
  */
 export function mergePowerBiWorkspaces(data: {
   kept: Array<PowerBiWorkspaceRead>;
   isFull: boolean;
-  // Every workspace the read set out to scan, in order: all of a whole scan's.
-  requestedIds: Array<string>;
-  // The workspaces of the scans that worked, and what those scans returned.
-  scannedIds: Array<string>;
-  scanned: Array<PowerBiWorkspaceRead>;
+  // The workspaces the read listed: every one of a whole scan's, in Power BI's order.
+  listedIds: Array<string>;
+  scans: Array<PowerBiScanMerge>;
 }): {
   workspaces: Array<PowerBiWorkspaceRead>;
   pendingWorkspaceIds: Array<string>;
+  pendingScans: Array<PowerBiPendingScan>;
 } {
   const keptById: Map<string, PowerBiWorkspaceRead> = new Map(
     data.kept.map(
@@ -148,65 +220,96 @@ export function mergePowerBiWorkspaces(data: {
       },
     ),
   );
-  const scannedById: Map<string, PowerBiWorkspaceRead> = new Map(
-    data.scanned.map(
-      (workspace: PowerBiWorkspaceRead): [string, PowerBiWorkspaceRead] => {
-        return [workspace.id, workspace];
-      },
-    ),
-  );
-  const scannedIds: Set<string> = new Set(data.scannedIds);
-  const pendingWorkspaceIds: Array<string> = data.requestedIds.filter(
-    (id: string): boolean => {
-      return !scannedIds.has(id);
-    },
-  );
-  const pending: Set<string> = new Set(pendingWorkspaceIds);
-  // A workspace as this read leaves it: scanned, kept while unscanned, or gone.
-  const outcome: (id: string) => PowerBiWorkspaceRead | undefined = (
+  // Each workspace's newest scan, and what the newest scan that worked read of it (null: gone).
+  const newest: Map<string, PowerBiScanMerge> = new Map();
+  const read: Map<string, PowerBiWorkspaceRead | null> = new Map();
+
+  for (const scan of data.scans) {
+    const returned: Map<string, PowerBiWorkspaceRead> | null = scan.read
+      ? new Map(
+          scan.read.map(
+            (
+              workspace: PowerBiWorkspaceRead,
+            ): [string, PowerBiWorkspaceRead] => {
+              return [workspace.id, workspace];
+            },
+          ),
+        )
+      : null;
+
+    for (const id of scan.workspaceIds) {
+      newest.set(id, scan);
+
+      if (returned) {
+        read.set(id, returned.get(id) || null);
+      }
+    }
+  }
+
+  // A workspace as this read leaves it: read, kept while no scan of it worked, or gone.
+  const after: (id: string) => PowerBiWorkspaceRead | undefined = (
     id: string,
   ): PowerBiWorkspaceRead | undefined => {
-    return (
-      scannedById.get(id) || (pending.has(id) ? keptById.get(id) : undefined)
-    );
+    return read.has(id) ? read.get(id) || undefined : keptById.get(id);
   };
-
-  if (data.isFull) {
-    return {
-      workspaces: Array.from(new Set(data.requestedIds))
-        .map(outcome)
-        .filter(
-          (
-            workspace: PowerBiWorkspaceRead | undefined,
-          ): workspace is PowerBiWorkspaceRead => {
-            return workspace !== undefined;
-          },
-        ),
-      pendingWorkspaceIds,
-    };
-  }
-
-  const requested: Set<string> = new Set(data.requestedIds);
   const workspaces: Array<PowerBiWorkspaceRead> = [];
 
-  for (const workspace of data.kept) {
-    const after: PowerBiWorkspaceRead | undefined = requested.has(workspace.id)
-      ? outcome(workspace.id)
-      : workspace;
+  if (data.isFull) {
+    for (const id of new Set(data.listedIds)) {
+      const workspace: PowerBiWorkspaceRead | undefined = after(id);
 
-    if (after) {
-      workspaces.push(after);
+      if (workspace) {
+        workspaces.push(workspace);
+      }
+    }
+  } else {
+    for (const workspace of data.kept) {
+      const kept: PowerBiWorkspaceRead | undefined = after(workspace.id);
+
+      if (kept) {
+        workspaces.push(kept);
+      }
+    }
+
+    // Workspaces new since the last read, in the order their scans name them.
+    const added: Set<string> = new Set();
+
+    for (const scan of data.scans) {
+      for (const id of scan.workspaceIds) {
+        const workspace: PowerBiWorkspaceRead | null | undefined = read.get(id);
+
+        if (!keptById.has(id) && !added.has(id) && workspace) {
+          added.add(id);
+          workspaces.push(workspace);
+        }
+      }
     }
   }
 
-  // Workspaces new since the last read, in the order Power BI listed them.
-  for (const id of new Set(data.requestedIds)) {
-    if (!keptById.has(id) && scannedById.has(id)) {
-      workspaces.push(scannedById.get(id)!);
+  const pendingWorkspaceIds: Set<string> = new Set();
+  const pendingScans: Array<PowerBiPendingScan> = [];
+
+  for (const scan of data.scans) {
+    const own: Array<string> = Array.from(new Set(scan.workspaceIds)).filter(
+      (id: string): boolean => {
+        return newest.get(id) === scan;
+      },
+    );
+
+    if (scan.pending && own.length > 0) {
+      pendingScans.push({ ...scan.pending, workspaceIds: own });
+    } else if (!scan.read && !scan.pending) {
+      for (const id of own) {
+        pendingWorkspaceIds.add(id);
+      }
     }
   }
 
-  return { workspaces, pendingWorkspaceIds };
+  return {
+    workspaces,
+    pendingWorkspaceIds: Array.from(pendingWorkspaceIds),
+    pendingScans,
+  };
 }
 
 function readObject(value: unknown): Record<string, unknown> | null {
@@ -349,6 +452,22 @@ function readDataflow(value: unknown): PowerBiDataflowRead | null {
   };
 }
 
+// A kept scan: its id as Power BI gave it, the workspaces it is to give, and when it started.
+function readPendingScan(value: unknown): PowerBiPendingScan | null {
+  const scan: Record<string, unknown> | null = readObject(value);
+  const scanId: string | null = readText(scan?.["scanId"]);
+  const startedAt: string | null = readTime(scan?.["startedAt"]);
+  const workspaceIds: Array<string> = Array.from(
+    new Set(readIds(scan?.["workspaceIds"])),
+  ).slice(0, MAX_WORKSPACES_PER_SCAN);
+
+  if (!scanId || !SCAN_ID.test(scanId) || !startedAt || !workspaceIds.length) {
+    return null;
+  }
+
+  return { scanId, workspaceIds, startedAt };
+}
+
 function readWorkspace(value: unknown): PowerBiWorkspaceRead | null {
   const workspace: Record<string, unknown> | null = readObject(value);
   const id: string | null = readText(workspace?.["id"]);
@@ -392,6 +511,10 @@ export function readPowerBiReadState(value: unknown): PowerBiReadState | null {
     scannedFrom,
     fullScanAt,
     pendingWorkspaceIds: readIds(state["pendingWorkspaceIds"]),
+    pendingScans: readArray(state["pendingScans"])
+      .map(readPendingScan)
+      .filter(isPresent)
+      .slice(0, MAX_POWER_BI_PENDING_SCANS),
     workspaces: readArray(state["workspaces"])
       .map(readWorkspace)
       .filter(isPresent),

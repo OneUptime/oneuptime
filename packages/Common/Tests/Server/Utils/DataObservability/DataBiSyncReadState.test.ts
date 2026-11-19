@@ -11,6 +11,7 @@ import {
   PowerBiConnector,
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
 import { collectBiSources } from "../../../../Server/Utils/DataObservability/Bi/BiSources";
+import { BiReadKeptStateError } from "../../../../Server/Utils/DataObservability/Bi/BiReadState";
 import { BiTableRef } from "../../../../Server/Utils/DataObservability/Bi/BiTables";
 import DataBiSync, {
   MAX_TOOLS_READ_AT_ONCE,
@@ -314,6 +315,40 @@ describe("a BI tool's read state", () => {
     for (const call of sync.mock.calls) {
       expect(call[1]).toEqual({ isScheduled: true });
     }
+  });
+
+  test("a read with nothing to show yet, but Power BI's scans still running, fails and keeps them for the next read (#9697)", async () => {
+    const connection: DataBiConnection = connectionWith(undefined);
+    const pending: JSONObject = {
+      version: 1,
+      workspaces: [],
+      pendingScans: [
+        {
+          scanId: "e7d03602-4873-4760-b37e-1563ef5358e3",
+          workspaceIds: ["w1"],
+          startedAt: "2026-11-19T08:00:00.000Z",
+        },
+      ],
+    };
+    const stubs: ReturnType<typeof stubSync> = stubSync(
+      connection,
+      new BiReadKeptStateError(
+        "Power BI was still scanning 1 workspace when the read stopped waiting after 20 minutes. The next read reads that scan once Power BI has finished it, rather than scanning again.",
+        pending,
+      ),
+    );
+
+    const result: { error: string | null } = await DataBiSync.syncConnection(
+      connection.id!,
+    );
+
+    expect(result.error).toContain("Power BI was still scanning 1 workspace");
+
+    const written: JSONObject = stubs.updateTool.mock.calls[0]![0]
+      .data as unknown as JSONObject;
+
+    expect(written["lastSyncError"]).toBe(result.error);
+    expect(written["readState"]).toEqual({ powerBi: pending });
   });
 
   test("a read that fails keeps what the last one kept", async () => {
