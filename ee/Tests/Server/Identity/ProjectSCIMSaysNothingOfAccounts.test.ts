@@ -1048,6 +1048,34 @@ describe.each(deployments)("on $label", ({ hosted }: { hosted: boolean }) => {
       },
     },
     {
+      /*
+       * A group shows its members by the address the identity provider gave
+       * them, not by the one the account signs in with - which an account in
+       * another project would not have changed.
+       */
+      label: "Entra ID: a new user principal name, then the groups read back",
+      create: entraCreate,
+      updates: (id: string): Array<[string, string, JSONObject]> => {
+        return [
+          [
+            "PATCH",
+            `/Users/${id}`,
+            patch({
+              op: "Replace",
+              path: "userName",
+              value: "sam.rivera-lopez@acme.example",
+            }),
+          ],
+          ["GET", "/Groups", {}],
+          [
+            "GET",
+            `/Groups?filter=${encodeURIComponent('displayName eq "Members"')}`,
+            {},
+          ],
+        ];
+      },
+    },
+    {
       label: "Entra ID: a name that is cleared",
       create: entraCreate,
       updates: (id: string): Array<[string, string, JSONObject]> => {
@@ -1346,7 +1374,12 @@ describe("on a self-hosted install, an address another account signs in with", (
           oktaCreate(ADDRESS),
         );
 
-        return [created, await change(created.body["id"] as string)];
+        return [
+          created,
+          await change(created.body["id"] as string),
+          // The groups show the user by the address the identity provider gave.
+          await send("GET", "/Groups"),
+        ];
       },
     );
   }
@@ -1501,6 +1534,7 @@ describe("on a self-hosted install, an address another account signs in with", (
             `/Users/${created.body["id"]}`,
             patch({ op: "Replace", path: "userName", value: NEW_ADDRESS }),
           ),
+          await send("GET", "/Groups"),
         ];
       },
     );

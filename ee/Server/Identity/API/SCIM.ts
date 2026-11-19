@@ -1038,6 +1038,29 @@ const getTeamMembersForSCIM: (data: {
     scimType: "project",
   })}/Users`;
 
+  /*
+   * A user the connection keeps a record of is shown by the address the
+   * identity provider gave it, as the user itself is (renderScimUser): the
+   * account's own address follows a new one only where this project may
+   * give it, so showing it would say which accounts belong to other
+   * projects, and which addresses other accounts have (#9825). A member the
+   * identity provider has not written is shown by the account's address.
+   */
+  const addressesGiven: Map<string, string> = new Map<string, string>();
+
+  for (const record of await ProjectSCIMUserService.findRecordsOfConnection(
+    new ObjectID(data.projectScimId),
+  )) {
+    const address: string =
+      getAccountEmail(getScimUserResourceOfRecord(record)) ||
+      record.userName ||
+      "";
+
+    if (record.userId && address) {
+      addressesGiven.set(record.userId.toString().toLowerCase(), address);
+    }
+  }
+
   for (const teamMember of teamMembers) {
     if (!teamMember.user?.id || !teamMember.teamId) {
       continue;
@@ -1054,7 +1077,10 @@ const getTeamMembersForSCIM: (data: {
     ) {
       members.push({
         value: userId,
-        display: teamMember.user.email?.toString() || "",
+        display:
+          addressesGiven.get(userId.toLowerCase()) ||
+          teamMember.user.email?.toString() ||
+          "",
         $ref: `${usersUrl}/${userId}`,
       });
     }
