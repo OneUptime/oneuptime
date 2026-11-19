@@ -29,7 +29,9 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
 import {
   fetchAllGlobalProviders,
   fetchProjectProvidersForEmail,
+  fetchProjectSignInProviders,
   type GlobalSSOProvider,
+  type LinkedSsoProvider,
   type SSOProvider,
   type SsoDiscoveryResult,
 } from "../../api/sso";
@@ -64,6 +66,7 @@ jest.mock("../../api/sso", () => {
   return {
     fetchAllGlobalProviders: jest.fn(),
     fetchProjectProvidersForEmail: jest.fn(),
+    fetchProjectSignInProviders: jest.fn(),
   };
 });
 
@@ -1311,5 +1314,272 @@ describe("How single sign-on looks", () => {
       StyleSheet.flatten(screen.getByTestId("auth-keyboard").props.style)
         .backgroundColor,
     ).toBe(darkColors.backgroundPrimary);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A PROJECT'S SSO SIGN-IN LINK, PASTED (#9989).
+ *
+ * The email lookup finds a project's providers by the address's verified
+ * domain alone, so it finds nothing for a contractor at gmail.com in Acme's
+ * project, or in a project that has not verified its domain. Their admin
+ * shares the project's SSO sign-in link instead; pasted here, it lists the
+ * project's providers - asked by the project's id alone - and starts the
+ * chosen one's mobile sign-in, as the lookup's results do. No address is
+ * sent anywhere.
+ * ---------------------------------------------------------------------------
+ */
+
+const LINK_PROJECT_ID: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+const PROJECT_LINK: string = `https://oneuptime.com/accounts/sso/${LINK_PROJECT_ID}`;
+
+function linkDiscovery(): jest.Mock {
+  return fetchProjectSignInProviders as unknown as jest.Mock;
+}
+
+function linkedProvider(
+  overrides: Partial<LinkedSsoProvider> = {},
+): LinkedSsoProvider {
+  return {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Acme Okta",
+    description: "",
+    kind: "project",
+    ...overrides,
+  };
+}
+
+/** Opens the link step and pastes `link`, then presses Continue. */
+async function submitLink(link: string): Promise<void> {
+  await fireEvent.press(screen.getByTestId("sso-use-link"));
+  await fireEvent.changeText(
+    await screen.findByLabelText("SSO sign-in link"),
+    link,
+  );
+  await fireEvent.press(screen.getByTestId("sso-link-continue"));
+}
+
+describe("A project's SSO sign-in link", () => {
+  beforeEach(() => {
+    linkDiscovery().mockResolvedValue(found<LinkedSsoProvider>([]));
+  });
+
+  test("is offered under the email step, for an address the lookup cannot find", async () => {
+    await renderScreen();
+
+    expect(screen.getByText("Use a sign-in link from your admin")).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("sso-use-link"));
+
+    expect(await screen.findByLabelText("SSO sign-in link")).toBeTruthy();
+    expect(
+      screen.getByText("Paste the SSO sign-in link your admin shared"),
+    ).toBeTruthy();
+    // The example is a link on the server the app signs in to.
+    expect(screen.getByLabelText("SSO sign-in link").props.placeholder).toBe(
+      "https://oneuptime.com/accounts/sso/...",
+    );
+  });
+
+  test("lists the providers of the project it names, read by the project's id alone", async () => {
+    linkDiscovery().mockResolvedValue(
+      found([
+        linkedProvider(),
+        linkedProvider({
+          id: "22222222-2222-4222-8222-222222222222",
+          name: "Acme Corporate SAML",
+          kind: "global-sso",
+        }),
+      ]),
+    );
+
+    await renderScreen();
+    await submitLink(PROJECT_LINK);
+
+    expect(await screen.findByText("Select your SSO provider")).toBeTruthy();
+    expect(screen.getByText("Acme Okta")).toBeTruthy();
+    expect(screen.getByText("Acme Corporate SAML")).toBeTruthy();
+    expect(linkDiscovery()).toHaveBeenCalledTimes(1);
+    expect(linkDiscovery()).toHaveBeenCalledWith(LINK_PROJECT_ID);
+  });
+
+  test("starts the chosen project provider's mobile sign-in, for the link's project", async () => {
+    linkDiscovery().mockResolvedValue(found([linkedProvider()]));
+
+    await renderScreen();
+    await submitLink(PROJECT_LINK);
+    await fireEvent.press(await screen.findByLabelText("Acme Okta"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledWith(
+        `https://oneuptime.com/identity/sso/${LINK_PROJECT_ID}/11111111-1111-4111-8111-111111111111?mobile=true`,
+      );
+    });
+  });
+
+  test.each([
+    [
+      "project OIDC",
+      "project-oidc" as const,
+      `https://oneuptime.com/identity/oidc/${LINK_PROJECT_ID}/11111111-1111-4111-8111-111111111111?mobile=true`,
+    ],
+    [
+      "the server's SAML",
+      "global-sso" as const,
+      "https://oneuptime.com/identity/global-sso/11111111-1111-4111-8111-111111111111?mobile=true",
+    ],
+    [
+      "the server's OIDC",
+      "global-oidc" as const,
+      "https://oneuptime.com/identity/global-oidc/11111111-1111-4111-8111-111111111111?mobile=true",
+    ],
+  ])(
+    "starts %s through its own router",
+    async (
+      _label: string,
+      kind: LinkedSsoProvider["kind"],
+      expected: string,
+    ) => {
+      linkDiscovery().mockResolvedValue(found([linkedProvider({ kind })]));
+
+      await renderScreen();
+      await submitLink(PROJECT_LINK);
+      await fireEvent.press(await screen.findByLabelText("Acme Okta"));
+
+      await waitFor(() => {
+        expect(authSession()).toHaveBeenCalledWith(expected);
+      });
+    },
+  );
+
+  test("a completed sign-in through it signs the user in", async () => {
+    linkDiscovery().mockResolvedValue(found([linkedProvider()]));
+    authSession().mockResolvedValue({
+      status: "callback",
+      url: "oneuptime://sso-callback?code=abc&state=def",
+    });
+
+    await renderScreen();
+    await submitLink(PROJECT_LINK);
+    await fireEvent.press(await screen.findByLabelText("Acme Okta"));
+
+    await waitFor(() => {
+      expect(completeLogin()).toHaveBeenCalledWith(
+        "oneuptime://sso-callback?code=abc&state=def",
+      );
+      expect(mockAuth.setIsAuthenticated).toHaveBeenCalledWith(true);
+    });
+  });
+
+  test("sends no address anywhere", async () => {
+    linkDiscovery().mockResolvedValue(found([linkedProvider()]));
+
+    await renderScreen();
+    await fireEvent.changeText(
+      screen.getByLabelText("Email"),
+      "contractor@gmail.com",
+    );
+    await submitLink(PROJECT_LINK);
+    await fireEvent.press(await screen.findByLabelText("Acme Okta"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledTimes(1);
+    });
+
+    expect(projectDiscovery()).not.toHaveBeenCalled();
+    expect(JSON.stringify(linkDiscovery().mock.calls)).not.toContain("@");
+    expect(JSON.stringify(authSession().mock.calls)).not.toContain("@");
+  });
+
+  test("says so for a project with no provider turned on, or no such project", async () => {
+    await renderScreen();
+    await submitLink(PROJECT_LINK);
+
+    expect(
+      await screen.findByText(
+        "This link has no single sign-on provider to sign in with. Ask your admin to turn one on, or sign in another way.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("Select your SSO provider")).toBeNull();
+  });
+
+  test.each([
+    ["the page with no id", "https://oneuptime.com/accounts/sso/"],
+    ["an id that is not one", "https://oneuptime.com/accounts/sso/acme"],
+  ])(
+    "says a link that names no project does: %s - and asks the server nothing",
+    async (_label: string, link: string) => {
+      await renderScreen();
+      await submitLink(link);
+
+      expect(
+        await screen.findByText(
+          "This link does not name a project. Paste the whole link your admin shared.",
+        ),
+      ).toBeTruthy();
+      expect(linkDiscovery()).not.toHaveBeenCalled();
+    },
+  );
+
+  test("says what is wrong with something that is not a link, and asks the server nothing", async () => {
+    await renderScreen();
+    await submitLink("contractor@gmail.com");
+
+    expect(
+      await screen.findByText(
+        "That is not an SSO sign-in link. Paste the link your admin shared: it starts with https://oneuptime.com/accounts/sso/.",
+      ),
+    ).toBeTruthy();
+    expect(linkDiscovery()).not.toHaveBeenCalled();
+  });
+
+  test("names the other server a link is for, and asks neither", async () => {
+    await renderScreen();
+    await submitLink(`https://status.acme.com/accounts/sso/${LINK_PROJECT_ID}`);
+
+    expect(
+      await screen.findByText(
+        "This link is for https://status.acme.com, but this app signs in to https://oneuptime.com. Change the server on the sign-in screen, then paste the link again.",
+      ),
+    ).toBeTruthy();
+    expect(linkDiscovery()).not.toHaveBeenCalled();
+  });
+
+  test("an empty field asks for the link", async () => {
+    await renderScreen();
+    await submitLink("   ");
+
+    expect(
+      await screen.findByText("Paste the SSO sign-in link your admin shared."),
+    ).toBeTruthy();
+  });
+
+  test("an unreachable server is reported as one", async () => {
+    linkDiscovery().mockResolvedValue(unreachable<LinkedSsoProvider>());
+
+    await renderScreen();
+    await submitLink(PROJECT_LINK);
+
+    expect(
+      await screen.findByText(
+        "Could not reach the server to look up this link's SSO providers. Check your connection and try again.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("goes back a step at a time: the providers, the link, then the email", async () => {
+    linkDiscovery().mockResolvedValue(found([linkedProvider()]));
+
+    await renderScreen();
+    await submitLink(PROJECT_LINK);
+    await screen.findByText("Acme Okta");
+
+    await fireEvent.press(screen.getByText("Use a different link"));
+    expect(await screen.findByLabelText("SSO sign-in link")).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("Use your email instead"));
+    expect(await screen.findByLabelText("Email")).toBeTruthy();
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
   });
 });

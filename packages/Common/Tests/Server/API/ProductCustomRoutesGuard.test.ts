@@ -1035,6 +1035,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
+        // #9989: the mobile app redeems an SSO sign-in's one-time code with its PKCE verifier.
+        "packages/App/FeatureSet/Identity/API/MobileSsoExchange.ts": 1,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
         "packages/App/FeatureSet/Identity/API/Reseller.ts": 1,
         "packages/App/FeatureSet/Identity/API/SSO.ts": 2,

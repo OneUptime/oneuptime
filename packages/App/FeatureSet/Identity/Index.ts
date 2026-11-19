@@ -5,6 +5,7 @@ import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
 import GoogleSignInAPI from "./API/GoogleSignIn";
 import SignInMethodsAPI from "./API/SignInMethods";
 import SsoSignInLinksAPI from "./API/SsoSignInLinks";
+import MobileSsoExchangeAPI from "./API/MobileSsoExchange";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
@@ -46,6 +47,12 @@ const IdentityFeatureSet: FeatureSet = {
      * alike (./API/SsoSignInLinks, #9987).
      */
     app.use([`/${APP_NAME}`, "/"], SsoSignInLinksAPI);
+
+    /*
+     * Where the mobile app redeems the one-time code an SSO sign-in handed
+     * back to it, with its PKCE verifier (./API/MobileSsoExchange, #9989).
+     */
+    app.use([`/${APP_NAME}`, "/"], MobileSsoExchangeAPI);
 
     /*
      * Single sign-on - SAML and OIDC for projects, the whole instance and
