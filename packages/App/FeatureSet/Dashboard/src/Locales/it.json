@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "Le configurazioni usate solo per gli SMS non sono elencate: non ricevono chiamate.",
   "No Twilio Configuration for Calls": "Nessuna configurazione Twilio per le chiamate",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Questa configurazione è usata solo per gli SMS. Impostala su Chiamate e SMS, o Solo chiamate, nelle impostazioni del progetto.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Le tue configurazioni Twilio sono tutte usate solo per gli SMS. Impostane una su Chiamate e SMS, o Solo chiamate, oppure aggiungine una in Impostazioni del progetto > Notifiche > Canali di notifica."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Le tue configurazioni Twilio sono tutte usate solo per gli SMS. Impostane una su Chiamate e SMS, o Solo chiamate, oppure aggiungine una in Impostazioni del progetto > Notifiche > Canali di notifica.",
+  "A call that voicemail answers counts as answered.": "Una chiamata a cui risponde la segreteria telefonica conta come risposta.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Una chiamata a cui risponde la segreteria telefonica conta come senza risposta e lascia un breve messaggio. Twilio addebita ogni chiamata con risposta che controlla.",
+  "Detect Voicemail on On-Call Calls": "Rileva la segreteria telefonica nelle chiamate di reperibilità",
+  "Detect voicemail on on-call calls": "Rileva la segreteria telefonica nelle chiamate di reperibilità",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Distingui se a rispondere a ogni chiamata di reperibilità è stata una persona o la segreteria, così una chiamata finita in segreteria non conta come risposta.",
+  "The call was not answered: a fax machine picked up.": "La chiamata non ha ricevuto risposta: ha risposto un fax.",
+  "The call was not answered: it went to voicemail, and a message was left.": "La chiamata non ha ricevuto risposta: è finita in segreteria, ed è stato lasciato un messaggio.",
+  "The call was not answered: it went to voicemail, and no message was left.": "La chiamata non ha ricevuto risposta: è finita in segreteria, e non è stato lasciato alcun messaggio.",
+  "Voicemail": "Segreteria telefonica",
+  "Voicemail on On-Call Calls": "Segreteria telefonica nelle chiamate di reperibilità"
 }

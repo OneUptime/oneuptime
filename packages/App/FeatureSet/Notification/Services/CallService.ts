@@ -15,6 +15,7 @@ import {
 } from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import CallRequest, {
+  CallRequestMessage,
   GatherInput,
   Say,
   isHighRiskPhoneNumber,
@@ -64,6 +65,11 @@ import {
 import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import { withProviderConfig } from "../Utils/StatusCallbackProviderConfig";
 import { withRetryOnServerError } from "../Utils/StatusCallbackRetry";
+import {
+  getVoicemailMessage,
+  VOICEMAIL_MACHINE_DETECTION,
+  VOICEMAIL_MESSAGE_CALL_DATA_KEY,
+} from "../Utils/AnsweredBy";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
@@ -445,6 +451,8 @@ export default class CallService {
             lowCallAndSMSBalanceNotificationSentToOwners: true,
             name: true,
             notEnabledSmsOrCallNotificationSentToOwners: true,
+            // Whether an on-call call asks who answered it (#6594).
+            detectVoicemailOnCalls: true,
           },
           props: {
             isRoot: true,
@@ -656,14 +664,41 @@ export default class CallService {
          * reach (HOST). Its address says whose Twilio account the call is
          * made on, for the delivery metrics (StatusCallbackProviderConfig).
          */
+        const providerConfig: NotificationProviderConfig = customTwilioConfig
+          ? NotificationProviderConfig.Project
+          : NotificationProviderConfig.Global;
+
         const statusCallbackUrl: string | null = options.projectId
-          ? this.prepareStatusCallback(
-              callLog,
-              customTwilioConfig
-                ? NotificationProviderConfig.Project
-                : NotificationProviderConfig.Global,
-            )
+          ? this.prepareStatusCallback(callLog, providerConfig)
           : null;
+
+        /*
+         * Who answered it - a person, or voicemail - Twilio tells this
+         * call's answering machine callback (API/Call.ts), for an on-call
+         * page of a project that detects voicemail, whose outcome Twilio can
+         * report (#6594): a call voicemail answers then counts as not
+         * answered, and leaves the message kept here once the greeting
+         * ends. Asked in the background, so a person who picks up hears the
+         * page at once; DetectMessageEnd reports a voicemail at the end of
+         * its greeting, where a message left is the one it records.
+         */
+        const voicemailCallbackUrl: string | null =
+          statusCallbackUrl &&
+          this.shouldDetectVoicemail({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            project: project,
+          })
+            ? this.getVoicemailCallbackUrl(callLog, providerConfig)
+            : null;
+
+        if (voicemailCallbackUrl && !options.isSensitive) {
+          callLog.callData = {
+            ...((callLog.callData as unknown as Record<string, unknown>) || {}),
+            [VOICEMAIL_MESSAGE_CALL_DATA_KEY]: ProductBrandingText.brandText(
+              getVoicemailMessage(getCallGatewayMessage(callRequest)),
+            ),
+          } as any;
+        }
 
         const twiml: string = this.generateTwimlForCall(callRequest);
 
@@ -679,6 +714,14 @@ export default class CallService {
                 statusCallback: statusCallbackUrl,
                 statusCallbackEvent: ["completed"],
                 statusCallbackMethod: "POST",
+              }
+            : {}),
+          ...(voicemailCallbackUrl
+            ? {
+                machineDetection: VOICEMAIL_MACHINE_DETECTION,
+                asyncAmd: "true",
+                asyncAmdStatusCallback: voicemailCallbackUrl,
+                asyncAmdStatusCallbackMethod: "POST",
               }
             : {}),
         });
@@ -819,6 +862,60 @@ export default class CallService {
   }
 
   /*
+   * Whether a call asks Twilio who answered it (#6594): an on-call page -
+   * a call made for a person's on-call notification, a test page's among
+   * them - of a project that detects voicemail, as every project does until
+   * it is switched off (Project.detectVoicemailOnCalls; empty reads as on).
+   * Any other call - a verification code, Send Test Call, an incoming call
+   * policy's - is placed as it always was.
+   */
+  public static shouldDetectVoicemail(data: {
+    userOnCallLogTimelineId?: ObjectID | undefined;
+    project: Pick<Project, "detectVoicemailOnCalls"> | null | undefined;
+  }): boolean {
+    return Boolean(
+      data.userOnCallLogTimelineId &&
+        data.project &&
+        data.project.detectVoicemailOnCalls !== false,
+    );
+  }
+
+  /*
+   * The URL Twilio tells who answered a call at - its answering machine
+   * callback (API/Call.ts) - next to its status callback: the same log, the
+   * same token, which prepareStatusCallback gave it, the same note of whose
+   * account the call is on, and the same ask to send it again when this
+   * server could not take it. Twilio signs the request too, which the route
+   * checks.
+   */
+  public static getVoicemailCallbackUrl(
+    callLog: CallLog,
+    providerConfig: NotificationProviderConfig = NotificationProviderConfig.Global,
+  ): string | null {
+    if (!Host || !callLog.id || !callLog.statusCallbackToken) {
+      return null;
+    }
+
+    return withRetryOnServerError(
+      withProviderConfig(
+        `${HttpProtocol}${Host}/notification/call/amd-callback/${callLog.id.toString()}/${callLog.statusCallbackToken}`,
+        providerConfig,
+      ),
+    );
+  }
+
+  /*
+   * The TwiML a call is turned to once voicemail has answered it and its
+   * greeting ended: the message, which the voicemail records, then the
+   * call ends. Cut to fit as any call's TwiML is (generateTwimlForCall).
+   */
+  public static generateVoicemailTwiml(message: string): string {
+    return this.generateTwimlForCall({
+      data: [{ sayMessage: message }],
+    });
+  }
+
+  /*
    * The TwiML a call is made with. Twilio refuses TwiML of more than
    * MAX_CALL_TWIML_LENGTH characters, and the call is not made: a call whose
    * spoken texts make it longer - a template that placed a description -
@@ -827,7 +924,7 @@ export default class CallService {
    * TwiML is built again and measured, and the texts cut shorter while it is
    * still over. A call that fits is made as it always was.
    */
-  public static generateTwimlForCall(callRequest: CallRequest): string {
+  public static generateTwimlForCall(callRequest: CallRequestMessage): string {
     const spoken: Array<string> = [];
 
     const twiml: string = this.buildTwimlForCall(
@@ -884,7 +981,7 @@ export default class CallService {
    * the call speaks them.
    */
   private static buildTwimlForCall(
-    callRequest: CallRequest,
+    callRequest: CallRequestMessage,
     say: (text: string) => string,
   ): string {
     const response: Twilio.twiml.VoiceResponse =

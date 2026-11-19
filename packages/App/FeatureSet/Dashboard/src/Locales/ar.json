@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "لا تُدرج الإعدادات المستخدمة للرسائل النصية فقط: فهي لا تستقبل المكالمات.",
   "No Twilio Configuration for Calls": "لا يوجد إعداد Twilio للمكالمات",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "يُستخدم هذا الإعداد للرسائل النصية فقط. اضبطه على «المكالمات والرسائل النصية» أو «المكالمات فقط» في إعدادات المشروع.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "كل إعدادات Twilio لديك مستخدمة للرسائل النصية فقط. اضبط أحدها على «المكالمات والرسائل النصية» أو «المكالمات فقط»، أو أضف إعدادًا ضمن إعدادات المشروع > الإشعارات > قنوات الإشعار."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "كل إعدادات Twilio لديك مستخدمة للرسائل النصية فقط. اضبط أحدها على «المكالمات والرسائل النصية» أو «المكالمات فقط»، أو أضف إعدادًا ضمن إعدادات المشروع > الإشعارات > قنوات الإشعار.",
+  "A call that voicemail answers counts as answered.": "تُحتسب المكالمة التي يجيب عنها البريد الصوتي مكالمةً تمت الإجابة عنها.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "تُحتسب المكالمة التي يجيب عنها البريد الصوتي مكالمةً لم تتم الإجابة عنها، وتترك رسالة قصيرة. تفرض Twilio رسومًا على كل مكالمة تمت الإجابة عنها وتتحقق منها.",
+  "Detect Voicemail on On-Call Calls": "اكتشاف البريد الصوتي في مكالمات المناوبة",
+  "Detect voicemail on on-call calls": "اكتشاف البريد الصوتي في مكالمات المناوبة",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "معرفة ما إذا كان شخص أم البريد الصوتي قد أجاب عن كل مكالمة مناوبة، حتى لا تُحتسب المكالمة التي ذهبت إلى البريد الصوتي مكالمةً تمت الإجابة عنها.",
+  "The call was not answered: a fax machine picked up.": "لم تتم الإجابة عن المكالمة: أجاب جهاز فاكس.",
+  "The call was not answered: it went to voicemail, and a message was left.": "لم تتم الإجابة عن المكالمة: ذهبت إلى البريد الصوتي، وتُركت رسالة.",
+  "The call was not answered: it went to voicemail, and no message was left.": "لم تتم الإجابة عن المكالمة: ذهبت إلى البريد الصوتي، ولم تُترك أي رسالة.",
+  "Voicemail": "البريد الصوتي",
+  "Voicemail on On-Call Calls": "البريد الصوتي في مكالمات المناوبة"
 }

@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "Конфигурации только для SMS не показаны: они не принимают звонки.",
   "No Twilio Configuration for Calls": "Нет конфигурации Twilio для звонков",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Эта конфигурация используется только для SMS. Переключите её на «Звонки и SMS» или «Только звонки» в настройках проекта.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Все ваши конфигурации Twilio используются только для SMS. Переключите одну на «Звонки и SMS» или «Только звонки» либо добавьте новую в разделе Настройки проекта > Уведомления > Каналы уведомлений."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Все ваши конфигурации Twilio используются только для SMS. Переключите одну на «Звонки и SMS» или «Только звонки» либо добавьте новую в разделе Настройки проекта > Уведомления > Каналы уведомлений.",
+  "A call that voicemail answers counts as answered.": "Звонок, на который ответила голосовая почта, считается отвеченным.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Звонок, на который ответила голосовая почта, считается неотвеченным и оставляет короткое сообщение. Twilio взимает плату за каждый проверенный звонок, на который ответили.",
+  "Detect Voicemail on On-Call Calls": "Распознавать голосовую почту в звонках дежурным",
+  "Detect voicemail on on-call calls": "Распознавать голосовую почту в звонках дежурным",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Определять, ответил ли на каждый звонок дежурному человек или голосовая почта, чтобы звонок, попавший на голосовую почту, не считался отвеченным.",
+  "The call was not answered: a fax machine picked up.": "На звонок не ответили: трубку снял факс.",
+  "The call was not answered: it went to voicemail, and a message was left.": "На звонок не ответили: он попал на голосовую почту, и сообщение было оставлено.",
+  "The call was not answered: it went to voicemail, and no message was left.": "На звонок не ответили: он попал на голосовую почту, и сообщение не было оставлено.",
+  "Voicemail": "Голосовая почта",
+  "Voicemail on On-Call Calls": "Голосовая почта в звонках дежурным"
 }

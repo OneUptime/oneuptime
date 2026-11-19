@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "仅用于短信的配置不会列出：它们无法接听来电。",
   "No Twilio Configuration for Calls": "没有用于通话的 Twilio 配置",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "此配置仅用于短信。请在项目设置中将其改为“通话和短信”或“仅通话”。",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "你的 Twilio 配置都仅用于短信。请将其中一个改为“通话和短信”或“仅通话”，或在“项目设置 > 通知 > 通知渠道”中添加一个。"
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "你的 Twilio 配置都仅用于短信。请将其中一个改为“通话和短信”或“仅通话”，或在“项目设置 > 通知 > 通知渠道”中添加一个。",
+  "A call that voicemail answers counts as answered.": "语音信箱接听的电话算作已接听。",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "语音信箱接听的电话算作未接听，并会留下一段简短留言。Twilio 会对其检测的每个已接听电话收费。",
+  "Detect Voicemail on On-Call Calls": "在值班电话中检测语音信箱",
+  "Detect voicemail on on-call calls": "在值班电话中检测语音信箱",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "判断每个值班电话是由人还是语音信箱接听，这样转入语音信箱的电话不会算作已接听。",
+  "The call was not answered: a fax machine picked up.": "电话未接听：传真机接听了电话。",
+  "The call was not answered: it went to voicemail, and a message was left.": "电话未接听：转入了语音信箱，并留下了留言。",
+  "The call was not answered: it went to voicemail, and no message was left.": "电话未接听：转入了语音信箱，未能留下留言。",
+  "Voicemail": "语音信箱",
+  "Voicemail on On-Call Calls": "值班电话的语音信箱"
 }

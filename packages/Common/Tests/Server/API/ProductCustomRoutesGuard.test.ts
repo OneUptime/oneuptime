@@ -1107,7 +1107,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "How OneUptime sends a message - a call, a text, an email, a push, a chat - for every product, and what the provider says of how it went.",
       {
-        "packages/App/FeatureSet/Notification/API/Call.ts": 3,
+        /*
+         * #6594: Twilio's answering machine callback - who answered an
+         * on-call call, a person or voicemail - beside its status callback.
+         * Twilio calls it for a call already placed, as it calls an incoming
+         * call policy's routes: what already runs keeps running while On-Call
+         * is switched off.
+         */
+        "packages/App/FeatureSet/Notification/API/Call.ts": 4,
         "packages/App/FeatureSet/Notification/API/SMS.ts": 3,
         "packages/App/FeatureSet/Notification/API/Mail.ts": 1,
         "packages/App/FeatureSet/Notification/API/Webhook.ts": 1,

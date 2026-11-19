@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "Configs used for SMS only are not listed: they take no calls.",
   "No Twilio Configuration for Calls": "No Twilio Configuration for Calls",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.",
+  "A call that voicemail answers counts as answered.": "A call that voicemail answers counts as answered.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.",
+  "Detect Voicemail on On-Call Calls": "Detect Voicemail on On-Call Calls",
+  "Detect voicemail on on-call calls": "Detect voicemail on on-call calls",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.",
+  "The call was not answered: a fax machine picked up.": "The call was not answered: a fax machine picked up.",
+  "The call was not answered: it went to voicemail, and a message was left.": "The call was not answered: it went to voicemail, and a message was left.",
+  "The call was not answered: it went to voicemail, and no message was left.": "The call was not answered: it went to voicemail, and no message was left.",
+  "Voicemail": "Voicemail",
+  "Voicemail on On-Call Calls": "Voicemail on On-Call Calls"
 }

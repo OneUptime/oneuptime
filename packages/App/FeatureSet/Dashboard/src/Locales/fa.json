@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "پیکربندی‌هایی که فقط برای پیامک هستند فهرست نمی‌شوند: آن‌ها تماسی دریافت نمی‌کنند.",
   "No Twilio Configuration for Calls": "هیچ پیکربندی Twilio برای تماس وجود ندارد",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "این پیکربندی فقط برای پیامک است. در تنظیمات پروژه آن را روی «تماس و پیامک» یا «فقط تماس» بگذارید.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "همه پیکربندی‌های Twilio شما فقط برای پیامک هستند. یکی را روی «تماس و پیامک» یا «فقط تماس» بگذارید، یا یکی را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان اضافه کنید."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "همه پیکربندی‌های Twilio شما فقط برای پیامک هستند. یکی را روی «تماس و پیامک» یا «فقط تماس» بگذارید، یا یکی را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان اضافه کنید.",
+  "A call that voicemail answers counts as answered.": "تماسی که پست صوتی به آن پاسخ دهد، پاسخ‌داده‌شده حساب می‌شود.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "تماسی که پست صوتی به آن پاسخ دهد، بی‌پاسخ حساب می‌شود و پیام کوتاهی می‌گذارد. Twilio برای هر تماس پاسخ‌داده‌شده‌ای که بررسی کند هزینه می‌گیرد.",
+  "Detect Voicemail on On-Call Calls": "تشخیص پست صوتی در تماس‌های آنکال",
+  "Detect voicemail on on-call calls": "تشخیص پست صوتی در تماس‌های آنکال",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "تشخیص اینکه شخص یا پست صوتی به هر تماس آنکال پاسخ داده است، تا تماسی که به پست صوتی رفته پاسخ‌داده‌شده حساب نشود.",
+  "The call was not answered: a fax machine picked up.": "به تماس پاسخ داده نشد: یک دستگاه فکس پاسخ داد.",
+  "The call was not answered: it went to voicemail, and a message was left.": "به تماس پاسخ داده نشد: به پست صوتی رفت و پیامی گذاشته شد.",
+  "The call was not answered: it went to voicemail, and no message was left.": "به تماس پاسخ داده نشد: به پست صوتی رفت و پیامی گذاشته نشد.",
+  "Voicemail": "پست صوتی",
+  "Voicemail on On-Call Calls": "پست صوتی در تماس‌های آنکال"
 }

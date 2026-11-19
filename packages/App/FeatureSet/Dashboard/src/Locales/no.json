@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "Konfigurasjoner som bare brukes til SMS, vises ikke, fordi de ikke tar imot anrop.",
   "No Twilio Configuration for Calls": "Ingen Twilio-konfigurasjon for anrop",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Denne konfigurasjonen brukes bare til SMS. Sett den til Anrop og SMS eller Bare anrop i prosjektinnstillingene.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Twilio-konfigurasjonene dine brukes alle bare til SMS. Sett én til Anrop og SMS eller Bare anrop, eller legg til en under Prosjektinnstillinger > Varslinger > Varslingskanaler."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Twilio-konfigurasjonene dine brukes alle bare til SMS. Sett én til Anrop og SMS eller Bare anrop, eller legg til en under Prosjektinnstillinger > Varslinger > Varslingskanaler.",
+  "A call that voicemail answers counts as answered.": "Et anrop som taleposten svarer på, regnes som besvart.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Et anrop som taleposten svarer på, regnes som ubesvart og legger igjen en kort melding. Twilio tar betalt for hvert besvarte anrop det sjekker.",
+  "Detect Voicemail on On-Call Calls": "Gjenkjenn talepost ved vaktanrop",
+  "Detect voicemail on on-call calls": "Gjenkjenn talepost ved vaktanrop",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Se om en person eller taleposten svarte på hvert vaktanrop, slik at et anrop som gikk til talepost, ikke regnes som besvart.",
+  "The call was not answered: a fax machine picked up.": "Anropet ble ikke besvart: en faksmaskin svarte.",
+  "The call was not answered: it went to voicemail, and a message was left.": "Anropet ble ikke besvart: det gikk til talepost, og en melding ble lagt igjen.",
+  "The call was not answered: it went to voicemail, and no message was left.": "Anropet ble ikke besvart: det gikk til talepost, og ingen melding ble lagt igjen.",
+  "Voicemail": "Talepost",
+  "Voicemail on On-Call Calls": "Talepost ved vaktanrop"
 }

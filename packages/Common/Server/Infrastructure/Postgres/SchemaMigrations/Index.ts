@@ -1110,6 +1110,7 @@ import { AddTeamScimGroupLinkedAt1809186200000 } from "./1809186200000-AddTeamSc
 import { AddSamlSingleLogout1809186300000 } from "./1809186300000-AddSamlSingleLogout";
 import { AddDataAssetEntitySetName1809186396960 } from "./1809186396960-AddDataAssetEntitySetName";
 import { AddProjectAiRunCommandTimeLimit1809186466000 } from "./1809186466000-AddProjectAiRunCommandTimeLimit";
+import { AddProjectDetectVoicemailOnCalls1809186500000 } from "./1809186500000-AddProjectDetectVoicemailOnCalls";
 
 export default [
   InitialMigration,
@@ -2224,4 +2225,5 @@ export default [
   AddSamlSingleLogout1809186300000,
   AddDataAssetEntitySetName1809186396960,
   AddProjectAiRunCommandTimeLimit1809186466000,
+  AddProjectDetectVoicemailOnCalls1809186500000,
 ];

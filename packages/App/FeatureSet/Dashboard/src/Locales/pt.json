@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "As configurações usadas somente para SMS não aparecem: elas não recebem chamadas.",
   "No Twilio Configuration for Calls": "Nenhuma configuração do Twilio para chamadas",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Esta configuração é usada somente para SMS. Mude-a para Chamadas e SMS, ou Somente chamadas, nas configurações do projeto.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Todas as suas configurações do Twilio são usadas somente para SMS. Mude uma para Chamadas e SMS, ou Somente chamadas, ou adicione uma em Configurações do projeto > Notificações > Canais de notificação."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Todas as suas configurações do Twilio são usadas somente para SMS. Mude uma para Chamadas e SMS, ou Somente chamadas, ou adicione uma em Configurações do projeto > Notificações > Canais de notificação.",
+  "A call that voicemail answers counts as answered.": "Uma chamada atendida pela caixa postal conta como atendida.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Uma chamada atendida pela caixa postal conta como não atendida e deixa uma mensagem curta. O Twilio cobra por cada chamada atendida que verifica.",
+  "Detect Voicemail on On-Call Calls": "Detectar caixa postal nas chamadas de plantão",
+  "Detect voicemail on on-call calls": "Detectar caixa postal nas chamadas de plantão",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Saber se uma pessoa ou a caixa postal atendeu cada chamada de plantão, para que uma chamada que caiu na caixa postal não conte como atendida.",
+  "The call was not answered: a fax machine picked up.": "A chamada não foi atendida: um fax atendeu.",
+  "The call was not answered: it went to voicemail, and a message was left.": "A chamada não foi atendida: caiu na caixa postal, e uma mensagem foi deixada.",
+  "The call was not answered: it went to voicemail, and no message was left.": "A chamada não foi atendida: caiu na caixa postal, e nenhuma mensagem foi deixada.",
+  "Voicemail": "Caixa postal",
+  "Voicemail on On-Call Calls": "Caixa postal nas chamadas de plantão"
 }

@@ -352,8 +352,8 @@ const SENDING_STATUSES: Readonly<
  * WHAT BECAME OF ONE NOTIFICATION, from its log's own status, in the words a
  * test page's result says it: sent (its provider took it), delivered (the
  * provider says it reached the phone, or it was read), not answered (a call
- * that rang out or met a busy line: it reached the phone, so it is no
- * failure), sending, or failed - an error, a low balance, an undelivered
+ * that rang out, met a busy line or went to voicemail: it reached the
+ * phone, so it is no failure), sending, or failed - an error, a low balance, an undelivered
  * SMS, a method not verified. A status this does not know is failed rather
  * than said to have gone out.
  */
@@ -373,7 +373,9 @@ export function getWhoWasToldDeliveryStatus(data: {
 
   if (
     data.kind === WhoWasToldLogKind.Call &&
-    (status === CallStatus.MissedCall || status === CallStatus.Busy)
+    (status === CallStatus.MissedCall ||
+      status === CallStatus.Busy ||
+      status === CallStatus.Voicemail)
   ) {
     return OnCallTestPageDeliveryStatus.NotAnswered;
   }

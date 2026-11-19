@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "Konfigurationer, der kun bruges til SMS, vises ikke, fordi de ikke tager imod opkald.",
   "No Twilio Configuration for Calls": "Ingen Twilio-konfiguration til opkald",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Denne konfiguration bruges kun til SMS. Sæt den til Opkald og SMS eller Kun opkald i projektindstillingerne.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Dine Twilio-konfigurationer bruges alle kun til SMS. Sæt en til Opkald og SMS eller Kun opkald, eller tilføj en under Projektindstillinger > Notifikationer > Notifikationskanaler."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Dine Twilio-konfigurationer bruges alle kun til SMS. Sæt en til Opkald og SMS eller Kun opkald, eller tilføj en under Projektindstillinger > Notifikationer > Notifikationskanaler.",
+  "A call that voicemail answers counts as answered.": "Et opkald, som telefonsvareren besvarer, tæller som besvaret.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Et opkald, som telefonsvareren besvarer, tæller som ubesvaret og efterlader en kort besked. Twilio tager betaling for hvert besvaret opkald, det tjekker.",
+  "Detect Voicemail on On-Call Calls": "Genkend telefonsvarer ved vagtopkald",
+  "Detect voicemail on on-call calls": "Genkend telefonsvarer ved vagtopkald",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Se, om en person eller telefonsvareren besvarede hvert vagtopkald, så et opkald, der gik til telefonsvareren, ikke tæller som besvaret.",
+  "The call was not answered: a fax machine picked up.": "Opkaldet blev ikke besvaret: en faxmaskine tog den.",
+  "The call was not answered: it went to voicemail, and a message was left.": "Opkaldet blev ikke besvaret: det gik til telefonsvareren, og der blev lagt en besked.",
+  "The call was not answered: it went to voicemail, and no message was left.": "Opkaldet blev ikke besvaret: det gik til telefonsvareren, og der blev ikke lagt nogen besked.",
+  "Voicemail": "Telefonsvarer",
+  "Voicemail on On-Call Calls": "Telefonsvarer ved vagtopkald"
 }

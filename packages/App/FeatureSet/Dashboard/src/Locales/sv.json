@@ -58745,5 +58745,15 @@
   "Configs used for SMS only are not listed: they take no calls.": "Konfigurationer som bara används för SMS visas inte, eftersom de inte tar emot samtal.",
   "No Twilio Configuration for Calls": "Ingen Twilio-konfiguration för samtal",
   "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Den här konfigurationen används bara för SMS. Ställ in den på Samtal och SMS eller Endast samtal i projektinställningarna.",
-  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Alla dina Twilio-konfigurationer används bara för SMS. Ställ in en på Samtal och SMS eller Endast samtal, eller lägg till en under Projektinställningar > Aviseringar > Aviseringskanaler."
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Alla dina Twilio-konfigurationer används bara för SMS. Ställ in en på Samtal och SMS eller Endast samtal, eller lägg till en under Projektinställningar > Aviseringar > Aviseringskanaler.",
+  "A call that voicemail answers counts as answered.": "Ett samtal som röstbrevlådan svarar på räknas som besvarat.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Ett samtal som röstbrevlådan svarar på räknas som obesvarat och lämnar ett kort meddelande. Twilio tar betalt för varje besvarat samtal som kontrolleras.",
+  "Detect Voicemail on On-Call Calls": "Känn igen röstbrevlåda vid joursamtal",
+  "Detect voicemail on on-call calls": "Känn igen röstbrevlåda vid joursamtal",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Avgör om en person eller röstbrevlådan svarade på varje joursamtal, så att ett samtal som gick till röstbrevlådan inte räknas som besvarat.",
+  "The call was not answered: a fax machine picked up.": "Samtalet besvarades inte: en faxmaskin svarade.",
+  "The call was not answered: it went to voicemail, and a message was left.": "Samtalet besvarades inte: det gick till röstbrevlådan, och ett meddelande lämnades.",
+  "The call was not answered: it went to voicemail, and no message was left.": "Samtalet besvarades inte: det gick till röstbrevlådan, och inget meddelande lämnades.",
+  "Voicemail": "Röstbrevlåda",
+  "Voicemail on On-Call Calls": "Röstbrevlåda vid joursamtal"
 }
