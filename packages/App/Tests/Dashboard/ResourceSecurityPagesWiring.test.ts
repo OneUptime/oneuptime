@@ -520,8 +520,9 @@ describe("the pages' wiring", () => {
     expect(readCode("Pages/Kubernetes/View/DataSecurity.tsx")).toContain(
       "<ResourceDataSecurityPage {...props} kind={DataStoreResourceKind.KubernetesCluster} />",
     );
+    // A cluster's scores the cluster itself first, and its databases while Data Security is shown (#9627).
     expect(readCode("Pages/Kubernetes/View/Compliance.tsx")).toContain(
-      "<ResourceCompliancePage {...props} kind={DataStoreResourceKind.KubernetesCluster} />",
+      "<KubernetesComplianceSection clusterId={modelId} /> {dataSecurity ? ( <ResourceCompliancePage {...props} kind={DataStoreResourceKind.KubernetesCluster} title={DATABASES_TITLE} />",
     );
   });
 
@@ -565,10 +566,10 @@ describe("the pages' wiring", () => {
       "useResourceDataSecurityMenu({ kind: DataStoreResourceKind.KubernetesCluster, modelId: props.modelId, })",
     );
     expect(kubernetes).toContain(
-      '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+      '{dataSecurityMenu || counts.pods ? ( <SideMenuSection title="Security"> {dataSecurityMenu ? ( <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
     );
     expect(kubernetes).toContain(
-      'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
+      'title: "Compliance", to: RouteUtil.populateRouteParams( RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE] as Route, { modelId: props.modelId }, ),',
     );
   });
 
@@ -951,6 +952,17 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
     ],
   ];
 
+  // A cluster's Compliance also scores the cluster itself (#9627), so it is wired its own way.
+  function isClusterCompliance(
+    resource: DataStoreResourceWiring,
+    end: string,
+  ): boolean {
+    return (
+      resource.kind === DataStoreResourceKind.KubernetesCluster &&
+      end === "COMPLIANCE"
+    );
+  }
+
   test("every kind a store belongs to is one of these, once", () => {
     expect(
       RESOURCES.map((resource: DataStoreResourceWiring): string => {
@@ -992,7 +1004,10 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
           expect(
             readCode(`Pages/${resource.folder}/View/${file}.tsx`),
           ).toContain(
-            `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} />`,
+            isClusterCompliance(resource, end)
+              ? // It scores the cluster itself first (#9627), then its databases' frameworks.
+                `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} title={DATABASES_TITLE} />`
+              : `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} />`,
           );
         },
       );
@@ -1018,12 +1033,20 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
       expect(menu).toContain(
         `useResourceDataSecurityMenu({ kind: DataStoreResourceKind.${resource.kind}, modelId: props.modelId, })`,
       );
-      expect(menu).toContain(
-        '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
-      );
-      expect(menu).toContain(
-        'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
-      );
+
+      if (resource.kind === DataStoreResourceKind.KubernetesCluster) {
+        // Its Compliance scores the cluster itself (#9627): drawn once it reports pods.
+        expect(menu).toContain(
+          '{dataSecurityMenu || counts.pods ? ( <SideMenuSection title="Security"> {dataSecurityMenu ? ( <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+        );
+      } else {
+        expect(menu).toContain(
+          '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+        );
+        expect(menu).toContain(
+          'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
+        );
+      }
       expect(
         menu.indexOf('<SideMenuSection title="Security">'),
       ).toBeGreaterThan(menu.indexOf('<SideMenuSection title="Activity">'));
@@ -1044,9 +1067,17 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
         expect(index).toContain(
           `page: PageMap.${resource.prefix}_${end}, section: "Security", title: "${title}",`,
         );
-        expect(products).toContain(
-          `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
-        );
+
+        // A cluster's Compliance is the cluster's own (#9627): offered without Data Security.
+        if (isClusterCompliance(resource, end)) {
+          expect(products).not.toContain(
+            `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
+          );
+        } else {
+          expect(products).toContain(
+            `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
+          );
+        }
       }
     });
 

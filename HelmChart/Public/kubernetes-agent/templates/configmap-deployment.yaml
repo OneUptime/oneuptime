@@ -129,6 +129,46 @@ data:
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
       {{- end }}
+      {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+
+      # What the CIS Kubernetes Benchmark's policy controls read, for the
+      # cluster's Compliance page: RBAC (Roles, ClusterRoles and their
+      # bindings), ServiceAccounts and NetworkPolicies. Pulled with the other
+      # resource specs, never watched, as inventory keeps an object only while
+      # its snapshots arrive; read-only, and never a Secret. OneUptime keeps
+      # only what the controls read: a role's rules, a binding's role and
+      # subjects, whether a service account mounts its token, which pods a
+      # NetworkPolicy selects. A receiver of their own, with error_mode:
+      # ignore, so a cluster that refuses one of them skips it instead of
+      # stopping the events and every other spec
+      # (kubernetes-agent.complianceObjectsEnabled).
+      k8sobjects/compliance:
+        error_mode: ignore
+        objects:
+          - name: roles
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: rolebindings
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: clusterroles
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: clusterrolebindings
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: serviceaccounts
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: networkpolicies
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: networking.k8s.io
+      {{- end }}
 
       {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") }}
       # Scrape metrics via Prometheus endpoints (control plane, service
@@ -997,6 +1037,9 @@ data:
             - k8sobjects
             {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
             - k8sobjects/openshift
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+            - k8sobjects/compliance
             {{- end }}
           processors:
             - memory_limiter

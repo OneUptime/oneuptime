@@ -74,6 +74,15 @@ const SHARED_BY_PRODUCTS: Readonly<Record<string, ReadonlyArray<ProductKey>>> =
       ProductKey.Incidents,
       ProductKey.ScheduledMaintenance,
     ],
+    /*
+     * A cluster's Compliance page turns off its data frameworks and its own
+     * Kubernetes frameworks in one record (#9627): its switches work while
+     * either product is on.
+     */
+    DataSecurityComplianceSetting: [
+      ProductKey.DataSecurity,
+      ProductKey.Kubernetes,
+    ],
   };
 
 describe("every table says whose records it holds", () => {

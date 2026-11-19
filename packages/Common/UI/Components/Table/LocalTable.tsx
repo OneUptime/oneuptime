@@ -10,6 +10,11 @@ export interface ComponentProps<T extends GenericObject> {
   id: string;
   singularLabel: string;
   pluralLabel: string;
+  /*
+   * Rows on a page until the reader picks another size: 10 when left out.
+   * A short list read as a whole - a framework's controls - fits on one.
+   */
+  itemsPerPage?: number | undefined;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -20,7 +25,9 @@ const LocalTable: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = React.useState<number>(10);
+  const [itemsPerPage, setItemsPerPage] = React.useState<number>(
+    props.itemsPerPage || 10,
+  );
   const [sortOrder, setSortOrder] = React.useState<SortOrder>(
     SortOrder.Ascending,
   );
