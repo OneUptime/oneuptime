@@ -1519,6 +1519,133 @@ describe("OpenAPI specification", () => {
     });
   });
 
+  /*
+   * A drag-ordered list's tag says what its number means
+   * (x-oneuptime-list-order, issue #9609): a write of it places the row and
+   * moves no other, and the Terraform provider writes the Order section of
+   * the resource's page from it, linking the number's attribute there.
+   */
+  describe("drag-ordered lists", () => {
+    let parser: OpenAPIParser;
+
+    beforeAll(() => {
+      parser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+    });
+
+    it("marks the tag of every drag-ordered model, and of no other", () => {
+      const listModels: Map<string, DatabaseBaseModel> = new Map<
+        string,
+        DatabaseBaseModel
+      >();
+
+      for (const ModelClass of Models) {
+        const model: DatabaseBaseModel = new ModelClass();
+
+        if (model.getListOrder() && model.tableName) {
+          listModels.set(model.tableName, model);
+        }
+      }
+
+      const marked: Array<string> = [];
+
+      for (const tag of (spec["tags"] || []) as Array<JSONObject>) {
+        const facts: JSONObject | undefined = tag["x-oneuptime-list-order"] as
+          | JSONObject
+          | undefined;
+        const table: string = tag["x-oneuptime-table"] as string;
+
+        if (!facts) {
+          continue;
+        }
+
+        marked.push(table);
+
+        const model: DatabaseBaseModel | undefined = listModels.get(table);
+
+        expect({ table, isList: Boolean(model) }).toEqual({
+          table,
+          isList: true,
+        });
+        expect({ table, column: facts["column"] }).toEqual({
+          table,
+          column: model!.getListOrder()!.column,
+        });
+      }
+
+      // Every drag-ordered model that is documented.
+      const documented: Array<string> = Array.from(listModels.values())
+        .filter((model: DatabaseBaseModel): boolean => {
+          return Boolean(model.enableDocumentation && model.crudApiPath);
+        })
+        .map((model: DatabaseBaseModel): string => {
+          return model.tableName!;
+        })
+        .sort();
+
+      expect(marked.sort()).toEqual(documented);
+      expect(marked.length).toBeGreaterThan(30);
+    });
+
+    it("gives the Terraform resource of each its facts, with the number's attribute it links to its Order section", () => {
+      const resources: Map<string, TerraformResource> = new Map<
+        string,
+        TerraformResource
+      >();
+
+      for (const resource of parser.getResources()) {
+        resources.set(resource.name, resource);
+      }
+
+      expect(resources.get("incident_severity")?.listOrder).toEqual({
+        column: "order",
+        descending: false,
+        singular: "incident severity",
+        plural: "incident severities",
+        parent: "project",
+      });
+      expect(resources.get("incident_state")?.listOrder).toEqual(
+        expect.objectContaining({
+          insertsAbove: "resolved state",
+          keepsInOrder: [
+            "created state",
+            "acknowledged state",
+            "resolved state",
+          ],
+        }),
+      );
+      expect(resources.get("log_pipeline_processor")?.listOrder).toEqual(
+        expect.objectContaining({
+          column: "sortOrder",
+          parent: "log pipeline",
+        }),
+      );
+      expect(resources.get("network_site_assignment_rule")?.listOrder).toEqual(
+        expect.objectContaining({ column: "priority", descending: true }),
+      );
+
+      // Its number is one of the resource's attributes.
+      for (const resource of Array.from(resources.values())) {
+        if (!resource.listOrder) {
+          continue;
+        }
+
+        expect({
+          resource: resource.name,
+          attribute: Boolean(
+            resource.schema[
+              StringUtils.toLegacySnakeCase(resource.listOrder.column)
+            ],
+          ),
+        }).toEqual({ resource: resource.name, attribute: true });
+      }
+
+      // The five numbered lists have pages of their own words, and no facts.
+      expect(resources.get("status_page_group")?.listOrder).toBeUndefined();
+      expect(resources.get("monitor")?.listOrder).toBeUndefined();
+    });
+  });
+
   describe("caching", () => {
     /*
      * The spec is expensive to build -- it walks every model in the product --

@@ -8,7 +8,14 @@
  * row, all at once, never settled. The API now places the row written and
  * moves no other, which makes such a configuration apply exactly as
  * written. Each of the five pages says so, between its example and its
- * schema, and its `order` attribute links there; no other page does.
+ * schema, and its `order` attribute links there.
+ *
+ * The drag-ordered lists (@ListOrderColumn: severities, states, monitor
+ * statuses, custom fields, pipelines, filters, rules...) work the same way
+ * since OneUptime/oneuptime#9609, and the spec marks their tags with what
+ * their number means (x-oneuptime-list-order): their pages get an Order
+ * section written from it, which their number's attribute - `order`,
+ * `sort_order` or `priority` - links to. No other page has one.
  */
 
 import fs from "fs";
@@ -17,8 +24,10 @@ import path from "path";
 import {
   DocumentationGenerator,
   ORDERED_LIST_PAGES,
+  getListOrderAttribute,
 } from "../Core/DocumentationGenerator";
 import { OpenAPISpec } from "../Core/Types";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
 import { buildFixtureSpec, crudPaths } from "./Fixtures";
 
 interface ListFixture {
@@ -67,6 +76,118 @@ const LISTS: Array<ListFixture> = [
   },
 ];
 
+// A drag-ordered list, as the spec's tag marks it (x-oneuptime-list-order).
+interface DragFixture {
+  resource: string;
+  path: string;
+  table: string;
+  tag: string;
+  facts: ListOrderFacts;
+  // The columns naming its list besides the project, as the API writes them.
+  listColumns: Array<string>;
+}
+
+const DRAG_LISTS: Array<DragFixture> = [
+  {
+    resource: "incident_severity",
+    path: "/incident-severity",
+    table: "IncidentSeverity",
+    tag: "Incident Severity",
+    listColumns: [],
+    facts: {
+      column: "order",
+      descending: false,
+      singular: "incident severity",
+      plural: "incident severities",
+      parent: "project",
+    },
+  },
+  {
+    resource: "incident_state",
+    path: "/incident-state",
+    table: "IncidentState",
+    tag: "Incident State",
+    listColumns: [],
+    facts: {
+      column: "order",
+      descending: false,
+      singular: "incident state",
+      plural: "incident states",
+      parent: "project",
+      insertsAbove: "resolved state",
+      keepsInOrder: ["created state", "acknowledged state", "resolved state"],
+    },
+  },
+  {
+    resource: "network_site_assignment_rule",
+    path: "/network-site-assignment-rule",
+    table: "NetworkSiteAssignmentRule",
+    tag: "Network Site Assignment Rule",
+    listColumns: [],
+    facts: {
+      column: "priority",
+      descending: true,
+      singular: "network site assignment rule",
+      plural: "network site assignment rules",
+      parent: "project",
+    },
+  },
+  {
+    resource: "log_pipeline_processor",
+    path: "/log-pipeline-processor",
+    table: "LogPipelineProcessor",
+    tag: "Log Pipeline Processor",
+    listColumns: ["logPipelineId"],
+    facts: {
+      column: "sortOrder",
+      descending: false,
+      singular: "log pipeline processor",
+      plural: "log pipeline processors",
+      parent: "log pipeline",
+    },
+  },
+  {
+    resource: "public_note_approval_step",
+    path: "/public-note-approval-step",
+    table: "PublicNoteApprovalStep",
+    tag: "Public Note Approval Step",
+    listColumns: ["eventType"],
+    facts: {
+      column: "order",
+      descending: false,
+      singular: "public note approval step",
+      plural: "public note approval steps",
+      parent: "project",
+      sameAs: "event type",
+    },
+  },
+];
+
+// A row of a drag-ordered list as the API's spec has it.
+function dragSchema(fixture: DragFixture): any {
+  const properties: Record<string, any> = {
+    _id: { type: "string", format: "uuid" },
+    name: { type: "string", description: "Its name" },
+    [fixture.facts.column]: {
+      type: "number",
+      description: "Where it sits in its list.",
+    },
+  };
+
+  for (const column of fixture.listColumns) {
+    properties[column] = {
+      type: "string",
+      description: "What holds its list",
+    };
+  }
+
+  return {
+    type: "object",
+    description: `${fixture.tag}s`,
+    properties: properties,
+  };
+}
+
 // A row of the list as the API's spec has it: its parent, a name, its order.
 function listSchema(fixture: ListFixture): any {
   return {
@@ -110,6 +231,26 @@ beforeAll(async () => {
       listSchema(fixture);
   }
 
+  for (const fixture of DRAG_LISTS) {
+    Object.assign(
+      spec.paths,
+      crudPaths({
+        path: fixture.path,
+        table: fixture.table,
+        tag: fixture.tag,
+        schema: fixture.table,
+      }),
+    );
+    (spec.components!.schemas as Record<string, any>)[fixture.table] =
+      dragSchema(fixture);
+    spec.tags!.push({
+      name: fixture.tag,
+      description: `${fixture.tag}s`,
+      "x-oneuptime-table": fixture.table,
+      "x-oneuptime-list-order": fixture.facts,
+    });
+  }
+
   outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tfgen-ordered-docs-"));
   await new DocumentationGenerator(
     {
@@ -121,7 +262,7 @@ beforeAll(async () => {
     spec,
   ).generateDocumentation();
 
-  for (const fixture of LISTS) {
+  for (const fixture of [...LISTS, ...DRAG_LISTS]) {
     pages[fixture.resource] = fs.readFileSync(
       path.join(outputDir, `docs/resources/${fixture.resource}.md`),
       "utf-8",
@@ -229,6 +370,141 @@ describe("the pages of a schedule's layers and the people in them", () => {
     );
     expect(page.indexOf("## Rotation and restriction times")).toBeLessThan(
       page.indexOf("## Order"),
+    );
+  });
+});
+
+describe.each(DRAG_LISTS)(
+  "the $resource page (a drag-ordered list)",
+  (fixture: DragFixture) => {
+    const attribute: string = getListOrderAttribute(fixture.facts);
+
+    test("has an Order section, between its example and its schema", () => {
+      const page: string = pages[fixture.resource]!;
+      const order: number = page.indexOf('<a id="order"></a>\n## Order');
+
+      expect(order).toBeGreaterThan(page.indexOf("## Example Usage"));
+      expect(order).toBeLessThan(page.indexOf("## Schema"));
+    });
+
+    test("says a write of its number places the row and moves no other, so a numbered list applies as written", () => {
+      const section: string = orderSection(pages[fixture.resource]!);
+
+      expect(section).toContain(
+        `\`${attribute}\` is this ${fixture.facts.singular}'s place among the ${fixture.facts.plural} of its ${fixture.facts.parent}`,
+      );
+      expect(section).toContain(
+        `Setting it places this ${fixture.facts.singular} and moves no other`,
+      );
+      expect(section).toContain("is applied exactly as written");
+      expect(section).toContain("the next plan is empty");
+    });
+
+    test("says what two rows at one number, a row without one, a deleted row and a move in the Dashboard do", () => {
+      const section: string = orderSection(pages[fixture.resource]!);
+
+      expect(section).toContain(
+        `two ${fixture.facts.plural} at one number are taken in the order of their IDs`,
+      );
+      expect(section).toContain(`created without \`${attribute}\``);
+      expect(section).toContain(
+        "leaves a gap in the numbers, which changes nothing",
+      );
+      expect(section).toContain("in the OneUptime Dashboard numbers");
+      expect(section).toContain(`changes to \`${attribute}\`.`);
+    });
+
+    test("links its number's attribute to the section", () => {
+      const line: string | undefined = pages[fixture.resource]!.split(
+        "\n",
+      ).find((candidate: string) => {
+        return candidate.startsWith(`- \`${attribute}\``);
+      });
+
+      expect(line).toBeDefined();
+      expect(line).toContain("See [Order](#order).");
+    });
+  },
+);
+
+describe("a drag-ordered list's Order section, in its own words", () => {
+  test("names the attribute the provider gives the column: order, sort_order or priority", () => {
+    expect(
+      DRAG_LISTS.map((fixture: DragFixture) => {
+        return getListOrderAttribute(fixture.facts);
+      }),
+    ).toEqual(["order", "order", "priority", "sort_order", "order"]);
+  });
+
+  test("a list counted from the top numbers 1..n, and a new row goes after the last", () => {
+    const section: string = orderSection(pages["incident_severity"]!);
+
+    expect(section).toContain(
+      "`order` is this incident severity's place among the incident severities of its project, lowest first.",
+    );
+    expect(section).toContain(
+      "order = index(local.incident_severities, each.key) + 1",
+    );
+    expect(section).toContain(
+      "An incident severity created without `order` goes after the last one of its project.",
+    );
+    expect(section).toContain(
+      "numbers the project's incident severities 1..n again",
+    );
+  });
+
+  test("a list whose top is its highest number says so, numbers down, and puts a new rule at the bottom", () => {
+    const section: string = orderSection(
+      pages["network_site_assignment_rule"]!,
+    );
+
+    expect(section).toContain("of its project, the highest number first.");
+    expect(section).toContain(
+      "priority = length(local.network_site_assignment_rules) - index(local.network_site_assignment_rules, each.key)",
+    );
+    expect(section).toContain(
+      "A network site assignment rule created without `priority` goes below the last one of its project, one number lower.",
+    );
+    expect(section).toContain(
+      "numbers the project's network site assignment rules n..1 again",
+    );
+  });
+
+  test("a state says where a new one goes, and which built-in states keep their order", () => {
+    const section: string = orderSection(pages["incident_state"]!);
+
+    expect(section).toContain(
+      "An incident state created without `order` goes just above the resolved state, and the project's incident states are numbered 1..n again: give it `order` if the configuration numbers the others.",
+    );
+    expect(section).toContain(
+      "- The created state, acknowledged state and resolved state keep that order: a write that would put them out of order is refused, so number them in that order.",
+    );
+    expect(orderSection(pages["incident_severity"]!)).not.toContain(
+      "keep that order",
+    );
+  });
+
+  test("a list held by a parent, or split by a column, names it", () => {
+    expect(orderSection(pages["log_pipeline_processor"]!)).toContain(
+      "`sort_order` is this log pipeline processor's place among the log pipeline processors of its log pipeline, lowest first.",
+    );
+    expect(orderSection(pages["log_pipeline_processor"]!)).toContain(
+      "numbers the log pipeline's log pipeline processors 1..n again",
+    );
+
+    const steps: string = orderSection(pages["public_note_approval_step"]!);
+
+    expect(steps).toContain(
+      "among the public note approval steps of its project with the same event type, lowest first.",
+    );
+    expect(steps).toContain(
+      "numbers the public note approval steps of the project with that event type 1..n again",
+    );
+  });
+
+  test("a numbered list's own words win over the spec's", () => {
+    expect(orderSection(pages["status_page_group"]!)).toContain(
+      `Setting it places this ${ORDERED_LIST_PAGES["status_page_group"]!.thing} and moves no other`,
     );
   });
 });

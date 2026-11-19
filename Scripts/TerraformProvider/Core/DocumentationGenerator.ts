@@ -25,6 +25,7 @@ import {
   EXAMPLE_PERSON_EMAIL,
   MembershipKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
 import path from "path";
 import fs from "fs";
 
@@ -175,6 +176,52 @@ export const ORDERED_LIST_PAGES: Readonly<Record<string, OrderedListPage>> = {
     localName: "people",
     alongside: ON_CALL_SCHEDULE_LAYERS_ALONGSIDE,
   },
+};
+
+/*
+ * THE RESOURCES OF A DRAG-ORDERED LIST (issue #9609): severities, states,
+ * monitor statuses, custom fields, a status page's links, pipelines, filters
+ * and rules - every model marked @ListOrderColumn, which the spec marks
+ * x-oneuptime-list-order (TerraformResource.listOrder). Writing the number
+ * places one row and moves no other, as on the five lists above, so a
+ * configuration that numbers a whole list is applied exactly as written.
+ * Their pages say so in an Order section written from the spec's facts:
+ * the number's attribute (`order`, `sort_order` or `priority`), which end
+ * is the top, what holds the list, where a row created without a number
+ * goes, and which built-in rows keep their order.
+ */
+
+// A name that takes "an".
+const STARTS_WITH_VOWEL: RegExp = /^[aeiou]/i;
+
+// "an incident state", "a rule": a name with its article.
+const withArticle: (name: string) => string = (name: string): string => {
+  return `${STARTS_WITH_VOWEL.test(name) ? "an" : "a"} ${name}`;
+};
+
+// A sentence that starts with a name: "An incident state", "A rule".
+const capitalized: (text: string) => string = (text: string): string => {
+  return text.length > 0 ? text[0]!.toUpperCase() + text.slice(1) : text;
+};
+
+// "a, b and c".
+const listOfWords: (words: Array<string>) => string = (
+  words: Array<string>,
+): string => {
+  if (words.length <= 1) {
+    return words.join("");
+  }
+
+  return `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]!}`;
+};
+
+// The number's attribute, as the provider names an API field.
+export const getListOrderAttribute: (facts: ListOrderFacts) => string = (
+  facts: ListOrderFacts,
+): string => {
+  return StringUtils.toTerraformAttributeName(
+    StringUtils.toLegacySnakeCase(facts.column),
+  );
 };
 
 export class DocumentationGenerator {
@@ -1163,7 +1210,9 @@ ${importSection}`;
   private getResourceGuide(resource: TerraformResource): string {
     const orderGuide: string = ORDERED_LIST_PAGES[resource.name]
       ? `\n${this.getOrderGuide(ORDERED_LIST_PAGES[resource.name]!)}\n`
-      : "";
+      : resource.listOrder
+        ? `\n${this.getListOrderGuide(resource.listOrder)}\n`
+        : "";
 
     if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
       return `\n${this.getOnCallScheduleLayerGuide()}\n${orderGuide}`;
@@ -1200,6 +1249,56 @@ order = index(local.${page.localName}, each.key) + 1
 - Deleting a ${page.thing} leaves a gap in the numbers, which changes nothing: ${page.things} go by their numbers, not by counting.
 - Moving a ${page.thing} in the OneUptime Dashboard numbers the ${page.parent}'s ${page.things} 1..n again; the next plan shows that as changes to \`order\`.
 ${page.alongside ? `\n${page.alongside(provider)}\n` : ""}`;
+  }
+
+  /*
+   * What the number means on a page of a drag-ordered list (the spec's
+   * x-oneuptime-list-order): the row's place, written as is and moving no
+   * other, so a whole list numbered in one configuration applies as written
+   * and the next plan is empty; what two rows at one number, a row without
+   * one, a deleted row and a move in the Dashboard do; and which built-in
+   * rows keep their order.
+   */
+  private getListOrderGuide(facts: ListOrderFacts): string {
+    const attribute: string = getListOrderAttribute(facts);
+    const thing: string = facts.singular;
+    const things: string = facts.plural;
+    const localName: string = StringUtils.toLegacySnakeCase(facts.plural);
+    const parentOf: string = facts.sameAs
+      ? `its ${facts.parent} with the same ${facts.sameAs}`
+      : `its ${facts.parent}`;
+    const parentsList: string = facts.sameAs
+      ? `the ${things} of the ${facts.parent} with that ${facts.sameAs}`
+      : `the ${facts.parent}'s ${things}`;
+    const example: string = facts.descending
+      ? `${attribute} = length(local.${localName}) - index(local.${localName}, each.key)`
+      : `${attribute} = index(local.${localName}, each.key) + 1`;
+
+    const leftOut: string = facts.insertsAbove
+      ? `goes just above the ${facts.insertsAbove}, and ${parentsList} are numbered 1..n again: give it \`${attribute}\` if the configuration numbers the others`
+      : facts.descending
+        ? `goes below the last one of ${parentOf}, one number lower`
+        : `goes after the last one of ${parentOf}`;
+
+    const keepsInOrder: string =
+      facts.keepsInOrder && facts.keepsInOrder.length > 1
+        ? `- The ${listOfWords(facts.keepsInOrder)} keep that order: a write that would put them out of order is refused, so number them in that order.\n`
+        : "";
+
+    return `<a id="${ORDER_GUIDE.anchor}"></a>
+## ${ORDER_GUIDE.title}
+
+\`${attribute}\` is this ${thing}'s place among the ${things} of ${parentOf}, ${facts.descending ? "the highest number first" : "lowest first"}. Setting it places this ${thing} and moves no other, so a configuration that numbers every ${thing} of ${withArticle(facts.parent)} is applied exactly as written, whatever order the provider's writes land in, and the next plan is empty. For example, over a \`for_each\` of \`local.${localName}\`:
+
+\`\`\`terraform
+${example}
+\`\`\`
+
+- Give each ${thing} a number of its own: two ${things} at one number are taken in the order of their IDs.
+- ${capitalized(withArticle(thing))} created without \`${attribute}\` ${leftOut}.
+${keepsInOrder}- Deleting ${withArticle(thing)} leaves a gap in the numbers, which changes nothing: ${things} go by their numbers, not by counting.
+- Moving ${withArticle(thing)} in the OneUptime Dashboard numbers ${parentsList} ${facts.descending ? "n..1" : "1..n"} again; the next plan shows that as changes to \`${attribute}\`.
+`;
   }
 
   /*
@@ -1397,6 +1496,12 @@ If your identity provider manages your people over SCIM, let it: while SCIM Push
 
     if (ORDERED_LIST_PAGES[resource.name]) {
       guides.push(ORDER_GUIDE);
+    } else if (resource.listOrder) {
+      guides.push({
+        title: ORDER_GUIDE.title,
+        anchor: ORDER_GUIDE.anchor,
+        attribute: getListOrderAttribute(resource.listOrder),
+      });
     }
 
     if (guides.length === 0) {
