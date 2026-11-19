@@ -53,6 +53,7 @@ import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
@@ -800,6 +801,15 @@ export default class MonitorIncident {
             const renderedTitle: string =
               alreadyOpenIncident?.title || criteriaIncident.title;
 
+            /*
+             * The open incident that blocks this one is the one for this
+             * criteria AND this series. Name the series, or "for this
+             * criteria" reads as if one disk's open incident held back the
+             * incidents of every other disk on the host.
+             */
+            const seriesSummary: string =
+              SeriesLabelDisplay.buildInlineSummary(seriesLabels);
+
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
               ...EvaluationEventText.from({
@@ -809,9 +819,14 @@ export default class MonitorIncident {
                     title: String(renderedTitle),
                   },
                 ),
-                message: translatableSentence(
-                  "Skipped creating a new incident because an active incident exists for this criteria.",
-                ),
+                message: seriesSummary
+                  ? translatableSentence(
+                      "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).",
+                      { series: seriesSummary },
+                    )
+                  : translatableSentence(
+                      "Skipped creating a new incident because an active incident exists for this criteria.",
+                    ),
               }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               relatedIncidentId: alreadyOpenIncident?.id?.toString(),

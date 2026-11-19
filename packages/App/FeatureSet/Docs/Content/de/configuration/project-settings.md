@@ -96,6 +96,8 @@ Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Men
 
 **Verwendet von**, im Menü der Zeile einer Beschriftung, zählt die Datensätze jeder Art, die die Beschriftung tragen, und öffnet sie seitenweise. Datensätze, die Sie nicht öffnen dürfen, werden gezählt, aber nicht genannt.
 
+Eine Beschriftung, die noch aus der Zeit, bevor Namen verschieden sein mussten, denselben Namen wie eine andere Beschriftung hat, wird mit **Gleicher Name wie eine andere Beschriftung** markiert, und die Liste zeigt, wie viele es sind: Vergleichen Sie mit **Verwendet von**, wo jede verwendet wird, und benennen Sie dann eine davon über **Umbenennen** in ihrer Zeile um.
+
 ## Benachrichtigungen
 
 **Projekteinstellungen → Benachrichtigungen** enthält, wie das Projekt Benachrichtigungen sendet:

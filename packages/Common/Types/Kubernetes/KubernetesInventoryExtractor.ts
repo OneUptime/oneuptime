@@ -5,6 +5,7 @@ import {
   KubernetesDeploymentObject,
   KubernetesStatefulSetObject,
   KubernetesDaemonSetObject,
+  KubernetesReplicaSetObject,
   KubernetesJobObject,
   KubernetesCronJobObject,
   KubernetesNamespaceObject,
@@ -22,6 +23,7 @@ import {
   parseDeploymentObject,
   parseStatefulSetObject,
   parseDaemonSetObject,
+  parseReplicaSetObject,
   parseJobObject,
   parseCronJobObject,
   parseNamespaceObject,
@@ -74,6 +76,7 @@ type AnyKubernetesObject =
   | KubernetesDeploymentObject
   | KubernetesStatefulSetObject
   | KubernetesDaemonSetObject
+  | KubernetesReplicaSetObject
   | KubernetesJobObject
   | KubernetesCronJobObject
   | KubernetesNamespaceObject
@@ -154,6 +157,12 @@ export function kindFromResourceType(resourceType: string): string | null {
     deployments: "Deployment",
     statefulsets: "StatefulSet",
     daemonsets: "DaemonSet",
+    /*
+     * The chart does not pull ReplicaSets: a Deployment's are its revisions,
+     * and their pods are scored as the Deployment's. One a collector does
+     * send is kept, with its pod template, for the Compliance page (#9880).
+     */
+    replicasets: "ReplicaSet",
     jobs: "Job",
     cronjobs: "CronJob",
     persistentvolumeclaims: "PersistentVolumeClaim",
@@ -184,6 +193,7 @@ export const INVENTORIED_RESOURCE_TYPES: ReadonlyArray<string> = [
   "deployments",
   "statefulsets",
   "daemonsets",
+  "replicasets",
   "jobs",
   "cronjobs",
   "persistentvolumeclaims",
@@ -410,6 +420,8 @@ function parseByResourceType(
       return parseStatefulSetObject(kvList);
     case "daemonsets":
       return parseDaemonSetObject(kvList);
+    case "replicasets":
+      return parseReplicaSetObject(kvList);
     case "jobs":
       return parseJobObject(kvList);
     case "cronjobs":

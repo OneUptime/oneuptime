@@ -3512,6 +3512,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           allListPage(PageMap.KUBERNETES_CLUSTERS, "All Clusters"),
           {
+            page: PageMap.KUBERNETES_COMPLIANCE,
+            title: "Compliance",
+            icon: IconProp.ClipboardDocumentCheck,
+            keywords: [
+              "cluster hardening",
+              "pod security standards",
+              "cis kubernetes benchmark",
+              "kubernetes compliance",
+            ],
+          },
+          {
             page: PageMap.KUBERNETES_COSTS,
             title: "Costs",
             icon: IconProp.Billing,

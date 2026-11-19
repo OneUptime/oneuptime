@@ -31,6 +31,10 @@ import {
   URL_ATTRIBUTE_DESCRIPTION,
 } from "../Core/ProviderWords";
 import { buildFixtureSpec } from "./Fixtures";
+import {
+  NAME_TAKEN_REFUSAL_CODE,
+  REFUSAL_CODE_FIELD,
+} from "Common/Types/Exception/NameTakenException";
 
 let outputDir: string;
 let clientGo: string;
@@ -343,6 +347,101 @@ describe("PostWithSelect", () => {
   });
 });
 
+/*
+ * A create or an update refused because another record has the name it asks
+ * for (#9855): asked again for a while, since in one apply the resource that
+ * gives the name up may not have run yet. client_name_taken_test.go runs it
+ * against a real HTTP server; these pin what a Go test cannot see - that the
+ * client tells the refusal by the very code the server sends, not by a copy
+ * that could drift, nor by the server's English.
+ */
+describe("a name another record has", () => {
+  // The Go function whose name is given, up to the next top-level func.
+  function goFunction(name: string): string {
+    const start: number = clientGo.indexOf(name);
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const end: number = clientGo.indexOf("\nfunc ", start + name.length);
+    return clientGo.slice(start, end === -1 ? undefined : end);
+  }
+
+  test("is told by the server's own code, emitted from Common's constants", () => {
+    expect(REFUSAL_CODE_FIELD).toBe("refusalCode");
+    expect(NAME_TAKEN_REFUSAL_CODE).toBe("name_taken");
+    expect(clientGo).toContain(
+      `refusalCodeField     = "${REFUSAL_CODE_FIELD}"`,
+    );
+    expect(clientGo).toContain(
+      `nameTakenRefusalCode = "${NAME_TAKEN_REFUSAL_CODE}"`,
+    );
+    expect(goFunction("func isNameTakenRefusal(")).toContain(
+      "parsed[refusalCodeField].(string)",
+    );
+  });
+
+  test("never by the server's English, which may be reworded", () => {
+    expect(clientGo).not.toContain("There is already");
+    expect(clientGo).not.toContain("Pick another name");
+  });
+
+  test("is asked again for creates and updates only, never for reads or deletes", () => {
+    expect(goFunction("func writesARecord(")).toContain(
+      'return method == "POST" || method == "PUT" || method == "PATCH"',
+    );
+
+    const doRequest: string = goFunction("func (c *Client) DoRequest(");
+
+    expect(doRequest).toContain(
+      "resp, err := c.doRequestOnce(ctx, method, path, body)",
+    );
+    expect(doRequest).toContain("!writesARecord(method)");
+    expect(doRequest).toContain(
+      "return c.askAgainWhileNameIsTaken(ctx, method, path, body, resp)",
+    );
+  });
+
+  test("only on a 400", () => {
+    expect(goFunction("func isNameTakenResponse(")).toContain(
+      "resp.StatusCode != http.StatusBadRequest",
+    );
+  });
+
+  test("for about 30 seconds, waiting half a second at first and at most 5", () => {
+    expect(clientGo).toContain("window:    30 * time.Second,");
+    expect(clientGo).toContain("firstWait: 500 * time.Millisecond,");
+    expect(clientGo).toContain("maxWait:   5 * time.Second,");
+    expect(clientGo).toContain("nameTakenRetry: defaultNameTakenRetry,");
+  });
+
+  test("ends with Terraform's cancellation, and asks again through the one-request path", () => {
+    const askAgain: string = goFunction(
+      "func (c *Client) askAgainWhileNameIsTaken(",
+    );
+
+    expect(askAgain).toContain("case <-ctx.Done():");
+    expect(askAgain).toContain("return nil, ctx.Err()");
+    expect(askAgain).toContain(
+      "resp, err = c.doRequestOnce(ctx, method, path, body)",
+    );
+    // A refusal's body is read to tell, then put back for the caller.
+    expect(goFunction("func isNameTakenResponse(")).toContain(
+      "resp.Body = io.NopCloser(bytes.NewReader(body))",
+    );
+  });
+
+  test("once given up, says to go by way of a temporary name", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).toContain(
+      "if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {",
+    );
+    expect(parseResponse).toContain('message += " " + c.nameTakenAdvice()');
+    expect(goFunction("func (c *Client) nameTakenAdvice(")).toContain(
+      "give one of them a temporary name, apply, then apply the names you want.",
+    );
+  });
+});
+
 describe("data source lookups", () => {
   test("the by-id lookup drops rejected select columns", () => {
     expect(monitorDataSourceGo).toContain(
@@ -423,6 +522,40 @@ describe("static Go test wiring", () => {
       "PostBodyWithSelect(",
       "ParseResponse(",
       "NewClient(",
+    ]) {
+      expect(contents).toContain(symbol);
+      expect(clientGo).toContain(symbol);
+    }
+  });
+
+  test("client_name_taken_test.go is copied too, and tests what the client emits", () => {
+    const copied: string = path.join(
+      outputDir,
+      GENERATED_DIR,
+      "client_name_taken_test.go",
+    );
+    expect(fs.existsSync(copied)).toBe(true);
+
+    const contents: string = fs.readFileSync(copied, "utf-8");
+    expect(contents).toContain("package provider");
+
+    // The issue's cases: a chain converges, a swap gives up clearly, no other 400 is asked again.
+    for (const test of [
+      "func TestDoRequest_AsksAgainUntilTheNameIsGivenUp(",
+      "func TestDoRequest_AChainOfRenamesConvergesInOneApply(",
+      "func TestDoRequest_ASwapGivesUpWithAClearMessage(",
+      "func TestDoRequest_NeverAsksAgainForAnyOtherRefusal(",
+    ]) {
+      expect(contents).toContain(test);
+    }
+
+    for (const symbol of [
+      "nameTakenRetry{",
+      "isNameTakenRefusal(",
+      "nameTakenAdvice(",
+      "describeWait(",
+      "refusalCodeField",
+      "nameTakenRefusalCode",
     ]) {
       expect(contents).toContain(symbol);
       expect(clientGo).toContain(symbol);

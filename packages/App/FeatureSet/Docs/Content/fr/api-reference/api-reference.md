@@ -254,7 +254,9 @@ Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'ast
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon.
+À côté du message, la réponse contient `"refusalCode": "name_taken"`. Reconnaissez ce refus à ce code, pas à la phrase, qui peut être reformulée. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que l'autre enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
+
+Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
 
 ### Interrupteurs
 

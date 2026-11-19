@@ -5,7 +5,7 @@ Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 
 :::cards
 - [에이전트 설치](/docs/monitor/kubernetes-agent): Helm 명령 하나로 클러스터를 OneUptime에 연결합니다.
 - [모니터 만들기](#kubernetes-모니터-만들기): 클러스터를 고른 다음 템플릿, 메트릭, 쿼리 중 하나를 고릅니다.
-- [경고 템플릿](#미리-만들어진-경고-템플릿): 보고를 멈춘 클러스터부터 etcd까지 25개의 미리 만들어진 경고.
+- [경고 템플릿](#미리-만들어진-경고-템플릿): 보고를 멈춘 클러스터부터 etcd까지 26개의 미리 만들어진 경고.
 - [기준](#모니터링-기준): 정적 임계값과 이상 탐지.
 :::
 
@@ -88,7 +88,7 @@ flowchart TB
 | --- | --- |
 | 파드 | Pod CPU 사용량, Pod 메모리 사용량, Pod 단계(코드), Pod 파일 시스템 사용량, 볼륨 용량, 볼륨 여유 공간, Pod 메모리 제한 사용률, Pod CPU 제한 사용률, Pod 네트워크 I/O(누적, 양방향) |
 | 노드 | 노드 CPU 사용량, 노드 할당 가능 CPU, 노드 메모리 사용량, 노드 메모리 작업 집합, 노드 파일 시스템 사용량, 노드 할당 가능 메모리, 노드 Ready 조건, 노드 MemoryPressure 조건, 노드 DiskPressure 조건, 노드 PIDPressure 조건, 노드 파일 시스템 사용 가능 공간, 노드 파일 시스템 용량 |
-| 컨테이너 | 컨테이너 재시작, 컨테이너 재시작(증가분), 컨테이너 CPU 제한, 컨테이너 CPU 요청, 컨테이너 메모리 제한, 컨테이너 메모리 요청, 컨테이너 준비됨 |
+| 컨테이너 | 컨테이너 재시작, 컨테이너 재시작(증가분), 컨테이너 CPU 제한, 컨테이너 CPU 요청, 컨테이너 메모리 제한, 컨테이너 메모리 요청, 컨테이너 준비됨, 컨테이너 파일 시스템 사용 가능 공간, 컨테이너 파일 시스템 용량 |
 | 워크로드 | Deployment 사용 가능 레플리카, Deployment 원하는 레플리카, DaemonSet 원하는 노드, DaemonSet 잘못 예약된 노드, DaemonSet 준비된 노드, StatefulSet 원하는 레플리카, StatefulSet 준비된 레플리카, Job 실패한 Pod, Job 실패한 Pod(증가분), Job 성공한 Pod |
 | HPA | HPA 현재 레플리카, HPA 원하는 레플리카, HPA 최대 레플리카, HPA 최소 레플리카 |
 | 컨트롤 플레인 | etcd 리더 있음, API 서버 진행 중인 요청, 스케줄러 대기 중인 Pod |
@@ -150,6 +150,7 @@ flowchart TB
 | API Server Request Saturation | 컨트롤 플레인 | API 서버가 기간 내내 처리 중인 요청을 200개 이상 보유함 | 심각 |
 | Scheduler Backlog | 예약 중 | 스케줄러의 대기 중인 Pod 큐가 5분 동안 비지 않음 | 경고 |
 | High Node Disk Usage | 스토리지 | 노드의 파일 시스템이 90% 넘게 참 | 경고 |
+| Node Image Disk Almost Full | 스토리지 | 노드가 컨테이너 이미지를 보관하는 디스크가 90% 넘게 참 | 경고 |
 | PVC Almost Full | 스토리지 | 영구 볼륨 클레임이 90% 넘게 참 | 경고 |
 | DaemonSet Pods Not Ready | 워크로드 | DaemonSet의 준비된 Pod가 없는 노드가 15분 동안 있음 | 경고 |
 | DaemonSet Misscheduled Nodes | 워크로드 | DaemonSet이 노드 셀렉터, 어피니티, 톨러레이션에 더 이상 맞지 않는 노드에서 Pod를 실행함 | 경고 |
@@ -167,6 +168,8 @@ flowchart TB
 비용 템플릿은 OneUptime이 에이전트의 시간당 비용 행에서 기록하는 메트릭을 읽습니다. 한 시간에 포인트가 하나이므로 지난 하루를 합산하며, 예산은 클러스터의 통화 기준이고 기본값은 USD입니다.
 
 **High Node CPU Request Commitment** 와 **High Node Memory Request Commitment** 는 스케줄러처럼 끝나지 않은 Pod 의 요청(request)만 셉니다. 클러스터는 Succeeded 또는 Failed 상태인 Pod(끝난 Job 의 Pod 등)의 요청을 Pod 가 삭제될 때까지 계속 보고하지만, 이는 세지 않습니다.
+
+**Node Image Disk Almost Full** 는 kubelet이 보고하는, 실행 중인 각 컨테이너가 자체 파일을 쓰는 디스크를 읽습니다. 에이전트가 노드의 이미지용 디스크 자체를 보고하지 않기 때문입니다. 일반적인 구성에서는 이것이 이미지용 디스크이지만 모든 노드에서 그렇지는 않습니다. 대부분의 노드처럼 이미지를 루트 파일 시스템에 두는 노드에서는 루트 파일 시스템이므로 템플릿이 **High Node Disk Usage** 와 함께 발생합니다. kubelet의 분할 이미지 파일 시스템(`KubeletSeparateDiskGC`)에서는 이미지의 디스크가 아니라 컨테이너가 쓰는 디스크이고, 실행 중인 컨테이너가 없는 노드는 아무것도 보고하지 않습니다. 노드 목록에 **이미지용 디스크** 열이 표시되는 클러스터, 즉 어떤 노드가 이미지를 자체 디스크에 두는 클러스터에서 만드세요. kubelet은 기본적으로 그 디스크가 85% 차면 사용하지 않는 이미지를 삭제하고, 여유 공간이 15% 미만이면 Pod 를 축출합니다.
 
 **Cluster Stopped Reporting** 템플릿은 클러스터의 에이전트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트가 제거되었거나 계속 충돌하는 경우, API 키가 취소된 경우, OneUptime으로 가는 경로를 잃은 경우, 또는 클러스터의 API 서버가 에이전트에 더 이상 응답하지 않는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 

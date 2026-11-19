@@ -106,9 +106,11 @@ Uma fonte de dados encontra exatamente um registro, ou interrompe o plano. `Not 
 
 ### Nomes que outro registro já tem
 
-Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nome só seu em um projeto, sem diferenciar maiúsculas de minúsculas nem espaços. Uma criação, ou uma renomeação, para um nome que outro registro do mesmo tipo já tem recebe como resposta `400`, por exemplo `There is already an on-call policy called Primary in this project. Pick another name.` Uma política de plantão arquivada mantém o nome: desarquive-a ou escolha outro nome. Os registros que já compartilhavam um nome o mantêm, e as listas de equipes, de políticas de plantão e de agendamentos de plantão do painel os marcam.
+Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nome só seu em um projeto, sem diferenciar maiúsculas de minúsculas nem espaços. Uma criação, ou uma renomeação, para um nome que outro registro do mesmo tipo já tem recebe como resposta `400`, por exemplo `There is already an on-call policy called Primary in this project. Pick another name.` Uma política de plantão arquivada mantém o nome: desarquive-a ou escolha outro nome. Os registros que já compartilhavam um nome o mantêm, e as listas de equipes, de rótulos, de políticas de plantão e de agendamentos de plantão do painel os marcam.
 
-O Terraform faz as alterações de um apply em paralelo, então uma renomeação para um nome que outro recurso libera no mesmo apply pode ser recusada enquanto esse outro ainda o tem: aplique de novo, ou adicione um `depends_on` do recurso que assume o nome para o que o libera. Uma troca, A para B e B para A, ou qualquer cadeia de renomeações que termina onde começou, não pode ser feita em um só apply: renomeie um deles para um nome que ninguém tem, aplique e depois faça o resto da alteração.
+O Terraform faz as alterações de um apply em paralelo, então uma renomeação para um nome que outro recurso libera no mesmo apply pode ser recusada enquanto esse outro ainda o tem. O provider então tenta de novo por até 30 segundos, de modo que uma cadeia de renomeações, como A para B enquanto B passa para C, é concluída em um só apply. Uma troca, A para B e B para A, ou qualquer cadeia de renomeações que termina onde começou, nunca é concluída: depois de 30 segundos, o apply falha com `The name was still taken after asking again for 30 seconds.` Renomeie um deles para um nome que ninguém tem, aplique e depois faça o resto da alteração.
+
+Com um provider mais antigo ou um OneUptime mais antigo, a primeira recusa já faz o apply falhar: aplique de novo, ou adicione um `depends_on` do recurso que assume o nome para o que o libera.
 
 ## Planos que não se estabilizam
 

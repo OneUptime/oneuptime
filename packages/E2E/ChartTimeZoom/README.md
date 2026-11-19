@@ -22,6 +22,7 @@ right after a drag" below).
 | Logs explorer               | `LOGS` `/dashboard/:projectId/logs`                                                | `Pages/Logs/{Layout,Index}`: the Dashboard's `LogsViewer` ("Log Volume" histogram, facets, log list, saved views)                             |
 | Exceptions explorer         | `EXCEPTIONS_UNRESOLVED` `/dashboard/:projectId/exceptions/unresolved`              | `Pages/Exceptions/{Layout,Unresolved}`: `ExceptionsViewer` ("Exceptions over time" histogram, facets, the error-class counts, exception list) |
 | Metrics explorer            | `METRICS` `/dashboard/:projectId/metrics`                                          | `Pages/Metrics/{Layout,Index}`: `MetricsViewer` (the metric list, a sparkline per row, the Service facet, saved views)                        |
+| Metric explorer charts      | `METRIC_VIEW` `/dashboard/:projectId/metrics/view`                                 | `Pages/Metrics/View/{Layout,Index}`: `MetricExplorer` (its query editors and its charts, `MetricView`)                                        |
 
 Each page renders inside its production layout: the View layout (`ModelPage`,
 breadcrumbs, side menu with its count badges) for the cluster and host pages, the
@@ -606,6 +607,29 @@ at 1280 and 390 in both themes, with nothing scrolling sideways. Its screenshots
 
 The fixture draws its pages in Inter, as production does (`server.js` serves
 `InterVariable.woff2` with index.ejs's universal rule; `Tests/Ops/E2EFixtureFonts`).
+
+## Metric explorer: a chart's height beside other charts
+
+`MetricExplorerChartHeights.spec.ts` (same fixture and command) pins #10043. The metric
+explorer's charts are cards, two to a row from 1024px up and one to a row below it, and
+each card's plot keeps 20rem (`min-h-80`). `MetricView` also gave the box around the
+cards 20rem per chart, counted as if each chart had a row of its own, so two charts side
+by side were drawn 640px tall each instead of 449px, with a 511px plot, and three or
+four charts were stretched too. The spec opens the explorer with one, two, three and
+four queries (`?metricQueries=`, each query on a chart of its own) and measures every
+card at 1280px, 1024px and 390px: as tall as a chart drawn alone, its plot 320px, two to
+a row from 1024px and one to a row on a phone.
+
+## Metric explorer: a second value axis for another kind of unit
+
+`MetricExplorerSecondAxis.spec.ts` (same fixture and command) pins #10042: the nodes'
+memory usage in bytes, overlaid on CPU utilization (a 0-1 fraction drawn in percent), is
+drawn against a second value axis on the chart's right. At 1280px and 390px the chart has
+two value axes, the left one's ticks in percent and the right one's, past the plot's right
+edge, in bytes; the bytes line (found by its legend chip's colour) spreads over its axis;
+the legend says "Left axis: Percent" and "Right axis: Bytes" and tags each series' chip with
+its axis, with no unit warning; and the card holds all of it on a phone. Its screenshots
+are `metric-explorer-second-axis-1280-synthetic.png` and `…-390-synthetic.png`.
 
 ## Run it
 

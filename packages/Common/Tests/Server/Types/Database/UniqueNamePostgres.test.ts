@@ -24,6 +24,7 @@ import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
 import UniqueNameInProject from "../../../../Server/Utils/Database/UniqueNameInProject";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../../Types/Exception/NameTakenException";
 import {
   NAME_WHITE_SPACE_RUN_PATTERN,
   getNameKey,
@@ -67,7 +68,9 @@ const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
  *     one, naming a policy in service first;
  *   - the teams that share a name, as their list marks them (#9746), are
  *     found as Postgres reads names, deleted ones and other projects' left
- *     out, and on-call policies only while in service.
+ *     out, and on-call policies and labels (#9856) only while in service;
+ *   - a refused name carries its code beside its words (#9855), on a label's
+ *     create as on a rename.
  *
  * Needs only a bare Postgres: each model's table is made from its own column
  * metadata in a schema of its own, dropped afterwards. CI's Common test job
@@ -678,6 +681,154 @@ describePostgres("a name as it reads, on Postgres", () => {
       [platformA],
       sorted([tenantsA, tenantsB]),
     ]);
+  });
+
+  /*
+   * #9856: labels are marked on Settings > Labels the same way, in service
+   * only - an archived label is in no picker - as the route asks for them
+   * (SharedNamesAPI: leaveOutArchived).
+   */
+  test("labels share a name only while in service, deleted ones and other projects' left out", async () => {
+    const label: (
+      name: string,
+      options?: { isArchived?: boolean; projectId?: ObjectID },
+    ) => Promise<string> = async (
+      name: string,
+      options?: { isArchived?: boolean; projectId?: ObjectID },
+    ): Promise<string> => {
+      return await insert(Label, {
+        projectId: (options?.projectId || PROJECT_ID).toString(),
+        name: name,
+        color: "#ff0000",
+        isArchived: Boolean(options?.isArchived),
+      });
+    };
+
+    const production: string = await label("Production");
+    const productionTwin: string = await label(` production${NO_BREAK_SPACE}`);
+    await label("PRODUCTION", { isArchived: true });
+    const staging: string = await label("Staging");
+    await label("staging", { isArchived: true });
+    await label("Production", { projectId: OTHER_PROJECT_ID });
+    const deletedTwin: string = await label("Staging ");
+
+    await database.query(
+      `UPDATE ${tableOf(Label)} SET "deletedAt" = now() WHERE "_id" = $1`,
+      [deletedTwin],
+    );
+
+    jest
+      .spyOn(LabelService, "findBy")
+      .mockImplementation(
+        async (findBy: {
+          query: Record<string, unknown>;
+        }): Promise<Array<Label>> => {
+          const ids: Array<unknown> = Object.values(
+            (
+              findBy.query["_id"] as {
+                objectLiteralParameters: Record<string, unknown>;
+              }
+            ).objectLiteralParameters,
+          )[0] as Array<unknown>;
+
+          return ids.map((id: unknown): Label => {
+            return new Label(new ObjectID(String(id)));
+          });
+        },
+      );
+
+    const groups: Array<Array<string>> =
+      await UniqueNameInProject.findRecordsSharingName({
+        service: LabelService,
+        projectId: PROJECT_ID,
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+        leaveOutArchived: true,
+      });
+
+    // Production's twin in service is marked; Staging's only namesakes are archived or deleted.
+    expect(
+      groups.map((group: Array<string>): Array<string> => {
+        return [...group].sort();
+      }),
+    ).toEqual([[production, productionTwin].sort()]);
+    expect(groups.flat()).not.toContain(staging);
+  });
+
+  test("a refused label name carries its code, on a create and on a rename", async () => {
+    await insert(Label, {
+      projectId: PROJECT_ID.toString(),
+      name: "Production",
+      color: "#ff0000",
+      isArchived: false,
+    });
+    const stagingId: string = await insert(Label, {
+      projectId: PROJECT_ID.toString(),
+      name: "Staging",
+      color: "#00ff00",
+      isArchived: false,
+    });
+
+    const hooks: {
+      onBeforeCreate: (createBy: CreateBy<Label>) => Promise<unknown>;
+      onBeforeUpdateUniqueCheck: (updateBy: UpdateBy<Label>) => Promise<void>;
+    } = LabelService as unknown as {
+      onBeforeCreate: (createBy: CreateBy<Label>) => Promise<unknown>;
+      onBeforeUpdateUniqueCheck: (updateBy: UpdateBy<Label>) => Promise<void>;
+    };
+
+    const model: Label = new Label();
+    model.name = "PRODUCTION ";
+    model.projectId = PROJECT_ID;
+
+    const refusedCreate: unknown = await hooks
+      .onBeforeCreate({
+        data: model,
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+      } as unknown as CreateBy<Label>)
+      .then(
+        () => {
+          return null;
+        },
+        (error: unknown) => {
+          return error;
+        },
+      );
+
+    expect(refusedCreate).toBeInstanceOf(NameTakenException);
+    expect((refusedCreate as NameTakenException).details).toEqual({
+      refusalCode: "name_taken",
+    });
+
+    jest
+      .spyOn(LabelService, "findRowsAndHoldUpdateToThem")
+      .mockImplementation(async (): Promise<Array<Label>> => {
+        return await database.getRepository(Label).find({
+          where: { _id: stagingId } as never,
+          select: { _id: true, name: true, projectId: true } as never,
+        });
+      });
+
+    const refusedRename: unknown = await hooks.onBeforeUpdateUniqueCheck
+      .call(LabelService, {
+        query: { _id: stagingId },
+        data: { name: "production" },
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<Label>)
+      .then(
+        () => {
+          return null;
+        },
+        (error: unknown) => {
+          return error;
+        },
+      );
+
+    expect(refusedRename).toBeInstanceOf(NameTakenException);
+    expect((refusedRename as Error).message).toBe(
+      "There is already a label called production in this project. Pick another name.",
+    );
   });
 
   test("on-call policies share a name only while in service: an archived namesake is in no picker", async () => {
