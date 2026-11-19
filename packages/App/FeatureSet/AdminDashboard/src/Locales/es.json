@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Si esta persona aún no tiene cuenta de OneUptime, se creará con este nombre.",
   "Suggest every account on this server?": "¿Sugerir todas las cuentas de este servidor?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Cualquiera que pueda invitar a personas verá el nombre y el correo de cada cuenta mientras escribe. Actívelo solo si todas las cuentas de aquí pertenecen a una sola organización.",
-  "Suggest Every Account": "Sugerir todas las cuentas"
+  "Suggest Every Account": "Sugerir todas las cuentas",
+  "Already in this team": "Ya está en este equipo",
+  "Already invited to this team": "Ya está invitado a este equipo",
+  "Not in this project yet": "Aún no está en este proyecto",
+  "People you can invite": "Personas a las que puedes invitar"
 }

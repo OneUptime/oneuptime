@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "If they have no OneUptime account yet, it is set up with this name.",
   "Suggest every account on this server?": "Suggest every account on this server?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.",
-  "Suggest Every Account": "Suggest Every Account"
+  "Suggest Every Account": "Suggest Every Account",
+  "Already in this team": "Already in this team",
+  "Already invited to this team": "Already invited to this team",
+  "Not in this project yet": "Not in this project yet",
+  "People you can invite": "People you can invite"
 }
