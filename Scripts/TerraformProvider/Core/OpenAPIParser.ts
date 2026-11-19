@@ -20,6 +20,12 @@ import {
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import { CLIENT_RESOURCE_NAMES } from "Common/Utils/DeveloperDocs/ClientResourceNames";
 import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
+import {
+  DeleteChoice,
+  DeleteChoicesOfTable,
+  getDeleteChoiceFieldName,
+  getDeleteChoices,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
 
 /*
  * The data sources written by hand (StaticFiles/), each in place of the one
@@ -188,6 +194,7 @@ export class OpenAPIParser {
       }
       this.addPersonEmailCompanions(resource);
       this.addMembershipImport(resource);
+      this.addDeleteChoices(resource);
 
       const writableFields: string[] = Object.entries(
         resource.operationSchemas.create || {},
@@ -884,6 +891,124 @@ export class OpenAPIParser {
       personEmailAttribute: person[1].person?.emailAttribute,
       listPath: listPath,
       kind: rule.kind,
+    };
+  }
+
+  /*
+   * WHAT A DELETE SAYS BESIDES THE RECORD (#9832). OneUptime deletes a
+   * custom role that workflows run as only when the delete says what they
+   * run as instead, in its miscDataProps
+   * (Common/Utils/DeveloperDocs/DeleteChoices.ts), and Terraform deletes a
+   * resource with no body - so `terraform destroy` of such a role failed,
+   * and the only way through was to change each workflow first.
+   *
+   * Each choice becomes an optional attribute named for the delete
+   * (workflows_run_as_on_delete), only ever in `schema`: no create or
+   * update sends it and no read sets it, so it keeps what the
+   * configuration says, changes nothing until the delete, and is sent in
+   * the DELETE's body then. Left unset, the delete is the one it always
+   * was, and never changes what a workflow runs as unasked.
+   */
+  private addDeleteChoices(resource: TerraformResource): void {
+    if (!resource.operations.delete) {
+      return;
+    }
+
+    const choices: DeleteChoicesOfTable | null = getDeleteChoices(
+      resource.tableName,
+    );
+
+    if (!choices) {
+      return;
+    }
+
+    const attributes: Array<string> = [];
+
+    for (const choice of choices.choices) {
+      const name: string = OpenAPIParser.getDeleteChoiceAttribute(choice.key);
+
+      if (resource.schema[name]) {
+        throw new Error(
+          `Resource "${resource.name}" has an attribute named ${name}, the name of what its delete takes in miscDataProps.${choice.key}: rename one of them (Common/Utils/DeveloperDocs/DeleteChoices.ts).`,
+        );
+      }
+
+      const attribute: TerraformAttribute = {
+        type: "string",
+        description: choice.describe((key: string): string => {
+          return `\`${OpenAPIParser.getDeleteChoiceAttribute(key)}\``;
+        }),
+        required: false,
+        optional: true,
+        computed: false,
+        deleteChoice: {
+          key: choice.key,
+          ...(choice.requiredWith
+            ? {
+                requiredWith: {
+                  attribute: OpenAPIParser.getDeleteChoiceAttribute(
+                    choice.requiredWith.key,
+                  ),
+                  value: choice.requiredWith.value,
+                },
+              }
+            : {}),
+        },
+        ...(choice.values ? { enumValues: [...choice.values] } : {}),
+        ...this.getDeleteChoiceRelation(choice),
+      };
+
+      resource.schema[name] = attribute;
+      attributes.push(name);
+    }
+
+    // The record an ID names, said as every other relation's is.
+    this.resolveRelations(resource.schema);
+
+    for (const name of attributes) {
+      const attribute: TerraformAttribute = resource.schema[name]!;
+
+      attribute.description = `${attribute.description} ${OpenAPIParser.getDeleteChoiceSentNote(choices.noun)}`;
+    }
+
+    resource.deleteChoices = {
+      noun: choices.noun,
+      whenNeeded: choices.whenNeeded,
+      attributes: attributes,
+    };
+  }
+
+  // A delete choice's attribute: workflowsRunAs -> workflows_run_as_on_delete.
+  public static getDeleteChoiceAttribute(key: string): string {
+    return StringUtils.toLegacySnakeCase(getDeleteChoiceFieldName(key));
+  }
+
+  /*
+   * When a delete choice is sent, said on each: with the delete only, from
+   * what state holds - a value set in the apply that destroys the record is
+   * not in state yet.
+   */
+  public static getDeleteChoiceSentNote(noun: string): string {
+    return `Sent only when Terraform deletes the ${noun}, and changes nothing before: set it, and apply, before you destroy the ${noun}.`;
+  }
+
+  // The record a delete choice's ID names, as the spec names relations.
+  private getDeleteChoiceRelation(
+    choice: DeleteChoice,
+  ): Pick<TerraformAttribute, "relationTag" | "relationTableName"> {
+    if (!choice.relatedTableName) {
+      return {};
+    }
+
+    const tag: { name: string } | undefined = (this.spec?.tags || []).find(
+      (candidate: { "x-oneuptime-table"?: string }): boolean => {
+        return candidate["x-oneuptime-table"] === choice.relatedTableName;
+      },
+    );
+
+    return {
+      relationTag: tag?.name || choice.relatedTableName,
+      relationTableName: choice.relatedTableName,
     };
   }
 

@@ -343,6 +343,17 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
     return c.DoRequest(ctx, "DELETE", path, nil)
 }
 
+// DeleteWithBody performs a DELETE request whose body says what the delete
+// takes besides the record, in miscDataProps (deletechoices.go). A nil body
+// sends none - never "null", which the API would refuse - so a delete that
+// says nothing is the delete it always was.
+func (c *Client) DeleteWithBody(ctx context.Context, path string, body map[string]interface{}) (*http.Response, error) {
+    if body == nil {
+        return c.DoRequest(ctx, "DELETE", path, nil)
+    }
+    return c.DoRequest(ctx, "DELETE", path, body)
+}
+
 /*
  * Server phrasings that name one column the select has to give up on. They are
  * matched against the DECODED error message (apiErrorMessage), never the raw

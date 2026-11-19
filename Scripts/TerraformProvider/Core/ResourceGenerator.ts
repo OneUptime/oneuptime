@@ -437,6 +437,16 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("ids_test.go", "internal/provider");
 
     /*
+     * What a delete says besides the record (#9832): a custom role's
+     * workflows_run_as_on_delete, sent in the DELETE's body, the hint a
+     * refused destroy gets, and the validator of a choice that goes with
+     * another - with their tests, the last through the real protocol
+     * server and a stand-in for the API.
+     */
+    await this.copyStaticFile("deletechoices.go", "internal/provider");
+    await this.copyStaticFile("deletechoices_test.go", "internal/provider");
+
+    /*
      * A choice takes one of its values (the spec's enum, a OneOf
      * validator), and a probe, an AI agent or a Runner only its name:
      * through the protocol server, as terraform validate calls it.
@@ -474,6 +484,11 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     // A schedule's layers given a new turn order in one apply (#9038).
     await this.copyStaticFile(
       "acceptance_schedule_layers_test.go",
+      "internal/provider",
+    );
+    // A custom role that workflows run as, destroyed (#9832).
+    await this.copyStaticFile(
+      "acceptance_custom_role_test.go",
       "internal/provider",
     );
 
@@ -864,7 +879,24 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
         );
       },
     );
-    if (hasEnumValidators || hasEnvelopeValidators) {
+    /*
+     * A delete choice that goes with another and holds no ID lists its
+     * validator itself; one that holds an ID appends it to the ID's.
+     */
+    const hasDeleteChoiceValidatorList: boolean = Object.values(
+      resource.schema,
+    ).some((attr: TerraformAttribute) => {
+      return (
+        attr.type === "string" &&
+        Boolean(attr.deleteChoice?.requiredWith) &&
+        !attr.relation
+      );
+    });
+    if (
+      hasEnumValidators ||
+      hasEnvelopeValidators ||
+      hasDeleteChoiceValidatorList
+    ) {
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/schema/validator",
       );
@@ -1495,6 +1527,29 @@ ${this.generateValidObjectTypesMap()}
         validators = `,
                 Validators: ${helper}("${this.providerName}_${attr.relation.name}")`;
       }
+    }
+
+    /*
+     * A delete choice that goes with another - given only while that one
+     * has its value, and needed then (StaticFiles/deletechoices.go) - is
+     * held to it too, beside what its kind of value takes.
+     */
+    const requiredWith: { attribute: string; value: string } | undefined = (
+      attr as TerraformAttribute
+    ).deleteChoice?.requiredWith;
+    if (requiredWith && attr.type === "string") {
+      const withValidator: string = `deleteChoiceRequiredWith("${requiredWith.attribute}", "${GoCodeGenerator.escapeString(requiredWith.value)}")`;
+      const relationHelper: string | undefined = attr.relation
+        ? ResourceGenerator.getRecordIdValidators(attr.relation, attr.type)
+        : undefined;
+
+      validators = relationHelper
+        ? `,
+                Validators: append(${relationHelper}("${this.providerName}_${attr.relation!.name}"), ${withValidator})`
+        : `,
+                Validators: []validator.String{
+                    ${withValidator},
+                }`;
     }
 
     return `schema.${attrType}Attribute{
@@ -2399,6 +2454,34 @@ ${readBackCode}${
       finalPath = `"${pathWithParams}"`;
     }
 
+    /*
+     * What the delete says besides the record (TerraformResource
+     * .deleteChoices): what state holds of each choice, sent in the
+     * DELETE's body, and the hint a refusal for a choice none was given
+     * gets (StaticFiles/deletechoices.go).
+     */
+    const deleteChoices: Array<{ key: string; attribute: string }> =
+      ResourceGenerator.getDeleteChoiceAttributes(resource);
+    const hasDeleteChoices: boolean = deleteChoices.length > 0;
+    const deleteChoicesCode: string = hasDeleteChoices
+      ? `
+    // What the delete says besides the ${resource.name.replace(/_/g, " ")}, from state (see deletechoices.go).
+    deleteChoices := []deleteChoice{
+${deleteChoices
+  .map((choice: { key: string; attribute: string }) => {
+    return `        {key: "${choice.key}", attribute: "${choice.attribute}", value: data.${StringUtils.toPascalCase(this.sanitizeAttributeName(choice.attribute))}},`;
+  })
+  .join("\n")}
+    }
+`
+      : "";
+    const deleteCall: string = hasDeleteChoices
+      ? `r.client.DeleteWithBody(ctx, ${finalPath}, deleteChoicesBody(deleteChoices))`
+      : `r.client.Delete(ctx, ${finalPath})`;
+    const refusal: string = hasDeleteChoices
+      ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s%s", err, deleteChoicesHint(err, deleteChoices, "${GoCodeGenerator.escapeString(this.getDeleteChoicesHint(resource))}")))`
+      : `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s", err))`;
+
     return `
 func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
     var data ${resourceTypeName}ResourceModel
@@ -2409,9 +2492,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     if resp.Diagnostics.HasError() {
         return
     }
-
+${deleteChoicesCode}
     // Make API call
-    httpResp, err := r.client.Delete(ctx, ${finalPath})
+    httpResp, err := ${deleteCall}
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete ${resource.name}, got error: %s", err))
         return
@@ -2421,7 +2504,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     // orphans real infrastructure. 404 means it is already gone.
     if httpResp.StatusCode >= 400 && httpResp.StatusCode != http.StatusNotFound {
         err = r.client.ParseResponse(httpResp, nil)
-        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s", err))
+        ${refusal}
         return
     }
     if httpResp.Body != nil {
@@ -2429,6 +2512,52 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
 }
 `;
+  }
+
+  /*
+   * The attributes that are choices the resource's delete takes
+   * (TerraformResource.deleteChoices), with their keys in miscDataProps, in
+   * the order the choices are given.
+   */
+  public static getDeleteChoiceAttributes(
+    resource: TerraformResource,
+  ): Array<{ key: string; attribute: string }> {
+    return (resource.deleteChoices?.attributes || [])
+      .map((attribute: string) => {
+        return {
+          attribute: attribute,
+          key: resource.schema[attribute]?.deleteChoice?.key || "",
+        };
+      })
+      .filter((choice: { key: string; attribute: string }) => {
+        return Boolean(choice.key);
+      });
+  }
+
+  /*
+   * What a destroy OneUptime refused for a choice it needs adds, in
+   * Terraform's words: which attributes say it, and that a delete sends
+   * what state holds - so set it, apply, then destroy again. The API's own
+   * words say miscDataProps, which a Terraform configuration never writes.
+   */
+  public getDeleteChoicesHint(resource: TerraformResource): string {
+    const attributes: Array<string> = resource.deleteChoices?.attributes || [];
+    const main: Array<string> = attributes.filter((attribute: string) => {
+      return !resource.schema[attribute]?.deleteChoice?.requiredWith;
+    });
+    const companions: Array<string> = attributes
+      .filter((attribute: string) => {
+        return Boolean(resource.schema[attribute]?.deleteChoice?.requiredWith);
+      })
+      .map((attribute: string) => {
+        const requiredWith: { attribute: string; value: string } =
+          resource.schema[attribute]!.deleteChoice!.requiredWith!;
+
+        return ` - with ${attribute} when ${requiredWith.attribute} is "${requiredWith.value}" -`;
+      });
+    const names: string = main.join(" or ");
+
+    return `To say it in Terraform, set ${names} on this ${this.providerName}_${resource.name}${companions.join("")} and run terraform apply, then destroy it again: Terraform deletes a resource with what its state holds.`;
   }
 
   private generateStubCreateMethod(resourceTypeName: string): string {
