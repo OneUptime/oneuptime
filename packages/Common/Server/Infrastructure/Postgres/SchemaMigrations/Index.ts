@@ -1118,6 +1118,7 @@ import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-Backfil
 import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
 import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
 import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
+import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
 
 export default [
   InitialMigration,
@@ -2240,4 +2241,5 @@ export default [
   AddMonitorNetworkDeviceTieSource1809186700000,
   AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
   AddScheduledMaintenanceTemplateTimezone1809186800000,
+  AddManagedDevicePlatform1809186810000,
 ];
