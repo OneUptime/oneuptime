@@ -10,6 +10,7 @@ import {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import GcpCloudConnector, {
   GcpAddedMetricAsk,
+  GcpResourceBatch,
   getGcpAddedMetricsToAsk,
   GCP_OPS_AGENT_ASK_EVERY_MS,
   GCP_OPS_AGENT_SEEN_MS,
@@ -18,8 +19,13 @@ import GcpCloudConnector, {
   getGcpOpsAgentAsk,
   getGcpSeenResourceTypes,
   hasGcpOpsAgentResources,
+  isGcpSeriesOfResources,
+  planGcpResourceBatches,
 } from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
-import GcpMonitoring from "../../../../Server/Utils/CloudConnection/Gcp/GcpMonitoring";
+import GcpMonitoring, {
+  GCP_MAX_FILTER_URL_LENGTH,
+  GCP_MAX_ONE_OF_VALUES,
+} from "../../../../Server/Utils/CloudConnection/Gcp/GcpMonitoring";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import {
@@ -177,6 +183,31 @@ const METRIC_LABEL_IN_FILTER: RegExp = /metric\.labels\.([a-z_]+)="([^"]*)"/g;
 const RESOURCE_TYPE_IN_FILTER: RegExp = /resource\.type="([^"]+)"/;
 const RESOURCE_LABEL_IN_FILTER: RegExp =
   /resource\.labels\.([a-z_]+)="([^"]*)"/g;
+// resource.labels.<name>=one_of("a","b"): any of the values (#9810).
+const RESOURCE_LABEL_ONE_OF_IN_FILTER: RegExp =
+  /resource\.labels\.([a-z_]+)=one_of\(((?:"[^"]*",?)+)\)/g;
+
+// The resource labels a call's filter names, each with the values it may have.
+function resourceLabelsOf(filter: string): Array<[string, Array<string>]> {
+  const labels: Array<[string, Array<string>]> = Array.from(
+    filter.matchAll(RESOURCE_LABEL_IN_FILTER),
+  ).map((match: RegExpMatchArray): [string, Array<string>] => {
+    return [match[1]!, [match[2]!]];
+  });
+
+  for (const match of filter.matchAll(RESOURCE_LABEL_ONE_OF_IN_FILTER)) {
+    labels.push([
+      match[1]!,
+      Array.from(match[2]!.matchAll(/"([^"]*)"/g)).map(
+        (value: RegExpMatchArray): string => {
+          return value[1]!;
+        },
+      ),
+    ]);
+  }
+
+  return labels;
+}
 
 // The metric type a call's filter names.
 function metricTypeOf(filter: string): string {
@@ -200,6 +231,8 @@ function createFakeGcp(
     errors?: Record<string, FakeResponse>;
     tokenError?: FakeResponse;
     pages?: number;
+    // A call's own answer, before any other: a refusal of one page, say.
+    answer?: ((url: URL) => FakeResponse | undefined) | undefined;
   } = {},
 ): FakeGcp {
   const seriesCalls: Array<URL> = [];
@@ -226,12 +259,14 @@ function createFakeGcp(
         const wantedLabels: Record<string, string> = metricLabelsOf(filter);
         const wantedType: string =
           RESOURCE_TYPE_IN_FILTER.exec(filter)?.[1] || "";
-        const wantedResourceLabels: Array<[string, string]> = Array.from(
-          filter.matchAll(RESOURCE_LABEL_IN_FILTER),
-        ).map((match: RegExpMatchArray): [string, string] => {
-          return [match[1]!, match[2]!];
-        });
+        const wantedResourceLabels: Array<[string, Array<string>]> =
+          resourceLabelsOf(filter);
         const project: string = url.pathname.split("/")[3]!;
+        const own: FakeResponse | undefined = options.answer?.(url);
+
+        if (own) {
+          return own;
+        }
 
         if (options.errors?.[metricType]) {
           return options.errors[metricType]!;
@@ -257,8 +292,8 @@ function createFakeGcp(
             (!wantedType ||
               (series["resource"] as JSONObject)["type"] === wantedType) &&
             wantedResourceLabels.every(
-              ([name, value]: [string, string]): boolean => {
-                return labels[name] === value;
+              ([name, values]: [string, Array<string>]): boolean => {
+                return values.includes(String(labels[name]));
               },
             )
           );
@@ -1842,6 +1877,605 @@ describe("metrics a person added to the reads", () => {
     // Stored under its metric type, read with its aligner.
     expect(asks[0]!.metric.storedName).toBe(UPTIME);
     expect(asks[0]!.metric.aligner).toBe("ALIGN_RATE");
+  });
+
+  /*
+   * #9810: the resources of a project one metric is added for are asked in
+   * one call, not one each - the project's per-minute read quota is spent
+   * once - and each series the answer carries is filed under its own VM.
+   */
+  function vmLabels(
+    instanceId: string,
+    zone: string = "us-central1-a",
+  ): Record<string, string> {
+    return { project_id: PROJECT_ID, zone, instance_id: instanceId };
+  }
+
+  function ownOf(instanceId: string, zone?: string): CloudAddedMetric {
+    return ownAddition({
+      cloudResourceId: `row-${instanceId}`,
+      resourceLabels: vmLabels(instanceId, zone),
+    });
+  }
+
+  function vmSeriesIn(
+    metricType: string,
+    instanceId: string,
+    zone: string,
+  ): JSONObject {
+    const series: JSONObject = vmSeries(
+      metricType,
+      instanceId,
+      `vm-${instanceId}`,
+    );
+
+    ((series["resource"] as JSONObject)["labels"] as JSONObject)["zone"] = zone;
+
+    return series;
+  }
+
+  // Four VMs report uptime: three of them, in two zones, have it added.
+  function fourVms(
+    options: Partial<Parameters<typeof createFakeGcp>[0]> = {},
+  ): FakeGcp {
+    return createFakeGcp({
+      series: {
+        [CPU]: [vmSeries(CPU, "1001", "web-1")],
+        [UPTIME]: [
+          vmSeriesIn(UPTIME, "1001", "us-central1-a"),
+          vmSeriesIn(UPTIME, "1002", "us-central1-a"),
+          vmSeriesIn(UPTIME, "1003", "us-central1-a"),
+          vmSeriesIn(UPTIME, "1004", "us-central1-a"),
+          vmSeriesIn(UPTIME, "2001", "europe-west1-b"),
+        ],
+      },
+      ...options,
+    });
+  }
+
+  test("three VMs' own additions of one metric cost one call, and each VM's series is written under it", async () => {
+    const fake: FakeGcp = fourVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [ownOf("1003"), ownOf("1001"), ownOf("1002")],
+      }),
+    );
+
+    expect(uptimeCalls(fake)).toEqual([
+      `${PROJECT_ID} metric.type="${UPTIME}" AND resource.type="gce_instance" AND resource.labels.instance_id=one_of("1001","1002","1003") AND resource.labels.project_id="${PROJECT_ID}" AND resource.labels.zone="us-central1-a" ALIGN_RATE`,
+    ]);
+    // Not 1004, which reports it and has it added for none.
+    expect(writtenInstances(result)).toEqual(["1001", "1002", "1003"]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("VMs of two zones: a call per zone, each VM's series under it", async () => {
+    const fake: FakeGcp = fourVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [
+          ownOf("1001"),
+          ownOf("1002"),
+          ownOf("2001", "europe-west1-b"),
+        ],
+      }),
+    );
+
+    expect(uptimeCalls(fake).sort()).toEqual(
+      [
+        `${PROJECT_ID} metric.type="${UPTIME}" AND resource.type="gce_instance" AND resource.labels.instance_id="2001" AND resource.labels.project_id="${PROJECT_ID}" AND resource.labels.zone="europe-west1-b" ALIGN_RATE`,
+        `${PROJECT_ID} metric.type="${UPTIME}" AND resource.type="gce_instance" AND resource.labels.instance_id=one_of("1001","1002") AND resource.labels.project_id="${PROJECT_ID}" AND resource.labels.zone="us-central1-a" ALIGN_RATE`,
+      ].sort(),
+    );
+    expect(writtenInstances(result)).toEqual(["1001", "1002", "2001"]);
+  });
+
+  test("a series of a resource the batch did not ask for is never written, whatever Google answers", async () => {
+    // Google answers every VM's series, as if it had read no label of the filter.
+    const fake: FakeGcp = fourVms({
+      answer: (url: URL): FakeResponse | undefined => {
+        if (metricTypeOf(url.searchParams.get("filter") || "") !== UPTIME) {
+          return undefined;
+        }
+
+        return json({
+          timeSeries: [
+            vmSeriesIn(UPTIME, "1001", "us-central1-a"),
+            vmSeriesIn(UPTIME, "1002", "us-central1-a"),
+            vmSeriesIn(UPTIME, "1004", "us-central1-a"),
+            // 1002's instance id in another zone: not the 1002 asked for.
+            vmSeriesIn(UPTIME, "1002", "europe-west1-b"),
+          ],
+        });
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [ownOf("1001"), ownOf("1002")],
+      }),
+    );
+
+    expect(writtenInstances(result)).toEqual(["1001", "1002"]);
+
+    // 1002's series once: the one of its own zone.
+    const zones: Array<string> = [];
+
+    for (const payload of result.payloads) {
+      for (const rm of payload["resourceMetrics"] as JSONArray) {
+        const attributes: JSONArray = (
+          (rm as JSONObject)["resource"] as JSONObject
+        )["attributes"] as JSONArray;
+        const hasUptime: boolean = (
+          (rm as JSONObject)["scopeMetrics"] as JSONArray
+        ).some((sm: unknown): boolean => {
+          return ((sm as JSONObject)["metrics"] as JSONArray).some(
+            (metric: unknown): boolean => {
+              return (metric as JSONObject)["name"] === UPTIME;
+            },
+          );
+        });
+        const zone: JSONObject | undefined = attributes.find(
+          (attribute: unknown): boolean => {
+            return (attribute as JSONObject)["key"] === "zone";
+          },
+        ) as JSONObject | undefined;
+
+        if (hasUptime && zone) {
+          zones.push(
+            String((zone["value"] as JSONObject)["stringValue"] || ""),
+          );
+        }
+      }
+    }
+
+    expect(zones.sort()).toEqual(["us-central1-a", "us-central1-a"]);
+  });
+
+  test("a batch's pages are followed, and every page's series written", async () => {
+    const fake: FakeGcp = fourVms({ pages: 3 });
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [ownOf("1001"), ownOf("1002"), ownOf("1003")],
+      }),
+    );
+
+    const calls: Array<URL> = fake.seriesCalls.filter((url: URL): boolean => {
+      return metricTypeOf(url.searchParams.get("filter") || "") === UPTIME;
+    });
+
+    // One batch, read over three pages.
+    expect(
+      calls.map((url: URL): string => {
+        return url.searchParams.get("pageToken") || "";
+      }),
+    ).toEqual(["", "1", "2"]);
+    expect(
+      new Set(
+        calls.map((url: URL): string => {
+          return url.searchParams.get("filter") || "";
+        }),
+      ).size,
+    ).toBe(1);
+    expect(writtenInstances(result)).toEqual(["1001", "1002", "1003"]);
+  });
+
+  test("a batch whose call fails is said, and the other batch and the key metrics are written", async () => {
+    const fake: FakeGcp = fourVms({
+      answer: (url: URL): FakeResponse | undefined => {
+        const filter: string = url.searchParams.get("filter") || "";
+
+        return metricTypeOf(filter) === UPTIME &&
+          filter.includes("europe-west1-b")
+          ? { status: 500, body: "backend error" }
+          : undefined;
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [
+          ownOf("1001"),
+          ownOf("1002"),
+          ownOf("2001", "europe-west1-b"),
+        ],
+      }),
+    );
+
+    expect(writtenInstances(result)).toEqual(["1001", "1002"]);
+    expect(result.warnings.join(" ")).toContain("Could not read 1 metrics");
+    // The window still moves on, as for any metric that failed.
+    expect(result.nextState.cursors?.["60"]).toBe(WINDOW_END);
+  });
+
+  test("a batch refused on its second page writes none of its first, and says so", async () => {
+    const fake: FakeGcp = fourVms({
+      pages: 2,
+      answer: (url: URL): FakeResponse | undefined => {
+        return metricTypeOf(url.searchParams.get("filter") || "") === UPTIME &&
+          url.searchParams.get("pageToken") === "1"
+          ? { status: 500, body: "backend error" }
+          : undefined;
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [ownOf("1001"), ownOf("1002"), ownOf("1003")],
+      }),
+    );
+
+    expect(writtenInstances(result)).toEqual([]);
+    expect(result.warnings.join(" ")).toContain("Could not read 1 metrics");
+  });
+
+  test("a type's addition of the same metric reads every VM already: the VMs' own are not asked again", async () => {
+    const fake: FakeGcp = fourVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, {
+        addedMetrics: [ownOf("1001"), added(), ownOf("1002")],
+      }),
+    );
+
+    expect(uptimeCalls(fake)).toEqual([
+      `${PROJECT_ID} metric.type="${UPTIME}" AND resource.type="gce_instance" ALIGN_RATE`,
+    ]);
+    expect(writtenInstances(result)).toEqual([
+      "1001",
+      "1002",
+      "1003",
+      "1004",
+      "2001",
+    ]);
+  });
+
+  test("which asks a project's own additions make: one per metric, aligner and batch", () => {
+    const asks: Array<GcpAddedMetricAsk> = getGcpAddedMetricsToAsk({
+      added: [
+        ownOf("1001"),
+        ownOf("1002"),
+        ownAddition({
+          cloudResourceId: "row-1001-mean",
+          resourceLabels: vmLabels("1001"),
+          aggregation: "ALIGN_MEAN",
+        }),
+        ownAddition({
+          cloudResourceId: "row-1003-reads",
+          name: "compute.googleapis.com/instance/disk/max_read_ops_count",
+          resourceLabels: vmLabels("1003"),
+        }),
+        // Another project's VM: asked of its own project, never this one.
+        ownAddition({
+          cloudResourceId: "row-staging",
+          accountId: OTHER_PROJECT,
+          resourceLabels: {
+            project_id: OTHER_PROJECT,
+            zone: "us-central1-a",
+            instance_id: "9001",
+          },
+        }),
+      ],
+      projectId: PROJECT_ID,
+      seenResourceTypes: new Set<string>(),
+    });
+
+    expect(
+      asks.map((ask: GcpAddedMetricAsk) => {
+        return {
+          metricType: ask.metric.metricType,
+          aligner: ask.metric.aligner,
+          resourceLabels: ask.resourceLabels,
+          resourceLabelIn: ask.resourceLabelIn,
+          resources: ask.resources?.length,
+        };
+      }),
+    ).toEqual([
+      {
+        metricType: UPTIME,
+        aligner: "ALIGN_RATE",
+        resourceLabels: { project_id: PROJECT_ID, zone: "us-central1-a" },
+        resourceLabelIn: { label: "instance_id", values: ["1001", "1002"] },
+        resources: 2,
+      },
+      {
+        metricType: UPTIME,
+        aligner: "ALIGN_MEAN",
+        resourceLabels: vmLabels("1001"),
+        resourceLabelIn: undefined,
+        resources: 1,
+      },
+      {
+        metricType: "compute.googleapis.com/instance/disk/max_read_ops_count",
+        aligner: "ALIGN_RATE",
+        resourceLabels: vmLabels("1003"),
+        resourceLabelIn: undefined,
+        resources: 1,
+      },
+    ]);
+  });
+});
+
+/*
+ * #9810: how the resources a metric is added for are split into calls.
+ * Exact: a call's filter matches its own resources and no other, so each
+ * series maps back to the one resource whose labels it carries.
+ */
+describe("the resources of a project one metric is added for, in as few calls as their labels allow", () => {
+  const UPTIME: string = "compute.googleapis.com/instance/uptime";
+  const SQL_BACKENDS: string =
+    "cloudsql.googleapis.com/database/postgresql/num_backends";
+
+  function vm(
+    instanceId: string,
+    zone: string = "us-central1-a",
+  ): Record<string, string> {
+    return { project_id: PROJECT_ID, zone, instance_id: instanceId };
+  }
+
+  function plan(
+    resources: Array<Record<string, string>>,
+    metricType: string = UPTIME,
+    resourceType: string = "gce_instance",
+  ): Array<GcpResourceBatch> {
+    return planGcpResourceBatches({ metricType, resourceType, resources });
+  }
+
+  // Every label set a batch's filter matches: its equal labels with each value of its one_of.
+  function matchedBy(batch: GcpResourceBatch): Array<string> {
+    const values: Array<string | undefined> = batch.labelIn
+      ? [...batch.labelIn.values]
+      : [undefined];
+
+    return values
+      .map((value: string | undefined): string => {
+        const labels: Record<string, string> = { ...batch.labels };
+
+        if (batch.labelIn && value !== undefined) {
+          labels[batch.labelIn.label] = value;
+        }
+
+        return JSON.stringify(Object.entries(labels).sort());
+      })
+      .sort();
+  }
+
+  function keysOf(resources: Array<Record<string, string>>): Array<string> {
+    return resources
+      .map((labels: Record<string, string>): string => {
+        return JSON.stringify(Object.entries(labels).sort());
+      })
+      .sort();
+  }
+
+  test("one resource is asked as before: each of its labels equal", () => {
+    expect(plan([vm("1001")])).toEqual([
+      { labels: vm("1001"), resources: [vm("1001")] },
+    ]);
+  });
+
+  test("the VMs of one zone are one call: the labels they share as equal, the instance ids as one_of", () => {
+    const batches: Array<GcpResourceBatch> = plan([
+      vm("1003"),
+      vm("1001"),
+      vm("1002"),
+    ]);
+
+    expect(batches).toHaveLength(1);
+    expect(batches[0]!.labels).toEqual({
+      project_id: PROJECT_ID,
+      zone: "us-central1-a",
+    });
+    expect(batches[0]!.labelIn).toEqual({
+      label: "instance_id",
+      values: ["1001", "1002", "1003"],
+    });
+    expect(keysOf(batches[0]!.resources)).toEqual(
+      keysOf([vm("1001"), vm("1002"), vm("1003")]),
+    );
+    expect(
+      GcpMonitoring.buildFilter({
+        metricType: UPTIME,
+        resourceType: "gce_instance",
+        resourceLabels: batches[0]!.labels,
+        resourceLabelIn: batches[0]!.labelIn,
+      }),
+    ).toBe(
+      `metric.type="${UPTIME}" AND resource.type="gce_instance" AND resource.labels.instance_id=one_of("1001","1002","1003") AND resource.labels.project_id="${PROJECT_ID}" AND resource.labels.zone="us-central1-a"`,
+    );
+  });
+
+  test("250 VMs are three calls: one_of takes 100 values at most", () => {
+    const vms: Array<Record<string, string>> = [];
+
+    for (let index: number = 0; index < 250; index++) {
+      vms.push(vm(String(100000 + index)));
+    }
+
+    const batches: Array<GcpResourceBatch> = plan(vms);
+
+    expect(
+      batches.map((batch: GcpResourceBatch): number => {
+        return batch.labelIn?.values.length || 0;
+      }),
+    ).toEqual([GCP_MAX_ONE_OF_VALUES, GCP_MAX_ONE_OF_VALUES, 50]);
+    expect(
+      keysOf(
+        batches.flatMap((batch: GcpResourceBatch) => {
+          return batch.resources;
+        }),
+      ),
+    ).toEqual(keysOf(vms));
+  });
+
+  test("long label values: a call holds no more than keeps its filter within a URL's length", () => {
+    // Pub/Sub topic ids run to 255 characters.
+    const topics: Array<Record<string, string>> = [];
+
+    for (let index: number = 0; index < 60; index++) {
+      topics.push({
+        project_id: PROJECT_ID,
+        topic_id: `orders-${String(index).padStart(3, "0")}-${"x".repeat(180)}`,
+      });
+    }
+
+    const batches: Array<GcpResourceBatch> = plan(
+      topics,
+      "pubsub.googleapis.com/topic/byte_cost",
+      "pubsub_topic",
+    );
+
+    expect(batches.length).toBeGreaterThan(1);
+
+    for (const batch of batches) {
+      expect(
+        GcpMonitoring.getFilterUrlLength(
+          GcpMonitoring.buildFilter({
+            metricType: "pubsub.googleapis.com/topic/byte_cost",
+            resourceType: "pubsub_topic",
+            resourceLabels: batch.labels,
+            resourceLabelIn: batch.labelIn,
+          }),
+        ),
+      ).toBeLessThanOrEqual(GCP_MAX_FILTER_URL_LENGTH);
+    }
+
+    expect(
+      keysOf(
+        batches.flatMap((batch: GcpResourceBatch) => {
+          return batch.resources;
+        }),
+      ),
+    ).toEqual(keysOf(topics));
+  });
+
+  test("the same resource twice is asked once, and one whose labels a filter cannot quote is asked of none", () => {
+    const batches: Array<GcpResourceBatch> = plan([
+      vm("1001"),
+      vm("1001"),
+      vm('10"02'),
+      { project_id: PROJECT_ID, "zone-name": "us-central1-a" },
+      {},
+      vm("1003"),
+    ]);
+
+    expect(batches).toHaveLength(1);
+    expect(batches[0]!.labelIn?.values).toEqual(["1001", "1003"]);
+  });
+
+  test("resources known by different labels are asked apart", () => {
+    const database: Record<string, string> = {
+      project_id: PROJECT_ID,
+      database_id: `${PROJECT_ID}:orders`,
+      region: "us-central1",
+    };
+    const batches: Array<GcpResourceBatch> = plan([
+      vm("1001"),
+      database,
+      vm("1002"),
+    ]);
+
+    expect(batches.map(matchedBy).flat().sort()).toEqual(
+      keysOf([vm("1001"), vm("1002"), database]),
+    );
+    expect(batches).toHaveLength(2);
+  });
+
+  test("containers of several clusters and namespaces: each call matches exactly its own, and every one is in a call", () => {
+    const containers: Array<Record<string, string>> = [];
+
+    for (const cluster of ["prod", "staging"]) {
+      for (const namespace of ["web", "jobs"]) {
+        for (const pod of ["api-0", "api-1", "api-2"]) {
+          containers.push({
+            project_id: PROJECT_ID,
+            location: "us-central1",
+            cluster_name: cluster,
+            namespace_name: namespace,
+            pod_name: pod,
+            container_name: "app",
+          });
+        }
+      }
+    }
+
+    // A pod name that is in every namespace: no call may match one it was not asked for.
+    const batches: Array<GcpResourceBatch> = plan(
+      containers,
+      "kubernetes.io/container/restart_count",
+      "k8s_container",
+    );
+
+    for (const batch of batches) {
+      expect(matchedBy(batch)).toEqual(keysOf(batch.resources));
+    }
+
+    expect(
+      keysOf(
+        batches.flatMap((batch: GcpResourceBatch) => {
+          return batch.resources;
+        }),
+      ),
+    ).toEqual(keysOf(containers));
+    // Four clusters-and-namespaces, a call each, not twelve.
+    expect(batches).toHaveLength(4);
+  });
+
+  test("Cloud SQL databases of a project: one call, by database_id", () => {
+    const databases: Array<Record<string, string>> = ["orders", "users"].map(
+      (name: string): Record<string, string> => {
+        return {
+          project_id: PROJECT_ID,
+          database_id: `${PROJECT_ID}:${name}`,
+          region: "us-central1",
+        };
+      },
+    );
+
+    expect(plan(databases, SQL_BACKENDS, "cloudsql_database")).toEqual([
+      {
+        labels: { project_id: PROJECT_ID, region: "us-central1" },
+        labelIn: {
+          label: "database_id",
+          values: [`${PROJECT_ID}:orders`, `${PROJECT_ID}:users`],
+        },
+        resources: databases,
+      },
+    ]);
+  });
+
+  test("a series is a batch's when it carries every label of one of its resources", () => {
+    const resources: Array<Record<string, string>> = [vm("1001"), vm("1002")];
+
+    expect(
+      isGcpSeriesOfResources({ resourceLabels: vm("1001") }, resources),
+    ).toBe(true);
+    // Labels the resource was not known by do not matter.
+    expect(
+      isGcpSeriesOfResources(
+        { resourceLabels: { ...vm("1002"), extra: "x" } },
+        resources,
+      ),
+    ).toBe(true);
+    expect(
+      isGcpSeriesOfResources({ resourceLabels: vm("1003") }, resources),
+    ).toBe(false);
+    expect(
+      isGcpSeriesOfResources(
+        { resourceLabels: vm("1001", "europe-west1-b") },
+        resources,
+      ),
+    ).toBe(false);
   });
 });
 

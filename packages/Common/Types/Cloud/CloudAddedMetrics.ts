@@ -135,6 +135,15 @@ const GCP_RESOURCE_TYPE_PATTERN: RegExp = /^[a-z][a-z0-9_.]*$/i;
 const GCP_LABEL_KEY_PATTERN: RegExp = /^[a-z][a-z0-9_]*$/i;
 const GCP_LABEL_VALUE_PATTERN: RegExp = /^[^"\\]*$/;
 
+/*
+ * Whether a Cloud Monitoring label can be named in a call's filter as it
+ * is: a key of letters, digits and "_", a value with no quote or backslash
+ * to end its string early. A read narrows a call only by labels that can.
+ */
+export function isGcpFilterLabel(key: string, value: string): boolean {
+  return GCP_LABEL_KEY_PATTERN.test(key) && GCP_LABEL_VALUE_PATTERN.test(value);
+}
+
 // What tells two additions apart: the same metric, read for the same resources.
 export function getCloudAddedMetricKey(data: {
   scope: CloudAddedMetricScope;
@@ -464,10 +473,7 @@ export function validateCloudAddedMetric(metric: CloudAddedMetric): void {
           !metric.accountId ||
           Object.keys(labels).length === 0 ||
           !Object.entries(labels).every(([key, value]: [string, string]) => {
-            return (
-              GCP_LABEL_KEY_PATTERN.test(key) &&
-              GCP_LABEL_VALUE_PATTERN.test(value)
-            );
+            return isGcpFilterLabel(key, value);
           })
         ) {
           throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["invalid"]!);

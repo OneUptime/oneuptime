@@ -38,12 +38,38 @@ import {
  *
  * One call returns a metric for every resource of the project. Cloud
  * Monitoring charges reads by the time series they return, past a million a
- * month per billing account.
+ * month per billing account. A call can be narrowed to some resources of a
+ * type by one of their labels: resource.labels.instance_id=one_of("1","2"),
+ * at most GCP_MAX_ONE_OF_VALUES values (Google's limit for one_of), so the
+ * resources of a project an added metric is read for cost one call, not one
+ * each (#9810).
  */
 
 const PROVIDER_TITLE: string = "Google Cloud Monitoring";
 const PAGE_SIZE: number = 10000;
 const MAX_PAGES: number = 20;
+
+/*
+ * Values one one_of() takes at most: "x = one_of(...)" takes up to 100
+ * strings (Cloud Monitoring's filter reference).
+ */
+export const GCP_MAX_ONE_OF_VALUES: number = 100;
+
+/*
+ * The longest filter a call sends, as its URL writes it (encoded): a call is
+ * a GET, and a filter of a hundred long label values would make a URL a
+ * proxy or Google's front end refuses. A batch past it is split.
+ */
+export const GCP_MAX_FILTER_URL_LENGTH: number = 6000;
+
+/*
+ * A label's values a call is narrowed to: resource.labels.<label> =
+ * one_of(...), the resources of one batch (GcpCloudConnector).
+ */
+export interface GcpLabelValues {
+  label: string;
+  values: ReadonlyArray<string>;
+}
 
 export interface GcpTimeSeries {
   metricType: string;
@@ -130,6 +156,11 @@ export default class GcpMonitoring {
      */
     resourceType?: string | undefined;
     resourceLabels?: Readonly<Record<string, string>> | undefined;
+    /*
+     * The resources of a batch (#9810): one label's values, the others
+     * equal (resourceLabels). Each label in name order with those.
+     */
+    resourceLabelIn?: GcpLabelValues | undefined;
   }): string {
     const parts: Array<string> = [`metric.type="${data.metricType}"`];
 
@@ -141,11 +172,41 @@ export default class GcpMonitoring {
       parts.push(`resource.type="${data.resourceType}"`);
     }
 
-    for (const name of Object.keys(data.resourceLabels || {}).sort()) {
-      parts.push(`resource.labels.${name}="${data.resourceLabels![name]}"`);
+    const resourceParts: Array<[string, string]> = Object.keys(
+      data.resourceLabels || {},
+    ).map((name: string): [string, string] => {
+      return [name, `resource.labels.${name}="${data.resourceLabels![name]}"`];
+    });
+
+    if (data.resourceLabelIn && data.resourceLabelIn.values.length > 0) {
+      const values: ReadonlyArray<string> = data.resourceLabelIn.values;
+
+      resourceParts.push([
+        data.resourceLabelIn.label,
+        values.length === 1
+          ? `resource.labels.${data.resourceLabelIn.label}="${values[0]}"`
+          : `resource.labels.${data.resourceLabelIn.label}=one_of(${values
+              .map((value: string): string => {
+                return `"${value}"`;
+              })
+              .join(",")})`,
+      ]);
+    }
+
+    resourceParts.sort((a: [string, string], b: [string, string]): number => {
+      return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+    });
+
+    for (const [, part] of resourceParts) {
+      parts.push(part);
     }
 
     return parts.join(" AND ");
+  }
+
+  // How long a filter is as a call's URL writes it, encoded.
+  public static getFilterUrlLength(filter: string): number {
+    return encodeURIComponent(filter).length;
   }
 
   /*
@@ -167,6 +228,7 @@ export default class GcpMonitoring {
     firstPageOnly?: boolean | undefined;
     resourceType?: string | undefined;
     resourceLabels?: Readonly<Record<string, string>> | undefined;
+    resourceLabelIn?: GcpLabelValues | undefined;
   }): Promise<Array<GcpTimeSeries>> {
     GoogleMonitoringClient.validateProjectId(data.projectId);
 
@@ -187,6 +249,7 @@ export default class GcpMonitoring {
             metricLabels: data.metricLabels,
             resourceType: data.resourceType,
             resourceLabels: data.resourceLabels,
+            resourceLabelIn: data.resourceLabelIn,
           }),
         ],
         ["interval.startTime", data.start.toISOString()],

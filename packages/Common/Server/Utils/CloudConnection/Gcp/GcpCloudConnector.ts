@@ -14,6 +14,7 @@ import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup
 import {
   CloudAddedMetric,
   CloudAddedMetricScope,
+  isGcpFilterLabel,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import {
@@ -108,7 +109,12 @@ import GcpInventoryClient, {
   GcpInventoryContext,
   buildGcpInventoryItem,
 } from "./GcpInventory";
-import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
+import GcpMonitoring, {
+  GCP_MAX_FILTER_URL_LENGTH,
+  GCP_MAX_ONE_OF_VALUES,
+  GcpLabelValues,
+  GcpTimeSeries,
+} from "./GcpMonitoring";
 import { readGcpAuditEntry, readGcpHealthEvent } from "./GcpChanges";
 import {
   getChangePlace,
@@ -293,24 +299,226 @@ export function getGcpMetricTypesToAsk(data: {
 /*
  * An added metric (CloudAddedMetrics) asked of one project: as a key
  * metric is, by its metric type and aligner, and only of the resources of
- * its type - of the one resource its labels identify, for a resource's own.
+ * its type - for resources' own additions, of the resources of one batch
+ * (planGcpResourceBatches): the labels they share (`resourceLabels`), the
+ * one label whose values tell them apart (`resourceLabelIn`), and each
+ * one's own labels (`resources`), the only series the call's answer keeps.
  */
 export interface GcpAddedMetricAsk {
   metric: GcpReadMetric;
   resourceType: string;
   resourceLabels?: Record<string, string> | undefined;
+  resourceLabelIn?: GcpLabelValues | undefined;
+  resources?: Array<Record<string, string>> | undefined;
+}
+
+/*
+ * One call's share of the resources of a project a metric is added for
+ * (#9810): the labels they all have the same value of, asked as equal; the
+ * one label whose values tell them apart, asked as one_of; and each
+ * resource's own labels.
+ */
+export interface GcpResourceBatch {
+  labels: Record<string, string>;
+  labelIn?: GcpLabelValues | undefined;
+  resources: Array<Record<string, string>>;
+}
+
+// A label set as one string, its labels in name order: equal sets, equal text.
+function labelSetKey(labels: Record<string, string>): string {
+  return JSON.stringify(
+    Object.keys(labels)
+      .sort()
+      .map((key: string): [string, string] => {
+        return [key, labels[key]!];
+      }),
+  );
+}
+
+/*
+ * HOW A READ ASKS FOR A METRIC ADDED FOR SEVERAL RESOURCES OF A PROJECT
+ * (#9810).
+ *
+ * Each resource is known by its identifying labels (a VM's project_id,
+ * zone and instance_id). Of the resources with the same labels, the one
+ * label with the most values among them - a VM's instance_id, a Cloud SQL
+ * database's database_id - tells them apart; the resources whose other
+ * labels are all equal share a call that asks for them as equal and for
+ * that label as one_of(...). So the batches are exact: a call asks for no
+ * resource that is not in it, and its answer maps back to each by its own
+ * labels. A batch holds at most GCP_MAX_ONE_OF_VALUES values, and no more
+ * than keeps its filter within GCP_MAX_FILTER_URL_LENGTH. A resource whose
+ * labels a filter cannot quote (isGcpFilterLabel) is asked of no call.
+ */
+export function planGcpResourceBatches(data: {
+  metricType: string;
+  resourceType: string;
+  resources: ReadonlyArray<Record<string, string>>;
+}): Array<GcpResourceBatch> {
+  const unique: Map<string, Record<string, string>> = new Map();
+
+  for (const labels of data.resources) {
+    const entries: Array<[string, string]> = Object.entries(labels || {});
+
+    if (
+      entries.length === 0 ||
+      !entries.every(([key, value]: [string, string]): boolean => {
+        return typeof value === "string" && isGcpFilterLabel(key, value);
+      })
+    ) {
+      continue;
+    }
+
+    unique.set(labelSetKey(labels), { ...labels });
+  }
+
+  // Resources known by the same labels: one plan each.
+  const byKeys: Map<string, Array<Record<string, string>>> = new Map();
+
+  for (const labels of unique.values()) {
+    const keys: string = Object.keys(labels).sort().join("|");
+    const list: Array<Record<string, string>> = byKeys.get(keys) || [];
+
+    list.push(labels);
+    byKeys.set(keys, list);
+  }
+
+  const batches: Array<GcpResourceBatch> = [];
+
+  for (const group of byKeys.values()) {
+    const keys: Array<string> = Object.keys(group[0]!).sort();
+    let pivot: string = keys[0]!;
+    let most: number = 0;
+
+    for (const key of keys) {
+      const values: number = new Set(
+        group.map((labels: Record<string, string>): string => {
+          return labels[key]!;
+        }),
+      ).size;
+
+      if (values > most) {
+        most = values;
+        pivot = key;
+      }
+    }
+
+    // The resources whose every other label is the same: one call's worth.
+    const byOthers: Map<string, Array<Record<string, string>>> = new Map();
+
+    for (const labels of group) {
+      const others: Record<string, string> = { ...labels };
+
+      delete others[pivot];
+
+      const key: string = labelSetKey(others);
+      const list: Array<Record<string, string>> = byOthers.get(key) || [];
+
+      list.push(labels);
+      byOthers.set(key, list);
+    }
+
+    for (const members of byOthers.values()) {
+      const fixed: Record<string, string> = { ...members[0]! };
+
+      delete fixed[pivot];
+
+      const sorted: Array<Record<string, string>> = [...members].sort(
+        (a: Record<string, string>, b: Record<string, string>): number => {
+          return a[pivot]! < b[pivot]! ? -1 : a[pivot]! > b[pivot]! ? 1 : 0;
+        },
+      );
+      let current: Array<Record<string, string>> = [];
+
+      const filterLength: (
+        resources: Array<Record<string, string>>,
+      ) => number = (resources: Array<Record<string, string>>): number => {
+        return GcpMonitoring.getFilterUrlLength(
+          GcpMonitoring.buildFilter({
+            metricType: data.metricType,
+            resourceType: data.resourceType,
+            resourceLabels: fixed,
+            resourceLabelIn: {
+              label: pivot,
+              values: resources.map((labels: Record<string, string>) => {
+                return labels[pivot]!;
+              }),
+            },
+          }),
+        );
+      };
+
+      const close: () => void = (): void => {
+        if (current.length === 0) {
+          return;
+        }
+
+        batches.push(
+          current.length === 1
+            ? { labels: { ...current[0]! }, resources: current }
+            : {
+                labels: fixed,
+                labelIn: {
+                  label: pivot,
+                  values: current.map(
+                    (labels: Record<string, string>): string => {
+                      return labels[pivot]!;
+                    },
+                  ),
+                },
+                resources: current,
+              },
+        );
+        current = [];
+      };
+
+      for (const labels of sorted) {
+        if (
+          current.length > 0 &&
+          (current.length >= GCP_MAX_ONE_OF_VALUES ||
+            filterLength([...current, labels]) > GCP_MAX_FILTER_URL_LENGTH)
+        ) {
+          close();
+        }
+
+        current.push(labels);
+      }
+
+      close();
+    }
+  }
+
+  return batches;
+}
+
+// Whether a series is one of `resources`: every label of one of them, its value.
+export function isGcpSeriesOfResources(
+  series: Pick<GcpTimeSeries, "resourceLabels">,
+  resources: ReadonlyArray<Record<string, string>>,
+): boolean {
+  return resources.some((labels: Record<string, string>): boolean => {
+    return Object.entries(labels).every(
+      ([key, value]: [string, string]): boolean => {
+        return series.resourceLabels[key] === value;
+      },
+    );
+  });
 }
 
 /*
  * WHICH ADDED METRICS A READ ASKS ONE PROJECT FOR.
  *
  * A type's addition of every project that reported a resource of the type
- * lately (`seenResourceTypes`); a resource's own of the project it is in.
- * Each is one call, narrowed to the type's series (resource.type) and, for
- * a resource's own, to its own series (its identifying labels): Cloud
- * Monitoring bills a call by the series it returns, so a narrowed call
- * costs one series. A metric that is a key metric of the type is read as
- * one already, and is not asked again.
+ * lately (`seenResourceTypes`); resources' own of the project they are in.
+ * A type's is one call, narrowed to the type's series (resource.type). The
+ * resources' own of one metric type are asked together, in as few calls as
+ * their labels allow (planGcpResourceBatches, #9810): each call narrowed to
+ * its resources' own series, so Cloud Monitoring, which bills a call by the
+ * series it returns, bills what one call per resource would, and the
+ * project's per-minute read quota is spent once per batch, not once per
+ * resource. Not at all where a type's addition of the same reads them
+ * already. A metric that is a key metric of the type is read as one
+ * already, and is not asked again.
  */
 export function getGcpAddedMetricsToAsk(data: {
   added: ReadonlyArray<CloudAddedMetric>;
@@ -323,6 +531,35 @@ export function getGcpAddedMetricsToAsk(data: {
     }),
   );
   const asks: Array<GcpAddedMetricAsk> = [];
+  // What a type's addition reads already: "<type>\n<metric type>\n<aligner>".
+  const typeWide: Set<string> = new Set<string>();
+  // The resources' own, by what one call can read them with.
+  const owned: Map<
+    string,
+    { metric: GcpReadMetric; resources: Array<Record<string, string>> }
+  > = new Map();
+
+  const toReadMetric: (added: CloudAddedMetric) => GcpReadMetric = (
+    added: CloudAddedMetric,
+  ): GcpReadMetric => {
+    return {
+      metricType: added.name,
+      aligner: added.aggregation as GcpAligner,
+      unit: added.unit,
+      // Never shown: a resource's page lists an added metric on its own.
+      group: CloudKeyMetricGroup.Traffic,
+      resourceType: added.resourceType,
+      resourceTypes: [added.resourceType],
+      storedName: added.name,
+      isRetired: false,
+    };
+  };
+
+  const callKey: (added: CloudAddedMetric) => string = (
+    added: CloudAddedMetric,
+  ): string => {
+    return [added.resourceType, added.name, added.aggregation].join("\n");
+  };
 
   for (const added of data.added) {
     if (
@@ -332,32 +569,59 @@ export function getGcpAddedMetricsToAsk(data: {
       continue;
     }
 
-    const isTypeWide: boolean = added.scope === CloudAddedMetricScope.Type;
+    if (added.scope === CloudAddedMetricScope.Type) {
+      if (
+        !data.seenResourceTypes.has(added.resourceType) ||
+        typeWide.has(callKey(added))
+      ) {
+        continue;
+      }
+
+      typeWide.add(callKey(added));
+      asks.push({
+        metric: toReadMetric(added),
+        resourceType: added.resourceType,
+      });
+      continue;
+    }
 
     if (
-      isTypeWide
-        ? !data.seenResourceTypes.has(added.resourceType)
-        : added.accountId !== data.projectId ||
-          Object.keys(added.resourceLabels || {}).length === 0
+      added.accountId !== data.projectId ||
+      Object.keys(added.resourceLabels || {}).length === 0
     ) {
       continue;
     }
 
-    asks.push({
-      metric: {
-        metricType: added.name,
-        aligner: added.aggregation as GcpAligner,
-        unit: added.unit,
-        // Never shown: a resource's page lists an added metric on its own.
-        group: CloudKeyMetricGroup.Traffic,
-        resourceType: added.resourceType,
-        resourceTypes: [added.resourceType],
-        storedName: added.name,
-        isRetired: false,
-      },
-      resourceType: added.resourceType,
-      ...(isTypeWide ? {} : { resourceLabels: added.resourceLabels }),
-    });
+    const entry: {
+      metric: GcpReadMetric;
+      resources: Array<Record<string, string>>;
+    } = owned.get(callKey(added)) || {
+      metric: toReadMetric(added),
+      resources: [],
+    };
+
+    entry.resources.push(added.resourceLabels!);
+    owned.set(callKey(added), entry);
+  }
+
+  for (const [key, entry] of owned) {
+    if (typeWide.has(key)) {
+      continue;
+    }
+
+    for (const batch of planGcpResourceBatches({
+      metricType: entry.metric.metricType,
+      resourceType: entry.metric.resourceType,
+      resources: entry.resources,
+    })) {
+      asks.push({
+        metric: entry.metric,
+        resourceType: entry.metric.resourceType,
+        resourceLabels: batch.labels,
+        ...(batch.labelIn ? { resourceLabelIn: batch.labelIn } : {}),
+        resources: batch.resources,
+      });
+    }
   }
 
   return asks;
@@ -1741,18 +2005,33 @@ export default class GcpCloudConnector implements CloudConnector {
             asks,
             CONCURRENCY,
             async (item: GcpAsk): Promise<Array<GcpTimeSeries>> => {
-              return await monitoring.listTimeSeries({
-                projectId: item.projectId,
-                metricType: item.metric.metricType,
-                aligner: item.metric.aligner,
-                alignmentPeriodSeconds: GCP_ALIGNMENT_PERIOD_SECONDS,
-                start: window.start,
-                end: window.end,
-                metricLabels: item.metric.metricLabels,
-                readAs: item.metric.readAs,
-                resourceType: item.added?.resourceType,
-                resourceLabels: item.added?.resourceLabels,
-              });
+              const series: Array<GcpTimeSeries> =
+                await monitoring.listTimeSeries({
+                  projectId: item.projectId,
+                  metricType: item.metric.metricType,
+                  aligner: item.metric.aligner,
+                  alignmentPeriodSeconds: GCP_ALIGNMENT_PERIOD_SECONDS,
+                  start: window.start,
+                  end: window.end,
+                  metricLabels: item.metric.metricLabels,
+                  readAs: item.metric.readAs,
+                  resourceType: item.added?.resourceType,
+                  resourceLabels: item.added?.resourceLabels,
+                  resourceLabelIn: item.added?.resourceLabelIn,
+                });
+              const resources: Array<Record<string, string>> | undefined =
+                item.added?.resources;
+
+              /*
+               * A batch's answer, each series filed under the resource
+               * whose labels it carries: a series of a resource the batch
+               * did not ask for is never written (#9810).
+               */
+              return resources
+                ? series.filter((entry: GcpTimeSeries): boolean => {
+                    return isGcpSeriesOfResources(entry, resources);
+                  })
+                : series;
             },
           ),
         };
