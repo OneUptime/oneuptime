@@ -128,6 +128,16 @@ export interface ResourceAttentionItem {
   events?: Array<ResourceAttentionEvent> | undefined;
 }
 
+/*
+ * The item that is the part whose page this is, and how its row names it
+ * (English, looked up in the reader's language): "This node". Its hero
+ * above already names it, and a step to its page would go nowhere.
+ */
+export interface ResourceAttentionCurrent {
+  key: string;
+  label: string;
+}
+
 export interface ResourceAttentionCounts {
   critical: number;
   warning: number;
