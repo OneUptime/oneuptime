@@ -667,6 +667,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{name}} (monitor: {{monitor}})",
+    "{{online}} online, {{offline}} offline",
     "{{online}}/{{count}} node online",
     "{{rate}}/min",
     "{{rate}}/s",

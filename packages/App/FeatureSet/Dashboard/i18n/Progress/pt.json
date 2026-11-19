@@ -558,6 +558,7 @@
     "{{minutes}} min",
     "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
+    "{{online}} online, {{offline}} offline",
     "{{rate}}/min",
     "{{rate}}/s",
     "{{tokens}} tokens",
