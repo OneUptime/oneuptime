@@ -202,7 +202,7 @@ Een backfill of een migratie hoort niemand op te roepen. Noem de database onder 
 
 ## Eigenaren en labels
 
-Het tabblad **Eigenaren** van een tabel noemt de mensen en teams van wie hij is, en een waarschuwing van de tabel gaat naar hen; zonder eigenaren naar de eigenaren van de database. **Eigenaarsregels** en **Labelregels** gelden voor elke tabel zodra die voor het eerst verschijnt, op basis van de labels, of van een reguliere expressie op de naam, het schema of de database. Een bevoegdheid die beperkt is tot \`Owned\` reikt alleen tot de tabellen van de houder of diens teams, met hun controles, activiteit en gemelde problemen. Wie een database bezit, is daarmee nog geen eigenaar van de tabellen: gebruik een eigenaarsregel om een team een hele database te geven.
+Het tabblad **Eigenaren** van een tabel noemt de mensen en teams van wie hij is, en een waarschuwing van de tabel gaat naar hen; zonder eigenaren naar de eigenaren van de database. **Eigenaarsregels** en **Labelregels** gelden voor elke tabel zodra die voor het eerst verschijnt, op basis van de labels, of van een reguliere expressie op de naam, het schema of de database. Een bevoegdheid die beperkt is tot \`Owned\` reikt alleen tot de tabellen van de houder of diens teams, met hun controles, activiteit en gemelde problemen. Wie een database bezit, is daarmee nog geen eigenaar van de tabellen: gebruik een eigenaarsregel om een team een hele database te geven. Op hun tabblad **Pipelineregels** benoemen eigenaarsregels ook de eigenaren van een pipeline, via een reguliere expressie op zijn naam of zijn naamruimte, wanneer OneUptime de pipeline voor het eerst ziet.
 
 ## Wanneer een waarschuwing opent
 
@@ -322,6 +322,8 @@ Ze lezen deze metrics, elk voorzien van \`oneuptime.data.pipeline.id\` en \`oneu
 - \`oneuptime.data.pipeline.overdue_seconds\`: hoe lang de volgende run over zijn schema heen is, elke vijf minuten; 0 zolang hij op tijd is.
 
 De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken wanneer een run mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, en hoe elke tabel er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat uit hen is opgebouwd; een aantal niet getekende tabellen, op de kaart van de pipeline of van een tabel, tekent er meer van ter plekke. Dezelfde herkomst staat op \`POST /api/data-observability/pipelines/lineage\`, voor uw eigen tools. Kies een van de kolommen die ze schrijft om die over de pipeline heen te volgen: omhoog naar de kolom van elke gelezen tabel waaruit die is gebouwd, en omlaag naar elke tabel waarin ze die schrijft. Stuur voor uw eigen tools \`"withColumns": true\` voor de kolommen die de runs ervan hebben verplaatst.
+
+De pagina **Circuit breaker** van een pipeline zet een stap op die, voordat de pipeline draait, vraagt of de tabellen die hij leest in orde zijn: een mislukte controle stopt de run, en een te late tabel ook zolang **Stoppen wanneer een tabel die hij leest te laat is** aanstaat. Een gestopte pipeline staat onder **Aandacht nodig** tot de circuit breaker weer go zegt of er een run begint.
 
 
 

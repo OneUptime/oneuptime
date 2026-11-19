@@ -202,7 +202,7 @@ En backfill eller en migrering ska inte larma någon. Ange databasen under **Dat
 
 ## Ägare och etiketter
 
-En tabells flik **Ägare** anger de personer och team som den tillhör, och tabellens larm går till dem; utan ägare till ägarna av dess databas. **Ägarregler** och **Etikettregler** gäller för varje tabell så fort den dyker upp första gången, utifrån dess etiketter, eller ett reguljärt uttryck på dess namn, schema eller databas. En behörighet som är begränsad till \`Owned\` når bara de tabeller som dess innehavare eller deras team äger, med deras kontroller, aktivitet och rapporterade problem. Att äga en databas gör inte någon till ägare av dess tabeller: använd en ägarregel för att ge ett team en hel databas.
+En tabells flik **Ägare** anger de personer och team som den tillhör, och tabellens larm går till dem; utan ägare till ägarna av dess databas. **Ägarregler** och **Etikettregler** gäller för varje tabell så fort den dyker upp första gången, utifrån dess etiketter, eller ett reguljärt uttryck på dess namn, schema eller databas. En behörighet som är begränsad till \`Owned\` når bara de tabeller som dess innehavare eller deras team äger, med deras kontroller, aktivitet och rapporterade problem. Att äga en databas gör inte någon till ägare av dess tabeller: använd en ägarregel för att ge ett team en hel databas. På fliken **Pipelineregler** namnger ägarregler också en pipelines ägare, matchade med ett reguljärt uttryck mot dess namn eller namnrymd, när OneUptime ser pipelinen för första gången.
 
 ## När ett larm öppnas
 
@@ -322,6 +322,8 @@ De läser dessa mätvärden, vart och ett märkt med \`oneuptime.data.pipeline.i
 - \`oneuptime.data.pipeline.overdue_seconds\`: hur länge nästa körning är förbi sitt schema, var femte minut; 0 så länge den är i tid.
 
 En pipelines sida ritar dess **Härkomst**, det första stället att titta på när en körning misslyckas eller är sen: de tabeller den läser till vänster, de tabeller den skriver till höger, och hur var och en står till nu. Välj fler steg för att se vad de tabellerna byggs av och vad som byggs av dem; ett antal tabeller som inte ritats, på pipelinens kort eller en tabells, ritar fler av dem på plats. Samma härkomst finns på \`POST /api/data-observability/pipelines/lineage\`, för dina egna verktyg. Välj en av kolumnerna den skriver för att följa den genom pipelinen: upp till kolumnen i varje läst tabell som den byggs från, och ner till varje tabell den skriver den till. Skicka \`"withColumns": true\` för kolumnerna som dess körningar flyttade, för dina egna verktyg.
+
+En pipelines sida **Kretsbrytare** sätter upp ett steg som innan pipelinen körs frågar om tabellerna den läser mår bra: en kontroll som misslyckas stoppar körningen, och en sen tabell också så länge **Stoppa när en tabell som den läser är sen** är påslagen. En stoppad pipeline listas under **Kräver åtgärd** tills kretsbrytaren säger go igen eller en körning startar.
 
 
 

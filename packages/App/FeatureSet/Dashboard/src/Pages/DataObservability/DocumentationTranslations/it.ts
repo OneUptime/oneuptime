@@ -202,7 +202,7 @@ Un backfill o una migrazione non dovrebbe avvisare nessuno. Indica il database i
 
 ## Proprietari ed etichette
 
-La scheda **Proprietari** di una tabella indica le persone e i team a cui appartiene, e gli avvisi della tabella vanno a loro; se non ne ha, ai proprietari del suo database. Le **Regole del proprietario** e le **Regole etichette** si applicano a ogni tabella appena compare, in base alle sue etichette o a un'espressione regolare sul suo nome, sul suo schema o sul suo database. Un'autorizzazione limitata a \`Owned\` raggiunge solo le tabelle che il suo titolare o i suoi team possiedono, con i loro controlli, la loro attività e i problemi segnalati. Possedere un database non rende qualcuno proprietario delle sue tabelle: usa una regola del proprietario per dare a un team un intero database.
+La scheda **Proprietari** di una tabella indica le persone e i team a cui appartiene, e gli avvisi della tabella vanno a loro; se non ne ha, ai proprietari del suo database. Le **Regole del proprietario** e le **Regole etichette** si applicano a ogni tabella appena compare, in base alle sue etichette o a un'espressione regolare sul suo nome, sul suo schema o sul suo database. Un'autorizzazione limitata a \`Owned\` raggiunge solo le tabelle che il suo titolare o i suoi team possiedono, con i loro controlli, la loro attività e i problemi segnalati. Possedere un database non rende qualcuno proprietario delle sue tabelle: usa una regola del proprietario per dare a un team un intero database. Nella loro scheda **Regole pipeline**, le regole del proprietario indicano anche i proprietari di una pipeline, con un'espressione regolare sul suo nome o sul suo namespace, quando OneUptime vede la pipeline per la prima volta.
 
 ## Quando si apre un avviso
 
@@ -322,6 +322,8 @@ Leggono queste metriche, ciascuna etichettata con \`oneuptime.data.pipeline.id\`
 - \`oneuptime.data.pipeline.overdue_seconds\`: di quanto la prossima esecuzione è oltre la sua pianificazione, ogni cinque minuti; 0 finché è puntuale.
 
 La pagina di una pipeline disegna la sua **Derivazione**, il primo posto in cui guardare quando un'esecuzione non riesce o è in ritardo: a sinistra le tabelle che legge, a destra le tabelle che scrive, e come sta ciascuna adesso. Scegli più passi per vedere da cosa sono costruite quelle tabelle e cosa è costruito da esse; un conteggio di tabelle non disegnate, sulla scheda della pipeline o di una tabella, ne disegna altre sul posto. La stessa derivazione è disponibile su \`POST /api/data-observability/pipelines/lineage\`, per i tuoi strumenti. Scegli una delle colonne che scrive per seguirla attraverso la pipeline: a monte fino alla colonna di ogni tabella letta da cui è stata costruita, e a valle fino a ogni tabella in cui la scrive. Per i tuoi strumenti, invia \`"withColumns": true\` per le colonne che le sue esecuzioni hanno spostato.
+
+La pagina **Circuit breaker** di una pipeline prepara un passaggio che chiede, prima che la pipeline venga eseguita, se le tabelle che legge sono in salute: un controllo in errore ferma l'esecuzione, e anche una tabella in ritardo finché **Ferma quando una tabella che legge è in ritardo** è attivo. Una pipeline fermata compare in **Da gestire** finché il circuit breaker non risponde di nuovo go o non inizia un'esecuzione.
 
 
 

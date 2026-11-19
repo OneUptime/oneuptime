@@ -140,7 +140,72 @@ Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina k
 
 Fliken **Ägare** för en pipeline nämner de personer och team som tar hand om den, och dess larm går till dem. **Översikt** och **Problem** nämner ägarna till en pipeline som misslyckades eller är sen, eller visar **Ingen ägare**, med ett sätt att lägga till en.
 
+**Ägarregler** kan namnge en pipelines ägare åt dig. På fliken **Pipelineregler** matchar en regel en pipeline med ett reguljärt uttryck mot dess namn, som `orders_daily.load_orders`, eller mot dess namnrymd, där den körs, som `airflow://prod`, och lägger till sina personer och team som pipelinens ägare när OneUptime ser pipelinen för första gången. Öppna regeln och välj **Kör nu** för att lägga till dem i de pipelines du redan har.
+
 En pipelines sida har kortet **Härkomst**, det första stället att titta på när en körning misslyckas eller är försenad: till vänster de tabeller den läser, till höger de tabeller den skriver, pipelinen däremellan, och varje kort visar hur det står till nu. Välj fler steg för att se vad tabellerna byggs av och vad som byggs av dem, och öppna valfri tabell för att se dess egen flik **Härkomst**. Ett tal för tabeller som inte är ritade, på pipelinens kort eller en tabells, ritar fler av dem på plats här också. Välj en av kolumnerna den skriver för att följa den genom pipelinen: upp till kolumnen i varje läst tabell som den byggs från, och ner till varje tabell den skriver den till.
+
+## Kretsbrytare
+
+En kontroll som misslyckas eller en sen tabell meddelar sina ägare, men pipelinerna som läser tabellen skulle ändå köras och kopiera de dåliga data vidare nedströms. En kretsbrytare stoppar dem först: pipelinens första steg frågar OneUptime om tabellerna den läser mår bra, och resten körs bara när svaret är go.
+
+- En kontroll som misslyckas för en tabell som pipelinen läser stoppar den alltid: en kontroll vars larm är öppet, eller ett dbt-test som misslyckades.
+- En sen tabell stoppar den också så snart **Stoppa när en tabell som den läser är sen** är påslagen på pipelinens sida **Kretsbrytare**. Den är avslagen för alla pipelines, eftersom en sen tabell också bara kan betyda en lugn dag.
+- En kontroll som inte kunde köras eller inte har körts ännu, och en tabell utan kontroller, stoppar ingenting.
+
+Steget frågar med en projekt-API-nyckel som får läsa Dataobserverbarhet, och namnger pipelinen som `namespace/name`, bara med namnet eller med dess ID. Kretsbrytaren läser tabellerna som pipelinen läser ur dess härkomst. En förfrågan kan också namnge `tables`, eller bara dem, var och en som `schema.table`, bara med namnet eller med dess ID; ett namn som inte matchar någon tabell kommer tillbaka i `notFound`, och räknas aldrig som en tabell som klarade sig. Bara de tabeller som API-nyckeln får läsa bedöms.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Svarets `verdict` är `go` eller `stop`. `reasons` listar varje kontroll som misslyckas med sin tabell, och varje sen tabell med hur sen den är; `tables` listar varje bedömd tabell; och `answer` säger samma sak med några meningar, för stegets logg. Med `failWithStatusCode` svarar ett stopp med HTTP 412, så `curl -f` får steget att misslyckas. Skicka `stopsOnLateTables` som `true` eller `false` för att bestämma för en enda förfrågan, och `dryRun` som `true` för att fråga utan att svaret sparas.
+
+Lägg i Airflow en `ShortCircuitOperator` före uppgifterna som läser tabellerna: när dess funktion returnerar false hoppas varje uppgift efter den över.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt:s `on-run-start`-hooks kör SQL i ditt warehouse, inte webbförfrågningar, så fråga i steget som startar dbt: ett CI-jobb, en cron-rad eller uppgiften som kör det. Ett dbt-projekts pipeline heter `dbt/` följt av projektets namn.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+En förfrågan som namnger en pipeline sparas på den, om det inte är en provkörning. Så länge kretsbrytaren har stoppat en pipeline säger dess sida **Kretsbrytare** sedan när och varför, dess **Översikt** öppnas med stoppet, och **Kräver åtgärd** och **Problem** listar den som stoppad i stället för dess misslyckade eller sena körning. Stoppet upphör när kretsbrytaren nästa gång svarar go, eller när en körning startar efter det. Samma sida har **Testa nu**, som frågar kretsbrytaren utan att svaret sparas, och steget för curl, Airflow och dbt med pipelinens namn ifyllt.
+
+Så länge Dataobserverbarhet är avstängd på servern svarar kretsbrytaren go och sparar ingenting: att stänga av en produkt stoppar aldrig en pipeline.
 
 ## Ett larm per orsak
 

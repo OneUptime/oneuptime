@@ -19,6 +19,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { DataCircuitBreakerReason } from "../../Types/DataObservability/DataCircuitBreaker";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -393,6 +394,90 @@ export default class DataPipeline extends BaseModel {
     nullable: true,
   })
   public lateAt?: Date = undefined;
+
+  /*
+   * THE PIPELINE'S CIRCUIT BREAKER (#6548): a step of the pipeline asks
+   * whether the tables it reads are healthy before it runs
+   * (DataCircuitBreaker). A failing check always stops it; a late table
+   * stops it only when this says so - off by default, as a late table may
+   * only mean a quiet day.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    title: "Circuit Breaker Stops on Late Tables",
+    description:
+      "Whether the pipeline's circuit breaker also stops a run when a table it reads is late. A failing check always stops it.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public circuitBreakerStopsOnLateTables?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    title: "Circuit Breaker Checked At",
+    description:
+      "When the pipeline's circuit breaker was last asked whether it may run.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public circuitBreakerCheckedAt?: Date = undefined;
+
+  /*
+   * Set while the pipeline's circuit breaker has stopped it: cleared when
+   * the breaker next says go, or when a run starts after the stop.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    title: "Circuit Breaker Stopped At",
+    description:
+      "When the pipeline's circuit breaker stopped a run because a table it reads failed a check or was late. Empty once it says go again, or a run starts after it.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public circuitBreakerStoppedAt?: Date = undefined;
+
+  /*
+   * Why the breaker stopped the pipeline: each failing check and late
+   * table, by name (DataCircuitBreakerReason). Never read through the
+   * pipeline's own API: it names tables, and a reader of the pipeline may
+   * not read every table it reads, so it is read through Data
+   * Observability's route, narrowed to the tables its reader may read.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Circuit Breaker Reasons",
+    description:
+      "Why the pipeline's circuit breaker last stopped it: each failing check and late table it found.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public circuitBreakerReasons?: Array<DataCircuitBreakerReason> = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

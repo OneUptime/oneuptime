@@ -1076,6 +1076,8 @@ import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "./18091848
 import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "./1809184840000-AddIncidentCallTranscriptSignInIndexes";
 import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";
 import { AddKubernetesVolumeClaimUsage1809184859539 } from "./1809184859539-AddKubernetesVolumeClaimUsage";
+import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataPipelineOwnerRules";
+import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
 
 export default [
   InitialMigration,
@@ -2156,4 +2158,6 @@ export default [
   AddIncidentCallTranscriptSignInIndexes1809184840000,
   AddDataSecurityComplianceSettings1809184850000,
   AddKubernetesVolumeClaimUsage1809184859539,
+  AddDataPipelineOwnerRules1809184860000,
+  AddDataPipelineCircuitBreaker1809184870000,
 ];
