@@ -4,10 +4,12 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS } from "../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import {
-  SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+  SECURITY_DETECTION_MATCHED_EVENTS_FULL_SHARE,
   SecurityDetectionMatchedEvent,
   SecurityDetectionMatchedEvents,
+  SecurityDetectionMatchedEventsShare,
   buildSecurityDetectionMatchedEvent,
+  getSecurityDetectionMatchedEventsShare,
   keepSecurityDetectionMatchedEvents,
 } from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import SecurityEventService from "../../Services/SecurityEventService";
@@ -24,14 +26,18 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * its bounds. Before its detections go to their cases (SecurityCaseIngest),
  * it reads the events behind each group it opens through here, so the case
  * keeps them (Types/SecurityCase/SecurityDetectionMatchedEvents): the
- * earliest SECURITY_DETECTION_MATCHED_EVENTS_MAX of each group, and how far
- * the requests of all of them got.
+ * earliest of each group, as many as its share of what one firing keeps
+ * (getSecurityDetectionMatchedEventsShare: a detection's 25 while 40 groups
+ * or fewer fire, 10 at a run's 100), and how far the requests of all of
+ * them got.
  *
  * Two bounded reads for all the groups of a run, whatever their number -
- * the events, at most that many of each group (LIMIT n BY), and their
- * request outcomes, counted by group - each held to a time limit. A read
- * that fails keeps nothing: the detection is recorded as it always was, and
- * its case reads its events again when it is viewed. Never throws.
+ * the events, at most a group's share of each group (LIMIT n BY), and their
+ * request outcomes, counted by group - each held to a time limit. A
+ * correlation's groups are read the same way, by its own group-by (#9795):
+ * one read for every group it fires for, never one per group. A read that
+ * fails keeps nothing: the detection is recorded as it always was, and its
+ * case reads its events again when it is viewed. Never throws.
  *
  * As OneUptime, not as a person: what is kept is checked against each
  * reader's access when a case shows it.
@@ -188,13 +194,17 @@ export function buildMatchedOutcomesStatement(
 
 /*
  * The two reads' rows, as what each group keeps: its events (each as a
- * detection keeps one, the earliest first, within the bounds) and its
- * request outcomes. A group with neither is left out.
+ * detection keeps one, the earliest first, within the group's share of the
+ * firing - a detection's whole bound when none is given) and its request
+ * outcomes. A group with neither is left out.
  */
 export function readMatchedEventsRows(data: {
   eventRows: Array<JSONObject>;
   outcomeRows: Array<JSONObject>;
+  share?: SecurityDetectionMatchedEventsShare | undefined;
 }): Map<string, SecurityDetectionMatchedEvents> {
+  const share: SecurityDetectionMatchedEventsShare =
+    data.share || SECURITY_DETECTION_MATCHED_EVENTS_FULL_SHARE;
   const events: Map<string, Array<SecurityDetectionMatchedEvent>> = new Map();
   const outcomes: Map<string, Record<string, number>> = new Map();
 
@@ -209,7 +219,7 @@ export function readMatchedEventsRows(data: {
 
     const list: Array<SecurityDetectionMatchedEvent> = events.get(group) || [];
 
-    if (list.length < SECURITY_DETECTION_MATCHED_EVENTS_MAX) {
+    if (list.length < share.maxEvents) {
       list.push(event);
     }
 
@@ -242,11 +252,26 @@ export function readMatchedEventsRows(data: {
           events: events.get(group) || [],
           outcomes: outcomes.get(group) || {},
         },
+        share,
       }),
     );
   }
 
   return kept;
+}
+
+/*
+ * How many groups a read keeps events for: the ones it names, once each, or
+ * the one group of a source that does not group.
+ */
+export function getMatchedEventsReadGroupCount(
+  read: MatchedEventsRead,
+): number {
+  if (!read.groupExpression && !read.groupByObservable) {
+    return 1;
+  }
+
+  return new Set<string>(read.groupValues).size;
 }
 
 /*
@@ -299,19 +324,25 @@ export default class SecurityDetectionMatchedEventsReader {
       return new Map();
     }
 
+    // Each group's equal share of what the firing keeps, however many fire.
+    const share: SecurityDetectionMatchedEventsShare =
+      getSecurityDetectionMatchedEventsShare(
+        getMatchedEventsReadGroupCount(read),
+      );
+
     try {
       const [eventRows, outcomeRows]: [Array<JSONObject>, Array<JSONObject>] =
         await Promise.all([
           readRows(
             buildMatchedEventsStatement({
               read,
-              limitPerGroup: SECURITY_DETECTION_MATCHED_EVENTS_MAX,
+              limitPerGroup: share.maxEvents,
             }),
           ),
           readRows(buildMatchedOutcomesStatement(read)),
         ]);
 
-      return readMatchedEventsRows({ eventRows, outcomeRows });
+      return readMatchedEventsRows({ eventRows, outcomeRows, share });
     } catch (error) {
       logger.warn(
         `SecurityDetectionMatchedEventsReader: the events of project ${read.projectId.toString()}'s firing could not be read to keep; its detections keep none: ${error}`,
