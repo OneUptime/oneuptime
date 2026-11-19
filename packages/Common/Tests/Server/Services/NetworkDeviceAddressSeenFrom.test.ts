@@ -3,6 +3,8 @@ import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import ObjectID from "../../../Types/ObjectID";
+import FindBy from "../../../Server/Types/Database/FindBy";
+import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import {
   ProbeReach,
   WhenReachUnknown,
@@ -68,6 +70,14 @@ let findBySpy: jest.SpyInstance;
 let findOneBySpy: jest.SpyInstance;
 let siteFindOneBySpy: jest.SpyInstance;
 let defaultProbeSpy: jest.SpyInstance;
+
+// The columns of a read's query these fakes look at.
+interface QueryRead {
+  projectId?: unknown;
+  hostname?: unknown;
+  probeId?: unknown;
+  siteId?: unknown;
+}
 
 // The values of a QueryHelper.any condition: a Raw carrying its parameters.
 function valuesOf(condition: unknown): Array<string> {
@@ -138,10 +148,9 @@ beforeEach(() => {
   findBySpy = jest
     .spyOn(NetworkDeviceService, "findBy")
     .mockImplementation(
-      async (data: {
-        query: { hostname: unknown };
-      }): Promise<Array<NetworkDevice>> => {
-        const wanted: Array<string> = valuesOf(data.query.hostname);
+      async (data: FindBy<NetworkDevice>): Promise<Array<NetworkDevice>> => {
+        const query: QueryRead = data.query as QueryRead;
+        const wanted: Array<string> = valuesOf(query.hostname);
 
         return devices
           .filter((device: FakeDevice): boolean => {
@@ -155,18 +164,17 @@ beforeEach(() => {
   findOneBySpy = jest
     .spyOn(NetworkDeviceService, "findOneBy")
     .mockImplementation(
-      async (data: {
-        query: { projectId: ObjectID; probeId: unknown; siteId?: unknown };
-      }): Promise<NetworkDevice | null> => {
-        expect(data.query.projectId).toEqual(PROJECT_ID);
-        const probeIds: Array<string> = valuesOf(data.query.probeId);
+      async (data: FindOneBy<NetworkDevice>): Promise<NetworkDevice | null> => {
+        const query: QueryRead = data.query as QueryRead;
+        expect(query.projectId).toEqual(PROJECT_ID);
+        const probeIds: Array<string> = valuesOf(query.probeId);
 
         const found: FakeDevice | undefined = devices.find(
           (device: FakeDevice): boolean => {
             return (
               Boolean(device.probeId) &&
               probeIds.includes(device.probeId!) &&
-              siteMatches(device, data.query.siteId)
+              siteMatches(device, query.siteId)
             );
           },
         );
@@ -179,11 +187,10 @@ beforeEach(() => {
   siteFindOneBySpy = jest
     .spyOn(NetworkSiteService, "findOneBy")
     .mockImplementation(
-      async (data: {
-        query: { projectId: ObjectID; probeId: unknown };
-      }): Promise<NetworkSite | null> => {
-        expect(data.query.projectId).toEqual(PROJECT_ID);
-        const probeIds: Array<string> = valuesOf(data.query.probeId);
+      async (data: FindOneBy<NetworkSite>): Promise<NetworkSite | null> => {
+        const query: QueryRead = data.query as QueryRead;
+        expect(query.projectId).toEqual(PROJECT_ID);
+        const probeIds: Array<string> = valuesOf(query.probeId);
 
         const found: FakeSite | undefined = sites.find(
           (site: FakeSite): boolean => {
