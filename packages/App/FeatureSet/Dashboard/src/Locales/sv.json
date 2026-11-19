@@ -57715,5 +57715,19 @@
   "{{measure}} (budget {{duration}})": "{{measure}} (budget: {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} avbruten {{path}}",
   "{{method}} failed {{path}}": "{{method}} misslyckades {{path}}",
-  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "Du har bett OneUptime AI att försöka igen för många gånger de senaste minuterna. Vänta några minuter och försök sedan igen."
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "Du har bett OneUptime AI att försöka igen för många gånger de senaste minuterna. Vänta några minuter och försök sedan igen.",
+  "Jump to newest": "Gå till senaste",
+  "Not tried again: {{reason}}": "Inte försökt igen: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "OneUptime AI arbetar redan med en annan åtgärd för samma problem. Vänta tills den är klar och försök sedan igen om det fortfarande behövs.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "OneUptime AI kan redan ha pushat en gren eller öppnat en pull-förfrågan för den här uppgiften, så den startar den inte igen: Det kan öppna en till. Svara i stället med vad du vill att AI ska göra.",
+  "Only a turn that failed or was stopped can be tried again.": "Bara en tur som misslyckades eller stoppades kan försökas igen.",
+  "Show earlier turns": "Visa tidigare turer",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "Undantaget som åtgärden gällde finns inte längre, så OneUptime AI kan inte åtgärda det igen.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "Det här undantaget är arkiverat, så OneUptime AI åtgärdar det inte igen. Avarkivera det först och försök sedan igen.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "Det här undantaget är löst, så OneUptime AI åtgärdar det inte igen. Återöppna det först och försök sedan igen.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "Den här åtgärden kom från en utredning som inte längre är den senaste. Starta i stället en åtgärd från den senaste utredningen.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Den här turen begärdes inte i Code, så den kan inte begäras igen. Svara i stället med vad du vill att AI ska göra.",
+  "{{count}} tasks could not be tried again: each says why below.": "{{count}} uppgifter kunde inte försökas igen: Var och en säger varför nedan.",
+  "{{count}} tasks could not be tried again: each says why below._one": "{{count}} uppgift kunde inte försökas igen: Den säger varför nedan.",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} bad OneUptime AI att försöka igen."
 }

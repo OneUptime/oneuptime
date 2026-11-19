@@ -57715,5 +57715,19 @@
   "{{measure}} (budget {{duration}})": "{{measure}} (presupuesto {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} cancelada {{path}}",
   "{{method}} failed {{path}}": "{{method}} fallida {{path}}",
-  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "Has pedido a OneUptime AI que vuelva a intentarlo demasiadas veces en los últimos minutos. Espera unos minutos y vuelve a intentarlo."
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "Has pedido a OneUptime AI que vuelva a intentarlo demasiadas veces en los últimos minutos. Espera unos minutos y vuelve a intentarlo.",
+  "Jump to newest": "Ir a lo más reciente",
+  "Not tried again: {{reason}}": "No se reintentó: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "OneUptime AI ya está trabajando en otra corrección del mismo problema. Espera a que termine y vuelve a intentarlo si aún lo necesitas.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "Es posible que OneUptime AI ya haya subido una rama o abierto una solicitud de extracción para esta tarea, así que no la vuelve a iniciar: podría abrir una segunda. Responde con lo que quieres que haga la IA.",
+  "Only a turn that failed or was stopped can be tried again.": "Solo se puede reintentar un turno que falló o se detuvo.",
+  "Show earlier turns": "Mostrar turnos anteriores",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "La excepción para la que era esta corrección ya no existe, así que OneUptime AI no puede volver a corregirla.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "Esta excepción está archivada, así que OneUptime AI no vuelve a corregirla. Desarchívala primero y vuelve a intentarlo.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "Esta excepción está resuelta, así que OneUptime AI no vuelve a corregirla. Reábrela primero y vuelve a intentarlo.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "Esta corrección viene de una investigación que ya no es la más reciente. Inicia una corrección desde la última investigación.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Este turno no se pidió en Code, así que no se puede volver a pedir. Responde con lo que quieres que haga la IA.",
+  "{{count}} tasks could not be tried again: each says why below.": "No se pudieron reintentar {{count}} tareas: cada una dice por qué abajo.",
+  "{{count}} tasks could not be tried again: each says why below._one": "No se pudo reintentar {{count}} tarea: dice por qué abajo.",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} pidió a OneUptime AI que lo volviera a intentar."
 }

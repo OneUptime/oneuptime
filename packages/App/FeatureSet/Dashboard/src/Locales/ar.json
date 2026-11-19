@@ -57715,5 +57715,19 @@
   "{{measure}} (budget {{duration}})": "{{measure}} (الميزانية {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} أُلغي {{path}}",
   "{{method}} failed {{path}}": "{{method}} فشل {{path}}",
-  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "طلبت من OneUptime AI المحاولة من جديد مرات كثيرة جدًا خلال الدقائق القليلة الماضية. انتظر بضع دقائق، ثم حاول مرة أخرى."
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "طلبت من OneUptime AI المحاولة من جديد مرات كثيرة جدًا خلال الدقائق القليلة الماضية. انتظر بضع دقائق، ثم حاول مرة أخرى.",
+  "Jump to newest": "الانتقال إلى الأحدث",
+  "Not tried again: {{reason}}": "لم تُعَد محاولتها: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "يعمل OneUptime AI بالفعل على إصلاح آخر للمشكلة نفسها. انتظر حتى ينتهي، ثم حاول مرة أخرى إن كنت لا تزال بحاجة إلى ذلك.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "ربما يكون OneUptime AI قد دفع فرعًا أو فتح طلب سحب لهذه المهمة بالفعل، لذا لا يبدؤها من جديد: فقد يفتح ذلك طلبًا ثانيًا. بدلًا من ذلك، ردّ بما تريد أن يفعله الذكاء الاصطناعي.",
+  "Only a turn that failed or was stopped can be tried again.": "لا يمكن إعادة محاولة إلا جولة فشلت أو أُوقفت.",
+  "Show earlier turns": "عرض الجولات السابقة",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "الاستثناء الذي كان هذا الإصلاح من أجله لم يعد موجودًا، لذا لا يستطيع OneUptime AI إصلاحه مرة أخرى.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "هذا الاستثناء مؤرشف، لذا لا يصلحه OneUptime AI مرة أخرى. ألغِ أرشفته أولًا، ثم حاول مرة أخرى.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "هذا الاستثناء محلول، لذا لا يصلحه OneUptime AI مرة أخرى. ألغِ حله أولًا، ثم حاول مرة أخرى.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "جاء هذا الإصلاح من تحقيق لم يعد الأحدث. ابدأ بدلًا من ذلك إصلاحًا من أحدث تحقيق.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "لم تُطلب هذه الجولة في Code، لذا لا يمكن طلبها مرة أخرى. بدلًا من ذلك، ردّ بما تريد أن يفعله الذكاء الاصطناعي.",
+  "{{count}} tasks could not be tried again: each says why below.": "تعذّرت إعادة محاولة مهام (العدد: {{count}}): كلٌّ منها يذكر السبب أدناه.",
+  "{{count}} tasks could not be tried again: each says why below._one": "تعذّرت إعادة محاولة {{count}} مهمة: وهي تذكر السبب أدناه.",
+  "{{name}} asked OneUptime AI to try again.": "طلب {{name}} من OneUptime AI المحاولة مرة أخرى."
 }
