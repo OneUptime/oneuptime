@@ -543,3 +543,163 @@ describe("OwnerRuleFeed.log", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 });
+
+describe("OwnerRuleFeed.logSkipped", () => {
+  test("warns of the owners skipped, by id, and says nothing of those added", () => {
+    const debug: SpyInstance<typeof logger.debug> = jest
+      .spyOn(logger, "debug")
+      .mockImplementation((() => {
+        // asserted below
+      }) as never);
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((() => {
+        // asserted below
+      }) as never);
+
+    OwnerRuleFeed.logSkipped({
+      engine: "HostOwnerRuleEngine",
+      record: "host abc",
+      outcome: {
+        userIds: [ADA.id!],
+        teamIds: [],
+        notAdded: [
+          skipped("userId", BOB.id!, OwnerAddOutcome.NotProjectMember),
+        ],
+      },
+      logAttributes: { projectId: PROJECT_ID.toString() },
+    });
+
+    expect(debug).not.toHaveBeenCalled();
+    expect(String(warn.mock.calls[0]![0])).toBe(
+      `HostOwnerRuleEngine did not add 1 of the owners its rules name to host abc: user ${BOB.id!.toString()} (NotProjectMember)`,
+    );
+  });
+
+  test("says nothing when nobody was skipped", () => {
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((() => {
+        // asserted below
+      }) as never);
+
+    OwnerRuleFeed.logSkipped({
+      engine: "HostOwnerRuleEngine",
+      record: "host abc",
+      outcome: OwnerRuleAssignment.noOwnersAdded(),
+      logAttributes: {},
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The rules a resource's feed item credits - "Owners were added to
+ * <resource> by 2 owner rules" - are the ones that brought an owner the run
+ * added (#9933): never a rule whose every owner was skipped, or was there
+ * already.
+ */
+describe("OwnerRuleFeed.getRulesThatAdded", () => {
+  interface FakeRule {
+    name: string;
+    ownerUsers?: Array<{ id: ObjectID | null }> | undefined;
+    ownerTeams?: Array<{ id: ObjectID | null }> | undefined;
+  }
+
+  function fakeRule(
+    name: string,
+    users: Array<ObjectID>,
+    teams: Array<ObjectID>,
+  ): FakeRule {
+    return {
+      name: name,
+      ownerUsers: users.map((id: ObjectID): { id: ObjectID } => {
+        return { id };
+      }),
+      ownerTeams: teams.map((id: ObjectID): { id: ObjectID } => {
+        return { id };
+      }),
+    };
+  }
+
+  function namesOf(rules: Array<FakeRule>): Array<string> {
+    return rules.map((rule: FakeRule): string => {
+      return rule.name;
+    });
+  }
+
+  test("keeps the rules that name an owner added, in their order, and drops the rest", () => {
+    const rules: Array<FakeRule> = [
+      fakeRule("Names Ada", [ADA.id!], []),
+      fakeRule("Names Bob, who left", [BOB.id!], []),
+      fakeRule("Names Platform", [], [PLATFORM.id!]),
+      fakeRule("Names another project's team", [], [FOREIGN_TEAM_ID]),
+    ];
+
+    expect(
+      namesOf(
+        OwnerRuleFeed.getRulesThatAdded(rules, {
+          userIds: [ADA.id!],
+          teamIds: [PLATFORM.id!],
+        }),
+      ),
+    ).toEqual(["Names Ada", "Names Platform"]);
+  });
+
+  test("credits every rule that names one owner added, and a rule for any one of its owners", () => {
+    const rules: Array<FakeRule> = [
+      fakeRule("First", [ADA.id!], []),
+      fakeRule("Second", [ADA.id!], []),
+      fakeRule("Ada and Bob", [BOB.id!, ADA.id!], []),
+    ];
+
+    expect(
+      namesOf(
+        OwnerRuleFeed.getRulesThatAdded(rules, {
+          userIds: [ADA.id!],
+          teamIds: [],
+        }),
+      ),
+    ).toEqual(["First", "Second", "Ada and Bob"]);
+  });
+
+  test("credits nobody when nothing was added", () => {
+    expect(
+      OwnerRuleFeed.getRulesThatAdded(
+        [fakeRule("Names Ada", [ADA.id!], [PLATFORM.id!])],
+        { userIds: [], teamIds: [] },
+      ),
+    ).toEqual([]);
+  });
+
+  test("never takes a user's id for a team's", () => {
+    // The same id added as a user does not credit a rule naming it as a team.
+    expect(
+      OwnerRuleFeed.getRulesThatAdded([fakeRule("Team", [], [ADA.id!])], {
+        userIds: [ADA.id!],
+        teamIds: [],
+      }),
+    ).toEqual([]);
+  });
+
+  test("compares ids in any case, and passes over owners with no id or no list", () => {
+    const rules: Array<FakeRule> = [
+      {
+        name: "Upper case",
+        ownerUsers: [{ id: new ObjectID(ADA.id!.toString().toUpperCase()) }],
+      },
+      { name: "No lists" },
+      { name: "No ids", ownerUsers: [{ id: null }], ownerTeams: [] },
+    ];
+
+    expect(
+      namesOf(
+        OwnerRuleFeed.getRulesThatAdded(rules, {
+          userIds: [ADA.id!],
+          teamIds: [],
+        }),
+      ),
+    ).toEqual(["Upper case"]);
+  });
+});

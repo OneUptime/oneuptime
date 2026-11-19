@@ -1866,6 +1866,38 @@ describe("OwnerRuleAssignment.addOwners: what it added, and what it skipped and 
     ]);
   });
 
+  it("recordOutcome answers whether the owner was written", () => {
+    const into: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+
+    expect(
+      OwnerRuleAssignment.recordOutcome({
+        into,
+        ownerColumn: "userId",
+        id: USER_A,
+        outcome: OwnerAddOutcome.Added,
+      }),
+    ).toBe(true);
+
+    for (const outcome of [
+      OwnerAddOutcome.AlreadyOwner,
+      OwnerAddOutcome.NotProjectMember,
+      OwnerAddOutcome.NotProjectRecord,
+    ]) {
+      expect(
+        OwnerRuleAssignment.recordOutcome({
+          into,
+          ownerColumn: "userId",
+          id: DEPARTED,
+          outcome,
+        }),
+      ).toBe(false);
+    }
+
+    expect(ids(into.userIds)).toEqual([USER_A.toString()]);
+    // The two skips are listed; the owner already there is not.
+    expect(into.notAdded).toHaveLength(2);
+  });
+
   it("starts every answer empty, and apart from every other", () => {
     const first: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
     const second: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();

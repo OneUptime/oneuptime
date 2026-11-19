@@ -291,20 +291,21 @@ export default class OwnerRuleAssignment {
   /*
    * Adds one owner's outcome to what a call has done so far: an owner
    * written to the users or teams added, one skipped to notAdded with why,
-   * and an owner the resource already had to neither.
+   * and an owner the resource already had to neither. True when the owner
+   * was written, for a caller that keeps its own list of them too.
    */
   public static recordOutcome(data: {
     into: OwnersAdded;
     ownerColumn: "userId" | "teamId";
     id: ObjectID;
     outcome: OwnerAddOutcome;
-  }): void {
+  }): boolean {
     if (data.outcome === OwnerAddOutcome.Added) {
       (data.ownerColumn === "userId"
         ? data.into.userIds
         : data.into.teamIds
       ).push(data.id);
-      return;
+      return true;
     }
 
     if (OwnerRuleAssignment.isSkipped(data.outcome)) {
@@ -314,6 +315,8 @@ export default class OwnerRuleAssignment {
         reason: data.outcome,
       });
     }
+
+    return false;
   }
 
   /*

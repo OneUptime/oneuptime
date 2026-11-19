@@ -13,7 +13,11 @@ import logger, { LogAttributes } from "../Logger";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
-import { OwnerNotAdded, OwnersAdded } from "./OwnerRuleAssignment";
+import {
+  OwnerNotAdded,
+  OwnersAdded,
+  OwnersToAssign,
+} from "./OwnerRuleAssignment";
 import RuleFeedMarkdown from "./RuleFeedMarkdown";
 import {
   RuleApplicationResult,
@@ -49,7 +53,25 @@ import {
  * Each engine words its own notes on the owners it added - inherited from
  * the record's monitors, the creator's team - and hands them here, to follow
  * the owners they are about.
+ *
+ * The owner rules of hosts, clusters, services and the other resources write
+ * no list of owners - each owner's own "added" item says who - but credit
+ * the rules that added them ("Owners were added to <resource> by 2 owner
+ * rules"): getRulesThatAdded keeps that to the rules that added someone,
+ * and getResult and logSkipped say the same of their runs.
  */
+
+// A user or team a rule names, as its relation reads it: by its id.
+export interface OwnerReference {
+  id: ObjectID | null | undefined;
+}
+
+// What getRulesThatAdded reads off a rule: the owners it names.
+export interface OwnerNamingRule {
+  ownerUsers?: Array<OwnerReference> | undefined;
+  ownerTeams?: Array<OwnerReference> | undefined;
+}
+
 export default class OwnerRuleFeed {
   /*
    * The words for what was added and what was skipped, under the executed
@@ -239,12 +261,72 @@ export default class OwnerRuleFeed {
       );
     }
 
-    if (data.outcome.notAdded.length > 0) {
-      logger.warn(
-        `${data.engine} did not add ${data.outcome.notAdded.length} of the owners its rules name to ${data.record}: ${OwnerRuleFeed.describeNotAdded(data.outcome.notAdded)}`,
-        data.logAttributes,
-      );
+    OwnerRuleFeed.logSkipped(data);
+  }
+
+  /*
+   * log's warning alone, for an engine that logs what it added in words of
+   * its own: which owners its rules name were skipped, and why, by id.
+   * Nothing when none was.
+   */
+  public static logSkipped(data: {
+    engine: string;
+    record: string;
+    outcome: OwnersAdded;
+    logAttributes: LogAttributes;
+  }): void {
+    if (data.outcome.notAdded.length === 0) {
+      return;
     }
+
+    logger.warn(
+      `${data.engine} did not add ${data.outcome.notAdded.length} of the owners its rules name to ${data.record}: ${OwnerRuleFeed.describeNotAdded(data.outcome.notAdded)}`,
+      data.logAttributes,
+    );
+  }
+
+  /*
+   * Of the rules that matched, the ones that brought an owner the run added:
+   * the rules a resource's feed credits with its owners - "Owners were added
+   * to <resource> by 2 owner rules", and the rules it names (#9933). A rule
+   * whose every owner was skipped, or was there already, added nobody.
+   * Several rules naming one owner who was added are each credited.
+   */
+  public static getRulesThatAdded<TRule extends OwnerNamingRule>(
+    rules: Array<TRule>,
+    outcome: OwnersToAssign,
+  ): Array<TRule> {
+    const addedUserIds: Set<string> = new Set<string>(
+      outcome.userIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+    const addedTeamIds: Set<string> = new Set<string>(
+      outcome.teamIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+
+    const namesOneOf: (
+      owners: Array<OwnerReference> | undefined,
+      added: Set<string>,
+    ) => boolean = (
+      owners: Array<OwnerReference> | undefined,
+      added: Set<string>,
+    ): boolean => {
+      return (owners || []).some((owner: OwnerReference): boolean => {
+        return Boolean(
+          owner.id && added.has(owner.id.toString().toLowerCase()),
+        );
+      });
+    };
+
+    return rules.filter((rule: TRule): boolean => {
+      return (
+        namesOneOf(rule.ownerUsers, addedUserIds) ||
+        namesOneOf(rule.ownerTeams, addedTeamIds)
+      );
+    });
   }
 
   /*
