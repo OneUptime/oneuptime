@@ -681,15 +681,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * What OneUptime AI learned about the service from its resolved
          * incidents and alerts, read with the viewer's own permissions,
          * and what the team told it (#7672): while the project uses AI.
+         * Read once a visit, not on every auto-refresh: it changes as
+         * incidents and alerts are resolved, not by the minute.
          */}
         {isAiOffered ? (
           <>
-            <ServiceKnowledgeCard
-              serviceId={modelId}
-              refreshToken={
-                lastRefreshedAt ? lastRefreshedAt.getTime() : undefined
-              }
-            />
+            <ServiceKnowledgeCard serviceId={modelId} />
             <ServiceAiNotesTable serviceId={modelId} />
           </>
         ) : (

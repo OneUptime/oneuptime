@@ -505,6 +505,11 @@ describe("the service's overview", () => {
       /\{isAiOffered \? \(\s*<>\s*<ServiceKnowledgeCard[\s\S]*?<ServiceAiNotesTable serviceId=\{modelId\} \/>\s*<\/>\s*\) : \(\s*<><\/>\s*\)\}/,
     );
   });
+
+  // What was learned changes as records are resolved, not every 30 seconds.
+  test("reads what was learned once a visit, not on every auto-refresh", () => {
+    expect(OVERVIEW).toContain("<ServiceKnowledgeCard serviceId={modelId} />");
+  });
 });
 
 describe("in every Dashboard language", () => {
