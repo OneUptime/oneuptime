@@ -58895,5 +58895,7 @@
   "Whether subscribers are notified depends on the status pages picked.": "是否通知訂閱者取決於所選的狀態頁面。",
   "Documents": "文件",
   "Index size": "索引大小",
-  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "VM 上的 Ops Agent 執行並回報記憶體和磁碟資料後，就會提供記憶體和磁碟監測器。"
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "VM 上的 Ops Agent 執行並回報記憶體和磁碟資料後，就會提供記憶體和磁碟監測器。",
+  "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google 已棄用 {{metric}}：請改為讀取 {{replacement}}，也就是每分鐘發布的訊息數，為每秒速率的 60 倍。只要 Google 仍在發布，OneUptime 就會繼續為已儲存的監測器和圖表讀取它。",
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft 正在從 Azure Monitor 移除 {{metric}}：請改為讀取 {{direct}} 或 {{gateway}}。OneUptime 仍會為已儲存的監測器和圖表讀取它，並在帳戶回報其中一種延遲後，把每一個切換到該延遲。"
 }

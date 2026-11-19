@@ -58895,5 +58895,7 @@
   "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter varsles, avhenger av de valgte statussidene.",
   "Documents": "Dokumenter",
   "Index size": "Indeksstørrelse",
-  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitorer for minne og disker tilbys så snart Ops Agent kjører på VM-en og rapporterer dem."
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitorer for minne og disker tilbys så snart Ops Agent kjører på VM-en og rapporterer dem.",
+  "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google avvikler {{metric}}: les {{replacement}} i stedet, meldingene publisert per minutt, som er 60 ganger raten per sekund. OneUptime leser den fortsatt for lagrede monitorer og diagrammer så lenge Google publiserer den.",
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft fjerner {{metric}} fra Azure Monitor: les {{direct}} eller {{gateway}} i stedet. OneUptime leser den fortsatt for lagrede monitorer og diagrammer, og flytter hver av dem til ventetiden kontoen rapporterer så snart det finnes en."
 }

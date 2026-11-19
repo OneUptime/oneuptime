@@ -58895,5 +58895,7 @@
   "Whether subscribers are notified depends on the status pages picked.": "購読者に通知されるかどうかは、選択したステータスページによって決まります。",
   "Documents": "ドキュメント",
   "Index size": "インデックスサイズ",
-  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "メモリとディスクのモニターは、VM 上で Ops Agent が動作してそれらを報告すると提案されます。"
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "メモリとディスクのモニターは、VM 上で Ops Agent が動作してそれらを報告すると提案されます。",
+  "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google は {{metric}} を非推奨にしました。代わりに {{replacement}}（1 分あたりに公開されたメッセージ数で、1 秒あたりのレートの 60 倍）を読み取ってください。OneUptime は Google が公開している間、保存済みのモニターとチャートのためにこれを読み取り続けます。",
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft は Azure Monitor から {{metric}} を削除します。代わりに {{direct}} または {{gateway}} を読み取ってください。OneUptime は保存済みのモニターとチャートのためにこれを読み取り続け、アカウントがいずれかのレイテンシを報告した時点で、それぞれをそのレイテンシに切り替えます。"
 }
