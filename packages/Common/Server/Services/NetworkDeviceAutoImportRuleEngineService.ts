@@ -64,7 +64,7 @@ import { isDiscoveryImportPollingInterval } from "../../Types/NetworkDevice/Disc
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import DeviceMonitorTemplateUtil, {
   DEVICE_MONITOR_TEMPLATE_TYPES,
-  isDeviceAddressMonitorType,
+  isDeviceTargetMonitorType,
 } from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import {
   DeviceMonitorFacts,
@@ -2061,11 +2061,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
     for (let skip: number = 0; ; skip += LIMIT_MAX) {
       /*
-       * Every kind a device's monitor can be made from (issue #9510): a
-       * Network Device template's monitor reads the device's polls, and a
-       * Ping, IP, Port or NTP template's checks its address - the same
-       * kinds Review Results offers (DEVICE_MONITOR_TEMPLATE_TYPES). A rule
-       * left pointing at any other kind loads nothing, and its run says why.
+       * Every kind a device's monitor can be made from (issues #9510,
+       * #9546): a Network Device template's monitor reads the device's
+       * polls, a Ping, IP, Port or NTP template's checks its address, and a
+       * Website, API or SSL Certificate template's checks a URL on it - the
+       * same kinds Review Results offers (DEVICE_MONITOR_TEMPLATE_TYPES). A
+       * rule left pointing at any other kind loads nothing, and its run says
+       * why.
        */
       const templates: Array<MonitorTemplate> =
         await MonitorTemplateService.findBy({
@@ -2460,12 +2462,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    *
    * Two kinds of template, settled two ways (issue #9510). A Network Device
    * template's monitor reads the device's polls, and is reconciled as it
-   * always was (ensureNetworkDeviceMonitorsForDevice). A Ping, IP, Port or
-   * NTP template's monitor checks the device's address, and is made unless
-   * the device already has one it would duplicate - from another template,
-   * bound to the device, or made by an import - under the device's lock
-   * (ensureAddressMonitorsForDevice). A template this run could not load is
-   * the first kind's to report, as before.
+   * always was (ensureNetworkDeviceMonitorsForDevice). A target template's
+   * monitor - Ping, IP, Port, NTP, or since issue #9546 Website, API or SSL
+   * Certificate - checks the device from a probe, at its address, and is
+   * made unless the device already has one it would duplicate - from
+   * another template, bound to the device, tied to it, or made by an import
+   * - under the device's lock (ensureAddressMonitorsForDevice). A template
+   * this run could not load is the first kind's to report, as before.
    */
   private async ensureMonitorsForDevice(data: {
     projectId: ObjectID;
@@ -2483,7 +2486,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }): Promise<Array<string>> {
     const addressTemplateIds: Array<string> = data.templateIds.filter(
       (templateId: string): boolean => {
-        return isDeviceAddressMonitorType(
+        return isDeviceTargetMonitorType(
           data.monitorTemplates.get(templateId)?.monitorType,
         );
       },
@@ -2520,11 +2523,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }
 
   /*
-   * A Ping, IP, Port or NTP template's monitor for one device (issue
-   * #9510): the template's criteria, interval, probe agreement, labels and
-   * custom field defaults, every step checking the device's own address
-   * (DeviceMonitorTemplateUtil), run by the probe that polls the device or
-   * else the scan's - the one that just found it.
+   * A target template's monitor for one device (issues #9510, #9546): the
+   * template's criteria, interval, probe agreement, labels and custom field
+   * defaults, every step checking the device's own address - or, for a
+   * Website, API or SSL Certificate template, the step's URL with the
+   * device's address as its host (DeviceMonitorTemplateUtil) - run by the
+   * probe that polls the device or else the scan's - the one that just
+   * found it.
    *
    * Never a second of its kind (issue #9509): a device that already has a
    * monitor this one would duplicate - from the same template, or of the
@@ -2716,7 +2721,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }
 
   /*
-   * One Ping, IP, Port or NTP monitor, written in the device's project on
+   * One target monitor (Ping, IP, Port, NTP, Website, API or SSL
+   * Certificate), written in the device's project on
    * the behalf of whoever ran the rule - as a Network Device template's
    * monitor is - and run by the probe that polls the device, else the
    * scan's (DeviceMonitorDuplicateCheck.getAddressMonitorProbes).
@@ -2773,7 +2779,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     );
   }
 
-  // A Ping, IP, Port or NTP monitor this run made, or would have made, for a device.
+  // A target monitor this run made, or would have made, for a device.
   private recordRunAddressMonitor(data: {
     state: ExistingMonitorProvisioningState;
     networkDeviceId: ObjectID;
@@ -3024,11 +3030,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         this.recordFailureReason(
           data.result.monitorFailureReasons,
           new Error(
-            "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
+            "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate template.",
           ),
         );
         logger.error(
-          `Auto-import: monitor template ${templateId} is missing, deleted, or not a Network Device, Ping, IP, Port or NTP template of project ${data.projectId.toString()}. No monitors will be provisioned from it for the rest of this run.`,
+          `Auto-import: monitor template ${templateId} is missing, deleted, or not a template that can check a device in project ${data.projectId.toString()}. No monitors will be provisioned from it for the rest of this run.`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
         continue;

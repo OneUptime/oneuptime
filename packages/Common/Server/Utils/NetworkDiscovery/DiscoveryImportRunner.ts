@@ -44,7 +44,7 @@ import { DeviceNamingPreview } from "../../../Types/NetworkDevice/DeviceNaming";
 import ObjectID from "../../../Types/ObjectID";
 import DeviceMonitorTemplateUtil, {
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
-  isDeviceAddressMonitorType,
+  isDeviceTargetMonitorType,
   isDeviceMonitorTemplateType,
 } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import { DeviceMonitorFacts } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
@@ -107,7 +107,8 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  *            refused is refused here, at once and in one sentence - no
  *            right to create devices or monitors, a scan the person cannot
  *            read, a template no device's monitor can be made from (any but
- *            a Network Device, Ping, IP, Port or NTP one), a plan with no
+ *            a Network Device, Ping, IP, Port, NTP, Website, API or SSL
+ *            Certificate one), a plan with no
  *            room for another monitor - and the import is recorded and
  *            queued.
  *   (worker) creates each host's device, then its monitor, acting as the
@@ -1958,7 +1959,7 @@ export default class DiscoveryImportRunner {
 
     if (!template || !isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(
-        "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
+        "The monitor template this import uses was deleted, or is no longer a kind of template that can check a device. Start the import again with another template.",
       );
     }
 
@@ -2451,7 +2452,7 @@ export default class DiscoveryImportRunner {
             return {
               created: await MonitorService.create({
                 data: monitor,
-                ...(isDeviceAddressMonitorType(template.monitorType)
+                ...(isDeviceTargetMonitorType(template.monitorType)
                   ? {
                       miscDataProps: this.getAddressMonitorProbes({
                         device: device,
