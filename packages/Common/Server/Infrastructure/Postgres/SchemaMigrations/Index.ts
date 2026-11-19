@@ -1083,8 +1083,17 @@ import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./18091849001
 import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 import { AddDataBiConnectionReadState1809184920000 } from "./1809184920000-AddDataBiConnectionReadState";
 import { MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000 } from "./1809184930000-MarkDataOwnersAddedBeforeNotificationsAsTold";
-import { AddComplianceSettingTurnedOffBy1809184940000 } from "./1809184940000-AddComplianceSettingTurnedOffBy";
-import { AddComplianceSettingTurnedOffByKey1809184940100 } from "./1809184940100-AddComplianceSettingTurnedOffByKey";
+import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-AddServiceOwnerIsOwnerNotified";
+import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
+import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
+import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
+import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
+import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
+import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
+import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
 
 export default [
   InitialMigration,
@@ -2172,6 +2181,15 @@ export default [
   AddTableHealthSkippedTables1809184919541,
   AddDataBiConnectionReadState1809184920000,
   MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000,
-  AddComplianceSettingTurnedOffBy1809184940000,
-  AddComplianceSettingTurnedOffByKey1809184940100,
+  AddServiceOwnerIsOwnerNotified1809185000000,
+  MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
+  AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
+  AddMonitorSecretType1809185030000,
+  AddWorkflowRunAs1809185100000,
+  AddWorkflowRunAsKeys1809185100100,
+  AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
+  DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
 ];

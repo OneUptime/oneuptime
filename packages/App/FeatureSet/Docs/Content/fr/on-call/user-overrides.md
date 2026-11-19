@@ -35,7 +35,7 @@ Une fois le remplacement terminé, les alertes reviennent à la personne. La **C
 :::steps
 ### Ouvrir les remplacements
 
-Allez dans **Astreinte → Avancé → Remplacements d'utilisateur** pour remplacer quelqu'un dans toutes les politiques d'astreinte, ou sur la page **Remplacements d'utilisateur** d'une politique, sous **Avancé**, pour le remplacer dans cette seule politique. Cliquez sur **Ajouter : Remplacement d'utilisateur**.
+Allez dans **Astreinte → Plannings → Remplacements d'utilisateur** pour remplacer quelqu'un dans toutes les politiques d'astreinte, ou sur la page **Remplacements d'utilisateur** d'une politique, sous **Avancé**, pour le remplacer dans cette seule politique. Cliquez sur **Ajouter : Remplacement d'utilisateur**.
 
 ### Indiquer qui est absent
 
@@ -72,7 +72,7 @@ Pour faire revenir quelqu'un avant la fin de son remplacement, cliquez sur **Ter
 
 | Ajouté sous | Carte | S'applique à |
 | --- | --- | --- |
-| **Astreinte → Avancé → Remplacements d'utilisateur** | **Remplacements d'utilisateur globaux** | Toutes les politiques d'astreinte du projet |
+| **Astreinte → Plannings → Remplacements d'utilisateur** | **Remplacements d'utilisateur globaux** | Toutes les politiques d'astreinte du projet |
 | **Remplacements d'utilisateur** d'une politique | **Remplacements d'utilisateurs de la politique d'astreinte** | Cette politique seulement |
 
 Deux remplacements pour la même personne ne peuvent pas se chevaucher sur la même politique, ni quand les deux sont globaux. Le formulaire, et **Passer son tour jusqu'au…** dans les couches d'un planning, le signalent à côté des heures dès qu'elles sont choisies, avec **Modifier ce remplacement** pour modifier plutôt celui-là. L'un peut se terminer quand le suivant commence.
@@ -92,7 +92,7 @@ Quand quelqu'un quitte le projet, chaque remplacement qui le nomme et qui n'est 
 
 **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes** peuvent ajouter, modifier et supprimer des remplacements ; **Lecteur** et **Lecteur des astreintes** peuvent les voir. Dans un rôle personnalisé, les permissions sont **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** et **Read On-Call Policy User Override**. Sur la **Chronologie des astreintes**, seules les personnes qui peuvent lire les remplacements voient quelle permanence est remplacée.
 
-Un remplacement sur une politique suit la portée de la politique. Donnez à une équipe **Membre des astreintes** limité aux politiques qu'elle possède, ou à son étiquette, et ses membres ajoutent, modifient et suppriment des remplacements sur ces seules politiques. Un remplacement global s'applique à toutes les politiques, celles d'une autre équipe comprises, si bien que l'ajouter, le modifier ou le supprimer demande la permission des remplacements sur tout le projet. Avec une permission plus étroite, **Ajouter : Remplacement d'utilisateur**, **Modifier**, **Terminer maintenant** et **Supprimer** dans **Astreinte → Avancé → Remplacements d'utilisateur** sont verrouillés et disent pourquoi. **Passer son tour jusqu'au…** dans les couches d'un planning et **Trouver un remplaçant** sur vos permanences à venir, qui ajoutent des remplacements globaux, proposent à la place les politiques sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, tout comme le remplacement dans l'application mobile ; là où vous n'en avez aucune, ils sont verrouillés et disent pourquoi. L'équipe ajoute ses remplacements sur la page **Remplacements d'utilisateur** de chaque politique. Il en va de même pour l'API : un remplacement sans `onCallDutyPolicyId` est refusé pour une permission limitée à des étiquettes ou aux politiques possédées.
+Un remplacement sur une politique suit la portée de la politique. Donnez à une équipe **Membre des astreintes** limité aux politiques qu'elle possède, ou à son étiquette, et ses membres ajoutent, modifient et suppriment des remplacements sur ces seules politiques. Un remplacement global s'applique à toutes les politiques, celles d'une autre équipe comprises, si bien que l'ajouter, le modifier ou le supprimer demande la permission des remplacements sur tout le projet. Avec une permission plus étroite, **Ajouter : Remplacement d'utilisateur**, **Modifier**, **Terminer maintenant** et **Supprimer** dans **Astreinte → Plannings → Remplacements d'utilisateur** sont verrouillés et disent pourquoi. **Passer son tour jusqu'au…** dans les couches d'un planning et **Trouver un remplaçant** sur vos permanences à venir, qui ajoutent des remplacements globaux, proposent à la place les politiques sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, tout comme le remplacement dans l'application mobile ; là où vous n'en avez aucune, ils sont verrouillés et disent pourquoi. L'équipe ajoute ses remplacements sur la page **Remplacements d'utilisateur** de chaque politique. Il en va de même pour l'API : un remplacement sans `onCallDutyPolicyId` est refusé pour une permission limitée à des étiquettes ou aux politiques possédées.
 
 Sur OneUptime Cloud, les remplacements d'utilisateur nécessitent l'offre **Growth**.
 
@@ -131,7 +131,7 @@ Pour terminer un remplacement en cours, envoyez `POST /api/on-call-duty-policy-u
 ## Dépannage
 
 :::details La personne en congé a quand même été alertée
-Vérifiez où le remplacement a été ajouté. Un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique, et les autres politiques l'alertent encore : ajoutez-le sous **Astreinte → Avancé → Remplacements d'utilisateur** pour couvrir toutes les politiques. Vérifiez aussi **Commence** et **Se termine** : les horaires sont affichés dans votre fuseau horaire.
+Vérifiez où le remplacement a été ajouté. Un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique, et les autres politiques l'alertent encore : ajoutez-le sous **Astreinte → Plannings → Remplacements d'utilisateur** pour couvrir toutes les politiques. Vérifiez aussi **Commence** et **Se termine** : les horaires sont affichés dans votre fuseau horaire.
 :::
 
 :::details Le remplaçant n'a pas été alerté non plus

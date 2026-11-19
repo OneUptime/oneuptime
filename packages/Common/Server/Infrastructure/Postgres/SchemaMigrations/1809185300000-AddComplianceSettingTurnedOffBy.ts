@@ -11,12 +11,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration. Two nullable columns
  * with no default: adding them rewrites nothing and reads no row. The key
  * from turnedOffByUserId to the user is added online, apart, in
- * AddComplianceSettingTurnedOffByKey1809184940100 (Docs/migrations/README.md).
+ * AddComplianceSettingTurnedOffByKey1809185300100 (Docs/migrations/README.md).
  */
-export class AddComplianceSettingTurnedOffBy1809184940000
+export class AddComplianceSettingTurnedOffBy1809185300000
   implements MigrationInterface
 {
-  public name: string = "AddComplianceSettingTurnedOffBy1809184940000";
+  public name: string = "AddComplianceSettingTurnedOffBy1809185300000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

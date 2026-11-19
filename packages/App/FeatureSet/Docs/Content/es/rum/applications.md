@@ -163,19 +163,21 @@ Un reparto útil: da a un ingeniero de soporte `ReadRumApplication` y `ReadRumSe
 
 ## Alertas sobre datos RUM
 
-La telemetría RUM son registros, métricas y trazas normales, así que no hay un monitor RUM aparte: los monitores habituales funcionan con ella. La forma más rápida de empezar es la página **Recomendaciones** de la aplicación, que ofrece monitores ya limitados a la aplicación:
+La telemetría RUM son registros, métricas y trazas normales, así que no hay un monitor RUM aparte: los monitores habituales funcionan con ella. La forma más rápida de empezar es la página **Recomendaciones** de la aplicación, que ofrece monitores ya limitados a la aplicación, los que encajan con una aplicación web o una aplicación móvil:
 
 | Grupo | Recomendaciones |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint y Slow Time to First Byte. Consulta [Core Web Vitals](/docs/rum/web-vitals). |
-| Errores | Failed User Operations y Unhandled Browser Exceptions. |
+| Core Web Vitals | Para una aplicación web: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint y Slow Time to First Byte. Consulta [Core Web Vitals](/docs/rum/web-vitals). |
+| Errores | App Crashes y App Not Responding (ANR) para una aplicación móvil, Failed User Operations para ambas, y Unhandled Browser Exceptions para una aplicación web. |
+| Rendimiento | Para una aplicación móvil: Slow Cold Start, cuando un inicio en frío tarda 5 segundos o más, lo que Android vitals considera excesivo, y Frozen Frames, cuando un fotograma tarda más de 700 ms en dibujarse. |
+| Disponibilidad | Para una aplicación móvil: App Stopped Reporting, cuando la aplicación no envía ningún span durante 30 minutos. |
 | Reproducción de sesiones | Las cuatro [alertas de presupuesto de almacenamiento](/docs/telemetry/session-replay#alertas-de-presupuesto-de-almacenamiento), que avisan antes de que se agote el límite diario del proyecto o el presupuesto mensual de la aplicación. Se ofrecen en cuanto la aplicación ha grabado una reproducción, y el par mensual cuando además tiene un presupuesto mensual. |
 
 Para crear tu propio monitor, elige el que lee la señal:
 
 - [Monitor de métricas](/docs/monitor/metrics-monitor): una Core Web Vital, o cualquier métrica que envíe tu aplicación.
-- [Monitor de trazas](/docs/monitor/traces-monitor): la tasa de errores o la latencia del lado del cliente.
-- [Monitor de registros](/docs/monitor/logs-monitor): un patrón en los registros del navegador.
+- [Monitor de trazas](/docs/monitor/traces-monitor): la tasa de errores o la latencia del lado del cliente, o los inicios de la aplicación más lentos que una duración que tú definas.
+- [Monitor de registros](/docs/monitor/logs-monitor): un patrón en los registros del navegador, o los eventos `app.crash`, `device.anr` y `app.jank` de una aplicación móvil.
 - [Monitor de excepciones](/docs/monitor/exceptions-monitor): excepciones del lado del cliente nuevas o que se disparan.
 
 Limita a la aplicación el monitor que crees, para que no lo dispare un servicio de backend con una firma parecida.

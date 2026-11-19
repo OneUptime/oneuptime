@@ -15,15 +15,15 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import {
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartTone,
 } from "../../../Components/ResourcePart/ResourcePartTypes";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import { fetchOpenStackNames } from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_FLOATING_IP_ALERT_TEMPLATE_IDS,
@@ -52,10 +52,16 @@ const ASSOCIATION_TONES: Record<
   "associated-not-active": "warning",
 };
 
-const FloatingIpOverview: FunctionComponent<{
+interface FloatingIpOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const FloatingIpOverview: FunctionComponent<FloatingIpOverviewProps> = (
+  props: FloatingIpOverviewProps,
+): ReactElement => {
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
   const routerId: string = getOpenStackFactText(row, "routerId");
@@ -85,12 +91,6 @@ const FloatingIpOverview: FunctionComponent<{
       networkName: networks[networkId] || "",
     };
   }, [routerId, networkId, part.refreshToken]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const association: OpenStackFloatingIpAssociation =
@@ -183,12 +183,9 @@ const FloatingIpOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-floating-ip-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.FloatingIp}/${part.externalId}`,
-          label: translationKey("This floating IP"),
-        }}
-        description="What about this address is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <OpenStackPartAlerts
@@ -226,12 +223,23 @@ const OpenStackCloudFloatingIpDetail: FunctionComponent<
     });
   }
 
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.FloatingIp,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
+
   return (
     <OpenStackPartPage
       part={part}
-      hero={{ badges }}
+      hero={{ badges, attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <FloatingIpOverview part={part} row={row} />;
+        return (
+          <FloatingIpOverview part={part} row={row} attention={attention} />
+        );
       }}
     />
   );

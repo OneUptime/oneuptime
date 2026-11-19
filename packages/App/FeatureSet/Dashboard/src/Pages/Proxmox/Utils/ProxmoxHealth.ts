@@ -349,6 +349,177 @@ export function getProxmoxClusterHealth(
 
 /*
  * ---------------------------------------------------------------------------
+ * What the Overview's counts open
+ * ---------------------------------------------------------------------------
+ *
+ * The Overview counts what is wrong - nodes offline, HA resources in error
+ * or fence, guests whose last backup failed or that no backup job includes
+ * - and each count opens exactly those parts, why (the count's own reason
+ * first, then whatever else the rules say), which node a guest is on and
+ * when its backup failed, each a step from its page (#9594). By the same
+ * rules as Needs attention, so a part reads the same in both.
+ */
+export type ProxmoxProblem =
+  | { kind: "nodesOffline" }
+  | { kind: "haState"; state: string }
+  | { kind: "backupFailed" }
+  | { kind: "noBackupJob" };
+
+const FACT_NODE: string = translationKey("Node");
+// When a guest's last backup failed: "Failed 2 hours ago".
+const SINCE_BACKUP_FAILED: string = translationKey("Failed {{time}}");
+
+/*
+ * Whether a row is one the count counts - the very test the Overview's
+ * summary counts it by, so the dialog lists what the number said.
+ */
+export function isProxmoxProblemRow(
+  row: ProxmoxResource,
+  problem: ProxmoxProblem,
+): boolean {
+  switch (problem.kind) {
+    case "nodesOffline":
+      return row.kind === "Node" && row.isUp === false;
+    case "haState":
+      return Boolean(row.haState) && row.haState === problem.state;
+    case "backupFailed":
+      return (
+        row.kind === "Guest" &&
+        !isProxmoxTemplate(row) &&
+        row.lastBackupStatus === "failed"
+      );
+    case "noBackupJob":
+      return (
+        row.kind === "Guest" &&
+        !isProxmoxTemplate(row) &&
+        row.isBackedUp === false
+      );
+    default:
+      return false;
+  }
+}
+
+function problemReasonOf(
+  row: ProxmoxResource,
+  problem: ProxmoxProblem,
+): ResourceAttentionText {
+  switch (problem.kind) {
+    case "nodesOffline":
+      return { text: REASON_OFFLINE };
+    case "haState":
+      return { text: REASON_HA_STATE, values: { state: row.haState || "" } };
+    case "backupFailed":
+      return { text: REASON_BACKUP_FAILED };
+    case "noBackupJob":
+    default:
+      return { text: REASON_NO_BACKUP_JOB };
+  }
+}
+
+function sameReason(
+  a: ResourceAttentionText,
+  b: ResourceAttentionText,
+): boolean {
+  return (
+    a.text === b.text &&
+    JSON.stringify(a.values || {}) === JSON.stringify(b.values || {})
+  );
+}
+
+export function getProxmoxProblemItems(data: {
+  rows: Array<ProxmoxResource>;
+  problem: ProxmoxProblem;
+  routeFor: ProxmoxRouteFor;
+  now: Date;
+  // A row older than this has stopped being reported: when it last was says so.
+  staleMs: number;
+}): Array<ResourceAttentionItem> {
+  const nodesByName: Map<string, ProxmoxResource> = new Map();
+  for (const row of data.rows) {
+    if (row.kind === "Node" && row.name) {
+      nodesByName.set(row.name, row);
+    }
+  }
+
+  const items: Array<ResourceAttentionItem> = [];
+
+  for (const row of data.rows) {
+    const kind: ProxmoxPartKind | null =
+      row.kind === "Node" || row.kind === "Guest" || row.kind === "Storage"
+        ? row.kind
+        : null;
+    if (!kind || !isProxmoxProblemRow(row, data.problem)) {
+      continue;
+    }
+
+    const assessment: ProxmoxAssessment = assessProxmoxResource(row);
+    const first: ResourceAttentionText = problemReasonOf(row, data.problem);
+    const externalId: string = row.externalId || "";
+
+    const item: ResourceAttentionItem = {
+      key: `${kind}:${externalId}`,
+      kind: kindWordOf(kind),
+      icon: iconOf(kind),
+      name: getProxmoxDisplayName(row),
+      detail: kind === "Node" ? undefined : externalId,
+      severity: assessment.severity || ResourceAttentionSeverity.Warning,
+      // The count's own reason first, then the rest of what the rules say.
+      reasons: [
+        first,
+        ...assessment.reasons.filter((reason: ResourceAttentionText) => {
+          return !sameReason(reason, first);
+        }),
+      ],
+      route: externalId ? data.routeFor(kind, externalId) : undefined,
+    };
+
+    // Which node a guest runs on, a step from the node's page.
+    if (kind === "Guest" && row.parentNodeName) {
+      const node: ProxmoxResource | undefined = nodesByName.get(
+        row.parentNodeName,
+      );
+      item.facts = [
+        {
+          key: "node",
+          label: FACT_NODE,
+          value: row.parentNodeName,
+          route: node?.externalId
+            ? data.routeFor("Node", node.externalId)
+            : undefined,
+        },
+      ];
+    }
+
+    if (data.problem.kind === "backupFailed" && row.lastBackupAt) {
+      const failedAt: Date = new Date(row.lastBackupAt);
+      if (Number.isFinite(failedAt.getTime())) {
+        item.since = { at: failedAt, template: SINCE_BACKUP_FAILED };
+      }
+    }
+
+    /*
+     * A node that has stopped being reported says when it last was; one
+     * its siblings still report as down is reported now, which says
+     * nothing.
+     */
+    if (data.problem.kind === "nodesOffline" && row.lastSeenAt) {
+      const seenAt: Date = new Date(row.lastSeenAt);
+      if (
+        Number.isFinite(seenAt.getTime()) &&
+        data.now.getTime() - seenAt.getTime() > data.staleMs
+      ) {
+        item.lastReportAt = seenAt;
+      }
+    }
+
+    items.push(item);
+  }
+
+  return sortResourceAttention(items, PROXMOX_ATTENTION_KIND_ORDER);
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Which part an open incident or alert is about
  * ---------------------------------------------------------------------------
  *

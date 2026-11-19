@@ -48,6 +48,7 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
+import Metric from "../../../Models/AnalyticsModels/Metric";
 import RumSession from "../../../Models/AnalyticsModels/RumSession";
 import Span from "../../../Models/AnalyticsModels/Span";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
@@ -195,6 +196,8 @@ const SCRUB: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
+  // A metric's attribute is scrubbed by a metric pipeline rule (#9604).
+  Permission.CreateProjectMetricPipelineRule,
 ];
 const OCCURRENCES: Array<Permission> = [
   Permission.ProjectOwner,
@@ -1121,9 +1124,12 @@ describe("Scrub It", () => {
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "email-address",
       location: "attributes.user.email",
+      serviceId: null,
     });
     expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
       query: { _id: STORE_ID, projectId: PROJECT_ID },
+      // The store's service: a metric pipeline rule is its own.
+      select: { dataStore: { kind: true, serviceId: true } },
     });
     expect(findingUpdateSpy).toHaveBeenCalledWith({
       id: STORE_ID,
@@ -1148,6 +1154,7 @@ describe("Scrub It", () => {
       DataStoreKind.TelemetryExceptions,
       DataStoreKind.TelemetrySessionReplays,
       DataStoreKind.TelemetryAiConversations,
+      DataStoreKind.TelemetryMetrics,
     ]) {
       findingRow = telemetryFinding(kind);
 
@@ -1159,7 +1166,31 @@ describe("Scrub It", () => {
       expect(result.thrown).toBeUndefined();
     }
 
-    expect(scrubSpy).toHaveBeenCalledTimes(4);
+    expect(scrubSpy).toHaveBeenCalledTimes(5);
+  });
+
+  test("a metric's attribute is scrubbed for the service whose metrics it is, by someone who may make metric pipeline rules", async () => {
+    asCaller([Permission.CreateProjectMetricPipelineRule]);
+    findingRow = telemetryFinding(DataStoreKind.TelemetryMetrics);
+
+    const serviceId: ObjectID = ObjectID.generate();
+
+    findingRow.dataStore!.serviceId = serviceId;
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(scrubSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "email-address",
+      location: "attributes.user.email",
+      serviceId,
+    });
   });
 
   test("a finding in a data store, not telemetry, is refused: Scrub It masks telemetry at ingest", async () => {
@@ -1402,6 +1433,14 @@ describe("A telemetry finding's records", () => {
         Log,
         WEB_APP_ID,
       ],
+      // A metric's points: read by who may read the service's metrics (#9604).
+      [
+        DataStoreKind.TelemetryMetrics,
+        "attributes.user.email",
+        Metric,
+        SERVICE_ID.toString(),
+      ],
+      [DataStoreKind.TelemetryMetrics, "name", Metric, SERVICE_ID.toString()],
     ];
 
     for (const [kind, location, model, ownerId] of cases) {
@@ -1678,6 +1717,89 @@ describe("A telemetry finding's records", () => {
       ),
     ).toEqual(["Ping to 34.***.***.*** succeeded in 120 ms"]);
     expect(JSON.stringify(answer)).not.toContain("34.120.7.19");
+  });
+
+  test("end to end, a metric's kept point: looked up by its metric and millisecond, narrowed, each series once, masked (#9604)", async () => {
+    occurrencesSpy.mockRestore();
+
+    const statements: Array<Statement> = [];
+    const pointTime: string = "2026-10-27T11:59:00.000Z";
+
+    findingRow = serviceFinding(
+      DataStoreKind.TelemetryMetrics,
+      "attributes.http.route",
+    );
+    findingRow.lastSeenAt = new Date("2026-10-27T12:00:30.000Z");
+    findingRow.sampleRecords = [{ time: pointTime, metricName: "http.calls" }];
+    jest
+      .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+      .mockImplementation((async (statement: Statement): Promise<Results> => {
+        statements.push(statement);
+
+        const point: (route: string) => JSONObject = (
+          route: string,
+        ): JSONObject => {
+          return {
+            ownerId: SERVICE_ID.toString(),
+            recordTime: String(Date.parse(pointTime)),
+            readMetricName: "http.calls",
+            readAttributes: [["http.route", route]],
+          };
+        };
+
+        return {
+          json: (): Promise<unknown> => {
+            return Promise.resolve({
+              data: [
+                point("/users/jane.doe@acme-corp.com/orders"),
+                // The same series again: one record.
+                point("/users/jane.doe@acme-corp.com/orders"),
+                point("/users/sam.lee@acme-corp.com/orders"),
+              ],
+            });
+          },
+        } as unknown as Results;
+      }) as never);
+
+    const answer: DataSecurityFindingOccurrences = (await records())
+      .answer as unknown as DataSecurityFindingOccurrences;
+
+    expect(statements.length).toBe(1);
+    // The metric's own range of the table, at the kept millisecond.
+    expect(statements[0]!.query).toMatch(
+      /AND \(\(name = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\}\)\)/,
+    );
+    // Every series of the metric shares the millisecond: narrowed by the pattern.
+    expect(statements[0]!.query).toContain("match(substringUTF8(attributes[");
+    expect(Object.values(statements[0]!.query_params)).toContain("http.calls");
+    expect(answer.source).toBe(DataSecurityOccurrencesSource.SampledRecords);
+    expect(
+      answer.occurrences.map(
+        (occurrence: DataSecurityFindingOccurrence): unknown => {
+          return [
+            occurrence.recordKind,
+            occurrence.name,
+            occurrence.metricName,
+            occurrence.excerpt?.field,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        "http.calls",
+        "http.calls",
+        "http.route",
+      ],
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        "http.calls",
+        "http.calls",
+        "http.route",
+      ],
+    ]);
+    expect(JSON.stringify(answer)).not.toContain("jane.doe");
+    expect(JSON.stringify(answer)).not.toContain("sam.lee");
   });
 });
 

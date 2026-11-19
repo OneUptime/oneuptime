@@ -134,17 +134,16 @@ describe("On-Call Duty side menu - Calendar Feeds item", () => {
 
     /*
      * The two views of the schedules come first - the list and the timeline
-     * of all of them - and the feeds that export them follow directly.
+     * of all of them - then User Overrides, which changes who they page
+     * and which the timeline draws (#9701), and the feeds that export them
+     * follow: set up once, opened far less often.
      */
-    expect(titles).toContain("On-Call Schedules");
-    expect(titles).toContain("Schedule Timeline");
-    expect(titles).toContain("Calendar Feeds");
-    expect(titles.indexOf("Schedule Timeline")).toBe(
-      titles.indexOf("On-Call Schedules") + 1,
-    );
-    expect(titles.indexOf("Calendar Feeds")).toBe(
-      titles.indexOf("Schedule Timeline") + 1,
-    );
+    expect(titles).toEqual([
+      "On-Call Schedules",
+      "Schedule Timeline",
+      "User Overrides",
+      "Calendar Feeds",
+    ]);
 
     const calendarFeeds: MenuLink | undefined = links.find(
       (link: MenuLink): boolean => {
@@ -170,5 +169,74 @@ describe("On-Call Duty side menu - Calendar Feeds item", () => {
         return candidate === href;
       }).length,
     ).toBe(1);
+  });
+});
+
+/*
+ * User Overrides, the project's global ones, sits under Schedules (#9701):
+ * who covers for someone while they are away changes who the schedules
+ * page, and the folded Advanced section kept it a click from where people
+ * look. The page kept its address, so every link to it - a bookmark, the
+ * Get cover link on an upcoming shift, the docs - still opens it.
+ */
+describe("On-Call side menu - User Overrides item", () => {
+  beforeEach(() => {
+    setViewportWidth(DESKTOP_WIDTH);
+    goTo(`/dashboard/${PROJECT_ID}/on-call-duty/policies`);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("is in Schedules, at the address it always had", async () => {
+    await renderMenu(<OnCallDutySideMenu />);
+
+    const userOverrides: MenuLink | undefined = linksIn("Schedules").find(
+      (link: MenuLink): boolean => {
+        return link.title === "User Overrides";
+      },
+    );
+
+    expect(userOverrides?.href).toBe(
+      routeFor(PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES),
+    );
+    expect(userOverrides?.href).toBe(
+      `/dashboard/${PROJECT_ID}/on-call-duty/user-overrides`,
+    );
+  });
+
+  test("is no longer in Advanced, and is linked exactly once", async () => {
+    await renderMenu(<OnCallDutySideMenu />);
+
+    expect(
+      linksIn("Advanced").map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toEqual(["Execution Logs", "Archived Policies"]);
+
+    const href: string = routeFor(PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES);
+
+    expect(
+      hrefsInMenu().filter((candidate: string): boolean => {
+        return candidate === href;
+      }).length,
+    ).toBe(1);
+  });
+
+  test("on its own page, its section is the open Schedules one", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/on-call-duty/user-overrides`);
+    await renderMenu(<OnCallDutySideMenu />);
+
+    expect(sectionTitlesInOrder().slice(0, 3)).toEqual([
+      "Policies",
+      "Schedules",
+      "Advanced",
+    ]);
+    expect(
+      linksIn("Schedules").map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toContain("User Overrides");
   });
 });

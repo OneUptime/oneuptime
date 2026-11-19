@@ -15,6 +15,10 @@
  *   - A read after a long pause - OneUptime down, the connection turned off
  *     - starts no further back than `maxBackMs`: a day of minutes for every
  *     resource is not worth what the cloud charges for it.
+ *   - A period read less often than it is published waits until its window
+ *     holds `minimumWindowMs`: an Azure metric kept at five minutes is
+ *     read once 15 minutes of it are there, three points a call, instead
+ *     of one call for each point.
  */
 
 export interface MetricWindowPolicy {
@@ -22,6 +26,8 @@ export interface MetricWindowPolicy {
   delayMs: number;
   firstReadBackMs: number;
   maxBackMs: number;
+  // A shorter window is not read yet (unset: any window of a whole period).
+  minimumWindowMs?: number | undefined;
 }
 
 export interface MetricWindow {
@@ -60,7 +66,7 @@ export function getMetricWindow(data: {
 
   start = floorTo(Math.max(start, end - data.policy.maxBackMs), periodMs);
 
-  if (start >= end) {
+  if (start >= end || end - start < (data.policy.minimumWindowMs || 0)) {
     return null;
   }
 
@@ -76,6 +82,11 @@ export function getMetricWindowPolicy(data: {
   periodSeconds: number;
   // The cloud's own delay for its minute-to-minute metrics.
   delayMs: number;
+  /*
+   * How often a period finer than an hour is read, when less often than
+   * every read: its window waits until it holds this long.
+   */
+  readEveryMs?: number | undefined;
 }): MetricWindowPolicy {
   const periodMs: number = data.periodSeconds * 1000;
 
@@ -102,6 +113,9 @@ export function getMetricWindowPolicy(data: {
     delayMs: data.delayMs,
     firstReadBackMs: HOUR_MS,
     maxBackMs: 6 * HOUR_MS,
+    ...(data.readEveryMs && data.readEveryMs > periodMs
+      ? { minimumWindowMs: data.readEveryMs }
+      : {}),
   };
 }
 

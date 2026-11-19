@@ -642,7 +642,7 @@ describe("the dashboard is wired where the feature says", () => {
      * under them.
      */
     expect(composer).toContain(
-      '<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5" data-testid="note-notify-line" > <label htmlFor={notifyId} className="block cursor-pointer text-sm font-medium text-gray-900" > {tx(props.notifyOption.title)} </label> {props.values.shouldNotify && props.notifyPreview ? ( <div className="flex" data-testid="note-notify-preview"> {props.notifyPreview(props.values)} </div> ) : ( <></> )} </div> <p className="mt-0.5 text-xs text-gray-500" data-testid="note-notify-description" >',
+      '<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5" data-testid="note-notify-line" > <label htmlFor={notifyId} className="block cursor-pointer text-sm font-medium text-gray-900" > {tx(props.notifyOption.title)} </label> {props.values.shouldNotify && props.notifyPreview ? ( <div className="flex" data-testid="note-notify-preview"> {props.notifyPreview(props.values)} </div> ) : ( <></> )} </div> {notifyDescription.length > 0 ? ( <div className="mt-0.5 space-y-0.5 text-xs text-gray-500" data-testid="note-notify-description" >',
     );
     expect(
       composer.indexOf('data-testid="note-notify-audience"'),

@@ -4,8 +4,8 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddComplianceSettingTurnedOffBy1809184940000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184940000-AddComplianceSettingTurnedOffBy";
-import { AddComplianceSettingTurnedOffByKey1809184940100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184940100-AddComplianceSettingTurnedOffByKey";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185300100-AddComplianceSettingTurnedOffByKey";
 import DataSecurityComplianceSetting from "../../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import User from "../../../../Models/DatabaseModels/User";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -68,11 +68,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddComplianceSettingTurnedOffBy1809184940000: the columns", () => {
+describe("AddComplianceSettingTurnedOffBy1809185300000: the columns", () => {
   test("adds turnedOffByUserId and turnedOffAt, nullable, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddComplianceSettingTurnedOffBy1809184940000().up(runner);
+        return new AddComplianceSettingTurnedOffBy1809185300000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "${TABLE}" ADD "turnedOffByUserId" uuid`,
@@ -82,7 +82,7 @@ describe("AddComplianceSettingTurnedOffBy1809184940000: the columns", () => {
 
   test("adds no key, index, default or backfill in the schema migration", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddComplianceSettingTurnedOffBy1809184940000().up(runner);
+      return new AddComplianceSettingTurnedOffBy1809185300000().up(runner);
     })) {
       expect(statement).not.toMatch(
         /CREATE (UNIQUE )?INDEX|FOREIGN KEY|DEFAULT|NOT NULL|UPDATE /i,
@@ -93,7 +93,7 @@ describe("AddComplianceSettingTurnedOffBy1809184940000: the columns", () => {
   test("down drops both columns up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddComplianceSettingTurnedOffBy1809184940000().down(runner);
+        return new AddComplianceSettingTurnedOffBy1809185300000().down(runner);
       }),
     ).toEqual([
       `ALTER TABLE "${TABLE}" DROP COLUMN "turnedOffAt"`,
@@ -102,7 +102,7 @@ describe("AddComplianceSettingTurnedOffBy1809184940000: the columns", () => {
   });
 });
 
-describe("AddComplianceSettingTurnedOffByKey1809184940100: the key", () => {
+describe("AddComplianceSettingTurnedOffByKey1809185300100: the key", () => {
   test("the model declares the key's SET NULL to User", () => {
     const relation: RelationMetadataArgs | undefined =
       getMetadataArgsStorage().relations.find(
@@ -120,8 +120,8 @@ describe("AddComplianceSettingTurnedOffByKey1809184940100: the key", () => {
   });
 
   test("adds the key online, outside a transaction", async () => {
-    const migration: AddComplianceSettingTurnedOffByKey1809184940100 =
-      new AddComplianceSettingTurnedOffByKey1809184940100();
+    const migration: AddComplianceSettingTurnedOffByKey1809185300100 =
+      new AddComplianceSettingTurnedOffByKey1809185300100();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -144,7 +144,7 @@ describe("AddComplianceSettingTurnedOffByKey1809184940100: the key", () => {
   test("down drops the key", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddComplianceSettingTurnedOffByKey1809184940100().down(
+        return new AddComplianceSettingTurnedOffByKey1809185300100().down(
           runner,
         );
       }),
@@ -157,8 +157,8 @@ describe("both are registered", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
 
     for (const migration of [
-      AddComplianceSettingTurnedOffBy1809184940000,
-      AddComplianceSettingTurnedOffByKey1809184940100,
+      AddComplianceSettingTurnedOffBy1809185300000,
+      AddComplianceSettingTurnedOffByKey1809185300100,
     ]) {
       expect(
         registered.filter((candidate: unknown): boolean => {
@@ -175,15 +175,15 @@ describe("both are registered", () => {
     }
 
     expect(
-      registered.indexOf(AddComplianceSettingTurnedOffBy1809184940000),
+      registered.indexOf(AddComplianceSettingTurnedOffBy1809185300000),
     ).toBeLessThan(
-      registered.indexOf(AddComplianceSettingTurnedOffByKey1809184940100),
+      registered.indexOf(AddComplianceSettingTurnedOffByKey1809185300100),
     );
-    expect(new AddComplianceSettingTurnedOffBy1809184940000().name).toBe(
-      "AddComplianceSettingTurnedOffBy1809184940000",
+    expect(new AddComplianceSettingTurnedOffBy1809185300000().name).toBe(
+      "AddComplianceSettingTurnedOffBy1809185300000",
     );
-    expect(new AddComplianceSettingTurnedOffByKey1809184940100().name).toBe(
-      "AddComplianceSettingTurnedOffByKey1809184940100",
+    expect(new AddComplianceSettingTurnedOffByKey1809185300100().name).toBe(
+      "AddComplianceSettingTurnedOffByKey1809185300100",
     );
   });
 });

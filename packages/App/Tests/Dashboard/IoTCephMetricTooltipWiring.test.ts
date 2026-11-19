@@ -240,6 +240,32 @@ describe("IoT fleet overview", () => {
     ).toBe(4);
   });
 
+  /*
+   * "3/5 devices online" said how many and nothing else (#9594): the chip
+   * and the Online Devices tile open the devices offline, by the rule the
+   * Devices needing attention card lists them with.
+   */
+  test("the devices-online chip and tile open the devices offline, by the attention card's own rule", () => {
+    expect(code).toContain(
+      "setAtRiskDevices(getIoTAtRiskDevices({ rows: rows, now: Date.now() }));",
+    );
+    expect(code).toContain(
+      "const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading ? [] : getIoTOfflineDeviceItems({ devices: atRiskDevices, routeFor: getDeviceRoute, });",
+    );
+    expect(code).toContain('testId: "iot-hero-devices-offline",');
+    expect(code).toContain(
+      "{totalDevices > 0 && offlineDevicesPill ? ( <ResourceAttentionPill {...offlineDevicesPill} /> ) : ( <></> )}",
+    );
+    expect(code).toContain(
+      'higherIsBetter={true} attention={getIoTOfflineDevicesPill({ testId: "iot-tile-devices-offline", items: offlineDeviceItems, translator: translator, })} />',
+    );
+    // The rule lives in one place now, not in the page.
+    expect(code).not.toContain("const LOW_BATTERY_PERCENT");
+    expect(code).toContain(
+      "thresholds={{ warn: 40, danger: IOT_LOW_BATTERY_PERCENT }}",
+    );
+  });
+
   test("the Devices needing attention card title carries its (i)", () => {
     expect(code).toContain(
       'const ATTENTION_TITLE: string = translationKey("Devices needing attention");',
@@ -596,8 +622,41 @@ describe("Ceph cluster overview", () => {
       "const cells: Array<OsdStateCell> = buildOsdStateCells(osdMatrix);",
     );
     expect(code).toContain(
-      "return <OsdStateCellView key={cell.label} cell={cell} />;",
+      "return ( <OsdStateCellView key={cell.label} cell={cell} attention={ isAttentionCurrent ? getOsdStateCellPill({ cell: cell, items: attentionItems, rows: inventoryRows, translator: translator, }) : undefined } /> );",
     );
+  });
+
+  /*
+   * A count of OSDs or pools that are not well said how many and nothing
+   * else (#9594): each now opens the parts it counts, as Needs attention
+   * lists them - while the agent reports, as Needs attention is drawn.
+   */
+  test("the counts of OSDs and pools that are not well open which and why, while the agent reports", () => {
+    expect(code).toContain(
+      "const isAttentionCurrent: boolean = isConnected && !isInventoryLoading && !inventoryError;",
+    );
+    expect(code).toContain(
+      "const downOsdItems: Array<ResourceAttentionItem> = isAttentionCurrent ? getCephDownOsdItems({ items: attentionItems, rows: inventoryRows }) : [];",
+    );
+    // Beside "5/6 OSDs up" in the hero, and on the OSDs Up tile.
+    expect(code).toContain(
+      'route: routes.osdsRoute, testId: "ceph-hero-osds", label: translator.translatePlural( { one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" }, cluster.osdCount, { up: formatCount(cluster.osdUpCount || 0) }, ), attention: getDownOsdsPill("ceph-hero-osds-down"),',
+    );
+    expect(code).toContain(
+      "{chip.attention ? ( <ResourceAttentionPill {...chip.attention} /> ) : ( <></> )}",
+    );
+    expect(code).toContain(
+      'higherIsBetter={true} attention={getDownOsdsPill("ceph-tile-osds-down")} />',
+    );
+    // Problem PGs: the pools that hold them.
+    expect(code).toContain(
+      'testId: "ceph-tile-problem-pg-pools", items: problemPgPoolItems,',
+    );
+    expect(code).toContain(
+      "const problemPgPoolItems: Array<ResourceAttentionItem> = isAttentionCurrent ? getCephProblemPgPoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, }) : [];",
+    );
+    // The card's counts and the OSDs its states open follow one rule.
+    expect(code).toContain("matrix[getCephOsdQuadrant(row)]++;");
   });
 
   test("each rate chart has a header with its (i)", () => {

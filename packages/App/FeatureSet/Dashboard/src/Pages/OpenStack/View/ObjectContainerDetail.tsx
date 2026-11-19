@@ -10,7 +10,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -26,16 +30,40 @@ import { OPENSTACK_OBJECT_CONTAINER_ALERT_TEMPLATE_IDS } from "../Utils/OpenStac
  * reads no differently here, recorded, because the list comes from the account and container servers: only
  * what each storage server says through /recon would say so.
  */
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This container"),
+  attentionDescription: translationKey(
+    "What about this container needs a look.",
+  ),
+  openTitle: translationKey("Open on this container"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this container, incidents first.",
+  ),
+  alertsTitle: translationKey("Object storage alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alerts that watch every container this credential can read, this one included: each is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey(
+    "What Swift's account list says about this container.",
+  ),
+};
+
 const OpenStackCloudObjectContainerDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.ObjectContainer,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
         const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
         const objects: JSONValue | undefined = facts["objectCount"];
@@ -65,23 +93,8 @@ const OpenStackCloudObjectContainerDetail: FunctionComponent<
             slug="object-container"
             alertTemplateIds={OPENSTACK_OBJECT_CONTAINER_ALERT_TEMPLATE_IDS}
             detailRows={detailRows}
-            words={{
-              thisOne: translationKey("This container"),
-              attentionDescription: translationKey(
-                "What about this container needs a look.",
-              ),
-              openTitle: translationKey("Open on this container"),
-              openDescription: translationKey(
-                "Unresolved incidents and alerts about this container, incidents first.",
-              ),
-              alertsTitle: translationKey("Object storage alerts"),
-              alertsDescription: translationKey(
-                "The cloud's alerts that watch every container this credential can read, this one included: each is one monitor on the cloud.",
-              ),
-              detailsDescription: translationKey(
-                "What Swift's account list says about this container.",
-              ),
-            }}
+            words={WORDS}
+            attention={attention}
             tiles={
               <>
                 <GoldenMetricTile

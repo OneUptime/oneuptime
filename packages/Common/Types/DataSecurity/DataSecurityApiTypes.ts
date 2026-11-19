@@ -222,9 +222,14 @@ export interface DataSecurityRecordOfProcessingResponse {
   rows: Array<DataSecurityRecordOfProcessingRow>;
 }
 
+/*
+ * Which kind of rule Scrub It made: a log or a trace scrub rule, or - for
+ * a metric's attribute - a metric pipeline rule that redacts it.
+ */
+export type DataSecurityScrubSignal = "log" | "trace" | "metric";
+
 export interface DataSecurityScrubResult {
-  // "log" or "trace": which kind of scrub rule was made.
-  signal: "log" | "trace";
+  signal: DataSecurityScrubSignal;
   scrubRuleId: string;
   scrubRuleName: string;
 }
@@ -236,6 +241,8 @@ export enum DataSecurityOccurrenceRecordKind {
   Exception = "Exception",
   AiCall = "AI call",
   Session = "Session",
+  // A metric's data point: one series of the metric, at one moment.
+  Metric = "Metric",
 }
 
 // Why a telemetry finding's records are not shown.
@@ -306,8 +313,17 @@ export interface DataSecurityFindingOccurrence {
   rumApplicationId?: string | undefined;
   traceId?: string | undefined;
   spanId?: string | undefined;
-  // A span's or an AI call's name, an exception's type.
+  /*
+   * A span's or an AI call's name, an exception's type, a metric's name -
+   * a metric's with every sensitive value in it masked, as an excerpt's.
+   */
   name?: string | undefined;
+  /*
+   * A metric's data point: its metric's name as the table keys it, to open
+   * it in the metrics explorer - only when no sensitive data is in the
+   * name, so no value ever goes into an address.
+   */
+  metricName?: string | undefined;
   // A log line's severity.
   severity?: string | undefined;
   // An exception's group.

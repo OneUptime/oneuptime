@@ -6,6 +6,7 @@ import "../../../Server/API/AutoRemediationAPI";
 import CodeFixRunAPI from "../../../Server/API/CodeFixRunAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import AutoRemediationRoundRateLimit from "../../../Server/Middleware/AutoRemediationRoundRateLimit";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import AIInsightService from "../../../Server/Services/AIInsightService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
@@ -739,9 +740,12 @@ describe.each(ALL_ROUTES)(
     /*
      * Beside it stand only the refusals while a product the route acts on
      * is switched off on the server (ServerProductRoutes, #7479, #9489),
-     * which hand an anonymous request on while the product is on.
+     * which hand an anonymous request on while the product is on, and the
+     * limits of an AI fix's round and of Try again
+     * (AutoRemediationRoundRateLimit, #6525), which count a signed-in
+     * person and hand a request that names nobody on uncounted.
      */
-    test("is mounted behind getUserMiddleware, so an anonymous request reaches the handler", () => {
+    test("is mounted behind getUserMiddleware, so an anonymous request reaches the handler", async () => {
       const middlewares: Array<unknown> = mockRouter.match(
         "post",
         route.uri,
@@ -750,9 +754,36 @@ describe.each(ALL_ROUTES)(
       expect(middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
       expect(
         middlewares.slice(1).filter((middleware: unknown): boolean => {
-          return !ServerProductRoutes.isRefusal(middleware);
+          return (
+            !ServerProductRoutes.isRefusal(middleware) &&
+            AutoRemediationRoundRateLimit.bucketOf(middleware) === undefined
+          );
         }),
       ).toEqual([]);
+
+      for (const middleware of middlewares.slice(1)) {
+        if (AutoRemediationRoundRateLimit.bucketOf(middleware) === undefined) {
+          continue;
+        }
+
+        const next: jest.Mock = jest.fn();
+
+        await (
+          middleware as (
+            req: ExpressRequest,
+            res: ExpressResponse,
+            next: NextFunction,
+          ) => Promise<void>
+        )(
+          { params: {}, query: {}, body: route.body, headers: {} } as never,
+          {} as ExpressResponse,
+          next as unknown as NextFunction,
+        );
+
+        // Handed on, with nothing counted: the handler answers 401.
+        expect(next.mock.calls).toEqual([[]]);
+        expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+      }
     });
 
     test("answers a caller with no credentials (only a tenantid header) with 401, not 422", async () => {

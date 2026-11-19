@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddComplianceSettingTurnedOffBy1809184940000, and moved into a migration
+ * AddComplianceSettingTurnedOffBy1809185300000, and moved into a migration
  * of its own: a key on a table that holds rows takes a lock on "User" too
  * while every row is checked, so it is added NOT VALID, then validated,
  * without blocking either table's readers or writers
@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The name is the one the generator gave it, so the drift check finds
  * nothing to change. Safe to run again after a stop part way.
  */
-export class AddComplianceSettingTurnedOffByKey1809184940100
+export class AddComplianceSettingTurnedOffByKey1809185300100
   implements MigrationInterface
 {
-  public name: string = "AddComplianceSettingTurnedOffByKey1809184940100";
+  public name: string = "AddComplianceSettingTurnedOffByKey1809185300100";
 
   // VALIDATE CONSTRAINT runs outside a transaction.
   public transaction: boolean = false;

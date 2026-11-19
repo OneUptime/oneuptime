@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57627,
-    "untranslated": 8014
+    "keys": 57990,
+    "untranslated": 8173
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -19,6 +19,7 @@
     "5xx",
     "A-Z",
     "AM",
+    "ANRs",
     "APIs",
     "Active + Clean",
     "Agenda",

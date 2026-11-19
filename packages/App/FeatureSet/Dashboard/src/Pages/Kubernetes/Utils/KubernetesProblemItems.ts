@@ -55,6 +55,11 @@ export enum KubernetesProblemKind {
   // Pods in Kubernetes' Unknown phase.
   Unknown = "unknown",
   NodesNotReady = "nodesNotReady",
+  /*
+   * Pods the rules say need attention, whatever their state: a namespace's,
+   * a Job's that failed. Each row says since when in its own state's words.
+   */
+  NeedsAttention = "needsAttention",
 }
 
 export interface KubernetesProblemQuery {
@@ -99,7 +104,34 @@ const SINCE_TEMPLATES: Record<KubernetesProblemKind, string> = {
   [KubernetesProblemKind.Failed]: SINCE_FAILED,
   [KubernetesProblemKind.Unknown]: SINCE_UNKNOWN,
   [KubernetesProblemKind.NodesNotReady]: SINCE_NOT_READY,
+  [KubernetesProblemKind.NeedsAttention]: SINCE_FAILING,
 };
+
+/*
+ * Since when, in the words of the state a pod is in, for a list of pods in
+ * several states: "Pending since", "Failed", "Not ready since".
+ */
+function sinceTemplateOf(
+  kind: KubernetesProblemKind,
+  row: KubernetesHealthRow,
+): string {
+  if (kind !== KubernetesProblemKind.NeedsAttention) {
+    return SINCE_TEMPLATES[kind];
+  }
+  switch (getKubernetesPodStatusBucket(row).bucket) {
+    case KubernetesPodStatusBucket.Pending:
+      return SINCE_PENDING;
+    case KubernetesPodStatusBucket.Failed:
+      return SINCE_FAILED;
+    case KubernetesPodStatusBucket.Unknown:
+      return SINCE_UNKNOWN;
+    case KubernetesPodStatusBucket.Running:
+      // Running, and not ready or killed for its memory lately.
+      return SINCE_NOT_READY;
+    default:
+      return SINCE_FAILING;
+  }
+}
 
 // How many of an object's recent warnings a row keeps.
 export const KUBERNETES_PROBLEM_EVENTS_KEPT: number = 3;
@@ -133,6 +165,8 @@ export function selectKubernetesProblemPods<T extends KubernetesHealthRow>(
         return of.bucket === KubernetesPodStatusBucket.Failed;
       case KubernetesProblemKind.Unknown:
         return of.bucket === KubernetesPodStatusBucket.Unknown;
+      case KubernetesProblemKind.NeedsAttention:
+        return assessKubernetesPod(row).severity !== null;
       default:
         return false;
     }
@@ -331,7 +365,7 @@ export function toKubernetesPodProblemItem(data: {
   if (assessment.since !== undefined) {
     item.since = {
       at: new Date(assessment.since),
-      template: SINCE_TEMPLATES[data.kind],
+      template: sinceTemplateOf(data.kind, row),
     };
   }
 

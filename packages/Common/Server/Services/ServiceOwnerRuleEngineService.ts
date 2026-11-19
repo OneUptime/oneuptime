@@ -158,9 +158,9 @@ class ServiceOwnerRuleEngineServiceClass
     }
 
     /*
-     * Service owner rows carry no notification flag and nothing notifies a
-     * service owner on add, so the notify split below only decides which
-     * rule an owner is attributed to - it changes nothing that is written.
+     * Each owner is written told or not by the rules that add them: a rule
+     * whose Notify Owners is on writes them not told, for the Workers'
+     * ServiceOwners job to tell (#9700), one with it off writes them told.
      */
     const usersByNotify: Map<boolean, Set<string>> = new Map([
       [true, new Set()],
@@ -259,6 +259,7 @@ class ServiceOwnerRuleEngineServiceClass
         owner.serviceId = service.id;
         owner.projectId = service.projectId;
         owner.userId = new ObjectID(userId);
+        owner.isOwnerNotified = !notify;
         if (
           await OwnerRuleAssignment.createOwner({
             ownerService: ServiceOwnerUserService,
@@ -275,6 +276,7 @@ class ServiceOwnerRuleEngineServiceClass
         owner.serviceId = service.id;
         owner.projectId = service.projectId;
         owner.teamId = new ObjectID(teamId);
+        owner.isOwnerNotified = !notify;
         if (
           await OwnerRuleAssignment.createOwner({
             ownerService: ServiceOwnerTeamService,

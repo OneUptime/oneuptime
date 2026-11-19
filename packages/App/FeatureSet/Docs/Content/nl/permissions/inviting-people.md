@@ -43,7 +43,7 @@ Klik op **Gebruiker uitnodigen**. Het dialoogvenster **Nieuwe gebruiker uitnodig
 
 ### Het e-mailadres invullen
 
-Vul het adres in bij **E-mail**. Gebruikt nog geen OneUptime-account dit adres, dan vraagt het dialoogvenster ook om een **Naam**, waarmee het nieuwe account begint.
+Vul het adres in bij **E-mail**. Gebruikt nog geen OneUptime-account dit adres, dan vraagt het dialoogvenster ook om een **Naam**, waarmee het nieuwe account begint. Terwijl u typt, stelt **E-mail** personen uit het project voor op naam of adres, en laat het zien wie **Uitgenodigd** is en wie **Al in dit team** zit: klik op een persoon om het adres in te vullen. Op een zelfgehoste server krijgt een hoofdbeheerder ook de andere accounts van de server aangeboden, gemarkeerd met **Nog niet in dit project**.
 
 ### Het team kiezen
 

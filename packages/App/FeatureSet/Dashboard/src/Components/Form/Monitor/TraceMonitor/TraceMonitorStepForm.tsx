@@ -163,6 +163,24 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
+          /*
+           * A Traces monitor counts spans, so a count of slow ones is how it
+           * alerts on latency: a mobile app's Slow Cold Start counts the
+           * AppStart spans of 5,000 ms or more. Folded with the other
+           * filters, whose header names it as a chip once it is set.
+           */
+          {
+            field: {
+              minimumDurationInMs: true,
+            },
+            fieldType: FormFieldSchemaType.Number,
+            title: "Takes at least (ms)",
+            description:
+              "Only spans that took this long or longer, such as 5000 for a five-second cold start. Empty: any duration.",
+            placeholder: "5000",
+            hideOptionalLabel: true,
+            collapsibleSection: MORE_TRACE_FILTERS,
+          },
         ]}
       />
       <FoldedSection

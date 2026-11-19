@@ -110,7 +110,7 @@ describe("correlation-12: a refresh keeps stale tiles on screen", () => {
   test("loading flags are set only when the loader is asked to show loading", () => {
     const loader: string = block(
       "const loadTelemetry:",
-      "[modelIdString, timeRangeKey],",
+      "[modelIdString, timeRangeKey, isMobileApp, loadMobileSignals],",
     );
     const guarded: string = loader.slice(
       loader.indexOf("if (showLoading) {"),

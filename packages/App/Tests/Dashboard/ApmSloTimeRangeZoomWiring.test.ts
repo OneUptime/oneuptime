@@ -183,11 +183,13 @@ describe("RUM overview (Pages/Rum/View/Overview.tsx)", () => {
 
     expect(tree).toContain("{showRumSdkMissingNotice && (");
     expect(tree).toContain("<ResourceOverview");
-    expect(tree).toContain("tiles={tiles}");
-    expect(tree).toContain("charts={charts}");
+    // A mobile app's own tiles and charts (#9588), a browser app's otherwise.
+    expect(tree).toContain("tiles={isMobileApp ? mobileTiles : tiles}");
+    expect(tree).toContain("charts={isMobileApp ? mobileCharts : charts}");
     expect(tree).toContain("<TelemetryTimeRangePicker value={timeRange}");
     expect(tree).toContain("<WebVitalsCard");
     expect(tree).toContain("<WebVitalRouteBreakdownCard");
+    expect(tree).toContain("<FramesByScreenCard");
   });
 
   test("the picker still sets the page's range itself", () => {
@@ -200,7 +202,7 @@ describe("RUM overview (Pages/Rum/View/Overview.tsx)", () => {
     const loader: string = between(
       code,
       "const loadTelemetry:",
-      "[modelIdString, timeRangeKey],",
+      "[modelIdString, timeRangeKey, isMobileApp, loadMobileSignals],",
     );
 
     expect(loader).toContain(

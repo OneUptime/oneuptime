@@ -1534,7 +1534,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
     group: G.Telemetry,
     title: "Sensitive data is reaching your telemetry",
     description:
-      "Logs, traces, exceptions, replays or AI conversations carry sensitive data that no scrub rule masks.",
+      "Logs, traces, metrics, exceptions, replays or AI conversations carry sensitive data that no rule masks at ingest.",
     whyItMatters:
       "Telemetry is copied to many places and read by many people; personal data in it widens every privacy obligation.",
     severityBySensitivity: severities(S.High, S.Medium, S.Low, null),
@@ -1574,7 +1574,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
     group: G.Telemetry,
     title: "Secrets are reaching your telemetry",
     description:
-      "Passwords, API keys or tokens appear in logs, traces, exceptions or AI conversations.",
+      "Passwords, API keys or tokens appear in logs, traces, metrics, exceptions or AI conversations.",
     whyItMatters:
       "Anyone who can read the telemetry can use the secret; rotate it and stop the code that logs it.",
     severityBySensitivity: severities(

@@ -36,7 +36,7 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 58 members, split 8 / 50", () => {
+  test("the enum still has exactly 70 members, split 8 / 62", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -60,14 +60,19 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * with the status pages' emails. 61 with being made an owner of a
      * table, a pipeline or a data store (#9681), which roll up in sections
      * of their own, Data Observability and Data Security, as every other
-     * owner-added email rolls up in its product's.
+     * owner-added email rolls up in its product's. 68 with being made an
+     * owner of a service or a piece of infrastructure, of a dashboard, a
+     * workflow or a runbook, and of an on-call policy, schedule or incoming
+     * call policy (#9700), which roll up too. 70 with being made an owner of
+     * a monitor group or a Runner (#9758), which roll up with the monitors'
+     * and the runbooks' emails.
      */
-    expect(allEventTypes.length).toBe(61);
+    expect(allEventTypes.length).toBe(70);
     expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(8);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(53);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(62);
   });
 
-  test("their union is exactly the enum, so a 62nd member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 71st member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -175,14 +180,22 @@ describe("NotificationEmailRollupPolicy - the shrink-only on-call exception", ()
 
     /*
      * Guards the loop itself: if a rename ever drops ON_CALL out of every
-     * member name the loop above would pass by doing nothing at all.
+     * member name the loop above would pass by doing nothing at all. 9 with
+     * being made an owner of an on-call policy or schedule (#9700).
      */
-    expect(onCallMemberNames.length).toBe(7);
+    expect(onCallMemberNames.length).toBe(9);
   });
 
-  test("the exception set is capped at two and holds exactly the two policy-membership events", () => {
+  /*
+   * Grown once, on purpose (#9700): being made an OWNER of an on-call
+   * policy or of an on-call schedule is a configuration notice, as being
+   * added to a policy is - no deadline, nothing to acknowledge, and an owner
+   * rule over fifty policies is fifty emails a member. It carries ON_CALL
+   * for what it is about, not because anyone is paged.
+   */
+  test("the exception set is capped at four and holds exactly the two policy-membership events and the two on-call ownership ones", () => {
     expect(ROLLUP_ELIGIBLE_ON_CALL_ADMIN_EVENT_TYPES.size).toBeLessThanOrEqual(
-      2,
+      4,
     );
 
     expect(
@@ -191,6 +204,8 @@ describe("NotificationEmailRollupPolicy - the shrink-only on-call exception", ()
       [
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
         NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+        NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+        NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
       ].sort(),
     );
   });
@@ -320,6 +335,103 @@ describe("NotificationEmailRollupCategory", () => {
     ]) {
       expect(isRollupEligible(eventType)).toBe(true);
     }
+  });
+
+  /*
+   * #9700: an owner rule over two thousand cloud resources rolls up with
+   * itself under Services and Infrastructure, dashboards, workflows and
+   * runbooks under Dashboards & Automation, and the on-call records under
+   * On-Call - never under Incoming Calls, whose missed customer call a
+   * burst of configuration notices must not hold back.
+   */
+  test("being made an owner of the 23 records rolls up under its own heading, every one of them eligible", () => {
+    const expected: Array<[NotificationSettingEventType, RollupCategory]> = [
+      [
+        NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.ServicesAndInfrastructure,
+      ],
+      [
+        NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.DashboardsAndAutomation,
+      ],
+      [
+        NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.DashboardsAndAutomation,
+      ],
+      [
+        NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.DashboardsAndAutomation,
+      ],
+      [
+        NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.OnCall,
+      ],
+      [
+        NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.OnCall,
+      ],
+      [
+        NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.OnCall,
+      ],
+      /*
+       * #9758: a monitor group is Monitors', and a Runner, which runs
+       * runbook steps, is filed with the runbooks.
+       */
+      [
+        NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.Monitors,
+      ],
+      [
+        NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.DashboardsAndAutomation,
+      ],
+    ];
+
+    for (const [eventType, category] of expected) {
+      expect({ eventType, category: getRollupCategory(eventType) }).toEqual({
+        eventType,
+        category,
+      });
+      expect(isRollupEligible(eventType)).toBe(true);
+      expect(NEVER_ROLLED_UP_EVENT_TYPES.has(eventType)).toBe(false);
+    }
+
+    expect(
+      ROLLUP_CATEGORY_LABEL[RollupCategory.ServicesAndInfrastructure],
+    ).toBe("Services and Infrastructure");
+    expect(ROLLUP_CATEGORY_LABEL[RollupCategory.DashboardsAndAutomation]).toBe(
+      "Dashboards & Automation",
+    );
+    // Stored codes, never reworded.
+    expect(RollupCategory.ServicesAndInfrastructure).toBe(
+      "services-and-infrastructure",
+    );
+    expect(RollupCategory.DashboardsAndAutomation).toBe(
+      "dashboards-and-automation",
+    );
+
+    // Routine news: after what pages people, before the Other bucket, each once.
+    for (const category of [
+      RollupCategory.ServicesAndInfrastructure,
+      RollupCategory.DashboardsAndAutomation,
+    ]) {
+      expect(
+        ROLLUP_CATEGORY_ORDER.filter((each: RollupCategory): boolean => {
+          return each === category;
+        }),
+      ).toHaveLength(1);
+      expect(ROLLUP_CATEGORY_ORDER.indexOf(category)).toBeGreaterThan(
+        ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Monitors),
+      );
+      expect(ROLLUP_CATEGORY_ORDER.indexOf(category)).toBeLessThan(
+        ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Other),
+      );
+    }
+
+    expect(ROLLUP_CATEGORY_ORDER).toHaveLength(
+      Object.values(RollupCategory).length,
+    );
   });
 
   test("getRollupCategory falls back to Other for a value cast in from the database", () => {

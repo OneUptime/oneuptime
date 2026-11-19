@@ -209,9 +209,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     pushNotificationMessage: PushNotificationMessage;
     /*
      * Optional: WhatsApp only delivers Meta-approved template payloads, so a
-     * caller whose event type has no registered template leaves this out and
-     * the channel is skipped (the body of this method already guards for it)
-     * instead of failing at the notification service.
+     * caller whose event type has no registered template
+     * (Types/WhatsApp/WhatsAppEventTemplates) leaves this out and the channel
+     * is skipped instead of failing at the notification service. So is a
+     * payload with no template (#9715).
      */
     whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
@@ -518,9 +519,17 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
           });
 
-        if (!data.whatsAppMessage) {
+        /*
+         * WhatsApp delivers only a message made from a template Meta
+         * approved. A payload with no template is refused by the
+         * notification service, a failed WhatsApp log each time, and reaches
+         * nobody: it is skipped here, as a missing one is (#9715). Every
+         * sender builds its payload from Types/WhatsApp/WhatsAppEventTemplates,
+         * and Notification Settings offers WhatsApp only for those events.
+         */
+        if (!data.whatsAppMessage?.templateKey) {
           logger.warn(
-            "Skipping WhatsApp notification because WhatsApp template payload is missing.",
+            `Skipping WhatsApp notification for "${data.eventType}": WhatsApp delivers only approved templates, and none was handed over.`,
           );
         } else {
           for (const userWhatsApp of userWhatsApps) {
@@ -1227,6 +1236,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
     await this.addSloNotificationSettings(userId, projectId);
     await this.addDataOwnerNotificationSettings(userId, projectId);
+    await this.addResourceOwnerNotificationSettings(userId, projectId);
     await this.addIncomingCallNotificationSettings(userId, projectId);
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
@@ -1420,6 +1430,74 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION,
+    );
+  }
+
+  /*
+   * Being made an owner of a service or a piece of infrastructure, of a
+   * dashboard, a workflow or a runbook, or of an on-call policy, schedule
+   * or incoming call policy (#9700), or of a monitor group or a runner
+   * (#9758), by an owner rule whose Notify Owners is on or by a person on
+   * its Owners page: on by email, as being made the owner of a table is.
+   * The owner jobs (Workers ResourceOwnersAdded) seed each too before they
+   * send, for the members who joined before it existed.
+   */
+  public async addResourceOwnerNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
     );
   }
 

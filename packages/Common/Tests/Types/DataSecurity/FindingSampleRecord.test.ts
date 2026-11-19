@@ -4,6 +4,7 @@ import {
   getFindingSampleRecordKey,
   MAX_FINDING_SAMPLE_RECORDS,
   MAX_SAMPLE_RECORD_ID_LENGTH,
+  MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH,
   readFindingSampleRecords,
   toFindingSampleRecord,
 } from "../../../Types/DataSecurity/FindingSampleRecord";
@@ -112,5 +113,66 @@ describe("what a finding keeps, read back", () => {
         },
       ]),
     ).toEqual([{ time: "2026-10-27T11:59:58.123Z", traceId: "t" }]);
+  });
+});
+
+/*
+ * A METRIC'S DATA POINT (issue #9604): every series of a metric is written
+ * in the same millisecond, so a point is kept with the metric it is a
+ * point of - which the metrics table is keyed by before the time.
+ */
+describe("a metric's data point as a reference", () => {
+  test("keeps its metric's name as written, spaces and case and all", () => {
+    expect(
+      toFindingSampleRecord({ time: TIME, metricName: "http.server.Duration" }),
+    ).toEqual({
+      time: "2026-10-27T11:59:58.123Z",
+      metricName: "http.server.Duration",
+    });
+    // Matched exactly by the read: never trimmed.
+    expect(
+      toFindingSampleRecord({ time: TIME, metricName: " padded " })?.metricName,
+    ).toBe(" padded ");
+  });
+
+  test("a blank name, a name too long to be a key, or not a name, is none", () => {
+    for (const metricName of [
+      "",
+      "   ",
+      "m".repeat(MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH + 1),
+      42,
+      null,
+      ["user.logins"],
+    ] as Array<unknown>) {
+      expect(toFindingSampleRecord({ time: TIME, metricName })).toEqual({
+        time: "2026-10-27T11:59:58.123Z",
+      });
+    }
+
+    expect(
+      toFindingSampleRecord({
+        time: TIME,
+        metricName: "m".repeat(MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH),
+      })?.metricName?.length,
+    ).toBe(MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH);
+  });
+
+  test("two metrics' points of the same millisecond are two records; the same point is kept once", () => {
+    const logins: FindingSampleRecord = {
+      time: "2026-10-27T11:59:58.123Z",
+      metricName: "user.logins",
+    };
+    const signups: FindingSampleRecord = {
+      ...logins,
+      metricName: "user.signups",
+    };
+
+    expect(getFindingSampleRecordKey(logins)).not.toBe(
+      getFindingSampleRecordKey(signups),
+    );
+    expect(readFindingSampleRecords([logins, signups, { ...logins }])).toEqual([
+      logins,
+      signups,
+    ]);
   });
 });

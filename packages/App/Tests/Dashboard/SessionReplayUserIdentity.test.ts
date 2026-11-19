@@ -110,7 +110,16 @@ describe("describeSessionUser", () => {
 
     expect(withKey.kind).toBe("hidden");
     expect(withKey.text).toBe("Hidden");
-    expect(withKey.title).toBe(HIDDEN_IDENTITY_TITLE);
+    /*
+     * The header's request, naming the grant as the roles screen does
+     * (#7320): it used to stop at "so the label is not sent to you."
+     */
+    expect(withKey.title).toBe(
+      HIDDEN_IDENTITY_TITLE.replace("{{permission}}", "Watch Session Replays"),
+    );
+    expect(withKey.title).toBe(
+      'Your role cannot read end-user identity. Ask a Project Admin for the "Watch Session Replays" permission.',
+    );
     expect(withKey.initials).toBe("?");
     expect(withKey.hue).toBe(stableHue(USER_KEY));
     expect(withKey.filter).toEqual({ identifiedUserKey: USER_KEY });

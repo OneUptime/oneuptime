@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 Se [Övervakningshemligheter](/docs/monitor/monitor-secrets) för att skapa en hemlighet och välja vilka monitorer som kan använda den.
 
+En engångskodshemlighet innehåller en webbplats inställningsnyckel för tvåfaktorsautentisering i stället för ett värde. Dess `{{monitorSecrets.NAME}}` är den kod som gäller när skriptet startar, och `await oneuptime.getTotpCode("NAME")` genererar en ny kod när skriptet ber om den, vilket passar en inloggning som ber om koden först några sidor in. Se [Logga in med en engångskod](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod).
+
 ## Anpassade mätvärden
 
 Du kan samla in anpassade mätvärden från ditt skript med funktionen `oneuptime.captureMetric()`. Mätvärdena lagras i OneUptime och kan visas i diagram på instrumentpaneler med Metric Explorer.
@@ -258,6 +260,7 @@ I incident- och larmmallar finns varje körning i `{{syntheticResponses}}`: se [
 | `crypto` | En implementering i en webbläsar-worker av SHA-256-hashar, HMAC-SHA-256, `randomBytes`, `randomInt` och `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` och `error`. Meddelandena sparas med varje körning. |
 | `oneuptime.captureMetric` | Samlar in ett anpassat mätvärde. Se [Anpassade mätvärden](#anpassade-mätvärden). |
+| `oneuptime.getTotpCode` | Genererar den aktuella koden för en engångskodshemlighet: `await oneuptime.getTotpCode("NAME")`. Se [Använda övervakningshemligheter](#använda-övervakningshemligheter). |
 | `http` | En buffrad kompatibilitetsfasad enbart för klienter, som stöder `request`, `get` och `Agent`. |
 | `https` | HTTPS-motsvarigheten till fasaden `http`, som bara är för klienter. |
 | `Buffer`, `setTimeout`, `setInterval` | Och deras `clear`-funktioner. |

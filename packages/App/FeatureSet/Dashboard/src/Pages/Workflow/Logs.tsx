@@ -15,6 +15,7 @@ import {
   getWorkflowRunExportFromWorkflowLog,
   getWorkflowRunStartedBy,
 } from "Common/UI/Components/Workflow/WorkflowRunExport";
+import { WORKFLOW_RUN_RAN_AS_SELECT } from "Common/UI/Components/Workflow/WorkflowRunRanAs";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement, {
   getWorkflowStatusFilterOptions,
@@ -95,6 +96,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
               email: true,
             },
+            // What it ran as, when more than Default (#9695).
+            ...WORKFLOW_RUN_RAN_AS_SELECT,
             // Whether the row and the run's window offer Run again.
             canRunAgain: true,
           }}

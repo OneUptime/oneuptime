@@ -137,6 +137,45 @@ export function toReadableText(text: string): string {
   return readable;
 }
 
+/*
+ * A short text that names a record - a metric's name - as a page may show
+ * it: every sensitive value any detector finds in it masked, the
+ * project's own types included and whatever it turned off, the rest as
+ * written but for control characters. `isMasked` says whether anything
+ * was: a name with nothing masked is a key, and may go into an address.
+ */
+export function maskSensitiveText(
+  value: string,
+  options: OccurrenceExcerptOptions = {},
+): { text: string; isMasked: boolean } {
+  const customDetectors: ReadonlyArray<ScanDetector> =
+    options.customDetectors || [];
+  const matches: Array<TextMatch> = findSensitiveValues(value, {
+    detectors:
+      customDetectors.length > 0
+        ? [...BUILT_IN_DETECTORS, ...customDetectors]
+        : BUILT_IN_DETECTORS,
+  }).sort((a: TextMatch, b: TextMatch): number => {
+    return a.start - b.start;
+  });
+  let text: string = "";
+  let position: number = 0;
+
+  for (const match of matches) {
+    if (match.start < position) {
+      continue;
+    }
+
+    text += toReadableText(value.slice(position, match.start));
+    text += maskValue(match.dataTypeId, value.slice(match.start, match.end));
+    position = match.end;
+  }
+
+  text += toReadableText(value.slice(position));
+
+  return { text, isMasked: matches.length > 0 };
+}
+
 function withoutOverlaps(
   kept: ReadonlyArray<MarkedMatch>,
   candidates: ReadonlyArray<MarkedMatch>,

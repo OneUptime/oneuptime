@@ -107,6 +107,8 @@ OpenTelemetry Android legt dit allemaal uit zichzelf vast. De apparaatattributen
 
 Crashes en ANR's komen in **Uitzonderingen** binnen als niet-afgehandeld, gegroepeerd op hun stacktraces, met de sessie waarin ze gebeurden. De agent slaat een crash op schijf op terwijl de app sterft en verstuurt hem van daaruit, dus een crash die offline gebeurt, komt toch binnen zodra de app weer draait met een netwerk.
 
+De pagina **Overzicht** van de applicatie zet dit voor je op een rij: **Sessies**, **Crashvrije sessies**, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)** en **Bevroren frames**, en elke tegel opent de uitzonderingen, spans of gebeurtenissen die hij telt. Zolang de app geen app-starts of frames verstuurt, vertellen de bijbehorende grafieken hoe je ze aanzet. De pagina **Aanbevelingen** biedt monitors voor crashes, ANR's, trage koude starts, bevroren frames en een app die stopt met rapporteren.
+
 Een sessie eindigt na 15 minuten op de achtergrond, of na 4 uur. Een app die nooit naar de achtergrond gaat, zoals een kiosk, houdt 4 uur lang één sessie, dus trace het bezoek van elke klant als een eigen span, zoals [Je eigen workflows tracen](#je-eigen-workflows-tracen) laat zien.
 
 De eigen `android.util.Log`-aanroepen van je app worden ook logs wanneer je `android-log-library` en `android-log-agent` naast de OkHttp-modules hieronder toevoegt: de tag van elke aanroep komt in `android.log.tag`, en een aanroep met een throwable is een uitzondering in **Uitzonderingen**. OpenTelemetry Android leest Logcat niet.

@@ -2392,12 +2392,103 @@ describe("notification settings", () => {
       tabSections("onCall").map((card: SettingsSection): string => {
         return card.title;
       }),
-    ).toEqual(["On-Call", "Incoming Call Policies"]);
+    ).toEqual([
+      "On-Call",
+      "On-Call Policies and Schedules",
+      "Incoming Call Policies",
+    ]);
     expect(settings).toContain(
       "such as **Incident Episodes** on the **Incidents** tab.",
     );
     expect(settings).toContain(
       "- **Missed call**, on the **Incoming Call Policies** card,",
+    );
+  });
+
+  /*
+   * #9700: one switch for being made an owner of any service or piece of
+   * infrastructure, on a card of its own; and the On-Call tab is about the
+   * on-call records the person owns too, not only about their shifts.
+   */
+  it("says what the one switch for services and infrastructure covers, and that the On-Call tab is about owned records too", () => {
+    const labels: Record<string, string> = eventLabels();
+
+    expect(
+      labels["SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION"],
+    ).toBe("Added as service or infrastructure owner");
+    expect(
+      tabSections("monitoring").find((card: SettingsSection): boolean => {
+        return card.title === "Services and Infrastructure";
+      })?.eventTypes,
+    ).toEqual(["SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION"]);
+    expect(settings).toContain(
+      "**Added as service or infrastructure owner**, on the **Services and Infrastructure** card, is one switch for every service, RUM application, database, queue, host, cluster, cloud resource and other piece of infrastructure you are made an owner of.",
+    );
+
+    expect(
+      tabSections("onCall").find((card: SettingsSection): boolean => {
+        return card.title === "On-Call Policies and Schedules";
+      })?.eventTypes,
+    ).toEqual([
+      "SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION",
+      "SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION",
+    ]);
+    expect(settings).toContain(
+      "The **On-Call** tab is about you, and about the on-call records you own:",
+    );
+    expect(settings).toContain(
+      `- **${labels["SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION"]}**, **${labels["SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION"]}** and **${labels["SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION"]}** tell you when you are made an owner of one,`,
+    );
+  });
+
+  /*
+   * #9715: WhatsApp delivers only Meta-approved templates, and an update
+   * with none has no WhatsApp switch: its card says WhatsApp is not
+   * available, from the map the server sends by.
+   */
+  it("says WhatsApp is offered only for the updates it can send, as the matrix draws it", () => {
+    const matrix: string = readDashboardSource(
+      "Components/NotificationSettings/NotificationMatrix.tsx",
+    );
+    const words: string = readDashboardSource(
+      "Components/NotificationSettings/NotificationSettingsWords.ts",
+    );
+
+    expect(matrix).toContain(
+      'import { isNotificationChannelOfferedForEvent } from "Common/Types/WhatsApp/WhatsAppEventTemplates";',
+    );
+    expect(words).toContain('"{{channel}} is not available for these events."');
+    expect(words).toContain('"{{channel}} is not available for this event."');
+    expect(settings).toContain(
+      "- WhatsApp delivers only messages Meta has approved, and OneUptime has them for updates about incidents, alerts, episodes, monitors, probes, AI agents, status pages, maintenance events and most on-call shifts. Other updates, such as an SLO's status, a missed call, a security case or being made an owner of a service, have no WhatsApp switch, and their card says WhatsApp is not available.",
+    );
+    expect(settings).toContain(
+      ":::details There is no WhatsApp switch for an update",
+    );
+  });
+
+  // #9758: a monitor group's and a Runner's new owners are told, each on its card.
+  it("names the monitor group's and the Runner's owner switches, on the cards the page puts them on", () => {
+    const labels: Record<string, string> = eventLabels();
+
+    expect(labels["SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION"]).toBe(
+      "Added as monitor group owner",
+    );
+    expect(labels["SEND_RUNNER_OWNER_ADDED_NOTIFICATION"]).toBe(
+      "Added as Runner owner",
+    );
+    expect(
+      tabSections("monitoring").find((card: SettingsSection): boolean => {
+        return card.title === "Monitors";
+      })?.eventTypes,
+    ).toContain("SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION");
+    expect(
+      tabSections("monitoring").find((card: SettingsSection): boolean => {
+        return card.title === "Dashboards & Automation";
+      })?.eventTypes,
+    ).toContain("SEND_RUNNER_OWNER_ADDED_NOTIFICATION");
+    expect(settings).toContain(
+      "**Added as monitor group owner**, on the **Monitors** card, and **Added as Runner owner**, on the **Dashboards & Automation** card, tell you when someone adds you as an owner of a monitor group or a Runner.",
     );
   });
 

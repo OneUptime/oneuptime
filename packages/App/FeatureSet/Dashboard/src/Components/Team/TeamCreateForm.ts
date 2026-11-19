@@ -10,6 +10,7 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 /*
  * CREATE TEAM: A NAME, WHAT THE TEAM'S MEMBERS MAY DO, AND THE REST FOLDED.
@@ -64,6 +65,11 @@ export const getTeamCreateFormFields: (
       },
       // Not the column's "Any friendly name of this object", written for the API.
       hideColumnDescription: true,
+      /*
+       * Another team's name, said under the field (#9674): every picker
+       * shows a team by its name alone.
+       */
+      ownsServerError: isNameTakenRefusal,
     },
     /*
      * Not a column of the team: the page adds the role once the team exists

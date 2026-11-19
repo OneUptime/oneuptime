@@ -29,6 +29,17 @@ import MonitorStatusChangesCard from "../../../Components/Monitor/Overview/Monit
 import MonitorTelemetryPreview from "../../../Components/Monitor/Overview/MonitorTelemetryPreview";
 import MonitorUptimeHistoryCard from "../../../Components/Monitor/Overview/MonitorUptimeHistoryCard";
 import MonitorWhoIsToldCard from "../../../Components/Monitor/Overview/MonitorWhoIsToldCard";
+import { getMonitorPageRoute } from "../../../Components/Monitor/Overview/MonitorOverviewLinks";
+import {
+  MonitorOverviewStatusReason,
+  getMonitorStatusReason,
+  isStatusExplained,
+} from "../../../Components/Monitor/Overview/MonitorStatusReasonView";
+import useMonitorStatusCause, {
+  MonitorStatusCause,
+} from "../../../Components/Monitor/Overview/useMonitorStatusCause";
+import PageMap from "../../../Utils/PageMap";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
 import useMonitorOpenWork from "../../../Components/Monitor/Overview/useMonitorOpenWork";
 import useMonitorOverviewData, {
@@ -170,6 +181,29 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   /*
+   * Why a status that is not operational holds (#9592): the current status
+   * event's root cause, read once per event - only while the hero leads
+   * with a status that needs explaining - and the probes behind it.
+   */
+  const currentStatusRow: MonitorStatusTimeline | undefined =
+    data.statusRows.value?.[0];
+  const isReasonWanted: boolean = Boolean(
+    presentation &&
+      presentationInput &&
+      isStatusExplained({
+        presentation: presentation,
+        currentStatus: presentationInput.currentStatus,
+      }) &&
+      currentStatusRow &&
+      !currentStatusRow.endsAt &&
+      currentStatusRow.monitorStatusId?.toString() ===
+        presentationInput.currentStatus?.id,
+  );
+  const statusCause: MonitorStatusCause = useMonitorStatusCause({
+    rowId: isReasonWanted ? currentStatusRow?._id?.toString() : undefined,
+  });
+
+  /*
    * The uptime aggregate reloads every fifth poll, when the status changes
    * and on the Refresh button. It follows the status change COUNT rather
    * than the fingerprint: the fingerprint goes from "" to its first value
@@ -254,6 +288,30 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const monitorType: MonitorType = presentationInput.monitorType;
   const sections: MonitorOverviewSections = presentation.sections;
 
+  const statusReason: MonitorOverviewStatusReason | undefined =
+    (isReasonWanted &&
+      getMonitorStatusReason({
+        translator: translator,
+        presentation: presentation,
+        currentStatus: presentationInput.currentStatus,
+        statusSince: presentationInput.statusSince,
+        cause: statusCause,
+        probes: presentationInput.probes,
+        evaluation: data.evaluation.value,
+        monitorSteps: monitor.monitorSteps,
+        monitorType: monitorType,
+        now: now,
+        statusTimelineRoute: getMonitorPageRoute({
+          pageMap: PageMap.MONITOR_VIEW_STATUS_TIMELINE,
+          monitorId: modelId,
+        }),
+        checksRoute: getMonitorPageRoute({
+          pageMap: PageMap.MONITOR_VIEW_LOGS,
+          monitorId: modelId,
+        }),
+      })) ||
+    undefined;
+
   const probeData: MonitorOverviewProbeData | null = data.probes.value;
   const evaluation: MonitorEvaluationByProbe | null = data.evaluation.value;
   const probes: Array<Probe> = probeData?.attached.probes || [];
@@ -308,6 +366,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <div className="mb-5">
         <MonitorOverviewHero
+          statusReason={statusReason}
           monitorId={modelId}
           monitorType={monitorType}
           presentation={presentation}

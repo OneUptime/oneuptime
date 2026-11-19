@@ -6,6 +6,7 @@ import { getOpenStackAttentionItems } from "../../../Pages/OpenStack/Utils/OpenS
 import { getOpenStackPartExplanation } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
 import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
@@ -35,8 +36,45 @@ export interface OpenStackServicePartWords {
   detailsDescription: string;
 }
 
+/*
+ * What needs attention on the part, read once on its page: its Needs
+ * attention card lists it, and its hero's status opens it (#9594).
+ */
+export function getOpenStackServicePartAttention(data: {
+  part: OpenStackPart;
+  /*
+   * The row the rules read, when the page knows more of it than its own
+   * read (a load balancer's amphorae saying they are both the MASTER);
+   * the part's row when left out.
+   */
+  row?: OpenStackResource | null | undefined;
+  words: Pick<OpenStackServicePartWords, "thisOne" | "attentionDescription">;
+}): ResourcePartAttention {
+  const row: OpenStackResource | null =
+    data.row !== undefined ? data.row : data.part.row;
+  return {
+    items: row
+      ? getOpenStackAttentionItems({
+          rows: [row],
+          now: OneUptimeDate.getCurrentDate(),
+          routeFor: data.part.routes.routeFor,
+        })
+      : [],
+    description: data.words.attentionDescription,
+    current: {
+      key: `${row?.kind || data.part.kind}/${data.part.externalId}`,
+      label: data.words.thisOne,
+    },
+  };
+}
+
 export interface ComponentProps {
   part: OpenStackPart;
+  /*
+   * What needs attention on it, read once by its page
+   * (getOpenStackServicePartAttention) for this card and for its hero.
+   */
+  attention: ResourcePartAttention;
   row: OpenStackResource;
   service: OpenStackServiceType;
   // Which test ids it answers to: openstack-<slug>-overview and so on.
@@ -58,11 +96,7 @@ const OpenStackServicePartOverview: FunctionComponent<ComponentProps> = (
   const { part, row, slug, words } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
 
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
+  const attention: Array<ResourceAttentionItem> = props.attention.items;
   const explanation: string | null = getOpenStackPartExplanation(row, now);
 
   return (
@@ -80,11 +114,8 @@ const OpenStackServicePartOverview: FunctionComponent<ComponentProps> = (
       <NeedsAttentionCard
         testId={`openstack-${slug}-attention`}
         items={attention}
-        current={{
-          key: `${row.kind}/${part.externalId}`,
-          label: words.thisOne,
-        }}
-        description={words.attentionDescription}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {props.tiles ? (

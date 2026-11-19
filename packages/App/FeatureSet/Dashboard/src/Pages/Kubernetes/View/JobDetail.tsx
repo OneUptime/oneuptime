@@ -60,6 +60,10 @@ import {
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
+import { getKubernetesJobFailedPodsAttention } from "../Utils/KubernetesPartCounts";
+import { getKubernetesProblemRowsLoader } from "../Utils/KubernetesProblemLoader";
+import ResourceAttentionPill from "../../../Components/ResourcePart/ResourceAttentionPill";
+import { ResourcePartChipAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -257,6 +261,24 @@ const KubernetesClusterJobDetail: FunctionComponent<
   };
 
   /*
+   * Its failed pods, with why each ended and what Kubernetes reported about
+   * it lately: what both its hero's "3 pods failed" and its Failed count
+   * below open (#9595).
+   */
+  const failedPodsAttention: ResourcePartChipAttention | undefined =
+    partState.read
+      ? getKubernetesJobFailedPodsAttention({
+          read: partState.read,
+          translator: translator,
+          routeFor: routes.getPartRoute,
+          loadRows: getKubernetesProblemRowsLoader({
+            clusterIdentifier: clusterIdentifier,
+            routeFor: routes.getPartRoute,
+          }),
+        })
+      : undefined;
+
+  /*
    * What Kubernetes reports about it, in one Details card under the hero,
    * which already names its cluster and says how it is doing.
    */
@@ -324,16 +346,25 @@ const KubernetesClusterJobDetail: FunctionComponent<
       {
         title: "Failed",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobFailed,
-        value: (
-          <StatusBadge
-            text={String(jobObject.status.failed ?? 0)}
-            type={
-              (jobObject.status.failed ?? 0) > 0
-                ? StatusBadgeType.Danger
-                : StatusBadgeType.Neutral
-            }
-          />
-        ),
+        value:
+          (jobObject.status.failed ?? 0) > 0 && failedPodsAttention ? (
+            <ResourceAttentionPill
+              testId="kubernetes-job-failed-count"
+              label={translator.formatNumber(jobObject.status.failed ?? 0)}
+              tone={failedPodsAttention.tone}
+              hint={failedPodsAttention.hint}
+              dialog={failedPodsAttention.dialog}
+            />
+          ) : (
+            <StatusBadge
+              text={translator.formatNumber(jobObject.status.failed ?? 0)}
+              type={
+                (jobObject.status.failed ?? 0) > 0
+                  ? StatusBadgeType.Danger
+                  : StatusBadgeType.Neutral
+              }
+            />
+          ),
       },
       {
         title: "Start Time",
@@ -427,6 +458,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
         name={jobName}
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
+        clusterIdentifier={clusterIdentifier}
         routes={routes}
         namespace={namespaceParam}
       />

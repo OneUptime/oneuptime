@@ -27,12 +27,14 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import {
+  ResourcePartAttention,
+  ResourcePartBadge,
+} from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   fetchOpenStackBlastRadius,
   fetchOpenStackNames,
@@ -59,10 +61,16 @@ const POOL_NOT_COLLECTED: string = translationKey(
   "Not collected: the agent's exporter doesn't say which pool a volume is on, and Cinder only tells a probe when its credential is an admin's. openstack volume show has it, for a credential that can read it.",
 );
 
-const VolumeOverview: FunctionComponent<{
+interface VolumeOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const VolumeOverview: FunctionComponent<VolumeOverviewProps> = (
+  props: VolumeOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -91,12 +99,6 @@ const VolumeOverview: FunctionComponent<{
         ).belongsTo || []
       );
     }, [part.externalId, part.refreshToken]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const timeInState: string = getOpenStackTimeInState(row, now);
@@ -230,12 +232,9 @@ const VolumeOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-volume-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Volume}/${part.externalId}`,
-          label: translationKey("This volume"),
-        }}
-        description="What about this volume is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -308,12 +307,23 @@ const OpenStackCloudVolumeDetail: FunctionComponent<
     }
   }
 
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Volume,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
+
   return (
     <OpenStackPartPage
       part={part}
-      hero={{ badges }}
+      hero={{ badges, attention }}
       overview={(overviewRow: OpenStackResource): ReactElement => {
-        return <VolumeOverview part={part} row={overviewRow} />;
+        return (
+          <VolumeOverview part={part} row={overviewRow} attention={attention} />
+        );
       }}
       tabs={(): Array<Tab> => {
         return [

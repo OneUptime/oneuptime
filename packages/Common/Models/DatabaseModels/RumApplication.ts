@@ -1017,6 +1017,154 @@ export default class RumApplication extends BaseModel {
       Permission.EditRumApplication,
     ],
   })
+  /*
+   * Which pages of a website a recording may hold (issue #7502): page
+   * paths, a star for any run of characters, matched as the page signals
+   * match a page (SessionReplayPageRules). Empty records every page.
+   * Checked and stored canonical on every write (RumApplicationService).
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Record Only Pages",
+    description:
+      "Page paths the browser recorder records, a star standing for any characters, such as /checkout*. Empty records every page. Any other page is not recorded at all.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayRecordOnlyPages?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /*
+   * Page paths never recorded, even when Record only names them: the
+   * recorder pauses before the page is drawn and names it nowhere.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Never Record Pages",
+    description:
+      "Page paths the browser recorder never records, even when the record-only list names them, a star standing for any characters, such as /admin*.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayNeverRecordPages?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /*
+   * Readable event properties (issue #7501): track() property and
+   * metric() attribute keys whose short token values stay readable under
+   * every masking mode (SessionReplayReadableProperties). Empty: every
+   * value is masked under Mask all text, as before.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Readable Event Properties",
+    description:
+      "Event property keys whose values stay as written under every masking mode, but only while a value is a short token (letters, digits and _ . : / -, at most 32 characters). Matched as written. Any other value is masked.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayReadableEventProperties?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
   /* Not required, for the same reason as the mask selectors above. */
   @TableColumn({
     required: false,

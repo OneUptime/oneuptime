@@ -1,3 +1,4 @@
+import { hasWhatsAppTemplate } from "../../../../Types/WhatsApp/WhatsAppEventTemplates";
 import { describe, expect, test } from "@jest/globals";
 import MissedCallNotification, {
   MissedCall,
@@ -526,13 +527,24 @@ describe("the other channels", () => {
     expect(push.tag).toBe("incoming-call-missed");
   });
 
-  test("WhatsApp gets the SMS text, as no WhatsApp template exists for this event", () => {
+  /*
+   * #9715: WhatsApp delivers only Meta-approved templates, and none is
+   * approved for a missed call. The SMS text it was handed as a plain body
+   * was refused by the notification service - a failed WhatsApp log each
+   * time - and reached nobody. Now there is no WhatsApp message at all, and
+   * Notification Settings offers no WhatsApp switch for the event.
+   */
+  test("there is no WhatsApp message, as no approved WhatsApp template exists for this event", () => {
     const content: MissedCallNotificationContent = build(makeCall());
 
-    expect(content.whatsAppMessage).toEqual({
-      body: content.smsMessage.message,
-    });
-    expect(content.whatsAppMessage.templateKey).toBeUndefined();
+    expect(Object.keys(content).sort()).toEqual([
+      "callRequestMessage",
+      "emailEnvelope",
+      "pushNotificationMessage",
+      "smsMessage",
+    ]);
+    expect("whatsAppMessage" in content).toBe(false);
+    expect(hasWhatsAppTemplate(MissedCallNotification.EVENT_TYPE)).toBe(false);
   });
 
   test.each(Object.values(MissedIncomingCallReason))(

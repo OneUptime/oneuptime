@@ -79,6 +79,13 @@ import {
 } from "../../Types/UserLanguage";
 import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "../../Types/TwoFactorAuthStatus";
+import TwoFactorAuthSetupUtil, {
+  TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE,
+  TwoFactorAuthSetup,
+} from "../../Types/TwoFactorAuthSetup";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsNull, MoreThan, UpdateResult } from "typeorm";
@@ -577,6 +584,69 @@ export class Service extends DatabaseService<Model> {
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);
 
     /*
+     * Two factor authentication is switched by its owner alone, outside the
+     * Admin Dashboard: this hook runs before row scoping, so the update must
+     * name the caller's own account by an exact predicate. A master admin
+     * requires it of someone else, or stops requiring it, with the routes
+     * built for that (setTwoFactorAuthRequired), whose writes are root and
+     * sign the person out when it is turned on.
+     *
+     * Turning it on asks one thing more (issue #9666): a second step set up
+     * behind it, and a sign-in that is not managed by single sign-on
+     * (assertTwoFactorAuthMayBeTurnedOn). Turning it off asks nothing more,
+     * so somebody can always step down from a requirement they cannot meet.
+     *
+     * Asked before anything below writes, so a refused update changes nothing.
+     */
+    const turnsTwoFactorAuthOn: boolean =
+      updateBy.data.enableTwoFactorAuth === true;
+    const turnsTwoFactorAuthOff: boolean =
+      updateBy.data.enableTwoFactorAuth === false;
+
+    if (
+      !updateBy.props.isRoot &&
+      (turnsTwoFactorAuthOn || turnsTwoFactorAuthOff)
+    ) {
+      if (
+        !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+          Model,
+          updateBy.query,
+          updateBy.props,
+        )
+      ) {
+        throw new BadDataException(
+          turnsTwoFactorAuthOn
+            ? TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE
+            : "You can only turn off two factor authentication for your own account.",
+        );
+      }
+
+      if (turnsTwoFactorAuthOn) {
+        await this.assertTwoFactorAuthMayBeTurnedOn(updateBy.props.userId!);
+      }
+    }
+
+    /*
+     * A password set by the person it signs in (issue #9688): refused while
+     * the server requires single sign-on of them (SsoManagedSignIn), when it
+     * could only lie dormant until the requirement was turned off. It is the
+     * caller who is asked: a person may only write their own account, so
+     * the caller is the account here, unless they are a master admin -
+     * who is exempt, whoever's password they set. A root write (a reset
+     * link, Set Password in the Admin Dashboard) is not the profile's.
+     *
+     * Before the password rule, so somebody who cannot set one is not told
+     * to make it longer.
+     */
+    if (
+      updateBy.data.password &&
+      !updateBy.props.isRoot &&
+      updateBy.props.userId
+    ) {
+      await SsoManagedSignIn.assertMayChangeLocalSignIn(updateBy.props.userId);
+    }
+
+    /*
      * The one password rule, for a new password however it came: a reset
      * link, Update Password, a master admin's Set Password, the API
      * (Utils/NewPasswordRule). Only a new one: signing in writes none.
@@ -610,26 +680,6 @@ export class Service extends DatabaseService<Model> {
         newEmail: updateBy.data.email as Email,
         existingUsers: carryForward,
       });
-    }
-
-    /*
-     * Users may turn off two factor authentication for their own account.
-     * This hook runs before row scoping, so require an exact owner predicate.
-     * Changes to other accounts still use the master-admin endpoints, whose
-     * root writes retain session revocation when enabling the requirement.
-     */
-    if (
-      updateBy.data.enableTwoFactorAuth === false &&
-      !updateBy.props.isRoot &&
-      !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
-        Model,
-        updateBy.query,
-        updateBy.props,
-      )
-    ) {
-      throw new BadDataException(
-        "You can only turn off two factor authentication for your own account.",
-      );
     }
 
     return { updateBy, carryForward: carryForward };
@@ -1564,7 +1614,7 @@ export class Service extends DatabaseService<Model> {
    * separately.
    */
   @CaptureSpan()
-  private async countVerifiedTwoFactorAuthMethods(
+  public async countVerifiedTwoFactorAuthMethods(
     userId: ObjectID,
   ): Promise<number> {
     const verifiedTotpCount: PositiveNumber = await UserTotpAuthService.countBy(
@@ -1605,15 +1655,159 @@ export class Service extends DatabaseService<Model> {
     isTwoFactorAuthEnabled: boolean;
     verifiedMethodCount: number;
   }): TwoFactorAuthStatus {
-    if (!data.isTwoFactorAuthEnabled) {
-      return TwoFactorAuthStatus.NotEnabled;
+    return TwoFactorAuthSetupUtil.getStatus(data);
+  }
+
+  /**
+   * Where one person stands on two factor authentication, for their own
+   * profile (GET /user/two-factor-auth-status): the requirement and how many
+   * second steps are set up behind it, counted as the checks below count
+   * them. Throws NotFoundException for an account that does not exist.
+   */
+  @CaptureSpan()
+  public async getTwoFactorAuthSetup(
+    userId: ObjectID,
+  ): Promise<TwoFactorAuthSetup> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: userId,
+      },
+      select: {
+        _id: true,
+        enableTwoFactorAuth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
     }
 
-    if (data.verifiedMethodCount > 0) {
-      return TwoFactorAuthStatus.EnabledConfigured;
+    const verifiedMethodCount: number =
+      await this.countVerifiedTwoFactorAuthMethods(userId);
+
+    return {
+      status: TwoFactorAuthSetupUtil.getStatus({
+        isTwoFactorAuthEnabled: Boolean(user.enableTwoFactorAuth),
+        verifiedMethodCount: verifiedMethodCount,
+      }),
+      verifiedMethodCount: verifiedMethodCount,
+    };
+  }
+
+  /**
+   * Refuses a person turning two factor authentication on for themselves
+   * (issue #9666, Types/TwoFactorAuthSetup) unless both hold:
+   *
+   *  - their sign-in is not managed by single sign-on (SsoManagedSignIn): a
+   *    second step guards a password or an emailed link, and the server
+   *    signs them in with neither;
+   *  - something is set up for the second step to ask for: an authenticator
+   *    app whose code was entered, a security key or a passkey. Turned on
+   *    with nothing, the profile said "Enabled" while the account had no
+   *    second factor at all, and the next sign-in with the password -
+   *    anybody's - enrolled an app of that person's choosing.
+   *
+   * Asked in that order: an SSO-managed person is told why nothing here is
+   * theirs to set, not to go and add an app first.
+   *
+   * A master admin requiring it of somebody (setTwoFactorAuthRequired) asks
+   * neither: "required, nothing set up yet" is the state that sends that
+   * person through enrolment at their next sign-in.
+   */
+  @CaptureSpan()
+  public async assertTwoFactorAuthMayBeTurnedOn(
+    userId: ObjectID,
+  ): Promise<void> {
+    await SsoManagedSignIn.assertMayChangeLocalSignIn(userId);
+
+    const verifiedMethodCount: number =
+      await this.countVerifiedTwoFactorAuthMethods(userId);
+
+    if (verifiedMethodCount < 1) {
+      throw new BadDataException(TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE);
+    }
+  }
+
+  /**
+   * Refuses a delete that would take away the last second step an account
+   * with two factor authentication on can be asked for (issue #9666,
+   * TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE): its authenticator apps
+   * (UserTotpAuthService) or its security keys and passkeys
+   * (UserWebAuthnService). `rows` are the rows the delete removes, read with
+   * findRowsAndHoldDeleteToThem; only the verified ones count, so a setup
+   * that was never finished can always go.
+   *
+   * Removing the last one used to leave "Enabled" on an account with nothing
+   * behind it - the state this issue is about. Turning two factor
+   * authentication off instead is the owner's own, confirmed decision, so
+   * the delete is refused with what to do, rather than quietly turning it
+   * off: replace the phone first, or turn it off first.
+   *
+   * Counted over the whole delete, per account: a delete of two rows that
+   * leaves none is refused as a delete of the last one is. Only the caller's
+   * own writes ask (their services skip a root delete): a master admin's
+   * Reset two factor authentication removes everything on purpose, and the
+   * enrolment at sign-in sweeps only unfinished rows.
+   *
+   * Two deletes of an account's last two second steps at the same moment can
+   * each see the other's row still there. The account is then left as a
+   * master admin's requirement leaves one - on, with nothing set up - which
+   * the profile shows as Setup needed and the next sign-in with a password
+   * walks through enrolment: never a lockout.
+   */
+  @CaptureSpan()
+  public async assertTwoFactorAuthKeepsASecondStep(
+    rowsRemoved: Array<{
+      userId?: ObjectID | undefined;
+      isVerified?: boolean | undefined;
+    }>,
+  ): Promise<void> {
+    const verifiedRemovedByUser: Map<string, number> = new Map<
+      string,
+      number
+    >();
+
+    for (const row of rowsRemoved) {
+      if (row.isVerified !== true || !row.userId) {
+        continue;
+      }
+
+      const userId: string = row.userId.toString();
+
+      verifiedRemovedByUser.set(
+        userId,
+        (verifiedRemovedByUser.get(userId) || 0) + 1,
+      );
     }
 
-    return TwoFactorAuthStatus.EnabledPendingSetup;
+    for (const [userId, verifiedRemoved] of verifiedRemovedByUser) {
+      const user: Model | null = await this.findOneBy({
+        query: {
+          _id: userId,
+        },
+        select: {
+          _id: true,
+          enableTwoFactorAuth: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!user?.enableTwoFactorAuth) {
+        continue;
+      }
+
+      const verifiedMethodCount: number =
+        await this.countVerifiedTwoFactorAuthMethods(new ObjectID(userId));
+
+      if (verifiedMethodCount - verifiedRemoved < 1) {
+        throw new BadDataException(TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE);
+      }
+    }
   }
 
   /**

@@ -10,8 +10,8 @@ import CloudMarketplace, {
  *
  * - OneUptime Cloud, which OneUptime runs, billed through the marketplace at
  *   the prices on /pricing (Common/Server/Utils/Marketplace/RELEASING.md).
- *   Not on Google Cloud Marketplace, which lists only SaaS hosted on Google
- *   Cloud, while OneUptime Cloud is moving off it (decided on 2026-11-11);
+ *   Not on Google Cloud Marketplace yet: its listing there is in Google's
+ *   review (since 2026-11-19), and goes here once it is public;
  * - OneUptime Enterprise, which the buyer runs in their own Kubernetes
  *   cluster, billed per user by the hour, its marketplace subscription its
  *   license (SELF_HOSTED_RELEASING.md, /docs/installation/cloud-marketplaces).
@@ -96,9 +96,9 @@ export const CloudMarketplaceEntries: ReadonlyArray<CloudMarketplaceEntry> = [
     kubernetesService: "Google Kubernetes Engine",
     listingUrls: {
       /*
-       * No OneUptime Cloud: Google lists only SaaS hosted on Google Cloud
-       * (RELEASING.md, "Google Cloud Marketplace"). The Kubernetes app does
-       * not show on Google Cloud Marketplace yet.
+       * No OneUptime Cloud yet: its listing is in Google's review, and goes
+       * here once it is public (RELEASING.md, "Google Cloud Marketplace").
+       * The Kubernetes app does not show on Google Cloud Marketplace yet.
        */
       enterprise: null,
     },

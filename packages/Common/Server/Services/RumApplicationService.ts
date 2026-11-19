@@ -36,6 +36,13 @@ import {
 } from "../../Utils/Rum/SessionReplayFrustrationSettingsValidation";
 import { normalizeProductAnalyticsUserPropertyKeys } from "../../Types/Rum/ProductAnalyticsEvents";
 import {
+  SESSION_REPLAY_NEVER_RECORD_PAGES_TITLE,
+  SESSION_REPLAY_RECORD_ONLY_PAGES_TITLE,
+  SessionReplayListCheck,
+  checkSessionReplayPagePatterns,
+  checkSessionReplayReadablePropertyKeys,
+} from "../../Utils/Rum/SessionReplayPolicyValidation";
+import {
   DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
 } from "../../Types/Rum/ProductAnalytics";
@@ -90,6 +97,7 @@ export class Service extends ProjectReferencesService<Model> {
     this.canonicalizeFrustrationSignals(data);
     this.canonicalizeProductAnalyticsUserPropertyKeys(data);
     this.checkProductAnalyticsRetention(data);
+    Service.canonicalizeSessionReplayPrivacyLists(data);
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -103,6 +111,7 @@ export class Service extends ProjectReferencesService<Model> {
     this.canonicalizeFrustrationSignals(data);
     this.canonicalizeProductAnalyticsUserPropertyKeys(data);
     this.checkProductAnalyticsRetention(data);
+    Service.canonicalizeSessionReplayPrivacyLists(data);
   }
 
   /*
@@ -164,6 +173,61 @@ export class Service extends ProjectReferencesService<Model> {
 
     data["productAnalyticsUserPropertyKeys"] =
       normalizeProductAnalyticsUserPropertyKeys(value);
+  }
+
+  /*
+   * The replay policy's page rules (issue #7502) and readable event
+   * properties (issue #7501), checked and stored as the recorders read
+   * them (SessionReplayPolicyValidation). A page path that could never
+   * match is refused with words that name it: stored, it would be a page
+   * someone meant to keep out of every recording, recorded. Cleared (null),
+   * a list is empty again. A write that leaves a list alone is not judged
+   * on it.
+   */
+  public static canonicalizeSessionReplayPrivacyLists(
+    data: Record<string, unknown>,
+  ): void {
+    const lists: Array<{
+      column: string;
+      check: (value: unknown) => SessionReplayListCheck;
+    }> = [
+      {
+        column: "sessionReplayRecordOnlyPages",
+        check: (value: unknown): SessionReplayListCheck => {
+          return checkSessionReplayPagePatterns(
+            value,
+            SESSION_REPLAY_RECORD_ONLY_PAGES_TITLE,
+          );
+        },
+      },
+      {
+        column: "sessionReplayNeverRecordPages",
+        check: (value: unknown): SessionReplayListCheck => {
+          return checkSessionReplayPagePatterns(
+            value,
+            SESSION_REPLAY_NEVER_RECORD_PAGES_TITLE,
+          );
+        },
+      },
+      {
+        column: "sessionReplayReadableEventProperties",
+        check: checkSessionReplayReadablePropertyKeys,
+      },
+    ];
+
+    for (const list of lists) {
+      if (data[list.column] === undefined) {
+        continue;
+      }
+
+      const check: SessionReplayListCheck = list.check(data[list.column]);
+
+      if (check.problem) {
+        throw new BadDataException(check.problem);
+      }
+
+      data[list.column] = check.values;
+    }
   }
 
   /*

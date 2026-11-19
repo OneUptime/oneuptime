@@ -1180,6 +1180,40 @@ describe("the inventory lists read on the server", () => {
     },
   );
 
+  /*
+   * "APIs up · 3 workers down" and "up · 2 lost" said how many and nothing
+   * else (#9594): each tile opens the workers and hypervisors it counts,
+   * as Needs attention lists them, while the read is current.
+   */
+  test("the Control plane and Hypervisors tiles open which workers and hosts, and why", () => {
+    const overview: string = dense(
+      readSource("Pages", "OpenStack", "View", "Index.tsx"),
+    );
+
+    expect(overview).toContain(
+      "constcanSayWhich:boolean=isCurrent&&!attentionError;",
+    );
+    expect(overview).toContain(
+      'testId:"openstack-tile-workers-down",items:getOpenStackWorkersDownItems({items:items,workers:workers,}),count:workerCounts.down,',
+    );
+    expect(overview).toContain(
+      'testId:"openstack-tile-hypervisors-lost",items:getOpenStackLostHypervisorItems({items:items,rows:rows,hypervisors:hypervisors,now:now,routeFor:routes.routeFor,}),',
+    );
+    // A count the read holds only some of says so under its list.
+    expect(overview).toContain(
+      "isPartial:workerCounts.down>getOpenStackWorkerCounts(workers).down,",
+    );
+    expect(overview).toContain(
+      "isPartial:hypervisorCounts.lost>getOpenStackHypervisorCounts(hypervisors).lost,",
+    );
+    expect(overview).toContain(
+      "description={OPENSTACK_METRIC_DESCRIPTIONS.controlPlane}attention={workersDownPill}/>",
+    );
+    expect(overview).toContain(
+      "description={OPENSTACK_METRIC_DESCRIPTIONS.hypervisors}attention={hypervisorsLostPill}/>",
+    );
+  });
+
   test("a cloud with nothing reported shows the guide, not zeros", () => {
     const overview: string = squash(
       readSource("Pages", "OpenStack", "View", "Index.tsx"),

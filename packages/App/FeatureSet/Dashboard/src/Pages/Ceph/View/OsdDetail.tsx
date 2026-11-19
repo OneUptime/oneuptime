@@ -21,6 +21,8 @@ import useCephPart, {
   CephPart,
 } from "../../../Components/Ceph/Part/UseCephPart";
 import { CephAssessment, assessCephOsd } from "../Utils/CephHealth";
+import { getCephPartAttention } from "../Utils/CephPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -67,6 +69,15 @@ const CephClusterOsdDetail: FunctionComponent<
         newestSeenAt: part.newestSeenAt,
       })
     : null;
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getCephPartAttention({
+    kind: "Osd",
+    externalId: osdName,
+    row: part.row,
+    newestSeenAt: part.newestSeenAt,
+    routeFor: routes.getPartRoute,
+    now: part.readAt,
+  });
 
   const buildOsdQuery: (args: {
     variable: string;
@@ -171,7 +182,7 @@ const CephClusterOsdDetail: FunctionComponent<
           clusterName={clusterName}
           externalId={osdName}
           row={part.row}
-          newestSeenAt={part.newestSeenAt}
+          attention={attention}
           routes={routes}
           now={part.readAt}
         />
@@ -202,6 +213,7 @@ const CephClusterOsdDetail: FunctionComponent<
         clusterName={clusterName}
         clusterRoute={routes.clusterRoute}
         now={part.readAt}
+        attention={attention}
       />
       <Tabs label="OSD" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>

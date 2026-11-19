@@ -12,6 +12,9 @@ import {
   SavedViewScopeKind,
 } from "Common/Utils/Telemetry/SavedViewScope";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import { getFailedSpansRoute } from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
+import { Location, useLocation } from "react-router-dom";
 import RecommendationsPage from "../../../Components/Recommendations/RecommendationsPage";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { CloudInstancesTable } from "./Instances";
@@ -225,6 +228,8 @@ const AppPlatformApp: FunctionComponent<
 > = (): ReactElement => {
   const appId: ObjectID = Navigation.getLastParamAsObjectID(0);
   const environmentId: ObjectID = Navigation.getLastParamAsObjectID(2);
+  // Each step to this page's address, even to the same one, is a new key.
+  const routerLocation: Location = useLocation();
 
   const [loaded, setLoaded] = useState<LoadedApp | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -384,6 +389,17 @@ const AppPlatformApp: FunctionComponent<
           start={window.start}
           end={window.end}
           refreshToken={refreshToken}
+          failedRequestsRoute={
+            isScoped
+              ? getFailedSpansRoute({
+                  tracesRoute: Navigation.getCurrentRoute(),
+                  timeRange: timeRange,
+                  // Where its requests enter, as its Requests tile counts.
+                  spanType: TraceSpanType.Entry,
+                  params: { tab: CloudAppTabName.Traces },
+                })
+              : undefined
+          }
         />
       ),
     },
@@ -502,8 +518,15 @@ const AppPlatformApp: FunctionComponent<
          */}
         <Tabs
           label="App"
+          /*
+           * Drawn again on a tab the header asked for, however often it is
+           * asked, and on each step to an address that names a tab - the
+           * Overview's Error rate opens ?tab=Traces on this very page.
+           */
           key={
-            tabRequest ? `${tabRequest.name}-${tabRequest.count}` : "address"
+            tabRequest
+              ? `${tabRequest.name}-${tabRequest.count}`
+              : `address-${requestedTab || ""}-${requestedTab ? routerLocation.key : ""}`
           }
           tabs={tabs}
           wrap={true}

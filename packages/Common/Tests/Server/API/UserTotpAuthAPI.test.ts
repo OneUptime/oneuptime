@@ -5,6 +5,8 @@ import UserService from "../../../Server/Services/UserService";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import TotpAuth from "../../../Server/Utils/TotpAuth";
 import TwoFactorBackupCode from "../../../Server/Utils/TwoFactorBackupCode";
+import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SsoManagedSignIn";
 import logger from "../../../Server/Utils/Logger";
 import {
   NextFunction,
@@ -128,6 +130,13 @@ jest.mock("../../../Server/Utils/Response", () => {
 
 jest.mock("../../../Server/Services/UserTotpAuthService");
 jest.mock("../../../Server/Services/UserService");
+
+/*
+ * Whether the owner's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts). Here it
+ * lets everyone through, unless a test below says otherwise.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
 
 const VALIDATE_ROUTE: string = "/user-totp-auth/validate";
 
@@ -973,6 +982,103 @@ describe("POST /user-totp-auth/validate", () => {
 
       expect(result.nextCallCount).toBe(1);
       expect(result.thrown).toBeInstanceOf(Error);
+    });
+  });
+  describe("while the owner's sign-in is managed by single sign-on (#9688)", () => {
+    /*
+     * Finishing an app's setup is adding it, and a person whose sign-in
+     * their organization manages adds none: it would guard a password
+     * sign-in the server refuses them. Refused before the code is checked,
+     * so an app begun before the server came to require SSO is not
+     * finished either - and nothing is written or minted.
+     */
+    test("is refused with why, before the code is checked, verifying and minting nothing", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+      asMock(SsoManagedSignIn.assertMayChangeLocalSignIn).mockRejectedValueOnce(
+        new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE),
+      );
+
+      const result: CallValidateResult = await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+        },
+      });
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect((result.thrown as Error).message).toBe(
+        SSO_MANAGED_SIGN_IN_MESSAGE,
+      );
+      expect(updateTotpById).not.toHaveBeenCalled();
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
+      expect(regenerateForUserSpy).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+
+    test("asks about the owner named on the row, never an id the request carries", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+          userId: ATTACKER_ID.toString(),
+        },
+      });
+
+      expect(SsoManagedSignIn.assertMayChangeLocalSignIn).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(
+        (
+          asMock(SsoManagedSignIn.assertMayChangeLocalSignIn).mock
+            .calls[0]![0] as ObjectID
+        ).toString(),
+      ).toBe(OWNER_ID.toString());
+    });
+
+    test("a stranger's row is refused as one, without asking about anybody's sign-in", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> = pendingEnrolment({
+        ownerId: ATTACKER_ID,
+      });
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      const result: CallValidateResult = await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+        },
+      });
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect(
+        SsoManagedSignIn.assertMayChangeLocalSignIn,
+      ).not.toHaveBeenCalled();
+      expect(updateTotpById).not.toHaveBeenCalled();
+    });
+
+    test("a sign-in that is not managed by SSO finishes the setup as before", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      const result: CallValidateResult = await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+        },
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(updateTotpById).toHaveBeenCalledTimes(1);
     });
   });
 });

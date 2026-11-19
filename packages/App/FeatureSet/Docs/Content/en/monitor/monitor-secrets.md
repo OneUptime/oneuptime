@@ -6,11 +6,12 @@ Monitor secrets keep the passwords, API keys and tokens your monitors need out o
 - [Add a secret](#adding-a-secret): Store a value and choose who can use it.
 - [Choose access](#choosing-which-monitors-can-use-a-secret): All monitors, specific monitors, or monitors with labels.
 - [Use a secret](#using-a-secret): Where `{{monitorSecrets.NAME}}` works.
+- [Sign in with a one-time code](#signing-in-with-a-one-time-code): Let a monitor pass a site's two-factor sign-in.
 :::
 
 ## How secrets reach a monitor
 
-A secret is stored encrypted and is never shown again after you save it. Before OneUptime hands a monitor to a probe, it replaces each reference the monitor may use with the decrypted value; a reference the monitor may not use is left as written.
+A secret is stored encrypted and is never shown again after you save it. Before OneUptime hands a monitor to a probe, it replaces each reference the monitor may use with the decrypted value; a reference the monitor may not use is left as written. A one-time code secret is the exception: the probe makes its code when the check runs (see [Signing in with a one-time code](#signing-in-with-a-one-time-code)).
 
 ```mermaid title="How a secret reference is filled in"
 flowchart TB
@@ -33,7 +34,7 @@ The probe that runs the check receives the value, so a monitor that uses a secre
 
 :::steps
 1. Go to **Monitors → Settings → Secrets** and click **Create Monitor Secret**.
-2. Enter a **Name** and the **Secret Value**. The name is what you reference, for example `ApiKey`. It can only contain letters, numbers, hyphens (`-`) and underscores (`_`), and no two secrets in a project share one.
+2. Enter a **Name** and the **Secret Value**. The name is what you reference, for example `ApiKey`. It can only contain letters, numbers, hyphens (`-`) and underscores (`_`), and no two secrets in a project share one. For a site's two-factor setup key, choose **One-time code (TOTP)** first (see [Signing in with a one-time code](#signing-in-with-a-one-time-code)).
 3. On the **Access** step, choose which monitors can use it (see the next section), then click **Create Monitor Secret**.
 :::
 
@@ -84,6 +85,51 @@ If a monitor references a secret it cannot use, the reference is left as it is a
 
 When you test a monitor before saving it, only secrets available to **All monitors** are filled in, because a new monitor is not on any list and has no labels yet. After you save the monitor, tests use every secret the monitor can use.
 
+## Signing in with a one-time code
+
+Some sites ask for a code from an authenticator app when you sign in. A **One-time code (TOTP)** secret holds that site's setup key, so a monitor can sign in the way you do: wherever the monitor uses the secret, the probe makes the current code from its own clock, at the moment the check needs it. The setup key is stored encrypted and never shown again, like any secret value, and it is never written into the monitor.
+
+1. Turn on two-factor sign-in for the account the monitor signs in with. Where the site shows a QR code, ask to enter the key by hand instead, and copy the setup key or the `otpauth://` link.
+2. Go to **Monitors → Settings → Secrets**, click **Create Monitor Secret**, choose **One-time code (TOTP)**, and paste the key or the link into **Setup Key**.
+3. Check that the **Current code** under it matches the code your authenticator app shows now, then choose which monitors can use the secret on the **Access** step, as for any secret.
+
+| What you paste | The codes the monitor makes |
+| --- | --- |
+| A setup key, such as `JBSW Y3DP EHPK 3PXP` | SHA1, 6 digits, and a new code every 30 seconds: what every authenticator app assumes |
+| An `otpauth://totp/` link | The link's `algorithm` (`SHA1`, `SHA256` or `SHA512`), `digits` (`6` or `8`) and `period` in seconds (`30` when the link has none) |
+
+| Monitor type | Where the code goes, and when it is made |
+| --- | --- |
+| API | `{{monitorSecrets.NAME}}` in the URL, a request header or the request body, just before each attempt is sent |
+| Synthetic Monitor, Custom JavaScript Code | `{{monitorSecrets.NAME}}` in the script, when the script starts, and `await oneuptime.getTotpCode("NAME")`, when the script asks |
+
+Every other field keeps `{{monitorSecrets.NAME}}` as written. In a JSON request body, put the reference in quotes, as in `{"otp": "{{monitorSecrets.LoginCode}}"}`, because a code can start with a zero.
+
+A sign-in usually reaches its code prompt a few pages after the script starts, so ask for the code there. This script signs in with a password and a one-time code:
+
+```javascript
+await page.goto("https://app.example.com/login");
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// The code is made now, when the sign-in asks for it.
+await page.waitForSelector("#otp");
+await page.fill("#otp", await oneuptime.getTotpCode("AppLoginCode"));
+await page.click("button[type=submit]");
+
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+
+return {
+  data: { signedIn: true },
+};
+```
+
+The probe never hands out a code with less than five seconds left, or a third of the period when the period is shorter: it waits for the next code instead, at most five seconds, and leaves that wait out of the check's execution time. Every code a check makes is shown as asterisks, such as `******`, in its log messages, its result, its error and the names of its screenshots. A screenshot is a picture of the page, so take it before the code is typed or after the page moves on.
+
+> [!NOTE]
+> The probe makes the codes, so update a custom probe before you use a one-time code secret: an older probe sends `{{monitorSecrets.NAME}}` as written. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
+
 ## Troubleshooting
 
 :::details The monitor sends `{{monitorSecrets.NAME}}` literally
@@ -96,6 +142,10 @@ Before a monitor is saved, only secrets available to **All monitors** are filled
 
 :::details A field ignores the secret
 Only the fields in the table above take secrets. In any other field, `{{monitorSecrets.NAME}}` is sent as written.
+:::
+
+:::details The site refuses the one-time code
+Check that the **Current code** matched your authenticator app when you saved the secret, that the probe's clock is right, and that a reference in a JSON request body is in quotes. If the sign-in takes a while to reach its code prompt, ask for the code there with `oneuptime.getTotpCode`.
 :::
 
 ## Next steps

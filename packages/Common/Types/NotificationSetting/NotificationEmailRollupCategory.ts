@@ -35,6 +35,8 @@ export enum RollupCategory {
   Exceptions = "exceptions",
   DataObservability = "data-observability",
   DataSecurity = "data-security",
+  ServicesAndInfrastructure = "services-and-infrastructure",
+  DashboardsAndAutomation = "dashboards-and-automation",
   IncomingCalls = "incoming-calls",
   SecurityCases = "security-cases",
   SecurityHunts = "security-hunts",
@@ -61,6 +63,8 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.Exceptions]: "Exceptions",
   [RollupCategory.DataObservability]: "Data Observability",
   [RollupCategory.DataSecurity]: "Data Security",
+  [RollupCategory.ServicesAndInfrastructure]: "Services and Infrastructure",
+  [RollupCategory.DashboardsAndAutomation]: "Dashboards & Automation",
   [RollupCategory.IncomingCalls]: "Incoming Calls",
   [RollupCategory.SecurityCases]: "Security Cases",
   [RollupCategory.SecurityHunts]: "Security Hunts",
@@ -150,6 +154,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Monitors,
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR]:
     RollupCategory.Monitors,
+  // A monitor group is the Monitors product's (#9758).
+  [NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.Monitors,
 
   // Scheduled Maintenance
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION]:
@@ -210,12 +217,45 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.DataSecurity,
 
   /*
+   * Being made an owner of a service, an app or a piece of infrastructure
+   * (#9700). A category of its own: an owner rule run over two thousand
+   * cloud resources or every new service of a cluster rolls up with itself,
+   * never with an incident's email.
+   */
+  [NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.ServicesAndInfrastructure,
+
+  // Dashboards, workflows and runbooks (#9700): the products menu's own group.
+  [NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DashboardsAndAutomation,
+  [NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DashboardsAndAutomation,
+  [NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DashboardsAndAutomation,
+  // And the runners that run runbooks' steps (#9758).
+  [NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DashboardsAndAutomation,
+
+  /*
    * Incoming Call Policies. A category of its own so a burst of on-call
    * configuration notices (one admin click can fan out a hundred) is never
    * what pushes a missed customer call over the rollup threshold.
    */
   [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]:
     RollupCategory.IncomingCalls,
+
+  /*
+   * Being made an owner of an on-call policy, an on-call schedule or an
+   * incoming call policy (#9700): on-call configuration notices, filed with
+   * On-Call's - never with Incoming Calls, whose missed customer call a
+   * burst of them must not hold back (see above).
+   */
+  [NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.OnCall,
+  [NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.OnCall,
+  [NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.OnCall,
 
   /*
    * Security Cases. A category of their own, so an attack that opens twenty
@@ -314,6 +354,8 @@ export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
   RollupCategory.AIAgents,
   RollupCategory.DataObservability,
   RollupCategory.DataSecurity,
+  RollupCategory.ServicesAndInfrastructure,
+  RollupCategory.DashboardsAndAutomation,
   RollupCategory.StatusPages,
   RollupCategory.OnCall,
   RollupCategory.Other,

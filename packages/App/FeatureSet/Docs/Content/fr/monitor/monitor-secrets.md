@@ -6,11 +6,12 @@ Les secrets de moniteur gardent les mots de passe, clés d'API et jetons dont vo
 - [Ajouter un secret](#ajouter-un-secret): Enregistrer une valeur et choisir qui peut l'utiliser.
 - [Choisir l'accès](#choisir-quels-moniteurs-peuvent-utiliser-un-secret): Tous les moniteurs, des moniteurs précis, ou les moniteurs qui ont certaines étiquettes.
 - [Utiliser un secret](#utiliser-un-secret): Où `{{monitorSecrets.NAME}}` fonctionne.
+- [Se connecter avec un code à usage unique](#se-connecter-avec-un-code-à-usage-unique): Permettre à un moniteur de franchir la connexion à deux facteurs d'un site.
 :::
 
 ## Comment les secrets parviennent à un moniteur
 
-Un secret est enregistré chiffré et n'est plus jamais affiché après son enregistrement. Avant de confier un moniteur à une sonde, OneUptime remplace chaque référence que le moniteur peut utiliser par la valeur déchiffrée ; une référence que le moniteur ne peut pas utiliser reste telle qu'elle est écrite.
+Un secret est enregistré chiffré et n'est plus jamais affiché après son enregistrement. Avant de confier un moniteur à une sonde, OneUptime remplace chaque référence que le moniteur peut utiliser par la valeur déchiffrée ; une référence que le moniteur ne peut pas utiliser reste telle qu'elle est écrite. Un secret de code à usage unique fait exception : la sonde produit son code au moment où la vérification s'exécute (voir [Se connecter avec un code à usage unique](#se-connecter-avec-un-code-à-usage-unique)).
 
 ```mermaid title="Comment une référence de secret est remplie"
 flowchart TB
@@ -33,7 +34,7 @@ La sonde qui exécute la vérification reçoit la valeur, donc un moniteur qui u
 
 :::steps
 1. Allez dans **Moniteurs → Paramètres → Secrets** et cliquez sur **Créer : Secret de moniteur**.
-2. Saisissez un **Nom** et la **Valeur du secret**. Le nom est ce à quoi vous faites référence, par exemple `ApiKey`. Il ne peut contenir que des lettres, des chiffres, des traits d'union (`-`) et des traits de soulignement (`_`), et deux secrets d'un même projet ne peuvent pas avoir le même.
+2. Saisissez un **Nom** et la **Valeur du secret**. Le nom est ce à quoi vous faites référence, par exemple `ApiKey`. Il ne peut contenir que des lettres, des chiffres, des traits d'union (`-`) et des traits de soulignement (`_`), et deux secrets d'un même projet ne peuvent pas avoir le même. Pour la clé de configuration à deux facteurs d'un site, choisissez d'abord **Code à usage unique (TOTP)** (voir [Se connecter avec un code à usage unique](#se-connecter-avec-un-code-à-usage-unique)).
 3. À l'étape **Accès**, choisissez quels moniteurs peuvent l'utiliser (voir la section suivante), puis cliquez sur **Créer : Secret de moniteur**.
 :::
 
@@ -84,6 +85,51 @@ Si un moniteur fait référence à un secret qu'il ne peut pas utiliser, la réf
 
 Quand vous testez un moniteur avant de l'enregistrer, seuls les secrets disponibles pour **Tous les moniteurs** sont remplis, car un nouveau moniteur ne figure sur aucune liste et n'a pas encore d'étiquettes. Une fois le moniteur enregistré, les tests utilisent chaque secret que le moniteur peut utiliser.
 
+## Se connecter avec un code à usage unique
+
+Certains sites demandent, à la connexion, un code issu d'une application d'authentification. Un secret **Code à usage unique (TOTP)** contient la clé de configuration de ce site, pour qu'un moniteur puisse se connecter comme vous : partout où le moniteur utilise le secret, la sonde produit le code actuel à partir de sa propre horloge, au moment où la vérification en a besoin. La clé de configuration est enregistrée chiffrée et n'est plus jamais affichée, comme toute valeur de secret, et elle n'est jamais écrite dans le moniteur.
+
+1. Activez la connexion à deux facteurs pour le compte avec lequel le moniteur se connecte. Là où le site affiche un code QR, demandez plutôt à saisir la clé à la main, et copiez la clé de configuration ou le lien `otpauth://`.
+2. Allez dans **Moniteurs → Paramètres → Secrets**, cliquez sur **Créer : Secret de moniteur**, choisissez **Code à usage unique (TOTP)**, et collez la clé ou le lien dans **Clé de configuration**.
+3. Vérifiez que le **Code actuel** affiché en dessous correspond au code qu'affiche maintenant votre application d'authentification, puis choisissez quels moniteurs peuvent utiliser le secret à l'étape **Accès**, comme pour tout secret.
+
+| Ce que vous collez | Les codes que le moniteur produit |
+| --- | --- |
+| Une clé de configuration, comme `JBSW Y3DP EHPK 3PXP` | SHA1, 6 chiffres, et un nouveau code toutes les 30 secondes : ce que suppose toute application d'authentification |
+| Un lien `otpauth://totp/` | Les paramètres `algorithm` (`SHA1`, `SHA256` ou `SHA512`), `digits` (`6` ou `8`) et `period` en secondes (`30` si le lien n'en indique pas) du lien |
+
+| Type de moniteur | Où va le code, et quand il est produit |
+| --- | --- |
+| API | `{{monitorSecrets.NAME}}` dans l'URL, un en-tête de requête ou le corps de la requête, juste avant l'envoi de chaque tentative |
+| Moniteur synthétique, Code JavaScript personnalisé | `{{monitorSecrets.NAME}}` dans le script, au démarrage du script, et `await oneuptime.getTotpCode("NAME")`, quand le script le demande |
+
+Tout autre champ garde `{{monitorSecrets.NAME}}` tel qu'il est écrit. Dans le corps JSON d'une requête, mettez la référence entre guillemets, comme dans `{"otp": "{{monitorSecrets.LoginCode}}"}`, car un code peut commencer par un zéro.
+
+Une connexion n'arrive en général à sa demande de code que quelques pages après le démarrage du script : demandez donc le code à cet endroit. Ce script se connecte avec un mot de passe et un code à usage unique :
+
+```javascript
+await page.goto("https://app.example.com/login");
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// The code is made now, when the sign-in asks for it.
+await page.waitForSelector("#otp");
+await page.fill("#otp", await oneuptime.getTotpCode("AppLoginCode"));
+await page.click("button[type=submit]");
+
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+
+return {
+  data: { signedIn: true },
+};
+```
+
+La sonde ne fournit jamais un code qui reste valable moins de cinq secondes, ou moins d'un tiers de la période quand la période est plus courte : elle attend plutôt le code suivant, cinq secondes au plus, et ne compte pas cette attente dans le temps d'exécution de la vérification. Chaque code qu'une vérification produit est affiché sous forme d'astérisques, comme `******`, dans ses messages du journal, son résultat, son erreur et les noms de ses captures d'écran. Une capture d'écran est une image de la page : prenez-la donc avant que le code soit saisi ou une fois que la page est passée à la suite.
+
+> [!NOTE]
+> C'est la sonde qui produit les codes : mettez donc à jour une sonde personnalisée avant d'utiliser un secret de code à usage unique, car une sonde plus ancienne envoie `{{monitorSecrets.NAME}}` tel qu'il est écrit. L'horloge de la sonde doit aussi être juste, car une sonde décalée d'une minute produit des codes que le site a déjà dépassés.
+
 ## Dépannage
 
 :::details `{{monitorSecrets.NAME}}` est envoyé littéralement
@@ -96,6 +142,10 @@ Avant qu'un moniteur soit enregistré, seuls les secrets disponibles pour **Tous
 
 :::details Un champ ignore le secret
 Seuls les champs du tableau ci-dessus acceptent les secrets. Dans tout autre champ, `{{monitorSecrets.NAME}}` est envoyé tel qu'il est écrit.
+:::
+
+:::details Le site refuse le code à usage unique
+Vérifiez que le **Code actuel** correspondait à votre application d'authentification quand vous avez enregistré le secret, que l'horloge de la sonde est juste, et qu'une référence dans le corps JSON d'une requête est entre guillemets. Si la connexion met du temps à arriver à sa demande de code, demandez le code à cet endroit avec `oneuptime.getTotpCode`.
 :::
 
 ## Étapes suivantes

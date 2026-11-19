@@ -23,7 +23,11 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import {
+  isRecordNameAsWritten,
+  recordNameInSentence,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
@@ -39,6 +43,30 @@ import React, {
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  ResourceAttentionItem,
+  sortResourceAttention,
+} from "../ResourcePart/ResourceAttention";
+import { ResourceAttentionDialogRead } from "../ResourcePart/ResourceAttentionDialog";
+import ResourceAttentionPill from "../ResourcePart/ResourceAttentionPill";
+import {
+  SITE_CHILD_SITES_LIMIT,
+  SITE_DEVICE_NAME_SELECT,
+  SITE_DOWN_DEVICES_DESCRIPTION,
+  SITE_DOWN_DEVICES_EMPTY,
+  SITE_DOWN_DEVICES_HINT,
+  SITE_HEALTH_DESCRIPTION,
+  SITE_HEALTH_EMPTY,
+  SITE_HEALTH_HINT,
+  SITE_HEALTH_LOAD_FAILED,
+  SITE_HEALTH_TITLE,
+  SiteChildRow,
+  getSiteChildItems,
+  getSiteDownDeviceItems,
+} from "./SiteDownDevices";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -104,6 +132,8 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
     devicesTotal: number;
     devicesUp: number;
     devicesDown: number;
+    // The devices that are down, and why: what "N down" opens.
+    downDeviceItems: Array<ResourceAttentionItem>;
     childSiteCount: number;
     endpointCount: number;
     uptimePercent: number | null;
@@ -143,6 +173,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             currentMonitorStatus: {
               name: true,
               color: true,
+              // Whether its health needs explaining, and how bad it is.
+              isOperationalState: true,
+              isOfflineState: true,
             },
             lastRollupAt: true,
             // The type's name: the relation, and the old column as its fallback.
@@ -162,6 +195,8 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             ...DEVICE_STATUS_SELECT,
+            // Which ones are down, by name, when "N down" is pressed.
+            ...SITE_DEVICE_NAME_SELECT,
           },
           sort: {},
         }),
@@ -283,6 +318,16 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         devicesTotal: deviceResult.count,
         devicesUp: devicesUp,
         devicesDown: devicesDown,
+        downDeviceItems: getSiteDownDeviceItems({
+          devices: deviceResult.data,
+          translator: translator,
+          getDeviceRoute: (deviceId: string): Route => {
+            return RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+              { modelId: new ObjectID(deviceId) },
+            );
+          },
+        }),
         childSiteCount: childSiteCount,
         endpointCount: endpointCount,
         uptimePercent: uptimePercent,
@@ -336,6 +381,65 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
     ? OneUptimeDate.fromString(data.site.lastRollupAt)
     : null;
 
+  const downDeviceItems: Array<ResourceAttentionItem> = data.downDeviceItems;
+
+  /*
+   * What the health pill opens: the devices the hero holds, and the child
+   * sites, read when it is pressed - most urgent first, devices before
+   * sites of the same urgency.
+   */
+  const loadSiteHealthItems: () => Promise<ResourceAttentionDialogRead> =
+    async (): Promise<ResourceAttentionDialogRead> => {
+      const children: ListResult<NetworkSite> =
+        await ModelAPI.getList<NetworkSite>({
+          modelType: NetworkSite,
+          query: {
+            parentSiteId: props.modelId.toString(),
+          },
+          limit: SITE_CHILD_SITES_LIMIT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            currentMonitorStatus: {
+              name: true,
+              isOperationalState: true,
+              isOfflineState: true,
+            },
+          },
+          sort: {},
+        });
+
+      const childItems: Array<ResourceAttentionItem> = getSiteChildItems({
+        children: children.data.map((child: NetworkSite): SiteChildRow => {
+          return {
+            id: child._id?.toString() || "",
+            name: child.name || "",
+            statusName: child.currentMonitorStatus?.name || "",
+            isOperationalState: Boolean(
+              child.currentMonitorStatus?.isOperationalState,
+            ),
+            isOfflineState: Boolean(child.currentMonitorStatus?.isOfflineState),
+          };
+        }),
+        translator: translator,
+        getSiteRoute: (siteId: string): Route => {
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
+            { modelId: new ObjectID(siteId) },
+          );
+        },
+      });
+
+      return {
+        items: sortResourceAttention(
+          [...downDeviceItems, ...childItems],
+          ["Network Device", "Child Site"],
+        ),
+        isTruncated: children.count > children.data.length,
+      };
+    };
+
   return (
     <div
       data-testid="site-status-hero"
@@ -348,7 +452,41 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             description={NETWORK_SITE_METRIC_DESCRIPTIONS.health}
           />
           <div className="mt-1.5">
-            {data.site?.currentMonitorStatus?.name ? (
+            {data.site?.currentMonitorStatus?.name &&
+            data.site.currentMonitorStatus.isOperationalState === false ? (
+              /*
+               * An Offline or Degraded site opens what is not operational
+               * under it (#9596): its devices that are down, then its child
+               * sites that are not operational, read when it is pressed.
+               */
+              <ResourceAttentionPill
+                label={translateRecordName(
+                  translator,
+                  StateListType.MonitorStatus,
+                  data.site.currentMonitorStatus.name,
+                )}
+                tone={
+                  data.site.currentMonitorStatus.isOfflineState
+                    ? "danger"
+                    : "warning"
+                }
+                testId="site-hero-health-why"
+                hint={SITE_HEALTH_HINT}
+                dialog={{
+                  title: translator.translateTemplate(SITE_HEALTH_TITLE, {
+                    status: recordNameInSentence(
+                      StateListType.MonitorStatus,
+                      data.site.currentMonitorStatus.name,
+                      { inSentence: true },
+                    ),
+                  }),
+                  description: SITE_HEALTH_DESCRIPTION,
+                  load: loadSiteHealthItems,
+                  emptyMessage: SITE_HEALTH_EMPTY,
+                  whatFailed: SITE_HEALTH_LOAD_FAILED,
+                }}
+              />
+            ) : data.site?.currentMonitorStatus?.name ? (
               <Pill
                 text={data.site.currentMonitorStatus.name}
                 isUserContent={isRecordNameAsWritten(
@@ -442,17 +580,45 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
               <span className="text-gray-400">
                 <InlineSeparator />
               </span>
-              <span
-                className={
-                  data.devicesDown > 0
-                    ? "font-medium text-red-600"
-                    : "text-gray-500"
-                }
-              >
-                {translator.translateTemplate("{{count}} down", {
-                  count: translator.formatNumber(data.devicesDown),
-                })}
-              </span>
+              {/*
+               * "2 down" opens which two and why (#9596): the devices the
+               * hero has read already, each a step from its page.
+               */}
+              {data.devicesDown > 0 && data.downDeviceItems.length > 0 ? (
+                <ResourceAttentionPill
+                  label={translator.translateTemplate("{{count}} down", {
+                    count: translator.formatNumber(data.devicesDown),
+                  })}
+                  tone="danger"
+                  testId="site-hero-devices-down"
+                  hint={SITE_DOWN_DEVICES_HINT}
+                  dialog={{
+                    title: translator.translatePlural(
+                      {
+                        one: "{{count}} device down",
+                        other: "{{count}} devices down",
+                      },
+                      data.downDeviceItems.length,
+                    ),
+                    description: SITE_DOWN_DEVICES_DESCRIPTION,
+                    items: data.downDeviceItems,
+                    emptyMessage: SITE_DOWN_DEVICES_EMPTY,
+                    showKind: false,
+                  }}
+                />
+              ) : (
+                <span
+                  className={
+                    data.devicesDown > 0
+                      ? "font-medium text-red-600"
+                      : "text-gray-500"
+                  }
+                >
+                  {translator.translateTemplate("{{count}} down", {
+                    count: translator.formatNumber(data.devicesDown),
+                  })}
+                </span>
+              )}
             </div>
           )}
         </div>

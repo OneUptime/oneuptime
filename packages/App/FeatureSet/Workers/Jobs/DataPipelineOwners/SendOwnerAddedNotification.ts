@@ -16,18 +16,18 @@ import OwnerNotificationDeliveries, {
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+import { getDataPipelineName } from "../../Utils/DataOwnersAdded";
 import {
-  DataOwnerAdded,
-  getDataPipelineName,
-  isDataOwnerWorkOff,
-  tellDataOwnerAdded,
-} from "../../Utils/DataOwnersAdded";
+  OwnerAddedMessage,
+  isOwnerWorkOff,
+  tellOwnerAdded,
+} from "../../Utils/ResourceOwnersAdded";
 
 /*
  * Tells the people a pipeline owner rule (#9527), or a person on the
  * pipeline's Owners page, made owners of a Data Observability pipeline
  * (#9681): the owner-added job every other record has (OwnersAdded), with
- * what the data owner jobs share (DataOwnersAdded) - it waits while Data
+ * what the owner-added jobs share (ResourceOwnersAdded) - it waits while Data
  * Observability is switched off on the server.
  */
 
@@ -50,7 +50,7 @@ RunCron(
   DATA_PIPELINE_OWNER_ADDED_JOB_NAME,
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
-    if (await isDataOwnerWorkOff("DataPipelineOwnerUser")) {
+    if (await isOwnerWorkOff("DataPipelineOwnerUser")) {
       return;
     }
 
@@ -152,7 +152,7 @@ async function notifyOwnersAdded(data: {
     pipelineViewLink: pipelineViewLink,
   };
 
-  const added: DataOwnerAdded = {
+  const added: OwnerAddedMessage = {
     noun: "pipeline",
     name: pipelineName,
     link: pipelineViewLink,
@@ -169,7 +169,7 @@ async function notifyOwnersAdded(data: {
        * to the next owner, who is told all the same.
        */
       await delivery.tell(user, async (): Promise<void> => {
-        await tellDataOwnerAdded({
+        await tellOwnerAdded({
           user: user,
           projectId: projectId,
           eventType:

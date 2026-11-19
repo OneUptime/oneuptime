@@ -1,12 +1,15 @@
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
   AZURE_DIMENSION_ATTRIBUTE_PREFIX,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
-  AzureKeyMetric,
   AzureTypeKeyMetrics,
   getAzureKeyMetrics,
+  getAzureReadMetricNames,
   getAzureStoredMetricName,
+  isAzureFiveMinuteKeyMetric,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import {
@@ -121,7 +124,12 @@ import {
  *      resource that has them since the last read: one Azure Monitor call
  *      per resource, up to 20 metrics in it, each metric with the
  *      aggregation its definition calls primary, at the finest grain it
- *      offers from a minute up. A metric the resource does not publish is
+ *      offers from a minute up - and, for the few metrics kept at five
+ *      minutes at their finest that are marked as earning it (an App
+ *      Service app's health check), a five-minute call of its own every 15
+ *      minutes (AzureReadGroup). A deprecated metric the type still reads
+ *      for the monitors built on it rides in the same calls (retired). A
+ *      metric the resource does not publish is
  *      left out, from its type's metric definitions - read once a day from
  *      up to three of its resources, of different kinds where the listing
  *      says, their key metrics together. Azure refuses a whole call that
@@ -244,9 +252,9 @@ export function getAzureKeyMetricsFingerprint(
   keyMetrics: AzureTypeKeyMetrics,
 ): string {
   let hash: number = 5381;
-  const text: string = keyMetrics.metrics
-    .map((metric: AzureKeyMetric): string => {
-      return metric.name.toLowerCase();
+  const text: string = getAzureReadMetricNames(keyMetrics)
+    .map((name: string): string => {
+      return name.toLowerCase();
     })
     .join("|");
 
@@ -260,7 +268,8 @@ export function getAzureKeyMetricsFingerprint(
 /*
  * The selections of several resources of a type together, each metric
  * once (the first resource to publish it keeps its aggregation and grain),
- * in the catalog's order, at most AZURE_MAX_METRICS_PER_RESOURCE.
+ * in the catalog's order - its key metrics, then the deprecated ones it
+ * still reads - at most AZURE_MAX_METRICS_PER_RESOURCE.
  */
 export function mergeAzureSelections(
   keyMetrics: AzureTypeKeyMetrics,
@@ -280,10 +289,8 @@ export function mergeAzureSelections(
 
   const merged: Array<SelectedMetric> = [];
 
-  for (const metric of keyMetrics.metrics) {
-    const selected: SelectedMetric | undefined = byName.get(
-      metric.name.toLowerCase(),
-    );
+  for (const name of getAzureReadMetricNames(keyMetrics)) {
+    const selected: SelectedMetric | undefined = byName.get(name.toLowerCase());
 
     if (selected) {
       merged.push(selected);
@@ -349,8 +356,91 @@ export function pickAzureGrain(grains: Array<string>): string | undefined {
 }
 
 /*
+ * HOW OFTEN EACH OF A RESOURCE'S METRICS IS READ.
+ *
+ * One Azure Monitor call asks for one grain, and each call is billed as a
+ * read. A resource's metrics are read in a call per grain, each when its
+ * grain's window has something new (CloudMetricWindows): its minute
+ * metrics every read, an hourly one once an hour. A key metric marked as
+ * kept at five minutes beside its type's minute metrics (AzureKeyMetric.
+ * grain) is read in a five-minute call of its own every
+ * AZURE_FIVE_MINUTE_READ_MINUTES, three points a call - a third of a call
+ * a resource for each five minutes, where reading it with every read would
+ * cost one. Its window has a cursor of its own, so a type whose only grain
+ * is five minutes (a Static Web App) is still read every read.
+ */
+export interface AzureReadGroup {
+  // The grain its calls ask for.
+  grain: string;
+  // Where its window is kept in the connection's state (cursors).
+  cursorKey: string;
+  // What it reads now: null when nothing new is there yet, or it is not due.
+  window: MetricWindow | null;
+}
+
+// The five-minute call's cursor: five minutes, read every 15 ("300/900").
+export const AZURE_FIVE_MINUTE_CURSOR: string = `${GRAIN_SECONDS[AZURE_FIVE_MINUTE_GRAIN]}/${AZURE_FIVE_MINUTE_READ_MINUTES * 60}`;
+
+// Every grain's read group, and the five-minute one's, as of `now`.
+export function getAzureReadGroups(data: {
+  cursors: Record<string, string>;
+  now: Date;
+}): Map<string, AzureReadGroup> {
+  const groups: Map<string, AzureReadGroup> = new Map();
+
+  for (const grain of Object.keys(GRAIN_SECONDS)) {
+    const cursorKey: string = String(GRAIN_SECONDS[grain]);
+
+    groups.set(grain, {
+      grain,
+      cursorKey,
+      window: getMetricWindow({
+        policy: getMetricWindowPolicy({
+          periodSeconds: GRAIN_SECONDS[grain]!,
+          delayMs: AZURE_METRIC_DELAY_MS,
+        }),
+        cursor: data.cursors[cursorKey],
+        now: data.now,
+      }),
+    });
+  }
+
+  groups.set(AZURE_FIVE_MINUTE_CURSOR, {
+    grain: AZURE_FIVE_MINUTE_GRAIN,
+    cursorKey: AZURE_FIVE_MINUTE_CURSOR,
+    window: getMetricWindow({
+      policy: getMetricWindowPolicy({
+        periodSeconds: GRAIN_SECONDS[AZURE_FIVE_MINUTE_GRAIN]!,
+        delayMs: AZURE_METRIC_DELAY_MS,
+        readEveryMs: AZURE_FIVE_MINUTE_READ_MINUTES * 60 * 1000,
+      }),
+      cursor: data.cursors[AZURE_FIVE_MINUTE_CURSOR],
+      now: data.now,
+    }),
+  });
+
+  return groups;
+}
+
+/*
+ * The read group a selected metric of the type is read in: the
+ * five-minute call's for a metric marked as read at five minutes that its
+ * definition offers at five minutes at its finest, else its grain's.
+ */
+export function getAzureReadGroupKey(
+  type: string,
+  metric: SelectedMetric,
+): string {
+  return metric.grain.toUpperCase() === AZURE_FIVE_MINUTE_GRAIN &&
+    isAzureFiveMinuteKeyMetric(type, metric.name)
+    ? AZURE_FIVE_MINUTE_CURSOR
+    : metric.grain.toUpperCase();
+}
+
+/*
  * The key metrics a resource type is read with, as its definitions allow:
- * in the catalog's order, at most AZURE_MAX_METRICS_PER_RESOURCE.
+ * in the catalog's order, then the deprecated ones it still reads for the
+ * monitors built on them (retired), at most AZURE_MAX_METRICS_PER_RESOURCE.
  */
 export function selectAzureMetrics(
   keyMetrics: AzureTypeKeyMetrics,
@@ -364,9 +454,9 @@ export function selectAzureMetrics(
 
   const selected: Array<SelectedMetric> = [];
 
-  for (const keyMetric of keyMetrics.metrics) {
+  for (const name of getAzureReadMetricNames(keyMetrics)) {
     const definition: AzureMetricDefinition | undefined = byName.get(
-      keyMetric.name.toLowerCase(),
+      name.toLowerCase(),
     );
     const grain: string | undefined = definition
       ? pickAzureGrain(definition.timeGrains)
@@ -958,10 +1048,13 @@ export default class AzureCloudConnector implements CloudConnector {
         firstError = firstError || error;
       }
 
-      // Every key metric found: the other samples would add nothing.
+      // Every metric found: the other samples would add nothing.
       if (
         mergeAzureSelections(keyMetrics, selections).length >=
-        Math.min(keyMetrics.metrics.length, AZURE_MAX_METRICS_PER_RESOURCE)
+        Math.min(
+          getAzureReadMetricNames(keyMetrics).length,
+          AZURE_MAX_METRICS_PER_RESOURCE,
+        )
       ) {
         break;
       }
@@ -1850,24 +1943,13 @@ export default class AzureCloudConnector implements CloudConnector {
     state.azureMetricDefinitions = definitionsCache;
 
     const cursors: Record<string, string> = { ...(state.cursors || {}) };
-    const windows: Map<string, MetricWindow | null> = new Map();
-
-    for (const grain of Object.keys(GRAIN_SECONDS)) {
-      windows.set(
-        grain,
-        getMetricWindow({
-          policy: getMetricWindowPolicy({
-            periodSeconds: GRAIN_SECONDS[grain]!,
-            delayMs: AZURE_METRIC_DELAY_MS,
-          }),
-          cursor: cursors[String(GRAIN_SECONDS[grain])],
-          now,
-        }),
-      );
-    }
+    const readGroups: Map<string, AzureReadGroup> = getAzureReadGroups({
+      cursors,
+      now,
+    });
 
     const groups: Map<string, CloudMetricGroup> = new Map();
-    const grainsRead: Set<string> = new Set<string>();
+    const readGroupsRead: Set<string> = new Set<string>();
     let failedResources: number = 0;
     // "metric|code" -> how many resources Azure Monitor could not read it of.
     const metricFailures: Map<
@@ -1888,12 +1970,13 @@ export default class AzureCloudConnector implements CloudConnector {
       const splitBy: string | undefined = getAzureKeyMetrics(
         entry.type,
       )?.splitByDimension;
-      const byGrain: Map<string, Array<SelectedMetric>> = new Map();
+      const byGroup: Map<string, Array<SelectedMetric>> = new Map();
 
       for (const metric of selected) {
-        const list: Array<SelectedMetric> = byGrain.get(metric.grain) || [];
+        const key: string = getAzureReadGroupKey(entry.type, metric);
+        const list: Array<SelectedMetric> = byGroup.get(key) || [];
         list.push(metric);
-        byGrain.set(metric.grain, list);
+        byGroup.set(key, list);
       }
 
       const read: AzureResourceMetricsRead = {
@@ -1903,25 +1986,26 @@ export default class AzureCloudConnector implements CloudConnector {
         selected,
       };
 
-      for (const [grain, metrics] of byGrain) {
-        const window: MetricWindow | null | undefined = windows.get(grain);
+      for (const [key, metrics] of byGroup) {
+        const group: AzureReadGroup | undefined = readGroups.get(key);
 
-        if (!window) {
+        // Nothing new of its grain yet, or not due: the next read reads it.
+        if (!group || !group.window) {
           continue;
         }
 
         const answer: AzureMetricsAnswer = await arm.getMetrics({
           resourceId: entry.armId,
           metrics,
-          interval: grain,
-          start: window.start,
-          end: window.end,
+          interval: group.grain,
+          start: group.window.start,
+          end: group.window.end,
           ...(splitBy
             ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
             : {}),
         });
 
-        grainsRead.add(grain);
+        readGroupsRead.add(key);
         read.failures.push(...answer.failures);
         read.capped.push(...answer.capped);
 
@@ -1933,7 +2017,7 @@ export default class AzureCloudConnector implements CloudConnector {
               );
             })?.unit || item.unit;
 
-          read.series.push({ ...item, unit, grain });
+          read.series.push({ ...item, unit, grain: group.grain });
         }
       }
 
@@ -2125,11 +2209,11 @@ export default class AzureCloudConnector implements CloudConnector {
      * A grain's window moves on once it was read: a resource that failed
      * misses that stretch rather than every other one being written twice.
      */
-    for (const grain of grainsRead) {
-      const window: MetricWindow | null | undefined = windows.get(grain);
+    for (const key of readGroupsRead) {
+      const group: AzureReadGroup | undefined = readGroups.get(key);
 
-      if (window) {
-        cursors[String(GRAIN_SECONDS[grain])] = window.end.toISOString();
+      if (group?.window) {
+        cursors[group.cursorKey] = group.window.end.toISOString();
       }
     }
 

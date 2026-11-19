@@ -48,6 +48,8 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import { getFailedSpansRoute } from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import {
@@ -557,6 +559,21 @@ const CloudEnvironmentOverview: FunctionComponent<
       percent: m && !traceNote ? m.errorRatePercent : null,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
+      /*
+       * The requests it counts that failed: the environment's entry spans.
+       * Nothing to open while there is no figure (no traces yet, a read
+       * that failed).
+       */
+      to:
+        m && !traceNote
+          ? getFailedSpansRoute({
+              tracesRoute: populate(
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES,
+              ),
+              timeRange: timeRange,
+              spanType: TraceSpanType.Entry,
+            })
+          : undefined,
       description: CLOUD_METRIC_DESCRIPTIONS.errorRate,
     },
     {

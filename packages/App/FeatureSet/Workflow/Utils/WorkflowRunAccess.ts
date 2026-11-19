@@ -1,6 +1,9 @@
 import CommonAPI from "Common/Server/API/CommonAPI";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
+import WorkflowRunAsAuthority, {
+  WorkflowRunAsAction,
+} from "Common/Server/Utils/Workflow/WorkflowRunAsAuthority";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PropsHoldingOnly from "Common/Server/Utils/Permission/PropsHoldingOnly";
@@ -62,7 +65,10 @@ export default class WorkflowRunAccess {
       WORKFLOW_RUN_REFUSED_MESSAGE,
     );
 
-    await WorkflowRunAccess.assertInProject(data);
+    await WorkflowRunAccess.assertHoldsWhatItRunsAs(
+      data,
+      await WorkflowRunAccess.assertInProject(data),
+    );
 
     if (data.databaseProps.isMasterAdmin) {
       return;
@@ -97,7 +103,10 @@ export default class WorkflowRunAccess {
       WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
     );
 
-    await WorkflowRunAccess.assertInProject(data);
+    await WorkflowRunAccess.assertHoldsWhatItRunsAs(
+      data,
+      await WorkflowRunAccess.assertInProject(data),
+    );
 
     if (data.databaseProps.isMasterAdmin) {
       return;
@@ -109,18 +118,46 @@ export default class WorkflowRunAccess {
   }
 
   /*
+   * A WORKFLOW THAT RUNS AS MORE THAN DEFAULT (#9695) is run by hand - the
+   * whole of it, one step of it, or again - only by a person who holds what
+   * it runs as (WorkflowRunAsAuthority.assertMayAct): a run by hand decides
+   * what the workflow starts with, and its steps act with the workflow's
+   * permissions, so a Workflow Member, an editor, or a master admin who
+   * holds less in the project may not. Asked of the workflow once it is
+   * known to be the project's (assertInProject), so nothing is said of
+   * another project's.
+   */
+  private static async assertHoldsWhatItRunsAs(
+    data: WorkflowRunRequest,
+    workflow: Workflow,
+  ): Promise<void> {
+    await WorkflowRunAsAuthority.assertMayAct({
+      setting: {
+        runAs: workflow.runAs,
+        customRoleId: workflow.runAsCustomRoleId,
+      },
+      projectId: data.projectId,
+      props: data.databaseProps,
+      action: WorkflowRunAsAction.Run,
+    });
+  }
+
+  /*
    * The workflow's own project must be the one the caller named. Read as
-   * OneUptime, and only its project: the reads below are the caller's, and
-   * the update check names a row's labels when it refuses, so they only
-   * ever see a row of the caller's own project.
+   * OneUptime, and only its project and what it runs as: the reads below
+   * are the caller's, and the update check names a row's labels when it
+   * refuses, so they only ever see a row of the caller's own project.
+   * Answers the workflow read.
    */
   private static async assertInProject(
     data: WorkflowRunRequest,
-  ): Promise<void> {
+  ): Promise<Workflow> {
     const owner: Workflow | null = await WorkflowService.findOneById({
       id: data.workflowId,
       select: {
         projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
       },
       props: {
         isRoot: true,
@@ -131,6 +168,8 @@ export default class WorkflowRunAccess {
       resourceProjectId: owner?.projectId,
       projectId: data.projectId,
     });
+
+    return owner!;
   }
 
   /*

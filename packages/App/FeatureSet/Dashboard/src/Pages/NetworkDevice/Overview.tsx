@@ -25,6 +25,7 @@ import {
   isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
+import { getUnhealthySitesRoute } from "../../Components/NetworkSite/SiteListRoute";
 import {
   DEVICES_WITH_INTERFACES_DOWN_SELECTION,
   DOWN_DEVICES_FACET_SELECTION,
@@ -407,10 +408,16 @@ const NetworkOverview: FunctionComponent<
           title="Sites"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetSites}
           onClick={() => {
+            /*
+             * While any site is unhealthy, the sites the count says are
+             * (#9596): the Sites page presses its Unhealthy Sites tile.
+             */
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_SITES] as Route,
-              ),
+              unhealthySiteCount > 0
+                ? getUnhealthySitesRoute()
+                : RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.NETWORK_SITES] as Route,
+                  ),
             );
           }}
           value={

@@ -61,7 +61,7 @@ import { DataStorePostureFacts } from "../../../Types/DataSecurity/DataStorePost
  *  - The cloud data-security reads (recordCloudReads): stores inventory
  *    does not list, S3 buckets and BigQuery datasets among them.
  *  - Telemetry scans (ensureTelemetryStore): a service's logs, traces,
- *    exceptions, replays and AI conversations.
+ *    exceptions, replays, AI conversations and metrics.
  *
  * Every source builds the same key for the same store (DataStoreKey.ts),
  * so a store found twice is one row. A store whose source is gone is
