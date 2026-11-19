@@ -173,6 +173,8 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "databaseRegexPattern",
     "schemaRegexPattern",
   ],
+  // A pipeline's name and its namespace: a pipeline has no labels (#9527).
+  DataPipelineOwnerRule: ["nameRegexPattern", "namespaceRegexPattern"],
   // A data store's labels, its name and description, and its cloud tags.
   DataStoreLabelRule: [
     "matchLabels",

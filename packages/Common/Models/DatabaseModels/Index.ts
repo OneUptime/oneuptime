@@ -237,6 +237,7 @@ import DataAssetOwnerTeam from "./DataAssetOwnerTeam";
 import DataAssetOwnerRule from "./DataAssetOwnerRule";
 import DataPipelineOwnerUser from "./DataPipelineOwnerUser";
 import DataPipelineOwnerTeam from "./DataPipelineOwnerTeam";
+import DataPipelineOwnerRule from "./DataPipelineOwnerRule";
 import DataAssetLabelRule from "./DataAssetLabelRule";
 import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
@@ -750,6 +751,7 @@ const AllModelTypes: Array<{
   DataAssetOwnerRule,
   DataPipelineOwnerUser,
   DataPipelineOwnerTeam,
+  DataPipelineOwnerRule,
   DataAssetLabelRule,
   DataObservabilitySetting,
   DataAssetLineage,

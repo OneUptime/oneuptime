@@ -466,6 +466,7 @@ import DataAssetOwnerTeamService from "./DataAssetOwnerTeamService";
 import DataAssetOwnerRuleService from "./DataAssetOwnerRuleService";
 import DataPipelineOwnerUserService from "./DataPipelineOwnerUserService";
 import DataPipelineOwnerTeamService from "./DataPipelineOwnerTeamService";
+import DataPipelineOwnerRuleService from "./DataPipelineOwnerRuleService";
 import DataAssetLabelRuleService from "./DataAssetLabelRuleService";
 import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
@@ -1067,6 +1068,7 @@ const services: Array<BaseService> = [
   DataAssetOwnerRuleService,
   DataPipelineOwnerUserService,
   DataPipelineOwnerTeamService,
+  DataPipelineOwnerRuleService,
   DataAssetLabelRuleService,
   DataObservabilitySettingService,
   DataAssetLineageService,
