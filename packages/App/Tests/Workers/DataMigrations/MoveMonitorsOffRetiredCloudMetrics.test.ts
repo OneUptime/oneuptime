@@ -919,13 +919,12 @@ describe("what is known of a Cosmos DB account's latencies", () => {
     attributes: COSMOS_ATTRIBUTES,
   };
 
-  let pointsAsked: Array<{
-    projectId: ObjectID;
-    attributes: Record<string, string>;
-    names: Array<string>;
-    since: Date;
-    until: Date;
-  }>;
+  // What the migration asks the metric store: findReportedPoints' argument.
+  type PointsQuestion = Parameters<
+    typeof CloudResourceMetrics.findReportedPoints
+  >[0];
+
+  let pointsAsked: Array<PointsQuestion>;
   let points: Map<string, number>;
   let account: CloudResource | null;
   let accountAsked: Array<unknown>;
@@ -938,10 +937,12 @@ describe("what is known of a Cosmos DB account's latencies", () => {
     accountAsked = [];
     jest
       .spyOn(CloudResourceMetrics, "findReportedPoints")
-      .mockImplementation(async (data: never): Promise<Map<string, number>> => {
-        pointsAsked.push(data);
-        return points;
-      });
+      .mockImplementation(
+        async (data: PointsQuestion): Promise<Map<string, number>> => {
+          pointsAsked.push(data);
+          return points;
+        },
+      );
     jest.spyOn(CloudResourceService, "findOneBy").mockImplementation((async (
       data: unknown,
     ): Promise<CloudResource | null> => {

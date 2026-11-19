@@ -856,7 +856,7 @@ describe("CloudResourceReadingsWriter", () => {
           {
             provider: "azure",
             resourceType: "Microsoft.Web/sites",
-            readings: readings as CollectedCloudReadings["readings"],
+            readings: readings as unknown as CollectedCloudReadings["readings"],
           },
         ],
       ]);

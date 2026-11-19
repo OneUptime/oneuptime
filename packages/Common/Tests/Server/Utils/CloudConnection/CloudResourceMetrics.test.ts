@@ -1271,8 +1271,13 @@ describe("the read of when each name last reported", () => {
   });
 
   test("the points are read back by name, a name with none left out", async () => {
-    const executeQuery: jest.SpiedFunction<typeof MetricService.executeQuery> =
-      jest.spyOn(MetricService, "executeQuery").mockResolvedValue({
+    let reads: number = 0;
+
+    // Restored after each test (afterEach).
+    jest.spyOn(MetricService, "executeQuery").mockImplementation((async () => {
+      reads++;
+
+      return {
         json: async () => {
           return {
             data: [
@@ -1282,39 +1287,36 @@ describe("the read of when each name last reported", () => {
             ],
           };
         },
-      } as never);
+      };
+    }) as never);
 
-    try {
-      const points: Map<string, number> =
-        await CloudResourceMetrics.findReportedPoints({
-          projectId: PROJECT,
-          attributes: { "azuremonitor.resource_id": SITE },
-          names: [
-            "azure_serversidelatencydirect_average",
-            "azure_serversidelatencygateway_average",
-          ],
-          since: new Date("2026-10-20T12:00:00.000Z"),
-          until: NOW,
-        });
+    const points: Map<string, number> =
+      await CloudResourceMetrics.findReportedPoints({
+        projectId: PROJECT,
+        attributes: { "azuremonitor.resource_id": SITE },
+        names: [
+          "azure_serversidelatencydirect_average",
+          "azure_serversidelatencygateway_average",
+        ],
+        since: new Date("2026-10-20T12:00:00.000Z"),
+        until: NOW,
+      });
 
-      expect(Array.from(points.entries())).toEqual([
-        ["azure_serversidelatencydirect_average", 4200],
-      ]);
-      expect(executeQuery).toHaveBeenCalledTimes(1);
-      // No names, no read.
-      expect(
-        await CloudResourceMetrics.findReportedPoints({
-          projectId: PROJECT,
-          attributes: {},
-          names: [],
-          since: new Date("2026-10-20T12:00:00.000Z"),
-          until: NOW,
-        }),
-      ).toEqual(new Map());
-      expect(executeQuery).toHaveBeenCalledTimes(1);
-    } finally {
-      executeQuery.mockRestore();
-    }
+    expect(Array.from(points.entries())).toEqual([
+      ["azure_serversidelatencydirect_average", 4200],
+    ]);
+    expect(reads).toBe(1);
+    // No names, no read.
+    expect(
+      await CloudResourceMetrics.findReportedPoints({
+        projectId: PROJECT,
+        attributes: {},
+        names: [],
+        since: new Date("2026-10-20T12:00:00.000Z"),
+        until: NOW,
+      }),
+    ).toEqual(new Map());
+    expect(reads).toBe(1);
   });
 });
 
