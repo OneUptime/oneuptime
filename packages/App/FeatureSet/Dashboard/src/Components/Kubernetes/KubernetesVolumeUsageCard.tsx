@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import StorageUsageBar, {
@@ -18,14 +20,17 @@ import {
   KubernetesVolumeClaimUsage,
   KubernetesVolumeUsageGap,
 } from "../../Pages/Kubernetes/Utils/KubernetesVolumeUsage";
+import { getResourceAttentionText } from "../ResourcePart/ResourceAttentionRow";
 
 /*
  * A claim's storage, on its page and on the page of the volume bound to it
  * (#9539): how much of the filesystem is used, how much is free and how big
  * it is, with a bar that turns amber when it is nearly full and red when it
  * is almost out of space, and its inodes - a filesystem with free bytes but
- * no free inodes can no longer create a file. A claim with no usage says
- * why, in a sentence, never an empty bar.
+ * no free inodes can no longer create a file. A claim filling up says when
+ * it will be full at the rate of the last few hours, as the cluster's Needs
+ * attention does (#9643). A claim with no usage says why, in a sentence,
+ * never an empty bar.
  */
 
 export const KUBERNETES_VOLUME_USAGE_CARD_TEST_ID: string =
@@ -92,6 +97,8 @@ const InodeUsage: FunctionComponent<{ inodes: StorageUsage }> = (props: {
 const KubernetesVolumeUsageCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   const getBody: () => ReactElement = (): ReactElement => {
     if (props.isLoading) {
       return <DetailListSkeleton fields={3} columns={3} />;
@@ -128,6 +135,18 @@ const KubernetesVolumeUsageCard: FunctionComponent<ComponentProps> = (
           measuredAt={usage.measuredAt || undefined}
           dataTestId={KUBERNETES_VOLUME_USAGE_CARD_TEST_ID}
         />
+        {usage.fill ? (
+          <p
+            data-testid={`${KUBERNETES_VOLUME_USAGE_CARD_TEST_ID}-fill`}
+            className="flex items-center gap-1.5 text-sm text-gray-700"
+          >
+            <Icon
+              icon={IconProp.ArrowTrendingUp}
+              className="h-4 w-4 flex-none text-gray-400"
+            />
+            <span>{getResourceAttentionText(translator, usage.fill)}</span>
+          </p>
+        ) : null}
         {usage.inodes ? <InodeUsage inodes={usage.inodes} /> : null}
       </div>
     );

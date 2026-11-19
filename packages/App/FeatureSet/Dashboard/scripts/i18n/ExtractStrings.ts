@@ -583,6 +583,27 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * When a claim's or a node's disk needs someone, by the same rules: its
+   * status ("Nearly full", "Disk almost full") and why ("91% used, 4.5 GiB
+   * free", "Full in about 3 days"), the sizes and percents as values.
+   */
+  {
+    directory: "packages/Common/Types/Kubernetes/KubernetesStorageHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * The Pod Security Standards' and the CIS Kubernetes Benchmark's controls
+   * a cluster's Compliance page scores (#9627): each one's title, what it
+   * finds wrong and how to fix it, and why the benchmark's other controls
+   * are not scored. Only the words the file marks are read: field names and
+   * values are Kubernetes', drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog.ts",
+    kind: "keys",
+  },
+  /*
    * A host's status and what needs attention on it, by one set of rules:
    * the Hosts list and its Needs attention card, a host's hero and page,
    * and its Topology say them in the reader's language. Only the words the

@@ -410,7 +410,7 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 丢弃几个嘈杂的指标（拒绝列表，通常是你想要的）：
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 只发送一组固定的指标（允许列表：其他所有指标都会被丢弃）：
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 基数，即不同序列的数量，与频率同样重要，因为每个序列都会单独存储和计费。
 
 - cAdvisor 有意采用允许列表。cAdvisor 接收器（默认开启）可以发出数百个指标；chart 只转发 `cadvisor.metricsAllowlist` 中的 CPU 限流和 OOM kill 计数器，供你自己的图表和指标监视器使用：没有内置模板读取它们。请保持列表简短：每个条目都按容器保存，因此多一个指标就会乘以集群的容器数量。kube-state-metrics 默认关闭；如果你开启它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也以同样的方式工作，并且每个条目都必须与指标的完整名称匹配。
-- 卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 的每个卷发出几个序列，用于持久卷声明页面上的已用、可用和容量，以及 PVC Almost Full 模板：对大多数集群来说没问题，但在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上会很多。如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
+- 卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 中每个存放数据的卷（声明、emptyDir、hostPath）发出五个序列，用于持久卷声明页面上的已用、可用和容量、集群“需要关注”中即将占满的声明，以及 PVC Almost Full 模板。Pod 的 configMap、secret、downwardAPI 和服务账号令牌卷曾占这些序列的大部分，它们会在节点上被丢弃。在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上仍然很多：如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
 - 饱和度指标（`kubeletstats.utilizationMetrics.enabled`，默认开启）会增加 8 个派生的“占 request 或 limit 的 %”指标族。它们不需要额外的抓取，但如果你不使用针对 limit 的 CPU 和内存监视器，请用 `--set kubeletstats.utilizationMetrics.enabled=false` 丢弃它们。
 - 对于接收器允许列表无法表达的内容，用作用于所有接收器的 `filters.metrics.exclude` 按名称丢弃指标（见 [按名称包含或排除指标](#按名称包含或排除指标)）：
 

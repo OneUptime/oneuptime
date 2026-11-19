@@ -410,7 +410,7 @@ Los eventos de varias líneas se vuelven a unir antes de filtrar en ambos modos,
 Descarta unas pocas métricas ruidosas (una lista de denegación, normalmente lo que quieres):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Envía solo un conjunto fijo (una lista de permitidos: todo lo demás se descarta):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 La cardinalidad, el número de series distintas, importa tanto como la frecuencia, porque cada serie se almacena y se factura por separado.
 
 - cAdvisor usa una lista de permitidos a propósito. El receiver de cAdvisor (activado por defecto) puede emitir cientos de métricas; el chart solo reenvía los contadores de throttling de CPU y de OOM kills de `cadvisor.metricsAllowlist`, para tus propios gráficos y monitores de métricas: ninguna plantilla integrada los lee. Mantén la lista corta: cada entrada se conserva por contenedor, así que una métrica más se multiplica por el número de contenedores del clúster. kube-state-metrics está desactivado por defecto; si lo activas (`kubeStateMetrics.enabled=true`), su `kubeStateMetrics.metricsAllowlist` funciona de la misma forma, y cada entrada debe coincidir con el nombre completo de una métrica.
-- Las métricas de volumen (`kubeletstats.volumeMetrics.enabled`, activadas por defecto) emiten unas pocas series por volumen y pod, y alimentan el uso, el espacio libre y la capacidad en las páginas de reclamaciones de volúmenes persistentes y la plantilla PVC Almost Full: bien para la mayoría de los clústeres, mucho en cargas de trabajo con estado (Kafka, bases de datos) con miles de PVC. Desactívalas ahí si no vigilas el espacio en disco de los PVC, con `--set kubeletstats.volumeMetrics.enabled=false`.
+- Las métricas de volumen (`kubeletstats.volumeMetrics.enabled`, activadas por defecto) emiten cinco series por cada volumen con datos de cada pod (una reclamación, un emptyDir, un hostPath), y alimentan el uso, el espacio libre y la capacidad en las páginas de reclamaciones de volúmenes persistentes, una reclamación casi llena en Requiere atención del clúster y la plantilla PVC Almost Full. Los volúmenes configMap, secret, downwardAPI y de token de cuenta de servicio de un pod, que eran la mayoría de estas series, se descartan en el nodo. Sigue siendo mucho en cargas de trabajo con estado (Kafka, bases de datos) con miles de PVC: desactívalas ahí si no vigilas el espacio en disco de los PVC, con `--set kubeletstats.volumeMetrics.enabled=false`.
 - Las métricas de saturación (`kubeletstats.utilizationMetrics.enabled`, activadas por defecto) añaden 8 familias derivadas de "% de request o limit". No cuestan ninguna recopilación adicional, pero si no usas los monitores de CPU y memoria respecto al limit, descártalas con `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Descarta métricas por nombre con `filters.metrics.exclude`, que abarca todos los receivers, para todo lo que las listas de permitidos de los receivers no pueden expresar (consulta [Incluir o excluir métricas por nombre](#incluir-o-excluir-métricas-por-nombre)):
 

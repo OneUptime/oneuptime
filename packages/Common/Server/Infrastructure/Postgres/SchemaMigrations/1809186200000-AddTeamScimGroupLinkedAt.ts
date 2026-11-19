@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Generated with npm run generate-postgres-migration.
  */
-export class AddTeamScimGroupLinkedAt1809186000000
+export class AddTeamScimGroupLinkedAt1809186200000
   implements MigrationInterface
 {
-  public name: string = "AddTeamScimGroupLinkedAt1809186000000";
+  public name: string = "AddTeamScimGroupLinkedAt1809186200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

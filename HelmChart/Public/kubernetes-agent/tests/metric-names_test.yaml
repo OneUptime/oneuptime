@@ -113,7 +113,13 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "set\\(\\s*(metric\\.)?name\\s*,[\\s\\S]*set\\(\\s*(metric\\.)?name\\s*,"
       # Ahead of everything that reads a metric's name, the telemetry
-      # filters (filters.metrics) included, filter before transform.
+      # filters (filters.metrics) included, filter before transform. Only
+      # filter/volume-series comes earlier: it drops whole volumes by their
+      # resource attributes (tests/volume-series-filter_test.yaml), reads no
+      # metric's name and renames nothing.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      processors:\\n        - memory_limiter\\n        # In this order: the filter clears the way for the copies\\.\\n        - filter/cpu-utilization\\n        - transform/cpu-utilization\\n(?:        #[^\\n]*\\n)*        - transform/pod-level-mark\\n        - k8sattributes\\n"
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        # First: a dropped volume series costs nothing further down\\.\\n        - filter/volume-series\\n        # In this order: the filter clears the way for the copies\\.\\n        - filter/cpu-utilization\\n        - transform/cpu-utilization\\n(?:        #[^\\n]*\\n)*        - transform/pod-level-mark\\n        - k8sattributes\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/volume-series:\\n(?:    [^\\n]*\\n)*?        - '[^\\n]*\\bname\\b(?:\\s*==|\\s*!=|,)"
