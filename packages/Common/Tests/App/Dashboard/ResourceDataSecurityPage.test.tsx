@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -93,8 +94,8 @@ function scopeWith(dataStoreIds: Array<string>): DataSecurityResourceScope {
   };
 }
 
-let scopeSpy: jest.SpiedFunction<typeof DataSecurityApi.getResourceScope>;
-let listSpy: jest.SpiedFunction<typeof ModelAPI.getList>;
+let scopeSpy: SpyInstance<typeof DataSecurityApi.getResourceScope>;
+let listSpy: ReturnType<typeof jest.spyOn>;
 
 function project(): Project {
   const value: Project = new Project();
@@ -199,7 +200,7 @@ describe("a cluster's Data Security page", () => {
   });
 
   test("opens Data Security's own list of data stores from its header", async () => {
-    const navigateSpy: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((() => {}) as never);
 

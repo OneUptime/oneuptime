@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -26,6 +27,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
+import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import ComplianceFramework, {
   ALL_COMPLIANCE_FRAMEWORKS,
@@ -133,13 +135,11 @@ function answerOf(
   };
 }
 
-let complianceSpy: jest.SpiedFunction<
-  typeof DataSecurityApi.getResourceCompliance
->;
-let rowsSpy: jest.SpiedFunction<typeof ModelAPI.getList>;
-let createSpy: jest.SpiedFunction<typeof ModelAPI.create>;
-let updateSpy: jest.SpiedFunction<typeof ModelAPI.updateById>;
-let toastSpy: jest.SpiedFunction<typeof Toast.success>;
+let complianceSpy: SpyInstance<typeof DataSecurityApi.getResourceCompliance>;
+let rowsSpy: ReturnType<typeof jest.spyOn>;
+let createSpy: ReturnType<typeof jest.spyOn>;
+let updateSpy: ReturnType<typeof jest.spyOn>;
+let toastSpy: SpyInstance<typeof Toast.success>;
 let rows: Array<DataSecurityComplianceSetting>;
 let canCreate: boolean;
 
@@ -184,13 +184,27 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The page as a project's page: it reads its resource from the address.
+function project(): Project {
+  const value: Project = new Project();
+  value.id = new ObjectID(PROJECT_ID);
+  return value;
+}
+
 async function drawPage(
   kind: DataStoreResourceKind = DataStoreResourceKind.KubernetesCluster,
 ): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter>
-        <ResourceCompliancePage kind={kind} />
+        <ResourceCompliancePage
+          kind={kind}
+          pageRoute={
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE] as Route
+          }
+          currentProject={project()}
+          hasPaymentMethod={true}
+        />
       </MemoryRouter>,
     );
   });
