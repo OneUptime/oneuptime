@@ -2,6 +2,10 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import Crypto from "../Crypto";
 import { writeOwnValue } from "../LookupTable";
+import {
+  getAzureResourceIdKey,
+  isCloudResourceIdLike,
+} from "../SecurityCase/SecurityConnectionMatch";
 
 /*
  * Shared helpers for the security-event normalizers (OCSF, UDM, SecOps
@@ -229,6 +233,14 @@ export function parseEventTime(value: JSONValue): Date | null {
  * Build the deduplicated observables array from the entity fields a
  * normalizer extracted. Order is stable (users, hosts, ips, then extras)
  * so tests and content hashing are deterministic.
+ *
+ * Each value is kept once, compared without case - but a cloud resource's
+ * ID by its own cloud's rule (#10034): an Azure resource ID is kept by its
+ * key, in lower case, whatever case its source wrote it in (Microsoft
+ * Defender XDR's evidence, a pipeline's record, the Activity Log's export
+ * in capitals), so a resource's own page finds it by that one spelling;
+ * an ARN or a Google Cloud resource name as written, and two that differ by
+ * case alone are two resources, both kept.
  */
 export function buildObservables(
   values: Array<string | undefined>,
@@ -243,14 +255,17 @@ export function buildObservables(
       continue;
     }
 
-    const canonical: string = trimmed.toLowerCase();
+    const kept: string = getAzureResourceIdKey(trimmed) ?? trimmed;
+    const canonical: string = isCloudResourceIdLike(kept)
+      ? `id:${kept}`
+      : kept.toLowerCase();
 
     if (seen.has(canonical)) {
       continue;
     }
 
     seen.add(canonical);
-    observables.push(trimmed);
+    observables.push(kept);
   }
 
   return observables;

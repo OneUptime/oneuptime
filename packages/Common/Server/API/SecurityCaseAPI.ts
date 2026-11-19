@@ -98,7 +98,10 @@ import {
   SecurityEntity,
   readSecurityEntities,
 } from "../../Types/SecurityCase/SecurityEntity";
-import { SecurityLogResource } from "../../Utils/SecurityCase/SecurityConnectionMatch";
+import {
+  SecurityLogResource,
+  readSecurityLogOwners,
+} from "../../Utils/SecurityCase/SecurityConnectionMatch";
 import SecurityConnections from "../Utils/SecurityEvent/Connections/SecurityConnections";
 import SecurityTelemetryMentions from "../Utils/SecurityEvent/Connections/SecurityTelemetryMentions";
 import { getLogResourceKind } from "../Utils/SecurityEvent/Connections/SecurityConnectedRecords";
@@ -425,6 +428,8 @@ export default class SecurityCaseAPI extends BaseAPI<
               entities,
               time,
               logResources: readLogResources(body["logResources"]),
+              // The cloud resource and function whose own logs the event was read from (#10033).
+              logOwners: readSecurityLogOwners(body["logOwners"]),
               readLogResources: body["readLogResources"] === true,
               props,
             })) as unknown as JSONObject,

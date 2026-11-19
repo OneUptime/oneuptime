@@ -11,6 +11,8 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
+import { isGoogleAuditLogPayload } from "Common/Utils/SecurityEvent/LogParsers/GoogleCloudAuditLogParser";
+import { MAX_JSON_LINE_LENGTH } from "Common/Utils/SecurityEvent/LogParsers/SecurityLogLine";
 
 /*
  * A CLOUD LOGGING ENTRY, AS PUB/SUB PUSHES IT, AS ONE OTLP LOG RECORD.
@@ -44,9 +46,11 @@ import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
  *
  * The record keeps the entry's time to the nanosecond, its severity in
  * OpenTelemetry's numbers, its message as the body - the text, a JSON
- * payload's message (its other fields as attributes) or the payload whole,
- * an audit log's method and resource - its trace and span, and its HTTP
- * request in the semantic conventions' names.
+ * payload's message (its other fields as attributes) or the payload whole
+ * - its trace and span, and its HTTP request in the semantic conventions'
+ * names. An audit log's entry keeps the entry itself as its body (#10032),
+ * its method, resource and caller as attributes: "Your logs" reads it as a
+ * security event as it reads a pipeline's.
  *
  * No regular expression reads an entry; every value it keeps is bounded.
  */
@@ -99,6 +103,12 @@ export interface CloudLoggingEntry {
   spanId: string;
   operation: JSONObject | null;
   sourceLocation: JSONObject | null;
+  /*
+   * The entry as it was published, when it is an audit log's (its
+   * protoPayload an AuditLog): what its log line keeps as its body, so
+   * Security Events reads it (#10032). Null for any other entry.
+   */
+  auditEntry: JSONObject | null;
 }
 
 function readObject(value: unknown): JSONObject | null {
@@ -274,6 +284,7 @@ export function readCloudLoggingEntry(
     spanId: readText(entry["spanId"], 64),
     operation: readObject(entry["operation"]),
     sourceLocation: readObject(entry["sourceLocation"]),
+    auditEntry: isGoogleAuditLogPayload(protoPayload) ? entry : null,
   };
 }
 
@@ -369,6 +380,32 @@ function readJsonBody(payload: JSONObject): { body: string; key: string } {
   }
 
   return { body: text.slice(0, MAX_BODY_LENGTH), key: "" };
+}
+
+/*
+ * What an audit log entry's line keeps as its body (#10032): the entry
+ * itself, as JSON - the LogEntry the sink published, insertId, logName and
+ * monitored resource included - which "Your logs" reads as a security event
+ * from the very shape a raw pipeline delivers (GoogleCloudAuditLogParser).
+ * So a streamed entry and the same entry through a pipeline or Cloud audit
+ * logs are one event, by its insertId, stored once. The entry's method,
+ * resource and caller stay attributes, for the Logs page. An entry too long
+ * for the reader to parse keeps the one line every other entry gets.
+ */
+export function readAuditEntryBody(entry: CloudLoggingEntry): string {
+  if (!entry.auditEntry) {
+    return "";
+  }
+
+  let json: string = "";
+
+  try {
+    json = JSON.stringify(entry.auditEntry);
+  } catch {
+    json = "";
+  }
+
+  return json.length <= MAX_JSON_LINE_LENGTH ? json : "";
 }
 
 // An audit log entry's one line: its method, on what, by whom, and how it went.
@@ -529,7 +566,7 @@ export function buildCloudLoggingResourceLogs(data: {
       }
     }
   } else if (entry.protoPayload) {
-    body = readAuditBody(entry.protoPayload);
+    body = readAuditEntryBody(entry) || readAuditBody(entry.protoPayload);
 
     const authentication: JSONObject | null = readObject(
       entry.protoPayload["authenticationInfo"],
