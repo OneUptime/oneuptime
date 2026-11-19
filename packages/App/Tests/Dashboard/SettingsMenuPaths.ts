@@ -45,7 +45,7 @@ import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
  * Billing").
  *
  * A product's own menu is walked the same way, from the product's name on
- * the bar: On-Call's ("On-Call > Advanced > User Overrides",
+ * the bar: On-Call's ("On-Call > Advanced > Execution Logs",
  * OnCallDutyMenuPathsInProductText).
  *
  * App tests must not import the Dashboard's React modules, so the menus are
@@ -433,7 +433,7 @@ function pathStarts(
 
 /*
  * Every path a text writes through a product's menu - each place the menu's
- * name is followed by a separator, "On-Call > Advanced > User Overrides" -
+ * name is followed by a separator, "On-Call > Advanced > Execution Logs" -
  * walked as the menu draws it.
  */
 export function pathsThrough(

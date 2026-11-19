@@ -72,8 +72,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "이 플랫폼에서는 비용 모니터링이 기본적으로 꺼져 있습니다. 이 플랫폼은 모든 Pod에 요청한 리소스만큼 요금을 매기므로 비용 Pod 세 개가 청구액을 늘리게 되고, OpenCost는 Pod가 아니라 노드의 가격을 매깁니다. 그래도 켜려면:",
   "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
     "이것만으로 완전한 설치입니다. chart에는 오픈 소스 OpenCost 엔진(과 그에 필요한 작은 Prometheus)이 포함되어 있으며, 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 자격 증명은 필요 없습니다. 작은 Pod 세 개가 추가되며, 첫 한 시간이 지나면 첫 데이터가 나타납니다.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **이미 Kubecost나 OpenCost를 쓰고 있나요?** 대신 에이전트가 그것을 가리키게 하면 아무것도 함께 설치되지 않습니다. `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`(또는 사용 중인 Kubecost 서비스)을 추가하세요.",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **이미 Kubecost나 OpenCost를 쓰고 있나요?** 에이전트가 그것을 찾아 함께 설치되는 엔진 대신 읽으며, 클러스터의 개요에도 그렇게 표시됩니다. 두 번째 엔진을 함께 설치하지 않으려면 `--set cost.engine.url=auto`를 추가하세요.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **온프레미스나 베어 메탈인가요?** `--set cost.opencost.customPricing.enabled=true`로 요금표를 설정하세요(리소스 시간당 USD, chart의 `values.yaml` 참조).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

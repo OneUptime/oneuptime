@@ -195,6 +195,10 @@ const COVERED: Record<string, Coverage> = {
     suites: [MORE_SETTINGS_ONE_CARD, "TeamViewPermissions.test.tsx"],
     drawnBy: "Pages/Teams/View/Permissions",
   },
+  "packages/App/FeatureSet/Dashboard/src/Pages/Workflow/View/Settings.tsx": {
+    suites: [MORE_SETTINGS_ONE_CARD, "WorkflowRunAsSettings.test.tsx"],
+    drawnBy: "Pages/Workflow/View/Settings",
+  },
   "ee/AdminDashboard/SessionLength/SessionLengthSettingsPage.tsx": {
     suites: ["SessionLength/SessionLengthSettingsPage.test.tsx"],
     drawnBy: "AdminDashboard/SessionLength/SessionLengthSettingsPage",

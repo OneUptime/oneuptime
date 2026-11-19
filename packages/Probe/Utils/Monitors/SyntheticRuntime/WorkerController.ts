@@ -17,8 +17,15 @@ import { getSyntheticMonitorWorkerBootstrapSource } from "./WorkerBootstrap";
 import SyntheticRuntimeFault from "./SyntheticRuntimeFault";
 import { SYNTHETIC_RUNTIME_CONTROLLER_ORIGIN } from "./ControllerOrigin";
 import { SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS } from "./Limits";
+import TotpCodeIssuer, {
+  redactTotpCodes,
+  redactTotpCodesInValue,
+} from "Common/Utils/Monitor/MonitorSecretTotp";
+import { TotpSecrets } from "Common/Utils/Totp/TotpParameters";
 
 const MAX_SCRIPT_BYTES: number = 1_000_000;
+// As SyntheticMonitorWorkerTypes holds a screenshot's name to.
+const MAX_SCREENSHOT_NAME_LENGTH: number = 200;
 const MAX_SCRIPT_ERROR_BYTES: number = 4_000;
 const RUNTIME_STARTUP_TIMEOUT_IN_MS: number = 30_000;
 /*
@@ -161,6 +168,14 @@ export interface WorkerControllerOptions {
   args?: Record<string, unknown> | undefined;
   timeoutInMs: number;
   /*
+   * The one-time code (TOTP) secrets the script references (issue #9703).
+   * They never enter the sandbox: its {{monitorSecrets.NAME}} is filled in
+   * with the code just before the script starts, oneuptime.getTotpCode asks
+   * this side for one, and every code made is taken out of what the run
+   * reports.
+   */
+  totpSecrets?: TotpSecrets | undefined;
+  /*
    * Bootstrap budget for the internal controller page, separate from the
    * tenant's script deadline above. Exposed so tests can drive the retry path
    * without spending half a minute per attempt.
@@ -209,6 +224,9 @@ export default class WorkerController {
     let controllerPage: Page | null = null;
     let timeout: NodeJS.Timeout | null = null;
     let startupTimeout: NodeJS.Timeout | null = null;
+    const totpCodes: TotpCodeIssuer = new TotpCodeIssuer({
+      secrets: options.totpSecrets || {},
+    });
 
     try {
       const controllerUrl: string = `${SYNTHETIC_RUNTIME_CONTROLLER_ORIGIN}/${executionId}`;
@@ -268,15 +286,25 @@ export default class WorkerController {
         controllerPage,
         internalPages: bootstrapPages,
         signal: abortController.signal,
+        totpCodes,
         onRuntimeReady: (): void => {
           resolveRuntimeReady?.();
         },
       });
 
+      /*
+       * As late as the script can be filled: the browser and the sandbox's
+       * page are up, so the code is made as the script starts - never one
+       * about to expire (TotpCodeIssuer waits for the next one).
+       */
+      const code: string = totpCodes.hasSecrets()
+        ? await totpCodes.fill(options.code)
+        : options.code;
+
       const payload: ControllerPayload = {
         version: SYNTHETIC_RUNTIME_PROTOCOL_VERSION,
         executionId,
-        code: options.code,
+        code,
         browserType: options.browserType,
         screenSizeType: options.screenSizeType,
         args: options.args || {},
@@ -337,13 +365,16 @@ export default class WorkerController {
 
         rawResult = await Promise.race([executionPromise, timeoutPromise]);
         if (rawResult === timeoutMarker) {
-          return {
-            returnValue: undefined,
-            logMessages: broker.getLogMessages(),
-            capturedMetrics: broker.getCapturedMetrics(),
-            screenshots: broker.getScreenshots(),
-            scriptError: `Synthetic monitor script timed out after ${options.timeoutInMs} ms.`,
-          };
+          return this.withoutTotpCodes(
+            {
+              returnValue: undefined,
+              logMessages: broker.getLogMessages(),
+              capturedMetrics: broker.getCapturedMetrics(),
+              screenshots: broker.getScreenshots(),
+              scriptError: `Synthetic monitor script timed out after ${options.timeoutInMs} ms.`,
+            },
+            totpCodes,
+          );
         }
       }
       const workerResult: WorkerCompletionResult =
@@ -352,16 +383,19 @@ export default class WorkerController {
       broker.collectScreenshotsFromReturnValue(workerResult.returnValue);
       broker.collectScreenshotAssignments(workerResult.screenshotAssignments);
 
-      return {
-        returnValue: workerResult.returnValue,
-        logMessages: this.validateLogMessages(workerResult.logMessages),
-        capturedMetrics: this.validateMetrics(workerResult.capturedMetrics),
-        screenshots: broker.getScreenshots(),
-        scriptError:
-          typeof workerResult.scriptError === "string"
-            ? workerResult.scriptError.substring(0, MAX_SCRIPT_ERROR_BYTES)
-            : undefined,
-      };
+      return this.withoutTotpCodes(
+        {
+          returnValue: workerResult.returnValue,
+          logMessages: this.validateLogMessages(workerResult.logMessages),
+          capturedMetrics: this.validateMetrics(workerResult.capturedMetrics),
+          screenshots: broker.getScreenshots(),
+          scriptError:
+            typeof workerResult.scriptError === "string"
+              ? workerResult.scriptError.substring(0, MAX_SCRIPT_ERROR_BYTES)
+              : undefined,
+        },
+        totpCodes,
+      );
     } finally {
       if (timeout) {
         clearTimeout(timeout);
@@ -388,6 +422,71 @@ export default class WorkerController {
         });
       }
     }
+  }
+
+  /*
+   * What a run reports, with every one-time code it made taken out (issue
+   * #9703): from its returned data, its log messages, its error, its
+   * metrics' names and attributes, and its screenshots' names - each code
+   * masked to its own length, so nothing grows past the limits it was
+   * checked against. A screenshot's image is the page as it was, and is
+   * kept as it is. With no code made, the run's result is its own.
+   */
+  private static withoutTotpCodes(
+    result: SandboxExecutionResult,
+    totpCodes: TotpCodeIssuer,
+  ): SandboxExecutionResult {
+    const waitedInMs: number = totpCodes.getWaitedInMs();
+    const reported: SandboxExecutionResult =
+      waitedInMs > 0 ? { ...result, totpWaitInMs: waitedInMs } : result;
+    const codes: Array<string> = totpCodes.getIssuedCodes();
+
+    if (codes.length === 0) {
+      return reported;
+    }
+
+    const screenshots: Record<string, Buffer> = {};
+
+    for (const [name, screenshot] of Object.entries(reported.screenshots)) {
+      const masked: string = redactTotpCodes(name, codes);
+      let unique: string = masked;
+
+      // Two names that differed only in their codes stay two screenshots.
+      for (
+        let copy: number = 2;
+        Object.prototype.hasOwnProperty.call(screenshots, unique);
+        copy++
+      ) {
+        const suffix: string = ` (${copy})`;
+        unique = `${masked.slice(0, MAX_SCREENSHOT_NAME_LENGTH - suffix.length)}${suffix}`;
+      }
+
+      screenshots[unique] = screenshot;
+    }
+
+    return {
+      ...reported,
+      returnValue: redactTotpCodesInValue(reported.returnValue, codes),
+      logMessages: reported.logMessages.map((message: string): string => {
+        return redactTotpCodes(message, codes);
+      }),
+      capturedMetrics: reported.capturedMetrics.map(
+        (metric: SandboxMetric): SandboxMetric => {
+          return {
+            ...metric,
+            name: redactTotpCodes(metric.name, codes),
+            attributes: metric.attributes
+              ? redactTotpCodesInValue(metric.attributes, codes)
+              : undefined,
+          };
+        },
+      ),
+      screenshots,
+      scriptError:
+        reported.scriptError === undefined
+          ? undefined
+          : redactTotpCodes(reported.scriptError, codes),
+    };
   }
 
   private static validateOptions(options: WorkerControllerOptions): void {

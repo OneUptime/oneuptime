@@ -181,6 +181,8 @@ Los permisos individuales, para un equipo o una clave de API que necesita exacta
 
 Una ejecución manual solo llega a los flujos de trabajo que puedes abrir: un rol limitado a algunas etiquetas, o a los flujos de trabajo que posee tu equipo, solo ejecuta esos. Quien no puede ejecutar un flujo de trabajo ve **Ejecutar flujo de trabajo** en gris, con el motivo en su tooltip.
 
+Un flujo de trabajo que se ejecuta como **Propietario del proyecto** o como un rol personalizado solo lo cambian y lo ejecutan manualmente las personas que tienen esos permisos; los demás solo pueden verlo en el **Constructor**. Consulta [Run As](#run-as).
+
 Da **Administrador de flujos de trabajo** a las personas que construyen la automatización, y **Miembro de flujos de trabajo** a las que solo la ponen en marcha. Reserva el acceso de edición de variables a las personas que gestionan los secretos de tu proyecto. Consulta [Usuarios, equipos y permisos](/docs/permissions/index) para ver cómo se conceden los roles.
 
 ## Qué pueden hacer los pasos de un flujo de trabajo
@@ -189,7 +191,7 @@ Los pasos que leen y cambian registros de OneUptime — los componentes Find, Cr
 
 - **Solo el proyecto del propio flujo de trabajo.** Un paso lee y escribe los registros del proyecto al que pertenece el flujo de trabajo y de ningún otro, y un Update nunca mueve un registro a otro proyecto.
 - **Solo lo que puede hacer un Project Admin.** Un paso no puede hacer lo que solo permiten **Propietario del proyecto** y los permisos de facturación o de eliminación del proyecto, y no puede leer quién creó una sonda o un agente de IA, algo que solo ven los Propietarios del proyecto.
-- **No quién tiene acceso.** Un paso no crea, cambia ni elimina equipos, miembros de equipo, permisos de equipo, roles personalizados ni permisos de claves de API, aunque un Administrador del proyecto sí pueda. Quien construye un flujo de trabajo decide lo que hacen sus pasos, y puede ser un **Miembro del proyecto**, así que un paso que pudiera hacerlo le daría a quien lo construyó un acceso que no se le dio, como **Administrador del proyecto**. El paso se rechaza, y el registro de la ejecución dice que una persona que gestione los equipos y las claves de API del proyecto tiene que hacer el cambio. Los disparadores y los pasos Find sobre estos registros siguen funcionando.
+- **No quién tiene acceso.** Con los permisos predeterminados, un paso no crea, cambia ni elimina equipos, miembros de equipo, permisos de equipo ni roles personalizados, aunque un Administrador del proyecto sí pueda. Quien construye un flujo de trabajo decide lo que hacen sus pasos, y puede ser un **Miembro del proyecto**, así que un paso que pudiera hacerlo le daría a quien lo construyó un acceso que no se le dio, como **Administrador del proyecto**. El paso se rechaza, y el registro de la ejecución nombra el permiso que requiere el cambio e indica que elijas **Run As** en los **Ajustes** del flujo de trabajo: un flujo de trabajo que se ejecuta como **Propietario del proyecto**, o como un rol personalizado que tenga ese permiso, puede hacer el cambio (consulta [Run As](#run-as)). Ningún paso de un flujo de trabajo cambia claves de API, el inicio de sesión único ni los ajustes de SCIM, se ejecute como se ejecute. Los disparadores y los pasos Find sobre estos registros siguen funcionando.
 - **No la lectura de configuraciones que contienen credenciales.** Un Administrador del proyecto puede leer servidores SMTP, proveedores de llamadas y SMS, credenciales SNMP, conexiones de videollamada y claves de API, pero eso nunca se le presta a un paso, sin importar quién creó o guardó el flujo de trabajo. Un paso no puede nombrar una de estas configuraciones, como el servidor SMTP con el que una página de estado envía correos o la clave de API a la que se concede un permiso. El paso se rechaza, y su registro de ejecución dice que tiene que hacer el cambio una persona que pueda leerlas (el permiso de lectura de ese tipo de configuración, o un Propietario del proyecto o Administrador del proyecto). Un paso que conserva la configuración que un registro ya nombra, o la vacía, no se rechaza.
 - **No los incidentes, alertas y episodios privados.** Un Administrador del proyecto ve cualquier incidente, alerta y episodio privado, pero eso nunca se le presta a un paso, quienquiera que haya creado o guardado el flujo de trabajo. Un paso no encuentra ninguno privado, no cambia ninguno ni le añade nada, y un flujo de trabajo no se inicia con uno ni con nada que le pertenezca, ya lo inicie un evento de un registro o **Ejecutar flujo de trabajo**. Quien crea un flujo de trabajo decide adónde va lo que leen sus pasos —un webhook, un correo, un chat, el registro de la ejecución—, y puede ser un **Miembro del proyecto** que no puede ver un registro privado. Consulte [Incidentes, alertas y episodios privados](/docs/permissions/index#incidentes-alertas-y-episodios-privados).
 - **Solo lo que incluye tu plan.** En OneUptime Cloud, un paso que crea o cambia algo que tu plan no incluye se rechaza indicando el plan que necesita, igual que en el panel. Las instalaciones autoalojadas sin facturación no tienen límites de plan.
@@ -204,6 +206,26 @@ Los pasos que leen y cambian registros de OneUptime — los componentes Find, Cr
 Cuando una comprobación rechaza un paso, el paso toma su salida **Error** sin hacer el cambio rechazado, y el registro de la ejecución nombra el paso y el motivo con palabras sencillas, por ejemplo *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Léelo en las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo. Un paso Create Many crea sus registros de uno en uno y se detiene en el primero rechazado: los registros que creó antes de ese se conservan.
 
 Los pasos que hablan con otros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code y Generate Text with AI — no leen ni cambian registros de OneUptime, así que nada de esto les afecta.
+
+### Run As
+
+De forma predeterminada, un flujo de trabajo se ejecuta con los permisos anteriores, y la mayoría de los flujos de trabajo nunca necesitan más. Cuando uno lo necesita —por ejemplo, un flujo de trabajo que da un rol personalizado a cada equipo nuevo—, abre sus **Ajustes**, luego **Más ajustes**, y elige **Change Run As**:
+
+- Predeterminado: los permisos anteriores.
+- Propietario del proyecto: lo que un **Propietario del proyecto** puede hacer en este proyecto, incluido cambiar quién está en un equipo y lo que un equipo puede hacer. Solo un Propietario del proyecto puede elegirlo.
+- Un rol personalizado: exactamente lo que permite uno de los roles personalizados del proyecto. Solo alguien que pudiera dar ese rol a un equipo puede elegirlo.
+
+Se ejecute como se ejecute, un paso nunca lee configuraciones que contienen credenciales, nunca ve incidentes, alertas ni episodios privados y nunca cambia claves de API, el inicio de sesión único ni los ajustes de SCIM. Cuando da a un equipo un permiso o un rol, solo puede dar lo que tiene él mismo, y si le falta algo, el registro de la ejecución nombra el permiso.
+
+Un flujo de trabajo que se ejecuta con más que los permisos predeterminados se ejecuta con los permisos de la persona que se los dio: quien eligió por última vez su **Run As** o guardó sus pasos o sus variables. Para que nadie obtenga a través de él más de lo que tiene:
+
+- Solo las personas que tienen esos permisos pueden cambiarlo a él o sus variables, archivarlo o eliminarlo, ejecutarlo a él o uno de sus pasos manualmente, o ver su URL de webhook y su dirección de correo entrante. Cualquiera que pueda editarlo puede seguir desactivándolo. Cuando pasa a ejecutarse con más que los permisos predeterminados, o cambia cómo se ejecuta, recibe una nueva URL de webhook y una nueva dirección de correo entrante, así que las copias de las anteriores ya no lo inician.
+- Solo una persona puede darlos, nunca una clave de API.
+- Cada ejecución comprueba primero que la persona que los dio todavía los tiene. Si no, la ejecución se detiene antes de su primer paso, y su registro dice por qué y quién puede volver a darlos.
+- No lee las variables globales del proyecto, que puede cambiar cualquiera que pueda editar variables de flujos de trabajo.
+- El paso **Ejecutar otro flujo de trabajo** de otro flujo de trabajo solo puede iniciarlo si ese flujo de trabajo se ejecuta con los mismos permisos o más.
+
+Cada ejecución registra cómo se ejecutó y con los permisos de quién, lo que se ve en la ventana de la ejecución y en un registro descargado, y el [registro de auditoría](/docs/configuration/audit-logs) registra quién cambió el **Run As** de un flujo de trabajo.
 
 ## Límites del plan
 

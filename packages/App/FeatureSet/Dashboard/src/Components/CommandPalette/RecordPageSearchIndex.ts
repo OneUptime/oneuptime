@@ -987,6 +987,8 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.WORKFLOW_VIEW_SETTINGS,
         section: "Advanced",
         title: "Settings",
+        // What a workflow runs as is set here (#9695).
+        keywords: ["run as", "permissions"],
       },
       {
         page: PageMap.WORKFLOW_VIEW_OWNERS,

@@ -181,6 +181,8 @@ The single permissions, for a team or an API key that needs exactly one thing:
 
 A run by hand only reaches workflows you can open: a role limited to some labels, or to the workflows your team owns, runs only those. Someone who can't run a workflow sees **Run Workflow** greyed out, with the reason in its tooltip.
 
+A workflow that runs as **Project Owner** or as a custom role is changed and run by hand only by people who have those permissions themselves; everyone else gets its **Builder** as a view. See [Run As](#run-as).
+
 Give the people who build automation **Workflow Admin**, and the people who only start it **Workflow Member**. Save variable edit access for the people who manage your project's secrets. See [Users, Teams & Permissions](/docs/permissions/index) for how roles are granted.
 
 ## What workflow steps can do
@@ -189,7 +191,7 @@ The steps that read and change OneUptime records — the Find, Create, Update an
 
 - **Only the workflow's own project.** A step reads and writes the records of the project the workflow belongs to and no other, and an Update never moves a record to another project.
 - **Only what a Project Admin may do.** A step can't do what only **Project Owner**, billing or project-deletion permissions allow, and it can't read who created a probe or an AI agent, which only Project Owners see.
-- **Not who has access.** A step doesn't create, change or delete teams, team members, team permissions, custom roles or API key permissions, even though a Project Admin may. Whoever builds a workflow decides what its steps do, and that can be a **Project Member**, so a step that could would hand its builder access they weren't given, such as **Project Admin**. The step is refused, and its run log says a person who manages the project's teams and API keys has to make the change. Triggers and Find steps on these records still work.
+- **Not who has access.** On the default permissions, a step doesn't create, change or delete teams, team members, team permissions or custom roles, even though a Project Admin may. Whoever builds a workflow decides what its steps do, and that can be a **Project Member**, so a step that could would hand its builder access they weren't given, such as **Project Admin**. The step is refused, and its run log names the permission the change takes and says to choose **Run As** in the workflow's **Settings**: a workflow that runs as **Project Owner**, or as a custom role that holds that permission, may make the change (see [Run As](#run-as)). No workflow's step changes API keys, single sign-on or SCIM settings, whatever it runs as. Triggers and Find steps on these records still work.
 - **Not the read of settings that hold credentials.** A Project Admin may read SMTP servers, call and SMS providers, SNMP credentials, video call connections and API keys, but a step is never lent that, whoever built or saved the workflow. A step can't name one of these settings, such as the SMTP server a status page sends email with or the API key a permission is granted to. The step is refused, and its run log says a person who may read them (the read permission of that kind of setting, or a Project Owner or Project Admin) has to make the change. A step that keeps the setting a record names already, or clears it, is not refused.
 - **Not private incidents, alerts and episodes.** A Project Admin sees every private incident, alert and episode, but a step is never lent that, whoever built or saved the workflow. A step finds no private one, changes none and adds nothing to one, and a workflow doesn't start on one, or on anything that belongs to one, whether a record event or **Run Workflow** starts it. Whoever builds a workflow decides where what its steps read goes — a webhook, an email, a chat, the run log — and that can be a **Project Member** who may not see a private record. See [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - **Only what your plan includes.** On OneUptime Cloud, a step that creates or changes something your plan doesn't include is refused with the plan it needs, just as the dashboard is. Self-hosted installations without billing have no plan limits.
@@ -204,6 +206,26 @@ The steps that read and change OneUptime records — the Find, Create, Update an
 When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
 
 Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
+
+### Run As
+
+By default a workflow runs with the permissions above, and most workflows never need more. When one does — say, a workflow that gives every new team a custom role — open its **Settings**, then **More settings**, and choose **Change Run As**:
+
+- Default: the permissions above.
+- Project Owner: what a **Project Owner** can do in this project, including changing who is on a team and what a team may do. Only a Project Owner can choose it.
+- A custom role: exactly what one of the project's custom roles allows. Only someone who could give that role to a team can choose it.
+
+Whatever it runs as, a step never reads settings that hold credentials, never sees private incidents, alerts or episodes, and never changes API keys, single sign-on or SCIM settings. When it gives a team a permission or a role, it can give only what it has itself, and if it lacks something, the run log names the permission.
+
+A workflow that runs as more than the default runs with the permissions of the person who gave them: whoever last chose its **Run As**, or saved its steps or its variables. So that nobody gets more through it than they have themselves:
+
+- Only people who have those permissions can change it or its variables, archive or delete it, run it or one of its steps by hand, or see its webhook URL and incoming email address. Anyone who can edit it can still turn it off. When it's set to run as more than the default, or what it runs as changes, it gets a new webhook URL and incoming email address, so copies of the old ones no longer start it.
+- Only a person can give them, never an API key.
+- Each run first checks that the person who gave them still has them. If not, the run stops before its first step, and its log says why and who can give them again.
+- It doesn't read the project's global variables, which anyone who can edit workflow variables may change.
+- Another workflow's **Execute Workflow** step can start it only if that workflow runs with the same permissions or more.
+
+Each run records what it ran as and with whose permissions, shown in the run's window and in a downloaded log, and the [audit log](/docs/configuration/audit-logs) records who changed a workflow's **Run As**.
 
 ## Plan limits
 

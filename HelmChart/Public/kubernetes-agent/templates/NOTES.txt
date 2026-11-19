@@ -111,7 +111,7 @@ The agent is now collecting:
 {{- end }}
 {{- if eq (include "kubernetes-agent.costEnabled" .) "true" }}
 {{- if .Values.cost.agent.enabled }}
-  - Per-workload cost allocations (cpu/ram/gpu/pv/network/idle spend and efficiency) from {{ if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}the bundled OpenCost engine{{ else }}the cost engine at {{ .Values.cost.engine.url }}{{ end }} — the first closed hourly window lands within the hour
+  - Per-workload cost allocations (cpu/ram/gpu/pv/network/idle spend and efficiency) from {{ if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}the bundled OpenCost engine{{ if eq (include "kubernetes-agent.costEnginePreferExisting" .) "true" }}, or the cluster's own OpenCost or Kubecost when it runs one{{ end }}{{ else if eq (include "kubernetes-agent.costEngineAuto" .) "true" }}the OpenCost or Kubecost this cluster runs{{ else }}the cost engine at {{ .Values.cost.engine.url }}{{ end }} — the first closed hourly window lands within the hour
 {{- end }}
 {{- if .Values.cost.metrics.enabled }}
   - The cost engine's price metrics (node, volume and load balancer hourly cost) for Metric Explorer and the Kubernetes Cost dashboard
@@ -209,6 +209,17 @@ The bundled OpenCost prices your nodes and volumes: at your cloud's public
 list prices on AWS, Azure and Google Cloud, and at OpenCost's default rates
 anywhere else (set your own with cost.opencost.customPricing). It runs as
 {{ if .Values.cost.agent.enabled }}three small pods: OpenCost, the Prometheus it needs, and the cost agent{{ else }}two small pods: OpenCost and the Prometheus it needs{{ end }}.
+{{- if and .Values.cost.agent.enabled (eq (include "kubernetes-agent.costEnginePreferExisting" .) "true") }}
+Already running Kubecost or OpenCost? The cost agent reads it instead, and
+the cluster's overview then says the bundled one is not needed. To stop
+running it:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set cost.engine.url=auto
+{{- end }}
+{{- else if eq (include "kubernetes-agent.costEngineAuto" .) "true" }}
+Costs are read from the OpenCost or Kubecost this cluster runs, which the
+cost agent finds by itself; nothing is bundled. With neither installed,
+nothing is priced: install one, or bundle OpenCost again:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set cost.engine.url=
 {{- else }}
 Costs are read from the cost engine at {{ .Values.cost.engine.url }}.
 {{- end }}

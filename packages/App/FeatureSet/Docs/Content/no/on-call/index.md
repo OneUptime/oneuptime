@@ -87,8 +87,8 @@ Den første policyen i et prosjekt kan gjøre dette allerede når den opprettes:
 | Seksjon | Sider |
 | --- | --- |
 | **Policyer** | **Vaktpolicyer**, **Beredskap**: hvem policyene dine faktisk kan nå, og **Policyer for innkommende anrop**: et telefonnummer som ringer til den som har vakt |
-| **Tidsplaner** | **Vaktplaner**, **Tidslinje for vaktplaner** og **Kalenderfeeder** |
-| **Avansert** | **Brukeroverstyringer**, **Utførelseslogger** og **Arkiverte policyer** |
+| **Tidsplaner** | **Vaktplaner**, **Tidslinje for vaktplaner**, **Brukeroverstyringer**: hvem som dekker for noen mens de er borte, og **Kalenderfeeder** |
+| **Avansert** | **Utførelseslogger** og **Arkiverte policyer** |
 | **Rapporter** | **Brukerens vakttid**: hvor lenge hver person hadde vakt |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: regler som legger ut vakthendelser i en kanal |
 | **Innstillinger** | **Egendefinerte felt**, **Etikettregler** og **Eierregler** |
@@ -109,7 +109,7 @@ Når du har vakt for en policy, viser klokken øverst til høyre det. Klikk på 
 :::
 
 :::details En person på ferie blir fortsatt tilkalt
-Legg til en brukeroverstyring med personen under **Hvem er borte?**. En under **Vakt → Avansert → Brukeroverstyringer** gjelder for alle policyer; en på en policys egen side **Brukeroverstyringer** gjelder bare for den policyen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Legg til en brukeroverstyring med personen under **Hvem er borte?**. En under **Vakt → Tidsplaner → Brukeroverstyringer** gjelder for alle policyer; en på en policys egen side **Brukeroverstyringer** gjelder bare for den policyen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 :::
 
 ## Neste steg

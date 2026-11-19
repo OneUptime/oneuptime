@@ -9,7 +9,9 @@ import ObjectID from "../../../Types/ObjectID";
 import ComponentMetadata, { Port } from "../../../Types/Workflow/Component";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
-import WorkflowPrincipal from "../../Utils/Workflow/WorkflowPrincipal";
+import WorkflowPrincipal, {
+  WorkflowRunAsGrant,
+} from "../../Utils/Workflow/WorkflowPrincipal";
 
 export interface ExecuteChildWorkflow {
   workflowId: ObjectID;
@@ -31,6 +33,12 @@ export interface RunOptions {
    * (WorkflowPrincipal). Nothing checks it.
    */
   workflowName?: string | undefined;
+  /*
+   * What the run acts as, as the runner found it when the run started
+   * (WorkflowRunAsAuthority.resolveForRun): the default permissions when
+   * absent. Its steps act with it (getStepProps), and its refusals say it.
+   */
+  runAs?: WorkflowRunAsGrant | undefined;
   projectId: ObjectID;
   onError: (exception: Exception) => Exception;
   /**
@@ -94,10 +102,11 @@ export default class ComponentCode {
   }
 
   /*
-   * The props a step reads and writes its project's records with: a Project
-   * Admin of the project the workflow runs in, on the project's plan, and no
-   * person (WorkflowPrincipal). Never root - a step can do what a Project
-   * Admin can do, and no more.
+   * The props a step reads and writes its project's records with: what the
+   * workflow runs as in the project it runs in - a Project Admin of it when
+   * it runs with the default permissions - on the project's plan, and no
+   * person (WorkflowPrincipal). Never root - a step can do what its Run As
+   * allows, and no more.
    */
   protected async getStepProps(
     options: RunOptions,
@@ -106,6 +115,7 @@ export default class ComponentCode {
       projectId: options.projectId,
       workflowId: options.workflowId,
       workflowName: options.workflowName,
+      runAs: options.runAs,
     });
   }
 

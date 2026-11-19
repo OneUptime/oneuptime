@@ -354,7 +354,11 @@ describe("IncomingCallMissedCallNotificationService", () => {
         "Missed call",
       );
       expect(sent.pushNotificationMessage.clickAction).toBe(CALL_LOG_LINK);
-      expect(sent.whatsAppMessage.body).toBe(sent.smsMessage.message);
+      /*
+       * No WhatsApp message: none is approved for a missed call, and the
+       * plain body it used to be handed reached nobody (#9715).
+       */
+      expect(sent.whatsAppMessage).toBeUndefined();
     });
   });
 

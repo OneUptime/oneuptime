@@ -66,6 +66,18 @@ export interface EventNotesApprovalConfig {
   apiPath: string;
 }
 
+/*
+ * Where a public note kind asks whether a note posted now is on a status
+ * page, and whether it notifies anyone (Common/Types/StatusPage
+ * /PublicNoteReach): the event's API path, "/incident". With it, the
+ * composer says what is true for the event - "No status page shows this
+ * incident yet" beside "Public", and why under "Notify status page
+ * subscribers" (PublicNoteReachCopy); without it, it promises neither.
+ */
+export interface EventNotesStatusPageReachConfig {
+  apiPath: string;
+}
+
 export interface EventNotesResendConfig {
   /*
    * Who a note sent again would reach now (SubscriberAudienceSummary for
@@ -139,4 +151,9 @@ export interface EventNoteKind<TNote extends BaseModel> {
   isPrivateEvent?: boolean | undefined;
   // Public notes only: their approval, when the project asks for it.
   approval?: EventNotesApprovalConfig | undefined;
+  /*
+   * Public notes only: where the composer asks whether a status page shows
+   * the event and whether a note notifies anyone.
+   */
+  statusPageReach?: EventNotesStatusPageReachConfig | undefined;
 }

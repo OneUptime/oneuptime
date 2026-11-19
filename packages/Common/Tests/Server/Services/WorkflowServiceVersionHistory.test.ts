@@ -203,7 +203,27 @@ describe("before a graph is saved", () => {
   test("an update that saves no graph reads nothing for version history", async () => {
     await hook("onUpdatePermitted")(anUpdate({ name: "Renamed" }));
 
-    expect(WorkflowService.findRowsAndHoldUpdateToThem).not.toHaveBeenCalled();
+    /*
+     * The one read it makes is what the workflow runs as, which decides who
+     * may change it (#9695) - never its revision or its graph.
+     */
+    const reads: Array<Array<unknown>> = (
+      WorkflowService.findRowsAndHoldUpdateToThem as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
+    ).mock.calls;
+
+    expect(reads.length).toBeLessThanOrEqual(1);
+
+    for (const read of reads) {
+      expect(read[1]).toEqual({
+        _id: true,
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      });
+    }
+
     expect(recordEarlier).not.toHaveBeenCalled();
   });
 

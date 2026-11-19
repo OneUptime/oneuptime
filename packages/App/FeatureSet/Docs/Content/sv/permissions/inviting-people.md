@@ -43,7 +43,7 @@ Klicka på **Bjud in användare**. Dialogen **Bjud in ny användare** öppnas.
 
 ### Ange e-postadressen
 
-Skriv adressen i **E-post**. Om inget OneUptime-konto använder den ännu ber dialogen också om ett **Namn**, som det nya kontot börjar med.
+Skriv adressen i **E-post**. Om inget OneUptime-konto använder den ännu ber dialogen också om ett **Namn**, som det nya kontot börjar med. Medan du skriver föreslår **E-post** projektets personer efter namn eller adress och visar vem som är **Inbjuden** och vem som är **Redan i det här teamet**: klicka på en av dem för att fylla i adressen. På en egenvärdad server får en huvudadministratör också serverns andra konton föreslagna, markerade med **Inte i det här projektet än**.
 
 ### Välj teamet
 

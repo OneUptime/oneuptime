@@ -83,6 +83,25 @@ const getRegistrationError: (error: unknown, isPasskey: boolean) => string = (
 export interface ComponentProps {
   isPasskey: boolean;
   onBackupCodes: (codes: Array<string>) => void;
+  /*
+   * Opens the registration when it changes to a new number: the page's
+   * guided setup, which picked a security key as the second step (#9666).
+   */
+  registrationRequest?: number | undefined;
+  // A key was registered, from the card or from the guided setup.
+  onRegistered?: (() => void) | undefined;
+  // The registration was closed without registering a key.
+  onRegistrationClosed?: (() => void) | undefined;
+  /*
+   * Why a key cannot be removed now: the last second step while two-factor
+   * authentication is on (TwoFactorAuthSetupState). The server refuses it
+   * too; the list locks it first, with what to do.
+   */
+  getDeleteDisabledReason?:
+    | ((item: UserWebAuthn) => string | undefined)
+    | undefined;
+  // A key was removed.
+  onDeleted?: (() => void) | undefined;
 }
 
 const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
@@ -158,7 +177,21 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
     setShowWebAuthnRegistrationModal(false);
     setWebAuthnRegistrationStep(null);
     setWebAuthnRegistrationError(null);
+    props.onRegistrationClosed?.();
   };
+
+  // The page's guided setup asks for a key: the same registration as Add.
+  const lastRegistrationRequest: React.MutableRefObject<number> =
+    React.useRef<number>(props.registrationRequest || 0);
+
+  React.useEffect(() => {
+    const request: number = props.registrationRequest || 0;
+
+    if (request > 0 && request !== lastRegistrationRequest.current) {
+      lastRegistrationRequest.current = request;
+      openRegistration();
+    }
+  }, [props.registrationRequest]);
 
   const registerWebAuthn: () => Promise<void> = async (): Promise<void> => {
     if (registrationInProgress.current) {
@@ -239,6 +272,7 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
       setTableRefreshToggle((previous: string) => {
         return String(Number(previous) + 1);
       });
+      props.onRegistered?.();
     } catch (err) {
       if (!controller.signal.aborted) {
         // OneUptime's own sentences in the reader's words; the server's as sent.
@@ -278,6 +312,10 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
           props.isPasskey ? "user-passkeys-table" : "user-security-keys-table"
         }
         isDeleteable={true}
+        getDeleteDisabledReason={props.getDeleteDisabledReason}
+        onItemDeleted={() => {
+          props.onDeleted?.();
+        }}
         refreshToggle={tableRefreshToggle}
         filters={[]}
         query={{

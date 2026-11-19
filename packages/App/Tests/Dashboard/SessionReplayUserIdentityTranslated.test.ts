@@ -23,6 +23,16 @@ const MARKED: Translator = createTranslator((text: string): string => {
   return `⟦${text}⟧`;
 }, "de");
 
+/*
+ * A hidden user's hover, as MARKED words it: the request looked up whole,
+ * then filled with the grant's title as the roles screen writes it, which
+ * no language words (#7320).
+ */
+const MARKED_HIDDEN_TITLE: string = `⟦${HIDDEN_IDENTITY_TITLE.replace(
+  "{{permission}}",
+  "Watch Session Replays",
+)}⟧`;
+
 const VISITOR: string = "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c";
 const USER_KEY: string =
   "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
@@ -75,7 +85,7 @@ describe("describeSessionUser in the reader's language", () => {
     );
 
     expect(hidden.text).toBe("⟦Hidden⟧");
-    expect(hidden.title).toBe(`⟦${HIDDEN_IDENTITY_TITLE}⟧`);
+    expect(hidden.title).toBe(MARKED_HIDDEN_TITLE);
     expect(visitor.text).toBe("⟦Visitor 7f3a2b⟧");
     expect(visitor.title).toBe(`⟦${VISITOR_TITLE}⟧`);
     expect(anonymous.text).toBe("⟦Anonymous⟧");
@@ -118,7 +128,17 @@ describe("describeSessionUser in the reader's language", () => {
       }).text,
     ).toBe("Visitor 7f3a2b");
     expect(HIDDEN_IDENTITY_TITLE).toBe(
-      "Your role cannot read end-user identity, so the label is not sent to you.",
+      'Your role cannot read end-user identity. Ask a Project Admin for the "{{permission}}" permission.',
+    );
+    expect(
+      describeSessionUser({
+        identifiedUserLabel: "",
+        isIdentityVisible: false,
+        identifiedUserKey: "",
+        visitorId: "",
+      }).title,
+    ).toBe(
+      'Your role cannot read end-user identity. Ask a Project Admin for the "Watch Session Replays" permission.',
     );
     expect(VISITOR_TITLE).toBe(
       "Anonymous visitor. The recorder links this browser's sessions with a random id so you can follow one person without identify().",
@@ -207,7 +227,7 @@ describe("describeUserRollup in the reader's language", () => {
       "⟦Identified by your page as jane@acme.com. Click to see every session from this user.⟧",
     );
     expect(hidden.text).toBe("⟦Hidden⟧");
-    expect(hidden.title).toBe(`⟦${HIDDEN_IDENTITY_TITLE}⟧`);
+    expect(hidden.title).toBe(MARKED_HIDDEN_TITLE);
     expect(visitor.text).toBe("⟦Visitor 7f3a2b⟧");
     expect(visitor.title).toBe(`⟦${VISITOR_TITLE}⟧`);
     expect(anonymous.text).toBe("⟦Anonymous⟧");

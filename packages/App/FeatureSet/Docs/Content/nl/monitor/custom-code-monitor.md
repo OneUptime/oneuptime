@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 Een geheime waarde met een aanhalingsteken erin breekt de tekenreeks eromheen. Een verwijzing die de monitor niet mag gebruiken, blijft in het script staan zoals ze geschreven is. Hoe u een geheim aanmaakt en kiest welke monitoren het mogen gebruiken, leest u in [Monitor-geheimen](/docs/monitor/monitor-secrets).
 
+Een geheim voor eenmalige codes bevat de configuratiesleutel voor tweefactorauthenticatie van een site in plaats van een waarde. Zijn `{{monitorSecrets.NAME}}` is de code van het moment waarop het script start, en `await oneuptime.getTotpCode("NAME")` maakt een nieuwe code wanneer het script erom vraagt. Zie [Aanmelden met een eenmalige code](/docs/monitor/monitor-secrets#aanmelden-met-een-eenmalige-code).
+
 ## Aangepaste metrieken
 
 Met de functie `oneuptime.captureMetric()` legt u vanuit uw script aangepaste metrieken vast. Deze metrieken worden in OneUptime opgeslagen en kunnen met de metriekverkenner in dashboards in grafieken worden gezet.
@@ -226,6 +228,7 @@ Voeg één filter toe per veld dat u wilt controleren; elk filter kan een eigen 
 | `http`, `https` | Alleen hun klasse `Agent`, om aan `axios` mee te geven, bijvoorbeeld `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Er is geen `request` en geen `get`. |
 | `console.log` | Logt gegevens voor debugging. Alleen `console.log` bestaat; `console.error` en de andere niet. |
 | `oneuptime.captureMetric` | Legt een aangepaste metriek vast. Zie [Aangepaste metrieken](#aangepaste-metrieken). |
+| `oneuptime.getTotpCode` | Maakt de huidige code van een geheim voor eenmalige codes: `await oneuptime.getTotpCode("NAME")`. Zie [Monitorgeheimen gebruiken](#monitorgeheimen-gebruiken). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Wachten binnen het script. Een vertraging loopt nooit voorbij de time-out van het script. |
 
 ## Om rekening mee te houden

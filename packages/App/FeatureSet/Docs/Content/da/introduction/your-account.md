@@ -105,24 +105,30 @@ Linket virker én gang, i 15 minutter, og et nyere link erstatter det. Du kan å
 
 ### Slå tofaktorgodkendelse til
 
-Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et link sendt på e-mail. Tilføj først et andet trin, og slå den så til.
+Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et link i en e-mail. Den slås først til, når dit andet trin virker, så den beder aldrig om et trin, du ikke har.
 
 :::steps
-### Tilføj en godkendelsesapp
+### Vælg dit andet trin
 
-Åbn **Sikkerhed → Tofaktorgodkendelse**. Under **Godkendelsesapps** tilføjer du en app og giver den et navn. Scan QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtast den sekscifrede kode, den viser, og klik på **Bekræft og afslut**. Vil du hellere bruge en USB- eller NFC-nøgle, tilføjer du den under **Sikkerhedsnøgler**.
+Åbn **Sikkerhed → Tofaktorgodkendelse** og klik på **Aktivér tofaktorgodkendelse**. Vælg **Godkendelsesapp** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**.
+
+### Opsæt det
+
+For en godkendelsesapp scanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtaster den 6-cifrede kode, den viser, og klikker på **Bekræft og afslut**. En USB- eller NFC-nøgle giver du et navn og følger din browsers vejledning. Tofaktorgodkendelse er derefter slået til, og kortet viser **Aktiveret**. Fra dit næste login med adgangskode eller et link i en e-mail beder OneUptime om dit andet trin.
 
 ### Gem dine backupkoder
 
 Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUptime **Dine backupkoder**. Hver kode logger dig ind én gang, hvis du mister din app eller nøgle. Kopiér eller download dem, sæt flueben ved, at du har gemt dem, og klik på **Færdig**.
-
-### Slå den til
-
-Øverst på siden klikker du på **Aktivér tofaktorgodkendelse** og bekræfter. Kortet viser nu **Aktiveret**. Fra dit næste login med adgangskode eller et link sendt på e-mail beder OneUptime om dit andet trin.
 :::
+
+Har du allerede en app under **Godkendelsesapps** eller en nøgle under **Sikkerhedsnøgler**, beder **Aktivér tofaktorgodkendelse** dig bare om at bekræfte. Mens den er slået til, kan din sidste app, nøgle eller adgangsnøgle ikke fjernes: Tilføj først en anden, eller slå tofaktorgodkendelse fra. Viser kortet **Opsætning mangler**, er tofaktorgodkendelse slået til, uden at noget er opsat, ofte fordi en administrator har krævet det: Klik på **Afslut opsætningen**, ellers bliver du bedt om det ved dit næste login.
 
 > [!TIP]
 > Er du ved at løbe tør for backupkoder? **Generér nye koder** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
+
+### Når din organisation styrer dit login
+
+På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
 
 ## Dine projekter
 

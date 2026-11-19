@@ -79,6 +79,12 @@ const MIRRORED_JOBS = {
   // postgres, valkey and clickhouse docker-compose.yml runs
   // (AppImageRuntime.test.js).
   "build.yml: docker-build-app": "warm_base_images.sh",
+  // Built for the Vulnerability gate: the ingress image FROM nginx, and the
+  // Docker and Podman agents FROM the OpenTelemetry collector, all on Docker
+  // Hub. The warm-up is the first step that can pull.
+  "build.yml: docker-build-nginx": "warm_base_images.sh",
+  "build.yml: docker-build-docker-agent": "warm_base_images.sh",
+  "build.yml: docker-build-podman-agent": "warm_base_images.sh",
   // Pulls the release the Iron Bank project pins, by digest, then Grype,
   // Trivy, ClamAV and the datastores AppImageRuntime.test.js starts.
   "iron-bank.yml: preflight": "fetch_resources.sh",

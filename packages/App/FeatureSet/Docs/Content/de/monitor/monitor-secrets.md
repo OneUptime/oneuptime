@@ -6,11 +6,12 @@ Monitor-Geheimnisse halten die Passwörter, API-Schlüssel und Tokens, die Ihre 
 - [Ein Geheimnis hinzufügen](#ein-geheimnis-hinzufügen): Einen Wert speichern und festlegen, wer ihn verwenden darf.
 - [Den Zugriff wählen](#festlegen-welche-monitore-ein-geheimnis-verwenden-dürfen): Alle Monitore, bestimmte Monitore oder Monitore mit Beschriftungen.
 - [Ein Geheimnis verwenden](#ein-geheimnis-verwenden): Wo `{{monitorSecrets.NAME}}` funktioniert.
+- [Mit einem Einmalcode anmelden](#mit-einem-einmalcode-anmelden): Einen Monitor die Zwei-Faktor-Anmeldung einer Website bestehen lassen.
 :::
 
 ## Wie Geheimnisse zu einem Monitor gelangen
 
-Ein Geheimnis wird verschlüsselt gespeichert und nach dem Speichern nie wieder angezeigt. Bevor OneUptime einen Monitor an eine Sonde übergibt, ersetzt es jeden Verweis, den der Monitor verwenden darf, durch den entschlüsselten Wert; ein Verweis, den der Monitor nicht verwenden darf, bleibt, wie er geschrieben ist.
+Ein Geheimnis wird verschlüsselt gespeichert und nach dem Speichern nie wieder angezeigt. Bevor OneUptime einen Monitor an eine Sonde übergibt, ersetzt es jeden Verweis, den der Monitor verwenden darf, durch den entschlüsselten Wert; ein Verweis, den der Monitor nicht verwenden darf, bleibt, wie er geschrieben ist. Ein Einmalcode-Geheimnis ist die Ausnahme: Die Sonde erzeugt seinen Code erst, wenn die Prüfung läuft (siehe [Mit einem Einmalcode anmelden](#mit-einem-einmalcode-anmelden)).
 
 ```mermaid title="Wie ein Verweis auf ein Geheimnis ausgefüllt wird"
 flowchart TB
@@ -33,7 +34,7 @@ Die Sonde, die die Prüfung ausführt, erhält den Wert. Ein Monitor, der ein Ge
 
 :::steps
 1. Gehen Sie zu **Monitore → Einstellungen → Geheimnisse** und klicken Sie auf **Monitor-Geheimnis erstellen**.
-2. Geben Sie einen **Name** und den **Geheimniswert** ein. Der Name ist das, worauf Sie verweisen, zum Beispiel `ApiKey`. Er darf nur Buchstaben, Ziffern, Bindestriche (`-`) und Unterstriche (`_`) enthalten, und keine zwei Geheimnisse in einem Projekt teilen sich einen.
+2. Geben Sie einen **Name** und den **Geheimniswert** ein. Der Name ist das, worauf Sie verweisen, zum Beispiel `ApiKey`. Er darf nur Buchstaben, Ziffern, Bindestriche (`-`) und Unterstriche (`_`) enthalten, und keine zwei Geheimnisse in einem Projekt teilen sich einen. Wählen Sie für den Zwei-Faktor-Einrichtungsschlüssel einer Website zuerst **Einmalcode (TOTP)** (siehe [Mit einem Einmalcode anmelden](#mit-einem-einmalcode-anmelden)).
 3. Wählen Sie im Schritt **Zugriff**, welche Monitore es verwenden dürfen (siehe den nächsten Abschnitt), und klicken Sie dann auf **Monitor-Geheimnis erstellen**.
 :::
 
@@ -84,6 +85,51 @@ Verweist ein Monitor auf ein Geheimnis, das er nicht verwenden darf, bleibt der 
 
 Wenn Sie einen Monitor testen, bevor Sie ihn speichern, werden nur Geheimnisse ausgefüllt, die für **Alle Monitore** verfügbar sind, weil ein neuer Monitor in keiner Liste steht und noch keine Beschriftungen hat. Nachdem Sie den Monitor gespeichert haben, verwenden Tests jedes Geheimnis, das der Monitor verwenden darf.
 
+## Mit einem Einmalcode anmelden
+
+Manche Websites verlangen bei der Anmeldung einen Code aus einer Authenticator-App. Ein Geheimnis vom Typ **Einmalcode (TOTP)** enthält den Einrichtungsschlüssel dieser Website, sodass sich ein Monitor so anmelden kann wie Sie: Wo immer der Monitor das Geheimnis verwendet, erzeugt die Sonde den aktuellen Code nach ihrer eigenen Uhr, in dem Moment, in dem die Prüfung ihn braucht. Der Einrichtungsschlüssel wird wie jeder Geheimniswert verschlüsselt gespeichert und nie wieder angezeigt, und er wird nie in den Monitor geschrieben.
+
+1. Schalten Sie die Zwei-Faktor-Anmeldung für das Konto ein, mit dem sich der Monitor anmeldet. Wo die Website einen QR-Code zeigt, wählen Sie stattdessen die manuelle Eingabe des Schlüssels, und kopieren Sie den Einrichtungsschlüssel oder den `otpauth://`-Link.
+2. Gehen Sie zu **Monitore → Einstellungen → Geheimnisse**, klicken Sie auf **Monitor-Geheimnis erstellen**, wählen Sie **Einmalcode (TOTP)** und fügen Sie den Schlüssel oder den Link in das Feld **Einrichtungsschlüssel** ein.
+3. Prüfen Sie, ob der Code, der darunter als **Aktueller Code** erscheint, mit dem Code übereinstimmt, den Ihre Authenticator-App gerade anzeigt, und wählen Sie dann wie bei jedem Geheimnis im Schritt **Zugriff**, welche Monitore das Geheimnis verwenden dürfen.
+
+| Was Sie einfügen | Die Codes, die der Monitor erzeugt |
+| --- | --- |
+| Ein Einrichtungsschlüssel, etwa `JBSW Y3DP EHPK 3PXP` | SHA1, 6 Ziffern und alle 30 Sekunden ein neuer Code: das, wovon jede Authenticator-App ausgeht |
+| Ein `otpauth://totp/`-Link | Die Angaben `algorithm` (`SHA1`, `SHA256` oder `SHA512`), `digits` (`6` oder `8`) und `period` in Sekunden (`30`, wenn der Link keinen Wert dafür hat) aus dem Link |
+
+| Monitortyp | Wohin der Code kommt und wann er erzeugt wird |
+| --- | --- |
+| API | `{{monitorSecrets.NAME}}` in der URL, einem Request-Header oder dem Request-Body, direkt bevor jeder Versuch gesendet wird |
+| Synthetischer Monitor, Benutzerdefinierter JavaScript-Code | `{{monitorSecrets.NAME}}` im Skript, wenn das Skript startet, und `await oneuptime.getTotpCode("NAME")`, wenn das Skript den Code anfordert |
+
+Jedes andere Feld behält `{{monitorSecrets.NAME}}` so, wie es geschrieben ist. Setzen Sie den Verweis in einem JSON-Request-Body in Anführungszeichen, wie in `{"otp": "{{monitorSecrets.LoginCode}}"}`, weil ein Code mit einer Null beginnen kann.
+
+Eine Anmeldung erreicht die Abfrage des Codes meist erst einige Seiten nach dem Start des Skripts, fordern Sie den Code also dort an. Dieses Skript meldet sich mit einem Passwort und einem Einmalcode an:
+
+```javascript
+await page.goto("https://app.example.com/login");
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// The code is made now, when the sign-in asks for it.
+await page.waitForSelector("#otp");
+await page.fill("#otp", await oneuptime.getTotpCode("AppLoginCode"));
+await page.click("button[type=submit]");
+
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+
+return {
+  data: { signedIn: true },
+};
+```
+
+Die Sonde gibt nie einen Code heraus, der nur noch weniger als fünf Sekunden gilt, oder weniger als ein Drittel des Zeitraums, wenn der Zeitraum kürzer ist: Sie wartet stattdessen auf den nächsten Code, höchstens fünf Sekunden, und rechnet diese Wartezeit nicht in die Ausführungszeit der Prüfung ein. Jeder Code, den eine Prüfung erzeugt, erscheint als Sternchen, etwa `******`, in ihren Protokollmeldungen, ihrem Ergebnis, ihrem Fehler und den Namen ihrer Screenshots. Ein Screenshot ist ein Bild der Seite, machen Sie ihn also, bevor der Code eingegeben wird, oder nachdem die Seite weitergegangen ist.
+
+> [!NOTE]
+> Die Sonde erzeugt die Codes, aktualisieren Sie also eine benutzerdefinierte Sonde, bevor Sie ein Einmalcode-Geheimnis verwenden: Eine ältere Sonde sendet `{{monitorSecrets.NAME}}` so, wie es geschrieben ist. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
+
 ## Fehlerbehebung
 
 :::details Der Monitor sendet `{{monitorSecrets.NAME}}` wörtlich
@@ -96,6 +142,10 @@ Bevor ein Monitor gespeichert ist, werden nur Geheimnisse ausgefüllt, die für 
 
 :::details Ein Feld ignoriert das Geheimnis
 Nur die Felder in der Tabelle oben nehmen Geheimnisse an. In jedem anderen Feld wird `{{monitorSecrets.NAME}}` gesendet, wie es geschrieben ist.
+:::
+
+:::details Die Website lehnt den Einmalcode ab
+Prüfen Sie, ob der Code unter **Aktueller Code** beim Speichern des Geheimnisses mit Ihrer Authenticator-App übereinstimmte, ob die Uhr der Sonde stimmt und ob ein Verweis in einem JSON-Request-Body in Anführungszeichen steht. Wenn die Anmeldung eine Weile braucht, bis sie die Abfrage des Codes erreicht, fordern Sie den Code dort mit `oneuptime.getTotpCode` an.
 :::
 
 ## Nächste Schritte

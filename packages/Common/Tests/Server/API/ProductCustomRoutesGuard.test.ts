@@ -1036,7 +1036,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
+        // Its invite suggestions read only (#9701).
+        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
@@ -1201,11 +1202,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone.",
       {
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,
+        "packages/Common/Server/API/PublicNoteReachRoute.ts": 1,
         "packages/Common/Server/API/UsedByAPI.ts": 1,
         "packages/Common/Server/API/WhoIsToldAPI.ts": 1,
         "packages/Common/Server/API/AffectedResourceSearchAPI.ts": 1,

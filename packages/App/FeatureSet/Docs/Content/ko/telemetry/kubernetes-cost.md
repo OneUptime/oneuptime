@@ -5,7 +5,7 @@
 :::cards
 - [켜기](#비용-옵저버빌리티-켜기): 기본적으로 켜져 있으며, 그렇지 않은 곳에서는 `helm upgrade` 한 번.
 - [비용에 대한 경고](#비용에-대한-경고): 클러스터, 네임스페이스, 워크로드별 비용을 메트릭으로.
-- [자체 엔진 사용](#이미-kubecost나-opencost를-실행하고-있나요): 에이전트가 Kubecost나 OpenCost를 가리키게 합니다.
+- [자체 엔진](#이미-kubecost나-opencost를-실행하고-있나요): 이미 실행 중인 Kubecost나 OpenCost를 찾아서 읽습니다.
 - [적정 크기 조정](#적정-크기-조정): request 권장값과 그 산출 방식.
 - [문제 해결](#문제-해결): 빈 페이지, 권장값 누락.
 :::
@@ -63,28 +63,33 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 비용 메트릭(`node_total_hourly_cost`, `pv_hourly_cost` 등)은 일반 메트릭이므로 메트릭 탐색기, 사용자 지정 대시보드, 메트릭 모니터에서 사용할 수 있습니다. 미리 만들어진 대시보드를 원하면 **제품 → 대시보드**로 이동해 **대시보드 만들기**를 선택하고 **Kubernetes Cost Dashboard**를 고르세요. 노드 시간당 비용 추세, CPU 및 메모리 단가, 볼륨과 로드 밸런서 지출을 보여 줍니다.
 
+개요와 **비용** 페이지는 수치 아래에 가격의 출처를 알려 줍니다. 클라우드 정가, 직접 설정한 요금표, 또는 OpenCost의 기본 요율입니다. 효율은 효율 메트릭까지 포함해 어디서나 같은 수치입니다. 요청한 CPU와 메모리 중 실제로 사용된 비율이며, 각 컨테이너의 한 시간은 그 CPU와 메모리의 비용으로 가중됩니다. 따라서 아무것도 사용하지 않는 저렴한 작업이 잘 활용되는 클러스터의 효율을 끌어내릴 수 없고, 유휴 용량은 계산에 넣지 않습니다.
+
 ## 이미 Kubecost나 OpenCost를 실행하고 있나요?
 
-대신 에이전트가 사용 중인 엔진을 가리키게 하면 아무것도 번들되지 않습니다:
+비용 에이전트는 그 엔진을 찾아 번들 OpenCost 대신 읽으므로, 클러스터의 가격은 직접 설정한 요금표나 Kubecost에 연동된 클라우드 청구서처럼 설정한 그대로 매겨집니다. 에이전트는 시작할 때, 그리고 그 뒤로는 매시간 Kubernetes API를 통해 각 엔진의 자체 차트가 만드는 Service를 모든 네임스페이스에서 찾습니다(Kubecost의 `cost-analyzer` 또는 `frontend`, OpenCost 차트가 만드는 Service, OpenCost 매니페스트가 만드는 `opencost` Service). Kubecost가 우선입니다. 응답하지 않거나, 로그인이 필요하거나, 여러 클러스터에 대해 응답하는 엔진은 건너뛰고 번들 엔진을 읽습니다.
+
+그러면 클러스터의 개요에 사용 중인 엔진의 이름이 표시되고, 번들 OpenCost가 필요 없다고 알려 줍니다. 번들 OpenCost의 실행을 멈추세요:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+`cost.engine.url=auto`를 사용하면 아무것도 번들되지 않으며, 에이전트는 엔진이 어디에서 실행되든 그 엔진을 읽습니다. 엔진이 설치되어 있지 않으면 아무것도 가격이 매겨지지 않습니다. 차트는 직접 엔진을 찾을 수 없습니다. Helm의 `lookup`은 `helm template`, Argo CD, 시험 실행에서는 아무것도 보지 못하기 때문입니다. 자체 엔진 옆에 번들 OpenCost를 유지하려면 `cost.engine.preferExisting=false`를 설정하고, 읽을 엔진을 지정하려면 `cost.engine.url`을 그 엔진의 Service URL로 설정하세요:
 
 | 엔진 | 일반적인 서비스 URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Allocation API 경로는 자동으로 찾습니다(Kubecost는 `/model/allocation`, OpenCost는 `/allocation/compute` 또는 `/allocation`). `cost.engine.allocationPath`는 특이한 설치에서만 설정하세요. 메모리 권장값을 위해서는 `cost.engine.prometheusUrl`도 설정하세요([권장값의 바탕이 되는 데이터](#권장값의-바탕이-되는-데이터) 참조).
+Allocation API 경로는 자동으로 찾습니다(Kubecost는 `/model/allocation`, OpenCost는 `/allocation/compute` 또는 `/allocation`). `cost.engine.allocationPath`는 특이한 설치에서만 설정하세요. `auto`나 URL을 사용하면 아무것도 번들되지 않으므로, 메모리 권장값을 위해서는 `cost.engine.prometheusUrl`도 설정하세요([권장값의 바탕이 되는 데이터](#권장값의-바탕이-되는-데이터) 참조).
 
 ## 온프레미스 및 베어메탈 가격 책정
 
-노드에 퍼블릭 클라우드 정가가 없는 클러스터는 요금표를 설정할 수 있습니다. 그러면 OpenCost는 이 수치로 모든 리소스의 가격을 매기며, 단위는 모두 리소스-시간당 USD입니다:
+노드에 퍼블릭 클라우드 정가가 없는 클러스터는 요금표를 설정할 수 있습니다. 요금표가 없으면 OpenCost는 그런 노드(온프레미스, 베어메탈, kind, k3s)의 가격을 기본 요율로 매기는데, 이는 실제 하드웨어 비용과 크게 다를 수 있으며 클러스터의 개요와 **비용** 페이지가 이를 알려 줍니다. OpenCost가 인식하는 클라우드에서는 노드가 정가를 그대로 유지하고, 요금표는 정가 목록에 없는 것만 가격을 매깁니다. 요금표를 설정하면 OpenCost는 이 수치로 모든 리소스의 가격을 매기며, 단위는 모두 리소스-시간당 USD입니다:
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+이 값들은 OpenCost 자체의 기본 요율입니다. 직접 정한 수치를 넣으세요. 그렇지 않으면 **비용** 페이지에는 여전히 클러스터가 OpenCost의 기본 요율로 가격이 매겨진다고 표시됩니다.
 
 ## 알아 둘 만한 설정
 
@@ -148,7 +155,7 @@ request는 권장하지만 limit은 권장하지 않습니다. request는 스케
 메모리에는 데이터 소스가 하나 더 필요합니다. Allocation API는 각 기간의 평균만 보고하며, 시간별 평균은 컨테이너를 OOM kill하는 급증을 숨기므로 이것으로 메모리 크기를 정하는 것은 위험합니다. 그래서 폴러는 대신 Prometheus에서 각 컨테이너의 메모리 최대치를 읽어 `(namespace, pod, container)`로 결합합니다:
 
 - 번들 엔진(기본값)에서는 차트 자체의 Prometheus를 사용합니다. 설정할 것이 없습니다.
-- 자체 엔진(`cost.engine.url`)에서는 `cost.engine.prometheusUrl`이 cAdvisor를 스크레이프하는 Prometheus를 가리키게 하고, 그 스크레이프 작업 이름이 `kubernetes-nodes-cadvisor`가 아니면 `cost.engine.prometheusCadvisorJob`을 설정하세요.
+- `cost.engine.url`을 설정했다면(`auto` 또는 사용 중인 엔진의 URL) `cost.engine.prometheusUrl`이 cAdvisor를 스크레이프하는 Prometheus를 가리키게 하고, 그 스크레이프 작업 이름이 `kubernetes-nodes-cadvisor`가 아니면 `cost.engine.prometheusCadvisorJob`을 설정하세요.
 - Prometheus가 없으면 CPU 권장은 저장된 시간별 평균으로 여전히 작동하고, 메모리 권장은 추측하지 않고 생략됩니다.
 
 Prometheus가 중단되어도 지출 수집은 멈추지 않습니다. 최대치는 부가 정보이며, 그 시간은 최대치 없이 전송됩니다. CPU는 의도적으로 Prometheus를 사용하지 않습니다. CPU request가 너무 크면 스로틀링될 뿐이지만 메모리 request가 너무 작으면 컨테이너가 종료되므로 CPU에는 시간별 평균으로 충분히 안전하며, 클러스터 전체에서 모든 컨테이너의 CPU 비율을 쿼리하는 것은 작은 Prometheus를 쓰러뜨릴 만큼 무겁습니다.
@@ -180,6 +187,14 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 
 :::details 번들 OpenCost가 준비되지 않음
 로그를 확인하세요: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`. 감지한 클라우드 제공업체와 가격 데이터가 로드되었는지 알려 줍니다.
+:::
+
+:::details 개요에 번들 OpenCost가 필요 없다고 표시됨
+클러스터가 자체 Kubecost나 OpenCost를 실행하고 있고 비용 에이전트가 그것을 읽으므로, 차트가 번들한 OpenCost와 Prometheus는 아무것도 가격을 매기지 않습니다. 이들의 실행을 멈추려면 `--set cost.engine.url=auto`로 업그레이드하고, 대신 번들 엔진을 읽으려면 `cost.engine.preferExisting=false`를 설정하세요.
+:::
+
+:::details 비용 에이전트가 자체 엔진을 읽지 않음
+로그에 어떤 엔진을 읽는지, 그리고 다른 엔진을 왜 건너뛰었는지가 나옵니다: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. 비용 에이전트는 응답하지 않거나(예: 네임스페이스 사이에 NetworkPolicy가 있는 경우), 로그인이 필요하거나, 다른 클러스터를 페더레이션하는 Kubecost처럼 여러 클러스터에 대해 응답하는 엔진을 건너뜁니다. 읽을 엔진은 `cost.engine.url`로 지정하세요.
 :::
 
 :::details OpenCost 로그에 mkdir /var/configs: permission denied가 표시됨

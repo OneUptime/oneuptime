@@ -689,7 +689,12 @@ describe("POST /workflow/manual/run/:workflowId requires an authorized member of
       };
 
       expect(readArgs.id.toString()).toBe(workflowId.toString());
-      expect(readArgs.select).toEqual({ projectId: true });
+      // Its project, and what it runs as, which decides who may run it (#9695).
+      expect(readArgs.select).toEqual({
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      });
       expect(readArgs.props["isRoot"]).toBe(true);
     });
 

@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "عاملی را که پیش از پیش‌فرض شدن این قابلیت نصب شده است، به‌روز کنید:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **خاموش کردن:** `--set cost.enabled=false` را به همان به‌روزرسانی اضافه کنید.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **از قبل Kubecost یا OpenCost دارید؟** به‌جایش عامل را به آن ارجاع دهید تا چیزی همراه نصب نشود: `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (یا سرویس Kubecost خودتان) را اضافه کنید.",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **از قبل Kubecost یا OpenCost دارید؟** عامل آن را پیدا می‌کند و آن را به‌جای موتور همراه می‌خواند، و نمای کلی خوشه هم همین را می‌گوید: برای اینکه موتور دومی همراه نصب نشود، `--set cost.engine.url=auto` را اضافه کنید.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **محلی یا bare metal؟** با `--set cost.opencost.customPricing.enabled=true` یک جدول نرخ تعیین کنید (USD به ازای هر ساعت منبع؛ `values.yaml` در chart را ببینید).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

@@ -604,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Det i sig är en fullständig installation: chartet levereras med motorn [OpenCost](https://opencost.io) med öppen källkod (med den lilla Prometheus den behöver) och prissätter dina noder och volymer utifrån molnleverantörens offentliga listpriser, utan inloggningsuppgifter. Den lägger till tre små poddar, och de första kostnaderna visas efter den första avslutade timmen. För att stänga av den sätter du `--set cost.enabled=false` på samma sätt. Kör du redan Kubecost eller OpenCost? Lägg till `--set cost.engine.url=<its service URL>` i stället, så medföljer ingenting. Lokala kluster kan sätta en prislista med `cost.opencost.customPricing`. Den fullständiga guiden, med lokal prissättning och felsökning, är [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost).
+Det i sig är en fullständig installation: chartet levereras med motorn [OpenCost](https://opencost.io) med öppen källkod (med den lilla Prometheus den behöver) och prissätter dina noder och volymer utifrån molnleverantörens offentliga listpriser, utan inloggningsuppgifter. Den lägger till tre små poddar, och de första kostnaderna visas efter den första avslutade timmen. För att stänga av den sätter du `--set cost.enabled=false` på samma sätt. Kör du redan Kubecost eller OpenCost? Kostnadsagenten hittar den och läser den i stället för den medföljande; lägg till `--set cost.engine.url=auto` så att ingen andra motor medföljer. Lokala kluster kan sätta en prislista med `cost.opencost.customPricing`. Den fullständiga guiden, med lokal prissättning och felsökning, är [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost).
 
 ### Automatisk märkning med projektetiketter
 

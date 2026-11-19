@@ -1679,6 +1679,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Utils/Incident/IncidentMetricType.ts",
       "keys packages/Common/Utils/Alerts/AlertMetricType.ts",
       "keys packages/Common/Utils/Slo/SloMetricType.ts",
+      // What is wrong with a one-time code monitor secret's setup key (#9703).
+      "keys packages/Common/Utils/Totp/TotpSecret.ts",
       // What the server stores as each monitor series' description.
       "keys packages/Common/Server/Utils/Monitor/MonitorMetricUtil.ts",
       // A duration in milliseconds: the views' and the overview hero's "{{value}} ms".

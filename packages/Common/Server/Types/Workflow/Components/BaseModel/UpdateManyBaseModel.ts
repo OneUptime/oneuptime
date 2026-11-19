@@ -234,6 +234,7 @@ export default class UpdateManyBaseModel<
         model: this.modelService?.getModel() || null,
         log: options.log,
         stepTitle: this.getMetadata().title,
+        runAs: options.runAs,
       });
 
       return {

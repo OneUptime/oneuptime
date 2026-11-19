@@ -26,7 +26,7 @@ The form also asks **Page this policy for every new incident and alert**, of peo
 
 To be walked through paging instead, from your phone to a test page, click **Guided setup**: on the empty **On-Call Policies** list, or under **How it works**. See [Get Paged by Phone, SMS or Push](/docs/guides/paging).
 
-The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
+The **On-Call Policies** list shows each policy's **Name**, **Paged First**, **Description**, **Labels** and **Owners**. **Paged First** is who the policy's first escalation rule pages: its schedules, each with who is on call in it now, its teams and its people, or **No escalation rules** or **No responders** where it pages nobody. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
 
 ## What runs a policy
 

@@ -22,6 +22,7 @@ import CustomRolePermission from "../../Models/DatabaseModels/CustomRolePermissi
 import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
 import Model from "../../Models/DatabaseModels/TeamCustomRole";
+import UserType from "../../Types/UserType";
 
 /*
  * CUSTOM ROLES GIVEN TO TEAMS.
@@ -126,6 +127,8 @@ export class Service extends ProjectReferencesService<Model> {
             getCustomRoleGrantRefusedMessage({
               roleName: role.name || "this role",
               permission: permission.permission!,
+              // A workflow's step: said of the permissions it runs with (#9695).
+              isWorkflow: data.props.userType === UserType.Workflow,
             }),
           );
         }

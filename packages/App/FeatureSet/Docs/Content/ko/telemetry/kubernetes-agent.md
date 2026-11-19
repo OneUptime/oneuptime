@@ -604,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-이것만으로 완전한 설치입니다. 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(필요한 작은 Prometheus 포함)을 번들로 제공하며, 자격 증명 없이 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 작은 Pod 세 개가 추가되며, 첫 비용은 첫 1시간이 마감된 뒤에 나타납니다. 끄려면 같은 방법으로 `--set cost.enabled=false`를 설정하세요. 이미 Kubecost나 OpenCost를 실행하고 있다면 대신 `--set cost.engine.url=<its service URL>`을 추가하세요. 그러면 아무것도 번들되지 않습니다. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다. 온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드는 [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)입니다.
+이것만으로 완전한 설치입니다. 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(필요한 작은 Prometheus 포함)을 번들로 제공하며, 자격 증명 없이 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 작은 Pod 세 개가 추가되며, 첫 비용은 첫 1시간이 마감된 뒤에 나타납니다. 끄려면 같은 방법으로 `--set cost.enabled=false`를 설정하세요. 이미 Kubecost나 OpenCost를 실행하고 있다면 비용 에이전트가 그것을 찾아 번들 엔진 대신 읽습니다. 두 번째 엔진을 번들하지 않으려면 `--set cost.engine.url=auto`를 추가하세요. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다. 온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드는 [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)입니다.
 
 ### 프로젝트 레이블로 자동 태그 지정
 

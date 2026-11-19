@@ -13,6 +13,12 @@ import {
   isRecord,
 } from "./RpcProtocol";
 import { MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "./Limits";
+import {
+  MAX_TOTP_SECRETS_PER_STEP,
+  MAX_TOTP_SECRET_NAME_LENGTH,
+  TotpSecrets,
+  isTotpParameters,
+} from "Common/Utils/Totp/TotpParameters";
 
 const MAX_WORKER_SCRIPT_BYTES: number = 1_000_000;
 const MAX_SCRIPT_ERROR_BYTES: number = 4_000;
@@ -41,6 +47,12 @@ export interface SyntheticMonitorWorkerConfig {
   chromiumSandboxEnabled: boolean;
   proxy?: SyntheticMonitorWorkerProxy | undefined;
   args?: Record<string, unknown> | undefined;
+  /*
+   * The one-time code (TOTP) secrets the script references, by name
+   * (issue #9703). They stay in the worker process: the sandbox gets only
+   * the codes made from them.
+   */
+  totpSecrets?: TotpSecrets | undefined;
 }
 
 export interface SyntheticMonitorWorkerResult {
@@ -49,6 +61,38 @@ export interface SyntheticMonitorWorkerResult {
   capturedMetrics: SandboxMetric[];
   screenshots: Record<string, string>;
   scriptError?: string | undefined;
+  // See SandboxExecutionResult.totpWaitInMs.
+  totpWaitInMs?: number | undefined;
+}
+
+const TOTP_PARAMETER_KEYS: ReadonlyArray<string> = [
+  "secret",
+  "algorithm",
+  "digits",
+  "periodInSeconds",
+];
+
+// Whether a worker config's TOTP secrets are exactly what a step may carry.
+function isWorkerTotpSecrets(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const entries: Array<[string, unknown]> = Object.entries(value);
+
+  return (
+    entries.length <= MAX_TOTP_SECRETS_PER_STEP &&
+    entries.every(([name, parameters]: [string, unknown]): boolean => {
+      return (
+        name.length > 0 &&
+        name.length <= MAX_TOTP_SECRET_NAME_LENGTH &&
+        isTotpParameters(parameters) &&
+        Object.keys(parameters).every((key: string): boolean => {
+          return TOTP_PARAMETER_KEYS.includes(key);
+        })
+      );
+    })
+  );
 }
 
 export function isSyntheticMonitorWorkerConfig(
@@ -70,6 +114,7 @@ export function isSyntheticMonitorWorkerConfig(
         "chromiumSandboxEnabled",
         "proxy",
         "args",
+        "totpSecrets",
       ].includes(key);
     })
   ) {
@@ -79,6 +124,7 @@ export function isSyntheticMonitorWorkerConfig(
   const viewport: unknown = value["viewport"];
   const proxy: unknown = value["proxy"];
   const args: unknown = value["args"];
+  const totpSecrets: unknown = value["totpSecrets"];
   return (
     typeof value["code"] === "string" &&
     Buffer.byteLength(value["code"], "utf8") <= MAX_WORKER_SCRIPT_BYTES &&
@@ -107,7 +153,8 @@ export function isSyntheticMonitorWorkerConfig(
     typeof value["chromiumSandboxEnabled"] === "boolean" &&
     (proxy === undefined || isSyntheticMonitorWorkerProxy(proxy)) &&
     (args === undefined ||
-      (isRecord(args) && byteLengthOfJson(args) <= MAX_RPC_RESULT_BYTES))
+      (isRecord(args) && byteLengthOfJson(args) <= MAX_RPC_RESULT_BYTES)) &&
+    (totpSecrets === undefined || isWorkerTotpSecrets(totpSecrets))
   );
 }
 
@@ -123,8 +170,14 @@ export function isSyntheticMonitorWorkerResult(
         "capturedMetrics",
         "screenshots",
         "scriptError",
+        "totpWaitInMs",
       ].includes(key);
     }) ||
+    (value["totpWaitInMs"] !== undefined &&
+      (!Number.isSafeInteger(value["totpWaitInMs"]) ||
+        Number(value["totpWaitInMs"]) < 0 ||
+        Number(value["totpWaitInMs"]) >
+          MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS)) ||
     byteLengthOfJson(value["returnValue"]) > MAX_RPC_RESULT_BYTES ||
     !Array.isArray(value["logMessages"]) ||
     value["logMessages"].length > MAX_SANDBOX_LOG_MESSAGES ||

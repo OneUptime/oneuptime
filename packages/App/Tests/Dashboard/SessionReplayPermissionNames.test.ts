@@ -16,6 +16,11 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayFilterFields";
 import { describeHealthError } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayHealthError";
 import { describeSessionReplayListError } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayEmptyReason";
+import {
+  describeSessionUser,
+  describeUserRollup,
+  HIDDEN_IDENTITY_TITLE,
+} from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUserIdentity";
 
 /*
  * SESSION REPLAY NAMES THE PERMISSION THE ROLES SCREEN SHOWS (#6635).
@@ -613,6 +618,111 @@ describe("no Session Replay line names the identity permission", () => {
           },
         ),
       ).toEqual(expected);
+    },
+  );
+});
+
+/*
+ * THE SESSION LIST AND THE USERS PAGE ASK FOR THE GRANT AS THE HEADER DOES
+ * (#7320).
+ *
+ * A row whose user is hidden showed "Hidden" with a hover that stopped at
+ * the reason ("Your role cannot read end-user identity, so the label is
+ * not sent to you.") and a screen-reader name that said no more. The list
+ * is where most people meet a hidden user first, and it was the one place
+ * that left them with no next step. Its hover is the header's tooltip now,
+ * key for key, so it ends with the filter dialog's request in every
+ * language - the test above holds that ending.
+ */
+describe("the lists' hover on a hidden user", () => {
+  const LIST_RETIRED: ReadonlyArray<string> = [
+    "Your role cannot read end-user identity, so the label is not sent to you.",
+    "User hidden: your role cannot read end-user identity",
+  ];
+
+  test("is the header's tooltip, key for key", () => {
+    expect(HIDDEN_IDENTITY_TITLE).toBe(IDENTITY_HIDDEN_SENTENCES[1]);
+  });
+
+  test("the lines it replaces are gone from every language", () => {
+    for (const language of ["en", ...LANGUAGES]) {
+      const locale: Record<string, string> = readLocale(language);
+
+      for (const sentence of LIST_RETIRED) {
+        expect({ language, sentence, kept: sentence in locale }).toEqual({
+          language,
+          sentence,
+          kept: false,
+        });
+      }
+    }
+  });
+
+  test("no Session Replay file draws the retired lines", () => {
+    const offenders: Array<string> = [];
+
+    for (const file of sourceFilesUnder(SESSION_REPLAY_DIR)) {
+      for (const text of stringsInSource(file, fs.readFileSync(file, "utf8"))) {
+        if (LIST_RETIRED.includes(text)) {
+          offenders.push(`${path.relative(SESSION_REPLAY_DIR, file)}: ${text}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  test.each([
+    ["English", "en", '"Watch Session Replays"'],
+    ["German", "de", "„Watch Session Replays“"],
+    ["Arabic", "ar", "«Watch Session Replays»"],
+    ["Persian", "fa", "«Watch Session Replays»"],
+  ])(
+    "%s: the session list's and the Users page's hover name Watch Session Replays",
+    (_name: string, language: string, quoted: string) => {
+      const translator: Translator =
+        language === "en"
+          ? createTranslator(undefined, "en")
+          : translatorFor(language);
+      const listHover: string = describeSessionUser(
+        {
+          identifiedUserLabel: "",
+          isIdentityVisible: false,
+          identifiedUserKey: "k1",
+          visitorId: "",
+        },
+        translator,
+      ).title;
+      const usersHover: string = describeUserRollup(
+        {
+          kind: "identified",
+          identifiedUserKey: "k1",
+          visitorId: "",
+          isIdentityVisible: false,
+        },
+        translator,
+      ).title;
+      const headerTooltip: string = translator.translateTemplate(
+        IDENTITY_HIDDEN_SENTENCES[1] as string,
+        { permission: getSessionReplayIdentityPermissionTitle() },
+      );
+
+      for (const hover of [listHover, usersHover]) {
+        expect(hover).toBe(headerTooltip);
+        expect(hover).toContain(quoted);
+        expect(hover).not.toContain("{{permission}}");
+      }
+
+      if (language !== "en") {
+        expect(listHover).not.toBe(
+          describeSessionUser({
+            identifiedUserLabel: "",
+            isIdentityVisible: false,
+            identifiedUserKey: "k1",
+            visitorId: "",
+          }).title,
+        );
+      }
     },
   );
 });

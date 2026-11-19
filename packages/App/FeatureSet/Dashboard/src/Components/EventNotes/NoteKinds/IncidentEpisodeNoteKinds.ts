@@ -63,6 +63,13 @@ export function getIncidentEpisodePublicNoteKind(data: {
     approval: {
       apiPath: "/incident-episode-public-note",
     },
+    /*
+     * Whether a status page shows the episode, through its incidents, and
+     * whether a note notifies anyone.
+     */
+    statusPageReach: {
+      apiPath: "/incident-episode",
+    },
   };
 }
 

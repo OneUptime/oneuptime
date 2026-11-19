@@ -318,6 +318,10 @@ English, German, Arabic and Persian it checks that every card, row, status and
 button reads in the page's language, that the page fits its window and reads
 right to left in Arabic and Persian, a new account's empty states (Persian,
 dark), the regenerate dialog (German) and the Arabic page on a phone (#8796).
+It also walks a new account through Enable, which sets up an authenticator app
+before turning two-factor authentication on, shows Setup needed for an account
+required to use it with nothing set up (#9666), and shows both pages to someone
+whose sign-in the server's SSO manages, with no Security section (#9688).
 See `SecurityPage/README.md`. Screenshots of each are written to
 `output/playwright/security-page-ui/` at the repository root.
 
