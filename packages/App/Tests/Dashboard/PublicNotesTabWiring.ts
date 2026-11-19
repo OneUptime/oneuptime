@@ -116,6 +116,12 @@ export interface PublicNotesTabCase {
    * out for an event that cannot be private, whose tab must not ask.
    */
   canBePrivate?: boolean | undefined;
+  /*
+   * The event's API path, where the composer asks whether a status page
+   * shows the event and whether a note notifies anyone (#9735):
+   * "/incident" asks POST /incident/public-note-reach.
+   */
+  statusPageReachApiPath: string;
 }
 
 export const PRIVATE_RULE_IMPORT: string =
@@ -256,6 +262,18 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
       }
     });
 
+    /*
+     * Whether "Public" may say a status page, and the notify box that
+     * subscribers are notified, is the server's answer for this event,
+     * through its own API (#9735).
+     */
+    test(`the kind asks where a note is shown through the ${tab.eventName}'s own API`, () => {
+      expect(kind).toContain(
+        `statusPageReach: { apiPath: "${tab.statusPageReachApiPath}", },`,
+      );
+      expect(kind.split("statusPageReach:").length - 1).toBe(1);
+    });
+
     test(`starts a new feed per ${tab.eventName}, so a draft never follows you to the next one`, () => {
       expect(feed).toContain("key={modelId.toString()}");
     });
@@ -287,9 +305,51 @@ export function describeSharedPublicNoteWiring(): void {
       );
     });
 
+    /*
+     * Unticked by default, the box says why with the page's quiet
+     * description - through the composer's words for where the note shows,
+     * which say it while a page shows the event or that is not known
+     * (PublicNoteReachCopy, pinned in Common's PublicNoteReachCopy test).
+     */
     test("explains an unticked default with the page's quiet description", () => {
-      expect(source).toMatch(
-        /uncheckedDescription: isNotifyingByDefault \? translationKey\( "[^"]+", \) : kind\.subscriberNotifications!\.quietDescription,/,
+      expect(source).toContain(
+        'getCreateNotifyDescriptions({ eventNoun: kind.eventNoun, reach: reach.reach, isNotifyingByDefault: isNotifyingByDefault, quietDescription: kind.subscriberNotifications?.quietDescription || "", });',
+      );
+      expect(source).toContain(
+        "checkedDescription: notifyDescriptions.checked, uncheckedDescription: notifyDescriptions.unchecked,",
+      );
+    });
+
+    /*
+     * What the composer says of a status page is the server's answer for
+     * this event (#9735): the Notes page asks once and hands it down; the
+     * feed's dialog asks for itself - never both, and never for a private
+     * incident or episode, which takes no public notes.
+     */
+    test("asks where a note is shown once: the Notes page for its composer, the dialog for itself", () => {
+      expect(notes).toContain(
+        "const reachRequest: PublicNoteReachRequest | null = isPublic && !isPrivateEvent && props.statusPageReach && mayWritePublicNotes ? { apiPath: props.statusPageReach.apiPath, eventId: props.parentId, } : null;",
+      );
+      expect(notes).toContain(
+        "const reach: PublicNoteReachState = usePublicNoteReach(reachRequest);",
+      );
+      expect(notes).toContain(
+        "statusPageReach={reachRequest ? reach : undefined}",
+      );
+      expect(source).toContain(
+        "const ownReachRequest: PublicNoteReachRequest | null = !props.statusPageReach && isPublic && kind.statusPageReach && !kind.isPrivateEvent && createGate.isAllowed ? { apiPath: kind.statusPageReach.apiPath, eventId: kind.parentId, } : null;",
+      );
+      expect(source).toContain(
+        "const reach: PublicNoteReachState = props.statusPageReach || ownReach;",
+      );
+    });
+
+    test("says beside Public, on a note being edited and when deleting one only what is true of the status page", () => {
+      expect(source).toContain(
+        "getPublicNotesCopyForReach({ copy: visibilityCopy, eventNoun: kind.eventNoun, reach: reach.reach, translator: translator, })",
+      );
+      expect(notes).toContain(
+        "getPublicNotesCopyForReach({ copy: visibilityCopy, eventNoun: props.eventNoun, reach: reach.reach, translator: translator, })",
       );
     });
 

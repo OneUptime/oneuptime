@@ -193,6 +193,12 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
+import {
+  answerPublicNoteReach,
+  PublicNoteReachAsk,
+} from "./PublicNoteReachAnswers";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -433,6 +439,158 @@ describe("EventNoteComposerDialog", () => {
       finishPost();
     });
     expect(createMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The feed's Add Public Note has no Notes page around it to ask where the
+ * note is shown (#9735): the dialog asks for itself, through the event's
+ * own API, once, and says what is true - a status page, or why none, and
+ * who is told, or why nobody - as the Notes page's composer does.
+ */
+describe("EventNoteComposerDialog: what it promises of a status page", () => {
+  const MAINTENANCE_ID: string = "50000000-0000-4000-8000-000000000042";
+
+  function maintenanceKind(): EventNoteKind<ScheduledMaintenancePublicNote> {
+    return {
+      modelType: ScheduledMaintenancePublicNote,
+      visibility: "public",
+      eventNoun: "maintenance event",
+      parentIdField: "scheduledMaintenanceId",
+      parentId: new ObjectID(MAINTENANCE_ID),
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription:
+          "Unticked by default because status page subscribers were not notified when this maintenance event was created.",
+      },
+      statusPageReach: { apiPath: "/scheduled-maintenance" },
+    };
+  }
+
+  async function openDialog(
+    kind: EventNoteKind<BaseModel>,
+  ): Promise<HTMLElement> {
+    await act(async () => {
+      render(
+        <EventNoteComposerDialog
+          kind={kind}
+          onClose={() => {}}
+          onPosted={() => {}}
+        />,
+      );
+    });
+
+    return screen.getByRole("dialog", { name: "Add Public Note" });
+  }
+
+  function lines(dialog: HTMLElement): Array<string> {
+    const description: HTMLElement | null = within(dialog).queryByTestId(
+      "note-notify-description",
+    );
+
+    return description
+      ? Array.from(description.querySelectorAll("p")).map(
+          (line: HTMLParagraphElement): string => {
+            return line.textContent || "";
+          },
+        )
+      : [];
+  }
+
+  test("asks once, for its event, through the event's API, with the project", async () => {
+    const asks: Array<PublicNoteReachAsk> = answerPublicNoteReach();
+
+    const dialog: HTMLElement = await openDialog(
+      maintenanceKind() as unknown as EventNoteKind<BaseModel>,
+    );
+
+    await waitFor(() => {
+      expect(within(dialog).getByTestId("note-audience").textContent).toBe(
+        "Public·Visible on your status page",
+      );
+    });
+
+    expect(asks).toEqual([
+      {
+        route: "/scheduled-maintenance/public-note-reach",
+        eventId: MAINTENANCE_ID,
+        headers: {},
+      },
+    ]);
+    expect(lines(dialog)).toEqual([
+      "Subscribers will be notified about this update as soon as you post it.",
+    ]);
+  });
+
+  test("no page picked: no status page shows it yet, ticked or not, and where the note shows later", async () => {
+    answerPublicNoteReach({
+      nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+    });
+
+    const dialog: HTMLElement = await openDialog(
+      maintenanceKind() as unknown as EventNoteKind<BaseModel>,
+    );
+    const expected: Array<string> = [
+      "No status page shows this maintenance event yet.",
+      "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.",
+    ];
+
+    await waitFor(() => {
+      expect(lines(dialog)).toEqual(expected);
+    });
+    expect(within(dialog).getByTestId("note-audience").textContent).toBe(
+      "Public·No status page shows this maintenance event yet",
+    );
+
+    fireEvent.click(within(dialog).getByTestId("note-notify-checkbox"));
+
+    expect(lines(dialog)).toEqual(expected);
+  });
+
+  test("not published yet: says so, and where the note shows once it is", async () => {
+    answerPublicNoteReach({
+      nothingSentReason: PublicNoteNothingSentReason.NotPublishedYet,
+    });
+
+    const dialog: HTMLElement = await openDialog(
+      maintenanceKind() as unknown as EventNoteKind<BaseModel>,
+    );
+
+    await waitFor(() => {
+      expect(lines(dialog)).toEqual([
+        "This maintenance event is not published on status pages yet.",
+        "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.",
+      ]);
+    });
+  });
+
+  test("a private note's dialog asks nothing", async () => {
+    const asks: Array<PublicNoteReachAsk> = answerPublicNoteReach();
+
+    await act(async () => {
+      render(
+        <EventNoteComposerDialog
+          kind={{
+            ...privateKind(),
+            statusPageReach: { apiPath: "/incident" },
+          }}
+          onClose={() => {}}
+          onPosted={() => {}}
+        />,
+      );
+    });
+
+    expect(asks).toEqual([]);
+  });
+
+  test("someone who may not write the note is asked nothing for", async () => {
+    isMasterAdmin = false;
+    currentPermissions = [Permission.Viewer];
+    const asks: Array<PublicNoteReachAsk> = answerPublicNoteReach();
+
+    await openDialog(maintenanceKind() as unknown as EventNoteKind<BaseModel>);
+
+    expect(asks).toEqual([]);
   });
 });
 
