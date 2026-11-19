@@ -798,13 +798,12 @@ describe("the token and Twilio's signature are the route's locks (#9979)", () =>
   });
 
   test("a query added on the way - the account it went out on - no longer matches the signature, and is refused", async () => {
-    const signed: ReturnType<typeof signedTwilioRequest> =
-      signedTwilioRequest({
-        publicUrl: `/notification/call/status-callback/${CALL_LOG_ID.toString()}/${TOKEN}`,
-        body: posted(SERVER_ACCOUNT, ended("no-answer")),
-        signedWith: SERVER_ACCOUNT.authToken,
-        params: { callLogId: CALL_LOG_ID.toString(), token: TOKEN },
-      });
+    const signed: ReturnType<typeof signedTwilioRequest> = signedTwilioRequest({
+      publicUrl: `/notification/call/status-callback/${CALL_LOG_ID.toString()}/${TOKEN}`,
+      body: posted(SERVER_ACCOUNT, ended("no-answer")),
+      signedWith: SERVER_ACCOUNT.authToken,
+      params: { callLogId: CALL_LOG_ID.toString(), token: TOKEN },
+    });
     const send: Mock = jest.fn();
     const status: Mock = jest.fn();
     const res: ExpressResponse = {

@@ -211,7 +211,9 @@ describe("the URL Twilio signed", () => {
     expect(getTwilioWebhookUrls(request)[0]).toBe(
       `${TWILIO_PUBLIC_ORIGIN}/notification/sms/status-callback/${LOG_ID}/${TOKEN}?providerConfig=project`,
     );
-    expect(isSignedWithAuthToken({ request, authToken: SERVER_ACCOUNT.authToken })).toBe(true);
+    expect(
+      isSignedWithAuthToken({ request, authToken: SERVER_ACCOUNT.authToken }),
+    ).toBe(true);
   });
 
   test("with nothing forwarded, the request's own scheme and Host header", () => {
@@ -647,7 +649,9 @@ describe("a callback is refused, and the log is told why - nothing secret in it"
       ),
     );
 
-    expect(reason).toContain("a Twilio account SID that is not one Twilio makes");
+    expect(reason).toContain(
+      "a Twilio account SID that is not one Twilio makes",
+    );
     expect(reason).not.toContain("fake log line");
   });
 

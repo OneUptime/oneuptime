@@ -227,13 +227,11 @@ async function press(data: {
 
       reachedHandler = true;
 
-      await route.handlerFunction(
-        request as unknown as ExpressRequest,
-        res,
-        ((handlerError: unknown) => {
-          throw handlerError || new Error("the handler must not fall through");
-        }) as unknown as NextFunction,
-      );
+      await route.handlerFunction(request as unknown as ExpressRequest, res, ((
+        handlerError: unknown,
+      ) => {
+        throw handlerError || new Error("the handler must not fall through");
+      }) as unknown as NextFunction);
     }) as unknown as NextFunction,
   );
 

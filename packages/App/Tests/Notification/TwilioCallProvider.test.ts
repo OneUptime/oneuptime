@@ -685,9 +685,7 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
       ),
     ).toBe(false);
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining(
-        ": the request carries no X-Twilio-Signature",
-      ),
+      expect.stringContaining(": the request carries no X-Twilio-Signature"),
       { service: "notification" },
     );
   });

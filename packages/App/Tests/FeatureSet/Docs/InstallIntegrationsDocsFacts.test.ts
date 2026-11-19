@@ -3685,9 +3685,9 @@ describe("Twilio Integration, against the notification server and the forms", ()
       "isStatusCallbackTokenValid(token, callLog.statusCallbackToken)",
     );
     // The SMS's status callback, and the call's status and voicemail callbacks.
-    expect(
-      smsApi.split("await findTwilioAccountThatSigned({").length - 1,
-    ).toBe(1);
+    expect(smsApi.split("await findTwilioAccountThatSigned({").length - 1).toBe(
+      1,
+    );
     expect(
       callApi.split("await findTwilioAccountThatSigned({").length - 1,
     ).toBe(2);
