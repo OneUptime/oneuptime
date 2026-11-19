@@ -20,6 +20,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import MonitorSecretAccess from "../../Types/Monitor/MonitorSecretAccess";
+import MonitorSecretType from "../../Types/Monitor/MonitorSecretType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
@@ -218,6 +219,44 @@ export default class MonitorSecret extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * What the secret holds (issue #9703); see MonitorSecretType. Text is the
+   * default, and what every secret created before this column existed is.
+   * Set when the secret is created and never changed - the same value means
+   * something else in the other type - so the column takes no update.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateMonitorSecret,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadMonitorSecret,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(MonitorSecretType),
+    title: "Secret Type",
+    description:
+      "What the secret holds. Text: a password, API key or token, filled in as written. TOTP: an authenticator app's setup key or otpauth://totp link; a monitor gets the current one-time code, never the key. Set when the secret is created and cannot be changed.",
+    defaultValue: MonitorSecretType.Text,
+    example: MonitorSecretType.TOTP,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: MonitorSecretType.Text,
+  })
+  public secretType?: MonitorSecretType = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -237,7 +276,7 @@ export default class MonitorSecret extends BaseModel {
     encrypted: true,
     title: "Secret Value",
     description:
-      "Secret value that you want to store in this object. This value will be encrypted and only accessible by the probe.",
+      "Secret value that you want to store in this object. For a TOTP secret, the setup key or the otpauth://totp link, which is stored as an otpauth://totp link. This value will be encrypted and only accessible by the probe.",
     example: "sk_test_1234567890abcdefghijklmnop",
   })
   @Column({

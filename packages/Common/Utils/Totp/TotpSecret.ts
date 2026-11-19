@@ -1,4 +1,17 @@
 import Dictionary from "../../Types/Dictionary";
+import {
+  TOTP_ALGORITHMS,
+  TOTP_DEFAULT_ALGORITHM,
+  TOTP_DEFAULT_DIGITS,
+  TOTP_DEFAULT_PERIOD_IN_SECONDS,
+  TOTP_DIGIT_LENGTHS,
+  TOTP_MAX_PERIOD_IN_SECONDS,
+  TOTP_MAX_SECRET_LENGTH,
+  TOTP_MIN_SECRET_LENGTH,
+  TotpAlgorithm,
+  TotpParameters,
+  isTotpParameters,
+} from "./TotpParameters";
 import * as OTPAuth from "otpauth";
 
 /*
@@ -32,40 +45,19 @@ import * as OTPAuth from "otpauth";
  * in the reader's language.
  */
 
-export enum TotpAlgorithm {
-  SHA1 = "SHA1",
-  SHA256 = "SHA256",
-  SHA512 = "SHA512",
-}
-
-export const TOTP_ALGORITHMS: ReadonlyArray<TotpAlgorithm> = [
-  TotpAlgorithm.SHA1,
-  TotpAlgorithm.SHA256,
-  TotpAlgorithm.SHA512,
-];
-
-// The code lengths RFC 6238's reference implementation and the apps make.
-export const TOTP_DIGIT_LENGTHS: ReadonlyArray<number> = [6, 8];
-
-export const TOTP_DEFAULT_ALGORITHM: TotpAlgorithm = TotpAlgorithm.SHA1;
-export const TOTP_DEFAULT_DIGITS: number = 6;
-export const TOTP_DEFAULT_PERIOD_IN_SECONDS: number = 30;
-
-// A code that changes less often than hourly is no one-time code.
-export const TOTP_MAX_PERIOD_IN_SECONDS: number = 3600;
-
-/*
- * Sixteen base32 characters are 80 bits, the shortest key sites hand out
- * (GitHub's and Microsoft's are that long). Anything shorter is a key that
- * was not copied whole, and would make codes that never match.
- */
-export const TOTP_MIN_SECRET_LENGTH: number = 16;
-
-/*
- * A SHA512 key of RFC 6238's 64 bytes is 103 characters. Five times that
- * is room for any real key, and a bound on what is read.
- */
-export const TOTP_MAX_SECRET_LENGTH: number = 512;
+export {
+  TOTP_ALGORITHMS,
+  TOTP_DEFAULT_ALGORITHM,
+  TOTP_DEFAULT_DIGITS,
+  TOTP_DEFAULT_PERIOD_IN_SECONDS,
+  TOTP_DIGIT_LENGTHS,
+  TOTP_MAX_PERIOD_IN_SECONDS,
+  TOTP_MAX_SECRET_LENGTH,
+  TOTP_MIN_SECRET_LENGTH,
+  TotpAlgorithm,
+  isTotpParameters,
+};
+export type { TotpParameters };
 
 // A link with a long label and issuer still fits many times over.
 export const TOTP_MAX_INPUT_LENGTH: number = 8192;
@@ -77,14 +69,6 @@ export const TOTP_MAX_INPUT_LENGTH: number = 8192;
  * period is waited for instead - five seconds at most.
  */
 export const TOTP_MINIMUM_VALIDITY_IN_MS: number = 5000;
-
-export interface TotpParameters {
-  // Base32 (A-Z and 2-7), upper case, no padding.
-  secret: string;
-  algorithm: TotpAlgorithm;
-  digits: number;
-  periodInSeconds: number;
-}
 
 // What is wrong with a value, as a sentence with the values it names.
 export interface TotpSecretProblem {
@@ -145,7 +129,6 @@ export const TOTP_SECRET_PROBLEMS: {
 };
 
 const BASE32_CHARACTER: RegExp = /^[A-Z2-7]$/;
-const BASE32_SECRET: RegExp = /^[A-Z2-7]+$/;
 
 // What an app drops from a key before reading it: spaces, hyphens, padding.
 const KEY_SEPARATORS: RegExp = /[\s-]+/g;
@@ -421,30 +404,6 @@ export function readTotpSecret(value: unknown): TotpSecretReading {
  */
 export function writeStoredTotpSecret(parameters: TotpParameters): string {
   return `otpauth://totp/${STORED_LABEL}?secret=${parameters.secret}&algorithm=${parameters.algorithm}&digits=${parameters.digits}&period=${parameters.periodInSeconds}`;
-}
-
-// Whether a value is parameters a code can be made from, as they travel.
-export function isTotpParameters(value: unknown): value is TotpParameters {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-
-  const record: Record<string, unknown> = value as Record<string, unknown>;
-  const secret: unknown = record["secret"];
-  const periodInSeconds: unknown = record["periodInSeconds"];
-
-  return (
-    typeof secret === "string" &&
-    secret.length >= TOTP_MIN_SECRET_LENGTH &&
-    secret.length <= TOTP_MAX_SECRET_LENGTH &&
-    BASE32_SECRET.test(secret) &&
-    TOTP_ALGORITHMS.includes(record["algorithm"] as TotpAlgorithm) &&
-    TOTP_DIGIT_LENGTHS.includes(record["digits"] as number) &&
-    typeof periodInSeconds === "number" &&
-    Number.isSafeInteger(periodInSeconds) &&
-    periodInSeconds >= 1 &&
-    periodInSeconds <= TOTP_MAX_PERIOD_IN_SECONDS
-  );
 }
 
 // The code of the period a moment falls in (RFC 6238).

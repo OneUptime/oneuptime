@@ -1082,6 +1082,7 @@ import { AddMonitorNetworkDeviceId1809184900000 } from "./1809184900000-AddMonit
 import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
 import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 import { AddDataBiConnectionReadState1809184920000 } from "./1809184920000-AddDataBiConnectionReadState";
+import { AddMonitorSecretType1809184930000 } from "./1809184930000-AddMonitorSecretType";
 
 export default [
   InitialMigration,
@@ -2168,4 +2169,5 @@ export default [
   AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
   AddTableHealthSkippedTables1809184919541,
   AddDataBiConnectionReadState1809184920000,
+  AddMonitorSecretType1809184930000,
 ];

@@ -5,11 +5,20 @@ import {
   replaceTemplatePlaceholders,
 } from "../TemplatePlaceholders";
 import {
+  MAX_TOTP_SECRETS_PER_STEP,
+  MAX_TOTP_SECRET_NAME_LENGTH,
   TotpParameters,
-  generateTotpCode,
-  getTotpWaitInMs,
-  isTotpParameters,
-} from "../Totp/TotpSecret";
+  TotpSecrets,
+  readTotpSecrets,
+} from "../Totp/TotpParameters";
+import { generateTotpCode, getTotpWaitInMs } from "../Totp/TotpSecret";
+
+export {
+  MAX_TOTP_SECRETS_PER_STEP,
+  MAX_TOTP_SECRET_NAME_LENGTH,
+  readTotpSecrets,
+};
+export type { TotpSecrets };
 
 /*
  * ONE-TIME CODES FROM MONITOR SECRETS, MADE WHERE AND WHEN A CHECK USES THEM.
@@ -43,10 +52,6 @@ export const TOTP_CODE_FUNCTION_NAME: string = "getTotpCode";
 // What stands in for a code a check made, wherever the check reports it.
 export const REDACTED_TOTP_CODE: string = "[REDACTED]";
 
-// The most TOTP secrets one step is handed, and the longest name read.
-export const MAX_TOTP_SECRETS_PER_STEP: number = 50;
-export const MAX_TOTP_SECRET_NAME_LENGTH: number = 200;
-
 /*
  * How many times a moment is put off for a code about to expire. Once is
  * enough for secrets that share a period; the rest is for secrets of
@@ -62,8 +67,6 @@ const DIGITS_ONLY: RegExp = /^\d+$/;
 
 // How deep a value is walked for codes to take out.
 const MAX_REDACTION_DEPTH: number = 256;
-
-export type TotpSecrets = Dictionary<TotpParameters>;
 
 function hasOwn(dictionary: Dictionary<string>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(dictionary, key);
@@ -248,44 +251,6 @@ export function redactTotpCodesInValue<T>(
   };
 
   return redact(value, 0) as T;
-}
-
-/*
- * The TOTP secrets a step carries, as the probe receives them: only names
- * and parameters that can make a code, copied field by field, and no more
- * than a step may hold. Anything else is dropped rather than trusted.
- */
-export function readTotpSecrets(value: unknown): TotpSecrets {
-  const secrets: TotpSecrets = {};
-
-  if (!isPlainObject(value)) {
-    return secrets;
-  }
-
-  for (const name of Object.keys(value)) {
-    if (Object.keys(secrets).length >= MAX_TOTP_SECRETS_PER_STEP) {
-      break;
-    }
-
-    const parameters: unknown = value[name];
-
-    if (
-      !name ||
-      name.length > MAX_TOTP_SECRET_NAME_LENGTH ||
-      !isTotpParameters(parameters)
-    ) {
-      continue;
-    }
-
-    secrets[name] = {
-      secret: parameters.secret,
-      algorithm: parameters.algorithm,
-      digits: parameters.digits,
-      periodInSeconds: parameters.periodInSeconds,
-    };
-  }
-
-  return secrets;
 }
 
 // What a script's synchronous ask for a code is answered with.
