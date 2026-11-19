@@ -9,10 +9,17 @@ import {
   floorToWindow,
   mapAllocationToRow,
 } from "./AllocationMapper";
+import {
+  CorrectionSchedule,
+  CorrectionWindow,
+  collapseByIdentity,
+  correctionFingerprint,
+} from "./EngineCorrections";
 import Logger from "./Logger";
 import { PrometheusClient } from "./PrometheusClient";
 import { Shipper } from "./Shipper";
 import {
+  CorrectionReading,
   CostEngineSource,
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
@@ -53,20 +60,34 @@ export class Poller {
   private windowsCompleted: number = 0;
   private consecutivePollFailures: number = 0;
 
+  /*
+   * The hours to read again once a Kubecost has reconciled them with the
+   * cloud bill (#9969, EngineCorrections), and what came of it.
+   */
+  private readonly corrections: CorrectionSchedule;
+  // Where this process's first window starts: a previous one shipped before.
+  private readonly firstWindowStartMs: number;
+  private correctionsSeeded: boolean = false;
+  private windowsCorrected: number = 0;
+  private lastCorrectionErr: string | null = null;
+
   public constructor(
     engine: CostEngineSource,
     shipper: Shipper,
     prometheus?: PrometheusClient,
+    corrections?: CorrectionSchedule,
   ) {
     this.engine = engine;
     this.shipper = shipper;
     this.prometheus = prometheus || new PrometheusClient();
+    this.corrections = corrections || new CorrectionSchedule();
 
     const latestClosed: number = floorToWindow(Date.now(), WINDOW_SECONDS);
     this.checkpointMs = Math.max(
       0,
       latestClosed - LOOKBACK_WINDOWS * WINDOW_SECONDS * 1000,
     );
+    this.firstWindowStartMs = this.checkpointMs;
   }
 
   public lastError(): string | null {
@@ -80,6 +101,15 @@ export class Poller {
       windowsCompleted: this.windowsCompleted,
       consecutivePollFailures: this.consecutivePollFailures,
       lastPollError: this.lastPollErr,
+      ...(this.corrections.size() > 0 || this.windowsCorrected > 0
+        ? {
+            corrections: {
+              windowsToReadAgain: this.corrections.size(),
+              windowsCorrected: this.windowsCorrected,
+              lastCorrectionError: this.lastCorrectionErr,
+            },
+          }
+        : {}),
     };
   }
 
@@ -129,12 +159,181 @@ export class Poller {
     }
   }
 
+  /*
+   * A window just shipped from a Kubecost that reconciles its prices with a
+   * cloud bill is read again once it has (#9969). The first such window
+   * also hands the schedule the hours a previous process may have shipped,
+   * which this one never saw.
+   */
+  private trackForCorrection(data: {
+    windowStartMs: number;
+    windowEndMs: number;
+    rows: Array<KubernetesCostAllocationIngestRow>;
+    costEngine: KubernetesCostEngineInfo | undefined;
+  }): void {
+    if (data.costEngine?.pricingSource !== "billing-integration") {
+      return;
+    }
+
+    const engineUrl: string =
+      typeof this.engine.engineUrl === "function"
+        ? this.engine.engineUrl() || ""
+        : "";
+
+    if (!engineUrl || typeof this.engine.rereadAllocations !== "function") {
+      return;
+    }
+
+    if (!this.correctionsSeeded) {
+      this.correctionsSeeded = true;
+      this.corrections.seed({
+        throughMs: this.firstWindowStartMs,
+        windowMs: WINDOW_SECONDS * 1000,
+        engineUrl,
+      });
+    }
+
+    this.corrections.track({
+      windowStartMs: data.windowStartMs,
+      windowEndMs: data.windowEndMs,
+      engineUrl,
+      fingerprint: correctionFingerprint(data.rows),
+    });
+  }
+
+  /*
+   * Reads again the hours owed a later reading, and ships each that differs
+   * from what was shipped as a correction (#9969, EngineCorrections). Never
+   * throws, and never counts against the poll: corrections are an extra on
+   * hours already shipped, and must not hold back the hours still to ship.
+   */
+  private async readCorrections(): Promise<void> {
+    if (typeof this.engine.rereadAllocations !== "function") {
+      return;
+    }
+
+    for (const window of this.corrections.due()) {
+      if (this.stopped) {
+        return;
+      }
+
+      if (!(await this.readCorrection(window))) {
+        /*
+         * The engine or OneUptime did not answer: the rest wait for the next
+         * tick too, rather than each wait out its own timeout now.
+         */
+        return;
+      }
+    }
+  }
+
+  /*
+   * One later reading. False when it could not be made or sent: the window
+   * stays owed, and is tried again at the next tick.
+   */
+  private async readCorrection(window: CorrectionWindow): Promise<boolean> {
+    const windowStart: Date = new Date(window.windowStartMs);
+    const windowEnd: Date = new Date(window.windowEndMs);
+
+    let reading: CorrectionReading;
+
+    try {
+      reading = await this.engine.rereadAllocations!({
+        windowStart,
+        windowEnd,
+        engineUrl: window.engineUrl,
+      });
+    } catch (err: unknown) {
+      reading = {
+        status: "unavailable",
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    if (reading.status === "unavailable") {
+      // Asked again at the next tick, until the window is past its ages.
+      this.lastCorrectionErr = reading.reason;
+      Logger.debug("could not read a cost window again; trying later", {
+        windowStart: windowStart.toISOString(),
+        reason: reading.reason,
+      });
+      return false;
+    }
+
+    if (reading.status === "nothing") {
+      Logger.debug(
+        "a later reading of a cost window is not whole; keeping it",
+        {
+          windowStart: windowStart.toISOString(),
+          reason: reading.reason,
+        },
+      );
+      this.corrections.read(window, null);
+      return true;
+    }
+
+    const rows: Array<KubernetesCostAllocationIngestRow> = collapseByIdentity(
+      reading.allocations.map(
+        (allocation: EngineAllocation): KubernetesCostAllocationIngestRow => {
+          return mapAllocationToRow({ allocation, windowStart, windowEnd });
+        },
+      ),
+    );
+    const fingerprint: string = correctionFingerprint(rows);
+
+    if (fingerprint === window.fingerprint) {
+      this.corrections.read(window, fingerprint);
+      return true;
+    }
+
+    try {
+      await this.shipper.ship(rows, this.describeEngine(), {
+        correction: true,
+      });
+    } catch (err: unknown) {
+      this.lastCorrectionErr = err instanceof Error ? err.message : String(err);
+      Logger.warn(
+        "could not ship a later reading of a cost window; trying again at the next tick",
+        {
+          windowStart: windowStart.toISOString(),
+          error: this.lastCorrectionErr,
+        },
+      );
+      return false;
+    }
+
+    this.corrections.read(window, fingerprint);
+    this.windowsCorrected++;
+    this.lastCorrectionErr = null;
+
+    Logger.info(
+      "shipped a later reading of a cost window, as the engine reconciled it",
+      {
+        windowStart: windowStart.toISOString(),
+        windowEnd: windowEnd.toISOString(),
+        rows: rows.length,
+      },
+    );
+
+    return true;
+  }
+
   private async tick(): Promise<void> {
     if (this.running || this.stopped) {
       return;
     }
     this.running = true;
 
+    try {
+      await this.pollWindows();
+      await this.readCorrections();
+    } finally {
+      this.running = false;
+    }
+  }
+
+  // Ships every closed window past the checkpoint; never throws.
+  private async pollWindows(): Promise<void> {
     try {
       /*
        * Ship every closed-and-settled window past the checkpoint, oldest
@@ -232,6 +431,13 @@ export class Poller {
             rows: rows.length,
             containersWithMemoryPeak: peaks.size,
           });
+
+          this.trackForCorrection({
+            windowStartMs,
+            windowEndMs,
+            rows,
+            costEngine,
+          });
         } else {
           Logger.info("cost window had no allocations; skipping", {
             windowStart: windowStart.toISOString(),
@@ -260,8 +466,6 @@ export class Poller {
         error: message,
         consecutiveFailures: this.consecutivePollFailures,
       });
-    } finally {
-      this.running = false;
     }
   }
 }

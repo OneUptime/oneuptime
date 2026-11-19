@@ -3,10 +3,12 @@ import * as assert from "assert";
 import { test } from "node:test";
 import { floorToWindow, peakKey } from "../AllocationMapper";
 import { CostEngineClient } from "../CostEngineClient";
+import { CorrectionSchedule, CorrectionWindow } from "../EngineCorrections";
 import { Poller } from "../Poller";
 import { PrometheusClient } from "../PrometheusClient";
 import { Shipper } from "../Shipper";
 import {
+  CorrectionReading,
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
   KubernetesCostEngineInfo,
@@ -32,6 +34,7 @@ const WINDOW_MS: number = 60 * 1000;
 interface ShipCall {
   rows: Array<KubernetesCostAllocationIngestRow>;
   costEngine?: KubernetesCostEngineInfo | undefined;
+  correction: boolean;
 }
 
 class EngineStub {
@@ -65,12 +68,17 @@ class ShipperStub {
   public async ship(
     rows: Array<KubernetesCostAllocationIngestRow>,
     costEngine?: KubernetesCostEngineInfo | undefined,
+    options?: { correction?: boolean | undefined },
   ): Promise<void> {
     if (this.failuresRemaining > 0) {
       this.failuresRemaining--;
       throw new Error("oneuptime unavailable");
     }
-    this.calls.push({ rows, costEngine });
+    this.calls.push({
+      rows,
+      costEngine,
+      correction: options?.correction === true,
+    });
   }
 }
 
@@ -569,4 +577,363 @@ test("a window not collected at all ships nothing and completes nothing", async 
   assert.strictEqual(shipper.calls.length, 0);
   assert.strictEqual(poller.status().consecutivePollFailures, 0);
   assert.strictEqual(poller.status().windowsCompleted, 0);
+});
+
+/*
+ * #9969: a Kubecost that reads the cloud's bill reconciles each hour with it
+ * about two days on, after the hour shipped. The poller reads such an hour
+ * again at the schedule's ages, and ships a reading that changed as a
+ * correction. Here the schedule reads each hour again ten minutes after it
+ * closed, on a clock the tests move ahead.
+ */
+const KUBECOST_URL: string = "http://kubecost-cost-analyzer.kubecost.svc:9090";
+const READ_AGAIN_AFTER_MS: number = 10 * 60 * 1000;
+
+class ReconcilingEngineStub extends EngineStub {
+  public pricingSource: KubernetesCostEngineInfo["pricingSource"] =
+    "billing-integration";
+  // What a later reading answers, per window start (ms); by default, cost 2.
+  public later: Map<number, CorrectionReading> = new Map<
+    number,
+    CorrectionReading
+  >();
+  // What every other later reading answers, when set.
+  public everyOtherReading: CorrectionReading | null = null;
+  public rereads: Array<{ windowStart: Date; engineUrl: string }> = [];
+
+  public describe(): KubernetesCostEngineInfo {
+    return {
+      engine: "Kubecost",
+      service: "kubecost/kubecost-cost-analyzer",
+      bundledEngineUnused: true,
+      pricingSource: this.pricingSource,
+      pricingProvider: "AWS",
+    };
+  }
+
+  public engineUrl(): string {
+    return KUBECOST_URL;
+  }
+
+  public async rereadAllocations(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    engineUrl: string;
+  }): Promise<CorrectionReading> {
+    this.rereads.push({
+      windowStart: data.windowStart,
+      engineUrl: data.engineUrl,
+    });
+
+    return (
+      this.later.get(data.windowStart.getTime()) ||
+      this.everyOtherReading || {
+        status: "read",
+        allocations: [{ ...this.allocationsPerWindow[0]!, totalCost: 2 }],
+      }
+    );
+  }
+}
+
+function makeCorrectingPoller(
+  engine: EngineStub,
+  shipper: ShipperStub,
+): {
+  poller: Poller;
+  tick: () => Promise<void>;
+  corrections: CorrectionSchedule;
+  later: (ms: number) => void;
+} {
+  let aheadMs: number = 0;
+  const corrections: CorrectionSchedule = new CorrectionSchedule({
+    readAgesMs: [READ_AGAIN_AFTER_MS],
+    // Every window owed a reading is read in one tick here.
+    readsPerTick: 100,
+    now: (): number => {
+      return Date.now() + aheadMs;
+    },
+  });
+  const poller: Poller = new Poller(
+    engine as unknown as CostEngineClient,
+    shipper as unknown as Shipper,
+    undefined,
+    corrections,
+  );
+  const tick: () => Promise<void> = (): Promise<void> => {
+    return (poller as unknown as { tick: () => Promise<void> })["tick"]();
+  };
+  return {
+    poller,
+    tick,
+    corrections,
+    later: (ms: number): void => {
+      aheadMs = ms;
+    },
+  };
+}
+
+const firstReadings: (shipper: ShipperStub) => Array<ShipCall> = (
+  shipper: ShipperStub,
+): Array<ShipCall> => {
+  return shipper.calls.filter((call: ShipCall): boolean => {
+    return !call.correction;
+  });
+};
+
+const correctionsOf: (shipper: ShipperStub) => Array<ShipCall> = (
+  shipper: ShipperStub,
+): Array<ShipCall> => {
+  return shipper.calls.filter((call: ShipCall): boolean => {
+    return call.correction;
+  });
+};
+
+test("an hour a Kubecost reconciles is read again, and a reading that changed ships as a correction", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick, later } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+
+  const shipped: number = firstReadings(shipper).length;
+  assert.ok(shipped >= 2);
+  // Not before its age.
+  assert.deepStrictEqual(correctionsOf(shipper), []);
+
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+
+  const corrections: Array<ShipCall> = correctionsOf(shipper);
+  assert.ok(corrections.length >= shipped);
+  for (const correction of corrections) {
+    assert.strictEqual(correction.rows.length, 1);
+    assert.strictEqual(correction.rows[0]!.totalCost, 2);
+    // It says who priced it, as a first reading does.
+    assert.strictEqual(
+      correction.costEngine?.pricingSource,
+      "billing-integration",
+    );
+  }
+  // Every later reading asked the Kubecost that priced the hour.
+  for (const reread of engine.rereads) {
+    assert.strictEqual(reread.engineUrl, KUBECOST_URL);
+  }
+
+  const status: PollerStatus = poller.status();
+  assert.ok((status.corrections?.windowsCorrected || 0) >= shipped);
+  assert.strictEqual(status.corrections?.lastCorrectionError, null);
+  // An extra on hours already shipped: the poll itself is untouched.
+  assert.strictEqual(status.consecutivePollFailures, 0);
+  assert.strictEqual(status.lastPollError, null);
+});
+
+test("a later reading that matches what was shipped is not sent again", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, later, corrections } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+
+  for (const call of firstReadings(shipper)) {
+    engine.later.set(Date.parse(call.rows[0]!.windowStart), {
+      status: "read",
+      allocations: [...engine.allocationsPerWindow],
+    });
+  }
+
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+
+  const readAgain: Set<number> = new Set<number>(
+    engine.rereads.map((reread: { windowStart: Date }): number => {
+      return reread.windowStart.getTime();
+    }),
+  );
+
+  /*
+   * The shipped hours were read again, matched, and only the seeded hours
+   * (whose first reading this process never saw) went out.
+   */
+  for (const call of firstReadings(shipper)) {
+    assert.ok(readAgain.has(Date.parse(call.rows[0]!.windowStart)));
+  }
+  for (const correction of correctionsOf(shipper)) {
+    assert.ok(!engine.later.has(Date.parse(correction.rows[0]!.windowStart)));
+  }
+  // Read at their one age, then forgotten.
+  for (const call of firstReadings(shipper)) {
+    assert.strictEqual(
+      corrections.get(Date.parse(call.rows[0]!.windowStart)),
+      undefined,
+    );
+  }
+});
+
+test("an hour the engine cannot give again now is asked again at the next tick", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick, later } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+  const hour: number = Date.parse(
+    firstReadings(shipper)[0]!.rows[0]!.windowStart,
+  );
+
+  // The Kubecost is away for a moment.
+  engine.everyOtherReading = { status: "unavailable", reason: "HTTP 502" };
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+
+  assert.deepStrictEqual(correctionsOf(shipper), []);
+  assert.strictEqual(
+    poller.status().corrections?.lastCorrectionError,
+    "HTTP 502",
+  );
+  assert.strictEqual(poller.status().consecutivePollFailures, 0);
+
+  // Back: the hours are read again, and the corrections go out.
+  engine.everyOtherReading = null;
+  await tick();
+
+  assert.ok(
+    correctionsOf(shipper).some((call: ShipCall): boolean => {
+      return Date.parse(call.rows[0]!.windowStart) === hour;
+    }),
+  );
+  assert.strictEqual(poller.status().corrections?.lastCorrectionError, null);
+});
+
+test("a reading the engine cannot give whole keeps the hour as shipped, and is not asked for again", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, later } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+  const hour: number = Date.parse(
+    firstReadings(shipper)[0]!.rows[0]!.windowStart,
+  );
+
+  engine.later.set(hour, {
+    status: "nothing",
+    reason: "the engine has nothing for the window",
+  });
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+  await tick();
+
+  const askedForHour: number = engine.rereads.filter(
+    (reread: { windowStart: Date }): boolean => {
+      return reread.windowStart.getTime() === hour;
+    },
+  ).length;
+
+  assert.strictEqual(askedForHour, 1);
+  assert.ok(
+    !correctionsOf(shipper).some((call: ShipCall): boolean => {
+      return Date.parse(call.rows[0]!.windowStart) === hour;
+    }),
+  );
+});
+
+test("a correction OneUptime does not take is sent again at the next tick, and never fails the poll", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick, later } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+  const shipped: number = firstReadings(shipper).length;
+
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  shipper.failuresRemaining = 1;
+  await tick();
+
+  assert.match(
+    poller.status().corrections?.lastCorrectionError || "",
+    /oneuptime unavailable/,
+  );
+  assert.strictEqual(poller.status().consecutivePollFailures, 0);
+  assert.strictEqual(poller.status().lastPollError, null);
+
+  await tick();
+
+  assert.ok(correctionsOf(shipper).length >= shipped);
+  assert.strictEqual(poller.status().corrections?.lastCorrectionError, null);
+});
+
+test("an hour priced by an engine that does not reconcile is never read again", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  engine.pricingSource = "list-prices";
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick, later, corrections } = makeCorrectingPoller(
+    engine,
+    shipper,
+  );
+
+  await tick();
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+
+  assert.deepStrictEqual(engine.rereads, []);
+  assert.deepStrictEqual(correctionsOf(shipper), []);
+  assert.strictEqual(corrections.size(), 0);
+  // And /healthz says nothing of corrections.
+  assert.strictEqual(poller.status().corrections, undefined);
+});
+
+test("an engine that cannot read a window again is never asked to", async (): Promise<void> => {
+  const engine: EngineStub & {
+    describe: () => KubernetesCostEngineInfo;
+    engineUrl: () => string;
+  } = Object.assign(new EngineStub(), {
+    describe: (): KubernetesCostEngineInfo => {
+      return {
+        engine: "Kubecost",
+        service: "",
+        bundledEngineUnused: false,
+        pricingSource: "billing-integration",
+        pricingProvider: "AWS",
+      };
+    },
+    engineUrl: (): string => {
+      return KUBECOST_URL;
+    },
+  });
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, later, corrections } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+
+  assert.strictEqual(corrections.size(), 0);
+  assert.deepStrictEqual(correctionsOf(shipper), []);
+});
+
+test("the first hour from a Kubecost that reads the bill brings in the hours a previous process shipped", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, corrections } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+
+  const firstShippedStart: number = Math.min(
+    ...firstReadings(shipper).map((call: ShipCall): number => {
+      return Date.parse(call.rows[0]!.windowStart);
+    }),
+  );
+
+  /*
+   * The windows before this process's first, back to the last age, each
+   * without a fingerprint: every later reading of them is sent.
+   */
+  const seeded: CorrectionWindow | undefined = corrections.get(
+    firstShippedStart - WINDOW_MS,
+  );
+  assert.ok(seeded);
+  assert.strictEqual(seeded!.fingerprint, null);
+  assert.strictEqual(seeded!.engineUrl, KUBECOST_URL);
+
+  // And this process's own windows keep what they shipped.
+  assert.ok(corrections.get(firstShippedStart)?.fingerprint);
+  assert.ok(corrections.size() > firstReadings(shipper).length);
 });

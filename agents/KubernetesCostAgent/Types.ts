@@ -143,6 +143,19 @@ export interface KubernetesCostIngestPayload {
  * socket or either collaborator.
  */
 
+/*
+ * Later readings of the hours a Kubecost reconciles with a cloud bill
+ * (#9969, EngineCorrections), for /healthz.
+ */
+export interface CorrectionStatus {
+  // Hours waiting to be read again.
+  windowsToReadAgain: number;
+  // Later readings that differed from what was shipped, and went out.
+  windowsCorrected: number;
+  // Why the last reading could not be made or sent, if it could not.
+  lastCorrectionError: string | null;
+}
+
 export interface PollerStatus {
   /** When the poller was constructed (ms epoch). */
   startedAtMs: number;
@@ -155,6 +168,8 @@ export interface PollerStatus {
   /** Ticks that have thrown back-to-back; reset by any clean tick. */
   consecutivePollFailures: number;
   lastPollError: string | null;
+  // Absent until a window is owed a later reading.
+  corrections?: CorrectionStatus | undefined;
 }
 
 export interface ShipperStatus {
@@ -257,7 +272,28 @@ export interface CostEngineSource {
     windowEnd: Date;
     allocations: Array<EngineAllocation>;
   }): Promise<boolean>;
+  /*
+   * A later reading of a window the engine at `engineUrl` priced, once it
+   * has reconciled its prices with a cloud bill (#9969, EngineCorrections).
+   * Absent: windows are never read again. Never throws.
+   */
+  rereadAllocations?(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    engineUrl: string;
+  }): Promise<CorrectionReading>;
 }
+
+/*
+ * A later reading of a window (#9969). "read": the whole window, to correct
+ * it with. "nothing": the engine answered, but with nothing whole, so the
+ * window stays as it is. "unavailable": the engine that priced it is not
+ * in use, does not reconcile, or did not answer: it is asked again later.
+ */
+export type CorrectionReading =
+  | { status: "read"; allocations: Array<EngineAllocation> }
+  | { status: "nothing"; reason: string }
+  | { status: "unavailable"; reason: string };
 
 // One http_sd target group, as Prometheus reads it.
 export interface ScrapeTargetGroup {
