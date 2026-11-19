@@ -16,6 +16,7 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
+import ProjectSsoDiscovery from "../Utils/ProjectSsoDiscovery";
 import ProjectSsoIdentityBinding, {
   PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
   PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
@@ -32,7 +33,6 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
@@ -48,8 +48,6 @@ import UserService from "Common/Server/Services/UserService";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import Select from "Common/Server/Types/Database/Select";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
@@ -67,9 +65,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
@@ -87,8 +83,12 @@ const router: ExpressRouter = Express.getRouter();
  */
 
 /*
- * This route is used to get the SSO config for the user.
- * when the user logs in from OneUptime and not from the IDP.
+ * The project SAML providers "Sign in with SSO" offers an address: those
+ * that list a verified domain of their project with the address's domain
+ * (Utils/ProjectSsoDiscovery). No account is read, so the answer, the empty
+ * list included, says nothing about whether the address has one (#9745,
+ * #9824). The page and the mobile app read an empty list as "no single
+ * sign-on for this address".
  */
 
 router.get(
@@ -109,81 +109,8 @@ router.get(
 
       const email: Email = new Email(req.query["email"] as string);
 
-      if (!email) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("Email is required"),
-        );
-      }
-
-      /*
-       * No providers to offer is one answer, the empty list, whatever the
-       * reason: no account has the address, or its account is in no project,
-       * or in none with SAML on. A 400 for the first two told anyone who
-       * asked which addresses have an account (#9745). The page and the
-       * mobile app read both alike, as "no single sign-on for this address".
-       */
-      const sendNoProviders: () => void = (): void => {
-        return Response.sendEntityArrayResponse(req, res, [], 0, ProjectSSO);
-      };
-
-      const user: User | null = await UserService.findOneBy({
-        query: { email: email },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!user || !user.id) {
-        return sendNoProviders();
-      }
-
-      const userId: ObjectID = user.id;
-
-      const projectUserBelongsTo: Array<ObjectID> = (
-        await TeamMemberService.findBy({
-          query: { userId: userId },
-          select: {
-            projectId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        })
-      ).map((teamMember: TeamMember) => {
-        return teamMember.projectId!;
-      });
-
-      if (projectUserBelongsTo.length === 0) {
-        return sendNoProviders();
-      }
-
-      const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
-        query: {
-          projectId: QueryHelper.any(projectUserBelongsTo),
-          isEnabled: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-          description: true,
-          _id: true,
-          projectId: true,
-          project: {
-            name: true,
-          } as Select<Project>,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const projectSSOList: Array<ProjectSSO> =
+        await ProjectSsoDiscovery.findSamlProviders(email);
 
       return Response.sendEntityArrayResponse(
         req,
