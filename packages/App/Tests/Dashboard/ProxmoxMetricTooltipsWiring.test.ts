@@ -817,6 +817,49 @@ describe("cluster overview: counts of what is wrong open which, and why", () => 
     );
   });
 
+  /*
+   * "8/10 guests running" opened the whole list while a guest that starts
+   * on boot was stopped (#9729): after the chip and under the Guests tile's
+   * figure, the guests that should be running open, by the rules, while
+   * the agent reports.
+   */
+  test("the guests chip and the Guests tile open the guests that should be running", () => {
+    expect(OVERVIEW).toContain(
+      'const guestsStoppedItems: Array<ResourceAttentionItem> = problemItemsOf({ kind: "guestsStopped", });',
+    );
+    // problemItemsOf reads nothing while the agent is disconnected.
+    expect(OVERVIEW).toContain(
+      "return inventory && isClusterConnected ? getProxmoxProblemItems({",
+    );
+
+    const chip: string = between(
+      OVERVIEW,
+      'testId: "proxmox-hero-guests",',
+      "if (templatesTotal > 0)",
+    );
+    expect(chip).toContain(
+      'problem: getProxmoxGuestsStoppedPill({ testId: "proxmox-hero-guests-stopped", items: guestsStoppedItems, translator: translator, }),',
+    );
+
+    const tile: string = between(
+      OVERVIEW,
+      '<GoldenMetricTile title="Guests"',
+      "/>",
+    );
+    expect(tile).toContain(
+      'attention={getProxmoxGuestsStoppedPill({ testId: "proxmox-tile-guests-stopped", items: guestsStoppedItems, translator: translator, })}',
+    );
+
+    // Its tone is the shared rule: red while HA gave up on one, amber otherwise.
+    const pill: string = between(
+      OVERVIEW,
+      "export function getProxmoxGuestsStoppedPill(",
+      "showKind: false,",
+    );
+    expect(pill).toContain("tone: getResourceAttentionTone(data.items),");
+    expect(pill).toContain("hint: PROXMOX_GUESTS_HINT,");
+  });
+
   test("an HA chip in error or fence opens its resources; the calm states stay words", () => {
     const chips: string = between(
       OVERVIEW,
