@@ -914,7 +914,7 @@ export default class AskAiEvalTurnRunner {
 
     const byMethod: Record<AskAiEvalReachMethod, ReadinessMethodType> = {
       email: ReadinessMethodType.Email,
-      sms: ReadinessMethodType.Sms,
+      sms: ReadinessMethodType.SMS,
       call: ReadinessMethodType.Call,
       push: ReadinessMethodType.Push,
     };

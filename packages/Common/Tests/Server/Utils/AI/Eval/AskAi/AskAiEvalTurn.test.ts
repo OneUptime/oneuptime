@@ -113,9 +113,11 @@ afterEach(() => {
 
 describe("every setup request, asked of a model that proposes its plan", () => {
   test.each(
-    ASK_AI_SETUP_REQUESTS.map((request: SetupRequest, index: number) => {
-      return [`${index + 1}. ${request.request} (${request.project})`, index];
-    }),
+    ASK_AI_SETUP_REQUESTS.map(
+      (request: SetupRequest, index: number): [string, number] => {
+        return [`${index + 1}. ${request.request} (${request.project})`, index];
+      },
+    ),
   )("%s", async (_title: string, index: number) => {
     const request: SetupRequest = ASK_AI_SETUP_REQUESTS[index]!;
     const setupCase: AskAiSetupCase = caseOf(request, index);
