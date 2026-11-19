@@ -97,6 +97,23 @@ export default class MonitorDeviceLink {
     host: string;
     getProbeIds: MonitorProbeIdsReader;
   }): Promise<ObjectID | null> {
+    const match: DeviceSeenFrom<NetworkDevice> | null =
+      await this.seeDeviceAt(data);
+
+    return match?.kind === "device" && match.device.id ? match.device.id : null;
+  }
+
+  /*
+   * What a monitor running on these probes sees at this host, with why
+   * (issue #9904): the device it is of, none, or devices it cannot tell
+   * apart. Null when no device in the project is at the host, or it is no
+   * host a device can be at.
+   */
+  public static async seeDeviceAt(data: {
+    projectId: ObjectID;
+    host: string;
+    getProbeIds: MonitorProbeIdsReader;
+  }): Promise<DeviceSeenFrom<NetworkDevice> | null> {
     const values: Array<string> = getHostLookupValues(data.host);
 
     if (values.length === 0) {
@@ -138,11 +155,7 @@ export default class MonitorDeviceLink {
       },
     });
 
-    const match: DeviceSeenFrom<NetworkDevice> | undefined = seen.get(
-      data.host,
-    );
-
-    return match?.kind === "device" && match.device.id ? match.device.id : null;
+    return seen.get(data.host) || null;
   }
 
   /*
