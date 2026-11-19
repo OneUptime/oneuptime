@@ -8,6 +8,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -20,6 +21,9 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
+import ServerOwned from "../../../Types/Database/ServerOwned";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
   canLookUpByName,
   getNameColumn,
@@ -251,15 +255,23 @@ describe("a monitor's attributes", () => {
   });
 
   test("its current status and the probes' bookkeeping are the server's", () => {
+    // The status it starts in is an attribute, the server's after the create.
+    expect(
+      attribute(Monitor, "current_monitor_status_id").isServerManaged,
+    ).toBe(true);
+
+    // Only OneUptime writes the bookkeeping: no attribute at all (#9985).
     for (const name of [
-      "current_monitor_status_id",
       "telemetry_monitor_next_monitor_at",
+      "telemetry_monitor_last_monitor_at",
       "server_monitor_response",
+      "server_monitor_request_received_at",
+      "incoming_request_monitor_heartbeat_checked_at",
     ]) {
       expect({
         name,
-        managed: attribute(Monitor, name).isServerManaged,
-      }).toEqual({ name, managed: true });
+        isAttribute: attributeNames(Monitor).includes(name),
+      }).toEqual({ name, isAttribute: false });
     }
 
     for (const name of ["monitoring_interval", "labels", "monitor_steps"]) {
@@ -316,7 +328,45 @@ describe("server-managed columns", () => {
     expect(isServerManagedColumn("AnyTable", "lastSeenAt")).toBe(true);
     expect(isServerManagedColumn("AnyTable", "nextPollAt")).toBe(true);
     expect(isServerManagedColumn("Incident", "postmortemPostedAt")).toBe(true);
-    expect(isServerManagedColumn("StatusPage", "sendNextReportBy")).toBe(true);
+  });
+
+  test("a column its model says OneUptime keeps, whatever its name", () => {
+    const status: TableColumnMetadata = new Monitor().getTableColumnMetadata(
+      "currentMonitorStatusId",
+    );
+    expect(status.serverOwned).toBe(ServerOwned.AfterCreate);
+    expect(
+      isServerManagedColumn("Monitor", "currentMonitorStatusId", status),
+    ).toBe(true);
+    expect(
+      isServerManagedColumn("AnyTable", "anything", {
+        type: TableColumnType.Date,
+        serverOwned: ServerOwned.AfterCreate,
+      }),
+    ).toBe(true);
+    expect(
+      isServerManagedColumn("AnyTable", "anything", {
+        type: TableColumnType.Date,
+      }),
+    ).toBe(false);
+    // A start a create gives is still an attribute: the status a monitor starts in.
+    expect(
+      attribute(Monitor, "current_monitor_status_id").isServerManaged,
+    ).toBe(true);
+  });
+
+  test("what only OneUptime writes is no attribute at all", () => {
+    for (const [modelType, column] of [
+      [Monitor, "telemetryMonitorLastMonitorAt"],
+      [Monitor, "telemetryMonitorNextMonitorAt"],
+      [StatusPage, "sendNextReportBy"],
+      [KubernetesCluster, "lastSeenAt"],
+    ] as Array<[DatabaseBaseModelType, string]>) {
+      expect([column, getTerraformAttribute(modelType, column)]).toEqual([
+        column,
+        undefined,
+      ]);
+    }
   });
 
   test("every column listed by table is an attribute of that table's resource", () => {
@@ -373,9 +423,10 @@ describe("server-managed columns", () => {
   });
 
   test("a cluster's agent-reported fields are not configuration", () => {
-    expect(attribute(KubernetesCluster, "last_seen_at").isServerManaged).toBe(
-      true,
-    );
+    // Only OneUptime writes them (#9985): no attribute a configuration sets.
+    for (const name of ["last_seen_at", "agent_version", "node_count"]) {
+      expect(attributeNames(KubernetesCluster)).not.toContain(name);
+    }
   });
 });
 
@@ -501,7 +552,11 @@ describe("names Terraform reserves", () => {
   });
 
   test("source and version are only reserved in module blocks", () => {
-    expect(attribute(InventoryItem, "source").isReservedName).toBe(false);
+    // An inventory item's source is OneUptime's (#9985); a relationship's is the person's.
+    expect(attribute(InventoryItemRelationship, "source").isReservedName).toBe(
+      false,
+    );
+    expect(attributeNames(InventoryItem)).not.toContain("source");
   });
 });
 

@@ -114,6 +114,13 @@ export interface TerraformAttributeDescriptor {
    */
   isServerManaged: boolean;
   /*
+   * A value a create may give and OneUptime keeps from then on
+   * (ServerOwned.AfterCreate): the status a monitor starts in. The provider
+   * sends it to create the record only, and never replaces the record for
+   * it, though no update writes it.
+   */
+  startsAtCreate: boolean;
+  /*
    * The model the column points at: for a set of ids (`labels`), the model
    * of its records; for an id (`incidentSeverityId`), the model of the
    * relation it is the key of (`incidentSeverity`).
@@ -210,43 +217,22 @@ const SERVER_MANAGED_COLUMN_PATTERNS: ReadonlyArray<RegExp> = [
 ];
 
 /*
- * Server-managed columns no name rule catches, by table. Add one here when a
- * new model has a field the server keeps moving: a column listed here is
- * still an attribute of the resource, it is only left out of the
- * configuration the dashboard writes. A column nobody may write is no
- * attribute at all and needs no entry: an incident's or alert's episode
- * (incidentEpisodeId, alertEpisodeId), which OneUptime sets from the
- * episode's members, is one, and so is an Incoming Request monitor's latest
- * request (incomingMonitorRequest), which the server writes from each
- * request the monitor receives.
+ * Columns the dashboard leaves out of the configuration it writes though no
+ * name rule catches them and OneUptime does not keep them, by table. A
+ * column OneUptime keeps says so on its model instead
+ * (TableColumnMetadata.serverOwned, #9985): one only OneUptime writes - a
+ * telemetry monitor's evaluation times, an episode's number, what
+ * discovery named a device - is no attribute at all, and one a create may
+ * start - a monitor's status - is server-managed by that alone. A column
+ * nobody may write is no attribute either and needs no entry: an incident's
+ * or alert's episode (incidentEpisodeId, alertEpisodeId), which OneUptime
+ * sets from the episode's members, is one.
  */
 export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  Monitor: [
-    "incomingRequestMonitorHeartbeatCheckedAt",
-    "telemetryMonitorNextMonitorAt",
-    "telemetryMonitorLastMonitorAt",
-    "serverMonitorRequestReceivedAt",
-    "serverMonitorResponse",
-  ],
   Incident: ["postmortemPostedAt"],
   Alert: ["monitorStatusWhenThisAlertWasCreatedId"],
-  IncidentEpisode: ["resolvedAt", "episodeNumber", "groupingKey"],
-  AlertEpisode: [
-    "resolvedAt",
-    "episodeNumber",
-    "groupingKey",
-    "alertGroupingRuleId",
-  ],
-  StatusPage: ["sendNextReportBy"],
-  InventoryItem: ["firstSeenAt"],
-  NetworkDevice: [
-    "isMacAddressLearned",
-    "discoveredName",
-    "discoveredNameSource",
-    "discoveredDetails",
-  ],
 };
 
 /*
@@ -678,6 +664,7 @@ export function getTerraformAttributes(
       isRequired: inCreateSchema && isColumnRequiredOnCreate(column),
       secretKind: getSecretKind(columnName, column),
       isServerManaged: isServerManagedColumn(tableName, columnName, column),
+      startsAtCreate: column.serverOwned === ServerOwned.AfterCreate,
       readPermissions: accessControl?.read || [],
       isReservedName: TERRAFORM_RESOURCE_META_ARGUMENTS.includes(
         toTerraformSnakeCase(columnName),

@@ -11,6 +11,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -371,6 +372,7 @@ export default class Domain extends BaseModel {
     title: "Verified",
     description: "Is this domain verified?",
     defaultValue: false,
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -402,6 +404,7 @@ export default class Domain extends BaseModel {
     description:
       "Verification text that you need to add to your domains TXT record to veify the domain.",
     example: "oneuptime-verify=a1b2c3d4e5f67890abcdef1234567890",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,

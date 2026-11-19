@@ -29,6 +29,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -659,6 +660,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "The name a discovery scan gave this device. While the device is still called exactly this, a later scan that finds a better name for it (its own name instead of its DNS name or IP address) renames it. Rename the device yourself and discovery never changes its name again.",
     example: "WB0024KDS03",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -697,6 +699,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "Where the discovered name came from: system-name (the name the device reports over SNMP), netbios-name (the computer name a Windows or Samba host reports over NetBIOS), dns-name (its reverse-DNS record) or address (its IP address). Empty for devices discovery did not name.",
     example: "netbios-name",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -751,6 +754,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "The name a naming rule gave this device. While the device is still called exactly this, applying the naming rules again may rename it when the rules change. Rename the device yourself and the naming rules leave it alone unless you choose to rename it.",
     example: "UN1216MNUPLR01",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -825,6 +829,7 @@ export default class NetworkDevice extends BaseModel {
         readAt: "2026-10-23T09:00:00.000Z",
       },
     },
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -950,6 +955,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "True when the MAC Address was filled in from a walked device's ARP table rather than typed. A learned MAC is corrected when a later walk binds the device's address to a different MAC; a typed one is never touched.",
     defaultValue: false,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -1400,6 +1406,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Current Monitor Status ID",
     description:
       "Whats the current status ID of this network device? Stamped from the monitor that polls it.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -2498,6 +2505,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Next Poll At",
     description:
       "When the assigned probe should next poll this device. Advanced by the claim cycle; a device created now is due immediately.",
+    serverOwned: ServerOwned.Always,
   })
   /*
    * NOT NULL, defaulting to now — and that is a performance decision as much
@@ -2575,6 +2583,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "System description (sysDescr) enriched from SNMP walks of this device",
     example: "Cisco IOS Software, C2960 Software",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2609,6 +2618,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "System name (sysName) enriched from SNMP walks of this device",
     example: "core-sw-01.example.com",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2643,6 +2653,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "sysObjectID — the vendor's registered OID for this device model, enriched from SNMP walks. Used to fingerprint the vendor and suggest an OID template.",
     example: "1.3.6.1.4.1.9.1.1208",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2677,6 +2688,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "System location (sysLocation) enriched from SNMP walks of this device",
     example: "DC1, Rack 14",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2710,6 +2722,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "System contact (sysContact) enriched from SNMP walks of this device",
     example: "netops@example.com",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2744,6 +2757,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "Hardware vendor, from ENTITY-MIB or derived from sysObjectID. Managed by the probe.",
     example: "Cisco",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2826,6 +2840,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "Hardware model from ENTITY-MIB (entPhysicalModelName). Managed by the probe.",
     example: "WS-C2960X-48TS-L",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2859,6 +2874,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "Chassis serial number from ENTITY-MIB (entPhysicalSerialNum). Managed by the probe.",
     example: "FOC1932X0K1",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2892,6 +2908,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "Firmware revision from ENTITY-MIB (entPhysicalFirmwareRev). Managed by the probe.",
     example: "15.2(2)E7",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2925,6 +2942,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "Operating system / software revision from ENTITY-MIB (entPhysicalSoftwareRev). Managed by the probe.",
     example: "15.2(2)E7",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2958,6 +2976,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Last Rebooted At",
     description:
       "Device boot time computed from sysUpTime on each walk. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -2989,6 +3008,7 @@ export default class NetworkDevice extends BaseModel {
     title: "CDP Neighbors",
     description:
       "CDP neighbors discovered on the last SNMP walk, complementing LLDP for the topology graph. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3020,6 +3040,7 @@ export default class NetworkDevice extends BaseModel {
     title: "LLDP Neighbors",
     description:
       "LLDP neighbors discovered on the last SNMP walk, used to build the network topology graph. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3051,6 +3072,7 @@ export default class NetworkDevice extends BaseModel {
     title: "SNMP Table Snapshot",
     description:
       "The rows of every SNMP table collected on the last successful walk - tunnels, radios, neighbours and so on - with their values. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3082,6 +3104,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Transceiver Snapshot",
     description:
       "The transceivers (SFP, SFP+, QSFP and similar optics) in this device's ports: who made each one, its temperature, supply voltage, bias current and transmit and receive power against the device's own warning and alarm thresholds, its health, whether it is still detected, and a month of daily received power averages. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3113,6 +3136,7 @@ export default class NetworkDevice extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When SNMP data was last received from this device",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3145,6 +3169,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Last Polled At",
     description:
       'When the assigned probe last ATTEMPTED an SNMP walk of this device, whether or not the device answered. Paired with lastSeenAt (which only moves on a successful walk) this is what separates "the device did not answer" from "we have not asked recently". Managed by the probe.',
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3219,6 +3244,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Is Reachable",
     description:
       "Whether the most recent SNMP walk reached this device. NULL means it has never been polled. This — not the age of lastSeenAt — is what the device list, the topology graph and the site rollup read, so a device whose last poll succeeded is never shown as down just because the probe is behind schedule. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3251,6 +3277,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Is SNMP Reachable",
     description:
       "Whether the most recent SNMP walk of this device succeeded. Separate from isReachable, which is the ping verdict: a device that answers ping but not SNMP is Up with a failing SNMP walk, which almost always means wrong credentials or SNMP disabled on the device. NULL means no walk was attempted — the device has no usable SNMP credentials (it is pinged only) or has never been polled. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3283,6 +3310,7 @@ export default class NetworkDevice extends BaseModel {
     title: "Last SNMP Seen At",
     description:
       "When the last SUCCESSFUL SNMP walk of this device completed — the moment its interfaces, inventory and health OIDs were last refreshed. Only moves on a successful walk, so it stays honest while lastSeenAt keeps moving on ping alone. Managed by the probe.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -3349,6 +3377,7 @@ export default class NetworkDevice extends BaseModel {
     type: TableColumnType.Number,
     title: "Interfaces Total",
     description: "Cached total count of interfaces on this device",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -3379,6 +3408,7 @@ export default class NetworkDevice extends BaseModel {
     type: TableColumnType.Number,
     title: "Interfaces Up",
     description: "Cached count of operationally up interfaces on this device",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -3409,6 +3439,7 @@ export default class NetworkDevice extends BaseModel {
     type: TableColumnType.Number,
     title: "Interfaces Down",
     description: "Cached count of operationally down interfaces on this device",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,

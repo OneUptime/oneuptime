@@ -2438,6 +2438,7 @@ export default class Monitor extends BaseModel {
       "When was the last time we checked the heartbeat for incoming request?",
     description:
       "This field is for Incoming Request monitor only. When was the last time we checked the heartbeat?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2679,6 +2680,7 @@ export default class Monitor extends BaseModel {
     title: "Server Monitor Request Received At",
     description:
       "This field is for Server Monitor only. When was the last time we received a request?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -3268,6 +3270,7 @@ export default class Monitor extends BaseModel {
     required: false,
     title: "Server Monitor Response",
     description: "Server Monitor Response for Server Monitor",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.JSON,
