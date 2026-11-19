@@ -904,6 +904,95 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     expect(readStatisticValue(point, "Sum")).toBe(50);
     expect(readStatisticValue(point, "Maximum")).toBe(30);
     expect(readStatisticValue(point, "Minimum")).toBe(2);
+    // CloudWatch's SampleCount is the summary's count (#9691).
+    expect(readStatisticValue(point, "SampleCount")).toBe(4);
+  });
+
+  /*
+   * #9691: Athena publishes a query's times once, as it ends, so a
+   * minute's count of TotalExecutionTime is how many queries ended: the
+   * read reads its SampleCount, and a stack of template 3 writes it so.
+   */
+  test("an Athena workgroup's queries are written as each minute's count, of each query state, from template 3", async () => {
+    const queries: (state: string, count: number) => JSONObject = (
+      state: string,
+      count: number,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "AWS/Athena",
+        metricName: "TotalExecutionTime",
+        dimensions: {
+          WorkGroup: "analytics",
+          QueryState: state,
+          QueryType: "DML",
+        },
+        count,
+        sum: count * 1500,
+      });
+    };
+    const delivery: () => Array<JSONObject> = (): Array<JSONObject> => {
+      return [
+        resourceOf([
+          summaryMetric("amazonaws.com/AWS/Athena/TotalExecutionTime", [
+            queries("SUCCEEDED", 12),
+            queries("FAILED", 3),
+          ]),
+        ]),
+      ];
+    };
+
+    const shaped: Array<JSONObject> = await shape(
+      delivery(),
+      new StreamedSeriesMemory(),
+      { stack: { templateVersion: 3, everyMetric: false } },
+    );
+
+    expect(
+      metricsOf(shaped).map((metric: JSONObject) => {
+        return metric["unit"];
+      }),
+    ).toEqual(["Count"]);
+    expect(gaugeValues(shaped)).toEqual([12, 3]);
+
+    // A stack of template 2 does not carry it: the read writes it.
+    expect(
+      metricsOf(
+        await shape(delivery(), new StreamedSeriesMemory(), {
+          stack: { templateVersion: 2, everyMetric: false },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  // #9691: a Glue job's own series is its JobRunId ALL one; a run's is no resource's.
+  test("a Glue job's metrics are written from its JobRunId ALL series alone", async () => {
+    const tasks: (run: string, sum: number) => JSONObject = (
+      run: string,
+      sum: number,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "Glue",
+        metricName: "glue.driver.aggregate.numFailedTasks",
+        dimensions: { JobName: "nightly-orders", JobRunId: run, Type: "count" },
+        count: 2,
+        sum,
+      });
+    };
+
+    const shaped: Array<JSONObject> = await shape(
+      [
+        resourceOf([
+          summaryMetric(
+            "amazonaws.com/Glue/glue.driver.aggregate.numFailedTasks",
+            [tasks("ALL", 4), tasks("jr_4f7c0d0a7b8e", 4)],
+          ),
+        ]),
+      ],
+      new StreamedSeriesMemory(),
+      { stack: { templateVersion: 3, everyMetric: false } },
+    );
+
+    expect(gaugeValues(shaped)).toEqual([4]);
   });
 
   test("protobuf's left-out zeros are read as zeros: a quantile 0, a value 0", () => {

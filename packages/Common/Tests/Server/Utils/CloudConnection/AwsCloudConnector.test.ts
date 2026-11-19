@@ -1352,6 +1352,176 @@ describe("read", () => {
     ]);
   });
 
+  /*
+   * #9691: a Glue job's own metrics are its JobRunId ALL series; each run's
+   * series has as many dimensions and would be read beside it, and its
+   * values added to the job's.
+   */
+  test("a Glue job is read from its JobRunId ALL series alone, never a run's", async () => {
+    const glueSeries: (
+      metricName: string,
+      run: string,
+      value: number,
+    ) => FakeMetric = (
+      metricName: string,
+      run: string,
+      value: number,
+    ): FakeMetric => {
+      return {
+        namespace: "Glue",
+        metricName,
+        dimensions: [
+          ["JobName", "nightly-orders"],
+          ["JobRunId", run],
+          ["Type", "count"],
+        ],
+        values: [[WINDOW_START_S, value]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            glueSeries("glue.driver.aggregate.numCompletedTasks", "ALL", 40),
+            glueSeries(
+              "glue.driver.aggregate.numCompletedTasks",
+              "jr_0a1b2c3d",
+              40,
+            ),
+            glueSeries("glue.driver.aggregate.numFailedTasks", "ALL", 2),
+            glueSeries(
+              "glue.driver.aggregate.numFailedTasks",
+              "jr_0a1b2c3d",
+              2,
+            ),
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const runs: Array<string> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): string => {
+        const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+          "Metric"
+        ] as JSONObject;
+        const run: JSONObject | undefined = (
+          metric["Dimensions"] as Array<JSONObject>
+        ).find((dimension: JSONObject): boolean => {
+          return dimension["Name"] === "JobRunId";
+        });
+
+        return `${metric["MetricName"] as string} ${run?.["Value"] as string}`;
+      })
+      .sort();
+
+    expect(runs).toEqual([
+      "glue.driver.aggregate.numCompletedTasks ALL",
+      "glue.driver.aggregate.numFailedTasks ALL",
+    ]);
+    expect(
+      result.resources.map((entry: CloudDiscoveredResource): string => {
+        return `${entry.resource.resourceType} ${entry.resource.name}`;
+      }),
+    ).toContain("AWS::Glue::Job nightly-orders");
+  });
+
+  /*
+   * #9691: an Athena workgroup's queries are counted, not timed: Athena
+   * publishes a query's TotalExecutionTime once, as it ends, so its
+   * SampleCount is how many ended - read with that statistic, a series per
+   * query state and type, and written in the read's own shape.
+   */
+  test("an Athena workgroup's queries are read as the SampleCount of TotalExecutionTime, of each state", async () => {
+    const athenaSeries: (state: string, count: number) => FakeMetric = (
+      state: string,
+      count: number,
+    ): FakeMetric => {
+      return {
+        namespace: "AWS/Athena",
+        metricName: "TotalExecutionTime",
+        dimensions: [
+          ["QueryState", state],
+          ["QueryType", "DML"],
+          ["WorkGroup", "analytics"],
+        ],
+        values: [[WINDOW_START_S, count]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            {
+              namespace: "AWS/Athena",
+              metricName: "ProcessedBytes",
+              dimensions: [["WorkGroup", "analytics"]],
+              values: [[WINDOW_START_S, 1_048_576]],
+            },
+            athenaSeries("SUCCEEDED", 12),
+            athenaSeries("FAILED", 3),
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const queries: Array<JSONObject> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): JSONObject => {
+        return query["MetricStat"] as JSONObject;
+      });
+    const statOf: (metricName: string) => Array<string> = (
+      metricName: string,
+    ): Array<string> => {
+      return queries
+        .filter((stat: JSONObject): boolean => {
+          return (
+            ((stat["Metric"] as JSONObject)["MetricName"] as string) ===
+            metricName
+          );
+        })
+        .map((stat: JSONObject): string => {
+          return stat["Stat"] as string;
+        });
+    };
+
+    expect(statOf("TotalExecutionTime")).toEqual([
+      "SampleCount",
+      "SampleCount",
+    ]);
+    expect(statOf("ProcessedBytes")).toEqual(["Sum"]);
+
+    // Written under the metric's own name, as every key metric is.
+    expect(JSON.stringify(result.payloads)).toContain(
+      "amazonaws.com/AWS/Athena/TotalExecutionTime",
+    );
+    expect(
+      result.resources.map((entry: CloudDiscoveredResource): string => {
+        return `${entry.resource.resourceType} ${entry.resource.name}`;
+      }),
+    ).toContain("AWS::Athena::WorkGroup analytics");
+  });
+
   test("S3's daily storage figures are read once a whole day has been published", async () => {
     // 12:07 on the 21st: the last whole day read is the 19th (a day and a half back).
     const day19: number = Date.UTC(2026, 9, 19) / 1000;

@@ -580,6 +580,9 @@ export function readStatisticValue(
       return readQuantileValue(point, 1) ?? single;
     case "Minimum":
       return readQuantileValue(point, 0) ?? single;
+    // How many values were published in the minute: a summary's count is CloudWatch's SampleCount.
+    case "SampleCount":
+      return count;
   }
 
   return null;

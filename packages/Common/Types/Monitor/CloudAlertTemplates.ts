@@ -404,6 +404,8 @@ const AWS_STATISTIC_AGGREGATION: Readonly<
   Sum: MetricsAggregationType.Sum,
   Maximum: MetricsAggregationType.Max,
   Minimum: MetricsAggregationType.Min,
+  // A count of values in a period (Athena's queries that ended): counts add up.
+  SampleCount: MetricsAggregationType.Sum,
 };
 
 // A CloudWatch unit as the alert text writes it.
