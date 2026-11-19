@@ -7,6 +7,7 @@ import {
   CloudKeyMetricGroup,
   getCloudKeyMetricGroupOrder,
 } from "./CloudKeyMetricGroup";
+import { CloudKeyMetricCondition } from "./CloudKeyMetricCondition";
 
 /*
  * THE KEY METRICS A CLOUD CONNECTION READS, PER RESOURCE TYPE.
@@ -60,6 +61,19 @@ import {
  */
 
 const G: typeof CloudKeyMetricGroup = CloudKeyMetricGroup;
+const C: typeof CloudKeyMetricCondition = CloudKeyMetricCondition;
+
+/*
+ * A key metric only the resources a condition holds for report: a replica's
+ * lag, a burstable VM's credits (CloudKeyMetricCondition). A resource's page
+ * says so beside one it did not report (CloudUnreportedKeyMetrics).
+ */
+function when<T extends { onlyWhen?: CloudKeyMetricCondition | undefined }>(
+  condition: CloudKeyMetricCondition,
+  metric: T,
+): T {
+  return { ...metric, onlyWhen: condition };
+}
 
 /*
  * ---- AWS: CloudWatch -----------------------------------------------------
@@ -122,6 +136,20 @@ export interface AwsKeyMetric {
    * stream's other series of it are left out (CloudWatchMetricStream).
    */
   onlyDimensionValues?: Readonly<Record<string, ReadonlyArray<string>>>;
+  /*
+   * Only some resources of the namespace report it, and this is the
+   * condition, from the service's own CloudWatch page: a metric published
+   * only when it is not zero, or only by some resources
+   * (CloudKeyMetricsProviderReference.test holds each to it).
+   */
+  onlyWhen?: CloudKeyMetricCondition | undefined;
+  /*
+   * Only resources of these types report it, of the several a namespace's
+   * series are filed under (CloudResourceCatalog): an ECS cluster's
+   * reservations and not its services', a REST API's 5XXError and an HTTP
+   * API's 5xx. Unset: every type of the namespace.
+   */
+  onlyTypes?: ReadonlyArray<string> | undefined;
 }
 
 export interface AwsNamespaceKeyMetrics {
@@ -227,6 +255,18 @@ function aws2(
   };
 }
 
+// A key metric only resources of these types of its namespace report.
+function onlyOf(
+  types: ReadonlyArray<string>,
+  metric: AwsKeyMetric,
+): AwsKeyMetric {
+  return { ...metric, onlyTypes: types };
+}
+
+const ECS_CLUSTER: ReadonlyArray<string> = ["AWS::ECS::Cluster"];
+const REST_API: ReadonlyArray<string> = ["AWS::ApiGateway::RestApi"];
+const HTTP_API: ReadonlyArray<string> = ["AWS::ApiGatewayV2::Api"];
+
 export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   {
     namespace: "AWS/EC2",
@@ -236,9 +276,12 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("NetworkOut", "Sum", "Bytes", G.Network),
       aws("StatusCheckFailed", "Maximum", "Count", G.Availability),
       // A burstable (T) instance's credits; a Nitro instance's EBS throughput.
-      aws2("CPUCreditBalance", "Average", "Count", G.Compute),
-      aws2("EBSReadBytes", "Sum", "Bytes", G.Storage),
-      aws2("EBSWriteBytes", "Sum", "Bytes", G.Storage),
+      when(
+        C.Burstable,
+        aws2("CPUCreditBalance", "Average", "Count", G.Compute),
+      ),
+      when(C.Kind, aws2("EBSReadBytes", "Sum", "Bytes", G.Storage)),
+      when(C.Kind, aws2("EBSWriteBytes", "Sum", "Bytes", G.Storage)),
     ],
   },
   {
@@ -250,34 +293,46 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws2("VolumeReadBytes", "Sum", "Bytes", G.Storage),
       aws2("VolumeWriteBytes", "Sum", "Bytes", G.Storage),
       // gp2, st1 and sc1 volumes only.
-      aws2("BurstBalance", "Average", "Percent", G.Storage),
+      when(C.Tier, aws2("BurstBalance", "Average", "Percent", G.Storage)),
     ],
   },
   {
     namespace: "AWS/ELB",
     metrics: [
-      aws("RequestCount", "Sum", "Count", G.Traffic),
-      aws("Latency", "Average", "Seconds", G.Latency),
-      aws("HTTPCode_Backend_5XX", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws("RequestCount", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws("Latency", "Average", "Seconds", G.Latency)),
+      when(C.NonZero, aws("HTTPCode_Backend_5XX", "Sum", "Count", G.Errors)),
       aws("UnHealthyHostCount", "Maximum", "Count", G.Availability),
       aws2("HealthyHostCount", "Average", "Count", G.Availability),
-      aws2("HTTPCode_ELB_5XX", "Sum", "Count", G.Errors),
-      aws2("SurgeQueueLength", "Maximum", "Count", G.Backlog),
-      aws2("SpilloverCount", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws2("HTTPCode_ELB_5XX", "Sum", "Count", G.Errors)),
+      when(C.NonZero, aws2("SurgeQueueLength", "Maximum", "Count", G.Backlog)),
+      when(C.NonZero, aws2("SpilloverCount", "Sum", "Count", G.Errors)),
     ],
   },
   {
     namespace: "AWS/ApplicationELB",
     metrics: [
       aws("RequestCount", "Sum", "Count", G.Traffic),
-      aws("TargetResponseTime", "Average", "Seconds", G.Latency),
+      when(
+        C.NonZero,
+        aws("TargetResponseTime", "Average", "Seconds", G.Latency),
+      ),
       aws("HTTPCode_Target_5XX_Count", "Sum", "Count", G.Errors),
-      aws("HTTPCode_ELB_5XX_Count", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws("HTTPCode_ELB_5XX_Count", "Sum", "Count", G.Errors)),
       aws2("HTTPCode_Target_4XX_Count", "Sum", "Count", G.Errors),
-      aws2("RejectedConnectionCount", "Sum", "Count", G.Errors),
-      aws2("TargetConnectionErrorCount", "Sum", "Count", G.Errors),
-      aws2("ActiveConnectionCount", "Sum", "Count", G.Connections),
-      aws2("ProcessedBytes", "Sum", "Bytes", G.Traffic),
+      when(
+        C.NonZero,
+        aws2("RejectedConnectionCount", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("TargetConnectionErrorCount", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("ActiveConnectionCount", "Sum", "Count", G.Connections),
+      ),
+      when(C.NonZero, aws2("ProcessedBytes", "Sum", "Bytes", G.Traffic)),
     ],
   },
   {
@@ -325,9 +380,15 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/DX",
     metrics: [
       aws2("ConnectionState", "Minimum", "None", G.Availability),
-      aws2("ConnectionBpsEgress", "Average", "Bits/Second", G.Network),
-      aws2("ConnectionBpsIngress", "Average", "Bits/Second", G.Network),
-      aws2("ConnectionErrorCount", "Sum", "Count", G.Errors),
+      when(
+        C.Kind,
+        aws2("ConnectionBpsEgress", "Average", "Bits/Second", G.Network),
+      ),
+      when(
+        C.Kind,
+        aws2("ConnectionBpsIngress", "Average", "Bits/Second", G.Network),
+      ),
+      when(C.Kind, aws2("ConnectionErrorCount", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -347,7 +408,15 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     onlyRegion: "us-east-1",
     metrics: [
       aws("HealthCheckStatus", "Minimum", "None", G.Availability),
-      aws("HealthCheckPercentageHealthy", "Average", "Percent", G.Availability),
+      when(
+        C.Kind,
+        aws(
+          "HealthCheckPercentageHealthy",
+          "Average",
+          "Percent",
+          G.Availability,
+        ),
+      ),
     ],
   },
   {
@@ -373,7 +442,7 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/EFS",
     metrics: [
       aws("ClientConnections", "Sum", "Count", G.Connections),
-      aws("PercentIOLimit", "Average", "Percent", G.Storage),
+      when(C.Tier, aws("PercentIOLimit", "Average", "Percent", G.Storage)),
       aws2("BurstCreditBalance", "Average", "Bytes", G.Storage),
       aws2("DataReadIOBytes", "Sum", "Bytes", G.Storage),
       aws2("DataWriteIOBytes", "Sum", "Bytes", G.Storage),
@@ -387,7 +456,7 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws2("DataReadOperations", "Sum", "Count", G.Storage),
       aws2("DataWriteOperations", "Sum", "Count", G.Storage),
       // FSx for Windows File Server only.
-      aws2("FreeStorageCapacity", "Average", "Bytes", G.Storage),
+      when(C.Kind, aws2("FreeStorageCapacity", "Average", "Bytes", G.Storage)),
     ],
   },
   {
@@ -395,9 +464,18 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("MemoryUtilization", "Average", "Percent", G.Memory),
-      // A cluster's own: what its tasks reserve of its instances.
-      aws2("CPUReservation", "Average", "Percent", G.Compute),
-      aws2("MemoryReservation", "Average", "Percent", G.Memory),
+      /*
+       * A cluster's own: what its tasks reserve of its instances. A cluster
+       * with only Fargate tasks reserves none.
+       */
+      onlyOf(
+        ECS_CLUSTER,
+        when(C.Kind, aws2("CPUReservation", "Average", "Percent", G.Compute)),
+      ),
+      onlyOf(
+        ECS_CLUSTER,
+        when(C.Kind, aws2("MemoryReservation", "Average", "Percent", G.Memory)),
+      ),
     ],
   },
   {
@@ -409,8 +487,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("Throttles", "Sum", "Count", G.Errors),
       aws2("ConcurrentExecutions", "Maximum", "Count", G.Compute),
       // Stream and asynchronous event sources only.
-      aws2("IteratorAge", "Maximum", "Milliseconds", G.Backlog),
-      aws2("DeadLetterErrors", "Sum", "Count", G.Errors),
+      when(C.Setup, aws2("IteratorAge", "Maximum", "Milliseconds", G.Backlog)),
+      when(C.Setup, aws2("DeadLetterErrors", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -422,7 +500,7 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws2("ExecutionsSucceeded", "Sum", "Count", G.Traffic),
       aws2("ExecutionsTimedOut", "Sum", "Count", G.Errors),
       aws2("ExecutionsAborted", "Sum", "Count", G.Errors),
-      aws2("ExecutionThrottled", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws2("ExecutionThrottled", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -440,7 +518,7 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws2("NetworkReceiveThroughput", "Average", "Bytes/Second", G.Network),
       aws2("NetworkTransmitThroughput", "Average", "Bytes/Second", G.Network),
       // A read replica's own.
-      aws2("ReplicaLag", "Maximum", "Seconds", G.Replication),
+      when(C.Replica, aws2("ReplicaLag", "Maximum", "Seconds", G.Replication)),
     ],
   },
   {
@@ -451,18 +529,33 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("FreeableMemory", "Average", "Bytes", G.Memory),
       aws2("ReadLatency", "Average", "Milliseconds", G.Latency),
       aws2("WriteLatency", "Average", "Milliseconds", G.Latency),
-      aws2("DBInstanceReplicaLag", "Maximum", "Milliseconds", G.Replication),
+      when(
+        C.Replica,
+        aws2("DBInstanceReplicaLag", "Maximum", "Milliseconds", G.Replication),
+      ),
     ],
   },
   {
     namespace: "AWS/Neptune",
     metrics: [
-      aws2("CPUUtilization", "Average", "Percent", G.Compute),
-      aws2("FreeableMemory", "Average", "Bytes", G.Memory),
-      aws2("MainRequestQueuePendingRequests", "Sum", "Count", G.Backlog),
-      aws2("TotalServerErrorsPerSec", "Average", "Count/Second", G.Errors),
-      aws2("TotalClientErrorsPerSec", "Average", "Count/Second", G.Errors),
-      aws2("ClusterReplicaLag", "Average", "Milliseconds", G.Replication),
+      when(C.NonZero, aws2("CPUUtilization", "Average", "Percent", G.Compute)),
+      when(C.NonZero, aws2("FreeableMemory", "Average", "Bytes", G.Memory)),
+      when(
+        C.NonZero,
+        aws2("MainRequestQueuePendingRequests", "Sum", "Count", G.Backlog),
+      ),
+      when(
+        C.NonZero,
+        aws2("TotalServerErrorsPerSec", "Average", "Count/Second", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("TotalClientErrorsPerSec", "Average", "Count/Second", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("ClusterReplicaLag", "Average", "Milliseconds", G.Replication),
+      ),
     ],
   },
   {
@@ -483,13 +576,22 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("CurrConnections", "Average", "Count", G.Connections),
       aws("Evictions", "Sum", "Count", G.Cache),
-      aws("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
+      when(
+        C.Kind,
+        aws("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
+      ),
       // Valkey and Redis OSS nodes'.
-      aws2("EngineCPUUtilization", "Average", "Percent", G.Compute),
-      aws2("CacheHits", "Sum", "Count", G.Cache),
-      aws2("CacheMisses", "Sum", "Count", G.Cache),
+      when(
+        C.Kind,
+        aws2("EngineCPUUtilization", "Average", "Percent", G.Compute),
+      ),
+      when(C.Kind, aws2("CacheHits", "Sum", "Count", G.Cache)),
+      when(C.Kind, aws2("CacheMisses", "Sum", "Count", G.Cache)),
       // A read replica's own.
-      aws2("ReplicationLag", "Maximum", "Seconds", G.Replication),
+      when(
+        C.Replica,
+        aws2("ReplicationLag", "Maximum", "Seconds", G.Replication),
+      ),
     ],
   },
   {
@@ -531,13 +633,19 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/SQS",
     metrics: [
       aws("ApproximateNumberOfMessagesVisible", "Maximum", "Count", G.Backlog),
-      aws("ApproximateAgeOfOldestMessage", "Maximum", "Seconds", G.Backlog),
+      when(
+        C.NonZero,
+        aws("ApproximateAgeOfOldestMessage", "Maximum", "Seconds", G.Backlog),
+      ),
       aws("NumberOfMessagesSent", "Sum", "Count", G.Traffic),
-      aws2(
-        "ApproximateNumberOfMessagesNotVisible",
-        "Maximum",
-        "Count",
-        G.Backlog,
+      when(
+        C.NonZero,
+        aws2(
+          "ApproximateNumberOfMessagesNotVisible",
+          "Maximum",
+          "Count",
+          G.Backlog,
+        ),
       ),
       aws2("NumberOfMessagesDeleted", "Sum", "Count", G.Traffic),
     ],
@@ -566,36 +674,43 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     ],
   },
   {
+    // A Direct PUT stream's incoming records, and an S3 destination's deliveries.
     namespace: "AWS/Firehose",
     metrics: [
-      aws("IncomingRecords", "Sum", "Count", G.Traffic),
-      aws("DeliveryToS3.Success", "Average", "Count", G.Availability),
-      aws2("IncomingBytes", "Sum", "Bytes", G.Traffic),
-      aws2("ThrottledRecords", "Sum", "Count", G.Errors),
-      aws2("DeliveryToS3.DataFreshness", "Maximum", "Seconds", G.Backlog),
+      when(C.Kind, aws("IncomingRecords", "Sum", "Count", G.Traffic)),
+      when(
+        C.Kind,
+        aws("DeliveryToS3.Success", "Average", "Count", G.Availability),
+      ),
+      when(C.Kind, aws2("IncomingBytes", "Sum", "Bytes", G.Traffic)),
+      when(C.Kind, aws2("ThrottledRecords", "Sum", "Count", G.Errors)),
+      when(
+        C.Kind,
+        aws2("DeliveryToS3.DataFreshness", "Maximum", "Seconds", G.Backlog),
+      ),
     ],
   },
   {
     namespace: "AWS/ApiGateway",
     metrics: [
       aws("Count", "Sum", "Count", G.Traffic),
-      aws("5XXError", "Sum", "Count", G.Errors),
+      onlyOf(REST_API, aws("5XXError", "Sum", "Count", G.Errors)),
       aws("Latency", "Average", "Milliseconds", G.Latency),
-      aws2("4XXError", "Sum", "Count", G.Errors),
+      onlyOf(REST_API, aws2("4XXError", "Sum", "Count", G.Errors)),
       aws2("IntegrationLatency", "Average", "Milliseconds", G.Latency),
       /*
        * An HTTP API's errors: it publishes 5xx and 4xx, a REST API 5XXError
        * and 4XXError, so each is listed only for the APIs that publish it.
        */
-      aws2("5xx", "Sum", "Count", G.Errors),
-      aws2("4xx", "Sum", "Count", G.Errors),
+      onlyOf(HTTP_API, when(C.Kind, aws2("5xx", "Sum", "Count", G.Errors))),
+      onlyOf(HTTP_API, when(C.Kind, aws2("4xx", "Sum", "Count", G.Errors))),
     ],
   },
   {
     namespace: "AWS/Events",
     metrics: [
-      aws("Invocations", "Sum", "Count", G.Traffic),
-      aws("FailedInvocations", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws("Invocations", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws("FailedInvocations", "Sum", "Count", G.Errors)),
       aws2("TriggeredRules", "Sum", "Count", G.Traffic),
       aws2("ThrottledRules", "Sum", "Count", G.Errors),
       aws2("DeadLetterInvocations", "Sum", "Count", G.Errors),
@@ -609,15 +724,21 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/AmazonMQ",
     probeMetricNames: ["CpuUtilization", "SystemCpuUtilization"],
     metrics: [
-      aws("CpuUtilization", "Average", "Percent", G.Compute),
+      when(C.Kind, aws("CpuUtilization", "Average", "Percent", G.Compute)),
       // RabbitMQ.
-      aws2("SystemCpuUtilization", "Average", "Percent", G.Compute),
-      aws2("MessageCount", "Maximum", "Count", G.Backlog),
-      aws2("ConnectionCount", "Maximum", "Count", G.Connections),
+      when(
+        C.Kind,
+        aws2("SystemCpuUtilization", "Average", "Percent", G.Compute),
+      ),
+      when(C.Kind, aws2("MessageCount", "Maximum", "Count", G.Backlog)),
+      when(C.Kind, aws2("ConnectionCount", "Maximum", "Count", G.Connections)),
       // ActiveMQ.
-      aws2("HeapUsage", "Maximum", "Percent", G.Memory),
-      aws2("StorePercentUsage", "Maximum", "Percent", G.Storage),
-      aws2("CurrentConnectionsCount", "Maximum", "Count", G.Connections),
+      when(C.Kind, aws2("HeapUsage", "Maximum", "Percent", G.Memory)),
+      when(C.Kind, aws2("StorePercentUsage", "Maximum", "Percent", G.Storage)),
+      when(
+        C.Kind,
+        aws2("CurrentConnectionsCount", "Maximum", "Count", G.Connections),
+      ),
     ],
   },
   {
@@ -641,11 +762,11 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/WAFV2",
     probeMetricNames: ["AllowedRequests", "BlockedRequests"],
     metrics: [
-      aws2("AllowedRequests", "Sum", "Count", G.Traffic),
-      aws2("BlockedRequests", "Sum", "Count", G.Traffic),
-      aws2("CountedRequests", "Sum", "Count", G.Traffic),
-      aws2("CaptchaRequests", "Sum", "Count", G.Traffic),
-      aws2("ChallengeRequests", "Sum", "Count", G.Traffic),
+      when(C.NonZero, aws2("AllowedRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("BlockedRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("CountedRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("CaptchaRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("ChallengeRequests", "Sum", "Count", G.Traffic)),
     ],
   },
   {
@@ -659,13 +780,16 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
      */
     namespace: "AWS/NetworkFirewall",
     metrics: [
-      aws2("ReceivedPackets", "Sum", "Count", G.Traffic, {
-        onlyDimensionValues: { Engine: ["Stateless", "System"] },
-      }),
-      aws2("DroppedPackets", "Sum", "Count", G.Errors),
+      when(
+        C.NonZero,
+        aws2("ReceivedPackets", "Sum", "Count", G.Traffic, {
+          onlyDimensionValues: { Engine: ["Stateless", "System"] },
+        }),
+      ),
+      when(C.NonZero, aws2("DroppedPackets", "Sum", "Count", G.Errors)),
       // Throttled by bursting traffic, among others.
-      aws2("OtherDroppedPackets", "Sum", "Count", G.Errors),
-      aws2("InvalidDroppedPackets", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws2("OtherDroppedPackets", "Sum", "Count", G.Errors)),
+      when(C.NonZero, aws2("InvalidDroppedPackets", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -689,10 +813,22 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
      */
     namespace: "AWS/AutoScaling",
     metrics: [
-      aws2("GroupInServiceInstances", "Average", "Count", G.Availability),
-      aws2("GroupDesiredCapacity", "Average", "Count", G.Compute),
-      aws2("GroupPendingInstances", "Maximum", "Count", G.Compute),
-      aws2("GroupTerminatingInstances", "Maximum", "Count", G.Compute),
+      when(
+        C.Setup,
+        aws2("GroupInServiceInstances", "Average", "Count", G.Availability),
+      ),
+      when(
+        C.Setup,
+        aws2("GroupDesiredCapacity", "Average", "Count", G.Compute),
+      ),
+      when(
+        C.Setup,
+        aws2("GroupPendingInstances", "Maximum", "Count", G.Compute),
+      ),
+      when(
+        C.Setup,
+        aws2("GroupTerminatingInstances", "Maximum", "Count", G.Compute),
+      ),
     ],
   },
   {
@@ -706,9 +842,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws2("HealthyEndpointCount", "Minimum", "Count", G.Availability),
       aws2("UnhealthyEndpointCount", "Maximum", "Count", G.Availability),
-      aws2("NewFlowCount", "Sum", "Count", G.Connections),
-      aws2("ProcessedBytesIn", "Sum", "Bytes", G.Network),
-      aws2("ProcessedBytesOut", "Sum", "Bytes", G.Network),
+      when(C.NonZero, aws2("NewFlowCount", "Sum", "Count", G.Connections)),
+      when(C.NonZero, aws2("ProcessedBytesIn", "Sum", "Bytes", G.Network)),
+      when(C.NonZero, aws2("ProcessedBytesOut", "Sum", "Bytes", G.Network)),
     ],
   },
   {
@@ -743,7 +879,12 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
      * when the environment is set to.
      */
     namespace: "AWS/ElasticBeanstalk",
-    metrics: [aws2("EnvironmentHealth", "Maximum", "None", G.Availability)],
+    metrics: [
+      when(
+        C.Setup,
+        aws2("EnvironmentHealth", "Maximum", "None", G.Availability),
+      ),
+    ],
   },
   {
     // A GraphQL API's own (GraphQLAPIId); its requests are the Region's, not an API's.
@@ -968,6 +1109,13 @@ export interface AzureKeyMetric {
    * at its type's one grain finer than an hour.
    */
   grain?: string | undefined;
+  /*
+   * Only some resources of the type report it, and this is the condition:
+   * a B-series VM's credits, a DTU database's DTUs, a function app's
+   * executions. A resource's definitions say for certain which it
+   * publishes; this says why.
+   */
+  onlyWhen?: CloudKeyMetricCondition | undefined;
 }
 
 /*
@@ -1067,7 +1215,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Disk Read Bytes", G.Storage),
       azure("Disk Write Bytes", G.Storage),
       azure("VmAvailabilityMetric", G.Availability),
-      azure("CPU Credits Remaining", G.Compute),
+      // A burstable (B-series) VM's own.
+      when(C.Burstable, azure("CPU Credits Remaining", G.Compute)),
       azure("Available Memory Percentage", G.Memory),
       azure("Disk Read Operations/Sec", G.Storage),
       azure("Disk Write Operations/Sec", G.Storage),
@@ -1088,7 +1237,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Network In Total", G.Network),
       azure("Network Out Total", G.Network),
       azure("VmAvailabilityMetric", G.Availability),
-      azure("CPU Credits Remaining", G.Compute),
+      // A burstable (B-series) VM's own.
+      when(C.Burstable, azure("CPU Credits Remaining", G.Compute)),
       azure("Available Memory Percentage", G.Memory),
       azure("Disk Read Bytes", G.Storage),
       azure("Disk Write Bytes", G.Storage),
@@ -1130,10 +1280,11 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
        * reads a failure once an instance is deemed unhealthy. Kept at five
        * minutes at its finest.
        */
-      azure5("HealthCheckStatus", G.Availability),
+      when(C.Setup, azure5("HealthCheckStatus", G.Availability)),
       azure("CpuTime", G.Compute),
       azure("MemoryWorkingSet", G.Memory),
-      azure("FunctionExecutionCount", G.Traffic),
+      // A function app's own.
+      when(C.Kind, azure("FunctionExecutionCount", G.Traffic)),
       azure("Http2xx", G.Traffic),
       azure("RequestsInApplicationQueue", G.Backlog),
       azure("PrivateBytes", G.Memory),
@@ -1142,7 +1293,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("AppConnections", G.Connections),
       azure("BytesReceived", G.Network),
       azure("BytesSent", G.Network),
-      azure("FunctionExecutionUnits", G.Compute),
+      when(C.Kind, azure("FunctionExecutionUnits", G.Compute)),
       azure("FileSystemUsage", G.Storage),
     ],
   },
@@ -1181,7 +1332,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     type: "Microsoft.Sql/servers/databases",
     metrics: [
       azure("cpu_percent", G.Compute),
-      azure("dtu_consumption_percent", G.Compute),
+      // A database or pool on the DTU purchasing model's own.
+      when(C.Tier, azure("dtu_consumption_percent", G.Compute)),
       azure("storage_percent", G.Storage),
       azure("connection_failed", G.Connections),
       azure("deadlock", G.Errors),
@@ -1201,9 +1353,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     type: "Microsoft.Sql/servers/elasticpools",
     metrics: [
       azure("cpu_percent", G.Compute),
-      azure("eDTU_used", G.Compute),
+      when(C.Tier, azure("eDTU_used", G.Compute)),
       azure("storage_percent", G.Storage),
-      azure("dtu_consumption_percent", G.Compute),
+      // A database or pool on the DTU purchasing model's own.
+      when(C.Tier, azure("dtu_consumption_percent", G.Compute)),
       azure("workers_percent", G.Compute),
       azure("sessions_percent", G.Connections),
       azure("log_write_percent", G.Storage),
@@ -1233,7 +1386,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("active_connections", G.Connections),
       azure("connections_failed", G.Connections),
       azure("is_db_alive", G.Availability),
-      azure("cpu_credits_remaining", G.Compute),
+      // A burstable server's own.
+      when(C.Burstable, azure("cpu_credits_remaining", G.Compute)),
       azure("storage_used", G.Storage),
       azure("txlogs_storage_used", G.Storage),
       azure("disk_iops_consumed_percentage", G.Storage),
@@ -1244,7 +1398,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("maximum_used_transactionIDs", G.Storage),
       azure("network_bytes_ingress", G.Network),
       azure("network_bytes_egress", G.Network),
-      azure("physical_replication_delay_in_seconds", G.Replication),
+      when(
+        C.Replica,
+        azure("physical_replication_delay_in_seconds", G.Replication),
+      ),
     ],
   },
   {
@@ -1264,7 +1421,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("lock_deadlocks", G.Errors),
       azure("network_bytes_ingress", G.Network),
       azure("network_bytes_egress", G.Network),
-      azure("replication_lag", G.Replication),
+      when(C.Replica, azure("replication_lag", G.Replication)),
     ],
   },
   {
@@ -1278,10 +1435,11 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
        * for NoSQL's and Table's SDKs in direct mode), else through the
        * gateway (every API, MongoDB, Cassandra and Gremlin's always).
        */
-      azure("ServerSideLatencyDirect", G.Latency),
-      azure("ServerSideLatencyGateway", G.Latency),
+      when(C.Kind, azure("ServerSideLatencyDirect", G.Latency)),
+      when(C.Kind, azure("ServerSideLatencyGateway", G.Latency)),
       azure("ThrottledRequestPercentage", G.Errors),
-      azure("ReplicationLatency", G.Replication),
+      // An account replicated to more than one region's own.
+      when(C.Setup, azure("ReplicationLatency", G.Replication)),
       azure("ServiceAvailability", G.Availability),
       /*
        * What the account stores, kept at five minutes at its finest: its
@@ -1335,7 +1493,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("totalkeys", G.Cache),
       azure("usedmemory", G.Memory),
       azure("LatencyP99", G.Latency),
-      azure("GeoReplicationHealthy", G.Replication),
+      when(C.Setup, azure("GeoReplicationHealthy", G.Replication)),
     ],
   },
   {
@@ -1355,7 +1513,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("expiredkeys", G.Cache),
       azure("totalkeys", G.Cache),
       azure("cacheLatency", G.Latency),
-      azure("geoReplicationHealthy", G.Replication),
+      when(C.Setup, azure("geoReplicationHealthy", G.Replication)),
     ],
   },
   {
@@ -1511,15 +1669,16 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   },
   {
     type: "Microsoft.Network/loadBalancers",
+    // A Standard load balancer's: a Basic one publishes none.
     metrics: [
-      azure("VipAvailability", G.Availability),
-      azure("DipAvailability", G.Availability),
-      azure("ByteCount", G.Traffic),
-      azure("PacketCount", G.Traffic),
-      azure("SYNCount", G.Connections),
-      azure("SnatConnectionCount", G.Connections),
-      azure("UsedSnatPorts", G.Connections),
-      azure("AllocatedSnatPorts", G.Connections),
+      when(C.Tier, azure("VipAvailability", G.Availability)),
+      when(C.Tier, azure("DipAvailability", G.Availability)),
+      when(C.Tier, azure("ByteCount", G.Traffic)),
+      when(C.Tier, azure("PacketCount", G.Traffic)),
+      when(C.Tier, azure("SYNCount", G.Connections)),
+      when(C.Tier, azure("SnatConnectionCount", G.Connections)),
+      when(C.Tier, azure("UsedSnatPorts", G.Connections)),
+      when(C.Tier, azure("AllocatedSnatPorts", G.Connections)),
     ],
     notExportedByDiagnosticSettings: ["UsedSnatPorts", "AllocatedSnatPorts"],
   },
@@ -1536,8 +1695,9 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("CurrentConnections", G.Connections),
       azure("BytesReceived", G.Network),
       azure("BytesSent", G.Network),
-      azure("CapacityUnits", G.Compute),
-      azure("ComputeUnits", G.Compute),
+      // A v2 gateway's own.
+      when(C.Tier, azure("CapacityUnits", G.Compute)),
+      when(C.Tier, azure("ComputeUnits", G.Compute)),
     ],
     notExportedByDiagnosticSettings: [
       "ApplicationGatewayTotalTime",
@@ -1608,9 +1768,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("TunnelEgressBytes", G.Network),
       azure("TunnelIngressPacketDropCount", G.Errors),
       azure("TunnelEgressPacketDropCount", G.Errors),
-      azure("BgpPeerStatus", G.Availability),
-      azure("P2SConnectionCount", G.Connections),
-      azure("P2SBandwidth", G.Network),
+      // A gateway with BGP, or with point-to-site connections, set up.
+      when(C.Setup, azure("BgpPeerStatus", G.Availability)),
+      when(C.Setup, azure("P2SConnectionCount", G.Connections)),
+      when(C.Setup, azure("P2SBandwidth", G.Network)),
     ],
     notExportedByDiagnosticSettings: ["BgpPeerStatus"],
   },
@@ -1695,12 +1856,13 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Ratelimit", G.Errors),
       azure("DataIn", G.Network),
       azure("DataOut", G.Network),
-      azure("AzureOpenAIRequests", G.Traffic),
-      azure("AzureOpenAIAvailabilityRate", G.Availability),
-      azure("AzureOpenAITimeToResponse", G.Latency),
-      azure("ProcessedPromptTokens", G.Traffic),
-      azure("GeneratedTokens", G.Traffic),
-      azure("TokenTransaction", G.Traffic),
+      // An Azure OpenAI account's own.
+      when(C.Kind, azure("AzureOpenAIRequests", G.Traffic)),
+      when(C.Kind, azure("AzureOpenAIAvailabilityRate", G.Availability)),
+      when(C.Kind, azure("AzureOpenAITimeToResponse", G.Latency)),
+      when(C.Kind, azure("ProcessedPromptTokens", G.Traffic)),
+      when(C.Kind, azure("GeneratedTokens", G.Traffic)),
+      when(C.Kind, azure("TokenTransaction", G.Traffic)),
     ],
     notExportedByDiagnosticSettings: ["AzureOpenAIAvailabilityRate"],
   },
@@ -1818,8 +1980,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("exceptions/count", G.Errors),
       azure("dependencies/failed", G.Errors),
       azure("dependencies/duration", G.Latency),
-      azure("availabilityResults/availabilityPercentage", G.Availability),
-      azure("pageViews/count", G.Traffic),
+      // An availability test's, and the browser SDK's page views.
+      when(
+        C.Setup,
+        azure("availabilityResults/availabilityPercentage", G.Availability),
+      ),
+      when(C.Setup, azure("pageViews/count", G.Traffic)),
     ],
     notExportedByDiagnosticSettings: [
       "requests/count",
@@ -2160,6 +2326,8 @@ export interface GcpKeyMetric {
    * (GcpCloudConnector), so VMs without the agent cost no call a read.
    */
   reportedBy?: string | undefined;
+  // Only some resources of the type report it, and this is the condition.
+  onlyWhen?: CloudKeyMetricCondition | undefined;
 }
 
 /*
@@ -2248,11 +2416,14 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
       opsAgent("agent.googleapis.com/memory/percent_used", G.Memory),
       opsAgent("agent.googleapis.com/disk/percent_used", G.Storage),
       // Only an E2 instance reports it.
-      gcp(
-        "compute.googleapis.com/instance/memory/balloon/ram_used",
-        "ALIGN_MEAN",
-        "By",
-        G.Memory,
+      when(
+        C.Kind,
+        gcp(
+          "compute.googleapis.com/instance/memory/balloon/ram_used",
+          "ALIGN_MEAN",
+          "By",
+          G.Memory,
+        ),
       ),
       gcp(
         "compute.googleapis.com/instance/disk/read_bytes_count",
@@ -2350,11 +2521,14 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         G.Network,
       ),
       // Only a replica reports it.
-      gcp(
-        "cloudsql.googleapis.com/database/replication/replica_lag",
-        "ALIGN_MAX",
-        "s",
-        G.Replication,
+      when(
+        C.Replica,
+        gcp(
+          "cloudsql.googleapis.com/database/replication/replica_lag",
+          "ALIGN_MAX",
+          "s",
+          G.Replication,
+        ),
       ),
     ],
   },
@@ -2560,11 +2734,15 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         "1/s",
         G.Errors,
       ),
-      gcp(
-        "pubsub.googleapis.com/subscription/dead_letter_message_count",
-        "ALIGN_RATE",
-        "1/s",
-        G.Errors,
+      // A subscription with a dead-letter topic's own.
+      when(
+        C.Setup,
+        gcp(
+          "pubsub.googleapis.com/subscription/dead_letter_message_count",
+          "ALIGN_RATE",
+          "1/s",
+          G.Errors,
+        ),
       ),
     ],
   },
@@ -2664,11 +2842,15 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         "By/s",
         G.Network,
       ),
-      gcp(
-        "redis.googleapis.com/replication/master/slaves/lag",
-        "ALIGN_MAX",
-        "s",
-        G.Replication,
+      // A Standard Tier instance's, with its read replicas.
+      when(
+        C.Tier,
+        gcp(
+          "redis.googleapis.com/replication/master/slaves/lag",
+          "ALIGN_MAX",
+          "s",
+          G.Replication,
+        ),
       ),
     ],
   },
