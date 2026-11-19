@@ -234,7 +234,6 @@
   "Powered by": "技术支持：",
   "Probe behind: {{behindProbeNames}}": "探测器滞后：{{behindProbeNames}}",
   "Probe disconnected: {{disconnectedProbeNames}}": "探测器已断开连接：{{disconnectedProbeNames}}",
-  "Project:": "项目：",
   "Read Full Postmortem": "阅读完整的事后分析",
   "Resolved": "已解决",
   "Resource": "资源",

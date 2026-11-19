@@ -234,7 +234,6 @@
   "Powered by": "제공:",
   "Probe behind: {{behindProbeNames}}": "프로브 지연됨: {{behindProbeNames}}",
   "Probe disconnected: {{disconnectedProbeNames}}": "프로브 연결 끊김: {{disconnectedProbeNames}}",
-  "Project:": "프로젝트:",
   "Read Full Postmortem": "사후 분석 전체 읽기",
   "Resolved": "해결됨",
   "Resource": "리소스",

@@ -234,7 +234,6 @@
   "Powered by": "Работает на",
   "Probe behind: {{behindProbeNames}}": "Зонд отстаёт: {{behindProbeNames}}",
   "Probe disconnected: {{disconnectedProbeNames}}": "Зонд отключён: {{disconnectedProbeNames}}",
-  "Project:": "Проект:",
   "Read Full Postmortem": "Читать анализ полностью",
   "Resolved": "Устранён",
   "Resource": "Ресурс",

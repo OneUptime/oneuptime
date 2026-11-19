@@ -13,21 +13,17 @@
   whoever typed the address, who may not have been its owner, so it says
   exactly what it is and that it can be ignored.
 
-  A project's name and its providers' names are their admins' words, so
-  they go on plainText, escaped, and into a sentence only through tt, which
-  puts each value in as written into an escaped slot. Each link is
-  OneUptime's own page for its project (/accounts/sso/<project id>), which
-  lists the providers: the email links to no identity provider.
+  A project's name is its admins' words, so it goes into the button's
+  sentence only through tt, which puts each value in as written into an
+  escaped slot. Each button is OneUptime's own page for its project
+  (/accounts/sso/<project id>), which lists its providers: the email links
+  to no identity provider. One button per project, and one detail card for
+  the request, as every email has one.
 --}}
 
 {{> InfoBlock info=(ttHtml "Someone asked for the single sign-on (SSO) sign-in links of the projects your {{product}} account is in. Each button below opens that project's SSO sign-in page." product=productName)}}
 
 {{#each projects}}
-{{> DetailBoxStart this }}
-{{> DetailBoxField title=(t "Project:") plainText=this.projectName }}
-{{> DetailBoxField title=(t "Single sign-on:") plainText=this.providerNames }}
-{{> DetailBoxEnd this }}
-
 {{> ButtonBlock buttonUrl=this.signInUrl buttonText=(tt "Sign In to {{project}}" project=this.projectName) }}
 {{/each}}
 

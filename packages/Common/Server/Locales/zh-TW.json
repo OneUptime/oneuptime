@@ -234,7 +234,6 @@
   "Powered by": "技術支援：",
   "Probe behind: {{behindProbeNames}}": "探測器落後：{{behindProbeNames}}",
   "Probe disconnected: {{disconnectedProbeNames}}": "探測器已中斷連線：{{disconnectedProbeNames}}",
-  "Project:": "專案：",
   "Read Full Postmortem": "閱讀完整的事後分析",
   "Resolved": "已解決",
   "Resource": "資源",

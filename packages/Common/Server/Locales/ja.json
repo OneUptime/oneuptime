@@ -234,7 +234,6 @@
   "Powered by": "提供:",
   "Probe behind: {{behindProbeNames}}": "プローブが遅延しています: {{behindProbeNames}}",
   "Probe disconnected: {{disconnectedProbeNames}}": "プローブが切断されました: {{disconnectedProbeNames}}",
-  "Project:": "プロジェクト:",
   "Read Full Postmortem": "事後分析をすべて読む",
   "Resolved": "解決済み",
   "Resource": "リソース",

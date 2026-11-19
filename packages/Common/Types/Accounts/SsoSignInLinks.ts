@@ -34,10 +34,10 @@ import { translationKey, Translator } from "../Translator";
  * signs one in). It lists the projects that account has joined - never one
  * it was only invited to, which anyone could have done to put their own
  * provider in front of a stranger - whose own SAML or OIDC providers are on,
- * each with its providers' names and its SSO sign-in link. The link opens
- * OneUptime's own page for the project, which lists the providers; the
- * email itself links to no identity provider. Nothing is sent for an address
- * with no account, or none in such a project.
+ * each as a button to its SSO sign-in link. The link opens OneUptime's own
+ * page for the project, which lists the providers; the email itself links to
+ * no identity provider. Nothing is sent for an address with no account, or
+ * none in such a project.
  *
  * The email is written in the account's own language, and says exactly
  * what it is, when and from where it was asked for, and that it can be
@@ -60,18 +60,10 @@ export const SSO_SIGN_IN_LINKS_CANNOT_BE_EMAILED_MESSAGE: string =
 // The most projects one email lists; a person in more can ask their admins.
 export const MAX_EMAILED_SSO_PROJECTS: number = 20;
 
-// The most providers one project's row names.
-export const MAX_EMAILED_SSO_PROVIDERS_PER_PROJECT: number = 10;
-
-// What sets the providers' names apart in a project's row.
-export const SSO_SIGN_IN_LINKS_PROVIDER_SEPARATOR: string = " · ";
-
-// One project the email lists.
+// One project the email lists, as a button to its SSO sign-in page.
 export interface EmailedSsoProject {
   // As its admins named it: their words, escaped wherever they are drawn.
   projectName: string;
-  // Its SAML and OIDC providers that are on, as their admins named them.
-  providerNames: ReadonlyArray<string>;
   // Its SSO sign-in link: OneUptime's own page, /accounts/sso/<project id>.
   signInUrl: string;
 }
@@ -100,36 +92,7 @@ export const getSsoSignInLinksSubject: (
 };
 
 /*
- * A project's providers as its row names them: trimmed, each once, none
- * empty, at most MAX_EMAILED_SSO_PROVIDERS_PER_PROJECT, set apart with a dot
- * - names side by side, not a sentence, so no language has to word a list.
- */
-export const getEmailedProviderNames: (
-  names: ReadonlyArray<string>,
-) => string = (names: ReadonlyArray<string>): string => {
-  const kept: Array<string> = [];
-  const seen: Set<string> = new Set<string>();
-
-  for (const name of names) {
-    const trimmed: string = (name || "").trim();
-
-    if (!trimmed || seen.has(trimmed.toLowerCase())) {
-      continue;
-    }
-
-    seen.add(trimmed.toLowerCase());
-    kept.push(trimmed);
-
-    if (kept.length >= MAX_EMAILED_SSO_PROVIDERS_PER_PROJECT) {
-      break;
-    }
-  }
-
-  return kept.join(SSO_SIGN_IN_LINKS_PROVIDER_SEPARATOR);
-};
-
-/*
- * The template's variables: the projects as rows (at most
+ * The template's variables: the projects, a button each (at most
  * MAX_EMAILED_SSO_PROJECTS, each with a name and a link), and where the
  * request came from, a row only for what is known.
  */
@@ -146,7 +109,6 @@ export const getSsoSignInLinksEmailVariables: (
     .map((project: EmailedSsoProject): JSONObject => {
       return {
         projectName: (project.projectName || "").trim(),
-        providerNames: getEmailedProviderNames(project.providerNames),
         signInUrl: project.signInUrl,
       };
     });

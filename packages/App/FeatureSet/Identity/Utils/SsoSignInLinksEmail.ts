@@ -205,9 +205,8 @@ export default class SsoSignInLinksEmail {
   }
 
   /*
-   * The projects the account has joined whose own SAML or OIDC providers
-   * are on, by name, each with its providers (oldest first) and its SSO
-   * sign-in link.
+   * The projects the account has joined that have an own SAML or OIDC
+   * provider that is on, by name, each with its SSO sign-in link.
    */
   public static async findProjects(
     userId: ObjectID,
@@ -247,11 +246,7 @@ export default class SsoSignInLinksEmail {
           isEnabled: true,
         },
         select: {
-          name: true,
           projectId: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -265,11 +260,7 @@ export default class SsoSignInLinksEmail {
           isEnabled: true,
         },
         select: {
-          name: true,
           projectId: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -279,21 +270,16 @@ export default class SsoSignInLinksEmail {
       }),
     ]);
 
-    const providerNames: Map<string, Array<string>> = new Map();
+    // The projects with a provider of their own that is on.
+    const withSso: Set<string> = new Set<string>();
 
     for (const provider of [...samlProviders, ...oidcProviders]) {
-      if (!provider.projectId) {
-        continue;
+      if (provider.projectId) {
+        withSso.add(provider.projectId.toString().toLowerCase());
       }
-
-      const key: string = provider.projectId.toString().toLowerCase();
-      const names: Array<string> = providerNames.get(key) || [];
-
-      names.push(provider.name || "");
-      providerNames.set(key, names);
     }
 
-    if (providerNames.size === 0) {
+    if (withSso.size === 0) {
       return [];
     }
 
@@ -301,7 +287,7 @@ export default class SsoSignInLinksEmail {
       query: {
         _id: QueryHelper.any(
           projectIds.filter((projectId: ObjectID): boolean => {
-            return providerNames.has(projectId.toString().toLowerCase());
+            return withSso.has(projectId.toString().toLowerCase());
           }),
         ),
       },
@@ -329,8 +315,6 @@ export default class SsoSignInLinksEmail {
       .map((project: Project): EmailedSsoProject => {
         return {
           projectName: project.name || "",
-          providerNames:
-            providerNames.get(project.id!.toString().toLowerCase()) || [],
           signInUrl: new URL(
             httpProtocol,
             host,
