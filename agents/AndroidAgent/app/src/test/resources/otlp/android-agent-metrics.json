@@ -121,6 +121,12 @@
             }
           },
           {
+            "key": "oneuptime.agent.permissions.missing",
+            "value": {
+              "stringValue": "none"
+            }
+          },
+          {
             "key": "oneuptime.label.store",
             "value": {
               "stringValue": "0412"

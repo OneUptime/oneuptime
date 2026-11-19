@@ -65,6 +65,8 @@ class GoldenPayloadTest {
                 ),
             ipAddresses = listOf("10.20.30.40", "fd00::40"),
             agentVersion = "17.0.12",
+            // The kiosk reads DropBox (its logs say so): it lacks no grant.
+            missingPermissions = emptyList(),
         )
 
     private val snapshot =

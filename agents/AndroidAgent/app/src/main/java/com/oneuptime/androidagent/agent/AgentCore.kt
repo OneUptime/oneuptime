@@ -55,6 +55,8 @@ class AgentEnvironment(
     val takeDroppedDropBoxRecord: () -> LogRecord? = { null },
     // Where the last snapshot's CPU use came from, or why there was none (SnapshotCollector.capabilities).
     val cpuReading: () -> CollectorCapabilities? = { null },
+    // The grants the agent still lacks here (AgentPermissions), for the resource; null when unknown.
+    val missingPermissions: (config: AgentConfig) -> List<AgentGrant>? = { null },
 )
 
 /** How the last cycle went, for the notification and the setup screen. */
@@ -136,7 +138,8 @@ class AgentCore(
         }
 
         val now: Long = clock.nowMillis()
-        val resource: List<Attribute> = DeviceResource.build(facts, config.identity, environment.ipAddresses(), agentVersion)
+        val resource: List<Attribute> =
+            DeviceResource.build(facts, config.identity, environment.ipAddresses(), agentVersion, environment.missingPermissions(config))
         val records: MutableList<LogRecord> = mutableListOf()
 
         // DropBox first: what it says of the last reboot goes on the boot's own record.
