@@ -4,7 +4,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import RetryAfter from "../../../../Utils/RetryAfter";
-import { DataSourceHttpResponse } from "../../DataSource/HttpFetch";
+import {
+  DataSourceHttpResponse,
+  getDataSourceHttpStatusError,
+} from "../../DataSource/HttpFetch";
 import { asSentence, withAttempts } from "../../DataSource/HttpFailure";
 import { HttpRetryReason, HttpRetryVerdict } from "../../DataSource/HttpRetry";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
@@ -324,10 +327,9 @@ export function classifyAwsError(data: {
 
 // What a transport that throws for a status outside 2xx says of an answer (DataSourceHttpFetch).
 function transportErrorOf(response: DataSourceHttpResponse): BadDataException {
-  return new BadDataException(
-    `Data source responded with HTTP ${response.statusCode}: ${(
-      response.bodyText || ""
-    ).substring(0, 500)}`,
+  return getDataSourceHttpStatusError(
+    response.statusCode,
+    response.bodyText || "",
   );
 }
 
