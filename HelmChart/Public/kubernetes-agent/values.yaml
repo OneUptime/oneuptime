@@ -323,7 +323,7 @@ sampling:
 # upgrade with --reuse-values keeps (see NOTES.txt).
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: "0.161.0"
+  tag: "0.165.0"
   pullPolicy: IfNotPresent
 
 # Debug sidecar — drops a shell + network tools (curl, dig, nc, tcpdump, …)

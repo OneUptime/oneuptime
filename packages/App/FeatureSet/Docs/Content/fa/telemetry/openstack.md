@@ -1714,7 +1714,7 @@ sudo userdel oneuptime-openstack
 
 | ایمیج | از کجا می‌آید | برای چه |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | collector. همیشه، و پروفایل‌های [لاگ‌ها](#لاگهای-سرویس) و [traceها](#ردیابی-درخواستها-در-صفحه-کنترل) همان را اجرا می‌کنند |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | collector. همیشه، و پروفایل‌های [لاگ‌ها](#لاگهای-سرویس) و [traceها](#ردیابی-درخواستها-در-صفحه-کنترل) همان را اجرا می‌کنند |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | exporter همراه، و آنکه سهمیه‌های پروژه را می‌خواند. اگر [exporter خودتان را اجرا می‌کنید](#عامل-را-نصب-و-راهاندازی-کنید) لازم نیست |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [عامل هوش مصنوعی](#عامل-هوش-مصنوعی). اگر سرویسش را از `docker-compose.yml` بردارید لازم نیست. tag با نام `release` با هر انتشار OneUptime جلو می‌رود، پس هنگام ارتقا دوباره کپی کنید |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | فقط [مسیر پایگاه داده](/docs/telemetry/openstack-very-large-clouds#مسیر-پایگاهداده) |
@@ -1722,7 +1722,7 @@ sudo userdel oneuptime-openstack
 دو موردی که digest دارند با digest کپی می‌شوند، پس mirrorی که digest را نگه دارد همان بایت‌ها را دارد. روی ماشینی که به اینترنت و رجیستری شما می‌رسد، `crane copy` آن را نگه می‌دارد (`skopeo copy --all --preserve-digests` هم همین‌طور). یا آن‌ها را با `docker save` در فایلی ذخیره کنید، از آن طرف ببرید، و با `docker load` روی ماشین عامل بارگذاری کنید.
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

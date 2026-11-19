@@ -254,7 +254,7 @@ Fjern kommentaren foran receiveren `journald` og pipelinen `logs` i `otel-collec
 Standardimaget `otel/opentelemetry-collector-contrib` er bygget `FROM scratch`: det har ingen `journalctl`, som journald-receiveren kjører, og kjører som en bruker som ikke kan lese journalen. Bygg denne innpakningen og pek `image:` i `docker-compose.yml` mot den:
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

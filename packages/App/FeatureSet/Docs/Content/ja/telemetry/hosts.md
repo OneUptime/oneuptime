@@ -205,7 +205,7 @@ Linux では、コレクターは権限を持たないユーザー `oneuptime-co
 | `--key KEY` | `-Key KEY` | プロジェクトのテレメトリ取り込みキー。 |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | ホストにラベルを付けます。複数のラベルは繰り返して指定し、Windows ではカンマ区切りで列挙します。 |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | `${env:NAME}` を読む設定のために、コレクターに環境変数を渡します。 |
-| `--version VERSION` | `-Version VERSION` | インストールするコレクターのリリース。既定は 0.161.0 です。 |
+| `--version VERSION` | `-Version VERSION` | インストールするコレクターのリリース。既定は 0.165.0 です。 |
 | `--download-url URL` | `-DownloadUrl URL` | GitHub と同じフォルダー構成のミラーからリリースをダウンロードします。 |
 | `--proxy URL` | `-Proxy URL` | ダウンロードとコレクターのすべての通信を HTTP プロキシ経由にします。 |
 | `--replace-existing` | `-ReplaceExisting` | 手動でインストールしたコレクターを停止して無効にします。 |
