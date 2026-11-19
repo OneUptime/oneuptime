@@ -178,6 +178,7 @@ const SOURCES: Record<string, string> = {
   callApi: `${NOTIFICATION}/API/Call.ts`,
   incomingCallApi: `${NOTIFICATION}/API/IncomingCall.ts`,
   callTimelineApi: `${COMMON_SERVER}/API/UserOnCallLogTimelineAPI.ts`,
+  twilioWebhookSignature: `${COMMON_SERVER}/Utils/TwilioWebhookSignature.ts`,
   callTimelineModel:
     "packages/Common/Models/DatabaseModels/UserOnCallLogTimeline.ts",
   callSmsConfigTable: `${DASHBOARD}/Components/CallSMS/CallSMSConfigTable.tsx`,
@@ -3667,38 +3668,45 @@ describe("Twilio Integration, against the notification server and the forms", ()
       "NotificationMiddleware.isValidCallNotificationRequest",
     );
     expect(page).toContain("Keep `/api` on the keypad route.");
-    expect(page).toContain("keypad acknowledgement uses a signed query token");
+    expect(page).toContain(
+      "and keypad acknowledgement the signed token in its query",
+    );
   });
 
-  it("the voicemail callback checks its URL token and Twilio's signature, as the page says (#6594)", () => {
+  it("the SMS delivery, call outcome and voicemail callbacks check their URL token and Twilio's signature, as the page says (#6594, #9979)", () => {
+    const smsApi: string = readSource("smsApi");
     const callApi: string = readSource("callApi");
-    const voicemail: string = fs.readFileSync(
-      path.join(
-        REPO_DIR,
-        "packages/App/FeatureSet/Notification/Utils/VoicemailCallback.ts",
-      ),
-      "utf8",
-    );
+    const signature: string = readSource("twilioWebhookSignature");
 
+    expect(smsApi).toContain(
+      "isStatusCallbackTokenValid(token, smsLog.statusCallbackToken)",
+    );
     expect(callApi).toContain(
       "isStatusCallbackTokenValid(token, callLog.statusCallbackToken)",
     );
-    expect(callApi).toContain("await findTwilioAccountThatSigned({");
-    expect(voicemail).toContain(
+    // The SMS's status callback, and the call's status and voicemail callbacks.
+    expect(
+      smsApi.split("await findTwilioAccountThatSigned({").length - 1,
+    ).toBe(1);
+    expect(
+      callApi.split("await findTwilioAccountThatSigned({").length - 1,
+    ).toBe(2);
+    expect(signature).toContain(
       'export const TWILIO_SIGNATURE_HEADER: string = "x-twilio-signature";',
     );
-    expect(voicemail).toContain(
-      ".validateWebhookSignature(data.request, signature)",
+    expect(signature).toContain(
+      "return validateRequest(data.authToken, signature, url, parameters);",
     );
     expect(page).toContain(
-      "The voicemail callback checks both its URL token and Twilio's signature.",
+      "The SMS delivery, call outcome and voicemail callbacks also check the token in their URL",
     );
     expect(page).toContain(
       "| POST | `/notification/call/amd-callback/:callLogId/:token` | Whether a person or voicemail answered an on-call call |",
     );
   });
 
-  it("the incoming-call handlers check Twilio's signature", () => {
+  it("every callback in the table checks Twilio's signature, with the account that sent the SMS or placed the call (#9979)", () => {
+    // The incoming-call handlers, with the config of the number called.
     expect(
       (
         readSource("incomingCallApi").match(
@@ -3706,8 +3714,59 @@ describe("Twilio Integration, against the notification server and the forms", ()
         ) || []
       ).length,
     ).toBeGreaterThanOrEqual(2);
-    expect(page).toContain("Incoming-call handlers validate Twilio signatures");
+    // The keypad route, with the account that placed the call.
+    expect(readSource("callTimelineApi")).toContain(
+      "await findTwilioAccountThatSigned({",
+    );
+    // The project's own Twilio configs and the server's own account.
+    const signature: string = readSource("twilioWebhookSignature");
+    expect(signature).toContain("ProjectCallSMSConfigService.findBy({");
+    expect(signature).toContain("toServerTwilioConfig(globalConfig)");
+
+    expect(page).toContain(
+      "Every callback in the table checks Twilio's signature, made with the auth token of the Twilio account that sent the SMS or placed the call: the project's Twilio configuration or the installation-wide account.",
+    );
     expect(page).toContain("`X-Twilio-Signature` header through proxies");
+  });
+
+  it("a callback whose signature does not match is refused with a 403, changes nothing, and is logged as the page quotes it (#9979)", () => {
+    const signature: string = readSource("twilioWebhookSignature");
+
+    for (const source of [
+      readSource("smsApi"),
+      readSource("callApi"),
+      readSource("callTimelineApi"),
+    ]) {
+      // Refused before anything is written: right after the check.
+      expect(source).toMatch(
+        /if \(!signed\.account\) \{\s*logger\.warn\(\s*getTwilioCallbackRefusedMessage\(\{[\s\S]*?\}\),\s*\);\s*res\.status\(403\)\.send\("Forbidden"\);\s*return;\s*\}/,
+      );
+    }
+
+    expect(signature).toContain(
+      'export const TWILIO_CALLBACK_REFUSED: string = "Twilio callback refused";',
+    );
+    expect(page).toContain(
+      "A callback whose signature does not match is refused with a 403 and changes nothing.",
+    );
+    expect(page).toContain(
+      "the server's log has a line that starts with `Twilio callback refused`",
+    );
+    expect(page).toContain(
+      "A 403 means OneUptime refused the callback: the server's log says why, in a line that starts with `Twilio callback refused`.",
+    );
+  });
+
+  it("the signature is checked at the URL HOST and HTTP_PROTOCOL generate, and at the one the request's headers name, as the page says (#9979)", () => {
+    const signature: string = readSource("twilioWebhookSignature");
+
+    expect(signature).toContain('request.get?.("x-forwarded-proto")');
+    expect(signature).toContain('request.get?.("x-forwarded-host")');
+    expect(signature).toContain('request.get?.("host")');
+    expect(signature).toContain("urls.push(`${HttpProtocol}${Host}${path}`);");
+    expect(page).toContain(
+      "OneUptime checks the signature against the URL that `HOST` and `HTTP_PROTOCOL` generate, and against the one that the request's `Host`, `X-Forwarded-Host` and `X-Forwarded-Proto` headers name",
+    );
   });
 
   it("the Auth Token is read back by the roles the column names, and stored encrypted", () => {
