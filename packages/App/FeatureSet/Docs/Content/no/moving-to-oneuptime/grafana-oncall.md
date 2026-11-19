@@ -56,9 +56,9 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | I Grafana OnCall | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. |
-| Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
-| Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme overlevering og de samme vakttimene, i vaktplanens tidssone, eid av vaktplanens team. En rotasjon på et høyere lag går fortsatt foran lagene under. |
-| Eskaleringskjeder | Vaktpolicyer | Trinnene som varsler personer, et team eller den som har vakt i en vaktplan, blir eskaleringsregler, og et ventetrinn blir ventetiden før neste regel. Et trinn som gjentar kjeden, blir policyens gjentakelser. |
+| Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. Har to team samme navn, overføres det andre elementet med et nummer, for eksempel `Platform 2`, og rapporten viser navnet det ble opprettet med. |
+| Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme overlevering og de samme vakttimene, i vaktplanens tidssone, eid av vaktplanens team. En rotasjon på et høyere lag går fortsatt foran lagene under. Har to vaktplaner samme navn, overføres det andre elementet med et nummer, for eksempel `Primary 2`, og rapporten viser navnet det ble opprettet med. |
+| Eskaleringskjeder | Vaktpolicyer | Trinnene som varsler personer, et team eller den som har vakt i en vaktplan, blir eskaleringsregler, og et ventetrinn blir ventetiden før neste regel. Et trinn som gjentar kjeden, blir policyens gjentakelser. Har to eskaleringskjeder samme navn, overføres det andre elementet med et nummer, for eksempel `Primary 2`, og rapporten viser navnet det ble opprettet med. |
 
 Rotasjoner på samme lag som har vakt samtidig, og en rotasjon som setter flere personer på vakt på én gang, blir hver sin OneUptime-vaktplan, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet vaktplanen, varsler alle.
 

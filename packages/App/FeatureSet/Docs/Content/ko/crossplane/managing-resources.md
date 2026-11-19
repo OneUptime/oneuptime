@@ -32,7 +32,7 @@ kind의 필드는 Terraform 리소스의 인수를 camelCase로 바꾼 것이며
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider`는 OneUptime에 있는 그대로의 레코드를 `id`와 함께 보여 줍니다. 생략한 필드를 OneUptime이 기본값 등으로 채우면, 그 값은 레코드가 만들어진 뒤 `spec.forProvider`에 복사됩니다. 그래서 다음 확인에서 바꿀 것이 없습니다.
+`status.atProvider`는 OneUptime에 있는 그대로의 레코드를 `id`와 함께 보여 줍니다. 생략한 필드를 OneUptime이 기본값 등으로 채우면, 그 값은 레코드가 만들어진 뒤 `spec.forProvider`에 복사됩니다. 그래서 다음 확인에서 바꿀 것이 없습니다. 단, OneUptime이 직접 최신으로 유지하는 필드는 절대 복사되지 않습니다. [OneUptime이 최신으로 유지하는 필드](#oneuptime이-최신으로-유지하는-필드)를 참고하세요.
 
 ## 다른 리소스 참조하기
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-레코드가 만들어진 뒤 어떤 필드를 대시보드에 맡기려면, 그 필드를 `spec.forProvider` 대신 `spec.initProvider`에 쓰세요. 이 값은 레코드를 만들 때만 쓰이고, 그 후에는 되돌려지지 않습니다. 레코드 전체를 대시보드에 맡기려면 관리 정책에서 `Update`를 빼세요: `["Observe", "Create", "Delete", "LateInitialize"]`.
+레코드가 만들어진 뒤 어떤 필드를 대시보드에 맡기려면, 그 필드를 `spec.forProvider` 대신 `spec.initProvider`에 쓰세요. 레코드는 그 값으로 만들어지고, 프로바이더는 그 값을 `spec.forProvider`에 복사하지도, 되돌리지도 않습니다. 이 방법은 선택 사항인 모든 필드에 쓸 수 있으며, 모니터의 `name`처럼 레코드에 꼭 필요한 필드는 `spec.forProvider`에 써야 합니다. 레코드 전체를 대시보드에 맡기려면 관리 정책에서 `Update`를 빼세요: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### OneUptime이 최신으로 유지하는 필드
+
+일부 필드는 OneUptime이 최신으로 유지하는 것이며, 프로바이더는 이를 OneUptime에 맡깁니다. 프로바이더는 이 필드들을 `spec.forProvider`에 복사하지도, 되돌리지도 않습니다.
+
+- 텔레메트리 모니터가 마지막으로 실행된 시각(`telemetryMonitorLastMonitorAt`)이나 Kubernetes 클러스터의 노드 수(`nodeCount`)처럼 OneUptime만 쓰는 필드는 `status.atProvider`에만 표시됩니다.
+- 모니터의 `currentMonitorStatusId`나 인시던트의 `currentIncidentStateId`처럼 레코드의 초기값을 지정할 수 있는 필드는 `spec.initProvider`나 `spec.forProvider`에 써서 레코드를 만들 수 있습니다. 그 뒤로는 모니터의 확인이 모니터 상태를 바꾸듯 OneUptime이 그 값을 바꾸며, 현재 값은 `status.atProvider`에 표시됩니다.
+
+`kubectl explain`은 초기값을 지정할 수 있는 각 필드의 설명에서 이를 알려 줍니다. 이전 버전의 프로바이더가 `spec.forProvider`를 이 필드들로 채운 리소스도, 아무것도 수정하지 않아도 저절로 OneUptime과 충돌하지 않게 됩니다.
 
 ## 리소스 삭제하기
 

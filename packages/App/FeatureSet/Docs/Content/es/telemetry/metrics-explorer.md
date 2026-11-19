@@ -72,6 +72,8 @@ Abra **Ajustes de visualización** para elegir el **Tipo de gráfico** (líneas,
 
 Cada consulta dibuja su propio gráfico. Para dibujar una consulta en el mismo gráfico que la anterior, active **Superponer con la consulta anterior** en sus **Ajustes de visualización**.
 
+Un gráfico superpuesto lee su eje de valores izquierdo en la unidad de su primera consulta, y convierte a ella una consulta en otra unidad del mismo tipo, como megabytes en un gráfico en gigabytes. Una consulta en una unidad de otro tipo, como bytes en un gráfico en porcentaje, se dibuja sobre un segundo eje de valores a la derecha del gráfico, en su propia unidad, y la leyenda bajo el gráfico indica sobre qué eje se dibuja cada serie. Solo un tercer tipo de unidad no encaja en ningún eje: se dibuja sobre el eje izquierdo, y el gráfico y el interruptor lo indican.
+
 ## Combinar consultas con una fórmula
 
 :::steps

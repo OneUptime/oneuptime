@@ -150,6 +150,50 @@ describe("SeriesDebugHints", () => {
       ]);
     });
 
+    /*
+     * Node Image Disk Almost Full (#9843) groups by the node as High Node
+     * Disk Usage does, so its alert hands over the same commands: the
+     * kubelet's reading is the only place the node's own image filesystem
+     * (node.runtime.imageFs) shows, since the agent's collector exports none.
+     */
+    test.each(["k8s-high-disk-usage", "k8s-node-image-disk-almost-full"])(
+      "%s's alert starts with the node, its pods and the kubelet's reading of its disks",
+      (templateId: string) => {
+        const template: KubernetesAlertTemplate | undefined =
+          getAllKubernetesAlertTemplates().find(
+            (candidate: KubernetesAlertTemplate) => {
+              return candidate.id === templateId;
+            },
+          );
+        expect(template).toBeDefined();
+
+        const step: MonitorStep = template!.getMonitorStep({
+          clusterIdentifier: "prod-eu",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "Test Monitor",
+        });
+        const seriesLabels: JSONObject = {};
+        for (const key of MonitorStep.getGroupByAttributeKeys(step)) {
+          seriesLabels[key] = "ip-10-0-3-14";
+        }
+
+        expect(Object.keys(seriesLabels)).toEqual(["resource.k8s.node.name"]);
+        expect(
+          getCommandStrings({
+            monitorType: MonitorType.Kubernetes,
+            seriesLabels,
+          }),
+        ).toEqual([
+          "kubectl describe node ip-10-0-3-14",
+          "kubectl get pods --all-namespaces --field-selector spec.nodeName=ip-10-0-3-14 -o wide",
+          "kubectl get --raw /api/v1/nodes/ip-10-0-3-14/proxy/stats/summary",
+        ]);
+      },
+    );
+
     test("quotes a node name that needs it inside the proxy path", () => {
       const commands: Array<string> = getCommandStrings({
         monitorType: MonitorType.Kubernetes,

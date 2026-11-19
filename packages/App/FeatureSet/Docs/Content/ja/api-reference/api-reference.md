@@ -254,7 +254,9 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-レコード自身の名前を (大文字と小文字を問わず) もう一度送る更新は名前の変更にはならないため、以前に名前を共有していたレコードも変更でき、別々の名前に変更できます。チーム、オンコールポリシー、オンコールスケジュールについては、`GET /api/shared-names/team` (または `on-call-policy`、`on-call-schedule`) が、名前を共有しているものを `{"groups": [["<id>", "<id>"]]}` の形で答えます。各グループは、名前が同じに読めるレコードのうち、キーが読み取れるものの ID です。
+応答には、メッセージと並んで `"refusalCode": "name_taken"` が含まれます。この拒否は、言い回しが変わることのある文ではなく、このコードで見分けてください。何も書き込まれていないため、ほかのレコードがその名前を手放したら同じリクエストをもう一度送れます。Terraform プロバイダーは最大 30 秒間もう一度要求します。
+
+レコード自身の名前を (大文字と小文字を問わず) もう一度送る更新は名前の変更にはならないため、以前に名前を共有していたレコードも変更でき、別々の名前に変更できます。チーム、ラベル、オンコールポリシー、オンコールスケジュールについては、`GET /api/shared-names/team` (または `label`、`on-call-policy`、`on-call-schedule`) が、名前を共有しているものを `{"groups": [["<id>", "<id>"]]}` の形で答えます。各グループは、名前が同じに読めるレコードのうち、キーが読み取れるものの ID です。アーカイブ済みのラベルとオンコールポリシーは含まれません。
 
 ### スイッチ
 

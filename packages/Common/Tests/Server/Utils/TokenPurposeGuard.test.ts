@@ -201,8 +201,9 @@ const CLAIMS_SIGNED_ONLY_WITH_A_PURPOSE: Array<string> = [
  * or an SSO provider.
  */
 const RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS: Record<string, string> = {
-  "packages/App/FeatureSet/Notification/Services/CallService.ts":
-    "a phone call's keypad answers, the message for each key",
+  // CallService signed these itself until #10025.
+  "packages/Common/Server/Utils/OnCall/OnCallKeypadToken.ts":
+    "a phone call's keypad answers, the message for each key, with what the token is for and the notification the call was placed for",
 };
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;

@@ -43,3 +43,101 @@ export function isKubernetesNamespaceName(value: unknown): value is string {
     NAMESPACE_NAME.test(value)
   );
 }
+
+/*
+ * THE OBJECTS A FINDING NAMES (#9874), and so the objects a finding can be
+ * accepted for: a workload a pod control fails - a Deployment, StatefulSet,
+ * DaemonSet, ReplicaSet, Job, CronJob, DeploymentConfig, or the pod itself
+ * when nothing owns it - and the roles, bindings, service accounts and
+ * namespaces the CIS benchmark's other controls fail. As Kubernetes names
+ * each kind; an accepted finding stores it as written.
+ */
+export const KUBERNETES_COMPLIANCE_OBJECT_KINDS: ReadonlyArray<string> = [
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "ReplicaSet",
+  "Job",
+  "CronJob",
+  "DeploymentConfig",
+  "Pod",
+  "Role",
+  "ClusterRole",
+  "RoleBinding",
+  "ClusterRoleBinding",
+  "ServiceAccount",
+  "Namespace",
+];
+
+// The kinds no namespace holds: a finding names them with none.
+export const CLUSTER_SCOPED_COMPLIANCE_OBJECT_KINDS: ReadonlyArray<string> = [
+  "ClusterRole",
+  "ClusterRoleBinding",
+];
+
+export function isKubernetesComplianceObjectKind(
+  value: unknown,
+): value is string {
+  return (
+    typeof value === "string" &&
+    KUBERNETES_COMPLIANCE_OBJECT_KINDS.includes(value)
+  );
+}
+
+export function isClusterScopedComplianceObjectKind(kind: string): boolean {
+  return CLUSTER_SCOPED_COMPLIANCE_OBJECT_KINDS.includes(kind);
+}
+
+// The longest name Kubernetes gives an object (a DNS subdomain).
+export const KUBERNETES_OBJECT_NAME_MAX_LENGTH: number = 253;
+
+/*
+ * An object's name as Kubernetes allows one: at most 253 characters, none
+ * of them a slash, a space or a control character, and never "." or "..".
+ * Looser than a DNS name on purpose: a role or a binding may be named
+ * "system:node-proxier".
+ */
+const SLASH_OR_SPACE: RegExp = /[\s/]/;
+
+function hasControlCharacter(value: string): boolean {
+  for (let index: number = 0; index < value.length; index++) {
+    const code: number = value.charCodeAt(index);
+
+    if (code < 32 || code === 127) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function isKubernetesObjectName(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= KUBERNETES_OBJECT_NAME_MAX_LENGTH &&
+    value !== "." &&
+    value !== ".." &&
+    !SLASH_OR_SPACE.test(value) &&
+    !hasControlCharacter(value)
+  );
+}
+
+/*
+ * Whether an accepted finding still holds (#9874): until its expiry, when it
+ * has one. Once that passes the finding fails again, as it did before it was
+ * accepted; the acceptance stays listed, expired, until it is accepted again
+ * or revoked.
+ */
+export function isKubernetesAcceptanceInForce(
+  expiresAt: Date | string | null | undefined,
+  now: Date,
+): boolean {
+  if (!expiresAt) {
+    return true;
+  }
+
+  const time: number = new Date(expiresAt).getTime();
+
+  return Number.isNaN(time) || time > now.getTime();
+}

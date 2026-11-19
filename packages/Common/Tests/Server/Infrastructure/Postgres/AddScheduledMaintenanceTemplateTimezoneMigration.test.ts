@@ -7,7 +7,7 @@ import {
   getMetadataArgsStorage,
 } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddScheduledMaintenanceTemplateTimezone1809186700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186700000-AddScheduledMaintenanceTemplateTimezone";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186800000-AddScheduledMaintenanceTemplateTimezone";
 import ScheduledMaintenanceTemplate from "../../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -36,7 +36,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
  * left to generate once it has run.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186700000";
+const MIGRATION_TIMESTAMP: string = "1809186800000";
 
 const MIGRATION_BASE_NAME: string = "AddScheduledMaintenanceTemplateTimezone";
 
@@ -76,13 +76,13 @@ const makeQueryRunner: MakeQueryRunnerFunction = (): MakeQueryRunnerResult => {
 
 async function upStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddScheduledMaintenanceTemplateTimezone1809186700000().up(runner);
+  await new AddScheduledMaintenanceTemplateTimezone1809186800000().up(runner);
   return statements;
 }
 
 async function downStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddScheduledMaintenanceTemplateTimezone1809186700000().down(runner);
+  await new AddScheduledMaintenanceTemplateTimezone1809186800000().down(runner);
   return statements;
 }
 
@@ -140,13 +140,13 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddScheduledMaintenanceTemplateTimezone1809186700000();
+      new AddScheduledMaintenanceTemplateTimezone1809186800000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddScheduledMaintenanceTemplateTimezone1809186700000.prototype,
+        AddScheduledMaintenanceTemplateTimezone1809186800000.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -241,12 +241,12 @@ describe("the migration runs", () => {
 
   test("it is in the exported migration list, exactly once", () => {
     expect(SchemaMigrations).toContain(
-      AddScheduledMaintenanceTemplateTimezone1809186700000,
+      AddScheduledMaintenanceTemplateTimezone1809186800000,
     );
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
         return (
-          migration === AddScheduledMaintenanceTemplateTimezone1809186700000
+          migration === AddScheduledMaintenanceTemplateTimezone1809186800000
         );
       }),
     ).toHaveLength(1);
@@ -259,13 +259,13 @@ describe("the migration runs", () => {
    */
   test("its declared name, its class name and its timestamp agree", () => {
     expect(
-      new AddScheduledMaintenanceTemplateTimezone1809186700000().name,
+      new AddScheduledMaintenanceTemplateTimezone1809186800000().name,
     ).toBe(MIGRATION_CLASS_NAME);
-    expect(AddScheduledMaintenanceTemplateTimezone1809186700000.name).toBe(
+    expect(AddScheduledMaintenanceTemplateTimezone1809186800000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddScheduledMaintenanceTemplateTimezone1809186700000.name.match(
+      AddScheduledMaintenanceTemplateTimezone1809186800000.name.match(
         CLASS_TIMESTAMP,
       )?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
@@ -283,7 +283,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddScheduledMaintenanceTemplateTimezone1809186700000,
+      AddScheduledMaintenanceTemplateTimezone1809186800000,
     );
 
     expect(position).toBeGreaterThan(-1);

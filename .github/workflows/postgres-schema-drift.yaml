@@ -3338,6 +3338,29 @@ jobs:
           Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
           --forceExit
 
+      # A Kubernetes cluster's compliance follow-ups (#9874, #9876, #9880),
+      # on clones of the migrated inventory, cluster and compliance setting
+      # tables: a CronJob between runs scored from the pod template its
+      # snapshot carried (the workloads read by kind = ANY, their template
+      # blocks out of the spec's JSONB); a finding accepted for one object
+      # through the settings service, expired, accepted again and revoked,
+      # the update hook reading the rows it writes through
+      # findRowsAndHoldUpdateToThem; and each cluster's compliance summary
+      # written on its row in one hook-free statement, and the refresh job's
+      # run scoring the clusters that are due.
+      - name: Test a Kubernetes cluster's accepted findings, pod templates and compliance summary on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_KUBERNETES_COMPLIANCE_TESTS: "true"
+          KUBERNETES_COMPLIANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          KUBERNETES_COMPLIANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          KUBERNETES_COMPLIANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Kubernetes/KubernetesCompliancePostgres.test.ts
+          --forceExit
+
       # Clones the migrated user, project, team, team member, permission and
       # custom role tables into an isolated schema and searches a project's
       # people through POST /team-member/search-members (#7036), the real

@@ -1,4 +1,4 @@
-import { AddScheduledMaintenanceTemplateTimezone1809186700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186700000-AddScheduledMaintenanceTemplateTimezone";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186800000-AddScheduledMaintenanceTemplateTimezone";
 import ObjectID from "../../../../Types/ObjectID";
 import MaintenanceTemplateSchedule from "../../../../Types/ScheduledMaintenance/MaintenanceTemplateSchedule";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -344,7 +344,7 @@ describePostgres(
       await readTemplates(rowsBefore, false);
 
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new AddScheduledMaintenanceTemplateTimezone1809186700000().up(
+        await new AddScheduledMaintenanceTemplateTimezone1809186800000().up(
           queryRunner,
         );
       });
@@ -440,7 +440,7 @@ describePostgres(
 
     test("down() drops the column again, leaving the table as it was", async () => {
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new AddScheduledMaintenanceTemplateTimezone1809186700000().down(
+        await new AddScheduledMaintenanceTemplateTimezone1809186800000().down(
           queryRunner,
         );
       });

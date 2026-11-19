@@ -7,6 +7,10 @@ import {
   PROVIDER_DESCRIPTION,
   URL_ATTRIBUTE_DESCRIPTION,
 } from "./ProviderWords";
+import {
+  NAME_TAKEN_REFUSAL_CODE,
+  REFUSAL_CODE_FIELD,
+} from "Common/Types/Exception/NameTakenException";
 
 export class ProviderGenerator {
   private config: TerraformProviderConfig;
@@ -203,6 +207,10 @@ type Client struct {
     // The people this provider process has found by email address or ID
     // (people.go), so one person named by many resources is looked up once.
     people peopleDirectory
+
+    // How long a create or an update refused only because another record
+    // has the name is asked again (askAgainWhileNameIsTaken).
+    nameTakenRetry nameTakenRetry
 }
 
 // NewClient creates a new API client
@@ -228,16 +236,30 @@ func NewClient(oneuptimeUrl, apiKey, version string) (*Client, error) {
         HTTPClient: &http.Client{
             Timeout: time.Second * 60,
         },
-        ApiKey:    apiKey,
-        UserAgent: "terraform-provider-${this.config.providerName}/" + version,
+        ApiKey:         apiKey,
+        UserAgent:      "terraform-provider-${this.config.providerName}/" + version,
+        nameTakenRetry: defaultNameTakenRetry,
     }
 
     return client, nil
 }
 
 // DoRequest performs an HTTP request. The context propagates Terraform's
-// cancellation and deadlines into the HTTP layer.
+// cancellation and deadlines into the HTTP layer. A create or an update the
+// server refused only because another record has the name it asks for is
+// asked again for a while first (askAgainWhileNameIsTaken).
 func (c *Client) DoRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
+    resp, err := c.doRequestOnce(ctx, method, path, body)
+    if err != nil || !writesARecord(method) {
+        return resp, err
+    }
+
+    return c.askAgainWhileNameIsTaken(ctx, method, path, body, resp)
+}
+
+// doRequestOnce performs one HTTP request, asked again only after a failure
+// that says nothing about the request: a read's or a delete's 429 or 5xx.
+func (c *Client) doRequestOnce(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
     // Construct the full URL
     fullURL := c.BaseURL + path
 
@@ -316,6 +338,169 @@ func (c *Client) DoRequest(ctx context.Context, method, path string, body interf
     }
 
     return resp, nil
+}
+
+/*
+ * A NAME ANOTHER RECORD HAS, ASKED AGAIN WHILE ANOTHER RESOURCE GIVES IT UP
+ * (OneUptime/oneuptime#9855).
+ *
+ * Teams, labels, on-call policies and on-call schedules each have a name of
+ * their own in a project: a create, or a rename, onto a name another one
+ * has is refused with 400, and nothing is written. Terraform makes the
+ * independent changes of one apply side by side, so in a chain of renames
+ * (A becomes B while B becomes C) A's rename is refused whenever it runs
+ * before B's has given the name up. Asked again a moment later, it goes
+ * through, and the chain converges in one apply.
+ *
+ * The refusal is told apart by the code the server sends beside its message
+ * (Common/Types/Exception/NameTakenException.ts, whose constants these
+ * are), never by its English, which may be reworded. Any other answer is
+ * handed back at once, and so is the refusal of a server from before the
+ * code, as it always was.
+ *
+ * A swap (A and B for each other) or any cycle never goes through: none of
+ * its renames can go first. Once nameTakenRetry.window has passed since the
+ * first refusal, the refusal is handed back as it came, and ParseResponse
+ * says to go by way of a temporary name (nameTakenAdvice).
+ */
+const (
+    refusalCodeField     = "${REFUSAL_CODE_FIELD}"
+    nameTakenRefusalCode = "${NAME_TAKEN_REFUSAL_CODE}"
+)
+
+// How long, and how often, a refusal of a name another record has is asked again.
+type nameTakenRetry struct {
+    // How long, from the first refusal. Zero never asks again.
+    window time.Duration
+    // The wait before asking again the first time. Each wait doubles...
+    firstWait time.Duration
+    // ...up to this.
+    maxWait time.Duration
+}
+
+var defaultNameTakenRetry = nameTakenRetry{
+    window:    30 * time.Second,
+    firstWait: 500 * time.Millisecond,
+    maxWait:   5 * time.Second,
+}
+
+// A create (POST) or an update (PUT, PATCH): the requests a name is refused on.
+func writesARecord(method string) bool {
+    return method == "POST" || method == "PUT" || method == "PATCH"
+}
+
+// askAgainWhileNameIsTaken asks for the write again, with backoff, for as
+// long as the server refuses it because another record has the name and
+// nameTakenRetry.window has not passed. A refused write wrote nothing, so
+// asking again is safe, a create's POST included.
+func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path string, body interface{}, resp *http.Response) (*http.Response, error) {
+    retry := c.nameTakenRetry
+    if retry.window <= 0 {
+        return resp, nil
+    }
+    if retry.firstWait <= 0 {
+        retry.firstWait = defaultNameTakenRetry.firstWait
+    }
+    if retry.maxWait < retry.firstWait {
+        retry.maxWait = retry.firstWait
+    }
+
+    deadline := time.Now().Add(retry.window)
+    wait := retry.firstWait
+
+    for {
+        refused, err := isNameTakenResponse(resp)
+        if err != nil {
+            return nil, err
+        }
+
+        remaining := time.Until(deadline)
+        if !refused || remaining <= 0 {
+            return resp, nil
+        }
+
+        // The last time is asked when the window ends, not after it.
+        if wait > remaining {
+            wait = remaining
+        }
+
+        tflog.Debug(ctx, "OneUptime refused a name another record has; asking again, in case another resource of this apply is giving it up", map[string]any{
+            "method": method,
+            "path":   path,
+            "wait":   wait.String(),
+        })
+
+        select {
+        case <-ctx.Done():
+            return nil, ctx.Err()
+        case <-time.After(wait):
+        }
+
+        resp, err = c.doRequestOnce(ctx, method, path, body)
+        if err != nil {
+            return nil, err
+        }
+
+        wait *= 2
+        if wait > retry.maxWait {
+            wait = retry.maxWait
+        }
+    }
+}
+
+// isNameTakenResponse reports whether resp is a refusal of a name another
+// record has. It reads a 400's body to tell, and puts it back for the caller.
+func isNameTakenResponse(resp *http.Response) (bool, error) {
+    if resp == nil || resp.StatusCode != http.StatusBadRequest {
+        return false, nil
+    }
+
+    body, err := io.ReadAll(resp.Body)
+    resp.Body.Close()
+    if err != nil {
+        return false, fmt.Errorf("failed to read response body: %w", err)
+    }
+    resp.Body = io.NopCloser(bytes.NewReader(body))
+
+    return isNameTakenRefusal(body), nil
+}
+
+// isNameTakenRefusal reports whether an error body carries the code of a
+// refusal of a name another record has, beside its message.
+func isNameTakenRefusal(body []byte) bool {
+    var parsed map[string]interface{}
+    if err := json.Unmarshal(body, &parsed); err != nil {
+        return false
+    }
+
+    code, _ := parsed[refusalCodeField].(string)
+    return code == nameTakenRefusalCode
+}
+
+// nameTakenAdvice is what a refusal of a name another record has adds to the
+// server's own words once it has been asked again for the whole window: no
+// resource of this apply gave the name up.
+func (c *Client) nameTakenAdvice() string {
+    advice := "If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+    if c.nameTakenRetry.window <= 0 {
+        return advice
+    }
+
+    return fmt.Sprintf("The name was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)
+}
+
+// describeWait says a wait as an error message does: "30 seconds", "250ms".
+func describeWait(wait time.Duration) string {
+    if wait < time.Second || wait%time.Second != 0 {
+        return wait.String()
+    }
+
+    seconds := int(wait / time.Second)
+    if seconds == 1 {
+        return "1 second"
+    }
+
+    return fmt.Sprintf("%d seconds", seconds)
 }
 
 // Get performs a GET request
@@ -477,7 +662,14 @@ func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
 
     if resp.StatusCode >= 400 {
         body, _ := io.ReadAll(resp.Body)
-        return fmt.Errorf("the OneUptime API returned status %d: %s", resp.StatusCode, apiErrorMessage(body))
+        message := apiErrorMessage(body)
+
+        // A name another record still has: what to do when it is one of this configuration's.
+        if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {
+            message += " " + c.nameTakenAdvice()
+        }
+
+        return fmt.Errorf("the OneUptime API returned status %d: %s", resp.StatusCode, message)
     }
 
     if target == nil {

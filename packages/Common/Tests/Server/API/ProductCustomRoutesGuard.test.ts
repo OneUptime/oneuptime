@@ -273,6 +273,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PAGE_LINK,
       "`${new this.entityType().getCrudApiPath()?.toString()}/pass-on/:itemId`":
         PAGE_LINK,
+      // The acknowledge page's button: a form, which posts the page's token (#10025).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/acknowledge/:itemId`":
+        PAGE_LINK,
     },
   },
   // On-call user groups in Slack and Microsoft Teams.
@@ -408,6 +411,12 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {
       WATCHING_MONITORS_PATH: READ,
+    },
+  },
+  "packages/Common/Server/API/NetworkDeviceUntiedMonitorsAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      UNTIED_MONITORS_PATH: READ,
     },
   },
   "packages/Common/Server/API/PacketCaptureAPI.ts": {

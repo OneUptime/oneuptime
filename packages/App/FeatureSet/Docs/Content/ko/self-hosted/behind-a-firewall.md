@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | GET | `/l/*` | SMS, WhatsApp, Telegram 메시지의 단축 링크 |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | 호출 내용과 **Acknowledge** 버튼이 있는 페이지 |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** 버튼 |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** 버튼 |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | 선택: 호출을 다음 사람에게 넘기는 페이지 |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | 선택: 그 페이지의 버튼 |
 | GET | `/oneuptime-assets/*` | 이 페이지들의 글꼴, 스타일, 로고 |

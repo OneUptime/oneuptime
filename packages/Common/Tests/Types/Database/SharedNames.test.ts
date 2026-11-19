@@ -12,11 +12,11 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * WHICH RECORDS OF A PROJECT SHARE A NAME: WHAT A LIST ASKS (#9746).
  *
- * Teams, on-call policies and on-call schedules that were named alike
- * before their names were one record's each keep their names; their lists
- * mark them, from what GET /shared-names/:kind answers. The route names
- * each kind, and an answer reads back as it was written, every id in lower
- * case, anything that is not an answer as none.
+ * Teams, labels (#9856), on-call policies and on-call schedules that
+ * were named alike before their names were one record's each keep their
+ * names; their lists mark them, from what GET /shared-names/:kind answers.
+ * The route names each kind, and an answer reads back as it was written,
+ * every id in lower case, anything that is not an answer as none.
  */
 
 const TEAM_A: string = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -27,6 +27,9 @@ describe("the route", () => {
   test("names each kind", () => {
     expect(SHARED_NAMES_ROUTE).toBe("/shared-names");
     expect(getSharedNamesRoute(SharedNameKind.Team)).toBe("/shared-names/team");
+    expect(getSharedNamesRoute(SharedNameKind.Label)).toBe(
+      "/shared-names/label",
+    );
     expect(getSharedNamesRoute(SharedNameKind.OnCallPolicy)).toBe(
       "/shared-names/on-call-policy",
     );
@@ -35,14 +38,14 @@ describe("the route", () => {
     );
   });
 
-  test.each(["team", "on-call-policy", "on-call-schedule"])(
+  test.each(["team", "label", "on-call-policy", "on-call-schedule"])(
     "%j is a kind",
     (kind: string) => {
       expect(isSharedNameKind(kind)).toBe(true);
     },
   );
 
-  test.each(["label", "Team", "", undefined, 3, "team "])(
+  test.each(["labels", "Label", "Team", "", undefined, 3, "team "])(
     "%j is not",
     (kind: unknown) => {
       expect(isSharedNameKind(kind)).toBe(false);

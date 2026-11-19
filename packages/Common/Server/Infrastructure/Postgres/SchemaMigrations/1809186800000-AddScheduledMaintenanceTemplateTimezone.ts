@@ -24,10 +24,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * only for an instant. Nothing else about a template changes, and no next
  * event time is moved.
  */
-export class AddScheduledMaintenanceTemplateTimezone1809186700000
+export class AddScheduledMaintenanceTemplateTimezone1809186800000
   implements MigrationInterface
 {
-  public name: string = "AddScheduledMaintenanceTemplateTimezone1809186700000";
+  public name: string = "AddScheduledMaintenanceTemplateTimezone1809186800000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

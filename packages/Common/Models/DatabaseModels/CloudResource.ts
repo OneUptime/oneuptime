@@ -16,6 +16,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -383,6 +384,7 @@ export default class CloudResource extends BaseModel {
     title: "Cloud Platform",
     description:
       "Last-seen cloud.platform OpenTelemetry resource attribute, e.g. aws_ecs, gcp_cloud_run, azure_container_apps.",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -419,6 +421,7 @@ export default class CloudResource extends BaseModel {
     title: "Cloud Provider",
     description:
       "Last-seen cloud.provider OpenTelemetry resource attribute, e.g. aws, gcp, azure.",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -455,6 +458,7 @@ export default class CloudResource extends BaseModel {
     title: "Cloud Region",
     description:
       "Last-seen cloud.region OpenTelemetry resource attribute, e.g. us-east-1.",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -490,6 +494,7 @@ export default class CloudResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Cloud Account ID",
     description: "Last-seen cloud.account.id OpenTelemetry resource attribute.",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
