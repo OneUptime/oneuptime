@@ -1101,6 +1101,7 @@ import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./18091853474
 import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
 import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
 import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
+import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
 
 export default [
   InitialMigration,
@@ -2206,4 +2207,5 @@ export default [
   AddWorkflowRunAsApiKey1809185400000,
   AddWorkflowRunAsApiKeyKey1809185400100,
   AddProjectManageSignInWithSso1809185500000,
+  AddAIRunModelName1809185800000,
 ];
