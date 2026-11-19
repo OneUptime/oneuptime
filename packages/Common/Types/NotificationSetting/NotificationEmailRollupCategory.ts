@@ -33,6 +33,8 @@ export enum RollupCategory {
   AIAgents = "ai-agents",
   Slos = "slos",
   Exceptions = "exceptions",
+  DataObservability = "data-observability",
+  DataSecurity = "data-security",
   IncomingCalls = "incoming-calls",
   SecurityCases = "security-cases",
   SecurityHunts = "security-hunts",
@@ -57,6 +59,8 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.AIAgents]: "AI Agents",
   [RollupCategory.Slos]: "SLOs",
   [RollupCategory.Exceptions]: "Exceptions",
+  [RollupCategory.DataObservability]: "Data Observability",
+  [RollupCategory.DataSecurity]: "Data Security",
   [RollupCategory.IncomingCalls]: "Incoming Calls",
   [RollupCategory.SecurityCases]: "Security Cases",
   [RollupCategory.SecurityHunts]: "Security Hunts",
@@ -194,6 +198,18 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Exceptions,
 
   /*
+   * Data Observability's tables and pipelines, and Data Security's data
+   * stores (#9681). Categories of their own: an owner rule run over a
+   * thousand tables rolls up with itself, never with an incident's email.
+   */
+  [NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DataObservability,
+  [NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DataObservability,
+  [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION]:
+    RollupCategory.DataSecurity,
+
+  /*
    * Incoming Call Policies. A category of its own so a burst of on-call
    * configuration notices (one admin click can fan out a hundred) is never
    * what pushes a missed customer call over the rollup threshold.
@@ -296,6 +312,8 @@ export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
   RollupCategory.ScheduledMaintenance,
   RollupCategory.Probes,
   RollupCategory.AIAgents,
+  RollupCategory.DataObservability,
+  RollupCategory.DataSecurity,
   RollupCategory.StatusPages,
   RollupCategory.OnCall,
   RollupCategory.Other,

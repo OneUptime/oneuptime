@@ -5,8 +5,11 @@
  * whether it failed, how long it took, and how that compares with the
  * pipeline's typical run. Every five minutes, a pipeline whose schedule is
  * known writes how late its next run is, and a run still going writes how
- * its time so far compares (DataPipelineSchedule). Each row is tagged with
- * its pipeline, so a monitor scoped by the pipeline watches it alone.
+ * its time so far compares (DataPipelineSchedule). A pipeline whose circuit
+ * breaker is asked writes whether it stopped the pipeline, as it answers
+ * and every five minutes while the answer is kept (#9683). Each row is
+ * tagged with its pipeline, so a monitor scoped by the pipeline watches it
+ * alone.
  */
 export enum DataPipelineMetricName {
   // 1 for a run that failed or was aborted, 0 for one that completed.
@@ -17,6 +20,8 @@ export enum DataPipelineMetricName {
   RunDurationRatio = "oneuptime.data.pipeline.run_duration_ratio",
   // How long past its schedule the pipeline's next run is, in seconds; 0 while on time.
   OverdueSeconds = "oneuptime.data.pipeline.overdue_seconds",
+  // 1 while the pipeline's circuit breaker has stopped it, 0 once it says go.
+  CircuitBreakerStopped = "oneuptime.data.pipeline.circuit_breaker_stopped",
 }
 
 export const DataPipelineAttribute: {
@@ -59,5 +64,11 @@ export const DATA_PIPELINE_METRICS: ReadonlyArray<DataPipelineMetricDefinition> 
       description:
         "How long past its schedule a pipeline's next run is, in seconds: 0 while it is on time.",
       unit: "s",
+    },
+    {
+      name: DataPipelineMetricName.CircuitBreakerStopped,
+      description:
+        "1 while the pipeline's circuit breaker has stopped it, 0 once it says go or a run starts: written as the circuit breaker answers, and every five minutes while its answer is kept.",
+      unit: "",
     },
   ];

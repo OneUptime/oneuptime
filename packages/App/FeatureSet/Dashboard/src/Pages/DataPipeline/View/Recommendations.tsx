@@ -4,9 +4,10 @@ import RecommendationsPage from "../../../Components/Recommendations/Recommendat
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 /*
- * The pipeline's recommended monitors: a failed run, and a run far longer
- * than usual (Common/Types/Monitor/DataPipelineAlertTemplates), through the
- * shared shell.
+ * The pipeline's recommended monitors: a failed run, a run far longer than
+ * usual, a pipeline that is late, and a pipeline its circuit breaker
+ * stopped (#9683) (Common/Types/Monitor/DataPipelineAlertTemplates),
+ * through the shared shell. Each one's alert goes to the pipeline's owners.
  */
 const DataPipelineRecommendations: FunctionComponent<
   PageComponentProps

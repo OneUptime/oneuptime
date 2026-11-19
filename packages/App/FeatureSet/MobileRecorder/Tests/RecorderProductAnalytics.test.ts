@@ -19,7 +19,10 @@ import MobileReplayRecorder, {
   getReplayStorageNamespace,
   MobileReplayDiagnosticEvent,
 } from "../src/MobileReplayRecorder";
-import { productAnalyticsSessionKey } from "../src/ProductAnalytics";
+import {
+  productAnalyticsQueueKey,
+  productAnalyticsSessionKey,
+} from "../src/ProductAnalytics";
 import {
   PRODUCT_ANALYTICS_EVENTS_PATH,
   PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
@@ -684,6 +687,107 @@ describe("MobileReplayRecorder product analytics", () => {
 
       expect(test.analytics).toHaveLength(0);
       expect(test.fetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * Issue #9577: an app used offline and then stopped by the system sends
+   * what it held on its next launch, under the session it happened in -
+   * the launch after it is another session's - and consent withdrawn on
+   * any launch removes it.
+   */
+  describe("what a launch could not send", () => {
+    function failAnalytics(test: Harness): void {
+      const answer: ReplayFetch =
+        test.fetch.getMockImplementation() as ReplayFetch;
+      test.fetch.mockImplementation(
+        async (url: string, init?: ReplayFetchInit) => {
+          if (url.endsWith(PRODUCT_ANALYTICS_EVENTS_PATH)) {
+            throw new TypeError("Network request failed");
+          }
+          return answer(url, init);
+        },
+      );
+    }
+
+    function queueKey(test: Harness): string {
+      return productAnalyticsQueueKey(
+        getReplayStorageNamespace(
+          validateStartOptions(options(test)) as ValidatedStartOptions,
+        ),
+      );
+    }
+
+    test("is sent on the next launch, under the session it happened in", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const offline: Harness = harness({}, storage);
+      failAnalytics(offline);
+      expect(await offline.recorder.start(options(offline))).toBe(true);
+      const offlineSession: string = offline.recorder.getSessionId() as string;
+
+      await offline.recorder.setRoute("/Basket");
+      offline.recorder.track("Ordered offline");
+      offline.appState.emit("background");
+      await flush();
+      await offline.recorder.stop();
+      await flush();
+
+      expect(offline.analytics).toHaveLength(0);
+      expect(storage.values.has(queueKey(offline))).toBe(true);
+
+      /* Next morning: a new session. */
+      await elapse(SESSION_REPLAY_IDLE_ROLLOVER_MS + 60_000);
+
+      const relaunch: Harness = harness({}, storage);
+      expect(await relaunch.recorder.start(options(relaunch))).toBe(true);
+      const relaunchSession: string =
+        relaunch.recorder.getSessionId() as string;
+      expect(relaunchSession).not.toBe(offlineSession);
+
+      await nextAnalyticsFlush();
+      await nextAnalyticsFlush();
+
+      expect(relaunch.analytics[0]?.batch.sessionId).toBe(offlineSession);
+      expect(named(relaunch.analytics[0]?.batch.events ?? [])).toEqual([
+        "session:",
+        "page:/Basket",
+        "custom:Ordered offline",
+      ]);
+      expect(
+        relaunch.analytics.some((post: AnalyticsPost): boolean => {
+          return post.batch.sessionId === relaunchSession;
+        }),
+      ).toBe(true);
+      expect(diagnosticCodes(relaunch)).toContain("analytics-restored");
+      await relaunch.recorder.stop();
+    });
+
+    test("is removed when consent is withdrawn, even with the events off on this launch", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const offline: Harness = harness({}, storage);
+      failAnalytics(offline);
+      expect(await offline.recorder.start(options(offline))).toBe(true);
+      offline.recorder.track("Ordered offline");
+      offline.appState.emit("background");
+      await flush();
+      await offline.recorder.stop();
+      await flush();
+      expect(storage.values.has(queueKey(offline))).toBe(true);
+
+      /* The application has product analytics off by the next launch. */
+      const relaunch: Harness = harness(
+        { productAnalytics: { enabled: false, userPropertyKeys: [] } },
+        storage,
+      );
+      expect(await relaunch.recorder.start(options(relaunch))).toBe(true);
+      expect(relaunch.recorder.getDiagnostics().productAnalytics.state).toBe(
+        "off",
+      );
+
+      await relaunch.recorder.revokeConsent();
+      await flush();
+
+      expect(storage.values.has(queueKey(relaunch))).toBe(false);
     });
   });
 

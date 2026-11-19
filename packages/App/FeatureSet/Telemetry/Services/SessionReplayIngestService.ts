@@ -58,6 +58,7 @@ import {
   SESSION_REPLAY_INLINE_STAGING_MAX_BYTES,
 } from "../Config";
 import SessionReplayChunkStore from "../Utils/SessionReplayChunkStore";
+import SessionReplaySignalMetrics from "../Utils/SessionReplaySignalMetrics";
 import SessionReplayEnvelopeParser, {
   ParsedSessionReplayFrame,
   SessionReplayEnvelopeError,
@@ -1040,6 +1041,12 @@ export default class SessionReplayIngestService {
     const writtenEndingEnvelopes: Array<SessionReplayChunkEnvelope> = [];
 
     /*
+     * The frames that became chunk rows and name signals of the
+     * application's own, counted once the rows are durable (issue #6518).
+     */
+    const writtenSignalEnvelopes: Array<SessionReplayChunkEnvelope> = [];
+
+    /*
      * Running job-wide decompression allowance, spent frame by frame. This
      * is what bounds the worker: every decoded frame stays resident until
      * the submit below, so the ceiling has to be per job, not per frame.
@@ -1272,6 +1279,10 @@ export default class SessionReplayIngestService {
         writtenEndingEnvelopes.push(envelope);
       }
 
+      if ((envelope.signals.customSignals ?? []).length > 0) {
+        writtenSignalEnvelopes.push(envelope);
+      }
+
       /*
        * The provisional header is written on chunk 0, and again on a later
        * chunk that carries meta with something the header must learn - a
@@ -1367,6 +1378,24 @@ export default class SessionReplayIngestService {
       logger.warn("Could not record replay chunk receipt:");
       logger.warn(err);
     });
+
+    /*
+     * How many sessions hit each of the application's own signals, the
+     * series its "Sessions hit <signal>" alerts read (issue #6518): only
+     * now that the rows are durable, so a job that fails and runs again
+     * counts nothing twice - the session's set of counted signals already
+     * holds them. Never throws.
+     */
+    for (const envelope of writtenSignalEnvelopes) {
+      await SessionReplaySignalMetrics.countChunk({
+        projectId: projectId.toString(),
+        rumApplicationId: policy.rumApplicationId.toString(),
+        sessionId: envelope.sessionId,
+        customSignals: envelope.signals.customSignals,
+        customSignalIds: policy.customSignalIds,
+        receivedAtUnixMs: jobData.serverReceiveUnixMs,
+      });
+    }
 
     /*
      * Register the session with the finalizer only after its rows landed, so

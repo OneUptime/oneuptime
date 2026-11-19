@@ -272,6 +272,22 @@ const NAMED_BY_TEMPLATE_NAME: Array<string> = [
   "ScheduledMaintenanceTemplate",
 ];
 
+// A data pipeline is named by its OpenLineage job.
+const NAMED_BY_JOB_NAME: Array<string> = ["DataPipeline"];
+
+/*
+ * What a record of an owned kind needs beside its name, where its table asks
+ * for more: a pipeline's job runs in a namespace, and the two together are
+ * its key, once in a project.
+ */
+const OWNED_RECORD_VALUES: Partial<
+  Record<string, (name: string) => Dictionary<unknown>>
+> = {
+  DataPipeline: (name: string): Dictionary<unknown> => {
+    return { jobNamespace: "warehouse", pipelineKey: `warehouse/${name}` };
+  },
+};
+
 function ownerTableOf(model: ModelType): OwnerTable | null {
   const instance: BaseModel = new model();
   const ownerTable: string | null = instance.tableName;
@@ -296,7 +312,9 @@ function ownerTableOf(model: ModelType): OwnerTable | null {
       ? "title"
       : NAMED_BY_TEMPLATE_NAME.includes(ownedTable)
         ? "templateName"
-        : "name",
+        : NAMED_BY_JOB_NAME.includes(ownedTable)
+          ? "jobName"
+          : "name",
   };
 }
 
@@ -675,8 +693,10 @@ describePostgres("what uses a record, counted by Postgres (#7436)", () => {
     projectId: string,
     name: string,
   ): Promise<string> => {
+    const ownedName: string = `${name} ${owner.ownedTable}`;
     const ownedId: string = await insertRecord(owner.ownedTable, projectId, {
-      [owner.nameColumn]: `${name} ${owner.ownedTable}`,
+      ...(OWNED_RECORD_VALUES[owner.ownedTable]?.(ownedName) || {}),
+      [owner.nameColumn]: ownedName,
     });
     await insertRecord(owner.ownerTable, projectId, {
       teamId: teamId,

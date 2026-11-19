@@ -1,0 +1,29 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Data Store: " dataStoreName) }}
+
+{{> InfoBlock info="You have been added as an owner of this data store."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Data Store:" plainText=dataStoreName }}
+{{> DetailBoxField title="Description:" text=dataStoreDescription }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this data store by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=dataStoreViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=dataStoreViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock info="Issues found on this data store, and alerts on its tables that have no owners of their own, now come to you."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}
