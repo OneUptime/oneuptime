@@ -61,8 +61,13 @@ import React, {
   useMemo,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import AndroidSecurityPatch, {
+  AndroidSecurityPatchStatus,
+} from "Common/Types/Host/AndroidSecurityPatch";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -147,6 +152,78 @@ export function getInventoryAssetColumns(): Columns<InventoryItem> {
       };
     },
   );
+}
+
+/*
+ * An Android device's Security Patch Level (#9965), beside the asset facts
+ * and hidden as they are until the viewer turns it on: the patch level as
+ * the device reports it, and whether it is behind - more than 90 days old,
+ * the rule the Security Patch Level filter and the Security Patch Out of
+ * Date alert read (Common/Types/Host/AndroidSecurityPatch). The CSV export
+ * carries the level itself. Anything with no patch level reads the quiet
+ * dash, and exports an empty cell.
+ */
+export const INVENTORY_SECURITY_PATCH_COLUMN_ID: string = `${INVENTORY_ASSET_COLUMN_ID_PREFIX}${InventoryAssetField.SecurityPatch}`;
+
+const SECURITY_PATCH_STATUS_LABELS: Record<AndroidSecurityPatchStatus, string> =
+  {
+    [AndroidSecurityPatchStatus.OutOfDate]: translationKey("Out of Date"),
+    [AndroidSecurityPatchStatus.UpToDate]: translationKey("Up to Date"),
+  };
+
+const SECURITY_PATCH_STATUS_TONES: Record<
+  AndroidSecurityPatchStatus,
+  PillTone
+> = {
+  // Needs a look soon: a device to update, not one that broke.
+  [AndroidSecurityPatchStatus.OutOfDate]: PillTone.Warning,
+  [AndroidSecurityPatchStatus.UpToDate]: PillTone.Success,
+};
+
+export function getInventorySecurityPatchColumn(
+  now: Date,
+): Columns<InventoryItem>[number] {
+  return {
+    field: {
+      entityType: true,
+      identifyingAttributes: true,
+      descriptiveAttributes: true,
+    },
+    id: INVENTORY_SECURITY_PATCH_COLUMN_ID,
+    title: INVENTORY_ASSET_FIELD_LABELS[InventoryAssetField.SecurityPatch],
+    type: FieldType.Element,
+    isHiddenByDefault: true,
+    disableSort: true,
+    hideOnMobile: true,
+    getElement: (item: InventoryItem): ReactElement => {
+      const level: string | undefined = AndroidSecurityPatch.readLevel(
+        getInventoryAssetValue(item, InventoryAssetField.SecurityPatch),
+      );
+
+      if (!level) {
+        return <TableEmptyValue />;
+      }
+
+      const status: AndroidSecurityPatchStatus =
+        AndroidSecurityPatch.getStatus(level, now) ||
+        AndroidSecurityPatchStatus.UpToDate;
+
+      return (
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-sm text-gray-900">{level}</span>
+          <Pill
+            text={SECURITY_PATCH_STATUS_LABELS[status]}
+            tone={SECURITY_PATCH_STATUS_TONES[status]}
+          />
+        </div>
+      );
+    },
+    getExportValue: (item: InventoryItem): string => {
+      return (
+        getInventoryAssetValue(item, InventoryAssetField.SecurityPatch) || ""
+      );
+    },
+  };
 }
 
 export interface ComponentProps {
@@ -534,6 +611,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             isHiddenByDefault: true,
           },
           ...assetColumns,
+          getInventorySecurityPatchColumn(now),
         ]}
       />
     </Fragment>

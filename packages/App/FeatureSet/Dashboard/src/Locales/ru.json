@@ -59039,5 +59039,11 @@
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы.",
   "Checking why the payment app crashes after 6pm": "Выясняем, почему приложение оплаты падает после 18:00",
   "Download Lines": "Скачать строки",
-  "Shown to the person at the device with the request, to say why you ask.": "Показывается человеку у устройства вместе с запросом, чтобы объяснить, зачем вы его отправили."
+  "Shown to the person at the device with the request, to say why you ask.": "Показывается человеку у устройства вместе с запросом, чтобы объяснить, зачем вы его отправили.",
+  "Its security patch level is 90 days old or newer.": "Уровню патча безопасности не больше 90 дней.",
+  "Its security patch level is more than 90 days old.": "Уровню патча безопасности больше 90 дней.",
+  "Out of Date": "Устарело",
+  "Search security patch levels...": "Поиск уровней патча безопасности...",
+  "Security Patch Status": "Состояние патча безопасности",
+  "Up to Date": "Актуально"
 }

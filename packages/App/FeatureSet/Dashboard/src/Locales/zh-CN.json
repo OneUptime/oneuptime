@@ -59039,5 +59039,11 @@
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查询的单位为 {{unit}}，上一个查询的图表单位为 {{chartUnit}}，因此无法在该图表的坐标轴上正确读出此查询的数值。",
   "Checking why the payment app crashes after 6pm": "排查支付应用在晚上 6 点后崩溃的原因",
   "Download Lines": "下载日志行",
-  "Shown to the person at the device with the request, to say why you ask.": "随请求显示给设备旁的人，说明您为什么请求。"
+  "Shown to the person at the device with the request, to say why you ask.": "随请求显示给设备旁的人，说明您为什么请求。",
+  "Its security patch level is 90 days old or newer.": "安全补丁级别不超过 90 天。",
+  "Its security patch level is more than 90 days old.": "安全补丁级别已超过 90 天。",
+  "Out of Date": "已过时",
+  "Search security patch levels...": "搜索安全补丁级别...",
+  "Security Patch Status": "安全补丁状态",
+  "Up to Date": "已是最新"
 }

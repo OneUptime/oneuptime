@@ -59039,5 +59039,11 @@
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Deze query is in {{unit}} en de grafiek van de vorige query in {{chartUnit}}, dus de waarden ervan zijn niet goed af te lezen op de as van die grafiek.",
   "Checking why the payment app crashes after 6pm": "Uitzoeken waarom de betaalapp na 18.00 uur vastloopt",
   "Download Lines": "Regels downloaden",
-  "Shown to the person at the device with the request, to say why you ask.": "Wordt met het verzoek getoond aan de persoon bij het apparaat, om te zeggen waarom u het vraagt."
+  "Shown to the person at the device with the request, to say why you ask.": "Wordt met het verzoek getoond aan de persoon bij het apparaat, om te zeggen waarom u het vraagt.",
+  "Its security patch level is 90 days old or newer.": "Het beveiligingspatchniveau is 90 dagen oud of nieuwer.",
+  "Its security patch level is more than 90 days old.": "Het beveiligingspatchniveau is ouder dan 90 dagen.",
+  "Out of Date": "Verouderd",
+  "Search security patch levels...": "Beveiligingspatchniveaus zoeken...",
+  "Security Patch Status": "Status van beveiligingspatch",
+  "Up to Date": "Actueel"
 }

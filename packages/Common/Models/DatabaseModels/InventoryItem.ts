@@ -23,6 +23,9 @@ import {
   InventoryLiveness,
   getInventoryLivenessSql,
 } from "../../Types/Telemetry/InventoryLiveness";
+import AndroidSecurityPatch, {
+  AndroidSecurityPatchStatus,
+} from "../../Types/Host/AndroidSecurityPatch";
 import {
   Column,
   Entity,
@@ -434,6 +437,31 @@ export default class InventoryItem extends DatabaseBaseModel {
     },
   })
   public inventoryStatus?: InventoryLiveness = undefined;
+
+  /*
+   * Whether an Android device is behind on its security patches (#9965):
+   * its patch level (android.os.security_patch, in descriptiveAttributes)
+   * more than 90 days old, against the database's clock. Computed at read
+   * time as inventoryStatus is, so the Security Patch Level filter, a count
+   * and a page agree, and nothing goes stale overnight. Empty for an item
+   * with no patch level. The rule is Types/Host/AndroidSecurityPatch's.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AndroidSecurityPatchStatus),
+    required: false,
+    title: "Security Patch Status",
+    description:
+      "An Android device's security patch: up to date when its patch level is 90 days old or newer, out of date when older.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return AndroidSecurityPatch.getStatusSql(alias);
+    },
+  })
+  public securityPatchStatus?: AndroidSecurityPatchStatus = undefined;
 
   /*
    * Archiving is the disposal route that actually works for this table.

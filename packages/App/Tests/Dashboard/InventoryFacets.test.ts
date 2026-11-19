@@ -4,12 +4,15 @@ import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
+import { AndroidSecurityPatchStatus } from "Common/Types/Host/AndroidSecurityPatch";
 import {
   INVENTORY_ARCHIVED_TABLE_ID,
   INVENTORY_BASE_FACETS,
   INVENTORY_FACET_QUERY_FIELDS,
   INVENTORY_ITEMS_TABLE_ID,
   INVENTORY_LAST_SEEN_FACET_KEY,
+  INVENTORY_SECURITY_PATCH_FACET_KEY,
+  INVENTORY_SECURITY_PATCH_FACET_OPTIONS,
   INVENTORY_SOURCE_FACET_KEY,
   INVENTORY_SOURCE_FACET_OPTIONS,
   INVENTORY_STATUS_FACET_KEY,
@@ -68,6 +71,7 @@ describe("Inventory facet identity", () => {
     expect(INVENTORY_SOURCE_FACET_KEY).toBe("inventorySource");
     expect(INVENTORY_STATUS_FACET_KEY).toBe("inventoryStatus");
     expect(INVENTORY_LAST_SEEN_FACET_KEY).toBe("inventoryLastSeen");
+    expect(INVENTORY_SECURITY_PATCH_FACET_KEY).toBe("inventorySecurityPatch");
   });
 
   test("keys and query fields are non-empty and distinct", () => {
@@ -99,6 +103,9 @@ describe("Inventory facet identity", () => {
     );
     expect(facet(INVENTORY_LAST_SEEN_FACET_KEY).queryField).toBe(
       INVENTORY_FACET_QUERY_FIELDS.lastSeen,
+    );
+    expect(facet(INVENTORY_SECURITY_PATCH_FACET_KEY).queryField).toBe(
+      INVENTORY_FACET_QUERY_FIELDS.securityPatch,
     );
   });
 });
@@ -322,6 +329,74 @@ describe("Last Seen facet", () => {
   });
 });
 
+/*
+ * #9965: which Android devices are behind on their security patches, by
+ * the rule the alert reads - more than 90 days old - computed by the
+ * server (InventoryItem.securityPatchStatus, InventorySecurityPatchPostgres).
+ */
+describe("Security Patch Level facet", () => {
+  const securityPatchFacet: ResourceFacet = facet(
+    INVENTORY_SECURITY_PATCH_FACET_KEY,
+  );
+
+  test("is named as the asset detail is, and offers out of date first", () => {
+    expect(securityPatchFacet.label).toBe("Security Patch Level");
+    expect(
+      INVENTORY_SECURITY_PATCH_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.value;
+        },
+      ),
+    ).toEqual([
+      AndroidSecurityPatchStatus.OutOfDate,
+      AndroidSecurityPatchStatus.UpToDate,
+    ]);
+    expect(
+      INVENTORY_SECURITY_PATCH_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.label;
+        },
+      ),
+    ).toEqual(["Out of Date", "Up to Date"]);
+  });
+
+  test("says the baseline in each option, in a sentence", () => {
+    expect(
+      INVENTORY_SECURITY_PATCH_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.sublabel!;
+        },
+      ),
+    ).toEqual([
+      "Its security patch level is more than 90 days old.",
+      "Its security patch level is 90 days old or newer.",
+    ]);
+  });
+
+  test("reads the server's computed status, never the attributes themselves", () => {
+    expect(securityPatchFacet.queryField).toBe("securityPatchStatus");
+    expect(securityPatchFacet.isMultiSelect).toBe(true);
+    expect(securityPatchFacet.supportedOperators).toEqual(["is", "is_not"]);
+  });
+
+  test("is builds an Includes query, is not an IncludesNone one", () => {
+    const outOfDate: unknown = securityPatchFacet.toQueryValue!(
+      [AndroidSecurityPatchStatus.OutOfDate],
+      "is",
+    );
+    expect(outOfDate).toBeInstanceOf(Includes);
+    expect((outOfDate as Includes).values).toEqual([
+      AndroidSecurityPatchStatus.OutOfDate,
+    ]);
+
+    const notUpToDate: unknown = securityPatchFacet.toQueryValue!(
+      [AndroidSecurityPatchStatus.UpToDate],
+      "is_not",
+    );
+    expect(notUpToDate).toBeInstanceOf(IncludesNone);
+  });
+});
+
 describe("scoped list protection", () => {
   test("an unscoped list gets every built-in facet", () => {
     expect(facetKeys(buildInventoryFacets())).toEqual(
@@ -334,6 +409,7 @@ describe("scoped list protection", () => {
     ["source", INVENTORY_SOURCE_FACET_KEY],
     ["lastSeenAt", INVENTORY_LAST_SEEN_FACET_KEY],
     ["inventoryStatus", INVENTORY_STATUS_FACET_KEY],
+    ["securityPatchStatus", INVENTORY_SECURITY_PATCH_FACET_KEY],
   ])(
     "a page-owned %s constraint removes only the colliding facet",
     (queryField: string, removedFacetKey: string) => {
@@ -353,6 +429,7 @@ describe("scoped list protection", () => {
       source: EntitySource.Discovered,
       lastSeenAt: "cutoff",
       inventoryStatus: InventoryLiveness.Stale,
+      securityPatchStatus: AndroidSecurityPatchStatus.OutOfDate,
     };
 
     expect(buildInventoryFacets(query)).toEqual([]);

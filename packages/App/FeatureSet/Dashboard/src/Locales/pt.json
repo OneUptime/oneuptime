@@ -59039,5 +59039,11 @@
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico.",
   "Checking why the payment app crashes after 6pm": "Verificando por que o app de pagamento trava depois das 18h",
   "Download Lines": "Baixar linhas",
-  "Shown to the person at the device with the request, to say why you ask.": "Mostrada à pessoa no dispositivo com a solicitação, para dizer por que você pede."
+  "Shown to the person at the device with the request, to say why you ask.": "Mostrada à pessoa no dispositivo com a solicitação, para dizer por que você pede.",
+  "Its security patch level is 90 days old or newer.": "O nível do patch de segurança tem 90 dias ou menos.",
+  "Its security patch level is more than 90 days old.": "O nível do patch de segurança tem mais de 90 dias.",
+  "Out of Date": "Desatualizado",
+  "Search security patch levels...": "Pesquisar níveis do patch de segurança...",
+  "Security Patch Status": "Status do patch de segurança",
+  "Up to Date": "Atualizado"
 }
