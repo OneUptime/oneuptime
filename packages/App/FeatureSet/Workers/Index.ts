@@ -349,6 +349,9 @@ import "./Jobs/Logs/ComputeLogRecordingRules";
 // Kubernetes inventory cleanup.
 import "./Jobs/Kubernetes/CleanupStaleResources";
 
+// Kubernetes clusters' compliance summaries, for the fleet's Compliance page.
+import "./Jobs/Kubernetes/RefreshComplianceSummaries";
+
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
 

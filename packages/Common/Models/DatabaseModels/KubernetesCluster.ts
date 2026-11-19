@@ -23,6 +23,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import type { KubernetesComplianceSummary } from "../../Types/Kubernetes/Compliance/KubernetesComplianceSummary";
 import { KubernetesAiRemediationMode } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
   Column,
@@ -1387,4 +1388,67 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
   })
   public aiAccessRunnerBoundAt?: Date = undefined;
+
+  /*
+   * HOW THE CLUSTER STOOD WHEN IT WAS LAST SCORED (#9876): each hardening
+   * framework's score, the controls that fail it and how many objects fail
+   * each (Types/Kubernetes/Compliance/KubernetesComplianceSummary), so
+   * Kubernetes' Compliance page compares every cluster without scoring each
+   * one. Written by OneUptime when the cluster's own Compliance page is read
+   * and as the agent's snapshots land (Kubernetes:RefreshComplianceSummaries),
+   * and read by whoever may read the cluster, as that page is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Compliance Summary",
+    description:
+      "How the cluster stood against the Pod Security Standards and the CIS Kubernetes Benchmark when it was last scored: each framework's score and failing controls. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public complianceSummary?: KubernetesComplianceSummary = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Compliance Summary Refreshed At",
+    description:
+      "When the cluster's compliance summary was last worked out. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public complianceSummaryRefreshedAt?: Date = undefined;
 }
