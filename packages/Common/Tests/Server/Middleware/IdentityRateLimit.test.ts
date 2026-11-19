@@ -74,6 +74,8 @@ import IdentityRateLimit, {
   IdentityRateLimitDecision,
   IdentityRateLimitOutcome,
   IdentityRateLimitScope,
+  SIGN_UP_RATE_LIMITED_MESSAGE,
+  SIGN_UP_UNAVAILABLE_MESSAGE,
   VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE,
   VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
 } from "../../../Server/Middleware/IdentityRateLimit";
@@ -1582,7 +1584,10 @@ describe("IdentityRateLimit", () => {
     const SIGN_IN_BUCKETS: Array<IdentityRateLimitBucket> = Object.values(
       IdentityRateLimitBucket,
     ).filter((bucket: IdentityRateLimitBucket) => {
-      return bucket !== IdentityRateLimitBucket.VerificationEmailResend;
+      return (
+        bucket !== IdentityRateLimitBucket.VerificationEmailResend &&
+        bucket !== IdentityRateLimitBucket.SignUp
+      );
     });
 
     /*
@@ -1607,6 +1612,33 @@ describe("IdentityRateLimit", () => {
       );
     });
 
+    it("words the sign-up refusals about signing up, the same for every address (#9816)", () => {
+      expect(SIGN_UP_RATE_LIMITED_MESSAGE).toBe(
+        "Too many sign-up attempts. Please try again later.",
+      );
+      expect(SIGN_UP_UNAVAILABLE_MESSAGE).toBe(
+        "Unable to sign you up right now. Please try again shortly.",
+      );
+      expect(
+        IdentityRateLimit.getRefusalMessages(IdentityRateLimitBucket.SignUp),
+      ).toEqual({
+        rateLimited: SIGN_UP_RATE_LIMITED_MESSAGE,
+        unavailable: SIGN_UP_UNAVAILABLE_MESSAGE,
+      });
+    });
+
+    it("gives the sign-up bucket a budget of its own, the numbers of /login", () => {
+      const signUp: { windowSeconds: number; perAccountLimit: number } =
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.SignUp);
+
+      expect(signUp).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+      expect(signUp).toEqual(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+    });
+
     it("knows every sign-in bucket there is", () => {
       /*
        * A floor, so the it.each below cannot pass by iterating nothing. Adding
@@ -1625,7 +1657,7 @@ describe("IdentityRateLimit", () => {
         ]),
       );
       expect(SIGN_IN_BUCKETS).toHaveLength(
-        Object.values(IdentityRateLimitBucket).length - 1,
+        Object.values(IdentityRateLimitBucket).length - 2,
       );
     });
 

@@ -23,7 +23,9 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * /login-with-magic-link, whose credential is a sign-in link's token: not
  * guessable, but bounded all the same (MAGIC_LINK_BUCKET). And POST
  * /sign-up-invitation, whose credential is an invited address's registration
- * token, bounded the same way (SIGN_UP_INVITATION_BUCKET).
+ * token, bounded the same way (SIGN_UP_INVITATION_BUCKET). And POST /signup,
+ * which takes an address and a new password: on a server that cannot email
+ * the address, a taken one is still refused as taken (SIGN_UP_BUCKET).
  *
  * WHY THESE ROUTES NEED IT
  *
@@ -204,6 +206,16 @@ export enum IdentityRateLimitBucket {
    * request looks its token up. See SIGN_UP_INVITATION_BUCKET.
    */
   SignUpInvitation = "sign-up-invitation",
+
+  /*
+   * POST /signup -- a sign-up with an email address and a password. Not a
+   * guessing oracle any more where the server can email the address: every
+   * address gets the same answer (#9816). But where it cannot - a
+   * self-hosted server with no email set up signs a new account in at once -
+   * a taken address is still refused, and this is what bounds asking. See
+   * SIGN_UP_BUCKET.
+   */
+  SignUp = "sign-up",
 }
 
 export enum IdentityRateLimitScope {
@@ -522,6 +534,37 @@ const SIGN_UP_INVITATION_BUCKET: BucketConfig = {
 };
 
 /*
+ * Sign-up budget (POST /signup, #9816).
+ *
+ * Counted on every request, refused ones included, before anything else the
+ * route does - the captcha, the password's rules, the address. Where the
+ * server can email the address, a sign-up answers every address alike and
+ * says what happened only in the email, so this bounds mail and work. Where
+ * it cannot - a self-hosted server with no email set up, whose new accounts
+ * sign in at once - a taken address is refused as one, and this bounds how
+ * many addresses a caller can ask about: ten a quarter hour for one address
+ * from one client, a hundred and fifty for the client, the numbers of
+ * /login, which a person retrying a password the rules refused never meets,
+ * and an office or a class behind one NAT signing up together does not
+ * either. The emails a sign-up sends are counted on their own as well, per
+ * caller and per address (PublicMessageRateLimit).
+ */
+const SIGN_UP_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_SIGN_UP_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_SIGN_UP_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_SIGN_UP_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
  * What a refused caller is told. See getRefusalMessages for why the sign-in
  * routes all share one pair and the resend route has its own.
  */
@@ -533,6 +576,10 @@ export const VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE: string =
   "Too many requests for a new verification email. Please try again later.";
 export const VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE: string =
   "Unable to send a verification email right now. Please try again shortly.";
+export const SIGN_UP_RATE_LIMITED_MESSAGE: string =
+  "Too many sign-up attempts. Please try again later.";
+export const SIGN_UP_UNAVAILABLE_MESSAGE: string =
+  "Unable to sign you up right now. Please try again shortly.";
 
 const KEY_PREFIX: string = "identity:rl:";
 
@@ -703,6 +750,10 @@ export default class IdentityRateLimit {
       return SIGN_UP_INVITATION_BUCKET;
     }
 
+    if (bucket === IdentityRateLimitBucket.SignUp) {
+      return SIGN_UP_BUCKET;
+    }
+
     return LOGIN_BUCKET;
   }
 
@@ -730,6 +781,17 @@ export default class IdentityRateLimit {
       return {
         rateLimited: VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE,
         unavailable: VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+      };
+    }
+
+    /*
+     * Somebody signing up has made no sign-in attempt either. The same text
+     * for every caller and every address.
+     */
+    if (bucket === IdentityRateLimitBucket.SignUp) {
+      return {
+        rateLimited: SIGN_UP_RATE_LIMITED_MESSAGE,
+        unavailable: SIGN_UP_UNAVAILABLE_MESSAGE,
       };
     }
 

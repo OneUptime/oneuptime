@@ -13,6 +13,11 @@ enum EmailTemplateType {
   // The welcome of an account that is ready at sign-up (self-hosted): nothing to verify.
   SignupAccountReadyEmail = "SignupAccountReadyEmail.hbs",
   CompleteRegistration = "CompleteRegistration.hbs",
+  /*
+   * A sign-up named an address that already has an account (#9816): the
+   * address's owner is told, and the page that signed up is not.
+   */
+  AccountAlreadyExists = "AccountAlreadyExists.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",

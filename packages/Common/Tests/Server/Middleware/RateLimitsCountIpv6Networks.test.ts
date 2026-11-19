@@ -70,6 +70,7 @@ import { getIpv6NetworkRateLimit } from "../../../Server/Utils/ClientIp";
 import IdentityRateLimit, {
   IDENTITY_RATE_LIMITED_MESSAGE,
   IdentityRateLimitBucket,
+  SIGN_UP_RATE_LIMITED_MESSAGE,
   VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE,
 } from "../../../Server/Middleware/IdentityRateLimit";
 import VerificationCodeRateLimit, {
@@ -681,6 +682,13 @@ function everySurface(): Array<Surface> {
       perResource: 150,
       perClient: 150,
       refusal: IDENTITY_RATE_LIMITED_MESSAGE,
+      namesAccount: true,
+    }),
+    // A sign-up names the address it is for (#9816).
+    identitySurface(IdentityRateLimitBucket.SignUp, {
+      perResource: 10,
+      perClient: 150,
+      refusal: SIGN_UP_RATE_LIMITED_MESSAGE,
       namesAccount: true,
     }),
     identitySurface(IdentityRateLimitBucket.VerificationEmailResend, {

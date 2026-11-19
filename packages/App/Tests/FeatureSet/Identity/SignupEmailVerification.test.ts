@@ -729,7 +729,7 @@ describe("POST /signup on the hosted service (billing enabled)", () => {
     expect(apiPost).not.toHaveBeenCalled();
   });
 
-  it("still refuses an address that has already registered", async () => {
+  it("answers an address that has already registered as it answers a new one, and makes nothing (#9816)", async () => {
     userFindOneBy.mockResolvedValue({
       _id: NEW_USER_ID,
       id: new ObjectID(NEW_USER_ID),
@@ -738,7 +738,8 @@ describe("POST /signup on the hosted service (billing enabled)", () => {
 
     await invoke("/signup", signupBody());
 
-    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expect(entityResponse().miscData["emailVerificationRequired"]).toBe(true);
     expect(userCreateUserOnSignup).not.toHaveBeenCalled();
     expect(createEmailVerificationToken).not.toHaveBeenCalled();
     expectNobodySignedIn();

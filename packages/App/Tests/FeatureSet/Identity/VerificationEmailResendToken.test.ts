@@ -1,4 +1,5 @@
 import VerificationEmailResendToken, {
+  SignUpEmailResendTokenClaims,
   VERIFICATION_EMAIL_RESEND_TOKEN_EXPIRY_IN_SECONDS,
   VerificationEmailResendTokenClaims,
 } from "../../../FeatureSet/Identity/Utils/VerificationEmailResendToken";
@@ -1125,5 +1126,211 @@ describe("generate", () => {
         now: new Date(Number.NaN),
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A SIGN-UP'S CREDENTIAL (v2, #9816): THE ADDRESS AND THE ATTEMPT, NEVER AN
+ * ACCOUNT.
+ *
+ * Where the server proves addresses by email, a sign-up answers every
+ * address alike, so its credential must be alike for every address too: it
+ * carries the address that was typed, when, and a random attempt id the
+ * server keeps what the attempt did under (SignUpAttempt). It never names an
+ * account - a v1 token named the new account, and an address that already
+ * had one could only be handed it by giving its real id to whoever typed it.
+ * ---------------------------------------------------------------------------
+ */
+describe("a sign-up's credential (v2)", () => {
+  const ATTEMPT_ID: string = "A".repeat(42) + "B";
+  const V2_SHAPE_PATTERN: RegExp =
+    /^v2\.[A-Za-z0-9_-]{1,900}\.[A-Za-z0-9_-]{43}$/;
+
+  type MintFunction = (overrides?: {
+    email?: string;
+    attemptId?: string;
+    now?: Date;
+  }) => string;
+
+  const mint: MintFunction = (
+    overrides: { email?: string; attemptId?: string; now?: Date } = {},
+  ): string => {
+    const token: string | null = VerificationEmailResendToken.generateForSignUp(
+      {
+        email: new Email(overrides.email || USER_EMAIL),
+        attemptId: overrides.attemptId || ATTEMPT_ID,
+        now: overrides.now || NOW,
+      },
+    );
+
+    if (!token) {
+      throw new Error("Expected a v2 token");
+    }
+
+    return token;
+  };
+
+  const payloadOf: (token: string) => JSONObject = (
+    token: string,
+  ): JSONObject => {
+    return JSON.parse(
+      Buffer.from(token.split(".")[1]!, "base64url").toString("utf8"),
+    ) as JSONObject;
+  };
+
+  it("has its own shape, and round-trips the address, the attempt and when", () => {
+    const token: string = mint();
+
+    expect(token).toMatch(V2_SHAPE_PATTERN);
+
+    const claims: SignUpEmailResendTokenClaims | null =
+      VerificationEmailResendToken.verifySignUp(token, NOW);
+
+    expect(claims!.email.toString()).toBe(USER_EMAIL);
+    expect(claims!.attemptId).toBe(ATTEMPT_ID);
+    expect(claims!.issuedAt.getTime()).toBe(NOW_MS);
+  });
+
+  it("names no account: its claims are the version, the address, the attempt and two times", () => {
+    expect(Object.keys(payloadOf(mint())).sort()).toEqual([
+      "e",
+      "i",
+      "n",
+      "v",
+      "x",
+    ]);
+    expect(JSON.stringify(payloadOf(mint()))).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
+  });
+
+  it("is the same shape whatever the address, so it cannot say whether the address has an account", () => {
+    const one: JSONObject = payloadOf(mint({ email: "first@example.com" }));
+    const other: JSONObject = payloadOf(mint({ email: "second@example.com" }));
+
+    expect(Object.keys(one).sort()).toEqual(Object.keys(other).sort());
+  });
+
+  it("expires a day after it was minted, to the millisecond", () => {
+    const token: string = mint();
+
+    expect(
+      VerificationEmailResendToken.verifySignUp(
+        token,
+        new Date(NOW_MS + EXPIRY_MS - 1),
+      ),
+    ).not.toBeNull();
+    expect(
+      VerificationEmailResendToken.verifySignUp(
+        token,
+        new Date(NOW_MS + EXPIRY_MS),
+      ),
+    ).toBeNull();
+  });
+
+  it("refuses one claiming to be minted well in the future", () => {
+    expect(
+      VerificationEmailResendToken.verifySignUp(
+        mint({ now: new Date(NOW_MS + 60 * 60 * 1000) }),
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it("refuses any change to its payload or its signature", () => {
+    const token: string = mint();
+    const [version, payload, signature] = token.split(".") as [
+      string,
+      string,
+      string,
+    ];
+
+    const changedPayload: string = Buffer.from(
+      JSON.stringify({
+        ...payloadOf(token),
+        e: "somebody-else@example.com",
+      }),
+      "utf8",
+    ).toString("base64url");
+
+    const flipped: string =
+      signature.slice(0, -1) + (signature.endsWith("A") ? "B" : "A");
+
+    expect(
+      VerificationEmailResendToken.verifySignUp(
+        `${version}.${changedPayload}.${signature}`,
+        NOW,
+      ),
+    ).toBeNull();
+    expect(
+      VerificationEmailResendToken.verifySignUp(
+        `${version}.${payload}.${flipped}`,
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it("is not a v1 token, and a v1 token is not one: each format verifies only as itself", () => {
+    const v2: string = mint();
+    const v1: string | null = VerificationEmailResendToken.generate({
+      userId: new ObjectID(USER_ID),
+      email: new Email(USER_EMAIL),
+      now: NOW,
+    });
+
+    expect(VerificationEmailResendToken.verify(v2, NOW)).toBeNull();
+    expect(VerificationEmailResendToken.verifySignUp(v1, NOW)).toBeNull();
+
+    // Relabelled, a v1 token's signature is no v2 signature.
+    expect(
+      VerificationEmailResendToken.verifySignUp(
+        "v2." + v1!.split(".").slice(1).join("."),
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it("refuses an attempt id that is not one", () => {
+    expect(
+      VerificationEmailResendToken.generateForSignUp({
+        email: new Email(USER_EMAIL),
+        attemptId: "not-an-attempt",
+        now: NOW,
+      }),
+    ).toBeNull();
+  });
+
+  it("never throws, whatever it is handed", () => {
+    for (const input of [
+      undefined,
+      null,
+      42,
+      {},
+      [],
+      "",
+      "v2",
+      "v2..",
+      "v2.e30." + "A".repeat(43),
+      "v2." + "!".repeat(10) + "." + "A".repeat(43),
+    ]) {
+      expect(VerificationEmailResendToken.verifySignUp(input, NOW)).toBeNull();
+    }
+  });
+
+  it("is signed with a key of its own, which is no session's", () => {
+    const token: string = mint();
+    const signed: string = token.split(".").slice(0, 2).join(".");
+    const underV1Key: string = crypto
+      .createHmac(
+        "sha256",
+        TokenSigningKey.deriveKey(
+          "oneuptime:identity:verification-email-resend-token:v1",
+        ),
+      )
+      .update(signed)
+      .digest("base64url");
+
+    expect(token.split(".")[2]).not.toBe(underV1Key);
   });
 });

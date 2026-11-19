@@ -13,7 +13,7 @@ import {
   VERIFICATION_EMAIL_RESEND_WINDOW_IN_SECONDS,
 } from "../../../FeatureSet/Identity/Utils/VerificationEmailResendPolicy";
 import VerificationEmailResendToken, {
-  VerificationEmailResendTokenClaims,
+  SignUpEmailResendTokenClaims,
 } from "../../../FeatureSet/Identity/Utils/VerificationEmailResendToken";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
@@ -354,6 +354,7 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 
 const sendVerificationEmail: jest.Mock = jest.fn();
 const sendCompleteRegistrationEmail: jest.Mock = jest.fn();
+const sendAccountAlreadyExistsEmail: jest.Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
@@ -364,6 +365,9 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
       },
       sendCompleteRegistrationEmail: (...args: Array<unknown>): unknown => {
         return sendCompleteRegistrationEmail(...args);
+      },
+      sendAccountAlreadyExistsEmail: (...args: Array<unknown>): unknown => {
+        return sendAccountAlreadyExistsEmail(...args);
       },
     },
   };
@@ -2503,16 +2507,30 @@ describe("what the reply and the logs never carry", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * THE ROUND TRIP: /signup HANDS OUT THE TOKEN, AND THIS ROUTE HONOURS IT.
+ * POST /signup -> POST /resend-verification-email, ALIKE FOR EVERY ADDRESS
+ * (#9816).
  *
- * Only the hosted, verify-your-email branch of /signup gets one. A self-hosted
- * signup is signed straight in, a claimed invitation has already proved its
- * mailbox, and an invitation claimed WITHOUT its token has been sent a
- * registration link instead -- none of them is waiting on a verification mail.
+ * Where the server proves addresses by email (OneUptime Cloud here), a
+ * sign-up answers every address alike, with a resend credential that names
+ * the sign-up attempt rather than an account (v2), and acts on the address
+ * only after it has answered: a new account and its welcome, an account
+ * holder's "you already have an account", or an invitation's link. What it
+ * did is kept on the server for the credential's day (SignUpAttempt, here a
+ * map behind GlobalCache's string methods), and the resend button sends
+ * that again, under caps read from the attempt, so it too behaves alike.
+ * A self-hosted signup that cannot email the address is signed straight in,
+ * and a claimed invitation has already proved its mailbox: neither gets one.
  * ---------------------------------------------------------------------------
  */
-
 describe("POST /signup -> POST /resend-verification-email", () => {
+  const ATTEMPT_NAMESPACE: string = "identity-sign-up-attempt";
+  const INVITED_USER_ID: string = "66666666-6666-4666-8666-666666666666";
+  const MEMBER_USER_ID: string = "77777777-7777-4777-8777-777777777777";
+
+  // What the server keeps for each sign-up attempt, by its id.
+  let attempts: Map<string, string>;
+  let setString: jest.SpiedFunction<typeof GlobalCache.setString>;
+
   const signupBody: (miscDataProps?: Record<string, unknown>) => unknown = (
     miscDataProps?: Record<string, unknown>,
   ): unknown => {
@@ -2538,17 +2556,82 @@ describe("POST /signup -> POST /resend-verification-email", () => {
     return (options["miscData"] || {}) as Record<string, any>;
   };
 
-  type WelcomeTokenFunction = () => string;
+  type ResendTokenOfSignUpFunction = () => string;
 
-  const welcomeToken: WelcomeTokenFunction = (): string => {
-    expect(createEmailVerificationToken).toHaveBeenCalledTimes(1);
+  const resendTokenOfSignUp: ResendTokenOfSignUpFunction = (): string => {
+    const token: unknown = signupMiscData()["verificationEmailResendToken"];
 
-    return (
-      createEmailVerificationToken.mock.calls[0]![0] as Record<string, any>
-    )["data"]["token"].toString();
+    expect(typeof token).toBe("string");
+
+    return token as string;
+  };
+
+  // The address has an account that signed up (with a password).
+  const addressHasAMember: () => User = (): User => {
+    const member: User = storedUser({
+      id: MEMBER_USER_ID,
+      isEmailVerified: true,
+    });
+
+    userFindOneBy.mockResolvedValue(member);
+
+    return member;
+  };
+
+  // The address has an account nobody has claimed (an invitation).
+  const addressHasAnInvitation: () => User = (): User => {
+    const invited: User = storedUser({
+      id: INVITED_USER_ID,
+      hasPassword: false,
+    });
+
+    userFindOneBy.mockResolvedValue(invited);
+
+    return invited;
+  };
+
+  type ShapeOfFunction = (miscData: Record<string, any>) => JSONObject;
+
+  // What a caller can compare between two answers: all but the token's own bytes.
+  const shapeOf: ShapeOfFunction = (
+    miscData: Record<string, any>,
+  ): JSONObject => {
+    const token: string = String(miscData["verificationEmailResendToken"]);
+
+    return {
+      keys: Object.keys(miscData).sort(),
+      emailVerificationRequired: miscData["emailVerificationRequired"],
+      verificationEmailResendAvailableInSeconds:
+        miscData["verificationEmailResendAvailableInSeconds"],
+      tokenVersion: token.split(".")[0]!,
+      tokenParts: token.split(".").length,
+      payloadKeys: Object.keys(
+        JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString()),
+      ).sort(),
+    };
   };
 
   beforeEach(() => {
+    attempts = new Map<string, string>();
+
+    getString.mockImplementation(
+      async (namespace: string, key: string): Promise<string | null> => {
+        return namespace === ATTEMPT_NAMESPACE
+          ? attempts.get(key) || null
+          : null;
+      },
+    );
+
+    setString = jest
+      .spyOn(GlobalCache, "setString")
+      .mockImplementation(
+        async (namespace: string, key: string, value: string) => {
+          if (namespace === ATTEMPT_NAMESPACE) {
+            attempts.set(key, value);
+          }
+        },
+      );
+
     userFindOneBy.mockResolvedValue(null);
 
     userCreateUserOnSignup.mockImplementation(
@@ -2558,167 +2641,408 @@ describe("POST /signup -> POST /resend-verification-email", () => {
         return withSecretColumns(user);
       },
     );
+
+    sendAccountAlreadyExistsEmail.mockResolvedValue(undefined);
+    sendCompleteRegistrationEmail.mockResolvedValue(undefined);
   });
 
-  it("hands the hosted verify-your-email page a resend token and the cooldown", async () => {
-    await invoke("/signup", signupBody());
+  describe("the answer", () => {
+    it("hands every sign-up a v2 resend token and the cooldown, naming no account", async () => {
+      await invoke("/signup", signupBody());
 
-    const miscData: Record<string, any> = signupMiscData();
+      const miscData: Record<string, any> = signupMiscData();
+      const token: string = resendTokenOfSignUp();
 
-    expect(miscData["emailVerificationRequired"]).toBe(true);
-    expect(typeof miscData["verificationEmailResendToken"]).toBe("string");
-    expect(miscData["verificationEmailResendToken"]).toMatch(
-      /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/,
-    );
-    expect(miscData["verificationEmailResendAvailableInSeconds"]).toBe(60);
-  });
+      expect(miscData["emailVerificationRequired"]).toBe(true);
+      expect(token).toMatch(/^v2\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/);
+      expect(miscData["verificationEmailResendAvailableInSeconds"]).toBe(60);
 
-  it("hands out a token that names the new account and the address it signed up with", async () => {
-    await invoke("/signup", signupBody());
+      const claims: SignUpEmailResendTokenClaims | null =
+        VerificationEmailResendToken.verifySignUp(token, clock);
 
-    const claims: VerificationEmailResendTokenClaims | null =
-      VerificationEmailResendToken.verify(
-        signupMiscData()["verificationEmailResendToken"],
-        clock,
+      expect(claims!.email.toString()).toBe(USER_EMAIL);
+      expect(
+        Buffer.from(token.split(".")[1]!, "base64url").toString(),
+      ).not.toMatch(UUID_PATTERN);
+    });
+
+    it("is the same, key for key, for a new address, a member's and an invitation's (the regression)", async () => {
+      const answers: Array<JSONObject> = [];
+
+      await invoke("/signup", signupBody());
+      answers.push(shapeOf(signupMiscData()));
+
+      sendEntityResponse.mockClear();
+      addressHasAMember();
+      await invoke("/signup", signupBody());
+      answers.push(shapeOf(signupMiscData()));
+
+      sendEntityResponse.mockClear();
+      addressHasAnInvitation();
+      consumeRegistrationToken.mockResolvedValue(false);
+      await invoke("/signup", signupBody());
+      answers.push(shapeOf(signupMiscData()));
+
+      expect(answers[1]).toEqual(answers[0]);
+      expect(answers[2]).toEqual(answers[0]);
+      expect(sendErrorResponse).not.toHaveBeenCalled();
+      expect(createSession).not.toHaveBeenCalled();
+    });
+
+    it("never says an account already exists, nor that a link went to an invitation", async () => {
+      addressHasAMember();
+      await invoke("/signup", signupBody());
+
+      addressHasAnInvitation();
+      await invoke("/signup", signupBody());
+
+      expect(sendEntityResponse).toHaveBeenCalledTimes(2);
+
+      for (const call of sendEntityResponse.mock.calls as Array<
+        Array<unknown>
+      >) {
+        expect(call[2]).toBeNull();
+        expect(JSON.stringify(call[4])).not.toMatch(
+          /already exists|registrationEmailSent/,
+        );
+      }
+    });
+
+    it("answers before it acts on the address, whichever address it is", async () => {
+      await invoke("/signup", signupBody());
+
+      expect(sendEntityResponse.mock.invocationCallOrder[0]!).toBeLessThan(
+        userCreateUserOnSignup.mock.invocationCallOrder[0]!,
       );
 
-    expect(claims!.userId.toString()).toBe(USER_ID);
-    expect(claims!.email.toString()).toBe(USER_EMAIL);
-  });
+      sendEntityResponse.mockClear();
+      addressHasAMember();
+      await invoke("/signup", signupBody());
 
-  it("hands out a token that neither is nor contains the welcome verification token", async () => {
-    await invoke("/signup", signupBody());
+      expect(sendEntityResponse.mock.invocationCallOrder[0]!).toBeLessThan(
+        sendAccountAlreadyExistsEmail.mock.invocationCallOrder[0]!,
+      );
 
-    const token: string = signupMiscData()["verificationEmailResendToken"];
-    const welcome: string = welcomeToken();
-    const decodedPayload: string = Buffer.from(
-      token.split(".")[1]!,
-      "base64url",
-    ).toString("utf8");
+      sendEntityResponse.mockClear();
+      addressHasAnInvitation();
+      await invoke("/signup", signupBody());
 
-    expect(token).not.toContain(welcome);
-    expect(decodedPayload).not.toContain(welcome);
-    expect(JSON.stringify(signupMiscData())).not.toContain(welcome);
-  });
-
-  it("mints the resend token after the welcome row is written", async () => {
-    /*
-     * The per-credential cap counts sends STRICTLY after issuance, so the
-     * welcome row must already exist when the token is stamped -- or the
-     * token would arrive one resend down.
-     */
-    const generate: jest.SpiedFunction<
-      typeof VerificationEmailResendToken.generate
-    > = jest.spyOn(VerificationEmailResendToken, "generate");
-
-    await invoke("/signup", signupBody());
-
-    expect(generate).toHaveBeenCalledTimes(1);
-    expect(
-      createEmailVerificationToken.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(generate.mock.invocationCallOrder[0]!);
-  });
-
-  it("offers no resend button, but still asks for verification, when a token cannot be minted", async () => {
-    jest.spyOn(VerificationEmailResendToken, "generate").mockReturnValue(null);
-
-    await invoke("/signup", signupBody());
-
-    const miscData: Record<string, any> = signupMiscData();
-
-    expect(miscData["emailVerificationRequired"]).toBe(true);
-    expect(miscData).not.toHaveProperty("verificationEmailResendToken");
-    expect(miscData).not.toHaveProperty(
-      "verificationEmailResendAvailableInSeconds",
-    );
-  });
-
-  it("resolves the same account when the token is fed back to /resend-verification-email", async () => {
-    await invoke("/signup", signupBody());
-
-    const token: string = signupMiscData()["verificationEmailResendToken"];
-
-    /*
-     * From here on the account exists, and its welcome mail went out just
-     * now. (Forget signup's own "is this address taken?" lookup.)
-     */
-    userFindOneBy.mockClear();
-    userFindOneBy.mockResolvedValue(storedUser());
-    findEmailVerificationTokens.mockResolvedValue(history(clock));
-
-    const immediately: InvokeResult = await resend(resendBody(token));
-
-    expect(firstCallArgs(userFindOneBy)["query"]["_id"].toString()).toBe(
-      USER_ID,
-    );
-
-    /*
-     * Pressed straight away, it is told to wait out the cooldown the signup
-     * reply already announced -- the welcome mail was that send.
-     */
-    expectReply(immediately, {
-      emailSent: false,
-      alreadyVerified: false,
-      retryAfterSeconds: 60,
+      expect(sendEntityResponse.mock.invocationCallOrder[0]!).toBeLessThan(
+        sendCompleteRegistrationEmail.mock.invocationCallOrder[0]!,
+      );
     });
-    expect(sendVerificationEmail).not.toHaveBeenCalled();
 
-    // A minute later it sends, to the account signup created.
-    clock = new Date(clock.getTime() + 61 * MS_IN_SECOND);
+    it("offers no resend button, but still answers alike, when a token cannot be minted", async () => {
+      jest
+        .spyOn(VerificationEmailResendToken, "generateForSignUp")
+        .mockReturnValue(null);
 
-    const aMinuteLater: InvokeResult = await resend(resendBody(token));
+      await invoke("/signup", signupBody());
 
-    expectReply(aMinuteLater, {
-      emailSent: true,
-      alreadyVerified: false,
-      retryAfterSeconds: 60,
-    });
-    expect(
-      (sendVerificationEmail.mock.calls[0]![0] as User).id!.toString(),
-    ).toBe(USER_ID);
-    expect(sendVerificationEmail.mock.calls[0]![1]).toEqual({
-      awaitDelivery: true,
+      const miscData: Record<string, any> = signupMiscData();
+
+      expect(miscData["emailVerificationRequired"]).toBe(true);
+      expect(miscData).not.toHaveProperty("verificationEmailResendToken");
+      expect(miscData).not.toHaveProperty(
+        "verificationEmailResendAvailableInSeconds",
+      );
     });
   });
 
-  it("buys exactly three resends after the welcome mail, then stops working", async () => {
-    await invoke("/signup", signupBody());
+  describe("what the sign-up does with the address, after it has answered", () => {
+    it("a new address: an account, unverified, and its welcome, whose token is not the resend one", async () => {
+      await invoke("/signup", signupBody());
 
-    const token: string = signupMiscData()["verificationEmailResendToken"];
-    const welcomeSentAt: Date = new Date(clock.getTime());
+      expect(userCreateUserOnSignup).toHaveBeenCalledTimes(1);
+      expect(
+        (firstCallArgs(userCreateUserOnSignup)["user"] as User).isEmailVerified,
+      ).toBe(false);
+      expect(createEmailVerificationToken).toHaveBeenCalledTimes(1);
 
-    userFindOneBy.mockResolvedValue(storedUser());
+      const welcome: string = (
+        createEmailVerificationToken.mock.calls[0]![0] as Record<string, any>
+      )["data"]["token"].toString();
+      const token: string = resendTokenOfSignUp();
 
-    const sent: Array<Date> = [welcomeSentAt];
-    const outcomes: Array<string> = [];
+      expect(token).not.toContain(welcome);
+      expect(
+        Buffer.from(token.split(".")[1]!, "base64url").toString(),
+      ).not.toContain(welcome);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendAccountAlreadyExistsEmail).not.toHaveBeenCalled();
+    });
 
-    for (let attempt: number = 0; attempt < 4; attempt++) {
-      clock = new Date(clock.getTime() + 2 * MS_IN_MINUTE);
-      findEmailVerificationTokens.mockResolvedValue(history(...sent));
+    it("an address that has signed up: nothing made or changed, and its owner is told, with where the sign-up came from", async () => {
+      const member: User = addressHasAMember();
 
-      const result: InvokeResult = await resend(resendBody(token));
+      await invoke("/signup", signupBody());
 
-      if (result.reply?.["emailSent"] === true) {
-        sent.push(new Date(clock.getTime()));
-        outcomes.push("sent");
-      } else if (result.nextError) {
-        outcomes.push((result.nextError as Exception).message);
-      } else {
-        outcomes.push("waiting");
+      expect(userCreateUserOnSignup).not.toHaveBeenCalled();
+      expect(userUpdateOneByIdAndFetch).not.toHaveBeenCalled();
+      expect(createEmailVerificationToken).not.toHaveBeenCalled();
+      expect(sendAccountAlreadyExistsEmail).toHaveBeenCalledTimes(1);
+      expect(firstCallArgs(sendAccountAlreadyExistsEmail)["user"]).toBe(member);
+      expect(firstCallArgs(sendAccountAlreadyExistsEmail)).toHaveProperty(
+        "origin",
+      );
+    });
+
+    it("an invitation nobody has claimed: its link, and nothing claimed", async () => {
+      addressHasAnInvitation();
+      consumeRegistrationToken.mockResolvedValue(false);
+
+      await invoke("/signup", signupBody());
+
+      expect(sendCompleteRegistrationEmail).toHaveBeenCalledTimes(1);
+      expect(
+        firstCallArgs(sendCompleteRegistrationEmail)["userId"].toString(),
+      ).toBe(INVITED_USER_ID);
+      expect(userUpdateOneByIdAndFetch).not.toHaveBeenCalled();
+      expect(createSession).not.toHaveBeenCalled();
+    });
+
+    it("keeps what it did for the credential's day, on the server", async () => {
+      addressHasAMember();
+
+      await invoke("/signup", signupBody());
+
+      const claims: SignUpEmailResendTokenClaims | null =
+        VerificationEmailResendToken.verifySignUp(resendTokenOfSignUp(), clock);
+      const kept: JSONObject = JSON.parse(attempts.get(claims!.attemptId)!);
+
+      expect(kept).toEqual({
+        u: MEMBER_USER_ID,
+        k: "existing-account",
+        r: [],
+      });
+      expect(setString.mock.calls[0]![3]).toEqual({
+        expiresInSeconds: 24 * 60 * 60,
+      });
+    });
+
+    it("a failure after the answer is logged, never thrown at a request that has had its answer", async () => {
+      userCreateUserOnSignup.mockRejectedValue(new Error("database is down"));
+
+      const result: InvokeResult = await invoke("/signup", signupBody());
+
+      expect(result.nextError).toBeNull();
+      expect(signupMiscData()["emailVerificationRequired"]).toBe(true);
+      expect(loggerError).toHaveBeenCalled();
+    });
+  });
+
+  describe("the resend button sends again what the sign-up sent", () => {
+    type ResendAfterFunction = (seconds: number) => Promise<InvokeResult>;
+
+    const resendAfter: ResendAfterFunction = async (
+      seconds: number,
+    ): Promise<InvokeResult> => {
+      const token: string = resendTokenOfSignUp();
+      clock = new Date(clock.getTime() + seconds * MS_IN_SECOND);
+      return await resend(resendBody(token));
+    };
+
+    it("a new account, still unverified: its verification link, to that account", async () => {
+      await invoke("/signup", signupBody());
+
+      userFindOneBy.mockResolvedValue(storedUser());
+
+      const result: InvokeResult = await resendAfter(61);
+
+      expectReply(result, {
+        emailSent: true,
+        alreadyVerified: false,
+        retryAfterSeconds: 60,
+      });
+      expect(
+        (sendVerificationEmail.mock.calls[0]![0] as User).id!.toString(),
+      ).toBe(USER_ID);
+      expect(sendVerificationEmail.mock.calls[0]![1]).toEqual({
+        awaitDelivery: true,
+      });
+    });
+
+    it("an account that had signed up: the same answer, and its owner is told again", async () => {
+      const member: User = addressHasAMember();
+
+      await invoke("/signup", signupBody());
+      sendAccountAlreadyExistsEmail.mockClear();
+
+      const result: InvokeResult = await resendAfter(61);
+
+      expectReply(result, {
+        emailSent: true,
+        alreadyVerified: false,
+        retryAfterSeconds: 60,
+      });
+      expect(sendAccountAlreadyExistsEmail).toHaveBeenCalledTimes(1);
+      expect(
+        firstCallArgs(sendAccountAlreadyExistsEmail)["user"].id.toString(),
+      ).toBe(member.id!.toString());
+      expect(
+        firstCallArgs(sendAccountAlreadyExistsEmail)["awaitDelivery"],
+      ).toBe(true);
+      expect(sendVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it("an invitation: the same answer, and its link again", async () => {
+      addressHasAnInvitation();
+      consumeRegistrationToken.mockResolvedValue(false);
+
+      await invoke("/signup", signupBody());
+      sendCompleteRegistrationEmail.mockClear();
+
+      const result: InvokeResult = await resendAfter(61);
+
+      expectReply(result, {
+        emailSent: true,
+        alreadyVerified: false,
+        retryAfterSeconds: 60,
+      });
+      expect(sendCompleteRegistrationEmail).toHaveBeenCalledTimes(1);
+      expect(
+        firstCallArgs(sendCompleteRegistrationEmail)["awaitDelivery"],
+      ).toBe(true);
+    });
+
+    it("pressed straight away, every kind is told to wait out the same cooldown", async () => {
+      const replies: Array<JSONObject | null> = [];
+
+      const setUps: Array<() => void> = [
+        (): void => {
+          userFindOneBy.mockResolvedValue(null);
+        },
+        (): void => {
+          addressHasAMember();
+        },
+        (): void => {
+          addressHasAnInvitation();
+        },
+      ];
+
+      for (const setUp of setUps) {
+        sendEntityResponse.mockClear();
+        setUp();
+        await invoke("/signup", signupBody());
+
+        if (replies.length === 0) {
+          userFindOneBy.mockResolvedValue(storedUser());
+        }
+
+        replies.push((await resend(resendBody(resendTokenOfSignUp()))).reply);
       }
-    }
 
-    // One solved captcha: the welcome mail plus three -- never a fourth.
-    expect(outcomes).toEqual([
-      "sent",
-      "sent",
-      "sent",
-      VERIFICATION_EMAIL_RESEND_INVALID_MESSAGE,
-    ]);
-    expect(sendVerificationEmail).toHaveBeenCalledTimes(3);
+      expect(replies[0]).toEqual({
+        emailSent: false,
+        alreadyVerified: false,
+        retryAfterSeconds: 60,
+      });
+      expect(replies[1]).toEqual(replies[0]);
+      expect(replies[2]).toEqual(replies[0]);
+    });
+
+    it.each([
+      ["a new address"],
+      ["a member's address"],
+      ["an invitation's address"],
+    ])(
+      "%s: three resends a credential, then the one refusal",
+      async (kind: string) => {
+        if (kind === "a member's address") {
+          addressHasAMember();
+        } else if (kind === "an invitation's address") {
+          addressHasAnInvitation();
+        }
+
+        await invoke("/signup", signupBody());
+
+        if (kind === "a new address") {
+          userFindOneBy.mockResolvedValue(storedUser());
+        }
+
+        const token: string = resendTokenOfSignUp();
+        const outcomes: Array<string> = [];
+
+        for (let attempt: number = 0; attempt < 4; attempt++) {
+          clock = new Date(clock.getTime() + 2 * MS_IN_MINUTE);
+
+          const result: InvokeResult = await resend(resendBody(token));
+
+          if (result.reply?.["emailSent"] === true) {
+            outcomes.push("sent");
+          } else if (result.nextError) {
+            outcomes.push((result.nextError as Exception).message);
+          } else {
+            outcomes.push("waiting");
+          }
+        }
+
+        expect(outcomes).toEqual([
+          "sent",
+          "sent",
+          "sent",
+          VERIFICATION_EMAIL_RESEND_INVALID_MESSAGE,
+        ]);
+      },
+    );
+
+    it("a new account verified since - which only its address's owner can do - is told so; a member's never is", async () => {
+      await invoke("/signup", signupBody());
+      userFindOneBy.mockResolvedValue(storedUser({ isEmailVerified: true }));
+
+      expectReply(await resendAfter(61), {
+        emailSent: false,
+        alreadyVerified: true,
+        retryAfterSeconds: 0,
+      });
+
+      sendEntityResponse.mockClear();
+      addressHasAMember();
+      await invoke("/signup", signupBody());
+
+      expectReply(await resendAfter(61), {
+        emailSent: true,
+        alreadyVerified: false,
+        retryAfterSeconds: 60,
+      });
+    });
+
+    it("an attempt the server no longer keeps gets the one refusal, and sends nothing", async () => {
+      addressHasAMember();
+      await invoke("/signup", signupBody());
+      attempts.clear();
+      sendAccountAlreadyExistsEmail.mockClear();
+
+      const result: InvokeResult = await resendAfter(61);
+
+      expectInvalidRefusal(result);
+      expect(sendAccountAlreadyExistsEmail).not.toHaveBeenCalled();
+    });
+
+    it("an account that has moved to another address since is mailed nothing", async () => {
+      await invoke("/signup", signupBody());
+      userFindOneBy.mockResolvedValue(
+        storedUser({ email: "moved@example.com" }),
+      );
+
+      expectInvalidRefusal(await resendAfter(61));
+    });
+
+    it("counts each resend toward the attempt, on the server", async () => {
+      addressHasAMember();
+      await invoke("/signup", signupBody());
+
+      await resendAfter(61);
+
+      const claims: SignUpEmailResendTokenClaims | null =
+        VerificationEmailResendToken.verifySignUp(resendTokenOfSignUp(), clock);
+      const kept: JSONObject = JSON.parse(attempts.get(claims!.attemptId)!);
+
+      expect(kept["r"]).toEqual([clock.getTime()]);
+    });
   });
 
-  it("gives a self-hosted signup, which is signed straight in, no resend token", async () => {
+  it("gives a self-hosted signup that cannot email the address, which is signed straight in, no resend token", async () => {
     mockBillingEnabled = false;
 
     await invoke("/signup", signupBody());
@@ -2734,8 +3058,6 @@ describe("POST /signup -> POST /resend-verification-email", () => {
   });
 
   describe("claiming an invitation", () => {
-    const INVITED_USER_ID: string = "66666666-6666-4666-8666-666666666666";
-
     beforeEach(() => {
       userFindOneBy.mockResolvedValue({
         _id: INVITED_USER_ID,
@@ -2755,7 +3077,7 @@ describe("POST /signup -> POST /resend-verification-email", () => {
       });
     });
 
-    it("gives a claimed invitation, whose mailbox is already proven, no resend token", async () => {
+    it("gives a claimed invitation, whose mailbox is already proven, a session and no resend token", async () => {
       consumeRegistrationToken.mockResolvedValue(true);
 
       await invoke(
@@ -2770,25 +3092,19 @@ describe("POST /signup -> POST /resend-verification-email", () => {
       expect(createSession).toHaveBeenCalledTimes(1);
       expect(miscData["emailVerificationRequired"]).toBeUndefined();
       expect(miscData).not.toHaveProperty("verificationEmailResendToken");
-      expect(miscData).not.toHaveProperty(
-        "verificationEmailResendAvailableInSeconds",
-      );
     });
 
-    it("gives an invitation claimed without its token -- sent a registration link instead -- no resend token", async () => {
+    it("an invitation's address without its token is answered as every address is, and is mailed its link", async () => {
       consumeRegistrationToken.mockResolvedValue(false);
 
       await invoke("/signup", signupBody());
 
       const miscData: Record<string, any> = signupMiscData();
 
+      expect(miscData["emailVerificationRequired"]).toBe(true);
+      expect(miscData).not.toHaveProperty("registrationEmailSent");
       expect(sendCompleteRegistrationEmail).toHaveBeenCalledTimes(1);
       expect(createSession).not.toHaveBeenCalled();
-      expect(miscData["registrationEmailSent"]).toBe(true);
-      expect(miscData).not.toHaveProperty("verificationEmailResendToken");
-      expect(miscData).not.toHaveProperty(
-        "verificationEmailResendAvailableInSeconds",
-      );
     });
   });
 });
