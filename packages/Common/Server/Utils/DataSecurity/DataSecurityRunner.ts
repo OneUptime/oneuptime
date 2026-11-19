@@ -988,8 +988,9 @@ export default class DataSecurityRunner {
 
   /*
    * Scans a project's telemetry: each service's logs, traces, exceptions,
-   * replays and AI conversations become stores of their own, and a finding
-   * a scrub rule already masks is marked so.
+   * replays, AI conversations and metrics become stores of their own, and
+   * a finding a scrub rule or a metric pipeline rule already masks is
+   * marked so.
    *
    * Nothing is read of a project that is not served or that turned
    * telemetry scanning off, nor of a service whose store turned content
@@ -1096,7 +1097,12 @@ export default class DataSecurityRunner {
       });
 
       if (coverage) {
-        await this.markScrubbed(dataStoreId, item.kind, coverage);
+        await this.markScrubbed(
+          dataStoreId,
+          item.kind,
+          coverage,
+          item.serviceId,
+        );
       }
     }
   }
@@ -1120,10 +1126,15 @@ export default class DataSecurityRunner {
     }
   }
 
+  /*
+   * Which of a telemetry store's findings a rule already hides at ingest:
+   * the store's service is named, as a metric pipeline rule may be its own.
+   */
   private static async markScrubbed(
     dataStoreId: ObjectID,
     kind: DataStoreKind,
     coverage: ScrubCoverage,
+    serviceId: string,
   ): Promise<void> {
     const findings: Array<{
       id?: ObjectID | null;
@@ -1147,6 +1158,7 @@ export default class DataSecurityRunner {
         kind,
         dataTypeId: finding.dataTypeId,
         location: finding.location,
+        serviceId,
       });
 
       if (scrubbed !== Boolean(finding.isScrubbed)) {

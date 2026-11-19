@@ -221,7 +221,7 @@ Innstillingene for Datasikkerhet er ett sett per prosjekt, i seksjonen **Innstil
 | --- | --- | --- |
 | **Kontrollkonfigurasjon** | På | Kjører kontrollene på hvert datalager. Når den er av, åpnes, endres eller lukkes ingen problemer. |
 | **Skann innhold** | På | Tar prøver av innholdet i datalagre der innholdstillatelsen er gitt. |
-| **Skann telemetri** | På | Tar prøver av prosjektets logger, traser, unntak, avspillinger og AI-samtaler. |
+| **Skann telemetri** | På | Tar prøver av prosjektets logger, traser, målinger, unntak, avspillinger og AI-samtaler. |
 | **Behold maskerte prøver** | På | Beholder opptil tre maskerte prøver med hvert funn. Av beholder bare tellinger. |
 | **Åpne sikkerhetssaker** | På | Åpner en sikkerhetssak, gruppert etter datalager, når et kritisk problem åpnes. |
 | **Opprett varsler** | Av | Oppretter et varsel, som tilkaller den som har vakt, når et kritisk problem åpnes. |
