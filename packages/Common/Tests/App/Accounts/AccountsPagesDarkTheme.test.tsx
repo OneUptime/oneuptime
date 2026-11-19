@@ -153,6 +153,7 @@ import LoginWithProjectSsoPage, {
 import MarketplacePurchasePage from "../../../../App/FeatureSet/Accounts/src/Pages/MarketplacePurchase";
 import McpAuthorizePage from "../../../../App/FeatureSet/Accounts/src/Pages/McpAuthorize";
 import MobilePasskeyPage from "../../../../App/FeatureSet/Accounts/src/Pages/MobilePasskey";
+import MobilePasskeyEnrolmentPage from "../../../../App/FeatureSet/Accounts/src/Pages/MobilePasskeyEnrolment";
 import NotFoundPage from "../../../../App/FeatureSet/Accounts/src/Pages/NotFound";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
 import ResetPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ResetPassword";
@@ -851,6 +852,13 @@ describe("pages other apps send a person to", () => {
 
   test("signing in to the mobile app with a passkey, from a link that is wrong", () => {
     draw(<MobilePasskeyPage />, "/accounts/mobile-passkey");
+
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  // #9817: the page the mobile app opens to set up a passkey.
+  test("setting up a passkey for the mobile app, from a link that is wrong", () => {
+    draw(<MobilePasskeyEnrolmentPage />, "/accounts/mobile-passkey-enrolment");
 
     expect(lightOnlyColours()).toEqual([]);
   });

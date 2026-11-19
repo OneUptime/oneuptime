@@ -342,9 +342,21 @@ De regel wordt elke keer gecontroleerd, dus:
 - **Iemand in een project dat het aanmelden niet beheert**: zodra diegene lid is van, of uitgenodigd is voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, krijgt diegene de instellingen terug, en het **Gebruikersprofiel** noemt dat project als de reden. Na het verlaten ervan wordt het aanmelden weer beheerd. Een account kan bij veel organisaties horen, dus beslist een organisatie nooit over de projecten van een andere.
 - **Projecten met verschillende providers**: iemand in twee projecten die allebei het aanmelden beheren, elk met een eigen identiteitsprovider, wordt beheerd, en het profiel noemt beide providers.
 - **Master-admins** houden altijd hun eigen instellingen.
-- **Wat mensen eerder hebben ingesteld**, blijft bewaard, ongebruikt door uw project. Een serverbeheerder kan het wissen op de pagina **Authenticatie** van de persoon in het Admin Dashboard, met **Aanmeldinstellingen wissen**.
+- **Wat mensen eerder hebben ingesteld**, blijft bewaard, ongebruikt door uw project, totdat het wordt gewist: door de Projecteigenaren (zie hieronder), of door een serverbeheerder op de pagina **Authenticatie** van de persoon in het Admin Dashboard, met **Aanmeldinstellingen wissen**.
 
 **Aanmelden beheren met SSO** slaat op zodra u de schakelaar omzet, verwijdert niets, en uitzetten geeft iedereen meteen de instellingen terug. Wie **SSO vereisen om aan te melden** kan wijzigen, kan ook deze schakelaar wijzigen, op dezelfde abonnementen. Staat **SSO vereisen om aan te melden** uit, dan is hij verborgen en verandert hij niets.
+
+### Wissen wat uw leden eerder hebben opgeslagen
+
+Zolang **Aanmelden beheren met SSO** is ingeschakeld, zien de Projecteigenaren eronder hoeveel van de leden van uw project nog een wachtwoord of tweefactorauthenticatie in OneUptime hebben opgeslagen. **Aanmeldinstellingen wissen** verwijdert, na een bevestiging, hun wachtwoorden met eventuele reset- of aanmeldlinks, passkeys, beveiligingssleutels, authenticator-apps en back-upcodes, zet tweefactorauthenticatie uit en beëindigt de sessies waarin ze zonder SSO zijn aangemeld. Het kan niet ongedaan worden gemaakt.
+
+Een account kan bij veel organisaties horen, dus u kunt alleen de instellingen wissen van de mensen voor wie uw organisatie verantwoordelijk is. Uw organisatie is de projecten waarvan u eigenaar bent: iemands instellingen worden alleen gewist als elk project waartoe diegene behoort, inclusief elk project waarvoor diegene is uitgenodigd, een project is waarvan u **Projecteigenaar** bent en dat **Aanmelden beheren met SSO** heeft ingeschakeld. Alle anderen houden hun instellingen:
+
+- iemand die lid is van, of uitgenodigd is voor, een project waarvan u geen eigenaar bent, of een project dat het aanmelden niet met SSO beheert;
+- iemand die alleen is uitgenodigd voor uw project en er nog geen lid van is geworden;
+- master-admins, en uzelf: wijzig uw eigen instellingen in uw **Gebruikersprofiel**.
+
+Iedereen van wie de instellingen zijn gewist, krijgt een e-mail over wat er is verwijderd en dat diegene zich nu met SSO aanmeldt, en de auditlogboeken van uw projecten leggen vast dat u het wissen hebt gedaan. Alleen een **Projecteigenaar** kan wissen, aangemeld bij het dashboard: nooit met een API-sleutel.
 
 ## Een provider uitzetten of verwijderen
 

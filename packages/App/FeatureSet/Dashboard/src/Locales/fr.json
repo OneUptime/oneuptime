@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "Ils rejoignent l'équipe {{team}}.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "Cela remplace la façon dont les alertes vous joignent aujourd'hui, pour chaque incident et chaque alerte, quelle que soit la gravité.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Tarifs : prix catalogue de {{provider}}, avant que Kubecost ne les rapproche de votre facture",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Votre Kubecost lit votre facture cloud et rapproche ses prix de ce que vous avez payé, environ un jour et demi après chaque heure. OneUptime enregistre chaque heure telle qu'elle était tarifée à sa clôture : au prix catalogue public du cloud."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Votre Kubecost lit votre facture cloud et rapproche ses prix de ce que vous avez payé, environ un jour et demi après chaque heure. OneUptime enregistre chaque heure telle qu'elle était tarifée à sa clôture : au prix catalogue public du cloud.",
+  "Clear Sign-In Settings": "Effacer les paramètres de connexion",
+  "Clear their saved sign-in settings?": "Effacer leurs paramètres de connexion enregistrés ?",
+  "Cleared the sign-in settings of {{count}} people.": "Les paramètres de connexion de {{count}} personnes ont été effacés.",
+  "Cleared the sign-in settings of {{count}} people._one": "Les paramètres de connexion de {{count}} personne ont été effacés.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Leurs mots de passe, clés d'accès, clés de sécurité, applications d'authentification et codes de secours sont supprimés, et chaque personne reçoit un e-mail. Cette action est irréversible.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personnes dont tous les projets sont les vôtres ont encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} personne dont tous les projets sont les vôtres a encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime."
 }

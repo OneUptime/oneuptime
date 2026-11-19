@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "Они войдут в команду {{team}}.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "Это заменит то, как к вам сейчас приходят вызовы, для каждого инцидента и оповещения любой серьёзности.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Цены: прейскурант {{provider}}, пока Kubecost не сверит их с вашим счётом",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Ваш Kubecost читает ваш счёт за облако и сверяет свои цены с тем, что вы заплатили, примерно через полтора дня после каждого часа. OneUptime записывает каждый час по ценам на момент его закрытия: по публичному прейскуранту облака."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Ваш Kubecost читает ваш счёт за облако и сверяет свои цены с тем, что вы заплатили, примерно через полтора дня после каждого часа. OneUptime записывает каждый час по ценам на момент его закрытия: по публичному прейскуранту облака.",
+  "Clear Sign-In Settings": "Удалить настройки входа",
+  "Clear their saved sign-in settings?": "Удалить их сохранённые настройки входа?",
+  "Cleared the sign-in settings of {{count}} people.": "Настройки входа удалены. Пользователей: {{count}}.",
+  "Cleared the sign-in settings of {{count}} people._one": "Настройки входа удалены у {{count}} пользователя.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Их пароли, ключи доступа, ключи безопасности, приложения-аутентификаторы и резервные коды удаляются, и каждый получает письмо. Это нельзя отменить.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "Пользователей, все проекты которых принадлежат вам и у которых в OneUptime всё ещё сохранены пароль или двухфакторная аутентификация: {{count}}.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} пользователь, все проекты которого принадлежат вам, всё ещё хранит в OneUptime пароль или двухфакторную аутентификацию."
 }

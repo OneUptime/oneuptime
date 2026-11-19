@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "{{team}} チームに参加します。",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "すべての重大度のインシデントとアラートについて、現在の呼び出しの届き方を置き換えます。",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "価格: Kubecost が請求書と照合する前の {{provider}} の標準料金",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost はクラウドの請求書を読み取り、各時間の約 1 日半後に、実際の支払額と価格を照合します。OneUptime は各時間を、その時間が終わった時点の価格、つまりクラウドの公開標準料金で記録します。"
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost はクラウドの請求書を読み取り、各時間の約 1 日半後に、実際の支払額と価格を照合します。OneUptime は各時間を、その時間が終わった時点の価格、つまりクラウドの公開標準料金で記録します。",
+  "Clear Sign-In Settings": "サインイン設定を消去",
+  "Clear their saved sign-in settings?": "これらのユーザーの保存済みサインイン設定を消去しますか？",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}} 人のサインイン設定を消去しました。",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}} 人のサインイン設定を消去しました。",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードが削除され、各ユーザーにメールが送信されます。この操作は元に戻せません。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。"
 }

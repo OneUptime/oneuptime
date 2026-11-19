@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "De kommer med i teamet {{team}}.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "Dette erstatter, hvordan tilkald når dig nu, for hver hændelse og advarsel af enhver alvorlighed.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Priser: listepriser fra {{provider}}, før Kubecost afstemmer dem med din regning",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost læser din cloudregning og afstemmer sine priser med det, du har betalt, omkring halvanden dag efter hver time. OneUptime registrerer hver time med den pris, den havde, da den sluttede: cloudens offentlige listepriser."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost læser din cloudregning og afstemmer sine priser med det, du har betalt, omkring halvanden dag efter hver time. OneUptime registrerer hver time med den pris, den havde, da den sluttede: cloudens offentlige listepriser.",
+  "Clear Sign-In Settings": "Ryd loginindstillinger",
+  "Clear their saved sign-in settings?": "Ryd deres gemte loginindstillinger?",
+  "Cleared the sign-in settings of {{count}} people.": "Loginindstillingerne for {{count}} personer er ryddet.",
+  "Cleared the sign-in settings of {{count}} people._one": "Loginindstillingerne for {{count}} person er ryddet.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Deres adgangskoder, adgangsnøgler, sikkerhedsnøgler, godkendelsesapps og backupkoder slettes, og hver person får en e-mail. Det kan ikke fortrydes.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personer, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime."
 }

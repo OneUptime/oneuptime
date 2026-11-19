@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "他們將加入 {{team}} 團隊。",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "這將取代你現在被呼叫的方式，適用於所有嚴重程度的每個事件和警示。",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "價格：Kubecost 依你的帳單核對之前的 {{provider}} 牌價",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約一天半後，依你實際支付的金額核對其價格。OneUptime 依每個小時結束時的價格記錄該小時：即雲端的公開牌價。"
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約一天半後，依你實際支付的金額核對其價格。OneUptime 依每個小時結束時的價格記錄該小時：即雲端的公開牌價。",
+  "Clear Sign-In Settings": "清除登入設定",
+  "Clear their saved sign-in settings?": "要清除這些人已儲存的登入設定嗎？",
+  "Cleared the sign-in settings of {{count}} people.": "已清除 {{count}} 人的登入設定。",
+  "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登入設定。",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "他們的密碼、通行密鑰、安全金鑰、驗證器應用程式和備用代碼都將被刪除，每個人都會收到一封電子郵件。此操作無法復原。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "在所有專案都由您擁有的人中，仍有 {{count}} 人在 OneUptime 中保存著密碼或雙重驗證。"
 }

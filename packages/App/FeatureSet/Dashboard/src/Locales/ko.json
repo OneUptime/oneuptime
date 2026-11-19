@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "{{team}} 팀에 합류합니다.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "모든 심각도의 인시던트와 경고에 대해, 지금 호출이 나에게 전달되는 방법을 바꿉니다.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "가격: Kubecost가 청구서와 대조하기 전의 {{provider}} 정가",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost는 클라우드 청구서를 읽고, 각 시간이 지나고 약 하루 반 뒤에 가격을 실제로 결제한 금액과 대조합니다. OneUptime은 각 시간을 그 시간이 끝난 시점의 가격, 즉 클라우드의 공개 정가로 기록합니다."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost는 클라우드 청구서를 읽고, 각 시간이 지나고 약 하루 반 뒤에 가격을 실제로 결제한 금액과 대조합니다. OneUptime은 각 시간을 그 시간이 끝난 시점의 가격, 즉 클라우드의 공개 정가로 기록합니다.",
+  "Clear Sign-In Settings": "로그인 설정 지우기",
+  "Clear their saved sign-in settings?": "이 사용자들의 저장된 로그인 설정을 지우시겠습니까?",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}}명의 로그인 설정을 지웠습니다.",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}}명의 로그인 설정을 지웠습니다.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "비밀번호, 패스키, 보안 키, 인증 앱, 백업 코드가 삭제되고 각 사용자에게 이메일이 발송됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "속한 프로젝트가 모두 내 소유인 사용자 중 {{count}}명이 아직 OneUptime에 비밀번호나 2단계 인증을 저장해 두고 있습니다."
 }

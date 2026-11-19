@@ -307,6 +307,19 @@
     "cancel": "取消并返回应用",
     "setup": "在网页控制台的“用户配置 → 安全 → 通行密钥”中创建通行密钥。"
   },
+  "mobilePasskeyEnrolment": {
+    "title": "设置通行密钥",
+    "description": "使用此手机的面容、指纹或屏幕锁定，或使用安全密钥。下次你将用它登录 OneUptime On-Call。",
+    "create": "创建通行密钥",
+    "tryAgain": "重试",
+    "notCompleted": "通行密钥未创建：提示已取消或超时。准备好后请重试。",
+    "expired": "此设置已过期或已被使用。请返回应用重新开始。",
+    "failed": "无法创建通行密钥。请重试，或返回应用改为设置身份验证器应用。",
+    "complete": "通行密钥已就绪。请返回应用完成登录。",
+    "invalid": "请从 OneUptime 移动应用开始设置通行密钥。此请求缺失或无效。",
+    "insecure": "通行密钥需要 HTTPS。请返回应用，改为设置身份验证器应用。",
+    "unsupported": "此浏览器无法创建通行密钥。请返回应用，改为设置身份验证器应用。"
+  },
   "mcpAuthorize": {
     "title": "连接 MCP 客户端",
     "wantsAccess": "{{clientName}} 想要代表您访问 OneUptime。",

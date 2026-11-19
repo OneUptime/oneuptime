@@ -5,8 +5,9 @@ import ObjectID from "../ObjectID";
 import { LocalSignInSettings } from "../SSO/LocalSignInClearing";
 
 /*
- * A MASTER ADMIN CLEARING SOMEONE'S SIGN-IN SETTINGS, IN THE AUDIT LOG
- * (issue #9762, Types/SSO/LocalSignInClearing).
+ * SOMEONE'S SIGN-IN SETTINGS CLEARED, IN THE AUDIT LOG (issue #9762,
+ * Types/SSO/LocalSignInClearing): by a master admin, or by an owner of every
+ * project the person is in (#9820, Server/Utils/ProjectSignInClearing).
  *
  * Clearing a person's password, passkeys, security keys, authenticator apps,
  * backup codes and two-factor authentication cannot be undone, so it is
@@ -14,15 +15,15 @@ import { LocalSignInSettings } from "../SSO/LocalSignInClearing";
  *
  * WHERE: in every project the person is a member of (an accepted
  * invitation) that records audit logs, as their sessions are, whether or
- * not the project stores system events: a master admin did it, by hand.
+ * not the project stores system events: a person did it, by hand.
  *
  * WHAT AN ENTRY SAYS:
  *
  *   - its resource is the person: a User, by their id, named by their name
  *     (or their email when they have none), rolling up to themselves;
- *   - its action is an Update of that User, by the master admin who
- *     cleared it - filtering the audit log by the master admin's email
- *     finds every clear they made;
+ *   - its action is an Update of that User, by whoever cleared it - a
+ *     master admin, or an owner of every project the person is in - so
+ *     filtering the audit log by their email finds every clear they made;
  *   - its fields are what was removed, before and after
  *     (getSignInSettingsClearedChanges): the password as changed, never its
  *     value; two-factor authentication from on to off; and how many
@@ -52,7 +53,7 @@ export enum SignInSettingsClearedField {
 export interface SignInSettingsClearedAuditEvent {
   // Whose settings were cleared.
   userId: ObjectID;
-  // The master admin who cleared them.
+  // Who cleared them: a master admin, or an owner of all their projects.
   clearedByUserId: ObjectID;
   // What they had, all of which is gone.
   cleared: LocalSignInSettings;

@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "آن‌ها به تیم {{team}} می‌پیوندند.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "این، شیوهٔ رسیدن فراخوان‌ها به شما را برای هر حادثه و هشدار با هر شدتی جایگزین می‌کند.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "قیمت‌ها: قیمت‌های اعلام‌شدهٔ {{provider}}، پیش از آنکه Kubecost آن‌ها را با صورت‌حساب شما تطبیق دهد",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost شما صورت‌حساب ابری‌تان را می‌خواند و حدود یک روز و نیم پس از هر ساعت، قیمت‌هایش را با مبلغی که پرداخته‌اید تطبیق می‌دهد. OneUptime هر ساعت را با قیمتی ثبت می‌کند که هنگام پایانش داشت: قیمت‌های عمومی اعلام‌شدهٔ ابر."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost شما صورت‌حساب ابری‌تان را می‌خواند و حدود یک روز و نیم پس از هر ساعت، قیمت‌هایش را با مبلغی که پرداخته‌اید تطبیق می‌دهد. OneUptime هر ساعت را با قیمتی ثبت می‌کند که هنگام پایانش داشت: قیمت‌های عمومی اعلام‌شدهٔ ابر.",
+  "Clear Sign-In Settings": "پاک کردن تنظیمات ورود",
+  "Clear their saved sign-in settings?": "تنظیمات ورود ذخیره‌شدهٔ آن‌ها پاک شود؟",
+  "Cleared the sign-in settings of {{count}} people.": "تنظیمات ورود {{count}} نفر پاک شد.",
+  "Cleared the sign-in settings of {{count}} people._one": "تنظیمات ورود {{count}} نفر پاک شد.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "رمزهای عبور، کلیدهای عبور، کلیدهای امنیتی، اپلیکیشن‌های احراز هویت و کدهای پشتیبان آن‌ها حذف می‌شوند و به هر نفر ایمیل زده می‌شود. این کار برگشت‌پذیر نیست.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} نفر که مالک همهٔ پروژه‌هایشان هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارند.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} نفر که مالک همهٔ پروژه‌هایش هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد."
 }

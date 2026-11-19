@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "De går med i teamet {{team}}.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "Detta ersätter hur larm når dig nu, för varje incident och larm av alla allvarlighetsgrader.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Priser: listpriser från {{provider}}, innan Kubecost stämmer av dem mot din faktura",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost läser din molnfaktura och stämmer av sina priser mot vad du har betalat, ungefär ett och ett halvt dygn efter varje timme. OneUptime registrerar varje timme med det pris den hade när den avslutades: molnets offentliga listpriser."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost läser din molnfaktura och stämmer av sina priser mot vad du har betalat, ungefär ett och ett halvt dygn efter varje timme. OneUptime registrerar varje timme med det pris den hade när den avslutades: molnets offentliga listpriser.",
+  "Clear Sign-In Settings": "Rensa inloggningsinställningar",
+  "Clear their saved sign-in settings?": "Rensa deras sparade inloggningsinställningar?",
+  "Cleared the sign-in settings of {{count}} people.": "Inloggningsinställningarna för {{count}} personer har rensats.",
+  "Cleared the sign-in settings of {{count}} people._one": "Inloggningsinställningarna för {{count}} person har rensats.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Deras lösenord, passnycklar, säkerhetsnycklar, autentiseringsappar och reservkoder raderas, och var och en får ett e-postmeddelande. Det går inte att ångra.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personer vars alla projekt är dina har fortfarande ett lösenord eller tvåfaktorsautentisering sparat i OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person vars alla projekt är dina har fortfarande ett lösenord eller tvåfaktorsautentisering sparat i OneUptime."
 }

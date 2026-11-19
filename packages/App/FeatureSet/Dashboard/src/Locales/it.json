@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "Entrano nel team {{team}}.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "Sostituisce il modo in cui ti raggiungono ora le chiamate di reperibilità, per ogni incidente e avviso di ogni gravità.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Prezzi: prezzi di listino di {{provider}}, prima che Kubecost li riconcili con la tua fattura",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Il tuo Kubecost legge la tua fattura cloud e riconcilia i suoi prezzi con quanto hai pagato, circa un giorno e mezzo dopo ogni ora. OneUptime registra ogni ora con il prezzo che aveva alla sua chiusura: i prezzi di listino pubblici del cloud."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Il tuo Kubecost legge la tua fattura cloud e riconcilia i suoi prezzi con quanto hai pagato, circa un giorno e mezzo dopo ogni ora. OneUptime registra ogni ora con il prezzo che aveva alla sua chiusura: i prezzi di listino pubblici del cloud.",
+  "Clear Sign-In Settings": "Cancella impostazioni di accesso",
+  "Clear their saved sign-in settings?": "Cancellare le loro impostazioni di accesso salvate?",
+  "Cleared the sign-in settings of {{count}} people.": "Le impostazioni di accesso di {{count}} persone sono state cancellate.",
+  "Cleared the sign-in settings of {{count}} people._one": "Le impostazioni di accesso di {{count}} persona sono state cancellate.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Le loro password, passkey, chiavi di sicurezza, app di autenticazione e codici di backup vengono eliminati, e ogni persona riceve un'email. Non si può annullare.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} persone i cui progetti sono tutti tuoi hanno ancora una password o l'autenticazione a due fattori salvata in OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} persona i cui progetti sono tutti tuoi ha ancora una password o l'autenticazione a due fattori salvata in OneUptime."
 }

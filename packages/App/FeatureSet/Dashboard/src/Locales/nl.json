@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "Ze worden lid van het team {{team}}.",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "Dit vervangt hoe oproepen je nu bereiken, voor elk incident en elke waarschuwing van elke ernst.",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Prijzen: lijstprijzen van {{provider}}, voordat Kubecost ze afstemt op uw factuur",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Uw Kubecost leest uw cloudfactuur en stemt zijn prijzen ongeveer anderhalve dag na elk uur af op wat u hebt betaald. OneUptime legt elk uur vast met de prijs die het had toen het afliep: de openbare lijstprijzen van de cloud."
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Uw Kubecost leest uw cloudfactuur en stemt zijn prijzen ongeveer anderhalve dag na elk uur af op wat u hebt betaald. OneUptime legt elk uur vast met de prijs die het had toen het afliep: de openbare lijstprijzen van de cloud.",
+  "Clear Sign-In Settings": "Aanmeldinstellingen wissen",
+  "Clear their saved sign-in settings?": "Hun opgeslagen aanmeldinstellingen wissen?",
+  "Cleared the sign-in settings of {{count}} people.": "De aanmeldinstellingen van {{count}} mensen zijn gewist.",
+  "Cleared the sign-in settings of {{count}} people._one": "De aanmeldinstellingen van {{count}} persoon zijn gewist.",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Hun wachtwoorden, passkeys, beveiligingssleutels, authenticator-apps en back-upcodes worden verwijderd, en iedereen krijgt een e-mail. Dit kan niet ongedaan worden gemaakt.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} mensen van wie alle projecten van u zijn, hebben nog een wachtwoord of tweefactorauthenticatie opgeslagen in OneUptime.",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} persoon van wie alle projecten van u zijn, heeft nog een wachtwoord of tweefactorauthenticatie opgeslagen in OneUptime."
 }

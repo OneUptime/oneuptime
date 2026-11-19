@@ -58967,5 +58967,12 @@
   "They join the {{team}} team.": "वे {{team}} टीम में शामिल होते हैं।",
   "This replaces how pages reach you now, for every incident and alert at every severity.": "यह हर गंभीरता की हर घटना और अलर्ट के लिए, अभी पेज आप तक पहुंचने का तरीका बदल देता है।",
   "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "कीमतें: {{provider}} की सूची कीमतें, Kubecost के इन्हें आपके बिल से मिलाने से पहले",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "आपका Kubecost आपका क्लाउड बिल पढ़ता है और हर घंटे के लगभग डेढ़ दिन बाद अपनी कीमतों को आपके चुकाए गए भुगतान से मिलाता है। OneUptime हर घंटे को उसी कीमत पर दर्ज करता है जो उसके ख़त्म होने के समय थी: क्लाउड की सार्वजनिक सूची कीमतें।"
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "आपका Kubecost आपका क्लाउड बिल पढ़ता है और हर घंटे के लगभग डेढ़ दिन बाद अपनी कीमतों को आपके चुकाए गए भुगतान से मिलाता है। OneUptime हर घंटे को उसी कीमत पर दर्ज करता है जो उसके ख़त्म होने के समय थी: क्लाउड की सार्वजनिक सूची कीमतें।",
+  "Clear Sign-In Settings": "साइन-इन सेटिंग्स हटाएँ",
+  "Clear their saved sign-in settings?": "इन लोगों की सहेजी गई साइन-इन सेटिंग्स हटाएँ?",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}} लोगों की साइन-इन सेटिंग्स हटा दी गईं।",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}} व्यक्ति की साइन-इन सेटिंग्स हटा दी गईं।",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "उनके पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटा दिए जाते हैं, और हर व्यक्ति को ईमेल भेजा जाता है। इसे पहले जैसा नहीं किया जा सकता।",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "जिनके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} लोगों का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।",
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "जिसके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} व्यक्ति का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।"
 }
