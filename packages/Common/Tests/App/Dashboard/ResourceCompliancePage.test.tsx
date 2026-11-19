@@ -21,6 +21,7 @@ import { MemoryRouter } from "react-router-dom";
 import ResourceCompliancePage, {
   RESOURCE_COMPLIANCE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ResourceCompliancePage";
+import { COMPLIANCE_REASON_MAX_LENGTH } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ResourceComplianceModel";
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -39,6 +40,7 @@ import {
   scoreComplianceFramework,
 } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
 import {
+  DataSecurityComplianceTurnedOff,
   DataSecurityResourceComplianceFramework,
   DataSecurityResourceComplianceResponse,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
@@ -662,5 +664,378 @@ describe("a database that runs on no cluster or host", () => {
     expect(href.pathname).toBe(
       compliancePageOf(DATABASE_ID, PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY),
     );
+  });
+});
+
+/*
+ * WHY IT DOES NOT APPLY HERE (#9629). Turning a framework or a requirement
+ * off saves at once, then asks why under it, which may be put off; what is
+ * turned off says who turned it off, when and why, with Add Reason or Edit
+ * Reason for whoever may change it. The reason is its setting's note.
+ */
+const TURNED_OFF_AT: string = "2026-11-12T09:30:00.000Z";
+
+function entryOf(
+  data: Partial<DataSecurityComplianceTurnedOff> = {},
+): DataSecurityComplianceTurnedOff {
+  return {
+    id: SETTING_ID.toString(),
+    resource: {
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+    },
+    requirement: null,
+    note: "",
+    turnedOffAt: TURNED_OFF_AT,
+    turnedOffBy: "Jane Doe",
+    ...data,
+  };
+}
+
+// PCI DSS's requirement 7.2 turned off here, with what the server says of it.
+function requirementTurnedOff(
+  entry: DataSecurityComplianceTurnedOff,
+): DataSecurityResourceComplianceResponse {
+  return answerOf({
+    frameworks: frameworksOf({
+      turnedOff: [ComplianceFramework.SOC2],
+      turnedOffRequirements: { [ComplianceFramework.PCIDSS]: ["7.2"] },
+    }).map(
+      (
+        framework: DataSecurityResourceComplianceFramework,
+      ): DataSecurityResourceComplianceFramework => {
+        return framework.framework === ComplianceFramework.PCIDSS
+          ? {
+              ...framework,
+              turnedOff: [entry],
+              requirements: framework.requirements.map(
+                (
+                  requirement: ComplianceRequirementResult,
+                ): ComplianceRequirementResult => {
+                  return requirement.requirement === "7.2"
+                    ? {
+                        ...requirement,
+                        status: ComplianceRequirementStatus.TurnedOff,
+                        failingIssueCount: 0,
+                      }
+                    : requirement;
+                },
+              ),
+            }
+          : framework;
+      },
+    ),
+  });
+}
+
+// PCI DSS turned off here altogether.
+function frameworkTurnedOff(
+  entry: DataSecurityComplianceTurnedOff,
+): DataSecurityResourceComplianceResponse {
+  return answerOf({
+    frameworks: frameworksOf({
+      turnedOff: [ComplianceFramework.SOC2, ComplianceFramework.PCIDSS],
+    }).map(
+      (
+        framework: DataSecurityResourceComplianceFramework,
+      ): DataSecurityResourceComplianceFramework => {
+        return framework.framework === ComplianceFramework.PCIDSS
+          ? { ...framework, turnedOff: [entry] }
+          : framework;
+      },
+    ),
+  });
+}
+
+const REQUIREMENT_NOTE: string = `${RESOURCE_COMPLIANCE_TEST_ID}-turned-off-${ComplianceFramework.PCIDSS}-7.2`;
+
+async function type(testId: string, value: string): Promise<void> {
+  await act(async () => {
+    fireEvent.change(screen.getByTestId(testId), { target: { value } });
+  });
+}
+
+describe("why it does not apply here", () => {
+  test("turning a requirement off asks why under it, and Save Reason writes the reason to its setting", async () => {
+    complianceSpy
+      .mockResolvedValueOnce(answerOf())
+      .mockResolvedValue(requirementTurnedOff(entryOf({ requirement: "7.2" })));
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-applies-${ComplianceFramework.PCIDSS}-7.2`,
+    );
+
+    const form: HTMLElement = screen.getByTestId(`${REQUIREMENT_NOTE}-form`);
+
+    expect(form).toHaveTextContent("Why does this not apply here?");
+    expect(form).toHaveTextContent(
+      "Optional. Shown beside it, and kept in the audit log.",
+    );
+
+    await type(
+      `${REQUIREMENT_NOTE}-form-input`,
+      "  Access is reviewed weekly.  ",
+    );
+    await flip(`${REQUIREMENT_NOTE}-form-save`);
+
+    expect(updateSpy).toHaveBeenCalledWith({
+      modelType: DataSecurityComplianceSetting,
+      id: SETTING_ID,
+      data: { note: "Access is reviewed weekly." },
+    });
+    expect(toastSpy).toHaveBeenLastCalledWith("Changes saved");
+    // Read again, to show the reason as it was kept.
+    expect(complianceSpy).toHaveBeenCalledTimes(3);
+    expect(screen.queryByTestId(`${REQUIREMENT_NOTE}-form`)).toBeNull();
+  });
+
+  test("Not Now puts the question off, writes nothing, and leaves Add Reason", async () => {
+    complianceSpy
+      .mockResolvedValueOnce(answerOf())
+      .mockResolvedValue(requirementTurnedOff(entryOf({ requirement: "7.2" })));
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-applies-${ComplianceFramework.PCIDSS}-7.2`,
+    );
+    await flip(`${REQUIREMENT_NOTE}-form-cancel`);
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId(`${REQUIREMENT_NOTE}-form`)).toBeNull();
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-edit`)).toHaveTextContent(
+      "Add Reason",
+    );
+  });
+
+  test("a requirement turned off says who turned it off, when and why, beside Turned off", async () => {
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(
+        entryOf({
+          requirement: "7.2",
+          note: "Access is reviewed weekly by the platform team.",
+        }),
+      ),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+
+    const note: HTMLElement = screen.getByTestId(REQUIREMENT_NOTE);
+
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-who`)).toHaveTextContent(
+      /^Turned off by Jane Doe on .+/,
+    );
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-reason`)).toHaveTextContent(
+      "Access is reviewed weekly by the platform team.",
+    );
+    // Beside the status it explains, in the same cell.
+    expect(note.closest("td")).toHaveTextContent("Turned off");
+    // Nothing asks until someone chooses to change it.
+    expect(screen.queryByTestId(`${REQUIREMENT_NOTE}-form`)).toBeNull();
+  });
+
+  test("Edit Reason opens the reason as it is, and saves the change", async () => {
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(
+        entryOf({ requirement: "7.2", note: "Reviewed weekly." }),
+      ),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(`${REQUIREMENT_NOTE}-edit`);
+
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-form-input`)).toHaveValue(
+      "Reviewed weekly.",
+    );
+
+    await type(`${REQUIREMENT_NOTE}-form-input`, "Reviewed daily.");
+    await flip(`${REQUIREMENT_NOTE}-form-save`);
+
+    expect(updateSpy).toHaveBeenCalledWith({
+      modelType: DataSecurityComplianceSetting,
+      id: SETTING_ID,
+      data: { note: "Reviewed daily." },
+    });
+  });
+
+  test("a reason is cut at what its setting keeps, as it is typed", async () => {
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(entryOf({ requirement: "7.2" })),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(`${REQUIREMENT_NOTE}-edit`);
+    await type(`${REQUIREMENT_NOTE}-form-input`, "x".repeat(600));
+
+    expect(
+      (screen.getByTestId(`${REQUIREMENT_NOTE}-form-input`) as HTMLInputElement)
+        .value,
+    ).toHaveLength(COMPLIANCE_REASON_MAX_LENGTH);
+  });
+
+  test("a reason that was not saved says so, and keeps what was typed", async () => {
+    updateSpy.mockRejectedValue(
+      new Error("Write the reason in 500 characters or fewer.") as never,
+    );
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(entryOf({ requirement: "7.2" })),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(`${REQUIREMENT_NOTE}-edit`);
+    await type(`${REQUIREMENT_NOTE}-form-input`, "Reviewed weekly.");
+    await flip(`${REQUIREMENT_NOTE}-form-save`);
+
+    const form: HTMLElement = screen.getByTestId(`${REQUIREMENT_NOTE}-form`);
+
+    // The server's own sentence, under the form; nothing said saved.
+    expect(form).toHaveTextContent(
+      "Write the reason in 500 characters or fewer.",
+    );
+    expect(toastSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-form-input`)).toHaveValue(
+      "Reviewed weekly.",
+    );
+  });
+
+  test("a framework turned off from its card keeps the card, asking why; Save Reason closes it", async () => {
+    complianceSpy
+      .mockResolvedValueOnce(answerOf())
+      .mockResolvedValue(frameworkTurnedOff(entryOf()));
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+    await flip(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-applies-${ComplianceFramework.PCIDSS}`,
+    );
+
+    const card: HTMLElement = screen.getByTestId(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-framework-turned-off`,
+    );
+
+    // Its switch, off, to turn it on again, and the question - asked once, in the card.
+    expect(
+      within(card).getByTestId(
+        `${RESOURCE_COMPLIANCE_TEST_ID}-applies-here-${ComplianceFramework.PCIDSS}`,
+      ),
+    ).toHaveAttribute("aria-checked", "false");
+    expect(screen.getAllByText("Why does this not apply here?")).toHaveLength(
+      1,
+    );
+
+    await type(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-framework-turned-off-note-form-input`,
+      "No card data ever reaches prod-eu.",
+    );
+    await flip(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-framework-turned-off-note-form-save`,
+    );
+
+    expect(updateSpy).toHaveBeenCalledWith({
+      modelType: DataSecurityComplianceSetting,
+      id: SETTING_ID,
+      data: { note: "No card data ever reaches prod-eu." },
+    });
+    expect(
+      screen.queryByTestId(
+        `${RESOURCE_COMPLIANCE_TEST_ID}-framework-turned-off`,
+      ),
+    ).toBeNull();
+  });
+
+  test("a framework turned off is in the fold with who turned it off, when and why", async () => {
+    complianceSpy.mockResolvedValue(
+      frameworkTurnedOff(
+        entryOf({ note: "No card data ever reaches prod-eu." }),
+      ),
+    );
+
+    await drawPage();
+
+    const note: HTMLElement = screen.getByTestId(
+      `${RESOURCE_COMPLIANCE_TEST_ID}-turned-off-${ComplianceFramework.PCIDSS}`,
+    );
+
+    expect(note).toHaveTextContent(/Turned off by Jane Doe on .+/);
+    expect(note).toHaveTextContent("No card data ever reaches prod-eu.");
+    expect(note).toHaveTextContent("Edit Reason");
+  });
+
+  test("an API key's turn-off names nobody, and one from before is just Turned off", async () => {
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(entryOf({ requirement: "7.2", turnedOffBy: null })),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-who`)).toHaveTextContent(
+      /^Turned off on .+/,
+    );
+
+    cleanup();
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(
+        entryOf({ requirement: "7.2", turnedOffBy: null, turnedOffAt: null }),
+      ),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-who`)).toHaveTextContent(
+      /^Turned off$/,
+    );
+  });
+
+  test("someone who may not change settings reads why, with nothing to change it", async () => {
+    canCreate = false;
+    complianceSpy.mockResolvedValue(
+      requirementTurnedOff(
+        entryOf({ requirement: "7.2", note: "Reviewed weekly." }),
+      ),
+    );
+
+    await drawPage();
+    await pick(ComplianceFramework.PCIDSS);
+
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-reason`)).toHaveTextContent(
+      "Reviewed weekly.",
+    );
+    expect(screen.queryByTestId(`${REQUIREMENT_NOTE}-edit`)).toBeNull();
+  });
+
+  test("a database on a cluster shows the cluster's reasons, which only the cluster's page changes", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/databases/${DATABASE_ID.toString()}/compliance`,
+    );
+    complianceSpy.mockResolvedValue({
+      ...requirementTurnedOff(
+        entryOf({ requirement: "7.2", note: "Reviewed weekly." }),
+      ),
+      kind: DataStoreResourceKind.DatabaseServer,
+      id: DATABASE_ID.toString(),
+      name: "orders",
+      complianceOwner: {
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+        name: "prod-eu",
+      },
+    });
+
+    await drawPage(DataStoreResourceKind.DatabaseServer);
+    await pick(ComplianceFramework.PCIDSS);
+
+    expect(screen.getByTestId(`${REQUIREMENT_NOTE}-reason`)).toHaveTextContent(
+      "Reviewed weekly.",
+    );
+    expect(screen.queryByTestId(`${REQUIREMENT_NOTE}-edit`)).toBeNull();
   });
 });

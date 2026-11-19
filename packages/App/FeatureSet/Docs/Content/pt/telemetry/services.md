@@ -57,13 +57,14 @@ Para adicionar um serviço antes de a telemetria dele chegar, por exemplo para d
 
 ## As páginas de um serviço
 
-O menu lateral de um serviço tem cinco seções:
+O menu lateral de um serviço tem seis seções:
 
 | Seção | Páginas |
 | --- | --- |
 | **Básico** | **Visão geral**: requisições, taxa de erros e latência p95 dos spans dele, gráficos e detalhes. **Recomendações**: monitores prontos para o serviço, escolhidos de acordo com a linguagem dele. **SLOs**: os SLOs que medem as requisições dele, onde você pode criar um que já mede o serviço. **Proprietários**: as pessoas e as equipes responsáveis por ele. **Feed**: tudo o que aconteceu com ele, desde como foi criado até cada mudança desde então. |
-| **Telemetria** | Os **Registros**, **Traços**, **Métricas**, **Perfis**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
+| **Telemetria** | Os **Registros**, **Eventos de segurança**, **Traços**, **Métricas**, **Perfis**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
 | **Atividade** | Os **Incidentes**, os **Alertas** e os eventos de **Manutenção programada** que o afetam. |
+| **Segurança** | **Segurança de dados**: os dados sensíveis que os logs, traces e exceções do serviço carregam, e o que corrigir ([Dados sensíveis na telemetria](/docs/data-security/telemetry)). **Conformidade**: como esses dados estão diante de cada estrutura, com um interruptor que desativa uma estrutura ou um requisito para este serviço ([Conformidade da Segurança de dados](/docs/data-security/compliance#na-página-de-um-recurso)). Aparece quando a Segurança de dados tiver varrido a telemetria do serviço, e começa recolhida. |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
 | **Avançado** | **Configurações**, **Registros de auditoria** e **Excluir serviço**. **Avançado** começa recolhido: expanda-o primeiro. |
 
