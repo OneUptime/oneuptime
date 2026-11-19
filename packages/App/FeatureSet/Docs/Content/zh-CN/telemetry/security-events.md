@@ -218,6 +218,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 - 每条记录的读取方式与 **你的日志** 从管道读取它的方式相同，因此规则库中的 CloudTrail、Google Cloud 和 Azure 规则都能匹配它。
 - 事件以存储时的时间为时间戳，记录本身的时间保存在 `oneuptime.cloud.record_time` 中：审计日志会晚几分钟到达 OneUptime，而规则按事件的时间读取事件。
 - 账户本身的读取只带来这些：数据事件、Data Access 日志和 Microsoft Entra ID 的日志仍然需要 **你的日志** 或 [连接](/docs/integrations/microsoft-entra-id)。
+- 每个事件都通过云资源自己的 ID（ARN、Azure 资源 ID、Google Cloud 资源名称）指向其记录所涉及的云资源，因此会显示在每个资源的 **安全事件** 页面上；一旦无服务器函数的遥测设置了 `cloud.account.id` 和 `cloud.region`，也会显示在该函数的页面上。
 
 ### 连接安全产品
 
