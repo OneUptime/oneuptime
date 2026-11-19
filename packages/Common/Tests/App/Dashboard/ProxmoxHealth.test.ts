@@ -16,10 +16,13 @@ import {
   getProxmoxClusterHealth,
   getProxmoxDisplayName,
   getProxmoxIssueTarget,
+  getProxmoxProblemItems,
   getProxmoxStoragePercent,
   isProxmoxIssueAbout,
+  isProxmoxProblemRow,
   isProxmoxTemplate,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/ProxmoxHealth";
+import { summarizeProxmoxBackups } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/ProxmoxPartFacts";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -567,6 +570,207 @@ describe("which part an open incident or alert is about", () => {
         { seriesLabels: { id: "storage/pve2/local" } },
         local,
       ),
+    ).toBe(false);
+  });
+});
+
+/*
+ * The Overview's counts of what is wrong - "1 node offline", "1 HA error",
+ * "Last backup failed 2", "In no backup job 3" - each said how many, never
+ * which or why (#9594). Each opens exactly the parts it counts.
+ */
+describe("what the Overview's counts open", () => {
+  const NOW: Date = new Date("2026-11-02T12:00:00.000Z");
+  const STALE_MS: number = 15 * 60 * 1000;
+
+  function minutesBefore(minutes: number): Date {
+    return new Date(NOW.getTime() - minutes * 60 * 1000);
+  }
+
+  test("the nodes offline: Offline first, then HA's word, and when one stopped being reported", () => {
+    const rows: Array<ProxmoxResource> = [
+      node("pve1", { lastSeenAt: minutesBefore(1) }),
+      node("pve2", { isUp: false, lastSeenAt: minutesBefore(1) }),
+      node("pve3", {
+        isUp: false,
+        haState: "fence",
+        lastSeenAt: minutesBefore(180),
+      }),
+      guest(101, "web", { parentNodeName: "pve2" }),
+    ];
+
+    const items: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: rows,
+      problem: { kind: "nodesOffline" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+
+    expect(
+      items.map((item: ResourceAttentionItem): string => {
+        return item.key;
+      }),
+    ).toEqual(["Node:node/pve2", "Node:node/pve3"]);
+    expect(items[0]!.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(items[0]!.reasons).toEqual([{ text: "Offline" }]);
+    expect(items[0]!.route?.toString()).toBe("/node/node%2Fpve2");
+    // Its siblings still report it as down, just now: no "last reported".
+    expect(items[0]!.lastReportAt).toBeUndefined();
+
+    expect(items[1]!.reasons).toEqual([
+      { text: "Offline" },
+      { text: "HA state: {{state}}", values: { state: "fence" } },
+    ]);
+    // Nobody has reported it for three hours: the dialog says when.
+    expect(items[1]!.lastReportAt).toEqual(minutesBefore(180));
+    // A node names no line under its name: it would repeat it.
+    expect(items[1]!.detail).toBeUndefined();
+  });
+
+  test("an HA state: every part in it, its HA word first, each guest a step from its node", () => {
+    const rows: Array<ProxmoxResource> = [
+      node("pve1"),
+      guest(101, "web", { haState: "error", parentNodeName: "pve1" }),
+      guest(102, "db", {
+        haState: "error",
+        parentNodeName: "pve1",
+        isBackedUp: false,
+      }),
+      guest(103, "cache", { haState: "started", parentNodeName: "pve1" }),
+    ];
+
+    const items: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: rows,
+      problem: { kind: "haState", state: "error" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+
+    // By name, as people number them.
+    expect(
+      items.map((item: ResourceAttentionItem): string => {
+        return item.name;
+      }),
+    ).toEqual(["db", "web"]);
+    // The count's reason first, then the rest the rules say, once each.
+    expect(items[0]!.reasons).toEqual([
+      { text: "HA state: {{state}}", values: { state: "error" } },
+      { text: "In no backup job" },
+    ]);
+    expect(items[0]!.detail).toBe("qemu/102");
+    expect(items[0]!.facts).toEqual([
+      {
+        key: "node",
+        label: "Node",
+        value: "pve1",
+        route: new Route("/node/node%2Fpve1"),
+      },
+    ]);
+  });
+
+  test("the guests whose last backup failed: Last backup failed first, and when", () => {
+    const failedAt: Date = minutesBefore(120);
+    const rows: Array<ProxmoxResource> = [
+      guest(101, "web", {
+        lastBackupStatus: "failed",
+        lastBackupAt: failedAt,
+        isBackedUp: true,
+        parentNodeName: "pve9",
+      }),
+      guest(102, "db", { lastBackupStatus: "ok", isBackedUp: true }),
+      // A template is backed up like a guest, but never counted.
+      guest(9000, "template", {
+        isTemplate: true,
+        lastBackupStatus: "failed",
+      }),
+    ];
+
+    const items: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: rows,
+      problem: { kind: "backupFailed" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(items[0]!.reasons).toEqual([{ text: "Last backup failed" }]);
+    expect(items[0]!.since).toEqual({
+      at: failedAt,
+      template: "Failed {{time}}",
+    });
+    // A node the inventory does not hold is named, a step from nowhere.
+    expect(items[0]!.facts).toEqual([
+      { key: "node", label: "Node", value: "pve9", route: undefined },
+    ]);
+  });
+
+  test("the guests in no backup job, and each count lists what the card counts", () => {
+    const rows: Array<ProxmoxResource> = [
+      guest(101, "web", { isBackedUp: false }),
+      guest(102, "db", { isBackedUp: false, lastBackupStatus: "failed" }),
+      guest(103, "cache", { isBackedUp: true, lastBackupStatus: "failed" }),
+      // Not reported yet: in neither count.
+      guest(104, "queue", {}),
+      guest(9000, "template", { isTemplate: true, isBackedUp: false }),
+    ];
+
+    const notInJob: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: rows,
+      problem: { kind: "noBackupJob" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+    const failed: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: rows,
+      problem: { kind: "backupFailed" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+
+    expect(
+      notInJob.map((item: ResourceAttentionItem): string => {
+        return item.name;
+      }),
+    ).toEqual(["db", "web"]);
+    expect(notInJob[0]!.reasons).toEqual([
+      { text: "In no backup job" },
+      { text: "Last backup failed" },
+    ]);
+
+    // The Backups card's figures and the lists they open agree.
+    const summary: ReturnType<typeof summarizeProxmoxBackups> =
+      summarizeProxmoxBackups(rows);
+    expect(notInJob).toHaveLength(summary.notInJob);
+    expect(failed).toHaveLength(summary.failed);
+  });
+
+  test("a row is counted by the very test the Overview counts it by", () => {
+    expect(
+      isProxmoxProblemRow(node("pve1", { isUp: false }), {
+        kind: "nodesOffline",
+      }),
+    ).toBe(true);
+    expect(
+      isProxmoxProblemRow(node("pve1", { isUp: undefined }), {
+        kind: "nodesOffline",
+      }),
+    ).toBe(false);
+    expect(
+      isProxmoxProblemRow(guest(1, "web", { haState: "fence" }), {
+        kind: "haState",
+        state: "error",
+      }),
+    ).toBe(false);
+    expect(
+      isProxmoxProblemRow(guest(1, "web", { isBackedUp: false }), {
+        kind: "backupFailed",
+      }),
     ).toBe(false);
   });
 });

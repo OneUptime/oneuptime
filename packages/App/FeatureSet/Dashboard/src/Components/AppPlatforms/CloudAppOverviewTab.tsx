@@ -179,6 +179,11 @@ export interface ComponentProps {
   end: Date;
   // Bumped by a refresh: the numbers are read again.
   refreshToken: number;
+  /*
+   * The app's Traces tab on the requests its Error rate counts that failed
+   * (#9593): the page builds it, as it knows its own address and window.
+   */
+  failedRequestsRoute?: Route | undefined;
 }
 
 const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
@@ -396,6 +401,8 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       percent: m && !traceNote ? m.errorRatePercent : null,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
+      // The requests it counts that failed, while there is a figure.
+      to: m && !traceNote ? props.failedRequestsRoute : undefined,
       description: CLOUD_APP_METRIC_DESCRIPTIONS.errorRate,
     },
     {

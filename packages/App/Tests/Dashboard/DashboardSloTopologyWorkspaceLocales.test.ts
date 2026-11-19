@@ -71,6 +71,8 @@ const DASHBOARD_FILES: Array<string> = [
   "Components/Topology/NetworkTopologyMeta.ts",
   "Components/Topology/NetworkTopologyToolbar.tsx",
   "Components/TwoFactorAuth/BackupCodes.tsx",
+  // Where the status card's words for a status it could not read now live.
+  "Components/TwoFactorAuth/TwoFactorAuthSetupState.ts",
   "Components/TwoFactorAuth/TwoFactorStatus.tsx",
   "Components/TwoFactorAuth/WebAuthnCredentials.tsx",
   "Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx",

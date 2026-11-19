@@ -163,19 +163,21 @@ En nyttig fordeling: giv en supportmedarbejder `ReadRumApplication` og `ReadRumS
 
 ## Alarmer på RUM-data
 
-RUM-telemetri er almindelige logs, metrikker og spor, så der er ingen separat RUM-monitor: de sædvanlige monitorer virker med den. Den hurtigste start er applikationens side **Anbefalinger**, som tilbyder monitorer, der allerede er afgrænset til applikationen:
+RUM-telemetri er almindelige logs, metrikker og spor, så der er ingen separat RUM-monitor: de sædvanlige monitorer virker med den. Den hurtigste start er applikationens side **Anbefalinger**, som tilbyder monitorer, der allerede er afgrænset til applikationen, de monitorer, der passer til en webapp eller en mobilapp:
 
 | Gruppe | Anbefalinger |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
-| Fejl | Failed User Operations og Unhandled Browser Exceptions. |
+| Core Web Vitals | For en webapp: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
+| Fejl | App Crashes og App Not Responding (ANR) for en mobilapp, Failed User Operations for begge og Unhandled Browser Exceptions for en webapp. |
+| Ydeevne | For en mobilapp: Slow Cold Start, når en koldstart tager 5 sekunder eller mere, hvilket Android vitals regner som overdrevent, og Frozen Frames, når det tager længere end 700 ms at rendere en frame. |
+| Tilgængelighed | For en mobilapp: App Stopped Reporting, når appen ikke sender nogen spans i 30 minutter. |
 | Sessionsafspilning | De fire [alarmer for lagerbudgettet](/docs/telemetry/session-replay#alarmer-for-lagerbudgettet), som advarer, før projektets daglige grænse eller applikationens månedlige budget er brugt op. De tilbydes, så snart applikationen har optaget en afspilning, og det månedlige par, når den også har et månedligt budget. |
 
 For at oprette din egen monitor skal du vælge den, der læser signalet:
 
 - [Metrik-monitor](/docs/monitor/metrics-monitor): en Core Web Vital eller en anden metrik, din app sender.
-- [Trace-monitor](/docs/monitor/traces-monitor): fejlrate eller latens på klientsiden.
-- [Log-monitor](/docs/monitor/logs-monitor): et mønster i browserlogs.
+- [Trace-monitor](/docs/monitor/traces-monitor): fejlrate eller latens på klientsiden eller appstarter, der er langsommere end en varighed, du angiver.
+- [Log-monitor](/docs/monitor/logs-monitor): et mønster i browserlogs eller en mobilapps hændelser `app.crash`, `device.anr` og `app.jank`.
 - [Undtagelse-monitor](/docs/monitor/exceptions-monitor): nye eller hastigt stigende undtagelser på klientsiden.
 
 Afgræns den monitor, du opretter, til applikationen, så en backend-tjeneste med en lignende signatur ikke udløser den.

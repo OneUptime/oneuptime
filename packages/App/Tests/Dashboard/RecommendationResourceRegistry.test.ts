@@ -1574,6 +1574,7 @@ describe("RecommendationResourceRegistry", () => {
    */
   describe("RUM application context", () => {
     function buildRumApplicationModel(values: {
+      clientType?: unknown;
       isSessionReplayEnabled?: unknown;
       sessionReplayLastChunkReceivedAt?: unknown;
       sessionReplayMonthlyBudgetInGB?: unknown;
@@ -1585,6 +1586,7 @@ describe("RecommendationResourceRegistry", () => {
         unknown
       >;
 
+      record["clientType"] = values.clientType;
       record["isSessionReplayEnabled"] = values.isSessionReplayEnabled;
       record["sessionReplayLastChunkReceivedAt"] =
         values.sessionReplayLastChunkReceivedAt;
@@ -1597,6 +1599,7 @@ describe("RecommendationResourceRegistry", () => {
     }
 
     function readRumContext(values: {
+      clientType?: unknown;
       isSessionReplayEnabled?: unknown;
       sessionReplayLastChunkReceivedAt?: unknown;
       sessionReplayMonthlyBudgetInGB?: unknown;
@@ -1647,7 +1650,7 @@ describe("RecommendationResourceRegistry", () => {
     const NOT_RECORDED_NOTE: string =
       "The session replay budget alerts appear here once this application records its first replay.";
 
-    test("selects the switch, the last chunk, the monthly budget and its own signals along with the id and name", () => {
+    test("selects the kind, the switch, the last chunk, the monthly budget and its own signals along with the id and name", () => {
       expect(
         RecommendationResourceRegistry.getSelect(
           MonitorRecommendationResourceType.RumApplication,
@@ -1655,6 +1658,7 @@ describe("RecommendationResourceRegistry", () => {
       ).toEqual({
         _id: true,
         name: true,
+        clientType: true,
         isSessionReplayEnabled: true,
         sessionReplayLastChunkReceivedAt: true,
         sessionReplayMonthlyBudgetInGB: true,
@@ -1664,11 +1668,115 @@ describe("RecommendationResourceRegistry", () => {
 
     test("reads a recording application with a budget", () => {
       expect(readRumContext(RECORDING_WITH_BUDGET)).toEqual({
+        rumClientKind: null,
         sessionReplayEnabled: true,
         sessionReplayHasRecorded: true,
         sessionReplayMonthlyBudgetInGB: 10,
         customSignals: [],
       });
+    });
+
+    /*
+     * Ingest writes "browser" or "mobile" (RumClientKind); nothing else is
+     * read as a kind, and an application nothing has arrived from has none
+     * (#9589).
+     */
+    test("reads the application's kind as ingest writes it", () => {
+      expect(readRumContext({ clientType: "mobile" }).rumClientKind).toBe(
+        "mobile",
+      );
+      expect(readRumContext({ clientType: "Browser" }).rumClientKind).toBe(
+        "browser",
+      );
+
+      for (const clientType of [undefined, null, "", "desktop", 1, {}]) {
+        expect(readRumContext({ clientType }).rumClientKind).toBeNull();
+      }
+    });
+
+    test("a mobile application is offered its own monitors and no Web Vital", () => {
+      const mobile: Array<string> = offeredTemplateIds(
+        readRumContext({ ...RECORDING_WITH_BUDGET, clientType: "mobile" }),
+      );
+
+      expect(mobile).toEqual([
+        "rum-app-crashes",
+        "rum-app-not-responding",
+        "rum-failed-user-operations",
+        "rum-slow-cold-start",
+        "rum-frozen-frames",
+        "rum-app-stopped-reporting",
+        "rum-session-replay-daily-budget-nearly-spent",
+        "rum-session-replay-daily-budget-spent",
+        "rum-session-replay-monthly-budget-nearly-spent",
+        "rum-session-replay-monthly-budget-spent",
+      ]);
+
+      for (const templateId of mobile) {
+        expect(templateId).not.toMatch(
+          /^rum-(poor|slow)-(lcp|inp|cls|fcp|ttfb)$/,
+        );
+      }
+    });
+
+    test("a browser application, or one of no known kind yet, keeps the browser monitors", () => {
+      const browser: Array<string> = offeredTemplateIds(
+        readRumContext({ ...RECORDING_WITH_BUDGET, clientType: "browser" }),
+      );
+      const unknown: Array<string> = offeredTemplateIds(
+        readRumContext(RECORDING_WITH_BUDGET),
+      );
+
+      expect(browser).toEqual(unknown);
+      expect(browser).toContain("rum-poor-lcp");
+      expect(browser).toContain("rum-unhandled-exceptions");
+      expect(browser).not.toContain("rum-app-crashes");
+    });
+
+    /*
+     * #9589 beside #6518: an application's own signals are offered alerts
+     * whatever its kind, and its kind still picks the shipped ones - a
+     * mobile app's crash and ANR monitors, a browser app's Web Vitals.
+     */
+    test("a mobile and a browser application are each offered their own monitors and their signals' alerts", () => {
+      const signals: { customSignals: Array<Record<string, unknown>> } = {
+        customSignals: [
+          {
+            id: "signal-payment",
+            name: "Payment failed",
+            trigger: "page",
+            match: "/checkout/error",
+          },
+        ],
+      };
+      const mobile: Array<string> = offeredTemplateIds(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          clientType: "mobile",
+          sessionReplayFrustrationSignals: signals,
+        }),
+      );
+      const browser: Array<string> = offeredTemplateIds(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          clientType: "browser",
+          sessionReplayFrustrationSignals: signals,
+        }),
+      );
+
+      expect(mobile).toContain("rum-app-crashes");
+      expect(mobile).toContain("rum-custom-signal-signal-payment");
+      expect(mobile).not.toContain("rum-poor-lcp");
+      expect(mobile[mobile.length - 1]).toBe(
+        "rum-custom-signal-signal-payment",
+      );
+
+      expect(browser).toContain("rum-poor-lcp");
+      expect(browser).toContain("rum-custom-signal-signal-payment");
+      expect(browser).not.toContain("rum-app-crashes");
+      expect(browser[browser.length - 1]).toBe(
+        "rum-custom-signal-signal-payment",
+      );
     });
 
     /*

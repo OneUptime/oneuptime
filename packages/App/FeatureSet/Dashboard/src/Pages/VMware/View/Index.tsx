@@ -114,15 +114,21 @@ import {
   VMWARE_CPU_READY_WARNING_PERCENT,
   VMWARE_DATASTORE_CRITICAL_PERCENT,
   VMWARE_DATASTORE_WARNING_PERCENT,
+  VMwareHostState,
   findVMwareDatacenter,
   getVMwareAttentionItems,
   getVMwareDatastorePercent,
   getVMwareHealth,
+  getVMwareHostProblemItems,
   getVMwareHostState,
   hasFreshVMwareReadings,
   isVMwareHostRunning,
 } from "../Utils/VMwareHealth";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
 import {
+  VMWARE_NOT_EFFECTIVE_HOSTS_WORDS,
   VMwareNotEffectiveHosts,
   VMwareUsageTone,
   countVMwareNotEffectiveHosts,
@@ -1328,6 +1334,87 @@ const VMwareVCenterOverview: FunctionComponent<
 
   const partRoutes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
 
+  /*
+   * The hosts "N/M ESXi hosts connected" is short of that need attention,
+   * one count per state, while the vCenter reports: each opens exactly
+   * those hosts, why and where they sit (#9594).
+   */
+  const hostProblems: Array<ResourceAttentionPillProps> = [];
+  // "1 not responding": the words the Effective hosts tile counts them in.
+  const hostCountWords: (
+    key: keyof VMwareNotEffectiveHosts,
+    count: number,
+  ) => string = (key: keyof VMwareNotEffectiveHosts, count: number): string => {
+    const words: (typeof VMWARE_NOT_EFFECTIVE_HOSTS_WORDS)[number] | undefined =
+      VMWARE_NOT_EFFECTIVE_HOSTS_WORDS.find(
+        (candidate: (typeof VMWARE_NOT_EFFECTIVE_HOSTS_WORDS)[number]) => {
+          return candidate.key === key;
+        },
+      );
+    return words
+      ? translator.translatePlural(
+          { one: words.one, other: words.other },
+          count,
+        )
+      : translator.formatNumber(count);
+  };
+  if (inventory && isVCenterConnected) {
+    const readAt: Date = OneUptimeDate.getCurrentDate();
+    const notResponding: Array<ResourceAttentionItem> =
+      getVMwareHostProblemItems({
+        rows: inventory.rows,
+        state: VMwareHostState.NotResponding,
+        now: readAt,
+        routeFor: partRoutes.getPartRoute,
+      });
+    if (notResponding.length > 0) {
+      hostProblems.push({
+        testId: "vmware-hero-hosts-not-responding",
+        label: hostCountWords("notResponding", notResponding.length),
+        tone: "danger",
+        hint: "Show which hosts and why",
+        dialog: {
+          title: translator.translatePlural(
+            {
+              one: "{{count}} host not responding",
+              other: "{{count}} hosts not responding",
+            },
+            notResponding.length,
+          ),
+          items: notResponding,
+          emptyMessage: "Every host is responding now.",
+          showKind: false,
+        },
+      });
+    }
+    const noUsage: Array<ResourceAttentionItem> = getVMwareHostProblemItems({
+      rows: inventory.rows,
+      state: VMwareHostState.NoUsage,
+      now: readAt,
+      routeFor: partRoutes.getPartRoute,
+    });
+    if (noUsage.length > 0) {
+      hostProblems.push({
+        testId: "vmware-hero-hosts-no-usage",
+        label: hostCountWords("noUsage", noUsage.length),
+        tone: "warning",
+        hint: "Show which hosts and why",
+        dialog: {
+          title: translator.translatePlural(
+            {
+              one: "{{count}} host reporting no usage",
+              other: "{{count}} hosts reporting no usage",
+            },
+            noUsage.length,
+          ),
+          items: noUsage,
+          emptyMessage: "Every host reports its usage now.",
+          showKind: false,
+        },
+      });
+    }
+  }
+
   const hostsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.VMWARE_VCENTER_VIEW_HOSTS] as Route,
     { modelId: modelId },
@@ -1406,6 +1493,8 @@ const VMwareVCenterOverview: FunctionComponent<
       label: string;
       route?: Route | undefined;
       testId?: string | undefined;
+      // What is wrong among them, after the chip (#9594).
+      problems?: Array<ResourceAttentionPillProps> | undefined;
     }> = [];
     if (datacenterCount > 0) {
       specChips.push({
@@ -1433,6 +1522,7 @@ const VMwareVCenterOverview: FunctionComponent<
         icon: IconProp.ServerStack,
         route: hostsRoute,
         testId: "vmware-hero-hosts",
+        problems: hostProblems,
         /*
          * How many vCenter can reach, while the inventory says so and
          * the vCenter reports: the first number a vSphere admin looks for.
@@ -1612,6 +1702,7 @@ const VMwareVCenterOverview: FunctionComponent<
                       label: string;
                       route?: Route | undefined;
                       testId?: string | undefined;
+                      problems?: Array<ResourceAttentionPillProps> | undefined;
                     },
                     idx: number,
                   ): ReactElement => {
@@ -1626,14 +1717,31 @@ const VMwareVCenterOverview: FunctionComponent<
                     );
                     if (chip.route) {
                       return (
-                        <Link
-                          key={`spec-${idx}`}
-                          to={chip.route}
-                          dataTestId={chip.testId}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        >
-                          {content}
-                        </Link>
+                        <React.Fragment key={`spec-${idx}`}>
+                          <Link
+                            to={chip.route}
+                            dataTestId={chip.testId}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          >
+                            {content}
+                          </Link>
+                          {/*
+                           * What is wrong among them: each opens which,
+                           * and why.
+                           */}
+                          {(chip.problems || []).map(
+                            (
+                              problem: ResourceAttentionPillProps,
+                            ): ReactElement => {
+                              return (
+                                <ResourceAttentionPill
+                                  key={problem.testId}
+                                  {...problem}
+                                />
+                              );
+                            },
+                          )}
+                        </React.Fragment>
                       );
                     }
                     return (

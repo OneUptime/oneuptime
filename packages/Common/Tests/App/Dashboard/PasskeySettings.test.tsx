@@ -313,6 +313,28 @@ describe("Passkey settings registration", () => {
       .spyOn(UserUtil, "getUserId")
       .mockReturnValue(new ObjectID("33333333-3333-4333-8333-333333333333"));
     jest.spyOn(UiAnalytics, "capture").mockImplementation(() => {});
+    /*
+     * Where the person stands on two-factor authentication (#9666), which
+     * the Passkeys page reads to lock the last second step: off, with
+     * nothing set up, so every passkey can be removed.
+     */
+    jest
+      .spyOn(API, "get")
+      .mockImplementation(
+        async (
+          options: Parameters<typeof API.get>[0],
+        ): Promise<HTTPResponse<JSONObject>> => {
+          const url: string = options.url?.toString() || "";
+          if (!url.endsWith("/user/two-factor-auth-status")) {
+            throw new Error(`Unexpected request: ${url}`);
+          }
+          return new HTTPResponse<JSONObject>(
+            200,
+            { status: "NotEnabled", verifiedMethodCount: 0 },
+            {},
+          );
+        },
+      );
     jest
       .spyOn(API, "post")
       .mockImplementation(

@@ -47,9 +47,13 @@ import Exception from "../../../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../../../../Types/Permission";
 import Text from "../../../../../Types/Text";
 import UserType from "../../../../../Types/UserType";
+import { WorkflowRunAs } from "../../../../../Types/Workflow/WorkflowRunAs";
 import {
   DatabaseOperation,
   WRITE_DATABASE_OPERATIONS,
@@ -109,8 +113,16 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
  * key permission (WorkflowPrincipal.ACCESS_TABLES), whoever built the
  * workflow and whatever it sends. It is refused before anything else is
  * asked or any hook runs, takes its Error output, and its run log says so
- * in plain words. Its triggers and Find steps still read these records; a
- * person, an API key and OneUptime itself are held as before.
+ * in plain words - and which permission the change takes, and where to
+ * give the workflow one (#9695). Its triggers and Find steps still read
+ * these records; a person, an API key and OneUptime itself are held as
+ * before.
+ *
+ * All of that is a workflow that runs with the default permissions. One
+ * that a person gave Project Owner or a custom role (Types/Workflow
+ * /WorkflowRunAs) passes this rule for teams and roles, and meets the
+ * checks a person meets instead: WorkflowStepsChangeAccessAsTheirRunAs
+ * holds those. No workflow's step changes an API key, SSO or SCIM.
  *
  * The two ways in run first, over the real TeamPermissionService and
  * TeamMemberService with the project's three teams held in memory: on code
@@ -151,10 +163,64 @@ const MEMBER_MEMBERSHIP_ID: string = "7d000000-0000-4000-8000-0000000000d2";
 // Any other record a step might name.
 const RECORD_ID: string = "7d000000-0000-4000-8000-0000000000e1";
 
-const REFUSAL_START: string =
-  "Workflow steps don't change who has access to this project";
+/*
+ * How a default step's refusal begins (WorkflowPrincipal
+ * .getAccessChangeRefusal): for a team or a role, that a workflow running
+ * with the default permissions changes nobody's access, and what would let
+ * it (#9695); for an API key or a sign-in setting, that no step changes
+ * one, whatever its workflow runs as.
+ */
+const TEAM_REFUSAL_START: string =
+  "Workflows that run with the default permissions don't change who has access to this project";
+const CREDENTIAL_REFUSAL_START: string =
+  "Workflow steps never change the project's API keys, single sign-on or SCIM settings, whatever the workflow runs as";
+const CREDENTIAL_TABLES: Array<string> = [
+  "ApiKey",
+  "ApiKeyCustomRole",
+  "ApiKeyPermission",
+  "ProjectSCIM",
+  "ProjectSSO",
+];
 const ADMIN_CEILING: string =
   "Workflow steps can do only what a Project Admin of this project can do";
+
+/*
+ * What a default step's refusal to `verb` a record of `modelType` says,
+ * worked out here from the model's own lists: for a team or a role, the
+ * permissions the write takes besides Project Owner and Project Admin, by
+ * their titles, which a custom role the workflow runs as would need.
+ */
+function expectedRefusal(
+  modelType: { new (): BaseModel },
+  verb: "create" | "change" | "delete",
+): string {
+  const model: BaseModel = new modelType();
+  const records: string = model.pluralName!;
+
+  if (CREDENTIAL_TABLES.includes(model.tableName!)) {
+    return `${CREDENTIAL_REFUSAL_START}, so they can't ${verb} ${records}. A person who manages them has to make this change.`;
+  }
+
+  const list: Array<Permission> =
+    verb === "create"
+      ? model.createRecordPermissions
+      : verb === "delete"
+        ? model.deleteRecordPermissions
+        : model.updateRecordPermissions;
+
+  const titles: Array<string> = PermissionHelper.getPermissionTitles(
+    Array.from(new Set<Permission>(list)).filter(
+      (permission: Permission): boolean => {
+        return (
+          permission !== Permission.ProjectOwner &&
+          permission !== Permission.ProjectAdmin
+        );
+      },
+    ),
+  );
+
+  return `${TEAM_REFUSAL_START}, so this step can't ${verb} ${records}. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or a custom role that has ${titles.join(" or ")}.`;
+}
 
 interface StepRun {
   result: RunReturnType;
@@ -197,7 +263,13 @@ function expectAccessRefusal(
   verb: "create" | "change" | "delete",
   records: string,
 ): void {
-  const expected: string = `"${step.getMetadata().title}" was refused. ${REFUSAL_START}, so they can't ${verb} ${records}. A person who manages the project's teams and API keys has to make this change.`;
+  const modelType: { new (): BaseModel } = (
+    step as unknown as { modelService: DatabaseService<BaseModel> }
+  ).modelService.modelType as { new (): BaseModel };
+
+  expect(new modelType().pluralName).toBe(records);
+
+  const expected: string = `"${step.getMetadata().title}" was refused. ${expectedRefusal(modelType, verb)}`;
 
   expect(stepRun.result.executePort?.id).toBe("error");
   expect(stepRun.lines).toContain(expected);
@@ -1006,13 +1078,11 @@ describe("the rule: a step writes no record that decides who may do what", () =>
   )(
     "%s: a step's create, update and delete are refused in its words; its read is not",
     (_table: string, modelType: { new (): BaseModel }) => {
-      const records: string = new modelType().pluralName!;
-
       for (const [type, verb] of [
         [DatabaseRequestType.Create, "create"],
         [DatabaseRequestType.Update, "change"],
         [DatabaseRequestType.Delete, "delete"],
-      ] as Array<[DatabaseRequestType, string]>) {
+      ] as Array<[DatabaseRequestType, "create" | "change" | "delete"]>) {
         let refusal: unknown = undefined;
 
         try {
@@ -1029,7 +1099,7 @@ describe("the rule: a step writes no record that decides who may do what", () =>
         // Still the refusal it is everywhere else.
         expect(refusal).toBeInstanceOf(NotAuthorizedException);
         expect((refusal as Error).message).toBe(
-          `${REFUSAL_START}, so they can't ${verb} ${records}. A person who manages the project's teams and API keys has to make this change.`,
+          expectedRefusal(modelType, verb),
         );
       }
 
@@ -1051,6 +1121,98 @@ describe("the rule: a step writes no record that decides who may do what", () =>
       }).not.toThrow();
     },
   );
+
+  test("splits them into teams and roles, which a raised workflow's steps may change, and credentials, which no step may", () => {
+    expect(WorkflowPrincipal.getTeamAccessTables().sort()).toEqual([
+      "CustomRole",
+      "CustomRolePermission",
+      "Team",
+      "TeamCustomRole",
+      "TeamMember",
+      "TeamPermission",
+    ]);
+    expect(WorkflowPrincipal.getCredentialAccessTables().sort()).toEqual(
+      [...CREDENTIAL_TABLES].sort(),
+    );
+    expect(
+      [
+        ...WorkflowPrincipal.getTeamAccessTables(),
+        ...WorkflowPrincipal.getCredentialAccessTables(),
+      ].sort(),
+    ).toEqual(WorkflowPrincipal.getAccessTables().sort());
+  });
+
+  test.each(
+    ACCESS_MODELS.map((modelType: { new (): BaseModel }) => {
+      return [new modelType().tableName!, modelType] as [
+        string,
+        { new (): BaseModel },
+      ];
+    }),
+  )(
+    "%s: a step of a workflow that runs as Project Owner or a custom role passes the rule for a team or a role, never for a credential (#9695)",
+    (table: string, modelType: { new (): BaseModel }) => {
+      const raised: Array<DatabaseCommonInteractionProps> = [
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: ObjectID.generate(),
+          runAs: { runAs: WorkflowRunAs.ProjectOwner },
+        }),
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: ObjectID.generate(),
+          runAs: { runAs: WorkflowRunAs.CustomRole, rolePermissions: [] },
+        }),
+      ];
+
+      for (const props of raised) {
+        for (const [type, verb] of [
+          [DatabaseRequestType.Create, "create"],
+          [DatabaseRequestType.Update, "change"],
+          [DatabaseRequestType.Delete, "delete"],
+        ] as Array<[DatabaseRequestType, "create" | "change" | "delete"]>) {
+          const check: () => void = (): void => {
+            WorkflowPrincipal.assertDoesNotChangeAccess({
+              modelType: modelType,
+              props: props,
+              type: type,
+            });
+          };
+
+          if (CREDENTIAL_TABLES.includes(table)) {
+            expect(check).toThrow(expectedRefusal(modelType, verb));
+          } else {
+            // The table, column, label and grant ceiling checks decide.
+            expect(check).not.toThrow();
+          }
+        }
+      }
+    },
+  );
+
+  test("only what WorkflowPrincipal marks raised is: a default step, or a mark that cannot be read, changes no team", () => {
+    const unreadable: DatabaseCommonInteractionProps = {
+      ...stepProps(),
+      workflowRunAs: "Root",
+    };
+    const defaultMarked: DatabaseCommonInteractionProps = {
+      ...stepProps(),
+      workflowRunAs: WorkflowRunAs.Default,
+    };
+
+    for (const props of [stepProps(), unreadable, defaultMarked]) {
+      expect(() => {
+        WorkflowPrincipal.assertDoesNotChangeAccess({
+          modelType: TeamCustomRole,
+          props: props,
+          type: DatabaseRequestType.Create,
+        });
+      }).toThrow(WorkflowAccessChangeRefusedException);
+    }
+
+    // A default step's props carry no mark at all, as before Run As existed.
+    expect(stepProps().workflowRunAs).toBeUndefined();
+  });
 
   test("tells a step's props by their user type alone - never root, never a person", () => {
     const props: DatabaseCommonInteractionProps = stepProps();
@@ -1081,7 +1243,7 @@ describe("the rule: a step writes no record that decides who may do what", () =>
 });
 
 describe("the run log", () => {
-  test("says the refusal as it is, naming the step - not as the Project Admin ceiling", () => {
+  test("says the refusal as it is, naming the step and the permission the change takes - not as the Project Admin ceiling", () => {
     const message: string = WorkflowPrincipal.getAccessChangeRefusal(
       TeamPermission,
       DatabaseRequestType.Create,
@@ -1094,7 +1256,40 @@ describe("the run log", () => {
         stepTitle: "Create One Team Permission",
       }),
     ).toBe(
-      `"Create One Team Permission" was refused. ${REFUSAL_START}, so they can't create Team Permissions. A person who manages the project's teams and API keys has to make this change.`,
+      `"Create One Team Permission" was refused. Workflows that run with the default permissions don't change who has access to this project, so this step can't create Team Permissions. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or a custom role that has Edit Team Permissions.`,
+    );
+  });
+
+  /*
+   * The step of #9695: a workflow started by a new team, giving it a
+   * custom role. On the default permissions it is refused, and the run log
+   * says what would let it - not that a person has to do it by hand.
+   */
+  test('"Create One Team Custom Role" on the default permissions names Edit Team Permissions and where to give it', () => {
+    const message: string = WorkflowPrincipal.getAccessChangeRefusal(
+      TeamCustomRole,
+      DatabaseRequestType.Create,
+    );
+
+    expect(
+      describeRefusal({
+        error: new WorkflowAccessChangeRefusedException(message),
+        message: message,
+        stepTitle: "Create One Team Custom Role",
+      }),
+    ).toBe(
+      `"Create One Team Custom Role" was refused. Workflows that run with the default permissions don't change who has access to this project, so this step can't create Team Custom Roles. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or a custom role that has Edit Team Permissions.`,
+    );
+  });
+
+  test("an API key's refusal says no workflow changes one, whatever it runs as", () => {
+    expect(
+      WorkflowPrincipal.getAccessChangeRefusal(
+        ApiKeyPermission,
+        DatabaseRequestType.Update,
+      ),
+    ).toBe(
+      "Workflow steps never change the project's API keys, single sign-on or SCIM settings, whatever the workflow runs as, so they can't change API Key Permissions. A person who manages them has to make this change.",
     );
   });
 

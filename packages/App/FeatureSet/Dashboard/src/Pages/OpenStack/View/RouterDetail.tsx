@@ -35,11 +35,11 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import { fetchOpenStackRow } from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_ROUTER_ALERT_TEMPLATE_IDS,
@@ -158,15 +158,17 @@ const AgentRows: FunctionComponent<{
   );
 };
 
-const RouterOverview: FunctionComponent<{
+interface RouterOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
   backend: OpenStackNetworkBackend;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-  backend: OpenStackNetworkBackend;
-}): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const RouterOverview: FunctionComponent<RouterOverviewProps> = (
+  props: RouterOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row, backend } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -185,12 +187,6 @@ const RouterOverview: FunctionComponent<{
           })
         : Promise.resolve(null);
     }, [externalNetworkId, part.refreshToken]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const agents: OpenStackRouterAgentReading = getOpenStackRouterAgentReading({
@@ -271,12 +267,9 @@ const RouterOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-router-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Router}/${part.externalId}`,
-          label: translationKey("This router"),
-        }}
-        description="What about this router is broken or needs a look, the most urgent first."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -370,12 +363,28 @@ const OpenStackCloudRouterDetail: FunctionComponent<
   const backend: OpenStackNetworkBackend = useOpenStackNetworkBackend(
     part.openStackCloudId,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Router,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <RouterOverview part={part} row={row} backend={backend} />;
+        return (
+          <RouterOverview
+            part={part}
+            row={row}
+            backend={backend}
+            attention={attention}
+          />
+        );
       }}
       tabs={(): Array<Tab> => {
         const facts: JSONObject = { routerId: part.externalId };

@@ -5,10 +5,14 @@ import {
   KubernetesHealthRow,
   KubernetesHealthSeverity,
   KubernetesHealthText,
+  KubernetesPodStatusBucket,
   assessKubernetesCronJobWithRuns,
+  assessKubernetesJob,
+  assessKubernetesPod,
   assessKubernetesResource,
   getKubernetesAttentionFindings,
   getKubernetesJobCronJob,
+  getKubernetesPodStatusBucket,
   getKubernetesPodWorkload,
   getNewestKubernetesJobs,
   kubernetesObjectKey,
@@ -66,8 +70,15 @@ export interface KubernetesPartRow extends KubernetesHealthRow {
 
 export interface KubernetesPartRead {
   part: KubernetesPartRow | null;
+  // A namespace's: its pods that need attention, the worst first.
   pods: Array<KubernetesPartRow>;
   jobs: Array<KubernetesPartRow>;
+  /*
+   * A namespace's other objects that need attention, with the workloads in
+   * it a pod's finding folds into; none for any other kind, nor from an
+   * older server.
+   */
+  objects?: Array<KubernetesPartRow> | undefined;
   isPodsTruncated: boolean;
 }
 
@@ -106,6 +117,7 @@ export function parseKubernetesPartRead(
         : null,
     pods: rowsOf(body?.["pods"]),
     jobs: rowsOf(body?.["jobs"]),
+    objects: rowsOf(body?.["objects"]),
     isPodsTruncated: body?.["isPodsTruncated"] === true,
   };
 }
@@ -165,10 +177,75 @@ function findingOf(
   return finding;
 }
 
+// How a failed run's pod says when it failed, in a list of what failed.
+const SINCE_POD_FAILED: string = translationKey("Failed {{time}}");
+
+/*
+ * The pods of the failed runs among `runs`, the newest first: why each run
+ * failed - "Error, exit code 1" - though the rules leave a Job's pods to
+ * the Job, so the cluster's Needs attention lists the Job alone.
+ */
+export function getKubernetesFailedRunPods(data: {
+  runs: Array<KubernetesHealthRow>;
+  pods: Array<KubernetesPartRow>;
+}): Array<KubernetesPartRow> {
+  const failedRuns: Set<string> = new Set<string>(
+    data.runs
+      .filter((run: KubernetesHealthRow): boolean => {
+        return assessKubernetesJob(run).severity !== null;
+      })
+      .map((run: KubernetesHealthRow): string => {
+        return run.name || "";
+      }),
+  );
+  return data.pods.filter((pod: KubernetesPartRow): boolean => {
+    const workload: { kind: string; name: string } | null =
+      getKubernetesPodWorkload(pod);
+    return Boolean(
+      workload &&
+        workload.kind === "Job" &&
+        failedRuns.has(workload.name) &&
+        getKubernetesPodStatusBucket(pod).bucket ===
+          KubernetesPodStatusBucket.Failed,
+    );
+  });
+}
+
+// A failed run's pod as a row of what needs attention: why it failed, since when.
+function failedRunPodItem(
+  pod: KubernetesPartRow,
+  routeFor: KubernetesPartRouteFor,
+): ResourceAttentionItem {
+  const assessment: KubernetesHealthAssessment = assessKubernetesPod(pod);
+  const finding: KubernetesAttentionFinding = {
+    key: kubernetesObjectKey("Pod", pod.namespaceKey || "", pod.name || ""),
+    kind: "Pod",
+    namespace: pod.namespaceKey || "",
+    name: pod.name || "",
+    // The run's: a Job that failed is worth a look, as are its pods.
+    severity: KubernetesHealthSeverity.Warning,
+    reasons: assessment.reasons,
+  };
+  if (assessment.message) {
+    finding.message = assessment.message;
+  }
+  const item: ResourceAttentionItem = toKubernetesAttentionItem(
+    finding,
+    routeFor,
+  );
+  if (assessment.since !== undefined) {
+    item.since = { at: new Date(assessment.since), template: SINCE_POD_FAILED };
+  }
+  return item;
+}
+
 /*
  * What needs attention on the part's page: the part itself first (the card
  * names it "This Deployment"), then a CronJob's newest run, then each pod
  * that needs a look, the worst first - every one a step from its own page.
+ * A failed Job lists its failed pods, which say why it failed; a namespace
+ * lists what in it needs attention, its pods folded into their workloads as
+ * the cluster's Overview folds them.
  */
 export function getKubernetesPartAttentionItems(data: {
   read: KubernetesPartRead;
@@ -185,6 +262,14 @@ export function getKubernetesPartAttentionItems(data: {
   const ownFinding: KubernetesAttentionFinding | null = own
     ? findingOf(part, own)
     : null;
+
+  if (part.kind === "Namespace") {
+    return getKubernetesNamespaceAttentionItems({
+      read: data.read,
+      ownFinding: ownFinding,
+      routeFor: data.routeFor,
+    });
+  }
 
   // A CronJob's newest run: an older one a newer run followed is history.
   const newestJob: KubernetesHealthRow | undefined =
@@ -247,19 +332,150 @@ export function getKubernetesPartAttentionItems(data: {
    * node's page keeps it - its pods come from every namespace.
    */
   const ownNamespace: string = part.namespaceKey || "";
+  const withoutOwnNamespace: (
+    item: ResourceAttentionItem,
+    namespace: string,
+  ) => ResourceAttentionItem = (
+    item: ResourceAttentionItem,
+    namespace: string,
+  ): ResourceAttentionItem => {
+    if (ownNamespace && namespace === ownNamespace) {
+      delete item.detail;
+    }
+    return item;
+  };
 
-  return findings.map(
+  const items: Array<ResourceAttentionItem> = findings.map(
     (finding: KubernetesAttentionFinding): ResourceAttentionItem => {
+      return withoutOwnNamespace(
+        toKubernetesAttentionItem(finding, data.routeFor),
+        finding.namespace,
+      );
+    },
+  );
+
+  /*
+   * Why a Job failed is its failed pods - "Error, exit code 1" on each -
+   * so its page, and its CronJob's for the newest run, lists them after
+   * the rest (#9595): the backoff limit or the deadline says only that it
+   * gave up.
+   */
+  const failedRuns: Array<KubernetesHealthRow> =
+    part.kind === "Job" ? [part] : part.kind === "CronJob" ? runs : [];
+  const listed: Set<string> = new Set<string>(
+    items.map((item: ResourceAttentionItem): string => {
+      return item.key;
+    }),
+  );
+  for (const pod of getKubernetesFailedRunPods({
+    runs: failedRuns,
+    pods: pods,
+  })) {
+    const item: ResourceAttentionItem = failedRunPodItem(pod, data.routeFor);
+    if (!listed.has(item.key)) {
+      items.push(withoutOwnNamespace(item, pod.namespaceKey || ""));
+      listed.add(item.key);
+    }
+  }
+
+  return items;
+}
+
+/*
+ * What needs attention in a namespace, on its own page: the namespace
+ * itself when it is stuck deleting, then what in it is broken or needs a
+ * look, its pods folded into their workloads as on the cluster's Overview -
+ * every row in the namespace its hero names, so no line under each says it
+ * again.
+ */
+function getKubernetesNamespaceAttentionItems(data: {
+  read: KubernetesPartRead;
+  ownFinding: KubernetesAttentionFinding | null;
+  routeFor: KubernetesPartRouteFor;
+}): Array<ResourceAttentionItem> {
+  const findings: Array<KubernetesAttentionFinding> =
+    getKubernetesAttentionFindings([
+      ...(data.read.objects || []),
+      ...data.read.pods,
+    ]).filter((finding: KubernetesAttentionFinding): boolean => {
+      return !data.ownFinding || finding.key !== data.ownFinding.key;
+    });
+
+  const rank: (finding: KubernetesAttentionFinding) => number = (
+    finding: KubernetesAttentionFinding,
+  ): number => {
+    return finding.severity === KubernetesHealthSeverity.Critical ? 0 : 1;
+  };
+
+  return [...(data.ownFinding ? [data.ownFinding] : []), ...findings]
+    .sort((a: KubernetesAttentionFinding, b: KubernetesAttentionFinding) => {
+      return rank(a) - rank(b);
+    })
+    .map((finding: KubernetesAttentionFinding): ResourceAttentionItem => {
       const item: ResourceAttentionItem = toKubernetesAttentionItem(
         finding,
         data.routeFor,
       );
-      if (ownNamespace && finding.namespace === ownNamespace) {
-        delete item.detail;
-      }
+      delete item.detail;
       return item;
-    },
-  );
+    });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a namespace's hero counts
+ * ---------------------------------------------------------------------------
+ *
+ * Its workloads that need attention - each once, its pods folded into it as
+ * the cluster's Needs attention folds them - and its pods that need
+ * attention, each of them: two counts that open exactly what they count.
+ */
+
+const NAMESPACE_WORKLOAD_KINDS: ReadonlySet<string> = new Set<string>([
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "Job",
+  "CronJob",
+  "DeploymentConfig",
+]);
+
+export interface KubernetesNamespaceAttention {
+  workloads: Array<ResourceAttentionItem>;
+  // Its pods that need attention, the worst first.
+  pods: Array<KubernetesPartRow>;
+  // More pods need attention than one read takes.
+  isPodsTruncated: boolean;
+}
+
+export function getKubernetesNamespaceAttention(data: {
+  read: KubernetesPartRead;
+  routeFor: KubernetesPartRouteFor;
+}): KubernetesNamespaceAttention {
+  const workloads: Array<ResourceAttentionItem> =
+    getKubernetesAttentionFindings([
+      ...(data.read.objects || []),
+      ...data.read.pods,
+    ])
+      .filter((finding: KubernetesAttentionFinding): boolean => {
+        return NAMESPACE_WORKLOAD_KINDS.has(finding.kind);
+      })
+      .map((finding: KubernetesAttentionFinding): ResourceAttentionItem => {
+        const item: ResourceAttentionItem = toKubernetesAttentionItem(
+          finding,
+          data.routeFor,
+        );
+        delete item.detail;
+        return item;
+      });
+
+  return {
+    workloads: workloads,
+    pods: data.read.pods.filter((pod: KubernetesPartRow): boolean => {
+      return pod.kind === "Pod" && Boolean(assessKubernetesPod(pod).severity);
+    }),
+    isPodsTruncated: data.read.isPodsTruncated,
+  };
 }
 
 /*
@@ -287,6 +503,8 @@ const NAME_LABELS: Record<string, string> = {
   HorizontalPodAutoscaler: "k8s.hpa.name",
   // Its pods carry the label the chart's collectors extract, not a name.
   DeploymentConfig: "k8s.pod.label.deploymentconfig",
+  // A record about anything in it names its namespace.
+  Namespace: "k8s.namespace.name",
 };
 
 function namesThe(
@@ -586,6 +804,38 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
       "What Kubernetes reports about this CronJob.",
     ),
   },
+  DeploymentConfig: {
+    attentionDescription: translationKey(
+      "What about this DeploymentConfig and its pods is broken or needs a look, the most urgent first.",
+    ),
+    openTitle: translationKey("Open on this DeploymentConfig"),
+    openDescription: translationKey(
+      "Unresolved incidents and alerts about this DeploymentConfig and its pods, incidents first.",
+    ),
+    alertsTitle: translationKey("DeploymentConfig alerts"),
+    alertsDescription: translationKey(
+      "The cluster's alerts that watch every pod, this DeploymentConfig's included: each is one monitor that fires for any pod that crosses it.",
+    ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this DeploymentConfig.",
+    ),
+  },
+  Namespace: {
+    attentionDescription: translationKey(
+      "What in this namespace is broken or needs a look, the most urgent first.",
+    ),
+    openTitle: translationKey("Open in this namespace"),
+    openDescription: translationKey(
+      "Unresolved incidents and alerts about anything in this namespace, incidents first.",
+    ),
+    alertsTitle: translationKey("Namespace alerts"),
+    alertsDescription: translationKey(
+      "The cluster's alerts that watch what runs in every namespace, this one included: each is one monitor that fires for any that crosses it.",
+    ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this namespace.",
+    ),
+  },
   Node: {
     attentionDescription: translationKey(
       "What about this node and the pods on it is broken or needs a look, the most urgent first.",
@@ -655,6 +905,22 @@ export const KUBERNETES_PART_ALERT_TEMPLATE_IDS: Record<
   ],
   Job: ["k8s-job-failures", "k8s-crashloopbackoff"],
   CronJob: ["k8s-job-failures", "k8s-crashloopbackoff"],
+  // Its pods are watched as every pod is: no template names its kind.
+  DeploymentConfig: [
+    "k8s-crashloopbackoff",
+    "k8s-pod-pending",
+    "k8s-pod-memory-limit-saturation",
+    "k8s-pod-cpu-limit-saturation",
+  ],
+  // What runs in it, as the alerts that watch every namespace see it.
+  Namespace: [
+    "k8s-crashloopbackoff",
+    "k8s-pod-pending",
+    "k8s-deployment-replica-mismatch",
+    "k8s-statefulset-replica-mismatch",
+    "k8s-job-failures",
+    "k8s-pvc-almost-full",
+  ],
   Node: [
     "k8s-node-not-ready",
     "k8s-node-pressure",

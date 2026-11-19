@@ -264,8 +264,8 @@ describe("the marketplaces", () => {
 
   test("sell both on AWS and Microsoft, and only OneUptime Enterprise on Google Cloud", () => {
     /*
-     * Google lists only SaaS hosted on Google Cloud, and OneUptime Cloud is
-     * moving off it (RELEASING.md, "Google Cloud Marketplace").
+     * OneUptime Cloud's own Google listing is in Google's review, not public
+     * yet (RELEASING.md, "Google Cloud Marketplace"): it joins this list then.
      */
     expect(
       CloudMarketplaceEntries.map((item: CloudMarketplaceEntry) => {

@@ -12,6 +12,7 @@ import {
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -35,6 +36,32 @@ export const CLOUD_RESOURCE_ATTENTION_CURRENT: { key: string; label: string } =
     key: "resource",
     label: translationKey("This resource"),
   };
+
+/*
+ * The All Resources list's table: the name its filters are kept under in
+ * the page's address, so a link can open it already filtered.
+ */
+export const CLOUD_RESOURCES_TABLE_ID: string =
+  "cloud-monitored-resources-table";
+
+/*
+ * All Resources with its Health filter on Unhealthy and Degraded: the list
+ * the Overview's Needs attention tile counts, a click from it like the
+ * tiles beside it (#9594).
+ */
+export function getCloudNeedsAttentionListRoute(resourcesRoute: Route): Route {
+  // A copy: adding to a route changes it, and the list's own link stays bare.
+  return new Route(resourcesRoute.toString()).addQueryParams(
+    TableFilterUrlState.getLinkQueryParams(CLOUD_RESOURCES_TABLE_ID, {
+      filter: {
+        healthSeverity: [
+          CloudHealthSeverity.Critical,
+          CloudHealthSeverity.Warning,
+        ],
+      },
+    }),
+  );
+}
 
 /*
  * The lists' Health filter: the severity the last read stored

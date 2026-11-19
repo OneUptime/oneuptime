@@ -31,11 +31,11 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   fetchOpenStackComputeServiceOf,
   fetchOpenStackBlastRadius,
@@ -89,51 +89,70 @@ interface InstanceSurroundings {
   image: OpenStackResource | null;
 }
 
-const InstanceOverview: FunctionComponent<{
+/*
+ * Its flavor, the nova-compute of the host it runs on and the image it
+ * booted from, read once its row is in: the page reads it, since the
+ * nova-compute is also what its hero's status opens (#9594).
+ */
+function useInstanceSurroundings(
+  part: OpenStackPart,
+): OpenStackRead<InstanceSurroundings> {
+  const row: OpenStackResource | null = part.row;
+  return useOpenStackRead<InstanceSurroundings>(async () => {
+    if (!row) {
+      return { flavor: null, computeService: null, image: null };
+    }
+    const flavorId: string = getOpenStackFactText(row, "flavorId");
+    const image: OpenStackInstanceImage = getOpenStackInstanceImage(row);
+    const [flavor, computeService, imageRow]: [
+      OpenStackResource | null,
+      OpenStackResource | null,
+      OpenStackResource | null,
+    ] = await Promise.all([
+      flavorId
+        ? fetchOpenStackRow({
+            openStackCloudId: part.openStackCloudId,
+            kind: OpenStackResourceKind.Flavor,
+            externalId: getOpenStackFlavorExternalId(row.regionName, flavorId),
+          })
+        : Promise.resolve(null),
+      row.hypervisorName
+        ? fetchOpenStackComputeServiceOf({
+            openStackCloudId: part.openStackCloudId,
+            hypervisorName: row.hypervisorName,
+            regionName: row.regionName,
+          })
+        : Promise.resolve(null),
+      image.state === "image"
+        ? fetchOpenStackRow({
+            openStackCloudId: part.openStackCloudId,
+            kind: OpenStackResourceKind.Image,
+            externalId: image.imageId,
+          })
+        : Promise.resolve(null),
+    ]);
+    return { flavor, computeService, image: imageRow };
+  }, [part.externalId, part.refreshToken, Boolean(row)]);
+}
+
+interface InstanceOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What the page read around it (useInstanceSurroundings).
+  around: OpenStackRead<InstanceSurroundings>;
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const InstanceOverview: FunctionComponent<InstanceOverviewProps> = (
+  props: InstanceOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
-  const { part, row } = props;
+  const { part, row, around } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
   const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
   const flavorId: string = getOpenStackFactText(row, "flavorId");
   const image: OpenStackInstanceImage = getOpenStackInstanceImage(row);
-
-  const around: OpenStackRead<InstanceSurroundings> =
-    useOpenStackRead<InstanceSurroundings>(async () => {
-      const [flavor, computeService, imageRow]: [
-        OpenStackResource | null,
-        OpenStackResource | null,
-        OpenStackResource | null,
-      ] = await Promise.all([
-        flavorId
-          ? fetchOpenStackRow({
-              openStackCloudId: part.openStackCloudId,
-              kind: OpenStackResourceKind.Flavor,
-              externalId: getOpenStackFlavorExternalId(
-                row.regionName,
-                flavorId,
-              ),
-            })
-          : Promise.resolve(null),
-        row.hypervisorName
-          ? fetchOpenStackComputeServiceOf({
-              openStackCloudId: part.openStackCloudId,
-              hypervisorName: row.hypervisorName,
-              regionName: row.regionName,
-            })
-          : Promise.resolve(null),
-        image.state === "image"
-          ? fetchOpenStackRow({
-              openStackCloudId: part.openStackCloudId,
-              kind: OpenStackResourceKind.Image,
-              externalId: image.imageId,
-            })
-          : Promise.resolve(null),
-      ]);
-      return { flavor, computeService, image: imageRow };
-    }, [part.externalId, part.refreshToken]);
 
   // What it is part of: a Magnum cluster, from its name, and a stack, from that stack's own read.
   const owners: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
@@ -148,15 +167,6 @@ const InstanceOverview: FunctionComponent<{
         ).belongsTo || []
       );
     }, [part.externalId, part.refreshToken]);
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [
-      row,
-      ...(around.data?.computeService ? [around.data.computeService] : []),
-    ],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const flavor: OpenStackResource | null = around.data?.flavor || null;
@@ -359,12 +369,9 @@ const InstanceOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-instance-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Instance}/${part.externalId}`,
-          label: translationKey("This instance"),
-        }}
-        description="What about this instance, and the host it runs on, is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
         error={around.error}
         onRetry={around.reload}
       />
@@ -471,6 +478,20 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Instance);
   const row: OpenStackResource | null = part.row;
+  const around: OpenStackRead<InstanceSurroundings> =
+    useInstanceSurroundings(part);
+  /*
+   * What needs attention on it and on the host it runs on, read once: the
+   * Overview's card lists it, the hero's status opens it.
+   */
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Instance,
+    externalId: part.externalId,
+    row: row,
+    aroundRows: around.data?.computeService ? [around.data.computeService] : [],
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
 
   const cloudLink: ReactElement = (
     <Link
@@ -485,6 +506,7 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
     <OpenStackPartPage
       part={part}
       hero={{
+        attention,
         location: row?.hypervisorName ? (
           <TranslatedSentence
             template="On hypervisor {{hypervisor}} of cloud {{cloud}}"
@@ -511,7 +533,14 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
         ) : undefined,
       }}
       overview={(overviewRow: OpenStackResource): ReactElement => {
-        return <InstanceOverview part={part} row={overviewRow} />;
+        return (
+          <InstanceOverview
+            part={part}
+            row={overviewRow}
+            around={around}
+            attention={attention}
+          />
+        );
       }}
       tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const facts: JSONObject = { attachedToInstance: part.externalId };

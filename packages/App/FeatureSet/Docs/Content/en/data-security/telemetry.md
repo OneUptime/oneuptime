@@ -1,6 +1,6 @@
 # Sensitive Data in Telemetry
 
-Telemetry holds whatever your code writes: an email address in a log line, a card number in a span attribute, a token in a stack trace, a customer's question in a prompt. Data Security treats each service's logs, traces, exceptions and AI conversations, and each RUM application's sessions, as data stores of their own. It samples them every hour, finds sensitive data in them as it does in a bucket, and **Scrub It** turns a finding into a scrub rule that masks that data at ingest from then on.
+Telemetry holds whatever your code writes: an email address in a log line, a card number in a span attribute, a token in a stack trace, a customer's question in a prompt, a user's IP address in a metric's label. Data Security treats each service's logs, traces, metrics, exceptions and AI conversations, and each RUM application's sessions, as data stores of their own. It samples them every hour, finds sensitive data in them as it does in a bucket, and **Scrub It** turns a finding into a rule that masks that data at ingest from then on.
 
 There is nothing to set up: each service's telemetry is scanned every hour, unless **Scan Telemetry** is off in the project's settings. To leave one service's logs, traces or another of its signals out, turn **Scan Content** off in that store's **Settings**: from the next scan, none of it is read.
 
@@ -34,8 +34,19 @@ A finding a scrub rule covers is marked scrubbed: what is left of that data is o
 | Exceptions | The message, the stack trace and the attributes | `message`, `stackTrace`, `attributes.<key>` |
 | AI Conversations | The prompts and answers of every AI call, under the keys the GenAI conventions put them in, and every other attribute | The key they are in, such as `gen_ai.input.messages` or `gen_ai.prompt[].content` |
 | Session Replays | The attributes of a RUM application's spans and logs, its sessions' attributes, the traits `identify()` gave its users and the user reference it was told | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Metrics | Every attribute of a data point, its resource's among them, and the metrics' names | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Numbered keys are folded into one location: `gen_ai.prompt.3.content` is `gen_ai.prompt[].content`, so the twenty messages of a chat are one finding, not twenty. Attributes OneUptime adds itself, which start with `oneuptime.`, are not read.
+
+### Metrics
+
+A metric's attributes are its series' labels. They are the same on every data point of a series, so a metric that writes a thousand points a minute may hold three values, and a label that leaks a user's email adds a series, not a point. So a metric is sampled by its series, not by its points:
+
+- **Its newest minute.** Each metric is read at the newest minute it wrote in the last hour: up to 100 of that minute's data points, which for a metric sent once a minute, as OpenTelemetry sends by default, is a point of each series. A value is classified once, however many points repeat it, so a finding counts the distinct values at its place.
+- **The busiest first, the rest in turn.** Which metrics a service wrote comes from the per-minute rollup the metrics table keeps, never from its points. Each scan reads a service's busiest metrics, the likeliest to have many series, and some of its others, the next ones each hour, so every metric gets its turn.
+- **Each metric's own range.** The metrics are read together, each by its own range of the table's primary key. A metric whose newest minute holds more than 16,384 points, such as one labeled with each user's email, is read on its own, and the read stops at its first points, so it costs no more than any other metric.
+
+A finding names the attribute, such as `attributes.user.email`, or `name` for data in a metric's name. Its records are the data points it was found in: each shows its metric and the attribute's value, masked, and opens in **Metrics** on that metric, grouped by that attribute. Where a metric's name holds sensitive data, the name is masked too, and the record opens the service's metrics instead.
 
 ### Why a replay's recording is never read
 
@@ -62,6 +73,8 @@ Every hour, each signal's newest records of the last hour are read, and classifi
 | Attributes of one record | 128; 64 for an AI call |
 | Events of one span, and attributes of one event | 16 and 32 |
 | Locations of one store | 500 |
+| Metrics read in one scan | 100 shared between the services, at least one of each; at most 10 of one service, half its busiest and half its others in turn |
+| Data points of one metric | Its newest minute's, at most 100 |
 
 Every value is cut short in the database, so no long value leaves it, and each read stops after 30 seconds. A read that fails is a warning on the stores it was for; the scan goes on with the next one.
 
@@ -69,20 +82,20 @@ To leave something out, add it to the store's **Scan Exclusions**: a location na
 
 ## Scrub It
 
-**Scrub It** on a finding makes the scrub rule that hides that data type at that location from then on, or points at the enabled rule that already does:
+**Scrub It** on a finding makes the rule that hides that data type at that location from then on, or points at the enabled rule that already does:
 
 :::steps
 ### Open the finding
 
-Open the issue - **Where It Was Found** lists each finding behind it - or the telemetry store, a service's **Logs** for example, and the finding.
+Open the issue - **Where It Was Found** lists each finding behind it - or **Data Security > In Your Telemetry**, where **Show Records** opens the records a finding was found in beside the list.
 
 ### Press Scrub It
 
-Click **Scrub It**. OneUptime makes a log scrub rule for logs and a RUM application's logs, and a trace scrub rule for spans, exceptions and AI calls, on the part of the record the finding is in.
+Click **Scrub It**. OneUptime makes a log scrub rule for logs and a RUM application's logs, a trace scrub rule for spans, exceptions and AI calls, on the part of the record the finding is in, and a metric pipeline rule for a metric's attribute.
 
 ### Fix the code too
 
-The rule masks new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions or sessions it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
+The rule masks new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
 :::
 
 The rule is named for what it hides, such as "Data Security: Email address in attributes.user.email", and is listed with your other scrub rules (see [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). It is one of these:
@@ -92,16 +105,18 @@ The rule is named for what it hides, such as "Data Security: Email address in at
 | Email address, card number, US Social Security number, phone number or IP address | The built-in pattern of that type. Card numbers, Social Security numbers and phone numbers are masked, the rest redacted. |
 | A value under a key that looks sensitive, such as `password` or `token` | A **Sensitive Attribute Keys** rule, which redacts the whole value of every such attribute |
 | Any other data type a pattern can find | A **Custom Regex** rule made from the data type's own patterns, which redacts every value of its shape |
+| Any data type in a metric's attribute | A **Redact Attribute** metric pipeline rule for the service, which replaces the attribute's values of the data type's shape with `[REDACTED]`, or every value of the attribute where no pattern finds the data type |
 
-Some findings cannot be scrubbed by a rule, and **Scrub It** says why:
+Some findings cannot be scrubbed by a rule, and **Scrub It** says why. A metric's attribute always can be, since its rule can hide every value of the attribute:
 
 - A data type found from field names alone, such as a person's name: no pattern can find it. Rename the attribute to a key a sensitive-keys rule hides, or stop sending it.
 - A data type told apart from other values only by the words around it, such as a routing number: a rule would hide far more than that data type.
 - A document marking: hiding the word would not hide the document.
 - One of your own data types: add a custom scrub rule with its pattern yourself.
 - A session's own details (`sessions.*`): session replay ingest runs no scrub rules.
+- A metric's name (`name`): the code that creates the metric sets it, and a pipeline rule can only rename a metric whole. Rename the metric, and send what varies in its name as an attribute instead.
 
-**Scrub It** makes the rule as you, under your own permissions: Project Owners and Project Admins can press it, and so can a team that may create log scrub rules, and trace scrub rules for spans, exceptions and AI calls.
+**Scrub It** makes the rule as you, under your own permissions: Project Owners and Project Admins can press it, and so can a team that may create log scrub rules, trace scrub rules for spans, exceptions and AI calls, and metric pipeline rules for metrics.
 
 ## What counts as scrubbed
 
@@ -111,6 +126,7 @@ A finding is marked scrubbed only when ingest would run an enabled rule over it 
 - **The right part.** The rule's **Fields to Scrub** include the part of the record the finding is in, or the rule leaves them at their default.
 - **A pattern that finds the type.** A built-in **Pattern Type** finds its own data type: **Email Address** finds email addresses, **Credit Card Number** card numbers, **SSN (Social Security Number)** US Social Security numbers, **Phone Number** phone numbers and **IP Address** IP addresses. **Sensitive Attribute Keys** covers every value under a key that looks sensitive, whatever the value is.
 - **Your own custom patterns never count.** A **Custom Regex** covers a finding only when it is exactly the pattern **Scrub It** makes for its type. A finding keeps only masked samples, which no pattern can be tried on, so OneUptime could not prove that your pattern hides the data, and a finding wrongly called scrubbed is a leak nobody looks at.
+- **A metric's attribute.** A **Redact Attribute** or **Remove Attribute** metric pipeline rule of that attribute's key, for the finding's service or the whole project, covers it when it has no filter, or exactly the filter **Scrub It** makes. A filter you wrote never counts, for the same reason.
 
 A rule that is turned off, or that scrubs nothing, never counts. Coverage is worked out again after every scan, so a rule you add or remove by hand changes what is marked scrubbed within the hour.
 

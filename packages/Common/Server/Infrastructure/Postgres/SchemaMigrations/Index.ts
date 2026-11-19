@@ -1083,6 +1083,12 @@ import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./18091849001
 import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 import { AddDataBiConnectionReadState1809184920000 } from "./1809184920000-AddDataBiConnectionReadState";
 import { MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000 } from "./1809184930000-MarkDataOwnersAddedBeforeNotificationsAsTold";
+import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-AddServiceOwnerIsOwnerNotified";
+import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
+import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
+import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
+import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
+import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
 
 export default [
   InitialMigration,
@@ -2170,4 +2176,10 @@ export default [
   AddTableHealthSkippedTables1809184919541,
   AddDataBiConnectionReadState1809184920000,
   MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000,
+  AddServiceOwnerIsOwnerNotified1809185000000,
+  MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
+  AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
+  AddMonitorSecretType1809185030000,
+  AddWorkflowRunAs1809185100000,
+  AddWorkflowRunAsKeys1809185100100,
 ];

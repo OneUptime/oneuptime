@@ -3,8 +3,8 @@ import { ROUTINE_EMAIL_EVENT_TYPES } from "../../../Types/NotificationSetting/Ro
 
 describe("routine email preset allowlist", () => {
   test("contains only known, unique event types and cannot be mutated", () => {
-    expect(ROUTINE_EMAIL_EVENT_TYPES).toHaveLength(24);
-    expect(new Set(ROUTINE_EMAIL_EVENT_TYPES).size).toBe(24);
+    expect(ROUTINE_EMAIL_EVENT_TYPES).toHaveLength(31);
+    expect(new Set(ROUTINE_EMAIL_EVENT_TYPES).size).toBe(31);
     expect(Object.isFrozen(ROUTINE_EMAIL_EVENT_TYPES)).toBe(true);
     for (const eventType of ROUTINE_EMAIL_EVENT_TYPES) {
       expect(Object.values(NotificationSettingEventType)).toContain(eventType);
@@ -20,6 +20,14 @@ describe("routine email preset allowlist", () => {
     NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION,
+    // And of a service, infrastructure, a dashboard and the rest (#9700).
+    NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
   ])(
     "treats %s as routine, as every owner-added email",
     (eventType: NotificationSettingEventType) => {

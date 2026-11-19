@@ -428,6 +428,18 @@ Quando a investigação encontra a causa no código, a etapa diz o que resultou 
 
 A linha do tempo do incidente ou do alerta guarda um registro de cada alteração. Depois que um plano aprovado é executado, sua entrada lista cada comando na ordem em que foi executado, com onde foi executado e como terminou, e a entrada de um rollback lista cada ação de desfazer da mesma forma, com o comando que ela desfez. A lista fica em **Mostrar detalhes** da entrada, somente na linha do tempo: os canais do Slack e do Microsoft Teams do incidente ou do alerta recebem no máximo a linha da entrada, nunca a lista.
 
+### Por que a OneUptime AI não encontrou nenhuma correção, ou parou
+
+Uma correção que termina sem encontrar nenhuma diz por quê, sob a sua etapa de plano. **Não encontrou nenhuma correção segura** (**Não encontrou nenhum runbook aplicável** para um runbook) abre no motivo, nas palavras da OneUptime AI, com a resposta completa sob **Mostrar o raciocínio completo**. Sob o motivo vêm as **Correções que descartou**, cada uma com o porquê e os comandos que teria executado, e **O que verificou**: cada comando que executou no cluster ou no recurso e cada ferramenta dos servidores MCP do projeto com que leu, com o porquê, quando e como correu, e quantas vezes consultou também a telemetria do projeto. Por fim, a etapa diz que nenhuma correção foi executada e que ninguém foi solicitado a aprovar uma: a OneUptime AI só pede aprovação quando propõe uma correção.
+
+Uma correção cuja execução de IA falhou, parou de responder ou expirou na fila nunca diz que não encontrou nada: a sua etapa de plano mostra **Parou antes de encontrar uma correção** (**Parou antes de escolher um runbook** para um runbook), e o status da etapa, **Não terminou**. Aberta, ela diz por que parou, quantas vezes a OneUptime tentou e o que fazer, com um link para onde isso se corrige e o próprio erro do provedor sob **Detalhes**, e depois o que verificou e que nenhuma correção foi executada. **Tentar novamente** recomeça a correção com uma nova execução, para quem pode editar o incidente ou o alerta. É recusado, com o motivo:
+
+- quando a correção fez uma alteração antes de parar, pois recomeçá-la poderia fazer a mesma alteração duas vezes: verifique o que ela alterou e depois conclua a correção você mesmo;
+- enquanto a correção ainda está trabalhando, ou depois que terminou;
+- quando o incidente ou o alerta está resolvido;
+- quando a IA está desativada, o projeto não tem um provedor de LLM, os seus créditos de IA acabaram ou atingiu um limite diário de IA;
+- quando outra pessoa acabou de usá-lo, ou você usou Tentar novamente 30 vezes em 15 minutos.
+
 ### Antes de aprovar uma correção
 
 Cada correção aparece como as etapas pelas quais passou, na ordem em que aconteceram, uma por linha: o que a OneUptime AI planejou — quantos comandos executa e onde, ou quantas alterações faz e por meio de quais servidores MCP — e depois se a correção aguarda a sua aprovação ou quem a aprovou ou descartou, como foi executada, se houve recuperação e o que foi revertido. Cada linha diz quando, e por que ou o que deu errado, e uma correção diz em vermelho quantos dos seus comandos ou alterações falharam. Abra uma etapa para ver mais: o plano se abre com o raciocínio e cada comando, a execução com a saída e o código de saída de cada comando, e o rollback com cada ação de desfazer. **Revisar e aprovar** abre o plano de uma correção que aguarda aprovação, com **Aprovar e executar** abaixo dele, pois aprovar executa exatamente o que é mostrado. Uma correção que aguarda aprovação mostra, abaixo de cada mudança, o que você precisa para decidir:

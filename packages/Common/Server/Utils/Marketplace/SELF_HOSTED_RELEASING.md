@@ -359,9 +359,11 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (18 November 2026): the product exists (step 5); its
-pricing (step 6) and listing (step 7) are under Google's review, submitted
-on 17 November with the maintainer's go-ahead; the payments profile is done;
+1). **Where it stands** (19 November 2026): the product exists (step 5); its
+listing (step 7) was approved on 18 November, and its pricing (step 6) has
+been reviewed and becomes active on 20 November if Google's automatic
+validation finds it valid (both submitted on 17 November with the
+maintainer's go-ahead); the payments profile is done;
 and `editions.json` marks the edition ready, so the Marketplace Release
 workflow pushed 15.0.0's images and deployer that evening, and release
 `15.0` is saved on the Container images page (step 8). Google's validation
@@ -370,15 +372,15 @@ PostgreSQL image (step 8 says why). The edition was fixed the same day and
 15.0.0 pushed again; the second validation flagged no image, but its test
 failed on the tester itself. With the tester fixed, 15.0.0 went a third time
 on 18 November: that validation passed, and the Container images review was
-submitted the same morning, with the maintainer's go-ahead. **Left**:
-Google's three reviews (the Container images one takes two weeks or more),
-then **Publish** once all three are approved (the maintainer's go-ahead).
+submitted the same morning, with the maintainer's go-ahead. **Left**: the
+Container images review (two weeks or more), then **Publish** once all three
+are approved (the maintainer's go-ahead).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
-`oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
-only Google Cloud Marketplace product: OneUptime Cloud is not listed there
-([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
+`oneuptime-marketplace` project, never in `oneuptime-k8s`. OneUptime Cloud
+has its own product there, `oneuptime-cloud`, in Google's review since 19
+November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
 
 1. **Partner account** (maintainer):
 
@@ -1409,6 +1411,8 @@ rejection, go-live and price change.
 | 2026-11-18 | Google      | Tester fix merged; 15.0.0 pushed a third time (its deployer's tag removed first), `15.0` saved      | Agent      |
 | 2026-11-18 | Google      | Third validation of `15.0` passed: the test deployment and the vulnerability scan                   | Google     |
 | 2026-11-18 | Google      | Container images review submitted, with the maintainer's go-ahead                                   | Agent      |
+| 2026-11-18 | Google      | Product details review of `oneuptime-enterprise` approved                                           | Google     |
+| 2026-11-19 | Google      | Pricing reviewed: in Google's automatic validation, active on 20 November if valid                  | Google     |
 
 ## Notes for agents driving the browser
 

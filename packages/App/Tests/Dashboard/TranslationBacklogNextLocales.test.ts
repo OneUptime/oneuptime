@@ -119,7 +119,7 @@ const BACKLOG_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Notify me about incidents on resources I own.",
     "Notify me about activity on alert episodes I own.",
     "Notify me about my on-call schedule and policy membership.",
-    "Notify me about calls to incoming call policies I own.",
+    "Notify me about incoming call policies I own.",
     "Incident reminder",
   ],
   "Still English (#5272, #5281)": [

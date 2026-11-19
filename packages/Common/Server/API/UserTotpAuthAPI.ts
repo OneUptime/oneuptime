@@ -21,6 +21,7 @@ import UserTwoFactorBackupCodeService from "../Services/UserTwoFactorBackupCodeS
 import logger from "../Utils/Logger";
 import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
 import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 
 export default class UserTotpAuthAPI extends BaseAPI<
   UserTotpAuth,
@@ -61,6 +62,17 @@ export default class UserTotpAuthAPI extends BaseAPI<
           if (!userTotpAuth.userId) {
             throw new BadDataException("User not found");
           }
+
+          /*
+           * Finishing an app's setup is adding it, and that is refused while
+           * the person's sign-in is managed by single sign-on
+           * (SsoManagedSignIn, #9688) - an app begun before the server came
+           * to require SSO included. Before the code is checked or anything
+           * is written.
+           */
+          await SsoManagedSignIn.assertMayChangeLocalSignIn(
+            userTotpAuth.userId,
+          );
 
           // get user email.
           const user: User | null = await UserService.findOneById({

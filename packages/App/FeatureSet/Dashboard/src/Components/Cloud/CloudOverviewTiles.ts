@@ -108,7 +108,13 @@ export function getCloudOverviewTiles(data: {
   attentionFailed?: boolean | undefined;
   now: Date;
   translator: Translator;
-  routes: { accounts: Route; resources: Route; costs: Route };
+  routes: {
+    accounts: Route;
+    resources: Route;
+    costs: Route;
+    // The resources that need attention: All Resources, by its Health filter.
+    attention?: Route | undefined;
+  };
 }): Array<CloudStatTile> {
   const translator: Translator = data.translator;
   const notReading: number = data.accounts.filter(
@@ -219,6 +225,11 @@ export function getCloudOverviewTiles(data: {
             : "neutral",
       icon: IconProp.Alert,
       color: "rose",
+      /*
+       * Which ones: the list it counts, a click away as the others are,
+       * where the number used to open nothing (#9594).
+       */
+      to: data.routes.attention,
     },
     spend,
   ];

@@ -2697,11 +2697,6 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     text: '{translator.translateText(productText.notFound)}{" "} <Link',
     why: "Why OneUptime cannot add you, a whole sentence for the chat product, then the link to connect your account.",
   },
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartHero.tsx",
-    text: "<span className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].dot}`}",
-    why: "A status badge's label, then what the status means, a whole sentence a screen reader reads after it.",
-  },
   /*
    * A thing named by its kind, or a figure by its label, and its value:
    * names and facts, not sentences (#8483).

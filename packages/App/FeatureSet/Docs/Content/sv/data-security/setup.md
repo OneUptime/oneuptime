@@ -221,7 +221,7 @@ Inställningarna för Datasäkerhet är en uppsättning per projekt, i avsnittet
 | --- | --- | --- |
 | **Kontrollera konfiguration** | På | Kör kontrollerna på varje datalager. När den är av öppnas, ändras eller stängs inga problem. |
 | **Skanna innehåll** | På | Tar prover på datalagrens innehåll där innehållsbehörigheten har beviljats. |
-| **Skanna telemetri** | På | Tar prover på projektets loggar, spår, undantag, uppspelningar och AI-konversationer. |
+| **Skanna telemetri** | På | Tar prover på projektets loggar, spår, mätvärden, undantag, uppspelningar och AI-konversationer. |
 | **Spara maskerade prov** | På | Sparar upp till tre maskerade prov med varje fynd. När den är av sparas bara antal. |
 | **Öppna säkerhetsärenden** | På | Öppnar ett säkerhetsärende, grupperat per datalager, när ett kritiskt problem öppnas. |
 | **Skapa larm** | Av | Skapar ett larm, som når den som har jour, när ett kritiskt problem öppnas. |

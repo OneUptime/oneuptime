@@ -104,6 +104,35 @@ export default class SsoSignInMethods {
   public static async getSignInMethods(): Promise<SignInMethods> {
     const isSsoRequired: boolean = await SsoRequiredSignIn.isSsoRequired();
 
+    const ssoProviders: Array<SsoSignInProvider> =
+      await SsoSignInMethods.getInstanceWideProviders();
+
+    return {
+      isSsoRequired: isSsoRequired,
+      ssoProviders: ssoProviders,
+      hasProjectSsoProviders: isSsoRequired
+        ? await SsoSignInMethods.hasProjectSsoProviders()
+        : false,
+      /*
+       * Sign-in links (Types/Accounts/MagicLink): on until a master admin
+       * turns them off - and not while SSO is required, when the page offers
+       * SSO alone and the server signs nobody but master admins in otherwise.
+       */
+      isMagicLinkLoginEnabled: isSsoRequired
+        ? false
+        : !(await GlobalConfigService.getMagicLinkLoginTurnedOff()),
+    };
+  }
+
+  /*
+   * The server's own SAML and OpenID Connect providers that are on, by name:
+   * the buttons the sign-in page draws while the server requires SSO, and
+   * the providers User Profile names to someone whose sign-in they manage
+   * (SsoManagedSignIn).
+   */
+  public static async getInstanceWideProviders(): Promise<
+    Array<SsoSignInProvider>
+  > {
     const [samlProviders, oidcProviders] = await Promise.all([
       GlobalSsoService.findBy({
         query: { isEnabled: true },
@@ -121,7 +150,7 @@ export default class SsoSignInMethods {
       }),
     ]);
 
-    const ssoProviders: Array<SsoSignInProvider> = [
+    return [
       ...samlProviders.map((row: GlobalSso): SsoSignInProvider | null => {
         return toProvider(SsoProviderType.GlobalSSO, row);
       }),
@@ -136,22 +165,6 @@ export default class SsoSignInMethods {
         return provider as SsoSignInProvider;
       })
       .sort(byName);
-
-    return {
-      isSsoRequired: isSsoRequired,
-      ssoProviders: ssoProviders,
-      hasProjectSsoProviders: isSsoRequired
-        ? await SsoSignInMethods.hasProjectSsoProviders()
-        : false,
-      /*
-       * Sign-in links (Types/Accounts/MagicLink): on until a master admin
-       * turns them off - and not while SSO is required, when the page offers
-       * SSO alone and the server signs nobody but master admins in otherwise.
-       */
-      isMagicLinkLoginEnabled: isSsoRequired
-        ? false
-        : !(await GlobalConfigService.getMagicLinkLoginTurnedOff()),
-    };
   }
 
   /*

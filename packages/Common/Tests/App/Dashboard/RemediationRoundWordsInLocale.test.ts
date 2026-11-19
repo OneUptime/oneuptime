@@ -169,12 +169,23 @@ describe.each(LANGUAGES)("the %s locale", (language: string) => {
 });
 
 describe("the step says the server's refusal in the reader's language", () => {
-  test.each(LANGUAGES)("%s", (language: string) => {
+  /*
+   * A round that made a change, and Try again pressed more often than its
+   * limit allows (#6525) - the 429 the middleware answers both Try agains
+   * with.
+   */
+  test.each(
+    LANGUAGES.flatMap(
+      (language: string): Array<[string, RemediationRoundTryAgainRefusal]> => {
+        return [
+          [language, RemediationRoundTryAgainRefusal.PartlyApplied],
+          [language, RemediationRoundTryAgainRefusal.TooManyTries],
+        ];
+      },
+    ),
+  )("%s: %s", (language: string, refusal: RemediationRoundTryAgainRefusal) => {
     const translator: Translator = translatorFor(language);
-    const sentence: string =
-      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[
-        RemediationRoundTryAgainRefusal.PartlyApplied
-      ];
+    const sentence: string = REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[refusal];
 
     // What the step does with the server's words (RemediationStep.tryAgainRound).
     expect(translator.translateText(sentence)).toBe(

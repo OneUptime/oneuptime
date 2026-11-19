@@ -8,6 +8,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
 import {
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartChip,
   ResourcePartStatus,
@@ -45,6 +46,11 @@ export interface ComponentProps {
   clusterName: string;
   clusterRoute: Route;
   now: Date;
+  /*
+   * What its Needs attention card lists (getCephPartAttention), which a
+   * Down, Out or Near full status opens.
+   */
+  attention?: ResourcePartAttention | undefined;
 }
 
 const LINK_CLASS_NAME: string =
@@ -198,6 +204,7 @@ const CephPartHero: FunctionComponent<ComponentProps> = (
       location={location}
       lastReportAt={toCephDate(row?.lastSeenAt)}
       chips={chips}
+      attention={props.attention}
     />
   );
 };

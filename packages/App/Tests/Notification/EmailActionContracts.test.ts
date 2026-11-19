@@ -55,6 +55,7 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "tableViewLink",
   "pipelineViewLink",
   "dataStoreViewLink",
+  "resourceViewLink",
   "acknowledgeIncidentLink",
   "acknowledgeAlertLink",
   "acknowledgeIncidentEpisodeLink",
@@ -313,6 +314,13 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "dataStoreViewLink",
     "View on Dashboard",
     "dataStoreViewLink",
+  ],
+  // Made an owner of a service, infrastructure, a dashboard, on-call (#9700).
+  [
+    "ResourceOwnerAdded",
+    "resourceViewLink",
+    "View on Dashboard",
+    "resourceViewLink",
   ],
   [
     "ConfirmProjectSsoSignIn",

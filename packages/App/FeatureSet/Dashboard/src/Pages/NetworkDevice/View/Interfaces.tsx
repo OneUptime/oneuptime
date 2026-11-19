@@ -22,8 +22,15 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
+import Query from "Common/Types/BaseDatabase/Query";
+import {
+  DOWN_INTERFACES_QUERY,
+  INTERFACES_SHOW_DOWN,
+  INTERFACES_SHOW_PARAM,
+} from "../../../Components/NetworkDevice/InterfaceListRoute";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -49,6 +56,21 @@ const NetworkDeviceInterfaces: FunctionComponent<
   }
 
   const [counts, setCounts] = useState<InterfaceCounts | null>(null);
+  /*
+   * The table on the interfaces that are down (#9596): the Down card turns
+   * it on and off, and the device hero's "2 down" opens the page with it
+   * on (?show=down).
+   */
+  const [isDownOnly, setIsDownOnly] = useState<boolean>(
+    Navigation.getQueryStringByName(INTERFACES_SHOW_PARAM) ===
+      INTERFACES_SHOW_DOWN,
+  );
+  // A stable query: the table reads again only when it changes.
+  const tableQuery: Query<NetworkInterface> = useMemo(() => {
+    return isDownOnly
+      ? { networkDeviceId: modelId.toString(), ...DOWN_INTERFACES_QUERY }
+      : { networkDeviceId: modelId.toString() };
+  }, [isDownOnly, modelId.toString()]);
   // Bumped after a bulk mute/unmute so the count strip refetches.
   const [countsRefreshToken, setCountsRefreshToken] = useState<number>(0);
 
@@ -197,6 +219,18 @@ const NetworkDeviceInterfaces: FunctionComponent<
           <InfoCard
             title="Down"
             tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesDown}
+            /*
+             * Which ones: the table below on the interfaces that are down,
+             * pressed again for every interface.
+             */
+            onClick={
+              counts.down > 0 || isDownOnly
+                ? () => {
+                    setIsDownOnly(!isDownOnly);
+                  }
+                : undefined
+            }
+            isSelected={counts.down > 0 || isDownOnly ? isDownOnly : undefined}
             value={
               <div
                 className={`mt-1 text-3xl font-semibold ${
@@ -227,9 +261,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
         modelType={NetworkInterface}
         id="network-interfaces-table"
         userPreferencesKey="network-interfaces-table"
-        query={{
-          networkDeviceId: modelId.toString(),
-        }}
+        query={tableQuery}
         isDeleteable={false}
         isEditable={true}
         isCreateable={false}

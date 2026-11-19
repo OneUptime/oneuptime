@@ -2,6 +2,7 @@ import { ResponseJSON } from "@clickhouse/client";
 import AnalyticsBaseModel from "../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import ExceptionInstance from "../../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../../Models/AnalyticsModels/Log";
+import Metric from "../../../../Models/AnalyticsModels/Metric";
 import RumSession from "../../../../Models/AnalyticsModels/RumSession";
 import Span from "../../../../Models/AnalyticsModels/Span";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
@@ -15,6 +16,7 @@ import {
 import { readTelemetryDataStoreKeyOwnerId } from "../../../../Types/DataSecurity/DataStoreKey";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import { FindingSampleRecord } from "../../../../Types/DataSecurity/FindingSampleRecord";
+import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -28,7 +30,10 @@ import {
   FieldClassifierOptions,
 } from "../../../../Utils/DataSecurity/FieldClassifier";
 import { getHintedDataTypeIds } from "../../../../Utils/DataSecurity/FieldNameHints";
-import { buildOccurrenceExcerpt } from "../../../../Utils/DataSecurity/OccurrenceExcerpt";
+import {
+  buildOccurrenceExcerpt,
+  maskSensitiveText,
+} from "../../../../Utils/DataSecurity/OccurrenceExcerpt";
 import { ScanDetector } from "../../../../Utils/DataSecurity/TextScanner";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
@@ -46,6 +51,7 @@ import {
   tableOf,
   TELEMETRY_SCAN_MAX_EVENT_NAME_LENGTH,
   TELEMETRY_SCAN_MAX_KEY_LENGTH,
+  TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH,
   TelemetryReadWindow,
   TelemetryRecordValue,
   TelemetrySampleCaps,
@@ -86,6 +92,14 @@ import {
  *    in it masked as a finding's samples are (OccurrenceExcerpt). Never a
  *    raw value of any type.
  *
+ * A metric's records are its data points. Every series of a metric is
+ * written at the same moment, so a millisecond holds many of them: a kept
+ * point is looked up by its metric and its millisecond, narrowed by the
+ * data type's patterns as a search is, and each series it found is one
+ * record however many of its points the read returns. A metric's name is
+ * shown with every sensitive value in it masked, and goes into a link only
+ * when nothing in it is.
+ *
  * One read, bounded like a scan's: the project is its first condition, the
  * owner and the window the next, at most a few hundred records, every value
  * cut in the database, and a time limit. The route (DataSecurityAPI) checks
@@ -105,6 +119,12 @@ export const SAMPLE_WINDOW_IN_MINUTES: number = 75;
 
 // The rows read for each kept record: a few may share its millisecond.
 export const SAMPLED_ROWS_PER_RECORD: number = 4;
+
+/*
+ * The rows read for each kept point of a metric: every series of a metric
+ * is written in the same millisecond, so the point's series is one of many.
+ */
+export const SAMPLED_ROWS_PER_METRIC_RECORD: number = 30;
 
 /*
  * Where a finding's records are read: the ones the last scan kept, the
@@ -195,7 +215,9 @@ type OccurrenceTextColumn =
   | "body"
   | "message"
   | "stackTrace"
-  | "identifiedUserLabel";
+  | "identifiedUserLabel"
+  // A metric's own name.
+  | "name";
 
 type OccurrencePairsColumn = "attributes" | "identifiedUserTraits";
 
@@ -216,7 +238,23 @@ const TEXT_ALIASES: Readonly<Record<OccurrenceTextColumn, string>> = {
   message: "readMessage",
   stackTrace: "readStackTrace",
   identifiedUserLabel: "readLabel",
+  name: "readMetricName",
 };
+
+// How much of a text column is read: as much as the scan read.
+function textLengthOf(
+  column: OccurrenceTextColumn,
+  caps: TelemetrySampleCaps,
+): number {
+  switch (column) {
+    case "identifiedUserLabel":
+      return caps.attributeValueLength;
+    case "name":
+      return TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH;
+    default:
+      return caps.textLength;
+  }
+}
 
 const PAIRS_ALIASES: Readonly<Record<OccurrencePairsColumn, string>> = {
   attributes: "readAttributes",
@@ -235,6 +273,7 @@ const RECORD_KIND_OF_SOURCE: Readonly<
   [TelemetrySampleSource.RumLogs]: DataSecurityOccurrenceRecordKind.Log,
   [TelemetrySampleSource.RumSpans]: DataSecurityOccurrenceRecordKind.Span,
   [TelemetrySampleSource.RumSessions]: DataSecurityOccurrenceRecordKind.Session,
+  [TelemetrySampleSource.Metrics]: DataSecurityOccurrenceRecordKind.Metric,
 };
 
 const RUM_SOURCES: ReadonlySet<TelemetrySampleSource> = new Set([
@@ -262,6 +301,8 @@ export function getOccurrenceModel(source: TelemetrySampleSource): {
       return ExceptionInstance;
     case TelemetrySampleSource.RumSessions:
       return RumSession;
+    case TelemetrySampleSource.Metrics:
+      return Metric;
     default:
       return Span;
   }
@@ -374,6 +415,11 @@ export function planOccurrenceRead(
           "identifiedUserTraits",
         )
       );
+    case DataStoreKind.TelemetryMetrics:
+      // The metric's own name, or a point's attribute, its resource's among them.
+      return at === METRIC_NAME_LOCATION
+        ? text(TelemetrySampleSource.Metrics, "name")
+        : pairsAfter(TelemetrySampleSource.Metrics, at, "attributes.");
     default:
       return null;
   }
@@ -473,10 +519,9 @@ function appendNumber(statement: Statement, value: number): void {
 }
 
 // What opens a record of each signal, and what to call it.
-function appendRecordKeys(
-  statement: Statement,
-  source: TelemetrySampleSource,
-): void {
+function appendRecordKeys(statement: Statement, plan: OccurrencePlan): void {
+  const source: TelemetrySampleSource = plan.source;
+
   switch (source) {
     case TelemetrySampleSource.Logs:
     case TelemetrySampleSource.RumLogs:
@@ -500,6 +545,14 @@ function appendRecordKeys(
       appendNumber(statement, OCCURRENCE_MAX_NAME_LENGTH);
       statement.append(") AS readName");
       break;
+    case TelemetrySampleSource.Metrics:
+      // The metric a point is of - read as the location's own text when it is the name.
+      if (plan.read.kind !== "text") {
+        statement.append(", substringUTF8(name, 1, ");
+        appendNumber(statement, TELEMETRY_SCAN_MAX_METRIC_NAME_LENGTH);
+        statement.append(") AS readMetricName");
+      }
+      break;
     default:
       break;
   }
@@ -521,12 +574,7 @@ function appendOccurrenceColumns(
 ): void {
   if (read.kind === "text") {
     statement.append(`, substringUTF8(${read.column}, 1, `);
-    appendNumber(
-      statement,
-      read.column === "identifiedUserLabel"
-        ? caps.attributeValueLength
-        : caps.textLength,
-    );
+    appendNumber(statement, textLengthOf(read.column, caps));
     statement.append(`) AS ${TEXT_ALIASES[read.column]}`);
     return;
   }
@@ -640,9 +688,7 @@ function appendLocationFilter(
       appendPrefilter(
         statement,
         sqlOf(read.column),
-        read.column === "identifiedUserLabel"
-          ? caps.attributeValueLength
-          : caps.textLength,
+        textLengthOf(read.column, caps),
         prefilter,
       );
     }
@@ -730,10 +776,23 @@ export function getOccurrenceReadLimit(
     plan.read.kind === "events"
       ? OCCURRENCE_EVENT_RECORDS_PER_READ
       : OCCURRENCE_RECORDS_PER_READ;
+  const rowsPerRecord: number =
+    plan.source === TelemetrySampleSource.Metrics
+      ? SAMPLED_ROWS_PER_METRIC_RECORD
+      : SAMPLED_ROWS_PER_RECORD;
 
   return records.length > 0
-    ? Math.min(most, records.length * SAMPLED_ROWS_PER_RECORD)
+    ? Math.min(most, records.length * rowsPerRecord)
     : most;
+}
+
+/*
+ * Whether a read of kept records is narrowed by the data type's patterns
+ * too: a metric's, whose kept millisecond holds every series of the
+ * metric; any other kept record's millisecond is a lookup already.
+ */
+export function isKeptRecordReadNarrowed(plan: OccurrencePlan): boolean {
+  return plan.source === TelemetrySampleSource.Metrics;
 }
 
 /*
@@ -789,12 +848,15 @@ export function buildOccurrenceExcerptReader(data: {
 
 /*
  * Only the records written in one of the kept records' milliseconds: each
- * a range of the primary key's own column, so the read is a lookup.
+ * a range of the primary key's own column, so the read is a lookup - for a
+ * metric's point kept with its metric, of that metric, which the metrics
+ * table is keyed by before the time.
  */
 function appendRecordTimes(
   statement: Statement,
   timeColumn: string,
   records: ReadonlyArray<FindingSampleRecord>,
+  isMetric: boolean = false,
 ): void {
   statement.append(" AND (");
 
@@ -802,6 +864,16 @@ function appendRecordTimes(
     const time: Date = new Date(record.time);
 
     statement.append(index === 0 ? "(" : " OR (");
+
+    if (isMetric && record.metricName) {
+      statement.append(
+        SQL`name = ${{
+          type: TableColumnType.Text,
+          value: record.metricName,
+        }} AND `,
+      );
+    }
+
     statement.append(timeColumn);
     statement.append(
       SQL` >= ${{ type: TableColumnType.DateTime64, value: time }} AND `,
@@ -842,7 +914,7 @@ export function buildTelemetryOccurrenceStatement(
   statement.append(" AS ownerId, toUnixTimestamp64Milli(toDateTime64(");
   statement.append(source.timeColumn);
   statement.append(", 3)) AS recordTime");
-  appendRecordKeys(statement, data.plan.source);
+  appendRecordKeys(statement, data.plan);
   appendOccurrenceColumns(statement, data.plan.read, data.caps);
   statement.append(" FROM ");
   statement.append(tableOf(source.table));
@@ -850,7 +922,12 @@ export function buildTelemetryOccurrenceStatement(
   appendOwnersIn(statement, source, [data.ownerId]);
 
   if (data.records && data.records.length > 0) {
-    appendRecordTimes(statement, source.timeColumn, data.records);
+    appendRecordTimes(
+      statement,
+      source.timeColumn,
+      data.records,
+      data.plan.source === TelemetrySampleSource.Metrics,
+    );
   }
 
   appendLocationFilter(
@@ -920,12 +997,37 @@ function readTime(value: unknown): string | null {
   return new Date(milliseconds).toISOString();
 }
 
+// A metric's name as a record shows it, and whether it may go into a link.
+export interface ShownMetricName {
+  text: string;
+  isKey: boolean;
+}
+
+/*
+ * A metric's name as a record shows it: every sensitive value in it masked
+ * (OccurrenceExcerpt.maskSensitiveText); a name with nothing masked is a
+ * key, which opens the metric in the metrics explorer.
+ */
+export function buildMetricNameReader(
+  options: ContentScanOptions | undefined,
+): (metricName: string) => ShownMetricName {
+  return (metricName: string): ShownMetricName => {
+    const masked: { text: string; isMasked: boolean } = maskSensitiveText(
+      metricName,
+      { customDetectors: options?.customDetectors },
+    );
+
+    return { text: masked.text, isKey: !masked.isMasked };
+  };
+}
+
 function occurrenceOf(data: {
   source: TelemetrySampleSource;
   row: JSONObject;
   ownerId: string;
   time: string;
   maskedValue: string;
+  showMetricName: (metricName: string) => ShownMetricName;
 }): DataSecurityFindingOccurrence {
   const occurrence: DataSecurityFindingOccurrence = {
     time: data.time,
@@ -957,6 +1059,19 @@ function occurrenceOf(data: {
     }
   }
 
+  // A metric's point: its metric, masked where it holds data, and its key.
+  const metricName: string = readText(data.row["readMetricName"]);
+
+  if (data.source === TelemetrySampleSource.Metrics && metricName.trim()) {
+    const shown: ShownMetricName = data.showMetricName(metricName);
+
+    occurrence.name = shown.text;
+
+    if (shown.isKey) {
+      occurrence.metricName = metricName;
+    }
+  }
+
   return occurrence;
 }
 
@@ -965,7 +1080,8 @@ function occurrenceOf(data: {
  * location, the newest first, at most `max`: each row's values read as the
  * scan reads them, the first one at the location that is the data type
  * making it one. A session the table keeps several versions of is one
- * record.
+ * record; so is a metric's series, however many of its points were read -
+ * the same metric with the same value there.
  */
 export function readOccurrenceRows(data: {
   plan: OccurrencePlan;
@@ -983,10 +1099,16 @@ export function readOccurrenceRows(data: {
   excerptOf?:
     | ((value: TelemetryRecordValue) => DataSecurityOccurrenceExcerpt)
     | undefined;
+  // A metric's name as a record shows it (buildMetricNameReader).
+  showMetricName?: ((metricName: string) => ShownMetricName) | undefined;
   max: number;
 }): { occurrences: Array<DataSecurityFindingOccurrence>; recordsRead: number } {
   const occurrences: Array<DataSecurityFindingOccurrence> = [];
   const seenSessions: Set<string> = new Set();
+  // A metric's series already shown: its metric and its value, never sent.
+  const seenSeries: Set<string> = new Set();
+  const showMetricName: (metricName: string) => ShownMetricName =
+    data.showMetricName || buildMetricNameReader(undefined);
   let recordsRead: number = 0;
 
   for (const row of data.rows) {
@@ -1020,6 +1142,19 @@ export function readOccurrenceRows(data: {
         continue;
       }
 
+      if (data.plan.source === TelemetrySampleSource.Metrics) {
+        const series: string = JSON.stringify([
+          readText(row["readMetricName"]),
+          value.value,
+        ]);
+
+        if (seenSeries.has(series)) {
+          break;
+        }
+
+        seenSeries.add(series);
+      }
+
       const maskedValue: string | null = data.maskIfFound(value.value);
 
       if (maskedValue) {
@@ -1029,6 +1164,7 @@ export function readOccurrenceRows(data: {
           ownerId: data.ownerId,
           time,
           maskedValue,
+          showMetricName,
         });
 
         if (data.excerptOf) {
@@ -1104,9 +1240,13 @@ export async function findTelemetryFindingOccurrences(data: {
   const source: SourceDefinition = getTelemetrySource(data.plan.source);
   const caps: TelemetrySampleCaps = capsOf(source, data.options);
   const limit: number = getOccurrenceReadLimit(data.plan, search.records);
-  // A lookup of kept records needs no narrowing; a search does.
+  /*
+   * A lookup of kept records needs no narrowing - but a metric's, whose
+   * millisecond holds every series of the metric; a search does.
+   */
   const prefilter: string | null =
-    search.source === DataSecurityOccurrencesSource.SampledRecords
+    search.source === DataSecurityOccurrencesSource.SampledRecords &&
+    !isKeptRecordReadNarrowed(data.plan)
       ? null
       : getOccurrencePrefilter({
           dataTypeId: data.dataTypeId,
@@ -1185,6 +1325,7 @@ export async function findTelemetryFindingOccurrences(data: {
       location: data.location,
       options: data.options,
     }),
+    showMetricName: buildMetricNameReader(data.options),
     max: MAX_OCCURRENCES,
   });
 

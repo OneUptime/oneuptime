@@ -422,6 +422,7 @@ export default class RecordFromAnotherTool extends ComponentCode {
             model: this.services.record.getModel(),
             log: options.log,
             stepTitle: this.getMetadata().title,
+            runAs: options.runAs,
           }),
         ),
       };

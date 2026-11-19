@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57477,
-    "untranslated": 8084
+    "keys": 57551,
+    "untranslated": 8080
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -395,6 +395,7 @@
     "main",
     "max",
     "median",
+    "median {{duration}}",
     "median {{value}}",
     "message",
     "min",

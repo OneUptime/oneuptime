@@ -15,20 +15,17 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   CephOsdReadings,
   formatCephLatency,
-  getCephAttentionItems,
-  getCephAttentionKey,
   getCephOsdReadings,
   isCephIssueAbout,
   toCephDate,
 } from "../../../Pages/Ceph/Utils/CephHealth";
 import {
   CEPH_OSD_ALERT_TEMPLATE_IDS,
-  THIS_OSD_LABEL,
   getCephOsdLatencyTone,
   getCephOsdUsedTone,
   toCephTileTone,
@@ -51,7 +48,11 @@ export interface ComponentProps {
   clusterName: string;
   externalId: string;
   row: CephResource | null;
-  newestSeenAt: Date | null;
+  /*
+   * What needs attention on the OSD: the page reads it once
+   * (getCephPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: CephPartRoutes;
   now: Date;
   refreshToken?: number | undefined;
@@ -85,13 +86,6 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
-
-  const attentionItems: Array<ResourceAttentionItem> = getCephAttentionItems({
-    rows: [row],
-    routeFor: props.routes.getPartRoute,
-    now: props.now,
-    newestSeenAt: props.newestSeenAt,
-  });
 
   // A down OSD's readings are its last ones, not what it does now.
   const readings: CephOsdReadings | null =
@@ -156,12 +150,9 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="ceph-osd-overview">
       <NeedsAttentionCard
         testId="ceph-osd-attention"
-        items={attentionItems}
-        current={{
-          key: getCephAttentionKey("Osd", props.externalId),
-          label: THIS_OSD_LABEL,
-        }}
-        description="What about this OSD is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {/*

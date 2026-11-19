@@ -428,6 +428,18 @@ When the investigation finds the cause in the code, the step says what came of i
 
 The incident's or alert's timeline keeps a record of every change. Once an approved plan has run, its entry lists each command in the order it ran, with where it ran and how it ended, and a rollback's entry lists each undo the same way, with the command it undid. The list is under the entry's **Show details**, on the timeline only: the incident's or alert's Slack and Microsoft Teams channels get at most the entry's one line, never the list.
 
+### Why OneUptime AI found no fix, or stopped
+
+A fix that ends without one says why, under its plan step. **Found no safe fix** (**Found no runbook that applies** for a runbook) opens to the reason, in OneUptime AI's own words, with its whole answer under **Show full reasoning**. Under the reason come **Fixes it ruled out**, each with why not and the commands it would have run, and **What it checked**: each command it ran on the cluster or resource and each tool of the project's MCP servers it read with, with why, when and how it went, and how many times it queried the project's telemetry besides. Last, the step says that no fix ran and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.
+
+A fix whose AI run failed, stopped answering or expired in the queue never says it found nothing: its plan step reads **Stopped before it found a fix** (**Stopped before it picked a runbook** for a runbook), and the step's status **Did not finish**. Opened, it says why it stopped, how many times OneUptime tried and what to do, with a link to where that is fixed and the provider's own error under **Details**, then what it checked and that no fix ran. **Try again** starts the fix again with a new run, for anyone who may edit the incident or alert. It is refused, with the reason:
+
+- when the fix made a change before it stopped, since starting it again could make the same change twice: check what it changed, then finish the fix yourself;
+- while the fix is still working, or once it has finished;
+- when the incident or alert is resolved;
+- when AI is off, the project has no LLM provider, its AI credits are used up or it reached a daily AI limit;
+- when someone else has just pressed it, or you have pressed Try again 30 times in 15 minutes.
+
 ### Before you approve a fix
 
 Each fix reads as the steps it went through, in the order they happened, one line each: what OneUptime AI planned — how many commands it runs and where, or how many changes it makes and through which MCP servers — then whether it waits for your approval or who approved or dismissed it, how it ran, whether the incident recovered, and what was rolled back. Each line says when, and why or what went wrong, and a fix says in red how many of its commands or changes failed. Open a step to see more: the plan opens to the reasoning and each command, the run to each command's output and exit code, and the rollback to each undo. **Review and approve** opens the plan of a fix that waits for approval, with **Approve & Run** under it, since approving runs exactly what is shown. Under each change, a fix that waits for approval shows what you need to decide on it:

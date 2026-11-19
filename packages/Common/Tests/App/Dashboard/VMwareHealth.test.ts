@@ -48,6 +48,7 @@ import {
   getVMwareDisplayName,
   getVMwareHealth,
   getVMwareHostName,
+  getVMwareHostProblemItems,
   getVMwareHostState,
   getVMwareHostStatus,
   getVMwareHostsOfCluster,
@@ -1753,5 +1754,134 @@ describe("which part an open incident or alert is about", () => {
         [esx01, cacheVm],
       ),
     ).toBe(false);
+  });
+});
+
+/*
+ * "2/4 ESXi hosts connected" said two hosts were out of reach, never which
+ * or why (#9594). Beside it, a count per state opens exactly those hosts.
+ */
+describe("what the hero's host counts open", () => {
+  const routeFor: (kind: VMwareResourceKind, externalId: string) => Route = (
+    kind: VMwareResourceKind,
+    externalId: string,
+  ): Route => {
+    return new Route(`/part/${kind}/${externalId}`);
+  };
+
+  test("the hosts not responding: why, by the rules, their cluster a step from its page, and their datacenter", () => {
+    const rows: Array<VMwareResource> = [
+      datacenter("dc-east", {
+        hostCount: 4,
+        poweredOnHostCount: 3,
+        notRespondingHostCount: 1,
+        standbyHostCount: 0,
+      }),
+      cluster("prod-cluster"),
+      host("esx01"),
+      silentHost("esx03"),
+    ];
+
+    const items: Array<ReturnType<typeof getVMwareHostProblemItems>[number]> =
+      getVMwareHostProblemItems({
+        rows: rows,
+        state: VMwareHostState.NotResponding,
+        now: NOW,
+        routeFor: routeFor,
+      });
+
+    expect(items).toHaveLength(1);
+    const esx03: ReturnType<typeof getVMwareHostProblemItems>[number] =
+      items[0]!;
+    expect(esx03.key).toBe(
+      getVMwareAttentionKey(VMwareResourceKind.Host, "host/dc-east/esx03"),
+    );
+    expect(esx03.name).toBe("esx03");
+    expect(esx03.kind).toBe("ESXi host");
+    expect(esx03.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(esx03.reasons).toEqual([{ text: "Not responding" }]);
+    expect(esx03.route?.toString()).toBe(
+      `/part/${VMwareResourceKind.Host}/host/dc-east/esx03`,
+    );
+    expect(esx03.facts).toEqual([
+      {
+        key: "cluster",
+        label: "Cluster",
+        value: "prod-cluster",
+        route: new Route(
+          `/part/${VMwareResourceKind.Cluster}/cluster/dc-east/prod-cluster`,
+        ),
+      },
+      { key: "datacenter", label: "Datacenter", value: "dc-east" },
+    ]);
+
+    // The same host is no host reporting no usage: one count each.
+    expect(
+      getVMwareHostProblemItems({
+        rows: rows,
+        state: VMwareHostState.NoUsage,
+        now: NOW,
+        routeFor: routeFor,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the hosts reporting no usage, where vCenter's counts cannot tell why: a look, not an outage", () => {
+    const rows: Array<VMwareResource> = [
+      // Both counts at once: a silent host could be either.
+      datacenter("dc-east", {
+        hostCount: 4,
+        poweredOnHostCount: 2,
+        notRespondingHostCount: 1,
+        standbyHostCount: 1,
+      }),
+      silentHost("esx02", { clusterName: "" }),
+    ];
+
+    const items: Array<ReturnType<typeof getVMwareHostProblemItems>[number]> =
+      getVMwareHostProblemItems({
+        rows: rows,
+        state: VMwareHostState.NoUsage,
+        now: NOW,
+        routeFor: routeFor,
+      });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(items[0]!.reasons).toEqual([
+      { text: "No CPU or memory use reported" },
+    ]);
+    // A standalone host names its datacenter only.
+    expect(items[0]!.facts).toEqual([
+      { key: "datacenter", label: "Datacenter", value: "dc-east" },
+    ]);
+  });
+
+  test("hosts that run, are off or in standby, or have stopped reporting are in no count", () => {
+    const rows: Array<VMwareResource> = [
+      datacenter("dc-east", {
+        hostCount: 3,
+        poweredOnHostCount: 2,
+        notRespondingHostCount: 0,
+        standbyHostCount: 1,
+      }),
+      host("esx01"),
+      silentHost("esx02"),
+      host("esx04", { metricsUpdatedAt: STALE }),
+    ];
+
+    for (const state of [
+      VMwareHostState.NotResponding,
+      VMwareHostState.NoUsage,
+    ] as const) {
+      expect(
+        getVMwareHostProblemItems({
+          rows: rows,
+          state: state,
+          now: NOW,
+          routeFor: routeFor,
+        }),
+      ).toEqual([]);
+    }
   });
 });

@@ -626,6 +626,13 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSAL_KEYS: Record<
   [RemediationRoundTryAgainRefusal.NotStarted]: translationKey(
     "The fix could not start again. Try again in a few minutes.",
   ),
+  /*
+   * Try again pressed more often than its limit allows (#6525): said under
+   * either Try again, the fix's or the record's.
+   */
+  [RemediationRoundTryAgainRefusal.TooManyTries]: translationKey(
+    "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
+  ),
 };
 
 // The server's sentences and these keys are the same words (a test holds it).

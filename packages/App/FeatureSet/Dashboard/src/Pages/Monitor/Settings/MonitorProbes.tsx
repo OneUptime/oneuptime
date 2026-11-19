@@ -185,6 +185,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           selectMoreFields={{
             // The Name cell renders the probe logo, which no column declares.
             iconFileId: true,
+            // When a disconnected one was last seen, under its Status (#9597).
+            lastAlive: true,
           }}
           actionButtons={[monitorThisProbeAction]}
           filters={[
@@ -282,6 +284,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             checksLastLateAt: true,
             devicePollsLateSince: true,
             devicePollsLastLateAt: true,
+            // When a disconnected one was last seen, under its Status (#9597).
+            lastAlive: true,
           }}
           noItemsMessage={"No custom probes yet."}
           viewPageRoute={Navigation.getCurrentRoute()}

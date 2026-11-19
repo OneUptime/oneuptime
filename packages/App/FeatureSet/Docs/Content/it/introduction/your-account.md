@@ -105,24 +105,30 @@ Il link funziona una sola volta, per 15 minuti, e un link più recente lo sostit
 
 ### Attivare l'autenticazione a due fattori
 
-L'autenticazione a due fattori si applica quando accedi con la password o con un link inviato via e-mail. Aggiungi prima un secondo passaggio, poi attivala.
+L'autenticazione a due fattori si applica quando accedi con la tua password o con un link ricevuto via email. Si attiva solo quando il tuo secondo passaggio funziona, quindi non ti chiede mai un passaggio che non hai.
 
 :::steps
-### Aggiungere un'app di autenticazione
+### Scegliere il secondo passaggio
 
-Apri **Sicurezza → Autenticazione a due fattori**. In **App di autenticazione**, aggiungi un'app e dalle un nome. Scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice a 6 cifre che mostra e fai clic su **Verifica e completa**. Per usare invece una chiave USB o NFC, aggiungila in **Chiavi di sicurezza**.
+Apri **Sicurezza → Autenticazione a due fattori** e fai clic su **Attiva l'autenticazione a due fattori**. Scegli **App di autenticazione** o **Chiave di sicurezza** e fai clic su **Continua**.
+
+### Configurarlo
+
+Per un'app di autenticazione, scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice di 6 cifre che mostra e fai clic su **Verifica e completa**. Per una chiave USB o NFC, dalle un nome e segui le istruzioni del browser. L'autenticazione a due fattori è quindi attiva e la scheda mostra **Abilitato**. Dal tuo prossimo accesso con password o con un link via email, OneUptime ti chiede il secondo passaggio.
 
 ### Salvare i codici di backup
 
 La prima volta che aggiungi un'app, una chiave o una passkey, OneUptime mostra **I tuoi codici di backup**. Ogni codice ti fa accedere una volta se perdi l'app o la chiave. Copiali o scaricali, spunta la casella che conferma di averli salvati e fai clic su **Fatto**.
-
-### Attivarla
-
-In cima alla pagina, fai clic su **Attiva l'autenticazione a due fattori** e conferma. La scheda ora mostra **Abilitato**. Dal prossimo accesso con password o con un link inviato via e-mail, OneUptime ti chiede il secondo passaggio.
 :::
+
+Se hai già un'app in **App di autenticazione** o una chiave in **Chiavi di sicurezza**, **Attiva l'autenticazione a due fattori** ti chiede solo di confermare. Finché è attiva, non puoi rimuovere l'ultima app, chiave o passkey: aggiungine prima un'altra, oppure disattiva l'autenticazione a due fattori. Se la scheda mostra **Configurazione necessaria**, l'autenticazione a due fattori è attiva ma non è ancora configurato nulla, spesso perché un amministratore l'ha richiesta: fai clic su **Completa la configurazione**, altrimenti ti verrà chiesto al prossimo accesso.
 
 > [!TIP]
 > Ti restano pochi codici di backup? **Rigenera i codici** nella stessa pagina ti dà un nuovo set, e i vecchi codici smettono subito di funzionare.
+
+### Quando la tua organizzazione gestisce il tuo accesso
+
+Su un server che richiede il single sign-on, accedi solo tramite il provider di identità della tua organizzazione, come Okta o Microsoft Entra ID, e OneUptime non imposta per te password, passkey né autenticazione a due fattori. Il **Profilo utente** non ha quindi la sezione **Sicurezza**, e la sua **Panoramica** indica il tuo provider in **Single Sign-On**. Cambia la password e il secondo passaggio presso il tuo provider di identità. Quello che avevi configurato prima resta salvato: torna a funzionare solo se il server smette di richiedere il single sign-on. Gli amministratori principali mantengono le proprie impostazioni di **Sicurezza**.
 
 ## I tuoi progetti
 

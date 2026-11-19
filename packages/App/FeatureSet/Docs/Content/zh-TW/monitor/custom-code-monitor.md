@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 包含引號的密鑰值會破壞它周圍的字串。監測器無權使用的參照會照原樣留在指令碼中。如何建立密鑰並選擇哪些監測器可以使用它，請參閱 [監控密鑰](/docs/monitor/monitor-secrets)。
 
+一次性驗證碼密鑰保存的是網站的雙重驗證設定金鑰，而不是一個值。它的 `{{monitorSecrets.NAME}}` 是指令碼開始時的驗證碼，而 `await oneuptime.getTotpCode("NAME")` 會在指令碼要求時產生新的驗證碼。請參閱[使用一次性驗證碼登入](/docs/monitor/monitor-secrets#使用一次性驗證碼登入)。
+
 ## 自訂指標
 
 你可以在指令碼中用 `oneuptime.captureMetric()` 函式記錄自訂指標。這些指標儲存在 OneUptime 中，可以透過 Metric Explorer 在儀表板上繪製成圖表。
@@ -226,6 +228,7 @@ return {
 | `http`、`https` | 只有它們的 `Agent` 類別，用來傳給 `axios`，例如 `httpsAgent: new https.Agent({ rejectUnauthorized: false })`。沒有 `request` 或 `get`。 |
 | `console.log` | 記錄用於除錯的資料。只有 `console.log`，沒有 `console.error` 等其他方法。 |
 | `oneuptime.captureMetric` | 記錄自訂指標。請參閱[自訂指標](#自訂指標)。 |
+| `oneuptime.getTotpCode` | 產生一次性驗證碼密鑰的目前驗證碼：`await oneuptime.getTotpCode("NAME")`。請參閱[使用監控密鑰](#使用監控密鑰)。 |
 | `setTimeout`、`clearTimeout`、`sleep(ms)` | 在指令碼中等待。延遲永遠不會超過指令碼的逾時時間。 |
 
 ## 注意事項
