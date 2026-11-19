@@ -73,6 +73,8 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Docs/Utils/PermissionsTable.ts",
   ssoApi: `${IDENTITY}/API/SSO.ts`,
   oidcApi: `${IDENTITY}/API/OIDC.ts`,
+  // How Sign in with SSO finds a project's providers: by the email's domain.
+  ssoDiscovery: `${IDENTITY}/Utils/ProjectSsoDiscovery.ts`,
   ssoUtil: `${IDENTITY}/Utils/SSO.ts`,
   ssoOneTimeUse: `${IDENTITY}/Utils/SamlAssertionOneTimeUse.ts`,
   ssoServiceProvider: `${IDENTITY}/Utils/SamlServiceProvider.ts`,
@@ -728,6 +730,62 @@ describe("the SSO guide", () => {
     expect(oidc).toContain("code_verifier: data.codeVerifier");
     expect(english(SSO)).toContain(
       "Register an app (an OIDC client) with your identity provider that may use the authorization code flow with PKCE",
+    );
+  });
+
+  /*
+   * Sign in with SSO finds a project's providers by an email's domain, from
+   * the verified domains each provider lists, and never reads an account
+   * (#9824).
+   */
+  it("says Sign in with SSO offers a provider by the verified domains it lists, never by an account, as the routes do", () => {
+    const page: string = english(SSO);
+    const discovery: string = readSource("ssoDiscovery");
+
+    expect(page).toContain("\n## Domains\n");
+    expect(page).toContain(
+      "**Sign in with SSO** asks for an email address and offers the providers that serve the address's domain. It reads no account: an address with an account in your project and one with no account at all get the same answer, so the page says nothing about who has an account.",
+    );
+    expect(page).toContain(
+      "1. Add your domain under **Project Settings** > **Advanced** > **Domains**, click **Verify Domain** on its row, and add the TXT record it shows to the domain's DNS.",
+    );
+    expect(page).toContain(
+      "2. Edit the provider, and pick the domain under **Domains** on the **Sign-in** step. Only the project's verified domains are listed.",
+    );
+    expect(page).toContain(
+      "The domain must match exactly: `acme.com` does not cover `eu.acme.com`",
+    );
+    expect(page).toContain(
+      "A provider with no domains, such as one set up before domains existed, is offered to nobody there",
+    );
+
+    // Both routes ask the one lookup, which reads verified domains alone.
+    expect(readSource("ssoApi")).toContain(
+      "await ProjectSsoDiscovery.findSamlProviders(email);",
+    );
+    expect(readSource("oidcApi")).toContain(
+      "await ProjectSsoDiscovery.findOidcProviders(email);",
+    );
+    expect(discovery).toMatch(
+      /domain: QueryHelper\.findWithSameText\(domain\),\s*isVerified: true,/,
+    );
+    expect(discovery).toMatch(/isEnabled: true,/);
+    expect(discovery).not.toMatch(/UserService|TeamMemberService/);
+
+    // The form offers only the project's verified domains, on Sign-in.
+    expect(readSource("providerFields")).toMatch(
+      /field: \{ domains: true \}[\s\S]{0,400}?query: \{ isVerified: true \}/,
+    );
+    for (const key of ["projectSsoPage", "projectOidcProviders"]) {
+      expect({
+        key,
+        asks: readSource(key).includes("withDomains: true,"),
+      }).toEqual({ key, asks: true });
+    }
+
+    // Domains is under Advanced in Project Settings, as the page says.
+    expect(readSource("settingsSideMenu")).toMatch(
+      /title: "Advanced",[\s\S]{0,400}?title: "Domains",/,
     );
   });
 

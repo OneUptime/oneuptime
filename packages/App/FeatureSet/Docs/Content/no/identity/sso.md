@@ -271,6 +271,15 @@ OneUptime overtar ikke roller eller grupper fra identitetsleverandøren din. Hva
 
 Teamene til en leverandør avgjør hva personene som logger inn med den, kan gjøre, så en leverandør lagres bare med team som den som lagrer den, kunne invitert noen til. Hver lagring kontrollerer dem på nytt: en leverandør der teamene gir mer tilgang enn du har, kan bare endres av noen som har tilgang som dekker dem, for eksempel en Prosjekteier. Leverandører som ble lagret før denne kontrollen, fortsetter å logge personer inn i teamene sine. Alle som får redigere en leverandør, kan fortsatt slå den av, slik at den kan stoppes umiddelbart.
 
+## Domener
+
+**Logg inn med SSO** ber om en e-postadresse og tilbyr leverandørene som betjener domenet til adressen. Den leser ingen konto: en adresse med konto i prosjektet ditt og en adresse helt uten konto får samme svar, så siden sier ingenting om hvem som har konto. For å bli tilbudt der oppgir en leverandør domenene den betjener:
+
+1. Legg til domenet ditt under **Prosjektinnstillinger** > **Avansert** > **Domener**, klikk på **Verifiser domene** i raden, og legg TXT-posten som vises, til DNS-en for domenet. Så snart posten er funnet, er domenet verifisert.
+2. Rediger leverandøren, og velg domenet under **Domener** i trinnet **Pålogging**. Bare prosjektets verifiserte domener vises.
+
+**Logg inn med SSO** tilbyr deretter leverandøren til alle adresser på det domenet, uansett hvem som skriver dem. Domenet må stemme nøyaktig: `acme.com` dekker ikke `eu.acme.com`, så legg til hvert domene folk logger på med. En leverandør uten domener, for eksempel en som ble satt opp før domener fantes, tilbys ikke til noen der, og logger fortsatt folk på fra identitetsleverandøren din og fra lenken i kortet **Test Single Sign On (SSO)**.
+
 ## Krev SSO for prosjektet ditt
 
 En oppsatt leverandør hindrer ingen i å logge inn med passord. For å gjøre SSO til den eneste veien inn i prosjektet bruker du bryteren **Krev SSO for å logge på** under **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, under leverandørene dine:

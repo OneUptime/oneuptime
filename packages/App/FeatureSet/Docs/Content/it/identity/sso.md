@@ -271,6 +271,15 @@ OneUptime non associa ruoli o gruppi del tuo provider di identità. Ciò che una
 
 I team di un provider decidono che cosa possono fare le persone che accedono con esso, quindi un provider viene salvato solo con team in cui chi lo salva potrebbe invitare qualcuno. Ogni salvataggio li verifica di nuovo: un provider i cui team danno più accesso di quello che hai può essere modificato solo da qualcuno il cui accesso li copre, come un Proprietario del progetto. I provider salvati prima di questa verifica continuano a far accedere le persone nei loro team. Chiunque possa modificare un provider può comunque disattivarlo, così da poterlo fermare subito.
 
+## Domini
+
+**Accedi con SSO** chiede un indirizzo email e propone i provider che servono il dominio di quell'indirizzo. Non legge alcun account: un indirizzo con un account nel tuo progetto e uno senza alcun account ricevono la stessa risposta, quindi la pagina non dice nulla su chi ha un account. Per essere proposto lì, un provider elenca i domini che serve:
+
+1. Aggiungi il tuo dominio in **Impostazioni del progetto** > **Avanzato** > **Domini**, fai clic su **Verifica dominio** nella sua riga e aggiungi il record TXT mostrato al DNS del dominio. Appena il record viene trovato, il dominio è verificato.
+2. Modifica il provider e scegli il dominio in **Domini**, nel passaggio **Accesso**. Sono elencati solo i domini verificati del progetto.
+
+**Accedi con SSO** propone quindi il provider a ogni indirizzo di quel dominio, chiunque lo digiti. Il dominio deve corrispondere esattamente: `acme.com` non copre `eu.acme.com`, quindi aggiungi ogni dominio con cui le persone accedono. Un provider senza domini, come uno configurato prima che esistessero i domini, non viene proposto a nessuno lì, e continua a far accedere le persone dal tuo provider di identità e dal link nella scheda **Test Single Sign On (SSO)**.
+
 ## Richiedere l'SSO per il progetto
 
 Configurare un provider non impedisce a nessuno di accedere con una password. Per fare dell'SSO l'unico modo per entrare nel progetto, usa l'interruttore **Richiedi l'SSO per l'accesso** in **Impostazioni del progetto** > **Sicurezza** > **SSO**, sotto i tuoi provider:

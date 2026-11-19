@@ -271,6 +271,15 @@ OneUptime mappar inte roller eller grupper från din identitetsleverantör. Vad 
 
 En leverantörs team avgör vad de som loggar in med den kan göra, så en leverantör sparas bara med team som den som sparar den kan bjuda in någon till. Varje sparning kontrollerar dem på nytt: en leverantör vars team ger mer åtkomst än du har kan bara ändras av någon vars åtkomst täcker dem, till exempel en Projektägare. Leverantörer som sparades före den här kontrollen fortsätter att logga in personer i sina team. Alla som får redigera en leverantör kan fortfarande stänga av den, så att den kan stoppas direkt.
 
+## Domäner
+
+**Logga in med SSO** ber om en e-postadress och erbjuder de leverantörer som betjänar adressens domän. Den läser inget konto: en adress med ett konto i ditt projekt och en adress helt utan konto får samma svar, så sidan säger ingenting om vem som har ett konto. För att erbjudas där anger en leverantör de domäner den betjänar:
+
+1. Lägg till din domän under **Projektinställningar** > **Avancerad** > **Domäner**, klicka på **Verifiera domän** på dess rad och lägg till TXT-posten som visas i domänens DNS. Så snart posten hittas är domänen verifierad.
+2. Redigera leverantören och välj domänen under **Domäner** i steget **Inloggning**. Endast projektets verifierade domäner visas.
+
+**Logga in med SSO** erbjuder sedan leverantören till varje adress på den domänen, oavsett vem som skriver den. Domänen måste stämma exakt: `acme.com` täcker inte `eu.acme.com`, så lägg till varje domän som folk loggar in med. En leverantör utan domäner, till exempel en som sattes upp innan domäner fanns, erbjuds ingen där och loggar fortfarande in folk från din identitetsleverantör och från länken i kortet **Test Single Sign On (SSO)**.
+
 ## Kräv SSO för ditt projekt
 
 En konfigurerad leverantör hindrar ingen från att logga in med lösenord. För att göra SSO till den enda vägen in i projektet använder du reglaget **Kräv SSO för inloggning** under **Projektinställningar** > **Säkerhet** > **SSO**, under dina leverantörer:

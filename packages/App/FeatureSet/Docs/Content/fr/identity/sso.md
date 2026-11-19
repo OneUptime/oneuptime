@@ -271,6 +271,15 @@ OneUptime ne reprend pas les rôles ni les groupes de votre fournisseur d'identi
 
 Les équipes d'un fournisseur décident de ce que peuvent faire les personnes qui se connectent avec lui ; un fournisseur n'est donc enregistré qu'avec des équipes dans lesquelles la personne qui l'enregistre pourrait inviter quelqu'un. Chaque enregistrement les vérifie de nouveau : un fournisseur dont les équipes donnent plus d'accès que vous n'en avez ne peut être modifié que par quelqu'un dont l'accès les couvre, comme un Propriétaire du projet. Les fournisseurs enregistrés avant cette vérification continuent de connecter les personnes à leurs équipes. Toute personne autorisée à modifier un fournisseur peut toujours le désactiver, afin de pouvoir l'arrêter immédiatement.
 
+## Domaines
+
+**Connexion avec SSO** demande une adresse e-mail et propose les fournisseurs qui servent le domaine de cette adresse. Elle ne lit aucun compte : une adresse qui a un compte dans votre projet et une adresse sans aucun compte reçoivent la même réponse, la page ne dit donc rien de qui a un compte. Pour y être proposé, un fournisseur indique les domaines qu'il sert :
+
+1. Ajoutez votre domaine dans **Paramètres du projet** > **Avancé** > **Domaines**, cliquez sur **Vérifier le domaine** sur sa ligne, puis ajoutez l'enregistrement TXT affiché au DNS du domaine. Dès que l'enregistrement est trouvé, le domaine est vérifié.
+2. Modifiez le fournisseur et choisissez le domaine sous **Domaines** à l'étape **Connexion**. Seuls les domaines vérifiés du projet sont listés.
+
+**Connexion avec SSO** propose alors le fournisseur à toute adresse de ce domaine, quelle que soit la personne qui la saisit. Le domaine doit correspondre exactement : `acme.com` ne couvre pas `eu.acme.com`, ajoutez donc chaque domaine avec lequel on se connecte. Un fournisseur sans domaine, comme un fournisseur configuré avant l'arrivée des domaines, n'y est proposé à personne, et connecte toujours les personnes depuis votre fournisseur d'identité et depuis le lien de la carte **Test Single Sign On (SSO)**.
+
 ## Exiger le SSO pour votre projet
 
 Configurer un fournisseur n'empêche personne de se connecter avec un mot de passe. Pour faire du SSO le seul moyen d'entrer dans le projet, utilisez l'interrupteur **Exiger le SSO pour la connexion** dans **Paramètres du projet** > **Sécurité** > **SSO**, sous vos fournisseurs :
