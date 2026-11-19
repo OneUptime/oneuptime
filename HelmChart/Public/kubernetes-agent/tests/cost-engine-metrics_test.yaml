@@ -1,0 +1,385 @@
+# Where the collector scrapes the cost engine's price metrics (issue #9776).
+#
+# The chart scraped <cost.engine.url>/metrics, and the URL the docs gave for
+# Kubecost is its frontend, which answers /metrics with its web page (HTTP
+# 200, text/html): the collector logged "Failed to scrape Prometheus endpoint
+# ... expected a valid start token, got "<"" every minute and the Kubernetes
+# Cost dashboard stayed empty. On a kind cluster, with each engine installed
+# from its own chart:
+#
+#   Kubecost 2.8.7 frontend (:9090)   /metrics: its web page
+#                                     /model/metrics: the cost model's metrics
+#   Kubecost 2.8.7 cost model (:9003) /metrics: the metrics
+#   Kubecost 3.3.2 frontend (:9090)   /metrics: its web page
+#                                     /model/metrics: 404 (the aggregator's)
+#   Kubecost 3.3.2 finops agent (:80) /metrics: the metrics
+#   OpenCost 1.121.4 API (:9003)      /metrics: the metrics
+#   OpenCost 1.121.4 UI (:9090)       /metrics: its web page
+#                                     /model/metrics: the API's metrics
+#
+# No path under the URL is right for all of them, and for Kubecost 3 no path
+# under it is right at all, so the chart cannot choose while it renders. With
+# cost.engine.url set to a URL or auto and the cost agent running, the
+# collector's cost-engine job asks the agent instead (Prometheus http_sd, at
+# the agent's /scrape-targets): the agent reads that engine and finds where
+# its price series are (agents/KubernetesCostAgent/EngineMetrics.ts). The
+# bundled engine, an explicit cost.metrics.endpoint, and an engine URL while
+# the agent is off are scraped as written, as before.
+#
+# The job is read with the ConfigMap's own indent stripped, as in
+# external-metrics-url_test.yaml: `- job_name:` at 8 spaces, its keys at 10.
+# Each pattern spells out the whole job, so a static target, a scheme or a
+# metrics_path that should not be there fails the match.
+suite: the collector scrapes the engine's price metrics where the cost agent finds them
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/service-cost-agent.yaml
+  - templates/deployment-cost-agent.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- Each engine, named by each of its Services -------------------------------
+  - it: asks the agent where a Kubecost 2 named by its frontend serves its prices, never scraping the web page
+    # The regression: the URL the docs gave.
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          http_sd_configs:\\n            - url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\"\\n              refresh_interval: 60s\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kubecost-cost-analyzer\\.kubecost\\.svc\\.cluster\\.local:9090"
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 1
+
+  - it: asks the agent for a Kubecost 2 named by its cost model too
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9003
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kubecost-cost-analyzer\\.kubecost\\.svc\\.cluster\\.local:9003"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 1
+
+  - it: asks the agent for a Kubecost 3 named by its frontend, whose prices are on another Service
+    set:
+      cost.engine.url: http://kubecost-frontend.kubecost.svc.cluster.local:9090
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kubecost-frontend\\.kubecost\\.svc\\.cluster\\.local:9090"
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: http://kubecost-frontend.kubecost.svc.cluster.local:9090
+
+  - it: asks the agent for an OpenCost named by its API
+    set:
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9003
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "static_configs:\\n\\s+- targets:\\n(?:\\s+#[^\\n]*\\n)*\\s+- \"opencost\\.opencost"
+
+  - it: asks the agent for an OpenCost named by its UI, which answers /metrics with its page too
+    set:
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9090
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "opencost\\.opencost\\.svc\\.cluster\\.local:9090"
+
+  - it: asks the agent for an engine behind an ingress, which hands the collector https with the target
+    set:
+      cost.engine.url: https://kubecost.example.com
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          http_sd_configs:\\n            - url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\"\\n              refresh_interval: 60s\\n          metric_relabel_configs:\\n"
+      # The scheme comes with each target (__scheme__), not from the job.
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+scheme:"
+
+  - it: asks the agent with auto, rather than looking for engines itself
+    set:
+      cost.engine.url: auto
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      # One engine's prices, the one the allocations come from; Kubecost 3's
+      # finops agent included, which no label selector here could tell apart.
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "__tmp_cost_engine"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+kubernetes_sd_configs:"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 1
+
+  # --- The job and the Service it asks --------------------------------------------
+  - it: keeps the scrape interval and the price series allowlist the values set
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+      cost.metrics.scrapeInterval: 5m
+      cost.metrics.metricsAllowlist:
+        - node_total_hourly_cost
+        - pv_hourly_cost
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 5m\\n          http_sd_configs:\\n            - url: \"[^\"]+\"\\n              refresh_interval: 60s\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"\\^\\(node_total_hourly_cost\\|pv_hourly_cost\\)\\$\"\\n              action: keep\\n"
+
+  - it: names the agent's Service in the job by the release's own name and namespace
+    release:
+      name: costs
+      namespace: monitoring
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- url: \"http://costs-kubernetes-agent-cost\\.monitoring\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      - template: templates/service-cost-agent.yaml
+        equal:
+          path: metadata.name
+          value: costs-kubernetes-agent-cost
+      - template: templates/service-cost-agent.yaml
+        equal:
+          path: metadata.namespace
+          value: monitoring
+      # The agent's own Deployment carries the same name.
+      - template: templates/deployment-cost-agent.yaml
+        equal:
+          path: metadata.name
+          value: costs-kubernetes-agent-cost
+
+  - it: follows fullnameOverride in the Service and in the job alike
+    set:
+      fullnameOverride: k8s-agent
+      cost.engine.url: auto
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- url: \"http://k8s-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+      - template: templates/service-cost-agent.yaml
+        equal:
+          path: metadata.name
+          value: k8s-agent-cost
+
+  - it: reaches the agent's health port, where it answers /scrape-targets
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - template: templates/service-cost-agent.yaml
+        equal:
+          path: spec.ports
+          value:
+            - name: health
+              port: 13134
+              targetPort: health
+              protocol: TCP
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: health
+            containerPort: 13134
+            protocol: TCP
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HEALTH_PORT
+            value: "13134"
+
+  - it: selects the agent's pods and no others
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - template: templates/service-cost-agent.yaml
+        equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: kubernetes-agent
+            app.kubernetes.io/instance: oneuptime-agent
+            component: cost-agent
+      - template: templates/deployment-cost-agent.yaml
+        equal:
+          path: spec.template.metadata.labels
+          value:
+            app.kubernetes.io/name: kubernetes-agent
+            app.kubernetes.io/instance: oneuptime-agent
+            component: cost-agent
+
+  - it: reaches the agent while it reports Not Ready, since prices do not wait on allocations
+    template: templates/service-cost-agent.yaml
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - equal:
+          path: spec.publishNotReadyAddresses
+          value: true
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: labels the Service a OneUptime agent's, so no engine discovery ever takes it for an engine
+    template: templates/service-cost-agent.yaml
+    set:
+      cost.engine.url: auto
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: oneuptime
+      - equal:
+          path: metadata.labels.component
+          value: cost-agent
+
+  - it: still refuses an engine URL with credentials, which the agent would scrape without them
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: http://scrapeuser:s3cretpw@kubecost-cost-analyzer.kubecost:9090
+    asserts:
+      - failedTemplate:
+          errorMessage: "cost.engine.url is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  # --- Scraped as written, as before ------------------------------------------------
+  - it: scrapes the bundled engine where the chart put it, and adds no Service
+    set:
+      cost.engine.url: ""
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "http_sd_configs"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  - it: scrapes a metrics endpoint of your own as written, without asking the agent
+    set:
+      cost.engine.url: http://kubecost-frontend.kubecost.svc.cluster.local:9090
+      cost.metrics.endpoint: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"kubecost-finopsagent\\.kubecost\\.svc\\.cluster\\.local:80\"\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "http_sd_configs"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  - it: scrapes the engine URL's /metrics while the agent, which would find the endpoint, is off
+    set:
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9003
+      cost.agent.enabled: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"opencost\\.opencost\\.svc\\.cluster\\.local:9003\"\\n"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  # --- Nothing to ask ------------------------------------------------------------------
+  - it: asks nothing and adds no Service while the price scrape is off
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+      cost.metrics.enabled: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      # The allocations are still read.
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+
+  - it: asks nothing and adds no Service with cost monitoring off
+    set:
+      cost.enabled: false
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  - it: asks nothing on a preset that leaves cost off
+    set:
+      preset: gke-autopilot
+      cost.engine.url: auto
+    asserts:
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
