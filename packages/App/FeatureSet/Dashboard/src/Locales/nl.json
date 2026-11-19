@@ -57001,7 +57001,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "Om te zien welke aanbevolen niveaus van het foutbudgetbeleid een SLO mist, is een rol nodig die SLO-foutbudgetbeleidsniveaus mag lezen.",
   "Show Whole Map": "Hele kaart tonen",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "U ziet de stromen van de tabellen, pipelines, services en dashboards met {{search}} in de naam, uit uw hele project.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "Verzamelen van tabellen geprobeerd op",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "Het aanbevolen beleid kon niet aan deze SLO worden toegevoegd, dus er is niets toegevoegd. Opnieuw toevoegen voegt toe wat ontbreekt.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "De server heeft niet gemeld wat er met deze SLO is gebeurd. Zijn pagina Foutbudgetbeleid toont wat hij mist.",

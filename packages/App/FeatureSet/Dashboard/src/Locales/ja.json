@@ -57001,7 +57001,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "SLO に欠けているおすすめのエラーバジェットポリシーの段階を確認するには、SLO のエラーバジェットポリシーの段階を読み取れるロールが必要です。",
   "Show Whole Map": "マップ全体を表示",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "プロジェクト全体から、名前に {{search}} を含むテーブル、パイプライン、サービス、ダッシュボードのフローを表示しています。",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "テーブルのヘルスの収集試行日時",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "この SLO におすすめのポリシーを追加できなかったため、何も追加されませんでした。もう一度追加すると、欠けているものが追加されます。",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "この SLO がどうなったかをサーバーが返しませんでした。欠けているものは、この SLO の「エラーバジェットポリシー」ページで確認できます。",
