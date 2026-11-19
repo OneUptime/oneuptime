@@ -92,7 +92,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
 import logger from "../../../../Server/Utils/Logger";
-import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import { everyServerProductIsOn } from "../../TestingUtils/ServerProductsOn";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -503,7 +503,7 @@ beforeEach(() => {
    * before it acts (WorkspaceProductRefusal), a read of the database, which
    * nothing connects here.
    */
-  jest.spyOn(ServerProducts, "getOff").mockResolvedValue({});
+  everyServerProductIsOn();
 
   jest
     .spyOn(

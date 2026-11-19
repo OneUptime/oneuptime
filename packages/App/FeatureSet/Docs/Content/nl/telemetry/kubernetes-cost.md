@@ -83,9 +83,10 @@ Met `cost.engine.url=auto` wordt er niets meegeleverd en leest de agent je engin
 | Engine | Gebruikelijke service-URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Het pad van de Allocation API wordt vanzelf gevonden (`/model/allocation` voor Kubecost, `/allocation/compute` of `/allocation` voor OpenCost). Stel `cost.engine.allocationPath` alleen in bij een ongebruikelijke installatie. Met `auto` of een URL wordt er niets meegeleverd, dus stel voor geheugenaanbevelingen ook `cost.engine.prometheusUrl` in (zie [De gegevens erachter](#de-gegevens-erachter)).
+Het pad van de Allocation API wordt vanzelf gevonden (`/model/allocation` voor Kubecost, `/allocation/compute` of `/allocation` voor OpenCost). Stel `cost.engine.allocationPath` alleen in bij een ongebruikelijke installatie. Met `auto` of een URL wordt er niets meegeleverd, dus stel voor geheugenaanbevelingen ook `cost.engine.prometheusUrl` in (zie [De gegevens erachter](#de-gegevens-erachter)). De prijsmetrics worden op dezelfde manier gevonden, welke Service van de engine je ook opgeeft: de agent probeert de `/metrics` van de engine, dan de `/model/metrics` die een Kubecost 2-frontend of de UI van OpenCost aan de engine doorgeeft, dan de FinOps-agent van Kubecost 3, en de collector scrapet het eerste adres met prijsreeksen. Stel `cost.metrics.endpoint` in om ze zelf op te geven.
 
 ## Prijzen voor on-premises en bare metal
 
@@ -202,7 +203,7 @@ Een oudere chart draaide OpenCost zonder beschrijfbare configuratiemap, dus `Err
 :::
 
 :::details Het Kubernetes Cost Dashboard toont geen gegevens
-Het sjabloon leest de gescrapete kostenmetrics: controleer of `cost.metrics.enabled` op `true` staat.
+Het sjabloon leest de gescrapete kostenmetrics: controleer of `cost.metrics.enabled` op `true` staat. Met `cost.engine.url` ingesteld vindt de kostenagent waar je engine ze aanbiedt, en zijn log vermeldt waar, of welke adressen hij heeft geprobeerd: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Stel `cost.metrics.endpoint` in om ze zelf op te geven.
 :::
 
 :::details De kaart Right-Sizing is leeg

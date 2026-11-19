@@ -98,6 +98,8 @@ const MAY_READ_AS_ENGLISH: ReadonlySet<string> = new Set<string>([
   "Starting",
   "Paused",
   "Failing",
+  // German, French, Danish and Swedish write a version's number as English does.
+  "Version 2",
 ]);
 
 const PLACEHOLDER: RegExp = /\{\{\w+\}\}/g;

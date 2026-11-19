@@ -44,6 +44,7 @@ you do, and so does the unit suite anywhere it has to install the plugin.
 | `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
 | `gitops-revert`     | yes (opt-in)    | Argo CD, Flux and Helm against the kubectl fixes OneUptime AI makes: which fixes each one puts back to what git (or the chart) declares, and how fast, and the ownership markers OneUptime reads to tell (`packages/Common/Utils/AiRemediation/GitOpsOwnership.ts`) |
 | `iron-bank-install` | yes (opt-in)    | installs the chart with those values and checks that it works on Iron Bank's datastores; needs a Registry1 account, and runs in the Iron Bank Preflight workflow |
+| `cost-engine-metrics` | yes (opt-in)  | Kubecost 2, Kubecost 3 and OpenCost from their own charts: what each of their Services answers at `/metrics` and `/model/metrics`, where this checkout's cost agent says each one's price metrics are when `cost.engine.url` names it (`/scrape-targets`, behind the Service the agent chart renders), and that the cost-engine job the agent chart renders scrapes price series from each in the collector it pins; needs Docker, node and npm, and pulls about 2 GB of images |
 
 Run one suite, or keep the cluster around to poke at a failure:
 

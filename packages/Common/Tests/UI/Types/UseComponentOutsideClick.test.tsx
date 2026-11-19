@@ -4,6 +4,7 @@ import useComponentOutsideClick, {
 import Dropdown, {
   DropdownValue,
 } from "../../../UI/Components/Dropdown/Dropdown";
+import Tooltip from "../../../UI/Components/Tooltip/Tooltip";
 import { openDropdown } from "../../DropdownPicks";
 import "@testing-library/jest-dom";
 import {
@@ -14,7 +15,19 @@ import {
   screen,
 } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+
+jest.mock("react-i18next", () => {
+  return {
+    useTranslation: () => {
+      return {
+        t: (key: string, options?: { defaultValue?: string }): string => {
+          return options?.defaultValue ?? key;
+        },
+      };
+    },
+  };
+});
 
 /*
  * The hook behind almost every popover in the product — NavBar, SideMenu,
@@ -312,6 +325,55 @@ describe("useComponentOutsideClick — a Dropdown inside the component", () => {
     expect(isOpen()).toBe(false);
   });
 
+  test("isInsideComponent reads a tooltip as part of the component its trigger is in", () => {
+    const component: HTMLDivElement = document.createElement("div");
+    const trigger: HTMLButtonElement = document.createElement("button");
+    component.appendChild(trigger);
+    const elsewhere: HTMLButtonElement = document.createElement("button");
+
+    // A tooltip as Tippy draws it on the body: its instance on its root.
+    const tooltipOf: (reference: Element | undefined) => HTMLElement = (
+      reference: Element | undefined,
+    ): HTMLElement => {
+      const root: HTMLDivElement = document.createElement("div");
+      root.setAttribute("data-tippy-root", "");
+      (root as HTMLDivElement & { _tippy?: unknown })._tippy = { reference };
+      const link: HTMLAnchorElement = document.createElement("a");
+      link.href = "/incidents/1";
+      link.append("Database down");
+      root.appendChild(link);
+      return root;
+    };
+
+    const triggersTooltip: HTMLElement = tooltipOf(trigger);
+    const elsewhereTooltip: HTMLElement = tooltipOf(elsewhere);
+    const ownerlessTooltip: HTMLElement = tooltipOf(undefined);
+
+    document.body.append(
+      component,
+      elsewhere,
+      triggersTooltip,
+      elsewhereTooltip,
+      ownerlessTooltip,
+    );
+
+    // The words of the link in a tooltip, as a press on them targets.
+    const wordsIn: (root: HTMLElement) => Node = (root: HTMLElement): Node => {
+      return root.querySelector("a")!.firstChild!;
+    };
+
+    expect(isInsideComponent(component, wordsIn(triggersTooltip))).toBe(true);
+    expect(isInsideComponent(component, triggersTooltip)).toBe(true);
+    expect(isInsideComponent(component, wordsIn(elsewhereTooltip))).toBe(false);
+    expect(isInsideComponent(component, wordsIn(ownerlessTooltip))).toBe(false);
+
+    component.remove();
+    elsewhere.remove();
+    triggersTooltip.remove();
+    elsewhereTooltip.remove();
+    ownerlessTooltip.remove();
+  });
+
   test("isInsideComponent reads the component, the Dropdown's menu, and nothing else", () => {
     const component: HTMLDivElement = document.createElement("div");
     const inside: HTMLSpanElement = document.createElement("span");
@@ -336,5 +398,78 @@ describe("useComponentOutsideClick — a Dropdown inside the component", () => {
     component.remove();
     portal.remove();
     elsewhere.remove();
+  });
+});
+
+/*
+ * Every tooltip is drawn on the page's body (TooltipLayer, #9769), so a
+ * rich one whose trigger is in a menu is no longer inside the menu in the
+ * page. A press on what it holds is still a press inside the menu.
+ */
+const TOOLTIP_PANEL_TEXT: string = "uptime panel";
+
+const MenuWithRichTooltip: FunctionComponent = (): ReactElement => {
+  const { ref, isComponentVisible } = useComponentOutsideClick(true);
+
+  return (
+    <div>
+      <div ref={ref} data-testid="menu">
+        {isComponentVisible ? (
+          <div>
+            <p>{TOOLTIP_PANEL_TEXT}</p>
+            <Tooltip
+              richContent={
+                <div>
+                  <button type="button">Database down</button>
+                </div>
+              }
+            >
+              <button type="button">Tuesday</button>
+            </Tooltip>
+          </div>
+        ) : null}
+      </div>
+      <button type="button">outside control</button>
+    </div>
+  );
+};
+
+describe("useComponentOutsideClick — a tooltip drawn on the page's body", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const isMenuOpen: () => boolean = (): boolean => {
+    return screen.queryByText(TOOLTIP_PANEL_TEXT) !== null;
+  };
+
+  test("a press in a tooltip whose trigger is in the menu leaves the menu open", async () => {
+    render(<MenuWithRichTooltip />);
+
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Tuesday" }));
+    await act(async () => {
+      // A rich tooltip waits 120ms to show.
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 250);
+      });
+    });
+
+    const incident: HTMLElement = screen.getByRole("button", {
+      name: "Database down",
+    });
+
+    // Drawn on the body, outside the menu.
+    expect(screen.getByTestId("menu")).not.toContainElement(incident);
+
+    fireEvent.mouseDown(incident, { button: 0 });
+    pointerClick(incident);
+
+    expect(isMenuOpen()).toBe(true);
+
+    // A press anywhere else still closes it.
+    fireEvent.mouseDown(outsideControl(), { button: 0 });
+    pointerClick(outsideControl());
+
+    expect(isMenuOpen()).toBe(false);
   });
 });

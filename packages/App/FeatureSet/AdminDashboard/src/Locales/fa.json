@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "لینکی به این کاربر ایمیل می‌کنیم تا رمز عبور جدیدی تنظیم کند. این لینک ۲۴ ساعت اعتبار دارد و جایگزین هر لینکی می‌شود که پیش‌تر فرستاده شده است.",
       "resetLinkModalSubmit": "ارسال لینک بازنشانی",
       "resetLinkSuccess": "لینک بازنشانی رمز عبور ارسال شد.",
-      "resetLinkSentTo": "لینک بازنشانی رمز عبور به {{email}} ارسال شد."
+      "resetLinkSentTo": "لینک بازنشانی رمز عبور به {{email}} ارسال شد.",
+      "ssoManagedByServerWarning": "تا وقتی این سرور SSO را الزامی کرده است، این شخص نمی‌تواند با رمز عبور وارد شود.",
+      "ssoManagedByProjectsWarning": "همهٔ پروژه‌های این شخص ورود را با SSO مدیریت می‌کنند، پس رمز عبور هیچ‌کدام از آن‌ها را باز نمی‌کند.",
+      "clearSignInCardTitle": "پاک کردن تنظیمات ورود",
+      "clearSignInCardDescription": "رمز عبور، کلیدهای عبور، کلیدهای امنیتی، برنامه‌های احراز هویت و کدهای پشتیبان او را حذف کنید و احراز هویت دو مرحله‌ای را خاموش کنید.",
+      "clearSignInButton": "پاک کردن تنظیمات ورود",
+      "clearSignInOwnAccountTooltip": "تنظیمات ورود خودتان را در پروفایل کاربری تغییر دهید.",
+      "clearSignInModalTitle": "پاک کردن تنظیمات ورود",
+      "clearSignInModalDescription": "رمز عبور، کلیدهای عبور، کلیدهای امنیتی، برنامه‌های احراز هویت و کدهای پشتیبان او را حذف می‌کند و احراز هویت دو مرحله‌ای را خاموش می‌کند. این کار برگشت‌پذیر نیست.",
+      "clearSignInMasterAdminConfirmation": "این شخص مدیر ارشد است. می‌دانم که برای ورود به SSO یا لینک بازنشانی رمز عبور نیاز خواهد داشت.",
+      "clearSignInModalSubmit": "پاک کردن تنظیمات ورود",
+      "clearSignInSuccess": "تنظیمات ورود پاک شد. نشست‌هایی که بدون SSO وارد شده بود پایان یافت."
     },
     "userProjects": {
       "title": "پروژه‌های کاربر",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "تعیین کنید چه کسانی می‌توانند روی این سرور OneUptime پروژه جدید بسازند.",
         "projectCreationSwitchTitle": "اجازه ساخت پروژه به کاربران",
         "projectCreationSwitchOnDescription": "هر کسی که وارد این سرور شده باشد می‌تواند پروژه بسازد.",
-        "projectCreationSwitchOffDescription": "فقط مدیران ارشد می‌توانند پروژه بسازند."
+        "projectCreationSwitchOffDescription": "فقط مدیران ارشد می‌توانند پروژه بسازند.",
+        "inviteSuggestionsCardTitle": "پیشنهادهای دعوت",
+        "inviteSuggestionsCardDescription": "اینکه آیا کسانی که به پروژه دعوت می‌کنند می‌توانند هر کسی را که در این سرور حساب دارد پیدا کنند. اگر سرور میزبان بیش از یک سازمان است، آن را خاموش بگذارید.",
+        "inviteSuggestionsSwitchTitle": "پیشنهاد همه حساب‌های این سرور",
+        "inviteSuggestionsSwitchOnDescription": "هر کسی که می‌تواند افراد را به پروژه‌ای دعوت کند، هنگام تایپ نام و ایمیل هر حساب را با برچسب «هنوز در این پروژه نیست» می‌بیند.",
+        "inviteSuggestionsSwitchOffDescription": "فرم‌های دعوت افراد خود پروژه را پیشنهاد می‌کنند. به مدیران ارشد حساب‌های دیگر سرور هم پیشنهاد می‌شود."
       },
       "email": {
         "adminNotificationCardTitle": "ایمیل اعلان مدیریت",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "نسخهٔ 2 همچنین می‌گوید در گام‌های یک گردش‌کار و در JSON چه چیزی تغییر کرد. نسخهٔ 1 رکورد اصلی است، برای خواننده‌هایی که برای آن ساخته شده‌اند.",
   "Version 2 (newest)": "نسخهٔ 2 (جدیدترین)",
   "Version 1 (original)": "نسخهٔ 1 (اصلی)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "نسخهٔ 3 می‌گوید هر گام گردش کاری به‌عنوان چه اجرا شد. نسخهٔ 2 می‌گوید در گام‌ها و JSON چه چیزی تغییر کرد. نسخهٔ 1 نسخهٔ اصلی است.",
+  "Version 3 (newest)": "نسخهٔ 3 (جدیدترین)",
+  "Version 2": "نسخهٔ 2",
   "Unchanged": "بدون تغییر",
   "Setup guide": "راهنمای راه‌اندازی",
   "Write a test file": "نوشتن فایل آزمایشی",
@@ -4110,6 +4129,13 @@
   "Sign them out": "خارج کردن آن‌ها",
   "Sign out everyone signed in without SSO?": "همهٔ کسانی که بدون SSO وارد شده‌اند خارج شوند؟",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "نشست‌هایشان همین حالا در همهٔ دستگاه‌ها پایان می‌یابد و دوباره با SSO وارد می‌شوند. مدیران ارشد وارد می‌مانند.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} نفر هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارند. اگر SSO دیگر الزامی نباشد، با آن دوباره می‌توانند وارد شوند.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} نفر هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد. اگر SSO دیگر الزامی نباشد، با آن دوباره می‌تواند وارد شود.",
+  "Clear Sign-In Settings": "پاک کردن تنظیمات ورود",
+  "Clear everyone's saved sign-in settings?": "تنظیمات ورود ذخیره‌شدهٔ همه پاک شود؟",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "رمزهای عبور، کلیدهای عبور، کلیدهای امنیتی، برنامه‌های احراز هویت و کدهای پشتیبان آن‌ها حذف می‌شوند. این کار برگشت‌پذیر نیست. مدیران ارشد مال خود را نگه می‌دارند.",
+  "Cleared the sign-in settings of {{count}} people.": "تنظیمات ورود {{count}} نفر پاک شد.",
+  "Cleared the sign-in settings of {{count}} people._one": "تنظیمات ورود {{count}} نفر پاک شد.",
   "Made by {{name}} on {{date}}": "ساخته‌شده توسط {{name}} در {{date}}",
   "Made on {{date}}": "ساخته‌شده در {{date}}",
   "Ends in {{hint}}": "به {{hint}} ختم می‌شود",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "از ارائه‌دهندهٔ هویت هم خارج شود",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "خروج از OneUptime افراد را از این ارائه‌دهنده و از هر برنامهٔ دیگری که از آن استفاده می‌کند هم خارج می‌کند. برای رایانه‌های مشترک روشن کنید.",
   "Sign-out Redirect URI:": "URI هدایت پس از خروج:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "URI هدایت را نزد ارائه‌دهندهٔ هویت OIDC خود ثبت کنید، و وقتی «از ارائه‌دهندهٔ هویت هم خارج شود» روشن است، URI هدایت پس از خروج را هم."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "URI هدایت را نزد ارائه‌دهندهٔ هویت OIDC خود ثبت کنید، و وقتی «از ارائه‌دهندهٔ هویت هم خارج شود» روشن است، URI هدایت پس از خروج را هم.",
+  "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
+  "Suggest every account on this server?": "همه حساب‌های این سرور پیشنهاد شوند؟",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "هر کسی که می‌تواند افراد را دعوت کند، هنگام تایپ نام و ایمیل همه حساب‌ها را می‌بیند. فقط وقتی این را روشن کنید که همه حساب‌های اینجا متعلق به یک سازمان باشند.",
+  "Suggest Every Account": "پیشنهاد همه حساب‌ها"
 }

@@ -33,10 +33,13 @@ import React, {
  * While the server requires single sign-on, everyone but a master admin
  * signs in with SSO alone, and sets no password, passkey or two-factor
  * authentication in OneUptime (Common/Types/SSO/SsoManagedSignIn - the
- * server refuses each of them). For them, User Profile has no Security
- * section, and its Overview, and any Security page they still reach (a
- * bookmark, Search), says who manages their sign-in instead of offering
- * settings that would do nothing.
+ * server refuses each of them). So does someone whose every project
+ * requires SSO and manages sign-in with it (#9763). For them, User Profile
+ * has no Security section, and its Overview, and any Security page they
+ * still reach (a bookmark, Search), says who manages their sign-in instead
+ * of offering settings that would do nothing. Someone only some of whose
+ * projects manage it keeps the settings, and the Overview names the
+ * projects that keep them theirs.
  *
  * The layout asks the server once (GET /user/sign-in-management) and hands
  * the answer to its side menu and its pages (SignInManagementContext). While
@@ -54,6 +57,7 @@ export type SignInManagementState = SignInManagement | null;
 export const LOCAL_SIGN_IN: SignInManagement = {
   isManagedBySso: false,
   ssoProviderNames: [],
+  localSignInProjectNames: [],
 };
 
 export const SignInManagementContext: React.Context<
@@ -131,6 +135,8 @@ export const SSO_MANAGED_SIGN_IN_COPY: {
   description: string;
   sentence: string;
   unnamedProvider: string;
+  partlyDescription: string;
+  partlySentence: string;
 } = {
   // The card's title, as the project's and the server's SSO settings name it.
   title: translationKey("Single Sign-On"),
@@ -142,17 +148,36 @@ export const SSO_MANAGED_SIGN_IN_COPY: {
   ),
   // Said in the providers' place when the server names none.
   unnamedProvider: translationKey("single sign-on (SSO)"),
+  /*
+   * For somebody some of whose projects manage sign-in with SSO, but not
+   * every one (#9763): why their Security settings are still theirs.
+   */
+  partlyDescription: translationKey(
+    "Some of your projects manage how you sign in.",
+  ),
+  partlySentence: translationKey(
+    "Projects that manage your sign-in use {{providers}}. You keep your own password, passkeys and two-factor authentication because these projects don't: {{projects}}.",
+  ),
 };
 
 export interface SsoManagedSignInNoticeProps {
   ssoProviderNames: Array<string>;
+  /*
+   * The projects that keep the person's settings theirs, when some of
+   * their projects manage sign-in with SSO but not every one does: the
+   * card then says why their Security settings are still there.
+   */
+  localSignInProjectNames?: Array<string> | undefined;
 }
 
 /*
  * What User Profile says to somebody whose sign-in their organization
  * manages, in place of the Security settings: who manages it, and with
- * which providers - the server's own that are on, the buttons its sign-in
- * page draws - or "single sign-on" when it names none.
+ * which providers - the server's own that are on, or their projects' - or
+ * "single sign-on" when it names none. To somebody some of whose projects
+ * manage it but not every one (#9763), it says the same of those projects,
+ * and names the others, which keep their settings theirs: the reason the
+ * Security section is still in their menu.
  */
 export const SsoManagedSignInNotice: FunctionComponent<
   SsoManagedSignInNoticeProps
@@ -168,24 +193,52 @@ export const SsoManagedSignInNotice: FunctionComponent<
       translator.translateText(SSO_MANAGED_SIGN_IN_COPY.unnamedProvider)
     );
 
+  const localSignInProjectNames: Array<string> =
+    props.localSignInProjectNames || [];
+  const isPartlyManaged: boolean = localSignInProjectNames.length > 0;
+
   return (
     <Card
       title={SSO_MANAGED_SIGN_IN_COPY.title}
-      description={SSO_MANAGED_SIGN_IN_COPY.description}
+      description={
+        isPartlyManaged
+          ? SSO_MANAGED_SIGN_IN_COPY.partlyDescription
+          : SSO_MANAGED_SIGN_IN_COPY.description
+      }
     >
       <div
         className="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3"
-        data-testid="sso-managed-sign-in"
+        data-testid={
+          isPartlyManaged ? "sso-partly-managed-sign-in" : "sso-managed-sign-in"
+        }
       >
         <Icon
           icon={IconProp.ShieldCheck}
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
         />
         <p className="text-sm leading-6 text-gray-600">
-          <TranslatedSentence
-            template={SSO_MANAGED_SIGN_IN_COPY.sentence}
-            slots={{ providers: providers }}
-          />
+          {isPartlyManaged ? (
+            <TranslatedSentence
+              template={SSO_MANAGED_SIGN_IN_COPY.partlySentence}
+              slots={{
+                providers: providers,
+                projects: (
+                  <IsolatedText
+                    text={formatNameList(
+                      localSignInProjectNames,
+                      "and",
+                      translator,
+                    )}
+                  />
+                ),
+              }}
+            />
+          ) : (
+            <TranslatedSentence
+              template={SSO_MANAGED_SIGN_IN_COPY.sentence}
+              slots={{ providers: providers }}
+            />
+          )}
         </p>
       </div>
     </Card>

@@ -117,7 +117,16 @@ router.get(
         );
       }
 
-      // get sso config for this user.
+      /*
+       * No providers to offer is one answer, the empty list, whatever the
+       * reason: no account has the address, or its account is in no project,
+       * or in none with SAML on. A 400 for the first two told anyone who
+       * asked which addresses have an account (#9745). The page and the
+       * mobile app read both alike, as "no single sign-on for this address".
+       */
+      const sendNoProviders: () => void = (): void => {
+        return Response.sendEntityArrayResponse(req, res, [], 0, ProjectSSO);
+      };
 
       const user: User | null = await UserService.findOneBy({
         query: { email: email },
@@ -129,23 +138,11 @@ router.get(
         },
       });
 
-      if (!user) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("No SSO config found for this user"),
-        );
+      if (!user || !user.id) {
+        return sendNoProviders();
       }
 
-      const userId: ObjectID = user.id!;
-
-      if (!userId) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("No SSO config found for this user"),
-        );
-      }
+      const userId: ObjectID = user.id;
 
       const projectUserBelongsTo: Array<ObjectID> = (
         await TeamMemberService.findBy({
@@ -164,11 +161,7 @@ router.get(
       });
 
       if (projectUserBelongsTo.length === 0) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("No SSO config found for this user"),
-        );
+        return sendNoProviders();
       }
 
       const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({

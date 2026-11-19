@@ -682,6 +682,13 @@ function everySurface(): Array<Surface> {
       refusal: IDENTITY_RATE_LIMITED_MESSAGE,
       namesAccount: false,
     }),
+    // An invitation's sign-up page names the invited address with its token.
+    identitySurface(IdentityRateLimitBucket.SignUpInvitation, {
+      perResource: 150,
+      perClient: 150,
+      refusal: IDENTITY_RATE_LIMITED_MESSAGE,
+      namesAccount: true,
+    }),
     identitySurface(IdentityRateLimitBucket.VerificationEmailResend, {
       perResource: 20,
       perClient: 20,

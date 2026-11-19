@@ -249,6 +249,12 @@ Lämna sedan `token` till `baseHeaders` i stället för `BuildConfig.ONEUPTIME_T
 
 Konvergera enheterna efter en ändring, så att de läser de nya värdena. Deklarera samma nycklar i en `app_restrictions.xml` om din MDM begär ett schema. Esper avvisar en APK som saknar v1-signatur, så signera releasen med v1-schemat utöver v2 eller v3.
 
+### Importera flottan från Esper
+
+Anslut din Esper-tenant till inventariet, så listas varje enhet som Esper registrerar, även de enheter vars app aldrig har startat, med det som bara Esper vet: dess grupp, Android-version, säkerhetspatchnivå, serienummer, batteri, lagring, installerade appar och senaste incheckning. En enhet som slutar checka in visas som offline, med hur länge sedan den senast gjorde det. Se [Importera enheter från Esper](/docs/inventory/overview#importera-enheter-från-esper).
+
+En enhet vars app namnger den som ovan är ett enda objekt med det som appen skickar: `host.name` är dess namn i Esper. OneUptime hittar en enhets objekt efter `host.name` och sedan efter `host.serial_number`, så ge varje enhet samma namn och serienummer i varje app som rapporterar från den, och i inställningarna `device_name` och `device_serial` i Android Agent.
+
 ### Behåll det som registreras offline
 
 Agenten skriver varje span, logg och mätvärde till disk innan den skickar dem. Medan nätverket ligger nere behåller den dem där, och skickar dem när det är tillbaka, upp till 18 timmar senare. Den behåller 10 MB; höj det för en enhet som ofta är offline:

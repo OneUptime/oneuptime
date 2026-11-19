@@ -18,6 +18,12 @@ import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCa
 import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
+import {
+  SecurityDetectionMatchedEvent,
+  SecurityDetectionMatchedEvents,
+  buildSecurityDetectionMatchedEvent,
+  readSecurityDetectionMatchedEvents,
+} from "../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { getJestSpyOn } from "../../../Spy";
@@ -540,5 +546,145 @@ describe("SecurityCaseIngest.recordDetections", () => {
       SecurityCaseIngest.recordDetections([signal()]),
     ).rejects.toThrow("down");
     expect(stubs.release).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A detection keeps the events it matched when it fires (#9619): the first
+ * firing's on the new detection, each firing after adds its own until it is
+ * full, and the request outcomes add up over every firing.
+ */
+describe("the events a detection keeps", () => {
+  function keptEvent(index: number): SecurityDetectionMatchedEvent {
+    return buildSecurityDetectionMatchedEvent({
+      time: `2026-10-14 08:${String(index).padStart(2, "0")}:00.000000000`,
+      eventUid: `event-${index}`,
+      primaryEntityId: "88888888-8888-4888-8888-888888888888",
+      message: `Failed sign-in ${index}`,
+      principalIp: "203.0.113.7",
+      requestOutcome: "Rejected",
+      retentionDate: "2026-10-21 09:00:00",
+    })!;
+  }
+
+  function matched(
+    indexes: Array<number>,
+    outcomes: Record<string, number>,
+  ): SecurityDetectionMatchedEvents {
+    return {
+      events: indexes.map((index: number): SecurityDetectionMatchedEvent => {
+        return keptEvent(index);
+      }),
+      outcomes,
+    };
+  }
+
+  test("a new detection keeps its first firing's events", async () => {
+    await SecurityCaseIngest.recordDetections([
+      signal({ matchedEvents: matched([2, 1], { Rejected: 12 }) }),
+    ]);
+
+    const detection: SecurityDetection = (
+      stubs.createDetection.mock.calls[0]![0] as { data: SecurityDetection }
+    ).data;
+    const kept: SecurityDetectionMatchedEvents | null =
+      readSecurityDetectionMatchedEvents(detection.matchedEvents);
+
+    expect(
+      kept!.events.map((event: SecurityDetectionMatchedEvent): string => {
+        return event.eventUid;
+      }),
+    ).toEqual(["event-1", "event-2"]);
+    expect(kept!.outcomes).toEqual({ Rejected: 12 });
+  });
+
+  test("a signal that kept nothing leaves a new detection keeping nothing, as before", async () => {
+    await SecurityCaseIngest.recordDetections([signal()]);
+
+    const detection: SecurityDetection = (
+      stubs.createDetection.mock.calls[0]![0] as { data: SecurityDetection }
+    ).data;
+
+    expect(detection.matchedEvents).toBeUndefined();
+  });
+
+  test("a repeat adds its events to what the detection kept, and its outcomes to the ones counted", async () => {
+    const securityCase: SecurityCase = storedCase();
+    const detection: SecurityDetection = new SecurityDetection();
+    detection._id = ObjectID.generate().toString();
+    detection.fingerprint = "detection-rule:r1:abc";
+    detection.securityCaseId = securityCase.id!;
+    detection.severity = OcsfSeverity.Medium;
+    detection.entities = [];
+
+    install({ detections: [detection], openCases: [securityCase] });
+
+    const stored: SecurityDetection = new SecurityDetection();
+    stored.matchedEvents = matched([1, 2], {
+      Rejected: 10,
+    }) as never;
+
+    const readKept: Spy = getJestSpyOn(
+      SecurityDetectionService,
+      "findOneById",
+    ).mockResolvedValue(stored as never);
+
+    await SecurityCaseIngest.recordDetections([
+      signal({
+        eventCount: 3,
+        matchedEvents: matched([2, 3], { Rejected: 2, "Reached App": 1 }),
+      }),
+    ]);
+
+    expect(readKept).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: detection.id,
+        select: { matchedEvents: true },
+        props: { isRoot: true },
+      }),
+    );
+
+    const set: { matchedEvents?: unknown } = (
+      stubs.addToDetection.mock.calls[0]![0] as {
+        set: { matchedEvents?: unknown };
+      }
+    ).set;
+    const kept: SecurityDetectionMatchedEvents | null =
+      readSecurityDetectionMatchedEvents(set.matchedEvents);
+
+    expect(
+      kept!.events.map((event: SecurityDetectionMatchedEvent): string => {
+        return event.eventUid;
+      }),
+    ).toEqual(["event-1", "event-2", "event-3"]);
+    expect(kept!.outcomes).toEqual({ Rejected: 12, "Reached App": 1 });
+  });
+
+  test("a repeat whose source kept nothing reads and writes nothing of it", async () => {
+    const securityCase: SecurityCase = storedCase();
+    const detection: SecurityDetection = new SecurityDetection();
+    detection._id = ObjectID.generate().toString();
+    detection.fingerprint = "detection-rule:r1:abc";
+    detection.securityCaseId = securityCase.id!;
+    detection.severity = OcsfSeverity.Medium;
+    detection.entities = [];
+
+    install({ detections: [detection], openCases: [securityCase] });
+
+    const readKept: Spy = getJestSpyOn(
+      SecurityDetectionService,
+      "findOneById",
+    ).mockResolvedValue(null as never);
+
+    await SecurityCaseIngest.recordDetections([signal()]);
+
+    expect(readKept).not.toHaveBeenCalled();
+    expect(
+      (
+        stubs.addToDetection.mock.calls[0]![0] as {
+          set: { matchedEvents?: unknown };
+        }
+      ).set.matchedEvents,
+    ).toBeUndefined();
   });
 });

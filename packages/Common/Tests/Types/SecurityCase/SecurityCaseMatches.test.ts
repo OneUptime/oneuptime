@@ -2,6 +2,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   SECURITY_CASE_MATCHES_API_PATH,
   SecurityCaseMatchBasis,
+  SecurityCaseMatchRuleJson,
   SecurityCaseMatchedDetectionJson,
   SecurityCaseMatchesJson,
   SecurityCaseMatchesSource,
@@ -248,5 +249,85 @@ describe("the detection that opened the case", () => {
 
     expect(getOpeningMatchedDetection(unmarked)?.id).toBe("a");
     expect(getOpeningMatchedDetection({ detections: [] })).toBeNull();
+  });
+});
+
+/*
+ * What a detection kept when it fired (#9619), and a rule's own response
+ * steps (#9621), as the Dashboard reads them - defensively, as every field.
+ */
+describe("what a detection kept, and a rule's steps", () => {
+  test("reads whether the events are the ones it kept, how many are past retention and how many are hidden", () => {
+    const detection: SecurityCaseMatchedDetectionJson =
+      parseSecurityCaseMatches({
+        detections: [
+          {
+            ...DETECTION,
+            isKept: true,
+            keptPastRetentionCount: 1,
+            hiddenEventCount: 2,
+            events: [{ ...EVENT, retentionDate: "2026-11-24T19:22:20.000Z" }],
+          },
+        ],
+      }).detections[0]!;
+
+    expect(detection.isKept).toBe(true);
+    expect(detection.keptPastRetentionCount).toBe(1);
+    expect(detection.hiddenEventCount).toBe(2);
+    expect(detection.events[0]!.retentionDate).toBe("2026-11-24T19:22:20.000Z");
+  });
+
+  test("an older server's answer reads as events read again, none kept, none hidden", () => {
+    const detection: SecurityCaseMatchedDetectionJson =
+      parseSecurityCaseMatches({ detections: [DETECTION] }).detections[0]!;
+
+    expect(detection.isKept).toBe(false);
+    expect(detection.keptPastRetentionCount).toBe(0);
+    expect(detection.hiddenEventCount).toBe(0);
+    expect(detection.events[0]!.retentionDate).toBeUndefined();
+    expect(detection.rule!.responseSteps).toEqual([]);
+  });
+
+  test("reads counts of the wrong shape as none, and a retention date it cannot read as not known", () => {
+    const detection: SecurityCaseMatchedDetectionJson =
+      parseSecurityCaseMatches({
+        detections: [
+          {
+            ...DETECTION,
+            isKept: "yes",
+            keptPastRetentionCount: "1",
+            hiddenEventCount: -3,
+            events: [{ ...EVENT, retentionDate: "soon" }],
+          },
+        ],
+      }).detections[0]!;
+
+    expect(detection.isKept).toBe(false);
+    expect(detection.keptPastRetentionCount).toBe(0);
+    expect(detection.hiddenEventCount).toBe(0);
+    expect(detection.events[0]!.retentionDate).toBeUndefined();
+  });
+
+  test("reads a rule's own response steps, leaving out one that does not read", () => {
+    const rule: SecurityCaseMatchRuleJson | null = parseSecurityCaseMatchRule({
+      ...(DETECTION["rule"] as JSONObject),
+      responseSteps: [
+        {
+          id: "page-payments",
+          phase: "Contain",
+          text: "Page the payments on-call.",
+        },
+        { id: "no-phase", text: "A step under no part of the plan." },
+        "not a step",
+      ],
+    });
+
+    expect(rule!.responseSteps).toEqual([
+      {
+        id: "page-payments",
+        phase: "Contain",
+        text: "Page the payments on-call.",
+      },
+    ]);
   });
 });

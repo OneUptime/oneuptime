@@ -34,10 +34,13 @@ tests:
           pattern: '"ksm.example.com:8080"'
 
   - it: scrapes an external cost endpoint over HTTPS
+    # As written while the cost agent is off; with it on, the agent hands the
+    # collector the scheme with the target (cost-engine-metrics_test.yaml).
     set:
       clusterName: prod-us
       cost.enabled: true
       cost.engine.url: https://opencost.example.com:443
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]

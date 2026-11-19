@@ -124,6 +124,33 @@ I monitor che le sonde non controllano (Manuale, Richiesta in arrivo, Email in a
 > [!TIP]
 > Una sonda che deve controllare indirizzi privati, come `http://10.0.0.5/health`, ha bisogno di `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`. Le sonde rifiutano gli indirizzi privati finché non li consenti: vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 
+## Aggiornare una sonda
+
+Una sonda esegue la versione dell'immagine da cui è stata avviata, quindi, per aggiornarla, riavviala da un'immagine più recente con lo stesso ID e la stessa chiave della sonda. L'immagine `oneuptime/probe:release` è sempre la versione più recente.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Poi esegui di nuovo il comando di [Avviare la sonda](#avviare-la-sonda).
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Sostituisci `<version>` con la versione da eseguire, ad esempio `17.0.1`, e scrivi la stessa immagine in `oneuptime-probe.yaml`, così resta quando applichi di nuovo il file.
+:::
+
+La pagina della sonda mostra la versione che esegue, sotto **Stato della sonda**. Una sonda precedente alla 17.0.1 non può generare i codici di un [segreto di tipo codice monouso](/docs/monitor/monitor-secrets#accedere-con-un-codice-monouso): la sua pagina lo dice, e così il modulo di un monitor che controlla.
+
 ## Connettersi tramite un proxy
 
 Se la sonda deve passare da un proxy per raggiungere OneUptime o i siti che controlla, dalle l'indirizzo del proxy:

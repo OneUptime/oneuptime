@@ -43,7 +43,7 @@ Klicken Sie auf **Benutzer einladen**. Der Dialog **Neuen Benutzer einladen** ö
 
 ### Die E-Mail-Adresse eingeben
 
-Geben Sie die Adresse unter **E-Mail** ein. Verwendet noch kein OneUptime-Konto diese Adresse, fragt der Dialog zusätzlich nach einem **Name**, mit dem das neue Konto beginnt. Während Sie tippen, schlägt **E-Mail** Personen des Projekts nach Name oder Adresse vor und zeigt, wer **Eingeladen** und wer **Bereits in diesem Team** ist: Klicken Sie auf eine Person, um ihre Adresse einzutragen. Auf einem selbst gehosteten Server werden einem Master-Admin außerdem die übrigen Konten des Servers angeboten, markiert mit **Noch nicht in diesem Projekt**.
+Geben Sie die Adresse unter **E-Mail** ein. Während Sie tippen, schlägt **E-Mail** Personen des Projekts nach Name oder Adresse vor und zeigt, wer **Eingeladen** und wer **Bereits in diesem Team** ist: Klicken Sie auf eine Person, um ihre Adresse einzutragen. Auf einem selbst gehosteten Server werden einem Master-Admin außerdem die übrigen Konten des Servers angeboten, markiert mit **Noch nicht in diesem Projekt**, und ebenso allen, die Personen einladen dürfen, sobald ein Master-Admin es im Admin Dashboard erlaubt. Für eine selbst eingegebene Adresse fragt der Dialog zusätzlich nach einem **Name**, der optional ist: Hat die Person noch kein OneUptime-Konto, wird es mit diesem Namen eingerichtet.
 
 ### Das Team wählen
 

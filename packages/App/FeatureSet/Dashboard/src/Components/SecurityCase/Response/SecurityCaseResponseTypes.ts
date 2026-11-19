@@ -68,6 +68,11 @@ export interface ResponseStep {
   text: ResponseText;
   // OneUptime AI's own words for the step, drawn as written, in place of text.
   aiText?: string | undefined;
+  /*
+   * The words the author of the case's rule wrote for the step - one of the
+   * rule's own response steps (#9621) - drawn as written, in place of text.
+   */
+  ruleText?: string | undefined;
   // A line under it: what OneUptime knows that makes the step matter.
   detail?: ResponseText | undefined;
   isDetailWarning?: boolean | undefined;

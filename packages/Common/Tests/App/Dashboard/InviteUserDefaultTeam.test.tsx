@@ -88,19 +88,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-// The account lookup behind the Name field is not what this file is about.
-jest.mock("../../../UI/Utils/UserEmailRegistrationStatus", () => {
-  return {
-    __esModule: true,
-    useUserEmailRegistrationStatus: () => {
-      return {
-        isEmailRegistered: true,
-        checkEmail: (): void => {},
-      };
-    },
-  };
-});
-
 type CapturedButton = {
   title: string;
   isLoading?: boolean | undefined;

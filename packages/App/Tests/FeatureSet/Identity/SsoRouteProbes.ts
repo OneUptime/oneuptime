@@ -124,13 +124,17 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
     path: "/service-provider-login",
     expected: badRequest("Email is required"),
   },
+  /*
+   * The answer an address with an account in no SSO project gets too: it
+   * says nothing about whether the address has an account (#9745).
+   */
   {
     label: "project SAML discovery for an address with no account",
     router: "SSO",
     method: "GET",
     route: "/service-provider-login",
     path: "/service-provider-login?email=nobody%40example.com",
-    expected: badRequest("No SSO config found for this user"),
+    expected: EMPTY_PROVIDER_LIST,
   },
   {
     label: "project SAML start for an unknown provider",
@@ -181,13 +185,14 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
     path: "/service-provider-login-oidc",
     expected: badRequest("Email is required"),
   },
+  // As SAML's, above (#9745).
   {
     label: "project OIDC discovery for an address with no account",
     router: "OIDC",
     method: "GET",
     route: "/service-provider-login-oidc",
     path: "/service-provider-login-oidc?email=nobody%40example.com",
-    expected: badRequest("No OIDC config found for this user"),
+    expected: EMPTY_PROVIDER_LIST,
   },
   {
     label: "project OIDC start from the mobile app for an unknown provider",

@@ -512,9 +512,10 @@ describe("Ceph cluster overview", () => {
     );
   });
 
+  // The shared pill (ResourceHealthPill), which opens why when it is not Healthy.
   test("the health pill is followed by its (i)", () => {
     expect(code).toContain(
-      '{healthLabel} </span> <InfoTooltip label="Cluster health" text={CEPH_METRIC_DESCRIPTIONS.health} />',
+      'testId="ceph-hero-health" words={CEPH_HEALTH_WORDS} /> <InfoTooltip label="Cluster health" text={CEPH_METRIC_DESCRIPTIONS.health} />',
     );
   });
 
@@ -701,14 +702,21 @@ describe("Ceph cluster overview", () => {
   /*
    * The overview's pill reads the cluster's rules, in getResourceHealthLabel's
    * words (Health Unknown while the agent is disconnected); the Clusters
-   * list's pill reads Ceph's own verdict. Each has its own text.
+   * list's pill reads Ceph's own verdict. Each has its own text. Since
+   * 2490ee8e2fa the overview's is the shared ResourceHealthPill, which
+   * words the health and connection it is handed the same way.
    */
   test("the overview's pill follows the rules, and its text names their states", () => {
     expect(code).toContain(
       "const clusterHealth: ResourceHealth = getCephHealth(attentionItems);",
     );
     expect(code).toContain(
-      "const healthLabel: string = getResourceHealthLabel({ translator: translator, health: clusterHealth, isConnected: isConnected, });",
+      '<ResourceHealthPill health={clusterHealth} isConnected={isConnected} items={attentionItems} testId="ceph-hero-health"',
+    );
+    expect(
+      readCode("Components/ResourcePart/ResourceHealthPill.tsx"),
+    ).toContain(
+      "const label: string = getResourceHealthLabel({ translator: translator, health: props.health, isConnected: props.isConnected, });",
     );
     for (const label of [
       "Healthy",

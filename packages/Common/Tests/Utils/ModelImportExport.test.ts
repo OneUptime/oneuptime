@@ -116,6 +116,33 @@ describe("ModelImportExport", () => {
       expect(columns).not.toContain("labels");
     });
 
+    test("should leave out what a workflow runs as, and who gave it: an exported workflow is imported as Default (#9695, #9765)", () => {
+      const columns: Array<string> =
+        ModelImportExport.getImportExportableColumnNames(Workflow);
+
+      /*
+       * Exported, a Project Owner workflow imported by a Project Owner ran
+       * as Project Owner again, and a custom role one could not be imported
+       * at all: its role's id is no part of an export.
+       */
+      for (const column of [
+        "runAs",
+        "runAsCustomRoleId",
+        "runAsCustomRole",
+        "runAsGivenByUserId",
+        "runAsGivenByUser",
+        "runAsGivenByApiKeyId",
+        "runAsGivenByApiKey",
+        "runAsGivenAt",
+      ]) {
+        expect(columns).not.toContain(column);
+      }
+
+      expect(
+        Object.keys(ModelImportExport.getImportExportSelect(Workflow)),
+      ).not.toContain("runAs");
+    });
+
     test("should exclude monitor runtime-state columns", () => {
       const columns: Array<string> =
         ModelImportExport.getImportExportableColumnNames(Monitor);

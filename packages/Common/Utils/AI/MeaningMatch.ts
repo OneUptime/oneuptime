@@ -50,6 +50,13 @@ export const MIN_SHARED_WORDS: number = 2;
 // The most shared terms a comparison names.
 export const MAX_SHARED_TERMS: number = 4;
 
+/*
+ * The most words of a text a search for records like it looks for, besides
+ * its concepts (getSearchTerms): a long text - a whole error message - is
+ * searched by what it says most, not by every word in it.
+ */
+export const MAX_SEARCH_WORDS: number = 8;
+
 // A concept weighs this much more than a word.
 const CONCEPT_WEIGHT: number = 2;
 
@@ -356,6 +363,23 @@ export interface MeaningTerms {
   labels: Map<string, string>;
 }
 
+/*
+ * What a search for records like a text looks for (#7673): the records that
+ * name one of its concepts, in any of the concept's phrasings, or say a word
+ * that starts like one of its words. They are only candidates: a search
+ * ranks them by meaning (rank) and keeps the matches (isMatch).
+ */
+export interface MeaningSearchTerms {
+  // The concepts the text names, in the order MEANING_CONCEPTS lists them.
+  concepts: Array<MeaningConcept>;
+  /*
+   * The start every form of each of its other words shares, the words said
+   * most first: "connect" for "connections", "memor" for "memory" and
+   * "memories". At most MAX_SEARCH_WORDS.
+   */
+  wordStarts: Array<string>;
+}
+
 export interface MeaningScore {
   // 0 (nothing in common) to 1 (the same terms, in the same proportions).
   similarity: number;
@@ -542,6 +566,51 @@ export default class MeaningMatch {
     })[0]!;
   }
 
+  /*
+   * What a search for records like `text` looks for (#7673): the concepts
+   * it names, and the starts of its other words - the words said most
+   * first, the longest first among those said as often, as a longer word
+   * tells records apart better. Empty for text with nothing in it that says
+   * what happened.
+   */
+  public static getSearchTerms(
+    text: string | null | undefined,
+  ): MeaningSearchTerms {
+    const terms: MeaningTerms = MeaningMatch.read(text);
+
+    const concepts: Array<MeaningConcept> = MEANING_CONCEPTS.filter(
+      (concept: MeaningConcept): boolean => {
+        return terms.weights.has(`${CONCEPT_PREFIX}${concept.id}`);
+      },
+    );
+
+    const words: Array<[string, number]> = Array.from(terms.weights.entries())
+      .filter(([term]: [string, number]): boolean => {
+        return !term.startsWith(CONCEPT_PREFIX);
+      })
+      .sort((a: [string, number], b: [string, number]): number => {
+        return (
+          b[1] - a[1] || b[0].length - a[0].length || (a[0] < b[0] ? -1 : 1)
+        );
+      });
+
+    const wordStarts: Array<string> = [];
+
+    for (const [stem] of words) {
+      const start: string = MeaningMatch.wordStart(stem);
+
+      if (!wordStarts.includes(start)) {
+        wordStarts.push(start);
+      }
+
+      if (wordStarts.length >= MAX_SEARCH_WORDS) {
+        break;
+      }
+    }
+
+    return { concepts, wordStarts };
+  }
+
   // A word's stem: "connections", "connected", "connecting" -> "connect".
   public static stem(word: string): string {
     const irregular: string | undefined = IRREGULAR_STEMS.get(word);
@@ -628,6 +697,19 @@ export default class MeaningMatch {
     }
 
     return word.length >= 2;
+  }
+
+  /*
+   * The start every form of a stemmed word shares: a stem the stemmer left
+   * ending in "y" ("dependency", also the stem of "dependencies"; "memory")
+   * loses it, so a search finds "dependencies" and "memories" as well.
+   */
+  private static wordStart(stem: string): string {
+    if (LATIN_WORD.test(stem) && stem.length > 4 && stem.endsWith("y")) {
+      return stem.slice(0, -1);
+    }
+
+    return stem;
   }
 
   // "stopp" -> "stop", "runn" -> "run"; "fall", "pass" and "buzz" stay.

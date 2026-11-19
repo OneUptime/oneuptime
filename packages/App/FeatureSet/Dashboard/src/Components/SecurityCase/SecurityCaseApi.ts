@@ -429,6 +429,8 @@ export default class SecurityCaseApi {
     caseId: ObjectID;
     events: Array<{ eventUid: string; time: Date }>;
     huntId?: ObjectID | undefined;
+    // The detection on the case the events were matched by (#9622).
+    detectionId?: ObjectID | undefined;
   }): Promise<SecurityCaseEventsAddResult> {
     return readSecurityCaseEventsAddResult(
       await post("/security-case-evidence/add-events", {
@@ -442,6 +444,9 @@ export default class SecurityCaseApi {
           },
         ),
         ...(data.huntId ? { securityHuntId: data.huntId.toString() } : {}),
+        ...(data.detectionId
+          ? { securityDetectionId: data.detectionId.toString() }
+          : {}),
       }),
     );
   }

@@ -124,6 +124,33 @@ Monitors die sondes niet controleren (Handmatig, Inkomend verzoek, Inkomende e-m
 > [!TIP]
 > Een sonde die privéadressen moet controleren, zoals `http://10.0.0.5/health`, heeft `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` nodig. Sondes weigeren privéadressen totdat u ze toestaat: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
+## Een sonde bijwerken
+
+Een sonde draait de versie van de image waarmee hij is gestart, dus om hem bij te werken, start u hem opnieuw vanaf een nieuwere image met dezelfde sonde-ID en sleutel. De image `oneuptime/probe:release` is altijd de nieuwste versie.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Voer daarna de opdracht uit [De sonde starten](#de-sonde-starten) opnieuw uit.
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Vervang `<version>` door de versie die moet draaien, zoals `17.0.1`, en zet dezelfde image in `oneuptime-probe.yaml`, zodat die blijft als u het bestand opnieuw toepast.
+:::
+
+De pagina van de sonde toont onder **Sondestatus** de versie die hij draait. Een sonde ouder dan 17.0.1 kan de codes van een [geheim voor eenmalige codes](/docs/monitor/monitor-secrets#aanmelden-met-een-eenmalige-code) niet maken: zijn pagina zegt dat, en ook het formulier van een monitor die hij controleert.
+
 ## Verbinden via een proxy
 
 Moet de sonde via een proxy om OneUptime of de gecontroleerde sites te bereiken, geef hem dan het adres van de proxy:

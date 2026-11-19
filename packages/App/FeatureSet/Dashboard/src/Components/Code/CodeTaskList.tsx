@@ -59,7 +59,11 @@ import {
   CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   getLineDirection,
 } from "Common/UI/Utils/LineDirection";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -117,11 +121,65 @@ export interface ComponentProps {
    */
   showFilters?: boolean | undefined;
   /*
-   * The reader may ask AI again here: a failed or stopped task's row has
-   * Try again, and failed tasks can be picked and tried again together.
+   * Whether the page lets its rows offer Try again (on by default): a row
+   * offers it, and a box to pick it for Retry selected, when the server
+   * says the reader may try its task again now (CodeTaskSummaryJSON
+   * canTryAgain) - per repository, so a list across repositories offers it
+   * on the rows of the repositories the reader may ask AI in (#6508).
    */
   canRetry?: boolean | undefined;
 }
+
+// What trying tasks again did: how many went, and why the rest did not.
+export interface CodeTaskRetryResult {
+  retried: number;
+  failedCount: number;
+  // The one reason every task that was not tried again gave, if one.
+  failedMessage: string | null;
+  // Each task's reason, by its id, when they gave different ones.
+  reasons: Map<string, string>;
+}
+
+/*
+ * What Retry selected's answer says, put together: one reason said in the
+ * bar when every task that was not tried again gave it, and each said on
+ * its own row when they gave different ones - so a mixed selection across
+ * repositories says why each one was refused (#6508).
+ */
+export const getCodeTaskRetryResult: (
+  result: CodeTaskRetryManyResponse,
+) => CodeTaskRetryResult = (
+  result: CodeTaskRetryManyResponse,
+): CodeTaskRetryResult => {
+  const messages: Array<string> = [];
+  const reasons: Map<string, string> = new Map<string, string>();
+
+  for (const failed of result.failed) {
+    if (!messages.includes(failed.message)) {
+      messages.push(failed.message);
+    }
+
+    reasons.set(failed.taskId, failed.message);
+  }
+
+  return {
+    retried: result.retried,
+    failedCount: result.failed.length,
+    failedMessage: messages.length === 1 ? messages[0]! : null,
+    reasons: messages.length > 1 ? reasons : new Map<string, string>(),
+  };
+};
+
+// Many tasks not tried again, for different reasons: each row says its own.
+export const CODE_TASK_RETRY_REASONS_ON_ROWS: PluralTemplate = {
+  one: "{{count}} task could not be tried again: it says why below.",
+  other: "{{count}} tasks could not be tried again: each says why below.",
+};
+
+// A row's reason it was not tried again, when the reasons differ.
+export const CODE_TASK_ROW_NOT_TRIED_AGAIN: string = translationKey(
+  "Not tried again: {{reason}}",
+);
 
 // Where a task's repository is hosted, for the mark beside its name.
 export interface CodeTaskRepositoryHost {
@@ -155,11 +213,9 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
   const [counts, setCounts] = useState<CodeTaskListCountsJSON | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
-  const [retryResult, setRetryResult] = useState<{
-    retried: number;
-    failedMessage: string | null;
-    failedCount: number;
-  } | null>(null);
+  const [retryResult, setRetryResult] = useState<CodeTaskRetryResult | null>(
+    null,
+  );
   const onCountRef: React.MutableRefObject<
     ((count: number) => void) | undefined
   > = useRef(props.onCount);
@@ -231,18 +287,29 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
     });
   }, [load, props.refreshToken]);
 
-  // Another filter or search starts from its first page, with nothing picked.
+  /*
+   * Another filter or search starts from its first page, with nothing
+   * picked - and what the last Retry selected said goes with what it was
+   * said of.
+   */
   useEffect(() => {
     setShown(CODE_TASK_PAGE_SIZE);
     setSelectedIds(new Set());
+    setRetryResult(null);
   }, [filter, search]);
 
+  /*
+   * The server says which tasks the reader may try again now: failed or
+   * stopped, a recipe asked again from Code, in a repository the reader may
+   * ask AI in with nothing stopping AI there (CodeTaskTryAgain) - a request,
+   * or a fix OneUptime started (#6509), on any repository's row (#6508).
+   */
   const canRetryTask: (task: CodeTaskSummaryJSON) => boolean = (
     task: CodeTaskSummaryJSON,
   ): boolean => {
     return Boolean(
-      props.canRetry &&
-        task.recipe === CodeFixTaskType.CodeRequest &&
+      props.canRetry !== false &&
+        task.canTryAgain === true &&
         (task.state === CodeTaskState.Failed ||
           task.state === CodeTaskState.Stopped),
     );
@@ -262,16 +329,14 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
       const result: CodeTaskRetryManyResponse =
         await CodeApi.retryMany(taskIds);
 
-      setRetryResult({
-        retried: result.retried,
-        failedCount: result.failed.length,
-        failedMessage: result.failed[0]?.message || null,
-      });
+      setRetryResult(getCodeTaskRetryResult(result));
     } catch (err) {
+      // Refused as a whole - too many presses, AI switched off: one reason.
       setRetryResult({
         retried: 0,
         failedCount: taskIds.length,
         failedMessage: API.getFriendlyMessage(err),
+        reasons: new Map<string, string>(),
       });
     }
 
@@ -369,15 +434,20 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                     )
                   : "",
                 retryResult.failedCount > 0
-                  ? translator.translatePlural(
-                      {
-                        one: "{{count}} task could not be tried again: {{reason}}",
-                        other:
-                          "{{count}} tasks could not be tried again: {{reason}}",
-                      },
-                      retryResult.failedCount,
-                      { reason: errorInSentence(retryResult.failedMessage) },
-                    )
+                  ? retryResult.reasons.size > 0
+                    ? translator.translatePlural(
+                        CODE_TASK_RETRY_REASONS_ON_ROWS,
+                        retryResult.failedCount,
+                      )
+                    : translator.translatePlural(
+                        {
+                          one: "{{count}} task could not be tried again: {{reason}}",
+                          other:
+                            "{{count}} tasks could not be tried again: {{reason}}",
+                        },
+                        retryResult.failedCount,
+                        { reason: errorInSentence(retryResult.failedMessage) },
+                      )
                   : "",
               ]
                 .filter(Boolean)
@@ -562,6 +632,11 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                   : undefined
               }
               isRetrying={retryingIds.has(task.id)}
+              notTriedAgainReason={
+                selectedIds.size === 0
+                  ? retryResult?.reasons.get(task.id)
+                  : undefined
+              }
               repositoryName={
                 props.repositoryNames && task.codeRepositoryId
                   ? props.repositoryNames.get(task.codeRepositoryId)
@@ -643,6 +718,11 @@ export interface CodeTaskRowProps {
   onSelect?: ((isSelected: boolean) => void) | undefined;
   onRetry?: (() => void) | undefined;
   isRetrying?: boolean | undefined;
+  /*
+   * Why Retry selected did not try this task again, when the tasks it
+   * picked gave different reasons: said on the row (#6508).
+   */
+  notTriedAgainReason?: string | undefined;
   /*
    * Some row of the list has a box to pick it: a row with none keeps the
    * box's place, so every row's mark and title start in one column.
@@ -989,6 +1069,18 @@ export const CodeTaskRow: FunctionComponent<CodeTaskRowProps> = (
               }`}
             >
               <IsolatedText text={failure} />
+            </p>
+          ) : (
+            <></>
+          )}
+          {props.notTriedAgainReason ? (
+            <p
+              data-testid="code-task-row-not-tried-again"
+              className="mt-1 break-words text-xs font-medium text-red-800"
+            >
+              {translator.translateTemplate(CODE_TASK_ROW_NOT_TRIED_AGAIN, {
+                reason: errorInSentence(props.notTriedAgainReason),
+              })}
             </p>
           ) : (
             <></>

@@ -5,7 +5,10 @@ import { isDifferentText } from "../../FeatureSet/Dashboard/src/Components/Netwo
 import {
   DEVICES_WITH_INTERFACES_DOWN_SELECTION,
   DEVICE_INTERFACES_FACET_KEY,
+  DEVICE_STATUS_FACET_KEY,
+  DOWN_DEVICES_FACET_SELECTION,
   DeviceInterfacesFacetValue,
+  DeviceStatusFacetValue,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
 
 /*
@@ -149,10 +152,19 @@ describe("the Overview's tiles and lists go where they talk about", () => {
     return OVERVIEW.slice(start, end === -1 ? undefined : end);
   }
 
-  test("Devices opens the device list", () => {
+  /*
+   * While any device is down, the tile opens only those: "2 down" opens
+   * the two (f477c842983, #9537). With none down, it opens them all.
+   */
+  test("Devices opens the device list, or only the devices down while any are", () => {
     expect(tile("Devices")).toContain(
-      "onClick={() => { Navigation.navigate( RouteUtil.populateRouteParams( RouteMap[PageMap.NETWORK_DEVICES] as Route, ), ); }}",
+      "onClick={() => { Navigation.navigate( fleet.down > 0 ? getDeviceListRouteForFacet(DOWN_DEVICES_FACET_SELECTION) : RouteUtil.populateRouteParams( RouteMap[PageMap.NETWORK_DEVICES] as Route, ), ); }}",
     );
+    expect(DOWN_DEVICES_FACET_SELECTION).toEqual({
+      facetKey: DEVICE_STATUS_FACET_KEY,
+      values: [DeviceStatusFacetValue.Down],
+      operator: "is",
+    });
   });
 
   test("Interfaces Down opens the device list filtered to devices with ports down", () => {

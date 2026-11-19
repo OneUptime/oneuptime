@@ -432,17 +432,17 @@ describe("testing an audit log export", () => {
             return batch.records[0]!.schemaVersion;
           },
         ),
-      ).toEqual([2, 1, 1, 2, 2]);
+      ).toEqual([3, 1, 1, 2, 2]);
     });
 
     test("a record version this release does not send is refused, and nothing is sent", async () => {
-      for (const schemaVersion of [0, 3, "two", 1.5]) {
+      for (const schemaVersion of [0, 4, "two", 1.5]) {
         await expect(
           AuditLogExportTest.testProjectExport({
             body: { ...WEBHOOK_BODY, schemaVersion },
             props: OWNER,
           }),
-        ).rejects.toThrow("Record Version must be 1 or 2.");
+        ).rejects.toThrow("Record Version must be 1, 2 or 3.");
       }
 
       expect(webhook.attempts).toBe(0);

@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "我们将向该用户发送一封邮件，其中的链接可用于设置新密码。链接将在 24 小时后失效，并会取代之前发送的任何链接。",
       "resetLinkModalSubmit": "发送链接",
       "resetLinkSuccess": "密码重置链接已发送。",
-      "resetLinkSentTo": "密码重置链接已发送至 {{email}}。"
+      "resetLinkSentTo": "密码重置链接已发送至 {{email}}。",
+      "ssoManagedByServerWarning": "在此服务器要求 SSO 期间，此人无法使用密码登录。",
+      "ssoManagedByProjectsWarning": "此人所在的每个项目都通过 SSO 管理登录，因此密码无法打开其中任何项目。",
+      "clearSignInCardTitle": "清除登录设置",
+      "clearSignInCardDescription": "删除该用户的密码、通行密钥、安全密钥、身份验证器应用和备用代码，并关闭双因素身份验证。",
+      "clearSignInButton": "清除登录设置",
+      "clearSignInOwnAccountTooltip": "请在用户配置中更改你自己的登录设置。",
+      "clearSignInModalTitle": "清除登录设置",
+      "clearSignInModalDescription": "删除该用户的密码、通行密钥、安全密钥、身份验证器应用和备用代码，并关闭双因素身份验证。此操作无法撤销。",
+      "clearSignInMasterAdminConfirmation": "此人是主管理员。我了解此人需要使用 SSO 或密码重置链接才能登录。",
+      "clearSignInModalSubmit": "清除登录设置",
+      "clearSignInSuccess": "已清除登录设置。未使用 SSO 登录的会话已结束。"
     },
     "userProjects": {
       "title": "用户项目",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "控制谁可以在此 OneUptime 服务器上创建新项目。",
         "projectCreationSwitchTitle": "允许用户创建项目",
         "projectCreationSwitchOnDescription": "任何登录此服务器的人都可以创建项目。",
-        "projectCreationSwitchOffDescription": "只有主管理员可以创建项目。"
+        "projectCreationSwitchOffDescription": "只有主管理员可以创建项目。",
+        "inviteSuggestionsCardTitle": "邀请建议",
+        "inviteSuggestionsCardDescription": "邀请他人加入项目的人能否找到此服务器上拥有帐户的任何人。如果服务器托管多个组织，请保持关闭。",
+        "inviteSuggestionsSwitchTitle": "建议此服务器上的所有帐户",
+        "inviteSuggestionsSwitchOnDescription": "可以邀请他人加入项目的任何人在输入时都会看到每个帐户的名称和邮箱，并标有“尚未加入此项目”。",
+        "inviteSuggestionsSwitchOffDescription": "邀请表单建议项目自己的成员。主管理员还会看到服务器上的其他帐户。"
       },
       "email": {
         "adminNotificationCardTitle": "管理员通知电子邮件",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "版本 2 还会说明工作流的步骤和 JSON 中发生了哪些更改。版本 1 是原始记录，供为它构建的读取方使用。",
   "Version 2 (newest)": "版本 2（最新）",
   "Version 1 (original)": "版本 1（原始）",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "版本 3 会加上工作流的每个步骤以什么身份运行。版本 2 会加上步骤和 JSON 中发生了哪些更改。版本 1 是原始版本。",
+  "Version 3 (newest)": "版本 3（最新）",
+  "Version 2": "版本 2",
   "Unchanged": "未更改",
   "Setup guide": "设置指南",
   "Write a test file": "写入测试文件",
@@ -4110,6 +4129,13 @@
   "Sign them out": "将他们登出",
   "Sign out everyone signed in without SSO?": "要登出所有未使用 SSO 登录的人吗？",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他们在所有设备上的会话将立即结束，需要使用 SSO 重新登录。主管理员保持登录状态。",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "仍有 {{count}} 人在 OneUptime 中保存着密码或双因素身份验证。如果不再要求 SSO，他们可以凭这些再次登录。",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "仍有 {{count}} 人在 OneUptime 中保存着密码或双因素身份验证。如果不再要求 SSO，他们可以凭这些再次登录。",
+  "Clear Sign-In Settings": "清除登录设置",
+  "Clear everyone's saved sign-in settings?": "要清除所有人已保存的登录设置吗？",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "他们的密码、通行密钥、安全密钥、身份验证器应用和备用代码都将被删除。此操作无法撤销。主管理员会保留自己的设置。",
+  "Cleared the sign-in settings of {{count}} people.": "已清除 {{count}} 人的登录设置。",
+  "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登录设置。",
   "Made by {{name}} on {{date}}": "由 {{name}} 于 {{date}} 创建",
   "Made on {{date}}": "创建于 {{date}}",
   "Ends in {{hint}}": "末尾为 {{hint}}",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "同时退出身份提供商的登录",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "退出 OneUptime 时，也会退出此提供商以及所有使用它的其他应用。共享计算机请开启。",
   "Sign-out Redirect URI:": "退出登录后的重定向 URI：",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身份提供商中注册重定向 URI；开启“同时退出身份提供商的登录”时，还要注册退出登录后的重定向 URI。"
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身份提供商中注册重定向 URI；开启“同时退出身份提供商的登录”时，还要注册退出登录后的重定向 URI。",
+  "If they have no OneUptime account yet, it is set up with this name.": "如果此人还没有 OneUptime 账户，将用这个名字创建账户。",
+  "Suggest every account on this server?": "要建议此服务器上的所有帐户吗？",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "任何可以邀请他人的人在输入时都会看到每个帐户的名称和邮箱。只有当这里的每个帐户都属于同一个组织时，才开启此项。",
+  "Suggest Every Account": "建议所有帐户"
 }

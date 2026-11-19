@@ -46,7 +46,22 @@
  *                       every reply pushed to its pull request - #402 until
  *                       it was merged, then #455. As the server reads it,
  *                       its page gets the first turn and the newest 199, and
- *                       how many turns are not shown between them
+ *                       how many turns are not shown between them; Show
+ *                       earlier turns reads those a page of 50 at a time
+ *                       (POST /code-task/turns/:taskId, #7128). long=2: the
+ *                       same task kept open longer, 260 turns, so 60 are not
+ *                       shown - more than one page of them
+ *   - fixes=1           fixes OneUptime started on its own from exceptions,
+ *                       that failed (#6509): storefront-web's failed before
+ *                       it wrote anything, so it can be tried again, and
+ *                       checkout-api's failed after it opened pull request
+ *                       #433, so it is not (it may already have written);
+ *                       and a request that failed in payments-worker, which
+ *                       GitHub no longer reaches, so no list offers to try
+ *                       it again (#6508). window.__fixture.tryAgainElsewhere
+ *                       (taskId) and .disconnect(repositoryId) change a task
+ *                       or a repository between a list's read and Retry
+ *                       selected
  *   - hosts=1           repositories beyond GitHub too, each through its
  *                       connection: billing-service on GitLab (gitlab.com)
  *                       with merge request !12, status-widgets on Forgejo
@@ -92,9 +107,10 @@
  *                       Runner reports (CodeTaskLive); __fixture.announce(id)
  *                       announces a run without a change
  *   - refuse=create|reply  the server refuses that send (its sentence)
- *   - fail=repositories|repository|list|task|branches|log  that read fails
- *                       (log: a turn's Log, the page's record of it;
- *                       logonce: only its first read)
+ *   - fail=repositories|repository|list|task|branches|log|earlier  that read
+ *                       fails (log: a turn's Log, the page's record of it;
+ *                       logonce: only its first read; earlier: a long
+ *                       task's earlier turns, Show earlier turns)
  *   - commands=1        checkout-api has the build and test commands an
  *                       operator set before Code stopped asking for them
  *                       (npm ci, npm run build, npm test); by default none
@@ -156,7 +172,9 @@
  * the host knows no other number.
  *
  * What the pages send is recorded on window.__fixture: `creates`,
- * `replies`, `retries`, `stops`, `settings` (each repository update),
+ * `replies`, `retries`, `retryManys` (each Retry selected), `earlierReads`
+ * (each read of a long task's earlier turns), `stops`, `settings` (each
+ * repository update),
  * `deletes`, `navigations` (addresses outside the Dashboard, such as
  * GitHub's), `branchReads` (each read of a repository's branches, with what
  * was searched), `lists` (each task list read, by its scope),
@@ -195,7 +213,9 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
-import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "Common/Types/AI/CodeFixTaskType";
 import {
   CodeTaskBlockerType,
   CodeTaskContextType,
@@ -205,7 +225,13 @@ import {
   CodeTaskStateUtil,
   CodeTaskStepKind,
   CodeTaskTitle,
+  MAX_EARLIER_TURNS_PER_READ,
 } from "Common/Types/AI/CodeTask";
+import {
+  CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE,
+  CODE_TASK_TRY_AGAIN_NOT_IN_CODE_MESSAGE,
+  CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE,
+} from "Common/Types/AI/CodeTaskTryAgain";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
@@ -266,6 +292,14 @@ const TASK_IDS = {
   insight: "40000000-0000-4000-8000-0000000000da",
   // long=1: a working thread of 207 turns (its first turn's id).
   long: "40000000-0000-4000-8000-0000000000db",
+  /*
+   * fixes=1: a fix OneUptime started that failed before it wrote, one that
+   * failed after it opened a pull request, and a request that failed in a
+   * repository GitHub no longer reaches.
+   */
+  fixFailed: "40000000-0000-4000-8000-0000000000dc",
+  fixPushed: "40000000-0000-4000-8000-0000000000dd",
+  elsewhere: "40000000-0000-4000-8000-0000000000de",
 };
 
 const RECORD_IDS = {
@@ -276,6 +310,9 @@ const RECORD_IDS = {
   service: "50000000-0000-4000-8000-0000000000e5",
   // The slow-code finding (an AI insight) insight=1's task came from.
   insight: "50000000-0000-4000-8000-0000000000e6",
+  // fixes=1: the exceptions its two fixes came from.
+  couponException: "50000000-0000-4000-8000-0000000000e7",
+  refundException: "50000000-0000-4000-8000-0000000000e8",
 };
 
 /*
@@ -304,7 +341,8 @@ const reposParam = params.get("repos") || "some";
 const isGitHubGone = params.get("connected") === "none";
 const hasNoTasks = params.get("tasks") === "none";
 const hasInsightTask = params.get("insight") === "1";
-const hasLongTask = params.get("long") === "1";
+const hasLongTask = params.get("long") === "1" || params.get("long") === "2";
+const hasFixTasks = params.get("fixes") === "1";
 const hasManyBranches = params.get("branches") === "many";
 const hasLongNames = params.get("names") === "long";
 const blockerParam = params.get("blocker");
@@ -358,6 +396,8 @@ window.__fixture = {
   progressReads: [],
   // Each task read that asked for a turn (the Log page's address names one).
   taskTurnReads: [],
+  // Each read of a long task's earlier turns (Show earlier turns).
+  earlierReads: [],
   // live=1: what the pages listen to on the live connection.
   liveSubscriptions: [],
 };
@@ -2162,9 +2202,11 @@ if (hasInsightTask && !hasNoTasks) {
  * time, then kept asking in the same task for three weeks: 207 turns, each
  * reply pushed to the task's open pull request - #402 until it was merged
  * after turn 120, then #455, which turn 121 opened. The server reads such
- * a task's first turn and its newest 199 (conversationOf, below).
+ * a task's first turn and its newest 199 (conversationOf, below), and the
+ * turns between them a page at a time (earlierTurnsOf). long=2: kept open
+ * longer, 260 turns.
  */
-const LONG_TASK_TURN_COUNT = 207;
+const LONG_TASK_TURN_COUNT = params.get("long") === "2" ? 260 : 207;
 
 // The follow-ups are about these handlers, each in turn.
 const LONG_TASK_HANDLERS = [
@@ -2323,10 +2365,12 @@ function longTaskTurn(index) {
     });
   }
   const handler = LONG_TASK_HANDLERS[(index - 1) % LONG_TASK_HANDLERS.length];
+  // Past the last round of asks (long=2), the rounds start again.
   const ask =
-    LONG_TASK_ASKS[Math.floor((index - 1) / LONG_TASK_HANDLERS.length)](
-      handler,
-    );
+    LONG_TASK_ASKS[
+      Math.floor((index - 1) / LONG_TASK_HANDLERS.length) %
+        LONG_TASK_ASKS.length
+    ](handler);
   const opensPullRequest = index === 120;
   const pullRequest = index < 120 ? PULL_REQUEST_402 : PULL_REQUEST_455;
   const file = ask.files[0] || `src/handlers/${handler}.ts`;
@@ -2390,6 +2434,139 @@ if (hasLongTask && !hasNoTasks) {
     }),
   });
 }
+
+/*
+ * fixes=1: fixes OneUptime started on its own, from exceptions, that failed
+ * (#6509). storefront-web's coupon fix failed before it wrote anything -
+ * its tests did not pass - so whoever may ask AI there may ask it again,
+ * with what it started from. checkout-api's refund fix failed after it
+ * opened pull request #433: asked again, it could open a second one, so it
+ * is not (the server's CodeTaskFixRetry). And a request failed in
+ * payments-worker, which GitHub no longer reaches: no list offers to try
+ * it again (#6508).
+ */
+if (hasFixTasks && !hasNoTasks) {
+  tasks.push(
+    {
+      id: TASK_IDS.fixFailed,
+      repositoryId: REPOSITORY_IDS.web,
+      taskNumber: 2,
+      title: "",
+      turns: [
+        turn({
+          runId: TASK_IDS.fixFailed,
+          recipe: CodeFixTaskType.FixException,
+          status: AIRunStatus.Error,
+          createdAt: minutesAgo(30),
+          startedAt: minutesAgo(29),
+          completedAt: minutesAgo(21),
+          steps: [
+            step(1, CodeTaskStepKind.Read, "src/coupons/apply.ts"),
+            step(2, CodeTaskStepKind.Edited, "src/coupons/apply.ts"),
+            step(3, CodeTaskStepKind.Ran, "npm test -- coupons", true),
+          ],
+          errorMessage:
+            "npm test -- coupons still failed after 2 repair attempts: 3 tests in test/coupons expect the old error.",
+        }),
+      ],
+      origin: {
+        type: CodeTaskOriginType.Exception,
+        label: "TypeError: Cannot read properties of null (reading 'code')",
+        recordId: RECORD_IDS.couponException,
+      },
+    },
+    {
+      id: TASK_IDS.fixPushed,
+      repositoryId: REPOSITORY_IDS.checkout,
+      taskNumber: 21,
+      title: "",
+      turns: [
+        turn({
+          runId: TASK_IDS.fixPushed,
+          recipe: CodeFixTaskType.FixException,
+          status: AIRunStatus.Error,
+          createdAt: minutesAgo(45),
+          startedAt: minutesAgo(44),
+          completedAt: minutesAgo(36),
+          steps: [
+            step(1, CodeTaskStepKind.Read, "src/refunds/create.ts"),
+            step(2, CodeTaskStepKind.Edited, "src/refunds/create.ts"),
+            step(3, CodeTaskStepKind.PullRequest, "Opened pull request #433"),
+          ],
+          pullRequests: [
+            {
+              number: 433,
+              url: "https://github.com/acme/checkout-api/pull/433",
+              title: "Fix RangeError in refund amounts",
+              state: "open",
+              branch: "oneuptime-fix-exception-5c6d7e8f",
+            },
+          ],
+          errorMessage:
+            "The Runner lost its connection while it was writing the pull request's description.",
+        }),
+      ],
+      origin: {
+        type: CodeTaskOriginType.Exception,
+        label: "RangeError: Invalid refund amount: -0.01",
+        recordId: RECORD_IDS.refundException,
+      },
+    },
+    {
+      id: TASK_IDS.elsewhere,
+      repositoryId: REPOSITORY_IDS.payments,
+      taskNumber: 3,
+      title: "Retry payouts the bank rejects for a timeout",
+      turns: [
+        turn({
+          runId: TASK_IDS.elsewhere,
+          status: AIRunStatus.Error,
+          createdAt: minutesAgo(60 * 30),
+          startedAt: minutesAgo(60 * 30 - 1),
+          completedAt: minutesAgo(60 * 30 - 4),
+          userId: GRACE_ID,
+          request: {
+            message: "Retry payouts the bank rejects for a timeout.",
+            context: [],
+          },
+          steps: [step(1, CodeTaskStepKind.Read, "src/payouts/bank.ts")],
+          errorMessage:
+            "The Runner could not clone the repository: GitHub no longer lets OneUptime reach it.",
+        }),
+      ],
+    },
+  );
+}
+
+/*
+ * What can change between a list's read and Retry selected, when the spec
+ * says: someone else tried a task again (its latest turn queued, asked by
+ * Grace), or GitHub stopped reaching a repository.
+ */
+window.__fixture.tryAgainElsewhere = (taskId) => {
+  const task = findTask(taskId);
+  const latest = task.turns[task.turns.length - 1];
+  task.turns.push(
+    turn({
+      runId: newRunId(),
+      recipe: latest.recipe,
+      status: AIRunStatus.Queued,
+      createdAt: new Date().toISOString(),
+      userId: GRACE_ID,
+      request: latest.request,
+      stage: "queued",
+      stageAt: Date.now(),
+    }),
+  );
+};
+
+window.__fixture.disconnect = (repositoryId) => {
+  for (const repository of repositories) {
+    if (repository.id === repositoryId) {
+      repository.isConnected = false;
+    }
+  }
+};
 
 /*
  * hosts=1: billing-service's task opened GitLab's merge request !12, and
@@ -2971,7 +3148,129 @@ function summaryOf(task) {
   if (isReview(task) && review) {
     summary.productionReview = ProductionReviewUtil.summarize(review);
   }
+  // As the server: the recipe of a reply, which may not be the first's.
+  if (task.turns.length > 1 && latest.recipe) {
+    summary.latestRecipe = latest.recipe;
+  }
   return summary;
+}
+
+/*
+ * A list's summary, saying whether the reader may try its task again now,
+ * as the server's lists say it (CodeTaskTryAgain): a failed or stopped
+ * task, of a recipe asked again from Code - a request, or a fix OneUptime
+ * started that opened no pull request - in a repository the reader may ask
+ * AI in, with nothing stopping AI there.
+ */
+function listSummaryOf(task) {
+  const summary = summaryOf(task);
+  if (mayTryAgain(summary)) {
+    summary.canTryAgain = true;
+  }
+  return summary;
+}
+
+function mayTryAgain(summary) {
+  if (
+    summary.state !== CodeTaskState.Failed &&
+    summary.state !== CodeTaskState.Stopped
+  ) {
+    return false;
+  }
+  if (
+    !summary.codeRepositoryId ||
+    CodeFixTaskTypeHelper.isProductionReview(summary.recipe)
+  ) {
+    return false;
+  }
+  const recipe = summary.latestRecipe || summary.recipe;
+  if (!CodeFixTaskTypeHelper.canBeAskedAgain(recipe)) {
+    return false;
+  }
+  if (CodeFixTaskTypeHelper.isFixAskedAgain(recipe) && summary.pullRequest) {
+    return false;
+  }
+  const repository = repositories.find((item) => {
+    return item.id === summary.codeRepositoryId;
+  });
+  return Boolean(repository) && CAN_ASK && !blockerFor(repository);
+}
+
+/*
+ * Why a task's failed or stopped latest turn - a fix OneUptime started -
+ * is not asked again, as the server says it (CodeTaskFixRetry): it may
+ * already have pushed a branch or opened a pull request. Null otherwise.
+ */
+function tryAgainRefusalOf(task) {
+  const latest = task.turns[task.turns.length - 1];
+  const state = stateOf(latest);
+  if (
+    (state !== CodeTaskState.Failed && state !== CodeTaskState.Stopped) ||
+    !CodeFixTaskTypeHelper.isFixAskedAgain(latest.recipe)
+  ) {
+    return null;
+  }
+  const hasWritten = task.turns.some((item) => {
+    return (
+      item.pullRequests.length > 0 ||
+      Boolean(item.outcome && item.outcome.pullRequestNumber)
+    );
+  });
+  return hasWritten ? CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE : null;
+}
+
+/*
+ * Try again, as the server's CodeTaskRuns.retry asks it: only a failed or
+ * stopped latest turn; a fix OneUptime started is asked again with what it
+ * started from - a new turn of its own, asked by the reader, with no words
+ * - unless it may already have written; a request in its own words and
+ * context. Anything else is not asked again from Code. Returns the new
+ * turn, or the sentence it is refused with.
+ */
+function tryAgain(task) {
+  const repository = repositoryOf(task);
+  if (!repository) {
+    return {
+      refusal:
+        "This task is not linked to a repository, so AI cannot continue it. Start a new task from a repository in Code.",
+    };
+  }
+  const blocker = blockerFor(repository);
+  if (blocker) {
+    return { refusal: blocker.message };
+  }
+  const latest = task.turns[task.turns.length - 1];
+  const state = stateOf(latest);
+  if (state !== CodeTaskState.Failed && state !== CodeTaskState.Stopped) {
+    return { refusal: CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE };
+  }
+  if (CodeFixTaskTypeHelper.isFixAskedAgain(latest.recipe) && !isReview(task)) {
+    const refusal = tryAgainRefusalOf(task);
+    if (refusal) {
+      return { refusal };
+    }
+    const again = turn({
+      runId: newRunId(),
+      recipe: latest.recipe,
+      status: AIRunStatus.Queued,
+      createdAt: new Date().toISOString(),
+      userId: ADA_ID,
+      stage: "queued",
+      stageAt: Date.now(),
+    });
+    task.turns.push(again);
+    return { turn: again };
+  }
+  if (latest.recipe !== CodeFixTaskType.CodeRequest || !latest.request) {
+    return { refusal: CODE_TASK_TRY_AGAIN_NOT_IN_CODE_MESSAGE };
+  }
+  // The same words and context; the branch stays on the first turn.
+  const again = newRequestTurn({
+    message: latest.request.message,
+    context: latest.request.context,
+  });
+  task.turns.push(again);
+  return { turn: again };
 }
 
 /*
@@ -3067,6 +3366,29 @@ function conversationOf(task) {
   return {
     turns: [task.turns[0], ...task.turns.slice(firstNewest)],
     turnsNotShown: { count: notShown.length, workMilliseconds },
+  };
+}
+
+/*
+ * A page of a long task's turns its page does not show, as the server
+ * reads them (CodeTaskThread.getRepliesBefore): the `limit` turns just
+ * before `before` - one of the task's turns after its first - oldest
+ * first, with the place of the first of them in the task. Null for a run
+ * that is not one of those.
+ */
+function earlierTurnsOf(task, before, limit) {
+  const beforeIndex = task.turns.findIndex((item) => {
+    return idOf(item.runId) === before;
+  });
+  if (beforeIndex < 1) {
+    return null;
+  }
+  const start = Math.max(1, beforeIndex - limit);
+  return {
+    turns: task.turns.slice(start, beforeIndex).map((item, offset) => {
+      return turnJSON(task, item, start + offset, CAN_ASK);
+    }),
+    firstNumber: start + 1,
   };
 }
 
@@ -3313,7 +3635,7 @@ async function answer(path, body) {
     return new HTTPResponse(
       200,
       {
-        tasks: sorted.slice(skip, skip + limit).map(summaryOf),
+        tasks: sorted.slice(skip, skip + limit).map(listSummaryOf),
         totalCount: sorted.length,
         skip,
         limit,
@@ -3324,9 +3646,9 @@ async function answer(path, body) {
   }
 
   /*
-   * Retry selected: each task asked again as its own Try again asks it - a
-   * failed or stopped request, by someone who may ask - and each that
-   * cannot be, with why.
+   * Retry selected: each task asked again as its own Try again asks it
+   * (tryAgain) - in its own repository, by someone who may ask AI there -
+   * and each that cannot be, with why (#6508).
    */
   if (path === "/retry-many") {
     const taskIds = Array.isArray(body.taskIds) ? body.taskIds : [];
@@ -3335,26 +3657,13 @@ async function answer(path, body) {
     const failed = [];
     for (const taskId of taskIds) {
       const task = findTask(taskId);
-      const latest = task ? task.turns[task.turns.length - 1] : null;
-      const state = latest ? stateOf(latest) : null;
-      if (
-        !task ||
-        !CAN_ASK ||
-        task.turns[0].recipe !== CodeFixTaskType.CodeRequest ||
-        (state !== CodeTaskState.Failed && state !== CodeTaskState.Stopped)
-      ) {
-        failed.push({
-          taskId,
-          message: "Only a failed or stopped request can be tried again.",
-        });
+      const answer = task
+        ? tryAgain(task)
+        : { refusal: "Task not found, or you do not have access to it." };
+      if (answer.refusal) {
+        failed.push({ taskId, message: answer.refusal });
         continue;
       }
-      task.turns.push(
-        newRequestTurn({
-          message: latest.request.message,
-          context: latest.request.context,
-        }),
-      );
       retried++;
     }
     return new HTTPResponse(200, { retried, failed }, {});
@@ -3486,6 +3795,11 @@ async function answer(path, body) {
     if (conversation.turnsNotShown) {
       response.turnsNotShown = conversation.turnsNotShown;
     }
+    // As the server: why a failed fix OneUptime started is not asked again.
+    const tryAgainRefusal = tryAgainRefusalOf(task);
+    if (tryAgainRefusal) {
+      response.tryAgainRefusal = tryAgainRefusal;
+    }
     /*
      * As the server (issue #7130): a turn the read asks for - a Log link's
      * - that the conversation does not show comes back with its place in
@@ -3575,14 +3889,51 @@ async function answer(path, body) {
   if (path.startsWith("/retry/")) {
     window.__fixture.retries.push(path.substring("/retry/".length));
     const task = findTask(path.substring("/retry/".length));
-    const latest = task.turns[task.turns.length - 1];
-    // The same words and context; the branch stays on the first turn.
-    const again = newRequestTurn({
-      message: latest.request.message,
-      context: latest.request.context,
-    });
-    task.turns.push(again);
-    return new HTTPResponse(200, { taskId: task.id, runId: again.runId }, {});
+    if (!task) {
+      return refused(404, "Task not found, or you do not have access to it.");
+    }
+    const answer = tryAgain(task);
+    if (answer.refusal) {
+      return refused(400, answer.refusal);
+    }
+    return new HTTPResponse(
+      200,
+      { taskId: task.id, runId: answer.turn.runId },
+      {},
+    );
+  }
+
+  /*
+   * Show earlier turns: a long task's turns its page does not show, the
+   * page of them just before a turn it shows, as the server answers it
+   * (POST /code-task/turns/:taskId, #7128).
+   */
+  if (path.startsWith("/turns/")) {
+    const taskId = path.substring("/turns/".length);
+    const before = idOf(body.before);
+    const limit = Math.min(
+      MAX_EARLIER_TURNS_PER_READ,
+      Math.max(1, Number(body.limit) || MAX_EARLIER_TURNS_PER_READ),
+    );
+    window.__fixture.earlierReads.push({ taskId, before, limit });
+    const task = findTask(taskId);
+    if (!task || failParam === "task") {
+      return refused(404, "Task not found, or you do not have access to it.");
+    }
+    if (!ObjectID.isValidUUID(before)) {
+      return refused(400, "A valid turn ID is required.");
+    }
+    if (failParam === "earlier") {
+      return refused(
+        500,
+        "The earlier turns could not be read right now. Try again in a moment.",
+      );
+    }
+    const earlier = earlierTurnsOf(task, before, limit);
+    if (!earlier) {
+      return refused(404, "Task not found, or you do not have access to it.");
+    }
+    return new HTTPResponse(200, earlier, {});
   }
 
   /*
