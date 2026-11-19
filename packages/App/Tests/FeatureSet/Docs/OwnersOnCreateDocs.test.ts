@@ -327,6 +327,10 @@ describe("the docs on owners told after a stop part way", () => {
     expect(folders).toEqual([
       "AlertEpisodeOwners",
       "AlertOwners",
+      // Data Observability's tables, pipelines and data stores (#9681).
+      "DataAssetOwners",
+      "DataPipelineOwners",
+      "DataStoreOwners",
       "IncidentEpisodeOwners",
       "IncidentOwners",
       "MonitorOwners",
@@ -376,7 +380,7 @@ describe("the docs on owners told after a stop part way", () => {
       }).toEqual({ job: file, resumes: true, tellsEachOnce: true });
     }
 
-    expect(jobs).toBe(35);
+    expect(jobs).toBe(38);
     // The incident and alert jobs among them, by name.
     expect(JOBS).toHaveLength(5);
 
