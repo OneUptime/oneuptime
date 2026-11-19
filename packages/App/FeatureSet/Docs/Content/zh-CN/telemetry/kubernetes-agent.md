@@ -409,7 +409,7 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 丢弃几个嘈杂的指标（拒绝列表，通常是你想要的）：
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 只发送一组固定的指标（允许列表：其他所有指标都会被丢弃）：
@@ -959,7 +959,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 基数，即不同序列的数量，与频率同样重要，因为每个序列都会单独存储和计费。
 
 - cAdvisor 有意采用允许列表。cAdvisor 接收器（默认开启）可以发出数百个指标；chart 只转发 `cadvisor.metricsAllowlist` 中的 CPU 限流和 OOM kill 计数器，供你自己的图表和指标监视器使用：没有内置模板读取它们。请保持列表简短：每个条目都按容器保存，因此多一个指标就会乘以集群的容器数量。kube-state-metrics 默认关闭；如果你开启它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也以同样的方式工作，并且每个条目都必须与指标的完整名称匹配。
-- 每个 PVC 的卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 的每个 PVC 发出一个序列：对大多数集群来说没问题，但在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上会很多。如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
+- 卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 的每个卷发出几个序列，用于持久卷声明页面上的已用、可用和容量，以及 PVC Almost Full 模板：对大多数集群来说没问题，但在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上会很多。如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
 - 饱和度指标（`kubeletstats.utilizationMetrics.enabled`，默认开启）会增加 8 个派生的“占 request 或 limit 的 %”指标族。它们不需要额外的抓取，但如果你不使用针对 limit 的 CPU 和内存监视器，请用 `--set kubeletstats.utilizationMetrics.enabled=false` 丢弃它们。
 - 对于接收器允许列表无法表达的内容，用作用于所有接收器的 `filters.metrics.exclude` 按名称丢弃指标（见 [按名称包含或排除指标](#按名称包含或排除指标)）：
 
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 按需进一步收紧：把 `minSeverity` 提高到 `ERROR`，把 `metrics` 加入命名空间规则的作用域，或者如果你已经通过 OpenTelemetry SDK 发送追踪，就设置 `ebpf.enabled=false`。
 
 > [!CAUTION]
-> 注意你削减的内容。有些监视器依赖特定的信号：关闭 `kubeletstats.utilizationMetrics` 会让两个按容器限制衡量 Pod 的模板失效，关闭日志会移除基于日志的警报，关闭 `cadvisor` 或 `kubeletstats.volumeMetrics` 会移除你自己的图表和指标监视器可能读取的限流、OOM kill 和 PVC 序列。`sampling.traces.percentage` 不会移除任何监视器，但会按比例缩小基于 Span 的监视器（针对 `Span Count` 的 **追踪**、针对 `Exception Count` 的 **异常**），因此请重新调整它们的阈值。削减你不会据此采取行动的信号，而不是监视器正在监视的信号。
+> 注意你削减的内容。有些监视器依赖特定的信号：关闭 `kubeletstats.utilizationMetrics` 会让两个按容器限制衡量 Pod 的模板失效，关闭日志会移除基于日志的警报，关闭 `kubeletstats.volumeMetrics` 会让 PVC Almost Full 模板失效，持久卷声明页面也不再显示用量，关闭 `cadvisor` 会移除你自己的图表和指标监视器可能读取的限流和 OOM kill 序列。`sampling.traces.percentage` 不会移除任何监视器，但会按比例缩小基于 Span 的监视器（针对 `Span Count` 的 **追踪**、针对 `Exception Count` 的 **异常**），因此请重新调整它们的阈值。削减你不会据此采取行动的信号，而不是监视器正在监视的信号。
 
 ### 衡量效果
 

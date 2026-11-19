@@ -409,7 +409,7 @@ Multi-line events are put back together before filtering in both modes, so a Jav
 Drop a few noisy metrics (a denylist, usually what you want):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Send only a fixed set (an allowlist: everything else is dropped):
@@ -959,7 +959,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Cardinality, the number of distinct series, matters as much as frequency, because each series is stored and billed on its own.
 
 - cAdvisor is allowlisted on purpose. The cAdvisor receiver (on by default) can emit hundreds of metrics; the chart forwards only the CPU throttling and OOM-kill counters in `cadvisor.metricsAllowlist`, for your own charts and metric monitors: no built-in template reads them. Keep the list short: each entry is kept per container, so one more metric multiplies by the cluster's container count. kube-state-metrics is off by default; if you turn it on (`kubeStateMetrics.enabled=true`), its `kubeStateMetrics.metricsAllowlist` works the same way, and each entry must match a metric's whole name.
-- Per-PVC volume metrics (`kubeletstats.volumeMetrics.enabled`, on by default) emit one series per PVC per pod: fine for most clusters, a lot on stateful workloads (Kafka, databases) with thousands of PVCs. Turn them off there if you do not watch PVC disk space, with `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volume metrics (`kubeletstats.volumeMetrics.enabled`, on by default) emit a few series for each volume of each pod, and fill the used, free and capacity on the Persistent Volume Claims pages and the PVC Almost Full template: fine for most clusters, a lot on stateful workloads (Kafka, databases) with thousands of PVCs. Turn them off there if you do not watch PVC disk space, with `--set kubeletstats.volumeMetrics.enabled=false`.
 - Saturation metrics (`kubeletstats.utilizationMetrics.enabled`, on by default) add 8 derived "% of request or limit" families. They cost no extra scrape, but if you do not use the CPU and memory-against-limit monitors, drop them with `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Drop metrics by name with `filters.metrics.exclude`, which spans every receiver, for anything the receiver allowlists cannot say (see [Including or excluding metrics by name](#including-or-excluding-metrics-by-name)):
 
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Tighten further as you need: raise `minSeverity` to `ERROR`, add `metrics` to a namespace rule's scopes, or set `ebpf.enabled=false` if you already send traces from OpenTelemetry SDKs.
 
 > [!CAUTION]
-> Watch what you cut. Some monitors depend on particular signals: turning off `kubeletstats.utilizationMetrics` silences the two templates that watch pods against their container limits, turning off logs removes log-based alerts, and turning off `cadvisor` or `kubeletstats.volumeMetrics` removes the throttling, OOM-kill and PVC series your own charts and metric monitors may read. `sampling.traces.percentage` removes no monitor but scales down the span-based ones (**Traces** on `Span Count`, **Exceptions** on `Exception Count`), so retune their thresholds. Trim the signals you do not act on, not the ones a monitor is watching.
+> Watch what you cut. Some monitors depend on particular signals: turning off `kubeletstats.utilizationMetrics` silences the two templates that watch pods against their container limits, turning off logs removes log-based alerts, turning off `kubeletstats.volumeMetrics` silences the PVC Almost Full template and leaves the claims pages without their usage, and turning off `cadvisor` removes the throttling and OOM-kill series your own charts and metric monitors may read. `sampling.traces.percentage` removes no monitor but scales down the span-based ones (**Traces** on `Span Count`, **Exceptions** on `Exception Count`), so retune their thresholds. Trim the signals you do not act on, not the ones a monitor is watching.
 
 ### Measure the effect
 

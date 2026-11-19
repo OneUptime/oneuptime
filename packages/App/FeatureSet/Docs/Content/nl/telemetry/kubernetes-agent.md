@@ -409,7 +409,7 @@ Gebeurtenissen over meerdere regels worden in beide modi vóór het filteren wee
 Laat een paar luidruchtige metrics vallen (een denylist, meestal wat je wilt):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Stuur alleen een vaste set (een allowlist: al het andere wordt weggelaten):
@@ -959,7 +959,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinaliteit, het aantal verschillende series, telt even zwaar als frequentie, omdat elke serie afzonderlijk wordt opgeslagen en gefactureerd.
 
 - cAdvisor heeft bewust een allowlist. De cAdvisor-receiver (standaard aan) kan honderden metrics uitgeven; de chart stuurt alleen de tellers voor CPU-throttling en OOM-kills in `cadvisor.metricsAllowlist` door, voor je eigen grafieken en metric-monitors: geen ingebouwd sjabloon leest ze. Houd de lijst kort: elke vermelding wordt per container behouden, dus één metric meer vermenigvuldigt zich met het aantal containers in het cluster. kube-state-metrics staat standaard uit; zet je het aan (`kubeStateMetrics.enabled=true`), dan werkt zijn `kubeStateMetrics.metricsAllowlist` op dezelfde manier, en moet elke vermelding de hele naam van een metric dekken.
-- Volumemetrics per PVC (`kubeletstats.volumeMetrics.enabled`, standaard aan) geven één serie per PVC per pod: prima voor de meeste clusters, veel op stateful workloads (Kafka, databases) met duizenden PVC's. Zet ze daar uit als je de schijfruimte van PVC's niet bewaakt, met `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volumemetrics (`kubeletstats.volumeMetrics.enabled`, standaard aan) geven een paar series per volume per pod, en vullen het gebruik, de vrije ruimte en de capaciteit op de pagina's van de Persistent Volume Claims en de sjabloon PVC Almost Full: prima voor de meeste clusters, veel op stateful workloads (Kafka, databases) met duizenden PVC's. Zet ze daar uit als je de schijfruimte van PVC's niet bewaakt, met `--set kubeletstats.volumeMetrics.enabled=false`.
 - Verzadigingsmetrics (`kubeletstats.utilizationMetrics.enabled`, standaard aan) voegen 8 afgeleide families "% van request of limit" toe. Ze kosten geen extra scrape, maar gebruik je de monitors voor CPU en geheugen ten opzichte van de limit niet, laat ze dan vallen met `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Laat metrics op naam vallen met `filters.metrics.exclude`, dat over alle receivers heen werkt, voor alles wat de allowlists van de receivers niet kunnen uitdrukken (zie [Metrics op naam opnemen of uitsluiten](#metrics-op-naam-opnemen-of-uitsluiten)):
 
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Scherp verder aan als dat nodig is: verhoog `minSeverity` naar `ERROR`, voeg `metrics` toe aan de scopes van een namespaceregel, of stel `ebpf.enabled=false` in als je al traces vanuit OpenTelemetry-SDK's stuurt.
 
 > [!CAUTION]
-> Let op wat je wegsnoeit. Sommige monitors hangen af van bepaalde signalen: `kubeletstats.utilizationMetrics` uitzetten legt de twee sjablonen stil die pods tegen hun containerlimieten afzetten, logs uitzetten verwijdert op logs gebaseerde waarschuwingen, en `cadvisor` of `kubeletstats.volumeMetrics` uitzetten verwijdert de reeksen voor throttling, OOM-kills en PVC's die je eigen grafieken en metric-monitors kunnen lezen. `sampling.traces.percentage` verwijdert geen monitor, maar schaalt de op spans gebaseerde monitors omlaag (**Traces** op `Span Count`, **Uitzonderingen** op `Exception Count`), dus stel hun drempels bij. Snoei de signalen waarop je niet handelt, niet de signalen waar een monitor naar kijkt.
+> Let op wat je wegsnoeit. Sommige monitors hangen af van bepaalde signalen: `kubeletstats.utilizationMetrics` uitzetten legt de twee sjablonen stil die pods tegen hun containerlimieten afzetten, logs uitzetten verwijdert op logs gebaseerde waarschuwingen, `kubeletstats.volumeMetrics` uitzetten legt de sjabloon PVC Almost Full stil en laat de pagina's van de claims zonder hun gebruik, en `cadvisor` uitzetten verwijdert de reeksen voor throttling en OOM-kills die je eigen grafieken en metric-monitors kunnen lezen. `sampling.traces.percentage` verwijdert geen monitor, maar schaalt de op spans gebaseerde monitors omlaag (**Traces** op `Span Count`, **Uitzonderingen** op `Exception Count`), dus stel hun drempels bij. Snoei de signalen waarop je niet handelt, niet de signalen waar een monitor naar kijkt.
 
 ### Het effect meten
 

@@ -409,7 +409,7 @@ Kubernetes イベントは、エージェントで namespace によってフィ�
 いくつかの騒がしいメトリクスを破棄する (拒否リスト。通常はこちらが目的に合います):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 固定の集合だけを送信する (許可リスト。それ以外はすべて破棄されます):
@@ -959,7 +959,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 異なる系列の数であるカーディナリティは、頻度と同じくらい重要です。系列はそれぞれ個別に保存され、課金されるためです。
 
 - cAdvisor は意図的に許可リスト方式にしています。cAdvisor レシーバー (既定で有効) は数百のメトリクスを出力できますが、チャートは `cadvisor.metricsAllowlist` にある CPU スロットリングと OOM kill のカウンターだけを、独自のグラフやメトリクスモニターのために転送します。組み込みのテンプレートはこれらを読み取りません。リストは短く保ってください。各エントリはコンテナごとに保持されるため、メトリクスを 1 つ増やすと、クラスターのコンテナ数だけ倍になります。kube-state-metrics は既定でオフです。有効にした場合 (`kubeStateMetrics.enabled=true`)、その `kubeStateMetrics.metricsAllowlist` も同じように機能し、各エントリはメトリクス名全体に一致する必要があります。
-- PVC ごとのボリュームメトリクス (`kubeletstats.volumeMetrics.enabled`、既定で有効) は、Pod ごと・PVC ごとに 1 つの系列を出力します。ほとんどのクラスターでは問題ありませんが、数千の PVC を持つステートフルなワークロード (Kafka、データベース) では大量になります。PVC のディスク容量を監視していない場合は、そこで `--set kubeletstats.volumeMetrics.enabled=false` によりオフにしてください。
+- ボリュームメトリクス (`kubeletstats.volumeMetrics.enabled`、既定で有効) は、Pod ごと・ボリュームごとに数個の系列を出力し、永続ボリュームクレームのページの使用量・空き容量・容量と PVC Almost Full テンプレートを支えます。ほとんどのクラスターでは問題ありませんが、数千の PVC を持つステートフルなワークロード (Kafka、データベース) では大量になります。PVC のディスク容量を監視していない場合は、そこで `--set kubeletstats.volumeMetrics.enabled=false` によりオフにしてください。
 - 飽和度のメトリクス (`kubeletstats.utilizationMetrics.enabled`、既定で有効) は、「request または limit に対する %」の派生ファミリーを 8 つ追加します。追加のスクレイプは不要ですが、limit に対する CPU とメモリのモニターを使わない場合は、`--set kubeletstats.utilizationMetrics.enabled=false` で破棄してください。
 - レシーバーの許可リストでは表現できないものは、すべてのレシーバーに適用される `filters.metrics.exclude` で、名前によってメトリクスを破棄します ([名前によるメトリクスの包含と除外](#名前によるメトリクスの包含と除外) を参照):
 
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 必要に応じてさらに絞り込みます。`minSeverity` を `ERROR` に上げる、namespace ルールのスコープに `metrics` を追加する、すでに OpenTelemetry SDK からトレースを送信しているなら `ebpf.enabled=false` を設定する、といった方法です。
 
 > [!CAUTION]
-> 何を削るかに注意してください。一部のモニターは特定のシグナルに依存しています。`kubeletstats.utilizationMetrics` をオフにすると、Pod をコンテナの上限と比べる 2 つのテンプレートが動かなくなり、ログをオフにするとログベースのアラートがなくなり、`cadvisor` または `kubeletstats.volumeMetrics` をオフにすると、独自のグラフやメトリクスモニターが読み取れるスロットリング、OOM kill、PVC のシリーズがなくなります。`sampling.traces.percentage` はモニターをなくしませんが、スパンベースのモニター (`Span Count` に対する **トレース**、`Exception Count` に対する **例外**) の値を小さくするため、しきい値を調整し直してください。削るのは対応に使っていないシグナルにし、モニターが監視しているものは削らないでください。
+> 何を削るかに注意してください。一部のモニターは特定のシグナルに依存しています。`kubeletstats.utilizationMetrics` をオフにすると、Pod をコンテナの上限と比べる 2 つのテンプレートが動かなくなり、ログをオフにするとログベースのアラートがなくなり、`kubeletstats.volumeMetrics` をオフにすると PVC Almost Full テンプレートが動かなくなり、永続ボリュームクレームのページに使用量が表示されなくなり、`cadvisor` をオフにすると、独自のグラフやメトリクスモニターが読み取れるスロットリングと OOM kill のシリーズがなくなります。`sampling.traces.percentage` はモニターをなくしませんが、スパンベースのモニター (`Span Count` に対する **トレース**、`Exception Count` に対する **例外**) の値を小さくするため、しきい値を調整し直してください。削るのは対応に使っていないシグナルにし、モニターが監視しているものは削らないでください。
 
 ### 効果を測定する
 

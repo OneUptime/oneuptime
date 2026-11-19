@@ -409,7 +409,7 @@ Kubernetes 이벤트는 에이전트에서 네임스페이스로 필터링되지
 시끄러운 메트릭 몇 개 버리기(거부 목록, 보통 이쪽을 원합니다):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 고정된 집합만 보내기(허용 목록: 나머지는 모두 버려집니다):
@@ -959,7 +959,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 고유 시계열 수인 카디널리티는 빈도만큼 중요합니다. 각 시계열이 따로 저장되고 과금되기 때문입니다.
 
 - cAdvisor는 의도적으로 허용 목록 방식입니다. cAdvisor 리시버(기본적으로 켜짐)는 수백 개의 메트릭을 내보낼 수 있지만, 차트는 `cadvisor.metricsAllowlist`에 있는 CPU 스로틀링 및 OOM kill 카운터만 직접 만드는 차트와 메트릭 모니터를 위해 전달합니다. 기본 제공 템플릿은 이를 읽지 않습니다. 목록을 짧게 유지하세요. 각 항목은 컨테이너별로 유지되므로 메트릭 하나를 더하면 클러스터의 컨테이너 수만큼 곱해집니다. kube-state-metrics는 기본적으로 꺼져 있으며, 켜면(`kubeStateMetrics.enabled=true`) 그 `kubeStateMetrics.metricsAllowlist`도 같은 방식으로 작동하고, 각 항목은 메트릭 이름 전체와 일치해야 합니다.
-- PVC별 볼륨 메트릭(`kubeletstats.volumeMetrics.enabled`, 기본적으로 켜짐)은 Pod별·PVC별로 시계열 하나를 내보냅니다. 대부분의 클러스터에는 괜찮지만, PVC가 수천 개인 상태 저장 워크로드(Kafka, 데이터베이스)에서는 많아집니다. PVC 디스크 공간을 감시하지 않는다면 그곳에서 `--set kubeletstats.volumeMetrics.enabled=false`로 끄세요.
+- 볼륨 메트릭(`kubeletstats.volumeMetrics.enabled`, 기본적으로 켜짐)은 Pod별·볼륨별로 시계열 몇 개를 내보내며, 영구 볼륨 클레임 페이지의 사용량, 여유 공간, 용량과 PVC Almost Full 템플릿에 쓰입니다. 대부분의 클러스터에는 괜찮지만, PVC가 수천 개인 상태 저장 워크로드(Kafka, 데이터베이스)에서는 많아집니다. PVC 디스크 공간을 감시하지 않는다면 그곳에서 `--set kubeletstats.volumeMetrics.enabled=false`로 끄세요.
 - 포화도 메트릭(`kubeletstats.utilizationMetrics.enabled`, 기본적으로 켜짐)은 "request 또는 limit 대비 %"의 파생 패밀리 8개를 추가합니다. 추가 스크레이프는 들지 않지만, limit 대비 CPU 및 메모리 모니터를 사용하지 않는다면 `--set kubeletstats.utilizationMetrics.enabled=false`로 버리세요.
 - 리시버 허용 목록으로 표현할 수 없는 것은 모든 리시버에 적용되는 `filters.metrics.exclude`로 이름을 지정해 메트릭을 버리세요([이름으로 메트릭 포함 또는 제외](#이름으로-메트릭-포함-또는-제외) 참조):
 
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 필요에 따라 더 조이세요. `minSeverity`를 `ERROR`로 올리거나, 네임스페이스 규칙의 범위에 `metrics`를 추가하거나, 이미 OpenTelemetry SDK로 트레이스를 보내고 있다면 `ebpf.enabled=false`를 설정하세요.
 
 > [!CAUTION]
-> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 경고가 없어지며, `cadvisor` 또는 `kubeletstats.volumeMetrics`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링, OOM kill, PVC 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
+> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 경고가 없어지며, `kubeletstats.volumeMetrics`를 끄면 PVC Almost Full 템플릿이 멈추고 영구 볼륨 클레임 페이지에 사용량이 표시되지 않으며, `cadvisor`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링과 OOM kill 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
 
 ### 효과 측정
 
