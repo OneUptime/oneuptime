@@ -27,7 +27,7 @@ import IconBadge from "../components/IconBadge";
 import ListFilters from "../components/ListFilters";
 import { getToneColors, type StatusTone } from "../components/StatusPill";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import {
   useListPane,

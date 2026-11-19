@@ -96,7 +96,7 @@ from one into the other mid-task; Split View, Slide Over, iPhone Mirroring and
 Android desktop windows make any size possible anywhere. The rules live in
 `src/layout/windowLayout.ts` (pure, unit-tested) and are read through
 `useWindowLayout()`, `usePane()` and `useContentGutters()` in
-`src/layout/WindowLayout.tsx`. Never branch on `Platform.isPad`, a device
+`src/layout/WindowLayoutProvider.tsx`. Never branch on `Platform.isPad`, a device
 model, a list of known screen sizes or the orientation.
 
 The rows are checked in order; the first that fits the window wins.

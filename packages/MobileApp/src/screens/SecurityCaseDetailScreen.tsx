@@ -10,7 +10,7 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import { useHaptics } from "../hooks/useHaptics";

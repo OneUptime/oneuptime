@@ -9,7 +9,7 @@ import { ProjectProvider } from "./hooks/useProject";
 import { queryClient } from "./api/queryClient";
 import RootNavigator from "./navigation/RootNavigator";
 import OfflineBanner from "./components/OfflineBanner";
-import { WindowLayoutProvider } from "./layout/WindowLayout";
+import { WindowLayoutProvider } from "./layout/WindowLayoutProvider";
 import { ProjectSwitcherHost } from "./components/ProjectSwitcher";
 import {
   recordUserActivity,
