@@ -22,10 +22,14 @@ import {
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
+  GetMetricRowAggregation,
   GetMetricRowGroup,
   GetMetricRowGroupGaps,
+  MetricRowAggregation,
   MetricRowGroupGap,
 } from "../../../Components/Metrics/Utils/MetricRowScope";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import CloudResourceMoreMetrics from "../../../Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics";
 import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
 import {
@@ -35,6 +39,7 @@ import {
   getCloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceRowGroup,
   getCloudMonitoredResourceRowGroupGaps,
+  getCloudResourceAddedSplitAttributes,
   getCloudResourceAddedStoredNames,
   isCloudMonitoredResourceScoped,
 } from "../Utils/CloudMonitoredResourceScope";
@@ -164,6 +169,47 @@ const CloudResourceMetrics: FunctionComponent<
   const addedNamesKey: string = addedStoredNames.join("\n");
 
   /*
+   * An addition split by a dimension (#9808) opens its chart split by it, a
+   * line per value; every other row as its type reads it.
+   */
+  const splitAttributes: Map<string, string> = useMemo(() => {
+    return getCloudResourceAddedSplitAttributes({
+      _id: cloudResource?._id,
+      cloudResourceType: cloudResource?.cloudResourceType,
+      cloudConnection: { addedMetrics },
+    });
+  }, [cloudResource?._id, cloudResource?.cloudResourceType, addedMetrics]);
+  const splitAttributesKey: string = Array.from(splitAttributes.entries())
+    .map(([name, attribute]: [string, string]): string => {
+      return `${name}=${attribute}`;
+    })
+    .join("\n");
+
+  const getRowAggregation: GetMetricRowAggregation | undefined = useMemo(() => {
+    if (splitAttributes.size === 0) {
+      return rowAggregation?.getRowAggregation;
+    }
+
+    return (
+      metricName: string,
+      startAndEndDate: InBetween<Date>,
+    ): MetricRowAggregation | undefined => {
+      const read: MetricRowAggregation | undefined =
+        rowAggregation?.getRowAggregation(metricName, startAndEndDate);
+      const attribute: string | undefined = splitAttributes.get(
+        metricName.trim().toLowerCase(),
+      );
+
+      return attribute
+        ? {
+            ...(read || { aggregationType: AggregationType.Avg }),
+            groupByAttributeKeys: [attribute],
+          }
+        : read;
+    };
+  }, [rowAggregation, splitAttributesKey]);
+
+  /*
    * Its key metrics in sections - Availability, Traffic, Errors, Latency
    * and the rest, most telling first - then what someone added, and its
    * other metrics after them.
@@ -226,7 +272,7 @@ const CloudResourceMetrics: FunctionComponent<
         attributeFilters={attributeFilters}
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
         eventScope={eventScope}
-        getRowAggregation={rowAggregation?.getRowAggregation}
+        getRowAggregation={getRowAggregation}
         getRowGroup={getRowGroup}
         getRowGroupGaps={getRowGroupGaps}
         renderRowGroupGap={renderRowGroupGap}
