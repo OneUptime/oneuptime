@@ -575,6 +575,18 @@ export const getAnnouncementUpdateBoxReason: (data: {
 };
 
 /*
+ * AN ANNOUNCEMENT TEMPLATE'S NOTIFY STATUS PAGE SUBSCRIBERS (#9921): what
+ * ticking it asks for, as Create's switch says it - whether anyone is told
+ * is the status pages' to say, which Create Announcement does for an
+ * announcement made from it. It said "Subscribers of these status pages
+ * are told when an announcement made from this template starts showing."
+ * whatever the template's pages send.
+ */
+export const ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION: string = translationKey(
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
+);
+
+/*
  * MONITORS AFFECTED, WITH NONE PICKED.
  *
  * The review step said "No monitors selected. All subscribers will be

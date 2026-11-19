@@ -22,6 +22,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import { getNotifySubscribersOfUpdateFormField } from "../StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import {
   ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
   AnnouncementFormKind,
   getAnnouncementEndsAtError,
   getAnnouncementReachQuestion,
@@ -500,8 +501,7 @@ export const getAnnouncementTemplateFormFields: () => Array<
       },
       title: "Notify Status Page Subscribers",
       stepId: "status-pages",
-      description:
-        "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
+      description: ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
     },

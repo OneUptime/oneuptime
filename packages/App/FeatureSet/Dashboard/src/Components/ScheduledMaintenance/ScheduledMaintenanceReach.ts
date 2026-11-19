@@ -51,8 +51,8 @@ import {
  * (Common/Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach),
  * worked out from two things:
  *
- *   - the status pages picked, which the server answers for
- *     (POST /scheduled-maintenance/reach, useScheduledMaintenanceReach):
+ *   - the status pages picked, which the server answers for (the reach
+ *     route of the maintenance API, asked by useScheduledMaintenanceReach):
  *     whether one of them shows maintenance events, and whether one that
  *     does notifies - naming no page;
  *   - the event's own settings, which the form holds: Visible on Status
