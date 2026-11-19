@@ -58132,5 +58132,7 @@
   "Never record these pages": "Spela aldrig in de här sidorna",
   "Readable event properties": "Läsbara händelseegenskaper",
   "Record only these pages": "Spela bara in de här sidorna",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "Har personen inget OneUptime-konto ännu skapas det med det här namnet.",
+  "Suggest Every Account When Inviting": "Föreslå alla konton vid inbjudan"
 }

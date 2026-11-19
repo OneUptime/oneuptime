@@ -603,6 +603,17 @@ beforeEach(() => {
     .mockResolvedValue(null as never);
 
   jest.spyOn(UserService, "updateOneById").mockResolvedValue(1 as never);
+
+  /*
+   * A sign-in for an address with no account spends a scrypt derivation,
+   * so its refusal takes as long as a wrong password's (#9745,
+   * SignInSaysNothingOfAccounts). These suites count requests, hundreds of
+   * them for addresses nobody has, not the time each takes: the derivation
+   * is skipped here, or each such request would cost tens of milliseconds.
+   */
+  jest
+    .spyOn(PasswordHash, "spendVerificationTime")
+    .mockResolvedValue(undefined);
 });
 
 afterEach(() => {

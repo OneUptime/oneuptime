@@ -58132,5 +58132,7 @@
   "Never record these pages": "从不录制这些页面",
   "Readable event properties": "可读的事件属性",
   "Record only these pages": "仅录制这些页面",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "如果此人还没有 OneUptime 账户，将用这个名字创建账户。",
+  "Suggest Every Account When Inviting": "邀请时建议所有账户"
 }

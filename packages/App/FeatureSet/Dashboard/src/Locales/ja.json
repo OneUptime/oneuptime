@@ -58132,5 +58132,7 @@
   "Never record these pages": "これらのページは録画しない",
   "Readable event properties": "読み取れるイベントプロパティ",
   "Record only these pages": "これらのページだけを録画",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "この人がまだ OneUptime のアカウントを持っていない場合は、この名前でアカウントが作成されます。",
+  "Suggest Every Account When Inviting": "招待時にすべてのアカウントを候補に表示"
 }
