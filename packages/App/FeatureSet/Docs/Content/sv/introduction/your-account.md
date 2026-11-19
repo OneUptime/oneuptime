@@ -123,12 +123,28 @@ Första gången du lägger till en app, en nyckel eller en passnyckel visar OneU
 
 Har du redan en app under **Autentiseringsappar** eller en nyckel under **Säkerhetsnycklar**, ber **Aktivera tvåfaktorsautentisering** dig bara att bekräfta. Så länge den är aktiverad går det inte att ta bort din sista app, nyckel eller passnyckel: lägg först till en annan, eller stäng av tvåfaktorsautentisering. Visar kortet **Konfiguration krävs**, är tvåfaktorsautentisering aktiverad utan att något är konfigurerat, ofta för att en administratör har krävt det: klicka på **Slutför konfigurationen**, annars blir du ombedd att göra det vid nästa inloggning.
 
+### Konfigurera tvåfaktorsautentisering när du loggar in
+
+När en administratör kräver tvåfaktorsautentisering och du inte har konfigurerat något ännu, ber din nästa inloggning med lösenord eller en länk via e-post dig att konfigurera den innan du släpps in. Välj **Autentiseringsapp** eller **Säkerhetsnyckel** och klicka på **Fortsätt**:
+
+- **Autentiseringsapp**: skanna QR-koden, ange den sexsiffriga kod din app visar och klicka på **Verifiera och logga in**.
+- **Säkerhetsnyckel**: klicka på **Registrera säkerhetsnyckel** och följ webbläsarens anvisningar. Rör vid en USB- eller NFC-nyckel, eller använd fingeravtryck, ansikte eller skärmlås på din telefon eller dator.
+
+Har du inga reservkoder ännu visar OneUptime dem sedan en gång, och du är inloggad. **Välj ett annat sätt** går tillbaka till valet. En webbläsare som inte kan registrera en säkerhetsnyckel, till exempel på en sida utan HTTPS, erbjuder bara autentiseringsappen.
+
 > [!TIP]
 > Håller reservkoderna på att ta slut? **Generera nya koder** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
 
 ### När din organisation hanterar din inloggning
 
-På en server som kräver enkel inloggning loggar du bara in via organisationens identitetsleverantör, till exempel Okta eller Microsoft Entra ID, och OneUptime konfigurerar inget lösenord, ingen passnyckel och ingen tvåfaktorsautentisering åt dig. **Användarprofil** har då ingen del som heter **Säkerhet**, och dess **Översikt** visar din leverantör under **Enkel inloggning**. Byt lösenord och andra steg hos din identitetsleverantör. Det du konfigurerade tidigare finns kvar: det fungerar igen först om servern slutar kräva enkel inloggning. Huvudadministratörer behåller sina egna inställningar under **Säkerhet**.
+På en server som kräver enkel inloggning loggar du bara in via organisationens identitetsleverantör, till exempel Okta eller Microsoft Entra ID, och OneUptime konfigurerar inget lösenord, ingen passnyckel och ingen tvåfaktorsautentisering åt dig. **Användarprofil** har då ingen del som heter **Säkerhet**, och dess **Översikt** visar din leverantör under **Enkel inloggning**. Byt lösenord och andra steg hos din identitetsleverantör. Det du konfigurerade tidigare finns kvar: det fungerar igen först om servern slutar kräva enkel inloggning, om inte en serveradministratör rensar det. Huvudadministratörer behåller sina egna inställningar under **Säkerhet**.
+
+Samma sak händer när alla projekt du tillhör kräver enkel inloggning och har **Hantera inloggning med SSO** påslaget. Ditt lösenord loggar fortfarande in dig i OneUptime, men alla projekt ber om SSO, så OneUptime konfigurerar inget nytt lösenord, ingen ny passnyckel och inget nytt andra steg åt dig:
+
+- **Ett projekt som inte gör det**: så snart du är medlem i, eller inbjuden till, ett projekt som inte kräver SSO eller inte har **Hantera inloggning med SSO** påslaget, kommer din del **Säkerhet** tillbaka. **Översikt** visar då de projekten under **Enkel inloggning**, som skälet till att inställningarna är dina. Lämnar du det projektet förlorar du dem igen.
+- **Projekt med olika leverantörer**: om alla dina projekt hanterar inloggningen, vart och ett med sin egen identitetsleverantör, visar **Översikt** varje leverantör.
+- **Huvudadministratörer** behåller alltid sina egna inställningar under **Säkerhet**.
+- **Det du konfigurerade tidigare** finns kvar, och en serveradministratör kan rensa det.
 
 ## Dina projekt
 

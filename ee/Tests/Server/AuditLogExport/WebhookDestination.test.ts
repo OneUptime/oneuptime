@@ -17,8 +17,8 @@ import {
 } from "Common/Server/Utils/DataSource/HttpFetch";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
-  AUDIT_LOG_EXPORT_RECORD_KEYS,
   AuditLogExportRecord,
+  getAuditLogExportRecordKeys,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import Dictionary from "Common/Types/Dictionary";
 import {
@@ -168,9 +168,9 @@ describe("the webhook destination", () => {
         return record.id;
       }),
     );
-    expect(Object.keys(batch.entries[0]!)).toEqual([
-      ...AUDIT_LOG_EXPORT_RECORD_KEYS,
-    ]);
+    expect(Object.keys(batch.entries[0]!)).toEqual(
+      getAuditLogExportRecordKeys(records[0]!.schemaVersion),
+    );
   });
 
   test("NDJSON sends one entry per line", async () => {

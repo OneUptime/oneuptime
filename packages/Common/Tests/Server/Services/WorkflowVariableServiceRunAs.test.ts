@@ -301,4 +301,91 @@ describe("a workflow's variables, by what it runs as", () => {
       deleter.userId!.toString().toLowerCase(),
     );
   });
+
+  test("of a workflow that runs as Project Owner: an API key holding Project Owner changes one, and the key gives the workflow its permissions (#9765)", async () => {
+    const keyId: ObjectID = ObjectID.generate();
+
+    await WorkflowVariableService.updateOneById({
+      id: new ObjectID(OWNER_VARIABLE_ID),
+      data: { content: "role-of-responders" } as never,
+      props: apiKey([Permission.ProjectOwner], keyId),
+    });
+
+    expect(variables.get(OWNER_VARIABLE_ID)?.["content"]).toBe(
+      "role-of-responders",
+    );
+    expect(
+      String(
+        workflows.get(OWNER_WORKFLOW_ID)?.["runAsGivenByApiKeyId"],
+      ).toLowerCase(),
+    ).toBe(keyId.toString().toLowerCase());
+    expect(workflows.get(OWNER_WORKFLOW_ID)?.["runAsGivenByUserId"]).toBeNull();
+  });
+
+  test("of a workflow that runs as Project Owner: an API key holding less may not create, change or delete one", async () => {
+    const key: DatabaseCommonInteractionProps = apiKey([
+      Permission.WorkflowAdmin,
+      Permission.ProjectAdmin,
+    ]);
+
+    expect(
+      (await refusal(createVariable(OWNER_WORKFLOW_ID, key))).message,
+    ).toBe(OWNER_REFUSAL);
+    expect(
+      (
+        await refusal(
+          WorkflowVariableService.updateOneById({
+            id: new ObjectID(OWNER_VARIABLE_ID),
+            data: { content: "role-of-the-owners" } as never,
+            props: key,
+          }),
+        )
+      ).message,
+    ).toBe(OWNER_REFUSAL);
+    expect(
+      (
+        await refusal(
+          WorkflowVariableService.deleteOneById({
+            id: new ObjectID(OWNER_VARIABLE_ID),
+            props: key,
+          }),
+        )
+      ).message,
+    ).toBe(OWNER_REFUSAL);
+
+    expect(variables.get(OWNER_VARIABLE_ID)?.["content"]).toBe(
+      "role-of-new-teams",
+    );
+    expect(giverOf(OWNER_WORKFLOW_ID)).toBe(FIRST_GIVER_ID);
+  });
 });
+
+// An API key of the project holding `permissions` (#9765).
+function apiKey(
+  permissions: Array<Permission>,
+  apiKeyId: ObjectID = ObjectID.generate(),
+): DatabaseCommonInteractionProps {
+  return {
+    ...ON_HIGHEST_PLAN,
+    tenantId: PROJECT_ID,
+    userType: UserType.API,
+    apiKeyId: apiKeyId,
+    apiKeyName: "Terraform",
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: permissions.map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          },
+        ),
+      },
+    },
+  };
+}

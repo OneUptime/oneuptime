@@ -17,6 +17,7 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
 import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
+import LlmType from "../../Types/LLM/LlmType";
 import CarriedRecords, {
   CarriedRecordIds,
 } from "../../Types/AI/CarriedRecords";
@@ -66,6 +67,9 @@ export interface AIRunTransitionSet {
   llmCallCount?: number | undefined;
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
+  // The model that wrote a completed run's answer, and its provider's type.
+  modelName?: string | undefined;
+  llmProviderType?: LlmType | undefined;
   codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
   // The claiming agent's id as a string (ObjectID.toString()) — see above.
   aiAgentId?: string | undefined;

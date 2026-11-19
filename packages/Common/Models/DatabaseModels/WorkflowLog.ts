@@ -697,6 +697,72 @@ export default class WorkflowLog extends BaseModel {
   })
   public runAsGivenByUserId?: ObjectID = undefined;
 
+  /*
+   * The project API key whose permissions a run that acted as more than
+   * Default ran with, when a key gave them (#9765: Workflow
+   * .runAsGivenByApiKeyId when it started), with the key's name then, so the
+   * run still says which key it was once the key is renamed or deleted.
+   * Kept as the run read it, with no key to ApiKey: a run's record is
+   * history, and deleting a key leaves its runs as they were.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "Ran As Given by API Key ID",
+    description:
+      "ID of the project API key whose permissions the run ran with, when it ran as more than Default and a key gave them.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runAsGivenByApiKeyId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Ran As Given by API Key Name",
+    description:
+      "The name of the project API key whose permissions the run ran with, as it was when the run started. Empty unless a key gave them.",
+    example: "Terraform",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public runAsGivenByApiKeyName?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

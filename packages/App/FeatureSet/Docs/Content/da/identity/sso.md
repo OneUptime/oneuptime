@@ -294,6 +294,21 @@ At slå **Kræv SSO for at logge ind** fra gemmes, så snart du slår kontakten 
 > [!NOTE]
 > På OneUptime Cloud kræver det planen **Scale** at kræve SSO, mens det virker på alle planer at slå det fra. Under Scale viser **Projektindstillinger** > **Sikkerhed** > **SSO** planens opgraderingstilbud; et projekt, som en Scale-prøveperiode efterlod med krav om SSO, finder også **Kræv SSO for at logge ind** der, under tilbuddet, så det kan slås fra. At slå det til igen kræver **Scale**.
 
+### Styr dine brugeres login med SSO
+
+At kræve SSO holder dit projekts data bag din identitetsudbyder, men dine brugere kan stadig opsætte en adgangskode, adgangsnøgler og tofaktorgodkendelse i OneUptime, som dit projekt aldrig beder om. Så længe **Kræv SSO for at logge ind** er slået til, forhindrer en anden kontakt under den, **Styr login med SSO**, det.
+
+En persons login styres af SSO, når alle de projekter, vedkommende hører til, inklusive ethvert projekt, vedkommende er inviteret til, kræver SSO og har **Styr login med SSO** slået til. Vedkommende kan så ikke opsætte en adgangskode, en adgangsnøgle, en sikkerhedsnøgle, en godkendelsesapp, backupkoder eller tofaktorgodkendelse, **Glemt adgangskode?** sender intet link, og vedkommendes **Brugerprofil** nævner identitetsudbyderen i stedet for at tilbyde de indstillinger. Intet ændrer sig ved login: Adgangskoden logger stadig vedkommende ind i OneUptime, og dit projekt beder om SSO som før.
+
+Reglen kontrolleres hver gang, så:
+
+- **En person i et projekt, der ikke styrer login**: Så snart vedkommende er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, får vedkommende sine indstillinger tilbage, og vedkommendes **Brugerprofil** nævner det projekt som grunden. Forlader vedkommende det, styres login igen. En konto kan høre til mange organisationer, så én organisation bestemmer aldrig over en andens projekter.
+- **Projekter med forskellige udbydere**: En person i to projekter, der begge styrer login, hver med sin egen identitetsudbyder, styres, og profilen nævner begge udbydere.
+- **Master-admins** beholder altid deres egne indstillinger.
+- **Det, folk har opsat før**, bevares, ubrugt af dit projekt. En serveradministrator kan rydde det på personens side **Godkendelse** i Admin Dashboard med **Ryd loginindstillinger**.
+
+**Styr login med SSO** gemmes, så snart du slår kontakten om, sletter intet, og slår du den fra, får alle straks deres indstillinger tilbage. Den, der kan ændre **Kræv SSO for at logge ind**, kan ændre den, på de samme planer. Når **Kræv SSO for at logge ind** er slået fra, er den skjult og ændrer intet.
+
 ## Slå en udbyder fra eller slet den
 
 | Hvad du ændrer | Personer, der loggede ind med udbyderen |

@@ -254,7 +254,9 @@ const TASK_STATE_READERS: Record<string, Classification> = {
     mustContain: [
       "reader: DatabaseCommonInteractionProps;",
       "const fixRun: AIRun | null = activeRun || finishedRun;",
-      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixRun.id], reader: data.reader, })",
+      // Asked of the task - a fix asked again from Code is a later turn of it.
+      "const fixTaskId: ObjectID | null = SubjectCodeFixRun.taskIdOf(fixRun);",
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixTaskId], reader: data.reader, })",
       "return HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION;",
     ],
   },
@@ -262,7 +264,9 @@ const TASK_STATE_READERS: Record<string, Classification> = {
     kind: "asksTheRule",
     mustContain: [
       "reader: DatabaseCommonInteractionProps;",
-      "activeRun?.id?.toString() || finishedFix?.aiRunId || null;",
+      // Asked of the task - a fix asked again from Code is a later turn of it.
+      "SubjectCodeFixRun.taskIdOf(activeRun)?.toString() || null;",
+      "activeTaskId || finishedFix?.aiRunId || null;",
       "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixTaskId], reader: data.reader, })",
       "finishedFix: FinishedFixOutcome.Hidden,",
     ],

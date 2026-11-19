@@ -611,6 +611,7 @@ export default class RunWorkflow {
           runAs: true,
           runAsCustomRoleId: true,
           runAsGivenByUserId: true,
+          runAsGivenByApiKeyId: true,
         },
         props: {
           isRoot: true,
@@ -826,9 +827,10 @@ export default class RunWorkflow {
       /*
        * What the steps act as (#9695): the workflow's Run As as it is now -
        * for a run carrying on after a Sleep step too, which acts as the
-       * workflow does when it wakes - checked against the person who gave
-       * it, as they are in the project now. Refused, the run stops here,
-       * before any step, and says why and who can put it right.
+       * workflow does when it wakes - checked against whoever gave it, a
+       * person or a project API key (#9765), as they are in the project now.
+       * Refused, the run stops here, before any step, and says why and who
+       * can put it right.
        */
       this.runAs = await WorkflowRunAsAuthority.resolveForRun({
         projectId: workflow.projectId!,
@@ -837,6 +839,7 @@ export default class RunWorkflow {
           customRoleId: workflow.runAsCustomRoleId,
         },
         givenByUserId: workflow.runAsGivenByUserId,
+        givenByApiKeyId: workflow.runAsGivenByApiKeyId,
       });
 
       await this.recordRunAs(runProps.workflowLogId);
@@ -2267,10 +2270,13 @@ export default class RunWorkflow {
   /*
    * What this run acts as, on its row (WorkflowLog.runAs and the columns
    * beside it), and - for a run that acts as more than Default - said in
-   * its log as it starts, with whose permissions. Every run says it; a run
-   * as Default leaves its log as it always was.
+   * its log as it starts, with whose permissions: a person's, or a project
+   * API key's, by its name now (#9765). Every run says it; a run as Default
+   * leaves its log as it always was.
    */
   private async recordRunAs(workflowLogId: ObjectID): Promise<void> {
+    const isGivenByApiKey: boolean = Boolean(this.runAs.givenByApiKeyId);
+
     if (WorkflowPrincipal.isRaised(this.runAs.runAs)) {
       this.log(
         getWorkflowRunAsRunLogLine({
@@ -2278,7 +2284,8 @@ export default class RunWorkflow {
             runAs: this.runAs.runAs,
             customRoleName: this.runAs.customRoleName,
           },
-          giverName: this.runAs.givenByName || "the person who gave them",
+          giverName: this.runAs.givenByName || "",
+          isGivenByApiKey: isGivenByApiKey,
         }),
       );
     }
@@ -2288,7 +2295,13 @@ export default class RunWorkflow {
       data: {
         runAs: this.runAs.runAs,
         runAsCustomRoleName: this.runAs.customRoleName || null,
-        runAsGivenByUserId: this.runAs.givenByUserId || null,
+        runAsGivenByUserId: isGivenByApiKey
+          ? null
+          : this.runAs.givenByUserId || null,
+        runAsGivenByApiKeyId: this.runAs.givenByApiKeyId || null,
+        runAsGivenByApiKeyName: isGivenByApiKey
+          ? this.runAs.givenByName || null
+          : null,
       } as any,
     });
   }

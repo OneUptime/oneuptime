@@ -294,6 +294,21 @@ Turning **Require SSO to Sign In** off saves as soon as you flip it and lets mem
 > [!NOTE]
 > On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO to Sign In** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
 
+### Managing your people's sign-in with SSO
+
+Requiring SSO keeps your project's data behind your identity provider, but your people can still set a password, passkeys and two-factor authentication in OneUptime, which your project never asks for. While **Require SSO to Sign In** is on, a second switch under it, **Manage Sign-In with SSO**, stops that.
+
+Someone's sign-in is managed by SSO when every project they belong to, including any project they are invited to, requires SSO and has **Manage Sign-In with SSO** on. They then cannot set a password, a passkey, a security key, an authenticator app, backup codes or two-factor authentication, **Forgot password?** emails them no link, and their **User Profile** names their identity provider instead of offering those settings. Nothing about signing in changes: their password still signs them in to OneUptime, and your project asks for SSO as before.
+
+The rule is checked every time, so:
+
+- **Someone in a project that does not manage sign-in**: as soon as they are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, they get their settings back, and their **User Profile** names that project as the reason. Leaving it manages their sign-in again. An account can belong to many organizations, so one organization never decides for another's projects.
+- **Projects with different providers**: someone in two projects that both manage sign-in, each with its own identity provider, is managed, and their profile names both providers.
+- **Master admins** always keep their own settings.
+- **What people set up before** is kept, unused by your project. A server admin can clear it on the person's **Authentication** page in the Admin Dashboard, with **Clear Sign-In Settings**.
+
+**Manage Sign-In with SSO** saves as soon as you flip it, deletes nothing, and turning it off gives everyone their settings back at once. Whoever can change **Require SSO to Sign In** can change it, on the same plans. With **Require SSO to Sign In** off, it is hidden and changes nothing.
+
 ## Turning a provider off or deleting it
 
 | What you change | People who signed in with the provider |

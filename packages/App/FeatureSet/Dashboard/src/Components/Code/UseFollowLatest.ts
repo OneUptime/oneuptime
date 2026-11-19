@@ -201,11 +201,36 @@ export interface UseFollowLatestOptions {
    * page follows to its end.
    */
   getLatestStart?: (() => Element | null) | undefined;
+  /*
+   * The conversation, watched for what lays out after the follow's second
+   * look (#7644): a reply's Markdown, whose viewer loads on its own
+   * (LazyMarkdownViewer) and draws the reply from a two-line placeholder,
+   * changes no growth key and sends no scroll or resize. While the reader
+   * is followed and still at the end, the page follows that too. Without
+   * one, only the second look follows late layout.
+   */
+  container?: Element | null | undefined;
 }
 
-const useFollowLatest: (data: UseFollowLatestOptions) => void = (
+// What a page that follows its reader can be asked to do.
+export interface FollowLatest {
+  /*
+   * The reader was just taken to the end (goToPageEnd, after a reply):
+   * follow them from there, as one who came to the end themselves.
+   */
+  followFromHere: () => void;
+  /*
+   * Jump to newest: the page to the newest turn - its end, or once its
+   * turn has ended no further than its reply's first line - now and once
+   * more on the next frame, unless the reader goes back up meanwhile; then
+   * followed from there. Returns what cancels the second look.
+   */
+  jumpToNewest: () => () => void;
+}
+
+const useFollowLatest: (data: UseFollowLatestOptions) => FollowLatest = (
   data: UseFollowLatestOptions,
-): void => {
+): FollowLatest => {
   /*
    * How tall the page was when the reader was last seen: at each scroll and
    * resize the browser sends, and after each growth.
@@ -223,6 +248,40 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
   > = useRef<(() => Element | null) | undefined>(data.getLatestStart);
   getLatestStartRef.current = data.getLatestStart;
 
+  // AI works on the latest turn now, as last drawn.
+  const isLiveRef: MutableRefObject<boolean> = useRef<boolean>(data.isLive);
+  isLiveRef.current = data.isLive;
+
+  /*
+   * The page follows the reader now: it took them to the newest step (or
+   * they were taken to the end, or jumped there), and they have not
+   * scrolled away since. Only then does late layout move the page: opening
+   * a task never does.
+   */
+  const isFollowingRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
+  /*
+   * The page to where it follows its reader: its end - and, once the turn
+   * has ended, no further than its reply's first line.
+   */
+  const scrollToTarget: (scroller: Element) => void = (
+    scroller: Element,
+  ): void => {
+    const start: Element | null =
+      !isLiveRef.current && getLatestStartRef.current
+        ? getLatestStartRef.current()
+        : null;
+
+    scroller.scrollTop = getFollowTarget({
+      scrollHeight: scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+      latestStartTop: start
+        ? start.getBoundingClientRect().top + scroller.scrollTop
+        : null,
+      headerHeight: getHeaderHeight(),
+    });
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
@@ -232,6 +291,11 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
       const scroller: Element | null = getScroller();
 
       seenHeightRef.current = scroller ? scroller.scrollHeight : null;
+
+      // A reader who scrolled away from the end is not followed any more.
+      if (scroller && !isScrolledToEnd(scroller)) {
+        isFollowingRef.current = false;
+      }
     };
 
     onScroll();
@@ -244,6 +308,46 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
       window.removeEventListener("resize", onScroll);
     };
   }, []);
+
+  /*
+   * What lays out after the second look (#7644): the conversation grew,
+   * and the page follows a reader it follows who is still at the end as
+   * last seen - and stops following one who is not. Never a reader it
+   * does not follow, so opening a task, or scrolling up, moves nothing.
+   */
+  useEffect(() => {
+    const container: Element | null | undefined = data.container;
+
+    if (
+      !container ||
+      typeof window === "undefined" ||
+      typeof window.ResizeObserver !== "function"
+    ) {
+      return undefined;
+    }
+
+    const observer: ResizeObserver = new window.ResizeObserver((): void => {
+      const scroller: Element | null = getScroller();
+
+      if (!scroller || !isFollowingRef.current) {
+        return;
+      }
+
+      if (!isAtEndAsLastSeen(scroller, seenHeightRef.current)) {
+        isFollowingRef.current = false;
+        return;
+      }
+
+      scrollToTarget(scroller);
+      seenHeightRef.current = scroller.scrollHeight;
+    });
+
+    observer.observe(container);
+
+    return (): void => {
+      observer.disconnect();
+    };
+  }, [data.container]);
 
   useLayoutEffect(() => {
     const scroller: Element | null = getScroller();
@@ -263,34 +367,18 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
       seenHeightRef.current,
     );
 
+    const hasGrown: boolean =
+      Boolean(previousKey) && previousKey !== data.growthKey;
+
     const isFollowing: boolean =
-      Boolean(previousKey) &&
-      previousKey !== data.growthKey &&
-      (data.isLive || wasLive) &&
-      wasAtEnd;
-
-    // The turn has ended: its reply is read from its first line.
-    const hasEnded: boolean = !data.isLive;
-
-    const scrollToTarget: () => void = (): void => {
-      const start: Element | null =
-        hasEnded && getLatestStartRef.current
-          ? getLatestStartRef.current()
-          : null;
-
-      scroller.scrollTop = getFollowTarget({
-        scrollHeight: scroller.scrollHeight,
-        clientHeight: scroller.clientHeight,
-        latestStartTop: start
-          ? start.getBoundingClientRect().top + scroller.scrollTop
-          : null,
-        headerHeight: getHeaderHeight(),
-      });
-    };
+      hasGrown && (data.isLive || wasLive) && wasAtEnd;
 
     if (isFollowing) {
       // At once: a step that slides in smoothly is behind by the next one.
-      scrollToTarget();
+      scrollToTarget(scroller);
+      isFollowingRef.current = true;
+    } else if (hasGrown && !wasAtEnd) {
+      isFollowingRef.current = false;
     }
 
     // The page as the reader sees it now, for the next growth.
@@ -302,11 +390,12 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
 
     /*
      * What lays out a frame later (a reply's Markdown) still ends in view,
-     * unless the reader scrolled away meanwhile.
+     * unless the reader scrolled away meanwhile. What lays out later still
+     * is followed as it comes (the container's observer above).
      */
     const frame: number = window.requestAnimationFrame((): void => {
       if (isAtEndAsLastSeen(scroller, seenHeightRef.current)) {
-        scrollToTarget();
+        scrollToTarget(scroller);
         seenHeightRef.current = scroller.scrollHeight;
       }
     });
@@ -315,6 +404,47 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
       window.cancelAnimationFrame(frame);
     };
   }, [data.growthKey, data.isLive]);
+
+  const followFromHere: () => void = (): void => {
+    const scroller: Element | null = getScroller();
+
+    isFollowingRef.current = true;
+    seenHeightRef.current = scroller ? scroller.scrollHeight : null;
+  };
+
+  const jumpToNewest: () => () => void = (): (() => void) => {
+    const scroller: Element | null = getScroller();
+
+    if (!scroller) {
+      return (): void => {};
+    }
+
+    scrollToTarget(scroller);
+    followFromHere();
+
+    if (
+      typeof window === "undefined" ||
+      typeof window.requestAnimationFrame !== "function"
+    ) {
+      return (): void => {};
+    }
+
+    const scrolledTo: number = scroller.scrollTop;
+
+    // Once more on the next frame, for what laid out meanwhile.
+    const frame: number = window.requestAnimationFrame((): void => {
+      if (scroller.scrollTop >= scrolledTo) {
+        scrollToTarget(scroller);
+        seenHeightRef.current = scroller.scrollHeight;
+      }
+    });
+
+    return (): void => {
+      window.cancelAnimationFrame(frame);
+    };
+  };
+
+  return { followFromHere, jumpToNewest };
 };
 
 export default useFollowLatest;

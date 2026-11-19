@@ -294,6 +294,21 @@ Das Ausschalten von **SSO für die Anmeldung erzwingen** speichert, sobald Sie d
 > [!NOTE]
 > Auf OneUptime Cloud braucht das Verlangen von SSO den Plan **Scale**; das Ausschalten funktioniert in jedem Plan. Unterhalb von Scale zeigt **Projekteinstellungen** > **Sicherheit** > **SSO** das Upgrade-Angebot des Plans; ein Projekt, das nach einer Scale-Testphase noch SSO verlangt, findet dort unter dem Angebot auch **SSO für die Anmeldung erzwingen**, damit es ausgeschaltet werden kann. Wieder einschalten erfordert **Scale**.
 
+### Die Anmeldung Ihrer Mitglieder mit SSO verwalten
+
+Das Verlangen von SSO hält die Daten Ihres Projekts hinter Ihrem Identitätsanbieter, doch Ihre Mitglieder können in OneUptime weiterhin ein Passwort, Passkeys und die Zwei-Faktor-Authentifizierung einrichten, wonach Ihr Projekt nie fragt. Solange **SSO für die Anmeldung erzwingen** eingeschaltet ist, verhindert das ein zweiter Schalter darunter, **Anmeldung mit SSO verwalten**.
+
+Die Anmeldung einer Person wird von SSO verwaltet, wenn jedes Projekt, zu dem sie gehört, einschließlich jedes Projekts, zu dem sie eingeladen ist, SSO verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Sie kann dann kein Passwort, keinen Passkey, keinen Sicherheitsschlüssel, keine Authenticator-App, keine Backup-Codes und keine Zwei-Faktor-Authentifizierung einrichten, **Passwort vergessen?** schickt ihr keinen Link, und ihr **Benutzerprofil** nennt ihren Identitätsanbieter, statt diese Einstellungen anzubieten. An der Anmeldung selbst ändert sich nichts: Mit ihrem Passwort meldet sie sich weiterhin bei OneUptime an, und Ihr Projekt verlangt wie bisher SSO.
+
+Die Regel wird jedes Mal geprüft, daher gilt:
+
+- **Jemand in einem Projekt, das die Anmeldung nicht verwaltet**: Sobald die Person Mitglied eines Projekts ist oder zu einem Projekt eingeladen wird, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, erhält sie ihre Einstellungen zurück, und ihr **Benutzerprofil** nennt dieses Projekt als Grund. Verlässt sie es, wird ihre Anmeldung wieder verwaltet. Ein Konto kann zu vielen Organisationen gehören, daher entscheidet eine Organisation nie über die Projekte einer anderen.
+- **Projekte mit unterschiedlichen Anbietern**: Wer in zwei Projekten ist, die beide die Anmeldung verwalten, jedes mit seinem eigenen Identitätsanbieter, wird verwaltet, und sein Profil nennt beide Anbieter.
+- **Master-Admins** behalten immer ihre eigenen Einstellungen.
+- **Was Personen vorher eingerichtet haben**, bleibt gespeichert und wird von Ihrem Projekt nicht genutzt. Ein Server-Admin kann es auf der Seite **Authentifizierung** der Person im Admin Dashboard mit **Anmeldeeinstellungen löschen** löschen.
+
+**Anmeldung mit SSO verwalten** speichert, sobald Sie den Schalter umlegen, löscht nichts, und das Ausschalten gibt allen ihre Einstellungen sofort zurück. Wer **SSO für die Anmeldung erzwingen** ändern kann, kann auch diesen Schalter ändern, in denselben Plänen. Ist **SSO für die Anmeldung erzwingen** ausgeschaltet, ist er ausgeblendet und ändert nichts.
+
 ## Einen Anbieter ausschalten oder löschen
 
 | Was Sie ändern | Personen, die sich mit dem Anbieter angemeldet haben |

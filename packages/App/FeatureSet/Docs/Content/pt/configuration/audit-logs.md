@@ -67,10 +67,10 @@ Uma mudança nessas configurações vale em até um minuto.
 | **Quando** | Há quanto tempo, com a data e a hora. |
 | **Ação** | `Create`, `Update` ou `Delete`, `Download` para um arquivo de captura de pacotes que alguém baixou, ou `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` ou `Session Revoked` para um login ou uma sessão. |
 | **Recurso** | O nome do recurso, que o abre enquanto ele existe, e o tipo dele. |
-| **Ator** | Quem fez a mudança: uma pessoa, uma chave de API, um workflow ou `System` para uma mudança que o OneUptime fez por conta própria. A mudança de uma pessoa feita por um cliente MCP indica qual. |
+| **Ator** | Quem fez a mudança: uma pessoa, uma chave de API, um workflow ou `System` para uma mudança que o OneUptime fez por conta própria. A mudança de uma pessoa feita por um cliente MCP indica qual. A mudança de um workflow diz como ele foi executado e com as permissões de quem. |
 | **Alterações** | Quantos campos mudaram, ou foram capturados em uma criação ou exclusão. Para um login ou uma sessão, como foi feito o login, por que ele falhou ou por que ela terminou. Clique para ver cada campo. |
 
-Filtre por **Tipo de recurso**, **Nome do recurso**, **Ação**, **E-mail do Usuário** ou **Hora**. Uma alteração lista só os campos que mudaram, antes e depois, e um salvamento que não muda nada não adiciona entrada.
+Filtre por **Tipo de recurso**, **Nome do recurso**, **Ação**, **E-mail do Usuário**, **Fluxo de trabalho executado como**, **Permissões do fluxo de trabalho dadas por** ou **Hora**. Uma alteração lista só os campos que mudaram, antes e depois, e um salvamento que não muda nada não adiciona entrada.
 
 Um recurso sem nome próprio recebe o nome do que o nomeia no OneUptime: uma exceção, pelo seu tipo e pelo início da sua mensagem, com ids, endereços e tudo o que pareça um segredo mascarados; uma execução de runbook, pelo seu runbook; o número de telefone de uma política de chamadas recebidas, pelo próprio número; e um modelo ou um domínio, pelo seu próprio nome.
 

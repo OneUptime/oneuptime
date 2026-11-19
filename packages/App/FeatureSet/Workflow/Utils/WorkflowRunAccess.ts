@@ -119,7 +119,7 @@ export default class WorkflowRunAccess {
 
   /*
    * A WORKFLOW THAT RUNS AS MORE THAN DEFAULT (#9695) is run by hand - the
-   * whole of it, one step of it, or again - only by a person who holds what
+   * whole of it, one step of it, or again - only by someone who holds what
    * it runs as (WorkflowRunAsAuthority.assertMayAct): a run by hand decides
    * what the workflow starts with, and its steps act with the workflow's
    * permissions, so a Workflow Member, an editor, or a master admin who

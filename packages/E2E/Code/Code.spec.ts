@@ -9,6 +9,10 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import {
+  CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE,
+  CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE,
+} from "Common/Types/AI/CodeTaskTryAgain";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import {
@@ -85,6 +89,28 @@ const LONG_TASK_ID: string = "40000000-0000-4000-8000-0000000000db";
 const LONG_TASK_TURN_5: string = "41000000-0000-4000-8000-000000000004";
 const LONG_TASK_TURN_9: string = "41000000-0000-4000-8000-000000000008";
 
+/*
+ * long=2: the same task kept open longer, 260 turns. Turns 2 to 61 are not
+ * shown, so turn 62 comes right after the first; Show earlier turns reads
+ * turns 12 to 61, then turns 2 to 11 (50 at a time, #7128).
+ */
+const LONG_TASK_TURN_2: string = "41000000-0000-4000-8000-000000000001";
+const LONG_TASK_TURN_12: string = "41000000-0000-4000-8000-000000000011";
+const LONG_TASK_TURN_30: string = "41000000-0000-4000-8000-000000000029";
+const LONG_TASK_TURN_62: string = "41000000-0000-4000-8000-000000000061";
+
+/*
+ * fixes=1: fixes OneUptime started from exceptions that failed (#6509) -
+ * storefront-web's before it wrote anything, checkout-api's after it
+ * opened pull request #433 - and a request that failed in payments-worker,
+ * which GitHub no longer reaches (#6508).
+ */
+const FIX_TASK: Record<"failed" | "pushed" | "elsewhere", string> = {
+  failed: "40000000-0000-4000-8000-0000000000dc",
+  pushed: "40000000-0000-4000-8000-0000000000dd",
+  elsewhere: "40000000-0000-4000-8000-0000000000de",
+};
+
 // The project's own Runners a repository may pick (Code/Fixture).
 const RUNNER: Record<"prod" | "office" | "agent", string> = {
   prod: "60000000-0000-4000-8000-0000000000f1",
@@ -138,6 +164,8 @@ interface Recorded {
   }>;
   // Each task read that asked for a turn (the Log page's address names one).
   taskTurnReads: Array<{ taskId: string; turn: string }>;
+  // Each read of a long task's earlier turns: the turn they come before.
+  earlierReads: Array<{ taskId: string; before: string; limit: number }>;
 }
 
 // What a page listens to on the live connection (live=1).
@@ -4357,8 +4385,14 @@ test.describe("a task of more than 200 turns", () => {
     const notShown: Locator = page.getByTestId("code-task-turns-not-shown");
     const requests: Locator = page.getByTestId("code-turn-request-message");
 
-    await expect(notShown).toHaveText("7 earlier turns are not shown");
+    await expect(
+      notShown.getByTestId("code-task-turns-not-shown-divider"),
+    ).toHaveText("7 earlier turns are not shown");
     await expect(notShown).toHaveCount(1);
+    // Under the line, what opens them (#7128).
+    await expect(
+      notShown.getByTestId("code-task-show-earlier-turns"),
+    ).toHaveText("Show earlier turns");
     // One item of the list each, in order: the first turn, the line, turn 9.
     expect(
       await page
@@ -4430,7 +4464,13 @@ test.describe("a task of more than 200 turns", () => {
     });
   });
 
-  test("a reply goes at the end, in view, and one more turn is not shown", async ({
+  /*
+   * The reply makes the task 208 turns, so its next read sends turns 10 to
+   * 208: turn 9, which the reader saw, is no longer sent. It stays where
+   * it was (#7128) - nothing the reader sees goes away under them - so the
+   * line still says 7.
+   */
+  test("a reply goes at the end, in view, and the turn it moves out of the newest 199 stays where it was", async ({
     page,
   }: {
     page: Page;
@@ -4438,9 +4478,10 @@ test.describe("a task of more than 200 turns", () => {
     // What it checks does not depend on the screen's width.
     test.skip(isPhone(testInfo), "width-independent");
     await openTask(page, LONG_TASK_ID, "long=1");
-    await expect(page.getByTestId("code-task-turns-not-shown")).toHaveText(
-      "7 earlier turns are not shown",
+    const divider: Locator = page.getByTestId(
+      "code-task-turns-not-shown-divider",
     );
+    await expect(divider).toHaveText("7 earlier turns are not shown");
     // Read first, as a person does: AI's replies are drawn.
     await expect(turnReplies(page).last()).toContainText(
       "Nothing needed changing.",
@@ -4458,12 +4499,11 @@ test.describe("a task of more than 200 turns", () => {
 
     const requests: Locator = page.getByTestId("code-turn-request-message");
     await expect(requests.last()).toHaveText("Now the ledger handler.");
-    // Turn 208: still the first turn and the newest 199, so 8 are not shown.
-    await expect(page.getByTestId("code-task-turns-not-shown")).toHaveText(
-      "8 earlier turns are not shown",
-    );
-    await expect(requests).toHaveCount(200);
-    await expect(requests.nth(1)).toHaveText("Now the receipts handler.");
+    // Turn 208: the newest 199 start at turn 10, and turn 9 stays.
+    await expect(requests).toHaveCount(201);
+    await expect(divider).toHaveText("7 earlier turns are not shown");
+    await expect(requests.nth(1)).toHaveText("Now the inventory handler.");
+    await expect(requests.nth(2)).toHaveText("Now the receipts handler.");
     await expect(requests.last()).toBeInViewport();
     expect((await recorded(page)).replies).toEqual([
       {
@@ -4756,12 +4796,406 @@ test.describe("a task of more than 200 turns", () => {
     test.skip(isPhone(testInfo), "width-independent");
     await openTask(page, LONG_TASK_ID, "long=1&lang=de");
 
-    await expect(page.getByTestId("code-task-turns-not-shown")).toHaveText(
-      "7 frühere Durchgänge werden nicht angezeigt",
+    await expect(
+      page.getByTestId("code-task-turns-not-shown-divider"),
+    ).toHaveText("7 frühere Durchgänge werden nicht angezeigt");
+    await expect(page.getByTestId("code-task-show-earlier-turns")).toHaveText(
+      "Frühere Durchgänge anzeigen",
     );
     await expect(page.getByTestId("code-task-work-time")).toHaveText(
       "12 Stunden, 3 Minuten gearbeitet",
     );
+  });
+
+  /*
+   * Issue #7128: the turns a long task's page does not show could not be
+   * opened at all. Show earlier turns, under the line, reads the 50 just
+   * before the oldest turn shown and draws them under the line, which
+   * stays with a smaller count - the page does not move, and the button
+   * keeps the focus - until none is left, when the turns take the line's
+   * place and the first of them the focus: the task opened back to turn
+   * 2. The Log page's picker lists them too, each at its place.
+   */
+  test("Show earlier turns draws them under the line, 50 at a time, where the reader is - back to turn 2 - and the Log lists them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTask(page, LONG_TASK_ID, "long=2");
+
+    const notShown: Locator = page.getByTestId("code-task-turns-not-shown");
+    const divider: Locator = notShown.getByTestId(
+      "code-task-turns-not-shown-divider",
+    );
+    const show: Locator = notShown.getByTestId("code-task-show-earlier-turns");
+    const requests: Locator = page.getByTestId("code-turn-request-message");
+
+    // 260 turns: the first, the line, then turns 62 to 260.
+    await expect(divider).toHaveText("60 earlier turns are not shown");
+    await expect(requests).toHaveCount(200);
+    await expect(requests.nth(1)).toHaveText(
+      "Log the subscriptions handler's errors at warn, with the request's id.",
+    );
+
+    // Pressed from the keyboard, where the reader scrolled to it.
+    await notShown.scrollIntoViewIfNeeded();
+    await show.focus();
+    const lineAt: number = (await notShown.boundingBox())!.y;
+    const scrolledTo: number = (await scrollPosition(page)).scrollY;
+    await page.keyboard.press("Enter");
+
+    // Turns 12 to 61 under the line, which says 10 now; nothing moved.
+    await expect(requests).toHaveCount(250);
+    await expect(divider).toHaveText("10 earlier turns are not shown");
+    await expect(requests.nth(1)).toHaveText("Now the customers handler.");
+    expect(Math.abs((await notShown.boundingBox())!.y - lineAt)).toBeLessThan(
+      2,
+    );
+    expect((await scrollPosition(page)).scrollY).toBe(scrolledTo);
+    await expect(show).toBeFocused();
+
+    await page.keyboard.press("Enter");
+
+    // Turns 2 to 11: none is left, and turn 2 takes the line's place.
+    await expect(requests).toHaveCount(260);
+    await expect(notShown).toHaveCount(0);
+    await expect(requests.nth(1)).toHaveText("Now the carts handler.");
+    await expect(
+      page.locator(
+        `li[data-testid="code-turn-request"][data-turn-id="${LONG_TASK_TURN_2}"]`,
+      ),
+    ).toBeFocused();
+    await expect(requests.nth(1)).toBeInViewport();
+    expect((await scrollPosition(page)).scrollY).toBe(scrolledTo);
+    expect((await recorded(page)).earlierReads).toEqual([
+      { taskId: LONG_TASK_ID, before: LONG_TASK_TURN_62, limit: 50 },
+      { taskId: LONG_TASK_ID, before: LONG_TASK_TURN_12, limit: 50 },
+    ]);
+    await expectNoSidewaysScroll(page);
+
+    // Turn 30's Log: its picker lists every turn now, with no line.
+    await page
+      .locator(
+        `li[data-testid="code-turn-reply"][data-turn-id="${LONG_TASK_TURN_30}"]`,
+      )
+      .getByRole("link", { name: "Log" })
+      .click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_30}`,
+    );
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toContainText("Turn 30 ·");
+    await picker.getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(260);
+    await expect(options.nth(1)).toContainText("Turn 2 ·");
+    await expect(options.nth(29)).toContainText("Turn 30 ·");
+    await expect(options.last()).toContainText("Turn 260 ·");
+  });
+
+  // A read that fails is said under the line, which keeps its button.
+  test("earlier turns that cannot be read are said so under the line, with the button to try again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openTask(page, LONG_TASK_ID, "long=1&fail=earlier");
+
+    const notShown: Locator = page.getByTestId("code-task-turns-not-shown");
+    await notShown.getByTestId("code-task-show-earlier-turns").click();
+
+    await expect(
+      notShown.getByTestId("code-task-show-earlier-turns-error"),
+    ).toContainText(
+      "The earlier turns could not be read right now. Try again in a moment.",
+    );
+    await expect(
+      notShown.getByTestId("code-task-turns-not-shown-divider"),
+    ).toHaveText("7 earlier turns are not shown");
+    await expect(
+      notShown.getByTestId("code-task-show-earlier-turns"),
+    ).toBeEnabled();
+    await expect(page.getByTestId("code-turn-request-message")).toHaveCount(
+      200,
+    );
+  });
+
+  /*
+   * Issue #7129: a long task opens at its top - what it is and how it
+   * stands - and its newest turn, the one people come for, is two hundred
+   * turns below. While the newest turn is out of view, Jump to newest
+   * floats above the reply box; it takes the reader there and goes, and
+   * comes back when they scroll up to read. Opening never moves the page.
+   */
+  test("a long task opens at its top, and Jump to newest takes the reader to its newest turn", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, LONG_TASK_ID, "long=1");
+    await expect(turnReplies(page).last()).toContainText(
+      "Nothing needed changing.",
+    );
+
+    const jump: Locator = page.getByTestId("code-task-jump-to-newest-button");
+    await expect(jump).toBeVisible();
+    await expect(jump).toHaveText("Jump to newest");
+    expect((await scrollPosition(page)).scrollY).toBe(0);
+    // Above the reply box, never over what is typed in it.
+    const [jumpBox, footerBox] = await boxesInOneFrame([
+      jump,
+      page.getByTestId("code-task-footer"),
+    ]);
+    expect(jumpBox && footerBox).toBeTruthy();
+    expect(jumpBox!.y + jumpBox!.height).toBeLessThanOrEqual(footerBox!.y);
+    await expectNoSidewaysScroll(page);
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        `code-task-jump-to-newest-${testInfo.project.name}.png`,
+      ),
+      animations: "disabled",
+    });
+
+    await jump.click();
+
+    // At the newest turn - AI's reply, read from its first line - and gone.
+    await expect(turnReplies(page).last()).toBeInViewport();
+    await expect(jump).toHaveCount(0);
+    expect((await scrollPosition(page)).scrollY).toBeGreaterThan(10000);
+
+    // Scrolled up to read: the page stays there, with the button back.
+    await page.evaluate((): void => {
+      window.scrollBy(0, -4000);
+    });
+    await expect(jump).toBeVisible();
+    const readingAt: number = (await scrollPosition(page)).scrollY;
+    await page.waitForTimeout(500);
+    expect((await scrollPosition(page)).scrollY).toBe(readingAt);
+  });
+});
+
+/*
+ * Issue #6509: a fix OneUptime started on its own - from an exception, an
+ * insight or an investigation - that failed could not be tried again: only
+ * a request could. It is asked again now, with what it started from, as a
+ * turn of its own that says who asked it again - unless it may already have
+ * pushed a branch or opened a pull request, which a new turn could open a
+ * second of: then it says so where Try again would be.
+ */
+test.describe("a fix OneUptime started that failed", () => {
+  test("Try again asks it again with what it started from, said as asked again by the reader - and AI works it", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, FIX_TASK.failed, "fixes=1");
+
+    // The finding it started from, then how it failed, with Try again.
+    await expect(page.getByTestId("code-turn-origin")).toContainText(
+      "TypeError: Cannot read properties of null (reading 'code')",
+    );
+    await expect(page.getByTestId("code-turn-try-again-refusal")).toHaveCount(
+      0,
+    );
+    const retry: Locator = page.getByTestId("code-turn-retry");
+    await expect(retry).toHaveText("Try again");
+    await retry.click();
+
+    // A turn of its own, with no words of its own: who asked it again.
+    const askedAgain: Locator = page.getByTestId("code-turn-asked-again");
+    await expect(askedAgain).toContainText(
+      "Ada Lovelace asked OneUptime AI to try again.",
+    );
+    expect((await recorded(page)).retries).toEqual([FIX_TASK.failed]);
+
+    // AI works it, as any turn: to its reply and its pull request.
+    await expect(turnReplies(page).last()).toContainText("Done.", {
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("code-turn-retry")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-fix-asked-again");
+  });
+
+  test("one that may already have opened a pull request is not asked again, and says why where Try again would be", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, FIX_TASK.pushed, "fixes=1");
+
+    await expect(page.getByTestId("code-turn-try-again-refusal")).toHaveText(
+      CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE,
+    );
+    await expect(page.getByTestId("code-turn-retry")).toHaveCount(0);
+    // The reply box stays, for what AI should do instead.
+    await expect(composerInput(page)).toBeEditable();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-fix-not-asked-again");
+  });
+
+  test("German: why it is not asked again, in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openTask(page, FIX_TASK.pushed, "fixes=1&lang=de");
+
+    const german: string = dashboardWord(
+      "de",
+      CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE,
+    );
+    expect(german).not.toBe(CODE_TASK_TRY_AGAIN_MAY_HAVE_WRITTEN_MESSAGE);
+    await expect(page.getByTestId("code-turn-try-again-refusal")).toHaveText(
+      german,
+    );
+  });
+});
+
+/*
+ * Issue #6508: Code's own list of every task offered no Try again, and no
+ * Retry selected - only a repository's page did. It offers both now, on
+ * the rows the reader may try again: a failed or stopped task, a request
+ * or a fix that wrote nothing, in a repository the reader may ask AI in.
+ * Each task picked is asked again in its own repository, and one that
+ * cannot be says why on its own row.
+ */
+test.describe("Retry selected on Code's own list, across repositories", () => {
+  test("the rows that can be tried again - in the repositories the reader may ask AI in - are picked and tried again together", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "fixes=1");
+
+    const rows: Locator = page.getByTestId("code-task-row");
+    await expect(rows).toHaveCount(9);
+    const coupon: Locator = rows.filter({
+      hasText: "TypeError: Cannot read properties of null (reading 'code')",
+    });
+    const failed: Locator = rows.filter({
+      hasText: "Upgrade express to version 5",
+    });
+    const stopped: Locator = rows.filter({
+      hasText: "Rename the Order model to Purchase everywhere",
+    });
+    const refund: Locator = rows.filter({
+      hasText: "RangeError: Invalid refund amount: -0.01",
+    });
+    const elsewhere: Locator = rows.filter({
+      hasText: "Retry payouts the bank rejects for a timeout",
+    });
+
+    await expect(coupon.getByTestId("code-task-row-repository")).toHaveText(
+      "storefront-web",
+    );
+    await expect(elsewhere.getByTestId("code-task-row-repository")).toHaveText(
+      "payments-worker",
+    );
+
+    // Try again and a box to pick: on the three that can be tried again.
+    await expect(page.getByTestId("code-task-row-retry-button")).toHaveCount(3);
+    await expect(page.getByTestId("code-task-row-select")).toHaveCount(3);
+    for (const row of [coupon, failed, stopped]) {
+      await expect(row.getByTestId("code-task-row-retry-button")).toBeVisible();
+    }
+    // Not on a fix that may already have written, nor where AI cannot work.
+    for (const row of [refund, elsewhere]) {
+      await expect(row.getByTestId("code-task-row-state")).toHaveText("Failed");
+      await expect(row.getByTestId("code-task-row-retry-button")).toHaveCount(
+        0,
+      );
+      await expect(row.getByTestId("code-task-row-select")).toHaveCount(0);
+    }
+
+    await coupon.getByTestId("code-task-row-select").check();
+    await failed.getByTestId("code-task-row-select").check();
+    await stopped.getByTestId("code-task-row-select").check();
+    const bulk: Locator = page.getByTestId("code-task-list-bulk");
+    await expect(bulk.getByRole("status")).toHaveText("3 selected");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-retry-selected");
+
+    await bulk.getByTestId("code-task-list-retry-selected").click();
+    await expect(page.getByTestId("code-task-list-retry-result")).toHaveText(
+      "Trying 3 tasks again.",
+    );
+    expect((await recorded(page)).retryManys).toEqual([
+      [FIX_TASK.failed, TASK.failed, TASK.stopped],
+    ]);
+    // Each is at work again: nothing left to try again.
+    await expect(page.getByTestId("code-task-row-retry-button")).toHaveCount(0);
+  });
+
+  test("tasks that changed since the list was read are each said not tried again, with why, on their own rows", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "fixes=1");
+
+    const rows: Locator = page.getByTestId("code-task-row");
+    const coupon: Locator = rows.filter({
+      hasText: "TypeError: Cannot read properties of null (reading 'code')",
+    });
+    const failed: Locator = rows.filter({
+      hasText: "Upgrade express to version 5",
+    });
+    const stopped: Locator = rows.filter({
+      hasText: "Rename the Order model to Purchase everywhere",
+    });
+    await expect(page.getByTestId("code-task-row-select")).toHaveCount(3);
+
+    // Since the list was read: Grace tried the upgrade again, and GitHub stopped reaching storefront-web.
+    await page.evaluate(
+      (ids: { taskId: string; repositoryId: string }): void => {
+        const fixture: {
+          tryAgainElsewhere: (taskId: string) => void;
+          disconnect: (repositoryId: string) => void;
+        } = (
+          window as unknown as {
+            __fixture: {
+              tryAgainElsewhere: (taskId: string) => void;
+              disconnect: (repositoryId: string) => void;
+            };
+          }
+        ).__fixture;
+        fixture.tryAgainElsewhere(ids.taskId);
+        fixture.disconnect(ids.repositoryId);
+      },
+      { taskId: TASK.failed, repositoryId: REPOSITORY.web },
+    );
+
+    await coupon.getByTestId("code-task-row-select").check();
+    await failed.getByTestId("code-task-row-select").check();
+    await stopped.getByTestId("code-task-row-select").check();
+    await page
+      .getByTestId("code-task-list-bulk")
+      .getByTestId("code-task-list-retry-selected")
+      .click();
+
+    await expect(page.getByTestId("code-task-list-retry-result")).toHaveText(
+      "Trying 1 task again. 2 tasks could not be tried again: each says why below.",
+    );
+    await expect(
+      failed.getByTestId("code-task-row-not-tried-again"),
+    ).toHaveText(`Not tried again: ${CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE}`);
+    await expect(
+      coupon.getByTestId("code-task-row-not-tried-again"),
+    ).toHaveText(
+      "Not tried again: AI can only work in a GitHub repository connected through the GitHub App, and this one is not. Connect GitHub again from Code.",
+    );
+    await expect(
+      stopped.getByTestId("code-task-row-not-tried-again"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-retry-selected-reasons");
   });
 });
 

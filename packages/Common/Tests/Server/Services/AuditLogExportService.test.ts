@@ -656,7 +656,7 @@ describe("AuditLogExportService, through the whole write", () => {
   describe("the record version", () => {
     test("a new export sends the newest version unless it asks for another", async () => {
       await AuditLogExportService.create({ data: newS3Export(), props: OWNER });
-      expect(inserted()["schemaVersion"]).toBe(2);
+      expect(inserted()["schemaVersion"]).toBe(3);
 
       const first: AuditLogExport = newS3Export();
       first.schemaVersion = 1;
@@ -673,7 +673,7 @@ describe("AuditLogExportService, through the whole write", () => {
       expect(inserted()["schemaVersion"]).toBe(1);
     });
 
-    test.each([[0], [3], [1.5], ["two"]])(
+    test.each([[0], [4], [1.5], ["two"]])(
       "a create asking for version %p is refused, and nothing is saved",
       async (schemaVersion: unknown) => {
         const asked: AuditLogExport = newS3Export();
@@ -681,7 +681,7 @@ describe("AuditLogExportService, through the whole write", () => {
 
         await expect(
           AuditLogExportService.create({ data: asked, props: OWNER }),
-        ).rejects.toThrow("Record Version must be 1 or 2.");
+        ).rejects.toThrow("Record Version must be 1, 2 or 3.");
         expect(exports.inserts).toHaveLength(0);
       },
     );
@@ -705,7 +705,7 @@ describe("AuditLogExportService, through the whole write", () => {
       );
     });
 
-    test.each([[0], [3], [null], ["latest"]])(
+    test.each([[0], [4], [null], ["latest"]])(
       "an update asking for version %p is refused, and nothing is written",
       async (schemaVersion: unknown) => {
         await expect(
@@ -714,7 +714,7 @@ describe("AuditLogExportService, through the whole write", () => {
             data: { schemaVersion } as never,
             props: OWNER,
           }),
-        ).rejects.toThrow("Record Version must be 1 or 2.");
+        ).rejects.toThrow("Record Version must be 1, 2 or 3.");
         expect(exports.updates).toHaveLength(0);
       },
     );

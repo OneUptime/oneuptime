@@ -1,4 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import AutoRemediationRoundRateLimit, {
+  AutoRemediationRoundRateLimitBucket,
+} from "../Middleware/AutoRemediationRoundRateLimit";
 import CommonAPI from "./CommonAPI";
 import Express, {
   ExpressRequest,
@@ -42,6 +45,8 @@ import SourceLocator, {
 import CodeTaskThread, {
   CODE_TASK_TURN_SELECT,
 } from "../Utils/AI/CodeTask/CodeTaskThread";
+import CodeTaskFixRetry from "../Utils/AI/CodeTask/CodeTaskFixRetry";
+import CodeTaskTryAgain from "../Utils/AI/CodeTask/CodeTaskTryAgain";
 import logger from "../Utils/Logger";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
@@ -77,13 +82,17 @@ import {
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
   CodeTaskConversationJSON,
+  CodeTaskEarlierTurnsJSON,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
   CodeTaskListKind,
   CodeTaskRepositoryConnectionJSON,
   MAX_CODE_TASKS_PER_REQUEST,
+  MAX_EARLIER_TURNS_PER_READ,
   CodeTaskRepositoryJSON,
+  CodeTaskState,
   CodeTaskSummaryJSON,
+  CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
 } from "../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -115,16 +124,23 @@ import ProductKey from "../../Types/Product/ProductKey";
  *                                         turn and its newest, and how many
  *                                         between them are not shown - and
  *                                         a turn not shown a link names
+ *   POST /code-task/turns/:taskId         the turns not shown, a page at a
+ *                                         time: those just before a turn
+ *                                         the page shows (Show earlier
+ *                                         turns)
  *   POST /code-task/progress/:taskId      how a turn AI is working on stands,
  *                                         and the steps it took since the
  *                                         page last read it
  *   POST /code-task/create                ask AI something in a repository
  *   POST /code-task/reply/:taskId         reply in a task: its next turn
- *   POST /code-task/retry/:taskId         ask a failed turn again, or start
- *                                         a turn waiting to be tried again
- *                                         by itself now
+ *   POST /code-task/retry/:taskId         ask a failed turn again - a
+ *                                         request, or a fix OneUptime
+ *                                         started - or start a turn waiting
+ *                                         to be tried again by itself now
  *   POST /code-task/retry-many            ask the failed turns of several
- *                                         tasks again
+ *                                         tasks again, each as its own page
+ *                                         would (both limited per person,
+ *                                         with every Try again)
  *   POST /code-task/summaries             several tasks at a glance, by id
  *                                         (an insight's fix task)
  *   POST /code-task/stop/:taskId          stop the turn in progress
@@ -210,11 +226,16 @@ export default class CodeTaskAPI {
     this.read("/code-task/list", this.listTasks);
     this.read("/code-task/branches/:repositoryId", this.listBranches);
     this.read("/code-task/get/:taskId", this.getTask);
+    this.read("/code-task/turns/:taskId", this.getEarlierTurns);
     this.read("/code-task/progress/:taskId", this.getTurnProgress);
     this.change("/code-task/create", this.createTask);
     this.change("/code-task/reply/:taskId", this.replyToTask);
-    this.change("/code-task/retry/:taskId", this.retryTask);
-    this.change("/code-task/retry-many", this.retryTasks);
+    this.change("/code-task/retry/:taskId", this.retryTask, {
+      isTryAgain: true,
+    });
+    this.change("/code-task/retry-many", this.retryTasks, {
+      isTryAgain: true,
+    });
     this.read("/code-task/summaries", this.summarizeTasks);
     this.change("/code-task/stop/:taskId", this.stopTask);
     this.change("/code-task/review-again/:taskId", this.reviewAgain);
@@ -292,10 +313,29 @@ export default class CodeTaskAPI {
     );
   }
 
-  private change(path: string, handler: CodeTaskRouteHandler): void {
+  /*
+   * `isTryAgain`: Try again and Retry selected, which set OneUptime AI to
+   * work again on what failed, count against the person's presses of every
+   * Try again, an AI fix's included (AutoRemediationRoundRateLimit: 30 in
+   * 15 minutes, #6525) - one press of Retry selected is one, however many
+   * tasks it picked. Right behind the signed-in user, so a flood is refused
+   * before anything is read.
+   */
+  private change(
+    path: string,
+    handler: CodeTaskRouteHandler,
+    options: { isTryAgain?: boolean | undefined } = {},
+  ): void {
     this.router.post(
       path,
       UserMiddleware.getUserMiddleware,
+      ...(options.isTryAgain
+        ? [
+            AutoRemediationRoundRateLimit.getMiddleware(
+              AutoRemediationRoundRateLimitBucket.TryAgain,
+            ),
+          ]
+        : []),
       ServerProductRoutes.refuseWhileOff(ProductKey.Code),
       this.answerWith(handler),
     );
@@ -616,6 +656,17 @@ export default class CodeTaskAPI {
       await CodeTaskPresenter.summarize({ projectId, tasks, props });
 
     /*
+     * Try again, and a box for Retry selected, on the failed and stopped
+     * tasks the reader may ask again now - per repository, on a list
+     * across them too (#6508).
+     */
+    await CodeTaskTryAgain.markWhoMayTryAgain({
+      projectId,
+      props,
+      summaries,
+    });
+
+    /*
      * "totalCount": the name this answer has always had (CodeApi.listTasks
      * reads it). It was chosen while HTTPResponse took any body holding
      * count, skip and limit for a list envelope and looked for rows under
@@ -724,6 +775,13 @@ export default class CodeTaskAPI {
 
     const summaries: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({ projectId, tasks: readable, props });
+
+    // An insight's fix task offers Try again as a list's row does.
+    await CodeTaskTryAgain.markWhoMayTryAgain({
+      projectId,
+      props,
+      summaries,
+    });
 
     return { tasks: summaries as unknown as Array<JSONObject> };
   }
@@ -958,9 +1016,23 @@ export default class CodeTaskAPI {
         : Promise.resolve(new Map<string, CodeHostConnectionSummary>()),
     ]);
 
+    /*
+     * A fix OneUptime started whose latest turn failed or was stopped, for
+     * a reader who could ask it again: why it is not, when it may already
+     * have written - said where Try again would be (#6509).
+     */
+    const tryAgainRefusal: string | null =
+      canAsk && !blocker
+        ? await CodeTaskAPI.getTryAgainRefusal({
+            task,
+            turns: conversation.turns,
+          })
+        : null;
+
     return {
       task: conversation.task as unknown as JSONObject,
       turns: conversation.turns as unknown as Array<JSONObject>,
+      ...(tryAgainRefusal ? { tryAgainRefusal } : {}),
       /*
        * A task with more turns than its conversation shows: how many are not
        * shown, between its first turn and the newest.
@@ -991,6 +1063,94 @@ export default class CodeTaskAPI {
       ]),
       blocker: blocker as unknown as JSONObject,
     };
+  }
+
+  /*
+   * Turns a long task's page does not show, a page at a time (Show earlier
+   * turns, #7128): the turns just before `before` - one of the task's
+   * replies, the oldest the page has - oldest first, at most
+   * MAX_EARLIER_TURNS_PER_READ, with the place of the first in the task.
+   * Read as the conversation is: by those who may read the task, the diff
+   * only for those who may ask AI to change the code. Body: { before,
+   * limit? }.
+   */
+  private async getEarlierTurns(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const { task, repository } = await this.getReadableTask(
+      req,
+      props,
+      projectId,
+    );
+
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const beforeRunId: ObjectID = CodeTaskAPI.readId(body["before"], "turn");
+    const limit: number = CodeTaskAPI.readNumber(body["limit"], {
+      defaultValue: MAX_EARLIER_TURNS_PER_READ,
+      min: 1,
+      max: MAX_EARLIER_TURNS_PER_READ,
+    });
+
+    const canSeeChanges: boolean = repository
+      ? await CodeTaskAccess.canAskInRepository({
+          props,
+          projectId,
+          repositoryId: repository.id!,
+        })
+      : false;
+
+    const earlier: CodeTaskEarlierTurnsJSON | null =
+      await CodeTaskPresenter.getEarlierTurns({
+        projectId,
+        task,
+        beforeRunId,
+        limit,
+        canSeeChanges,
+        props,
+      });
+
+    // A run that is not one of the task's replies reads as no turn at all.
+    if (!earlier) {
+      throw new NotFoundException(CODE_TASK_NOT_FOUND_MESSAGE);
+    }
+
+    return earlier as unknown as JSONObject;
+  }
+
+  /*
+   * Why the task's failed or stopped latest turn - a fix OneUptime
+   * started - is not asked again: it may already have written
+   * (CodeTaskFixRetry). Null for any other latest turn.
+   */
+  private static async getTryAgainRefusal(data: {
+    task: AIRun;
+    turns: Array<CodeTaskTurnJSON>;
+  }): Promise<string | null> {
+    const latest: CodeTaskTurnJSON | undefined =
+      data.turns[data.turns.length - 1];
+
+    if (
+      !latest ||
+      (latest.state !== CodeTaskState.Failed &&
+        latest.state !== CodeTaskState.Stopped) ||
+      !CodeFixTaskTypeHelper.isFixAskedAgain(latest.recipe) ||
+      !ObjectID.isValidUUID(latest.runId)
+    ) {
+      return null;
+    }
+
+    const turn: AIRun = new AIRun();
+    turn._id = latest.runId;
+    turn.codeFixTaskType = latest.recipe as CodeFixTaskType;
+
+    // A reply of the task names it; the task's own turn names none.
+    if (latest.runId.toLowerCase() !== data.task.id!.toString().toLowerCase()) {
+      turn.codeTaskId = data.task.id!;
+    }
+
+    return await CodeTaskFixRetry.getRefusal(turn);
   }
 
   // Ask AI something in a repository: a new task.

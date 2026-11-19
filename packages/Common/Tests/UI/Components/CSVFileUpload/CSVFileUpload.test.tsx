@@ -111,8 +111,13 @@ describe("dropping a file on the upload area", () => {
       { name: "Ada", email: "ada@example.com" },
       { name: "Grace", email: "grace@example.com" },
     ]);
+    /*
+     * The rows are handed on in the same callback that sets them, and React
+     * draws them after it returns: the sentence is waited for, not read in
+     * the instant the callback was seen.
+     */
     expect(
-      screen.getByText("people.csv - 2 rows ready to import"),
+      await screen.findByText("people.csv - 2 rows ready to import"),
     ).toBeInTheDocument();
   });
 

@@ -123,12 +123,28 @@ La prima volta che aggiungi un'app, una chiave o una passkey, OneUptime mostra *
 
 Se hai già un'app in **App di autenticazione** o una chiave in **Chiavi di sicurezza**, **Attiva l'autenticazione a due fattori** ti chiede solo di confermare. Finché è attiva, non puoi rimuovere l'ultima app, chiave o passkey: aggiungine prima un'altra, oppure disattiva l'autenticazione a due fattori. Se la scheda mostra **Configurazione necessaria**, l'autenticazione a due fattori è attiva ma non è ancora configurato nulla, spesso perché un amministratore l'ha richiesta: fai clic su **Completa la configurazione**, altrimenti ti verrà chiesto al prossimo accesso.
 
+### Configurare l'autenticazione a due fattori durante l'accesso
+
+Quando un amministratore richiede l'autenticazione a due fattori e non hai ancora configurato nulla, il tuo prossimo accesso con una password o con un link via email ti chiede di configurarla prima di farti entrare. Scegli **App di autenticazione** o **Chiave di sicurezza** e fai clic su **Continua**:
+
+- **App di autenticazione**: scansiona il codice QR, inserisci il codice di 6 cifre che mostra la tua app e fai clic su **Verifica e accedi**.
+- **Chiave di sicurezza**: fai clic su **Registra la chiave di sicurezza** e segui le istruzioni del browser. Tocca una chiave USB o NFC, oppure usa l'impronta digitale, il volto o il blocco schermo del tuo telefono o computer.
+
+Se non hai ancora codici di backup, OneUptime te li mostra una sola volta, e hai effettuato l'accesso. **Scegli un altro metodo** torna alla scelta. Un browser che non può registrare una chiave di sicurezza, come uno su una pagina senza HTTPS, offre solo l'app di autenticazione.
+
 > [!TIP]
 > Ti restano pochi codici di backup? **Rigenera i codici** nella stessa pagina ti dà un nuovo set, e i vecchi codici smettono subito di funzionare.
 
 ### Quando la tua organizzazione gestisce il tuo accesso
 
-Su un server che richiede il single sign-on, accedi solo tramite il provider di identità della tua organizzazione, come Okta o Microsoft Entra ID, e OneUptime non imposta per te password, passkey né autenticazione a due fattori. Il **Profilo utente** non ha quindi la sezione **Sicurezza**, e la sua **Panoramica** indica il tuo provider in **Single Sign-On**. Cambia la password e il secondo passaggio presso il tuo provider di identità. Quello che avevi configurato prima resta salvato: torna a funzionare solo se il server smette di richiedere il single sign-on. Gli amministratori principali mantengono le proprie impostazioni di **Sicurezza**.
+Su un server che richiede il single sign-on, accedi solo tramite il provider di identità della tua organizzazione, come Okta o Microsoft Entra ID, e OneUptime non imposta per te password, passkey né autenticazione a due fattori. Il **Profilo utente** non ha quindi la sezione **Sicurezza**, e la sua **Panoramica** indica il tuo provider in **Single Sign-On**. Cambia la password e il secondo passaggio presso il tuo provider di identità. Quello che avevi configurato prima resta salvato: torna a funzionare solo se il server smette di richiedere il single sign-on, a meno che un amministratore del server non lo cancelli. Gli amministratori principali mantengono le proprie impostazioni di **Sicurezza**.
+
+Lo stesso accade quando ogni progetto a cui appartieni richiede il single sign-on e ha attivo **Gestisci l'accesso con l'SSO**. La tua password ti fa ancora accedere a OneUptime, ma ogni progetto chiede l'SSO, quindi OneUptime non imposta per te nessuna nuova password, passkey o secondo passaggio:
+
+- **Un progetto che non lo fa**: appena sei membro di un progetto, o vieni invitato in uno, che non richiede l'SSO o non ha attivo **Gestisci l'accesso con l'SSO**, la tua sezione **Sicurezza** torna. La **Panoramica** indica allora quei progetti in **Single Sign-On**, come motivo per cui le impostazioni sono tue. Lasciare quel progetto te le toglie di nuovo.
+- **Progetti con provider diversi**: se tutti i tuoi progetti gestiscono l'accesso, ciascuno con il proprio provider di identità, la **Panoramica** indica ogni provider.
+- **Gli amministratori principali** mantengono sempre le proprie impostazioni di **Sicurezza**.
+- **Quello che avevi configurato prima** resta salvato, e un amministratore del server può cancellarlo.
 
 ## I tuoi progetti
 
