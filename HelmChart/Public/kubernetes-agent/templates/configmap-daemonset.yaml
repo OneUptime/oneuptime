@@ -541,14 +541,25 @@ data:
       #     still sent;
       #   - a volume typed `ephemeral` is a claim's, and is kept.
       #
+      # Twice, once for each name a volume can go by (#10055): the receiver
+      # names it k8s.volume.name and k8s.volume.type, and semantic
+      # conventions now name them k8s.pod.volume.name and k8s.pod.volume.type
+      # (semantic-conventions#4272), which the receiver is to follow,
+      # perhaps sending both names for a while. A volume of either name, or
+      # both, is dropped once, and kept by the same rules; it counts as typed
+      # when either name types it, so a token's name drops only a volume no
+      # name types.
+      #
       # The same OTTL runs on collector 0.96.0, which --reuse-values keeps.
       # tests/volume-series-filter_test.yaml pins it, and
-      # Tests/Ops/agent-volume-series-behaviour.sh runs it.
+      # Tests/Ops/agent-volume-series-behaviour.sh runs it, on volumes named
+      # both ways.
       filter/volume-series:
         error_mode: ignore
         metrics:
           metric:
-            - 'resource.attributes["k8s.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.volume.type"] == "configMap" or resource.attributes["k8s.volume.type"] == "secret" or resource.attributes["k8s.volume.type"] == "downwardAPI" or resource.attributes["k8s.volume.type"] == "projected" or (resource.attributes["k8s.volume.type"] == nil and IsMatch(resource.attributes["k8s.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
+            - 'resource.attributes["k8s.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.volume.type"] == "configMap" or resource.attributes["k8s.volume.type"] == "secret" or resource.attributes["k8s.volume.type"] == "downwardAPI" or resource.attributes["k8s.volume.type"] == "projected" or (resource.attributes["k8s.volume.type"] == nil and resource.attributes["k8s.pod.volume.type"] == nil and IsMatch(resource.attributes["k8s.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
+            - 'resource.attributes["k8s.pod.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.pod.volume.type"] == "configMap" or resource.attributes["k8s.pod.volume.type"] == "secret" or resource.attributes["k8s.pod.volume.type"] == "downwardAPI" or resource.attributes["k8s.pod.volume.type"] == "projected" or (resource.attributes["k8s.pod.volume.type"] == nil and resource.attributes["k8s.volume.type"] == nil and IsMatch(resource.attributes["k8s.pod.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
       {{- end }}
 
       # kubelet CPU under the names OneUptime reads. The kubeletstats
