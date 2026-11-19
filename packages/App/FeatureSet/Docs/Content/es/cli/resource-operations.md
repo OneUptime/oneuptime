@@ -209,7 +209,7 @@ Responde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` Co
 
 ### Un rol personalizado con el que se ejecutan flujos de trabajo
 
-OneUptime elimina un rol personalizado con el que se ejecutan flujos de trabajo solo cuando la eliminación dice con qué se ejecutan en su lugar, y rechaza la que no lo dice, nombrando los flujos de trabajo. Dígalo con `--workflows-run-as`: `Default`, los permisos predeterminados, o `CustomRole`, otro rol personalizado que usted podría dar a un equipo, con su ID en `--workflows-run-as-custom-role-id`. Nunca Project Owner: eliminar un rol nunca amplía lo que puede hacer un flujo de trabajo.
+OneUptime elimina un rol personalizado con el que se ejecutan flujos de trabajo solo cuando la eliminación dice con qué se ejecutan en su lugar, y rechaza la que no lo dice, nombrando los flujos de trabajo. Dígalo con `--workflows-run-as`: `Default`, los permisos predeterminados, o `CustomRole`, otro rol personalizado que usted podría dar a un equipo, con su ID en `--workflows-run-as-custom-role-id`. Nunca Propietario del proyecto: eliminar un rol nunca amplía lo que puede hacer un flujo de trabajo.
 
 ```bash
 # They run with the default permissions

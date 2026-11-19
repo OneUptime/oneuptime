@@ -209,7 +209,7 @@ Hij antwoordt `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully
 
 ### Een aangepaste rol waarmee workflows draaien
 
-OneUptime verwijdert een aangepaste rol waarmee workflows draaien alleen als het verwijderen zegt waarmee ze in plaats daarvan draaien, en weigert een verwijdering die dat niet zegt, met de namen van de workflows. Zeg het met `--workflows-run-as`: `Default`, de standaardmachtigingen, of `CustomRole`, een andere aangepaste rol die je een team zou kunnen geven, met de ID ervan in `--workflows-run-as-custom-role-id`. Nooit Project Owner: een rol verwijderen breidt nooit uit wat een workflow mag.
+OneUptime verwijdert een aangepaste rol waarmee workflows draaien alleen als het verwijderen zegt waarmee ze in plaats daarvan draaien, en weigert een verwijdering die dat niet zegt, met de namen van de workflows. Zeg het met `--workflows-run-as`: `Default`, de standaardmachtigingen, of `CustomRole`, een andere aangepaste rol die je een team zou kunnen geven, met de ID ervan in `--workflows-run-as-custom-role-id`. Nooit Projecteigenaar: een rol verwijderen breidt nooit uit wat een workflow mag.
 
 ```bash
 # They run with the default permissions
