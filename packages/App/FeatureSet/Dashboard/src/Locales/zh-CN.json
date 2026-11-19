@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{time}} 的 {{kind}}：{{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}}（预算 {{duration}}）",
   "{{method}} cancelled {{path}}": "{{method}} 已取消 {{path}}",
-  "{{method}} failed {{path}}": "{{method}} 失败 {{path}}"
+  "{{method}} failed {{path}}": "{{method}} 失败 {{path}}",
+  "Efficiency Weight": "效率权重",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "此集群的工作负载在所选范围内实际使用了其所请求的 CPU 和内存的多大比例，按这些 CPU 和内存的成本加权。不计入空闲容量。70% 起为绿色，低于 40% 为红色。",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "在所选范围内，请求的 CPU 和内存中实际被使用的比例，按这些 CPU 和内存的成本加权；超过 100% 表示使用量超过了请求量。70% 起为绿色，低于 40% 为红色：数值低意味着在为未使用的请求付费。",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "工作负载在最近 24 小时内实际使用了其所请求的 CPU 和内存的多大比例，按这些 CPU 和内存的成本加权，与成本页面的计算方式相同；超过 100% 表示使用量超过了请求量。70% 起为绿色，低于 40% 为红色。",
+  "Weighted Efficiency": "加权效率"
 }

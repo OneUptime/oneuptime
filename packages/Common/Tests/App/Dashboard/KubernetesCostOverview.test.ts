@@ -48,6 +48,7 @@ import {
   buildKubernetesCostOverview,
   fetchKubernetesCostOverview,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesCostOverview";
+import { CostEfficiencyReads } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesCostUtils";
 
 const NOW: Date = new Date("2026-11-18T12:30:00.000Z");
 const HOUR_MS: number = 60 * 60 * 1000;
@@ -84,16 +85,33 @@ function workload(
   return { namespace, controllerKind, controllerName, value };
 }
 
+/*
+ * The cluster's two efficiency sums as the aggregate reads return them: one
+ * whole-window row each, with no group columns.
+ */
+function efficiencySums(sums: {
+  weightedEfficiency: number;
+  weight: number;
+}): CostEfficiencyReads {
+  return {
+    weightedEfficiency: result([{ value: sums.weightedEfficiency }]),
+    efficiencyWeight: result([{ value: sums.weight }]),
+  };
+}
+
 function build(data: {
   namespaceSpend?: AggregatedResult;
   workloadSpend?: AggregatedResult;
-  workloadEfficiency?: AggregatedResult;
+  efficiency?: CostEfficiencyReads;
   hourlySpend?: AggregatedResult;
 }): KubernetesCostOverview {
   return buildKubernetesCostOverview({
     namespaceSpend: data.namespaceSpend || result([]),
     workloadSpend: data.workloadSpend || result([]),
-    workloadEfficiency: data.workloadEfficiency || result([]),
+    efficiency: data.efficiency || {
+      weightedEfficiency: result([]),
+      efficiencyWeight: result([]),
+    },
     hourlySpend: data.hourlySpend || hourly([]),
   });
 }
@@ -199,42 +217,65 @@ describe("buildKubernetesCostOverview", () => {
     expect(overview.topWorkloads).toHaveLength(2);
   });
 
-  test("weights each workload's efficiency by what it cost", () => {
+  test("weighs efficiency by what the CPU and memory cost", () => {
+    /*
+     * 80% on $9 of CPU and memory, 5% on $1: the two sums are 0.8 x 9 +
+     * 0.05 x 1 and 10. A plain average of the two would say 42.5%.
+     */
     const overview: KubernetesCostOverview = build({
       namespaceSpend: result([{ namespace: "shop", value: 10 }]),
       workloadSpend: result([
         workload("shop", "checkout", 9),
         workload("shop", "cron", 1, "job"),
       ]),
-      workloadEfficiency: result([
-        workload("shop", "checkout", 0.8),
-        workload("shop", "cron", 0.05, "job"),
-      ]),
+      efficiency: efficiencySums({
+        weightedEfficiency: 0.8 * 9 + 0.05 * 1,
+        weight: 10,
+      }),
     });
 
-    // 80% on 9 of the 10 spent, 5% on 1: a plain average would say 42.5%.
     expect(overview.efficiency).toBeCloseTo((0.8 * 9 + 0.05 * 1) / 10, 10);
   });
 
-  test("leaves out a workload with no efficiency or no cost, and says nothing when none is left", () => {
+  test("says nothing about efficiency when no CPU or memory cost anything", () => {
+    // Idle capacity alone, say: its rows weigh nothing.
     expect(
       build({
-        namespaceSpend: result([{ namespace: "shop", value: 1 }]),
-        workloadSpend: result([workload("shop", "checkout", 0)]),
-        workloadEfficiency: result([workload("shop", "checkout", 0.5)]),
+        namespaceSpend: result([{ namespace: "__idle__", value: 1 }]),
+        efficiency: efficiencySums({ weightedEfficiency: 0, weight: 0 }),
       }).efficiency,
     ).toBeNull();
 
+    // And no rows at all.
     expect(
       build({
         namespaceSpend: result([{ namespace: "shop", value: 1 }]),
-        workloadSpend: result([
-          workload("shop", "checkout", 2),
-          workload("shop", "cart", 2),
-        ]),
-        workloadEfficiency: result([workload("shop", "checkout", 0.5)]),
       }).efficiency,
-    ).toBe(0.5);
+    ).toBeNull();
+  });
+
+  test("keeps an efficiency above 100% where workloads used more than they requested", () => {
+    expect(
+      build({
+        namespaceSpend: result([{ namespace: "shop", value: 4 }]),
+        efficiency: efficiencySums({ weightedEfficiency: 6, weight: 4 }),
+      }).efficiency,
+    ).toBe(1.5);
+  });
+
+  test("reads efficiency from the sums alone, not from what the workloads cost in total", () => {
+    /*
+     * Storage, network and load balancers are in a workload's total, and
+     * efficiency does not measure them: a workload that is mostly a big
+     * volume must not outweigh one that is all CPU.
+     */
+    const overview: KubernetesCostOverview = build({
+      namespaceSpend: result([{ namespace: "db", value: 100 }]),
+      workloadSpend: result([workload("db", "postgres", 100, "statefulset")]),
+      efficiency: efficiencySums({ weightedEfficiency: 1, weight: 4 }),
+    });
+
+    expect(overview.efficiency).toBe(0.25);
   });
 
   test("projects a month from the average of the hours that have cost data", () => {
@@ -299,7 +340,7 @@ describe("buildKubernetesCostOverview", () => {
 });
 
 describe("fetchKubernetesCostOverview", () => {
-  test("makes four reads of the cluster's cost rows, all at once", async () => {
+  test("makes five reads of the cluster's cost rows, all at once", async () => {
     mockAggregate.mockReset();
     mockAggregate.mockResolvedValue({ data: [] } as never);
 
@@ -312,7 +353,7 @@ describe("fetchKubernetesCostOverview", () => {
       now: NOW,
     });
 
-    expect(mockAggregate).toHaveBeenCalledTimes(4);
+    expect(mockAggregate).toHaveBeenCalledTimes(5);
 
     const reads: Array<any> = mockAggregate.mock.calls.map(
       (call: Array<unknown>): any => {
@@ -341,8 +382,14 @@ describe("fetchKubernetesCostOverview", () => {
       ["totalCost", AggregationType.Sum, AggregationInterval.Total, lastDay],
       ["totalCost", AggregationType.Sum, AggregationInterval.Total, lastDay],
       [
-        "totalEfficiency",
-        AggregationType.Avg,
+        "weightedEfficiency",
+        AggregationType.Sum,
+        AggregationInterval.Total,
+        lastDay,
+      ],
+      [
+        "efficiencyWeight",
+        AggregationType.Sum,
         AggregationInterval.Total,
         lastDay,
       ],
@@ -355,7 +402,9 @@ describe("fetchKubernetesCostOverview", () => {
       controllerKind: true,
       controllerName: true,
     });
-    expect(reads[2].groupBy).toEqual(reads[1].groupBy);
+    // The cluster's efficiency: both sums over every row, ungrouped.
+    expect(reads[2].groupBy).toBeUndefined();
     expect(reads[3].groupBy).toBeUndefined();
+    expect(reads[4].groupBy).toBeUndefined();
   });
 });

@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{time}} पर {{kind}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (बजट {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} रद्द {{path}}",
-  "{{method}} failed {{path}}": "{{method}} विफल {{path}}"
+  "{{method}} failed {{path}}": "{{method}} विफल {{path}}",
+  "Efficiency Weight": "दक्षता भार",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "चुनी गई सीमा में इस क्लस्टर के वर्कलोड ने अनुरोधित CPU और मेमोरी का कितना हिस्सा इस्तेमाल किया, उस CPU और मेमोरी की लागत के अनुसार भार देकर। निष्क्रिय क्षमता नहीं गिनी जाती। 70% से हरा, 40% से नीचे लाल।",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "चुनी गई सीमा में अनुरोधित CPU और मेमोरी का कितना हिस्सा इस्तेमाल हुआ, उस CPU और मेमोरी की लागत के अनुसार भार देकर; 100% से ऊपर का मतलब है कि अनुरोध से ज़्यादा इस्तेमाल हुआ। 70% से हरा, 40% से नीचे लाल: कम मान का मतलब है ऐसे अनुरोधों के लिए भुगतान जो इस्तेमाल नहीं हुए।",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "पिछले 24 घंटों में वर्कलोड ने अपने अनुरोधित CPU और मेमोरी का कितना हिस्सा इस्तेमाल किया, उस CPU और मेमोरी की लागत के अनुसार भार देकर, जैसे लागत पेज गिनता है; 100% से ऊपर का मतलब है अनुरोध से ज़्यादा। 70% से हरा, 40% से नीचे लाल।",
+  "Weighted Efficiency": "भारित दक्षता"
 }

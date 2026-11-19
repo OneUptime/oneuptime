@@ -113,3 +113,21 @@ export interface KubernetesCostIngestPayload {
  * output to stay under this; the ingest endpoint rejects anything larger.
  */
 export const MAX_KUBERNETES_COST_ALLOCATIONS_PER_REQUEST: number = 5000;
+
+/*
+ * The engine's names for capacity that is no workload's, in the namespace
+ * column of an allocation row (the cost agent's AllocationMapper puts them
+ * there). Their spend is idle spend, never a workload's, and they have no
+ * efficiency: nothing requested the capacity they stand for.
+ */
+export const KUBERNETES_COST_IDLE_NAMESPACE: string = "__idle__";
+export const KUBERNETES_COST_UNALLOCATED_NAMESPACE: string = "__unallocated__";
+
+export function isKubernetesCostSentinelNamespace(
+  namespace: string | null | undefined,
+): boolean {
+  return (
+    namespace === KUBERNETES_COST_IDLE_NAMESPACE ||
+    namespace === KUBERNETES_COST_UNALLOCATED_NAMESPACE
+  );
+}

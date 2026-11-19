@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} bei {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (Budget {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} abgebrochen {{path}}",
-  "{{method}} failed {{path}}": "{{method}} fehlgeschlagen {{path}}"
+  "{{method}} failed {{path}}": "{{method}} fehlgeschlagen {{path}}",
+  "Efficiency Weight": "Effizienzgewicht",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "Wie viel der angeforderten CPU und des angeforderten Arbeitsspeichers die Workloads dieses Clusters im ausgewählten Zeitraum genutzt haben, gewichtet nach den Kosten dieser CPU und dieses Arbeitsspeichers. Leerlaufkapazität wird nicht mitgezählt. Grün ab 70 %, rot unter 40 %.",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "Wie viel der angeforderten CPU und des angeforderten Arbeitsspeichers im ausgewählten Zeitraum genutzt wurde, gewichtet nach den Kosten dieser CPU und dieses Arbeitsspeichers; über 100 % bedeutet, dass mehr genutzt als angefordert wurde. Grün ab 70 %, rot unter 40 %: Ein niedriger Wert bedeutet, dass Sie für ungenutzte Anforderungen zahlen.",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "Wie viel ihrer angeforderten CPU und ihres angeforderten Arbeitsspeichers die Workloads in den letzten 24 Stunden genutzt haben, gewichtet nach den Kosten dieser CPU und dieses Arbeitsspeichers, so wie die Kostenseite sie zählt; über 100 % bedeutet mehr als angefordert. Grün ab 70 %, rot unter 40 %.",
+  "Weighted Efficiency": "Gewichtete Effizienz"
 }

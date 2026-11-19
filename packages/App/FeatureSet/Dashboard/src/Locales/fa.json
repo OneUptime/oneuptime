@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} در {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (بودجه {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} لغوشده {{path}}",
-  "{{method}} failed {{path}}": "{{method}} ناموفق {{path}}"
+  "{{method}} failed {{path}}": "{{method}} ناموفق {{path}}",
+  "Efficiency Weight": "وزن بهره‌وری",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "بارهای کاری این خوشه در بازه انتخاب‌شده چه مقدار از CPU و حافظه درخواست‌شده را مصرف کردند، با وزنی به اندازه هزینه همان CPU و حافظه. ظرفیت بیکار به حساب نمی‌آید. از ۷۰٪ سبز، زیر ۴۰٪ قرمز.",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "چه مقدار از CPU و حافظه درخواست‌شده در بازه انتخاب‌شده مصرف شد، با وزنی به اندازه هزینه همان CPU و حافظه؛ بیش از ۱۰۰٪ یعنی بیش از مقدار درخواست‌شده مصرف شده است. از ۷۰٪ سبز، زیر ۴۰٪ قرمز: مقدار پایین یعنی برای درخواست‌های بی‌استفاده پول می‌دهید.",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "بارهای کاری در ۲۴ ساعت گذشته چه مقدار از CPU و حافظه درخواست‌شده خود را مصرف کردند، با وزنی به اندازه هزینه همان CPU و حافظه، همان‌طور که صفحه هزینه‌ها حساب می‌کند؛ بیش از ۱۰۰٪ یعنی بیش از مقدار درخواست‌شده. از ۷۰٪ سبز، زیر ۴۰٪ قرمز.",
+  "Weighted Efficiency": "بهره‌وری وزن‌دار"
 }

@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} vid {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (budget: {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} avbruten {{path}}",
-  "{{method}} failed {{path}}": "{{method}} misslyckades {{path}}"
+  "{{method}} failed {{path}}": "{{method}} misslyckades {{path}}",
+  "Efficiency Weight": "Effektivitetsvikt",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "Hur mycket av den begärda CPU:n och minnet som klustrets arbetsbelastningar använde i det valda tidsintervallet, viktat efter vad den CPU:n och det minnet kostade. Inaktiv kapacitet räknas inte. Grön från 70 %, röd under 40 %.",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "Hur mycket av den begärda CPU:n och minnet som användes i det valda tidsintervallet, viktat efter vad den CPU:n och det minnet kostade; över 100 % betyder att mer användes än vad som begärdes. Grön från 70 %, röd under 40 %: lågt betyder att du betalar för begäranden som inte används.",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "Hur mycket av den begärda CPU:n och minnet som arbetsbelastningarna använde de senaste 24 timmarna, viktat efter vad den CPU:n och det minnet kostade, så som sidan Kostnader räknar det; över 100 % betyder mer än begärt. Grön från 70 %, röd under 40 %.",
+  "Weighted Efficiency": "Viktad effektivitet"
 }

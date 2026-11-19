@@ -10,6 +10,10 @@ import AnalyticsTableColumn, {
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import {
+  KUBERNETES_COST_EFFICIENCY_WEIGHT_DEFAULT_EXPRESSION,
+  KUBERNETES_COST_WEIGHTED_EFFICIENCY_DEFAULT_EXPRESSION,
+} from "../../Types/Kubernetes/KubernetesCostEfficiency";
 
 /*
  * One cost-allocation record for a Kubernetes workload over a time window,
@@ -485,6 +489,55 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       });
     });
 
+    /*
+     * Efficiency is shown cost-weighted everywhere (#9635): a group's figure
+     * is sum(weightedEfficiency) / sum(efficiencyWeight) over its rows, with
+     * each row weighed by what its CPU and memory cost, and idle capacity by
+     * nothing (Types/Kubernetes/KubernetesCostEfficiency). Two plain sums
+     * give it for any grouping, which a weighted average of totalEfficiency
+     * could not.
+     *
+     * Ingest writes both. Rows stored before the columns existed read their
+     * DEFAULT expressions, worked out from the row's own namespace, costs and
+     * efficiency, so they weigh exactly as new rows do with no backfill.
+     */
+    const efficiencyWeightColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "efficiencyWeight",
+        title: "Efficiency Weight",
+        description:
+          "What this row's efficiency counts for in a cost-weighted efficiency: its CPU cost plus its RAM cost (a negative one counted as 0), and 0 for idle and unallocated capacity. A group's efficiency is the sum of weightedEfficiency over the sum of this.",
+        required: true,
+        defaultValue: 0,
+        defaultExpression: KUBERNETES_COST_EFFICIENCY_WEIGHT_DEFAULT_EXPRESSION,
+        type: TableColumnType.Decimal,
+        codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const weightedEfficiencyColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "weightedEfficiency",
+        title: "Weighted Efficiency",
+        description:
+          "totalEfficiency times efficiencyWeight. Summed over a group of rows and divided by their summed efficiencyWeight, it gives the group's efficiency weighted by what its CPU and memory cost.",
+        required: true,
+        defaultValue: 0,
+        defaultExpression:
+          KUBERNETES_COST_WEIGHTED_EFFICIENCY_DEFAULT_EXPRESSION,
+        type: TableColumnType.Decimal,
+        codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
     const currencyColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "currency",
       isLowCardinality: true,
@@ -588,6 +641,8 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         labelsColumn,
         labelKeysColumn,
         ...measureColumns,
+        efficiencyWeightColumn,
+        weightedEfficiencyColumn,
         currencyColumn,
         shipmentIdColumn,
         shipmentChunkColumn,
@@ -920,6 +975,22 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set totalEfficiency(v: number | undefined) {
     this.setColumnValue("totalEfficiency", v);
+  }
+
+  public get efficiencyWeight(): number | undefined {
+    return this.getColumnValue("efficiencyWeight") as number | undefined;
+  }
+
+  public set efficiencyWeight(v: number | undefined) {
+    this.setColumnValue("efficiencyWeight", v);
+  }
+
+  public get weightedEfficiency(): number | undefined {
+    return this.getColumnValue("weightedEfficiency") as number | undefined;
+  }
+
+  public set weightedEfficiency(v: number | undefined) {
+    this.setColumnValue("weightedEfficiency", v);
   }
 
   public get currency(): string | undefined {

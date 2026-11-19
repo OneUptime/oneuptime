@@ -40,6 +40,11 @@ import {
   isKubernetesCostMoneyMetric,
 } from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import { writeOwnValue } from "Common/Utils/LookupTable";
+import {
+  KubernetesCostEfficiencyRow,
+  getKubernetesCostEfficiencyWeight,
+  getKubernetesCostWeightedEfficiency,
+} from "Common/Types/Kubernetes/KubernetesCostEfficiency";
 
 /** Rows per fan-in submission — same order of magnitude as exceptions. */
 const KUBERNETES_COST_FLUSH_BATCH_SIZE: number = 500;
@@ -652,6 +657,23 @@ export default class KubernetesCostIngestService {
       shipmentChunk: data.shipmentChunk,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
+
+    /*
+     * What the row counts for in every cost-weighted efficiency, worked out
+     * from the values as stored (Common/Types/Kubernetes/
+     * KubernetesCostEfficiency): the same figures the columns' DEFAULT
+     * expressions give a row stored before them.
+     */
+    const efficiencySource: KubernetesCostEfficiencyRow = {
+      namespace: row["namespace"] as string,
+      cpuCost: row["cpuCost"] as number,
+      ramCost: row["ramCost"] as number,
+      totalEfficiency: row["totalEfficiency"] as number,
+    };
+    row["efficiencyWeight"] =
+      getKubernetesCostEfficiencyWeight(efficiencySource);
+    row["weightedEfficiency"] =
+      getKubernetesCostWeightedEfficiency(efficiencySource);
 
     // What the cost metrics read of it, as stored.
     const metricSource: KubernetesCostMetricSourceRow = {

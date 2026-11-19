@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} عند {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (الميزانية {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} أُلغي {{path}}",
-  "{{method}} failed {{path}}": "{{method}} فشل {{path}}"
+  "{{method}} failed {{path}}": "{{method}} فشل {{path}}",
+  "Efficiency Weight": "وزن الكفاءة",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "مقدار ما استخدمته أحمال العمل في هذا العنقود من CPU والذاكرة المطلوبين في النطاق المحدد، مرجَّحًا بتكلفة ذلك الـ CPU وتلك الذاكرة. لا تُحتسب السعة الخاملة. أخضر من 70%، وأحمر دون 40%.",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "مقدار ما استُخدم فعلًا من CPU والذاكرة المطلوبين في النطاق المحدد، مرجَّحًا بتكلفة ذلك الـ CPU وتلك الذاكرة؛ وما فوق 100% يعني أن المستخدَم أكثر من المطلوب. أخضر من 70%، وأحمر دون 40%: فالقيمة المنخفضة تعني الدفع مقابل طلبات غير مستخدمة.",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "مقدار ما استخدمته أحمال العمل من CPU والذاكرة المطلوبين لها في آخر 24 ساعة، مرجَّحًا بتكلفة ذلك الـ CPU وتلك الذاكرة كما تحسبه صفحة التكاليف؛ وما فوق 100% يعني أكثر من المطلوب. أخضر من 70%، وأحمر دون 40%.",
+  "Weighted Efficiency": "الكفاءة الموزونة"
 }

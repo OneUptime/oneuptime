@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{time}} の {{kind}}：{{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}}（予算 {{duration}}）",
   "{{method}} cancelled {{path}}": "{{method}} キャンセル {{path}}",
-  "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}"
+  "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}",
+  "Efficiency Weight": "効率の重み",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "このクラスターのワークロードが選択した範囲で、要求した CPU とメモリのうち使用した割合です。その CPU とメモリのコストで重み付けしています。アイドル容量は含みません。70% 以上で緑、40% 未満で赤になります。",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "選択した範囲で、要求された CPU とメモリのうち使用された割合です。その CPU とメモリのコストで重み付けしています。100% を超える場合は、要求より多く使用されたことを意味します。70% 以上で緑、40% 未満で赤になります。低い値は、使われていないリクエストに支払っていることを意味します。",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "ワークロードが過去 24 時間に、要求した CPU とメモリのうち使用した割合です。コストページと同じく、その CPU とメモリのコストで重み付けしています。100% を超える場合は要求より多く使用したことを意味します。70% 以上で緑、40% 未満で赤になります。",
+  "Weighted Efficiency": "重み付き効率"
 }

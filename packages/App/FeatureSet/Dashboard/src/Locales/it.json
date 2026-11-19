@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} a {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (soglia {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} annullata {{path}}",
-  "{{method}} failed {{path}}": "{{method}} non riuscita {{path}}"
+  "{{method}} failed {{path}}": "{{method}} non riuscita {{path}}",
+  "Efficiency Weight": "Peso dell'efficienza",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "Quanta parte della CPU e della memoria richieste hanno usato i carichi di lavoro di questo cluster nell'intervallo selezionato, ponderata per quanto sono costate quella CPU e quella memoria. La capacità inutilizzata non viene contata. Verde dal 70%, rosso sotto il 40%.",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "Quanta parte della CPU e della memoria richieste è stata usata nell'intervallo selezionato, ponderata per quanto sono costate quella CPU e quella memoria; oltre il 100% significa che è stato usato più di quanto richiesto. Verde dal 70%, rosso sotto il 40%: un valore basso significa pagare richieste inutilizzate.",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "Quanta parte della CPU e della memoria richieste i carichi di lavoro hanno usato nelle ultime 24 ore, ponderata per quanto sono costate quella CPU e quella memoria, come la conta la pagina Costi; oltre il 100% significa più di quanto richiesto. Verde dal 70%, rosso sotto il 40%.",
+  "Weighted Efficiency": "Efficienza ponderata"
 }

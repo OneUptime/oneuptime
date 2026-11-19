@@ -57645,5 +57645,10 @@
   "{{kind}} at {{time}}: {{title}}": "{{time}} 的 {{kind}}：{{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}}（預算 {{duration}}）",
   "{{method}} cancelled {{path}}": "{{method}} 已取消 {{path}}",
-  "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}"
+  "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}",
+  "Efficiency Weight": "效率權重",
+  "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "此叢集的工作負載在所選範圍內實際使用了其所請求的 CPU 和記憶體的多少比例，依這些 CPU 和記憶體的成本加權。不計入閒置容量。70% 以上為綠色，低於 40% 為紅色。",
+  "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "在所選範圍內，請求的 CPU 和記憶體中實際使用的比例，依這些 CPU 和記憶體的成本加權；超過 100% 表示使用量多於請求量。70% 以上為綠色，低於 40% 為紅色：數值低表示你在為未使用的請求付費。",
+  "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "工作負載在過去 24 小時內實際使用了其所請求的 CPU 和記憶體的多少比例，依這些 CPU 和記憶體的成本加權，與成本頁面的計算方式相同；超過 100% 表示使用量多於請求量。70% 以上為綠色，低於 40% 為紅色。",
+  "Weighted Efficiency": "加權效率"
 }
