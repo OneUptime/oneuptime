@@ -208,8 +208,9 @@ describe("DataPipelineAlertTemplates", () => {
    * alert clears fifteen minutes after the stop ends.
    */
   test("Pipeline Stopped by Circuit Breaker fires on a stop the circuit breaker answered or still keeps", () => {
-    const template: DataPipelineAlertTemplate =
-      getDataPipelineAlertTemplate("data-pipeline-stopped-by-circuit-breaker")!;
+    const template: DataPipelineAlertTemplate = getDataPipelineAlertTemplate(
+      "data-pipeline-stopped-by-circuit-breaker",
+    )!;
     const step: MonitorStep = template.getMonitorStep(buildArgs());
     const [breach, recovery] = getInstances(step);
 
@@ -227,7 +228,9 @@ describe("DataPipelineAlertTemplates", () => {
     expect(query.metricQueryData.filterData.aggegationType).toBe(
       MetricsAggregationType.Max,
     );
-    expect(step.data?.metricMonitor?.rollingTime).toBe(RollingTime.Past15Minutes);
+    expect(step.data?.metricMonitor?.rollingTime).toBe(
+      RollingTime.Past15Minutes,
+    );
 
     expect(getFilter(breach!).filterType).toBe(FilterType.GreaterThan);
     expect(getFilter(breach!).value).toBe(0);
@@ -237,8 +240,7 @@ describe("DataPipelineAlertTemplates", () => {
     expect(getFilter(recovery!).filterType).toBe(FilterType.LessThanOrEqualTo);
 
     // The alert says where the reasons are, and when it clears.
-    const description: string =
-      breach!.data?.alerts?.[0]?.description || "";
+    const description: string = breach!.data?.alerts?.[0]?.description || "";
 
     expect(description).toContain("Circuit Breaker page");
     expect(description).toContain("answers go");

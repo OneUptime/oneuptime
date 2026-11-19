@@ -44,7 +44,9 @@ afterEach(() => {
 describe("a pipeline's Recommendations page", () => {
   test("hands the shared shell the pipeline's resource type", () => {
     render(
-      <DataPipelineRecommendations {...({} as unknown as PageComponentProps)} />,
+      <DataPipelineRecommendations
+        {...({} as unknown as PageComponentProps)}
+      />,
     );
 
     expect(screen.getByTestId("recommendations-shell")).toHaveAttribute(

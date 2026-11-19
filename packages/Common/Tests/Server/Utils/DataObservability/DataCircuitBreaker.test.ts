@@ -297,16 +297,14 @@ function arrange(): void {
   offReason = null;
   metricRows = [];
 
-  jest
-    .spyOn(OpenLineageIngest, "writeMetricRows")
-    .mockImplementation((async (
-      projectId: ObjectID,
-      rows: Array<JSONObject>,
-    ) => {
-      for (const row of rows) {
-        metricRows.push({ projectId: projectId.toString(), row });
-      }
-    }) as never);
+  jest.spyOn(OpenLineageIngest, "writeMetricRows").mockImplementation((async (
+    projectId: ObjectID,
+    rows: Array<JSONObject>,
+  ) => {
+    for (const row of rows) {
+      metricRows.push({ projectId: projectId.toString(), row });
+    }
+  }) as never);
   jest
     .spyOn(MonitorMetricUtil, "getRetentionDays")
     .mockResolvedValue(15 as never);

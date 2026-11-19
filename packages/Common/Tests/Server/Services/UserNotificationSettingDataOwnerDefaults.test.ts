@@ -169,7 +169,9 @@ describe("a person who switched a data owner event off", () => {
         .mockResolvedValue(setting as never) as unknown as jest.SpyInstance;
       const findEmails: jest.SpyInstance = jest
         .spyOn(UserEmailService, "findBy")
-        .mockResolvedValue([] as Array<UserEmail> as never) as unknown as jest.SpyInstance;
+        .mockResolvedValue(
+          [] as Array<UserEmail> as never,
+        ) as unknown as jest.SpyInstance;
       const sendMail: jest.SpyInstance = jest
         .spyOn(MailService, "sendMail")
         .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;

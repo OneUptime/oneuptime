@@ -166,14 +166,12 @@ describe("DataPipelineScheduleCheck.checkAll", () => {
       // The schedule pass reads the pipelines started lately, the circuit breaker's those asked lately.
       return "circuitBreakerCheckedAt" in data.query ? [stopped] : [onTime];
     }) as never);
-    jest
-      .spyOn(OpenLineageIngest, "writeMetricRows")
-      .mockImplementation((async (
-        _projectId: ObjectID,
-        written: Array<JSONObject>,
-      ) => {
-        rows.push(...written);
-      }) as never);
+    jest.spyOn(OpenLineageIngest, "writeMetricRows").mockImplementation((async (
+      _projectId: ObjectID,
+      written: Array<JSONObject>,
+    ) => {
+      rows.push(...written);
+    }) as never);
   });
 
   afterEach(() => {

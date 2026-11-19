@@ -388,11 +388,11 @@ type SendData = Parameters<
 >[0];
 
 function sends(): Array<SendData> {
-  return asMock(UserNotificationSettingService.sendUserNotification).mock.calls.map(
-    (call: Array<unknown>): SendData => {
-      return call[0] as SendData;
-    },
-  );
+  return asMock(
+    UserNotificationSettingService.sendUserNotification,
+  ).mock.calls.map((call: Array<unknown>): SendData => {
+    return call[0] as SendData;
+  });
 }
 
 beforeEach(() => {
@@ -404,9 +404,7 @@ beforeEach(() => {
   asMock(DatabaseConfig.getDashboardUrl).mockResolvedValue(
     URL.fromString(DASHBOARD),
   );
-  asMock(ServerProducts.getOffProductOfServerWorkTable).mockResolvedValue(
-    null,
-  );
+  asMock(ServerProducts.getOffProductOfServerWorkTable).mockResolvedValue(null);
   asMock(ServerProducts.getOffReasonOfServerWork).mockResolvedValue(null);
   asMock(TeamMemberService.getUsersInTeams).mockResolvedValue([]);
   asMock(TeamMemberService.filterUsersToProjectMembers).mockImplementation(
@@ -455,7 +453,8 @@ describe.each(CASES)("the new owner of $title", (jobCase: JobCase) => {
     // The row is taken, and the delivery says the owner was told.
     expect(world.takes).toBe(1);
     expect(table.statusesOf(OWNER_ROW_ID)).toEqual({
-      [OWNER.id!.toString().toLowerCase()]: OwnerNotificationDeliveryStatus.Sent,
+      [OWNER.id!.toString().toLowerCase()]:
+        OwnerNotificationDeliveryStatus.Sent,
     });
     expect(table.rows[0]!.kind).toBe(jobCase.kind);
     expect(table.rows[0]!.resourceId).toBe(RECORD_ID.toString().toLowerCase());
@@ -547,9 +546,9 @@ describe.each(CASES)("the new owner of $title", (jobCase: JobCase) => {
 
   test("tells a person a failing send leaves untold once, and never again", async () => {
     arrange(jobCase);
-    asMock(UserNotificationSettingService.sendUserNotification).mockRejectedValue(
-      new Error("The mail server is down"),
-    );
+    asMock(
+      UserNotificationSettingService.sendUserNotification,
+    ).mockRejectedValue(new Error("The mail server is down"));
 
     await runJob(jobCase);
     await runJob(jobCase);

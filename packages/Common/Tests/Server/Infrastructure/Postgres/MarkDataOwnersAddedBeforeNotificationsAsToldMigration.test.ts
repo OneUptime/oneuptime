@@ -118,9 +118,8 @@ describe("MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000", () => {
   });
 
   test("sets the one column and picks only the rows still waiting", () => {
-    const statement: string = getMarkDataOwnersToldStatement(
-      "DataAssetOwnerUser",
-    );
+    const statement: string =
+      getMarkDataOwnersToldStatement("DataAssetOwnerUser");
     const assignments: string = statement.slice(
       statement.indexOf(" SET "),
       statement.indexOf(" WHERE "),
