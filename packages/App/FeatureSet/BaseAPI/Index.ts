@@ -657,6 +657,15 @@ import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityCon
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
+import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
+import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
+import ManagedDeviceService, {
+  Service as ManagedDeviceServiceType,
+} from "Common/Server/Services/ManagedDeviceService";
+import ManagedDeviceApp from "Common/Models/DatabaseModels/ManagedDeviceApp";
+import ManagedDeviceAppService, {
+  Service as ManagedDeviceAppServiceType,
+} from "Common/Server/Services/ManagedDeviceAppService";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import AuditLogExportService, {
@@ -3831,6 +3840,32 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkControllerConnectionAPI().getRouter(),
+    );
+
+    /*
+     * Device management connections: Esper tenants whose Android devices
+     * are imported into Inventory on a schedule, and the devices and apps
+     * they import (read-only: written by the reads).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DeviceManagementConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ManagedDevice, ManagedDeviceServiceType>(
+        ManagedDevice,
+        ManagedDeviceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ManagedDeviceApp, ManagedDeviceAppServiceType>(
+        ManagedDeviceApp,
+        ManagedDeviceAppService,
+      ).getRouter(),
     );
 
     // External MCP servers OneUptime AI may use, and their connection test.

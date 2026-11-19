@@ -180,6 +180,7 @@ const InventoryOverview: FunctionComponent<
                   <InventoryTypeBadge entityType={item.entityType} />
                   <InventoryLivenessBadge
                     source={item.source}
+                    resourceType={item.resourceType}
                     lastSeenAt={item.lastSeenAt}
                   />
                 </li>

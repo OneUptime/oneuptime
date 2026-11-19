@@ -37,11 +37,12 @@ export const INVENTORY_AND_API_PAGES: ReadonlyArray<InventoryAndApiDocsPageEntry
 /*
  * A table's create button, drawn as translateCreateAction draws it: the
  * custom fields table's and the API keys table's ("Create <singular
- * name>"), and the Inventory list's, whose table names its own verb
- * (createVerb "Add").
+ * name>"), and the Inventory list's and the Esper connections table's,
+ * whose tables name their own verbs (createVerb "Add" and "Connect").
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  [INVENTORY_OVERVIEW]: ["Add Item"],
+  // The Esper connections table's createVerb is "Connect" (issue #9586).
+  [INVENTORY_OVERVIEW]: ["Add Item", "Connect Esper"],
   [INVENTORY_CUSTOM_FIELDS]: ["Create Inventory Item Custom Field"],
   [CMDB_SYNC]: ["Create API Key"],
   [API_REFERENCE]: ["Create API Key"],
