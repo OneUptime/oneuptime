@@ -53,6 +53,8 @@ Een beoordeling leest:
 
 Ze kan ook de rest van OneUptime lezen zoals het onderzoek van een incident dat doet: logs, traces, metrics, hosts en de alleen-lezen tools van de MCP-servers van het project.
 
+Iedereen die de zaak mag zien, leest de beoordeling ervan, dus een beoordeling leest alleen wat zij allemaal mogen lezen, zoals het onderzoek van een incident dat doet. Een soort record dat geen team, aangepaste rol of API-sleutel alleen op eigenaar of label leest, wordt helemaal gelezen; waar sommigen dat wel doen, blijft een host, cluster, service of ander record dat een eigenaar of een label afschermt buiten beschouwing, en het wordt nooit genoemd of meegeteld. De zaak wordt altijd gelezen, en ook het incident dat de zaak heeft gemeld, tenzij dat incident privé is. Privé-incidenten en -waarschuwingen worden nooit gelezen.
+
 ### Wat ze concludeert
 
 | Lezing | Betekent | Stelt voor te sluiten als |

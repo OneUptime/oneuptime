@@ -135,6 +135,9 @@ import RemediationTrackRecordReader, {
   EarlierFix,
   RemediationTarget,
 } from "./RemediationTrackRecordReader";
+import RemediationReadAudience from "./RemediationReadAudience";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwnership";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
@@ -900,6 +903,15 @@ export default class RemediationExecutionRunner {
     let resourceTarget: ResourceAiAccessStatus | null = null;
     let resourceReadToolkit: InfrastructureInvestigationToolkit | null = null;
     let downgradeNote: string | null = null;
+    /*
+     * Who reads what the round posts: everyone who may see its incident or
+     * alert (RemediationReadAudience, #9612). Its starting context, its
+     * tools and its track records read only what all of them may read,
+     * beside what it acts on. Worked out once the round knows its targets,
+     * before it changes or posts anything: a round that cannot tell who
+     * reads it is retried, never run as OneUptime.
+     */
+    let readAudience: ReadAudience;
 
     /*
      * How far the run may go, and the read toolkits' absolute deadline: the
@@ -1111,6 +1123,14 @@ export default class RemediationExecutionRunner {
           return;
         }
 
+        // The round's cluster is what it acts on: named, like the subject's own.
+        readAudience = await RemediationReadAudience.forFix({
+          projectId,
+          incidentId: suggestion.incidentId,
+          alertId: suggestion.alertId,
+          targets: { kubernetesClusterIds: [clusterTarget.clusterId] },
+        });
+
         const resolution: ClusterModeResolution = await this.resolveClusterMode(
           {
             suggestion,
@@ -1180,6 +1200,7 @@ export default class RemediationExecutionRunner {
           clusterTarget,
           downgradeNote: downgradeNote || undefined,
           rollbackScope: { projectId, clusters: toolkit.getClusterTargets() },
+          readAudience,
         });
       } else if (isResourceRemediationRound(suggestion)) {
         /*
@@ -1217,6 +1238,19 @@ export default class RemediationExecutionRunner {
           await this.completeRunQuietly(aiRunId);
           return;
         }
+
+        // The round's resource is what it acts on: named, like the subject's own.
+        readAudience = await RemediationReadAudience.forFix({
+          projectId,
+          incidentId: suggestion.incidentId,
+          alertId: suggestion.alertId,
+          targets: {
+            resource: {
+              resourceType: resourceTarget.resourceType,
+              resourceId: resourceTarget.resourceId,
+            },
+          },
+        });
 
         const resolution: ResourceModeResolution =
           await this.resolveResourceMode({
@@ -1281,6 +1315,7 @@ export default class RemediationExecutionRunner {
           allowlistPatterns: resourceTarget.aiCommandAllowlist,
           resourceTarget,
           downgradeNote: downgradeNote || undefined,
+          readAudience,
         });
       } else {
         const rule: AutoRemediationRule | null =
@@ -1382,6 +1417,24 @@ export default class RemediationExecutionRunner {
         }
 
         /*
+         * What the rule's fix acts on is named: the Runners the rule runs
+         * its commands on, and the signal's clusters an older rule reaches.
+         */
+        readAudience = await RemediationReadAudience.forFix({
+          projectId,
+          incidentId: suggestion.incidentId,
+          alertId: suggestion.alertId,
+          targets: {
+            runnerIds: allowedRunnerIds,
+            kubernetesClusterIds: ruleClusterTargets.map(
+              (status: KubernetesClusterAiAccessStatus): string => {
+                return status.clusterId;
+              },
+            ),
+          },
+        });
+
+        /*
          * The per-cluster hourly circuit breaker applies to every unattended
          * kubectl target, however the run was started. A FullAuto rule run
          * may only CHANGE a cluster that still has headroom; the others stay
@@ -1466,6 +1519,7 @@ export default class RemediationExecutionRunner {
           rollbackScope: toolkit.offersChangeRollback()
             ? { projectId, clusters: toolkit.getClusterTargets() }
             : undefined,
+          readAudience,
         });
       }
     } catch (error) {
@@ -1487,6 +1541,7 @@ export default class RemediationExecutionRunner {
     const resolvedResourceTarget: ResourceAiAccessStatus | null =
       resourceTarget;
     const resolvedDowngradeNote: string | null = downgradeNote;
+    const resolvedReadAudience: ReadAudience = readAudience;
 
     const readTools: Array<ObservabilityAssistantExtraTool> = [
       ...(readToolkit ? readToolkit.buildTools() : []),
@@ -1580,6 +1635,8 @@ export default class RemediationExecutionRunner {
         extraTools,
         runLimits,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
+        // Everyone who may see the incident or alert reads what it posts (#9612).
+        readAudience: resolvedReadAudience,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;
@@ -1591,6 +1648,7 @@ export default class RemediationExecutionRunner {
             toolkit: resolvedToolkit,
             analysisMarkdown: postData.analysisMarkdown,
             downgradeNote: resolvedDowngradeNote || undefined,
+            readAudience: resolvedReadAudience,
           });
         },
       },
@@ -1672,6 +1730,8 @@ export default class RemediationExecutionRunner {
      * rationale names its breaker downgrade.
      */
     downgradeNote?: string | undefined;
+    // Who reads what it posts: the track records are read for them.
+    readAudience: ReadAudience;
   }): Promise<void> {
     const { suggestion, toolkit } = data;
 
@@ -1712,6 +1772,7 @@ export default class RemediationExecutionRunner {
             suggestion,
             needingApproval,
             rationaleMarkdown,
+            readAudience: data.readAudience,
           });
           return;
         }
@@ -1781,6 +1842,7 @@ export default class RemediationExecutionRunner {
     const recordedPlan: AiRemediationCommandPlan = await this.withTrackRecords({
       suggestion,
       plan: proposedPlan,
+      readAudience: data.readAudience,
     });
 
     const transitioned: number =
@@ -1842,12 +1904,39 @@ export default class RemediationExecutionRunner {
    * went the last times OneUptime AI made it on the same cluster or
    * resource, for other incidents and alerts (RemediationTrackRecordReader).
    * The plan as it was when there is nothing to add or it cannot be read.
+   *
+   * The record names those incidents and alerts where the plan is posted,
+   * to everyone who may see this one (#9612): it names and counts only
+   * those all of them may read (`readAudience`, the round's; worked out
+   * here for a plan a workflow proposes). Readers that cannot be worked out
+   * add no record.
    */
   public static async withTrackRecords(data: {
     suggestion: AutoRemediationSuggestion;
     plan: AiRemediationCommandPlan;
+    readAudience?: ReadAudience | undefined;
   }): Promise<AiRemediationCommandPlan> {
     if (!data.suggestion.projectId) {
+      return data.plan;
+    }
+
+    let readAudience: ReadAudience;
+
+    try {
+      readAudience =
+        data.readAudience ||
+        (await ReadAudienceReader.forSubject(
+          {
+            projectId: data.suggestion.projectId,
+            incidentId: data.suggestion.incidentId,
+            alertId: data.suggestion.alertId,
+          },
+          { withTelemetry: false },
+        ));
+    } catch (error) {
+      logger.error(
+        `RemediationExecutionRunner: could not tell who reads the plan of suggestion ${data.suggestion.id?.toString()}; it carries no track record: ${error}`,
+      );
       return data.plan;
     }
 
@@ -1859,6 +1948,7 @@ export default class RemediationExecutionRunner {
         incidentId: data.suggestion.incidentId,
         alertId: data.suggestion.alertId,
       },
+      readAudience,
     });
   }
 
@@ -1891,11 +1981,13 @@ export default class RemediationExecutionRunner {
   /*
    * The round's context about the fixes OneUptime AI made before on its
    * cluster or resource, for other incidents and alerts, and how
-   * verification judged them (RemediationTrackRecordReader). None for a
+   * verification judged them (RemediationTrackRecordReader): only those
+   * everyone who reads the round may read (`readAudience`). None for a
    * rule's round, which names no one target.
    */
   private static async describeEarlierFixes(
     suggestion: AutoRemediationSuggestion,
+    readAudience: ReadAudience,
   ): Promise<Array<string>> {
     const isResourceRound: boolean =
       !suggestion.kubernetesClusterId && isResourceRemediationRound(suggestion);
@@ -1923,6 +2015,7 @@ export default class RemediationExecutionRunner {
           incidentId: suggestion.incidentId,
           alertId: suggestion.alertId,
         },
+        readAudience,
       });
 
     return describeEarlierFixesForPlanner({
@@ -1947,6 +2040,8 @@ export default class RemediationExecutionRunner {
     suggestion: AutoRemediationSuggestion;
     needingApproval: Array<RemediationCommandNeedingApproval>;
     rationaleMarkdown: string;
+    // Who reads what it posts: the track records are read for them.
+    readAudience: ReadAudience;
   }): Promise<void> {
     const { suggestion } = data;
 
@@ -2014,6 +2109,7 @@ export default class RemediationExecutionRunner {
         commands,
         executionStatus: AiRemediationPlanExecutionStatus.NotStarted,
       },
+      readAudience: data.readAudience,
     });
 
     const reasons: Array<MarkdownText> = kept.map(
@@ -3120,6 +3216,11 @@ export default class RemediationExecutionRunner {
           clusters: Array<KubernetesClusterAiAccessStatus>;
         }
       | undefined;
+    /*
+     * Who reads what the round posts: the fixes made before and the recent
+     * changes are read for them (#9612).
+     */
+    readAudience: ReadAudience;
   }): Promise<string> {
     const lines: Array<string> = [];
 
@@ -3272,7 +3373,12 @@ export default class RemediationExecutionRunner {
       }
 
       lines.push(...(await this.describePreviousRounds(data.suggestion)));
-      lines.push(...(await this.describeEarlierFixes(data.suggestion)));
+      lines.push(
+        ...(await this.describeEarlierFixes(
+          data.suggestion,
+          data.readAudience,
+        )),
+      );
     } else if (data.resourceTarget) {
       lines.push(...this.describeResourceTarget(data));
       lines.push(
@@ -3282,7 +3388,12 @@ export default class RemediationExecutionRunner {
         })),
       );
       lines.push(...(await this.describePreviousRounds(data.suggestion)));
-      lines.push(...(await this.describeEarlierFixes(data.suggestion)));
+      lines.push(
+        ...(await this.describeEarlierFixes(
+          data.suggestion,
+          data.readAudience,
+        )),
+      );
     } else {
       lines.push("");
       lines.push(
@@ -3342,6 +3453,7 @@ export default class RemediationExecutionRunner {
           suggestion: data.suggestion,
           projectId: data.rollbackScope.projectId,
           clusters: data.rollbackScope.clusters,
+          readAudience: data.readAudience,
         })),
       );
     }
@@ -3352,13 +3464,17 @@ export default class RemediationExecutionRunner {
   /*
    * Rollback first: the changes recorded before the signal, suspects marked
    * (RecentChangesContext), and which of them roll_back_change can undo on
-   * the clusters this round may change. Enrichment only: a round that
-   * cannot read them goes on without them.
+   * the clusters this round may change. Read for everyone who reads the
+   * round (`readAudience`, #9612), as an investigation reads them: a change
+   * of a resource set apart from one of them is neither listed nor
+   * counted. Enrichment only: a round that cannot read them goes on
+   * without them.
    */
   private static async describeRecentChanges(data: {
     suggestion: AutoRemediationSuggestion;
     projectId: ObjectID;
     clusters: Array<KubernetesClusterAiAccessStatus>;
+    readAudience: ReadAudience;
   }): Promise<Array<string>> {
     const subjectKind: "incident" | "alert" | null = data.suggestion.incidentId
       ? "incident"
@@ -3380,6 +3496,7 @@ export default class RemediationExecutionRunner {
         subjectKind,
         subjectId,
         linked: null,
+        readAudience: data.readAudience,
       });
     } catch (error) {
       logger.error(

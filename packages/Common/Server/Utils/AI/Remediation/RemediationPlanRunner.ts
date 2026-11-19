@@ -77,6 +77,9 @@ import {
   EXPLAIN_NO_RUNBOOK_RULE,
   isAnotherRunsRound,
 } from "./RemediationRoundRun";
+import RemediationReadAudience from "./RemediationReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
  * Auto-remediation — the AI planning run.
@@ -98,14 +101,25 @@ import {
  * its hourly circuit breaker has headroom (startPickedRunbook). Fail
  * direction: anything unparseable or uncertain becomes NoneApplicable — a
  * malformed answer can propose nothing, let alone run something.
+ *
+ * The pick, its reasoning and the runbook it names are posted where
+ * everyone who may see the incident or alert reads them, so the run reads
+ * only what all of them may read (RemediationReadAudience, #9612): its
+ * tools, the runbooks' track records and, for the project's own pick, the
+ * runbooks it chooses from - one an owner or a label sets apart is never
+ * offered, so never named. The runbooks a rule names are its own choice
+ * and are offered whoever owns them.
  */
 
 // Cap on how many candidate runbooks are offered to the model.
 const MAX_CANDIDATE_RUNBOOKS: number = 50;
 
-// The runbooks a pick chooses from, and whose pick it is.
-interface LoadedCandidates {
-  candidates: Array<Runbook>;
+/*
+ * The runbooks a rule names for its pick - none for the project's own pick,
+ * or a rule that names none - and whose pick it is.
+ */
+interface RuleRunbooks {
+  runbookIds: Array<string>;
   // A rule saved before rules were simplified (Let AI Pick the Runbook).
   isLegacyPick: boolean;
 }
@@ -254,6 +268,12 @@ export default class RemediationPlanRunner {
      * other pick says nothing when none applies: the Remediation card does.
      */
     let isLegacyPick: boolean = false;
+    /*
+     * Who reads the pick: everyone who may see the incident or alert
+     * (#9612). Worked out before the candidates are read, with the rule's
+     * runbooks named: a pick that cannot tell who reads it is retried.
+     */
+    let readAudience: ReadAudience;
 
     try {
       suggestion = await AutoRemediationSuggestionService.findOneById({
@@ -319,18 +339,13 @@ export default class RemediationPlanRunner {
         return;
       }
 
-      const loaded: LoadedCandidates | null = await this.loadCandidateRunbooks({
-        projectId,
-        ruleId: suggestion.autoRemediationRuleId,
-      });
+      const ruleRunbooks: RuleRunbooks | null = await this.readRuleRunbooks(
+        suggestion.autoRemediationRuleId,
+      );
 
-      isLegacyPick = loaded?.isLegacyPick === true;
+      isLegacyPick = ruleRunbooks?.isLegacyPick === true;
 
-      const loadedCandidates: Array<Runbook> | null = loaded
-        ? loaded.candidates
-        : null;
-
-      if (loadedCandidates === null) {
+      if (ruleRunbooks === null) {
         /*
          * The rule was deleted while the plan was queued — do not silently
          * widen the pick to every runbook in the project.
@@ -353,7 +368,19 @@ export default class RemediationPlanRunner {
         return;
       }
 
-      candidates = loadedCandidates;
+      // The runbooks the rule names are its own choice: named, like its signal's own.
+      readAudience = await RemediationReadAudience.forFix({
+        projectId,
+        incidentId: suggestion.incidentId,
+        alertId: suggestion.alertId,
+        targets: { runbookIds: ruleRunbooks.runbookIds },
+      });
+
+      candidates = await this.loadCandidateRunbooks({
+        projectId,
+        runbookIds: ruleRunbooks.runbookIds,
+        readAudience,
+      });
 
       if (candidates.length === 0) {
         await this.settleSuggestion({
@@ -377,6 +404,7 @@ export default class RemediationPlanRunner {
       contextSummary = await this.buildPlanningContext({
         suggestion,
         candidates,
+        readAudience,
       });
     } catch (error) {
       // Context assembly failed — hand the claimed run to the retry policy.
@@ -396,6 +424,7 @@ export default class RemediationPlanRunner {
         return runbook.id?.toString() || "";
       }),
     );
+    const resolvedReadAudience: ReadAudience = readAudience;
 
     /*
      * The code repositories the pick may read: its rule's, or every
@@ -426,6 +455,8 @@ export default class RemediationPlanRunner {
         ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         // Why no runbook applies, for the Remediation step (#6436).
         extraTools: [buildExplainNoFixTool()],
+        // Everyone who may see the incident or alert reads the pick (#9612).
+        readAudience: resolvedReadAudience,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;
@@ -447,6 +478,7 @@ export default class RemediationPlanRunner {
             runbook: selectedRunbook,
             rationaleMarkdown: postData.analysisMarkdown,
             isQuietWhenNone: !isLegacyPick,
+            readAudience: resolvedReadAudience,
           });
         },
       },
@@ -505,6 +537,11 @@ export default class RemediationPlanRunner {
     runbook: Runbook | null;
     rationaleMarkdown: string;
     isQuietWhenNone: boolean;
+    /*
+     * Who reads the pick: a picked runbook's track record names only the
+     * incidents and alerts all of them may read. None, no record.
+     */
+    readAudience?: ReadAudience | undefined;
   }): Promise<void> {
     const { suggestion, runbook } = data;
 
@@ -515,9 +552,14 @@ export default class RemediationPlanRunner {
      * fix here: kept on the suggestion and in its message, for the person
      * approving it (a change of a plan carries its own the same way).
      */
-    const trackRecord: RemediationTrackRecord | undefined = runbook
-      ? await this.readRunbookTrackRecord({ suggestion, runbook })
-      : undefined;
+    const trackRecord: RemediationTrackRecord | undefined =
+      runbook && data.readAudience
+        ? await this.readRunbookTrackRecord({
+            suggestion,
+            runbook,
+            readAudience: data.readAudience,
+          })
+        : undefined;
 
     if (
       runbook &&
@@ -866,12 +908,14 @@ export default class RemediationPlanRunner {
 
   /*
    * How `runbook` went the last times OneUptime AI ran it as a fix for
-   * other incidents and alerts of the project (RemediationTrackRecordReader):
-   * none when it never did, or when that cannot be read.
+   * other incidents and alerts of the project (RemediationTrackRecordReader),
+   * naming only those everyone who reads the pick may read: none when it
+   * never did, or when that cannot be read.
    */
   private static async readRunbookTrackRecord(data: {
     suggestion: AutoRemediationSuggestion;
     runbook: Runbook;
+    readAudience: ReadAudience;
   }): Promise<RemediationTrackRecord | undefined> {
     if (!data.suggestion.projectId || !data.runbook.id) {
       return undefined;
@@ -886,9 +930,50 @@ export default class RemediationPlanRunner {
           incidentId: data.suggestion.incidentId,
           alertId: data.suggestion.alertId,
         },
+        readAudience: data.readAudience,
       });
 
     return records.get(data.runbook.id.toString().toLowerCase());
+  }
+
+  /*
+   * The runbooks the pick's rule names, if any: none for the project's own
+   * pick, which has no rule. Null when the rule itself was deleted — the
+   * caller settles NoneApplicable instead of silently widening the pick to
+   * every runbook in the project.
+   */
+  private static async readRuleRunbooks(
+    ruleId: ObjectID | undefined,
+  ): Promise<RuleRunbooks | null> {
+    if (!ruleId) {
+      return { runbookIds: [], isLegacyPick: false };
+    }
+
+    const rule: AutoRemediationRule | null =
+      await AutoRemediationRuleService.findOneById({
+        id: ruleId,
+        select: {
+          _id: true,
+          aiSelectsRunbook: true,
+          runbooks: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!rule) {
+      return null;
+    }
+
+    return {
+      runbookIds: (rule.runbooks || [])
+        .map((runbook: Runbook) => {
+          return runbook.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+      isLegacyPick: rule.aiSelectsRunbook === true,
+    };
   }
 
   /*
@@ -896,51 +981,28 @@ export default class RemediationPlanRunner {
    * id, so a project with more than MAX_CANDIDATE_RUNBOOKS enabled runbooks
    * can never silently drop one the rule names), otherwise every enabled
    * runbook in the project - for a rule that names none, and for the
-   * project's default pick, which has no rule. Returns null when the rule
-   * itself was deleted — the caller settles NoneApplicable instead of
-   * silently widening the pick to every runbook in the project.
+   * project's default pick, which has no rule.
+   *
+   * Read for everyone who reads the pick (`readAudience`, #9612): the
+   * runbooks a rule names are named in it, so they are read whoever owns
+   * them; of every runbook, the project's own pick is offered none an owner
+   * or a label sets apart, where some role reads runbooks only by owner or
+   * label - the runbook it picks is posted by name.
    */
   private static async loadCandidateRunbooks(data: {
     projectId: ObjectID;
-    ruleId: ObjectID | undefined;
-  }): Promise<LoadedCandidates | null> {
-    let attachedIds: Array<string> = [];
-    let isLegacyPick: boolean = false;
-
-    if (data.ruleId) {
-      const rule: AutoRemediationRule | null =
-        await AutoRemediationRuleService.findOneById({
-          id: data.ruleId,
-          select: {
-            _id: true,
-            aiSelectsRunbook: true,
-            runbooks: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!rule) {
-        return null;
-      }
-
-      isLegacyPick = rule.aiSelectsRunbook === true;
-
-      attachedIds = (rule.runbooks || [])
-        .map((runbook: Runbook) => {
-          return runbook.id?.toString() || "";
-        })
-        .filter((id: string) => {
-          return id !== "";
-        });
-    }
-
-    if (attachedIds.length > 0) {
-      const named: Array<Runbook> = await RunbookService.findBy({
+    runbookIds: Array<string>;
+    readAudience: ReadAudience;
+  }): Promise<Array<Runbook>> {
+    if (data.runbookIds.length > 0) {
+      return await RunbookService.findBy({
         query: {
           _id: QueryHelper.any(
-            attachedIds.slice(0, MAX_CANDIDATE_RUNBOOKS).map((id: string) => {
-              return new ObjectID(id);
-            }),
+            data.runbookIds
+              .slice(0, MAX_CANDIDATE_RUNBOOKS)
+              .map((id: string) => {
+                return new ObjectID(id);
+              }),
           ),
           projectId: data.projectId,
           isEnabled: true,
@@ -952,13 +1014,11 @@ export default class RemediationPlanRunner {
         },
         limit: MAX_CANDIDATE_RUNBOOKS,
         skip: 0,
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
-
-      return { candidates: named, isLegacyPick };
     }
 
-    const every: Array<Runbook> = await RunbookService.findBy({
+    return await RunbookService.findBy({
       query: {
         projectId: data.projectId,
         isEnabled: true,
@@ -970,16 +1030,16 @@ export default class RemediationPlanRunner {
       },
       limit: MAX_CANDIDATE_RUNBOOKS,
       skip: 0,
-      props: { isRoot: true },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
-
-    return { candidates: every, isLegacyPick };
   }
 
   // Build the compact planning brief that seeds the run.
   private static async buildPlanningContext(data: {
     suggestion: AutoRemediationSuggestion;
     candidates: Array<Runbook>;
+    // Who reads the pick: the candidates' track records are read for them.
+    readAudience: ReadAudience;
   }): Promise<string> {
     const lines: Array<string> = [];
 
@@ -1123,6 +1183,7 @@ export default class RemediationPlanRunner {
             incidentId: data.suggestion.incidentId,
             alertId: data.suggestion.alertId,
           },
+          readAudience: data.readAudience,
         })
       : new Map<string, RemediationTrackRecord>();
 
