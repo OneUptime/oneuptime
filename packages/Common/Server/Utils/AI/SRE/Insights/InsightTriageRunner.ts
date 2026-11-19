@@ -38,6 +38,8 @@ import {
   CodeRepositoryAllowance,
   NO_CODE_REPOSITORY,
 } from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
+import ReadAudienceReader from "../../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../../Types/BaseDatabase/ReadAudience";
 
 // What a telemetry lane's problem is triaged with (getTelemetryAiScope).
 interface TelemetryAiTriageScope {
@@ -58,6 +60,13 @@ interface TelemetryAiTriageScope {
  * The difference is the OUTPUT SINK. Insights never page and never open
  * incidents (the roadmap's Preventive-lane rule), so postAnalysis writes the
  * summary onto the insight row and NOTHING else — the quiet inbox.
+ *
+ * Everyone who may see the insight reads that summary: who may read the
+ * service it is about, or the whole project for an insight about none
+ * (AIInsight's @OwnedThrough). So the triage reads only what all of them
+ * may read (#9612): every kind no role reads only by owner or label whole,
+ * and otherwise as nobody in particular may read it, beside the insight's
+ * own service (ReadAudienceReader, subject: the insight).
  */
 
 /*
@@ -337,6 +346,14 @@ export default class InsightTriageRunner {
     let contextSummary: string;
     let insight: AIInsight | null = null;
     let scope: TelemetryAiTriageScope | null = null;
+    /*
+     * Who reads the triage: everyone who may see the insight - who may read
+     * the service it is about, or the whole project for an insight about
+     * none (#9612). Every tool reads only what all of them may read: as
+     * nobody in particular may, beside the insight's own service. A triage
+     * that cannot tell who reads it is retried.
+     */
+    let readAudience: ReadAudience;
     try {
       insight = await AIInsightService.findOneById({
         id: sentinelInsightId,
@@ -364,6 +381,11 @@ export default class InsightTriageRunner {
           "AI insight not found — it may have been deleted after the triage run was enqueued.",
         );
       }
+
+      readAudience = await ReadAudienceReader.forSubject({
+        projectId,
+        aiInsightId: sentinelInsightId,
+      });
 
       contextSummary = this.buildInsightSummary(insight);
       scope = await InsightTriageRunner.getTelemetryAiScope({
@@ -394,6 +416,8 @@ export default class InsightTriageRunner {
       request: {
         feature: AI_INSIGHT_TRIAGE_FEATURE,
         contextSummary,
+        // Everyone who may see the insight reads its triage (#9612).
+        readAudience,
         ...(scope
           ? {
               codeRepositoryAllowance: scope.codeRepositoryAllowance,

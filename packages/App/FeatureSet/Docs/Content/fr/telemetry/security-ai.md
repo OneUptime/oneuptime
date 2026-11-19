@@ -53,6 +53,8 @@ Une qualification lit :
 
 Elle peut aussi lire le reste de OneUptime comme le fait l'investigation d'un incident : journaux, traces, métriques, hôtes, et les outils en lecture seule des serveurs MCP du projet.
 
+Tous ceux qui peuvent voir le dossier lisent sa qualification : une qualification ne lit donc que ce que tous peuvent lire, comme le fait l'investigation d'un incident. Un type d'enregistrement qu'aucune équipe, aucun rôle personnalisé ni aucune clé d'API ne lit que selon le propriétaire ou l'étiquette est lu en entier ; là où certains le font, un hôte, un cluster, un service ou un autre enregistrement qu'un propriétaire ou une étiquette met à part est exclu, et il n'est jamais nommé ni compté. Le dossier est toujours lu, ainsi que l'incident qu'il a déclaré, sauf si cet incident est privé. Les incidents et alertes privés ne sont jamais lus.
+
 ### Ce qu'elle conclut
 
 | Lecture | Signifie | Propose de clore en |

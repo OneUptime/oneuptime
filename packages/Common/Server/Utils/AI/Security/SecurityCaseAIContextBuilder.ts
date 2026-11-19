@@ -48,6 +48,9 @@ import SecurityDetectionService from "../../../Services/SecurityDetectionService
 import SecurityPlaybookService from "../../../Services/SecurityPlaybookService";
 import SecurityProtectedEntityService from "../../../Services/SecurityProtectedEntityService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import logger from "../../Logger";
 import {
   loadSecurityConnectedRecords,
@@ -270,11 +273,25 @@ export default class SecurityCaseAIContextBuilder {
    * Read the case and what is around it. The case must exist; everything
    * around it is enrichment, and a read of it that fails leaves its part
    * out rather than failing the triage.
+   *
+   * Everyone who may see the case reads its triage (#9612), so every read
+   * here is made for them (`readAudience`, the case's readers): the case,
+   * its detections, notes and declared incident are its own, and what its
+   * entities connect to - hosts and their owners, clusters, services,
+   * monitors, the incidents and alerts open on them, the logs and traces
+   * that name its values - leaves out what an owner or a label sets apart
+   * from any of them, as the case's Connected Signals page does for each
+   * person who opens it. Without it, everything is read as OneUptime.
    */
   public static async read(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID;
+    readAudience?: ReadAudience | undefined;
   }): Promise<SecurityCaseTriageData> {
+    const props: DatabaseCommonInteractionProps = data.readAudience
+      ? ReadAudiencePermission.getReadProps(data.readAudience)
+      : { isRoot: true };
+
     const securityCase: SecurityCase | null =
       await SecurityCaseService.findOneBy({
         query: {
@@ -301,7 +318,7 @@ export default class SecurityCaseAIContextBuilder {
           // The setup test's case is told apart by it (isSetupTestCase).
           groupingKey: true,
         },
-        props: { isRoot: true },
+        props,
       });
 
     if (!securityCase) {
@@ -332,7 +349,7 @@ export default class SecurityCaseAIContextBuilder {
         sort: { lastSeenAt: SortOrder.Descending },
         limit: MAX_TRIAGE_DETECTIONS,
         skip: 0,
-        props: { isRoot: true },
+        props,
       });
 
     const entities: Array<SecurityEntity> = readSecurityEntities(
@@ -340,8 +357,9 @@ export default class SecurityCaseAIContextBuilder {
     );
 
     /*
-     * The same connections the case's Connected Signals page reads, as
-     * OneUptime: the triage runs on its own, for whoever opens the case.
+     * The same connections the case's Connected Signals page reads, read
+     * for everyone who may see the case: the triage runs on its own, for
+     * whoever opens the case.
      */
     const connections: SecurityConnectionsJson | null =
       await this.readEnrichment(
@@ -352,7 +370,7 @@ export default class SecurityCaseAIContextBuilder {
           return loadSecurityConnections().default.forCase({
             projectId: data.projectId,
             securityCaseId: data.securityCaseId,
-            props: { isRoot: true },
+            props,
           });
         },
       );
@@ -373,6 +391,7 @@ export default class SecurityCaseAIContextBuilder {
             projectId: data.projectId,
             entities,
             connections,
+            props,
           });
         },
       ),
@@ -385,7 +404,7 @@ export default class SecurityCaseAIContextBuilder {
           return loadSecurityTelemetryMentions().forCase({
             projectId: data.projectId,
             securityCaseId: data.securityCaseId,
-            props: { isRoot: true },
+            props,
           });
         },
       ),
@@ -403,7 +422,7 @@ export default class SecurityCaseAIContextBuilder {
                   currentIncidentState: { name: true },
                   incidentSeverity: { name: true },
                 },
-                props: { isRoot: true },
+                props,
               });
             },
           )
@@ -413,7 +432,7 @@ export default class SecurityCaseAIContextBuilder {
         data.securityCaseId,
         [],
         (): Promise<Array<ProtectedEntityRule>> => {
-          return this.readProtectedEntities(data.projectId);
+          return this.readProtectedEntities(data.projectId, props);
         },
       ),
       playbooks: await this.readEnrichment(
@@ -421,7 +440,7 @@ export default class SecurityCaseAIContextBuilder {
         data.securityCaseId,
         [],
         (): Promise<Array<TriagePlaybook>> => {
-          return this.readPlaybooks(data.projectId);
+          return this.readPlaybooks(data.projectId, props);
         },
       ),
       notes: await this.readEnrichment(
@@ -429,7 +448,11 @@ export default class SecurityCaseAIContextBuilder {
         data.securityCaseId,
         [],
         (): Promise<Array<TriageNote>> => {
-          return this.readNotes(data);
+          return this.readNotes({
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+            props,
+          });
         },
       ),
       entityRisks: await this.readEnrichment(
@@ -440,6 +463,7 @@ export default class SecurityCaseAIContextBuilder {
           return this.readEntityRisks({
             projectId: data.projectId,
             entities,
+            props,
           });
         },
       ),
@@ -454,6 +478,7 @@ export default class SecurityCaseAIContextBuilder {
   private static async readEntityRisks(data: {
     projectId: ObjectID;
     entities: Array<SecurityEntity>;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Array<TriageEntityRisk>> {
     const keys: Array<string> = getRiskEntities(data.entities)
       .map((entity: SecurityEntity): string => {
@@ -481,7 +506,7 @@ export default class SecurityCaseAIContextBuilder {
         sort: { riskScore: SortOrder.Descending },
         limit: MAX_TRIAGE_ENTITY_RISKS,
         skip: 0,
-        props: { isRoot: true },
+        props: data.props,
       });
 
     const scored: Array<SecurityEntityRisk> = rows.filter(
@@ -541,7 +566,17 @@ export default class SecurityCaseAIContextBuilder {
     projectId: ObjectID;
     entities: Array<SecurityEntity>;
     connections?: SecurityConnectionsJson | null | undefined;
+    /*
+     * Who the hosts are read for: the case's readers, for its triage (a
+     * host set apart from one of them is neither named nor its owners
+     * read). OneUptime's own when left out.
+     */
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<Array<TriageLinkedHost>> {
+    const props: DatabaseCommonInteractionProps = data.props || {
+      isRoot: true,
+    };
+
     let hostRecords: Array<{
       id: string;
       name: string;
@@ -589,7 +624,7 @@ export default class SecurityCaseAIContextBuilder {
             0,
             MAX_TRIAGE_LINKED_HOSTS + MAX_TRIAGE_ADDRESS_LOOKUPS,
           ),
-          props: { isRoot: true },
+          props,
         })
       ).records
         .filter((record: SecurityConnectedRecord): boolean => {
@@ -633,7 +668,7 @@ export default class SecurityCaseAIContextBuilder {
       },
       limit: hostRecords.length,
       skip: 0,
-      props: { isRoot: true },
+      props,
     });
     const hostById: Map<string, Host> = new Map();
 
@@ -651,6 +686,7 @@ export default class SecurityCaseAIContextBuilder {
         await this.readHostOwners({
           projectId: data.projectId,
           hostId: new ObjectID(record.id),
+          props,
         });
 
       linked.push({
@@ -672,13 +708,14 @@ export default class SecurityCaseAIContextBuilder {
   private static async readHostOwners(data: {
     projectId: ObjectID;
     hostId: ObjectID;
+    props: DatabaseCommonInteractionProps;
   }): Promise<{ teams: Array<string>; users: Array<string> }> {
     const teams: Array<HostOwnerTeam> = await HostOwnerTeamService.findBy({
       query: { projectId: data.projectId, hostId: data.hostId },
       select: { team: { name: true } },
       limit: 10,
       skip: 0,
-      props: { isRoot: true },
+      props: data.props,
     });
 
     const users: Array<HostOwnerUser> = await HostOwnerUserService.findBy({
@@ -686,7 +723,7 @@ export default class SecurityCaseAIContextBuilder {
       select: { user: { name: true, email: true } },
       limit: 10,
       skip: 0,
-      props: { isRoot: true },
+      props: data.props,
     });
 
     return {
@@ -707,6 +744,7 @@ export default class SecurityCaseAIContextBuilder {
 
   private static async readProtectedEntities(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<Array<ProtectedEntityRule>> {
     const rows: Array<SecurityProtectedEntity> =
       await SecurityProtectedEntityService.findBy({
@@ -714,7 +752,7 @@ export default class SecurityCaseAIContextBuilder {
         select: { entityType: true, value: true },
         limit: 500,
         skip: 0,
-        props: { isRoot: true },
+        props,
       });
 
     return rows
@@ -728,6 +766,7 @@ export default class SecurityCaseAIContextBuilder {
 
   private static async readPlaybooks(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<Array<TriagePlaybook>> {
     const playbooks: Array<SecurityPlaybook> =
       await SecurityPlaybookService.findBy({
@@ -742,7 +781,7 @@ export default class SecurityCaseAIContextBuilder {
         sort: { name: SortOrder.Ascending },
         limit: MAX_TRIAGE_PLAYBOOKS,
         skip: 0,
-        props: { isRoot: true },
+        props,
       });
 
     return playbooks
@@ -763,6 +802,7 @@ export default class SecurityCaseAIContextBuilder {
   private static async readNotes(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Array<TriageNote>> {
     const notes: Array<SecurityCaseNote> = await SecurityCaseNoteService.findBy(
       {
@@ -778,7 +818,7 @@ export default class SecurityCaseAIContextBuilder {
         sort: { createdAt: SortOrder.Descending },
         limit: MAX_TRIAGE_NOTES,
         skip: 0,
-        props: { isRoot: true },
+        props: data.props,
       },
     );
 

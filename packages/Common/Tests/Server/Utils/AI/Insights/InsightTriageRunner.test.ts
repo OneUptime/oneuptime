@@ -24,6 +24,8 @@ import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/Telemet
 import { decideTelemetryAiWork } from "../../../../../Types/AI/TelemetryAi";
 import { NO_EXTERNAL_MCP_SERVER } from "../../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import ReadAudienceReader from "../../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../../Helpers/ReadAudienceFixtures";
 
 /*
  * The insight triage runner — the Preventive lane's quiet-inbox executor.
@@ -91,6 +93,18 @@ function driveTriageWithAnalysis(analysisMarkdown: string): void {
 function makeConfidence(): ConfidenceSignal {
   return { confident: true, source: "classification" };
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: projectId }));
+});
 
 describe("InsightTriageRunner.executeTriage", () => {
   /*
@@ -1205,6 +1219,9 @@ describe("InsightTriageRunner.executeTriage - Exceptions' AI section", () => {
   test("its switch on or off: an expected denial is archived where the project opted in", async () => {
     for (const isLaneOn of [true, false]) {
       jest.restoreAllMocks();
+      jest
+        .spyOn(ReadAudienceReader, "forSubject")
+        .mockResolvedValue(readAudienceOf({ projectId }));
       const telemetryExceptionId: ObjectID = ObjectID.generate();
       jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(
         makeInsight({
@@ -1528,6 +1545,9 @@ describe("InsightTriageRunner.executeTriage - Metrics' findings", () => {
       AIInsightType.MetricMissingRequestMetrics,
     ]) {
       jest.restoreAllMocks();
+      jest
+        .spyOn(ReadAudienceReader, "forSubject")
+        .mockResolvedValue(readAudienceOf({ projectId }));
 
       const summary: string = await contextSummaryFor(insightType);
 
