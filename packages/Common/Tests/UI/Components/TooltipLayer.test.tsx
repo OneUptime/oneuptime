@@ -368,11 +368,23 @@ describe("Tooltip - placed against the window's edges, not its box's", () => {
     document.documentElement.removeAttribute("dir");
   });
 
-  // Puts an element at a place in the window, as the browser would lay it out.
+  /*
+   * Puts an element at a place in the window, as the browser would lay it
+   * out - its inner size too, which Popper reads of a box that clips.
+   */
   function placeAt(
     element: HTMLElement,
     box: { left: number; top: number; width: number; height: number },
   ): void {
+    Object.defineProperty(element, "clientWidth", {
+      configurable: true,
+      value: box.width,
+    });
+    Object.defineProperty(element, "clientHeight", {
+      configurable: true,
+      value: box.height,
+    });
+
     element.getBoundingClientRect = (): DOMRect => {
       return {
         x: box.left,
@@ -519,6 +531,48 @@ describe("Tooltip - placed against the window's edges, not its box's", () => {
     expect(atTheStart.left + TOOLTIP_WIDTH).toBeLessThanOrEqual(
       WINDOW_WIDTH - EDGE_PADDING,
     );
+  });
+
+  test("it follows its trigger as the list around it scrolls", async () => {
+    const before: Shown = await showOwnerTooltipAt({ left: 500, top: 400 });
+    const trigger: HTMLElement = screen.getByRole("button", { name: "AL" });
+
+    // The list scrolls 40px sideways, and 10px down: the avatar moves with it.
+    placeAt(trigger, { left: 460, top: 390, width: 24, height: 24 });
+    fireEvent.scroll(screen.getByTestId("list"));
+    await settle();
+
+    const after: Shown = shown("Ada Lovelace");
+
+    expect(after.placement).toBe("top");
+    expect(after.left).toBeCloseTo(before.left - 40, 5);
+    expect(after.top).toBeCloseTo(before.top - 10, 5);
+  });
+
+  test("once the list has scrolled its trigger out of sight, it is marked to go", async () => {
+    await showOwnerTooltipAt(
+      { left: 100, top: 400 },
+      { box: { left: 0, top: 300, width: 400, height: 200 } },
+    );
+
+    const box: HTMLElement = tooltipRootOf("Ada Lovelace").querySelector(
+      ".tippy-box",
+    ) as HTMLElement;
+
+    expect(box).not.toHaveAttribute("data-reference-hidden");
+
+    // Scrolled sideways past the list's right edge.
+    placeAt(screen.getByRole("button", { name: "AL" }), {
+      left: 600,
+      top: 400,
+      width: 24,
+      height: 24,
+    });
+    fireEvent.scroll(screen.getByTestId("list"));
+    await settle();
+
+    // Tooltip.css hides a box marked so.
+    expect(box).toHaveAttribute("data-reference-hidden");
   });
 
   test("the window decides, not the box its trigger is in: room above in the window, none in the box", async () => {
