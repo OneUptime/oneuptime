@@ -726,10 +726,26 @@ integration(
         );
       }
 
+      // A Lambda's own line, filed under the service of its name (#10033).
+      const functionLines: Array<NormalizedSecurityEvent> =
+        SecurityLogParser.parse({
+          body: "sshd[3310]: Failed password for invalid user root from 198.51.100.77 port 40022 ssh2",
+          attributes: { "resource.faas.name": "rotate-keys" },
+          time: DAY_START,
+          logId: ObjectID.generate().toString(),
+        });
+
+      expect(functionLines).toHaveLength(1);
+
       await client.insert({
         table: `${azureDatabase}.${model.tableName}`,
         format: "JSONEachRow",
-        values: [...filler, ...sources.map(rowOf), ...nearMisses.map(rowOf)],
+        values: [
+          ...filler,
+          ...sources.map(rowOf),
+          ...nearMisses.map(rowOf),
+          ...functionLines.map(rowOf),
+        ],
         clickhouse_settings: { wait_for_async_insert: 1 },
       });
       await client.command({
@@ -842,6 +858,41 @@ integration(
       expect(finalSkip.of).toBeGreaterThan(4);
       expect(finalSkip.read).toBeLessThan(finalSkip.of);
       // The page reads the same: a scoped read compiles the same OR.
+    });
+
+    /*
+     * #10033: a case naming the address a streamed line was about is
+     * connected to the cloud resource whose own logs it was, and the function
+     * whose own line another was - by what each event carries.
+     */
+    test("the cloud resources and functions whose own logs the events naming a value were read from", async () => {
+      expect(
+        await SecurityEventService.findLogOwnersNaming({
+          projectId,
+          values: ["203.0.113.7", "198.51.100.77"],
+          startTime: START,
+          endTime: END,
+          limit: 20,
+        }),
+      ).toEqual(
+        expect.arrayContaining([
+          {
+            kind: "CloudResource",
+            value: AZURE_VAULT_ID.toLowerCase(),
+          },
+          { kind: "ServerlessFunction", value: "rotate-keys" },
+        ]),
+      );
+      // A value no such event names: none.
+      expect(
+        await SecurityEventService.findLogOwnersNaming({
+          projectId,
+          values: ["host-1"],
+          startTime: START,
+          endTime: END,
+          limit: 20,
+        }),
+      ).toEqual([]);
     });
 
     test("a search that folded each stored value instead would read every granule: why the key is stored", async () => {

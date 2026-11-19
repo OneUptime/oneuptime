@@ -14,8 +14,11 @@ import {
   getQuerySettings,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import {
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+  SecurityLogOwner,
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_EVENT_SCOPE_MAX_ATTRIBUTE_VALUES } from "../../Types/SecurityEvent/SecurityEventScope";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
@@ -47,7 +50,11 @@ import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
 import Dictionary from "../../Types/Dictionary";
 import { AttributeType } from "../Utils/Telemetry/Telemetry";
 import { copyOwnValues } from "../../Utils/LookupTable";
-import { foldResourceIdObservables } from "../../Utils/SecurityCase/SecurityConnectionMatch";
+import {
+  foldResourceIdObservables,
+  readSecurityEventLogOwners,
+  readSecurityLogOwners,
+} from "../../Utils/SecurityCase/SecurityConnectionMatch";
 import { foldCloudResourceAttribute } from "../Utils/SecurityEvent/SecurityEventRow";
 
 export interface DetectionMatchGroup {
@@ -1091,6 +1098,111 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       .filter((resource: SecurityEventLogResource): boolean => {
         return Boolean(resource.type) && ObjectID.isValidUUID(resource.id);
       });
+  }
+
+  /*
+   * The cloud resources and serverless functions whose own log lines or
+   * spans the events naming these values were read from (#10033), the most
+   * named first: the ID a cloud account's stream stamped on the line, the
+   * faas.name it carried (Types/SecurityCase/SecurityConnection
+   * SecurityLogOwner). A case's connection to the very database or function
+   * whose logs it was found in, whatever service they were filed under. The
+   * observables' bloom index narrows the read, and the attribute keys' the
+   * events that carry either.
+   */
+  public async findLogOwnersNaming(data: {
+    projectId: ObjectID;
+    values: Array<string>;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+    // The sources the reader may read; none: every one (findObservableActivity).
+    serviceFilter?: TelemetryServiceFilter | undefined;
+  }): Promise<Array<SecurityLogOwner>> {
+    const values: Array<string> = Array.from(
+      new Set(
+        data.values
+          .map((value: string): string => {
+            return value.trim();
+          })
+          .filter((value: string): boolean => {
+            return value.length > 0;
+          }),
+      ),
+    ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
+
+    if (values.length === 0) {
+      return [];
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+    }}] AS cloudResourceId, attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+    }}] AS functionName, count() AS eventCount FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND hasAny(observables, ${{
+        type: TableColumnType.ArrayText,
+        value: values,
+      }}) AND (has(attributeKeys, ${{
+        type: TableColumnType.Text,
+        value: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+      }}) OR has(attributeKeys, ${{
+        type: TableColumnType.Text,
+        value: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+      }}))`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY cloudResourceId, functionName ORDER BY eventCount DESC, cloudResourceId ASC, functionName ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.min(100, Math.trunc(data.limit))),
+      }}`,
+    );
+    statement.append(getQuerySettings(SECURITY_CONNECTION_READ_TIME_LIMIT));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const owners: Array<SecurityLogOwner> = [];
+    const rows: Array<JSONObject> = (response.data || []) as Array<JSONObject>;
+
+    for (const row of rows) {
+      owners.push(
+        ...readSecurityEventLogOwners({
+          [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: String(
+            row["cloudResourceId"] ?? "",
+          ),
+          [SECURITY_LOG_FUNCTION_ATTRIBUTE]: String(row["functionName"] ?? ""),
+        }),
+      );
+    }
+
+    // Each once, the most named first.
+    return readSecurityLogOwners(owners);
   }
 
   /*

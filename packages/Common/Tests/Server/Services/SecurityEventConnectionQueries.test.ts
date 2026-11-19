@@ -11,6 +11,8 @@ import { TelemetryServiceFilter } from "../../../Server/Utils/Telemetry/Telemetr
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
 } from "../../../Types/SecurityCase/SecurityConnection";
@@ -418,6 +420,105 @@ describe("SecurityEventService.findLogResourcesNaming", () => {
       await SecurityEventService.findLogResourcesNaming({
         projectId: PROJECT_ID,
         values: [],
+        startTime: START,
+        endTime: END,
+        limit: 10,
+      }),
+    ).toEqual([]);
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #10033: the cloud resources and functions whose own logs the events
+ * naming a case's values were read from - the ID a stream stamped, the
+ * faas.name a line or span carried - each once, the most named first.
+ */
+describe("SecurityEventService.findLogOwnersNaming", () => {
+  test("the cloud resources and functions whose own logs the events naming the values were read from", async () => {
+    const spy: Spy = stubExecuteQuery([
+      {
+        cloudResourceId:
+          "/subscriptions/1/resourcegroups/rg/providers/microsoft.keyvault/vaults/kv",
+        functionName: "",
+        eventCount: "9",
+      },
+      { cloudResourceId: "", functionName: "checkout-handler", eventCount: 4 },
+      // A line of a function filed under a resource: both.
+      {
+        cloudResourceId:
+          "arn:aws:lambda:us-east-1:111122223333:function:charge",
+        functionName: "charge",
+        eventCount: 2,
+      },
+      // The same vault again, in capitals: one.
+      {
+        cloudResourceId:
+          "/SUBSCRIPTIONS/1/RESOURCEGROUPS/RG/PROVIDERS/MICROSOFT.KEYVAULT/VAULTS/KV",
+        functionName: "",
+        eventCount: 1,
+      },
+      // Neither: nothing.
+      { cloudResourceId: "", functionName: "", eventCount: 1 },
+    ]);
+
+    expect(
+      await SecurityEventService.findLogOwnersNaming({
+        projectId: PROJECT_ID,
+        values: ["203.0.113.7", " 203.0.113.7 "],
+        startTime: START,
+        endTime: END,
+        limit: 500,
+      }),
+    ).toEqual([
+      {
+        kind: "CloudResource",
+        value:
+          "/subscriptions/1/resourcegroups/rg/providers/microsoft.keyvault/vaults/kv",
+      },
+      { kind: "ServerlessFunction", value: "checkout-handler" },
+      {
+        kind: "CloudResource",
+        value: "arn:aws:lambda:us-east-1:111122223333:function:charge",
+      },
+      { kind: "ServerlessFunction", value: "charge" },
+    ]);
+
+    const statement: Statement = statementOf(spy);
+
+    expect(statement.query).toContain(
+      "SELECT attributes[{p0:String}] AS cloudResourceId, attributes[{p1:String}] AS functionName, count() AS eventCount FROM",
+    );
+    expect(statement.query).toContain("WHERE projectId = {p2:String}");
+    expect(statement.query).toContain(
+      "AND hasAny(observables, {p5:Array(String)}) AND (has(attributeKeys, {p6:String}) OR has(attributeKeys, {p7:String}))",
+    );
+    expect(statement.query).toContain(
+      "GROUP BY cloudResourceId, functionName ORDER BY eventCount DESC, cloudResourceId ASC, functionName ASC LIMIT {p8:Int32}",
+    );
+    expect(boundValues(statement)[0]).toBe(
+      SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+    );
+    expect(boundValues(statement)[1]).toBe(SECURITY_LOG_FUNCTION_ATTRIBUTE);
+    expect(boundValues(statement)[5]).toEqual(["203.0.113.7"]);
+    expect(boundValues(statement)[6]).toBe(
+      SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+    );
+    expect(boundValues(statement)[7]).toBe(SECURITY_LOG_FUNCTION_ATTRIBUTE);
+    // The limit is held to a hundred whatever is asked.
+    expect(boundValues(statement)[8]).toBe(100);
+    expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
+    // No value is ever written into the statement itself.
+    expect(statement.query).not.toContain("203.0.113.7");
+  });
+
+  test("no value reads nothing", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    expect(
+      await SecurityEventService.findLogOwnersNaming({
+        projectId: PROJECT_ID,
+        values: ["  "],
         startTime: START,
         endTime: END,
         limit: 10,

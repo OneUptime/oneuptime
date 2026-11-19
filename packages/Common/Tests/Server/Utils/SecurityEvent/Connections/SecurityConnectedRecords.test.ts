@@ -852,6 +852,249 @@ describe("the logs an event was read from", () => {
   });
 });
 
+/*
+ * #10033: an event read from a cloud resource's or a serverless function's
+ * own logs carries the ID its stream stamped on the line and the faas.name
+ * the line or span was of - the line itself is filed under the connection's
+ * service, or the service of the function's name. Each is connected
+ * exactly, read with the caller's own permissions, as the record's own
+ * Security Events page reads its events.
+ */
+describe("the cloud resource and the function whose own logs an event was read from", () => {
+  const VAULT_ID: string =
+    "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod/providers/Microsoft.KeyVault/vaults/kv-Payments";
+  const TABLE_ARN: string =
+    "arn:aws:dynamodb:us-east-1:111122223333:table/Orders";
+
+  function resolveOwners(
+    logOwners: Array<{ kind: SecurityConnectionKind; value: string }>,
+    props: DatabaseCommonInteractionProps = CALLER,
+  ): Promise<SecurityConnectedRecordsResult> {
+    return SecurityConnectedRecords.resolve({
+      projectId: PROJECT_ID,
+      entities: [],
+      logOwners,
+      props,
+    });
+  }
+
+  test("the cloud resource its stream stamped the line with: exact, an Azure ID whatever its case, as the caller", async () => {
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      return boundValues(call.query["providerResourceId"]).includes(
+        VAULT_ID.toLowerCase(),
+      )
+        ? [
+            cloudResource(CLOUD_ID, "kv-Payments", {
+              providerResourceId: VAULT_ID,
+            }),
+          ]
+        : [];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolveOwners([
+      // As every event keeps it: by its key, in lower case (#10034).
+      {
+        kind: SecurityConnectionKind.CloudResource,
+        value: VAULT_ID.toLowerCase(),
+      },
+    ]);
+
+    expect(result.records).toEqual([
+      {
+        kind: SecurityConnectionKind.CloudResource,
+        id: CLOUD_ID,
+        name: "kv-Payments",
+        certainty: SecurityConnectionCertainty.Exact,
+        matches: [
+          {
+            entity: { type: SecurityEntityType.Other, value: "kv-Payments" },
+            certainty: SecurityConnectionCertainty.Exact,
+            reason: SecurityConnectionReason.LogSource,
+            matchedValue: VAULT_ID,
+          },
+        ],
+      },
+    ]);
+
+    const read: FindArgs = spies["cloud"]!.mock.calls[0]![0] as FindArgs;
+
+    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    expect(read.props).toBe(CALLER);
+    expect(read.limit).toBeLessThanOrEqual(50);
+  });
+
+  test("an ARN or a stand-in its stream stamped is held to exactly: another case is another resource", async () => {
+    // The lower-cased lookup returns both tables; only the one stamped is the line's.
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "Orders", { providerResourceId: TABLE_ARN }),
+      cloudResource(OTHER_CLOUD_ID, "orders", {
+        providerResourceId: TABLE_ARN.toLowerCase(),
+      }),
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolveOwners([
+      { kind: SecurityConnectionKind.CloudResource, value: TABLE_ARN },
+    ]);
+
+    expect(
+      result.records.map((item: SecurityConnectedRecord): string => {
+        return item.id;
+      }),
+    ).toEqual([CLOUD_ID]);
+
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "orders-broker", {
+        providerResourceId: "AWS/AmazonMQ Broker=orders",
+      }),
+    ] as never);
+
+    expect(
+      (
+        await resolveOwners([
+          {
+            kind: SecurityConnectionKind.CloudResource,
+            value: "AWS/AmazonMQ Broker=ORDERS",
+          },
+        ])
+      ).records,
+    ).toEqual([]);
+    expect(
+      (
+        await resolveOwners([
+          {
+            kind: SecurityConnectionKind.CloudResource,
+            value: "AWS/AmazonMQ Broker=orders",
+          },
+        ])
+      ).records.length,
+    ).toBe(1);
+  });
+
+  test("the function whose faas.name the line or span carried: exact, by its unique name, as the caller", async () => {
+    spies["serverless"]!.mockResolvedValue([
+      {
+        id: new ObjectID(FUNCTION_ID),
+        name: "Checkout",
+        functionIdentifier: "checkout-handler",
+      },
+      // A function of another case is another function: never the line's.
+      {
+        id: new ObjectID(OTHER_HOST_ID),
+        name: "CHECKOUT-HANDLER",
+        functionIdentifier: "CHECKOUT-HANDLER",
+      },
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolveOwners([
+      {
+        kind: SecurityConnectionKind.ServerlessFunction,
+        value: "checkout-handler",
+      },
+    ]);
+
+    expect(
+      result.records.map((item: SecurityConnectedRecord) => {
+        return [
+          item.kind,
+          item.id,
+          item.name,
+          item.identity,
+          item.certainty,
+          item.matches[0]?.reason,
+          item.matches[0]?.matchedValue,
+        ];
+      }),
+    ).toEqual([
+      [
+        SecurityConnectionKind.ServerlessFunction,
+        FUNCTION_ID,
+        "Checkout",
+        "checkout-handler",
+        SecurityConnectionCertainty.Exact,
+        SecurityConnectionReason.LogSource,
+        "checkout-handler",
+      ],
+    ]);
+
+    const read: FindArgs = spies["serverless"]!.mock.calls[0]![0] as FindArgs;
+
+    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    expect(boundValues(read.query["functionIdentifier"])).toEqual([
+      "checkout-handler",
+    ]);
+    expect(read.props).toBe(CALLER);
+  });
+
+  test("a role that cannot read cloud resources or functions is told so, and none of them is shown", async () => {
+    spies["cloud"]!.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read Cloud Resource.",
+      ),
+    );
+    spies["serverless"]!.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read Serverless Function.",
+      ),
+    );
+
+    const result: SecurityConnectedRecordsResult = await resolveOwners([
+      { kind: SecurityConnectionKind.CloudResource, value: TABLE_ARN },
+      {
+        kind: SecurityConnectionKind.ServerlessFunction,
+        value: "checkout-handler",
+      },
+    ]);
+
+    expect(result.records).toEqual([]);
+    expect(result.unreadableKinds.sort()).toEqual(
+      [
+        SecurityConnectionKind.CloudResource,
+        SecurityConnectionKind.ServerlessFunction,
+      ].sort(),
+    );
+    expect(result.failedKinds).toEqual([]);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("one record named by its ID and read from its own logs is one record, its log first", async () => {
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "Orders", { providerResourceId: TABLE_ARN }),
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult =
+      await SecurityConnectedRecords.resolve({
+        projectId: PROJECT_ID,
+        entities: [{ type: SecurityEntityType.Other, value: TABLE_ARN }],
+        logOwners: [
+          { kind: SecurityConnectionKind.CloudResource, value: TABLE_ARN },
+        ],
+        props: CALLER,
+      });
+
+    expect(result.records).toHaveLength(1);
+    expect(
+      result.records[0]!.matches.map((match: { reason: string }): string => {
+        return match.reason;
+      }),
+    ).toEqual([
+      SecurityConnectionReason.LogSource,
+      SecurityConnectionReason.ResourceId,
+    ]);
+  });
+
+  test("nothing to look for reads nothing", async () => {
+    await resolveOwners([
+      { kind: SecurityConnectionKind.CloudResource, value: "  " },
+      { kind: SecurityConnectionKind.Host, value: "web-1" },
+    ]);
+
+    expect(spies["cloud"]).not.toHaveBeenCalled();
+    expect(spies["serverless"]).not.toHaveBeenCalled();
+  });
+});
+
 describe("the names of the records log lines and spans were sent under", () => {
   test("each kind read once, by id, inside the project, with the caller's permissions; by kind and id", async () => {
     spies["host"]!.mockResolvedValue([host(HOST_ID, "edge-1")] as never);

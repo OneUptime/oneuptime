@@ -14,11 +14,16 @@ import {
   SECURITY_CONNECTION_MAX_ENTITIES,
   SECURITY_CONNECTION_MAX_WINDOW_IN_HOURS,
   SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH,
+  SECURITY_LOG_OWNERS_MAX,
+  SECURITY_LOG_OWNER_KINDS,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionReason,
+  SecurityLogOwner,
 } from "../../Types/SecurityCase/SecurityConnection";
 import {
   SecurityEntity,
@@ -1651,6 +1656,135 @@ export function readSecurityEventLogResources(
   }
 
   return resources;
+}
+
+// An own text value of an object, trimmed: "" when it is none, or longer than `limit` - never cut.
+function readOwnText(
+  object: JSONObject | undefined | null,
+  key: string,
+  limit: number,
+): string {
+  if (!object || typeof object !== "object") {
+    return "";
+  }
+
+  const value: unknown = Object.prototype.hasOwnProperty.call(object, key)
+    ? object[key]
+    : undefined;
+  const text: string = typeof value === "string" ? value.trim() : "";
+
+  return text.length <= limit ? text : "";
+}
+
+/*
+ * The records whose own log line or span an event was read from, by what
+ * the event carries of them (#10033, Types/SecurityCase/SecurityConnection
+ * SecurityLogOwner): the cloud resource its stream stamped the line with,
+ * and the serverless function the line or span was of. Kept whole: a value
+ * cut to fit would name another record, so one longer than any is left out.
+ */
+export function readSecurityEventLogOwners(
+  attributes: JSONObject | undefined | null,
+): Array<SecurityLogOwner> {
+  const owners: Array<SecurityLogOwner> = [];
+  const cloudResourceId: string = readOwnText(
+    attributes,
+    SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+    MAX_RESOURCE_ID_LENGTH,
+  );
+  const functionName: string = readOwnText(
+    attributes,
+    SECURITY_LOG_FUNCTION_ATTRIBUTE,
+    SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH,
+  );
+
+  if (cloudResourceId) {
+    owners.push({
+      kind: SecurityConnectionKind.CloudResource,
+      value: cloudResourceId,
+    });
+  }
+
+  if (functionName) {
+    owners.push({
+      kind: SecurityConnectionKind.ServerlessFunction,
+      value: functionName,
+    });
+  }
+
+  return owners;
+}
+
+/*
+ * The owners a request names, read from untrusted JSON: each of a kind an
+ * event names that way, a value of the length one can be, each once (a
+ * cloud resource's ID by its cloud's rule), at most SECURITY_LOG_OWNERS_MAX.
+ */
+export function readSecurityLogOwners(value: unknown): Array<SecurityLogOwner> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const owners: Array<SecurityLogOwner> = [];
+  const seen: Set<string> = new Set();
+
+  for (const item of value) {
+    if (owners.length >= SECURITY_LOG_OWNERS_MAX) {
+      break;
+    }
+
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const kind: unknown = (item as JSONObject)["kind"];
+    const raw: unknown = (item as JSONObject)["value"];
+    const text: string = typeof raw === "string" ? raw.trim() : "";
+    const limit: number =
+      kind === SecurityConnectionKind.CloudResource
+        ? MAX_RESOURCE_ID_LENGTH
+        : SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH;
+
+    if (
+      typeof kind !== "string" ||
+      !SECURITY_LOG_OWNER_KINDS.includes(kind as SecurityConnectionKind) ||
+      !text ||
+      text.length > limit
+    ) {
+      continue;
+    }
+
+    const key: string = `${kind}|${
+      kind === SecurityConnectionKind.CloudResource
+        ? getResourceIdMatchKey(text)
+        : text
+    }`;
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      owners.push({ kind: kind as SecurityConnectionKind, value: text });
+    }
+  }
+
+  return owners;
+}
+
+/*
+ * Whether the ID a log line was stamped with is this cloud resource's
+ * (#10033): by its cloud's rule - an Azure resource ID whatever its case,
+ * an ARN, a Google Cloud name or a readable stand-in exactly as the row
+ * keeps it, which is what its stream stamps (#10034).
+ */
+export function isLogOfCloudResource(data: {
+  stampedId: string;
+  providerResourceId: string | undefined | null;
+}): boolean {
+  const stamped: string = getResourceIdMatchKey(data.stampedId);
+
+  return (
+    stamped.length > 0 &&
+    stamped === getResourceIdMatchKey(data.providerResourceId)
+  );
 }
 
 // ---------- The way back: what a record is searched for by ----------

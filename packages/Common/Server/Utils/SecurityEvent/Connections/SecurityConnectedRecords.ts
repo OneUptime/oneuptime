@@ -21,6 +21,7 @@ import {
   SecurityConnectionMatch,
   SecurityConnectionReason,
   SecurityConnectionStatusJson,
+  SecurityLogOwner,
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import {
   SecurityEntity,
@@ -44,6 +45,7 @@ import {
   matchHostName,
   matchMonitorTarget,
   getResourceIdMatchKey,
+  isLogOfCloudResource,
   matchResourceId,
   readCloudEndpointHosts,
   recordReportsAddress,
@@ -93,7 +95,10 @@ import { isRefusedRead } from "./RefusedRead";
  *   emails     the project's members;
  *   logs       the record an event's log line was sent under ("Your logs"
  *              events carry it), exactly: a service, a host, a cluster, a
- *              device, a cloud resource or a serverless function.
+ *              device, a cloud resource or a serverless function - and the
+ *              cloud resource or the function whose own line or span it
+ *              was (#10033): the ID its stream stamped, the faas.name it
+ *              carried.
  *
  * Every read is inside the project, bounded, and made with the caller's own
  * permissions: a kind of record the caller's role cannot read is reported
@@ -313,6 +318,12 @@ export default class SecurityConnectedRecords {
     entities: ReadonlyArray<SecurityEntity>;
     // The records the events' log lines were sent under, when known.
     logResources?: ReadonlyArray<SecurityLogResource> | undefined;
+    /*
+     * The cloud resources and serverless functions whose own log lines or
+     * spans the events were read from, by what the events carry of them
+     * (#10033).
+     */
+    logOwners?: ReadonlyArray<SecurityLogOwner> | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<SecurityConnectedRecordsResult> {
     const lookups: SecurityConnectionLookups = getSecurityConnectionLookups(
@@ -329,6 +340,12 @@ export default class SecurityConnectedRecords {
       this.matchLogResources({
         projectId: data.projectId,
         logResources: data.logResources || [],
+        props: data.props,
+        collector,
+      }),
+      this.matchLogOwners({
+        projectId: data.projectId,
+        logOwners: data.logOwners || [],
         props: data.props,
         collector,
       }),
@@ -1554,6 +1571,155 @@ export default class SecurityConnectedRecords {
         },
       ),
     );
+  }
+
+  /*
+   * The cloud resources and serverless functions whose own log lines or
+   * spans the events were read from (#10033): a line a cloud account's
+   * stream filed under its connection's service, stamped with the
+   * resource's ID, and a line or a span of a function filed under the
+   * service of its name. Each is connected exactly, as its own Security
+   * Events page reads its events:
+   *
+   *   - the cloud resource whose providerResourceId is the stamped ID - an
+   *     Azure resource ID whatever its case, an ARN, a Google Cloud name or
+   *     a readable stand-in exactly (isLogOfCloudResource) - looked up by
+   *     LOWER("providerResourceId"), which an index serves;
+   *   - the function whose functionIdentifier is the faas.name, exactly, by
+   *     the project's unique index on it.
+   *
+   * Read with the caller's own permissions, as every record here: a kind
+   * the caller's role cannot read is said to be, and none of it is shown.
+   */
+  private static async matchLogOwners(data: {
+    projectId: ObjectID;
+    logOwners: ReadonlyArray<SecurityLogOwner>;
+    props: DatabaseCommonInteractionProps;
+    collector: Collector;
+  }): Promise<void> {
+    const stampedIds: Array<string> = [];
+    const functionNames: Array<string> = [];
+
+    for (const owner of data.logOwners) {
+      const value: string = (owner.value || "").trim();
+
+      if (!value) {
+        continue;
+      }
+
+      if (
+        owner.kind === SecurityConnectionKind.CloudResource &&
+        !stampedIds.includes(value) &&
+        stampedIds.length < MAX_ROWS_PER_READ
+      ) {
+        stampedIds.push(value);
+      }
+
+      if (
+        owner.kind === SecurityConnectionKind.ServerlessFunction &&
+        !functionNames.includes(value) &&
+        functionNames.length < MAX_ROWS_PER_READ
+      ) {
+        functionNames.push(value);
+      }
+    }
+
+    const reads: Array<Promise<void>> = [];
+
+    if (stampedIds.length > 0) {
+      reads.push(
+        data.collector
+          .read(SecurityConnectionKind.CloudResource, async () => {
+            return await CloudResourceService.findBy({
+              query: {
+                projectId: data.projectId,
+                providerResourceId:
+                  QueryHelper.findWithSameTextAnyOf(stampedIds),
+              } as never,
+              select: { _id: true, name: true, providerResourceId: true },
+              limit: MAX_ROWS_PER_READ,
+              skip: 0,
+              props: data.props,
+            });
+          })
+          .then((resources: Array<CloudResource> | null) => {
+            for (const resource of resources || []) {
+              for (const stampedId of stampedIds) {
+                if (
+                  !isLogOfCloudResource({
+                    stampedId,
+                    providerResourceId: resource.providerResourceId,
+                  })
+                ) {
+                  continue;
+                }
+
+                const name: string =
+                  resource.name || resource.providerResourceId || "";
+
+                data.collector.add({
+                  kind: SecurityConnectionKind.CloudResource,
+                  id: resource.id!.toString(),
+                  name,
+                  match: {
+                    entity: { type: SecurityEntityType.Other, value: name },
+                    certainty: SecurityConnectionCertainty.Exact,
+                    reason: SecurityConnectionReason.LogSource,
+                    matchedValue: (resource.providerResourceId || "").trim(),
+                  },
+                });
+              }
+            }
+          }),
+      );
+    }
+
+    if (functionNames.length > 0) {
+      reads.push(
+        data.collector
+          .read(SecurityConnectionKind.ServerlessFunction, async () => {
+            return await ServerlessFunctionService.findBy({
+              query: {
+                projectId: data.projectId,
+                functionIdentifier: QueryHelper.any(functionNames),
+              } as never,
+              select: { _id: true, name: true, functionIdentifier: true },
+              limit: MAX_ROWS_PER_READ,
+              skip: 0,
+              props: data.props,
+            });
+          })
+          .then((functions: Array<ServerlessFunction> | null) => {
+            for (const serverlessFunction of functions || []) {
+              const identifier: string = (
+                serverlessFunction.functionIdentifier || ""
+              ).trim();
+
+              // The function of this very name: as its own page reads its logs.
+              if (!identifier || !functionNames.includes(identifier)) {
+                continue;
+              }
+
+              const name: string = serverlessFunction.name || identifier;
+
+              data.collector.add({
+                kind: SecurityConnectionKind.ServerlessFunction,
+                id: serverlessFunction.id!.toString(),
+                name,
+                identity: identifier,
+                match: {
+                  entity: { type: SecurityEntityType.Other, value: name },
+                  certainty: SecurityConnectionCertainty.Exact,
+                  reason: SecurityConnectionReason.LogSource,
+                  matchedValue: identifier,
+                },
+              });
+            }
+          }),
+      );
+    }
+
+    await Promise.all(reads);
   }
 
   /*
