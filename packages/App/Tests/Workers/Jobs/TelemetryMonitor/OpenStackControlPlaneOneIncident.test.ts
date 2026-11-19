@@ -112,6 +112,7 @@ import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService"
 import OpenStackResourceService from "Common/Server/Services/OpenStackResourceService";
 import { monitorOpenStack } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
+import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 
 const ONLINE: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const OFFLINE: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
@@ -551,8 +552,12 @@ beforeEach(() => {
       );
       return alert;
     });
-  jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
-  jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+  jest
+    .spyOn(IncidentService, "addOwners")
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+  jest
+    .spyOn(AlertService, "addOwners")
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   jest
     .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
     .mockResolvedValue(RESOLVED_STATE_ID);

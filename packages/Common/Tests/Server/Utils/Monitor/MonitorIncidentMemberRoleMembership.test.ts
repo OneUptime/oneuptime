@@ -36,6 +36,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * A monitor criteria can assign incident roles ("make Alice the commander of
@@ -164,7 +165,9 @@ describe("MonitorIncident - incident roles from the criteria", () => {
         incident._id = INCIDENT_ID.toString();
         return incident;
       });
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
     jest
       .spyOn(IncidentMemberService, "create")

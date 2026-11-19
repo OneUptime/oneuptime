@@ -473,34 +473,38 @@ describe("a setting is found by the name its card shows", () => {
 
   test("a setting is listed among the pages, by how well it matches", () => {
     /*
-     * The SSO page, then its three cards that hold the word, then the pages
+     * The SSO page, then its four cards that hold the word, then the pages
      * that only hold it inside a keyword ("processors"): a group of their
      * own would have drawn every page above every setting.
      */
     expect(rows("sso").slice(0, 6)).toEqual([
       "SSO — Project Settings › Security",
+      "SSO Sign-in Link — Project Settings › Security › SSO",
       "SSO Settings — Project Settings › Security › SSO",
-      "Test Single Sign On (SSO) — Project Settings › Security › SSO",
       "Require SSO to Sign In — Project Settings › Security › SSO",
+      "Manage Sign-In with SSO — Project Settings › Security › SSO",
       "Pipelines — Logs › Log Settings",
-      "Pipelines — Traces › Trace Settings",
     ]);
   });
 
   test("a setting never comes before the page it is on", () => {
     /*
      * "saml" is a word for the SSO page and the name of its SAML card;
-     * "single sign-on" is a word for the page and in its Test Single Sign
-     * On (SSO) card's name. The page first, its card right after it.
+     * "sso link" is a word for the page and in its SSO Sign-in Link card's
+     * name. The page first, its card right after it.
      */
     expect(rows("saml").slice(0, 2)).toEqual([
       "SSO — Project Settings › Security",
       "SAML — Project Settings › Security › SSO",
     ]);
-    expect(rows("single sign-on").slice(0, 2)).toEqual([
+    expect(rows("sso link").slice(0, 2)).toEqual([
       "SSO — Project Settings › Security",
-      "Test Single Sign On (SSO) — Project Settings › Security › SSO",
+      "SSO Sign-in Link — Project Settings › Security › SSO",
     ]);
+    // The card's old name still finds its page (#9918).
+    expect(rows("test single sign on")[0]).toBe(
+      "SSO — Project Settings › Security",
+    );
   });
 
   test("a page whose own name matches as well comes before a setting", () => {

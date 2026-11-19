@@ -3,7 +3,12 @@ import * as assert from "assert";
 import * as http from "http";
 import { after, before, test } from "node:test";
 import { toScrapeTargetGroups } from "../EngineMetrics";
-import { assessHealth, startHealthServer } from "../Health";
+import { CostPrometheus, CostPrometheusSource } from "../EnginePrometheus";
+import {
+  assessHealth,
+  describeCostPrometheus,
+  startHealthServer,
+} from "../Health";
 import { Poller } from "../Poller";
 import { Shipper } from "../Shipper";
 import {
@@ -278,6 +283,24 @@ const metricsStubState: { url: string | null; reason: string } = {
   reason: "",
 };
 
+// Where the memory peaks are read; nothing found until a test sets it.
+const prometheusStubState: {
+  prometheus: CostPrometheus | null;
+  reason: string;
+} = { prometheus: null, reason: "" };
+
+const prometheusStub: CostPrometheusSource = {
+  current: (): CostPrometheus | null => {
+    return prometheusStubState.prometheus;
+  },
+  reason: (): string => {
+    return prometheusStubState.prometheus ? "" : prometheusStubState.reason;
+  },
+  refreshIfDue: (): Promise<void> => {
+    return Promise.resolve();
+  },
+};
+
 before(async (): Promise<void> => {
   const pollerStub: Poller = {
     status: (): PollerStatus => {
@@ -319,6 +342,7 @@ before(async (): Promise<void> => {
     shipper: shipperStub,
     engine: engineStub,
     metrics: metricsStub,
+    prometheus: prometheusStub,
   });
   await new Promise<void>((resolve: () => void): void => {
     server.once("listening", resolve);
@@ -597,4 +621,105 @@ test("/healthz says why no price metrics were found", async (): Promise<void> =>
   );
 
   metricsStubState.reason = "";
+});
+
+/*
+ * #9777: /healthz says which Prometheus the memory peaks are read from - the
+ * cluster's own engine's, the bundled one, or cost.engine.prometheusUrl - or,
+ * plainly, why there is none.
+ */
+test("/healthz names the Prometheus the memory peaks are read from, and how it was found", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+  prometheusStubState.prometheus = {
+    url: "http://kubecost-prometheus-server.kubecost",
+    origin: "engine",
+    source:
+      "PROMETHEUS_SERVER_ENDPOINT of container cost-model, from ConfigMap kubecost/kubecost-cost-analyzer of pod kubecost/kubecost-cost-analyzer-1",
+    cadvisorJob: "kubernetes-nodes-cadvisor",
+    cluster: null,
+    note: "",
+  };
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.strictEqual(
+    body["costPrometheusUrl"],
+    "http://kubecost-prometheus-server.kubecost",
+  );
+  assert.deepStrictEqual(body["costPrometheus"], {
+    origin: "engine",
+    source:
+      "PROMETHEUS_SERVER_ENDPOINT of container cost-model, from ConfigMap kubecost/kubecost-cost-analyzer of pod kubecost/kubecost-cost-analyzer-1",
+    cadvisorJob: "kubernetes-nodes-cadvisor",
+  });
+  assert.ok(!("costPrometheusError" in body));
+  // The keys troubleshoot.sh parses are all still there.
+  assert.ok("status" in body);
+  assert.ok("lastPollError" in body);
+
+  prometheusStubState.prometheus = null;
+});
+
+test("/healthz says plainly why no Prometheus was found for the memory peaks", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+  prometheusStubState.reason =
+    "the pods of kubecost3/kubecost-frontend set no PROMETHEUS_SERVER_ENDPOINT (Kubecost 3 reads no Prometheus); no Kubecost Prometheus Service in namespace kubecost3";
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.ok(!("costPrometheusUrl" in body));
+  assert.ok(!("costPrometheus" in body));
+  assert.strictEqual(body["costPrometheusError"], prometheusStubState.reason);
+  // Peaks are an enrichment: none found never fails readiness.
+  assert.strictEqual(res.statusCode, 200);
+
+  prometheusStubState.reason = "";
+});
+
+test("/healthz never shows the credentials in a Prometheus's address", (): void => {
+  const described: {
+    costPrometheusUrl?: string;
+    costPrometheus?: unknown;
+    costPrometheusError?: string;
+  } = describeCostPrometheus({
+    current: (): CostPrometheus | null => {
+      return {
+        url: "https://reader:s3cret@prometheus.example.com/prom",
+        origin: "configured",
+        source: "cost.engine.prometheusUrl",
+        cadvisorJob: "kubelet",
+        cluster: { label: "cluster_id", value: "prod-eu" },
+        note: "",
+      };
+    },
+    reason: (): string => {
+      return "";
+    },
+    refreshIfDue: (): Promise<void> => {
+      return Promise.resolve();
+    },
+  });
+
+  assert.strictEqual(
+    described.costPrometheusUrl,
+    "https://prometheus.example.com/prom",
+  );
+  assert.ok(!JSON.stringify(described).includes("s3cret"));
+  assert.deepStrictEqual(described.costPrometheus, {
+    origin: "configured",
+    source: "cost.engine.prometheusUrl",
+    cadvisorJob: "kubelet",
+    cluster: { label: "cluster_id", value: "prod-eu" },
+  });
+  assert.deepStrictEqual(describeCostPrometheus(undefined), {});
 });

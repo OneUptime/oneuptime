@@ -28,9 +28,9 @@ import Permission from "../../../../Types/Permission";
  * text, so up() and down() are told apart. What matters beyond the SQL:
  *
  *  - two new join tables, each the model's @JoinTable, with nothing else:
- *    no row is written, so no provider lists a domain afterwards and none
- *    is offered by email until an admin adds one (what a domain reveals is
- *    theirs to decide);
+ *    no row is written here. The backfill registered after it
+ *    (BackfillSsoProviderDomains, #9918, with its own suites) gives each
+ *    provider that lists none the verified domains its project alone holds;
  *  - deleting a provider or a domain takes its rows with it (ON DELETE
  *    CASCADE), so a deleted domain offers nothing;
  *  - the relation reads and writes exactly as the providers' teams do, on
@@ -167,10 +167,10 @@ describe("executing it", () => {
   });
 
   /*
-   * No provider is linked to a domain by the migration: Sign in with SSO
-   * offers a provider by email only once an admin has chosen its domains.
+   * No provider is linked to a domain by this migration: the backfill after
+   * it does that, for the providers that list none (#9918).
    */
-  test("writes no row: no provider lists a domain until an admin adds one", async () => {
+  test("writes no row: the tables are made empty, for the backfill after it to fill", async () => {
     for (const statement of [
       ...(await statementsOf("up")),
       ...(await statementsOf("down")),

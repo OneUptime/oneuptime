@@ -7,9 +7,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * them. Both join tables are new, so they are empty while their indexes and
  * keys are made, and need no online DDL.
  *
- * No provider lists a domain afterwards: one is offered at Sign in with SSO
- * once an admin adds a domain to it, since what a domain reveals is theirs
- * to decide.
+ * It writes no row: the backfill right after it
+ * (BackfillSsoProviderDomains1809186620000, #9918) gives each provider made
+ * before domains existed the verified domains its project alone holds, and
+ * an admin picks the rest.
  */
 export class AddSsoProviderDomains1809186480000 implements MigrationInterface {
   public name: string = "AddSsoProviderDomains1809186480000";

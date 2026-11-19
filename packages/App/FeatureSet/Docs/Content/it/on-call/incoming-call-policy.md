@@ -53,7 +53,7 @@ Vai in **Reperibilità** > **Policy chiamate in entrata** e fai clic su **Crea: 
 
 ### Scegli l'account Twilio
 
-La **Panoramica** della policy mostra una scheda **Configurazione** con tre passaggi numerati. Nel primo, fai clic su **Seleziona**, scegli l'account in **Configurazione Twilio** e fai clic su **Salva**.
+La **Panoramica** della policy mostra una scheda **Configurazione** con tre passaggi numerati. Nel primo, fai clic su **Seleziona**, scegli l'account in **Configurazione Twilio** e fai clic su **Salva**. L'elenco offre solo le configurazioni usate per **Chiamate e SMS** o **Solo chiamate**. Una policy la cui configurazione viene poi impostata su **Solo SMS** la mantiene, e la sua scheda dice cosa cambiare.
 
 ### Aggiungi un numero di telefono
 

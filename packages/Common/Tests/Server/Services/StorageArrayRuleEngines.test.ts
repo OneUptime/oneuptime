@@ -788,12 +788,16 @@ describe("StorageArrayOwnerRuleEngineService", () => {
     ).resolves.toEqual(RuleApplicationResultUtil.updated(2));
   });
 
+  /*
+   * Nobody was added, and the array does not have the rule's owner: a run
+   * counts it as one it could not update, never "already applied" (#9933).
+   */
   test("a user who has left the project is not made an owner", async () => {
     arrange();
     isMember.mockResolvedValue(false);
 
     await expect(run([ownerRule({ teams: [] })])).resolves.toEqual(
-      RuleApplicationResultUtil.alreadyApplied(),
+      RuleApplicationResultUtil.failed(),
     );
     expect(createOwnerUser).not.toHaveBeenCalled();
   });

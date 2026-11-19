@@ -47,6 +47,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * An Incoming Email monitor's criteria opening an alert or an incident whose
@@ -329,8 +330,12 @@ beforeEach(() => {
       return incident;
     });
 
-  jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
-  jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+  jest
+    .spyOn(AlertService, "addOwners")
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+  jest
+    .spyOn(IncidentService, "addOwners")
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;

@@ -54,7 +54,8 @@ export interface ComponentProps {
   initialProject?: Project | undefined;
   /*
    * Whether the SSO page draws its test link above the card: it does once
-   * the project has a provider to try (ProjectSignInTestCard). Without it
+   * the project has a provider to try (ProjectSsoSignInLinkCard, the
+   * project's SSO sign-in link, which tests a provider too). Without it
    * the card leaves out the line pointing at the link. Drawn by default.
    */
   isTestLinkShown?: boolean | undefined;

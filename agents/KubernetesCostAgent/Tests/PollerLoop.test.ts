@@ -438,3 +438,78 @@ test("an engine that says nothing about itself ships rows as before", async (): 
   assert.ok(shipper.calls.length > 0);
   assert.strictEqual(shipper.calls[0]!.costEngine, undefined);
 });
+
+/*
+ * A Kubecost answers from what its aggregator has collected, in batches
+ * behind the clock: on kind, an hour read two minutes after it closed was
+ * there up to its first twenty minutes. A window whose rows do not reach its
+ * end yet is read again at a later tick rather than shipped, since an hour
+ * is shipped only once.
+ */
+class CollectingEngineStub extends EngineStub {
+  // How far the engine has data (ms): the rows of a later window stop here.
+  public collectedThroughMs: number = 0;
+  public judged: Array<Date> = [];
+
+  public async isWindowComplete(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    allocations: Array<EngineAllocation>;
+  }): Promise<boolean> {
+    this.judged.push(data.windowEnd);
+    return data.windowEnd.getTime() <= this.collectedThroughMs;
+  }
+}
+
+test("a window the engine has not collected all of is read again later, unshipped, and is no failure", async (): Promise<void> => {
+  const engine: CollectingEngineStub = new CollectingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick } = makePoller(engine, shipper);
+
+  // Collected through the first owed window only.
+  const latestClosed: number = floorToWindow(Date.now(), 60);
+  engine.collectedThroughMs = latestClosed - WINDOW_MS;
+
+  await tick();
+
+  // The first window shipped; the next was read, judged partial, and kept.
+  const shippedBefore: number = shipper.calls.length;
+  assert.ok(shippedBefore >= 1);
+  assert.ok(
+    engine.judged.some((windowEnd: Date): boolean => {
+      return windowEnd.getTime() > engine.collectedThroughMs;
+    }),
+  );
+  assert.strictEqual(poller.status().consecutivePollFailures, 0);
+  assert.strictEqual(poller.status().lastPollError, null);
+
+  // The aggregator catches up: the window is read again, and ships whole.
+  engine.collectedThroughMs = Date.now() + WINDOW_MS;
+  await tick();
+
+  assert.ok(shipper.calls.length > shippedBefore);
+  // The waiting window was read twice, and every window shipped once.
+  const ends: Array<number> = engine.calls.map(
+    (call: { windowStart: Date; windowEnd: Date }): number => {
+      return call.windowEnd.getTime();
+    },
+  );
+  assert.ok(ends.length > shipper.calls.length);
+  assert.deepStrictEqual(ends, [...ends].sort());
+});
+
+test("a window not collected at all ships nothing and completes nothing", async (): Promise<void> => {
+  const engine: CollectingEngineStub = new CollectingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick } = makePoller(engine, shipper);
+
+  engine.collectedThroughMs = 0;
+  await tick();
+  await tick();
+
+  // Read each tick, shipped never.
+  assert.strictEqual(engine.calls.length, 2);
+  assert.strictEqual(shipper.calls.length, 0);
+  assert.strictEqual(poller.status().consecutivePollFailures, 0);
+  assert.strictEqual(poller.status().windowsCompleted, 0);
+});

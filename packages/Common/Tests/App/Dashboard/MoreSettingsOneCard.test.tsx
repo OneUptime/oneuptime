@@ -550,10 +550,14 @@ const PAGES: Array<MoreSettingsPage> = [
       return <NotificationSettings {...PAGE_PROPS} />;
     },
     sectionTestId: NOTIFICATION_SETTINGS_MORE_TEST_ID,
-    // How members are paged by default (#7449), then the two tables.
+    /*
+     * How members are paged by default (#7449), whether on-call calls tell
+     * voicemail from a person (#6594), then the two tables.
+     */
     sectionTitles: [
       "Default Ladder for New Members",
       "Phone for People on Call",
+      "Voicemail on On-Call Calls",
       "Custom SMTP Configs",
       "Twilio Config",
     ],
