@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58167,
-    "untranslated": 8149
+    "keys": 58628,
+    "untranslated": 8145
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -31,6 +31,7 @@
     "Analog",
     "Apache Kafka · kafka-1:9092",
     "App",
+    "AppArmor",
     "Appliance",
     "Appliance {{appliance}}",
     "Appliances",
@@ -57,6 +58,7 @@
     "Budget",
     "CC",
     "CIDR",
+    "CIS Kubernetes Benchmark v2.0",
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Cache",
@@ -164,6 +166,7 @@
     "Hertz",
     "Histogram",
     "Hop",
+    "HostProcess",
     "Hunt",
     "Hunts",
     "Hypervisor",
@@ -194,6 +197,7 @@
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",
+    "Kubelet",
     "LXC 201 · pve3",
     "Layout",
     "Link",
@@ -324,6 +328,7 @@
     "Runbooks",
     "Runbooks ({{count}})",
     "Runner",
+    "SELinux",
     "SHA",
     "SHA-256",
     "SHA256",
@@ -336,6 +341,8 @@
     "ScheduledMaintenance",
     "Score",
     "Script",
+    "Seccomp",
+    "Seccomp (Restricted)",
     "Send",
     "Send (Enter)",
     "Send test",
@@ -584,6 +591,7 @@
     "{{count}} appliance",
     "{{count}} appliances",
     "{{count}} apps",
+    "{{count}} binding",
     "{{count}} bucket",
     "{{count}} buckets",
     "{{count}} commit",
