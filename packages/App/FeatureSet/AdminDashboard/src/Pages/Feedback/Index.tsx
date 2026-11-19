@@ -61,6 +61,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * FEEDBACK (/admin/feedback): WHAT PEOPLE TOLD THIS SERVER (issue #6832).
@@ -535,7 +536,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
                       )}
                     </span>
                     <span className="text-gray-500" aria-hidden="true">
-                      ·
+                      <InlineSeparator markOnly />
                     </span>
                     <span className="font-medium text-gray-900">
                       {translator.formatNumber(reason.answers)}
