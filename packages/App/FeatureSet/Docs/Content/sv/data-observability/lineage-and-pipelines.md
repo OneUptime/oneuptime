@@ -132,11 +132,12 @@ Misslyckade uppdateringar använder inte pipelinemonitorerna. En datauppsättnin
 
 ## Pipelines
 
-Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina körningar: när varje körning startade och slutade, hur lång tid den tog, vilket försök den var där schemaläggaren anger det (Airflows try-nummer), och felet för en misslyckad körning. Efter fem körningar lär sig varje pipeline av sina egna körningar hur lång tid en körning brukar ta och hur lång tid det brukar gå mellan körningarna enligt dess schema. En pipelines sida rekommenderar tre monitorer:
+Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina körningar: när varje körning startade och slutade, hur lång tid den tog, vilket försök den var där schemaläggaren anger det (Airflows try-nummer), och felet för en misslyckad körning. Efter fem körningar lär sig varje pipeline av sina egna körningar hur lång tid en körning brukar ta och hur lång tid det brukar gå mellan körningarna enligt dess schema. En pipelines sida rekommenderar fyra monitorer:
 
 - **Pipeline Run Failed**: en körning misslyckades eller avbröts.
 - **Pipeline Run Unusually Long**: en körning har tagit dubbelt så lång tid som vanligt eller mer, kontrollerat var femte minut medan den körs, så att en körning som hänger sig upptäcks innan den slutar.
 - **Pipeline Is Late**: ingen körning har startat på längre tid än schemat tillåter.
+- **Pipeline Stopped by Circuit Breaker**: kretsbrytaren svarade stop, och stoppet varar tills den svarar go eller en körning startar.
 
 Fliken **Ägare** för en pipeline nämner de personer och team som tar hand om den, och dess larm går till dem. **Översikt** och **Problem** nämner ägarna till en pipeline som misslyckades eller är sen, eller visar **Ingen ägare**, med ett sätt att lägga till en.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 En förfrågan som namnger en pipeline sparas på den, om det inte är en provkörning. Så länge kretsbrytaren har stoppat en pipeline säger dess sida **Kretsbrytare** sedan när och varför, dess **Översikt** öppnas med stoppet, och **Kräver åtgärd** och **Problem** listar den som stoppad i stället för dess misslyckade eller sena körning. Stoppet upphör när kretsbrytaren nästa gång svarar go, eller när en körning startar efter det. Samma sida har **Testa nu**, som frågar kretsbrytaren utan att svaret sparas, och steget för curl, Airflow och dbt med pipelinens namn ifyllt.
 
+För att få veta om ett stopp lägger du till **Pipeline Stopped by Circuit Breaker** från pipelinens **Rekommendationer**. Dess larm öppnas när kretsbrytaren svarar stop, går till pipelinens ägare, förblir öppet så länge stoppet sparas och löses när stoppet upphör. Den läser pipelinens mätvärde `oneuptime.data.pipeline.circuit_breaker_stopped`: 1 så länge kretsbrytaren har stoppat den och 0 när den inte har det, skrivet när kretsbrytaren svarar och därefter var femte minut.
+
 Så länge Dataobserverbarhet är avstängd på servern svarar kretsbrytaren go och sparar ingenting: att stänga av en produkt stoppar aldrig en pipeline.
 
 ## Ett larm per orsak
@@ -238,7 +241,7 @@ Power BI returnerar en datauppsättnings tabeller först när en Fabric-administ
 - **Enhance admin APIs responses with detailed metadata**: varje datauppsättnings tabeller.
 - **Enhance admin APIs responses with DAX and mashup expressions**: frågorna som läser in dem, som säger vilka databastabeller de läser.
 
-Power BI beskriver sedan en datauppsättning när den har uppdaterats eller publicerats på nytt; en som bara använder DirectQuery, när någon har öppnat en rapport på den. Den beskriver aldrig realtidsdatauppsättningar, datauppsättningar med en liveanslutning till Analysis Services, Excel-arbetsböcker eller datauppsättningar över 1 GB på delad kapacitet. En datauppsättning som läser från ett dataflöde läses fram till dataflödet: OneUptime läser ännu inte vilka tabeller ett dataflöde läser in.
+Power BI beskriver sedan en datauppsättning när den har uppdaterats eller publicerats på nytt; en som bara använder DirectQuery, när någon har öppnat en rapport på den. Den beskriver aldrig realtidsdatauppsättningar, datauppsättningar med en liveanslutning till Analysis Services, Excel-arbetsböcker eller datauppsättningar över 1 GB på delad kapacitet.
 
 Varje tabell matchas mot en bevakad tabell efter namn, schema och databas, och en server efter sitt korta eller fullständiga namn. En tabell från en annan databasmotor matchas aldrig, och inte heller en i en annan databas: en rapport på `Sales.dbo.Orders` kopplas inte till `Archive.dbo.Orders` eftersom bara `Archive` bevakas.
 

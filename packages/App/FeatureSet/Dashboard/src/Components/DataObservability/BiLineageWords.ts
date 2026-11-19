@@ -29,6 +29,9 @@ export const POWER_BI_EXPRESSIONS_SETTING: string =
   "Enhance admin APIs responses with DAX and mashup expressions";
 export const POWER_BI_SETTINGS_PLACE: string =
   "Tenant settings > Admin API settings";
+// What lets a service principal call Power BI's read-only admin APIs, a dataflow's export among them.
+export const POWER_BI_READ_ONLY_ADMIN_APIS_SETTING: string =
+  "Service principals can access read-only admin APIs";
 
 // A fixed sentence in the reader's language, or in English when it has none.
 function translated(translator: Translator, text: string): string {
@@ -46,7 +49,13 @@ const TABLES_NOT_WATCHED: PluralTemplate = {
   one: "{{count}} table not watched",
   other: "{{count}} tables not watched",
 };
-const FROM_DATAFLOWS: string = translationKey("Some data comes from dataflows");
+const DATAFLOWS_UNREAD: PluralTemplate = {
+  one: "{{count}} dataset on an unread dataflow",
+  other: "{{count}} datasets on unread dataflows",
+};
+const DATAFLOWS_PENDING: string = translationKey(
+  "Reading the datasets' dataflows",
+);
 const NOT_DESCRIBED: PluralTemplate = {
   one: "{{count}} dataset Power BI cannot describe",
   other: "{{count}} datasets Power BI cannot describe",
@@ -64,6 +73,24 @@ function databasesNotConnected(summary: DataBiLineageSummary): number {
   return summary.sources.filter((source: DataBiLineageSource): boolean => {
     return Boolean(source.engine) && !source.dataStoreId;
   }).length;
+}
+
+// Datasets on a dataflow whose tables could not be read (#9551).
+function datasetsOnUnreadDataflows(summary: DataBiLineageSummary): number {
+  return summary.datasets?.withUnreadDataflows || 0;
+}
+
+/*
+ * Datasets on dataflows still being read, within Power BI's limit; a
+ * summary kept before they were counted said only that datasets read
+ * dataflows, which the next read reads through.
+ */
+function datasetsOnPendingDataflows(summary: DataBiLineageSummary): number {
+  return (
+    summary.datasets?.withPendingDataflows ||
+    summary.datasets?.readingDataflows ||
+    0
+  );
 }
 
 // The line under Tables Matched: the first thing keeping dashboards off their tables; null when nothing does.
@@ -91,7 +118,12 @@ export function getBiLineageReason(
         summary.unwatchedTables.length,
       );
     case DataBiLineageProblem.Dataflows:
-      return translated(translator, FROM_DATAFLOWS);
+      return datasetsOnUnreadDataflows(summary) > 0
+        ? translator.translatePlural(
+            DATAFLOWS_UNREAD,
+            datasetsOnUnreadDataflows(summary),
+          )
+        : translated(translator, DATAFLOWS_PENDING);
     case DataBiLineageProblem.SchemaErrors:
       return translator.translatePlural(
         NOT_DESCRIBED,
@@ -146,10 +178,15 @@ const DATABASES_NOT_CONNECTED_TEXT: PluralTemplate = {
 const TABLES_NOT_WATCHED_TEXT: string = translationKey(
   "These tables are in databases OneUptime watches, but are not watched: {{tables}}. They may be left out of the database's scan, or not collected yet.",
 );
-const DATAFLOWS_TEXT: PluralTemplate = {
-  one: "{{count}} dataset reads from Power BI dataflows. OneUptime does not read which tables a dataflow loads yet, so its tables are not matched.",
+const DATAFLOWS_UNREAD_TEXT: PluralTemplate = {
+  one: "{{count}} dataset reads a Power BI dataflow whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.",
   other:
-    "{{count}} datasets read from Power BI dataflows. OneUptime does not read which tables a dataflow loads yet, so their tables are not matched.",
+    "{{count}} datasets read Power BI dataflows whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.",
+};
+const DATAFLOWS_PENDING_TEXT: PluralTemplate = {
+  one: "{{count}} dataset reads Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
+  other:
+    "{{count}} datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
 };
 const SCHEMA_ERRORS_TEXT: PluralTemplate = {
   one: "Power BI could not describe {{count}} dataset, and said: {{error}} It does not describe real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity.",
@@ -206,13 +243,26 @@ export function getBiLineageStep(
         }),
       };
     case DataBiLineageProblem.Dataflows:
-      return {
-        title,
-        text: translator.translatePlural(
-          DATAFLOWS_TEXT,
-          summary.datasets?.readingDataflows || 0,
-        ),
-      };
+      return datasetsOnUnreadDataflows(summary) > 0
+        ? {
+            title,
+            text: translator.translatePlural(
+              DATAFLOWS_UNREAD_TEXT,
+              datasetsOnUnreadDataflows(summary),
+              {
+                reason: summary.datasets?.dataflowError || "",
+                setting: POWER_BI_READ_ONLY_ADMIN_APIS_SETTING,
+                place: POWER_BI_SETTINGS_PLACE,
+              },
+            ),
+          }
+        : {
+            title,
+            text: translator.translatePlural(
+              DATAFLOWS_PENDING_TEXT,
+              datasetsOnPendingDataflows(summary),
+            ),
+          };
     case DataBiLineageProblem.SchemaErrors:
       return {
         title,

@@ -132,11 +132,12 @@ Fehlgeschlagene Aktualisierungen verwenden nicht die Pipeline-Monitore. Ein Data
 
 ## Pipelines
 
-Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte, der wievielte Versuch er war, wo der Scheduler das sagt (die Try-Nummer von Airflow), und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt drei Monitore:
+Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte, der wievielte Versuch er war, wo der Scheduler das sagt (die Try-Nummer von Airflow), und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt vier Monitore:
 
 - **Pipeline Run Failed**: Ein Lauf ist fehlgeschlagen oder wurde abgebrochen.
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
 - **Pipeline Is Late**: Seit längerer Zeit, als ihr Zeitplan erlaubt, hat kein Lauf begonnen.
+- **Pipeline Stopped by Circuit Breaker**: Der Schutzschalter hat stop geantwortet, und der Stopp dauert, bis er go antwortet oder ein Lauf beginnt.
 
 Der Tab **Eigentümer** einer Pipeline nennt die Personen und Teams, die sich um sie kümmern, und ihre Warnungen gehen an sie. Die **Übersicht** und **Probleme** nennen die Eigentümer einer fehlgeschlagenen oder verspäteten Pipeline, oder zeigen **Kein Eigentümer** und einen Weg, einen hinzuzufügen.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 Eine Anfrage, die eine Pipeline nennt, wird an ihr gespeichert, außer bei einem Probelauf. Solange der Schutzschalter eine Pipeline gestoppt hat, sagt ihre Seite **Schutzschalter**, seit wann und warum, ihre **Übersicht** öffnet mit dem Stopp, und **Handlungsbedarf** und **Probleme** führen sie als gestoppt statt mit ihrem fehlgeschlagenen oder verspäteten Lauf. Der Stopp endet, wenn der Schutzschalter das nächste Mal go antwortet oder ein Lauf nach ihm beginnt. Dieselbe Seite hat **Jetzt testen**, das den Schutzschalter fragt, ohne dass die Antwort gespeichert wird, und den Schritt für curl, Airflow und dbt mit dem Namen der Pipeline schon eingetragen.
 
+Um von einem Stopp zu erfahren, fügen Sie **Pipeline Stopped by Circuit Breaker** aus den **Empfehlungen** der Pipeline hinzu. Seine Warnung öffnet sich, wenn der Schutzschalter stop antwortet, geht an die Eigentümer der Pipeline, bleibt offen, solange der Stopp gespeichert ist, und wird aufgelöst, sobald der Stopp endet. Er liest die Metrik `oneuptime.data.pipeline.circuit_breaker_stopped` der Pipeline: 1, solange der Schutzschalter sie gestoppt hat, und 0, sobald nicht mehr, geschrieben, wenn der Schutzschalter antwortet, und danach alle fünf Minuten.
+
 Solange Data Observability auf dem Server ausgeschaltet ist, antwortet der Schutzschalter go und speichert nichts: Ein ausgeschaltetes Produkt stoppt nie eine Pipeline.
 
 ## Eine Meldung pro Ursache
@@ -238,7 +241,7 @@ Power BI gibt die Tabellen eines Datasets erst zurück, wenn ein Fabric-Administ
 - **Enhance admin APIs responses with detailed metadata**: die Tabellen jedes Datasets.
 - **Enhance admin APIs responses with DAX and mashup expressions**: die Abfragen, die sie laden und die sagen, welche Datenbanktabellen sie lesen.
 
-Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität. Ein Dataset, das aus einem Dataflow liest, wird bis zum Dataflow gelesen: Welche Tabellen ein Dataflow lädt, liest OneUptime noch nicht.
+Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität.
 
 Jede Tabelle wird einer überwachten Tabelle über ihren Namen, ihr Schema und ihre Datenbank zugeordnet, ein Server über seinen Kurznamen oder seinen vollständigen Namen. Eine Tabelle eines anderen Datenbanksystems wird nie zugeordnet, ebenso wenig eine in einer anderen Datenbank: Ein Bericht auf `Sales.dbo.Orders` wird nicht mit `Archive.dbo.Orders` verknüpft, weil nur `Archive` überwacht wird.
 

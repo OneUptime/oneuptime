@@ -35,6 +35,9 @@ public final class OneUptimeReplayViewTreeModule extends ReactContextBaseJavaMod
     private static final String REPLAY_MASK_TEST_ID = "oneuptime-replay-mask";
     private static final int MAX_TREE_DEPTH = 64;
     private static final int MAX_TREE_NODES = 5000;
+    /* A tap signal's match is at most 200 characters; a longer testID never matches. */
+    private static final int MAX_TAP_TEST_ID_LENGTH = 200;
+    private static final int MAX_TAP_TEST_IDS = 32;
 
     private static final class TraversalState {
         int visited = 0;
@@ -162,6 +165,69 @@ public final class OneUptimeReplayViewTreeModule extends ReactContextBaseJavaMod
             } catch (Throwable ignored) {
                 /* Privacy decisions fail closed on stale tags or renderer errors. */
                 promise.resolve(true);
+            }
+        });
+    }
+
+    /*
+     * The testIDs of the touched view and of the views around it, out to the
+     * replay root, the touched one first: what the application's tap signals
+     * are matched against in JavaScript, on the device, and never recorded.
+     * Only the testID tag React Native sets is read - no text, content or
+     * accessibility label - and nothing is offered for a target outside the
+     * replay root or a tag that no longer resolves.
+     */
+    @ReactMethod
+    public void touchTargetTestIds(
+        double targetTagValue,
+        double replayRootTagValue,
+        Promise promise
+    ) {
+        if (!isReactTag(targetTagValue) || !isReactTag(replayRootTagValue)) {
+            promise.resolve(Arguments.createArray());
+            return;
+        }
+
+        final int targetTag = (int) targetTagValue;
+        final int replayRootTag = (int) replayRootTagValue;
+        UiThreadUtil.runOnUiThread(() -> {
+            try {
+                View target = resolveView(targetTag);
+                View replayRoot = resolveView(replayRootTag);
+                if (target == null || replayRoot == null) {
+                    promise.resolve(Arguments.createArray());
+                    return;
+                }
+
+                WritableArray testIds = Arguments.createArray();
+                int found = 0;
+                int depth = 0;
+                View current = target;
+                while (current != null && depth <= MAX_TREE_DEPTH) {
+                    Object testId = current.getTag(com.facebook.react.R.id.react_test_id);
+                    if (testId instanceof String && found < MAX_TAP_TEST_IDS) {
+                        String value = (String) testId;
+                        if (!value.isEmpty() && value.length() <= MAX_TAP_TEST_ID_LENGTH
+                            && !REPLAY_MASK_TEST_ID.equals(value)) {
+                            testIds.pushString(value);
+                            found += 1;
+                        }
+                    }
+                    if (current == replayRoot) {
+                        promise.resolve(testIds);
+                        return;
+                    }
+
+                    android.view.ViewParent parent = current.getParent();
+                    current = parent instanceof View ? (View) parent : null;
+                    depth += 1;
+                }
+
+                /* The event target was not a descendant of this replay root. */
+                promise.resolve(Arguments.createArray());
+            } catch (Throwable ignored) {
+                /* A stale tag or a renderer error matches no tap signal. */
+                promise.resolve(Arguments.createArray());
             }
         });
     }

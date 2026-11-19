@@ -52,6 +52,8 @@ import {
   ReplaySignal,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 import { getRailEmptyCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailEmptyCopy";
+import { glyphForSignal } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailTabs";
+import { ReplayTimelineEvent } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineTypes";
 import {
   formatSignalBytes,
   fromTimelineEvent,
@@ -86,6 +88,7 @@ function readLocale(locale: string): Record<string, string> {
 const EN: Record<string, string> = readLocale("en");
 const DE: Record<string, string> = readLocale("de");
 const AR: Record<string, string> = readLocale("ar");
+const FA: Record<string, string> = readLocale("fa");
 
 // The locale's own words for `key`, which must differ from the English.
 function worded(
@@ -1487,5 +1490,277 @@ describe("the page's own pause in the reader's language", () => {
     ).toBe(
       worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1\u00A0Min." }),
     );
+  });
+});
+
+/*
+ * A ROW'S OWN WORDS IN THE READER'S LANGUAGE (#6516). The titles and
+ * subtitles the rail builds for a row - "Rage click (5 clicks)", "Tab
+ * hidden", "history push", "Your signal: a tap" - and the name a screen
+ * reader hears for it were English on every page, and so were their
+ * figures. They are built in the reader's language now, their figures in
+ * the reader's digits, and what the page recorded - a button's text, a
+ * selector, a path, a status code - goes in as it was written.
+ */
+function recorded(
+  kind: ReplayTimelineEvent["kind"],
+  fields: Record<string, unknown>,
+): ReplayTimelineEvent {
+  return {
+    id: "rec:0:1",
+    kind: kind,
+    chunkIndex: 0,
+    offsetMs: 2000,
+    ...fields,
+  } as ReplayTimelineEvent;
+}
+
+function rowIn(
+  locale: Record<string, string>,
+  language: string,
+  event: ReplayTimelineEvent,
+): ReplaySignal {
+  return fromTimelineEvent(event, {
+    startTimeUnixMs: START_UNIX_MS,
+    translator: translatorFor(locale, language),
+  });
+}
+
+function plainly(text: string | undefined | null): string {
+  return withoutIsolateMarks(text || "");
+}
+
+describe("a row's own words in the reader's language", () => {
+  test("German: each kind of row is titled in German, around what the page recorded", () => {
+    const rage: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("frustration", {
+        frustrationKind: "rage-click",
+        clickCount: 5,
+        x: 120,
+        y: 340,
+      }),
+    );
+    const click: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("click", { text: "Pay now", selector: "#pay" }),
+    );
+    const cancelled: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("network", {
+        method: "get",
+        url: "https://shop.example.com/api/search",
+        status: 0,
+        aborted: true,
+      }),
+    );
+    const route: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("route", { to: "/checkout", routeKind: "pushState" }),
+    );
+    const hidden: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("visibility", { visibilityState: "hidden" }),
+    );
+    const tags: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("tags", { tags: { plan: "pro", region: "eu" } }),
+    );
+    const tap: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("frustration", {
+        customSignalName: "Payment failed",
+        customSignalTrigger: "tap",
+      }),
+    );
+    const vital: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("performance", { metric: "LCP", value: 4200, rating: "poor" }),
+    );
+    const longTask: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("performance", {
+        performanceKind: "long-task",
+        durationMs: 412,
+        budgetMs: 50,
+      }),
+    );
+    const resumed: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("idle-pause", {
+        idlePauseEdge: "resumed",
+        pauseReason: "page",
+        pausedAtUnixMs: START_UNIX_MS,
+        resumedAtUnixMs: START_UNIX_MS + 90_000,
+      }),
+    );
+
+    expect(plainly(rage.title)).toBe(
+      worded(DE, "Rage click ({{count}} clicks)", { count: "5" }),
+    );
+    expect(plainly(rage.subtitle)).toBe(
+      worded(DE, "at {{x}}, {{y}}", { x: "120", y: "340" }),
+    );
+    expect(plainly(click.title)).toBe(
+      worded(DE, 'Click "{{text}}"', { text: "Pay now" }),
+    );
+    // The selector the page recorded reads as written.
+    expect(click.subtitle).toBe("#pay");
+    expect(plainly(cancelled.title)).toBe(
+      worded(DE, "{{method}} cancelled {{path}}", {
+        method: "GET",
+        path: "/api/search",
+      }),
+    );
+    expect(route.title).toBe("/checkout");
+    expect(route.subtitle).toBe(worded(DE, "history push"));
+    expect(hidden.title).toBe(worded(DE, "Tab hidden"));
+    expect(tags.title).toBe(worded(DE, "Tags set"));
+    expect(plainly(tags.subtitle)).toBe(
+      worded(DE, "{{count}} tags", { count: "2" }),
+    );
+    // A signal of the application's own keeps its name, as it was named.
+    expect(tap.title).toBe("Payment failed");
+    expect(tap.subtitle).toBe(worded(DE, "Your signal: a tap"));
+    expect(plainly(vital.title)).toBe(`LCP 4.2s ${worded(DE, "poor")}`);
+    expect(plainly(longTask.title)).toBe(
+      worded(DE, "{{measure}} (budget {{duration}})", {
+        measure: `${worded(DE, "Long task")} 412ms`,
+        duration: "50ms",
+      }),
+    );
+    expect(plainly(resumed.title)).toContain(
+      worded(DE, "Recording resumed by the page after {{duration}}").split(
+        "{{duration}}",
+      )[0] as string,
+    );
+
+    for (const row of [
+      rage,
+      click,
+      cancelled,
+      route,
+      hidden,
+      tags,
+      tap,
+      vital,
+      longTask,
+      resumed,
+    ]) {
+      expect(`${row.title} ${row.subtitle || ""}`).not.toMatch(
+        /\b(Rage click|Click|cancelled|history push|Tab hidden|Tags set|Your signal|poor|Long task|budget|Recording|tags)\b/,
+      );
+    }
+  });
+
+  test("Persian: a row's figures are in Persian digits, as the offset beside it", () => {
+    const request: ReplaySignal = rowIn(
+      FA,
+      "fa",
+      recorded("network", {
+        method: "post",
+        url: "https://shop.example.com/api/orders",
+        status: 500,
+        durationMs: 482,
+        responseBytes: 1229,
+      }),
+    );
+    const rage: ReplaySignal = rowIn(
+      FA,
+      "fa",
+      recorded("frustration", {
+        frustrationKind: "rage-click",
+        clickCount: 5,
+        x: 120,
+        y: 340,
+      }),
+    );
+
+    // A status code is code, and reads as written.
+    expect(request.title).toBe("POST 500 /api/orders");
+    expect(plainly(request.subtitle)).toBe("۴۸۲ms ۱٫۲KB");
+    expect(plainly(rage.title)).toBe(
+      worded(FA, "Rage click ({{count}} clicks)", { count: "۵" }),
+    );
+    expect(plainly(rage.subtitle)).toBe(
+      worded(FA, "at {{x}}, {{y}}", { x: "۱۲۰", y: "۳۴۰" }),
+    );
+    expect(`${rage.title} ${rage.subtitle}`).not.toMatch(/[0-9]/);
+  });
+
+  test("German: a row's glyph and its name for a screen reader are German", () => {
+    renderRail();
+
+    const body: HTMLElement = (
+      screen.getAllByTestId("rail-row")[0] as HTMLElement
+    ).querySelector("[data-rail-row-body='true']") as HTMLElement;
+    const glyph: string = glyphForSignal(
+      networkSignal(),
+      translatorFor(DE, "de"),
+    ).description;
+
+    expect(glyph).toBe(`${worded(DE, "request")} ${worded(DE, "failed")}`);
+    expect(plainly(body.getAttribute("aria-label"))).toBe(
+      worded(DE, "{{kind}} at {{time}}: {{title}}", {
+        kind: glyph,
+        time: "0:02.0",
+        title: "POST 500 /api/orders",
+      }),
+    );
+  });
+
+  test("German: the rail's search finds a row by the words it shows", () => {
+    const rage: ReplaySignal = rowIn(
+      DE,
+      "de",
+      recorded("frustration", { frustrationKind: "rage-click", clickCount: 5 }),
+    );
+    const hidden: ReplaySignal = {
+      ...rowIn(DE, "de", recorded("visibility", { visibilityState: "hidden" })),
+      id: "rec:0:2",
+      offsetMs: 2500,
+    };
+
+    renderRail({ signals: [rage, hidden] });
+
+    fireEvent.change(screen.getByTestId("rail-search-input"), {
+      target: { value: worded(DE, "Tab hidden") },
+    });
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("rail-row");
+
+    expect(rows).toHaveLength(1);
+    expect(shown(rows[0] as HTMLElement)).toContain(worded(DE, "Tab hidden"));
+  });
+
+  test("without a reader's language a row reads in English, as it always did", () => {
+    const rage: ReplaySignal = fromTimelineEvent(
+      recorded("frustration", { frustrationKind: "rage-click", clickCount: 5 }),
+      { startTimeUnixMs: START_UNIX_MS },
+    );
+    const request: ReplaySignal = fromTimelineEvent(
+      recorded("network", {
+        method: "post",
+        url: "https://shop.example.com/api/orders",
+        status: 500,
+        durationMs: 482,
+        responseBytes: 1229,
+      }),
+      { startTimeUnixMs: START_UNIX_MS },
+    );
+
+    expect(rage.title).toBe("Rage click (5 clicks)");
+    expect(request.subtitle).toBe("482ms 1.2KB");
+    expect(glyphForSignal(networkSignal()).description).toBe("request failed");
   });
 });

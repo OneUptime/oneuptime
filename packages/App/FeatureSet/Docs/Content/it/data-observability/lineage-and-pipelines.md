@@ -132,11 +132,12 @@ Gli aggiornamenti non riusciti non usano i monitor delle pipeline. Un set di dat
 
 ## Pipeline
 
-Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue esecuzioni: quando ciascuna è iniziata e finita, quanto è durata, a quale tentativo corrispondeva dove lo scheduler lo indica (il numero di tentativo di Airflow), e l'errore di un'esecuzione non riuscita. Dopo cinque esecuzioni, ogni pipeline impara dalle proprie esecuzioni quanto dura di solito un'esecuzione e quanto tempo passa tra un'esecuzione e l'altra secondo la sua pianificazione. La pagina di una pipeline consiglia tre monitor:
+Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue esecuzioni: quando ciascuna è iniziata e finita, quanto è durata, a quale tentativo corrispondeva dove lo scheduler lo indica (il numero di tentativo di Airflow), e l'errore di un'esecuzione non riuscita. Dopo cinque esecuzioni, ogni pipeline impara dalle proprie esecuzioni quanto dura di solito un'esecuzione e quanto tempo passa tra un'esecuzione e l'altra secondo la sua pianificazione. La pagina di una pipeline consiglia quattro monitor:
 
 - **Pipeline Run Failed**: un'esecuzione non è riuscita o è stata interrotta.
 - **Pipeline Run Unusually Long**: un'esecuzione ha impiegato il doppio del tempo abituale o più, verificato ogni cinque minuti mentre è in corso, così un'esecuzione bloccata viene notata prima che finisca.
 - **Pipeline Is Late**: nessuna esecuzione è partita da più tempo di quanto la sua pianificazione consenta.
+- **Pipeline Stopped by Circuit Breaker**: il circuit breaker ha risposto stop, e l'arresto dura finché non risponde go o non parte un'esecuzione.
 
 La scheda **Proprietari** di una pipeline nomina le persone e i team che se ne occupano, e i suoi avvisi vanno a loro. La **Panoramica** e **Problemi** nominano i proprietari di una pipeline fallita o in ritardo, oppure mostrano **Nessun proprietario**, con un modo per aggiungerne uno.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 Una richiesta che indica una pipeline viene salvata su di essa, a meno che sia una prova. Finché il circuit breaker ha fermato una pipeline, la sua pagina **Circuit breaker** dice da quando e perché, la sua **Panoramica** si apre sull'arresto, e **Da gestire** e **Problemi** la elencano come fermata, al posto della sua esecuzione non riuscita o in ritardo. L'arresto finisce quando il circuit breaker risponde di nuovo go, o quando un'esecuzione inizia dopo di esso. La stessa pagina ha **Testa ora**, che interroga il circuit breaker senza che la risposta venga salvata, e il passaggio per curl, Airflow e dbt con il nome della pipeline già inserito.
 
+Per sapere di un arresto, aggiungi **Pipeline Stopped by Circuit Breaker** dalle **Raccomandazioni** della pipeline. Il suo avviso si apre quando il circuit breaker risponde stop, va ai proprietari della pipeline, resta aperto finché l'arresto è salvato e si risolve appena l'arresto finisce. Legge la metrica `oneuptime.data.pipeline.circuit_breaker_stopped` della pipeline: 1 finché il circuit breaker l'ha fermata e 0 appena non più, scritta quando il circuit breaker risponde e poi ogni cinque minuti.
+
 Finché Osservabilità dei dati è disattivata sul server, il circuit breaker risponde go e non salva nulla: disattivare un prodotto non ferma mai una pipeline.
 
 ## Una segnalazione per causa
@@ -238,7 +241,7 @@ Power BI restituisce le tabelle di un set di dati solo dopo che un amministrator
 - **Enhance admin APIs responses with detailed metadata**: le tabelle di ogni set di dati.
 - **Enhance admin APIs responses with DAX and mashup expressions**: le query che le caricano, che dicono quali tabelle di database leggono.
 
-Power BI descrive poi un set di dati quando è stato aggiornato o ripubblicato; uno che usa solo DirectQuery, quando qualcuno ha aperto un report su di esso. Non descrive mai i set di dati in tempo reale, i set di dati con una connessione dinamica ad Analysis Services, le cartelle di lavoro Excel né i set di dati oltre 1 GB su capacità condivisa. Un set di dati che legge da un flusso di dati viene letto fino al flusso di dati: OneUptime non legge ancora quali tabelle carica un flusso di dati.
+Power BI descrive poi un set di dati quando è stato aggiornato o ripubblicato; uno che usa solo DirectQuery, quando qualcuno ha aperto un report su di esso. Non descrive mai i set di dati in tempo reale, i set di dati con una connessione dinamica ad Analysis Services, le cartelle di lavoro Excel né i set di dati oltre 1 GB su capacità condivisa.
 
 Ogni tabella viene abbinata a una tabella monitorata per nome, schema e database, e un server per il suo nome breve o per quello completo. Una tabella di un altro motore non viene mai abbinata, e nemmeno una in un altro database: un report su `Sales.dbo.Orders` non viene collegato ad `Archive.dbo.Orders` perché è monitorato solo `Archive`.
 

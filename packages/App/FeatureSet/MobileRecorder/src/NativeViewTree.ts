@@ -1,4 +1,5 @@
 import { Dimensions, NativeModules, Platform } from "react-native";
+import { readTapTargetTestIds } from "./CustomSignals";
 
 export type NativeViewKind =
   | "view"
@@ -53,6 +54,16 @@ export interface NativeViewTreeAdapter {
     targetTag: number,
     replayRootTag: number,
   ): Promise<boolean>;
+  /*
+   * The testIDs of the touched view and of the views around it, out to the
+   * replay root, the touched one first (issue #6517): what a tap signal of
+   * the application's is matched against, on the device. Empty when the
+   * view is gone or outside the replay root. Never recorded or sent.
+   */
+  touchTargetTestIds?(
+    targetTag: number,
+    replayRootTag: number,
+  ): Promise<Array<string>>;
 }
 
 interface NativeModuleShape {
@@ -62,6 +73,10 @@ interface NativeModuleShape {
     targetTag: number,
     replayRootTag: number,
   ): Promise<boolean>;
+  touchTargetTestIds?(
+    targetTag: number,
+    replayRootTag: number,
+  ): Promise<unknown>;
 }
 
 function viewport(): { width: number; height: number } {
@@ -150,6 +165,30 @@ export class ReactNativeViewTreeAdapter implements NativeViewTreeAdapter {
       );
     } catch {
       return true;
+    }
+  }
+
+  /*
+   * A native module built before tap signals existed (an over-the-air
+   * update of the JavaScript alone) has no such method: no testIDs, so no
+   * tap signal fires, and nothing else changes.
+   */
+  public async touchTargetTestIds(
+    targetTag: number,
+    replayRootTag: number,
+  ): Promise<Array<string>> {
+    const nativeModule: NativeModuleShape | undefined = (
+      NativeModules as Record<string, NativeModuleShape | undefined>
+    )["OneUptimeReplayViewTree"];
+    if (typeof nativeModule?.touchTargetTestIds !== "function") {
+      return [];
+    }
+    try {
+      return readTapTargetTestIds(
+        await nativeModule.touchTargetTestIds(targetTag, replayRootTag),
+      );
+    } catch {
+      return [];
     }
   }
 }

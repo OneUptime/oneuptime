@@ -27,6 +27,14 @@ import {
   EXCESSIVE_APP_START_MS,
   FROZEN_FRAME_THRESHOLD,
 } from "../Rum/MobileAppTelemetry";
+import {
+  SESSION_REPLAY_SIGNAL_ID_ATTRIBUTE,
+  SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
+} from "../Rum/SessionReplaySignalMetric";
+import {
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+} from "../Rum/SessionReplayFrustrationSignals";
 
 export type RumAlertTemplateCategory =
   | "Core Web Vitals"
@@ -77,6 +85,23 @@ export interface RumAlertTemplateContext {
    * had templates of their own. The mobile templates need a "mobile".
    */
   clientKind?: RumClientKind | string | null | undefined;
+  /*
+   * The application's own signals that are switched on, from its
+   * Frustration Signals page (issue #6518): each is offered as an alert of
+   * its own, once the application records - only a recorded session counts
+   * a signal.
+   */
+  customSignals?:
+    | ReadonlyArray<RumAlertTemplateCustomSignal>
+    | null
+    | undefined;
+}
+
+/* A signal of the application's own that a recommendation can watch. */
+export interface RumAlertTemplateCustomSignal {
+  // Its id on the Frustration Signals page, which a rename keeps.
+  id: string;
+  name: string;
 }
 
 export interface RumAlertTemplateArgs {
@@ -1003,12 +1028,168 @@ const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
 ];
 
 /*
+ * A signal of the application's own (issue #6518): "Sessions hit Payment
+ * failed". One template per signal that is switched on, so a page can offer
+ * an alert on each without the person typing its name - and, built from
+ * the signal's id, the monitor it creates keeps counting the signal after a
+ * rename.
+ *
+ * It reads the series the session replay ingest writes
+ * (SESSION_REPLAY_SIGNAL_SESSIONS_METRIC): one point per recorded session,
+ * in the minute the signal first fired in it, filtered to the signal's id.
+ * Summed over 15 minutes, that is how many sessions hit the signal; the
+ * alert opens at 5, a number the monitor's own criteria change. A window
+ * with no session in it holds no point, which resolves an open alert - the
+ * signal has stopped firing.
+ *
+ * Offered once the application records (the SessionReplayRecording
+ * requirement), since only a recorded session reports a signal: the replay
+ * sample and an "On error or frustration" trigger narrow what is counted,
+ * and the description says so. Warning, never Critical: a signal is the
+ * team's own marker, from a payment error page to a support chat opened,
+ * and nothing says which of them should page anyone.
+ */
+export const RUM_CUSTOM_SIGNAL_TEMPLATE_ID_PREFIX: string =
+  "rum-custom-signal-";
+
+// Sessions in the window that open the alert, until the monitor says otherwise.
+export const RUM_CUSTOM_SIGNAL_SESSIONS_THRESHOLD: number = 5;
+
+const RUM_CUSTOM_SIGNAL_METRIC_ALIAS: string = "rum_signal_sessions";
+
+// The longest a signal id the page or the API writes can be.
+const MAX_CUSTOM_SIGNAL_ID_LENGTH: number = 64;
+
+export function getRumCustomSignalTemplateId(signalId: string): string {
+  return `${RUM_CUSTOM_SIGNAL_TEMPLATE_ID_PREFIX}${signalId}`;
+}
+
+export function buildRumCustomSignalTemplate(
+  signal: RumAlertTemplateCustomSignal,
+): RumAlertTemplate {
+  const threshold: number = RUM_CUSTOM_SIGNAL_SESSIONS_THRESHOLD;
+  const name: string = `Sessions Hit "${signal.name}"`;
+  const description: string = `Alert when ${threshold} or more recorded sessions hit your signal "${signal.name}" within 15 minutes. A session counts once, when the signal first fires in it.`;
+
+  return {
+    id: getRumCustomSignalTemplateId(signal.id),
+    name: name,
+    description: description,
+    category: "Session Replay",
+    severity: "Warning",
+    monitorType: MonitorType.Metrics,
+    requirement: "SessionReplayRecording",
+    getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor({
+        telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+        rollingTime: RollingTime.Past15Minutes,
+        metricViewConfig: {
+          queryConfigs: [
+            {
+              metricAliasData: {
+                metricVariable: RUM_CUSTOM_SIGNAL_METRIC_ALIAS,
+                title: name,
+                description: description,
+                legend: signal.name,
+                legendUnit: "",
+              },
+              metricQueryData: {
+                filterData: {
+                  metricName: SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
+                  attributes: {
+                    [SESSION_REPLAY_SIGNAL_ID_ATTRIBUTE]: signal.id,
+                  },
+                  aggegationType: MetricsAggregationType.Sum,
+                  aggregateBy: {},
+                },
+              },
+            },
+          ],
+          formulaConfigs: [],
+        },
+      });
+
+      step.setMonitorCriteria(
+        buildCriteria({
+          args: args,
+          checkOn: CheckOn.MetricValue,
+          unhealthyFilterType: FilterType.GreaterThanOrEqualTo,
+          healthyFilterType: FilterType.LessThan,
+          threshold: threshold,
+          // Load-bearing: without the alias the window is read as All Values.
+          metricAlias: RUM_CUSTOM_SIGNAL_METRIC_ALIAS,
+          metricAggregationType: EvaluateOverTimeType.Sum,
+          unhealthyName: `${name} - ${threshold} or more in 15 minutes`,
+          unhealthyDescription: `Triggers when ${threshold} or more recorded sessions hit the signal "${signal.name}" within 15 minutes.`,
+          incidentTitle: `[RUM] Sessions hit "${signal.name}" - ${args.monitorName}`,
+          incidentDescription: `${threshold} or more recorded sessions of ${args.monitorName} hit your signal "${signal.name}" in the last 15 minutes. Watch them from the signal's See sessions, on the application's Frustration Signals page, or filter its session list by Signal of your own.`,
+          healthyDescription: `Fewer than ${threshold} recorded sessions of ${args.monitorName} hit the signal "${signal.name}" in the last 15 minutes.`,
+        }),
+      );
+
+      return step;
+    },
+  };
+}
+
+/*
+ * The signals a context names that can be offered: a usable id and name,
+ * each id once, as many as an application can have.
+ */
+function readCustomSignals(
+  value: ReadonlyArray<RumAlertTemplateCustomSignal> | null | undefined,
+): Array<RumAlertTemplateCustomSignal> {
+  const signals: Array<RumAlertTemplateCustomSignal> = [];
+  const ids: Set<string> = new Set<string>();
+
+  if (!Array.isArray(value)) {
+    return signals;
+  }
+
+  for (const entry of value) {
+    const id: unknown = (entry as { id?: unknown } | null)?.id;
+    const name: unknown = (entry as { name?: unknown } | null)?.name;
+
+    if (
+      typeof id !== "string" ||
+      typeof name !== "string" ||
+      id.trim().length === 0 ||
+      id.length > MAX_CUSTOM_SIGNAL_ID_LENGTH ||
+      name.trim().length === 0 ||
+      name.trim().length > SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH ||
+      ids.has(id)
+    ) {
+      continue;
+    }
+
+    ids.add(id);
+    signals.push({ id: id, name: name.trim() });
+
+    if (signals.length >= SESSION_REPLAY_MAX_CUSTOM_SIGNALS) {
+      break;
+    }
+  }
+
+  return signals;
+}
+
+/*
  * The Recommendations page draws its categories in the order their first
  * template appears here, and each category's cards in this order. A browser
  * app reads Core Web Vitals, then Errors (Failed User Operations, Unhandled
  * Browser Exceptions), then Session Replay, as it always has. A mobile app
  * reads Errors with App Crashes and its ANRs first, then Performance, then
- * Availability, then Session Replay.
+ * Availability, then Session Replay. An application's own signals' alerts
+ * (Session Replay too) follow these, from getRumAlertTemplates.
  */
 const ALL_RUM_ALERT_TEMPLATES: Array<RumAlertTemplate> = [
   ...webVitalTemplates,
@@ -1100,23 +1281,47 @@ function isClientMet(data: {
  * session replay on and has recorded, the monthly pair once it also has a
  * Monthly budget. No context, or a field that is null or undefined,
  * withholds them - so what an unknown application is offered is exactly the
- * set every application was offered before they existed.
+ * set every application was offered before they existed. Then an alert for
+ * each of the application's own signals, once it records, whatever its kind.
  */
 export function getRumAlertTemplates(
   context?: RumAlertTemplateContext | undefined,
 ): Array<RumAlertTemplate> {
-  return ALL_RUM_ALERT_TEMPLATES.filter((template: RumAlertTemplate) => {
-    return (
-      isClientMet({
-        clients: template.clients,
-        context: context,
-      }) &&
-      isRequirementMet({
-        requirement: template.requirement,
-        context: context,
-      })
-    );
-  });
+  const templates: Array<RumAlertTemplate> = ALL_RUM_ALERT_TEMPLATES.filter(
+    (template: RumAlertTemplate) => {
+      return (
+        isClientMet({
+          clients: template.clients,
+          context: context,
+        }) &&
+        isRequirementMet({
+          requirement: template.requirement,
+          context: context,
+        })
+      );
+    },
+  );
+
+  /*
+   * One alert per signal of the application's own, after the shipped ones,
+   * once it records (issue #6518). Built from the context, so neither
+   * getAllRumAlertTemplates nor getRumAlertTemplateById knows them: they
+   * are the application's, not the catalog's. A browser app and a mobile
+   * one alike: both record sessions, and a React Native app's taps report
+   * signals too.
+   */
+  if (
+    isRequirementMet({
+      requirement: "SessionReplayRecording",
+      context: context,
+    })
+  ) {
+    for (const signal of readCustomSignals(context?.customSignals)) {
+      templates.push(buildRumCustomSignalTemplate(signal));
+    }
+  }
+
+  return templates;
 }
 
 export function getRumAlertTemplateById(

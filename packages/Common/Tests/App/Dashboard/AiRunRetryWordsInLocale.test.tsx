@@ -72,6 +72,9 @@ const WORDS: Array<string> = [
   "Did not finish: {{cause}} Trying again.",
   "If it is a slow or self-hosted model, give it more time: raise the provider's Response Timeout in Project Settings > AI > LLM Providers. Then try again.",
   "Nothing needs to change: try again.",
+  // A long run's first steps, left out of its activity (issue #6489).
+  "Only the latest {{count}} steps of this run are shown.",
+  "Only the latest {{count}} steps of this run are shown._one",
   "OneUptime AI will try again",
   "OneUptime tried {{count}} times.",
   "OneUptime tried {{count}} times._one",
@@ -93,6 +96,10 @@ const WORDS: Array<string> = [
   "The run could not start again. Try again in a moment.",
   "The server running it stopped, for example while OneUptime restarted.",
   "There is no LLM provider to use.",
+  // A failure on the global LLM provider, whose admin can fix it (issue #6494).
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
   "Try again. If it fails again, the details below say what went wrong.",
   "Trying again at {{time}}",
   "Trying again soon",

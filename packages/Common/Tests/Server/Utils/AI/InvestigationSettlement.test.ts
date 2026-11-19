@@ -60,6 +60,13 @@ const handoff: jest.Mock =
   RemediationHandoff.runForSettledInvestigation as unknown as jest.Mock;
 
 describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => {
+  // How the attempt ended goes on the run's activity (issue #6490).
+  beforeEach(() => {
+    jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
     handoff.mockClear();
@@ -73,6 +80,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: 1,
         errorMessage: "LLM provider timed out",
         isPermanent: false,
@@ -99,6 +107,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: 1,
         errorMessage: "LLM provider timed out",
         isPermanent: false,
@@ -117,6 +126,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: 1,
         errorMessage: "No LLM provider configured for this project.",
         isPermanent: true,
@@ -141,6 +151,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: AIRunRetryPolicy.PROVIDER_FAILURE_MAX_ATTEMPTS,
         errorMessage: "LLM provider timed out",
         isPermanent: false,
@@ -155,6 +166,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: MAX_INVESTIGATION_ATTEMPTS,
         errorMessage: "The tool loop crashed",
         isPermanent: false,
@@ -169,6 +181,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: MAX_INVESTIGATION_ATTEMPTS,
         errorMessage: "LLM provider timed out",
         isPermanent: false,

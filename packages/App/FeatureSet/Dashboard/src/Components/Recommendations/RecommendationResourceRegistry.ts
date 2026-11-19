@@ -82,6 +82,10 @@ import {
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  normalizeSessionReplayFrustrationSettings,
+  SessionReplayCustomSignal,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
@@ -1018,6 +1022,11 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
    * sweep also requires, is not read: context columns are this row's own. A
    * project that turns replay off simply stops the series, which resolves
    * any open budget alert.
+   *
+   * Its own signals that are switched on (`sessionReplayFrustrationSignals`,
+   * readable by the same roles) are each offered an alert too, once it
+   * records (issue #6518). A signal saved before signals had ids has none
+   * until the page saves the settings again, and is not offered until then.
    */
   {
     resourceType: MonitorRecommendationResourceType.RumApplication,
@@ -1029,6 +1038,7 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       "isSessionReplayEnabled",
       "sessionReplayLastChunkReceivedAt",
       "sessionReplayMonthlyBudgetInGB",
+      "sessionReplayFrustrationSignals",
     ],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       const record: Record<string, unknown> = model as unknown as Record<
@@ -1060,6 +1070,21 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         sessionReplayMonthlyBudgetInGB: readSessionReplayMonthlyBudgetInGB(
           record["sessionReplayMonthlyBudgetInGB"],
         ),
+        customSignals: normalizeSessionReplayFrustrationSettings(
+          record["sessionReplayFrustrationSignals"],
+        )
+          .customSignals.filter(
+            (signal: SessionReplayCustomSignal): boolean => {
+              return signal.isEnabled && signal.id.length > 0;
+            },
+          )
+          .map(
+            (
+              signal: SessionReplayCustomSignal,
+            ): { id: string; name: string } => {
+              return { id: signal.id, name: signal.name };
+            },
+          ),
       };
     },
     /*
@@ -1103,6 +1128,19 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       if (isEnabled && !hasRecorded && hasBudget) {
         return translateTemplate(
           "The session replay budget alerts appear here once this application records its first replay.",
+        );
+      }
+
+      /*
+       * Its own signals are counted from recorded sessions only, so their
+       * alerts wait for the same: replay on, and a first replay recorded.
+       */
+      if (
+        (context.customSignals ?? []).length > 0 &&
+        !(isEnabled && hasRecorded)
+      ) {
+        return translateTemplate(
+          "Alerts on this application's own signals appear here once session replay is on for it and it records its first replay.",
         );
       }
 

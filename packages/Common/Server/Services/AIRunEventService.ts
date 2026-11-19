@@ -9,6 +9,7 @@ import {
 } from "../../Types/AI/AIChatTypes";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
+import Select from "../Types/Database/Select";
 import { OnFind } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/AIRunEvent";
@@ -18,6 +19,12 @@ import CodeTaskLive from "../Utils/AI/CodeTask/CodeTaskLive";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
+
+// A run's newest events, oldest first, and whether earlier ones were left out.
+export interface LatestRunEvents {
+  events: Array<Model>;
+  hasEarlierEvents: boolean;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -60,6 +67,42 @@ export class Service extends DatabaseService<Model> {
    * Best-effort: events are telemetry, so failures are logged and swallowed
    * rather than failing the operation that produced them.
    */
+  /*
+   * A run's newest `limit` events, in the order they happened, and whether
+   * it had earlier ones (issue #6489). What a run's activity reads: its
+   * latest steps - its last attempt, and how it ended - are what a long run
+   * must show (issue #6437), and the steps it leaves out are said, never
+   * dropped silently. One read: it asks for one event past the limit, and
+   * leaves that one out. Read as root: the caller has checked who may see
+   * the run's subject.
+   */
+  @CaptureSpan()
+  public async findLatestEventsOfRun(data: {
+    aiRunId: ObjectID;
+    // The run's project, when the caller holds it: the read is pinned to it.
+    projectId?: ObjectID | undefined;
+    select: Select<Model>;
+    limit: number;
+  }): Promise<LatestRunEvents> {
+    const limit: number = Math.max(1, Math.floor(data.limit));
+    const newestFirst: Array<Model> = await this.findBy({
+      query: {
+        aiRunId: data.aiRunId,
+        ...(data.projectId ? { projectId: data.projectId } : {}),
+      },
+      select: data.select,
+      sort: { sequence: SortOrder.Descending },
+      limit: limit + 1,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return {
+      events: newestFirst.slice(0, limit).reverse(),
+      hasEarlierEvents: newestFirst.length > limit,
+    };
+  }
+
   // The sequence number after the run's last event's: 0 for a run with none.
   @CaptureSpan()
   public async getSequenceAfterLastEvent(aiRunId: ObjectID): Promise<number> {

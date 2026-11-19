@@ -391,6 +391,7 @@ export default class McpRemediationRunner {
     } catch (error) {
       await AIInvestigationQueue.failOrRequeue({
         aiRunId,
+        projectId,
         attemptCount,
         errorMessage: `Failed to prepare the fix through MCP servers: ${
           error instanceof Error ? error.message : String(error)

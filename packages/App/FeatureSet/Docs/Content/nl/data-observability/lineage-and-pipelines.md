@@ -132,11 +132,12 @@ Mislukte vernieuwingen gebruiken de pipelinemonitoren niet. Een dataset waarvan 
 
 ## Pipelines
 
-Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**, met de uitvoeringen: wanneer elke uitvoering begon en eindigde, hoe lang ze duurde, welke poging het was waar de scheduler dat zegt (het try-nummer van Airflow), en de fout van een mislukte uitvoering. Na vijf uitvoeringen leert elke pipeline uit zijn eigen uitvoeringen hoe lang een uitvoering gewoonlijk duurt en hoeveel tijd er volgens zijn planning tussen twee uitvoeringen zit. De pagina van een pipeline beveelt drie monitoren aan:
+Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**, met de uitvoeringen: wanneer elke uitvoering begon en eindigde, hoe lang ze duurde, welke poging het was waar de scheduler dat zegt (het try-nummer van Airflow), en de fout van een mislukte uitvoering. Na vijf uitvoeringen leert elke pipeline uit zijn eigen uitvoeringen hoe lang een uitvoering gewoonlijk duurt en hoeveel tijd er volgens zijn planning tussen twee uitvoeringen zit. De pagina van een pipeline beveelt vier monitoren aan:
 
 - **Pipeline Run Failed**: een uitvoering is mislukt of afgebroken.
 - **Pipeline Run Unusually Long**: een uitvoering heeft twee keer haar gebruikelijke tijd of langer geduurd, elke vijf minuten gecontroleerd zolang ze loopt, zodat een uitvoering die vastloopt al wordt opgemerkt voordat ze eindigt.
 - **Pipeline Is Late**: er is langer geen uitvoering gestart dan de planning toestaat.
+- **Pipeline Stopped by Circuit Breaker**: de circuit breaker antwoordde stop, en de stop duurt tot hij go antwoordt of een uitvoering start.
 
 Het tabblad **Eigenaren** van een pipeline noemt de mensen en teams die ervoor zorgen, en de waarschuwingen ervan gaan naar hen. Het **Overzicht** en **Problemen** noemen de eigenaren van een mislukte of late pipeline, of tonen **Geen eigenaar**, met een manier om er een toe te voegen.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 Een verzoek dat een pipeline noemt, wordt bij die pipeline bewaard, tenzij het een proefrun is. Zolang de circuit breaker een pipeline heeft gestopt, zegt zijn pagina **Circuit breaker** sinds wanneer en waarom, opent zijn **Overzicht** met de stop, en noemen **Aandacht nodig** en **Problemen** hem gestopt, in plaats van zijn mislukte of te late run. De stop eindigt wanneer de circuit breaker de volgende keer go antwoordt, of wanneer er een run na de stop begint. Dezelfde pagina heeft **Nu testen**, dat de circuit breaker vraagt zonder dat het antwoord wordt bewaard, en de stap voor curl, Airflow en dbt met de naam van de pipeline al ingevuld.
 
+Om van een stop te horen, voegt u **Pipeline Stopped by Circuit Breaker** toe vanuit de **Aanbevelingen** van de pipeline. De waarschuwing ervan opent wanneer de circuit breaker stop antwoordt, gaat naar de eigenaren van de pipeline, blijft open zolang de stop bewaard wordt en wordt opgelost zodra de stop eindigt. Hij leest de metriek `oneuptime.data.pipeline.circuit_breaker_stopped` van de pipeline: 1 zolang de circuit breaker hem heeft gestopt en 0 zodra niet meer, geschreven wanneer de circuit breaker antwoordt en daarna elke vijf minuten.
+
 Zolang Data Observability op de server uitgeschakeld is, antwoordt de circuit breaker go en bewaart hij niets: een product uitschakelen stopt nooit een pipeline.
 
 ## Eén waarschuwing per oorzaak
@@ -238,7 +241,7 @@ Power BI geeft de tabellen van een dataset pas terug zodra een Fabric-beheerder 
 - **Enhance admin APIs responses with detailed metadata**: de tabellen van elke dataset.
 - **Enhance admin APIs responses with DAX and mashup expressions**: de query's die ze laden, die zeggen welke databasetabellen ze lezen.
 
-Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit. Een dataset die uit een gegevensstroom leest, wordt gelezen tot aan de gegevensstroom: OneUptime leest nog niet welke tabellen een gegevensstroom laadt.
+Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit.
 
 Elke tabel wordt aan een bewaakte tabel gekoppeld op naam, schema en database, en een server op zijn korte of volledige naam. Een tabel van een andere engine wordt nooit gekoppeld, en een in een andere database evenmin: een rapport op `Sales.dbo.Orders` wordt niet verbonden met `Archive.dbo.Orders`, omdat alleen `Archive` wordt bewaakt.
 

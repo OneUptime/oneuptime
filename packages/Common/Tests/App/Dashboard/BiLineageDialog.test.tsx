@@ -86,6 +86,7 @@ import {
   BiSourceStanding,
   POWER_BI_DETAILED_METADATA_SETTING,
   POWER_BI_EXPRESSIONS_SETTING,
+  POWER_BI_READ_ONLY_ADMIN_APIS_SETTING,
   getBiLineageFacts,
   getBiLineageReason,
   getBiLineageStep,
@@ -195,8 +196,19 @@ describe("the words of a tool's summary", () => {
       }),
     ).toBe("2 tables not watched");
     expect(reason([DataBiLineageProblem.Dataflows])).toBe(
-      "Some data comes from dataflows",
+      "Reading the datasets' dataflows",
     );
+    expect(
+      reason([DataBiLineageProblem.Dataflows], {
+        datasets: {
+          ...summary().datasets!,
+          readingDataflows: 4,
+          withUnreadDataflows: 3,
+          dataflowError: "Power BI answered 403: Forbidden.",
+          withPendingDataflows: 1,
+        },
+      }),
+    ).toBe("3 datasets on unread dataflows");
     expect(reason([DataBiLineageProblem.NotDatabases])).toBe(
       "Some data comes from files and web pages",
     );
@@ -253,6 +265,65 @@ describe("the words of a tool's summary", () => {
         summary({ unwatchedTables: ["Sales.dbo.Orders"] }),
       ).text,
     ).toContain("Sales.dbo.Orders");
+  });
+
+  /*
+   * Datasets built on dataflows are read through the dataflows' own
+   * definitions (#9551): a step says why one could not be read, in Power
+   * BI's words, and the setting a service principal needs to export one -
+   * or that they are still being read, within Power BI's hourly limit.
+   */
+  test("a dataflow OneUptime could not read says why, and what lets it; one still being read says so", () => {
+    const translator: ReturnType<typeof getGlobalTranslator> =
+      getGlobalTranslator();
+    const refused: { title: string; text: string } = getBiLineageStep(
+      translator,
+      DataBiLineageProblem.Dataflows,
+      summary({
+        datasets: {
+          ...summary().datasets!,
+          readingDataflows: 2,
+          withUnreadDataflows: 1,
+          dataflowError:
+            "Power BI answered 403: API is not accessible for application.",
+          withPendingDataflows: 0,
+        },
+      }),
+    );
+
+    expect(refused.title).toBe("Data From Dataflows");
+    expect(refused.text).toBe(
+      `1 dataset reads a Power BI dataflow whose tables OneUptime could not read: Power BI answered 403: API is not accessible for application. OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while ${POWER_BI_READ_ONLY_ADMIN_APIS_SETTING} is on for its security group, under Tenant settings > Admin API settings.`,
+    );
+
+    expect(
+      getBiLineageStep(
+        translator,
+        DataBiLineageProblem.Dataflows,
+        summary({
+          datasets: {
+            ...summary().datasets!,
+            readingDataflows: 12,
+            withUnreadDataflows: 0,
+            dataflowError: null,
+            withPendingDataflows: 12,
+          },
+        }),
+      ).text,
+    ).toBe(
+      "12 datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
+    );
+
+    // A summary kept before a dataflow's tables were read: they are read at the next read.
+    expect(
+      getBiLineageStep(
+        translator,
+        DataBiLineageProblem.Dataflows,
+        summary({
+          datasets: { ...summary().datasets!, readingDataflows: 3 },
+        }),
+      ).text,
+    ).toContain("3 datasets read Power BI dataflows whose definitions");
   });
 
   test("what the read found, in a line, and each source's standing", () => {

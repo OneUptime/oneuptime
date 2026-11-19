@@ -58,7 +58,10 @@ import {
   ToolContext,
 } from "../Toolbox/ToolTypes";
 import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
-import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
+import {
+  ExtraToolCall,
+  ObservabilityAssistantExtraTool,
+} from "./ObservabilityAssistant";
 import {
   compactAgentContext,
   CompactionResult,
@@ -233,6 +236,11 @@ const MAX_HISTORY_MESSAGES: number = 20;
 const MAX_SHARED_THREAD_HISTORY_MESSAGES: number = 40;
 const MAX_OUTPUT_TOKENS: number = 4096;
 const TEMPERATURE: number = 0.2;
+/*
+ * How much of a failed model call's error its LlmCallFailed event keeps:
+ * the investigation engine's cut (ObservabilityAssistant's llm_failed).
+ */
+export const MAX_LLM_CALL_ERROR_LENGTH: number = 400;
 
 /*
  * Replayed history is bounded twice: by row count (MAX_HISTORY_MESSAGES,
@@ -610,6 +618,14 @@ interface TurnState {
   toolActions: Array<AIChatToolAction>;
   egressToolEntries: Array<AIRunEgressManifestToolEntry>;
   startedAtMs: number;
+  /*
+   * When the turn's time limit ends (epoch ms): what its loop stops at,
+   * set once the loop has read its limits, and handed to every extra tool
+   * call, so a kubectl or infrastructure command started near the end
+   * waits no longer than the turn has left (issue #6496). A turn resumed
+   * after an approval sets it again, from its new start.
+   */
+  runDeadlineAtMs?: number | undefined;
   // The turn's extra tools, so an action card can title an extra mutation.
   extraTools?: Array<ChatExtraTool> | undefined;
   /*
@@ -1020,6 +1036,11 @@ export default class ChatAgentRunner {
     const runLimits: AIAgentRunLimits = await AIRunLimitsReader.read({
       projectId: request.projectId,
     });
+    // The deadline the loop stops at, which its commands plan their waits by.
+    state.runDeadlineAtMs = AIAgentRunLimitsHelper.getDeadlineAtMs(
+      runLimits,
+      state.startedAtMs,
+    );
     const loopDetector: AgentLoopDetector = new AgentLoopDetector();
     // The tokens of the latest call: the least the next one adds.
     let lastCallTokens: number = 0;
@@ -1131,6 +1152,24 @@ export default class ChatAgentRunner {
          * previews into LlmLog, which is readable by all project members.
          */
         storeContentPreviews: false,
+      }).catch(async (error: unknown): Promise<never> => {
+        /*
+         * The call failed for good (LLMService already retried it): its
+         * Thinking ends, failed, with the provider's words - as an
+         * investigation's does - rather than spinning until the turn's
+         * error notice replaces it (issue #6488). The turn fails as before.
+         */
+        await this.emitEvent(request, state, {
+          eventType: AIRunEventType.LlmCallFailed,
+          resultSummary: {
+            errorMessage: (error instanceof Error
+              ? error.message
+              : String(error)
+            ).substring(0, MAX_LLM_CALL_ERROR_LENGTH),
+          },
+        });
+
+        throw error;
       });
 
       state.llmCallCount++;
@@ -2118,6 +2157,7 @@ export default class ChatAgentRunner {
       request,
       toolContext,
       toolCall,
+      { runDeadlineAtMs: state.runDeadlineAtMs },
     );
 
     const durationInMs: number = Date.now() - toolStartMs;
@@ -2236,12 +2276,14 @@ export default class ChatAgentRunner {
   /*
    * Run one tool: the turn's extra tool of that name (its execute owns its
    * own authorization and timeouts; a throw becomes an error the model can
-   * correct from, never a crashed turn), or the toolbox tool.
+   * correct from, never a crashed turn), handed what the turn knows at the
+   * call - its deadline - or the toolbox tool.
    */
   private static async runTool(
     request: ChatTurnRequest,
     toolContext: ToolContext,
     toolCall: LLMToolCall,
+    call: ExtraToolCall,
   ): Promise<ToolCallOutcome> {
     const extraTool: ChatExtraTool | undefined = this.getExtraTool(
       request,
@@ -2257,7 +2299,7 @@ export default class ChatAgentRunner {
     }
 
     try {
-      return await extraTool.execute(toolCall.arguments);
+      return await extraTool.execute(toolCall.arguments, call);
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);

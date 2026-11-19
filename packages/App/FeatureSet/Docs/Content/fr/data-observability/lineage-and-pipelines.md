@@ -132,11 +132,12 @@ Les actualisations en échec n'utilisent pas les moniteurs de pipeline. Un jeu d
 
 ## Pipelines
 
-Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, quelle tentative c'était là où le planificateur l'indique (le numéro d'essai d'Airflow), et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande trois moniteurs :
+Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, quelle tentative c'était là où le planificateur l'indique (le numéro d'essai d'Airflow), et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande quatre moniteurs :
 
 - **Pipeline Run Failed** : une exécution a échoué ou a été interrompue.
 - **Pipeline Run Unusually Long** : une exécution a pris deux fois sa durée habituelle ou plus, vérifié toutes les cinq minutes pendant qu'elle tourne, si bien qu'une exécution bloquée est repérée avant qu'elle ne se termine.
 - **Pipeline Is Late** : aucune exécution n'a démarré depuis plus longtemps que sa planification ne le permet.
+- **Pipeline Stopped by Circuit Breaker** : le disjoncteur a répondu stop, et l'arrêt dure jusqu'à ce qu'il réponde go ou qu'une exécution démarre.
 
 L'onglet **Propriétaires** d'un pipeline nomme les personnes et les équipes qui s'en occupent, et ses alertes leur sont envoyées. La **Vue d'ensemble** et **Problèmes** nomment les propriétaires d'un pipeline en échec ou en retard, ou affichent **Aucun propriétaire**, avec un moyen d'en ajouter un.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 Une requête qui nomme un pipeline est conservée sur celui-ci, sauf s'il s'agit d'un essai. Tant que le disjoncteur a arrêté un pipeline, sa page **Disjoncteur** dit depuis quand et pourquoi, sa **Vue d'ensemble** s'ouvre sur l'arrêt, et **À traiter** et **Problèmes** le listent comme arrêté, à la place de son exécution en échec ou en retard. L'arrêt prend fin quand le disjoncteur répond go la fois suivante, ou quand une exécution démarre après lui. La même page propose **Tester maintenant**, qui interroge le disjoncteur sans que la réponse soit conservée, et l'étape pour curl, Airflow et dbt avec le nom du pipeline déjà rempli.
 
+Pour être prévenu d'un arrêt, ajoutez **Pipeline Stopped by Circuit Breaker** depuis les **Recommandations** du pipeline. Son alerte s'ouvre quand le disjoncteur répond stop, est envoyée aux propriétaires du pipeline, reste ouverte tant que l'arrêt est conservé et se résout dès que l'arrêt prend fin. Elle lit la métrique `oneuptime.data.pipeline.circuit_breaker_stopped` du pipeline : 1 tant que le disjoncteur l'a arrêté et 0 dès que ce n'est plus le cas, écrite quand le disjoncteur répond, puis toutes les cinq minutes.
+
 Tant que l'Observabilité des données est désactivée sur le serveur, le disjoncteur répond go et ne conserve rien : désactiver un produit n'arrête jamais un pipeline.
 
 ## Un seul signalement par cause
@@ -238,7 +241,7 @@ Power BI ne renvoie les tables d'un jeu de données qu'une fois qu'un administra
 - **Enhance admin APIs responses with detailed metadata** : les tables de chaque jeu de données.
 - **Enhance admin APIs responses with DAX and mashup expressions** : les requêtes qui les chargent, qui disent quelles tables de base de données elles lisent.
 
-Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée. Un jeu de données qui lit un dataflow est lu jusqu'au dataflow : OneUptime ne lit pas encore quelles tables un dataflow charge.
+Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée.
 
 Chaque table est associée à une table surveillée par son nom, son schéma et sa base de données, et un serveur par son nom court ou son nom complet. Une table d'un autre moteur n'est jamais associée, pas plus qu'une table d'une autre base de données : un rapport sur `Sales.dbo.Orders` n'est pas lié à `Archive.dbo.Orders` parce que seule `Archive` est surveillée.
 

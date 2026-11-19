@@ -21,6 +21,13 @@ export interface BiTableRef {
    * gave its connection. Only an exact name rules other databases out.
    */
   isDatabaseExact?: boolean | undefined;
+  /*
+   * Whether `table` names a Dataverse entity set (accounts), as the
+   * OData connectors navigate (Cds.Entities), rather than the table's
+   * logical name (account), which OneUptime keys Dataverse tables by:
+   * matched through the environment's own entity set names (BiMatching).
+   */
+  isEntitySet?: boolean | undefined;
 }
 
 export interface BiTableDefaults {
@@ -221,9 +228,18 @@ export function uniqueTables(tables: Array<BiTableRef>): Array<BiTableRef> {
     .slice(0, MAX_TABLES_PER_DASHBOARD);
 }
 
-// A table as one key: its database, schema and name, in lower case.
+/*
+ * A table as one key: its database, schema and name, in lower case. A
+ * Dataverse entity set is a name of another kind, so it keys apart from a
+ * table of the same letters.
+ */
 export function getBiTableKey(ref: BiTableRef): string {
-  return [ref.database, ref.schema, ref.table]
+  return [
+    ref.database,
+    ref.schema,
+    ref.table,
+    ...(ref.isEntitySet ? ["entity set"] : []),
+  ]
     .map((part: string | null): string => {
       return (part || "").toLowerCase();
     })

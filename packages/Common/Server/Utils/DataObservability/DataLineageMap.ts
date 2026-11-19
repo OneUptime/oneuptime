@@ -11,6 +11,10 @@ import { isDataAssetLineageSource } from "../../../Types/DataObservability/DataA
 import { DataAssetAccessKind } from "../../../Types/DataObservability/DataAssetUsage";
 import {
   DataBiLineageSummary,
+  DataBiSource,
+  DataDashboardDataset,
+  DataDashboardUpstream,
+  getDataBiSourceName,
   isDataBiToolOffTables,
   readDataBiLineageSummary,
   readDataDashboardUpstream,
@@ -36,6 +40,8 @@ import {
   assembleDataLineageMap,
   chooseDataLineageMapBiDashboards,
   chooseDataLineageMapFlows,
+  combineDataLineageMapBiChoices,
+  getDataLineageMapBiDashboardIds,
   isFocusedDataLineageMapRequest,
 } from "../../../Types/DataObservability/DataLineageMap";
 import ObjectID from "../../../Types/ObjectID";
@@ -85,21 +91,27 @@ import DataTableLineageReader, {
  * MAX_DATA_LINEAGE_MAP_FOCUS_TABLES tables; past it the map says it was
  * cut short.
  *
- * Then, on a whole map, in the room left, the project's BI dashboards that
- * no flow draws (readBiDashboards, #9507): those on watched tables nothing
- * else touches, with their tables, and those on no watched table, with the
- * datasets and data sources their tool says they are built on - a project
- * whose only lineage is its BI tool's still has a map. A map that starts
- * somewhere draws only the dashboards its own tables lead to. With either,
- * the BI tools whose dashboards are on no watched table are told of, with
- * why (readBiToolsOffTables).
+ * Then, in the room left, the BI dashboards that no flow draws
+ * (readBiDashboards, #9507): those on watched tables nothing else touches,
+ * with their tables, and those on no watched table, with the datasets and
+ * data sources their tool says they are built on - a project whose only
+ * lineage is its BI tool's still has a map. A whole map's are the
+ * project's; a map that starts somewhere's are those on the tables it
+ * starts from (#9553), and a search's first of all the dashboards it names
+ * - by name, or by a dataset's or data source's name - so the report
+ * searched for is drawn even when nothing else touches it, or when
+ * hundreds of others are built on the same tables. With either, the BI
+ * tools whose dashboards are on no watched table are told of, with why
+ * (readBiToolsOffTables).
  *
  * Every read is the project's own (projectId on every query), and of what
  * its reader may read (#9526): a role limited to what its members own, or
  * to some labels, has every row naming a table or pipeline it may not read
  * left out, by the rule a table's drawing keeps its rows by
  * (DataLineageReadableCache), so it is never told of one - not by name,
- * and not in how many tables the map left out.
+ * and not in how many tables the map left out. Such a reader is drawn the
+ * BI dashboards their tables lead to, each with only those tables, and no
+ * dashboard on no table they may read.
  */
 
 // Where the map reads its flows from: the database, or a test's rows in memory.
@@ -107,12 +119,22 @@ export interface DataLineageMapFlowReader {
   readLineage(limit: number): Promise<Array<DataLineageMapLineageRow>>;
   readUsages(limit: number): Promise<Array<DataLineageMapUsageRow>>;
   /*
-   * The project's BI dashboards, those on the most watched tables first,
-   * then the most viewed: each with all its watched tables and what its
-   * tool says it is built on. Left out, no dashboard is drawn but those on
-   * the flows' tables (a map that starts somewhere).
+   * The BI dashboards to draw in the room the flows leave, those on the
+   * most watched tables first, then the most viewed: each with all its
+   * watched tables and what its tool says it is built on. A whole map's
+   * are the project's; a map that starts somewhere's, those on the tables
+   * it starts from. Left out, no dashboard is drawn but those on the flows'
+   * tables.
    */
   readBiDashboards?(limit: number): Promise<Array<DataLineageMapDashboardRow>>;
+  /*
+   * The dashboards a search names - by their own names, or by their
+   * datasets' or data sources' - the closest first: drawn before any
+   * other, so the one searched for is never left off. Left out, none.
+   */
+  readNamedDashboards?(
+    limit: number,
+  ): Promise<Array<DataLineageMapDashboardRow>>;
 }
 
 // What a map that starts somewhere reads the flows of.
@@ -121,12 +143,48 @@ export interface DataLineageMapFocus {
   dataAssetIds: Array<string>;
   // The pipelines a search names: their own rows.
   dataPipelineIds: Array<string>;
+  // The BI dashboards a search names, the closest first (#9553).
+  dataDashboardIds: Array<string>;
   // More tables than one map reads the flows of.
   isTruncated: boolean;
 }
 
 // The most ids one read names.
 const READ_CHUNK: number = 500;
+
+/*
+ * The most dashboards whose built-on text holds a search, read to find
+ * those whose datasets or data sources it names: the text holds more than
+ * names (a source's type, its keys), so more are read than are kept.
+ */
+const MAX_DASHBOARDS_SEARCHED_BY_UPSTREAM: number = 500;
+
+// Whether a dashboard's datasets or data sources are named by the words, in any case.
+function isUpstreamNamedBy(
+  upstream: DataDashboardUpstream | null,
+  words: string,
+): boolean {
+  if (!upstream || !words) {
+    return false;
+  }
+
+  const holds: (text: string | null) => boolean = (
+    text: string | null,
+  ): boolean => {
+    return Boolean(text && text.toLowerCase().includes(words));
+  };
+  const isSourceNamed: (source: DataBiSource) => boolean = (
+    source: DataBiSource,
+  ): boolean => {
+    return holds(getDataBiSourceName(source));
+  };
+
+  return (
+    upstream.datasets.some((dataset: DataDashboardDataset): boolean => {
+      return holds(dataset.name) || dataset.sources.some(isSourceNamed);
+    }) || upstream.sources.some(isSourceNamed)
+  );
+}
 
 const LINEAGE_SELECT: {
   _id: true;
@@ -161,6 +219,63 @@ const USAGE_SELECT: {
   operations: true,
   lastSeenAt: true,
 };
+
+// What a BI dashboard is drawn with: its watched tables, what its tool says it is built on, and what orders it.
+const BI_DASHBOARD_SELECT: {
+  _id: true;
+  name: true;
+  tool: true;
+  url: true;
+  upstream: true;
+  tableCount: true;
+  viewCount: true;
+  dataAssets: { _id: true };
+} = {
+  _id: true,
+  name: true,
+  tool: true,
+  url: true,
+  upstream: true,
+  tableCount: true,
+  viewCount: true,
+  dataAssets: { _id: true },
+};
+
+// Those on the most watched tables first, then the most viewed, then by name.
+const BI_DASHBOARD_SORT: {
+  tableCount: SortOrder;
+  viewCount: SortOrder;
+  name: SortOrder;
+} = {
+  tableCount: SortOrder.Descending,
+  viewCount: SortOrder.Descending,
+  name: SortOrder.Ascending,
+};
+
+function compareBiDashboards(a: DataDashboard, b: DataDashboard): number {
+  return (
+    (b.tableCount || 0) - (a.tableCount || 0) ||
+    (b.viewCount || 0) - (a.viewCount || 0) ||
+    (a.name || "").localeCompare(b.name || "")
+  );
+}
+
+function toBiDashboardRow(
+  dashboard: DataDashboard,
+): DataLineageMapDashboardRow {
+  return {
+    dataDashboardId: dashboard.id!.toString(),
+    name: dashboard.name || "",
+    tool: dashboard.tool || null,
+    url: dashboard.url || null,
+    dataAssetIds: (dashboard.dataAssets || [])
+      .map((asset: DataAsset): string => {
+        return asset._id?.toString() || "";
+      })
+      .filter(Boolean),
+    upstream: readDataDashboardUpstream(dashboard.upstream),
+  };
+}
 
 function readDate(value: unknown): Date | null {
   if (value instanceof Date) {
@@ -327,12 +442,11 @@ export default class DataLineageMapReader {
       0,
       MAX_DATA_LINEAGE_MAP_USAGE_ROWS,
     );
+    const cache: DataLineageReadableCache | null = data.readable
+      ? new DataLineageReadableCache(data.readable)
+      : null;
 
-    if (data.readable) {
-      const cache: DataLineageReadableCache = new DataLineageReadableCache(
-        data.readable,
-      );
-
+    if (cache) {
       lineage = await cache.keepRows(lineage);
 
       const readableTables: Set<string> = new Set(
@@ -358,7 +472,65 @@ export default class DataLineageMapReader {
         Boolean(data.isFocusTruncated),
     });
 
-    // The dashboards on the flows' tables.
+    const maxNodes: number = data.maxNodes ?? MAX_DATA_LINEAGE_MAP_NODES;
+    /*
+     * A BI dashboard as its reader may see it: a reader limited to some
+     * tables (#9526) is drawn a dashboard their tables lead to, with only
+     * those tables, and none on no table they may read.
+     */
+    const readableRows: (
+      rows: Array<DataLineageMapDashboardRow>,
+    ) => Promise<Array<DataLineageMapDashboardRow>> = async (
+      rows: Array<DataLineageMapDashboardRow>,
+    ): Promise<Array<DataLineageMapDashboardRow>> => {
+      if (!cache) {
+        return rows;
+      }
+
+      await cache.knowTables(
+        rows.flatMap((row: DataLineageMapDashboardRow): Array<string> => {
+          return row.dataAssetIds;
+        }),
+      );
+
+      return rows
+        .map((row: DataLineageMapDashboardRow): DataLineageMapDashboardRow => {
+          return {
+            ...row,
+            dataAssetIds: row.dataAssetIds.filter((id: string): boolean => {
+              return cache.isTable(id);
+            }),
+          };
+        })
+        .filter((row: DataLineageMapDashboardRow): boolean => {
+          return row.dataAssetIds.length > 0;
+        });
+    };
+
+    // First the dashboards a search names (#9553), so the one searched for is never left off.
+    const named: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
+      rows:
+        choice.dashboardRoom > 0 && data.flows.readNamedDashboards
+          ? await readableRows(
+              await data.flows.readNamedDashboards(
+                MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES,
+              ),
+            )
+          : [],
+      drawnDataAssetIds: new Set(choice.dataAssetIds),
+      drawnDashboardIds: new Set(),
+      nodeRoom: maxNodes - choice.nodeCount,
+      dashboardRoom: choice.dashboardRoom,
+    });
+    const namedIds: Set<string> = new Set(
+      getDataLineageMapBiDashboardIds(named),
+    );
+    const flowDashboardRoom: number = choice.dashboardRoom - namedIds.size;
+
+    /*
+     * Then the dashboards on the flows' tables, in the room the named ones
+     * leave - read even when they leave none, to know one was left off.
+     */
     const dashboards: {
       dashboards: Array<DataLineageDashboardRow>;
       total: number;
@@ -366,48 +538,51 @@ export default class DataLineageMapReader {
       choice.dataAssetIds.length > 0 && choice.dashboardRoom > 0
         ? await data.details.readDashboards({
             dataAssetIds: choice.dataAssetIds,
-            // One more than there is room for, to know there were more.
-            limit: choice.dashboardRoom + 1,
+            // One more than there is room for, to know there were more, and those drawn already.
+            limit: flowDashboardRoom + namedIds.size + 1,
           })
         : { dashboards: [], total: 0 };
+    const flowDashboards: Array<DataLineageDashboardRow> =
+      dashboards.dashboards.filter(
+        (dashboard: DataLineageDashboardRow): boolean => {
+          return !namedIds.has(dashboard.dataDashboardId);
+        },
+      );
 
-    /*
-     * Then the BI dashboards no flow draws, in the room left - for a reader
-     * who may read the whole project: one limited to some tables is drawn
-     * only the dashboards their tables lead to.
-     */
-    const onFlows: number = Math.min(
-      choice.dashboardRoom,
-      dashboards.dashboards.length,
-    );
+    // Then the BI dashboards no flow draws, in the room left.
+    const onFlows: number = Math.min(flowDashboardRoom, flowDashboards.length);
     const nodeRoom: number =
-      (data.maxNodes ?? MAX_DATA_LINEAGE_MAP_NODES) -
-      choice.nodeCount -
-      onFlows;
-    const dashboardRoom: number = choice.dashboardRoom - onFlows;
+      maxNodes - choice.nodeCount - (named.nodeCount || 0) - onFlows;
+    const dashboardRoom: number = flowDashboardRoom - onFlows;
     const biRows: Array<DataLineageMapDashboardRow> =
-      nodeRoom > 0 &&
-      dashboardRoom > 0 &&
-      !data.readable &&
-      data.flows.readBiDashboards
+      nodeRoom > 0 && dashboardRoom > 0 && data.flows.readBiDashboards
         ? await data.flows.readBiDashboards(
             MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS + 1,
           )
         : [];
-    const bi: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
-      rows: biRows.slice(0, MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS),
-      hadMoreRows: biRows.length > MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS,
-      drawnDataAssetIds: new Set(choice.dataAssetIds),
-      drawnDashboardIds: new Set(
-        dashboards.dashboards.map(
-          (dashboard: DataLineageDashboardRow): string => {
-            return dashboard.dataDashboardId;
-          },
+    const bi: DataLineageMapBiChoice = combineDataLineageMapBiChoices(
+      named,
+      chooseDataLineageMapBiDashboards({
+        rows: await readableRows(
+          biRows.slice(0, MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS),
         ),
-      ),
-      nodeRoom,
-      dashboardRoom,
-    });
+        hadMoreRows: biRows.length > MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS,
+        drawnDataAssetIds: new Set([
+          ...choice.dataAssetIds,
+          ...named.dataAssetIds,
+        ]),
+        drawnDashboardIds: new Set([
+          ...namedIds,
+          ...flowDashboards.map(
+            (dashboard: DataLineageDashboardRow): string => {
+              return dashboard.dataDashboardId;
+            },
+          ),
+        ]),
+        nodeRoom,
+        dashboardRoom,
+      }),
+    );
     const dataAssetIds: Array<string> = Array.from(
       new Set([...choice.dataAssetIds, ...bi.dataAssetIds]),
     ).sort();
@@ -435,7 +610,8 @@ export default class DataLineageMapReader {
     ]);
 
     return assembleDataLineageMap({
-      choice,
+      // The flows' dashboards are drawn in the room the named ones leave.
+      choice: { ...choice, dashboardRoom: flowDashboardRoom },
       tables: tables.map(
         (table: DataLineageTableRow): DataLineageMapTableRow => {
           return { ...table };
@@ -451,7 +627,7 @@ export default class DataLineageMapReader {
           };
         },
       ),
-      dashboards: dashboards.dashboards.map(
+      dashboards: flowDashboards.map(
         (dashboard: DataLineageDashboardRow): DataLineageMapDashboardRow => {
           return { ...dashboard };
         },
@@ -559,11 +735,13 @@ export default class DataLineageMapReader {
 
     let isTruncated: boolean = found.length > MAX_DATA_LINEAGE_MAP_FOCUS_TABLES;
     const dataPipelineIds: Array<string> = [];
+    const dataDashboardIds: Array<string> = [];
 
     if (search) {
       const named: {
         dataAssetIds: Array<string>;
         dataPipelineIds: Array<string>;
+        dataDashboardIds: Array<string>;
       } = await DataLineageMapReader.readNamedBySearch({
         projectId: data.projectId,
         scope: data.scope,
@@ -581,27 +759,98 @@ export default class DataLineageMapReader {
       }
 
       dataPipelineIds.push(...named.dataPipelineIds);
+      dataDashboardIds.push(...named.dataDashboardIds);
     }
 
     return {
       dataAssetIds: Array.from(dataAssetIds),
       dataPipelineIds,
+      dataDashboardIds,
       isTruncated,
     };
   }
 
   /*
+   * The BI dashboards a search names, the closest first: those whose own
+   * name holds it, then those whose datasets' or data sources' names do
+   * (#9553) - a report found by the semantic model it charts, or by the
+   * SharePoint list or database it loads from. Each with its watched
+   * tables; at most MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES.
+   */
+  public static async readDashboardsNamedBy(data: {
+    projectId: ObjectID;
+    search: string;
+  }): Promise<Array<DataDashboard>> {
+    const words: string = data.search.trim().toLowerCase();
+    const select: {
+      _id: true;
+      name: true;
+      upstream: true;
+      dataAssets: { _id: true };
+    } = { _id: true, name: true, upstream: true, dataAssets: { _id: true } };
+    const [byName, byUpstream] = await Promise.all([
+      DataDashboardService.findBy({
+        query: { projectId: data.projectId, name: QueryHelper.search(words) },
+        select,
+        sort: { viewCount: SortOrder.Descending, name: SortOrder.Ascending },
+        limit: MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      // What a dashboard is built on, as text: narrowed to its datasets' and sources' names below.
+      DataDashboardService.findBy({
+        query: {
+          projectId: data.projectId,
+          upstream: QueryHelper.search(words),
+        },
+        select,
+        sort: { viewCount: SortOrder.Descending, name: SortOrder.Ascending },
+        limit: MAX_DASHBOARDS_SEARCHED_BY_UPSTREAM,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ]);
+    const found: Map<string, DataDashboard> = new Map();
+
+    for (const dashboard of byName as Array<DataDashboard>) {
+      if (dashboard.id) {
+        found.set(dashboard.id.toString(), dashboard);
+      }
+    }
+
+    for (const dashboard of byUpstream as Array<DataDashboard>) {
+      if (
+        dashboard.id &&
+        !found.has(dashboard.id.toString()) &&
+        isUpstreamNamedBy(readDataDashboardUpstream(dashboard.upstream), words)
+      ) {
+        found.set(dashboard.id.toString(), dashboard);
+      }
+    }
+
+    return Array.from(found.values()).slice(
+      0,
+      MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES,
+    );
+  }
+
+  /*
    * What else a search of the map names, of what its reader may read: the
-   * pipelines whose job name holds it, and the tables read and written by
-   * the services - and read by the dashboards - whose names hold it. In
-   * one database, only its tables.
+   * pipelines whose job name holds it, the tables read and written by the
+   * services whose names hold it, and the BI dashboards it names - by
+   * their names, or their datasets' or data sources' - with their tables.
+   * In one database, only its tables, and only the dashboards on them.
    */
   private static async readNamedBySearch(data: {
     projectId: ObjectID;
     scope: DataObservabilityScope;
     search: string;
     dataStoreId?: string | undefined;
-  }): Promise<{ dataAssetIds: Array<string>; dataPipelineIds: Array<string> }> {
+  }): Promise<{
+    dataAssetIds: Array<string>;
+    dataPipelineIds: Array<string>;
+    dataDashboardIds: Array<string>;
+  }> {
     const [pipelines, usages, dashboards] = await Promise.all([
       DataPipelineService.findBy({
         query: withConditions<DataPipeline>(data.scope.pipelineQuery, {
@@ -624,16 +873,9 @@ export default class DataLineageMapReader {
         skip: 0,
         props: { isRoot: true },
       }),
-      DataDashboardService.findBy({
-        query: {
-          projectId: data.projectId,
-          name: QueryHelper.search(data.search),
-        },
-        select: { _id: true, dataAssets: { _id: true } },
-        sort: { name: SortOrder.Ascending },
-        limit: MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES,
-        skip: 0,
-        props: { isRoot: true },
+      DataLineageMapReader.readDashboardsNamedBy({
+        projectId: data.projectId,
+        search: data.search,
       }),
     ]);
 
@@ -682,6 +924,22 @@ export default class DataLineageMapReader {
           return pipeline.id?.toString() || "";
         })
         .filter(Boolean),
+      /*
+       * Every dashboard named, the map drawing each as its reader may see
+       * it (build); in one database, those on its tables a reader may read.
+       */
+      dataDashboardIds: dashboards
+        .filter((dashboard: DataDashboard): boolean => {
+          return (
+            !data.dataStoreId ||
+            (dashboard.dataAssets || []).some((asset: DataAsset): boolean => {
+              return readable.has(asset._id?.toString() || "");
+            })
+          );
+        })
+        .map((dashboard: DataDashboard): string => {
+          return dashboard.id!.toString();
+        }),
     };
   }
 
@@ -736,19 +994,8 @@ export default class DataLineageMapReader {
       ): Promise<Array<DataLineageMapDashboardRow>> => {
         const found: Array<DataDashboard> = await DataDashboardService.findBy({
           query: { projectId },
-          select: {
-            _id: true,
-            name: true,
-            tool: true,
-            url: true,
-            upstream: true,
-            dataAssets: { _id: true },
-          },
-          sort: {
-            tableCount: SortOrder.Descending,
-            viewCount: SortOrder.Descending,
-            name: SortOrder.Ascending,
-          },
+          select: BI_DASHBOARD_SELECT,
+          sort: BI_DASHBOARD_SORT,
           limit,
           skip: 0,
           props: { isRoot: true },
@@ -758,20 +1005,7 @@ export default class DataLineageMapReader {
           .filter((dashboard: DataDashboard): boolean => {
             return Boolean(dashboard.id);
           })
-          .map((dashboard: DataDashboard): DataLineageMapDashboardRow => {
-            return {
-              dataDashboardId: dashboard.id!.toString(),
-              name: dashboard.name || "",
-              tool: dashboard.tool || null,
-              url: dashboard.url || null,
-              dataAssetIds: (dashboard.dataAssets || [])
-                .map((asset: DataAsset): string => {
-                  return asset._id?.toString() || "";
-                })
-                .filter(Boolean),
-              upstream: readDataDashboardUpstream(dashboard.upstream),
-            };
-          });
+          .map(toBiDashboardRow);
       },
     };
   }
@@ -866,6 +1100,85 @@ export default class DataLineageMapReader {
         }
 
         return newestOf(rows, limit);
+      },
+
+      /*
+       * The BI dashboards on the tables the map starts from - one
+       * database's, or a search's - those on the most watched tables first,
+       * then the most viewed (#9553): drawn when nothing else touches their
+       * tables, the usual case for a project whose only lineage is its BI
+       * tool's.
+       */
+      readBiDashboards: async (
+        limit: number,
+      ): Promise<Array<DataLineageMapDashboardRow>> => {
+        const found: Map<string, DataDashboard> = new Map();
+
+        for (const ids of chunked(focus.dataAssetIds, READ_CHUNK)) {
+          for (const dashboard of (await DataDashboardService.findBy({
+            query: {
+              projectId,
+              _id: QueryHelper.anyOfEntitiesInManyToMany({
+                values: ids.map((id: string): ObjectID => {
+                  return new ObjectID(id);
+                }),
+                joinTableName: "DataDashboardDataAsset",
+                ownerColumnName: "dataDashboardId",
+                relationColumnName: "dataAssetId",
+              }),
+            },
+            select: BI_DASHBOARD_SELECT,
+            sort: BI_DASHBOARD_SORT,
+            limit,
+            skip: 0,
+            props: { isRoot: true },
+          })) as Array<DataDashboard>) {
+            if (dashboard.id) {
+              found.set(dashboard.id.toString(), dashboard);
+            }
+          }
+        }
+
+        return Array.from(found.values())
+          .sort(compareBiDashboards)
+          .slice(0, limit)
+          .map(toBiDashboardRow);
+      },
+
+      // The dashboards a search names, in the order it named them.
+      readNamedDashboards: async (
+        limit: number,
+      ): Promise<Array<DataLineageMapDashboardRow>> => {
+        const wanted: Array<string> = focus.dataDashboardIds.slice(0, limit);
+
+        if (wanted.length === 0) {
+          return [];
+        }
+
+        const found: Map<string, DataDashboard> = new Map(
+          (
+            (await DataDashboardService.findBy({
+              query: { projectId, _id: asIds(wanted) },
+              select: BI_DASHBOARD_SELECT,
+              limit: wanted.length,
+              skip: 0,
+              props: { isRoot: true },
+            })) as Array<DataDashboard>
+          ).map((dashboard: DataDashboard): [string, DataDashboard] => {
+            return [dashboard.id?.toString() || "", dashboard];
+          }),
+        );
+
+        return wanted
+          .map((id: string): DataDashboard | undefined => {
+            return found.get(id);
+          })
+          .filter((dashboard: DataDashboard | undefined): boolean => {
+            return Boolean(dashboard?.id);
+          })
+          .map((dashboard: DataDashboard | undefined) => {
+            return toBiDashboardRow(dashboard!);
+          });
       },
     };
   }

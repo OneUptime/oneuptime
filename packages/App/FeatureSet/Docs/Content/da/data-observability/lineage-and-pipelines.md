@@ -132,11 +132,12 @@ Mislykkede opdateringer bruger ikke pipeline-monitorerne. Et datasæt, hvis opda
 
 ## Pipelines
 
-Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sine kørsler: hvornår hver startede og sluttede, hvor lang tid den tog, hvilket forsøg den var, hvor planlæggeren oplyser det (Airflows try number), og fejlen for en mislykket kørsel. Efter fem kørsler lærer hver pipeline af sine egne kørsler, hvor lang tid en kørsel plejer at tage, og hvor lang tid der går mellem kørslerne efter dens tidsplan. En pipelines side anbefaler tre monitorer:
+Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sine kørsler: hvornår hver startede og sluttede, hvor lang tid den tog, hvilket forsøg den var, hvor planlæggeren oplyser det (Airflows try number), og fejlen for en mislykket kørsel. Efter fem kørsler lærer hver pipeline af sine egne kørsler, hvor lang tid en kørsel plejer at tage, og hvor lang tid der går mellem kørslerne efter dens tidsplan. En pipelines side anbefaler fire monitorer:
 
 - **Pipeline Run Failed**: en kørsel mislykkedes eller blev afbrudt.
 - **Pipeline Run Unusually Long**: en kørsel har taget dobbelt så lang tid som normalt eller mere, tjekket hvert femte minut, mens den kører, så en kørsel, der hænger, opdages, før den slutter.
 - **Pipeline Is Late**: ingen kørsel er startet i længere tid, end tidsplanen tillader.
+- **Pipeline Stopped by Circuit Breaker**: circuit breakeren svarede stop, og stoppet varer, indtil den svarer go, eller en kørsel starter.
 
 En pipelines fane **Ejere** nævner de personer og teams, der passer den, og dens advarsler går til dem. **Oversigt** og **Problemer** nævner ejerne af en pipeline, der fejlede eller er forsinket, eller viser **Ingen ejer** med en måde at tilføje en på.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 En forespørgsel, der navngiver en pipeline, gemmes på den, medmindre det er en prøvekørsel. Så længe circuit breakeren har stoppet en pipeline, siger dens side **Circuit breaker**, siden hvornår og hvorfor, dens **Oversigt** åbner med stoppet, og **Kræver handling** og **Problemer** viser den som stoppet i stedet for dens fejlede eller forsinkede kørsel. Stoppet slutter, når circuit breakeren næste gang svarer go, eller når en kørsel starter efter det. Samme side har **Test nu**, som spørger circuit breakeren, uden at svaret gemmes, og trinnet til curl, Airflow og dbt med pipelinens navn udfyldt.
 
+For at høre om et stop skal du tilføje **Pipeline Stopped by Circuit Breaker** fra pipelinens **Anbefalinger**. Dens advarsel åbner, når circuit breakeren svarer stop, går til pipelinens ejere, forbliver åben, så længe stoppet gemmes, og løses, når stoppet slutter. Den læser pipelinens metrik `oneuptime.data.pipeline.circuit_breaker_stopped`: 1, så længe circuit breakeren har stoppet den, og 0, når den ikke har, skrevet når circuit breakeren svarer og derefter hvert femte minut.
+
 Så længe Dataobservabilitet er slået fra på serveren, svarer circuit breakeren go og gemmer intet: at slå et produkt fra stopper aldrig en pipeline.
 
 ## Én advarsel pr. årsag
@@ -238,7 +241,7 @@ Power BI returnerer først et datasæts tabeller, når en Fabric-administrator s
 - **Enhance admin APIs responses with detailed metadata**: hvert datasæts tabeller.
 - **Enhance admin APIs responses with DAX and mashup expressions**: de forespørgsler, der indlæser dem, og som siger, hvilke databasetabeller de læser.
 
-Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet. Et datasæt, der læser fra et dataflow, læses op til dataflowet: OneUptime læser endnu ikke, hvilke tabeller et dataflow indlæser.
+Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet.
 
 Hver tabel matches med en overvåget tabel ud fra sit navn, sit skema og sin database, og en server ud fra sit korte eller fulde navn. En tabel fra en anden databasemotor matches aldrig, og det gør en tabel i en anden database heller ikke: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi kun `Archive` overvåges.
 

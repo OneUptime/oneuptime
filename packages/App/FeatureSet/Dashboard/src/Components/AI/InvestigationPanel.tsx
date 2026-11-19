@@ -325,6 +325,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [conversationHasContent, setConversationHasContent] =
     useState<boolean>(false);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
+  // Whether the run's first steps were left out of `events` (issue #6489).
+  const [hasEarlierEvents, setHasEarlierEvents] = useState<boolean>(false);
   /*
    * The run's times, for its activity's times and how long it took, and
    * whether this reader may start an investigation that did not finish
@@ -516,6 +518,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setHasSuccessfulResponse(false);
     setIsRefreshing(false);
     setEvents([]);
+    setHasEarlierEvents(false);
     setAnalysisMarkdown(null);
     setAnalysisTldr(null);
     setIsAnalysisPending(false);
@@ -577,6 +580,17 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         const runJson: JSONObject | null =
           (data["run"] as JSONObject | null) || null;
         const eventsJson: JSONArray = (data["events"] as JSONArray) || [];
+        const nextHasEarlierEvents: boolean = data["hasEarlierEvents"] === true;
+        /*
+         * The run's latest event: past the read's cap, a run's newest
+         * events are always as many, so their count no longer says that
+         * a new one came in (issue #6489).
+         */
+        const lastEventId: string = String(
+          (eventsJson[eventsJson.length - 1] as JSONObject | undefined)?.[
+            "_id"
+          ] || "",
+        );
 
         const status: AIRunStatus | null =
           (runJson?.["status"] as AIRunStatus | undefined) || null;
@@ -752,6 +766,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           status,
           nextRunId,
           eventsJson.length,
+          lastEventId,
+          nextHasEarlierEvents,
           nextRunTimes,
           nextMayTryAgain,
           verdictFromServer,
@@ -798,6 +814,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               AIRunEvent,
             ),
           );
+          setHasEarlierEvents(nextHasEarlierEvents);
           setStats(
             runJson
               ? {
@@ -1989,6 +2006,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 : undefined
             }
             showStepTimes={true}
+            hasEarlierEvents={hasEarlierEvents}
           />
         ) : (
           <p className="text-sm text-gray-500">
