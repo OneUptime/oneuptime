@@ -359,6 +359,61 @@ describe("putting a rule's steps in order", () => {
     }
   });
 
+  /*
+   * The keys reach a line's controls in the order they are seen, at every
+   * width: its part, its words, Move Up, Move Down, its bin. On a phone
+   * each takes a line of its own, the words the whole width; nothing is
+   * placed out of its turn, as a grid putting the buttons beside the part
+   * and the words under them would.
+   */
+  test("a line's controls are reached in the order they are seen, and on a phone its words take the whole width", () => {
+    drawForm([CHECK, PAGE, ROTATE, PATCH]);
+
+    const line: HTMLElement = screen.getByTestId(`${IDS.line}-1`);
+    const controls: Array<HTMLElement> = [
+      within(line).getByRole("combobox", {
+        name: "Part of the plan for step 2",
+      }),
+      ...[IDS.text, IDS.moveUp, IDS.moveDown, IDS.remove].map(
+        (id: string): HTMLElement => {
+          return within(line).getByTestId(`${id}-1`);
+        },
+      ),
+    ];
+
+    controls.slice(1).forEach((control: HTMLElement, place: number) => {
+      expect(
+        controls[place]!.compareDocumentPosition(control) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    expect(line).toHaveClass("flex", "flex-wrap", "sm:flex-nowrap");
+
+    // The part, the words, the buttons: each the phone's whole width.
+    const boxes: Array<Element> = Array.from(line.children);
+
+    expect(boxes).toHaveLength(3);
+    expect(boxes[0]).toHaveClass("w-full", "sm:w-56");
+    expect(boxes[0]).toContainElement(controls[0]!);
+    expect(boxes[1]).toHaveClass("w-full", "sm:flex-1");
+    expect(boxes[1]).toContainElement(controls[1]!);
+    expect(boxes[2]).toHaveClass("w-full", "sm:w-auto");
+    expect(boxes[2]).toContainElement(controls[4]!);
+
+    const outOfTurn: RegExp =
+      /^(sm:)?(order|row-start|col-start|row-span|col-span)-/;
+    const placed: Array<string> = Array.from(line.querySelectorAll("*"))
+      .flatMap((element: Element): Array<string> => {
+        return Array.from(element.classList);
+      })
+      .filter((className: string): boolean => {
+        return outOfTurn.test(className);
+      });
+
+    expect(placed).toEqual([]);
+  });
+
   test("Move Up moves a step one place among its part's steps, and every step keeps its id", () => {
     const { onChange } = drawForm([CHECK, PAGE, ROTATE, PATCH]);
 

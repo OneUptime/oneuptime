@@ -84,6 +84,7 @@ export const DETECTION_RULE_RESPONSE_STEPS_TEST_IDS: {
   empty: string;
   fieldPart: string;
   row: string;
+  line: string;
   part: string;
   text: string;
   moveUp: string;
@@ -99,6 +100,7 @@ export const DETECTION_RULE_RESPONSE_STEPS_TEST_IDS: {
   empty: "detection-rule-response-steps-empty",
   fieldPart: "detection-rule-response-steps-part",
   row: "detection-rule-response-step",
+  line: "detection-rule-response-step-line",
   part: "detection-rule-response-step-part",
   text: "detection-rule-response-step-text",
   moveUp: "detection-rule-response-step-move-up",

@@ -146,6 +146,15 @@ const RESPONSE_STEP_PICKER_CLASS_NAME: string =
 const RESPONSE_STEP_WORDS_CLASS_NAME: string =
   "relative w-full rounded-md shadow-sm";
 
+/*
+ * A step's line: its part, its words, Move Up, Move Down and Remove, in
+ * the order they are seen and the keys reach them. One line from sm up. On
+ * a phone each takes a line of its own (their boxes are w-full): the part,
+ * the words across the whole width, so they can be read, then the buttons.
+ */
+export const RESPONSE_STEP_LINE_CLASS_NAME: string =
+  "flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap";
+
 function getOrder(steps: ReadonlyArray<DetectionRuleResponseStep>): string {
   return steps
     .map((step: DetectionRuleResponseStep): string => {
@@ -400,13 +409,11 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
           })}
           className="mt-1.5"
         />
-        {/*
-         * One line from a tablet up: the part, the words, the buttons. On a
-         * phone, two: the part with Move Up and Move Down, then the words
-         * with the bin, so each has the room to be read.
-         */}
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex">
-          <div className="min-w-0 sm:w-56 sm:shrink-0">
+        <div
+          className={RESPONSE_STEP_LINE_CLASS_NAME}
+          data-testid={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.line}-${index}`}
+        >
+          <div className="w-full sm:w-56 sm:shrink-0">
             {/*
              * A line's controls share one line: without the gap a form
              * field's picker and words keep above and below them, the
@@ -444,7 +451,7 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
-          <div className="row-start-2 min-w-0 sm:flex-1">
+          <div className="w-full min-w-0 sm:w-auto sm:flex-1">
             <Input
               dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.text}-${index}`}
               outerDivClassName={RESPONSE_STEP_WORDS_CLASS_NAME}
@@ -460,7 +467,7 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
-          <div className="col-start-2 row-start-1 flex items-center gap-1">
+          <div className="flex w-full shrink-0 items-center justify-end gap-1 sm:w-auto">
             <Button
               dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.moveUp}-${index}`}
               ariaLabel={translator.translateTemplate(
@@ -493,8 +500,6 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
                 move(index, ResponseStepMove.Down);
               }}
             />
-          </div>
-          <div className="col-start-2 row-start-2 flex items-center justify-end">
             <Button
               dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.remove}-${index}`}
               ariaLabel={translator.translateTemplate(
