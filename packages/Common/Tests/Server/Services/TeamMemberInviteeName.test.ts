@@ -17,6 +17,8 @@ import UserNotificationRuleService from "../../../Server/Services/UserNotificati
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
+import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../../Types/SSO/SsoManagedSignIn";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -476,6 +478,72 @@ describe("the name typed is kept on the membership, whoever the address belongs 
 
     expect(result.createBy.data.inviteeName).toBeUndefined();
     expect("inviteeName" in result.createBy.data).toBe(false);
+  });
+});
+
+describe("an invitation into a project that manages sign-in with SSO is emailed as one (#9819)", () => {
+  // The email the hook asked the mail service for: its variables.
+  function emailVars(): Record<string, string> {
+    expect(sendMailSpy).toHaveBeenCalledTimes(1);
+
+    return (sendMailSpy.mock.calls[0]![0] as { vars: Record<string, string> })
+      .vars;
+  }
+
+  test("someone with no account yet: Sign In with SSO, on the link the invitation opens", async () => {
+    const asked: jest.SpyInstance = jest
+      .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
+      .mockResolvedValue(SsoManagedBy.Projects);
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy("Grace"));
+
+    const vars: Record<string, string> = emailVars();
+
+    expect(vars["isSsoSignIn"]).toBe("true");
+    // The sign-up link with its token: the page then offers the providers.
+    expect(vars["ssoSignInLink"]).toBe(vars["registerLink"]);
+    expect(vars["ssoSignInLink"]).toContain("/accounts/register");
+    // Asked about nobody's other projects: the invitation just made them.
+    expect(asked).toHaveBeenCalledWith({
+      userId: null,
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("someone signed up already: Sign In with SSO, on Sign in with SSO", async () => {
+    findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
+    const asked: jest.SpyInstance = jest
+      .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
+      .mockResolvedValue(SsoManagedBy.Projects);
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy());
+
+    const vars: Record<string, string> = emailVars();
+
+    expect(vars["isSsoSignIn"]).toBe("true");
+    expect(vars["ssoSignInLink"]).toBe("https://oneuptime.test/accounts/sso");
+    // Their own projects count: asked about this account.
+    expect(String(asked.mock.calls[0]![0]["userId"])).toBe(USER_ID.toString());
+  });
+
+  test("someone who also belongs to a project that keeps their own sign-in: the invitation it always was", async () => {
+    jest
+      .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
+      .mockResolvedValue(null);
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy("Grace"));
+
+    expect(emailVars()["isSsoSignIn"]).toBe("false");
+  });
+
+  test("a rule that cannot be read sends the invitation it always was, never no invitation", async () => {
+    jest
+      .spyOn(SsoManagedSignIn, "getManagedByOnceIn")
+      .mockRejectedValue(new Error("database down"));
+
+    await callHook(TeamMemberService, "onBeforeCreate", inviteBy("Grace"));
+
+    expect(emailVars()["isSsoSignIn"]).toBe("false");
   });
 });
 

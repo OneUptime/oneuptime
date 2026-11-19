@@ -97,6 +97,8 @@ import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCle
 import InvitationInviterUtil, {
   InvitationInviter,
 } from "../Utils/TeamMember/InvitationInviter";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
@@ -195,6 +197,32 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
   public constructor() {
     super(TeamMember);
+  }
+
+  /*
+   * Why an invitation into `projectId` would make the person's sign-in
+   * SSO's (SsoManagedSignIn.getManagedByOnceIn, #9819), or null. Only the
+   * email's words depend on it: a rule that cannot be read is logged, and
+   * the invitation goes out as it always did.
+   */
+  public static async readInvitationSsoManagedBy(data: {
+    userId: ObjectID | null;
+    projectId: ObjectID;
+  }): Promise<SsoManagedBy | null> {
+    try {
+      return await SsoManagedSignIn.getManagedByOnceIn({
+        userId: data.userId,
+        joiningProjectId: data.projectId,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
   }
 
   /*
@@ -880,6 +908,34 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       inviteeUserId: user.id,
     });
 
+    /*
+     * An invitation that makes the person's sign-in SSO's (#9819): every
+     * project they would be in manages sign-in with SSO, or the server
+     * requires it. They have no password to set and nothing to create, so
+     * the email offers single sign-on instead. The sign-up page its link
+     * opens offers the project's providers (SignUpInvitation); someone
+     * signed up already is sent to sign in with SSO. Anyone who also
+     * belongs to a project that does not manage sign-in gets the email it
+     * always was.
+     */
+    const ssoManagedBy: SsoManagedBy | null =
+      await TeamMemberService.readInvitationSsoManagedBy({
+        userId: data.isNewUser ? null : user.id || null,
+        projectId: data.projectId,
+      });
+
+    const ssoSignInLink: string = needsRegistration
+      ? registerLink
+      : URL.fromString(
+          new URL(
+            httpProtocol,
+            host,
+            new Route(AccountsRoute.toString()),
+          ).toString(),
+        )
+          .addRoute("/sso")
+          .toString();
+
     return {
       toEmail: email,
       templateType: EmailTemplateType.InviteMember,
@@ -900,6 +956,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
          * your invitation" framing and tells them they are already in.
          */
         isInvitationAccepted: data.isAccepted.toString(),
+        // Offer single sign-on, not a password (#9819); and where it opens.
+        isSsoSignIn: (ssoManagedBy !== null).toString(),
+        ssoSignInLink: ssoSignInLink,
         projectName: project.name!,
         homeUrl: new URL(httpProtocol, host).toString(),
         ...InvitationInviterUtil.getTemplateVars(inviter),
