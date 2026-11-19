@@ -43,6 +43,8 @@ import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 const VMWARE_DATASTORE_USAGE_THRESHOLDS: StorageUsageThresholds = {
   warningPercent: VMWARE_DATASTORE_WARNING_PERCENT,
   criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,
+  // Past the line, as its alerts and Needs attention flag it.
+  isPastLineOnly: true,
 };
 
 const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");

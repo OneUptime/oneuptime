@@ -61,6 +61,8 @@ const STORAGE_NOT_REPORTED: string = translationKey("Not reported");
 export const PROXMOX_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
   warningPercent: PROXMOX_STORAGE_NEAR_FULL_PERCENT,
   criticalPercent: PROXMOX_STORAGE_FULL_PERCENT,
+  // "Above 85%", as the rules say: a storage at exactly the line has not crossed it.
+  isPastLineOnly: true,
 };
 
 /*

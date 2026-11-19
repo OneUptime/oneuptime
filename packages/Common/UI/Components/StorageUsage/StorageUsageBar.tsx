@@ -62,7 +62,8 @@ export const STORAGE_USAGE_BAR_COLOR_CLASS_NAMES: Record<
   StorageUsageLevel,
   string
 > = {
-  [StorageUsageLevel.Normal]: "bg-indigo-500",
+  // The calm green every storage bar in the product drew.
+  [StorageUsageLevel.Normal]: "bg-emerald-500",
   [StorageUsageLevel.Warning]: "bg-amber-500",
   [StorageUsageLevel.Critical]: "bg-red-500",
 };

@@ -314,7 +314,7 @@ describe("the Persistent Volume Claims list", () => {
     const roomy: HTMLElement = rowOf("data-redis-0");
     expect(within(roomy).getByText("20%")).toBeInTheDocument();
     expect(within(roomy).getByTestId("storage-usage-fill").className).toContain(
-      "bg-indigo-500",
+      "bg-emerald-500",
     );
   });
 

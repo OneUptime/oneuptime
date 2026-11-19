@@ -133,6 +133,25 @@ describe("getStorageUsageLevel", () => {
   });
 });
 
+describe("a page whose lines are crossed only past them", () => {
+  test("turns at a value past the line, never at it, as Ceph's ratios do", () => {
+    const ceph: {
+      warningPercent: number;
+      criticalPercent: number;
+      isPastLineOnly: boolean;
+    } = {
+      warningPercent: 85,
+      criticalPercent: 95,
+      isPastLineOnly: true,
+    };
+
+    expect(getStorageUsageLevel(85, ceph)).toBe(StorageUsageLevel.Normal);
+    expect(getStorageUsageLevel(85.1, ceph)).toBe(StorageUsageLevel.Warning);
+    expect(getStorageUsageLevel(95, ceph)).toBe(StorageUsageLevel.Warning);
+    expect(getStorageUsageLevel(95.1, ceph)).toBe(StorageUsageLevel.Critical);
+  });
+});
+
 describe("the used percent a page writes", () => {
   test("rounds down, so it changes level at exactly the figure written", () => {
     const nearlyCritical: StorageUsage = getStorageUsage({

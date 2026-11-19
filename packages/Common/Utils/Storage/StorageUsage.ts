@@ -32,6 +32,12 @@ export interface StorageUsageThresholds {
   warningPercent: number;
   // The used percent at and above which it reads as almost out of space.
   criticalPercent: number;
+  /*
+   * Only past a line, never at it: Ceph's nearfull and full ratios, which a
+   * cluster at exactly 85% has not crossed. Left out, a store at the line
+   * has reached it, as a storage array's 80% alert does.
+   */
+  isPastLineOnly?: boolean | undefined;
 }
 
 /*
@@ -77,11 +83,15 @@ export function getStorageUsageLevel(
   usedPercent: number,
   thresholds: StorageUsageThresholds = DEFAULT_STORAGE_USAGE_THRESHOLDS,
 ): StorageUsageLevel {
-  if (usedPercent >= thresholds.criticalPercent) {
+  const hasCrossed: (line: number) => boolean = (line: number): boolean => {
+    return thresholds.isPastLineOnly ? usedPercent > line : usedPercent >= line;
+  };
+
+  if (hasCrossed(thresholds.criticalPercent)) {
     return StorageUsageLevel.Critical;
   }
 
-  if (usedPercent >= thresholds.warningPercent) {
+  if (hasCrossed(thresholds.warningPercent)) {
     return StorageUsageLevel.Warning;
   }
 
