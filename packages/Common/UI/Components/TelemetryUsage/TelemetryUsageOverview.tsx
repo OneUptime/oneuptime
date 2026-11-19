@@ -230,6 +230,33 @@ export interface ComponentProps {
     | undefined;
 }
 
+/*
+ * Whether an answer is a usage summary at all. One that is not - a proxy's,
+ * an older server's - is read as no usage, never drawn into a page that
+ * throws on a missing list.
+ */
+export const isTelemetryUsageSummary: (
+  value: unknown,
+) => value is TelemetryUsageSummary = (
+  value: unknown,
+): value is TelemetryUsageSummary => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const summary: Partial<TelemetryUsageSummary> =
+    value as Partial<TelemetryUsageSummary>;
+
+  return (
+    Array.isArray(summary.days) &&
+    Array.isArray(summary.resources) &&
+    Boolean(summary.total) &&
+    typeof summary.total === "object" &&
+    Boolean(summary.byProduct) &&
+    typeof summary.byProduct === "object"
+  );
+};
+
 const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -264,7 +291,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
         );
 
         if (isCurrent) {
-          setSummary(usage);
+          setSummary(isTelemetryUsageSummary(usage) ? usage : null);
           setPageNumber(1);
         }
       } catch (err) {

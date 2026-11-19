@@ -155,6 +155,12 @@ import OpenStackEventRecorder, {
 } from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
 import OpenStackLogDefaults from "Common/Server/Utils/OpenStack/OpenStackLogDefaults";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "Common/Types/Telemetry/ExceptionSource";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpLogRecords } from "Common/Utils/Telemetry/OtlpRecordCount";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -376,6 +382,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        * host-detail Logs tab keeps matching via the fast query path.
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceLogs);
+
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
 
       const dbLogs: Array<JSONObject> = [];
       /*
@@ -723,6 +733,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpLogRecords(resourceLog),
+            }))
+          ) {
+            continue;
+          }
 
           /*
            * Loop-invariant row stamps, resolved once per resource instead
@@ -1504,6 +1531,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         }
       }
 
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
+
       await this.submitLogsBuffer(dbLogs, pendingAcks, true);
 
       /*
@@ -1868,7 +1898,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     const ingestionTimestamp: string = getIngestionStamp().db;
     const exceptionAttributes: JSONObject = {
-      "exception.source": "log",
+      /*
+       * Found in a log record: billed with Logs, beside the record it was
+       * found in (ExceptionSource, issue #6590).
+       */
+      [EXCEPTION_SOURCE_ATTRIBUTE]: ExceptionSource.Log,
       "log.severityText": String(data.severityText),
     };
 
