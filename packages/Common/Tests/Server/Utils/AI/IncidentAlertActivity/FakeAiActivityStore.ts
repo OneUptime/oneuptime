@@ -84,6 +84,11 @@ export interface FakeAccess {
    * they do not see); every one when left out.
    */
   readableJobIds?: Set<string> | undefined;
+  /*
+   * Whether a caller may read what a Runner job ran (its payload and
+   * script): a Viewer may read the job, not that. True when left out.
+   */
+  canReadJobCommands?: boolean | undefined;
 }
 
 // The tables behind a service's own findBy and countBy.
@@ -192,6 +197,19 @@ function matches(row: FakeRow, query: Record<string, unknown>): boolean {
 // A row as a service returns it: id as an ObjectID, everything else as stored.
 function toModel(row: FakeRow): Record<string, unknown> {
   return { ...row, id: new ObjectID(row._id) };
+}
+
+// The columns a select asks for, and the row's id and creation.
+function selectOf(row: FakeRow, select: Record<string, unknown>): FakeRow {
+  const selected: FakeRow = { _id: row._id, createdAt: row.createdAt };
+
+  for (const key of Object.keys(select)) {
+    if (select[key] && key in row) {
+      selected[key] = row[key];
+    }
+  }
+
+  return selected;
 }
 
 // A related row (a monitor or a service on an incident) as a relation select returns it.
@@ -321,6 +339,18 @@ export function installFakeStore(
         props: findBy.props,
       });
 
+      // A column the caller may not read is refused, as SelectPermission does.
+      if (
+        table === "jobs" &&
+        !findBy.props?.isRoot &&
+        store.access.canReadJobCommands === false &&
+        (findBy.select?.["payload"] || findBy.select?.["script"])
+      ) {
+        throw new NotAuthorizedException(
+          "You do not have permission to select on - payload.",
+        );
+      }
+
       return permitted(table, findBy.props)
         .filter((row: FakeRow): boolean => {
           return matches(row, findBy.query);
@@ -329,7 +359,14 @@ export function installFakeStore(
           return b.createdAt.getTime() - a.createdAt.getTime();
         })
         .slice(0, findBy.limit || undefined)
-        .map(toModel);
+        .map((row: FakeRow): Record<string, unknown> => {
+          // A job is read with what was selected: what it ran, only if asked.
+          return toModel(
+            table === "jobs" && findBy.select
+              ? selectOf(row, findBy.select)
+              : row,
+          );
+        });
     };
   };
 

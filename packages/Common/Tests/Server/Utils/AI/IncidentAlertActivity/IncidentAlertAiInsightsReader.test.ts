@@ -5,6 +5,7 @@ import { IncidentFeedEventType } from "../../../../../Models/DatabaseModels/Inci
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import {
+  AI_ACTIVITY_INSIGHTS_MAX_FAILED_COMMANDS,
   AiActivityInsight,
   AiActivityInsightKind,
 } from "../../../../../Types/AI/AiActivityInsights";
@@ -21,6 +22,7 @@ import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediat
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
+import RunnerJobOrigin from "../../../../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../../../../Types/Runbook/RunnerJobStatus";
 import {
   FakeCall,
@@ -738,10 +740,201 @@ describe("what it reads", () => {
       timedOutCommands: 1,
     });
 
-    for (const read of store.callsTo("jobs")) {
-      expect(read.props).toEqual({ isRoot: true });
+    // Counted as root, by their statuses alone.
+    const rootReads: Array<FakeCall> = store
+      .callsTo("jobs")
+      .filter((read: FakeCall): boolean => {
+        return Boolean(read.props.isRoot);
+      });
+
+    expect(rootReads.length).toBeGreaterThan(0);
+
+    for (const read of rootReads) {
       expect(Object.keys(read.select).sort()).toEqual(["_id", "status"]);
     }
+
+    // The failed one is read again as the caller: the one "1 failed" opens.
+    for (const read of store.callsTo("jobs").filter((call: FakeCall) => {
+      return !call.props.isRoot;
+    })) {
+      expect(read.props).toBe(CALLER);
+      expect(read.select["output"]).toBeUndefined();
+      expect(read.query["status"]).toBe(RunnerJobStatus.Failed);
+    }
+  });
+});
+
+/*
+ * #9749: AI Insights' "Commands: N failed" opens which commands failed and
+ * why - only the ones the caller may read, and the count says how many.
+ */
+describe("the failed commands", () => {
+  let one: FakeRow;
+  let investigation: FakeRow;
+  let fix: FakeRow;
+
+  function job(index: number, overrides: Partial<FakeRow> = {}): FakeRow {
+    return {
+      _id: uuid(50, index),
+      projectId: PROJECT_ID,
+      createdAt: daysAgo(1),
+      status: RunnerJobStatus.Failed,
+      origin: RunnerJobOrigin.AiInvestigation,
+      aiRunId: new ObjectID(investigation._id),
+      payload: { displayCommand: `kubectl get pods -n shop # ${index}` },
+      exitCode: 1,
+      errorMessage: `pods is forbidden (${index})`,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    one = incident(1);
+    tables.incidents.push(one);
+    investigation = run(onIncident(one));
+    fix = suggestion({ incidentId: new ObjectID(one._id) });
+    tables.runs.push(investigation);
+    tables.suggestions.push(fix);
+  });
+
+  test("open as what each ran, how it ended, why, when and the incident it was for", async () => {
+    tables.jobs.push(
+      job(1, { completedAt: daysAgo(0.5) }),
+      job(2, {
+        aiRunId: undefined,
+        autoRemediationSuggestionId: new ObjectID(fix._id),
+        origin: RunnerJobOrigin.AiRemediation,
+        payload: { displayCommand: "kubectl rollout restart deploy/web" },
+        exitCode: undefined,
+        errorMessage: "The agent did not answer in time.",
+        createdAt: daysAgo(2),
+      }),
+      job(3, { status: RunnerJobStatus.Succeeded }),
+    );
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.failedCommands).toBe(2);
+    expect(insights.failedCommandList).toEqual([
+      {
+        id: uuid(50, 1),
+        at: daysAgo(0.5).toISOString(),
+        command: "kubectl get pods -n shop # 1",
+        exitCode: 1,
+        errorMessage: "pods is forbidden (1)",
+        origin: RunnerJobOrigin.AiInvestigation,
+        subject: {
+          kind: "incident",
+          id: one._id,
+          title: "Incident 1",
+          number: 1,
+          numberWithPrefix: "INC-1",
+        },
+      },
+      {
+        id: uuid(50, 2),
+        at: daysAgo(2).toISOString(),
+        command: "kubectl rollout restart deploy/web",
+        errorMessage: "The agent did not answer in time.",
+        origin: RunnerJobOrigin.AiRemediation,
+        subject: expect.objectContaining({ kind: "incident", id: one._id }),
+      },
+    ]);
+  });
+
+  test("one the caller may not read is neither counted nor opened", async () => {
+    tables.jobs.push(job(1), job(2));
+    store.access.readableJobIds = new Set<string>([uuid(50, 2)]);
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.commands).toBe(2);
+    expect(insights.totals.failedCommands).toBe(1);
+    expect(
+      insights.failedCommandList!.map((command: { id: string }): string => {
+        return command.id;
+      }),
+    ).toEqual([uuid(50, 2)]);
+  });
+
+  test("a Viewer reads that each failed and why, never what it ran", async () => {
+    tables.jobs.push(job(1));
+    store.access.canReadJobCommands = false;
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.failedCommands).toBe(1);
+    expect(insights.failedCommandList![0]!.command).toBeUndefined();
+    expect(insights.failedCommandList![0]!.errorMessage).toBe(
+      "pods is forbidden (1)",
+    );
+    expect(JSON.stringify(insights)).not.toContain("kubectl get pods");
+  });
+
+  test("a role that may not read Runner jobs reads no failure, and the rest of the page", async () => {
+    tables.jobs.push(job(1));
+    store.access.canReadJobs = false;
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.commands).toBe(1);
+    expect(insights.totals.failedCommands).toBe(0);
+    expect(insights.failedCommandList).toBeUndefined();
+    expect(insights.totals.investigations).toBe(1);
+  });
+
+  test("a command of an incident the caller may not read is never counted, read or opened", async () => {
+    const hidden: FakeRow = incident(2);
+    const hiddenRun: FakeRow = run(onIncident(hidden));
+    tables.incidents.push(hidden);
+    tables.runs.push(hiddenRun);
+    tables.jobs.push(job(1, { aiRunId: new ObjectID(hiddenRun._id) }));
+    store.access.readableIncidentIds = new Set<string>([one._id]);
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.failedCommands).toBe(0);
+    expect(insights.failedCommandList).toBeUndefined();
+    expect(
+      store.callsTo("jobs").filter((call: FakeCall): boolean => {
+        return !call.props.isRoot;
+      }),
+    ).toEqual([]);
+  });
+
+  test("the newest are opened, and the count says how many there are", async () => {
+    for (let index: number = 1; index <= 60; index++) {
+      tables.jobs.push(
+        job(index, { createdAt: new Date(daysAgo(2).getTime() + index) }),
+      );
+    }
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.failedCommands).toBe(60);
+    expect(insights.failedCommandList).toHaveLength(
+      AI_ACTIVITY_INSIGHTS_MAX_FAILED_COMMANDS,
+    );
+    expect(insights.failedCommandList![0]!.id).toBe(uuid(50, 60));
+  });
+
+  test("the alert page's failed commands are its alerts'", async () => {
+    const firstAlert: FakeRow = alert(1);
+    const alertRun: FakeRow = run(onAlert(firstAlert));
+    tables.alerts.push(firstAlert);
+    tables.runs.push(alertRun);
+    tables.jobs.push(job(7, { aiRunId: new ObjectID(alertRun._id) }));
+
+    const insights: IncidentAlertAiInsights = await readInsights("alert");
+
+    expect(insights.totals.failedCommands).toBe(1);
+    expect(insights.failedCommandList![0]!.subject).toEqual({
+      kind: "alert",
+      id: firstAlert._id,
+      title: "Alert 1",
+      number: 1,
+      numberWithPrefix: "ALT-1",
+    });
   });
 });
 

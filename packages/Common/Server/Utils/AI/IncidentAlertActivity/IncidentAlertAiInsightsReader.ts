@@ -6,6 +6,9 @@ import MonitorService from "../../../Services/MonitorService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import ServiceService from "../../../Services/ServiceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AiActivityFailedCommands, {
+  AiActivityFailedCommandsRead,
+} from "../ActivityInsights/AiActivityFailedCommands";
 import AiActivityInsightsBuilder, {
   AiActivityCommandStats,
 } from "../ActivityInsights/AiActivityInsightsBuilder";
@@ -33,7 +36,10 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import Service from "../../../../Models/DatabaseModels/Service";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import { AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS } from "../../../../Types/AI/AiActivityInsights";
+import {
+  AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS,
+  AiActivitySubject,
+} from "../../../../Types/AI/AiActivityInsights";
 import {
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIXES,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIX_TASKS,
@@ -80,7 +86,10 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *   - why an incident was not investigated (its recorded decision) is read
  *     as root and counted only for incidents the caller may read; the
  *     incident's own AI panel shows the same reason to the same people;
- *   - command counts are read as root: only counts leave.
+ *   - command counts are read as root, and only counts leave - but the
+ *     failed ones, which are read again under the caller's props, as
+ *     Runner jobs (AiActivityFailedCommands): the failed count is how many
+ *     of them the caller may read, and the list it opens is theirs.
  *
  * A fix pull request is its Code task, counted once, by the first turn
  * asked in the window, and stands as Code says it does: by its newest turn
@@ -359,7 +368,11 @@ export default class IncidentAlertAiInsightsReader {
      * Postgres (CodeTaskListRows), as Code's own lists read it.
      */
     const [commands, taskReplies]: [
-      { stats: AiActivityCommandStats; isPartial: boolean },
+      {
+        stats: AiActivityCommandStats;
+        failedJobIds: Array<ObjectID>;
+        isPartial: boolean;
+      },
       Map<string, CodeTaskRepliesRead>,
     ] = await Promise.all([
       this.countCommands({
@@ -387,14 +400,63 @@ export default class IncidentAlertAiInsightsReader {
       }),
     ]);
 
-    // 6. How many of the window's incidents there are, and why some were skipped.
-    const [subjectsInWindow, notInvestigated]: [
+    /*
+     * 6. How many of the window's incidents there are, and why some were
+     * skipped - and the failed commands the caller may read (#9749): what
+     * "N failed" says, and opens, each with its incident or alert.
+     */
+    const subjectOfRun: Map<string, string> = new Map<string, string>();
+    const subjectOfFix: Map<string, string> = new Map<string, string>();
+
+    for (const run of readableRuns) {
+      subjectOfRun.set(run.id!.toString(), subjectIdOfRun(run)!);
+    }
+
+    for (const suggestion of readableFixes || []) {
+      subjectOfFix.set(suggestion.id!.toString(), subjectIdOfFix(suggestion)!);
+    }
+
+    const [subjectsInWindow, notInvestigated, failed]: [
       number,
       { reasons: Map<string, InvestigationNotStartedCode>; isPartial: boolean },
+      AiActivityFailedCommandsRead,
     ] = await Promise.all([
       this.countSubjectsInWindow({ options, windowStart }),
       this.readNotInvestigated({ options, windowStart }),
+      AiActivityFailedCommands.read({
+        projectId,
+        jobIds: commands.failedJobIds,
+        props: options.props,
+        getSubject: (job: RunnerJob): AiActivitySubject | undefined => {
+          // A fix's command is about its fix's incident or alert.
+          const subjectId: string | undefined = job.autoRemediationSuggestionId
+            ? subjectOfFix.get(job.autoRemediationSuggestionId.toString())
+            : job.aiRunId
+              ? subjectOfRun.get(job.aiRunId.toString())
+              : undefined;
+          const subject: IncidentAlertAiSubjectInput | undefined = subjectId
+            ? subjects.get(subjectId)
+            : undefined;
+
+          return subjectId && subject
+            ? {
+                kind: subjectKind,
+                id: subjectId,
+                ...(subject.title ? { title: subject.title } : {}),
+                ...(subject.number !== undefined
+                  ? { number: subject.number }
+                  : {}),
+                ...(subject.numberWithPrefix
+                  ? { numberWithPrefix: subject.numberWithPrefix }
+                  : {}),
+              }
+            : undefined;
+        },
+      }),
     ]);
+
+    commands.stats.failed = failed.count;
+    commands.stats.failedCommands = failed.commands;
 
     const isPartial: boolean =
       runs.length >= INCIDENT_ALERT_AI_INSIGHTS_MAX_INVESTIGATIONS ||
@@ -830,12 +892,19 @@ export default class IncidentAlertAiInsightsReader {
     return names;
   }
 
-  // How many commands the investigations and fixes ran, and how they ended.
+  /*
+   * How many commands the investigations and fixes ran, and how they ended
+   * - and which failed, for the read of the ones the caller may read.
+   */
   private static async countCommands(data: {
     projectId: ObjectID;
     runIds: Array<ObjectID>;
     fixIds: Array<ObjectID>;
-  }): Promise<{ stats: AiActivityCommandStats; isPartial: boolean }> {
+  }): Promise<{
+    stats: AiActivityCommandStats;
+    failedJobIds: Array<ObjectID>;
+    isPartial: boolean;
+  }> {
     const reads: Array<Promise<Array<RunnerJob>>> = [];
 
     const readJobs: (
@@ -892,6 +961,9 @@ export default class IncidentAlertAiInsightsReader {
 
     return {
       stats,
+      failedJobIds: AiActivityFailedCommands.getFailedJobIds(
+        Array.from(jobs.values()),
+      ),
       isPartial: groups.some((group: Array<RunnerJob>): boolean => {
         return group.length >= INCIDENT_ALERT_AI_INSIGHTS_COMMAND_SCAN_LIMIT;
       }),
