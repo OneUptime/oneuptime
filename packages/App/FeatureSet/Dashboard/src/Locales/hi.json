@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "{{endsAt}} को दिखना बंद हो गई।",
   "Subscribers are not notified.": "सब्सक्राइबर्स को सूचित नहीं किया जाता।",
   "Subscribers are notified when it starts showing.": "दिखना शुरू होने पर सब्सक्राइबर्स को सूचित किया जाता है।",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "इस टेम्पलेट से बनी घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित किया जाता है।",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "घोषणा अपने स्थिति पृष्ठों पर कब दिखती है, और क्या उनके सब्सक्राइबर्स को इसके बारे में पता चलता है।",
   "Schedule & Notifications": "अनुसूची और सूचनाएँ",
   "Who to call": "किसे कॉल करें",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} अस्वस्थ एंडपॉइंट",
   "{{count}} unhealthy endpoints": "{{count}} अस्वस्थ एंडपॉइंट",
   "{{count}} unhealthy endpoints_one": "{{count}} अस्वस्थ एंडपॉइंट",
-  "{{percent}} of requests blocked": "{{percent}} अनुरोध ब्लॉक किए गए"
+  "{{percent}} of requests blocked": "{{percent}} अनुरोध ब्लॉक किए गए",
+  "None of the status pages picked shows maintenance events.": "चुने गए स्थिति पृष्ठों में से कोई भी रखरखाव इवेंट नहीं दिखाता।",
+  "Reminders whose time has passed are not sent.": "जिन रिमाइंडर का समय बीत चुका है, वे नहीं भेजे जाते।",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "इस टेम्पलेट से बनी घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित करें।",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "इस घोषणा की सूचना अभी तक नहीं भेजी गई है, इसलिए यह अपडेट नहीं भेजा जाता।",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "यह घोषणा {{time}} तक स्थिति पृष्ठों पर नहीं दिखती, इसलिए यह अपडेट नहीं भेजा जाता।",
+  "Whether subscribers are notified depends on the status pages picked.": "सब्सक्राइबर्स को सूचित किया जाएगा या नहीं, यह चुने गए स्थिति पृष्ठों पर निर्भर करता है।"
 }

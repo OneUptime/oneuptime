@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Wird seit {{endsAt}} nicht mehr angezeigt.",
   "Subscribers are not notified.": "Abonnenten werden nicht benachrichtigt.",
   "Subscribers are notified when it starts showing.": "Abonnenten werden benachrichtigt, sobald sie angezeigt wird.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenten dieser Statusseiten werden benachrichtigt, sobald eine Ankündigung aus dieser Vorlage angezeigt wird.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Wann die Ankündigung auf ihren Statusseiten angezeigt wird und ob deren Abonnenten davon erfahren.",
   "Schedule & Notifications": "Zeitplan & Benachrichtigungen",
   "Who to call": "Wer angerufen wird",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} fehlerhafter Endpunkt",
   "{{count}} unhealthy endpoints": "{{count}} fehlerhafte Endpunkte",
   "{{count}} unhealthy endpoints_one": "{{count}} fehlerhafter Endpunkt",
-  "{{percent}} of requests blocked": "{{percent}} der Anfragen blockiert"
+  "{{percent}} of requests blocked": "{{percent}} der Anfragen blockiert",
+  "None of the status pages picked shows maintenance events.": "Keine der ausgewählten Statusseiten zeigt Wartungsereignisse an.",
+  "Reminders whose time has passed are not sent.": "Erinnerungen, deren Zeitpunkt bereits vergangen ist, werden nicht gesendet.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Benachrichtigt Abonnenten dieser Statusseiten, sobald eine Ankündigung aus dieser Vorlage angezeigt wird.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "Die Benachrichtigung über diese Ankündigung wurde noch nicht versendet, daher wird diese Aktualisierung nicht gesendet.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Diese Ankündigung wird erst ab {{time}} auf Statusseiten angezeigt, daher wird diese Aktualisierung nicht gesendet.",
+  "Whether subscribers are notified depends on the status pages picked.": "Ob Abonnenten benachrichtigt werden, hängt von den ausgewählten Statusseiten ab."
 }

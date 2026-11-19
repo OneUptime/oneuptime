@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Показ завершён {{endsAt}}.",
   "Subscribers are not notified.": "Подписчики не получат уведомление.",
   "Subscribers are notified when it starts showing.": "Подписчики получат уведомление, когда начнётся показ.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления, созданного по этому шаблону.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Когда объявление показывается на своих страницах статуса и узнают ли об этом их подписчики.",
   "Schedule & Notifications": "Расписание и уведомления",
   "Who to call": "Кому звонить",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} неисправная конечная точка",
   "{{count}} unhealthy endpoints": "Неисправных конечных точек: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} неисправная конечная точка",
-  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано"
+  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано",
+  "None of the status pages picked shows maintenance events.": "Ни одна из выбранных страниц статуса не показывает события обслуживания.",
+  "Reminders whose time has passed are not sent.": "Напоминания, время которых уже прошло, не отправляются.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Уведомляет подписчиков этих страниц статуса, когда начинается показ объявления, созданного по этому шаблону.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "Уведомление об этом объявлении ещё не отправлено, поэтому это обновление не отправляется.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Это объявление не показывается на страницах статуса до {{time}}, поэтому это обновление не отправляется.",
+  "Whether subscribers are notified depends on the status pages picked.": "Получат ли подписчики уведомление, зависит от выбранных страниц статуса."
 }

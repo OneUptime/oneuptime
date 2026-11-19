@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "نمایش آن در {{endsAt}} پایان یافت.",
   "Subscribers are not notified.": "مشترکان مطلع نمی‌شوند.",
   "Subscribers are notified when it starts showing.": "مشترکان هنگام شروع نمایش آن مطلع می‌شوند.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "مشترکان این صفحات وضعیت هنگام شروع نمایش اطلاعیه‌ای که از این قالب ساخته شده مطلع می‌شوند.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "اطلاعیه چه زمانی روی صفحات وضعیتش نمایش داده می‌شود و آیا مشترکان آن‌ها از آن باخبر می‌شوند.",
   "Schedule & Notifications": "زمان‌بندی و اعلان‌ها",
   "Who to call": "تماس با چه کسی",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطه پایانی ناسالم",
-  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده"
+  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده",
+  "None of the status pages picked shows maintenance events.": "هیچ‌یک از صفحه‌های وضعیت انتخاب‌شده رویدادهای تعمیر و نگهداری را نمایش نمی‌دهد.",
+  "Reminders whose time has passed are not sent.": "یادآوری‌هایی که زمانشان گذشته است ارسال نمی‌شوند.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "هنگام شروع نمایش اطلاعیه‌ای که از این قالب ساخته شده، مشترکان این صفحات وضعیت را مطلع می‌کند.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "اعلان این اطلاعیه هنوز ارسال نشده است، پس این به‌روزرسانی ارسال نمی‌شود.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "این اطلاعیه تا {{time}} در صفحه‌های وضعیت نمایش داده نمی‌شود، پس این به‌روزرسانی ارسال نمی‌شود.",
+  "Whether subscribers are notified depends on the status pages picked.": "اینکه مشترکان مطلع شوند یا نه، به صفحه‌های وضعیت انتخاب‌شده بستگی دارد."
 }

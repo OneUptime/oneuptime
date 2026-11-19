@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Sluttet å vises {{endsAt}}.",
   "Subscribers are not notified.": "Abonnenter varsles ikke.",
   "Subscribers are notified when it starts showing.": "Abonnenter varsles når den begynner å vises.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenter på disse statussidene varsles når en kunngjøring laget fra denne malen begynner å vises.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Når kunngjøringen vises på statussidene sine, og om abonnentene deres får vite om den.",
   "Schedule & Notifications": "Tidsplan og varslinger",
   "Who to call": "Hvem som skal ringes",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} usunt endepunkt",
   "{{count}} unhealthy endpoints": "{{count}} usunne endepunkter",
   "{{count}} unhealthy endpoints_one": "{{count}} usunt endepunkt",
-  "{{percent}} of requests blocked": "{{percent}} av forespørslene ble blokkert"
+  "{{percent}} of requests blocked": "{{percent}} av forespørslene ble blokkert",
+  "None of the status pages picked shows maintenance events.": "Ingen av de valgte statussidene viser vedlikeholdshendelser.",
+  "Reminders whose time has passed are not sent.": "Påminnelser der tidspunktet allerede er passert, sendes ikke.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Varsler abonnenter på disse statussidene når en kunngjøring laget fra denne malen begynner å vises.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "Varslingen om denne kunngjøringen er ikke sendt ennå, så denne oppdateringen sendes ikke.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Denne kunngjøringen vises ikke på statussider før {{time}}, så denne oppdateringen sendes ikke.",
+  "Whether subscribers are notified depends on the status pages picked.": "Om abonnenter varsles, avhenger av de valgte statussidene."
 }

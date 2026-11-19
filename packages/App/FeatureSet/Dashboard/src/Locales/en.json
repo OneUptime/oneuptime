@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Stopped showing at {{endsAt}}.",
   "Subscribers are not notified.": "Subscribers are not notified.",
   "Subscribers are notified when it starts showing.": "Subscribers are notified when it starts showing.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Subscribers of these status pages are told when an announcement made from this template starts showing.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "When the announcement shows on its status pages, and whether their subscribers hear about it.",
   "Schedule & Notifications": "Schedule & Notifications",
   "Who to call": "Who to call",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} unhealthy endpoint",
   "{{count}} unhealthy endpoints": "{{count}} unhealthy endpoints",
   "{{count}} unhealthy endpoints_one": "{{count}} unhealthy endpoint",
-  "{{percent}} of requests blocked": "{{percent}} of requests blocked"
+  "{{percent}} of requests blocked": "{{percent}} of requests blocked",
+  "None of the status pages picked shows maintenance events.": "None of the status pages picked shows maintenance events.",
+  "Reminders whose time has passed are not sent.": "Reminders whose time has passed are not sent.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "The notification about this announcement has not gone out yet, so this update is not sent.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "This announcement is not shown on status pages until {{time}}, so this update is not sent.",
+  "Whether subscribers are notified depends on the status pages picked.": "Whether subscribers are notified depends on the status pages picked."
 }

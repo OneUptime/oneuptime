@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Non viene più mostrato dal {{endsAt}}.",
   "Subscribers are not notified.": "Gli iscritti non vengono notificati.",
   "Subscribers are notified when it starts showing.": "Gli iscritti vengono notificati quando inizia a essere mostrato.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Gli iscritti a queste pagine di stato vengono avvisati quando inizia a essere mostrato un annuncio creato da questo modello.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Quando l'annuncio viene mostrato sulle sue pagine di stato e se i loro iscritti ne vengono informati.",
   "Schedule & Notifications": "Pianificazione e notifiche",
   "Who to call": "Chi chiamare",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} endpoint non integro",
   "{{count}} unhealthy endpoints": "{{count}} endpoint non integri",
   "{{count}} unhealthy endpoints_one": "{{count}} endpoint non integro",
-  "{{percent}} of requests blocked": "{{percent}} delle richieste bloccate"
+  "{{percent}} of requests blocked": "{{percent}} delle richieste bloccate",
+  "None of the status pages picked shows maintenance events.": "Nessuna delle pagine di stato selezionate mostra eventi di manutenzione.",
+  "Reminders whose time has passed are not sent.": "I promemoria il cui orario è già passato non vengono inviati.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Avvisa gli iscritti a queste pagine di stato quando inizia a essere mostrato un annuncio creato da questo modello.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "La notifica di questo annuncio non è ancora stata inviata, quindi questo aggiornamento non viene inviato.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Questo annuncio non viene mostrato sulle pagine di stato fino al {{time}}, quindi questo aggiornamento non viene inviato.",
+  "Whether subscribers are notified depends on the status pages picked.": "Se gli iscritti vengono notificati dipende dalle pagine di stato selezionate."
 }

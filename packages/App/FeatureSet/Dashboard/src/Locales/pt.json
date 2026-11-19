@@ -23802,7 +23802,6 @@
   "Stopped showing at {{endsAt}}.": "Deixou de ser exibido em {{endsAt}}.",
   "Subscribers are not notified.": "Os assinantes não são notificados.",
   "Subscribers are notified when it starts showing.": "Os assinantes são notificados quando ele começa a ser exibido.",
-  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Os assinantes destas páginas de status são avisados quando um anúncio criado a partir deste modelo começa a ser exibido.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Quando o anúncio é exibido nas suas páginas de status e se os assinantes delas ficam sabendo.",
   "Schedule & Notifications": "Agendamento e notificações",
   "Who to call": "Para quem ligar",
@@ -58728,5 +58727,11 @@
   "{{count}} unhealthy endpoint": "{{count}} endpoint não íntegro",
   "{{count}} unhealthy endpoints": "{{count}} endpoints não íntegros",
   "{{count}} unhealthy endpoints_one": "{{count}} endpoint não íntegro",
-  "{{percent}} of requests blocked": "{{percent}} das solicitações bloqueadas"
+  "{{percent}} of requests blocked": "{{percent}} das solicitações bloqueadas",
+  "None of the status pages picked shows maintenance events.": "Nenhuma das páginas de status selecionadas mostra eventos de manutenção.",
+  "Reminders whose time has passed are not sent.": "Os lembretes cujo horário já passou não são enviados.",
+  "Tell the subscribers of these status pages when an announcement made from this template starts showing.": "Avisa os assinantes destas páginas de status quando um anúncio criado a partir deste modelo começa a ser exibido.",
+  "The notification about this announcement has not gone out yet, so this update is not sent.": "A notificação deste anúncio ainda não foi enviada, por isso esta atualização não é enviada.",
+  "This announcement is not shown on status pages until {{time}}, so this update is not sent.": "Este anúncio não é exibido nas páginas de status até {{time}}, por isso esta atualização não é enviada.",
+  "Whether subscribers are notified depends on the status pages picked.": "Se os assinantes são notificados depende das páginas de status selecionadas."
 }
