@@ -51,6 +51,7 @@ export type CephMetric =
   | "osdStatusColumn"
   | "osdInOutColumn"
   | "osdUsedColumn"
+  | "osdFreeColumn"
   | "osdPgsColumn"
   | "osdLatencyColumn"
   // An OSD's page (Components/Ceph/Part: its hero, tiles and details)
@@ -145,7 +146,10 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
     "In means Ceph places data on this OSD. Out means it was taken out of data placement, by an admin or automatically after being down for a while, and its data lives on other OSDs.",
   ),
   osdUsedColumn: translationKey(
-    "Disk space used on the OSD compared with its total size, with the share used in brackets. Shows a dash if the OSD has not reported in the last 15 minutes.",
+    "How much of the OSD's disk is used, amber past Ceph's nearfull ratio (85%) and red past its full ratio (95%), where Ceph stops writing to it. Not reported when the OSD sent nothing for 15 minutes.",
+  ),
+  osdFreeColumn: translationKey(
+    "Disk space the OSD has left, from its latest report.",
   ),
   osdPgsColumn: translationKey(
     "How many placement groups, the chunks Ceph splits pools into, the OSD holds; one with far more than its peers carries more data and load. Shows a dash if the OSD has not reported in the last 15 minutes.",

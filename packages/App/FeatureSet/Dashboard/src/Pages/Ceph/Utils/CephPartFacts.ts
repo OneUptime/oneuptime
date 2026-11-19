@@ -11,14 +11,22 @@ import {
   CEPH_OSD_FULL_PERCENT,
   CEPH_OSD_LATENCY_WARNING_MS,
   CEPH_OSD_NEARFULL_PERCENT,
+  CEPH_OSD_USAGE_THRESHOLDS,
   CEPH_POOL_FULL_PERCENT,
   CEPH_POOL_NEARFULL_PERCENT,
+  CEPH_POOL_USAGE_THRESHOLDS,
   CephAssessment,
+  CephOsdReadings,
   CephPoolPgStates,
+  CephPoolReadings,
   getCephStatusReasons,
   isCephOsdOutStatus,
   toCephNumber,
 } from "./CephHealth";
+import {
+  StorageUsage,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
 import { OSD_IN_CLUSTER, OSD_OUT_OF_CLUSTER } from "./CephResourceUtils";
 
 /*
@@ -98,6 +106,49 @@ export function getCephPoolUsedTone(
     return "danger";
   }
   return percent > CEPH_POOL_NEARFULL_PERCENT ? "warning" : undefined;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * How full a part is, as the shared storage bar draws it
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * An OSD's disk: what Ceph reports used of its size (ceph_osd_stat_bytes_used
+ * of ceph_osd_stat_bytes), amber past the nearfull ratio and red past the
+ * full one, as its rules read it. Null when the OSD sent no fresh size.
+ */
+export function getCephOsdStorageUsage(
+  readings: Pick<CephOsdReadings, "usedBytes" | "totalBytes">,
+): StorageUsage | null {
+  return getStorageUsage(
+    { capacity: readings.totalBytes, used: readings.usedBytes },
+    CEPH_OSD_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * A pool: what it stores of what it could hold. Ceph counts STORED and MAX
+ * AVAIL once, before replication or erasure coding (its USED is raw, every
+ * copy counted), so they compare like with like: used is STORED, free is
+ * MAX AVAIL, and the percent is the Pool Near Full alert's, stored ÷ (stored
+ * + max avail). Null when the pool sent neither fresh.
+ */
+export function getCephPoolStorageUsage(
+  readings: Pick<CephPoolReadings, "storedBytes" | "maxAvailBytes">,
+): StorageUsage | null {
+  if (readings.storedBytes === null || readings.maxAvailBytes === null) {
+    return null;
+  }
+
+  return getStorageUsage(
+    {
+      capacity: readings.storedBytes + readings.maxAvailBytes,
+      available: readings.maxAvailBytes,
+    },
+    CEPH_POOL_USAGE_THRESHOLDS,
+  );
 }
 
 // A tile's bar, from a column's tone: green when its number is fine.
