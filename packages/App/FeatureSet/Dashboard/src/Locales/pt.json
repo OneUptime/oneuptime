@@ -59042,7 +59042,7 @@
   "Shown to the person at the device with the request, to say why you ask.": "Mostrada à pessoa no dispositivo com a solicitação, para dizer por que você pede.",
   "Its security patch level is 90 days old or newer.": "O nível do patch de segurança tem 90 dias ou menos.",
   "Its security patch level is more than 90 days old.": "O nível do patch de segurança tem mais de 90 dias.",
-  "Out of Date": "Desatualizado",
+  "Out of Date": "Atualização necessária",
   "Search security patch levels...": "Pesquisar níveis do patch de segurança...",
   "Security Patch Status": "Status do patch de segurança",
   "Up to Date": "Atualizado",

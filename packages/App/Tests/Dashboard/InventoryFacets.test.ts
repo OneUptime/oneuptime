@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
@@ -509,4 +511,80 @@ describe("scoped list protection", () => {
       facetKeys(buildInventoryFacets({ source: undefined })),
     ).not.toContain(INVENTORY_SOURCE_FACET_KEY);
   });
+});
+
+describe("the state facets read apart in every language", () => {
+  /*
+   * All Items draws the Status, Security Patch Level and Agent Permissions
+   * chips side by side, and the same words in the pills of their columns.
+   * Security Patch Level's Out of Date first read, in twelve languages,
+   * word for word what Status draws for Stale ("Veraltet" in German, "古い"
+   * in Japanese): a patch out of date and an item gone stale looked alike.
+   * In every language the Dashboard speaks, no two of these states read the
+   * same.
+   */
+  const LOCALES_DIR: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Locales",
+  );
+
+  const STATES: Array<string> = [
+    ...INVENTORY_STATUS_FACET_OPTIONS,
+    ...INVENTORY_SECURITY_PATCH_FACET_OPTIONS,
+    ...INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
+  ].map((option: FilterChipDropdownOption): string => {
+    return option.label;
+  });
+
+  const languages: Array<string> = fs
+    .readdirSync(LOCALES_DIR)
+    .filter((file: string): boolean => {
+      return file.endsWith(".json") && file !== "en.json";
+    })
+    .map((file: string): string => {
+      return file.replace(/\.json$/, "");
+    });
+
+  test("the scan reads every state of the three chips, in every language", () => {
+    expect(STATES).toEqual(
+      expect.arrayContaining(["Stale", "Out of Date", "Missing"]),
+    );
+    expect(languages.length).toBeGreaterThanOrEqual(16);
+  });
+
+  test.each(languages)(
+    "%s draws each state in words of its own",
+    (language: string) => {
+      const words: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+      ) as Record<string, unknown>;
+
+      const byWord: Map<string, Array<string>> = new Map<
+        string,
+        Array<string>
+      >();
+      for (const state of STATES) {
+        const drawn: unknown = words[state];
+        const word: string = (typeof drawn === "string" ? drawn : state)
+          .trim()
+          .toLocaleLowerCase(language);
+        byWord.set(word, [...(byWord.get(word) || []), state]);
+      }
+
+      const alike: Array<string> = [...byWord.entries()]
+        .filter((entry: [string, Array<string>]): boolean => {
+          return entry[1].length > 1;
+        })
+        .map((entry: [string, Array<string>]): string => {
+          return `${entry[1].join(" and ")} both read "${entry[0]}"`;
+        });
+
+      expect(alike).toEqual([]);
+    },
+  );
 });

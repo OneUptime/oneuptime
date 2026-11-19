@@ -59038,7 +59038,7 @@
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjälp mig att skicka min tjänsts loggar, mätvärden och spår till OneUptime, och larma mig när den har fel.",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Den här frågan är i {{unit}} och föregående frågas diagram i {{chartUnit}}, så dess värden går inte att läsa av korrekt på det diagrammets axel.",
   "Checking why the payment app crashes after 6pm": "Undersöker varför betalappen kraschar efter kl. 18",
-  "Download Lines": "Ladda ned rader",
+  "Download Lines": "Ladda ner rader",
   "Shown to the person at the device with the request, to say why you ask.": "Visas för personen vid enheten tillsammans med begäran, för att säga varför du ber om det.",
   "Its security patch level is 90 days old or newer.": "Säkerhetspatchnivån är högst 90 dagar gammal.",
   "Its security patch level is more than 90 days old.": "Säkerhetspatchnivån är äldre än 90 dagar.",

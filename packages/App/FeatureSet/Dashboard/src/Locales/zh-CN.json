@@ -59042,7 +59042,7 @@
   "Shown to the person at the device with the request, to say why you ask.": "随请求显示给设备旁的人，说明您为什么请求。",
   "Its security patch level is 90 days old or newer.": "安全补丁级别不超过 90 天。",
   "Its security patch level is more than 90 days old.": "安全补丁级别已超过 90 天。",
-  "Out of Date": "已过时",
+  "Out of Date": "需要更新",
   "Search security patch levels...": "搜索安全补丁级别...",
   "Security Patch Status": "安全补丁状态",
   "Up to Date": "已是最新",
