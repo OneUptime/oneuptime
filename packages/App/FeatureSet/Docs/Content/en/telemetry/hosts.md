@@ -205,7 +205,7 @@ Run the command again to change any of these, or to move to a newer release: it 
 | `--key KEY` | `-Key KEY` | A telemetry ingestion key of your project. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Labels the host. Repeat it for more labels; on Windows, list them with commas. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Gives the collector an environment variable, for configs that read `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | The collector release to install, 0.161.0 by default. |
+| `--version VERSION` | `-Version VERSION` | The collector release to install, 0.165.0 by default. |
 | `--download-url URL` | `-DownloadUrl URL` | Downloads the releases from a mirror with the same folder layout as GitHub's. |
 | `--proxy URL` | `-Proxy URL` | Sends the downloads and all of the collector's traffic through an HTTP proxy. |
 | `--replace-existing` | `-ReplaceExisting` | Stops and disables a collector installed by hand. |

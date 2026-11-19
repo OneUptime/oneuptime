@@ -205,7 +205,7 @@ Kör kommandot igen för att ändra något av dessa, eller för att gå över ti
 | `--key KEY` | `-Key KEY` | En intagningsnyckel för telemetri från ditt projekt. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Märker värden. Upprepa det för fler etiketter; på Windows listar du dem med kommatecken. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Ger insamlaren en miljövariabel, för konfigurationer som läser `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | Den insamlarversion som installeras, 0.161.0 som standard. |
+| `--version VERSION` | `-Version VERSION` | Den insamlarversion som installeras, 0.165.0 som standard. |
 | `--download-url URL` | `-DownloadUrl URL` | Hämtar versionerna från en spegel med samma mappstruktur som GitHubs. |
 | `--proxy URL` | `-Proxy URL` | Skickar nedladdningarna och all insamlarens trafik via en HTTP-proxy. |
 | `--replace-existing` | `-ReplaceExisting` | Stoppar och inaktiverar en manuellt installerad insamlare. |

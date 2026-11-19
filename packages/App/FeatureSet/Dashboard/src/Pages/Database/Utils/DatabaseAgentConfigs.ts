@@ -41,7 +41,7 @@ export const DATABASE_AGENT_ENGINES: ReadonlyArray<DatabaseAgentEngine> = [
 ];
 
 export const DATABASE_AGENT_COLLECTOR_IMAGE: string =
-  "otel/opentelemetry-collector-contrib:0.161.0";
+  "otel/opentelemetry-collector-contrib:0.165.0";
 
 export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
   oneuptime-database-agent:
@@ -56,7 +56,7 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
     # validates the configs against; bump the two together. The
     # oneuptime.agent.version every configs/*.yaml stamps is this release,
     # its last number raised each time the files change on it.
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     # Deliberately no container_name: one agent monitors ONE database, so a
     # machine watching several databases runs several copies of this file
     # in several directories, and Compose names each container after its
@@ -448,7 +448,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -722,7 +722,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -912,7 +912,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1111,7 +1111,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1306,7 +1306,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1485,7 +1485,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1647,7 +1647,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1766,7 +1766,7 @@ processors:
       # last number raised each time these files change on that collector
       # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.165.0"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
