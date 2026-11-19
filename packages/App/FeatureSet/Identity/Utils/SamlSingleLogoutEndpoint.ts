@@ -116,8 +116,16 @@ export default class SamlSingleLogoutEndpoint {
         : null;
 
     if (!provider) {
+      /*
+       * The address's provider ID is written to the log only when it is
+       * one: anything else in it is the sender's, and stays out.
+       */
       logger.warn(
-        `A SAML sign-out message arrived for ${data.providerType} provider ${data.providerId || "(none)"}, which does not exist, is off, or does not sign people out.`,
+        `A SAML sign-out message arrived for ${data.providerType} provider ${
+          data.providerId && ObjectID.isValidUUID(data.providerId)
+            ? data.providerId
+            : "(not a provider ID)"
+        }, which does not exist, is off, or does not sign people out.`,
         getLogAttributesFromRequest(req as RequestLike),
       );
 

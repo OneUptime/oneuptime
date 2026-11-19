@@ -26,6 +26,7 @@ import {
   ExpressRouter,
   RequestHandler,
 } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SamlIdentityProviderSignOutRecord } from "Common/Types/SSO/IdentityProviderSignOut";
@@ -971,13 +972,13 @@ describe.each(ROUTES)("the Single Logout URL of $name", (route: Route) => {
       },
     );
 
-    test("a provider id that is no id: nothing is looked up", async () => {
+    test("a provider id that is no id: nothing is looked up, and the log keeps it out", async () => {
       const answer: Answer = await arrive(route, {
         method: "get",
         query: "SAMLResponse=abc",
         params: Object.fromEntries(
           Object.keys(route.params).map((key: string): [string, string] => {
-            return [key, "not-an-id"];
+            return [key, "not-an-id\nforged log line"];
           }),
         ),
       });
@@ -987,6 +988,19 @@ describe.each(ROUTES)("the Single Logout URL of $name", (route: Route) => {
         message: SAML_SIGN_OUT_NOT_SET_UP_MESSAGE,
       });
       expect(providerQueries).toEqual([]);
+
+      const logged: Array<string> = (
+        logger.warn as unknown as jest.Mock
+      ).mock.calls.map((call: Array<unknown>): string => {
+        return String(call[0]);
+      });
+
+      expect(logged.join("\n")).not.toContain("forged log line");
+      expect(
+        logged.some((line: string): boolean => {
+          return line.includes("provider (not a provider ID)");
+        }),
+      ).toBe(true);
     });
   });
 });
