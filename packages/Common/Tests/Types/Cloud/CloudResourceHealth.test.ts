@@ -32,11 +32,17 @@ import {
   CLOUD_STATUS_NOT_REPORTING,
   CLOUD_STATUS_REPORTING,
   CLOUD_STATUS_UNHEALTHY,
+  CloudHeadlineReading,
   CloudHealthAssessment,
   CloudHealthRow,
   CloudHealthSeverity,
   CloudHealthText,
   CloudResourceReadings,
+  GCP_OPS_AGENT_DISK_KEY,
+  GCP_OPS_AGENT_MEMORY_KEY,
+  HEADLINE_INSTALL_OPS_AGENT,
+  HEADLINE_NEEDS_OPS_AGENT,
+  HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION,
   REASON_CONSUMERS_BEHIND,
   REASON_INVOCATIONS_FAILED,
   REASON_NOT_AVAILABLE,
@@ -51,6 +57,7 @@ import {
   formatCloudPercent,
   getCloudBacklogText,
   getCloudHeadlineReadingKeys,
+  getCloudHeadlineReadingOf,
   getCloudHeadlineReadings,
   getCloudHealthSeverity,
   getCloudReadingKey,
@@ -59,6 +66,7 @@ import {
   hasCloudHealthRules,
   hasFreshCloudReadings,
   isCloudHeadlineExpected,
+  isCloudReadingTheHighestOfItsSeries,
   readCloudResourceReadings,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { fillTemplate } from "../../../Types/Translator";
@@ -979,5 +987,210 @@ describe("CloudResourceHealth", () => {
         getCloudReadingPeriodSeconds("gcp", "run.googleapis.com/request_count"),
       ).toBe(60);
     });
+  });
+});
+
+/*
+ * A Compute Engine VM's memory and disks, from the Ops Agent on it
+ * (#9568): judged when the agent reports them, said plainly when it does
+ * not.
+ */
+describe("a Compute Engine VM's memory and disks", () => {
+  const VM: string = "gce_instance";
+  const CPU: string = "compute.googleapis.com/instance/cpu/utilization";
+
+  test("memory 95% used or more is a warning; a disk 90% full a warning, 95% critical", () => {
+    expect(
+      reasonsOf({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_MEMORY_KEY]: reading(96.2) },
+      }),
+    ).toEqual(["Memory 96% used"]);
+    expect(
+      assess({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_MEMORY_KEY]: reading(94.9) },
+      }).state,
+    ).toBe("healthy");
+    expect(
+      assess({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_DISK_KEY]: reading(92) },
+      }).severity,
+    ).toBe(CloudHealthSeverity.Warning);
+    expect(
+      reasonsOf({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_DISK_KEY]: reading(96) },
+      }),
+    ).toEqual(["96% full"]);
+    expect(
+      assess({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_DISK_KEY]: reading(96) },
+      }).severity,
+    ).toBe(CloudHealthSeverity.Critical);
+  });
+
+  test("a VM without the agent is not judged by them: it reads Reporting, never Healthy", () => {
+    const assessment: CloudHealthAssessment = assess({
+      provider: CloudProvider.GCP,
+      type: VM,
+      readings: { [CPU]: reading(0.99) },
+    });
+
+    expect(assessment.state).toBe("reporting");
+    expect(assessment.isChecked).toBe(false);
+    // A busy VM is doing its work.
+    expect(assessment.reasons).toEqual([]);
+  });
+
+  test("its page leads with its CPU, memory and fullest disk, then its network, and keeps them", () => {
+    expect(
+      getCloudHeadlineReadings("gcp", VM).map(
+        (headline: CloudHeadlineReading): string => {
+          return headline.key;
+        },
+      ),
+    ).toEqual([
+      CPU,
+      GCP_OPS_AGENT_MEMORY_KEY,
+      GCP_OPS_AGENT_DISK_KEY,
+      "compute.googleapis.com/instance/network/received_bytes_count",
+      "compute.googleapis.com/instance/network/sent_bytes_count",
+    ]);
+
+    const keys: ReadonlySet<string> = getCloudReadingKeysForType("gcp", VM);
+
+    expect(keys.has(GCP_OPS_AGENT_MEMORY_KEY)).toBe(true);
+    expect(keys.has(GCP_OPS_AGENT_DISK_KEY)).toBe(true);
+  });
+
+  test("its memory and disk say they need the Ops Agent, with Google's install instructions", () => {
+    for (const key of [GCP_OPS_AGENT_MEMORY_KEY, GCP_OPS_AGENT_DISK_KEY]) {
+      const headline: CloudHeadlineReading = getCloudHeadlineReadings(
+        "gcp",
+        VM,
+      ).find((candidate: CloudHeadlineReading): boolean => {
+        return candidate.key === key;
+      })!;
+
+      expect(headline.format).toBe("percent");
+      expect(headline.needs).toEqual({
+        note: HEADLINE_NEEDS_OPS_AGENT,
+        description: HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION,
+        link: {
+          url: "https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation",
+          label: HEADLINE_INSTALL_OPS_AGENT,
+        },
+      });
+    }
+
+    expect(HEADLINE_NEEDS_OPS_AGENT).toBe("Needs the Ops Agent");
+    expect(HEADLINE_INSTALL_OPS_AGENT).toBe("Install the Ops Agent");
+    // Nothing else needs anything installed.
+    expect(
+      CLOUD_HEADLINE_READINGS.flatMap(
+        (entry: { readings: Array<CloudHeadlineReading> }) => {
+          return entry.readings;
+        },
+      ).filter((headline: CloudHeadlineReading): boolean => {
+        return Boolean(headline.needs);
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("its disks read as the fullest of them; no other reading does", () => {
+    expect(
+      isCloudReadingTheHighestOfItsSeries("gcp", GCP_OPS_AGENT_DISK_KEY),
+    ).toBe(true);
+    expect(
+      isCloudReadingTheHighestOfItsSeries(
+        "GCP",
+        GCP_OPS_AGENT_DISK_KEY.toUpperCase(),
+      ),
+    ).toBe(true);
+    expect(
+      isCloudReadingTheHighestOfItsSeries("gcp", GCP_OPS_AGENT_MEMORY_KEY),
+    ).toBe(false);
+    expect(
+      isCloudReadingTheHighestOfItsSeries("aws", GCP_OPS_AGENT_DISK_KEY),
+    ).toBe(false);
+  });
+});
+
+/*
+ * The headlines that read deprecated metrics read their replacements
+ * (#9565): a Cosmos DB account's latency, and a Pub/Sub topic's messages.
+ */
+describe("headlines off deprecated metrics", () => {
+  const COSMOS: string = "Microsoft.DocumentDB/databaseAccounts";
+
+  function latency(): CloudHeadlineReading {
+    return getCloudHeadlineReadings("azure", COSMOS).find(
+      (headline: CloudHeadlineReading): boolean => {
+        return headline.label === "Latency";
+      },
+    )!;
+  }
+
+  test("a Cosmos DB account's latency is its direct-mode requests', else its gateway-mode ones'", () => {
+    expect(getCloudHeadlineReadingKeys(latency())).toEqual([
+      "serversidelatencydirect",
+      "serversidelatencygateway",
+    ]);
+    expect(
+      getCloudHeadlineReadingOf(latency(), {
+        serversidelatencydirect: reading(4),
+        serversidelatencygateway: reading(30),
+      }),
+    ).toEqual({ key: "serversidelatencydirect", reading: reading(4) });
+    // A MongoDB account connects through the gateway alone.
+    expect(
+      getCloudHeadlineReadingOf(latency(), {
+        serversidelatencygateway: reading(12),
+      }),
+    ).toEqual({ key: "serversidelatencygateway", reading: reading(12) });
+    expect(getCloudHeadlineReadingOf(latency(), {})).toBeNull();
+    // Both are kept; the deprecated one is not.
+    const keys: ReadonlySet<string> = getCloudReadingKeysForType(
+      "azure",
+      COSMOS,
+    );
+
+    expect(keys.has("serversidelatencydirect")).toBe(true);
+    expect(keys.has("serversidelatencygateway")).toBe(true);
+    expect(keys.has("serversidelatency")).toBe(false);
+  });
+
+  test("a Pub/Sub topic's messages in are the count of its message sizes, each minute", () => {
+    expect(getCloudHeadlineReadings("gcp", "pubsub_topic")).toEqual([
+      {
+        key: "pubsub.googleapis.com/topic/message_sizes_count",
+        label: "Messages in",
+        format: "perPeriod",
+      },
+    ]);
+    expect(
+      getCloudReadingKeysForType("gcp", "pubsub_topic").has(
+        "pubsub.googleapis.com/topic/send_message_operation_count",
+      ),
+    ).toBe(false);
+  });
+
+  test("a headline without fallbacks reads its own key alone", () => {
+    const cpu: CloudHeadlineReading = getCloudHeadlineReadings(
+      "aws",
+      "AWS::EC2::Instance",
+    )[0]!;
+
+    expect(getCloudHeadlineReadingKeys(cpu)).toEqual([cpu.key]);
+    expect(cpu.fallbackKeys).toBeUndefined();
+    expect(cpu.needs).toBeUndefined();
   });
 });
