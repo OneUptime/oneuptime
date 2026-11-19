@@ -79,6 +79,8 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
     job: "Know when your website or API is down",
     dashboardLabels: [
       "Know when my website or API is down",
+      // Ask AI instead, from the setup's first step (#7245).
+      "Describe it instead",
       // The Cloud tab: the button the step gives a Free plan with no card (#7367).
       "Add Payment Method",
       "Home",
@@ -230,6 +232,8 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
     job: "Publish a status page on your own domain",
     dashboardLabels: [
       "Publish a status page",
+      // Ask AI instead, from the setup's first step (#7245).
+      "Describe it instead",
       "Custom Domains",
       "Set up a monitor",
       "Add Custom Domain",

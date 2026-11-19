@@ -20,6 +20,10 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  DiscoveredHostSelectability,
+  isAddingMonitorToExistingHost,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredHostFilter";
 import fs from "fs";
 import path from "path";
 
@@ -561,13 +565,24 @@ function extraNamesFor(
  * English translator for the sentences the tests below expect, and a
  * translating one where the test is about what a locale does with the
  * values.
+ *
+ * Since #9544 the sentence says what ticking the box does. A host that is a
+ * device already, with no monitor, is ticked to GET one, and announces
+ * "Add a monitor to {{name}} ({{address}})"; every other host announces
+ * "Import {{name}} ({{address}})". The row picks between the two on a
+ * boolean it computes with the dialog's own predicate,
+ * `isAddingMonitorToExistingHost(entry, props.selectability)` (pinned in the
+ * final describe), so the lifted expression is run with that very
+ * predicate's answer for the host and the selectability under test, never
+ * with a value chosen here.
  */
 const ARIA_LABEL_CALL: RegExp =
-  /ariaLabel=\{(translator\.translateTemplate\(\s*"(Import [^"]*)"\s*,\s*\{[^{}]*\}\s*,?\s*\))\}/;
+  /ariaLabel=\{(translator\.translateTemplate\(\s*(\w+)\s*\?\s*"([^"]+)"\s*:\s*"(Import [^"]*)"\s*,\s*\{[^{}]*\}\s*,?\s*\))\}/;
 
 type RowAriaLabel = (
   entry: DiscoveredNetworkDevice,
   displayName: string,
+  isAddingMonitor: boolean,
   translator: Translator,
   translatableTermFunction: typeof translatableTerm,
 ) => string;
@@ -577,7 +592,14 @@ let cachedAriaLabel: RowAriaLabel | null = null;
 interface AriaLabelCall {
   // The whole `translator.translateTemplate(...)` expression.
   expression: string;
-  // The English sentence it looks up.
+  /*
+   * The row's boolean that picks the sentence: whether the host, a device
+   * already, is ticked to get a monitor.
+   */
+  conditionIdentifier: string;
+  // The English sentence a host ticked to get a monitor looks up.
+  addMonitorTemplate: string;
+  // The English sentence every other host looks up.
   template: string;
 }
 
@@ -587,13 +609,30 @@ function ariaLabelCall(): AriaLabelCall {
   if (!match) {
     throw new Error(
       "The discovered-host checkbox no longer carries an" +
-        ' `ariaLabel={translator.translateTemplate("Import ...", { ... })}`.' +
+        ' `ariaLabel={translator.translateTemplate(<adds a monitor> ? "..." : "Import ...", { ... })}`.' +
         " A disabled checkbox in a list that does not say what it is reads" +
-        " as broken rather than as deliberate.",
+        " as broken rather than as deliberate, and a box that gives a device" +
+        " a monitor must not announce that it imports one.",
     );
   }
 
-  return { expression: match[1]!, template: match[2]! };
+  return {
+    expression: match[1]!,
+    conditionIdentifier: match[2]!,
+    addMonitorTemplate: match[3]!,
+    template: match[4]!,
+  };
+}
+
+/*
+ * The row's statement that computes the sentence's condition, read off the
+ * page: `const <condition> = isAddingMonitorToExistingHost(entry,
+ * props.selectability);`, with or without its type annotation.
+ */
+function conditionStatementPattern(identifier: string): RegExp {
+  return new RegExp(
+    `const\\s+${identifier}\\s*(?::[^=]*)?=\\s*isAddingMonitorToExistingHost\\(\\s*entry\\s*,\\s*props\\.selectability\\s*,?\\s*\\);`,
+  );
 }
 
 /*
@@ -605,26 +644,34 @@ const ENGLISH: Translator = createTranslator(undefined, "en");
 /*
  * Fed the name line the ROW computes for this scan, not a name recomputed
  * here: the claim is that the label says what the row says, under whichever
- * naming choice the scan made.
+ * naming choice the scan made. And fed whether the host gets a monitor as
+ * the row decides it: the dialog's predicate, for this host and what the
+ * dialog knows of its devices' monitors (none known by default, so a device
+ * already is offered nothing, as before Review Results reads them).
  */
 function ariaLabelFor(
   host: DiscoveredNetworkDevice,
   naming: DiscoveredHostNaming,
   translator: Translator = ENGLISH,
+  selectability?: DiscoveredHostSelectability | undefined,
 ): string {
   if (cachedAriaLabel === null) {
+    const call: AriaLabelCall = ariaLabelCall();
+
     cachedAriaLabel = new Function(
       "entry",
       rowNameSource().displayNameIdentifier,
+      call.conditionIdentifier,
       "translator",
       "translatableTerm",
-      `return ${ariaLabelCall().expression};`,
+      `return ${call.expression};`,
     ) as unknown as RowAriaLabel;
   }
 
   return cachedAriaLabel(
     host,
     rowNamesFor(host, naming).displayName,
+    isAddingMonitorToExistingHost(host, selectability),
     translator,
     translatableTerm,
   );
@@ -1171,6 +1218,117 @@ describe("the checkbox tells a screen reader what the row says", () => {
         german,
       ),
     ).toBe("Already added (10.0.0.9) importieren");
+  });
+
+  /*
+   * A host that is a device already, with no monitor, is ticked to give
+   * that device a monitor, not to import it a second time (issue #9544).
+   * Its box says so: a screen-reader user hears what the "Gets a monitor"
+   * pill shows a sighted one, and never "Import" for a device that will not
+   * be created.
+   */
+  const ALREADY_ADDED_HOST: DiscoveredNetworkDevice = {
+    ipAddress: "10.18.166.51",
+    dnsHostname: "core-gw.corp.example.com",
+    snmpReachable: false,
+    isAlreadyRegistered: true,
+    registeredDeviceId: "6F1A0B4E-0000-4000-8000-000000000051",
+  };
+  const ITS_DEVICE_ID: string = "6f1a0b4e-0000-4000-8000-000000000051";
+
+  test("a device already added, with no monitor, announces that ticking it adds a monitor (issue #9544)", () => {
+    expect(
+      ariaLabelFor(ALREADY_ADDED_HOST, FULL_NAMES, ENGLISH, {
+        monitoredDeviceIds: new Set<string>(),
+      }),
+    ).toBe("Add a monitor to core-gw.corp.example.com (10.18.166.51)");
+
+    // Another device has a monitor: this one is still offered one.
+    expect(
+      ariaLabelFor(ALREADY_ADDED_HOST, FULL_NAMES, ENGLISH, {
+        monitoredDeviceIds: new Set<string>([
+          "6f1a0b4e-0000-4000-8000-000000000099",
+        ]),
+      }),
+    ).toBe("Add a monitor to core-gw.corp.example.com (10.18.166.51)");
+  });
+
+  test("the add-a-monitor sentence carries the row's own name, short or full, and the address", () => {
+    expect(
+      ariaLabelFor(ALREADY_ADDED_HOST, SHORT_NAMES, ENGLISH, {
+        monitoredDeviceIds: new Set<string>(),
+      }),
+    ).toBe("Add a monitor to core-gw (10.18.166.51)");
+  });
+
+  test("a device that is not offered a monitor keeps the box's import sentence", () => {
+    /*
+     * Its box is disabled, and the hover text and the status pill say why:
+     * its device has a monitor already, the dialog has not read its
+     * devices' monitors yet, or the scan's probe cannot tell which of two
+     * devices at the address the host is (issue #9677), so none is named.
+     */
+    expect(
+      ariaLabelFor(ALREADY_ADDED_HOST, FULL_NAMES, ENGLISH, {
+        monitoredDeviceIds: new Set<string>([ITS_DEVICE_ID]),
+      }),
+    ).toBe("Import core-gw.corp.example.com (10.18.166.51)");
+
+    expect(ariaLabelFor(ALREADY_ADDED_HOST, FULL_NAMES)).toBe(
+      "Import core-gw.corp.example.com (10.18.166.51)",
+    );
+
+    const ambiguousHost: DiscoveredNetworkDevice = {
+      ...ALREADY_ADDED_HOST,
+    };
+    delete ambiguousHost.registeredDeviceId;
+
+    expect(
+      ariaLabelFor(ambiguousHost, FULL_NAMES, ENGLISH, {
+        monitoredDeviceIds: new Set<string>(),
+      }),
+    ).toBe("Import core-gw.corp.example.com (10.18.166.51)");
+  });
+
+  test("a new host is never announced as getting a monitor, whatever the dialog knows of monitors", () => {
+    expect(
+      ariaLabelFor(
+        {
+          ipAddress: "10.18.166.53",
+          dnsHostname: "printer-3.corp.example.com",
+          snmpReachable: false,
+        },
+        FULL_NAMES,
+        ENGLISH,
+        { monitoredDeviceIds: new Set<string>() },
+      ),
+    ).toBe("Import printer-3.corp.example.com (10.18.166.53)");
+  });
+
+  test("in another language the add-a-monitor sentence is the locale's, with the row's name and address", () => {
+    const words: Record<string, string> = {
+      "Add a monitor to {{name}} ({{address}})":
+        "Monitor zu {{name}} ({{address}}) hinzufügen",
+      "Import {{name}} ({{address}})": "{{name}} ({{address}}) importieren",
+    };
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
+
+    expect(
+      ariaLabelFor(ALREADY_ADDED_HOST, FULL_NAMES, german, {
+        monitoredDeviceIds: new Set<string>(),
+      }),
+    ).toBe("Monitor zu core-gw.corp.example.com (10.18.166.51) hinzufügen");
+
+    expect(
+      ariaLabelFor(ALREADY_ADDED_HOST, FULL_NAMES, german, {
+        monitoredDeviceIds: new Set<string>([ITS_DEVICE_ID]),
+      }),
+    ).toBe("core-gw.corp.example.com (10.18.166.51) importieren");
   });
 });
 
@@ -2212,10 +2370,40 @@ describe("the host list wires the row to the shared recipe", () => {
 
     expect(title).toContain("NetBIOS");
     expect(ariaLabelCall().template).toBe("Import {{name}} ({{address}})");
+    expect(ariaLabelCall().addMonitorTemplate).toBe(
+      "Add a monitor to {{name}} ({{address}})",
+    );
 
-    for (const key of ["NetBIOS name", title, ariaLabelCall().template]) {
+    for (const key of [
+      "NetBIOS name",
+      title,
+      ariaLabelCall().template,
+      ariaLabelCall().addMonitorTemplate,
+    ]) {
       expect([key, english[key]]).toEqual([key, key]);
     }
+  });
+
+  test("the checkbox label picks its sentence by the dialog's own rule for a host that gets a monitor", () => {
+    /*
+     * The tests above run the label with what isAddingMonitorToExistingHost
+     * answers. That is only the row's behaviour if the row asks it too, with
+     * the selectability the dialog hands every row, so the boolean the label
+     * reads is pinned to that call - and to being computed outside the
+     * naming block the tests lift and run with only the name builders.
+     */
+    const call: AriaLabelCall = ariaLabelCall();
+
+    expect(readCode()).toMatch(
+      conditionStatementPattern(call.conditionIdentifier),
+    );
+    expect(rowNameSource().statements).not.toMatch(
+      new RegExp(`\\b${call.conditionIdentifier}\\b`),
+    );
+    // The same boolean that says it in the label says it on hover.
+    expect(readCode()).toMatch(
+      new RegExp(`hoverText=\\{\\s*${call.conditionIdentifier}\\s*\\?`),
+    );
   });
 
   test("the row still renders the address, on its own truncating line", () => {

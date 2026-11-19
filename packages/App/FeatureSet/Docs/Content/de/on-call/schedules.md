@@ -40,7 +40,7 @@ Alles andere liegt unter **Weitere Felder**, eingeklappt, bis Sie es öffnen:
 | Feld | Was es bewirkt |
 | --- | --- |
 | **Jede Schicht dauert** | **1 Tag**, **1 Woche**, **2 Wochen** oder **1 Monat**, und **1 Woche**, solange Sie nichts ändern. Gefragt wird danach, sobald sich jemand abwechselt. Jede Person hat so lange Bereitschaft, dann übernimmt die nächste, zu der Uhrzeit, zu der der Plan angelegt wurde. |
-| **Zeitzone** | Die Zeitzone, in der Übergabezeiten und Bereitschaftsstunden gelten. Sie beginnt mit Ihrer eigenen. |
+| **Zeitzone** | Die Zeitzone, in der Übergabezeiten und Bereitschaftsstunden gelten. Sie beginnt mit Ihrer eigenen. Jede Zeitzone folgt den aktuellen Regeln ihrer Region: America/Vancouver (British Columbia) bleibt ab 2026 das ganze Jahr auf UTC-7. |
 | **Beschreibung** | Notizen zum Plan. |
 | **Beschriftungen** | Beschriftungen, um den Plan zu finden und zu gruppieren. |
 

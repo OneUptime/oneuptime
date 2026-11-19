@@ -28,7 +28,7 @@ The address is checked from your server's own probe, so it must be reachable fro
 
 ![Home asks "What do you want to do first?", with "Know when my website or API is down" ticked](screen:home-goal-website)
 
-A new project's **Home** first asks **What do you want to do first?**: tick **Know when my website or API is down** and click **Continue**. Then click **Create your first monitor** in the **Welcome to OneUptime 👋** checklist. If the checklist does not show it, press `Ctrl+K` (`Cmd+K` on a Mac), type `website down` and choose **Know when my website or API is down**. **Monitors** offers it too: **Guided setup** on the empty list and under **How it works**, and a line on **Create Monitor** once you pick **Website** or **API**.
+A new project's **Home** first asks **What do you want to do first?**: tick **Know when my website or API is down** and click **Continue**. Then click **Create your first monitor** in the **Welcome to OneUptime 👋** checklist. If the checklist does not show it, press `Ctrl+K` (`Cmd+K` on a Mac), type `website down` and choose **Know when my website or API is down**. **Monitors** offers it too: **Guided setup** on the empty list and under **How it works**, and a line on **Create Monitor** once you pick **Website** or **API**. Or click **Describe it instead**: Ask AI opens with the job written in its box, ready to send.
 
 ### Enter the address
 

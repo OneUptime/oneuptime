@@ -28,7 +28,7 @@ L'indirizzo viene controllato dalla sonda del tuo server stesso, quindi deve ess
 
 ![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Sapere quando il mio sito web o la mia API non funziona» selezionato](screen:home-goal-website)
 
-In un nuovo progetto, la **Home** chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona** e fai clic su **Continua**. Poi fai clic su **Crea il tuo primo monitor** nell'elenco **Benvenuto in OneUptime 👋**. Se l'elenco non mostra questo passaggio, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `website down` e scegli **Sapere quando il mio sito web o la mia API non funziona**. Anche **Monitor** la propone: **Configurazione guidata** nell'elenco vuoto e in **Come funziona**, e una riga in **Crea monitor** quando scegli **Sito web** o **API**.
+In un nuovo progetto, la **Home** chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona** e fai clic su **Continua**. Poi fai clic su **Crea il tuo primo monitor** nell'elenco **Benvenuto in OneUptime 👋**. Se l'elenco non mostra questo passaggio, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `website down` e scegli **Sapere quando il mio sito web o la mia API non funziona**. Anche **Monitor** la propone: **Configurazione guidata** nell'elenco vuoto e in **Come funziona**, e una riga in **Crea monitor** quando scegli **Sito web** o **API**. Oppure fai clic su **Descrivilo invece**: Chiedi all'IA si apre con il compito scritto nella sua casella, pronto da inviare.
 
 ### Inserire l'indirizzo
 

@@ -16,6 +16,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -591,6 +592,7 @@ export default class IncidentEpisodeMember extends BaseModel {
     required: false,
     title: "Matched Rule ID",
     description: "ID of the grouping rule that matched this incident",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -704,6 +706,7 @@ export default class IncidentEpisodeMember extends BaseModel {
     title: "Is Owner Notified of Incident Added to Episode",
     description:
       "Has the owner been notified that this incident was added to the episode?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Boolean,

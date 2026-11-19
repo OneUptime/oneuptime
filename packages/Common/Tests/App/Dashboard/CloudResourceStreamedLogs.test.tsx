@@ -137,6 +137,7 @@ jest.mock(
       default: (props: {
         hasStreamedLogs?: boolean;
         hasRecommendations?: boolean;
+        hasSecurityEvents?: boolean;
       }) => {
         sideMenuMock(props);
         return (
@@ -144,6 +145,7 @@ jest.mock(
             data-testid="side-menu"
             data-has-logs={String(Boolean(props.hasStreamedLogs))}
             data-has-recommendations={String(Boolean(props.hasRecommendations))}
+            data-has-security-events={String(Boolean(props.hasSecurityEvents))}
           />
         );
       },
@@ -627,6 +629,9 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
       cloudResourceKind: true,
       cloudProvider: true,
       cloudResourceType: true,
+      // Whether an event can reach it: its menu's Security Events (#9779).
+      providerResourceId: true,
+      cloudEndpoints: true,
     });
   });
 
@@ -649,6 +654,103 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     });
 
     expect(menuHasLogs()).toBe("false");
+    expect(
+      screen.getByTestId("side-menu").getAttribute("data-has-security-events"),
+    ).toBe("false");
+  });
+});
+
+/*
+ * Security Events is in the menu of a resource an event can reach (#9779):
+ * one its cloud's audit log names by its own ID, one with logs of its own,
+ * one answering on a name or address of its own - not one known only by a
+ * stand-in its metrics give it, whose page would always be empty.
+ */
+describe("the resource's menu has Security Events for a resource an event can reach", () => {
+  async function openView(item: Record<string, unknown> | null): Promise<void> {
+    getItemMock.mockResolvedValue(item);
+
+    await act(async () => {
+      render(
+        <MemoryRouter
+          initialEntries={[`/dashboard/${PROJECT_ID}/cloud/${MODEL_ID}`]}
+        >
+          <Routes>
+            <RouterRoute
+              path="/dashboard/:projectId/cloud/:id"
+              element={<CloudResourceViewLayout {...PAGE_PROPS} />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  function menuHasSecurityEvents(): string | null {
+    return screen
+      .getByTestId("side-menu")
+      .getAttribute("data-has-security-events");
+  }
+
+  test.each([
+    [
+      "an S3 bucket, by its ARN",
+      {
+        cloudProvider: "aws",
+        cloudResourceType: "AWS::S3::Bucket",
+        providerResourceId: "arn:aws:s3:::payments-bucket",
+      },
+    ],
+    [
+      "an Azure network security group, by its resource ID",
+      {
+        cloudProvider: "azure",
+        cloudResourceType: "Microsoft.Network/networkSecurityGroups",
+        providerResourceId:
+          "/subscriptions/00000000-0000-4000-8000-000000000000/resourceGroups/prod/providers/Microsoft.Network/networkSecurityGroups/web-nsg",
+      },
+    ],
+    [
+      "a Cloud Storage bucket, by its full resource name",
+      {
+        cloudProvider: "gcp",
+        cloudResourceType: "gcs_bucket",
+        providerResourceId:
+          "//storage.googleapis.com/projects/_/buckets/acme-backups",
+      },
+    ],
+    [
+      "a DocumentDB cluster kept by a stand-in, by its own logs",
+      {
+        cloudProvider: "aws",
+        cloudResourceType: "AWS::DocDB::DBCluster",
+        providerResourceId: "AWS/DocDB DBClusterIdentifier=orders",
+      },
+    ],
+    [
+      "a broker kept by a stand-in, by the name it answers on",
+      {
+        cloudProvider: "aws",
+        cloudResourceType: "AWS::AmazonMQ::Broker",
+        providerResourceId: "AWS/AmazonMQ Broker=orders",
+        cloudEndpoints: ["b-1234.mq.us-east-1.amazonaws.com"],
+      },
+    ],
+  ])("%s has it", async (_kind: string, item: Record<string, unknown>) => {
+    await openView({ cloudResourceKind: "resource", ...item });
+
+    expect(menuHasSecurityEvents()).toBe("true");
+  });
+
+  test("a broker known only by a stand-in, with no logs and no name or address, has none", async () => {
+    await openView({
+      cloudResourceKind: "resource",
+      cloudProvider: "aws",
+      cloudResourceType: "AWS::AmazonMQ::Broker",
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+    });
+
+    expect(menuHasSecurityEvents()).toBe("false");
   });
 });
 

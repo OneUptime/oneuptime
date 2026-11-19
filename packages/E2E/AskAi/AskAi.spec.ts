@@ -5158,6 +5158,306 @@ test.describe("a setup plan", () => {
 });
 
 /*
+ * "HOW DO I...?" ANSWERED FROM THE DOCS (issue #7067): numbered steps, each
+ * fact cited - the docs section it was read from - and the page of this
+ * project where it is done, offered under the answer as "Go to
+ * Notification Methods". Drawn at 1280 and 390, light and dark, in German
+ * and in Persian, where the button's arrow points the way the words read
+ * (#7010).
+ */
+
+// The "Go to" button an answer offers for the page it cites.
+function pageButton(page: Page): Locator {
+  return page.getByTestId("ask-ai-page-buttons").getByRole("button");
+}
+
+// How an element is mirrored: "-1 1" right to left, "none" otherwise.
+async function scaleOf(locator: Locator): Promise<string> {
+  return locator.evaluate((element: Element): string => {
+    return getComputedStyle(element).scale;
+  });
+}
+
+test.describe("a how-do-I answer from the docs", () => {
+  test("numbered steps, the docs it was read from, and the page where it is done, a press away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=docs");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    // The steps are a numbered list, in order.
+    const steps: Locator = askAi(page).locator("ol > li");
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0)).toContainText("add your phone number under SMS");
+    await expect(steps.nth(2)).toContainText("How to Reach Me");
+
+    // What it was read from, and the page it names, are its two sources.
+    const sources: Locator = page
+      .getByTestId("ai-chat-answer-footer")
+      .getByTestId("ai-chat-sources-toggle");
+    await expect(sources).toHaveText("2 sources");
+    await sources.click();
+    const list: Locator = page.getByTestId("ai-chat-sources");
+    await expect(list).toContainText(
+      "Docs: Notification Methods > Add and verify a method",
+    );
+    await expect(list).toContainText(
+      "Page: User Settings > Alerts & Notifications > Notification Methods",
+    );
+    await sources.click();
+
+    // One button, for the page the answer cites, with its arrow pointing on.
+    await expect(pageButton(page)).toHaveCount(1);
+    await expect(pageButton(page)).toHaveText("Go to Notification Methods");
+    expect(await scaleOf(pageButton(page).locator("svg"))).toBe("none");
+    await screenshot(page, "docs-answer-1280");
+
+    // It opens the page beside the conversation, which stays on screen.
+    await pageButton(page).click();
+    await expect(page).toHaveURL(
+      new RegExp(`${DASHBOARD}/user-settings/notification-methods$`),
+    );
+    await expect(askAi(page)).toBeVisible();
+    await expect(steps).toHaveCount(3);
+    expect((await state(page)).unhandled).toEqual([]);
+  });
+
+  test("on a phone, in the dark: the steps and the button fit the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "theme=dark&thread=docs");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(askAi(page).locator("ol > li")).toHaveCount(3);
+    await expect(pageButton(page)).toBeVisible();
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "docs-answer-390-dark");
+  });
+
+  test("in German at 1280, and in the dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=de&thread=docs");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const german: Record<string, string> = dashboardWords("de");
+    await expect(pageButton(page)).toHaveText(
+      german["Go to {{page}}"]!.replace(
+        "{{page}}",
+        german["Notification Methods"]!,
+      ),
+    );
+    await expect(askAi(page).locator("ol > li")).toHaveCount(3);
+    await screenshot(page, "docs-answer-1280-de");
+
+    await load(page, "lang=de&theme=dark&thread=docs");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+    await screenshot(page, "docs-answer-1280-de-dark");
+  });
+
+  test("in Persian on a phone: right to left, the button's arrow pointing the way the words read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "lang=fa&thread=docs");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const persian: Record<string, string> = dashboardWords("fa");
+    await expect(pageButton(page)).toHaveText(
+      persian["Go to {{page}}"]!.replace(
+        "{{page}}",
+        persian["Notification Methods"]!,
+      ),
+    );
+    // Mirrored, so it points along a line read from the right.
+    expect(await scaleOf(pageButton(page).locator("svg"))).toBe("-1 1");
+    const steps: Locator = askAi(page).locator("ol > li");
+    await expect(steps).toHaveCount(3);
+    expect(
+      await steps.first().evaluate((element: Element): string => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("rtl");
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "docs-answer-390-fa");
+
+    await load(page, "lang=fa&theme=dark&thread=docs");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "docs-answer-390-fa-dark");
+  });
+});
+
+/*
+ * THE GUIDED SETUPS AND ASK AI LINK TO EACH OTHER (issue #7245): a guided
+ * setup's Describe it instead opens Ask AI with the setup's goal in its
+ * composer, built from what the step knows, unsent; an Ask AI setup plan's
+ * Open in guided setup opens the guided setup for the plan, its first step
+ * filled in from it, and the card stays as it was.
+ */
+test.describe("the guided setups and Ask AI, each a way to the other", () => {
+  test("Describe it instead opens Ask AI with the goal in its composer, the address typed in it, and sends nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "page=setup");
+    await settle(page);
+
+    const link: Locator = page.getByTestId("guided-setup-describe-it-instead");
+    await expect(link).toHaveText("Describe it instead");
+    await page.getByTestId("fixture-setup-address").fill("example.com");
+    await screenshot(page, "guided-setup-describe-it-1280");
+
+    await link.click();
+    await expect(askAi(page)).toBeVisible();
+    await expect(composer(page)).toHaveValue(
+      "Monitor example.com and page me when it is down.",
+    );
+    await settle(page);
+    await screenshot(page, "guided-setup-described-1280");
+
+    const fixtureState: FixtureState = await state(page);
+    expect(fixtureState.sent).toEqual([]);
+    expect(fixtureState.unhandled).toEqual([]);
+  });
+
+  test("in German, in the dark, and right to left on a phone in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const german: Record<string, string> = dashboardWords("de");
+    await load(page, "lang=de&theme=dark&page=setup");
+    await settle(page);
+
+    const link: Locator = page.getByTestId("guided-setup-describe-it-instead");
+    await expect(link).toHaveText(german["Describe it instead"]!);
+    await link.click();
+    await expect(composer(page)).toHaveValue(
+      german["Monitor my website and page me when it is down."]!,
+    );
+    await settle(page);
+    await screenshot(page, "guided-setup-described-1280-de-dark");
+
+    const persian: Record<string, string> = dashboardWords("fa");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "lang=fa&page=setup");
+    await settle(page);
+
+    const persianLink: Locator = page.getByTestId(
+      "guided-setup-describe-it-instead",
+    );
+    await expect(persianLink).toHaveText(persian["Describe it instead"]!);
+    await page.getByTestId("fixture-setup-address").fill("example.com");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "guided-setup-describe-it-390-fa");
+
+    await persianLink.click();
+    await expect(composer(page)).toHaveValue(
+      persian["Monitor {{address}} and page me when it is down."]!.replace(
+        "{{address}}",
+        "example.com",
+      ),
+    );
+    await settle(page);
+    await screenshot(page, "guided-setup-described-390-fa");
+  });
+
+  test("Open in guided setup goes to the website setup with the plan's address, and the card still waits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const open: Locator = page.getByTestId("tool-approval-open-guided-setup");
+    await expect(open).toHaveText("Open in guided setup");
+    await screenshot(page, "setup-plan-open-in-guided-setup-1280");
+
+    await open.click();
+    await expect(page).toHaveURL(
+      new RegExp(
+        `${DASHBOARD}/monitors/setup\\?from=ask_ai&address=example\\.com$`,
+      ),
+    );
+    // The setup's first step is filled in from the plan.
+    await expect(page.getByTestId("fixture-setup-address")).toHaveValue(
+      "example.com",
+    );
+    // Docked beside the page, the plan still waits on its card, undecided.
+    await expect(askAi(page)).toBeVisible();
+    await expect(page.getByTestId("tool-approval-action")).toHaveCount(2);
+    await settle(page);
+    await screenshot(page, "setup-plan-opened-in-guided-setup-1280");
+
+    const fixtureState: FixtureState = await state(page);
+    expect(fixtureState.approvals).toEqual([]);
+    expect(fixtureState.unhandled).toEqual([]);
+  });
+
+  test("on a phone, in Persian and in the dark, the card's way to the guided setup fits, and the sheet steps aside for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const persian: Record<string, string> = dashboardWords("fa");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "lang=fa&theme=dark&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const open: Locator = page.getByTestId("tool-approval-open-guided-setup");
+    await open.scrollIntoViewIfNeeded();
+    await expect(open).toHaveText(persian["Open in guided setup"]!);
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "setup-plan-open-in-guided-setup-390-fa-dark");
+
+    await open.click();
+    await expect(page).toHaveURL(new RegExp(`${DASHBOARD}/monitors/setup\\?`));
+    // A sheet covers the page: it steps aside for the setup to be seen.
+    await expect(askAi(page)).toBeHidden();
+    await expect(page.getByTestId("fixture-setup-address")).toHaveValue(
+      "example.com",
+    );
+    expect((await state(page)).approvals).toEqual([]);
+  });
+
+  test("in German at 1280: the card's link speaks German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const german: Record<string, string> = dashboardWords("de");
+    await load(page, "lang=de&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(
+      page.getByTestId("tool-approval-open-guided-setup"),
+    ).toHaveText(german["Open in guided setup"]!);
+    await screenshot(page, "setup-plan-open-in-guided-setup-1280-de");
+  });
+});
+
+/*
  * The fixture loads its locales as the Dashboard does (#8366). It imported
  * German, Persian and Arabic whole, 23 MB of JSON in every page's scripts,
  * parsed on every page load of every test. English is in the bundle now, and

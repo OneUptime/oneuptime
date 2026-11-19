@@ -5257,7 +5257,10 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 escalates the page only through it.
+          /*
+           * The call adds its own token, naming this notification
+           * (OnCallKeypadToken): a key pressed answers this page only.
+           */
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -5329,7 +5332,10 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 escalates the page only through it.
+          /*
+           * The call adds its own token, naming this notification
+           * (OnCallKeypadToken): a key pressed answers this page only.
+           */
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -5405,7 +5411,10 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 escalates the page only through it.
+          /*
+           * The call adds its own token, naming this notification
+           * (OnCallKeypadToken): a key pressed answers this page only.
+           */
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -5482,7 +5491,10 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 escalates the page only through it.
+          /*
+           * The call adds its own token, naming this notification
+           * (OnCallKeypadToken): a key pressed answers this page only.
+           */
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -5787,9 +5799,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The short link of a page's acknowledge page. It carries the page's
-   * token (OnCallPageLinks), so the page offers "Can't take it? Escalate"
-   * beside Acknowledge: a text, a WhatsApp message and a Telegram or chat
-   * message lead there.
+   * token (OnCallPageLinks), which the page's Acknowledge sends on
+   * (OnCallAcknowledgeLink), and with which it offers "Can't take it?
+   * Escalate" beside Acknowledge: a text, a WhatsApp message and a
+   * Telegram or chat message lead there.
    */
   private async buildOnCallAcknowledgeShortUrl(
     userOnCallLogTimelineId: ObjectID,
@@ -7187,13 +7200,14 @@ export class Service extends ProjectReferencesService<Model> {
         await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
       /*
-       * No token: the email has its own Escalate button, and the link
-       * it prints to copy stays one line.
+       * The acknowledge page with the page's token, which its Acknowledge
+       * sends on (OnCallAcknowledgeLink): without it, the link cannot
+       * acknowledge the page. The address itself, not a short link - it
+       * needs nothing written to send, and works as long as the token
+       * does, a week.
        */
       acknowledgeAlertLink: (
-        await OnCallPageLinks.getEmailAcknowledgePageUrl(
-          userOnCallLogTimelineId,
-        )
+        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
       ).toString(),
       // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
@@ -7347,13 +7361,14 @@ export class Service extends ProjectReferencesService<Model> {
         )
       ).toString(),
       /*
-       * No token: the email has its own Escalate button, and the link
-       * it prints to copy stays one line.
+       * The acknowledge page with the page's token, which its Acknowledge
+       * sends on (OnCallAcknowledgeLink): without it, the link cannot
+       * acknowledge the page. The address itself, not a short link - it
+       * needs nothing written to send, and works as long as the token
+       * does, a week.
        */
       acknowledgeIncidentLink: (
-        await OnCallPageLinks.getEmailAcknowledgePageUrl(
-          userOnCallLogTimelineId,
-        )
+        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
       ).toString(),
       // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
@@ -7608,13 +7623,14 @@ export class Service extends ProjectReferencesService<Model> {
         )
       ).toString(),
       /*
-       * No token: the email has its own Escalate button, and the link
-       * it prints to copy stays one line.
+       * The acknowledge page with the page's token, which its Acknowledge
+       * sends on (OnCallAcknowledgeLink): without it, the link cannot
+       * acknowledge the page. The address itself, not a short link - it
+       * needs nothing written to send, and works as long as the token
+       * does, a week.
        */
       acknowledgeAlertEpisodeLink: (
-        await OnCallPageLinks.getEmailAcknowledgePageUrl(
-          userOnCallLogTimelineId,
-        )
+        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
       ).toString(),
       // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
@@ -7868,13 +7884,14 @@ export class Service extends ProjectReferencesService<Model> {
         )
       ).toString(),
       /*
-       * No token: the email has its own Escalate button, and the link
-       * it prints to copy stays one line.
+       * The acknowledge page with the page's token, which its Acknowledge
+       * sends on (OnCallAcknowledgeLink): without it, the link cannot
+       * acknowledge the page. The address itself, not a short link - it
+       * needs nothing written to send, and works as long as the token
+       * does, a week.
        */
       acknowledgeIncidentEpisodeLink: (
-        await OnCallPageLinks.getEmailAcknowledgePageUrl(
-          userOnCallLogTimelineId,
-        )
+        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
       ).toString(),
       // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (

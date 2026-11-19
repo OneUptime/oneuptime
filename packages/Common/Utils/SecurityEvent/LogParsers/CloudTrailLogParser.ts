@@ -15,6 +15,7 @@ import {
   readIpAddress,
 } from "./SecurityLogLine";
 import { writeOwnValue } from "../../LookupTable";
+import { readCloudTrailResourceIds } from "./CloudAuditResources";
 
 /*
  * AWS CloudTrail records, as a log line: one record, or a CloudTrail log
@@ -228,6 +229,8 @@ export default class CloudTrailLogParser {
           principalHost: sourceIp ? "" : sourceAddress.slice(0, 255),
           targetHost: account,
           targetResource: `${eventSource} ${eventName}`,
+          // The resources the call was made on, by their ARNs (#9779).
+          resourceIds: readCloudTrailResourceIds(record),
           attributes: boundedAttributes(record),
         }),
       );

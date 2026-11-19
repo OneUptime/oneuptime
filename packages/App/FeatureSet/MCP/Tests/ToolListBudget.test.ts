@@ -76,9 +76,14 @@ import ModelType from "../Types/ModelType";
  * every database list tool's sort took a relation's field and { direction,
  * nulls } as the API does (#8840): 262 bytes on each of 54 list tools took
  * the answer from 259,929 to 274,077, so an agent can list incidents by
- * severity and put the undeclared last.
+ * severity and put the undeclared last; 290,000 on 2026-11-19, when Ask
+ * AI's setup actions became five tools of their own (4,672 bytes: set up
+ * website monitoring, paging, a status page, monitors on one, and who is
+ * told) and took the answer from 276,431 to 281,103, so an agent sets up a
+ * monitor, who is paged and a status page with one call each, where
+ * create_monitor alone takes some hundred lines of JSON (#7241).
  */
-const MAX_TOOLS_LIST_BYTES: number = 280_000;
+const MAX_TOOLS_LIST_BYTES: number = 290_000;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;

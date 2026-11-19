@@ -541,12 +541,16 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
          *
          * NOTE this template still pages on read-only pseudo-filesystems
          * that are 100% full by design (snap `squashfs` loop mounts,
-         * macOS `devfs`). The Kubernetes agent's collector already
-         * excludes those with an `include_fs_types` allowlist; the
-         * standalone host collector config does not, and excluding them
-         * here would need a NOT-IN comparison that `filterData.attributes`
-         * (exact match only) cannot express. The mount and device are on
-         * the alert, so the description below names the pattern instead.
+         * macOS `devfs`) when a collector sends them. The collector
+         * configs OneUptime runs and hands out leave them out of the
+         * `filesystem` scraper (`exclude_fs_types`, or the Kubernetes
+         * agent's `include_fs_types` allowlist); a config of the user's
+         * own may not. The mount and device are on the alert, so the
+         * description below names the pattern instead.
+         *
+         * A query that loses this group-by reads the fullest mount only,
+         * under one incident for the whole monitor (the Host Monitor
+         * docs' "Hosts with several disks" and its troubleshooting entry).
          */
         groupByAttributeKeys: ["mountpoint", "device"],
       }),

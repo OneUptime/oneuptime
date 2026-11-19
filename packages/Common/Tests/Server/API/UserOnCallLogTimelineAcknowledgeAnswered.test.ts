@@ -125,14 +125,28 @@ type RouterFunction = (
   next: NextFunction,
 ) => void | Promise<void>;
 
-async function callRoute(uri: string, query: JSONObject = {}): Promise<void> {
-  const handler: RouterFunction = mockRouter.match("GET", uri)
-    .handlerFunction as RouterFunction;
+/*
+ * The page opened from a message's link, with the page's own token every
+ * link OneUptime sends carries - or, for the acknowledge address, its
+ * button pressed: a form that posts the token (#10025).
+ */
+async function callRoute(uri: string, query?: JSONObject): Promise<void> {
+  const pageToken: string = OnCallPageLinkToken.sign({
+    userOnCallLogTimelineId: ITEM,
+  });
+  const isPress: boolean = uri === ACKNOWLEDGE_ROUTE;
+  const handler: RouterFunction = mockRouter.match(
+    isPress ? "POST" : "GET",
+    uri,
+  ).handlerFunction as RouterFunction;
 
   await handler(
     {
       params: { itemId: ITEM.toString() },
-      query: query,
+      query: isPress
+        ? {}
+        : query || { [ON_CALL_PAGE_LINK_TOKEN_PARAM]: pageToken },
+      body: isPress ? { [ON_CALL_PAGE_LINK_TOKEN_PARAM]: pageToken } : {},
     } as unknown as ExpressRequest,
     {} as unknown as ExpressResponse,
     ((err: unknown) => {

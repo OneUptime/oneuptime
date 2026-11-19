@@ -208,6 +208,8 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
     getResourceSecurityDescription({
       kind: props.kind,
       isSearchedByLogs: security.isSearchedByLogs,
+      isReadFromOwnLogs: security.isReadFromOwnLogs,
+      values: security.values,
     });
   const eventsRoute: Route | null = getRecordSecurityEventsRoute({
     security,

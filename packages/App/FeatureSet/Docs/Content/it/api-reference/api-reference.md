@@ -254,7 +254,9 @@ Team, etichette, policy di reperibilità e pianificazioni di reperibilità hanno
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli. Per team, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo.
+Accanto al messaggio, la risposta contiene `"refusalCode": "name_taken"`. Riconosci questo rifiuto da quel codice, non dalla frase, che può essere riformulata. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena l'altro record lascia il nome: il provider Terraform riprova fino a 30 secondi.
+
+Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli. Per team, etichette, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo. Le etichette e le policy di reperibilità archiviate sono escluse.
 
 ### Interruttori
 

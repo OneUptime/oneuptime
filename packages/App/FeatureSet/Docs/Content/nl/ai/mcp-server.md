@@ -343,6 +343,18 @@ De tool **`get_data_table_lineage`** vertelt een agent waaruit een bewaakte tabe
 
 De tool **`oneuptime_move_in_list`** verplaatst een rij van een geordende lijst, zoals een ernstniveau, een incidentstatus of een monitorstatus, naar de plaats van een andere rij, zoals slepen in het dashboard doet: de rijen ertussen schuiven één plaats op, en hij antwoordt met elke rij waarvan het nummer veranderde. Geef `resource` op (zoals `Incident Severity`), de `id` van de rij en `placeOfId`, de ID van de rij waarvan hij de plaats inneemt. Het nummer van een rij schrijven met zijn `update_`-tool plaatst alleen die rij, naast elke rij die dat nummer al heeft.
 
+## Tools om dingen in te stellen
+
+De server heeft ook de instelacties van AI vragen, één aanroep per actie: wat je instelt, in plaats van één record tegelijk. Elke actie maakt de records die AI vragen en de begeleide instellingen voor dezelfde antwoorden maken, met dezelfde controles:
+
+- **`set_up_website_monitoring`**: een website- of API-monitor voor een adres, die een incident opent als het adres niet antwoordt of met een fout antwoordt. Hij is van jou, en een adres dat een monitor al controleert krijgt geen tweede
+- **`set_up_paging`**: in een project dat nog niemand oproept, het eerste bereikbaarheidsbeleid, dat jou en de mensen en teams die je noemt oproept bij elk nieuw incident en elke nieuwe waarschuwing
+- **`publish_status_page`**: een openbare statuspagina die de monitoren toont die je noemt
+- **`add_monitors_to_status_page`**: monitoren op een statuspagina die het project al heeft
+- **`who_is_told`**: wie wordt ingelicht als een monitor plat ligt, en wat zou verhinderen dat iemand wordt bereikt. Het verandert niets
+
+Ze handelen als jij, aangemeld met OAuth: een API-sleutel van een project kan de vier die iets maken niet gebruiken. Je client vraagt het je voor elk ervan, en het antwoord zegt wat er is gemaakt. Wat ontbreekt, zoals een recht, een adres of ruimte in het abonnement, wordt gezegd voordat er iets wordt gemaakt.
+
 ## Telemetrie opvragen
 
 Logs, metrieken, traces (spans), uitzonderingen, monitorlogs en de andere soorten telemetrie komen als alleen-lezen-tools `list_` en `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` en hun `count_`-tegenhangers). Telemetrie komt binnen via OpenTelemetry, dus er zijn geen aanmaaktools.

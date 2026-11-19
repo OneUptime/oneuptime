@@ -25,6 +25,8 @@ import { JSONObject } from "../../Types/JSON";
 import { KubernetesComplianceResponse } from "../../Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
 import ProductKey from "../../Types/Product/ProductKey";
 import KubernetesClusterCompliance from "../Utils/Kubernetes/KubernetesClusterCompliance";
+import KubernetesClusterComplianceSummary from "../Utils/Kubernetes/KubernetesClusterComplianceSummary";
+import OneUptimeDate from "../../Types/Date";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 
 // The kinds the inventory holds, and so the only ones a part read asks for.
@@ -58,7 +60,8 @@ export const KUBERNETES_PART_KINDS: ReadonlySet<string> = new Set<string>([
  *   POST /kubernetes-resource/needs-attention/:clusterId
  *   POST /kubernetes-resource/part/:clusterId  { kind, name, namespace? }
  *   POST /kubernetes-resource/compliance/:clusterId  (refused while the
- *        server has switched Kubernetes off)
+ *        server has switched Kubernetes off; keeps the cluster's
+ *        compliance summary, #9876)
  *
  * The standard CRUD endpoints (list / get) are still registered by
  * BaseAPI; the UI uses them via ModelAPI for detail-page reads.
@@ -291,6 +294,17 @@ export default class KubernetesResourceAPI extends BaseAPI<
           provider: cluster?.provider || null,
         },
       });
+
+    /*
+     * The answer just worked out is the cluster's summary now (#9876), so
+     * Kubernetes' Compliance page shows a switch just flipped, or a finding
+     * just accepted, here, without waiting for the next refresh.
+     */
+    await KubernetesClusterComplianceSummary.storeQuietly({
+      clusterId: kubernetesClusterId,
+      compliance,
+      refreshedAt: OneUptimeDate.getCurrentDate(),
+    });
 
     return Response.sendJsonObjectResponse(
       req,

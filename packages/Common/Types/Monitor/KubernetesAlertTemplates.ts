@@ -1671,7 +1671,7 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
   summary: `A node's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full.`,
-  description: `Alert when a node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full. Computed per node as (k8s.node.filesystem.capacity - k8s.node.filesystem.available) / k8s.node.filesystem.capacity x 100 — all bytes from the same kubeletstats node scrape. That is the kubelet's own reading: it starts evicting pods at nodefs.available<10% by default, which is this monitor's line, and the Nodes list and the cluster's Needs attention read a node's disk the same way.`,
+  description: `Alert when a node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full. Computed per node as (k8s.node.filesystem.capacity - k8s.node.filesystem.available) / k8s.node.filesystem.capacity x 100 — all bytes from the same kubeletstats node scrape. That is the kubelet's own reading, and the Nodes list and the cluster's Needs attention read a node's disk the same way. By default the kubelet starts evicting pods when less than 10% of it is free (nodefs.available<10%), or 15% when it also holds the node's container images, as on most nodes (imagefs.available<15%). A node that keeps its images on a disk of its own has that disk watched by Node Image Disk Almost Full.`,
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -1727,9 +1727,88 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: DISK_ALMOST_FULL_PERCENT,
         incidentTitle: `[K8s] High Disk Usage (>${DISK_ALMOST_FULL_PERCENT}%) - ${args.monitorName}`,
-        incidentDescription: `A node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full, sustained across the whole monitoring window. The kubelet evicts pods once less than 10% is free (DiskPressure), new container images stop pulling, and the node can go NotReady. Free space on it (unused images, old logs, pods' emptyDir volumes) or give it a bigger disk. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
+        incidentDescription: `A node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full, sustained across the whole monitoring window. The kubelet evicts pods once less than 10% is free, or 15% when this disk also holds the node's container images (DiskPressure), new container images stop pulling, and the node can go NotReady. Free space on it (unused images, old logs, pods' emptyDir volumes) or give it a bigger disk. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
         criteriaName: `High Disk - Usage > ${DISK_ALMOST_FULL_PERCENT}%`,
         criteriaDescription: `Triggers when a node's used bytes exceed ${DISK_ALMOST_FULL_PERCENT}% of its root filesystem's capacity for every sample in the monitoring window.`,
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: DISK_ALMOST_FULL_PERCENT,
+      }),
+    });
+  },
+};
+
+/*
+ * A node's image disk filling up (#9843): the disk it keeps its container
+ * images on. The kubelet garbage-collects images, and evicts pods, when that
+ * filesystem runs low (imagefs.available), and High Node Disk Usage watches
+ * the root filesystem only.
+ *
+ * The kubeletstats receiver exports the node's root filesystem alone: its
+ * node stats leave `Runtime.ImageFs` as a TODO (collector 0.165.0), and no
+ * metric for it is named upstream yet. So this reads what the kubelet reports
+ * as every running container's root filesystem (container.filesystem.*): the
+ * filesystem the container's writable layer lives on, which is the image
+ * filesystem on the usual layouts (a dedicated disk for /var/lib/containerd)
+ * - the same reading the Nodes list's Image Disk column is made from. The
+ * description says plainly where it is another disk, or none.
+ */
+const nodeImageDiskAlmostFullTemplate: KubernetesAlertTemplate = {
+  id: "k8s-node-image-disk-almost-full",
+  name: "Node Image Disk Almost Full",
+  summary: `A node's image disk is more than ${DISK_ALMOST_FULL_PERCENT}% full.`,
+  description: `Alert when the disk a node keeps its container images on is more than ${DISK_ALMOST_FULL_PERCENT}% full. By default the kubelet deletes unused images once it is 85% full and evicts pods when less than 15% of it is free (imagefs.available<15%), so a disk that stays above ${DISK_ALMOST_FULL_PERCENT}% for five minutes is one it could not clean up: the node reports DiskPressure, takes no new pods and is evicting the ones it runs. Computed per node as (container.filesystem.capacity - container.filesystem.available) / container.filesystem.capacity x 100. The agent's collector does not report the node's image filesystem itself, so this reads the disk the kubelet reports each running container's own files on, which is the image disk on the usual layouts. It reads another disk, or none, in three cases: on a node that keeps its images on its root filesystem, as most nodes do, it reads that root filesystem, which High Node Disk Usage watches too, so both fire; with the kubelet's split image filesystem (KubeletSeparateDiskGC: images on one disk, containers' own files on another) it reads the disk the containers write to, not the images' disk; and a node running no container reports nothing. The Nodes list shows an Image Disk column once some node keeps its images on a disk of its own, and kubectl get --raw /api/v1/nodes/<node>/proxy/stats/summary shows the kubelet's own reading of it (node.runtime.imageFs).`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "image_disk_usage";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * Bytes, as High Node Disk Usage's are, and read the same way: used
+         * is everything that is not available, as the kubelet reads
+         * imagefs.available against the filesystem's capacity.
+         */
+        numeratorMetricName: "container.filesystem.available",
+        denominatorMetricName: "container.filesystem.capacity",
+        /*
+         * Per node: each container series carries its node's name (the
+         * agent's resource processor stamps it on everything the node
+         * collector sends), and one disk fills one node at a time.
+         */
+        groupByAttributeKeys: ["resource.k8s.node.name"],
+        numeratorAlias: "free_image_disk",
+        denominatorAlias: "capacity_image_disk",
+        resultAlias: metricAlias,
+        resultLegend: "Node Image Disk Usage (%)",
+        formula: `((capacity_image_disk - free_image_disk) / capacity_image_disk) * 100`,
+        resourceScope: KubernetesResourceScope.Node,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * One series per running container on BOTH sides, from the same
+         * kubeletstats container scrape, every one of a node the same
+         * filesystem: Avg is that filesystem's value whatever the number of
+         * containers and scrapes, as PVC Almost Full's is a claim's.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: DISK_ALMOST_FULL_PERCENT,
+        incidentTitle: `[K8s] Node Image Disk Almost Full (>${DISK_ALMOST_FULL_PERCENT}%) - ${args.monitorName}`,
+        incidentDescription: `The disk a node keeps its container images on is more than ${DISK_ALMOST_FULL_PERCENT}% full, sustained across the whole monitoring window. The kubelet deletes unused images from 85% full and evicts pods once less than 15% is free (DiskPressure), so a disk this full is one it could not clean up: the node takes no new pods and is evicting the ones it runs. Free space on it (images no pod uses, containers writing large files to their own filesystem instead of a volume) or give the node a bigger image disk. On a node that keeps its images on its root filesystem this is the disk High Node Disk Usage watches. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
+        criteriaName: `Image Disk Almost Full - Usage > ${DISK_ALMOST_FULL_PERCENT}%`,
+        criteriaDescription: `Triggers when the used bytes of the disk a node keeps its container images on exceed ${DISK_ALMOST_FULL_PERCENT}% of its capacity for every sample in the monitoring window.`,
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -2542,6 +2621,7 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     apiServerThrottlingTemplate,
     schedulerBacklogTemplate,
     highDiskUsageTemplate,
+    nodeImageDiskAlmostFullTemplate,
     pvcAlmostFullTemplate,
     daemonSetPodsNotReadyTemplate,
     daemonSetUnavailableTemplate,

@@ -15,6 +15,7 @@ import path from "path";
  * every journey to output/playwright/journeys-ui/ (Journeys/README.md).
  */
 const port: string = process.env["JOURNEYS_FIXTURE_PORT"] || "4831";
+const askAiPort: string = process.env["ASK_AI_JOURNEY_PORT"] || "4832";
 
 export default defineConfig({
   testDir: "./Journeys",
@@ -54,11 +55,25 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  webServer: {
-    command: "node Journeys/Fixture/server.js",
-    cwd: path.resolve(__dirname),
-    url: `http://127.0.0.1:${port}`,
-    timeout: 300000,
-    reuseExistingServer: !process.env["CI"],
-  },
+  webServer: [
+    {
+      command: "node Journeys/Fixture/server.js",
+      cwd: path.resolve(__dirname),
+      url: `http://127.0.0.1:${port}`,
+      timeout: 300000,
+      reuseExistingServer: !process.env["CI"],
+    },
+    /*
+     * Ask AI's offline fixture, for the journey that sets things up through
+     * Ask AI (#7251), on a port of its own beside the Ask AI suite's.
+     */
+    {
+      command: "node AskAi/Fixture/server.js",
+      cwd: path.resolve(__dirname),
+      url: `http://127.0.0.1:${askAiPort}`,
+      env: { ASK_AI_FIXTURE_PORT: askAiPort },
+      timeout: 300000,
+      reuseExistingServer: !process.env["CI"],
+    },
+  ],
 });

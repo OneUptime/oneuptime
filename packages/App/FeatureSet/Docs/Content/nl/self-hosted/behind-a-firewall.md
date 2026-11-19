@@ -44,7 +44,7 @@ Als de telefoons van de responders uw VPN niet kunnen gebruiken, publiceer dan d
 | --- | --- | --- |
 | GET | `/l/*` | De korte links in sms-, WhatsApp- en Telegram-berichten |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | De pagina die toont waarvoor is opgeroepen, met de knop **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | De knop **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | De knop **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Optioneel: de pagina die de oproep doorgeeft aan de volgende persoon |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Optioneel: de knop op die pagina |
 | GET | `/oneuptime-assets/*` | De lettertypen, stijlen en het logo van die pagina's |

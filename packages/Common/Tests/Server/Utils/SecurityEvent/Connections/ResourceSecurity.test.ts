@@ -42,6 +42,8 @@ import {
   RESOURCE_SECURITY_MAX_CASES,
   RESOURCE_SECURITY_WINDOW_IN_DAYS,
   ResourceSecurityJson,
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
 } from "../../../../../Types/SecurityCase/SecurityConnection";
@@ -359,13 +361,21 @@ describe("ResourceSecurity.read", () => {
     expect(riskSpy).not.toHaveBeenCalled();
   });
 
-  test("a serverless function, as a service is: by the events read from its logs", async () => {
+  /*
+   * A function's logs are filed under the service of its name (a Lambda
+   * layer names the service after it), so its own events are the ones
+   * carrying its faas.name, whatever service they are filed under (#9780).
+   */
+  test("a serverless function by the events read from its own logs and traces, by its faas.name", async () => {
     const functionRead: jest.SpyInstance = jest
       .spyOn(ServerlessFunctionService, "findOneBy")
       .mockResolvedValue({
         id: HOST_ID,
         name: "",
         functionIdentifier: "checkout-handler",
+        cloudProvider: "aws",
+        cloudPlatform: "aws_lambda",
+        cloudRegion: "us-east-1",
       } as never);
 
     const security: ResourceSecurityJson | null = await read(
@@ -373,18 +383,70 @@ describe("ResourceSecurity.read", () => {
     );
 
     expect(security?.name).toBe("checkout-handler");
+    // No account reported: no ARN is guessed.
     expect(security?.values).toEqual([]);
-    expect(security?.isSearchedByLogs).toBe(true);
+    expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.isReadFromOwnLogs).toBe(true);
     expect(security?.entity).toBeNull();
     expect(countSpy.mock.calls[0]![0]).toMatchObject({
       values: [],
-      logResourceId: HOST_ID,
+      attribute: {
+        key: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+        value: "checkout-handler",
+      },
     });
+    // Never by the service its lines are filed under.
+    expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
     expect(casesSpy).not.toHaveBeenCalled();
     expect(functionRead.mock.calls[0]![0]).toMatchObject({
       query: { projectId: PROJECT_ID, _id: HOST_ID.toString() },
+      select: {
+        functionIdentifier: true,
+        cloudProvider: true,
+        cloudPlatform: true,
+        cloudRegion: true,
+        cloudAccountId: true,
+      },
       props: CALLER,
     });
+  });
+
+  test("a Lambda function whose telemetry names its account: by its ARN too, in the case it was named in", async () => {
+    jest.spyOn(ServerlessFunctionService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "Checkout",
+      functionIdentifier: "Checkout-Handler",
+      cloudProvider: "aws",
+      cloudPlatform: "aws_lambda",
+      cloudRegion: "us-east-1",
+      cloudAccountId: "111122223333",
+    } as never);
+
+    const arn: string =
+      "arn:aws:lambda:us-east-1:111122223333:function:Checkout-Handler";
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.ServerlessFunction,
+    );
+
+    expect(security?.name).toBe("Checkout");
+    expect(security?.values).toEqual([arn]);
+    expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.isReadFromOwnLogs).toBe(true);
+    expect(security?.entity).toEqual({
+      type: SecurityEntityType.Other,
+      value: arn,
+    });
+    // An ARN is searched for as written: another casing is another function.
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: [arn],
+      attribute: {
+        key: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+        value: "Checkout-Handler",
+      },
+    });
+    // Its cases and risk are looked up by its ARN.
+    expect(casesSpy).toHaveBeenCalled();
+    expect(riskSpy).toHaveBeenCalled();
   });
 
   test("a monitor by the hosts it checks: its names, every public address it checks, never a private one", async () => {
@@ -512,16 +574,77 @@ describe("ResourceSecurity.read", () => {
       "203.0.113.50",
     ]);
     expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.isReadFromOwnLogs).toBe(true);
     expect(security?.entity).toEqual({
       type: SecurityEntityType.Host,
       value: "checkout-1234.us-east-1.elb.amazonaws.com",
     });
+    // And the events read from its own streamed logs, by its ID as its Logs page reads them (#9779).
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      attribute: {
+        key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+        value:
+          "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/checkout/1",
+      },
+    });
+    expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
     expect(resourceRead.mock.calls[0]![0]).toMatchObject({ props: CALLER });
 
     // Whose addresses they are is counted as OneUptime.
     for (const call of holders.mock.calls) {
       expect((call[0] as { props: unknown }).props).toEqual({ isRoot: true });
     }
+  });
+
+  test("a cloud resource's ARN is searched for as its cloud wrote it, never folded", async () => {
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "Orders",
+      providerResourceId:
+        "arn:aws:dynamodb:us-east-1:123456789012:table/Orders",
+    } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(security?.values).toEqual([
+      "arn:aws:dynamodb:us-east-1:123456789012:table/Orders",
+    ]);
+    // Another table differing by case alone is another table: only the ARN as written.
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: ["arn:aws:dynamodb:us-east-1:123456789012:table/Orders"],
+    });
+    expect(security?.entity).toEqual({
+      type: SecurityEntityType.Other,
+      value: "arn:aws:dynamodb:us-east-1:123456789012:table/Orders",
+    });
+  });
+
+  test("a cloud resource kept by a readable stand-in is read by its own logs alone: no event names the stand-in", async () => {
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "orders",
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+    } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(security?.values).toEqual([]);
+    expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.isReadFromOwnLogs).toBe(true);
+    expect(security?.entity).toBeNull();
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: [],
+      attribute: {
+        key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+        value: "AWS/AmazonMQ Broker=orders",
+      },
+    });
+    expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
+    expect(casesSpy).not.toHaveBeenCalled();
   });
 
   test("a cloud resource with no ID, name or address of its own is searched for by its logs", async () => {
@@ -547,17 +670,32 @@ describe("ResourceSecurity.read", () => {
 
   test("a project that does not use Security Events says how the record would have been searched", async () => {
     inUseSpy.mockResolvedValue(false);
+    jest.spyOn(ServiceService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "checkout",
+    } as never);
+
+    const service: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.Service,
+    );
+
+    expect(service?.isInUse).toBe(false);
+    expect(service?.isSearchedByLogs).toBe(true);
+    expect(service?.isReadFromOwnLogs).toBe(true);
+
     jest.spyOn(ServerlessFunctionService, "findOneBy").mockResolvedValue({
       id: HOST_ID,
       name: "checkout-handler",
+      functionIdentifier: "checkout-handler",
     } as never);
 
-    const security: ResourceSecurityJson | null = await read(
+    const serverlessFunction: ResourceSecurityJson | null = await read(
       SecurityConnectionKind.ServerlessFunction,
     );
 
-    expect(security?.isInUse).toBe(false);
-    expect(security?.isSearchedByLogs).toBe(true);
+    expect(serverlessFunction?.isInUse).toBe(false);
+    expect(serverlessFunction?.isSearchedByLogs).toBe(false);
+    expect(serverlessFunction?.isReadFromOwnLogs).toBe(true);
     expect(countSpy).not.toHaveBeenCalled();
   });
 

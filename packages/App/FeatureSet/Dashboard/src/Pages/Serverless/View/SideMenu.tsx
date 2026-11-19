@@ -11,6 +11,7 @@ import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction"
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { useResourceSecurityEventsMenu } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 export interface ComponentProps {
@@ -20,6 +21,9 @@ export interface ComponentProps {
 const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Security Events inside the function (#9780).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
+
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
@@ -79,6 +83,28 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Terminal}
         />
+        {/*
+         * The security events about this function, beside the logs they
+         * are often read from (#9780): read from its own logs and traces, or
+         * naming it. Only in a project that uses Security Events, for
+         * whoever may read them.
+         */}
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Traces",

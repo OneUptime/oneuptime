@@ -30,7 +30,7 @@ Your server needs a hostname of its own with an A record that points at it, such
 
 ![Home asks "What do you want to do first?", with "Tell my customers with a status page" ticked](screen:home-goal-status-page)
 
-On your project's **Home**, click **Publish a status page** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Tell my customers with a status page** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `status page` and choose **Publish a status page**.
+On your project's **Home**, click **Publish a status page** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Tell my customers with a status page** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `status page` and choose **Publish a status page**. Or click **Describe it instead**: Ask AI opens with the job written in its box, ready to send.
 
 **Status Pages** opens it too: click **Guided setup** on its empty list, or under **How it works** once the project has a status page.
 
