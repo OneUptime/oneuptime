@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Esper（注册此设备的设备管理服务）所掌握的此设备信息。",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "密钥中保存的内容。之后可在“更新密钥值”中连同新值一起更改。",
   "What to do in step {{number}}": "步骤 {{number}} 要做什么",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "此规则打开案例时要做的事。每个步骤都会显示在案例响应计划中你所选的部分下，位于通用步骤之前，并像其他步骤一样勾选完成。",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "此规则打开案例时要做的事：每个步骤都会显示在案例响应计划中你所选的部分下，位于通用步骤之前。",
   "Workflow Permissions Given By": "工作流权限授予者",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",

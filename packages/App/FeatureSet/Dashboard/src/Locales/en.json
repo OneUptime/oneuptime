@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "What Esper, the device management service that enrolls this device, knows about it.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "What the secret holds. Update Secret Value can change it later, together with a new value.",
   "What to do in step {{number}}": "What to do in step {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.",
   "Workflow Permissions Given By": "Workflow Permissions Given By",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",

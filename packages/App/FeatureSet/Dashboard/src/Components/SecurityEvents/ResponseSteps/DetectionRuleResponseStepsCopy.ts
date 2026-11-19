@@ -16,8 +16,9 @@ import {
 
 export const RESPONSE_STEPS_TITLE: string = translationKey("Response Steps");
 
+// One short sentence under the field (ShortDescriptionsGuard): at most 150 characters.
 export const RESPONSE_STEPS_DESCRIPTION: string = translationKey(
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.",
 );
 
 // While the rule has none of its own and its library rule comes with some.

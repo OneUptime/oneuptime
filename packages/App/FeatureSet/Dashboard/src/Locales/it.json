@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Ciò che ne sa Esper, il servizio di gestione dei dispositivi presso cui è registrato questo dispositivo.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Cosa contiene il segreto. «Aggiorna valore segreto» può cambiarlo in seguito, insieme a un nuovo valore.",
   "What to do in step {{number}}": "Cosa fare nel passaggio {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Cosa fare quando questa regola apre un caso. Ogni passaggio compare nel piano di risposta del caso, nella parte che scegli, prima dei passaggi generali, e si spunta come gli altri.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Cosa fare quando questa regola apre un caso: ogni passaggio compare nel piano di risposta del caso, nella parte che scegli, prima dei passaggi generali.",
   "Workflow Permissions Given By": "Autorizzazioni del flusso di lavoro concesse da",
   "Workflow Permissions Given by API Key ID": "ID della chiave API che ha concesso le autorizzazioni del flusso di lavoro",
   "Workflow Permissions Given by User ID": "ID dell'utente che ha concesso le autorizzazioni del flusso di lavoro",

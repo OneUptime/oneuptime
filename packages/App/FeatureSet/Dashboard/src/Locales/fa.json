@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "آنچه Esper، سرویس مدیریت دستگاهی که این دستگاه در آن ثبت‌نام شده است، درباره آن می‌داند.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "آنچه راز در خود نگه می‌دارد. بعداً می‌توان آن را با «به‌روزرسانی مقدار راز» همراه با یک مقدار تازه تغییر داد.",
   "What to do in step {{number}}": "کاری که در گام {{number}} باید کرد",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "کاری که وقتی این قاعده پرونده‌ای باز می‌کند باید کرد. هر گام در برنامهٔ پاسخ پرونده، زیر بخشی که انتخاب می‌کنید و پیش از گام‌های عمومی، نشان داده می‌شود و مانند هر گام دیگری تیک می‌خورد.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "کاری که وقتی این قاعده پرونده‌ای باز می‌کند باید کرد: هر گام در برنامهٔ پاسخ پرونده، زیر بخشی که انتخاب می‌کنید و پیش از گام‌های عمومی، نشان داده می‌شود.",
   "Workflow Permissions Given By": "دهنده دسترسی‌های گردش کاری",
   "Workflow Permissions Given by API Key ID": "شناسه کلید API دهنده دسترسی‌های گردش کاری",
   "Workflow Permissions Given by User ID": "شناسه کاربر دهنده دسترسی‌های گردش کاری",

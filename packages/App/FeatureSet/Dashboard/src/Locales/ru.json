@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Что знает об этом устройстве Esper — служба управления устройствами, в которой оно зарегистрировано.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Что хранит секрет. Кнопка «Обновить значение секрета» позволяет изменить его позже вместе с новым значением.",
   "What to do in step {{number}}": "Что сделать на шаге {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Что делать, когда это правило открывает кейс. Каждый шаг показывается в плане реагирования кейса в выбранной вами части, перед общими шагами, и отмечается как любой другой.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Что делать, когда это правило открывает кейс: каждый шаг показывается в плане реагирования кейса в выбранной вами части, перед общими шагами.",
   "Workflow Permissions Given By": "Права доступа рабочего процесса выдал",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",

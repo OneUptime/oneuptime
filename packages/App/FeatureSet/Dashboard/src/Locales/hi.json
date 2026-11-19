@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Esper, यानी इस डिवाइस को नामांकित करने वाली डिवाइस प्रबंधन सेवा, इसके बारे में क्या जानती है।",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "सीक्रेट में क्या रखा जाता है। बाद में \"सीक्रेट मान अपडेट करें\" से इसे नए मान के साथ बदला जा सकता है।",
   "What to do in step {{number}}": "चरण {{number}} में क्या करना है",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "जब यह नियम कोई केस खोले, तब क्या करना है। हर चरण केस की प्रतिक्रिया योजना में आपके चुने हिस्से के नीचे, सामान्य चरणों से पहले दिखता है, और दूसरे चरणों की तरह ही टिक किया जाता है।",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "जब यह नियम कोई केस खोले, तब क्या करना है: हर चरण केस की प्रतिक्रिया योजना में आपके चुने हिस्से के नीचे, सामान्य चरणों से पहले दिखता है।",
   "Workflow Permissions Given By": "वर्कफ़्लो की अनुमतियाँ देने वाला",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",

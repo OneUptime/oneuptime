@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "Vad Esper, tjänsten för enhetshantering som registrerar den här enheten, vet om den.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "Vad hemligheten innehåller. ”Uppdatera hemligt värde” kan ändra den senare, tillsammans med ett nytt värde.",
   "What to do in step {{number}}": "Vad som ska göras i steg {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "Vad som ska göras när den här regeln öppnar ett ärende. Varje steg visas i ärendets responsplan under den del du väljer, före de allmänna stegen, och bockas av som alla andra.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "Vad som ska göras när den här regeln öppnar ett ärende: varje steg visas i ärendets responsplan under den del du väljer, före de allmänna stegen.",
   "Workflow Permissions Given By": "Arbetsflödets behörigheter givna av",
   "Workflow Permissions Given by API Key ID": "Workflow Permissions Given by API Key ID",
   "Workflow Permissions Given by User ID": "Workflow Permissions Given by User ID",

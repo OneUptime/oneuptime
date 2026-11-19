@@ -58202,7 +58202,7 @@
   "What Esper, the device management service that enrolls this device, knows about it.": "ما يعرفه Esper عن هذا الجهاز، وهو خدمة إدارة الأجهزة التي تسجّله.",
   "What the secret holds. Update Secret Value can change it later, together with a new value.": "ما يحويه السر. يمكن تغييره لاحقًا من «تحديث قيمة السر» مع قيمة جديدة.",
   "What to do in step {{number}}": "ما يجب فعله في الخطوة {{number}}",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps, and is ticked off like any other.": "ما يجب فعله عندما تفتح هذه القاعدة حالة. تظهر كل خطوة في خطة الاستجابة للحالة تحت الجزء الذي تختاره، قبل الخطوات العامة، وتُعلَّم كمنجزة مثل أي خطوة أخرى.",
+  "What to do when this rule opens a case: each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "ما يجب فعله عندما تفتح هذه القاعدة حالة: تظهر كل خطوة في خطة الاستجابة للحالة تحت الجزء الذي تختاره، قبل الخطوات العامة.",
   "Workflow Permissions Given By": "مانح أذونات سير العمل",
   "Workflow Permissions Given by API Key ID": "معرّف مفتاح API الذي منح أذونات سير العمل",
   "Workflow Permissions Given by User ID": "معرّف المستخدم الذي منح أذونات سير العمل",
