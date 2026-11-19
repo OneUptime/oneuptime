@@ -293,6 +293,13 @@ test.describe("Monitor template field sync settings", () => {
       .click();
     const createForm: Locator = page.locator("#create-monitor-form");
     await expect(createForm).toBeVisible({ timeout: 30000 });
+    /*
+     * What to Monitor asks where to check with the type (ee4da51c7e2): the
+     * template's address is there, before the name.
+     */
+    await expect(createForm.getByTestId("monitor-address-input")).toHaveValue(
+      URL.fromString("https://template-default.example.com").toString(),
+    );
     await createForm
       .getByPlaceholder("Monitor Name")
       .fill("New API from defaults");
@@ -311,8 +318,12 @@ test.describe("Monitor template field sync settings", () => {
       .getByText("Criteria", { exact: true })
       .first()
       .waitFor({ state: "visible", timeout: 60000 });
-    await expect(createForm.getByRole("textbox").first()).toHaveValue(
-      URL.fromString("https://template-default.example.com").toString(),
+    /*
+     * Criteria says the address it checks, as a sentence leaves out a bare
+     * "/" path; the template's headers are under its More fields.
+     */
+    await expect(createForm.getByTestId("monitor-target-address")).toHaveText(
+      "Checks https://template-default.example.com.",
     );
     await expect(
       createForm.getByPlaceholder("Header Name").first(),
