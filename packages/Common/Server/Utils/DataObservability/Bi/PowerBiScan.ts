@@ -9,7 +9,7 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import { getBiDatabaseSource, uniqueSources } from "./BiSources";
 import { BiTableRef, uniqueTables } from "./BiTables";
-import { readPowerQueryDataset, PowerQueryRead } from "./PowerQuery";
+import { hostOfUrl, readPowerQueryDataset, PowerQueryRead } from "./PowerQuery";
 
 /*
  * WHAT POWER BI'S WORKSPACE SCAN SAYS: EACH DATASET'S TABLES AND DATA
@@ -173,9 +173,20 @@ const EXTENSION_ENGINES: Readonly<Record<string, string>> = {
   databricksmulticloud: "databricks",
   amazonredshift: "redshift",
   amazonathena: "athena",
+  // Dataverse's connector (data source kind CommonDataService) and Common Data Service (Legacy)'s (Cds).
   commondataservice: "dataverse",
   dataverse: "dataverse",
+  cds: "dataverse",
 };
+
+/*
+ * A Dataverse environment by its host alone - contoso.crm.dynamics.com -
+ * however the data source writes it: a URL (Cds.Entities'), or a host with
+ * the SQL endpoint's port (CommonDataService.Database's "org...,5558").
+ */
+function dataverseHost(value: string | null): string | null {
+  return hostOfUrl((value || "").split(",")[0] || null);
+}
 
 /*
  * A data source of the scan (datasourceInstances): a database by its
@@ -232,6 +243,14 @@ export function readPowerBiDatasource(value: unknown): DataBiSource | null {
       if (engine) {
         const [host, second] = rawPath.split(";");
 
+        if (engine === "dataverse") {
+          return database(
+            engine,
+            dataverseHost(readText(host) || readText(details["url"], 2_000)),
+            null,
+          );
+        }
+
         return database(
           engine,
           // BigQuery's path is a billing project, not a server.
@@ -284,7 +303,12 @@ export function readPowerBiDatasource(value: unknown): DataBiSource | null {
       );
     case "commondataservice":
     case "dataverse":
-      return database("dataverse", server || url, null);
+    case "cds":
+      return database(
+        "dataverse",
+        dataverseHost(server || readText(details["url"], 2_000)),
+        null,
+      );
     default:
       return elsewhere(type, url || path);
   }

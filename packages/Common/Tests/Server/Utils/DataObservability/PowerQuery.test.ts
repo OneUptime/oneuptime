@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   BiTableRef,
+  getBiTableKey,
   getBiTableName,
   readQualifiedName,
   readSqlTables,
@@ -300,6 +301,152 @@ describe("each connector Power BI Desktop writes", () => {
       engine: "dataverse",
       host: "acme.crm.dynamics.com",
     });
+  });
+});
+
+/*
+ * Power BI on Dynamics 365 and Power Apps often reads Dataverse through
+ * its OData connectors (#9554), which pick a table by its entity set -
+ * accounts - not by the logical name OneUptime keeps it under. They read
+ * as Dataverse, at the environment URL's host, each table marked as an
+ * entity set, so it is matched through the environment's own names.
+ */
+describe("Dataverse's OData connectors", () => {
+  // Microsoft's own example, from Dynamics 365 Human Resources' guide to its virtual tables in Power BI.
+  const MICROSOFT_EXAMPLE: string = `let
+  Source = Cds.Entities("https://contoso.crm.dynamics.com/", [ReorderColumns=null, UseFormattedValue=null]),
+  entities = Source{[Group="entities"]}[Data],
+  mshr_hcmworkerbaseentities = entities{[EntitySetName="mshr_hcmworkerbaseentities"]}[Data],
+  selectedWorkerBaseEntityColumns=Table.SelectColumns(mshr_hcmworkerbaseentities,{"mshr_name","mshr_partynumber", "mshr_professionaltitle","mshr_birthdate"})
+in
+  selectedWorkerBaseEntityColumns`;
+
+  test("Common Data Service (Legacy): the entity set, at the environment URL's host", () => {
+    expect(readPowerQuery(MICROSOFT_EXAMPLE)).toEqual({
+      tables: [
+        {
+          database: null,
+          schema: null,
+          table: "mshr_hcmworkerbaseentities",
+          engine: "dataverse",
+          host: "contoso.crm.dynamics.com",
+          isEntitySet: true,
+        },
+      ],
+      sources: [
+        {
+          engine: "dataverse",
+          host: "contoso.crm.dynamics.com",
+          database: null,
+        },
+      ],
+    });
+  });
+
+  test("Dataverse.Contents, its URL a parameter, and each entity set a dataset's tables read", () => {
+    const read: ReturnType<typeof readPowerQueryDataset> =
+      readPowerQueryDataset({
+        tables: [
+          {
+            name: "Accounts",
+            sources: [
+              'let Source = Dataverse.Contents(EnvironmentUrl), entities = Source{[Group="entities"]}[Data], accounts = entities{[EntitySetName="accounts"]}[Data], #"Removed Columns" = Table.RemoveColumns(accounts, {"address1_line3"}) in #"Removed Columns"',
+            ],
+          },
+          {
+            name: "Opportunities",
+            sources: [
+              'let Source = Dataverse.Contents(EnvironmentUrl), opportunities = Source{[Group="entities"]}[Data]{[EntitySetName="opportunities"]}[Data] in opportunities',
+            ],
+          },
+        ],
+        expressions: [
+          {
+            name: "EnvironmentUrl",
+            expression:
+              '"https://fabrikam.crm4.dynamics.com" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]',
+          },
+        ],
+      });
+
+    expect(
+      read.tables.map((ref: BiTableRef): string => {
+        return `${ref.table} @ ${ref.host} (${ref.isEntitySet ? "entity set" : "logical name"})`;
+      }),
+    ).toEqual([
+      "accounts @ fabrikam.crm4.dynamics.com (entity set)",
+      "opportunities @ fabrikam.crm4.dynamics.com (entity set)",
+    ]);
+  });
+
+  test("an environment written without its scheme is still its host", () => {
+    expect(
+      readPowerQueryTables(
+        'let Source = Cds.Entities("contoso.crm.dynamics.com"), contacts = Source{[Group="entities"]}[Data]{[EntitySetName="contacts"]}[Data] in contacts',
+      )[0],
+    ).toMatchObject({
+      table: "contacts",
+      host: "contoso.crm.dynamics.com",
+      isEntitySet: true,
+    });
+  });
+
+  test("only an entity set picks a table: a group, or a name with no meaning known, picks none", () => {
+    expect(
+      readPowerQueryTables(
+        'let Source = Cds.Entities("https://contoso.crm.dynamics.com/"), entities = Source{[Group="entities"]}[Data] in entities',
+      ),
+    ).toEqual([]);
+    expect(
+      readPowerQueryTables(
+        'let Source = Dataverse.Contents("https://contoso.crm.dynamics.com/"), x = Source{[Name="account"]}[Data] in x',
+      ),
+    ).toEqual([]);
+  });
+
+  test("a schema and a table in one step names the logical name, as the SQL connector does", () => {
+    expect(
+      readPowerQueryTables(
+        'let Source = Dataverse.Contents("https://contoso.crm.dynamics.com"), dbo_account = Source{[Schema="dbo",Item="account"]}[Data] in dbo_account',
+      ),
+    ).toEqual([
+      {
+        database: null,
+        schema: "dbo",
+        table: "account",
+        engine: "dataverse",
+        host: "contoso.crm.dynamics.com",
+      },
+    ]);
+  });
+
+  test("another Cds or Dataverse function is no database, and navigation after it is not read", () => {
+    expect(
+      readPowerQueryTables(
+        'let Source = Cds.Entities("https://contoso.crm.dynamics.com/"), Other = Cds.Metadata("https://contoso.crm.dynamics.com/"), x = Other{[EntitySetName="accounts"]}[Data] in x',
+      ),
+    ).toEqual([]);
+  });
+
+  test("an entity set keys apart from a table of the same letters", () => {
+    expect(
+      getBiTableKey({
+        database: null,
+        schema: null,
+        table: "accounts",
+        engine: "dataverse",
+        host: null,
+        isEntitySet: true,
+      }),
+    ).not.toBe(
+      getBiTableKey({
+        database: null,
+        schema: null,
+        table: "accounts",
+        engine: null,
+        host: null,
+      }),
+    );
   });
 });
 

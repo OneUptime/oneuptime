@@ -290,6 +290,49 @@ describe("a data source, as the scan describes it", () => {
     });
   });
 
+  test("a Dataverse environment by its host alone, however its connector writes it (#9554)", () => {
+    const contoso: DataBiSource = {
+      type: "Microsoft Dataverse",
+      engine: "dataverse",
+      server: "contoso.crm.dynamics.com",
+      database: null,
+      location: null,
+    };
+
+    // Common Data Service (Legacy), whose data source kind is Cds, as an extension or as its own type.
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "Extension",
+        connectionDetails: {
+          kind: "Cds",
+          path: "https://contoso.crm.dynamics.com/",
+        },
+      }),
+    ).toEqual(contoso);
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "Cds",
+        connectionDetails: { url: "https://contoso.crm.dynamics.com/" },
+      }),
+    ).toEqual(contoso);
+    // The Dataverse connector's SQL endpoint, on the port it falls back to.
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "CommonDataService",
+        connectionDetails: { server: "contoso.crm.dynamics.com,5558" },
+      }),
+    ).toEqual(contoso);
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "Extension",
+        connectionDetails: {
+          kind: "CommonDataService",
+          path: "contoso.crm.dynamics.com",
+        },
+      }),
+    ).toEqual(contoso);
+  });
+
   test("files, SharePoint, web pages and feeds by where they are", () => {
     expect(
       sourceNames(

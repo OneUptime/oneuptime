@@ -24,6 +24,14 @@ import {
  *    database, [Query="SELECT ..."])), Value.NativeQuery(source, "SELECT
  *    ..."), or Odbc.Query.
  *
+ * Dataverse is read through its SQL connector (CommonDataService.Database,
+ * whose navigation names a table's logical name in the dbo schema) and its
+ * OData ones: Cds.Entities(url) - Microsoft's own example navigates
+ * Source{[Group="entities"]}[Data], then {[EntitySetName="accounts"]}[Data]
+ * - and Dataverse.Contents(url). Their host is the environment URL's, and
+ * their table an entity set (BiTableRef.isEntitySet), matched through the
+ * environment's own entity set names (BiMatching).
+ *
  * A dataset's shared expressions are read too: a parameter's value stands
  * wherever it is named (Sql.Database(ServerName, DatabaseName)), and a
  * staging query a table reads from (Source = #"Staging Orders") is read as
@@ -47,6 +55,12 @@ interface PowerQueryConnector {
   navigatesDatabases: boolean;
   // The database Power Query navigates is not one OneUptime names (Athena's data catalog).
   keepsDatabase: boolean;
+  /*
+   * Dataverse's OData connectors: the host argument is the environment's
+   * URL (https://org.crm.dynamics.com/), and a table is picked by its
+   * entity set ({[EntitySetName="accounts"]}) after a group step.
+   */
+  readsEntitySets: boolean;
 }
 
 function connector(
@@ -60,7 +74,27 @@ function connector(
       data.databaseArgument === undefined ? null : data.databaseArgument,
     navigatesDatabases: data.navigatesDatabases || false,
     keepsDatabase: data.keepsDatabase === undefined ? true : data.keepsDatabase,
+    readsEntitySets: data.readsEntitySets || false,
   };
+}
+
+const URL_SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+
+// An environment's URL as its host: https://org.crm.dynamics.com/ is org.crm.dynamics.com.
+export function hostOfUrl(value: string | null): string | null {
+  const text: string = (value || "").trim();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return (
+      new URL(URL_SCHEME.test(text) ? text : `https://${text}`).hostname || null
+    );
+  } catch {
+    return null;
+  }
 }
 
 // By function name, in lower case.
@@ -97,6 +131,10 @@ const CONNECTORS: ReadonlyMap<string, PowerQueryConnector> = new Map([
     connector("athena", { navigatesDatabases: true, keepsDatabase: false }),
   ],
   ["commondataservice.database", connector("dataverse")],
+  // Dataverse's OData connectors: Common Data Service (Legacy), and Dataverse.Contents.
+  ["cds.entities", connector("dataverse", { readsEntitySets: true })],
+  ["cds.contents", connector("dataverse", { readsEntitySets: true })],
+  ["dataverse.contents", connector("dataverse", { readsEntitySets: true })],
   ["teradata.database", connector("teradata")],
   ["db2.database", connector("db2", { databaseArgument: 1 })],
   ["sybase.database", connector("sybase", { databaseArgument: 1 })],
@@ -740,7 +778,9 @@ class PowerQueryReader {
     };
     const navigation: Navigation = {
       connector: found,
-      host: argument(found.hostArgument),
+      host: found.readsEntitySets
+        ? cut(hostOfUrl(argument(found.hostArgument)))
+        : argument(found.hostArgument),
       database: argument(found.databaseArgument),
       schema: null,
     };
@@ -819,6 +859,27 @@ class PowerQueryReader {
     // SQL Server, PostgreSQL, MySQL, Oracle, Teradata: the schema and the table in one step.
     if (schema && item) {
       this.tables.push(tableOf({ ...navigation, schema }, item));
+      return;
+    }
+
+    /*
+     * Dataverse's OData connectors pick a table by its entity set; any
+     * other step - its group ({[Group="entities"]}) - picks none.
+     */
+    if (navigation.connector.readsEntitySets) {
+      const entitySet: string | null = cut(fields.get("entitysetname") || null);
+
+      if (entitySet) {
+        this.tables.push({
+          database: null,
+          schema: null,
+          table: entitySet,
+          engine: navigation.connector.engine,
+          host: cut(navigation.host),
+          isEntitySet: true,
+        });
+      }
+
       return;
     }
 

@@ -110,6 +110,12 @@ export interface BiToolRead {
    * many datasets read it and the tables read from it; left out otherwise.
    */
   sources?: Array<BiSourceRead> | undefined;
+  /*
+   * What the reader keeps so its next read reads less (Power BI: each
+   * workspace's scan, its dataflows' definitions); left out by a tool
+   * that keeps nothing.
+   */
+  readState?: JSONObject | undefined;
 }
 
 export type BiTransport = (
@@ -122,6 +128,13 @@ export interface BiReadInput {
   transport?: BiTransport | undefined;
   // The hours of views read already (Power BI): the read goes on from them.
   usageCursor?: PowerBiUsageCursor | undefined;
+  // What the last read kept (Power BI's workspaces and dataflows): this one reads less for it.
+  readState?: JSONObject | null | undefined;
+  /*
+   * The hourly read, not one someone asked for: it scans the whole tenant
+   * when that is due, and waits longer for a slow scan.
+   */
+  isScheduled?: boolean | undefined;
   now?: Date | undefined;
 }
 
