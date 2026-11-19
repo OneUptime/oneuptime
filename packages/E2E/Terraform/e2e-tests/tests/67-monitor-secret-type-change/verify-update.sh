@@ -1,5 +1,5 @@
 #!/bin/bash
-# Post-update verify script for 66-monitor-secret-type-change
+# Post-update verify script for 67-monitor-secret-type-change
 #
 # update.tf changed the secret's type to TOTP together with a new value, the
 # way OneUptime changes a type (#9760). It must be the same secret - the ID

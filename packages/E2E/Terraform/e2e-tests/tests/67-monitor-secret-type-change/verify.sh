@@ -1,5 +1,5 @@
 #!/bin/bash
-# Verify script for 66-monitor-secret-type-change
+# Verify script for 67-monitor-secret-type-change
 #
 # The secret was created as Text. Records its ID, so verify-update.sh can
 # tell that update.tf changed its type in place rather than replacing it.
