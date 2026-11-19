@@ -783,9 +783,9 @@ jobs:
       # the person. Reads the migrated keys, then clones the on-call history
       # tables and what they name into an isolated schema, with their keys:
       # real deletes keep every row, a policy still takes its runs, a run
-      # paging on a deleted level moves on to the level that moved up into
-      # its place, and OnlineDdl.replaceForeignKey swaps a key on a real
-      # table and is a no-op once done.
+      # paging on a deleted level moves on to the first level after its
+      # place, and OnlineDdl.replaceForeignKey swaps a key on a real table
+      # and is a no-op once done.
       - name: Test on-call history kept when what it names is deleted, on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -797,6 +797,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallHistoryKeptPostgres.test.ts --forceExit
+
+      # A move in a numbered list (issue #9573) - escalation rules, schedule
+      # layers and their people, status page groups and resources - on the
+      # real tables: the list named by its columns numbered 1..n in its new
+      # order, only the rows whose number changes written, no row of another
+      # list or a deleted one touched; a move that reads the list while
+      # another holds it waits for it; a write of one row waits for a move,
+      # then stands. Clones the five tables into an isolated schema.
+      - name: Test moves in numbered lists on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CONTIGUOUS_ORDER_TESTS: "true"
+          CONTIGUOUS_ORDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CONTIGUOUS_ORDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CONTIGUOUS_ORDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Database/ContiguousOrderMovePostgres.test.ts --forceExit
 
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is

@@ -236,7 +236,7 @@ beforeEach(() => {
     .mockImplementation((): void => {});
 
   // Also keeps the real logout from wiping storage or POSTing /logout.
-  dashboardLogoutSpy = jest.spyOn(User, "logout").mockResolvedValue(undefined);
+  dashboardLogoutSpy = jest.spyOn(User, "logout").mockResolvedValue(null);
 
   // Navigation.getCurrentRoute needs a router; the viewer is on the dashboard.
   jest.spyOn(Navigation, "getCurrentRoute").mockReturnValue(new Route("/"));

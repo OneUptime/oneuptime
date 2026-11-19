@@ -39,6 +39,10 @@ import DataCategory from "../../../../Types/DataSecurity/DataCategory";
 import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import {
+  FindingSampleRecord,
+  MAX_FINDING_SAMPLE_RECORDS,
+} from "../../../../Types/DataSecurity/FindingSampleRecord";
+import {
   classifyField,
   FieldClassification,
 } from "../../../../Utils/DataSecurity/FieldClassifier";
@@ -1468,5 +1472,130 @@ describe("recordContentScan: a person's confirmation, and a detector after a sug
     expect(suggested.aiReason).toBeNull();
     expect(suggested.matchCount).toBe(18);
     expect(suggested.confidence).toBe(DataConfidence.High);
+  });
+});
+
+/*
+ * The records a telemetry finding was found in (issue #9549): a telemetry
+ * scan says, by location and data type, which records of its sample held
+ * the data, and the finding keeps them, so its page reads them again.
+ */
+describe("recordContentScan: the records a telemetry finding was found in", () => {
+  const FIRST: FindingSampleRecord = {
+    time: "2026-10-27T11:59:58.123Z",
+    traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+    spanId: "00f067aa0ba902b7",
+  };
+  const SECOND: FindingSampleRecord = { time: "2026-10-27T11:41:00.000Z" };
+
+  function telemetryLocation(
+    records: Record<string, Array<FindingSampleRecord>>,
+  ): LocationFindings {
+    return {
+      location: "body",
+      locationKind: DataStoreLocationKind.Body,
+      classifications: [
+        classification("email-address"),
+        classification("ip-address"),
+      ],
+      sampleRecords: records,
+    };
+  }
+
+  test("a new finding keeps the records its data type was found in", async () => {
+    await record({
+      kind: DataSecurityScanKind.Telemetry,
+      result: resultOf({
+        locations: [
+          telemetryLocation({
+            "email-address": [FIRST, SECOND],
+            "ip-address": [SECOND],
+          }),
+        ],
+      }),
+    });
+
+    expect(findingAt("email-address", "body").sampleRecords).toEqual([
+      FIRST,
+      SECOND,
+    ]);
+    expect(findingAt("ip-address", "body").sampleRecords).toEqual([SECOND]);
+  });
+
+  test("a scan that sees it again keeps its own records in place of the last one's", async () => {
+    const seen: DataStoreFinding = existingFinding("email-address", "body", {
+      sampleRecords: [SECOND],
+    });
+
+    await record({
+      kind: DataSecurityScanKind.Telemetry,
+      result: resultOf({
+        locations: [telemetryLocation({ "email-address": [FIRST] })],
+      }),
+    });
+
+    expect(seen.sampleRecords).toEqual([FIRST]);
+    // A type the scan found with no record of it keeps none, rather than old ones.
+    expect(findingAt("ip-address", "body").sampleRecords).toEqual([]);
+  });
+
+  test("any other scan leaves a finding's records as they are", async () => {
+    const seen: DataStoreFinding = existingFinding(
+      "email-address",
+      "public.users.email",
+      { sampleRecords: [FIRST] },
+    );
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.users.email", [classification("email-address")]),
+        ],
+      }),
+    });
+
+    expect(seen.sampleRecords).toEqual([FIRST]);
+
+    for (const call of updateSpy.mock.calls) {
+      expect(
+        Object.keys((call[0] as { data: JSONObject }).data).includes(
+          "sampleRecords",
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("what is kept is read as records: no value, the same record once, ten at most", async () => {
+    const many: Array<FindingSampleRecord> = [];
+
+    for (let index: number = 0; index < 14; index++) {
+      many.push({ time: new Date(NOW.getTime() - index * 1000).toISOString() });
+    }
+
+    await record({
+      kind: DataSecurityScanKind.Telemetry,
+      result: resultOf({
+        locations: [
+          telemetryLocation({
+            "email-address": [
+              FIRST,
+              FIRST,
+              {
+                ...SECOND,
+                value: "jane.doe@acme-corp.com",
+              } as unknown as FindingSampleRecord,
+              ...many,
+            ],
+          }),
+        ],
+      }),
+    });
+
+    const kept: Array<FindingSampleRecord> =
+      findingAt("email-address", "body").sampleRecords || [];
+
+    expect(kept.length).toBe(MAX_FINDING_SAMPLE_RECORDS);
+    expect(kept.slice(0, 2)).toEqual([FIRST, SECOND]);
+    expect(JSON.stringify(kept)).not.toContain("jane.doe");
   });
 });

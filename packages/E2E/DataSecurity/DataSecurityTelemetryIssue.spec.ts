@@ -11,16 +11,19 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A TELEMETRY ISSUE SAYS WHAT IT FOUND, WHERE, AND THE RECORDS IT WAS IN
- * (issue #5594), walked in a browser against the offline fixture
+ * (issues #5594 and #9549), walked in a browser against the offline fixture
  * (Fixture/Fixture.js): "Sensitive data is reaching your telemetry" on the
- * checkout service's logs, with an email address and an IP address no
- * scrub rule masks and a phone number one already does.
+ * checkout service's logs, with email addresses in its log lines and IP
+ * addresses in an attribute no scrub rule masks, and a phone number one
+ * already does.
  *
  * Its page names the data types in the evidence, lists each finding under
- * Where It Was Found with where it sits and its masked samples, opens the
- * newest log lines that carry it - each leading to the logs explorer and
- * the trace - and scrubs it from there. A Security Viewer sees what was
- * found and where, never a sample or a record.
+ * Where It Was Found with where it sits, opens the log lines the last scan
+ * found it in - each line shown with the data marked and anything else
+ * sensitive masked, its service and time, leading to the logs explorer and
+ * the trace - shows a folded finding's masked samples, says when records
+ * are no longer kept, and scrubs it from there. A Security Viewer sees what
+ * was found and where, never a sample or a record.
  *
  * Every test pins the clock, fences the network to the fixture server and
  * fails on an uncaught page error or a request the fixture does not model,
@@ -172,7 +175,7 @@ async function occurrenceRequests(page: Page): Promise<Array<string>> {
 }
 
 test.describe("a telemetry issue's page", () => {
-  test("names the data types, lists where each sits, and opens the newest records that carry it", async ({
+  test("names the data types, lists where each sits, and shows the log lines it was found in, the data highlighted and masked", async ({
     page,
   }: {
     page: Page;
@@ -194,7 +197,7 @@ test.describe("a telemetry issue's page", () => {
       findings(page).getByTestId("data-security-issue-finding-location"),
     ).toHaveText([
       "attributes.http.client_ip",
-      "attributes.user.email",
+      "body",
       "attributes.user.phone",
     ]);
 
@@ -204,8 +207,15 @@ test.describe("a telemetry issue's page", () => {
 
     await expect(ip.getByText("50 of 50 sampled values matched")).toBeVisible();
     await expect(
+      email.getByText("18 of 384 sampled values matched"),
+    ).toBeVisible();
+    // Folded, a finding shows its masked samples; open, its records instead.
+    await expect(
+      email.getByTestId("data-security-issue-finding-sample"),
+    ).toHaveText(["k***@a*************.example", "j***@a********.com"]);
+    await expect(
       ip.getByTestId("data-security-issue-finding-sample"),
-    ).toHaveText(["81.***.***.***", "2a01:***:***:***"]);
+    ).toHaveCount(0);
     await expect(phone.getByText("Scrubbed")).toBeVisible();
     await expect(
       phone.getByTestId("data-security-issue-finding-scrub"),
@@ -220,14 +230,28 @@ test.describe("a telemetry issue's page", () => {
       new RegExp(`/${CHECKOUT_SERVICE}/logs$`),
     );
 
-    // The first finding's records open with the page: one log line.
+    // The first finding's records open with the page: one log line, its attribute named.
     await expect(records(ip)).toHaveCount(1);
     await expect(
       records(ip).getByTestId("data-security-finding-occurrence-value"),
     ).toHaveText("81.***.***.***");
+    await expect(
+      records(ip).getByTestId("data-security-finding-occurrence-excerpt"),
+    ).toHaveText("http.client_ip: 81.***.***.***");
+    // Each record says which service sent it, and when.
+    await expect(
+      records(ip).getByTestId("data-security-finding-occurrence-service"),
+    ).toContainText("checkout");
+    await expect(
+      records(ip).getByTestId("data-security-finding-occurrence-time"),
+    ).toHaveText("40 minutes ago");
     expect(await occurrenceRequests(page)).toEqual([IP_FINDING]);
 
-    // Another finding's, when asked: three log lines, two in a trace.
+    /*
+     * Another finding's, when asked: the log lines themselves (#9549), the
+     * address marked, a card number beside it masked - the first three, the
+     * rest a click away.
+     */
     await email
       .getByTestId("data-security-issue-finding-records-toggle")
       .click();
@@ -240,6 +264,43 @@ test.describe("a telemetry issue's page", () => {
       "j***@a********.com",
       "m***@b******.io",
     ]);
+    await expect(
+      records(email).getByTestId("data-security-finding-occurrence-excerpt"),
+    ).toHaveText([
+      "Sent order receipt to k***@a*************.example for order 4417 (3 items)",
+      "Payment declined for j***@a********.com with card **** **** **** 0609, retrying in 30 s…",
+      "Newsletter sign-up from m***@b******.io",
+    ]);
+    await expect(
+      records(email)
+        .nth(1)
+        .getByTestId("data-security-finding-occurrence-masked"),
+    ).toHaveText("**** **** **** 0609");
+    await expect(
+      records(email)
+        .nth(1)
+        .getByTestId("data-security-finding-occurrence-severity"),
+    ).toHaveText("Warning");
+    // Folded open, the samples give way to the lines.
+    await expect(
+      email.getByTestId("data-security-issue-finding-sample"),
+    ).toHaveCount(0);
+    await expect(
+      email.getByText(
+        "The records the last scan found it in. Values are masked: open a record to see it in full.",
+      ),
+    ).toBeVisible();
+
+    const more: Locator = email.getByTestId(
+      "data-security-finding-occurrences-more",
+    );
+
+    await expect(more).toHaveText("Show 2 more records");
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    await more.click();
+    await expect(records(email)).toHaveCount(5);
+    await expect(more).toHaveText("Show fewer records");
+    await expect(more).toHaveAttribute("aria-expanded", "true");
 
     const inATrace: Locator = records(email).nth(0);
     const trace: string =
@@ -283,6 +344,27 @@ test.describe("a telemetry issue's page", () => {
     }
 
     await screenshot(page, "telemetry-issue-1280");
+  });
+
+  test("a finding whose records are no longer kept says so, and still shows what was found", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+
+    const phone: Locator = findings(page).nth(2);
+
+    await phone
+      .getByTestId("data-security-issue-finding-records-toggle")
+      .click();
+    await expect(
+      phone.getByTestId("data-security-finding-occurrences-none"),
+    ).toHaveText("The records it was found in 2 days ago are no longer kept.");
+    await expect(
+      phone.getByTestId("data-security-issue-finding-sample"),
+    ).toHaveText(["+44 **** ***901"]);
+    await expect(records(phone)).toHaveCount(0);
   });
 
   test("Scrub It asks first, makes the rule, says which, and the finding reads Scrubbed", async ({
@@ -382,6 +464,13 @@ test.describe("a telemetry issue's page", () => {
         .getByText("50 von 50 Stichprobenwerten stimmten überein"),
     ).toBeVisible();
     await expect(records(findings(page).nth(0))).toHaveCount(1);
+    await expect(
+      findings(page)
+        .nth(0)
+        .getByText(
+          "Die Einträge, in denen der letzte Scan die Daten gefunden hat. Die Werte sind maskiert: Öffnen Sie einen Eintrag, um ihn vollständig zu sehen.",
+        ),
+    ).toBeVisible();
     await screenshot(page, "telemetry-issue-german-1280");
 
     await open(page, { lang: "fa", width: 390 });

@@ -575,42 +575,55 @@ describe("the parent picker", () => {
 
 describe("reordering a group", () => {
   /*
-   * `order` is one flat sequence across the whole status page and the service
-   * renumbers everything between the two rows on every write. Inventing an
-   * order here rather than targeting the neighbour's would reshuffle groups
-   * nobody touched.
+   * `order` is one flat sequence across the whole status page. A move takes
+   * the neighbouring sibling's place and the service steps everything
+   * between the two aside; inventing a position here rather than naming the
+   * neighbour would reshuffle groups nobody touched.
    */
-  test("targets the neighbouring sibling's order, worked out by the shared util", () => {
+  test("takes the neighbouring sibling's place, worked out by the shared util", () => {
     const move: string = between(
       "const moveGroup: MoveGroupFunction",
       "const deleteGroup:",
     );
 
     expect(move).toContain(
-      "StatusPageGroupHierarchyViewUtil.getReorderTargetOrder(",
+      "StatusPageGroupHierarchyViewUtil.getReorderTargetId(",
     );
     expect(move).toContain("direction: direction,");
   });
 
-  test("writes nothing at all when there is no neighbour that way", () => {
+  test("moves nothing at all when there is no neighbour that way", () => {
     expect(
       between("const moveGroup: MoveGroupFunction", "setBusyGroupId("),
-    ).toContain("if (targetOrder === null) { return; }");
+    ).toContain("if (placeOfId === null) { return; }");
   });
 
-  test("writes only the order column", () => {
-    const update: string = between(
-      "await ModelAPI.updateById<StatusPageGroup>(",
+  /*
+   * A write of a group's `order` places that group alone - what Terraform
+   * needs, numbering a page's groups one write each (issue #9573) - so a
+   * move is its own request, and never a write of the order column.
+   */
+  test("is a move to the neighbour's place, never a write of the order column", () => {
+    const move: string = between(
+      "const moveGroup: MoveGroupFunction",
+      "const deleteGroup:",
+    );
+
+    const request: string = between(
+      "await ModelAPI.moveInList<StatusPageGroup>(",
       "});",
     );
 
-    expect(update).toContain("data: { order: targetOrder, },");
-    expect(update).not.toContain("parentStatusPageGroupId");
+    expect(request).toContain("modelType: StatusPageGroup,");
+    expect(request).toContain("placeOfId: new ObjectID(placeOfId),");
+    expect(request).not.toContain("parentStatusPageGroupId");
+    expect(move).not.toContain("ModelAPI.updateById");
+    expect(move).not.toContain("order:");
   });
 
   /*
    * Two reorders in flight at once resolve against a hierarchy neither of them
-   * saw, because the service renumbers siblings on every write.
+   * saw, because the service renumbers siblings on every move.
    */
   test("locks the row while its write is in flight, and unlocks it after", () => {
     const move: string = between(

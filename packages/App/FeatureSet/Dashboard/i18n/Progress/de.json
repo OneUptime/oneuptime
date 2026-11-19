@@ -855,6 +855,7 @@
     "{{in}} in",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{values}} in {{field}}",
     "{{value}} ms",
     "{{value}} s",
     "μs",

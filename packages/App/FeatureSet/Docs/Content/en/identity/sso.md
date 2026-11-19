@@ -259,6 +259,12 @@ A project can also sign in through an OpenID Connect provider, such as Google Wo
 6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.
 :::
 
+### Signing out of the identity provider too
+
+Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer, such as a NOC screen or a kiosk, the next person who picks the provider on the sign-in page gets in as the one who left. Turn on **Sign Out of the Identity Provider Too** under **More fields** to end the provider's session as well when someone signs out of OneUptime. It is off by default: on a personal laptop it would also sign the person out of every other app that uses the provider.
+
+With it on, the browser goes to the provider's own sign-out once OneUptime has signed it out, and the provider sends it back to the OneUptime sign-in page. Register that page with your provider: the **OIDC Configuration** dialog shows it as the sign-out redirect URI, which providers call a post-logout redirect URI. A provider whose discovery document names no `end_session_endpoint`, such as Google, cannot turn it on. It applies to people who sign in with a browser after it is turned on; the mobile app signs out of OneUptime alone. SAML providers never sign people out of the identity provider.
+
 ## Roles and teams for SSO users
 
 OneUptime does not map roles or groups from your identity provider. What someone can do comes from the teams they are in: a provider adds newcomers to its **Teams**, and you manage teams and their permissions in OneUptime, as [Users, Teams & Permissions](/docs/permissions/index) describes. To keep team membership in step with your identity provider, use [SCIM](/docs/identity/scim). Each team someone joins when they sign in is recorded on that team's **Audit Logs** page, as a change made by the person who signed in.

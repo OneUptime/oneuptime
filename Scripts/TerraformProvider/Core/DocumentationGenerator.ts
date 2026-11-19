@@ -88,6 +88,95 @@ const ON_CALL_SCHEDULE_LAYER_GUIDE: {
   attributes: ["rotation", "restriction_times"],
 };
 
+/*
+ * THE RESOURCES NUMBERED BY `order` IN A LIST OF THEIR PARENT'S (issue
+ * #9573): a status page's groups and resources, an on-call policy's
+ * escalation rules, a schedule's layers and the people in a layer. Writing
+ * `order` places one row and moves no other (the API's ContiguousOrder), so
+ * a configuration that numbers a whole list is applied exactly as written,
+ * whatever order the provider's writes land in. Each page says so, in its
+ * own words, in a section its `order` attribute links to.
+ */
+interface OrderedListPage {
+  // One row, and more than one: "group", "groups".
+  thing: string;
+  things: string;
+  // The list a row is numbered in.
+  list: string;
+  // What holds the list: "status page".
+  parent: string;
+  // What two rows at one number do.
+  shared: string;
+  // Where a row created without `order` goes.
+  leftOut: string;
+  // The local a configuration's names would be in.
+  localName: string;
+  // Another resource that orders the list, when there is one.
+  alongside?: (provider: string) => string;
+}
+
+const ORDER_GUIDE: { title: string; anchor: string; attribute: string } = {
+  title: "Order",
+  anchor: "order",
+  attribute: "order",
+};
+
+const ON_CALL_SCHEDULE_LAYERS_ALONGSIDE: (provider: string) => string = (
+  provider: string,
+): string => {
+  return `To set the layers' order and who takes turns in each in one write, use [\`${provider}_on_call_schedule_layers\`](./on_call_schedule_layers) instead, and leave \`order\` unset here.`;
+};
+
+export const ORDERED_LIST_PAGES: Readonly<Record<string, OrderedListPage>> = {
+  status_page_group: {
+    thing: "group",
+    things: "groups",
+    list: "the groups of its status page",
+    parent: "status page",
+    shared: "are shown in the order of their IDs",
+    leftOut: "goes after the page's last group",
+    localName: "groups",
+  },
+  status_page_resource: {
+    thing: "resource",
+    things: "resources",
+    list: "the resources of its group (or, in no group, of its status page)",
+    parent: "group",
+    shared: "are shown in the order of their IDs",
+    leftOut: "goes after the last resource of its group",
+    localName: "resources",
+  },
+  escalation_rule: {
+    thing: "rule",
+    things: "rules",
+    list: "the levels of its on-call policy, the lowest paged first",
+    parent: "policy",
+    shared: "are paged one after the other, in the order of their IDs",
+    leftOut: "becomes the policy's last level",
+    localName: "levels",
+  },
+  on_call_schedule_layer: {
+    thing: "layer",
+    things: "layers",
+    list: "the layers of its schedule, the lowest number the highest priority",
+    parent: "schedule",
+    shared: "are ranked in the order of their IDs",
+    leftOut: "goes below the schedule's last layer",
+    localName: "layers",
+    alongside: ON_CALL_SCHEDULE_LAYERS_ALONGSIDE,
+  },
+  on_call_schedule_layer_user: {
+    thing: "person",
+    things: "people",
+    list: "the people who take turns in its layer, the lowest first",
+    parent: "layer",
+    shared: "take their turns in the order of their IDs",
+    leftOut: "takes the layer's last turn",
+    localName: "people",
+    alongside: ON_CALL_SCHEDULE_LAYERS_ALONGSIDE,
+  },
+};
+
 export class DocumentationGenerator {
   private config: TerraformProviderConfig;
   private fileGenerator: FileGenerator;
@@ -1072,15 +1161,45 @@ ${importSection}`;
    * every other page, which keeps its layout byte for byte.
    */
   private getResourceGuide(resource: TerraformResource): string {
+    const orderGuide: string = ORDERED_LIST_PAGES[resource.name]
+      ? `\n${this.getOrderGuide(ORDERED_LIST_PAGES[resource.name]!)}\n`
+      : "";
+
     if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
-      return `\n${this.getOnCallScheduleLayerGuide()}\n`;
+      return `\n${this.getOnCallScheduleLayerGuide()}\n${orderGuide}`;
     }
 
     if (resource.membershipImport?.kind === MembershipKind.Member) {
-      return `\n${this.getTeamMemberGuide()}`;
+      return `\n${this.getTeamMemberGuide()}${orderGuide}`;
     }
 
-    return "";
+    return orderGuide;
+  }
+
+  /*
+   * What `order` means on a page of a numbered list (ORDERED_LIST_PAGES):
+   * the row's place, written as is and moving no other, so a whole list
+   * numbered in one configuration applies as written and the next plan is
+   * empty; what two rows at one number, a row without one, a deleted row
+   * and a move in the Dashboard do.
+   */
+  private getOrderGuide(page: OrderedListPage): string {
+    const provider: string = this.config.providerName;
+
+    return `<a id="${ORDER_GUIDE.anchor}"></a>
+## ${ORDER_GUIDE.title}
+
+\`order\` is this ${page.thing}'s place among ${page.list}. Setting it places this ${page.thing} and moves no other, so a configuration that numbers every ${page.thing} of a ${page.parent} is applied exactly as written, whatever order the provider's writes land in, and the next plan is empty. For example, over a \`for_each\` of \`local.${page.localName}\`:
+
+\`\`\`terraform
+order = index(local.${page.localName}, each.key) + 1
+\`\`\`
+
+- Give each ${page.thing} a number of its own: two ${page.things} at one number ${page.shared}.
+- A ${page.thing} created without \`order\` ${page.leftOut}.
+- Deleting a ${page.thing} leaves a gap in the numbers, which changes nothing: ${page.things} go by their numbers, not by counting.
+- Moving a ${page.thing} in the OneUptime Dashboard numbers the ${page.parent}'s ${page.things} 1..n again; the next plan shows that as changes to \`order\`.
+${page.alongside ? `\n${page.alongside(provider)}\n` : ""}`;
   }
 
   /*
@@ -1263,18 +1382,35 @@ If your identity provider manages your people over SCIM, let it: while SCIM Push
     resource: TerraformResource,
     attributes: Record<string, SchemaDumpAttribute>,
   ): Record<string, SchemaDumpAttribute> {
-    if (resource.name !== ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+    const guides: Array<{ title: string; anchor: string; attribute: string }> =
+      [];
+
+    if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      for (const attribute of ON_CALL_SCHEDULE_LAYER_GUIDE.attributes) {
+        guides.push({
+          title: ON_CALL_SCHEDULE_LAYER_GUIDE.title,
+          anchor: ON_CALL_SCHEDULE_LAYER_GUIDE.anchor,
+          attribute: attribute,
+        });
+      }
+    }
+
+    if (ORDERED_LIST_PAGES[resource.name]) {
+      guides.push(ORDER_GUIDE);
+    }
+
+    if (guides.length === 0) {
       return attributes;
     }
 
     const linked: Record<string, SchemaDumpAttribute> = { ...attributes };
 
-    for (const name of ON_CALL_SCHEDULE_LAYER_GUIDE.attributes) {
-      const attr: SchemaDumpAttribute | undefined = linked[name];
+    for (const guide of guides) {
+      const attr: SchemaDumpAttribute | undefined = linked[guide.attribute];
       if (attr) {
-        linked[name] = {
+        linked[guide.attribute] = {
           ...attr,
-          description: `${(attr.description || "").trim()} See [${ON_CALL_SCHEDULE_LAYER_GUIDE.title}](#${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}).`,
+          description: `${(attr.description || "").trim()} See [${guide.title}](#${guide.anchor}).`,
         };
       }
     }

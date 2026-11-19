@@ -3,7 +3,7 @@ import IncidentCallTranscriptSignInBackfill from "Common/Server/Utils/VideoCall/
 
 /*
  * IncidentVideoCall.transcriptSignInAccountId, added by the schema migration
- * AddIncidentCallTranscriptPostsAndSignIn1809184700000 (#9289): the account
+ * AddIncidentCallTranscriptPostsAndSignIn1809184830000 (#9289): the account
  * whose sign-in OneUptime read a call's transcript through, so that the
  * account removing OneUptime from Zoom deletes it.
  *

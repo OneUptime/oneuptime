@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "Die Einladungs-E-Mail erneut an {{email}} senden?",
   "Send their invitation email again?": "Die Einladungs-E-Mail erneut senden?",
   "Invitation sent to {{email}}": "Einladung an {{email}} gesendet",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "An diese Adresse wurden in der letzten Stunde zu viele Einladungen gesendet. Sie können sie nach {{time}} erneut senden."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "An diese Adresse wurden in der letzten Stunde zu viele Einladungen gesendet. Sie können sie nach {{time}} erneut senden.",
+  "Sign Out of the Identity Provider Too": "Auch beim Identitätsanbieter abmelden",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Wer sich von OneUptime abmeldet, wird auch bei diesem Anbieter abgemeldet und bei jeder anderen App, die ihn nutzt. Für gemeinsam genutzte Computer einschalten.",
+  "Sign-out Redirect URI:": "Weiterleitungs-URI nach der Abmeldung:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrieren Sie die Weiterleitungs-URI bei Ihrem OIDC-Identitätsanbieter und, wenn „Auch beim Identitätsanbieter abmelden“ eingeschaltet ist, auch die Weiterleitungs-URI nach der Abmeldung."
 }

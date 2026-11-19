@@ -84,7 +84,23 @@ export interface OidcProviderFormOptions {
    * folded under Advanced.
    */
   withGlobalAccessSwitches?: boolean | undefined;
+  /*
+   * A provider people sign in to OneUptime itself with - a project's, or
+   * the instance-wide one, not a status page's: its "Sign out of the
+   * identity provider too" switch (signOutOfIdentityProvider, #9535), off
+   * by default and folded under Advanced.
+   */
+  withIdentityProviderSignOut?: boolean | undefined;
 }
+
+export const OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE: string = translationKey(
+  "Sign Out of the Identity Provider Too",
+);
+
+export const OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION: string =
+  translationKey(
+    "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.",
+  );
 
 export const OIDC_ISSUER_DESCRIPTION: string = translationKey(
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.",
@@ -174,6 +190,14 @@ export const isOidcAdvancedAtDefaults: (
   if (
     options?.withGlobalAccessSwitches &&
     !isSsoGlobalAccessAtDefaults(values)
+  ) {
+    return false;
+  }
+
+  // Signing out of the provider too is off by default.
+  if (
+    options?.withIdentityProviderSignOut &&
+    readSsoFormValue(values, "signOutOfIdentityProvider") === true
   ) {
     return false;
   }
@@ -488,6 +512,29 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
             collapsibleSection: advancedSection,
           }),
           getSsoProviderReachColumnField<TEntity>({ stepId: "sign-in" }),
+        ]
+      : []),
+    /*
+     * Last, as it is about the sign-out rather than the sign-in. Turning it
+     * on is refused, in words this form shows, for a provider whose
+     * discovery document names no end_session_endpoint
+     * (Server/Utils/IdentityProviderSignOutCheck); the sign-out redirect
+     * URI to register is shown beside the provider's other URLs.
+     */
+    ...(options?.withIdentityProviderSignOut
+      ? [
+          {
+            field: {
+              signOutOfIdentityProvider: true,
+            } as unknown as SelectFormFields<TEntity>,
+            title: OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description: OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+            defaultValue: false,
+            stepId: "sign-in",
+            collapsibleSection: advancedSection,
+          },
         ]
       : []),
   ];

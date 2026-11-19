@@ -16,6 +16,7 @@ import SsoProviderTeamGrant, {
   SsoProviderKind,
 } from "../Utils/SsoProviderTeamGrant";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import IdentityProviderSignOutCheck from "../Utils/IdentityProviderSignOutCheck";
 import Exception from "../../Types/Exception/Exception";
 
 export class Service extends DatabaseService<Model> {
@@ -69,6 +70,18 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Once every permission check has passed: a provider created with "Sign
+   * out of the identity provider too" on is asked whether it can
+   * (Utils/IdentityProviderSignOutCheck), and refused if not.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await IdentityProviderSignOutCheck.beforeCreate(onCreate.createBy.data);
+  }
+
+  /*
    * Every save, by the same rule as a create (Utils/SsoProviderTeamGrant).
    * Turning a provider off ends the sign-ins it gave, and a project that
    * requires SSO keeps a provider to sign in with
@@ -98,11 +111,21 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  // Turning a provider off writes when, in the same write.
+  /*
+   * Turning a provider off writes when, in the same write. Turning "Sign out
+   * of the identity provider too" on asks the provider's discovery document
+   * whether it can first (Utils/IdentityProviderSignOutCheck), and is
+   * refused if not.
+   */
   @CaptureSpan()
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    await IdentityProviderSignOutCheck.beforeUpdate<Model>({
+      service: this,
+      updateBy: updateBy,
+    });
+
     await ProjectSsoProviderChanges.beforeWrite<Model>({
       service: this,
       updateBy: updateBy,

@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * Generated with npm run generate-postgres-migration, then numbered after
  * the last registered migration. The two indexes it generated with these
- * are built online in AddIncidentCallTranscriptSignInIndexes1809184710000.
+ * are built online in AddIncidentCallTranscriptSignInIndexes1809184840000.
  *
  * What lets OneUptime take back a call's transcript, and what OneUptime AI
  * read in it, everywhere it went (#9289, #9290):
@@ -24,10 +24,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * account from BackfillIncidentCallTranscriptSignInAccount, a data
  * migration.
  */
-export class AddIncidentCallTranscriptPostsAndSignIn1809184700000
+export class AddIncidentCallTranscriptPostsAndSignIn1809184830000
   implements MigrationInterface
 {
-  public name: string = "AddIncidentCallTranscriptPostsAndSignIn1809184700000";
+  public name: string = "AddIncidentCallTranscriptPostsAndSignIn1809184830000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

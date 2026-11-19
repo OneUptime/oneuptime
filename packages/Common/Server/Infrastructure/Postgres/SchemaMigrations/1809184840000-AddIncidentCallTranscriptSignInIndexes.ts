@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddIncidentCallTranscriptPostsAndSignIn1809184700000, and moved into a
+ * AddIncidentCallTranscriptPostsAndSignIn1809184830000, and moved into a
  * migration of its own: "IncidentVideoCall" is written by every call a
  * rule starts and by the transcript job, so its indexes are built online,
  * without blocking its readers or writers (Docs/migrations/README.md).
@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The names are TypeORM's own, so the drift check finds nothing to change.
  * Safe to run again after a stop part way.
  */
-export class AddIncidentCallTranscriptSignInIndexes1809184710000
+export class AddIncidentCallTranscriptSignInIndexes1809184840000
   implements MigrationInterface
 {
-  public name: string = "AddIncidentCallTranscriptSignInIndexes1809184710000";
+  public name: string = "AddIncidentCallTranscriptSignInIndexes1809184840000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

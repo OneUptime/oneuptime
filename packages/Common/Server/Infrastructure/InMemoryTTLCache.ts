@@ -110,6 +110,20 @@ export default class InMemoryTTLCache<T> {
     }
   }
 
+  /*
+   * Deletes every entry whose value (or key) matches: what a cache keyed by
+   * one thing forgets about another its values name - every session of one
+   * person, in a cache keyed by session (UserSessionService). One pass over
+   * the entries, for a change that is rare; a read never pays for it.
+   */
+  public deleteWhere(predicate: (value: T, key: string) => boolean): void {
+    for (const [key, entry] of Array.from(this.store.entries())) {
+      if (predicate(entry.value, key)) {
+        this.removeEntry(key);
+      }
+    }
+  }
+
   public clear(): void {
     this.store.clear();
     this.forgetOldest();

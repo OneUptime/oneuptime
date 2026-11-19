@@ -668,6 +668,7 @@ describe("every relation is defined, in one place", () => {
       [UsedByRowKind.RumApplication]: "RumApplication",
       [UsedByRowKind.DataStore]: "DataStore",
       [UsedByRowKind.DataAsset]: "DataAsset",
+      [UsedByRowKind.DataPipeline]: "DataPipeline",
       [UsedByRowKind.Probe]: "Probe",
       [UsedByRowKind.Runner]: "Runner",
       [UsedByRowKind.AIAgent]: "AIAgent",

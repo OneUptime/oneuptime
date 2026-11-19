@@ -239,6 +239,32 @@ export default class SecurityCaseTask extends BaseModel {
   })
   public title?: string = undefined;
 
+  /*
+   * The step of the case's response plan the task was made from, when it
+   * was: the Overview's Response Plan ticks a step off by making it a task,
+   * and knows the step again by this, whatever language the task's title
+   * was written in. Set once, when the task is added.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Response Step Key",
+    description:
+      "The step of the case's response plan this task was made from, when it was made from one. Set when the task is added.",
+    example: "contain:block-ip:203.0.113.7",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public responseStepKey?: string = undefined;
+
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,

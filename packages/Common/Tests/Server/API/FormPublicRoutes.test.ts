@@ -86,6 +86,7 @@ import http from "http";
 import jwt from "jsonwebtoken";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * A handler's refusal travels as next(err), and Express leaves a router
@@ -620,6 +621,7 @@ describe("the public form routes over HTTP", () => {
      * middleware. Nothing here reads the database.
      */
     jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+    treatEverySessionAsLive();
     jest.spyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
     jest
       .spyOn(AccessTokenService, "getUserGlobalAccessPermission")

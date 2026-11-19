@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "要重新傳送邀請郵件給 {{email}} 嗎？",
   "Send their invitation email again?": "要重新傳送邀請郵件嗎？",
   "Invitation sent to {{email}}": "邀請已寄送至 {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去一小時內寄送到此地址的邀請過多。您可以在 {{time}} 之後重新傳送。"
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去一小時內寄送到此地址的邀請過多。您可以在 {{time}} 之後重新傳送。",
+  "Sign Out of the Identity Provider Too": "同時登出身分提供者",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "登出 OneUptime 時，也會登出此提供者以及所有使用它的其他應用程式。共用電腦請開啟。",
+  "Sign-out Redirect URI:": "登出後的重新導向 URI：",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "在你的 OIDC 身分提供者中註冊重新導向 URI；開啟「同時登出身分提供者」時，也要註冊登出後的重新導向 URI。"
 }

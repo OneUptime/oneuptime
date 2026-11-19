@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "هل تريد إعادة إرسال رسالة الدعوة إلى {{email}}؟",
   "Send their invitation email again?": "هل تريد إعادة إرسال رسالة الدعوة؟",
   "Invitation sent to {{email}}": "أُرسلت الدعوة إلى {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "أُرسل عدد كبير جدًا من الدعوات إلى هذا العنوان خلال الساعة الماضية. يمكنك إعادة إرسالها بعد {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "أُرسل عدد كبير جدًا من الدعوات إلى هذا العنوان خلال الساعة الماضية. يمكنك إعادة إرسالها بعد {{time}}.",
+  "Sign Out of the Identity Provider Too": "تسجيل الخروج من موفّر الهوية أيضًا",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "يؤدي تسجيل الخروج من OneUptime أيضًا إلى تسجيل خروج الأشخاص من هذا الموفّر ومن كل تطبيق آخر يستخدمه. شغّله للحواسيب المشتركة.",
+  "Sign-out Redirect URI:": "عنوان URI لإعادة التوجيه بعد تسجيل الخروج:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "سجّل عنوان URI لإعادة التوجيه لدى موفّر هوية OIDC، وسجّل أيضًا عنوان URI لإعادة التوجيه بعد تسجيل الخروج عندما يكون «تسجيل الخروج من موفّر الهوية أيضًا» مشغّلًا."
 }

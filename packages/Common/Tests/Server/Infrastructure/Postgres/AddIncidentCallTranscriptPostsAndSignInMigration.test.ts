@@ -2,8 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddIncidentCallTranscriptPostsAndSignIn1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddIncidentCallTranscriptPostsAndSignIn";
-import { AddIncidentCallTranscriptSignInIndexes1809184710000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184710000-AddIncidentCallTranscriptSignInIndexes";
+import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184830000-AddIncidentCallTranscriptPostsAndSignIn";
+import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184840000-AddIncidentCallTranscriptSignInIndexes";
 import IncidentVideoCall from "../../../../Models/DatabaseModels/IncidentVideoCall";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -48,11 +48,11 @@ async function statementsOf(
   return statements;
 }
 
-describe("AddIncidentCallTranscriptPostsAndSignIn1809184700000", () => {
+describe("AddIncidentCallTranscriptPostsAndSignIn1809184830000", () => {
   test("adds the three columns to IncidentVideoCall, nullable, with no default", async () => {
     expect(
       await statementsOf(
-        new AddIncidentCallTranscriptPostsAndSignIn1809184700000(),
+        new AddIncidentCallTranscriptPostsAndSignIn1809184830000(),
         "up",
       ),
     ).toEqual([
@@ -65,7 +65,7 @@ describe("AddIncidentCallTranscriptPostsAndSignIn1809184700000", () => {
   test("down drops what up added, and nothing else", async () => {
     expect(
       await statementsOf(
-        new AddIncidentCallTranscriptPostsAndSignIn1809184700000(),
+        new AddIncidentCallTranscriptPostsAndSignIn1809184830000(),
         "down",
       ),
     ).toEqual([
@@ -94,10 +94,10 @@ describe("AddIncidentCallTranscriptPostsAndSignIn1809184700000", () => {
   });
 });
 
-describe("AddIncidentCallTranscriptSignInIndexes1809184710000", () => {
+describe("AddIncidentCallTranscriptSignInIndexes1809184840000", () => {
   test("builds both partial indexes online, outside a transaction", async () => {
-    const migration: AddIncidentCallTranscriptSignInIndexes1809184710000 =
-      new AddIncidentCallTranscriptSignInIndexes1809184710000();
+    const migration: AddIncidentCallTranscriptSignInIndexes1809184840000 =
+      new AddIncidentCallTranscriptSignInIndexes1809184840000();
     const created: Array<string> = [];
     const original: typeof OnlineDdl.createIndex = OnlineDdl.createIndex;
 
@@ -130,9 +130,9 @@ describe("their place among the migrations", () => {
       },
     );
     const columns: string =
-      "AddIncidentCallTranscriptPostsAndSignIn1809184700000";
+      "AddIncidentCallTranscriptPostsAndSignIn1809184830000";
     const indexes: string =
-      "AddIncidentCallTranscriptSignInIndexes1809184710000";
+      "AddIncidentCallTranscriptSignInIndexes1809184840000";
 
     for (const name of [columns, indexes]) {
       expect(
@@ -143,9 +143,9 @@ describe("their place among the migrations", () => {
     }
 
     expect(
-      new AddIncidentCallTranscriptPostsAndSignIn1809184700000().name,
+      new AddIncidentCallTranscriptPostsAndSignIn1809184830000().name,
     ).toBe(columns);
-    expect(new AddIncidentCallTranscriptSignInIndexes1809184710000().name).toBe(
+    expect(new AddIncidentCallTranscriptSignInIndexes1809184840000().name).toBe(
       indexes,
     );
     expect(names.indexOf(indexes)).toBe(names.indexOf(columns) + 1);

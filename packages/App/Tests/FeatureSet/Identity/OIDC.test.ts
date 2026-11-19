@@ -288,6 +288,48 @@ describe("OIDCUtil - discovery and the authorization request", () => {
   });
 });
 
+/*
+ * What a sign-out at the provider needs (#9535): the ID token the provider
+ * issued, as it came - the logout request's id_token_hint - and where the
+ * provider ends its sessions, from the discovery document the client was
+ * made from.
+ */
+describe("OIDCUtil - what a sign-out at the provider needs", () => {
+  test("the exchange hands back the ID token the provider issued, as it came", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: { nonce: NONCE, email: "alice@example.com" },
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp);
+
+    expect(result.idToken).toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/);
+
+    const payload: JSONObject = JSON.parse(
+      Buffer.from(result.idToken!.split(".")[1]!, "base64url").toString("utf8"),
+    ) as JSONObject;
+
+    expect(payload["nonce"]).toBe(NONCE);
+    expect(payload["aud"]).toBe(CLIENT_ID);
+  });
+
+  test("reads the end_session_endpoint the provider's discovery names", async () => {
+    const idp: TestIdp = await startIdp({ advertiseEndSessionEndpoint: true });
+
+    expect(OIDCUtil.getEndSessionEndpoint(await createClientFor(idp))).toBe(
+      `${idp.issuerUrl}/logout`,
+    );
+  });
+
+  // Google's discovery names none.
+  test("is null for a provider whose discovery names none", async () => {
+    const idp: TestIdp = await startIdp();
+
+    expect(
+      OIDCUtil.getEndSessionEndpoint(await createClientFor(idp)),
+    ).toBeNull();
+  });
+});
+
 describe("OIDCUtil - the token exchange", () => {
   test("exchanges the code for tokens and returns the identity", async () => {
     const idp: TestIdp = await startIdp({

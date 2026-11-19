@@ -23,7 +23,12 @@ import DataSecurityApi, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import FindingOccurrences, {
   FINDING_OCCURRENCES_TEST_ID,
+  MATCH_CLASS_NAME,
   NONE_IN_WINDOW,
+  RECORDS_FOOTNOTE,
+  RECORDS_SHOWN_FIRST,
+  SAMPLE_WINDOW_FOOTNOTE,
+  SAMPLED_RECORDS_FOOTNOTE,
   UNAVAILABLE_SENTENCES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingOccurrences";
 import {
@@ -50,7 +55,9 @@ import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
 import {
   DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
+  DataSecurityOccurrenceExcerptPartKind,
   DataSecurityOccurrenceRecordKind,
+  DataSecurityOccurrencesSource,
   DataSecurityOccurrencesUnavailableReason,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
@@ -170,6 +177,13 @@ function issueOf(checkId: string = "sensitive-data-in-telemetry"): {
   issue.dataStore = store;
   return { issue, store };
 }
+
+const Text: DataSecurityOccurrenceExcerptPartKind =
+  DataSecurityOccurrenceExcerptPartKind.Text;
+const Match: DataSecurityOccurrenceExcerptPartKind =
+  DataSecurityOccurrenceExcerptPartKind.Match;
+const Masked: DataSecurityOccurrenceExcerptPartKind =
+  DataSecurityOccurrenceExcerptPartKind.Masked;
 
 const SPAN: DataSecurityFindingOccurrence = {
   time: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
@@ -352,8 +366,9 @@ describe("the card", () => {
     expect(
       within(blocks[0]!).getByText("48 of 50 sampled values matched"),
     ).toBeInTheDocument();
+    // Folded, a finding shows its masked samples.
     expect(
-      within(blocks[0]!)
+      within(blocks[2]!)
         .getAllByTestId("data-security-issue-finding-sample")
         .map((sample: HTMLElement): string => {
           return sample.textContent as string;
@@ -361,6 +376,79 @@ describe("the card", () => {
     ).toEqual(["******7A", "******2W"]);
     expect(within(card).queryByText("GitHub token")).not.toBeInTheDocument();
     expect(within(card).queryByText("Phone number")).not.toBeInTheDocument();
+  });
+
+  test("open, a finding shows the records it was found in in place of its samples (#9549)", async () => {
+    renderCard();
+
+    const blocks: Array<HTMLElement> = await screen.findAllByTestId(
+      "data-security-issue-finding",
+    );
+
+    await within(blocks[0]!).findByTestId("data-security-finding-occurrence");
+
+    expect(
+      within(blocks[0]!).queryByTestId("data-security-issue-finding-samples"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(blocks[1]!).getByTestId("data-security-issue-finding-samples"),
+    ).toBeInTheDocument();
+
+    // Opened, the IP address's records take the place of its samples.
+    fireEvent.click(
+      within(blocks[1]!).getByTestId(
+        "data-security-issue-finding-records-toggle",
+      ),
+    );
+
+    expect(
+      within(blocks[1]!).queryByTestId("data-security-issue-finding-samples"),
+    ).not.toBeInTheDocument();
+    expect(
+      await within(blocks[1]!).findByTestId(FINDING_OCCURRENCES_TEST_ID),
+    ).toBeInTheDocument();
+  });
+
+  test("each record names the service that sent it, and its time", async () => {
+    renderCard();
+
+    const record: HTMLElement = await screen.findByTestId(
+      "data-security-finding-occurrence",
+    );
+
+    expect(
+      within(record).getByTestId("data-security-finding-occurrence-service"),
+    ).toHaveTextContent("oneuptime-app");
+    expect(
+      within(record).getByTestId("data-security-finding-occurrence-time"),
+    ).toHaveTextContent("3 minutes ago");
+  });
+
+  test("an open finding with no record to show says why, and shows its masked samples under it", async () => {
+    occurrences = {
+      ...occurrences,
+      occurrences: [],
+      source: DataSecurityOccurrencesSource.SampledRecords,
+      lastSeenAt: new Date(Date.now() - 12 * 86_400_000).toISOString(),
+    };
+    renderCard();
+
+    const blocks: Array<HTMLElement> = await screen.findAllByTestId(
+      "data-security-issue-finding",
+    );
+
+    expect(
+      await within(blocks[0]!).findByText(
+        "The records it was found in 12 days ago are no longer kept.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(blocks[0]!)
+        .getAllByTestId("data-security-issue-finding-sample")
+        .map((sample: HTMLElement): string => {
+          return sample.textContent as string;
+        }),
+    ).toEqual(["******7A", "******2W"]);
   });
 
   test("reads the store's findings that count, still seen, the most matched first", async () => {
@@ -377,7 +465,7 @@ describe("the card", () => {
     expect(read!.limit).toBe(100);
   });
 
-  test("opens the first unscrubbed finding's newest records, each leading to the trace", async () => {
+  test("opens the first unscrubbed finding's records, each leading to the trace", async () => {
     renderCard();
 
     const records: HTMLElement = await screen.findByTestId(
@@ -740,6 +828,240 @@ describe("the records", () => {
         "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.",
       ),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The line itself (#9549): "show maybe actual log lines where things are
+   * found and highlight sections".
+   */
+  test("a record shows its line, the finding's data marked and every other sensitive value masked", async () => {
+    occurrences = {
+      ...occurrences,
+      source: DataSecurityOccurrencesSource.SampledRecords,
+      occurrences: [
+        {
+          ...SPAN,
+          recordKind: DataSecurityOccurrenceRecordKind.Log,
+          name: undefined,
+          severity: "Error",
+          excerpt: {
+            parts: [
+              { kind: Text, text: "Ping to " },
+              { kind: Match, text: "34.***.***.***" },
+              { kind: Text, text: " by " },
+              { kind: Masked, text: "j***@a********.com" },
+              { kind: Text, text: " took 120 ms" },
+            ],
+            isCutAtStart: true,
+            isCutAtEnd: false,
+          },
+        },
+      ],
+    };
+    renderRecords();
+
+    const excerpt: HTMLElement = await screen.findByTestId(
+      "data-security-finding-occurrence-excerpt",
+    );
+
+    expect(excerpt.tagName).toBe("PRE");
+    expect(excerpt).toHaveAttribute("dir", "ltr");
+    expect(excerpt).toHaveTextContent(
+      "…Ping to 34.***.***.*** by j***@a********.com took 120 ms",
+    );
+
+    const match: HTMLElement = within(excerpt).getByTestId(
+      "data-security-finding-occurrence-value",
+    );
+
+    expect(match.tagName).toBe("MARK");
+    expect(match).toHaveTextContent("34.***.***.***");
+    expect(match.className).toBe(MATCH_CLASS_NAME);
+    expect(
+      within(excerpt).getByTestId("data-security-finding-occurrence-masked"),
+    ).toHaveTextContent("j***@a********.com");
+    // The cut mark is drawn for the eye only.
+    expect(within(excerpt).getByText("…")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(
+      screen.getByTestId("data-security-finding-occurrence-severity"),
+    ).toHaveTextContent("Error");
+    expect(
+      screen.getByText(
+        "The records the last scan found it in. Values are masked: open a record to see it in full.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("an attribute's line names its key, as the record has it", async () => {
+    occurrences = {
+      ...occurrences,
+      occurrences: [
+        {
+          ...SPAN,
+          excerpt: {
+            field: "gen_ai.prompt.3.content",
+            parts: [
+              { kind: Text, text: "Write to " },
+              { kind: Match, text: "j***@a********.com" },
+            ],
+            isCutAtStart: false,
+            isCutAtEnd: false,
+          },
+        },
+      ],
+    };
+    renderRecords();
+
+    expect(
+      await screen.findByTestId("data-security-finding-occurrence-excerpt"),
+    ).toHaveTextContent("gen_ai.prompt.3.content: Write to j***@a********.com");
+  });
+
+  test("a record from a server that sends no line shows its masked value", async () => {
+    renderRecords();
+
+    const value: HTMLElement = await screen.findByTestId(
+      "data-security-finding-occurrence-value",
+    );
+
+    expect(value.tagName).toBe("CODE");
+    expect(value).toHaveTextContent("******7A");
+    expect(
+      screen.queryByTestId("data-security-finding-occurrence-excerpt"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the first three records show; the rest are a click away, and fold again", async () => {
+    const many: Array<DataSecurityFindingOccurrence> = [];
+
+    for (let index: number = 0; index < 5; index++) {
+      many.push({
+        ...SPAN,
+        spanId: `span-${index}`,
+        time: new Date(Date.now() - (index + 1) * 60_000).toISOString(),
+      });
+    }
+
+    occurrences = { ...occurrences, occurrences: many };
+    renderRecords();
+
+    expect(
+      await screen.findAllByTestId("data-security-finding-occurrence"),
+    ).toHaveLength(RECORDS_SHOWN_FIRST);
+
+    const more: HTMLElement = screen.getByTestId(
+      "data-security-finding-occurrences-more",
+    );
+
+    expect(more).toHaveTextContent("Show 2 more records");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(more);
+
+    expect(
+      screen.getAllByTestId("data-security-finding-occurrence"),
+    ).toHaveLength(5);
+    expect(more).toHaveTextContent("Show fewer records");
+    expect(more).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(more);
+
+    expect(
+      screen.getAllByTestId("data-security-finding-occurrence"),
+    ).toHaveLength(RECORDS_SHOWN_FIRST);
+  });
+
+  test("three records or fewer have nothing to fold", async () => {
+    renderRecords();
+
+    await screen.findByTestId("data-security-finding-occurrence");
+
+    expect(
+      screen.queryByTestId("data-security-finding-occurrences-more"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("each footnote says where the records come from", async () => {
+    for (const [source, footnote] of [
+      [DataSecurityOccurrencesSource.SampledRecords, SAMPLED_RECORDS_FOOTNOTE],
+      [DataSecurityOccurrencesSource.SampleWindow, SAMPLE_WINDOW_FOOTNOTE],
+      [DataSecurityOccurrencesSource.Recent, RECORDS_FOOTNOTE],
+    ] as Array<[DataSecurityOccurrencesSource, string]>) {
+      occurrences = { ...occurrences, source };
+      renderRecords();
+
+      expect(await screen.findByText(footnote)).toBeInTheDocument();
+      cleanup();
+    }
+  });
+
+  test("with no record to show, it says why, by where the records were read", async () => {
+    const lastSeenAt: string = new Date(
+      Date.now() - 12 * 86_400_000,
+    ).toISOString();
+    const cases: Array<[Partial<DataSecurityFindingOccurrences>, string]> = [
+      [
+        { source: DataSecurityOccurrencesSource.SampledRecords, lastSeenAt },
+        "The records it was found in 12 days ago are no longer kept.",
+      ],
+      [
+        {
+          source: DataSecurityOccurrencesSource.SampleWindow,
+          lastSeenAt,
+          isComplete: true,
+        },
+        "No record kept from when it was last seen, 12 days ago, carries it.",
+      ],
+      [
+        {
+          source: DataSecurityOccurrencesSource.SampleWindow,
+          lastSeenAt,
+          isComplete: false,
+          recordsRead: 300,
+        },
+        "None of the 300 records read from when it was last seen, 12 days ago, carries it.",
+      ],
+    ];
+
+    for (const [answer, sentence] of cases) {
+      occurrences = { ...occurrences, ...answer, occurrences: [] };
+      renderRecords();
+
+      expect(await screen.findByText(sentence)).toBeInTheDocument();
+      cleanup();
+    }
+  });
+
+  test("with no record to show, what the page hands it shows under the sentence", async () => {
+    occurrences = { ...occurrences, occurrences: [] };
+    render(
+      <MemoryRouter>
+        <FindingOccurrences
+          findingId={new ObjectID(PPS_ID)}
+          fallback={<span data-testid="the-samples">samples</span>}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(NONE_IN_WINDOW)).toBeInTheDocument();
+    expect(screen.getByTestId("the-samples")).toBeInTheDocument();
+  });
+
+  test("while it reads, it draws the shape of the records, busy", async () => {
+    occurrencesSpy.mockImplementation(() => {
+      return new Promise<DataSecurityFindingOccurrences>(() => {});
+    });
+    renderRecords();
+
+    const list: HTMLElement = screen.getByTestId(FINDING_OCCURRENCES_TEST_ID);
+
+    expect(list).toHaveAttribute("aria-busy", "true");
+    expect(within(list).getAllByTestId("card-list-skeleton-card")).toHaveLength(
+      2,
+    );
   });
 });
 
