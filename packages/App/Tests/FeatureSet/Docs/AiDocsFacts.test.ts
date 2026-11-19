@@ -2188,9 +2188,13 @@ describe("MCP Server", () => {
      * dashboards, and warehouse jobs; and Cloud's monthly budgets (Cloud
      * Budget), so agents manage them as people do; and a postmortem's action
      * items (Postmortem Action Item, #6801), so an agent can track what an
-     * incident's postmortem says the team will do.
+     * incident's postmortem says the team will do; and the compliance
+     * frameworks and requirements a resource turned off (Compliance Setting,
+     * #9555, #9708), a Data Security setting like Check Setting, so an agent
+     * can say what is off where and why, as Data Security's Integrations
+     * page promises.
      */
-    expect(records()).toHaveLength(54);
+    expect(records()).toHaveLength(55);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [
