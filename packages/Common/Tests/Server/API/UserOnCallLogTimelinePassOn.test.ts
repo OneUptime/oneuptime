@@ -48,6 +48,17 @@ import {
   UpdateOneByInput,
   updateNotificationWhileStill,
 } from "../TestingUtils/OnCallTimelineRows";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
+import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
+import Phone from "../../../Types/Phone";
+import {
+  TwilioRequestLike,
+  serverTwilioRow,
+  signedTwilioRequest,
+} from "../TestingUtils/TwilioSignedRequests";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 // The notification the routes read, and a call's first key acknowledges.
@@ -991,13 +1002,55 @@ describe("a call's second key", () => {
     default: { sayMessage: "Invalid input. Good bye" },
   };
 
+  // The server's own Twilio account, which placed the call (TwilioWebhookSignature).
+  const SERVER_ACCOUNT: TwilioConfig = {
+    accountSid: "AC11111111111111111111111111111111",
+    authToken: "server-auth-token-0000000000000001",
+    primaryPhoneNumber: new Phone("+14155550100"),
+    secondaryPhoneNumbers: [],
+  };
+
+  beforeEach(() => {
+    jest
+      .spyOn(GlobalConfigService, "findOneBy")
+      .mockImplementation(async (): Promise<GlobalConfig | null> => {
+        return serverTwilioRow(SERVER_ACCOUNT);
+      });
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findBy")
+      .mockImplementation(async (): Promise<Array<ProjectCallSMSConfig>> => {
+        return [];
+      });
+  });
+
+  // The key pressed, as Twilio posts it to the call's <Gather> action, signed.
   async function press(digits: string, pageToken?: string): Promise<void> {
+    const search: string = pageToken
+      ? `?${new URLSearchParams({ pageToken: pageToken, token: "call" }).toString()}`
+      : "";
+    const request: TwilioRequestLike = signedTwilioRequest({
+      publicUrl: `/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}${search}`,
+      body: {
+        AccountSid: SERVER_ACCOUNT.accountSid,
+        CallSid: "CA0123456789abcdef0123456789abcdef",
+        Digits: digits,
+      },
+      signedWith: SERVER_ACCOUNT.authToken,
+    });
+
     await call({
       method: "POST",
       uri: `${BASE}/call/gather-input/:itemId`,
-      query: pageToken ? { pageToken: pageToken, token: "call" } : {},
-      body: { Digits: digits },
-      extra: { callTokenData: CALL_TOKEN_DATA },
+      query: request.query,
+      body: request.body,
+      extra: {
+        callTokenData: CALL_TOKEN_DATA,
+        headers: request.headers,
+        originalUrl: request.originalUrl,
+        url: request.url,
+        protocol: request.protocol,
+        get: request.get,
+      } as unknown as JSONObject,
     });
   }
 

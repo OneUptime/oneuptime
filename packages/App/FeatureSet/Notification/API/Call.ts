@@ -12,10 +12,14 @@ import {
   getMachineAnsweredCallOutcome,
 } from "../Utils/AnsweredBy";
 import {
-  findTwilioAccountThatSigned,
   getVoicemailMessageOfCall,
   leaveVoicemailMessage,
 } from "../Utils/VoicemailCallback";
+import {
+  findTwilioAccountThatSigned,
+  getTwilioCallbackRefusedMessage,
+  TwilioSignatureCheck,
+} from "Common/Server/Utils/TwilioWebhookSignature";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
 import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
@@ -147,9 +151,16 @@ router.post(
  * Twilio's call status callback: how a call ended. Set as the
  * `statusCallback` URL of every call CallService places through Twilio for
  * a project (CallService.prepareStatusCallback). A public webhook - Twilio
- * signs in as nobody - so it is secured by the unguessable per-call token
- * in its URL, never by user or cluster auth, and it only records how the
- * one call it names ended (CallOutcome):
+ * signs in as nobody - so it is held to two locks, never to user or cluster
+ * auth: the unguessable per-call token in its URL, which says which call it
+ * is about, and Twilio's signature (X-Twilio-Signature), made with the auth
+ * token of the account the call went out on - the project's own Twilio
+ * config, or the OneUptime server's (TwilioWebhookSignature). The token
+ * travels in a URL - Twilio's request logs, a proxy's access log, a
+ * screenshot of the Twilio console - and alone it no longer writes a call's
+ * end: a request that fails either lock is refused (403), changes nothing,
+ * and is logged with why. It only records how the one call it names ended
+ * (CallOutcome):
  *
  *  - on the call's log: Missed Call, Busy or Error, and how it ended;
  *  - on the on-call notification the call was made for, while that is only
@@ -184,6 +195,7 @@ router.post(
         id: new ObjectID(callLogId),
         select: {
           _id: true,
+          projectId: true,
           status: true,
           statusMessage: true,
           statusCallbackToken: true,
@@ -205,13 +217,31 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      // Authenticate the callback against the per-call token.
+      // The per-call token in the URL: which call it is about.
       if (
         !callLog.statusCallbackToken ||
         !isStatusCallbackTokenValid(token, callLog.statusCallbackToken)
       ) {
         logger.warn(
           `Call status callback with invalid token for log: ${callLogId}`,
+        );
+        res.status(403).send("Forbidden");
+        return;
+      }
+
+      // Twilio's signature, by the account the call went out on.
+      const signed: TwilioSignatureCheck = await findTwilioAccountThatSigned({
+        request: req as unknown as WebhookRequest,
+        projectId: callLog.projectId,
+        urlSecrets: [token],
+      });
+
+      if (!signed.account) {
+        logger.warn(
+          getTwilioCallbackRefusedMessage({
+            callback: `the call status callback for log ${callLogId}`,
+            reason: signed.refusalReason,
+          }),
         );
         res.status(403).send("Forbidden");
         return;
@@ -443,8 +473,8 @@ async function writeMachineAnsweredOutcome(data: {
  * URL, as the status callback is, and Twilio's own signature
  * (X-Twilio-Signature), made with the auth token of the account the call
  * went out on - the project's own Twilio config, or the OneUptime server's
- * (Utils/VoicemailCallback). A request that fails either is refused (403)
- * and changes nothing.
+ * (TwilioWebhookSignature), as the status callback is. A request that fails
+ * either is refused (403), changes nothing, and is logged with why.
  *
  * The two callbacks of a call can come in either order. Twilio reports a
  * voicemail at the end of its greeting, while the call goes on, so this one
@@ -517,18 +547,24 @@ router.post(
       }
 
       // Twilio's signature, by the account the call went out on.
-      const account: TwilioConfig | null = await findTwilioAccountThatSigned({
+      const signed: TwilioSignatureCheck = await findTwilioAccountThatSigned({
         request: req as unknown as WebhookRequest,
         projectId: callLog.projectId,
+        urlSecrets: [token],
       });
 
-      if (!account) {
+      if (!signed.account) {
         logger.warn(
-          `Call answering machine callback with invalid Twilio signature for log: ${callLogId}`,
+          getTwilioCallbackRefusedMessage({
+            callback: `the call answering machine callback for log ${callLogId}`,
+            reason: signed.refusalReason,
+          }),
         );
         res.status(403).send("Forbidden");
         return;
       }
+
+      const account: TwilioConfig = signed.account;
 
       const answeredBy: AnsweredByOutcome | null = getAnsweredByOutcome(
         req.body?.["AnsweredBy"],
