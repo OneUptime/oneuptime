@@ -13,6 +13,7 @@ import {
   getAwsStoredMetricName,
   getAzureKeyMetricNames,
   getAzureStoredMetricName,
+  getGcpStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
@@ -49,6 +50,7 @@ import {
   findCloudHealthProblems,
   formatCloudPercent,
   getCloudBacklogText,
+  getCloudHeadlineReadingKeys,
   getCloudHeadlineReadings,
   getCloudHealthSeverity,
   getCloudReadingKey,
@@ -214,7 +216,8 @@ describe("CloudResourceHealth", () => {
 
     for (const entry of GCP_KEY_METRICS as ReadonlyArray<GcpTypeKeyMetrics>) {
       for (const metric of entry.metrics as Array<GcpKeyMetric>) {
-        readKeys["gcp"]!.add(metric.metricType);
+        // A distribution read for its count is stored as its own.
+        readKeys["gcp"]!.add(getGcpStoredMetricName(metric).toLowerCase());
       }
     }
 
@@ -249,13 +252,15 @@ describe("CloudResourceHealth", () => {
       }
     });
 
-    test("each headline reading is a key metric its cloud's connection reads", () => {
+    test("each headline reading is a key metric its cloud's connection reads, its fallbacks too", () => {
       for (const entry of CLOUD_HEADLINE_READINGS) {
         for (const headline of entry.readings) {
-          expect({
-            key: headline.key,
-            read: readKeys[entry.provider]!.has(headline.key),
-          }).toEqual({ key: headline.key, read: true });
+          for (const key of getCloudHeadlineReadingKeys(headline)) {
+            expect({
+              key,
+              read: readKeys[entry.provider]!.has(key),
+            }).toEqual({ key, read: true });
+          }
         }
 
         for (const type of entry.types) {

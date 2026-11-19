@@ -2,10 +2,12 @@ import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
   GCP_ALIGNMENT_PERIOD_SECONDS,
   GCP_KEY_METRICS,
+  GCP_OPS_AGENT,
   GcpKeyMetric,
+  GcpReadMetric,
   GcpTypeKeyMetrics,
-  getGcpKeyMetricTypes,
-  getGcpResourceTypesOfMetric,
+  getGcpReadMetrics,
+  getGcpStoredMetricName,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import {
@@ -158,50 +160,128 @@ const TEST_LOOK_BACK_MS: number = 30 * 60 * 1000;
  */
 export const GCP_RESOURCE_TYPE_SEEN_MS: number = DAY_MS;
 
+/*
+ * Passes one read makes at most: the first, one for what it found (a
+ * resource type, a VM's Ops Agent), and one for what that found (the
+ * agent on a VM found in the second).
+ */
+const GCP_MAX_READ_PASSES: number = 3;
+
 // Each resource type's first key metric: asked of every project, every read.
-const GCP_PROBE_METRIC_TYPES: ReadonlySet<string> = new Set<string>(
+const GCP_PROBE_METRICS: ReadonlySet<string> = new Set<string>(
   GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics): string => {
-    return entry.metrics[0]!.metricType;
+    return getGcpStoredMetricName(entry.metrics[0]!);
   }),
 );
 
 /*
+ * The Ops Agent's metrics (GcpKeyMetric.reportedBy), the first of them -
+ * what a read asks a project to find out whether one of its VMs runs the
+ * agent - and the resource types they are reported for: a project without
+ * such a resource is never asked.
+ */
+const GCP_OPS_AGENT_METRICS: ReadonlyArray<GcpReadMetric> =
+  getGcpReadMetrics().filter((metric: GcpReadMetric): boolean => {
+    return metric.reportedBy === GCP_OPS_AGENT;
+  });
+const GCP_OPS_AGENT_RESOURCE_TYPES: ReadonlySet<string> = new Set<string>(
+  GCP_OPS_AGENT_METRICS.flatMap((metric: GcpReadMetric): Array<string> => {
+    return metric.resourceTypes;
+  }),
+);
+
+/*
+ * How long a project counts as running the Ops Agent after one of its VMs
+ * last reported an agent metric, and how often a project none of whose VMs
+ * does is asked whether one does now.
+ */
+export const GCP_OPS_AGENT_SEEN_MS: number = DAY_MS;
+export const GCP_OPS_AGENT_ASK_EVERY_MS: number = 60 * 60 * 1000;
+
+/*
+ * What a read asks a project of the Ops Agent's metrics: "all" of them
+ * while one of its VMs reported one within GCP_OPS_AGENT_SEEN_MS; "first",
+ * the first alone, to find out whether one does now - once every
+ * GCP_OPS_AGENT_ASK_EVERY_MS, while it has VMs; else "none". So a project
+ * whose VMs run no agent costs a call an hour, not two calls a read.
+ */
+export type GcpOpsAgentAsk = "all" | "first" | "none";
+
+export function getGcpOpsAgentAsk(data: {
+  // Whether one of its VMs reported an agent metric lately.
+  isReporting: boolean;
+  // When a read last asked it the first agent metric alone.
+  askedAt?: string | undefined;
+  // Whether it has a resource the agent reports for (a VM).
+  hasResources: boolean;
+  now: Date;
+}): GcpOpsAgentAsk {
+  if (data.isReporting) {
+    return "all";
+  }
+
+  return data.hasResources &&
+    isOlderThan(data.askedAt, GCP_OPS_AGENT_ASK_EVERY_MS, data.now)
+    ? "first"
+    : "none";
+}
+
+// Whether a project has a resource of a type the Ops Agent reports for.
+export function hasGcpOpsAgentResources(
+  resourceTypes: ReadonlySet<string>,
+): boolean {
+  return Array.from(GCP_OPS_AGENT_RESOURCE_TYPES).some(
+    (resourceType: string): boolean => {
+      return resourceTypes.has(resourceType);
+    },
+  );
+}
+
+/*
  * WHICH KEY METRICS A READ ASKS ONE PROJECT FOR.
  *
- * One call per metric type answers it for every resource of the project,
+ * One call per metric answers it for every resource of the project,
  * whether the project has such a resource or not - so asking every key
  * metric of every resource type would cost a project with a few VMs and a
  * bucket as many calls as one with every service. A read asks each
  * resource type's first metric of every project (a resource of the type
- * reports it: it is how a new one is found), and a type's other metrics
- * only of the projects that reported one of its metrics in the last
- * GCP_RESOURCE_TYPE_SEEN_MS (`seenResourceTypes`). A metric type two
- * resource types report is asked once, when either is there.
+ * reports it: it is how a new one is found), and a type's other metrics -
+ * and the deprecated ones it still reads (retired) - only of the projects
+ * that reported one of its metrics in the last GCP_RESOURCE_TYPE_SEEN_MS
+ * (`seenResourceTypes`). A metric type two resource types report is asked
+ * once, when either is there. The Ops Agent's metrics are asked as
+ * `opsAgent` says (getGcpOpsAgentAsk), never because a VM is there.
  *
- * `asked`: the metric types this read has asked the project already - a
- * second pass for the resource types its first pass found asks only the
- * rest.
+ * `asked`: the metrics this read has asked the project already, by stored
+ * name - a later pass for what an earlier one found asks only the rest.
  */
 export function getGcpMetricTypesToAsk(data: {
   seenResourceTypes: ReadonlySet<string>;
   asked?: ReadonlySet<string> | undefined;
-}): Array<GcpKeyMetric & { resourceType: string }> {
-  return getGcpKeyMetricTypes().filter(
-    (metric: GcpKeyMetric & { resourceType: string }): boolean => {
-      if (data.asked?.has(metric.metricType)) {
-        return false;
-      }
+  opsAgent?: GcpOpsAgentAsk | undefined;
+}): Array<GcpReadMetric> {
+  const opsAgent: GcpOpsAgentAsk = data.opsAgent || "none";
 
+  return getGcpReadMetrics().filter((metric: GcpReadMetric): boolean => {
+    if (data.asked?.has(metric.storedName)) {
+      return false;
+    }
+
+    if (metric.reportedBy === GCP_OPS_AGENT) {
       return (
-        (!data.asked && GCP_PROBE_METRIC_TYPES.has(metric.metricType)) ||
-        getGcpResourceTypesOfMetric(metric.metricType).some(
-          (resourceType: string): boolean => {
-            return data.seenResourceTypes.has(resourceType);
-          },
-        )
+        opsAgent === "all" ||
+        (opsAgent === "first" &&
+          metric.storedName === GCP_OPS_AGENT_METRICS[0]?.storedName)
       );
-    },
-  );
+    }
+
+    return (
+      (!data.asked && GCP_PROBE_METRICS.has(metric.storedName)) ||
+      metric.resourceTypes.some((resourceType: string): boolean => {
+        return data.seenResourceTypes.has(resourceType);
+      })
+    );
+  });
 }
 
 /*
@@ -1475,19 +1555,79 @@ export default class GcpCloudConnector implements CloudConnector {
       }
     }
 
+    /*
+     * Per project, when one of its VMs last reported an Ops Agent metric
+     * (kept while within GCP_OPS_AGENT_SEEN_MS), and when a read last asked
+     * it whether one does (getGcpOpsAgentAsk).
+     */
+    const opsAgentSeen: Record<string, string> = {};
+    const opsAgentAskedAt: Record<string, string> = {};
+
+    for (const [projectId, at] of Object.entries(state.gcpOpsAgentSeen || {})) {
+      if (!isOlderThan(at, GCP_OPS_AGENT_SEEN_MS, now)) {
+        opsAgentSeen[projectId] = at;
+      }
+    }
+
+    for (const [projectId, at] of Object.entries(
+      state.gcpOpsAgentAskedAt || {},
+    )) {
+      if (
+        projects.includes(projectId) &&
+        !isOlderThan(at, GCP_OPS_AGENT_ASK_EVERY_MS, now)
+      ) {
+        opsAgentAskedAt[projectId] = at;
+      }
+    }
+
     if (window) {
       type GcpAsk = {
         projectId: string;
-        metric: GcpKeyMetric & { resourceType: string };
+        metric: GcpReadMetric;
       };
 
-      // Each project's metric types asked so far, this read.
+      // Each project's metrics asked so far this read, by stored name.
       const askedByProject: Map<string, Set<string>> = new Map();
       const knownResourceTypes: ReadonlySet<string> = new Set<string>(
         GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics): string => {
           return entry.resourceType;
         }),
       );
+      /*
+       * What each project is known to have, this read's finds included so
+       * far: its resource types, and whether a VM of it runs the Ops Agent.
+       */
+      const typesByProject: Map<string, Set<string>> = new Map();
+      const agentProjects: Set<string> = new Set<string>(
+        Object.keys(opsAgentSeen),
+      );
+
+      for (const projectId of projects) {
+        typesByProject.set(
+          projectId,
+          new Set<string>(Object.keys(seenByProject[projectId] || {})),
+        );
+      }
+
+      // How a project is asked for the agent's metrics, now; a "first" is kept.
+      const opsAgentAskOf: (projectId: string) => GcpOpsAgentAsk = (
+        projectId: string,
+      ): GcpOpsAgentAsk => {
+        const ask: GcpOpsAgentAsk = getGcpOpsAgentAsk({
+          isReporting: agentProjects.has(projectId),
+          askedAt: opsAgentAskedAt[projectId],
+          hasResources: hasGcpOpsAgentResources(
+            typesByProject.get(projectId) || new Set<string>(),
+          ),
+          now,
+        });
+
+        if (ask === "first") {
+          opsAgentAskedAt[projectId] = now.toISOString();
+        }
+
+        return ask;
+      };
 
       const ask: (asks: Array<GcpAsk>) => Promise<{
         outcomes: Array<Settled<Array<GcpTimeSeries>>>;
@@ -1501,7 +1641,7 @@ export default class GcpCloudConnector implements CloudConnector {
         for (const item of asks) {
           const asked: Set<string> =
             askedByProject.get(item.projectId) || new Set<string>();
-          asked.add(item.metric.metricType);
+          asked.add(item.metric.storedName);
           askedByProject.set(item.projectId, asked);
         }
 
@@ -1518,71 +1658,109 @@ export default class GcpCloudConnector implements CloudConnector {
                 alignmentPeriodSeconds: GCP_ALIGNMENT_PERIOD_SECONDS,
                 start: window.start,
                 end: window.end,
+                metricLabels: item.metric.metricLabels,
+                readAs: item.metric.readAs,
               });
             },
           ),
         };
       };
 
-      // 1. Every resource type's first metric, and the others of the types each project has.
-      const firstPass: Array<GcpAsk> = [];
+      /*
+       * 1. Every resource type's first metric, the others of the types each
+       * project has, and the Ops Agent's where a VM runs it.
+       */
+      let next: Array<GcpAsk> = [];
 
       for (const projectId of projects) {
         for (const metric of getGcpMetricTypesToAsk({
-          seenResourceTypes: new Set<string>(
-            Object.keys(seenByProject[projectId] || {}),
-          ),
+          seenResourceTypes: typesByProject.get(projectId)!,
+          opsAgent: opsAgentAskOf(projectId),
         })) {
-          firstPass.push({ projectId, metric });
+          next.push({ projectId, metric });
         }
       }
 
       const passes: Array<{
         outcomes: Array<Settled<Array<GcpTimeSeries>>>;
         asks: Array<GcpAsk>;
-      }> = [await ask(firstPass)];
+      }> = [];
 
       /*
-       * 2. A resource type a project reported for the first time in a day:
-       * its other metrics, for the same window, so its first minutes are
-       * read whole.
+       * 2. What a pass found for the first time - a resource type a project
+       * reported for the first time in a day, an Ops Agent on one of its
+       * VMs - asked whole in a pass of its own, for the same window, so its
+       * first minutes are read whole: a VM found asks whether it runs the
+       * agent, and an agent found asks the agent's other metrics.
        */
-      const secondPass: Array<GcpAsk> = [];
-      const newlySeen: Map<string, Set<string>> = new Map();
+      while (next.length > 0 && passes.length < GCP_MAX_READ_PASSES) {
+        const pass: {
+          outcomes: Array<Settled<Array<GcpTimeSeries>>>;
+          asks: Array<GcpAsk>;
+        } = await ask(next);
+        const found: Map<string, { types: Set<string>; isAgent: boolean }> =
+          new Map();
 
-      passes[0]!.outcomes.forEach(
-        (outcome: Settled<Array<GcpTimeSeries>>, index: number) => {
-          if (!outcome.ok) {
-            return;
-          }
-
-          const projectId: string = passes[0]!.asks[index]!.projectId;
-
-          for (const series of outcome.value) {
-            if (
-              knownResourceTypes.has(series.resourceType) &&
-              !seenByProject[projectId]?.[series.resourceType]
-            ) {
-              const types: Set<string> =
-                newlySeen.get(projectId) || new Set<string>();
-              types.add(series.resourceType);
-              newlySeen.set(projectId, types);
+        passes.push(pass);
+        pass.outcomes.forEach(
+          (outcome: Settled<Array<GcpTimeSeries>>, index: number) => {
+            if (!outcome.ok || outcome.value.length === 0) {
+              return;
             }
+
+            const item: GcpAsk = pass.asks[index]!;
+            const what: { types: Set<string>; isAgent: boolean } = found.get(
+              item.projectId,
+            ) || { types: new Set<string>(), isAgent: false };
+
+            for (const series of outcome.value) {
+              if (
+                knownResourceTypes.has(series.resourceType) &&
+                !typesByProject.get(item.projectId)?.has(series.resourceType)
+              ) {
+                what.types.add(series.resourceType);
+              }
+            }
+
+            if (
+              item.metric.reportedBy === GCP_OPS_AGENT &&
+              !agentProjects.has(item.projectId)
+            ) {
+              what.isAgent = true;
+            }
+
+            found.set(item.projectId, what);
+          },
+        );
+
+        next = [];
+
+        for (const [projectId, what] of found) {
+          const types: Set<string> =
+            typesByProject.get(projectId) || new Set<string>();
+
+          for (const resourceType of what.types) {
+            types.add(resourceType);
           }
-        },
-      );
 
-      for (const [projectId, types] of newlySeen) {
-        for (const metric of getGcpMetricTypesToAsk({
-          seenResourceTypes: types,
-          asked: askedByProject.get(projectId),
-        })) {
-          secondPass.push({ projectId, metric });
+          typesByProject.set(projectId, types);
+
+          if (what.isAgent) {
+            agentProjects.add(projectId);
+          }
+
+          for (const metric of getGcpMetricTypesToAsk({
+            seenResourceTypes: what.types,
+            asked: askedByProject.get(projectId),
+            opsAgent: what.isAgent
+              ? "all"
+              : hasGcpOpsAgentResources(what.types)
+                ? opsAgentAskOf(projectId)
+                : "none",
+          })) {
+            next.push({ projectId, metric });
+          }
         }
-      }
-
-      if (secondPass.length > 0) {
-        passes.push(await ask(secondPass));
       }
 
       let succeeded: number = 0;
@@ -1615,7 +1793,7 @@ export default class GcpCloudConnector implements CloudConnector {
         }
 
         succeeded++;
-        const askedMetric: GcpKeyMetric = item.metric;
+        const askedMetric: GcpReadMetric = item.metric;
 
         for (const series of outcome.value) {
           if (knownResourceTypes.has(series.resourceType)) {
@@ -1624,6 +1802,11 @@ export default class GcpCloudConnector implements CloudConnector {
             seen[series.resourceType] = now.toISOString();
             seenByProject[item.projectId] = seen;
           }
+        }
+
+        // A VM of the project runs the Ops Agent: its metrics are asked every read.
+        if (askedMetric.reportedBy === GCP_OPS_AGENT && outcome.value.length) {
+          opsAgentSeen[item.projectId] = now.toISOString();
         }
 
         for (const series of outcome.value) {
@@ -1656,14 +1839,15 @@ export default class GcpCloudConnector implements CloudConnector {
             groups.set(resource.identityKey, group);
           }
 
+          // Stored as the catalog names it: a distribution's count as its own.
           let metric: CloudMetricGroup["metrics"][number] | undefined =
             group.metrics.find((candidate: { name: string }): boolean => {
-              return candidate.name === series.metricType;
+              return candidate.name === askedMetric.storedName;
             });
 
           if (!metric) {
             metric = {
-              name: series.metricType,
+              name: askedMetric.storedName,
               unit: askedMetric.unit,
               datapointSets: [],
             };
@@ -1709,6 +1893,14 @@ export default class GcpCloudConnector implements CloudConnector {
     state.accounts = projects;
     state.inventoryAt = now.toISOString();
     state.gcpResourceTypesSeen = seenByProject;
+    state.gcpOpsAgentSeen = opsAgentSeen;
+    /*
+     * A read that stopped at its limit may not have asked what it meant to:
+     * the next asks again rather than an hour later.
+     */
+    state.gcpOpsAgentAskedAt = budget.isSpent()
+      ? state.gcpOpsAgentAskedAt
+      : opsAgentAskedAt;
 
     const tooMany: string | null = this.isOrganization(settings)
       ? getOrganizationLimitWarning({

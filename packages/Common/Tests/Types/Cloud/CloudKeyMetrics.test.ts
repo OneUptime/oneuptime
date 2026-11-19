@@ -5,6 +5,8 @@ import {
   AZURE_DIMENSION_ATTRIBUTE_PREFIX,
   AZURE_ENTITY_NAME_ATTRIBUTE,
   AZURE_ENTITY_NAME_DIMENSION,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
@@ -15,7 +17,10 @@ import {
   DAILY_PERIOD_SECONDS,
   HOURLY_PERIOD_SECONDS,
   GCP_KEY_METRICS,
+  GCP_OPS_AGENT,
+  GCP_OPS_AGENT_INSTALL_URL,
   GcpKeyMetric,
+  GcpReadMetric,
   GcpTypeKeyMetrics,
   getAwsKeyMetrics,
   getAwsNamespaceOfType,
@@ -23,10 +28,15 @@ import {
   getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
   getAzureKeyMetrics,
+  getAzureReadMetricNames,
   getAzureStoredMetricName,
+  hasAzureFiveMinuteKeyMetrics,
+  isAzureFiveMinuteKeyMetric,
   getCloudKeyMetricOfStoredName,
   getGcpKeyMetricTypes,
+  getGcpReadMetrics,
   getGcpResourceTypesOfMetric,
+  getGcpStoredMetricName,
   getKeyMetricCount,
   compareCloudKeyMetrics,
   parseAwsStoredMetricName,
@@ -482,6 +492,115 @@ describe("Azure", () => {
   });
 });
 
+/*
+ * A metric Azure Monitor keeps at five minutes at its finest takes a call
+ * of its own beside its type's minute metrics, so it is read only where it
+ * is marked as earning it (#9566), and a deprecated one still read rides
+ * in the type's call (#9565).
+ */
+describe("Azure metrics read at five minutes, and deprecated ones still read", () => {
+  test("a metric is marked by its type, whatever its case, and a type knows it has one", () => {
+    expect(
+      isAzureFiveMinuteKeyMetric("Microsoft.Web/sites", "HealthCheckStatus"),
+    ).toBe(true);
+    expect(
+      isAzureFiveMinuteKeyMetric("microsoft.web/SITES", "healthcheckstatus"),
+    ).toBe(true);
+    // A minute metric of the type, a marked name of another type, nothing.
+    expect(isAzureFiveMinuteKeyMetric("Microsoft.Web/sites", "Requests")).toBe(
+      false,
+    );
+    expect(
+      isAzureFiveMinuteKeyMetric(
+        "Microsoft.Web/serverfarms",
+        "HealthCheckStatus",
+      ),
+    ).toBe(false);
+    expect(isAzureFiveMinuteKeyMetric("", "")).toBe(false);
+    expect(hasAzureFiveMinuteKeyMetrics("Microsoft.Web/sites")).toBe(true);
+    expect(
+      hasAzureFiveMinuteKeyMetrics("Microsoft.DocumentDB/databaseAccounts"),
+    ).toBe(true);
+    // A Static Web App's are all five minutes: its one call, not marked.
+    expect(hasAzureFiveMinuteKeyMetrics("Microsoft.Web/staticSites")).toBe(
+      false,
+    );
+    expect(
+      hasAzureFiveMinuteKeyMetrics("Microsoft.Compute/virtualMachines"),
+    ).toBe(false);
+    expect(AZURE_FIVE_MINUTE_GRAIN).toBe("PT5M");
+    expect(AZURE_FIVE_MINUTE_READ_MINUTES).toBe(15);
+  });
+
+  test("a five-minute key metric says its points are five minutes apart; a minute one says nothing", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Web/sites",
+        metricName: "azure_healthcheckstatus_average",
+      }),
+    ).toEqual({
+      name: "HealthCheckStatus",
+      group: CloudKeyMetricGroup.Availability,
+      rank: 4,
+      intervalSeconds: 300,
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.DocumentDB/databaseAccounts",
+        metricName: "azure_datausagev2_total",
+      })?.intervalSeconds,
+    ).toBe(300);
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Web/sites",
+        metricName: "azure_requests_total",
+      }),
+    ).toEqual({
+      name: "Requests",
+      group: CloudKeyMetricGroup.Traffic,
+      rank: 0,
+    });
+  });
+
+  test("a read asks for a type's key metrics, then the deprecated ones it still reads", () => {
+    const cosmos: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.DocumentDB/databaseAccounts",
+    )!;
+
+    expect(getAzureReadMetricNames(cosmos)).toEqual([
+      ...namesOf(cosmos),
+      "ServerSideLatency",
+    ]);
+    expect(namesOf(cosmos)).not.toContain("ServerSideLatency");
+    // One call's worth, retired ones included.
+    for (const entry of AZURE_KEY_METRICS) {
+      expect(getAzureReadMetricNames(entry).length).toBeLessThanOrEqual(
+        AZURE_MAX_METRICS_PER_RESOURCE,
+      );
+    }
+    // A type with none reads its key metrics alone.
+    const vm: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.Compute/virtualMachines",
+    )!;
+    expect(getAzureReadMetricNames(vm)).toEqual(namesOf(vm));
+  });
+
+  test("a deprecated metric is no key metric: a stream never writes it in the read's place", () => {
+    const type: string = "Microsoft.DocumentDB/databaseAccounts";
+
+    expect(
+      getAzureKeyMetricOfStoredName(type, "azure_serversidelatency_average"),
+    ).toBeNull();
+    expect(
+      isAzureKeyMetricStoredName(type, "azure_serversidelatency_average"),
+    ).toBe(false);
+    expect(isAzureStreamedKeyMetric(type, "ServerSideLatency")).toBe(false);
+  });
+});
+
 describe("Azure Service Bus and Event Hubs, split per queue", () => {
   test("only their namespaces are split, by EntityName, as the azure_monitor receiver names it", () => {
     const split: Array<string> = AZURE_KEY_METRICS.filter(
@@ -822,10 +941,10 @@ describe("Google Cloud", () => {
     }
   });
 
-  test("every metric type belongs to its resource type's service, once", () => {
+  test("every metric is read once by the name it is stored under, of a service of Google's", () => {
     const all: Array<string> = getGcpKeyMetricTypes().map(
       (metric: GcpKeyMetric): string => {
-        return metric.metricType;
+        return getGcpStoredMetricName(metric);
       },
     );
 
@@ -838,10 +957,128 @@ describe("Google Cloud", () => {
           "ALIGN_MEAN",
           "ALIGN_MAX",
           "ALIGN_RATE",
+          "ALIGN_SUM",
           "ALIGN_PERCENTILE_95",
         ]).toContain(metric.aligner);
+        // A distribution's count is read from its sum, and only its count.
+        expect({
+          metric: metric.metricType,
+          sum: metric.aligner === "ALIGN_SUM",
+        }).toEqual({
+          metric: metric.metricType,
+          sum: metric.readAs === "count",
+        });
       }
     }
+  });
+
+  test("a type's two reads of one distribution are two calls: its count and its percentile", () => {
+    const reads: Array<GcpReadMetric> = getGcpReadMetrics().filter(
+      (metric: GcpReadMetric): boolean => {
+        return (
+          metric.metricType === "pubsub.googleapis.com/topic/message_sizes"
+        );
+      },
+    );
+
+    expect(
+      reads.map((metric: GcpReadMetric) => {
+        return [metric.storedName, metric.aligner, metric.readAs];
+      }),
+    ).toEqual([
+      ["pubsub.googleapis.com/topic/message_sizes_count", "ALIGN_SUM", "count"],
+      [
+        "pubsub.googleapis.com/topic/message_sizes",
+        "ALIGN_PERCENTILE_95",
+        undefined,
+      ],
+    ]);
+    expect(
+      getGcpResourceTypesOfMetric(
+        "pubsub.googleapis.com/topic/message_sizes_count",
+      ),
+    ).toEqual(["pubsub_topic"]);
+  });
+
+  test("the deprecated metrics still read come after every key metric, for their own types", () => {
+    const reads: Array<GcpReadMetric> = getGcpReadMetrics();
+    const firstRetired: number = reads.findIndex(
+      (metric: GcpReadMetric): boolean => {
+        return metric.isRetired;
+      },
+    );
+
+    expect(firstRetired).toBeGreaterThan(0);
+    expect(
+      reads.slice(firstRetired).every((metric: GcpReadMetric): boolean => {
+        return metric.isRetired;
+      }),
+    ).toBe(true);
+    expect(
+      reads
+        .filter((metric: GcpReadMetric): boolean => {
+          return metric.isRetired;
+        })
+        .map((metric: GcpReadMetric) => {
+          return [metric.storedName, metric.resourceTypes];
+        }),
+    ).toEqual([
+      [
+        "pubsub.googleapis.com/topic/send_message_operation_count",
+        ["pubsub_topic"],
+      ],
+    ]);
+    // Never a key metric of its type.
+    expect(
+      getGcpKeyMetricTypes().some((metric: GcpKeyMetric): boolean => {
+        return (
+          metric.metricType ===
+          "pubsub.googleapis.com/topic/send_message_operation_count"
+        );
+      }),
+    ).toBe(false);
+  });
+
+  test("a VM's memory and disks come from the Ops Agent, in their used state, read where it runs", () => {
+    const agent: Array<GcpReadMetric> = getGcpReadMetrics().filter(
+      (metric: GcpReadMetric): boolean => {
+        return metric.reportedBy === GCP_OPS_AGENT;
+      },
+    );
+
+    expect(
+      agent.map((metric: GcpReadMetric) => {
+        return [
+          metric.storedName,
+          metric.resourceTypes,
+          metric.group,
+          metric.unit,
+          metric.metricLabels,
+        ];
+      }),
+    ).toEqual([
+      [
+        "agent.googleapis.com/memory/percent_used",
+        ["gce_instance"],
+        CloudKeyMetricGroup.Memory,
+        "%",
+        { state: "used" },
+      ],
+      [
+        "agent.googleapis.com/disk/percent_used",
+        ["gce_instance"],
+        CloudKeyMetricGroup.Storage,
+        "%",
+        { state: "used" },
+      ],
+    ]);
+    // Never a type's first metric: what every read asks every project.
+    for (const entry of GCP_KEY_METRICS) {
+      expect(entry.metrics[0]!.reportedBy).toBeUndefined();
+    }
+    expect(GCP_OPS_AGENT_INSTALL_URL).toBe(
+      "https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation",
+    );
   });
 
   test("a count is read as a rate per second", () => {
@@ -879,7 +1116,8 @@ describe("key metric counts", () => {
         "Microsoft.Compute/virtualMachines",
       ),
     ).toBe(17);
-    expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(9);
+    // Its two Ops Agent metrics among them.
+    expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(11);
     expect(getKeyMetricCount(CloudProvider.GCP, "nope")).toBe(0);
   });
 });
@@ -1180,13 +1418,85 @@ describe("a key metric by its stored name", () => {
       group: CloudKeyMetricGroup.Compute,
       rank: 0,
     });
+    // A VM's memory, as the Ops Agent on it reports it: a key metric of its own.
     expect(
       getCloudKeyMetricOfStoredName({
         provider: CloudProvider.GCP,
         type: "gce_instance",
         metricName: "agent.googleapis.com/memory/percent_used",
       }),
+    ).toEqual({
+      name: "agent.googleapis.com/memory/percent_used",
+      group: CloudKeyMetricGroup.Memory,
+      rank: 3,
+    });
+    // A metric no connection reads is none.
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "gce_instance",
+        metricName: "agent.googleapis.com/swap/percent_used",
+      }),
     ).toBeNull();
+  });
+
+  test("Google Cloud: a distribution read for its count by the name it is stored under, its percentile by its type's", () => {
+    const sizes: string = "pubsub.googleapis.com/topic/message_sizes";
+
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: `${sizes}_count`,
+      }),
+    ).toEqual({
+      name: `${sizes}_count`,
+      group: CloudKeyMetricGroup.Traffic,
+      rank: 0,
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: sizes,
+      }),
+    ).toEqual({ name: sizes, group: CloudKeyMetricGroup.Traffic, rank: 2 });
+    // Whatever the case ingest stored it in.
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: `${sizes}_count`.toUpperCase(),
+      })?.rank,
+    ).toBe(0);
+    expect(getGcpStoredMetricName({ metricType: sizes, readAs: "count" })).toBe(
+      `${sizes}_count`,
+    );
+    expect(getGcpStoredMetricName({ metricType: sizes })).toBe(sizes);
+  });
+
+  test("a deprecated metric still read is no key metric: its page lists it with the others", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: "pubsub.googleapis.com/topic/send_message_operation_count",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.DocumentDB/databaseAccounts",
+        metricName: "azure_serversidelatency_average",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.DocumentDB/databaseAccounts",
+        metricName: "azure_serversidelatencydirect_average",
+      })?.group,
+    ).toBe(CloudKeyMetricGroup.Latency);
   });
 
   test("nothing for an unknown provider, or no name", () => {
