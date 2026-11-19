@@ -27,7 +27,11 @@ the panel open, and an **Open details** button that opens one of the app's own s
   composer's pill names and whose own suggestions the start offers;
 - `home`: Home, with no page context, where one sentence says where answers come from;
 - `logs`: the logs explorer with an error pattern's **Explain with AI**, which opens a new
-  conversation with a prepared question in the composer, unsent.
+  conversation with a prepared question in the composer, unsent;
+- `setup`: a guided setup's first step, drawn by the Dashboard's own frame (`GuidedSetupFrame`) as
+  the website setup draws it, with an address to type and **Describe it instead**, which opens
+  Ask AI with the setup's goal in the composer, built from the address typed, unsent (#7245). An
+  Ask AI setup plan's **Open in guided setup** goes to this page, its address filled in.
 
 ## The conversations
 
@@ -51,7 +55,10 @@ An in-page server answers what the panel asks and records what it sends on
   are down right now?", answered with two monitors read by id, one Offline and one whose
   monitoring is off, each on a read's plain card with its status a dot in its own colour, and
   the monitors table, a monitor named by its URL beside one-word statuses ("Operational"), built
-  as query_monitors builds it (MonitorsTableWords), with its words.
+  as query_monitors builds it (MonitorsTableWords), with its words; `?thread=docs` on "How do I
+  get a text when an incident starts?" answered from the docs (#7067): numbered steps, the docs
+  section it was read from and the Dashboard page where it is done, under the answer as **Go to
+  Notification Methods**, in the reader's language.
 - A question sent starts a run whose steps are written one per poll, then the answer; a
   question about an alert ends on an approval card, and one asking to fail ends on an error.
   `?run=hold` holds the run where it is until `window.__askAiFixture.addSteps(n)` and
@@ -118,6 +125,13 @@ fails on any uncaught page error:
   menu naming each mode as its button does, and saying what it means in German), Persian (right
   to left: an English title beside its icon and cut at its own end, an approval card saved
   before its words keeping its English lines' punctuation) and reduced motion;
+- a how-do-I answer from the docs (#7067), at 1280 and 390, light and dark, in German and
+  Persian: its numbered steps, its sources, and **Go to Notification Methods**, which opens the
+  page beside the conversation, its arrow pointing the way the words read;
+- the guided setups and Ask AI, each a way to the other (#7245): **Describe it instead** on a
+  guided setup's first step opens Ask AI with the goal in the composer, unsent, and a setup
+  plan's **Open in guided setup** opens the website setup with the plan's address while the card
+  still waits - a phone's sheet stepping aside for it - in German, in Persian and in the dark;
 - an approval card in the reader's language, at 1280 and 390: its title, its line and its own
   words in German and in Persian - the alert's title and the host's name as written, set apart
   in the Persian sentences, each read right to left - with Allow and Skip beside the title in a

@@ -28,7 +28,7 @@ Adressen sjekkes fra serverens egen sonde, så den må kunne nås derfra. For at
 
 ![Hjem spør «Hva vil du gjøre først?», med «Vite når nettstedet eller API-et mitt er nede» avkrysset](screen:home-goal-website)
 
-Siden **Hjem** i et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, og klikk på **Fortsett**. Klikk deretter på **Opprett din første monitor** i sjekklisten **Velkommen til OneUptime 👋**. Mangler steget i sjekklisten, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` og velger **Vite når nettstedet eller API-et mitt er nede**. **Monitorer** tilbyr det også: **Veiledet oppsett** på den tomme listen og under **Slik fungerer det**, og en linje på **Opprett monitor** når du velger **Nettsted** eller **API**.
+Siden **Hjem** i et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, og klikk på **Fortsett**. Klikk deretter på **Opprett din første monitor** i sjekklisten **Velkommen til OneUptime 👋**. Mangler steget i sjekklisten, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` og velger **Vite når nettstedet eller API-et mitt er nede**. **Monitorer** tilbyr det også: **Veiledet oppsett** på den tomme listen og under **Slik fungerer det**, og en linje på **Opprett monitor** når du velger **Nettsted** eller **API**. Eller klikk på **Beskriv det i stedet**: Spør AI åpnes med oppgaven skrevet i feltet, klar til å sendes.
 
 ### Skriv inn adressen
 

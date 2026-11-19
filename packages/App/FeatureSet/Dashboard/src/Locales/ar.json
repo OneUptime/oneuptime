@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "مجموعات الوضع ناقصة النسخ: {{count}}",
   "{{count}} undersized placement groups_one": "{{count}} مجموعة وضع ناقصة النسخ",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "أوقفت Google دعم المقياس {{metric}}: اقرأ {{replacement}} بدلًا منه، وهو عدد الرسائل المنشورة في الدقيقة، أي 60 ضعف المعدل في الثانية. يواصل OneUptime قراءته للمراقبات والمخططات المحفوظة ما دامت Google تنشره.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "تُزيل Microsoft المقياس {{metric}} من Azure Monitor: اقرأ {{direct}} أو {{gateway}} بدلًا منه. يواصل OneUptime قراءته للمراقبات والمخططات المحفوظة، وينقل كلًّا منها إلى زمن الانتقال الذي يُبلغ عنه حسابها حالما يوجد."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "تُزيل Microsoft المقياس {{metric}} من Azure Monitor: اقرأ {{direct}} أو {{gateway}} بدلًا منه. يواصل OneUptime قراءته للمراقبات والمخططات المحفوظة، وينقل كلًّا منها إلى زمن الانتقال الذي يُبلغ عنه حسابها حالما يوجد.",
+  "Describe it instead": "صِفه بدلًا من ذلك",
+  "Open in guided setup": "افتحه في الإعداد الموجَّه",
+  "Monitor my website and page me when it is down.": "راقب موقعي واستدعني حين يتعطل.",
+  "Monitor {{address}} and page me when it is down.": "راقب {{address}} واستدعني حين يتعطل.",
+  "Monitor the API at {{address}} and page me when it is down.": "راقب واجهة API على {{address}} واستدعني حين تتعطل.",
+  "Page me for every new incident and alert.": "استدعني عند كل حادثة جديدة وكل تنبيه جديد.",
+  "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
+  "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء."
 }

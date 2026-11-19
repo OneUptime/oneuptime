@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google이 {{metric}}을(를) 지원 중단했습니다. 대신 {{replacement}}을(를) 읽으세요. 분당 게시된 메시지 수로, 초당 비율의 60배입니다. OneUptime은 Google이 게시하는 동안 저장된 모니터와 차트를 위해 계속 읽습니다.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft가 Azure Monitor에서 {{metric}}을(를) 제거합니다. 대신 {{direct}} 또는 {{gateway}}을(를) 읽으세요. OneUptime은 저장된 모니터와 차트를 위해 계속 읽으며, 계정이 지연 시간을 보고하면 각각을 그 지연 시간으로 옮깁니다."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft가 Azure Monitor에서 {{metric}}을(를) 제거합니다. 대신 {{direct}} 또는 {{gateway}}을(를) 읽으세요. OneUptime은 저장된 모니터와 차트를 위해 계속 읽으며, 계정이 지연 시간을 보고하면 각각을 그 지연 시간으로 옮깁니다.",
+  "Describe it instead": "대신 말로 설명하기",
+  "Open in guided setup": "안내형 설정에서 열기",
+  "Monitor my website and page me when it is down.": "내 웹사이트를 모니터링하고 다운되면 나를 호출해 주세요.",
+  "Monitor {{address}} and page me when it is down.": "{{address}}을(를) 모니터링하고 다운되면 나를 호출해 주세요.",
+  "Monitor the API at {{address}} and page me when it is down.": "{{address}}의 API를 모니터링하고 다운되면 나를 호출해 주세요.",
+  "Page me for every new incident and alert.": "새 인시던트와 새 경고마다 나를 호출해 주세요.",
+  "Publish a status page that shows my monitors.": "내 모니터를 보여 주는 상태 페이지를 게시해 주세요.",
+  "Publish a status page called {{name}} that shows my monitors.": "내 모니터를 보여 주는 {{name}}(이)라는 상태 페이지를 게시해 주세요.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요."
 }

@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "O Google descontinuou {{metric}}: leia {{replacement}} em vez disso, as mensagens publicadas por minuto, que são 60 vezes a taxa por segundo. O OneUptime continua a lê-la para os monitores e gráficos salvos enquanto o Google a publicar.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "A Microsoft está removendo {{metric}} do Azure Monitor: leia {{direct}} ou {{gateway}} em vez disso. O OneUptime continua a lê-la para os monitores e gráficos salvos e passa cada um para a latência que sua conta informar assim que houver uma."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "A Microsoft está removendo {{metric}} do Azure Monitor: leia {{direct}} ou {{gateway}} em vez disso. O OneUptime continua a lê-la para os monitores e gráficos salvos e passa cada um para a latência que sua conta informar assim que houver uma.",
+  "Describe it instead": "Descreva em vez disso",
+  "Open in guided setup": "Abrir na configuração guiada",
+  "Monitor my website and page me when it is down.": "Monitore meu site e me acione quando ele cair.",
+  "Monitor {{address}} and page me when it is down.": "Monitore {{address}} e me acione quando ele cair.",
+  "Monitor the API at {{address}} and page me when it is down.": "Monitore a API em {{address}} e me acione quando ela cair.",
+  "Page me for every new incident and alert.": "Me acione a cada novo incidente e a cada novo alerta.",
+  "Publish a status page that shows my monitors.": "Publique uma página de status que mostre meus monitores.",
+  "Publish a status page called {{name}} that shows my monitors.": "Publique uma página de status chamada {{name}} que mostre meus monitores.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Me ajude a enviar os logs, métricas e traces do meu serviço para o OneUptime, e me alerte quando ele tiver erros."
 }

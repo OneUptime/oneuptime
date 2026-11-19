@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google 已弃用 {{metric}}：请改为读取 {{replacement}}，即每分钟发布的消息数，是每秒速率的 60 倍。只要 Google 仍在发布，OneUptime 就会继续为已保存的监视器和图表读取它。",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft 正在从 Azure Monitor 中移除 {{metric}}：请改为读取 {{direct}} 或 {{gateway}}。OneUptime 仍会为已保存的监视器和图表读取它，并在账户报告其中一种延迟后，把每一个切换到该延迟。"
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft 正在从 Azure Monitor 中移除 {{metric}}：请改为读取 {{direct}} 或 {{gateway}}。OneUptime 仍会为已保存的监视器和图表读取它，并在账户报告其中一种延迟后，把每一个切换到该延迟。",
+  "Describe it instead": "改为用一句话描述",
+  "Open in guided setup": "在引导式设置中打开",
+  "Monitor my website and page me when it is down.": "监控我的网站，并在它宕机时呼叫我。",
+  "Monitor {{address}} and page me when it is down.": "监控 {{address}}，并在它宕机时呼叫我。",
+  "Monitor the API at {{address}} and page me when it is down.": "监控 {{address}} 上的 API，并在它宕机时呼叫我。",
+  "Page me for every new incident and alert.": "在每个新事件和每个新警报时呼叫我。",
+  "Publish a status page that shows my monitors.": "发布一个显示我的监视器的状态页。",
+  "Publish a status page called {{name}} that shows my monitors.": "发布一个名为 {{name}} 并显示我的监视器的状态页。",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。"
 }

@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google は {{metric}} を非推奨にしました。代わりに {{replacement}}（1 分あたりに公開されたメッセージ数で、1 秒あたりのレートの 60 倍）を読み取ってください。OneUptime は Google が公開している間、保存済みのモニターとチャートのためにこれを読み取り続けます。",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft は Azure Monitor から {{metric}} を削除します。代わりに {{direct}} または {{gateway}} を読み取ってください。OneUptime は保存済みのモニターとチャートのためにこれを読み取り続け、アカウントがいずれかのレイテンシを報告した時点で、それぞれをそのレイテンシに切り替えます。"
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft は Azure Monitor から {{metric}} を削除します。代わりに {{direct}} または {{gateway}} を読み取ってください。OneUptime は保存済みのモニターとチャートのためにこれを読み取り続け、アカウントがいずれかのレイテンシを報告した時点で、それぞれをそのレイテンシに切り替えます。",
+  "Describe it instead": "代わりに文章で頼む",
+  "Open in guided setup": "ガイド付きセットアップで開く",
+  "Monitor my website and page me when it is down.": "私の Web サイトを監視し、ダウンしたら私を呼び出してください。",
+  "Monitor {{address}} and page me when it is down.": "{{address}} を監視し、ダウンしたら私を呼び出してください。",
+  "Monitor the API at {{address}} and page me when it is down.": "{{address}} の API を監視し、ダウンしたら私を呼び出してください。",
+  "Page me for every new incident and alert.": "新しいインシデントやアラートのたびに私を呼び出してください。",
+  "Publish a status page that shows my monitors.": "私のモニターを表示するステータスページを公開してください。",
+  "Publish a status page called {{name}} that shows my monitors.": "私のモニターを表示する {{name}} という名前のステータスページを公開してください。",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。"
 }

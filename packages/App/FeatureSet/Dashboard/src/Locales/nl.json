@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google heeft {{metric}} verouderd verklaard: lees in plaats daarvan {{replacement}}, de gepubliceerde berichten per minuut, wat 60 keer de snelheid per seconde is. OneUptime blijft het lezen voor opgeslagen monitoren en grafieken zolang Google het publiceert.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft verwijdert {{metric}} uit Azure Monitor: lees in plaats daarvan {{direct}} of {{gateway}}. OneUptime blijft het lezen voor opgeslagen monitoren en grafieken, en zet elk ervan over op de latentie die zijn account meldt zodra er een is."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft verwijdert {{metric}} uit Azure Monitor: lees in plaats daarvan {{direct}} of {{gateway}}. OneUptime blijft het lezen voor opgeslagen monitoren en grafieken, en zet elk ervan over op de latentie die zijn account meldt zodra er een is.",
+  "Describe it instead": "Beschrijf het liever",
+  "Open in guided setup": "Openen in de begeleide installatie",
+  "Monitor my website and page me when it is down.": "Monitor mijn website en roep mij op als hij plat ligt.",
+  "Monitor {{address}} and page me when it is down.": "Monitor {{address}} en roep mij op als het plat ligt.",
+  "Monitor the API at {{address}} and page me when it is down.": "Monitor de API op {{address}} en roep mij op als hij plat ligt.",
+  "Page me for every new incident and alert.": "Roep mij op bij elk nieuw incident en elke nieuwe waarschuwing.",
+  "Publish a status page that shows my monitors.": "Publiceer een statuspagina die mijn monitoren toont.",
+  "Publish a status page called {{name}} that shows my monitors.": "Publiceer een statuspagina met de naam {{name}} die mijn monitoren toont.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn."
 }

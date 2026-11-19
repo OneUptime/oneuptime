@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google fasar ut {{metric}}: läs {{replacement}} i stället, de publicerade meddelandena per minut, vilket är 60 gånger takten per sekund. OneUptime läser den fortfarande för sparade monitorer och diagram så länge Google publicerar den.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft tar bort {{metric}} från Azure Monitor: läs {{direct}} eller {{gateway}} i stället. OneUptime läser den fortfarande för sparade monitorer och diagram och flyttar var och en till den latens som kontot rapporterar så snart det finns en."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft tar bort {{metric}} från Azure Monitor: läs {{direct}} eller {{gateway}} i stället. OneUptime läser den fortfarande för sparade monitorer och diagram och flyttar var och en till den latens som kontot rapporterar så snart det finns en.",
+  "Describe it instead": "Beskriv det i stället",
+  "Open in guided setup": "Öppna i guidad installation",
+  "Monitor my website and page me when it is down.": "Övervaka min webbplats och larma mig när den ligger nere.",
+  "Monitor {{address}} and page me when it is down.": "Övervaka {{address}} och larma mig när den ligger nere.",
+  "Monitor the API at {{address}} and page me when it is down.": "Övervaka API:et på {{address}} och larma mig när det ligger nere.",
+  "Page me for every new incident and alert.": "Larma mig vid varje ny incident och varje nytt larm.",
+  "Publish a status page that shows my monitors.": "Publicera en statussida som visar mina monitorer.",
+  "Publish a status page called {{name}} that shows my monitors.": "Publicera en statussida som heter {{name}} och visar mina monitorer.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjälp mig att skicka min tjänsts loggar, mätvärden och spår till OneUptime, och larma mig när den har fel."
 }

@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} Placement Group ناقص",
   "{{count}} undersized placement groups_one": "{{count}} Placement Group ناقص",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google متریک {{metric}} را منسوخ کرده است: به جای آن {{replacement}} را بخوانید، یعنی پیام‌های منتشرشده در هر دقیقه که ۶۰ برابر نرخ در ثانیه است. OneUptime تا وقتی Google آن را منتشر می‌کند، هنوز آن را برای مانیتورها و نمودارهای ذخیره‌شده می‌خواند.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft در حال حذف {{metric}} از Azure Monitor است: به جای آن {{direct}} یا {{gateway}} را بخوانید. OneUptime هنوز آن را برای مانیتورها و نمودارهای ذخیره‌شده می‌خواند و هر کدام را، به محض اینکه حساب یکی از این تأخیرها را گزارش کند، به همان تأخیر منتقل می‌کند."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft در حال حذف {{metric}} از Azure Monitor است: به جای آن {{direct}} یا {{gateway}} را بخوانید. OneUptime هنوز آن را برای مانیتورها و نمودارهای ذخیره‌شده می‌خواند و هر کدام را، به محض اینکه حساب یکی از این تأخیرها را گزارش کند، به همان تأخیر منتقل می‌کند.",
+  "Describe it instead": "به‌جایش توصیفش کنید",
+  "Open in guided setup": "باز کردن در راه‌اندازی گام‌به‌گام",
+  "Monitor my website and page me when it is down.": "وب‌سایتم را پایش کن و وقتی از کار افتاد مرا فرا بخوان.",
+  "Monitor {{address}} and page me when it is down.": "{{address}} را پایش کن و وقتی از کار افتاد مرا فرا بخوان.",
+  "Monitor the API at {{address}} and page me when it is down.": "API در {{address}} را پایش کن و وقتی از کار افتاد مرا فرا بخوان.",
+  "Page me for every new incident and alert.": "برای هر حادثه و هر هشدار تازه مرا فرا بخوان.",
+  "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
+  "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده."
 }

@@ -59012,5 +59012,14 @@
   "{{count}} undersized placement groups": "{{count}} undersized placement groups",
   "{{count}} undersized placement groups_one": "{{count}} undersized placement group",
   "Google deprecates {{metric}}: read {{replacement}} instead, the messages published a minute, which is 60 times the rate a second. OneUptime still reads it for saved monitors and charts while Google publishes it.": "Google объявил {{metric}} устаревшей: читайте вместо неё {{replacement}}, число опубликованных сообщений в минуту, то есть в 60 раз больше скорости в секунду. OneUptime по-прежнему читает её для сохранённых мониторов и графиков, пока Google её публикует.",
-  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft удаляет {{metric}} из Azure Monitor: читайте вместо неё {{direct}} или {{gateway}}. OneUptime по-прежнему читает её для сохранённых мониторов и графиков и переводит каждый на задержку, о которой сообщает его аккаунт, как только она появится."
+  "Microsoft is removing {{metric}} from Azure Monitor: read {{direct}} or {{gateway}} instead. OneUptime still reads it for saved monitors and charts, and moves each to the latency its account reports once there is one.": "Microsoft удаляет {{metric}} из Azure Monitor: читайте вместо неё {{direct}} или {{gateway}}. OneUptime по-прежнему читает её для сохранённых мониторов и графиков и переводит каждый на задержку, о которой сообщает его аккаунт, как только она появится.",
+  "Describe it instead": "Лучше описать словами",
+  "Open in guided setup": "Открыть в пошаговой настройке",
+  "Monitor my website and page me when it is down.": "Следи за моим сайтом и вызывай меня, когда он недоступен.",
+  "Monitor {{address}} and page me when it is down.": "Следи за {{address}} и вызывай меня, когда он недоступен.",
+  "Monitor the API at {{address}} and page me when it is down.": "Следи за API по адресу {{address}} и вызывай меня, когда он недоступен.",
+  "Page me for every new incident and alert.": "Вызывай меня при каждом новом инциденте и каждом новом оповещении.",
+  "Publish a status page that shows my monitors.": "Опубликуй страницу статуса, на которой видны мои мониторы.",
+  "Publish a status page called {{name}} that shows my monitors.": "Опубликуй страницу статуса с названием {{name}}, на которой видны мои мониторы.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Помоги отправить логи, метрики и трассировки моего сервиса в OneUptime и оповещай меня, когда в нём появляются ошибки."
 }
