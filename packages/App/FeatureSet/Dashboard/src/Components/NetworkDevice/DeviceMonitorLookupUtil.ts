@@ -42,6 +42,20 @@ export const WEB_UI_MONITOR_CANDIDATES_LIMIT: number = 50;
 export interface DeviceMonitorContext {
   monitors: Array<Monitor>;
   isMonitorBacked: boolean;
+  /*
+   * The monitors listed only because a person tied them to the device
+   * (Monitor.networkDeviceId, issues #9545 and #9676), by id: the ones the
+   * Monitors card can take off the device. One made for it, bound to it,
+   * watching it, or its web UI monitor is the device's for that reason, and
+   * stays listed whatever its tie.
+   */
+  removableMonitorIds: Set<string>;
+}
+
+// The monitors listed for a device, and which of them only by a person's tie.
+export interface DeviceMonitorListing {
+  monitors: Array<Monitor>;
+  removableMonitorIds: Set<string>;
 }
 
 /*
@@ -184,12 +198,16 @@ export default class DeviceMonitorLookupUtil {
     const binding: DeviceBinding =
       await DeviceMonitorLookupUtil.getDeviceBinding(networkDeviceId);
 
-    return {
-      monitors: await DeviceMonitorLookupUtil.listMonitorsForDevice({
+    const listing: DeviceMonitorListing =
+      await DeviceMonitorLookupUtil.listMonitorsForDevice({
         networkDeviceId,
         binding: binding,
-      }),
+      });
+
+    return {
+      monitors: listing.monitors,
       isMonitorBacked: binding.isMonitorBacked,
+      removableMonitorIds: listing.removableMonitorIds,
     };
   }
 
@@ -199,10 +217,48 @@ export default class DeviceMonitorLookupUtil {
     const binding: DeviceBinding =
       await DeviceMonitorLookupUtil.getDeviceBinding(networkDeviceId);
 
-    return DeviceMonitorLookupUtil.listMonitorsForDevice({
-      networkDeviceId,
-      binding: binding,
-    });
+    return (
+      await DeviceMonitorLookupUtil.listMonitorsForDevice({
+        networkDeviceId,
+        binding: binding,
+      })
+    ).monitors;
+  }
+
+  /*
+   * Which of the listed monitors a person's tie alone puts on the device
+   * (issue #9676): in the tied list and in no other. React-free and
+   * request-free, so the rule is tested on its own.
+   */
+  public static getRemovableMonitorIds(data: {
+    tiedToDevice: ReadonlyArray<Monitor>;
+    listedForOtherReasons: ReadonlyArray<Monitor | null | undefined>;
+  }): Set<string> {
+    const idOf: (monitor: Monitor | null | undefined) => string = (
+      monitor: Monitor | null | undefined,
+    ): string => {
+      return (monitor?._id?.toString() || monitor?.id?.toString() || "")
+        .trim()
+        .toLowerCase();
+    };
+
+    const otherReasons: Set<string> = new Set<string>(
+      data.listedForOtherReasons.map(idOf).filter((id: string): boolean => {
+        return Boolean(id);
+      }),
+    );
+
+    const removable: Set<string> = new Set<string>();
+
+    for (const monitor of data.tiedToDevice) {
+      const id: string = idOf(monitor);
+
+      if (id && !otherReasons.has(id)) {
+        removable.add(id);
+      }
+    }
+
+    return removable;
   }
 
   /*
@@ -358,7 +414,7 @@ export default class DeviceMonitorLookupUtil {
   private static async listMonitorsForDevice(data: {
     networkDeviceId: ObjectID;
     binding: DeviceBinding;
-  }): Promise<Array<Monitor>> {
+  }): Promise<DeviceMonitorListing> {
     const networkDeviceId: ObjectID = data.networkDeviceId;
     const boundMonitor: Monitor | null = data.binding.boundMonitor;
 
@@ -468,6 +524,18 @@ export default class DeviceMonitorLookupUtil {
       listed.push(monitor);
     }
 
-    return listed;
+    return {
+      monitors: listed,
+      // A person's tie alone lists these (issue #9676): Remove unties them.
+      removableMonitorIds: DeviceMonitorLookupUtil.getRemovableMonitorIds({
+        tiedToDevice: tiedToDevice.data,
+        listedForOtherReasons: [
+          boundMonitor,
+          ...watching,
+          ...madeForDevice.data,
+          ...webUiMonitors,
+        ],
+      }),
+    };
   }
 }

@@ -153,8 +153,21 @@ const NetworkDeviceView: FunctionComponent<
     ModelAction.Create,
   ).isAllowed;
 
-  // Bumped when a monitor is added to the device, to read its monitors again.
+  /*
+   * Bumped when a monitor is added to the device or taken off it, to read
+   * its monitors again.
+   */
   const [monitorsReadCount, setMonitorsReadCount] = useState<number>(0);
+  // The monitors only a person's tie lists on the card (issue #9676).
+  const [removableMonitorIds, setRemovableMonitorIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
+
+  const readMonitorsAgain: () => void = (): void => {
+    setMonitorsReadCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
@@ -163,6 +176,7 @@ const NetworkDeviceView: FunctionComponent<
           await DeviceMonitorLookupUtil.getDeviceMonitorContext(modelId);
         setMonitors(context.monitors);
         setIsMonitorBacked(context.isMonitorBacked);
+        setRemovableMonitorIds(context.removableMonitorIds);
       } catch (err) {
         setMonitorsError(API.getFriendlyMessage(err));
       }
@@ -441,11 +455,9 @@ const NetworkDeviceView: FunctionComponent<
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
         canCreateMonitor={canCreateMonitor}
-        onMonitorAdded={() => {
-          setMonitorsReadCount((count: number): number => {
-            return count + 1;
-          });
-        }}
+        onMonitorAdded={readMonitorsAgain}
+        removableMonitorIds={removableMonitorIds}
+        onMonitorRemoved={readMonitorsAgain}
       />
       {/*
        * What Security Events found about it this week - firewall and
