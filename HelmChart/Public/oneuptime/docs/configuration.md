@@ -166,6 +166,7 @@ globalRunner:
 | `nginx.service.externalTrafficPolicy` | `Local` keeps each visitor's own address on the way to the gateway. Empty keeps Kubernetes' default, `Cluster`. See [Visitor addresses](#visitor-addresses). | `""` |
 | `nginx.listenAddress`        | The one address the gateway listens on inside its pod, such as `0.0.0.0:` (IPv4 only). Empty: every IPv4 and IPv6 address it has. | `""` |
 | `nginx.listenOptions`        | Options of the gateway's listening socket, such as `backlog=4096`.  | `""`           |
+| `nginx.http2`                | HTTP/2 for `host` on the gateway's HTTPS port, which it serves itself only with `ssl.provision: true`. `false` turns it off there: OTLP over gRPC to `host` stops, and OTLP over HTTP and browsers keep working over HTTP/1.1. For an nginx vulnerability in HTTP/2 that you cannot upgrade past yet; upgrading is the fix. See [Turn HTTP/2 off until you can upgrade](https://oneuptime.com/docs/self-hosted/hardening#turn-http2-off-until-you-can-upgrade). | `true` |
 | `statusPage.cnameRecord`     | CNAME record for the status page. See [Custom domains](custom-domains.md). | `nil`    |
 
 ## Images
