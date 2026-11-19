@@ -143,6 +143,8 @@ Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es u
 | `/data-store/<id>/scan-now` | **Escanear ahora**: muestrea el contenido del almacén al momento |
 | `/data-store/<id>/check-now` | **Comprobar ahora**: vuelve a leer la configuración del almacén y ejecuta sus comprobaciones |
 | `/data-store-finding/<id>/scrub` | **Depurar** en un hallazgo de telemetría |
+| `/data-store-finding/<id>/drop-metric-impact` | Lo que **Descartar esta métrica** descartaría para un hallazgo en el nombre de una métrica: cuántas métricas, y los monitores y paneles que las leen |
+| `/data-store-finding/<id>/drop-metric` | **Descartar esta métrica**: una regla de canalización de métricas que descarta para siempre los nuevos puntos de datos de esas métricas del servicio. Recibe `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Explicar con IA** en un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corregir con IA** en un problema |
 | `/data-store/<id>/response-actions` | Qué acciones de respuesta admite el almacén ahora, y por qué no |

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The agent's words in Simplified Chinese: every string of res/values/strings.xml, in the Dashboard's terms (Locales/zh-CN.json). -->
+<resources>
+
+    <string name="notification_channel_name">代理状态</string>
+    <string name="notification_channel_description">显示此设备是否正在向 OneUptime 上报。</string>
+
+    <string name="notification_requests_channel_name">来自 OneUptime 的请求</string>
+    <string name="notification_requests_channel_description">OneUptime 为故障排除请求读取此设备的日志。</string>
+    <string name="notification_request_title">OneUptime 请求获取此设备的日志</string>
+
+    <string name="status_not_set_up">尚未设置</string>
+    <string name="status_not_set_up_detail">请输入摄取密钥，或通过设备管理服务以 oneuptime_token 的形式下发。</string>
+    <string name="status_unreachable">无法连接到 OneUptime</string>
+    <string name="status_unreachable_detail">请检查设备的网络。代理会自动重试。</string>
+    <string name="status_key_refused">OneUptime 拒绝了摄取密钥</string>
+    <string name="status_key_refused_detail">请使用已开启且未过期的服务器摄取密钥（HTTP %1$d）。</string>
+    <string name="status_not_found">此地址上没有 OneUptime</string>
+    <string name="status_not_found_detail">请检查 OneUptime URL（%1$s）。</string>
+    <string name="status_server_error">OneUptime 目前不接收遥测数据</string>
+    <string name="status_server_error_detail">OneUptime 返回了 %1$d。代理会自动重试。</string>
+    <string name="status_server_error_unknown_detail">OneUptime 返回了错误。代理会自动重试。</string>
+    <string name="status_sending_failed">发送失败</string>
+    <string name="status_retrying">代理会自动重试。</string>
+    <string name="status_kept">遥测数据会保留在设备上，直到可以发送为止。</string>
+    <string name="status_detail_and_kept">%1$s%2$s</string>
+    <string name="status_reporting">正在向 OneUptime 上报</string>
+    <string name="status_as_device">设备名称：%1$s</string>
+    <string name="status_starting">正在启动</string>
+    <string name="status_starting_detail">设备名称：%1$s。第一份报告将在一分钟内发出。</string>
+
+    <string name="address_empty">请输入您的 OneUptime URL。</string>
+    <string name="address_not_a_url">OneUptime URL 不是有效的网址。</string>
+    <string name="address_not_https">OneUptime URL 必须以 https:// 开头，以免摄取密钥以明文发送。</string>
+    <string name="address_query_or_fragment">请删除 OneUptime URL 中以 ? 或 # 开头的部分。</string>
+    <string name="address_credentials">请删除 OneUptime URL 中的用户名和密码。</string>
+
+    <string name="setup_subtitle">向 OneUptime 上报此设备的健康状况、重启、应用和日志。</string>
+    <string name="setup_last_report">最后报告发送于 %1$s</string>
+    <string name="setup_no_report_yet">尚未发送任何内容</string>
+    <string name="setup_waiting">%1$s 待发送</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s：设备管理服务原样发送了 %2$s，未填入实际值。</string>
+    <string name="setup_problem_invalid">%1$s：无法使用 %2$s，因此采用默认值。</string>
+    <string name="setup_connection">连接</string>
+    <string name="setup_managed_notice">显示为锁定的设置由您组织的设备管理服务指定。</string>
+    <string name="setup_url_label">OneUptime URL</string>
+    <string name="setup_url_help">仅当您自托管 OneUptime 时才需要更改。</string>
+    <string name="setup_token_label">摄取密钥</string>
+    <string name="setup_token_hint">粘贴服务器摄取密钥</string>
+    <string name="setup_token_stored_hint">已保存。粘贴新密钥即可替换。</string>
+    <string name="setup_token_help">在 OneUptime 中：项目设置 > 遥测与 APM > 摄取密钥。请使用服务器密钥。</string>
+    <string name="setup_token_unreadable">此设备已无法读取保存的密钥。请重新粘贴。</string>
+    <string name="setup_device_name_label">设备名称</string>
+    <string name="setup_device_name_help">此设备在主机和资产清单中显示的名称。</string>
+    <string name="setup_set_by_organization">由您的组织设置</string>
+    <string name="setup_save">保存并连接</string>
+    <string name="setup_saved">已保存。代理正在发送报告。</string>
+    <string name="setup_token_required">请粘贴摄取密钥。</string>
+    <string name="setup_save_failed">此设备无法安全地存储密钥：%1$s</string>
+    <string name="setup_readings">此设备允许代理读取的内容</string>
+    <string name="setup_reading_yes">是</string>
+    <string name="setup_reading_cpu">CPU 使用率</string>
+    <string name="setup_reading_cpu_device_owner">是，作为设备所有者</string>
+    <string name="setup_reading_cpu_not_device_owner">仅当代理是设备所有者时</string>
+    <string name="setup_reading_cpu_not_supported">此设备不支持：Android 未提供 CPU 使用率</string>
+    <string name="setup_reading_memory">内存、存储和网络</string>
+    <string name="setup_reading_battery">电池</string>
+    <string name="setup_reading_no_battery">无电池</string>
+    <string name="setup_reading_thermal">温度与降频</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 及更高版本</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">崩溃堆栈和重启原因</string>
+    <string name="setup_reading_crash_details_yes">是，所有应用</string>
+    <string name="setup_reading_crash_details_not_granted">已关闭：未授予 READ_LOGS</string>
+    <string name="setup_reading_crash_details_no_usage_access">已关闭：未授予使用情况访问权限</string>
+    <string name="setup_reading_apps">已安装的应用</string>
+    <string name="setup_reading_off_by_manager">已关闭：由设备管理服务关闭</string>
+    <string name="setup_reading_unknown">首次上报后显示</string>
+    <string name="setup_grants">要发送其他应用的日志和崩溃堆栈，请使用 adb 或设备管理服务的远程 ADB 授予以下权限（只需一次）：</string>
+    <string name="setup_usage_access">授予使用情况访问权限</string>
+
+    <string name="logcat_not_started">未开始</string>
+    <string name="logcat_not_granted">已关闭：未授予 READ_LOGS</string>
+    <string name="logcat_crashes_and_anrs">所有应用的崩溃和 ANR</string>
+    <string name="logcat_full">所有应用的日志、崩溃和 ANR</string>
+
+    <string name="log_session_title">用于故障排除的日志</string>
+    <string name="log_session_request_by">%1$s 在 OneUptime 中请求获取此设备上所有应用的日志（%3$s及以上级别），持续 %2$s。</string>
+    <string name="log_session_request">OneUptime 请求获取此设备上所有应用的日志（%2$s及以上级别），持续 %1$s。</string>
+    <string name="log_session_android_prompt">随后 Android 会询问是否允许访问所有设备日志，届时也请选择允许。</string>
+    <string name="log_session_allow">允许</string>
+    <string name="log_session_decline">拒绝</string>
+    <string name="log_session_stop">停止发送</string>
+    <string name="log_session_starting">请在 Android 的提示中允许访问所有设备日志。</string>
+    <string name="log_session_collecting_until">正在发送所有应用的日志，直到 %1$s。</string>
+    <string name="log_session_collecting">正在发送所有应用的日志。</string>
+    <string name="log_session_declined_here">已拒绝。不会再发送任何内容。</string>
+    <string name="log_session_declined_by_android">未允许访问所有设备日志，因此不会再发送任何内容。</string>
+    <string name="log_session_no_answer">无人回应 Android 的提示，因此不会再发送任何内容。</string>
+    <string name="log_session_time_up">已完成：已在请求的时长内发送所有应用的日志。</string>
+    <string name="log_session_stopped">已停止。不会再发送任何内容。</string>
+    <string name="log_session_agent_restarted">因代理重启而结束。</string>
+    <string name="log_session_logcat_stopped">已结束：Logcat 已停止读取。</string>
+    <string name="log_session_logcat_disabled">此设备无法发送：设备管理服务已关闭 Logcat。</string>
+    <string name="log_session_not_granted">此设备无法发送：未授予 READ_LOGS。</string>
+    <string name="log_session_expired">无人及时允许。</string>
+    <string name="log_session_cancelled">已在 OneUptime 中取消。</string>
+    <string name="log_session_ended">已结束。</string>
+    <plurals name="duration_minutes">
+        <item quantity="other">%d 分钟</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="other">%d 小时</item>
+    </plurals>
+
+    <string name="device_admin_description">让代理以设备所有者身份读取此设备的 CPU 使用率。它绝不会锁定、清除数据或限制设备。</string>
+
+    <string name="restriction_url_title">OneUptime URL</string>
+    <string name="restriction_url_description">遥测数据的发送目标。除非您自托管 OneUptime，否则请保留 https://oneuptime.com。</string>
+    <string name="restriction_token_title">摄取密钥</string>
+    <string name="restriction_token_description">来自“项目设置 > 遥测与 APM > 摄取密钥”的服务器摄取密钥。</string>
+    <string name="restriction_device_name_title">设备名称</string>
+    <string name="restriction_device_name_description">设备在 OneUptime 中的名称，例如 ${esper.deviceName}。请在您应用的 host.name 中使用相同的名称，使两者显示为同一台设备。</string>
+    <string name="restriction_device_serial_title">序列号</string>
+    <string name="restriction_device_serial_description">设备的序列号，例如 ${esper.serialNumber}。Android 本身不会向应用提供序列号。</string>
+    <string name="restriction_device_type_title">设备类型</string>
+    <string name="restriction_device_type_description">设备的类型：自助终端、POS 终端、手持设备、数字标牌。</string>
+    <string name="restriction_device_location_title">位置</string>
+    <string name="restriction_device_location_description">设备所在的位置，例如门店编号。</string>
+    <string name="restriction_labels_title">标签</string>
+    <string name="restriction_labels_description">设备在 OneUptime 中的标签，格式为以逗号分隔的“名称=值”对，例如 store=0412, region=emea。</string>
+    <string name="restriction_interval_title">收集间隔（秒）</string>
+    <string name="restriction_interval_description">代理上报的频率，范围为 30 到 600 秒。默认为 60。</string>
+    <string name="restriction_logcat_enabled_title">发送 Logcat</string>
+    <string name="restriction_logcat_enabled_description">发送其他应用的崩溃、ANR 和日志，并允许 OneUptime 请求的日志会话。需要通过 adb 授予 READ_LOGS。</string>
+    <string name="restriction_logcat_level_title">最低 Logcat 级别</string>
+    <string name="restriction_logcat_level_description">要发送的 Logcat 行的最低严重程度，适用于 Android 12 及更早版本。默认为“警告”。</string>
+    <string name="restriction_apps_enabled_title">发送已安装的应用</string>
+    <string name="restriction_apps_enabled_description">每天发送一次已安装的应用及其版本，并在每次安装、更新和移除时发送。</string>
+    <string name="logcat_level_verbose">详细</string>
+    <string name="logcat_level_debug">调试</string>
+    <string name="logcat_level_info">信息</string>
+    <string name="logcat_level_warn">警告</string>
+    <string name="logcat_level_error">错误</string>
+    <string name="logcat_level_fatal">致命</string>
+</resources>

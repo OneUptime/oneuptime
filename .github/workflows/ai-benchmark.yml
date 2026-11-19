@@ -1,0 +1,186 @@
+name: AI Benchmark
+
+# The AI investigation benchmark (npm run ai-benchmark, Docs/ai/evals.md,
+# #7764): OneUptime AI's real investigation loop - today's persona, prompt,
+# tools and limits - run with a real model over made-up incidents and
+# alerts whose cause was planted, each answer scored on whether it names the
+# cause and cites the evidence for it (or, where the evidence names no
+# cause, says so). It is how a change to what OneUptime AI reads or says is
+# measured before it ships.
+#
+# It spends real model credits - up to 40 model calls a scenario - so it
+# does not run on every pull request:
+#
+#   - on a pull request that changes the investigation itself (the paths
+#     below): its persona and prompt, the loop that runs it, the way the
+#     toolbox offers tools and writes their results, the benchmark, the LLM
+#     client, or this workflow. Each tool's own file is left out: some thirty
+#     pull requests a week change one, mostly a tool an investigation never
+#     calls; the nightly run catches the ones that matter;
+#   - nightly on main, after the day's merges;
+#   - by hand (Run workflow), with how many runs a scenario gets and which
+#     scenarios run.
+#
+# The model's key is the repository secret AI_EVAL_LLM_API_KEY, which a
+# maintainer sets (Settings, Secrets and variables, Actions). Without it -
+# not set yet, or a pull request from a fork, which GitHub hands no secrets -
+# the job says so in its summary and passes: nothing runs, nothing is spent.
+# The scripts refuse a key given as an argument, so it travels in the
+# environment only.
+#
+# Results: the pass table goes to the job's summary, and every answer and
+# score to the ai-benchmark-results artifact (kept 30 days), so a pull
+# request's run can be compared with the night before. The job fails when
+# fewer scenarios pass than AI_BENCHMARK_FAIL_UNDER asks. The check is not
+# required, so a red run warns the reviewer and blocks no merge: a model's
+# answers vary from run to run, and the threshold is set to catch an
+# investigation that broke, not one that had a bad night. Raise it to a
+# little below the pass count the runs settle at.
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    paths:
+      # The persona, the system prompt and the question an investigation is asked.
+      - packages/Common/Server/Utils/AI/SRE/AIInvestigationEngine.ts
+      - packages/Common/Server/Utils/AI/SRE/InvestigationReportLanguagePrompt.ts
+      # The loop that runs the investigation, and the chat prompt it shares.
+      - packages/Common/Server/Utils/AI/Chat/**
+      # Which tools are offered, and how their results are written.
+      - packages/Common/Server/Utils/AI/Toolbox/Index.ts
+      - packages/Common/Server/Utils/AI/Toolbox/Serializer.ts
+      - packages/Common/Server/Utils/AI/Toolbox/ToolTypes.ts
+      # How an answer is read: its sections, citations and impact numbers.
+      - packages/Common/Utils/AI/InvestigationReport.ts
+      - packages/Common/Utils/AI/InvestigationImpactNumbers.ts
+      # The model client every call goes through.
+      - packages/Common/Server/Utils/LLM/**
+      # The benchmark: its scenarios, scorer and command line. It scores
+      # without a judge here, so the judge's own files are not listed.
+      - packages/Common/Server/Utils/AI/Eval/Benchmark/**
+      - packages/Common/Server/Utils/AI/Eval/EvalCommandLine.ts
+      - packages/Common/Server/Utils/AI/Eval/PinnedModel.ts
+      - Scripts/AI/RunInvestigationBenchmark.ts
+      - .github/workflows/ai-benchmark.yml
+  schedule:
+    - cron: "43 3 * * *"
+  workflow_dispatch:
+    inputs:
+      repeat:
+        description: "Runs per scenario (1 to 10). A scenario passes when more than half its runs pass."
+        required: false
+        default: "1"
+      scenarios:
+        description: "Scenario ids to run, separated by commas (npm run ai-benchmark -- --list). Empty: all of them."
+        required: false
+        default: ""
+
+# Read-only: the job checks out the code, runs the benchmark against the
+# model's API and uploads the results as an artifact, nothing more.
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    # 13 scenarios of up to 15 minutes each, run one after another; most take
+    # a minute or two.
+    timeout-minutes: 150
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      # The model under test, pinned so one run can be compared with the
+      # next: the current Claude Opus. Changing it starts a new series of
+      # pass counts.
+      AI_BENCHMARK_LLM_TYPE: Anthropic
+      AI_BENCHMARK_MODEL: claude-opus-5-5
+      # The least that must pass: a share of the scenarios run, so a new
+      # scenario does not need a new threshold.
+      AI_BENCHMARK_FAIL_UNDER: "50%"
+    steps:
+      - name: Check for the model's key
+        id: key
+        env:
+          AI_EVAL_LLM_API_KEY: ${{ secrets.AI_EVAL_LLM_API_KEY }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        run: |
+          if [ -n "$AI_EVAL_LLM_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "present=false" >> "$GITHUB_OUTPUT"
+
+          if [ "$IS_FORK" = "true" ]; then
+            reason="this pull request comes from a fork, and GitHub hands a fork's pull request none of the repository's secrets"
+          else
+            reason="the repository secret AI_EVAL_LLM_API_KEY is not set. A maintainer sets it to a key for the model below (Settings, Secrets and variables, Actions)"
+          fi
+
+          {
+            echo "## AI investigation benchmark: skipped"
+            echo
+            echo "Nothing was run and no model was called: ${reason}."
+            echo
+            echo "It would run ${AI_BENCHMARK_LLM_TYPE} ${AI_BENCHMARK_MODEL}. To run it yourself, see Docs/ai/evals.md."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::notice title=AI investigation benchmark skipped::Nothing was run: ${reason}."
+
+      - name: Checkout code
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.key.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install Common dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install root dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+
+      - name: Install Script dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
+
+      # The inputs reach the command through the environment, never pasted
+      # into the script; the benchmark refuses a repeat or a scenario it
+      # does not know before it calls the model.
+      - name: Run the benchmark
+        if: steps.key.outputs.present == 'true'
+        env:
+          AI_EVAL_LLM_API_KEY: ${{ secrets.AI_EVAL_LLM_API_KEY }}
+          REPEAT: ${{ inputs.repeat || '1' }}
+          SCENARIOS: ${{ inputs.scenarios || '' }}
+        run: |
+          npm run ai-benchmark -- \
+            --llm-type="$AI_BENCHMARK_LLM_TYPE" \
+            --model="$AI_BENCHMARK_MODEL" \
+            --repeat="$REPEAT" \
+            --scenario="$SCENARIOS" \
+            --fail-under="$AI_BENCHMARK_FAIL_UNDER" \
+            --report-markdown="$GITHUB_STEP_SUMMARY"
+
+      - name: Keep every answer and score
+        if: always() && steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-benchmark-results
+          path: ai-benchmark-results.json
+          if-no-files-found: ignore
+          retention-days: 30

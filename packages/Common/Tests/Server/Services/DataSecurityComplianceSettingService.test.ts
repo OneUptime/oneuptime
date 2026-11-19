@@ -13,8 +13,16 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import ColumnLength from "../../../Types/Database/ColumnLength";
+import {
+  getTableColumns,
+  TableColumnMetadata,
+} from "../../../Types/Database/TableColumn";
+import Dictionary from "../../../Types/Dictionary";
 import ComplianceFramework from "../../../Types/DataSecurity/ComplianceFramework";
-import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
+import {
+  ALL_DATA_STORE_RESOURCE_KINDS,
+  DataStoreResourceKind,
+} from "../../../Types/DataSecurity/DataStoreResource";
 import { KubernetesComplianceFramework } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -162,6 +170,31 @@ describe("turning a framework off for a resource", () => {
 
     expect(result.thrown).toBeInstanceOf(BadDataException);
     expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The API, MCP and the Terraform provider read a column's values from the
+   * column (ColumnAllowedValues): it says them as Object.values of its own
+   * enum, and they are the six kinds it has always stored, so no stored
+   * setting reads differently and none needs a migration.
+   */
+  test("its kind of resource is one of the six it has always stored, as the column says them", () => {
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(
+      new DataSecurityComplianceSetting(),
+    );
+
+    expect(columns["resourceType"]?.allowedValues).toEqual([
+      "KubernetesCluster",
+      "DockerHost",
+      "PodmanHost",
+      "DatabaseServer",
+      "CloudResource",
+      "Service",
+    ]);
+    // The kinds Data Security finds stores on, in the same order.
+    expect(columns["resourceType"]?.allowedValues).toEqual([
+      ...ALL_DATA_STORE_RESOURCE_KINDS,
+    ]);
   });
 
   test("a kind of resource that holds no stores is refused", async () => {

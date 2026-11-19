@@ -48,7 +48,7 @@ I **Spans att bevaka** anger du **Span-status** och **Spannamnet innehåller**. 
 
 ### Begränsa dem (valfritt)
 
-Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut, eller för att bara räkna de spans som tog minst en viss tid.
+Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut, för att bara räkna de spans som tog minst en viss tid, eller för att utlösa ett larm per värde av ett attribut med **Gruppera efter attribut**.
 
 ### Säg när det ska larmas
 
@@ -77,8 +77,9 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Spans från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Spans vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
 | **Tar minst (ms)** (under **Fler fält**) | Spans som tog så här lång tid eller längre, i millisekunder, till exempel 5000 för en kallstart på fem sekunder. | Tomt: valfri varaktighet |
+| **Gruppera efter attribut** (under **Fler fält**) | Inget filter: ett antal, och ett larm eller en incident, per kombination av de här attributens värden. Se [Ett larm per grupp](#ett-larm-per-grupp). | Tomt: alla matchande spans räknas tillsammans |
 
-Alla filter som du anger måste matcha för att en span ska räknas.
+Alla filter som du anger måste matcha för att en span ska räknas. De spans som ligger bakom ett larm eller en incident som monitorn öppnar listas med samma filter, med **Tar minst (ms)** inräknat som ett filter på **Varaktighet**, så det är de spans som den räknade.
 
 ### Span-statuskoder
 
@@ -99,6 +100,14 @@ Om du vill att lyckade förfrågningar ska visas som OK, lägger du till en spå
 - **Kriterier uppifrån och ned.** Det första kriteriet som matchar avgör, så lägg det allvarligaste överst.
 
 Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**.
+
+## Ett larm per grupp
+
+Med **Gruppera efter attribut** angivet räknar monitorn de matchande spansen per kombination av attributens värden, och varje grupp utlöser sitt eget larm eller sin egen incident och löser det på egen hand. En mobilapps rekommendation **Device Stopped Reporting** grupperar efter `resource.app.installation.id`, en grupp per installation av appen.
+
+En enhet som slutar skicka spans lämnar ingen span i fönstret att bilda en grupp av. Därför räknar en grupperad monitor vars regel kan matcha när det inte finns några spans, till exempel **Färre än** `1`, också som 0 varje grupp som skickade spans veckan före fönstret men inga i det. En grupp som har varit tyst längre än den veckan faller bort, och dess larm löses.
+
+När ingen av grupperna skickar en span har hela appen tystnat, inte en enhet: ingen grupp larmar, och de öppna larmen förblir öppna tills det kommer spans. En ogrupperad monitor, till exempel **App Stopped Reporting**, larmar om det. Högst 100 grupper bedöms i en kontroll, de tysta först.
 
 ## Kriterier
 

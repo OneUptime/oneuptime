@@ -65,7 +65,9 @@ import {
 } from "../../Types/OpenStack/OpenStackOverview";
 import {
   OPENSTACK_BARE_METAL_CLASS_LIMIT,
+  OPENSTACK_BARE_METAL_FAILED_NODES_LIMIT,
   OpenStackBareMetalClass,
+  OpenStackBareMetalResourceClass,
 } from "../../Types/OpenStack/OpenStackBareMetal";
 import {
   OpenStackBlastRadius,
@@ -2642,6 +2644,47 @@ export class Service extends DatabaseService<Model> {
         data.stackIds,
       ],
     );
+  }
+
+  /**
+   * The nodes of one resource class that failed, for the Bare Metal page's "Failed: N" when it is
+   * pressed (#9751): the very rows getBareMetalClasses counts as failed - a status in
+   * OPENSTACK_BARE_METAL_ERROR_STATES, the class matched as it groups them (null for the nodes
+   * with none) - with what a probe kept of why (facts.lastError). By name, at most
+   * OPENSTACK_BARE_METAL_FAILED_NODES_LIMIT, and whether there were more.
+   */
+  @CaptureSpan()
+  public async getBareMetalFailedNodes(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    resourceClass: OpenStackBareMetalResourceClass;
+    regionName?: string | null | undefined;
+  }): Promise<{ rows: Array<JSONObject>; isTruncated: boolean }> {
+    const rows: Array<JSONObject> = (
+      (await this.getRepository().manager.query(
+        `SELECT ${ROW_COLUMNS} FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.BareMetalNode}' AND "deletedAt" IS NULL
+           AND "status" = ANY($3::text[])
+           AND (("facts"->>'resourceClass') = $4::text
+             OR ($4::text IS NULL AND ("facts"->>'resourceClass') IS NULL))
+           AND ($5::text IS NULL OR "regionName" = $5)
+         ORDER BY "name" ASC NULLS LAST, "externalId" ASC
+         LIMIT ${OPENSTACK_BARE_METAL_FAILED_NODES_LIMIT + 1}`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          Array.from(OPENSTACK_BARE_METAL_ERROR_STATES),
+          data.resourceClass,
+          data.regionName || null,
+        ],
+      )) as Array<JSONObject>
+    ).map(toRowWithNumbers);
+
+    return {
+      rows: rows.slice(0, OPENSTACK_BARE_METAL_FAILED_NODES_LIMIT),
+      isTruncated: rows.length > OPENSTACK_BARE_METAL_FAILED_NODES_LIMIT,
+    };
   }
 
   /**

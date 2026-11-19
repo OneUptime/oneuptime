@@ -7,6 +7,7 @@ El agente de Android de OneUptime informa a OneUptime sobre un dispositivo Andro
 - [Desplegarlo con Esper](#desplegarlo-con-esper): Subir el APK, enviar sus ajustes, iniciarlo una vez.
 - [Ajustes](#ajustes): Cada clave de su configuración gestionada.
 - [Leer los registros de otras aplicaciones](#leer-los-registros-de-otras-aplicaciones): Conceder READ_LOGS una vez, con adb o con tu gestor de dispositivos.
+- [Sesiones de registros](#sesiones-de-registros): Los registros de todas las aplicaciones durante un tiempo, permitidos por la persona frente al dispositivo.
 :::
 
 ## Cómo funciona
@@ -93,6 +94,8 @@ El agente lee estas claves de su configuración gestionada. Un dispositivo sin c
 
 Un marcador de posición que tu gestor de dispositivos no rellenó, como un `${esper.deviceName}` enviado tal cual, se ignora, y la pantalla del agente lo indica. Mantén el mismo `device_name` una vez que un dispositivo informa: un nombre nuevo es un host nuevo.
 
+La pantalla del agente, sus notificaciones y los títulos y descripciones que tu gestor de dispositivos muestra para estas claves están en el idioma del dispositivo, en todos los idiomas que habla el panel de OneUptime.
+
 ## Leer los registros de otras aplicaciones
 
 Android solo permite que una aplicación lea los registros de otras aplicaciones con el permiso READ_LOGS, y solo adb puede concederlo: ni la propia aplicación ni una política de dispositivo. Concédelo una vez en cada dispositivo y seguirá concedido tras reinicios y actualizaciones:
@@ -105,10 +108,51 @@ Con Esper, ejecuta ese comando mediante **Secure Remote ADB**: activa el acceso 
 
 Lo que el agente lee a partir de entonces depende de la versión de Android:
 
-- Android 13 y posteriores: los fallos y ANR de todas las aplicaciones. Android solo muestra las líneas de registro de otras aplicaciones a una aplicación que está en pantalla, después de que la persona frente al dispositivo lo permita, así que un agente que se ejecuta en segundo plano no puede leerlas.
+- Android 13 y posteriores: los fallos y ANR de todas las aplicaciones. Android solo muestra las líneas de registro de otras aplicaciones a una aplicación que está en pantalla, después de que la persona frente al dispositivo lo permita, así que un agente que se ejecuta en segundo plano no puede leerlas. Pídelas durante un tiempo con una [sesión de registros](#sesiones-de-registros).
 - Android 12 y anteriores: los fallos y ANR de todas las aplicaciones, y las líneas de registro de todas las aplicaciones de nivel `logcat_min_level` o superior.
 
 Sin READ_LOGS, el agente informa de todo lo demás, y su pantalla y los registros del dispositivo indican cómo concederlo.
+
+### Stack traces de fallos y motivos de reinicio
+
+Android guarda en su DropBox el informe completo de cada fallo de aplicación, fallo nativo y ANR, y el motivo de cada reinicio. El agente los lee de todas las aplicaciones cuando tiene READ_LOGS y acceso a datos de uso, y en Android 15 y posteriores READ_DROPBOX_DATA. Concédelos una vez con adb, como READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+El primer comando es para Android 15 y posteriores; el acceso a datos de uso también se puede activar en el dispositivo, en **Ajustes → Acceso a datos de uso**. Una política de dispositivo no puede concederlos, y la pantalla del agente enumera los comandos que faltan por ejecutar. Con ellos, cada fallo en **Excepciones** tiene su stack trace completo, un fallo nativo su señal y la biblioteca en la que falló, un ANR la pila de su hilo principal, y un reinicio en **Registros** el motivo que da Android. Los números de tarjeta, direcciones de correo electrónico, tokens y contraseñas en lo que lee el agente se sustituyen por `[card number]`, `[email]`, `[token]` y `[redacted]` antes de enviarse.
+
+### Uso de CPU
+
+A partir de Android 8, Android oculta a las aplicaciones el uso de CPU de un dispositivo. Solo una aplicación propietaria del dispositivo puede leerlo, y solo en dispositivos cuyo hardware lo informa. El agente lo lee cuando es el propietario del dispositivo, algo que configuras con adb en un dispositivo sin cuentas y sin otro propietario:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+Un dispositivo del que tu gestor de dispositivos ya es propietario no puede tener un segundo propietario, así que su uso de CPU no está disponible, y la pantalla del agente lo indica. Su uso de CPU queda entonces fuera de la lista de Hosts, y la plantilla **High CPU Utilization** no se le ofrece.
+
+## Sesiones de registros
+
+Una sesión de registros envía durante un tiempo los registros de todas las aplicaciones de un dispositivo, para diagnosticar sus problemas. En Android 13 y posteriores es la única forma de leer las líneas de registro de otras aplicaciones, porque Android solo las muestra a una aplicación que está en pantalla, después de que la persona frente al dispositivo lo permita.
+
+:::steps
+### Solicitar una
+
+Abre el dispositivo en **Hosts**, luego **Registros**, y haz clic en **Solicitar sesión de registros** en **Sesiones de registros**. Elige durante cuánto tiempo envía el dispositivo sus registros, de 15 minutos a 4 horas, y el nivel más bajo que envía: **Info**, **Depuración** o **Detallado**.
+
+### Permitirla en el dispositivo
+
+En menos de un minuto, el dispositivo muestra una notificación de que alguien ha pedido sus registros, con su nombre. La persona frente al dispositivo abre el agente y toca **Permitir**. En Android 13 y posteriores, Android pide después permitir el acceso a todos los registros del dispositivo, y la persona también lo permite.
+
+### Leer las líneas
+
+La sesión muestra **Recopilando**, y las líneas de todas las aplicaciones llegan a los registros del dispositivo. Haz clic en **Mostrar líneas** para ver solo las líneas de la sesión. La sesión termina cuando se acaba su tiempo, o cuando alguien la detiene en el dispositivo o la cancela en OneUptime.
+:::
+
+Una sesión necesita READ_LOGS y `logcat_enabled`; sin ellos, muestra **No disponible**. En un dispositivo solo se ejecuta una sesión a la vez. Una solicitud que nadie permite en una hora caduca, y una sesión durante la que el dispositivo se reinicia termina con ese reinicio, ya que el permiso de Android termina con el proceso del agente. Pedir una sesión requiere permiso para editar el host, y los **Registros de auditoría** del host guardan quién la pidió y cuándo.
 
 ## Qué informa el agente
 
@@ -117,14 +161,15 @@ Sin READ_LOGS, el agente informa de todo lo demás, y su pantalla y los registro
 | Memoria, almacenamiento, red y tiempo de actividad | La página del dispositivo en **Hosts**: las mismas métricas que envía el colector de un servidor, así que las plantillas de alerta de host funcionan |
 | Carga de la batería y temperatura, y si el dispositivo está conectado a una fuente de alimentación externa | Las métricas `hw.battery.charge`, `hw.temperature` y `android.battery.plugged` |
 | Estado térmico | Las métricas `android.thermal.status` y `android.thermal.headroom` |
-| Reinicios | **Registros**, con `@event.name:device.boot`: cuánto tiempo llevaba encendido el dispositivo, si se apagó correctamente, cuánto tiempo estuvo apagado, y los bucles de reinicio |
+| Uso de CPU | La métrica `system.cpu.utilization`: en Android 7, y en Android 8 y posteriores cuando el agente es el [propietario del dispositivo](#uso-de-cpu) |
+| Reinicios | **Registros**, con `@event.name:device.boot`: cuánto tiempo llevaba encendido el dispositivo, si se apagó correctamente, cuánto tiempo estuvo apagado, por qué se reinició, y los bucles de reinicio |
 | Aplicaciones instaladas | **Registros**, con `@event.name:android.package.inventory` una vez al día, y con cada instalación, actualización y desinstalación |
-| Fallos y ANR de todas las aplicaciones | **Excepciones**, como no controlados, con el nombre de la aplicación |
-| Marca, modelo, número de serie, versión del sistema operativo y firmware | El elemento del dispositivo en **Inventario** |
+| Fallos y ANR de todas las aplicaciones | **Excepciones**, como no controlados, con el nombre de la aplicación, y con sus pilas cuando el agente lee la [DropBox](#stack-traces-de-fallos-y-motivos-de-reinicio) |
+| Marca, modelo, número de serie, versión del sistema operativo, nivel de parche de seguridad y firmware | El elemento del dispositivo en **Inventario** |
 
-A partir de Android 8, Android oculta a las aplicaciones el uso de CPU del dispositivo, así que el agente solo informa del uso de CPU en Android 7 y en las compilaciones que lo permiten.
+En **Hosts**, el sistema operativo del dispositivo aparece como Android, con el logotipo de Android.
 
-Las plantillas de alerta de host adecuadas para un dispositivo son Host Stopped Reporting, High Memory Utilization, High Filesystem Usage y Host Restarted. Un dispositivo que se reinicia una y otra vez registra una advertencia en cada arranque, con `android.boot.recent_count` igual al número de arranques de la última hora.
+Los arranques del dispositivo en la última hora son la métrica `android.boot.recent_count`, y un dispositivo que se reinicia una y otra vez registra una advertencia en cada arranque. En **Hosts**, a un dispositivo Android se le ofrecen plantillas de alerta propias: Device Unplugged, Low Battery, Device Overheating, Restart Loop y Storage Nearly Full, junto con Host Stopped Reporting, Host Restarted y High Memory Utilization, y High CPU Utilization en cuanto informa del uso de CPU. Los primeros comandos de depuración de cada alerta son comandos adb. Consulta [Monitor de hosts](/docs/monitor/host-monitor#dispositivos-android).
 
 ## Solución de problemas
 
@@ -137,7 +182,11 @@ Usa una clave de **Servidor** que esté activada y no haya caducado. Una clave d
 :::
 
 :::details No llegan registros de otras aplicaciones
-Concede READ_LOGS, como explica [Leer los registros de otras aplicaciones](#leer-los-registros-de-otras-aplicaciones). En Android 13 y posteriores solo se leen los fallos y ANR de otras aplicaciones.
+Concede READ_LOGS, como explica [Leer los registros de otras aplicaciones](#leer-los-registros-de-otras-aplicaciones). En Android 13 y posteriores solo se leen los fallos y ANR de otras aplicaciones, salvo que haya una [sesión de registros](#sesiones-de-registros) en curso.
+:::
+
+:::details Una sesión de registros se queda en Esperando aprobación
+Nadie frente al dispositivo la ha permitido todavía. Alguien tiene que abrir el agente en el dispositivo y tocar **Permitir**, y en Android 13 y posteriores permitir también el aviso de Android, mientras el agente está en pantalla. Una sesión que el aviso de Android rechazó muestra **Rechazado**: solicita otra.
 :::
 
 :::details Dos dispositivos aparecen como un solo host

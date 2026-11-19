@@ -127,9 +127,98 @@ ${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}
           process.memory.utilization:
             enabled: true`;
 
-const JOURNALD_RECEIVER: string = `  # The systemd journal: every unit's logs, info and above.
+/*
+ * The journal, as the host's Logs and its Systemd Units pages read it
+ * (#9748). journalctl hands each entry over as a map of its fields, which
+ * arrived whole: every row of the Logs page was JSON, no row said which
+ * unit wrote it, and a failed unit's page could not say why it failed.
+ * Each entry is now its message, at its level (PRIORITY), with:
+ *
+ *   - systemd.unit.name: the unit the line is about, the name the systemd
+ *     receiver gives the unit's state - the unit that wrote it, or, for
+ *     what systemd itself (PID 1) says about a unit (it started, a process
+ *     exited, it failed), that unit (UNIT), as `journalctl -u` reads them;
+ *   - systemd.unit.result, systemd.unit.exit_code, systemd.unit.exit_status:
+ *     why a unit failed, as systemd says it - only on PID 1's own lines,
+ *     whose fields no other process can write (UNIT_RESULT, EXIT_CODE,
+ *     EXIT_STATUS: "Failed with result 'exit-code'", "Main process exited,
+ *     code=exited, status=1/FAILURE");
+ *   - syslog.identifier and process.pid: who wrote it.
+ *
+ * The rest of an entry - the process's command line, its user and group,
+ * its capabilities, the cursor - stays on the host (retain), and a line
+ * past journalctl's 4096 bytes stays out, as it always has (no `all`).
+ */
+export const JOURNALD_SYSTEMD_UNIT_ATTRIBUTE: string = "systemd.unit.name";
+export const JOURNALD_SYSTEMD_RESULT_ATTRIBUTE: string = "systemd.unit.result";
+export const JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE: string =
+  "systemd.unit.exit_code";
+export const JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE: string =
+  "systemd.unit.exit_status";
+
+export const JOURNALD_RECEIVER: string = `  # The systemd journal: every unit's logs, info and above. Each line is sent
+  # as its message, at its level, with the unit it is about and - for a unit
+  # that failed - systemd's own result and exit status, which the Systemd
+  # Units page reads why it failed from. The rest of an entry (its command
+  # line, user and group ids, cursor) stays on this host.
   journald:
-    priority: info`;
+    priority: info
+    # A line holding a control character arrives as text, not as numbers.
+    convert_message_bytes: true
+    operators:
+      # What systemd itself says about a unit comes from PID 1, naming it in UNIT.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT != nil'
+        from: body.UNIT
+        to: attributes["${JOURNALD_SYSTEMD_UNIT_ATTRIBUTE}"]
+      - type: move
+        if: 'attributes["${JOURNALD_SYSTEMD_UNIT_ATTRIBUTE}"] == nil and body._SYSTEMD_UNIT != nil'
+        from: body._SYSTEMD_UNIT
+        to: attributes["${JOURNALD_SYSTEMD_UNIT_ATTRIBUTE}"]
+      # Why a unit failed, in systemd's words: its result and how its process ended.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT_RESULT != nil'
+        from: body.UNIT_RESULT
+        to: attributes["${JOURNALD_SYSTEMD_RESULT_ATTRIBUTE}"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_CODE != nil'
+        from: body.EXIT_CODE
+        to: attributes["${JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE}"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_STATUS != nil'
+        from: body.EXIT_STATUS
+        to: attributes["${JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE}"]
+      - type: move
+        if: 'body.SYSLOG_IDENTIFIER != nil'
+        from: body.SYSLOG_IDENTIFIER
+        to: attributes["syslog.identifier"]
+      - type: move
+        if: 'body._PID != nil'
+        from: body._PID
+        to: attributes["process.pid"]
+      # The journal's priority as the line's severity: syslog's levels.
+      - type: severity_parser
+        if: 'body.PRIORITY != nil'
+        parse_from: body.PRIORITY
+        preset: none
+        overwrite_text: true
+        mapping:
+          fatal: "0"
+          error3: "1"
+          error2: "2"
+          error: "3"
+          warn: "4"
+          info2: "5"
+          info: "6"
+          debug: "7"
+      # Nothing else of the entry leaves the host: the message is the line.
+      - type: retain
+        fields:
+          - body.MESSAGE
+      - type: move
+        from: body.MESSAGE
+        to: body
+        on_error: send_quiet`;
 
 const SYSTEMD_RECEIVER: string = `  # The Systemd Units page: the state of every service.
   systemd:

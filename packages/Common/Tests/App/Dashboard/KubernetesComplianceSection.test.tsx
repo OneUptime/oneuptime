@@ -52,7 +52,11 @@ jest.mock("react-i18next", () => {
 import KubernetesComplianceSection, {
   FINDINGS_SHOWN,
   KUBERNETES_COMPLIANCE_TEST_ID,
+  getSwitchControlName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceSection";
+import { Translator, createTranslator } from "../../../Types/Translator";
+import fs from "fs";
+import path from "path";
 import KubernetesComplianceApi from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceApi";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import { ComplianceRequirementStatus } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
@@ -67,6 +71,7 @@ import {
 import { KubernetesComplianceFramework } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import {
   KubernetesComplianceFrameworkResult,
+  KubernetesComplianceRequirementResult,
   KubernetesComplianceSetting,
   scoreKubernetesFrameworks,
 } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceScoring";
@@ -426,6 +431,25 @@ describe("a cluster's hardening", () => {
     expect(
       within(nonRoot).getByLabelText("Container kube-proxy"),
     ).toBeInTheDocument();
+
+    /*
+     * The sentence is one item of the chip's flex row (TranslatedSentenceInRowGuard):
+     * its words and the field sit in one element, so no piece of it is an item
+     * of its own, and nothing of it is loose in the row.
+     */
+    const chip: HTMLElement | null = within(nonRoot)
+      .getByText("securityContext.runAsNonRoot")
+      .closest("li");
+
+    expect(chip).not.toBeNull();
+    expect(chip!.lastElementChild).toHaveTextContent(
+      "securityContext.runAsNonRoot is not set",
+    );
+    expect(
+      Array.from(chip!.childNodes).every((node: ChildNode): boolean => {
+        return node.nodeType === globalThis.Node.ELEMENT_NODE;
+      }),
+    ).toBe(true);
   });
 
   test("a control many workloads fail shows the first few, then all, and says which way it is", async () => {
@@ -752,6 +776,229 @@ describe("the CIS benchmark", () => {
     ).toHaveTextContent("resourceSpecs.compliance");
     // A CIS control is named by its number.
     expect(listedControls()).toContain("5.2.2");
+  });
+
+  /*
+   * The OneUptime agent's own binding fails 5.1.10 where its role still grants
+   * nodes/proxy (#9878): the page says the binding is the agent's, why it
+   * asks, as the role's label says, and the value that drops it.
+   */
+  function agentSnapshot(options: {
+    reasons?: string;
+    isAgents?: boolean;
+  }): KubernetesComplianceSnapshot {
+    const agentLabels: Record<string, string> = {
+      "helm.sh/chart": "kubernetes-agent-16.2.0",
+      "app.kubernetes.io/part-of": "oneuptime",
+    };
+
+    return {
+      ...snapshotOf(),
+      hasPolicyObjects: true,
+      roles: [
+        {
+          kind: "ClusterRole",
+          namespace: "",
+          name: "oneuptime-agent",
+          labels:
+            options.reasons === undefined
+              ? agentLabels
+              : {
+                  ...agentLabels,
+                  "oneuptime.com/nodes-proxy": options.reasons,
+                },
+          spec: {
+            rules: [
+              {
+                apiGroups: [""],
+                resources: ["nodes/proxy"],
+                verbs: ["get"],
+              },
+            ],
+          },
+        },
+      ],
+      bindings: [
+        {
+          kind: "ClusterRoleBinding",
+          namespace: "",
+          name: "oneuptime-agent",
+          labels: options.isAgents === false ? {} : agentLabels,
+          spec: {
+            roleRef: { kind: "ClusterRole", name: "oneuptime-agent" },
+            subjects: [
+              {
+                kind: "ServiceAccount",
+                name: "oneuptime-agent",
+                namespace: "oneuptime-agent",
+              },
+            ],
+          },
+        },
+      ],
+    };
+  }
+
+  async function drawAgentFinding(
+    snapshot: KubernetesComplianceSnapshot,
+  ): Promise<HTMLElement> {
+    complianceSpy.mockResolvedValue(
+      answerOf({ snapshot, extra: { hasPolicyObjects: true } }),
+    );
+
+    await drawSection();
+    await pick(CIS);
+
+    return screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-5.1.10`,
+    );
+  }
+
+  test("the OneUptime agent's own binding says whose it is, why its role grants nodes/proxy and the value that drops it", async () => {
+    const findings: HTMLElement = await drawAgentFinding(
+      agentSnapshot({ reasons: "kubelet-pods" }),
+    );
+    const note: HTMLElement = within(findings).getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`,
+    );
+
+    expect(note).toHaveTextContent(
+      "This binding is the OneUptime Kubernetes agent's own.",
+    );
+    expect(note).toHaveTextContent(
+      "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with --set kubeletstats.nodesProxy=false.",
+    );
+    // The value is code, drawn as written in every language.
+    expect(
+      within(note).getByText("--set kubeletstats.nodesProxy=false").tagName,
+    ).toBe("CODE");
+    expect(note).not.toHaveTextContent("cost Prometheus");
+    expect(note).not.toHaveTextContent("newer versions");
+  });
+
+  test("names the cost Prometheus too when the role says it needs nodes/proxy", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(
+        agentSnapshot({ reasons: "kubelet-pods.cost-prometheus" }),
+      ),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(
+      within(note).getByText("--set kubeletstats.nodesProxy=false"),
+    ).toBeInTheDocument();
+    expect(note).toHaveTextContent(
+      "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with --set cost.prometheus.nodesProxy=false.",
+    );
+  });
+
+  test("a role from a chart before the label says upgrading the agent drops it", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(agentSnapshot({})),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(note).toHaveTextContent(
+      "This binding is the OneUptime Kubernetes agent's own.",
+    );
+    expect(note).toHaveTextContent(
+      "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.",
+    );
+    expect(within(note).queryByText(/--set/)).not.toBeInTheDocument();
+  });
+
+  test("a binding someone else made says nothing of the agent", async () => {
+    const findings: HTMLElement = await drawAgentFinding(
+      agentSnapshot({ reasons: "kubelet-pods", isAgents: false }),
+    );
+
+    expect(findings).toHaveTextContent("get nodes/proxy");
+    expect(
+      within(findings).queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * A control's switch, named to a screen reader: a Pod Security Standards
+ * control by its title in the reader's language (its requirement is the
+ * standard's English name), a CIS control by its number.
+ */
+describe("a control's switch", () => {
+  function dashboardTranslator(language: string): Translator {
+    const words: Record<string, unknown> =
+      language === "en"
+        ? {}
+        : (JSON.parse(
+            fs.readFileSync(
+              path.join(
+                __dirname,
+                "../../../../App/FeatureSet/Dashboard/src/Locales",
+                `${language}.json`,
+              ),
+              "utf8",
+            ),
+          ) as Record<string, unknown>);
+
+    return createTranslator((key: string): string => {
+      const value: unknown = words[key];
+
+      return typeof value === "string" ? value : key;
+    }, language);
+  }
+
+  function row(requirement: string): KubernetesComplianceRequirementResult {
+    return {
+      requirement,
+      title: requirement,
+      status: ComplianceRequirementStatus.Passing,
+      failingCount: 0,
+      findings: [],
+      turnedOffNamespaces: [],
+    } as unknown as KubernetesComplianceRequirementResult;
+  }
+
+  test("names a Pod Security Standards control by its title in the reader's language, and a CIS control by its number", () => {
+    const english: Translator = dashboardTranslator("en");
+    const german: Translator = dashboardTranslator("de");
+    const japanese: Translator = dashboardTranslator("ja");
+
+    expect(
+      getSwitchControlName(BASELINE, row("Privileged Containers"), english),
+    ).toBe("Privileged Containers");
+    expect(
+      getSwitchControlName(BASELINE, row("Privileged Containers"), german),
+    ).toBe(german.translateText("Privileged Containers"));
+    expect(
+      getSwitchControlName(BASELINE, row("Privileged Containers"), german),
+    ).not.toBe("Privileged Containers");
+    // Linux's capabilities, by the key that names that meaning.
+    expect(getSwitchControlName(BASELINE, row("Capabilities"), english)).toBe(
+      "Capabilities",
+    );
+    expect(getSwitchControlName(BASELINE, row("Capabilities"), japanese)).toBe(
+      "ケーパビリティ",
+    );
+    expect(getSwitchControlName(CIS, row("5.1.10"), japanese)).toBe("5.1.10");
+  });
+
+  test("labels each switch so, where the page draws it", async () => {
+    await drawSection();
+    await pick(BASELINE);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${BASELINE}-Privileged Containers`,
+      ),
+    ).toHaveAttribute("aria-label", "Privileged Containers applies here");
+
+    await pick(CIS);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${CIS}-5.2.2`,
+      ),
+    ).toHaveAttribute("aria-label", "5.2.2 applies here");
   });
 });
 

@@ -126,7 +126,7 @@ Ihre Regeln, ihre Eigentümer, ihr Feed und ihr erster Status passieren in beide
 - **Status ändern in**, im Menü **⋯** daneben, setzt sie in einen eigenen Status, etwa „In Untersuchung“.
 - **Vorfall melden** öffnet einen neuen Vorfall, vorausgefüllt aus der Warnung, wenn sich zeigt, dass das Problem Nutzer betrifft. Siehe [Verknüpfte Warnungen](/docs/incidents/linked-alerts).
 
-Ein Wechsel in einen anderen Status verlangt eine Bestätigung, mit einer optionalen privaten Notiz, eingeklappt unter **Private Notiz hinzufügen**. Was jeder Status bewirkt, steht unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities).
+Ein Wechsel in einen anderen Status verlangt eine Bestätigung, mit einer optionalen privaten Notiz, eingeklappt unter **Private Notiz hinzufügen**. Beim Beheben über den Kopfbereich ist außerdem **Grundursache hinzufügen** eingeklappt: warum es dazu kam – das wird die Grundursache der Warnung, an der die Untersuchung von OneUptime AI bewertet wird. Was jeder Status bewirkt, steht unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities).
 
 Während Sie daran arbeiten, halten Sie Erkenntnisse als **Private Notizen** fest, füllen ihre Seiten **Grundursache** und **Behebung** aus und fügen **Eigentümer** hinzu. Das Menü **Aktionen** des **Warnungs-Feed** startet außerdem ein Runbook mit **Runbook ausführen** oder alarmiert weitere Personen mit **Bereitschaftsdienst-Richtlinie ausführen**.
 

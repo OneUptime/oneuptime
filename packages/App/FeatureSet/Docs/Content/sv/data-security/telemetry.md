@@ -8,6 +8,7 @@ Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, o
 - [Vad som läses](#vad-som-läses): Attributen, kropparna, meddelandena och promptarna i varje signal.
 - [Hur en skanning tar prov](#hur-en-skanning-tar-prov): De nyaste posterna för varje tjänst, varje timme.
 - [Rensa](#rensa): Maskera ett fynd vid intaget, med ett klick.
+- [Kassera det här mätvärdet](#kassera-det-här-mätvärdet): Sluta lagra de mätvärden vars namn innehåller känsliga data.
 - [Vad som räknas som rensat](#vad-som-räknas-som-rensat): När en rensningsregel redan täcker ett fynd.
 :::
 
@@ -42,8 +43,9 @@ Numrerade nycklar slås ihop till en plats: `gen_ai.prompt.3.content` blir `gen_
 
 Ett mätvärdes attribut är dess seriers etiketter. De är desamma i varje datapunkt i en serie, så ett mätvärde som skriver tusen punkter i minuten kan innehålla bara tre värden, och en etikett som läcker en användares e-postadress lägger till en serie, inte en punkt. Därför tas prov ur ett mätvärde efter dess serier, inte efter dess punkter:
 
-- **Dess senaste minut.** Varje mätvärde läses vid den senaste minut som det skrev under den senaste timmen: upp till 100 av den minutens datapunkter, vilket för ett mätvärde som skickas en gång i minuten, som OpenTelemetry gör som standard, är en punkt från varje serie. Ett värde klassificeras en gång, hur många punkter som än upprepar det, så ett fynd räknar de olika värdena på sin plats.
-- **De mest aktiva först, resten i tur och ordning.** Vilka mätvärden en tjänst skrev hämtas från den sammanställning per minut som mätvärdestabellen har, aldrig från dess punkter. Varje skanning läser en tjänsts mest aktiva mätvärden, de som troligast har många serier, och några av dess andra, nästa omgång varje timme, så att varje mätvärde får sin tur.
+- **En punkt från varje serie.** Varje mätvärde läses vid den senaste minut som det skrev under den senaste timmen: en datapunkt från var och en av upp till 100 av den minutens serier, oavsett hur ofta mätvärdet skickas, så att en aktiv serie aldrig tränger undan en lugn. Ett värde klassificeras en gång, oavsett hur många serier som upprepar det, så ett fynd räknar de olika värdena på sin plats.
+- **Nya mätvärden först, sedan resten i tur och ordning.** Vilka mätvärden en tjänst skrev, och när vart och ett först skrev under det senaste dygnet, hämtas från den sammanställning per minut som mätvärdestabellen har, aldrig från dess punkter. Varje skanning läser en tjänsts mest aktiva mätvärden, de som troligast har många serier. Sedan kommer de mätvärden som den började skriva de senaste 2 timmarna, eftersom en ny läcka oftast kommer från ny kod, och sedan nästa av dess andra mätvärden, i en fast ordning, från där den förra skanningen slutade. Nya mätvärden tar högst hälften av de platserna, så att de andra alltid behåller sina.
+- **Varje mätvärde inom en fast tid.** För en tjänst med M mätvärden, där varje skanning läser 10, läses vart och ett minst en gång under M ÷ 5 timmar, avrundat uppåt: 60 timmar för en tjänst med 300 mätvärden. Så länge den fortsätter att starta nya mätvärden varje timme är det högst dubbelt så lång tid.
 - **Varje mätvärdes eget intervall.** Mätvärdena läses tillsammans, vart och ett efter sitt eget intervall av tabellens primärnyckel. Ett mätvärde vars senaste minut innehåller fler än 16 384 punkter, till exempel ett som har varje användares e-postadress som etikett, läses för sig, och läsningen avbryts vid dess första punkter, så det kostar inte mer än något annat mätvärde.
 
 Ett fynd anger attributet, till exempel `attributes.user.email`, eller `name` för data i ett mätvärdes namn. Dess poster är de datapunkter som det hittades i: var och en visar sitt mätvärde och attributets värde, maskerat, och öppnas i **Mätvärden** på det mätvärdet, grupperat efter det attributet. Där ett mätvärdes namn innehåller känsliga data maskeras även namnet, och posten öppnar tjänstens mätvärden i stället.
@@ -73,8 +75,9 @@ Varje timme läses varje signals nyaste poster från den senaste timmen, och de 
 | Attribut i en post | 128; 64 för ett AI-anrop |
 | Händelser i ett span, och attribut i en händelse | 16 och 32 |
 | Platser i ett datalager | 500 |
-| Mätvärden som läses i en skanning | 100, delade mellan tjänsterna, minst ett från varje; högst 10 från en tjänst, hälften bland dess mest aktiva och hälften bland dess andra i tur och ordning |
-| Datapunkter i ett mätvärde | Från dess senaste minut, högst 100 |
+| Mätvärden som läses i en skanning | 100, delade mellan tjänsterna, minst ett från varje; högst 10 från en tjänst, hälften bland dess mest aktiva och hälften bland dess nya och andra i tur och ordning |
+| Ett nytt mätvärde | Ett mätvärde vars första punkt under de senaste 24 timmarna kom under de senaste 2 timmarna |
+| Serier i ett mätvärde | En datapunkt från varje, från dess senaste minut, högst 100 |
 
 Varje värde kortas av redan i databasen, så inget långt värde lämnar den, och varje läsning avbryts efter 30 sekunder. En läsning som misslyckas blir en varning på de datalager den gällde; skanningen fortsätter med nästa.
 
@@ -114,9 +117,20 @@ Vissa fynd kan inte rensas av en regel, och **Rensa** säger varför. Ett mätv�
 - En dokumentmärkning: att dölja ordet skulle inte dölja dokumentet.
 - En av dina egna datatyper: lägg själv till en anpassad rensningsregel med dess mönster.
 - En sessions egna uppgifter (`sessions.*`): intaget av sessionsuppspelningar kör inga rensningsregler.
-- Ett mätvärdes namn (`name`): koden som skapar mätvärdet sätter det, och en pipelineregel kan bara byta namn på ett mätvärde i sin helhet. Byt namn på mätvärdet och skicka det som varierar i namnet som ett attribut i stället.
+- Ett mätvärdes namn (`name`): koden som skapar mätvärdet sätter det, och en pipelineregel kan bara byta namn på ett mätvärde i sin helhet. Byt namn på mätvärdet och skicka det som varierar i namnet som ett attribut i stället. Till dess kan **Kassera det här mätvärdet** sluta lagra de mätvärdena.
 
 **Rensa** skapar regeln i ditt namn, med dina egna behörigheter: rollerna Projektägare och Projektadministratör kan klicka på den, och det kan även ett team som får skapa loggrensningsregler, spårrensningsregler för spans, undantag och AI-anrop, och pipelineregler för mätvärden.
+
+## Kassera det här mätvärdet
+
+Ingen regel tar bort data ur ett mätvärdes namn, så tills koden som namnger mätvärdet är rättad fortsätter data att komma in. **Kassera det här mätvärdet** på ett fynd i ett mätvärdes namn slutar lagra de mätvärden vars namn innehåller dem, på bekostnad av deras data, och sker därför bara när du ber om det:
+
+- **En tjänsts mätvärden.** Den skapar en pipelineregel för mätvärden av typen **Kassera** för fyndets tjänst: varje ny datapunkt från ett mätvärde vars namn innehåller den datatypen kasseras innan den lagras. Dess filter är det mönster som **Rensa** använder för typen, så en typ som inget mönster kan hitta, som en persons namn, kan inte kasseras, och dialogen säger varför.
+- **Sagt innan det görs.** Dialogen säger att de datapunkterna går förlorade för gott, hur många av tjänstens mätvärden som skrevs det senaste dygnet som har ett sådant namn, vilka monitorer och instrumentpaneler som läser dem och därför inte får några nya data, att det som redan är lagrat finns kvar tills lagringstiden löper ut, och hur det ångras. Inget kasseras förrän du har kryssat i att du förstår det.
+- **I ditt namn, och loggat.** Regeln skapas med din egen behörighet att skapa pipelineregler för mätvärden: rollerna Projektägare och Projektadministratör kan skapa den, och det kan även ett team som får skapa pipelineregler för mätvärden. Granskningsloggarna registrerar vem som skapade den.
+- **Ångras genom att ta bort regeln.** Regeln namnges efter det den kasserar, till exempel ”Data Security: drop metrics named with Email address”, och listas med dina andra pipelineregler för mätvärden under **Mätvärden → Inställningar → Pipelineregler**. Ta bort den eller stäng av den, så lagras de mätvärdena igen från och med då. Det som kasserades under tiden kommer inte tillbaka.
+
+Fyndet markeras då **Kasserade** och räknas som rensat: inget mer av de data lagras.
 
 ## Vad som räknas som rensat
 
@@ -127,6 +141,7 @@ Ett fynd markeras som rensat bara när intaget skulle köra en aktiverad regel �
 - **Ett mönster som hittar typen.** En inbyggd **Mönstertyp** hittar sin egen datatyp: **E-postadress** hittar e-postadresser, **Kreditkortsnummer** kortnummer, **Personnummer (Social Security Number)** amerikanska socialförsäkringsnummer, **Telefonnummer** telefonnummer och **IP-adress** IP-adresser. **Känsliga attributnycklar** täcker varje värde under en nyckel som ser känslig ut, oavsett vad värdet är.
 - **Dina egna anpassade mönster räknas aldrig.** En **Anpassad regex** täcker ett fynd bara när den är exakt det mönster som **Rensa** skapar för dess typ. Ett fynd sparar bara maskerade prov, som inget mönster kan provas mot, så OneUptime kan inte bevisa att ditt mönster döljer dessa data, och ett fynd som felaktigt kallas rensat är en läcka som ingen tittar på.
 - **Ett mätvärdes attribut.** En pipelineregel för mätvärden av typen **Maskera attribut** eller **Ta bort attribut** för attributets nyckel, för fyndets tjänst eller hela projektet, täcker fyndet när den inte har något filter, eller exakt det filter som **Rensa** skapar. Ett filter som du har skrivit själv räknas aldrig, av samma skäl.
+- **Ett mätvärdes namn.** En pipelineregel för mätvärden av typen **Kassera** för fyndets tjänst eller hela projektet täcker fyndet när den har exakt det filter som **Kassera det här mätvärdet** skapar, eller inget filter alls, och då lagrar den inga av tjänstens mätvärden. En sådan regel utan filter täcker alla fynd i de mätvärdena.
 
 En regel som är avstängd, eller som inte rensar något, räknas aldrig. Täckningen räknas ut på nytt efter varje skanning, så en regel som du lägger till eller tar bort för hand ändrar vad som markeras som rensat inom en timme.
 

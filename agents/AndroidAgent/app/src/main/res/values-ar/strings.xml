@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Arabic. Every string of values/strings.xml, in the same order; keys, permission names and adb commands stay as they are. -->
+<resources>
+
+    <string name="notification_channel_name">حالة الوكيل</string>
+    <string name="notification_channel_description">يوضح ما إذا كان هذا الجهاز يرسل التقارير إلى OneUptime.</string>
+
+    <string name="notification_requests_channel_name">طلبات من OneUptime</string>
+    <string name="notification_requests_channel_description">عندما يطلب OneUptime قراءة سجلات هذا الجهاز لاستكشاف الأخطاء وإصلاحها.</string>
+    <string name="notification_request_title">يطلب OneUptime سجلات هذا الجهاز</string>
+
+    <string name="status_not_set_up">لم يُعدّ بعد</string>
+    <string name="status_not_set_up_detail">أدخل مفتاح الاستيعاب، أو أرسله من خدمة إدارة الأجهزة باسم oneuptime_token.</string>
+    <string name="status_unreachable">يتعذّر الوصول إلى OneUptime</string>
+    <string name="status_unreachable_detail">تحقق من شبكة الجهاز. سيعيد الوكيل المحاولة تلقائيًا.</string>
+    <string name="status_key_refused">رفض OneUptime مفتاح الاستيعاب</string>
+    <string name="status_key_refused_detail">استخدم مفتاح استيعاب من نوع الخادم يكون مفعّلًا وغير منتهي الصلاحية (HTTP %1$d).</string>
+    <string name="status_not_found">لا يوجد OneUptime على هذا العنوان</string>
+    <string name="status_not_found_detail">تحقق من عنوان URL لـ OneUptime: %1$s.</string>
+    <string name="status_server_error">لا يقبل OneUptime بيانات القياس عن بُعد الآن</string>
+    <string name="status_server_error_detail">ردّ OneUptime بالرمز %1$d. سيعيد الوكيل المحاولة تلقائيًا.</string>
+    <string name="status_server_error_unknown_detail">ردّ OneUptime بخطأ. سيعيد الوكيل المحاولة تلقائيًا.</string>
+    <string name="status_sending_failed">تعذّر الإرسال</string>
+    <string name="status_retrying">سيعيد الوكيل المحاولة تلقائيًا.</string>
+    <string name="status_kept">تُحفظ بيانات القياس عن بُعد على الجهاز إلى أن يمكن إرسالها.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">يرسل التقارير إلى OneUptime</string>
+    <string name="status_as_device">باسم %1$s</string>
+    <string name="status_starting">جارٍ البدء</string>
+    <string name="status_starting_detail">باسم %1$s. سيُرسل التقرير الأول خلال دقيقة.</string>
+
+    <string name="address_empty">أدخل عنوان URL لـ OneUptime.</string>
+    <string name="address_not_a_url">عنوان URL لـ OneUptime ليس عنوان ويب.</string>
+    <string name="address_not_https">يجب أن يبدأ عنوان URL لـ OneUptime بـ https:// حتى لا يُرسل مفتاح الاستيعاب أبدًا دون تشفير.</string>
+    <string name="address_query_or_fragment">أزل الجزء الذي يبدأ بـ ? أو # من عنوان URL لـ OneUptime.</string>
+    <string name="address_credentials">أزل اسم المستخدم وكلمة المرور من عنوان URL لـ OneUptime.</string>
+
+    <string name="setup_subtitle">يُبلغ OneUptime بحالة هذا الجهاز وعمليات إعادة تشغيله وتطبيقاته وسجلاته.</string>
+    <string name="setup_last_report">أُرسل آخر تقرير %1$s</string>
+    <string name="setup_no_report_yet">لم يُرسل شيء بعد</string>
+    <string name="setup_waiting">%1$s بانتظار الإرسال</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: أرسلت خدمة إدارة الأجهزة %2$s كما هو، دون تعبئته.</string>
+    <string name="setup_problem_invalid">%1$s: لا يمكن استخدام %2$s، لذا تُطبَّق القيمة الافتراضية.</string>
+    <string name="setup_connection">الاتصال</string>
+    <string name="setup_managed_notice">تضبط خدمة إدارة الأجهزة في مؤسستك الإعدادات التي تظهر مقفلة.</string>
+    <string name="setup_url_label">عنوان URL لـ OneUptime</string>
+    <string name="setup_url_help">لا تغيّره إلا إذا كنت تستضيف OneUptime بنفسك.</string>
+    <string name="setup_token_label">مفتاح الاستيعاب</string>
+    <string name="setup_token_hint">الصق مفتاح استيعاب من نوع الخادم</string>
+    <string name="setup_token_stored_hint">محفوظ. الصق مفتاحًا جديدًا لاستبداله.</string>
+    <string name="setup_token_help">في OneUptime: إعدادات المشروع، القياس عن بُعد وAPM، مفاتيح الاستيعاب. استخدم مفتاح خادم.</string>
+    <string name="setup_token_unreadable">لم يعد من الممكن قراءة المفتاح المحفوظ على هذا الجهاز. الصقه مرة أخرى.</string>
+    <string name="setup_device_name_label">اسم الجهاز</string>
+    <string name="setup_device_name_help">الاسم الذي يظهر به هذا الجهاز في «المضيفون» و«الجرد».</string>
+    <string name="setup_set_by_organization">تضبطه مؤسستك</string>
+    <string name="setup_save">حفظ واتصال</string>
+    <string name="setup_saved">تم الحفظ. يرسل الوكيل تقريرًا الآن.</string>
+    <string name="setup_token_required">الصق مفتاح الاستيعاب.</string>
+    <string name="setup_save_failed">تعذّر على هذا الجهاز تخزين المفتاح بأمان: %1$s</string>
+    <string name="setup_readings">ما يسمح هذا الجهاز للوكيل بقراءته</string>
+    <string name="setup_reading_yes">نعم</string>
+    <string name="setup_reading_cpu">استخدام CPU</string>
+    <string name="setup_reading_cpu_device_owner">نعم، بصفته مالك الجهاز</string>
+    <string name="setup_reading_cpu_not_device_owner">فقط عندما يكون الوكيل مالك الجهاز</string>
+    <string name="setup_reading_cpu_not_supported">ليس على هذا الجهاز: لا يُبلغ Android هنا عن استخدام CPU</string>
+    <string name="setup_reading_memory">الذاكرة والتخزين والشبكة</string>
+    <string name="setup_reading_battery">البطارية</string>
+    <string name="setup_reading_no_battery">لا توجد بطارية</string>
+    <string name="setup_reading_thermal">درجة الحرارة والخنق الحراري</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 والإصدارات الأحدث</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">تتبعات المكدس عند التعطل وأسباب إعادة التشغيل</string>
+    <string name="setup_reading_crash_details_yes">نعم، لكل التطبيقات</string>
+    <string name="setup_reading_crash_details_not_granted">متوقف: لم يُمنح إذن READ_LOGS</string>
+    <string name="setup_reading_crash_details_no_usage_access">متوقف: الوصول إلى بيانات الاستخدام غير مسموح به</string>
+    <string name="setup_reading_apps">التطبيقات المثبّتة</string>
+    <string name="setup_reading_off_by_manager">متوقف: أوقفته خدمة إدارة الأجهزة</string>
+    <string name="setup_reading_unknown">بعد التقرير الأول</string>
+    <string name="setup_grants">لإرسال سجلات التطبيقات الأخرى وتتبعات المكدس عند تعطلها، امنح هذه الأذونات مرة واحدة باستخدام adb أو ADB عن بُعد في خدمة إدارة الأجهزة:</string>
+    <string name="setup_usage_access">السماح بالوصول إلى بيانات الاستخدام</string>
+
+    <string name="logcat_not_started">لم يبدأ</string>
+    <string name="logcat_not_granted">متوقف: لم يُمنح إذن READ_LOGS</string>
+    <string name="logcat_crashes_and_anrs">حالات التعطل وحالات ANR لكل التطبيقات</string>
+    <string name="logcat_full">سجلات كل التطبيقات وحالات تعطلها وحالات ANR</string>
+
+    <string name="log_session_title">سجلات لاستكشاف الأخطاء وإصلاحها</string>
+    <string name="log_session_request_by">طلبٌ من %1$s في OneUptime: سجلات كل التطبيقات على هذا الجهاز (%2$s، بمستوى %3$s فأعلى).</string>
+    <string name="log_session_request">يطلب OneUptime سجلات كل التطبيقات على هذا الجهاز (%1$s، بمستوى %2$s فأعلى).</string>
+    <string name="log_session_android_prompt">سيطلب منك Android بعد ذلك السماح بالوصول إلى جميع سجلات الجهاز. اختر «السماح» هناك أيضًا.</string>
+    <string name="log_session_allow">السماح</string>
+    <string name="log_session_decline">رفض</string>
+    <string name="log_session_stop">إيقاف الإرسال</string>
+    <string name="log_session_starting">في نافذة Android، اسمح بالوصول إلى جميع سجلات الجهاز.</string>
+    <string name="log_session_collecting_until">جارٍ إرسال سجلات كل التطبيقات حتى %1$s.</string>
+    <string name="log_session_collecting">جارٍ إرسال سجلات كل التطبيقات.</string>
+    <string name="log_session_declined_here">تم الرفض. لن يُرسل أي شيء آخر.</string>
+    <string name="log_session_declined_by_android">لم يُسمح بالوصول إلى جميع سجلات الجهاز، لذا لن يُرسل أي شيء آخر.</string>
+    <string name="log_session_no_answer">لم يستجب أحد لنافذة Android، لذا لن يُرسل أي شيء آخر.</string>
+    <string name="log_session_time_up">اكتمل: أُرسلت سجلات كل التطبيقات طوال المدة المطلوبة.</string>
+    <string name="log_session_stopped">تم الإيقاف. لن يُرسل أي شيء آخر.</string>
+    <string name="log_session_agent_restarted">انتهى عند إعادة تشغيل الوكيل.</string>
+    <string name="log_session_logcat_stopped">انتهى: توقف Logcat عن القراءة.</string>
+    <string name="log_session_logcat_disabled">لا يمكن لهذا الجهاز إرسالها: أوقفت خدمة إدارة الأجهزة Logcat.</string>
+    <string name="log_session_not_granted">لا يمكن لهذا الجهاز إرسالها: لم يُمنح إذن READ_LOGS.</string>
+    <string name="log_session_expired">لم يسمح أحد بذلك في الوقت المحدد.</string>
+    <string name="log_session_cancelled">أُلغي في OneUptime.</string>
+    <string name="log_session_ended">انتهى.</string>
+    <plurals name="duration_minutes">
+        <item quantity="zero">%d دقيقة</item>
+        <item quantity="one">%d دقيقة</item>
+        <item quantity="two">%d دقيقتان</item>
+        <item quantity="few">%d دقائق</item>
+        <item quantity="many">%d دقيقة</item>
+        <item quantity="other">%d دقيقة</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="zero">%d ساعة</item>
+        <item quantity="one">%d ساعة</item>
+        <item quantity="two">%d ساعتان</item>
+        <item quantity="few">%d ساعات</item>
+        <item quantity="many">%d ساعة</item>
+        <item quantity="other">%d ساعة</item>
+    </plurals>
+
+    <string name="device_admin_description">يتيح للوكيل قراءة استخدام CPU على هذا الجهاز بصفته مالك الجهاز. ولا يقفل الجهاز أو يمحو بياناته أو يقيّده أبدًا.</string>
+
+    <string name="restriction_url_title">عنوان URL لـ OneUptime</string>
+    <string name="restriction_url_description">مكان إرسال بيانات القياس عن بُعد. اتركه https://oneuptime.com ما لم تكن تستضيف OneUptime بنفسك.</string>
+    <string name="restriction_token_title">مفتاح الاستيعاب</string>
+    <string name="restriction_token_description">مفتاح استيعاب من نوع الخادم من إعدادات المشروع، القياس عن بُعد وAPM، مفاتيح الاستيعاب.</string>
+    <string name="restriction_device_name_title">اسم الجهاز</string>
+    <string name="restriction_device_name_description">اسم الجهاز في OneUptime، مثل ${esper.deviceName}. استخدم الاسم نفسه في host.name لتطبيقك ليظهر كلاهما جهازًا واحدًا.</string>
+    <string name="restriction_device_serial_title">الرقم التسلسلي</string>
+    <string name="restriction_device_serial_description">الرقم التسلسلي للجهاز، مثل ${esper.serialNumber}. لا يقدّمه Android نفسه للتطبيقات.</string>
+    <string name="restriction_device_type_title">نوع الجهاز</string>
+    <string name="restriction_device_type_description">ما هذا الجهاز: كشك، أو جهاز نقطة بيع، أو جهاز محمول باليد، أو لافتة رقمية.</string>
+    <string name="restriction_device_location_title">الموقع</string>
+    <string name="restriction_device_location_description">مكان الجهاز، مثل رقم المتجر.</string>
+    <string name="restriction_labels_title">التسميات</string>
+    <string name="restriction_labels_description">تسميات الجهاز في OneUptime، على شكل أزواج اسم=قيمة مفصولة بفواصل: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">فاصل الجمع (بالثواني)</string>
+    <string name="restriction_interval_description">عدد الثواني بين تقارير الوكيل، من 30 إلى 600. القيمة الافتراضية 60.</string>
+    <string name="restriction_logcat_enabled_title">إرسال Logcat</string>
+    <string name="restriction_logcat_enabled_description">إرسال حالات التعطل وحالات ANR والسجلات من التطبيقات الأخرى، والسماح بجلسات السجلات التي يطلبها OneUptime. يتطلب إذن READ_LOGS الممنوح باستخدام adb.</string>
+    <string name="restriction_logcat_level_title">أدنى مستوى لـ Logcat</string>
+    <string name="restriction_logcat_level_description">أقل أسطر Logcat خطورةً التي تُرسل، على Android 12 والإصدارات الأقدم. القيمة الافتراضية: تحذير.</string>
+    <string name="restriction_apps_enabled_title">إرسال التطبيقات المثبّتة</string>
+    <string name="restriction_apps_enabled_description">إرسال التطبيقات المثبّتة وإصداراتها مرة يوميًا، وكل عملية تثبيت وتحديث وإزالة.</string>
+    <string name="logcat_level_verbose">مفصّل</string>
+    <string name="logcat_level_debug">تصحيح الأخطاء</string>
+    <string name="logcat_level_info">معلومات</string>
+    <string name="logcat_level_warn">تحذير</string>
+    <string name="logcat_level_error">خطأ</string>
+    <string name="logcat_level_fatal">خطأ فادح</string>
+</resources>

@@ -46,7 +46,11 @@ const SAML_ROUTES: Array<SamlRoute> = [
     builder: "SamlServiceProviders.forProjectSso(",
     providerKind: "SamlProviderKind.ProjectSso",
     storedProviderId: "projectSSO.id!",
-    firstLookup: "UserService.findOneBy(",
+    /*
+     * The project's gate reads the account, and answers everyone it does
+     * not sign in alike (Utils/ProjectSsoSignInGate, #9824).
+     */
+    firstLookup: "ProjectSsoSignInGate.decide(",
     startRoute: '"/sso/:projectId/:projectSsoId"',
     replyRoute: '"/idp-login/:projectId/:projectSsoId"',
   },

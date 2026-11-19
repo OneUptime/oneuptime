@@ -188,6 +188,73 @@ describe("TraceAggregationService", () => {
     expect(paramValues(statement)).toContain(500_000_000);
   });
 
+  /*
+   * A Traces monitor's "Takes at least (ms)" counts the spans of exactly
+   * its floor too (GreaterThanOrEqual), and so must the chart its alert
+   * opens: a strict bound would leave out a span of exactly 5 s (#9714).
+   */
+  test("atLeastDurationNano compiles to an inclusive floor (duration:>=N)", () => {
+    const statement: Statement = buildHistogramStatement({
+      atLeastDurationNano: 5_000_000_000,
+    });
+
+    expect(normalizedQuery(statement)).toMatch(
+      / AND durationUnixNano >= \{p\d+:Int128\}/,
+    );
+    expect(normalizedQuery(statement)).not.toMatch(
+      / AND durationUnixNano > \{p\d+:Int128\}/,
+    );
+    expect(paramValues(statement)).toContain(5_000_000_000);
+  });
+
+  test("atMostDurationNano compiles to an inclusive ceiling (duration:<=N)", () => {
+    const statement: Statement = buildHistogramStatement({
+      atMostDurationNano: 200_000_000,
+    });
+
+    expect(normalizedQuery(statement)).toMatch(
+      / AND durationUnixNano <= \{p\d+:Int128\}/,
+    );
+    expect(paramValues(statement)).toContain(200_000_000);
+  });
+
+  test("an inclusive floor and ceiling together bound both ends", () => {
+    const statement: Statement = buildHistogramStatement({
+      atLeastDurationNano: 5_000_000_000,
+      atMostDurationNano: 90_000_000_000,
+    });
+
+    expect(normalizedQuery(statement)).toMatch(
+      / AND durationUnixNano >= \{p\d+:Int128\}/,
+    );
+    expect(normalizedQuery(statement)).toMatch(
+      / AND durationUnixNano <= \{p\d+:Int128\}/,
+    );
+  });
+
+  test("a NaN inclusive bound compiles to nothing rather than matching nothing", () => {
+    const statement: Statement = buildHistogramStatement({
+      atLeastDurationNano: NaN,
+      atMostDurationNano: NaN,
+    });
+
+    expect(normalizedQuery(statement)).not.toMatch(/durationUnixNano/);
+  });
+
+  test("the session count takes the same inclusive floor", () => {
+    const statement: Statement =
+      TraceAggregationService.buildSessionCountStatement({
+        projectId: defaultRequest.projectId,
+        startTime: defaultRequest.startTime,
+        endTime: defaultRequest.endTime,
+        atLeastDurationNano: 5_000_000_000,
+      });
+
+    expect(normalizedQuery(statement)).toMatch(
+      / AND durationUnixNano >= \{p\d+:Int128\}/,
+    );
+  });
+
   test("facet queries share the same filter compilation", () => {
     const facetRequest: FacetRequest = {
       projectId: defaultRequest.projectId,

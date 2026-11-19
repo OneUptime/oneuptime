@@ -668,6 +668,8 @@ const PAGE_CASES: Array<PageCase> = [
       "issuerURL",
       "publicCertificate",
       "teams",
+      // The verified domains it serves at Sign in with SSO (#9824).
+      "domains",
       "isEnabled",
       "signatureMethod",
       "digestMethod",
@@ -729,6 +731,8 @@ const PAGE_CASES: Array<PageCase> = [
       "clientId",
       "clientSecret",
       "teams",
+      // The verified domains it serves at Sign in with SSO (#9824).
+      "domains",
       "isEnabled",
       "discoveryURL",
       "scopes",

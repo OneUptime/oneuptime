@@ -119,6 +119,7 @@ export const PROJECT_BILLING_READ_COLUMNS: ReadonlyArray<string> = [
   "aiRunMaxToolCalls",
   "aiRunMaxTokens",
   "aiRunTimeLimitInMinutes",
+  "aiRunCommandTimeLimitInMinutes",
   // Usage the plan counts.
   "workflowRunsInLast30Days",
 ];

@@ -8,6 +8,7 @@ Il n'y a rien à configurer : la télémétrie de chaque service est analysée t
 - [Ce qui est lu](#ce-qui-est-lu): Les attributs, les corps, les messages et les prompts de chaque signal.
 - [Comment une analyse échantillonne](#comment-une-analyse-échantillonne): Les enregistrements les plus récents de chaque service, toutes les heures.
 - [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, en un clic.
+- [Abandonner cette métrique](#abandonner-cette-métrique): Ne plus stocker les métriques dont le nom contient des données sensibles.
 - [Ce qui compte comme nettoyé](#ce-qui-compte-comme-nettoyé): Quand une règle de nettoyage couvre déjà une détection.
 :::
 
@@ -42,8 +43,9 @@ Les clés numérotées sont regroupées en un seul emplacement : `gen_ai.prompt.
 
 Les attributs d'une métrique sont les étiquettes de ses séries. Ils sont les mêmes sur chaque point de données d'une série : une métrique qui écrit mille points par minute peut donc ne contenir que trois valeurs, et une étiquette qui expose l'e-mail d'un utilisateur ajoute une série, pas un point. Une métrique est donc échantillonnée par ses séries, pas par ses points :
 
-- **Sa minute la plus récente.** Chaque métrique est lue à la minute la plus récente où elle a écrit au cours de la dernière heure : jusqu'à 100 des points de données de cette minute, soit, pour une métrique envoyée une fois par minute comme OpenTelemetry le fait par défaut, un point de chaque série. Une valeur n'est classifiée qu'une fois, quel que soit le nombre de points qui la répètent, si bien qu'une détection compte les valeurs distinctes à son emplacement.
-- **Les plus actives d'abord, les autres à tour de rôle.** La liste des métriques qu'un service a écrites vient de l'agrégation par minute que conserve la table des métriques, jamais de ses points. Chaque analyse lit les métriques les plus actives d'un service, les plus susceptibles d'avoir de nombreuses séries, et quelques-unes de ses autres métriques, les suivantes à chaque heure, si bien que chaque métrique a son tour.
+- **Un point de chaque série.** Chaque métrique est lue à la minute la plus récente où elle a écrit au cours de la dernière heure : un point de données de chacune des 100 séries au plus de cette minute, quelle que soit la fréquence d'envoi de la métrique, si bien qu'une série active n'évince jamais une série calme. Une valeur est classée une seule fois, quel que soit le nombre de séries qui la répètent, donc une détection compte les valeurs distinctes à son emplacement.
+- **Les nouvelles métriques d'abord, puis les autres à tour de rôle.** La liste des métriques qu'un service a écrites, et le moment où chacune a écrit pour la première fois au cours du dernier jour, vient de l'agrégation par minute que conserve la table des métriques, jamais de ses points. Chaque analyse lit les métriques les plus actives d'un service, les plus susceptibles d'avoir de nombreuses séries. Viennent ensuite les métriques qu'il a commencé à écrire au cours des 2 dernières heures, car une nouvelle fuite vient le plus souvent d'un nouveau code, puis les suivantes de ses autres métriques, dans un ordre fixe, à partir de l'endroit où la dernière analyse s'est arrêtée. Les nouvelles métriques prennent au plus la moitié de ces tours, si bien que les autres gardent toujours les leurs.
+- **Chaque métrique dans un délai fixe.** Pour un service de M métriques, dont 10 sont lues par analyse, chacune est lue au moins une fois toutes les M ÷ 5 heures, arrondi au supérieur : 60 heures pour un service de 300 métriques. Tant qu'il commence de nouvelles métriques chaque heure, ce délai est au plus doublé.
 - **La plage propre à chaque métrique.** Les métriques sont lues ensemble, chacune par sa propre plage de la clé primaire de la table. Une métrique dont la minute la plus récente contient plus de 16 384 points, comme une métrique étiquetée avec l'e-mail de chaque utilisateur, est lue seule, et la lecture s'arrête à ses premiers points : elle ne coûte donc pas plus que n'importe quelle autre métrique.
 
 Une détection nomme l'attribut, comme `attributes.user.email`, ou `name` pour des données dans le nom d'une métrique. Ses enregistrements sont les points de données où elle a été trouvée : chacun montre sa métrique et la valeur de l'attribut, masquée, et s'ouvre dans **Métriques** sur cette métrique, regroupée par cet attribut. Quand le nom d'une métrique contient des données sensibles, le nom est masqué lui aussi, et l'enregistrement ouvre plutôt les métriques du service.
@@ -73,8 +75,9 @@ Toutes les heures, les enregistrements les plus récents de la dernière heure d
 | Attributs d'un enregistrement | 128 ; 64 pour un appel d'IA |
 | Événements d'un span, et attributs d'un événement | 16 et 32 |
 | Emplacements d'un magasin de données | 500 |
-| Métriques lues en une analyse | 100, partagées entre les services, au moins une de chacun ; au plus 10 d'un même service, la moitié parmi ses plus actives et la moitié parmi ses autres, à tour de rôle |
-| Points de données d'une métrique | Ceux de sa minute la plus récente, au plus 100 |
+| Métriques lues en une analyse | 100, partagées entre les services, au moins une de chacun ; au plus 10 d'un même service, la moitié parmi ses plus actives et la moitié parmi ses nouvelles et ses autres, à tour de rôle |
+| Une nouvelle métrique | Une métrique dont le premier point des dernières 24 heures est arrivé au cours des 2 dernières heures |
+| Séries d'une métrique | Un point de données de chacune, de sa minute la plus récente, au plus 100 |
 
 Chaque valeur est tronquée dans la base de données, si bien qu'aucune valeur longue n'en sort, et chaque lecture s'arrête au bout de 30 secondes. Une lecture qui échoue devient un avertissement sur les magasins de données qu'elle concernait ; l'analyse continue avec la suivante.
 
@@ -114,9 +117,20 @@ Certaines détections ne peuvent pas être nettoyées par une règle, et **Netto
 - Un marquage de document : masquer le mot ne masquerait pas le document.
 - L'un de vos propres types de données : ajoutez vous-même une règle de nettoyage personnalisée avec son motif.
 - Les détails propres d'une session (`sessions.*`) : l'ingestion des relectures de session n'applique aucune règle de nettoyage.
-- Le nom d'une métrique (`name`) : c'est le code qui crée la métrique qui le définit, et une règle de pipeline ne peut que renommer une métrique en entier. Renommez la métrique, et envoyez plutôt ce qui varie dans son nom sous forme d'attribut.
+- Le nom d'une métrique (`name`) : c'est le code qui crée la métrique qui le définit, et une règle de pipeline ne peut que renommer une métrique en entier. Renommez la métrique, et envoyez plutôt ce qui varie dans son nom sous forme d'attribut. D'ici là, **Abandonner cette métrique** peut cesser de stocker ces métriques.
 
 **Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Propriétaires du projet et les Administrateurs du projet peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA, et des règles de pipeline de métriques pour les métriques.
+
+## Abandonner cette métrique
+
+Aucune règle ne retire les données du nom d'une métrique : tant que le code qui nomme la métrique n'est pas corrigé, les données continuent d'arriver. **Abandonner cette métrique** sur une détection dans le nom d'une métrique cesse de stocker les métriques dont le nom les contient, au prix de leurs données, et ne se fait donc que si vous le demandez :
+
+- **Les métriques d'un seul service.** L'action crée une règle de pipeline de métriques **Supprimer** pour le service de la détection : chaque nouveau point de données d'une métrique dont le nom contient ce type de données est abandonné avant d'être stocké. Son filtre est le motif que **Nettoyer** utilise pour ce type, donc un type qu'aucun motif ne peut trouver, comme le nom d'une personne, ne peut pas être abandonné, et la boîte de dialogue dit pourquoi.
+- **Dit avant d'être fait.** La boîte de dialogue indique que ces points de données sont perdus définitivement, combien des métriques du service écrites au cours du dernier jour portent un tel nom, quels moniteurs et tableaux de bord les lisent et ne reçoivent donc plus de nouvelles données, que ce qui est déjà stocké reste jusqu'à la fin de sa rétention, et comment revenir en arrière. Rien n'est abandonné tant que vous n'avez pas coché que vous comprenez.
+- **En votre nom, et tracé.** La règle est créée avec votre propre autorisation de créer des règles de pipeline de métriques : les Propriétaires du projet et les Administrateurs du projet peuvent la créer, tout comme une équipe autorisée à créer des règles de pipeline de métriques. Les journaux d'audit enregistrent qui l'a créée.
+- **Annulé en supprimant la règle.** La règle est nommée d'après ce qu'elle abandonne, par exemple « Data Security: drop metrics named with Email address », et apparaît avec vos autres règles de pipeline de métriques sous **Métriques → Paramètres → Règles de pipeline**. Supprimez-la ou désactivez-la, et ces métriques sont de nouveau stockées à partir de ce moment. Ce qui a été abandonné entre-temps ne revient pas.
+
+La détection est alors marquée **Abandonné**, et compte comme nettoyée : plus aucune de ces données n'est stockée.
 
 ## Ce qui compte comme nettoyé
 
@@ -127,6 +141,7 @@ Une détection n'est marquée comme nettoyée que lorsque l'ingestion lui appliq
 - **Un motif qui trouve le type.** Un **Type de modèle** intégré trouve son propre type de données : **Adresse e-mail** trouve les adresses e-mail, **Numéro de carte de crédit** les numéros de carte, **SSN (numéro de sécurité sociale)** les numéros de sécurité sociale américains, **Numéro de téléphone** les numéros de téléphone et **Adresse IP** les adresses IP. **Clés d'attributs sensibles** couvre chaque valeur sous une clé qui semble sensible, quelle que soit la valeur.
 - **Vos propres motifs personnalisés ne comptent jamais.** Une **Regex personnalisée** ne couvre une détection que si elle est exactement le motif que **Nettoyer** crée pour son type. Une détection ne conserve que des échantillons masqués, sur lesquels aucun motif ne peut être essayé : OneUptime ne pourrait donc pas prouver que votre motif masque les données, et une détection marquée à tort comme nettoyée est une fuite que personne ne regarde.
 - **L'attribut d'une métrique.** Une règle de pipeline de métriques **Masquer l'attribut** ou **Supprimer l'attribut** portant sur la clé de cet attribut, pour le service de la détection ou pour tout le projet, la couvre quand elle n'a aucun filtre, ou exactement le filtre que crée **Nettoyer**. Un filtre que vous avez écrit ne compte jamais, pour la même raison.
+- **Le nom d'une métrique.** Une règle de pipeline de métriques **Supprimer** pour le service de la détection ou pour tout le projet la couvre quand elle a exactement le filtre que crée **Abandonner cette métrique**, ou aucun filtre, auquel cas elle ne stocke aucune des métriques du service. Une telle règle sans filtre couvre toutes les détections dans ces métriques.
 
 Une règle désactivée, ou qui ne nettoie rien, ne compte jamais. La couverture est recalculée après chaque analyse, donc une règle que vous ajoutez ou supprimez à la main change ce qui est marqué comme nettoyé dans l'heure.
 

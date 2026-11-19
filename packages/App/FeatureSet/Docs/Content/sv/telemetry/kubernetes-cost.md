@@ -16,7 +16,7 @@ Med kostnadsövervakningen påslagen, som den är som standard (`cost.enabled: a
 
 ```mermaid title="Var kostnadssiffrorna kommer ifrån"
 flowchart TB
-    cadvisor["cAdvisor, via API-serverns<br/>nodproxy"] --> prometheus["Medföljande Prometheus"]
+    cadvisor["cAdvisor, från<br/>varje nods kubelet"] --> prometheus["Medföljande Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["Molnets listpriser<br/>eller din prislista"] --> opencost
     opencost -->|"en avslutad timme<br/>i taget"| poller["Kostnadspoller"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**, kostnadsmotorn med öppen källkod (Apache-2.0, CNCF; den [cost-model](https://github.com/kubecost/cost-model) som även driver Kubecost). Den bevakar klustret, prissätter dina noder, volymer och lastbalanserare, och räknar ut vad varje arbetsbelastning kostar.
-2. **En liten Prometheus**, som OpenCost behöver för användnings- och prishistorik. Den kör en replika, behåller 7 dagars historik och skrapar exakt två mål: cAdvisor via API-serverns nodproxy, där den bara behåller de serier som OpenCost läser, och OpenCost själv (som skickar sina egna mätvärden för resursrequests, så kube-state-metrics är inte inblandat). Den exponeras aldrig utanför klustret, och dess data lämnar det aldrig.
+2. **En liten Prometheus**, som OpenCost behöver för användnings- och prishistorik. Den kör en replika, behåller 7 dagars historik och skrapar exakt två mål: cAdvisor på varje nods kubelet (via API-serverns nodproxy med presetet `eks-fargate`, eftersom ingen podd når en kubelet på den plattformen), där den bara behåller de serier som OpenCost läser, och OpenCost själv (som skickar sina egna mätvärden för resursrequests, så kube-state-metrics är inte inblandat). Den exponeras aldrig utanför klustret, och dess data lämnar det aldrig.
 3. **Kostnadspollern** (`cost.agent`). En gång per avslutad timme läser den OpenCosts Allocation API och skickar en kostnadsrad per arbetsbelastning till OneUptime: CPU, minne, GPU, volymer, nätverk, lastbalanserare och ledig kapacitet, med effektivitet. Varje timme skickas en gång; servern hoppar över en timme som den redan har, så en omstart kan inte räkna utgifter två gånger. OneUptime skriver också [kostnadsmätvärdena](#larm-på-kostnader) utifrån de här raderna.
 4. **En skrapning av kostnadsmätvärden** (`cost.metrics`). Agentens collector skrapar OpenCosts prismätvärden, alltså vad varje nod, volym och lastbalanserare kostar per timme, och skickar dem tillsammans med resten av klustrets mätvärden.
 

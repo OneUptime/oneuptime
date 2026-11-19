@@ -1,5 +1,6 @@
 import AIConfidenceSignal, {
   CONFIDENCE_CLASSIFICATION_DEADLINE_MS,
+  CONFIDENCE_CLASSIFICATION_MAX_TOKENS,
   CONFIDENCE_CLASSIFICATION_TIMEOUT_MS,
   CONFIDENCE_CLASSIFICATION_FEATURE,
   ConfidenceSignal,
@@ -444,6 +445,39 @@ describe("AIConfidenceSignal.computeConfidenceSignal", () => {
         protectRequestParameters: true,
       }),
     );
+  });
+
+  /*
+   * The benchmark's judge reads an answer whose scenario names no cause
+   * with getClassificationMessages (Eval/EvalJudge, #7766): it is what the
+   * live classification sends, word for word, so the two cannot drift.
+   */
+  test("the call sends getClassificationMessages' messages for the analysis, and its token cap", async () => {
+    const executeWithLogging: jest.SpyInstance = jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue(fakeLlmResponse("INCONCLUSIVE"));
+    const analysisMarkdown: string = `Inconclusive [C1]. ${"x".repeat(9000)}`;
+
+    await AIConfidenceSignal.computeConfidenceSignal({
+      projectId,
+      aiRunId,
+      analysisMarkdown,
+      evidence: evidence({ citationCount: 1 }),
+    });
+
+    expect(executeWithLogging.mock.calls[0]![0].messages).toEqual(
+      AIConfidenceSignal.getClassificationMessages({ analysisMarkdown }),
+    );
+    expect(executeWithLogging.mock.calls[0]![0].maxTokens).toBe(
+      CONFIDENCE_CLASSIFICATION_MAX_TOKENS,
+    );
+    // The analysis travels as JSON data, cut to 8,000 characters.
+    expect(
+      JSON.parse(
+        AIConfidenceSignal.getClassificationMessages({ analysisMarkdown })[1]!
+          .content,
+      ),
+    ).toEqual({ analysisMarkdown: analysisMarkdown.substring(0, 8000) });
   });
 
   test("NO_CODE_FIX token → confident RCA without a repository fix recommendation", async () => {

@@ -17,7 +17,7 @@ import {
   EVENT_NAME_ATTRIBUTE,
   FROZEN_FRAME_THRESHOLD,
 } from "Common/Types/Rum/MobileAppTelemetry";
-import { ANR_EXCEPTION_TYPE } from "Common/Utils/Telemetry/MobileAppFaults";
+import { APP_NOT_RESPONDING_EXCEPTION_TYPES } from "Common/Utils/Telemetry/MobileAppFaults";
 import { toLogsExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalScope";
 import {
   composedValue,
@@ -125,6 +125,44 @@ export function getCrashFreeSessionsPercent(input: {
 }
 
 /*
+ * The share of the range's installs no crash happened on (#9716), counted
+ * as the sessions' share is: the distinct app.installation.id of the app's
+ * spans, less those its crashes named. A good stand-in for its users, as
+ * OpenTelemetry Android identifies none. Null when it cannot be told: the
+ * spans name no install (an SDK that sets none), or a crash named none.
+ */
+export function getCrashFreeInstallsPercent(input: {
+  sessions: MobileSessions | null;
+  crashes: MobileFaultCount | null;
+}): number | null {
+  if (
+    !input.sessions ||
+    input.sessions.failed ||
+    typeof input.sessions.installs !== "number" ||
+    input.sessions.installs <= 0 ||
+    !input.crashes ||
+    input.crashes.failed
+  ) {
+    return null;
+  }
+
+  if (input.crashes.total <= 0) {
+    return 100;
+  }
+
+  if (typeof input.crashes.installs !== "number") {
+    return null;
+  }
+
+  const crashed: number = Math.min(
+    input.crashes.installs,
+    input.sessions.installs,
+  );
+
+  return ((input.sessions.installs - crashed) / input.sessions.installs) * 100;
+}
+
+/*
  * Words drawn in place of a figure when the app's spans carry no session
  * id at all (ResourceOverviewTile.valueNote), in the tile's own language.
  */
@@ -171,7 +209,12 @@ export function describeSessionsTile(input: {
   };
 }
 
-// "Crash-free sessions": the share of the range's sessions no crash ended.
+/*
+ * "Crash-free sessions": the share of the range's sessions no crash ended.
+ * Under it, the share of its installs no crash happened on, when the app
+ * names its installs (#9716); else how many sessions crashed, which the
+ * Crashes tile beside it says too.
+ */
 export function describeCrashFreeTile(input: {
   sessions: MobileSessions | null;
   crashes: MobileFaultCount | null;
@@ -202,6 +245,18 @@ export function describeCrashFreeTile(input: {
     input.crashes.total > 0
       ? Math.min(input.crashes.sessions || 0, input.sessions.sessions)
       : 0;
+
+  const installsPercent: number | null = getCrashFreeInstallsPercent(input);
+
+  if (installsPercent !== null) {
+    return {
+      value: formatSessionShare(percent, getGlobalTranslator()),
+      percent: percent,
+      sublabel: translateTemplate("{{share}} of installs crash-free", {
+        share: formatSessionShare(installsPercent, getGlobalTranslator()),
+      }),
+    };
+  }
 
   return {
     value: formatSessionShare(percent, getGlobalTranslator()),
@@ -572,7 +627,8 @@ export function buildMobileTracesRoute(input: {
 
 /*
  * The Exceptions explorer scoped to the application on the tile's range,
- * and to the type ANR for the ANRs tile.
+ * and for the ANRs tile to the types a freeze is filed under: ANR, and an
+ * iOS app's Hang.
  */
 export function buildMobileExceptionsRoute(input: {
   exceptionsRoute: Route;
@@ -585,7 +641,9 @@ export function buildMobileExceptionsRoute(input: {
   ];
 
   if (input.anrsOnly) {
-    filters.push(["exceptionType", ANR_EXCEPTION_TYPE]);
+    for (const exceptionType of APP_NOT_RESPONDING_EXCEPTION_TYPES) {
+      filters.push(["exceptionType", exceptionType]);
+    }
   }
 
   return withQueryParams(input.exceptionsRoute, {

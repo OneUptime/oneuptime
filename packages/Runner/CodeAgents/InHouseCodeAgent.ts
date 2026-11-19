@@ -20,10 +20,10 @@ import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
 import {
   AGENT_COMMAND_OUTPUT_DRAIN_GRACE_MS,
   AGENT_COMMAND_TIMEOUT_ARGUMENT,
-  DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS,
-  MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
   describeAgentCommandTimedOut,
+  getAgentCommandMaxSeconds,
   getAgentCommandTimeoutMs,
+  getRequestedAgentCommandTimeoutSeconds,
   startAgentCommandKeepAlive,
 } from "../Utils/AgentCommandLimits";
 import RepositoryInstructions, {
@@ -63,6 +63,10 @@ import CodeAgentContext, {
   CodeAgentContextSize,
   CodeAgentContextState,
   DEFAULT_CODE_AGENT_CONTEXT_SIZE,
+  MAX_ANSWER_TOKENS,
+  getAnswerTokensForWindow,
+  getContextSize,
+  getContextSizeForWindow,
   shrinkContextSize,
 } from "./CodeAgentContext";
 import CodeAgentCompletionRetry from "./CodeAgentCompletionRetry";
@@ -114,6 +118,25 @@ const WORKSPACE_TOOL_NAMES: ReadonlyArray<string> = [
 
 // The most services the prompt lists by name.
 const MAX_PROMPT_SERVICES: number = 25;
+
+/*
+ * What the agent asks of the OneUptime server: its model calls, the run's
+ * production telemetry, and that the run is still working. The server
+ * itself (BackendAPI) in production; the benchmark (Benchmark/, issue #6531)
+ * hands the agent one that calls a model of its choosing directly.
+ */
+export type CodeAgentServer = Pick<
+  BackendAPI,
+  | "llmCompletion"
+  | "updateTaskStatus"
+  | "getTelemetryTools"
+  | "runTelemetryTool"
+>;
+
+export interface InHouseCodeAgentOptions {
+  // The server to work through; the OneUptime server (BackendAPI) when left out.
+  server?: CodeAgentServer | undefined;
+}
 
 /*
  * The production telemetry tools the server offered this task
@@ -198,14 +221,16 @@ interface CommandOutput {
  * context lines), git (read-only: status, diff, log, show, blame),
  * read_tool_output (the rest of a long output), update_plan - and
  * run_command (workspace cwd, 2 minutes unless the model asks for up to
- * 10, the run kept alive while it runs, a long output shown as its start
+ * 10, or up to the project's Time Limit per Command, never past the run's
+ * time; the run kept alive while it runs, a long output shown as its start
  * and end: Utils/AgentCommandLimits) on a Runner of the project's own.
  * For a task that asks (CodeAgentTask.productionTelemetry), the server's
  * read-only production telemetry tools too, which run on the server, held
  * to the run's repository and the services it serves (CodeAgentTelemetry).
  *
- * A long task stays inside the model's context window: past a size, the
- * oldest tool results and rounds are left out, the model told what they
+ * A long task stays inside the model's context window: past a size - what
+ * the window holds, when the server says it (issue #6530), or a default -
+ * the oldest tool results and rounds are left out, the model told what they
  * were (CodeAgentContext). A model call that fails is made again when a
  * repeat can help (CodeAgentCompletionRetry), and never runs a tool twice.
  *
@@ -219,7 +244,14 @@ export default class InHouseCodeAgent implements CodeAgent {
   private config: CodeAgentLLMConfig | null = null;
   private taskLogger: TaskLogger | null = null;
   private progressCallback: CodeAgentProgressCallback | null = null;
-  private backendAPI: BackendAPI | null = null;
+  private backendAPI: CodeAgentServer | null = null;
+
+  // The server handed in (InHouseCodeAgentOptions), or null for BackendAPI.
+  private readonly server: CodeAgentServer | null;
+
+  public constructor(options: InHouseCodeAgentOptions = {}) {
+    this.server = options.server ?? null;
+  }
 
   /*
    * Whether this task may end by asking the person who made the request a
@@ -288,10 +320,25 @@ export default class InHouseCodeAgent implements CodeAgent {
   private plan: AgentPlan = new AgentPlan();
 
   /*
-   * The size THIS task's conversation is kept under: the default, or less
-   * once the model server has said a conversation was too long for it.
+   * The size THIS task's conversation is kept under: what the model's
+   * context window holds, once the server has said it (contextWindowTokens),
+   * else the default - and less once the model server has said a
+   * conversation was too long for it (shrunkMaxChars).
    */
   private contextSize: CodeAgentContextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+
+  /*
+   * The model's context window in tokens, as the server last said it (issue
+   * #6530); null until it has, or when it cannot tell.
+   */
+  private contextWindowTokens: number | null = null;
+
+  /*
+   * The size a context window error cut THIS task's conversation to: kept
+   * for the rest of the task, whatever window the server says - it was
+   * wrong once.
+   */
+  private shrunkMaxChars: number | null = null;
 
   /*
    * The results THIS task's conversation holds cut to their start and end,
@@ -342,7 +389,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     this.config = config;
-    this.backendAPI = new BackendAPI();
+    this.backendAPI = this.server ?? new BackendAPI();
 
     if (taskLogger) {
       this.taskLogger = taskLogger;
@@ -371,6 +418,8 @@ export default class InHouseCodeAgent implements CodeAgent {
     this.outputs = new ToolOutputStore();
     this.plan = new AgentPlan();
     this.contextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+    this.contextWindowTokens = null;
+    this.shrunkMaxChars = null;
     this.cutResultOrigins = new Map<string, string>();
     this.allowQuestions = Boolean(task.allowQuestions);
     this.telemetryCallsSinceCompletion = 0;
@@ -514,6 +563,7 @@ export default class InHouseCodeAgent implements CodeAgent {
         this.telemetryCallsSinceCompletion = 0;
         this.applyRunLimits(completion.limits, Date.now(), true);
         this.legacyBudget = completion.limits ? null : completion.budget;
+        await this.applyContextWindow(completion.contextWindowTokens);
 
         if (completion.content) {
           lastContent = completion.content;
@@ -729,11 +779,14 @@ export default class InHouseCodeAgent implements CodeAgent {
       }
 
       try {
+        const answerTokens: number | null = this.getAnswerTokens();
         const completion: LlmCompletionResult =
           await this.backendAPI.llmCompletion({
             taskId: data.taskId,
             messages,
             ...(data.withTools ? { tools: this.getToolDefinitions() } : {}),
+            // A small window keeps room for the prompt: a shorter answer.
+            ...(answerTokens !== null ? { maxTokens: answerTokens } : {}),
             timeoutInMs: this.getCompletionTimeoutMs(),
             signal: this.abortController.signal,
           });
@@ -759,6 +812,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           if (smaller) {
             const before: Array<LLMMessage> = messages;
             this.contextSize = smaller;
+            this.shrunkMaxChars = smaller.maxChars;
             messages = await this.keepWithinContext({
               messages,
               loopDetector: data.loopDetector,
@@ -807,6 +861,74 @@ export default class InHouseCodeAgent implements CodeAgent {
 
         attempt++;
       }
+    }
+  }
+
+  /*
+   * Size the conversation to the model's context window, as the server said
+   * it with its latest answer (issue #6530): what the window holds, less the
+   * answer's room and the tool definitions (getContextSizeForWindow) - or
+   * the default when it cannot tell - and never more than a context window
+   * error already cut it to. Said in the run's log when the window is new.
+   */
+  private async applyContextWindow(
+    contextWindowTokens: number | null | undefined,
+  ): Promise<void> {
+    const tokens: number | null =
+      typeof contextWindowTokens === "number" && contextWindowTokens > 0
+        ? contextWindowTokens
+        : null;
+    const isNew: boolean =
+      tokens !== null && tokens !== this.contextWindowTokens;
+
+    this.contextWindowTokens = tokens;
+
+    const fitted: CodeAgentContextSize =
+      tokens !== null
+        ? getContextSizeForWindow({
+            contextWindowTokens: tokens,
+            toolDefinitionChars: this.measureToolDefinitionChars(),
+          })
+        : DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+
+    this.contextSize =
+      this.shrunkMaxChars !== null && this.shrunkMaxChars < fitted.maxChars
+        ? getContextSize(this.shrunkMaxChars)
+        : fitted;
+
+    if (isNew) {
+      await this.log(
+        `The model takes ${tokens!.toLocaleString(
+          "en-US",
+        )} tokens in one request: the conversation is kept under ${this.contextSize.maxChars.toLocaleString(
+          "en-US",
+        )} characters.`,
+      );
+    }
+  }
+
+  /*
+   * How many tokens a call asks the model to write: fewer than the server's
+   * most only for a window too small to keep that much room for the answer
+   * (getAnswerTokensForWindow), so the prompt fits beside it; null - the
+   * server's most - otherwise.
+   */
+  private getAnswerTokens(): number | null {
+    if (this.contextWindowTokens === null) {
+      return null;
+    }
+
+    const tokens: number = getAnswerTokensForWindow(this.contextWindowTokens);
+
+    return tokens < MAX_ANSWER_TOKENS ? tokens : null;
+  }
+
+  // What the tool definitions take of a request, in characters.
+  private measureToolDefinitionChars(): number {
+    try {
+      return JSON.stringify(this.getToolDefinitions()).length;
+    } catch {
+      return 0;
     }
   }
 
@@ -923,6 +1045,27 @@ export default class InHouseCodeAgent implements CodeAgent {
       this.stepDeadlineAtMs !== null
         ? Math.min(this.runDeadlineAtMs, this.stepDeadlineAtMs)
         : this.runDeadlineAtMs;
+  }
+
+  /*
+   * The most one command may be given, in seconds (issue #6532): the
+   * project's Time Limit per Command as the server last said it - ten
+   * minutes until it has, or from a server that does not say - and never
+   * more than the run's own time limit, or this step's. run_command's
+   * definition says it, and every command is held to it.
+   */
+  private getCommandMaxSeconds(): number {
+    const runTimeLimitMs: number =
+      (this.runLimits?.timeLimitInMinutes ??
+        DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES) * MILLISECONDS_IN_A_MINUTE;
+
+    return getAgentCommandMaxSeconds({
+      commandTimeLimitInMinutes: this.runLimits?.commandTimeLimitInMinutes,
+      atMostMs:
+        this.stepTimeLimitMs !== null
+          ? Math.min(runTimeLimitMs, this.stepTimeLimitMs)
+          : runTimeLimitMs,
+    });
   }
 
   private getStepTimeLimitInMinutes(): number {
@@ -1269,11 +1412,20 @@ export default class InHouseCodeAgent implements CodeAgent {
       "  blame). Look over your whole change with git diff before you finish.",
       ...(runsProjectAuthoredCommands()
         ? [
+            /*
+             * How long a command gets, and the most it may ask for, are in
+             * run_command's definition, which says the cap that applies -
+             * the project's own Time Limit per Command, which the server
+             * sends with its first answer. The prompt is written before
+             * that and kept for the whole task, so it names no number that
+             * could contradict it.
+             */
             "- run_command runs a shell command in the repository root. Use it to",
             "  set up, build and run the tests the way the repository says to. A",
-            `  command stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds; for a slow install, build or test`,
-            `  suite, set ${AGENT_COMMAND_TIMEOUT_ARGUMENT} (at most ${MAX_AGENT_COMMAND_TIMEOUT_SECONDS}). Never start a command that`,
-            "  waits forever (a dev server, a watch mode).",
+            "  command stops at a time limit, which run_command's description gives;",
+            `  for a slow install, build or test suite, set ${AGENT_COMMAND_TIMEOUT_ARGUMENT} to give it`,
+            "  longer, up to the most it allows. Never start a command that waits",
+            "  forever (a dev server, a watch mode).",
           ]
         : [
             "- There is no command-running tool on this Runner: make your change",
@@ -1328,7 +1480,9 @@ export default class InHouseCodeAgent implements CodeAgent {
      * toolRunCommand refuses it when it is not offered, so an unadvertised
      * call never spawns a process.
      */
-    const runCommandTool: LLMToolDefinition = buildRunCommandToolDefinition();
+    const runCommandTool: LLMToolDefinition = buildRunCommandToolDefinition(
+      this.getCommandMaxSeconds(),
+    );
 
     return [
       ...buildWorkspaceToolDefinitions(),
@@ -1624,14 +1778,22 @@ export default class InHouseCodeAgent implements CodeAgent {
     );
 
     /*
-     * What the model asked for (two minutes when it asked for nothing, ten
-     * at most), never past the time this task has left.
+     * What the model asked for (two minutes when it asked for nothing; ten
+     * at most, or the project's own Time Limit per Command), never past the
+     * time this task has left.
      */
+    const maxSeconds: number = this.getCommandMaxSeconds();
+    const requestedMs: number =
+      getRequestedAgentCommandTimeoutSeconds(
+        args[AGENT_COMMAND_TIMEOUT_ARGUMENT],
+        maxSeconds,
+      ) * 1000;
     const timeoutMs: number = getAgentCommandTimeoutMs({
       requested: args[AGENT_COMMAND_TIMEOUT_ARGUMENT],
       remainingMs: this.deadlineAtMs
         ? this.deadlineAtMs - Date.now()
         : undefined,
+      maxSeconds,
     });
 
     const result: CommandOutput = await this.runShellCommand(
@@ -1647,7 +1809,11 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     const header: string = result.timedOut
-      ? describeAgentCommandTimedOut(timeoutMs)
+      ? describeAgentCommandTimedOut({
+          timeoutMs,
+          maxSeconds,
+          heldToTimeLeft: timeoutMs < requestedMs,
+        })
       : `Exit code: ${result.exitCode ?? "unknown"}`;
 
     /*

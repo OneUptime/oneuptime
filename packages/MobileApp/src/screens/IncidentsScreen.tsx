@@ -27,7 +27,7 @@ import { spacing, typography } from "../theme/tokens";
 import ListFilters from "../components/ListFilters";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import {
   useListPane,

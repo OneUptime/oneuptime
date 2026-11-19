@@ -16,7 +16,7 @@
 
 ```mermaid title="비용 수치의 출처"
 flowchart TB
-    cadvisor["API 서버 노드 프록시를<br/>거친 cAdvisor"] --> prometheus["번들 Prometheus"]
+    cadvisor["각 노드 kubelet의<br/>cAdvisor"] --> prometheus["번들 Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["클라우드 정가<br/>또는 요금표"] --> opencost
     opencost -->|"마감된 한 시간<br/>단위로"| poller["비용 폴러"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**: 오픈 소스 비용 엔진입니다(Apache-2.0, CNCF. Kubecost의 기반이기도 한 [cost-model](https://github.com/kubecost/cost-model)). 클러스터를 감시하고, 노드, 볼륨, 로드 밸런서의 가격을 매기며, 각 워크로드의 비용을 계산합니다.
-2. **작은 Prometheus**: OpenCost가 사용량과 가격 기록에 필요로 하는 것입니다. 레플리카 하나로 실행되고, 7일간의 기록을 보관하며, 정확히 두 대상만 스크레이프합니다. OpenCost가 읽는 시계열만 남기는, API 서버의 노드 프록시를 통한 cAdvisor와 OpenCost 자체입니다(OpenCost가 자체 리소스 request 메트릭을 내보내므로 kube-state-metrics는 관여하지 않습니다). 클러스터 밖으로 노출되지 않으며 데이터도 클러스터를 떠나지 않습니다.
+2. **작은 Prometheus**: OpenCost가 사용량과 가격 기록에 필요로 하는 것입니다. 레플리카 하나로 실행되고, 7일간의 기록을 보관하며, 정확히 두 대상만 스크레이프합니다. OpenCost가 읽는 시계열만 남기는, 각 노드 kubelet의 cAdvisor(어떤 Pod도 kubelet에 도달할 수 없는 `eks-fargate` 프리셋에서는 API 서버의 노드 프록시를 거칩니다)와 OpenCost 자체입니다(OpenCost가 자체 리소스 request 메트릭을 내보내므로 kube-state-metrics는 관여하지 않습니다). 클러스터 밖으로 노출되지 않으며 데이터도 클러스터를 떠나지 않습니다.
 3. **비용 폴러**(`cost.agent`). 1시간이 마감될 때마다 OpenCost의 Allocation API를 읽고 워크로드마다 비용 행 하나를 OneUptime에 보냅니다. CPU, 메모리, GPU, 볼륨, 네트워크, 로드 밸런서, 유휴, 그리고 효율입니다. 각 시간은 한 번만 전송되며, 서버는 이미 가진 시간을 건너뛰므로 재시작으로 지출이 두 번 집계되지 않습니다. OneUptime은 이 행들로부터 [비용 메트릭](#비용에-대한-경고)도 기록합니다.
 4. **비용 메트릭 스크레이프**(`cost.metrics`). 에이전트의 Collector가 OpenCost의 가격 메트릭, 즉 각 노드, 볼륨, 로드 밸런서의 시간당 비용을 스크레이프해 클러스터의 나머지 메트릭과 함께 보냅니다.
 

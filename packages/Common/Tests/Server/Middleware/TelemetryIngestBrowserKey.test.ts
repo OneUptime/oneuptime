@@ -677,12 +677,16 @@ describe("TelemetryIngest browser ingestion key guard", () => {
        * identity registrations (the Kubernetes agent Runner, the
        * Kubernetes AI agent and the resource AI agents), which mint cluster
        * or infrastructure credentials and must never be reachable with a key
-       * scraped off a page, and the supervisor of a host OneUptime manages,
-       * which is sent the config the host runs. And four of the compatible
+       * scraped off a page, the supervisor of a host OneUptime manages,
+       * which is sent the config the host runs, and an Android device's
+       * agent asking for its log sessions. And four of the compatible
        * endpoints - Prometheus remote write, Loki, Splunk HEC and Datadog -
        * which agents and servers send to, never a page.
        */
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(22);
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(23);
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.AndroidAgentLogSessions,
+      );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.PrometheusRemoteWrite,
       );

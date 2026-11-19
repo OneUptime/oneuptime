@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import Domain from "../../../../Models/DatabaseModels/Domain";
 import GlobalOIDC from "../../../../Models/DatabaseModels/GlobalOidc";
 import ProjectOIDC from "../../../../Models/DatabaseModels/ProjectOidc";
 import StatusPageOIDC from "../../../../Models/DatabaseModels/StatusPageOidc";
@@ -35,6 +36,7 @@ import {
   isOidcAdvancedAtDefaults,
 } from "../../../../UI/Components/Sso/OidcProviderFormFields";
 import {
+  SSO_PROVIDER_DOMAINS_EMPTY_LIST,
   SSO_PROVIDER_STEP_ID,
   SSO_SIGN_IN_STEP_ID,
   getSsoProviderDescriptionAfterRename,
@@ -112,9 +114,11 @@ function isUnseenColumn<TEntity>(field: Field<TEntity>): boolean {
   });
 }
 
+// As Settings > SSO builds it.
 const PROJECT_FIELDS: Array<Field<ProjectOIDC>> =
   getOidcProviderFormFields<ProjectOIDC>({
     withTeams: true,
+    withDomains: true,
     withIdentityProviderSignOut: true,
   });
 const STATUS_PAGE_FIELDS: Array<Field<StatusPageOIDC>> =
@@ -147,7 +151,7 @@ describe("the steps", () => {
 });
 
 describe("the fields each form gets", () => {
-  test("a project's provider: the provider, then the teams newcomers join, Enabled and Advanced", () => {
+  test("a project's provider: the provider, then the teams newcomers join, the domains it serves, Enabled and Advanced", () => {
     expect(keysOn(PROJECT_FIELDS, "provider")).toEqual([
       "name",
       "issuerURL",
@@ -156,6 +160,7 @@ describe("the fields each form gets", () => {
     ]);
     expect(keysOn(PROJECT_FIELDS, "sign-in")).toEqual([
       "teams",
+      "domains",
       "isEnabled",
       "discoveryURL",
       "scopes",
@@ -299,6 +304,47 @@ describe("the fields each form gets", () => {
     expect(teams.description).toBe(
       "Add users to these teams when they sign up.",
     );
+  });
+
+  /*
+   * Sign in with SSO finds a project's provider by an address's domain
+   * (#9824): the field lists only the domains the project has verified - an
+   * unverified one serves nobody - is never required (a provider with none
+   * still signs people in from the identity provider), and says what it does
+   * and where a domain is verified.
+   */
+  test("domains pick from the project's verified domains, are optional, and say what they do and where to verify one", () => {
+    const domains: Field<ProjectOIDC> = fieldFor(PROJECT_FIELDS, "domains");
+
+    expect(domains.title).toBe("Domains");
+    expect(domains.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+    expect(domains.dropdownModal).toEqual({
+      type: Domain,
+      labelField: "domain",
+      valueField: "_id",
+      query: { isVerified: true },
+      emptyListText: SSO_PROVIDER_DOMAINS_EMPTY_LIST,
+    });
+    expect(Boolean(domains.required)).toBe(false);
+    expect(domains.collapsibleSection).toBeUndefined();
+    expect(domains.description).toBe(
+      "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.",
+    );
+    expect(SSO_PROVIDER_DOMAINS_EMPTY_LIST).toBe(
+      "No verified domains yet. Verify one in Project Settings > Advanced > Domains.",
+    );
+  });
+
+  test("only a project's provider asks for its domains", () => {
+    for (const fields of [STATUS_PAGE_FIELDS, GLOBAL_FIELDS] as Array<
+      Array<Field<unknown>>
+    >) {
+      expect(
+        fields.some((field: Field<unknown>): boolean => {
+          return keyOf(field) === "domains";
+        }),
+      ).toBe(false);
+    }
   });
 
   test("Enabled is a switch that says why it starts off, with no default of its own", () => {

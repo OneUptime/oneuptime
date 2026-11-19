@@ -1735,6 +1735,72 @@ describe("scanTelemetry", () => {
     });
   });
 
+  /*
+   * #9755: each service's metrics are read in turn from where the last scan
+   * stopped, which its metrics store keeps (contentScanState).
+   */
+  test("each service's metrics go on in turn from where its metrics store says the last scan stopped", async () => {
+    const other: ObjectID = new ObjectID(
+      "66666666-6666-4666-8666-666666666666",
+    );
+    const storeOf: (serviceId: ObjectID, state: unknown) => DataStore = (
+      serviceId: ObjectID,
+      state: unknown,
+    ): DataStore => {
+      const store: DataStore = new DataStore(ObjectID.generate());
+      store.serviceId = serviceId;
+      store.contentScanState = state as JSONObject;
+      return store;
+    };
+    const findSpy: jest.SpyInstance = jest
+      .spyOn(DataStoreService, "findBy")
+      .mockResolvedValue([
+        storeOf(SERVICE_ID, {
+          [TelemetryDataScanner.METRIC_ROTATION_CURSOR_STATE_KEY]: 123456,
+          plaintextPasswordFields: [],
+        }),
+        // A store whose scans kept no place yet, and one whose state is not one.
+        storeOf(other, { plaintextPasswordFields: [] }),
+        storeOf(ObjectID.generate(), {
+          [TelemetryDataScanner.METRIC_ROTATION_CURSOR_STATE_KEY]: "123",
+        }),
+      ] as never);
+    const scanSpy: jest.SpyInstance = jest
+      .spyOn(TelemetryDataScanner, "scanProjectTelemetry")
+      .mockResolvedValue([]);
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(findSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, kind: DataStoreKind.TelemetryMetrics },
+      select: { serviceId: true, contentScanState: true },
+      props: { isRoot: true },
+    });
+    expect(scanSpy.mock.calls[0]![0].metricCursors).toEqual(
+      new Map([[SERVICE_ID.toString().toLowerCase(), 123456]]),
+    );
+  });
+
+  test("when the metrics stores cannot be read, every rotation starts again and the scan still runs", async () => {
+    jest
+      .spyOn(DataStoreService, "findBy")
+      .mockRejectedValue(new Error("Postgres went away"));
+    const warnSpy: jest.SpyInstance = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {});
+    const scanSpy: jest.SpyInstance = jest
+      .spyOn(TelemetryDataScanner, "scanProjectTelemetry")
+      .mockResolvedValue([]);
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).toHaveBeenCalledTimes(1);
+    expect(scanSpy.mock.calls[0]![0].metricCursors).toEqual(new Map());
+    expect(warnSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not read where project ${PROJECT_ID.toString()}'s metrics were read up to; each service's turn starts again:`,
+    );
+  });
+
   test("a project that turned telemetry scanning off reads nothing", async () => {
     setting.isTelemetryScanEnabled = false;
     const scanSpy: jest.SpyInstance = jest.spyOn(

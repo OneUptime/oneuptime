@@ -115,6 +115,7 @@ function runLimits(
     maxTokens: null,
     timeLimitInMinutes: 120,
     timeLimitSource: AIRunTimeLimitSource.Default,
+    commandTimeLimitInMinutes: 10,
     deadlineAt: new Date(Date.now() + 110 * 60 * 1000).toISOString(),
     timeLeftMs: 110 * 60 * 1000,
     modelCallsUsed: 1,

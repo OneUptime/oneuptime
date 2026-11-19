@@ -1140,6 +1140,9 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
+import HostLogSessionService, {
+  Service as HostLogSessionServiceType,
+} from "Common/Server/Services/HostLogSessionService";
 import HostCollectorConfigService, {
   Service as HostCollectorConfigServiceType,
 } from "Common/Server/Services/HostCollectorConfigService";
@@ -1777,6 +1780,7 @@ import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabe
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
 import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -6431,6 +6435,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<HostOwnerUser, HostOwnerUserServiceType>(
         HostOwnerUser,
         HostOwnerUserService,
+      ).getRouter(),
+    );
+
+    /*
+     * Log sessions (#9806): every app's logs from an Android device for a
+     * while, asked for and cancelled here; the device moves them on through
+     * the Android agent's own route (Telemetry, AndroidAgentLogSessions).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostLogSession, HostLogSessionServiceType>(
+        HostLogSession,
+        HostLogSessionService,
       ).getRouter(),
     );
 

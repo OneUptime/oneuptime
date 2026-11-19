@@ -59,6 +59,7 @@ import {
 } from "./DataSecurityTelemetryScanRule";
 import { ClaimedDataStore } from "./DataSecurityProbeClaim";
 import {
+  readMetricRotationCursor,
   scanProjectTelemetry,
   TelemetryOwnersNotScanned,
 } from "./Telemetry/TelemetryDataScanner";
@@ -1030,6 +1031,8 @@ export default class DataSecurityRunner {
       since: OneUptimeDate.addRemoveHours(startedAt, -1),
       options: setup.options,
       ownersNotScanned,
+      // Each service's metrics go on in turn from where the last scan stopped.
+      metricCursors: await this.readMetricCursors(projectId),
     });
 
     if (results.length === 0) {
@@ -1105,6 +1108,46 @@ export default class DataSecurityRunner {
         );
       }
     }
+  }
+
+  /*
+   * Where each service's metrics' rotation stopped, from its metrics store
+   * (issue #9755): the scan reads the next ones in turn from there. When
+   * the stores cannot be read, each rotation starts again from the start
+   * of its ring - its metrics are still read, in the same order.
+   */
+  public static async readMetricCursors(
+    projectId: ObjectID,
+  ): Promise<Map<string, number>> {
+    const cursors: Map<string, number> = new Map();
+
+    try {
+      const stores: Array<DataStore> = await DataStoreService.findBy({
+        query: { projectId, kind: DataStoreKind.TelemetryMetrics },
+        select: { _id: true, serviceId: true, contentScanState: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+
+      for (const store of stores) {
+        const serviceId: string = store.serviceId?.toString() || "";
+        const cursor: number | undefined = readMetricRotationCursor(
+          store.contentScanState,
+        );
+
+        if (serviceId && cursor !== undefined) {
+          cursors.set(serviceId.toLowerCase(), cursor);
+        }
+      }
+    } catch (error) {
+      logger.warn(
+        `DataSecurity: could not read where project ${projectId.toString()}'s metrics were read up to; each service's turn starts again:`,
+      );
+      logger.warn(error);
+    }
+
+    return cursors;
   }
 
   /*

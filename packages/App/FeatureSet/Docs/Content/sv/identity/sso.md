@@ -48,7 +48,7 @@ Varje svar loggar in en enda gång. Skickas det igen, till exempel när du går 
 Personer som loggar in för första gången går med i leverantörens **Team**, som avgör vad de kan göra: se [Roller och team för SSO-användare](#roller-och-team-för-sso-användare).
 
 > [!NOTE]
-> På OneUptime Cloud loggar OneUptime inte in en person som för första gången loggar in i projektet med en av projektets SAML- eller OIDC-leverantörer; i stället skickar OneUptime en länk via e-post. Personen öppnar länken, bekräftar att projektets enkla inloggning får logga in hen och fortsätter inloggningen. Länken gäller i 24 timmar. Detta sker en gång per projekt, och igen om personen lämnar projektet och kommer tillbaka. Självhostade installationer loggar in personer direkt.
+> På OneUptime Cloud loggar OneUptime inte in en person som för första gången loggar in i projektet med en av projektets SAML- eller OIDC-leverantörer; i stället skickar OneUptime en länk via e-post. Personen öppnar länken, bekräftar att projektets enkla inloggning får logga in hen och fortsätter inloggningen. Länken gäller i 24 timmar. Detta sker en gång per projekt, och igen om personen lämnar projektet och kommer tillbaka. Självhostade installationer loggar in personer direkt. På OneUptime Cloud får varje inloggning som inte går igenom direkt samma svar, oavsett om adressen har ett konto: den som inte har något konto ännu får också e-postmeddelandet, och kontot skapas när personen bekräftar, medan ett blockerat konto eller en OneUptime-administratör inte får något e-postmeddelande. En självhostad installation avvisar i stället de två med ett enda meddelande.
 
 På OneUptime Cloud tar en person som går med i projektet via SSO en plats, precis som någon du bjuder in. Om din plan har ett fast antal platser och alla är upptagna kan nya personer inte gå med via SSO förrän en plats blir ledig.
 
@@ -292,6 +292,15 @@ En leverantör där den inte är registrerad visar sin egen felsida efter att n�
 OneUptime mappar inte roller eller grupper från din identitetsleverantör. Vad någon kan göra följer av de team hen är med i: en leverantör lägger till nya personer i sina **Team**, och du hanterar team och deras behörigheter i OneUptime, så som [Användare, team och behörigheter](/docs/permissions/index) beskriver. Använd [SCIM](/docs/identity/scim) för att hålla teammedlemskapet i takt med din identitetsleverantör. Varje team som någon går med i när de loggar in registreras på teamets sida **Granskningsloggar** som en ändring gjord av personen som loggade in.
 
 En leverantörs team avgör vad de som loggar in med den kan göra, så en leverantör sparas bara med team som den som sparar den kan bjuda in någon till. Varje sparning kontrollerar dem på nytt: en leverantör vars team ger mer åtkomst än du har kan bara ändras av någon vars åtkomst täcker dem, till exempel en Projektägare. Leverantörer som sparades före den här kontrollen fortsätter att logga in personer i sina team. Alla som får redigera en leverantör kan fortfarande stänga av den, så att den kan stoppas direkt.
+
+## Domäner
+
+**Logga in med SSO** ber om en e-postadress och erbjuder de leverantörer som betjänar adressens domän. Den läser inget konto: en adress med ett konto i ditt projekt och en adress helt utan konto får samma svar, så sidan säger ingenting om vem som har ett konto. För att erbjudas där anger en leverantör de domäner den betjänar:
+
+1. Lägg till din domän under **Projektinställningar** > **Avancerad** > **Domäner**, klicka på **Verifiera domän** på dess rad och lägg till TXT-posten som visas i domänens DNS. Så snart posten hittas är domänen verifierad.
+2. Redigera leverantören och välj domänen under **Domäner** i steget **Inloggning**. Endast projektets verifierade domäner visas.
+
+**Logga in med SSO** erbjuder sedan leverantören till varje adress på den domänen, oavsett vem som skriver den. Domänen måste stämma exakt: `acme.com` täcker inte `eu.acme.com`, så lägg till varje domän som folk loggar in med. En leverantör utan domäner, till exempel en som sattes upp innan domäner fanns, erbjuds ingen där och loggar fortfarande in folk från din identitetsleverantör och från länken i kortet **Test Single Sign On (SSO)**.
 
 ## Kräv SSO för ditt projekt
 

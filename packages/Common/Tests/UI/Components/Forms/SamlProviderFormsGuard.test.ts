@@ -29,7 +29,10 @@ import {
  *
  *   Provider   Name, Sign On URL, Issuer, Public Certificate;
  *   Sign-in    the teams newcomers join (a project's provider, starting on
- *              the members team), Enabled, and one folded Advanced section
+ *              the members team), the verified domains it serves at Sign in
+ *              with SSO (a project's provider: discovery reads an address's
+ *              domain alone, so a provider with none is offered to nobody
+ *              by email, #9824), Enabled, and one folded Advanced section
  *              with everything that has an answer - the signature and digest
  *              methods, the description (from the name) and the Global
  *              provider's sign-up and access switches.
@@ -37,8 +40,8 @@ import {
  * This guard reads the four forms the way the form guards read every form
  * (Tests/Helpers/FormStepsScan) and pins that shape, so a field that drifts
  * back open, or a page that writes its own fields again, is caught here.
- * The scan reads the builder's conditional parts (teams, the Global
- * switches) as always present; which form gets which is pinned on the call
+ * The scan reads the builder's conditional parts (teams, domains, the
+ * Global switches) as always present; which form gets which is pinned on the call
  * each page makes, and the builder's own tests pin what each call returns
  * (Tests/UI/Components/Sso/SamlProviderFormFields.test.ts).
  */
@@ -71,7 +74,7 @@ const SAML_FORMS: Array<SamlForm> = [
     label: "ModelTable: Settings > Project SSO",
     host: "ModelTable",
     builderCall:
-      "formFields={getSamlProviderFormFields<ProjectSSO>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, withIdentityProviderSignOut: true, })}",
+      "formFields={getSamlProviderFormFields<ProjectSSO>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, withIdentityProviderSignOut: true, withDomains: true, })}",
   },
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
@@ -118,10 +121,12 @@ const PROVIDER_STEP_OPEN: Array<string> = [
 ];
 
 /*
- * What the Sign-in step shows open, as the scan reads the builder (teams
- * only on a project's form, see builderCall).
+ * What the Sign-in step shows open, as the scan reads the builder (teams and
+ * domains only on a project's form, see builderCall). Domains is open, by
+ * the teams: an existing provider lists none until an admin adds one, and
+ * until then Sign in with SSO offers it to nobody by email (#9824).
  */
-const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "isEnabled"];
+const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "domains", "isEnabled"];
 
 /*
  * Everything with an answer, folded. Two only on the Global form: its two
@@ -311,12 +316,13 @@ describe("the SAML provider forms ask only for what the identity provider gives;
       }
 
       /*
-       * Four on Provider; Sign-in is Teams, Enabled and one Advanced
-       * header - eight rows were spread over four steps before.
+       * Four on Provider; Sign-in is Teams, Domains, Enabled and one
+       * Advanced header - eight rows were spread over four steps before,
+       * and Domains (#9824) is the eighth, on a project's form only.
        */
       expect(countFieldRows(shownOn(form, PROVIDER_STEP.id))).toBe(4);
-      expect(countFieldRows(shownOn(form, SIGN_IN_STEP.id))).toBe(3);
-      expect(countFormRows(form)).toBe(7);
+      expect(countFieldRows(shownOn(form, SIGN_IN_STEP.id))).toBe(4);
+      expect(countFormRows(form)).toBe(8);
     },
   );
 
@@ -366,6 +372,20 @@ describe("the SAML provider forms ask only for what the identity provider gives;
         return call.includes("withGlobalAccessSwitches: true");
       }),
     ).toEqual([SAML_FORMS[2]!.builderCall, SAML_FORMS[3]!.builderCall]);
+  });
+
+  /*
+   * Sign in with SSO finds a project's provider by an address's domain
+   * (#9824). A status page's provider and the instance-wide one are found
+   * otherwise (their own sign-in pages list them), so only a project's form
+   * asks which of its verified domains the provider serves.
+   */
+  test("only a project's provider asks which verified domains it serves", () => {
+    expect(
+      SAML_FORMS.filter((samlForm: SamlForm): boolean => {
+        return samlForm.builderCall.includes("withDomains: true");
+      }),
+    ).toEqual([SAML_FORMS[0]]);
   });
 
   /*

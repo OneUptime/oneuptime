@@ -83,6 +83,16 @@ export interface InvestigationRecordingInputs {
   // The provider and model that answered, as the run's AI Logs name them.
   providerName?: string | undefined;
   modelName?: string | undefined;
+  /*
+   * True when the run read only what everyone who may see its subject may
+   * read (its request's readAudience, #9614), so its recorded tool results
+   * hold nothing the subject's readers may not read. A recording without
+   * it was made before runs read for their readers, when they read the
+   * whole project as OneUptime: a replay shown to the subject's readers -
+   * trying a model on recent investigations from the Dashboard (#9811) -
+   * takes only recordings that say true.
+   */
+  readForItsReaders?: boolean | undefined;
 }
 
 // One tool call the model made, and what it was handed back.

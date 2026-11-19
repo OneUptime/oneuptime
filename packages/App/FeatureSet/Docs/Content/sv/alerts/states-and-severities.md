@@ -129,9 +129,9 @@ Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använ
 
 | Sätt                 | Var                                                                                       | Vad det frågar efter                                                                                                                 |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knappar i sidhuvudet** | Larmets sidhuvud: **Bekräfta**, **Lös** och **Ändra tillstånd till** i dess meny **⋯**     | En kort bekräftelse, **Bekräfta larm**, **Lös larm** eller **Markera larm som {{state}}**, med en valfri anteckning under **Lägg till en privat anteckning**. |
+| **Knappar i sidhuvudet** | Larmets sidhuvud: **Bekräfta**, **Lös** och **Ändra tillstånd till** i dess meny **⋯**     | En kort bekräftelse, **Bekräfta larm**, **Lös larm** eller **Markera larm som {{state}}**, med en valfri anteckning under **Lägg till en privat anteckning**. En lösning fäller även ihop en valfri rotorsak under **Lägg till rotorsaken**. |
 | **Tillståndstidslinje**   | **Tillståndstidslinje** i larmets sidomeny                                                | En rad som du lägger till manuellt, med **Larmstatus** och **Börjar den**.                                                            |
-| **Rad i listan** | Menyn **⋯** på ett larms rad i larmlistan: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med larmets namn. Ett larm som en annan ändring har flyttat under tiden lämnas som det är, och dialogen säger varför. |
+| **Rad i listan** | Menyn **⋯** på ett larms rad i larmlistan: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med larmets namn. Ett larm som en annan ändring har flyttat under tiden lämnas som det är, och dialogen säger varför. Den frågar inte efter rotorsaken. |
 | **Massändring**      | **Bekräfta**, **Lös** eller **Ändra tillstånd** på ett urval i larmlistan                                             | Tillståndet, och en privat anteckning som läggs till på varje larm. Larm som redan är i eller efter tillståndet hoppas över.           |
 | **Automatiskt**      | En monitor, en episod, en länkad incident eller din egen kod                              | **Lös larm automatiskt** i en monitors kriterier, en episods tillståndsändring, incidentreglagen på [Länkade larm](/docs/incidents/linked-alerts) eller en rad som skapas på `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Ett larm är löst när det flyttas till ditt lösta tillstånd, eller till ett 
 - **Dess monitor kan utlösa ett nytt larm.** Ett kriterium håller ett öppet larm åt gången; när det är löst öppnar nästa matchning ett nytt.
 
 Att gå vidare från **Löst** till ett tillstånd efter det, till exempel "Stängd", ändrar inget av detta: Larmet var redan löst.
+
+## Ange rotorsaken när du löser
+
+När larmets sidhuvud löser det, med **Lös** eller med **Ändra tillstånd till** ett löst tillstånd, fäller bekräftelsen ihop en valfri **Rotorsak** under **Lägg till rotorsaken**: varför det hände. Det du skriver där blir larmets rotorsak, som om du hade skrivit det på dess sida **Rotorsak**, och OneUptime AI:s utredning av larmet jämförs med det (se [Hur bra OneUptime AI klarar sig](/docs/ai/ai-sre#hur-bra-oneuptime-ai-klarar-sig)). Lämnar du det tomt löses larmet som tidigare och behåller den rotorsak det har.
+
+Att ange den kräver behörighet att redigera larmet, utöver behörigheten att ändra dess tillstånd: den som saknar den erbjuds inte **Lägg till rotorsaken**, och en tillståndsändring som den personen skickar med en rotorsak avvisas helt, så larmet behåller sitt tillstånd. Via API:et skickar du den med raden du skapar på `/api/alert-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tillståndstidslinjen
 

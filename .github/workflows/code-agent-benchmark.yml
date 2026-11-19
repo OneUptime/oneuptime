@@ -1,0 +1,107 @@
+name: Code Agent Benchmark
+# How well the in-house Code agent fixes real code with a real model (issue
+# #6531): the benchmark in packages/Runner/Benchmark runs the agent - its
+# prompt, its tools, its loop and its limits - on tasks shaped like the work
+# customers hand Code (a bug behind an exception in a 2,000-line file, a
+# failing test, a change across several files, a slow test suite), and each
+# task's check says whether the repository was fixed. Its table - passed or
+# not, how the run ended, rounds, tool calls by tool, tokens and time - goes
+# to the run's summary, and every row to the code-agent-benchmark-results
+# artifact.
+#
+# It spends real AI credits, so it runs only with the model's key: a
+# maintainer adds it as the CODE_AGENT_BENCHMARK_LLM_API_KEY secret (and, for
+# the weekly run, may name the model in the CODE_AGENT_BENCHMARK_LLM_TYPE and
+# CODE_AGENT_BENCHMARK_MODEL variables). Without the secret every run skips
+# at its first step, green, and says so in its summary.
+#
+# By hand and weekly; never on a pull request or a push, so nothing a pull
+# request wrote runs with the key.
+
+on:
+  workflow_dispatch:
+    inputs:
+      llm-type:
+        description: "The model's provider: OpenAI, AzureOpenAI, Anthropic, Groq, Mistral, Ollama or OpenAICompatible."
+        required: false
+        default: ""
+      model:
+        description: "The model. Empty: the provider's default."
+        required: false
+        default: ""
+      tasks:
+        description: "Task ids, comma-separated (npm run benchmark -- --list). Empty: every task."
+        required: false
+        default: ""
+  schedule:
+    - cron: "23 3 * * 1"
+
+# Read-only: it checks out the code and runs the benchmark on its own copies.
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Benchmark the Code agent
+    runs-on: ubuntu-latest
+    # Four tasks of 30 minutes at most each, and the installs.
+    timeout-minutes: 150
+    env:
+      AI_EVAL_LLM_API_KEY: ${{ secrets.CODE_AGENT_BENCHMARK_LLM_API_KEY }}
+      AI_EVAL_LLM_BASE_URL: ${{ vars.CODE_AGENT_BENCHMARK_LLM_BASE_URL }}
+      LLM_TYPE: ${{ inputs.llm-type || vars.CODE_AGENT_BENCHMARK_LLM_TYPE || 'Anthropic' }}
+      MODEL: ${{ inputs.model || vars.CODE_AGENT_BENCHMARK_MODEL || '' }}
+      TASKS: ${{ inputs.tasks || '' }}
+    steps:
+      - name: Skip without the model's key
+        id: key
+        run: |
+          if [ -n "$AI_EVAL_LLM_API_KEY" ]; then
+            echo "present=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "present=false" >>"$GITHUB_OUTPUT"
+            echo "Skipped: this repository has no CODE_AGENT_BENCHMARK_LLM_API_KEY secret. The Code agent benchmark calls a real model and spends real AI credits, so it runs only once a maintainer adds the model's key as that secret." >>"$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install Common dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install Runner dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Runner
+      - name: Run the benchmark
+        if: steps.key.outputs.present == 'true'
+        working-directory: packages/Runner
+        run: |
+          args=(--llm-type="$LLM_TYPE" --require-key)
+          if [ -n "$MODEL" ]; then
+            args+=(--model="$MODEL")
+          fi
+          if [ -n "$TASKS" ]; then
+            args+=(--task="$TASKS")
+          fi
+          npm run benchmark -- "${args[@]}" 2>&1 | tee benchmark-output.txt
+      - name: Add the table to the run's summary
+        if: always() && steps.key.outputs.present == 'true'
+        working-directory: packages/Runner
+        run: |
+          if [ -f benchmark-output.txt ]; then
+            sed -n '/^| Task |/,$p' benchmark-output.txt >>"$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.key.outputs.present == 'true'
+        with:
+          name: code-agent-benchmark-results
+          path: packages/Runner/code-agent-benchmark-results.json
+          if-no-files-found: ignore

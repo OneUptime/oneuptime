@@ -30,6 +30,9 @@ import {
   LLMToolCall,
   LLMToolDefinition,
 } from "../../LLM/LLMService";
+import LLMContextWindow from "../../LLM/LLMContextWindow";
+import LlmType from "../../../../Types/LLM/LlmType";
+import { JSONObject } from "../../../../Types/JSON";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -52,6 +55,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * tells the worker the limits and what the run has used with every answer
  * (`limits`, Types/AI/CodeAgentRunLimits), so the worker winds down before
  * them and the run ends with an honest summary.
+ *
+ * With every answer it also says how many tokens one request to the model
+ * may hold (`contextWindowTokens`, issue #6530), from the provider's
+ * settings and the model it served the call with (LLMContextWindow), or
+ * null when it cannot tell. The worker sizes its conversation to it.
  */
 
 /*
@@ -135,6 +143,12 @@ export interface AgentCompletionResult {
   limits: CodeAgentRunLimits;
   // The same for a Runner from before #6440.
   budget: AgentCompletionLoopBudget;
+  /*
+   * How many tokens one request to the model that served this call may
+   * hold, prompt and answer together (LLMContextWindow) - null when OneUptime
+   * cannot tell, and the worker keeps its default size.
+   */
+  contextWindowTokens: number | null;
 }
 
 export default class CodeFixAgentCompletion {
@@ -296,9 +310,14 @@ export default class CodeFixAgentCompletion {
       );
     }
 
-    // The run's limits, and what it has used - counted from its own LlmLog rows.
+    /*
+     * The run's limits, and what it has used - counted from its own LlmLog
+     * rows - and how long one command may run, which the worker holds each
+     * of its commands to (issue #6532).
+     */
     const limits: AIAgentRunLimits = await AIRunLimitsReader.read({
       projectId: run.projectId,
+      isCodeTask: true,
     });
 
     const usage: {
@@ -484,6 +503,12 @@ export default class CodeFixAgentCompletion {
 
     const callTokens: number = AiTokenCount.count(response.llmLog);
 
+    const contextWindowTokens: number | null =
+      await this.getContextWindowTokens({
+        llmProvider,
+        modelName: response.llmLog?.modelName || llmProvider.modelName,
+      });
+
     return {
       content: response.content,
       toolCalls: toolCalls,
@@ -503,7 +528,46 @@ export default class CodeFixAgentCompletion {
           usage.outputTokens + (response.llmLog.completionTokens || 0),
         toolCalls: telemetryToolCalls,
       }),
+      contextWindowTokens,
     };
+  }
+
+  /*
+   * The window of the model this call went to (issue #6530), or null when
+   * OneUptime cannot tell. A provider a rule picked is read without its type
+   * and Additional Parameters (LlmProviderChoice), so they are read here when
+   * the row lacks them. Never throws: a window it cannot tell is none, and
+   * the worker keeps its default size and halves it when the model says a
+   * conversation was too long.
+   */
+  public static async getContextWindowTokens(data: {
+    llmProvider: LlmProvider;
+    modelName: string | undefined;
+  }): Promise<number | null> {
+    try {
+      let llmType: LlmType | undefined = data.llmProvider.llmType;
+      let additionalParams: JSONObject | undefined =
+        data.llmProvider.additionalParams;
+
+      if (!llmType && data.llmProvider.id) {
+        const row: LlmProvider | null = await LlmProviderService.findOneById({
+          id: data.llmProvider.id,
+          select: { llmType: true, additionalParams: true },
+          props: { isRoot: true },
+        });
+
+        llmType = row?.llmType;
+        additionalParams = row?.additionalParams;
+      }
+
+      return LLMContextWindow.getContextWindowTokens({
+        llmType,
+        modelName: data.modelName,
+        additionalParams,
+      });
+    } catch {
+      return null;
+    }
   }
 
   /*

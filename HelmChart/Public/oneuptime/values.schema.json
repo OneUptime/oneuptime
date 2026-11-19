@@ -312,6 +312,9 @@
                 "listenOptions": {
                     "type": "string"
                 },
+                "http2": {
+                    "type": "boolean"
+                },
                 "ingestAccessLog": {
                     "type": "string"
                 },

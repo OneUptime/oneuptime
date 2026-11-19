@@ -129,7 +129,7 @@ Feltnavne skelner ikke mellem store og små bogstaver: `statusMessage:` og `stat
 
 ### Spor
 
-Sporfelter tager en almindelig værdi eller en liste som `status:(ok OR unset)`, og `duration` tager også `>` og `<`. Jokertegn, `~`, `!` og et `-` foran virker her kun på attributter.
+Sporfelter tager en almindelig værdi eller en liste som `status:(ok OR unset)`, og `duration` tager også `>`, `>=`, `<` og `<=`. Jokertegn, `~`, `!` og et `-` foran virker her kun på attributter.
 
 | Felt | Bemærkninger |
 | --- | --- |
@@ -137,7 +137,7 @@ Sporfelter tager en almindelig værdi eller en liste som `status:(ok OR unset)`,
 | `name` | Span-navn. En enkelt værdi matcher en vilkårlig del af det. Løse ord søger også i det |
 | `status` | `ok`, `error`, `unset` (unset = Ingen fejlstatus angivet, OpenTelemetry-standarden) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Millisekunder: `duration:>500`, `duration:<200` eller en præcis værdi |
+| `duration` | Millisekunder: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` eller en præcis værdi |
 | `statusMessage` | Statusbeskedens tekst. En enkelt værdi matcher en vilkårlig del af den |
 | `hasException` | `true` eller `false` |
 | `trace`, `span` | ID'er |

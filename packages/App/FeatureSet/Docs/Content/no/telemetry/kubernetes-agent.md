@@ -9,6 +9,7 @@ OneUptime Kubernetes-agenten er et Helm-chart som samler inn klyngens målinger,
 - [Installer agenten](#installer-agenten): Fire trinn med Helm.
 - [Installer som et Amazon EKS-tillegg](#installer-som-et-amazon-eks-tillegg): Fra EKS-konsollen, uten Helm.
 - [OpenShift](#openshift): Forhåndsinnstillingen, sikkerhetskontekstbegrensningene den oppretter, og OpenShifts egne varsler.
+- [Klyngeherding](#klyngeherding): Vurdering etter Pod-sikkerhetsstandardene og CIS Benchmark, og agentens egne tillatelser.
 - [Konfigurasjonsvalg](#konfigurasjonsvalg): Filtre, sampling, kontrollplan, service mesh, kostnader og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` for OneUptime AI, og rettelser når du tillater dem.
 - [Send mindre](#redusere-mengden-data-som-samles-inn): Spakene, i rekkefølge etter effekt.
@@ -267,6 +268,7 @@ For å få dem tilbake bytter du til `openshift` med `--set preset=openshift` ve
 | Kubernetes-hendelser | Hver hendelse, Warning og Normal, fra hvert navnerom og hver slags objekt: se [Kubernetes-hendelser](#kubernetes-hendelser) |
 | Pod-logger | Stdout og stderr fra hver container (gjennom `hostPath` på standardklynger, gjennom Kubernetes-API-et på Autopilot og Fargate) |
 | OpenShift-objekter (OpenShift-forhåndsinnstillingene) | ClusterOperators, ClusterVersion, Routes, DeploymentConfigs og Services: se [OpenShift](#openshift) |
+| RBAC, tjenestekontoer og NetworkPolicies | Roles, ClusterRoles og bindingene deres, ServiceAccounts og NetworkPolicies, kun med lesetilgang, hvert `resourceSpecs.interval`, for å vurdere herdingen av klyngen: se [Klyngeherding](#klyngeherding). Ingen Secret leses noen gang |
 | Applikasjonsspor (eBPF, på som standard) | HTTP-, gRPC-, SQL- og Redis-spenn fra hver pod, uten SDK eller kodeendringer |
 | HTTP RED-målinger (eBPF) | `http.server.request.duration`, og størrelsen på forespørsels- og svarkropper, per tjeneste |
 | Tjenestegraf (eBPF) | Forespørselsrate, latens og feil fra kaller til mottaker, som tegner tjenestekartet |
@@ -311,6 +313,49 @@ Hver hendelse er også en logg. En advarsel lagres med alvorlighetsgraden **Adva
 | `k8s.namespace.name` | `default` |
 
 Søk i dem under **Logger**, eller dropp dem du ikke vil ha med et drop-filter. For å bli varslet når en skjer, slår du på **Warning Events** på klyngens side **Anbefalinger**, eller velger **Slå på varsler for advarsler** nederst på siden **Hendelser**: en [loggmonitor](/docs/monitor/logs-monitor) på klyngens advarsler som gir ett varsel per objekt og årsak, og lukker det når det har gått 5 minutter uten en ny advarsel om det. For å bli varslet om bare noen årsaker, legger du `k8s.event.reason` til i filteret.
+
+## Klyngeherding
+
+En klynges side **Samsvar**, under **Sikkerhet**, vurderer selve klyngen mot tre rammeverk i delen **Klyngeherding**. Den leser det agenten allerede sender: klyngens pods og navnerom og, for CIS Benchmark, klyngens RBAC, tjenestekontoer og NetworkPolicies. Klyngens meny viser siden så snart agenten rapporterer klyngens pods, enten klyngen kjører en database eller ikke.
+
+| Rammeverk | Hva det vurderer |
+| --- | --- |
+| **Pod-sikkerhetsstandarder: Baseline** | Alle arbeidsbelastninger som kjører på klyngen, mot Baseline-policyen for klyngens Kubernetes-versjon: privilegerte containere, vertens navnerom, porter og stier, tilføyde funksjoner og alle andre felt policyen nevner, lest fra spesifikasjonen til hver pod |
+| **Pod-sikkerhetsstandarder: Restricted** | De samme arbeidsbelastningene, mot Restricted-policyen: kontrollene i Baseline, og bare volumtypene den tillater, kjøring som en annen bruker enn root, ingen rettighetseskalering, en seccomp-profil og alle funksjoner fjernet |
+| **CIS Kubernetes Benchmark v2.0** | De 27 kontrollene i avsnitt 5 som Kubernetes-API-et kan svare på: bindinger som gir cluster-admin, Secrets, `nodes/proxy` og de andre rettighetene kontrollene nevner, roller med jokertegn, standardtjenestekontoene, Pod Security Admission eller en policymotor i hvert navnerom, NetworkPolicies, og hva hver pod kjører |
+
+Hvert rammeverks flis viser scoren, og hvor mange arbeidsbelastninger det har evaluert og hvor mange som ikke består det. Kontrollene vises med dem som feiler, først: hver sier hva den finner galt og hvordan det rettes, og lister opp arbeidsbelastningene, rollene, bindingene, tjenestekontoene eller navnerommene som ikke består den, hver lenket til sin side, helt ned til containeren eller volumet og feltet, for eksempel `securityContext.privileged`. Der Datasikkerhet gir databasene som kjører på klyngen en score, blir de stående nedenfor, under **Databaser på denne klyngen**.
+
+Pod-sikkerhetsstandardene vurderes mot klyngens egen Kubernetes-versjon: versjonen til dens nyeste kubelet, men høyst den nyeste versjonen OneUptime kjenner. En kontroll som en senere versjon la til, teller først fra den versjonen, og siden sier hvilken versjon det ble vurdert mot.
+
+Benchmarkens øvrige 104 kontroller sjekker nodenes filer og kubelet eller kontrollplanets flagg, eller krever en persons gjennomgang. Ikke noe API kan svare på dem, så de vises under **Ikke vurdert her**, gruppert etter årsak, og regnes aldri som bestått eller feilet. På et administrert kontrollplan, som hos EKS, GKE eller AKS, sier siden at de hører inn under leverandørens benchmark.
+
+### Slå av et rammeverk, en kontroll eller et navnerom
+
+Slå av det som ikke gjelder for en klynge. Hver bryter hører bare til den klyngen og spør hvorfor, og siden tar vare på hvem som slo den av, når og hvorfor:
+
+- Et rammeverks bryter **Gjelder her** holder klyngen utenfor rammeverket. Rammeverket lukkes da under **Slått av**, med bryteren som slår det på igjen.
+- En kontrolls bryter holder den kontrollen utenfor klyngens score.
+- Et navneroms bryter, under hvert rammeverk, holder alt i navnerommet utenfor det rammeverket, slik Pod Security Admission unntar et navnerom.
+
+### Eksporter et rammeverk
+
+**Eksporter CSV** og **Eksporter JSON** laster ned rapporten for et rammeverk: hver kontroll, om den består, hva som ikke består den og hvordan det rettes, og Kubernetes-versjonen det ble vurdert mot.
+
+### Hva agenten leser for det
+
+`resourceSpecs.compliance` (på som standard) leser Roles, ClusterRoles og bindingene deres, ServiceAccounts og NetworkPolicies hvert `resourceSpecs.interval`, med `get`, `list` og `watch` på dem og ingenting mer. Ingen Secret leses noen gang: en ServiceAccount nevner bare navnene på token-Secretene sine, og OneUptime forkaster til og med navnene. Når den er av (`--set resourceSpecs.compliance=false`), er benchmarkens kontroller for RBAC, tjenestekontoer og NetworkPolicies *ikke evaluert*, og Pod-sikkerhetsstandardene vurderes fortsatt ut fra podene.
+
+### Agentens egne tillatelser
+
+Agenten leser hver kubelet gjennom underressursene kubelet knytter stiene sine til ved autorisering: `nodes/stats` for statistikken, `nodes/metrics` for cAdvisor og `nodes/pods` for podlisten til en node, som kubelet tillater fra Kubernetes 1.33. `nodes/proxy` gir tilgang til hele kubelet-API-et, og en binding som gir den underressursen, består ikke CIS 5.1.10, så agenten gir den bare der ingenting snevrere strekker til:
+
+| Verdi | Når agenten gir `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (standard) gir tillatelsen så lenge klyngen kjører Kubernetes eldre enn 1.36, der kubeletene kan være eldre enn 1.33 og bare lister podene på en node med `nodes/proxy`. Sett `false` når hver node kjører 1.33 eller nyere, eller `true` når `KubeletFineGrainedAuthz` er slått av på kubeletene |
+| `cost.prometheus.nodesProxy` | `auto` (standard) gir tillatelsen bare med forhåndsinnstillingen `eks-fargate`, der ingen pod når kubelet på en node og kostnads-Prometheus leser cAdvisor gjennom API-serveren. Alle andre steder leser den kubelet på hver node gjennom port 10250 |
+
+Der agentens egen binding ikke består 5.1.10, sier siden at bindingen er agentens, hvorfor den gir `nodes/proxy`, og hvilken verdi som fjerner det.
 
 ## Konfigurasjonsvalg
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 Ikke bruk `--reuse-values`: den beholder også standardverdiene til chartet du oppgraderer fra, så standardverdiene til et nyere chart (blant dem eBPF-imaget) blir aldri brukt. Når en utgivelse kjører på standardverdiene til et eldre chart, slutter merknadene Helm skriver ut etter installasjonen eller oppgraderingen med en advarsel og kommandoen som retter det.
 
 Hvis oppgraderingen feiler med `namespaces "<name>" not found`, lister `aiAgent.remediation.namespaces` (eller den eldre `aiAccess.remediation.namespaces`) et navnerom som ikke finnes (eller ikke lenger finnes): chartet legger en RoleBinding i hvert listede navnerom og oppretter aldri et. Opprett navnerommet, eller oppgrader med listen uten det navnerommet (`--set "aiAgent.remediation.namespaces={web}"`), eller med `--set-json 'aiAgent.remediation.namespaces=[]'` for å gå tilbake til bindingen for hele klyngen. `--set aiAgent.remediation.namespaces=null` tilbakestiller ikke en lagret liste under `--reuse-values`, så den feiler med den samme feilen.
+
+> **RBAC-kontrollene i CIS Benchmark krever en oppgradert agent.** En agent fra før `resourceSpecs.compliance` sender ingen RBAC, tjenestekontoer eller NetworkPolicies, så klyngens side **Samsvar** sier at benchmarkens kontroller for RBAC, tjenestekontoer og NetworkPolicies er *ikke evaluert*, og hvordan det rettes. Oppgrader agenten med `resourceSpecs.compliance` slått på, slik det er som standard: det krever collector 0.125.0 eller nyere. Etter oppgraderingen gir agenten heller ikke lenger `nodes/proxy` der ingen node trenger det: se [Agentens egne tillatelser](#agentens-egne-tillatelser).
 
 > **eBPF-spennmålinger har nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene, under navnene OBI beholder (den har utfaset de gamle). Et dashbord, en graf eller en målingsmonitor på et gammelt navn mottar ingen nye data etter oppgraderingen, uten feil — flytt den til det nye navnet, og oppdater enhver `filters.metrics`-oppføring som navngir et gammelt.
 

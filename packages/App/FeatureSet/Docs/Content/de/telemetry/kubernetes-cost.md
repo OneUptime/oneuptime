@@ -16,7 +16,7 @@ Ist die Kostenüberwachung eingeschaltet, wie standardmäßig (`cost.enabled: au
 
 ```mermaid title="Woher die Kostenzahlen kommen"
 flowchart TB
-    cadvisor["cAdvisor, über den<br/>Node-Proxy des API-Servers"] --> prometheus["Mitgeliefertes Prometheus"]
+    cadvisor["cAdvisor, vom<br/>Kubelet jedes Knotens"] --> prometheus["Mitgeliefertes Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["Cloud-Listenpreise<br/>oder Ihre Preistabelle"] --> opencost
     opencost -->|"je eine abgeschlossene<br/>Stunde"| poller["Kosten-Poller"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**, die Open-Source-Kosten-Engine (Apache-2.0, CNCF; das [cost-model](https://github.com/kubecost/cost-model), auf dem auch Kubecost beruht). Sie beobachtet den Cluster, bepreist Ihre Knoten, Volumes und Load Balancer und berechnet, was jeder Workload kostet.
-2. **Ein kleines Prometheus**, das OpenCost für den Nutzungs- und Preisverlauf braucht. Es läuft mit einem Replica, behält 7 Tage Verlauf und scrapt genau zwei Ziele: cAdvisor über den Node-Proxy des API-Servers, wobei es nur die Serien behält, die OpenCost liest, und OpenCost selbst (das seine eigenen Metriken zu Ressourcen-Requests ausgibt, sodass kube-state-metrics nicht beteiligt ist). Es wird nie außerhalb des Clusters erreichbar gemacht, und seine Daten verlassen ihn nie.
+2. **Ein kleines Prometheus**, das OpenCost für den Nutzungs- und Preisverlauf braucht. Es läuft mit einem Replica, behält 7 Tage Verlauf und scrapt genau zwei Ziele: cAdvisor auf dem Kubelet jedes Knotens (mit dem Preset `eks-fargate`, wo kein Pod ein Kubelet erreicht, über den Node-Proxy des API-Servers), wobei es nur die Serien behält, die OpenCost liest, und OpenCost selbst (das seine eigenen Metriken zu Ressourcen-Requests ausgibt, sodass kube-state-metrics nicht beteiligt ist). Es wird nie außerhalb des Clusters erreichbar gemacht, und seine Daten verlassen ihn nie.
 3. **Der Kosten-Poller** (`cost.agent`). Einmal pro abgeschlossener Stunde liest er die Allocation API von OpenCost und sendet eine Kostenzeile pro Workload an OneUptime: CPU, Speicher, GPU, Volumes, Netzwerk, Load Balancer und Leerlauf, mit Effizienz. Jede Stunde wird einmal gesendet; der Server überspringt eine Stunde, die er schon hat, daher kann ein Neustart Ausgaben nicht doppelt zählen. Aus diesen Zeilen schreibt OneUptime außerdem die [Kostenmetriken](#bei-kosten-alarmieren).
 4. **Ein Scrape der Kostenmetriken** (`cost.metrics`). Der Collector des Agents scrapt die Preismetriken von OpenCost, also was jeder Knoten, jedes Volume und jeder Load Balancer pro Stunde kostet, und sendet sie mit den übrigen Metriken des Clusters.
 

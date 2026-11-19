@@ -413,9 +413,68 @@ export default class SeriesDebugHints {
     return commands;
   }
 
+  /*
+   * An Android device - the series carries its Android API level, which the
+   * Android host templates group by and only the Android agent sends, or
+   * says `os.name: Android` - has no shell to ssh into, but adb, which
+   * Esper's Secure Remote ADB and other device managers' remote ADB reach.
+   * Each command reads and changes nothing.
+   */
+  private static androidCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "mountpoint",
+    ]);
+
+    if (mountpoint) {
+      commands.push({
+        purpose: "Free space on the device's storage",
+        command: `adb shell df -h ${SeriesDebugHints.quoteForShell(mountpoint)}`,
+      });
+      commands.push({
+        purpose: "What fills it: apps, their data and caches",
+        command: "adb shell dumpsys diskstats",
+      });
+    }
+
+    commands.push({
+      purpose: "Battery, charger and temperature, as Android sees them",
+      command: "adb shell dumpsys battery",
+    });
+    commands.push({
+      purpose: "Thermal status, and what Android throttles",
+      command: "adb shell dumpsys thermalservice",
+    });
+    commands.push({
+      purpose: "Why the device last rebooted",
+      command: "adb shell getprop sys.boot.reason",
+    });
+    commands.push({
+      purpose: "The crashes and reboots Android kept, newest last",
+      command: "adb shell dumpsys dropbox",
+    });
+
+    return commands;
+  }
+
   private static hostCommands(
     seriesLabels: JSONObject,
   ): Array<SeriesDebugCommand> {
+    const osName: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "os.name",
+    ]);
+    const androidApiLevel: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["android.os.api_level"],
+    );
+
+    if (androidApiLevel || osName.trim().toLowerCase() === "android") {
+      return SeriesDebugHints.androidCommands(seriesLabels);
+    }
+
     const commands: Array<SeriesDebugCommand> = [];
 
     const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
@@ -1187,15 +1246,54 @@ export default class SeriesDebugHints {
         return SeriesDebugHints.storageArrayCommands(seriesLabels);
 
       /*
-       * Metrics / IoT / RUM / Traces and friends deliberately return
-       * nothing: their series identify an application-level entity
-       * (a service, a device, a route), and there is no command that is
-       * both universally correct and read-only for those. The resource
-       * block still names the entity.
+       * A Traces monitor grouped by a mobile app's install (#9711): the
+       * OneUptime CLI can name what that install last sent. Any other
+       * grouping of spans has no command, as below.
+       */
+      case MonitorType.Traces:
+        return SeriesDebugHints.mobileInstallCommands(seriesLabels);
+
+      /*
+       * Metrics / IoT / RUM and friends deliberately return nothing: their
+       * series identify an application-level entity (a service, a device,
+       * a route), and there is no command that is both universally correct
+       * and read-only for those. The resource block still names the entity.
        */
       default:
         return [];
     }
+  }
+
+  /*
+   * A mobile app's install that went quiet (Device Stopped Reporting): the
+   * spans it sent last, newest first, with the OneUptime CLI - when it went
+   * quiet, on which screen, and the device's model and name on their
+   * attributes. Read-only; only for a series that names the install.
+   */
+  private static mobileInstallCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const install: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "app.installation.id",
+    ]);
+
+    if (!install) {
+      return [];
+    }
+
+    const query: string = JSON.stringify({
+      attributes: { "resource.app.installation.id": install },
+    });
+
+    return [
+      {
+        purpose:
+          "The install's last spans: when it went quiet, on which screen, and its device",
+        command: `oneuptime span list --query ${SeriesDebugHints.quoteForShell(
+          query,
+        )} --sort '{"startTime":"DESC"}' --limit 5 --fields startTime,name,attributes`,
+      },
+    ];
   }
 
   /*

@@ -11,7 +11,7 @@ import {
   test,
 } from "@jest/globals";
 import { useKeyboardShown, useSheetPlacement } from "./useSheetPlacement";
-import { WindowLayoutProvider } from "./WindowLayout";
+import { WindowLayoutProvider } from "./WindowLayoutProvider";
 import type { SheetPlacement } from "./sheetPlacement";
 import {
   TEST_WINDOWS,

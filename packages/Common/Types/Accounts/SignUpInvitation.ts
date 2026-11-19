@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import SignInMethodsUtil, { SsoSignInProvider } from "../SSO/SignInMethods";
 
 /*
  * THE INVITATION A SIGN-UP LINK IS FOR (#7471).
@@ -49,6 +50,19 @@ export interface SignUpInvitation {
    * nothing left to accept.
    */
   isAccepted: boolean;
+  /*
+   * Single sign-on manages their sign-in once they join (#9819): every
+   * project they would be in manages sign-in with SSO, so they have no
+   * password to set. The page offers these - the providers that sign
+   * people in to the project - in place of the sign-up form. Null for an
+   * ordinary invitation, whose page is the sign-up page it always was.
+   */
+  ssoSignIn: SignUpInvitationSsoSignIn | null;
+}
+
+export interface SignUpInvitationSsoSignIn {
+  // Empty when the project has none turned on: the page says whom to ask.
+  providers: Array<SsoSignInProvider>;
 }
 
 const readText: (value: unknown) => string | null = (
@@ -72,6 +86,20 @@ export function toSignUpInvitationAnswerJSON(
       inviterName: invitation.inviterName,
       name: invitation.name,
       isAccepted: invitation.isAccepted,
+      ssoSignIn: invitation.ssoSignIn
+        ? {
+            providers: invitation.ssoSignIn.providers.map(
+              (provider: SsoSignInProvider): JSONObject => {
+                return {
+                  type: provider.type,
+                  id: provider.id,
+                  name: provider.name,
+                  description: provider.description,
+                };
+              },
+            ),
+          }
+        : null,
     },
   };
 }
@@ -106,11 +134,25 @@ export function readSignUpInvitationAnswer(
     return null;
   }
 
+  const ssoSignIn: unknown = fields["ssoSignIn"];
+
   return {
     projectId: projectId,
     projectName: projectName,
     inviterName: readText(fields["inviterName"]),
     name: readText(fields["name"]),
     isAccepted: fields["isAccepted"] === true,
+    /*
+     * An answer that does not say SSO, or says it in another shape (an
+     * older server's included), is an ordinary invitation.
+     */
+    ssoSignIn:
+      ssoSignIn && typeof ssoSignIn === "object" && !Array.isArray(ssoSignIn)
+        ? {
+            providers: SignInMethodsUtil.parseProviders(
+              (ssoSignIn as JSONObject)["providers"],
+            ),
+          }
+        : null,
   };
 }

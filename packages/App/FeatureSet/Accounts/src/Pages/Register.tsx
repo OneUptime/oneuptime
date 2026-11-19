@@ -7,6 +7,7 @@ import {
 } from "../Utils/InvitedSignUp";
 import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
 import InvitedSignUpHeader from "../Components/InvitedSignUpHeader/InvitedSignUpHeader";
+import InvitedSsoSignIn from "../Components/InvitedSsoSignIn/InvitedSsoSignIn";
 import { fetchSignUpInvitation } from "../Utils/SignUpInvitation";
 import {
   SIGN_UP_INVITATION_PROJECT_KEY,
@@ -576,6 +577,14 @@ const RegisterPage: () => JSX.Element = () => {
   // The form's own header and links wait for the first-account answer too.
   if (isLoading || isReadingFirstAccount || isReadingInvitation) {
     return <AuthPageSkeleton fields={3} />;
+  }
+
+  /*
+   * An invitation whose person signs in with single sign-on (#9819): their
+   * project's providers, in place of a password they could not set.
+   */
+  if (invitation?.ssoSignIn) {
+    return <InvitedSsoSignIn invitation={invitation} />;
   }
 
   if (emailAwaitingVerification !== null) {

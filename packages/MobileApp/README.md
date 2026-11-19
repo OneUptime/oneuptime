@@ -11,15 +11,19 @@ instructions for maintainers and AI agents.
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20.19.4+, 22.13+ or 24.3+ (what React Native 0.86 and Metro accept)
 - npm
-- [Expo Go](https://expo.dev/go) app on your iOS or Android device (for quick testing)
+- [Expo Go](https://expo.dev/go) app on your iOS or Android device, for a quick
+  look at screens. Push notifications, critical alerts and the Android posture
+  module (`modules/window-posture`) need a native build (below).
 - A running OneUptime instance (or use `https://oneuptime.com`)
 
 For native builds:
 
-- **iOS**: macOS with Xcode 15+
-- **Android**: Android Studio with SDK 34+
+- **iOS**: macOS with Xcode 26 or later. Store builds compile with Xcode 27.1
+  on EAS (`eas.json`).
+- **Android**: Android Studio with the Android 16 SDK (API 36), the API the
+  store builds target.
 
 ## Setup
 

@@ -1,4 +1,5 @@
 import { ResponseJSON } from "@clickhouse/client";
+import { createHash } from "crypto";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
 import Service from "../../../../Models/DatabaseModels/Service";
 import AnalyticsTableName from "../../../../Types/AnalyticsDatabase/AnalyticsTableName";
@@ -98,12 +99,14 @@ import {
  * attributes are its series' labels, the same on every point of a series,
  * so a thousand points every minute may carry three values, and the ones
  * that leak (a user's email, an IP) are new series, not new points. So a
- * metric's sample is the points of its newest minute, at most
- * TELEMETRY_SCAN_MAX_POINTS_PER_METRIC of them - for a metric sent once a
- * minute, OpenTelemetry's default, a point of each series that reported
- * then, whichever pod sent it - and a value is classified once however
- * many points repeat it: what a location's findings count is its distinct
- * values, its cardinality, not the points that carried them.
+ * metric's sample is a point of each series of its newest minute, at most
+ * TELEMETRY_SCAN_MAX_SERIES_PER_METRIC series, whichever pod sent them and
+ * however often - once a minute, OpenTelemetry's default, or every fifteen
+ * seconds, where its first hundred points were twenty-five series, or a
+ * busy route's points beside a quiet one's (issue #9756) - and a value is
+ * classified once however many series repeat it: what a location's
+ * findings count is its distinct values, its cardinality, not the points
+ * that carried them.
  *
  * What a metric costs is the table's granules its newest minute sits in:
  * the table is ordered by (projectId, name, primaryEntityId, time), so the
@@ -201,11 +204,24 @@ export const TELEMETRY_SCAN_MAX_METRICS_LISTED_PER_OWNER: number = 1_000;
 export const TELEMETRY_SCAN_MAX_METRICS_LISTED: number = 20_000;
 
 /*
- * The data points of one metric read, of its newest minute - for a metric
- * sent once a minute, one per series that reported then, so the series it
- * has, not its volume. Never more than the scan's sample size either.
+ * A metric a service started writing lately - new code, where a new leak
+ * usually comes from (issue #9755): its first point of the last day came in
+ * the last TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS. The rollup says when
+ * each metric first wrote in the last TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS,
+ * a row per metric per minute, never a point; a metric that wrote earlier
+ * in the day, however rarely, is not new. Two hours: the hour it first
+ * wrote in, and the next, should that scan have had no room for it.
  */
-export const TELEMETRY_SCAN_MAX_POINTS_PER_METRIC: number = 100;
+export const TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS: number = 2;
+export const TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS: number = 24;
+
+/*
+ * The series of one metric read, a point of each, of its newest minute: so
+ * a metric reports as many series however often it is sent - one a minute
+ * or one every fifteen seconds - and a busy series never crowds a quiet one
+ * out (issue #9756). Never more than the scan's sample size either.
+ */
+export const TELEMETRY_SCAN_MAX_SERIES_PER_METRIC: number = 100;
 
 /*
  * A metric whose newest minute holds more points than this - two granules
@@ -659,10 +675,16 @@ const SOURCES_WITH_TRACES: ReadonlySet<TelemetrySampleSource> = new Set([
   TelemetrySampleSource.RumSpans,
 ]);
 
+// The sources whose records are log lines, each with an id of its own.
+export const SOURCES_WITH_LOG_IDS: ReadonlySet<TelemetrySampleSource> = new Set(
+  [TelemetrySampleSource.Logs, TelemetrySampleSource.RumLogs],
+);
+
 /*
  * When each record was written, to the millisecond, and the keys that tell
- * it from its neighbours - its trace and span, its session: a finding keeps
- * the records it was found in (FindingSampleRecord). Light columns only.
+ * it from its neighbours - its trace and span, its session, a log line's
+ * own id: a finding keeps the records it was found in (FindingSampleRecord).
+ * Light columns only.
  */
 function appendSampleRecordKeys(
   statement: Statement,
@@ -682,6 +704,14 @@ function appendSampleRecordKeys(
     source.source === TelemetrySampleSource.RumSpans
   ) {
     statement.append(", sessionId AS readSessionId");
+  }
+
+  /*
+   * A log line's own id: the logs explorer opens that very line by it
+   * (issue #9793), where its time and trace only narrow the list to it.
+   */
+  if (SOURCES_WITH_LOG_IDS.has(source.source)) {
+    statement.append(", _id AS readLogId");
   }
 }
 
@@ -852,6 +882,12 @@ export interface MetricToRead {
   points: number;
   newestMinute: Date;
   newestMinutePoints: number;
+  /*
+   * The minute it first wrote in, of the last day (the rollup's lookback):
+   * a metric the service started writing lately is read first. Unknown
+   * when the metrics were listed from the points, which reads no lookback.
+   */
+  firstMinute?: Date | undefined;
 }
 
 // The minute a moment is in: a rollup row's bucket.
@@ -859,14 +895,64 @@ function startOfMinute(moment: Date): Date {
   return new Date(Math.floor(moment.getTime() / 60_000) * 60_000);
 }
 
+// Since when a metric's first point makes it one the service started writing lately.
+export function getNewMetricSince(until: Date): Date {
+  return new Date(
+    until.getTime() -
+      TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS * 60 * 60 * 1000,
+  );
+}
+
+// The rollup's rows of the given services, from `since` (inclusive) to `until`.
+function appendRollupWhere(
+  statement: Statement,
+  data: {
+    projectId: ObjectID;
+    ownerIds: Array<string>;
+    since: Date;
+    until: Date;
+    // The window's own end is in it; the day before it ends where the window starts.
+    isUntilIncluded: boolean;
+  },
+): void {
+  const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
+
+  statement.append(" FROM ");
+  statement.append(tableOf(AnalyticsTableName.MetricItemAggMV1m));
+  statement.append(
+    SQL` WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND bucketTime >= ${{
+      type: TableColumnType.DateTime64,
+      value: data.since,
+    }} AND bucketTime `,
+  );
+  statement.append(data.isUntilIncluded ? "<=" : "<");
+  statement.append(
+    SQL` ${{
+      type: TableColumnType.DateTime64,
+      value: data.until,
+    }} AND retentionDate >= now()`,
+  );
+  appendOwnersIn(statement, source, data.ownerIds);
+}
+
 /*
- * Which metrics each of the given services wrote in the window, the
- * busiest first, at most `perOwner` of each and `total` in all: how many
- * points each wrote, the minute it last wrote in and how many points that
- * minute holds. Read from the per-minute rollup the metrics table keeps
- * (MetricItemAggMV1m) - a row per metric per minute, never a point - or,
- * when the rollup cannot answer, from the points' light columns
- * (`fromRollup` false). Only ids, names and counts leave the database.
+ * Which metrics each of the given services wrote in the window, at most
+ * `perOwner` of each and `total` in all: how many points each wrote, the
+ * minute it last wrote in and how many points that minute holds, and - from
+ * the rollup - the minute it first wrote in, of the last day. Read from the
+ * per-minute rollup the metrics table keeps (MetricItemAggMV1m) - a row per
+ * metric per minute, never a point: the window's minutes counted one by one,
+ * and of the rest of the day only each metric's first minute, so a day
+ * costs a little more than the hour did (a metric's minutes of a day are a
+ * granule of the rollup's or two, as its hour's are; measured with 900
+ * metrics, 20 MiB of memory for either). The ones the services started
+ * writing lately are listed first, then the busiest. When the rollup cannot
+ * answer, the points' light columns of the window are read instead
+ * (`fromRollup` false), which say when nothing first wrote. Only ids,
+ * names, minutes and counts leave the database.
  */
 export function buildTelemetryMetricsStatement(
   data: TelemetryReadWindow & {
@@ -877,36 +963,64 @@ export function buildTelemetryMetricsStatement(
   },
 ): Statement {
   const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
-  const statement: Statement = SQL`SELECT ownerId, metricName, sum(minutePoints) AS points, toUnixTimestamp(max(minute)) AS newestMinute, argMax(minutePoints, minute) AS newestMinutePoints FROM (SELECT primaryEntityId AS ownerId, name AS metricName, `;
+  const windowStart: Date = startOfMinute(data.since);
+  const statement: Statement = SQL`SELECT ownerId, metricName, sum(windowPoints) AS points, max(lastMinute) AS newestMinute, max(lastMinutePoints) AS newestMinutePoints, min(firstWrote) AS firstMinute FROM (SELECT ownerId, metricName, sum(minutePoints) AS windowPoints, toUnixTimestamp(max(minute)) AS lastMinute, argMax(minutePoints, minute) AS lastMinutePoints, `;
 
   if (data.fromRollup) {
+    // The window's minutes, one by one.
     statement.append(
-      "bucketTime AS minute, countMerge(valueCountState) AS minutePoints FROM ",
+      "toUnixTimestamp(min(minute)) AS firstWrote FROM (SELECT primaryEntityId AS ownerId, name AS metricName, bucketTime AS minute, countMerge(valueCountState) AS minutePoints",
     );
-    statement.append(tableOf(AnalyticsTableName.MetricItemAggMV1m));
+    appendRollupWhere(statement, {
+      projectId: data.projectId,
+      ownerIds: data.ownerIds,
+      since: windowStart,
+      until: data.until,
+      isUntilIncluded: true,
+    });
     statement.append(
-      SQL` WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: data.projectId,
-      }} AND bucketTime >= ${{
-        type: TableColumnType.DateTime64,
-        value: startOfMinute(data.since),
-      }} AND bucketTime <= ${{
-        type: TableColumnType.DateTime64,
-        value: data.until,
-      }} AND retentionDate >= now()`,
+      " GROUP BY ownerId, metricName, minute) GROUP BY ownerId, metricName",
     );
+
+    // The rest of the day: only when each metric first wrote, never a count.
+    const lookbackStart: Date = startOfMinute(
+      new Date(
+        data.until.getTime() -
+          TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS * 60 * 60 * 1000,
+      ),
+    );
+
+    if (lookbackStart.getTime() < windowStart.getTime()) {
+      statement.append(
+        " UNION ALL SELECT primaryEntityId AS ownerId, name AS metricName, 0 AS windowPoints, 0 AS lastMinute, 0 AS lastMinutePoints, toUnixTimestamp(min(bucketTime)) AS firstWrote",
+      );
+      appendRollupWhere(statement, {
+        projectId: data.projectId,
+        ownerIds: data.ownerIds,
+        since: lookbackStart,
+        until: windowStart,
+        isUntilIncluded: false,
+      });
+      statement.append(" GROUP BY ownerId, metricName");
+    }
   } else {
+    // The points of the window alone: no metric's first minute is known.
     statement.append(
-      "toStartOfMinute(time) AS minute, count() AS minutePoints FROM ",
+      "0 AS firstWrote FROM (SELECT primaryEntityId AS ownerId, name AS metricName, toStartOfMinute(time) AS minute, count() AS minutePoints FROM ",
     );
     statement.append(tableOf(source.table));
     appendWhere(statement, source, data);
+    appendOwnersIn(statement, source, data.ownerIds);
+    statement.append(
+      " GROUP BY ownerId, metricName, minute) GROUP BY ownerId, metricName",
+    );
   }
 
-  appendOwnersIn(statement, source, data.ownerIds);
   statement.append(
-    SQL` GROUP BY ownerId, metricName, minute) GROUP BY ownerId, metricName ORDER BY points DESC, ownerId ASC, metricName ASC LIMIT ${{
+    SQL`) GROUP BY ownerId, metricName HAVING points > 0 ORDER BY firstMinute >= ${{
+      type: TableColumnType.BigNumber,
+      value: Math.floor(getNewMetricSince(data.until).getTime() / 1000),
+    }} DESC, points DESC, ownerId ASC, metricName ASC LIMIT ${{
       type: TableColumnType.Number,
       value: whole(data.perOwner, 1),
     }} BY ownerId LIMIT ${{
@@ -954,11 +1068,22 @@ function appendNewestMinuteOf(
 }
 
 /*
- * The points of the given metrics' newest minutes, at least one metric,
- * at most `perMetric` of each: one read of the metrics table by each
- * metric's range of its primary key (projectId, name, primaryEntityId,
- * time), so a granule two metrics share is read once. Every value is cut
- * short in the database.
+ * A point of each series of the given metrics' newest minutes, at least one
+ * metric, at most `perMetric` series of each: one read of the metrics table
+ * by each metric's range of its primary key (projectId, name,
+ * primaryEntityId, time), so a granule two metrics share is read once.
+ *
+ * A series is its metric and its attributes - its resource's among them -
+ * so the points' columns are read first and each series kept once, by a
+ * 64-bit hash of the three (LIMIT 1 BY cityHash64(...), which streams with
+ * a set of the series seen: at most the 16,384 points of an ordinary
+ * metric's minute, 100 of them in the worst case 1.6 million, about 100
+ * MiB and a fifth of a second on ClickHouse 26.7 - by the map itself it held
+ * 546 MiB). Only then are `perMetric` of each metric's series read out,
+ * every value cut short in the database. It reads the granules the points
+ * did (issue #9756): a metric's first hundred points were a hundred series
+ * only when every series wrote one point at a time, and a busy series wrote
+ * them all where a quiet one wrote one.
  */
 export function buildTelemetryMetricSampleStatement(
   data: TelemetryReadWindow & {
@@ -970,7 +1095,14 @@ export function buildTelemetryMetricSampleStatement(
   const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
   const statement: Statement = new Statement();
 
-  appendMetricPointColumns(statement, data.caps);
+  statement.append("SELECT ");
+  statement.append(source.ownerColumn);
+  statement.append(" AS ownerId");
+  appendColumnsRead(statement, source, data.caps);
+  statement.append(
+    " FROM (SELECT primaryEntityId, name, time, attributes FROM ",
+  );
+  statement.append(tableOf(source.table));
   appendWhere(statement, source, data);
   statement.append(" AND (");
   data.metrics.forEach((metric: MetricToRead, index: number): void => {
@@ -981,7 +1113,7 @@ export function buildTelemetryMetricSampleStatement(
     appendNewestMinuteOf(statement, metric);
   });
   statement.append(
-    SQL`) LIMIT ${{
+    SQL`) LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)) LIMIT ${{
       type: TableColumnType.Number,
       value: whole(data.perMetric, 1),
     }} BY primaryEntityId, name LIMIT ${{
@@ -1032,21 +1164,121 @@ export function buildTelemetryLargeMetricSampleStatement(
 }
 
 /*
- * Which of each service's metrics a scan reads: at most `perOwner` of
- * each and `total` in all, the services sharing them - its busiest half,
- * the likeliest to have many series, and the other half from its other
- * metrics in turn: the scan of hour `turn` takes the next ones, so every
- * metric of a service is read within as many hours as its metrics take.
- * Busiest is most points in the window; ties go by name, so the turns are
- * the same whoever counts them.
+ * Where a metric sits on its service's rotation: a number from its name
+ * alone - 48 bits of its SHA-256 - so the order is the same every hour and
+ * on every server, whatever the metric wrote and whichever metrics came and
+ * went beside it.
+ */
+export function getMetricRotationPosition(metricName: string): number {
+  return parseInt(
+    createHash("sha256").update(metricName).digest("hex").slice(0, 12),
+    16,
+  );
+}
+
+/*
+ * What a service's metrics store keeps of its rotation (its
+ * contentScanState): the rotation position of the last metric read in
+ * turn - a number, never a name. DataSecurityRunner reads it back before a
+ * scan.
+ */
+export const METRIC_ROTATION_CURSOR_STATE_KEY: string = "metricRotationCursor";
+
+// The largest rotation position: 48 bits (getMetricRotationPosition).
+const MAX_METRIC_ROTATION_POSITION: number = 2 ** 48 - 1;
+
+// Where a metrics store's rotation stopped, read defensively from its state.
+export function readMetricRotationCursor(state: unknown): number | undefined {
+  if (!state || typeof state !== "object" || Array.isArray(state)) {
+    return undefined;
+  }
+
+  const cursor: unknown = (state as JSONObject)[
+    METRIC_ROTATION_CURSOR_STATE_KEY
+  ];
+
+  return typeof cursor === "number" &&
+    Number.isInteger(cursor) &&
+    cursor >= 0 &&
+    cursor <= MAX_METRIC_ROTATION_POSITION
+    ? cursor
+    : undefined;
+}
+
+// The most of a scan's in-turn reads of a service that its new metrics may take.
+export function getNewMetricSlots(inTurn: number, turn: number): number {
+  const reads: number = Math.max(0, Math.trunc(inTurn));
+  const hour: number = Math.max(0, Math.trunc(turn) || 0);
+
+  // Half of them, the odd one every other hour: over two hours, exactly half.
+  return Math.floor(((hour + 1) * reads) / 2) - Math.floor((hour * reads) / 2);
+}
+
+function byName(a: MetricToRead, b: MetricToRead): number {
+  return a.metricName < b.metricName ? -1 : a.metricName > b.metricName ? 1 : 0;
+}
+
+function isNewMetric(metric: MetricToRead, newSince: Date): boolean {
+  return (
+    metric.firstMinute instanceof Date &&
+    metric.firstMinute.getTime() >= newSince.getTime()
+  );
+}
+
+// What a scan reads of its services' metrics, and where each rotation stopped.
+export interface MetricScanPlan {
+  metrics: Array<MetricToRead>;
+  /*
+   * By service (its id in lower case): the rotation position of the last
+   * metric read in turn, which the next scan goes on from - kept with the
+   * service's metrics store (contentScanState).
+   */
+  cursors: Map<string, number>;
+  // By service: how many of the metrics it started writing lately are read.
+  newMetricsRead: Map<string, number>;
+}
+
+/*
+ * Which of each service's metrics a scan reads: at most `perOwner` of each
+ * and `total` in all, the services sharing them (issue #9755):
+ *
+ *  - its busiest half, the likeliest to have many series: most points in
+ *    the window, ties by name;
+ *  - then, of the other half, the metrics it started writing lately (first
+ *    written since `newSince`, from the rollup's day): new code, where a
+ *    new leak usually comes from, read the hour it ships. They take at
+ *    most half of those reads (getNewMetricSlots), the rest staying with
+ *    the rotation however many new ones keep coming; when there are more
+ *    than that, the next ones each hour;
+ *  - then the rest, in turn: every metric of the service has a place on a
+ *    ring fixed by its name (getMetricRotationPosition), and each scan
+ *    reads the next ones after where the last one stopped (`cursors`),
+ *    passing over those already read this scan.
+ *
+ * So the rotation goes round the ring, each metric once, at least
+ * `perOwner - floor(perOwner / 2)` a scan when nothing is new and at least
+ * half of that when new metrics take their share: a service of M metrics
+ * has each read at least once every ceil(M / inTurn) hours - every
+ * 2 * ceil(M / inTurn) hours while it starts new ones every hour. The
+ * order no longer moves when what a metric wrote does, which it did when
+ * the rest went by points: a metric could miss its turn for good.
  */
 export function planMetricsToRead(data: {
   metrics: ReadonlyArray<MetricToRead>;
   perOwner: number;
   total: number;
   turn: number;
-}): Array<MetricToRead> {
+  // The first minute at or after which a metric is one the service started writing lately.
+  newSince?: Date | undefined;
+  // By service (lower case): where its rotation stopped last time.
+  cursors?: ReadonlyMap<string, number> | undefined;
+}): MetricScanPlan {
   const byOwner: Map<string, Array<MetricToRead>> = new Map();
+  const plan: MetricScanPlan = {
+    metrics: [],
+    cursors: new Map(),
+    newMetricsRead: new Map(),
+  };
 
   for (const metric of data.metrics) {
     const owner: string = metric.ownerId.toLowerCase();
@@ -1057,7 +1289,7 @@ export function planMetricsToRead(data: {
   }
 
   if (byOwner.size === 0) {
-    return [];
+    return plan;
   }
 
   const perOwner: number = Math.max(
@@ -1065,39 +1297,121 @@ export function planMetricsToRead(data: {
     Math.min(whole(data.perOwner, 1), Math.floor(data.total / byOwner.size)),
   );
   const turn: number = Math.max(0, Math.trunc(data.turn) || 0);
-  const planned: Array<MetricToRead> = [];
 
-  for (const metrics of byOwner.values()) {
-    const ordered: Array<MetricToRead> = [...metrics].sort(
-      (a: MetricToRead, b: MetricToRead): number => {
-        return (
-          b.points - a.points ||
-          (a.metricName < b.metricName
-            ? -1
-            : a.metricName > b.metricName
-              ? 1
-              : 0)
-        );
-      },
-    );
+  for (const [owner, metrics] of byOwner) {
+    const previous: number | undefined = data.cursors?.get(owner);
 
-    if (ordered.length <= perOwner) {
-      planned.push(...ordered);
+    if (typeof previous === "number" && Number.isFinite(previous)) {
+      // Nothing read in turn this time: the rotation stays where it was.
+      plan.cursors.set(owner, previous);
+    }
+
+    if (metrics.length <= perOwner) {
+      plan.metrics.push(...[...metrics].sort(byName));
       continue;
     }
 
-    const busiest: number = Math.floor(perOwner / 2);
-    const others: Array<MetricToRead> = ordered.slice(busiest);
-    const inTurn: number = perOwner - busiest;
+    const read: Set<MetricToRead> = new Set();
+    const busiest: Array<MetricToRead> = [...metrics]
+      .sort((a: MetricToRead, b: MetricToRead): number => {
+        return b.points - a.points || byName(a, b);
+      })
+      .slice(0, Math.floor(perOwner / 2));
 
-    planned.push(...ordered.slice(0, busiest));
-
-    for (let index: number = 0; index < inTurn; index++) {
-      planned.push(others[(turn * inTurn + index) % others.length]!);
+    for (const metric of busiest) {
+      read.add(metric);
     }
+
+    const inTurn: number = perOwner - busiest.length;
+    const ring: Array<{ metric: MetricToRead; position: number }> = metrics
+      .map(
+        (metric: MetricToRead): { metric: MetricToRead; position: number } => {
+          return {
+            metric,
+            position: getMetricRotationPosition(metric.metricName),
+          };
+        },
+      )
+      .sort(
+        (
+          a: { metric: MetricToRead; position: number },
+          b: { metric: MetricToRead; position: number },
+        ): number => {
+          return a.position - b.position || byName(a.metric, b.metric);
+        },
+      );
+
+    // The ones it started writing lately, in their ring's order, the next of them each hour.
+    if (data.newSince) {
+      const newOnes: Array<MetricToRead> = ring
+        .map((entry: { metric: MetricToRead; position: number }) => {
+          return entry.metric;
+        })
+        .filter((metric: MetricToRead): boolean => {
+          return !read.has(metric) && isNewMetric(metric, data.newSince!);
+        });
+      const slots: number = Math.min(
+        newOnes.length,
+        getNewMetricSlots(inTurn, turn),
+      );
+      const start: number =
+        newOnes.length > 0
+          ? Math.floor((turn * inTurn) / 2) % newOnes.length
+          : 0;
+
+      for (let index: number = 0; index < slots; index++) {
+        read.add(newOnes[(start + index) % newOnes.length]!);
+      }
+
+      plan.newMetricsRead.set(owner, slots);
+    }
+
+    // The rest in turn: the next ones on the ring after where it stopped.
+    const inTurnLeft: number = perOwner - read.size;
+    const after: number =
+      typeof previous === "number" && Number.isFinite(previous) ? previous : -1;
+    let from: number = ring.findIndex(
+      (entry: { metric: MetricToRead; position: number }): boolean => {
+        return entry.position > after;
+      },
+    );
+
+    if (from < 0) {
+      from = 0;
+    }
+
+    let taken: number = 0;
+
+    for (
+      let step: number = 0;
+      step < ring.length && taken < inTurnLeft;
+      step++
+    ) {
+      const entry: { metric: MetricToRead; position: number } =
+        ring[(from + step) % ring.length]!;
+
+      if (read.has(entry.metric)) {
+        continue;
+      }
+
+      read.add(entry.metric);
+      plan.cursors.set(owner, entry.position);
+      taken++;
+    }
+
+    plan.metrics.push(
+      ...metrics.filter((metric: MetricToRead): boolean => {
+        return read.has(metric);
+      }),
+    );
   }
 
-  return planned.slice(0, Math.max(whole(data.total, 1), byOwner.size));
+  plan.metrics = plan.metrics.slice(
+    0,
+    Math.max(whole(data.total, 1), byOwner.size),
+  );
+
+  return plan;
 }
 
 // Reading the rows: ClickHouse answers a tuple as an array, a map as an object.
@@ -1371,6 +1685,8 @@ interface ScanContext {
   ownersNotScanned: TelemetryOwnersNotScanned;
   // By metric name: whether it is a key a finding may keep (isMetricNameAKey).
   metricNamesAsKeys: Map<string, boolean>;
+  // By service (lower case): where its metrics' rotation stopped last scan.
+  metricCursors: ReadonlyMap<string, number>;
 }
 
 interface SourceRead {
@@ -1407,6 +1723,13 @@ class StoreSample {
   public isComplete: boolean = true;
   public tooManyLocations: boolean = false;
   public outOfBudget: boolean = false;
+  /*
+   * A metrics store: where its service's rotation stopped (MetricScanPlan),
+   * kept for the next scan, and how many metrics it started writing lately
+   * this one read.
+   */
+  public metricCursor: number | undefined = undefined;
+  public newMetricsRead: number = 0;
 
   private readonly maxValuesPerLocation: number;
   /*
@@ -1510,8 +1833,8 @@ class StoreSample {
 
 /*
  * A sampled row as a reference to its record: when it was written and the
- * keys it carries (appendSampleRecordKeys) - for a metric's point, the
- * metric's name. Null for a row with no time.
+ * keys it carries (appendSampleRecordKeys) - for a log line, its own id;
+ * for a metric's point, the metric's name. Null for a row with no time.
  */
 export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
   return toFindingSampleRecord({
@@ -1519,6 +1842,7 @@ export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
     traceId: readText(row["readTraceId"]),
     spanId: readText(row["readSpanId"]),
     sessionId: readText(row["readSessionId"]),
+    logId: readText(row["readLogId"]),
     metricName: readText(row["readMetricName"]),
   });
 }
@@ -2164,13 +2488,26 @@ export function readMetricsToRead(
     }
 
     seen.add(key);
-    metrics.push({
+
+    const metric: MetricToRead = {
       ownerId,
       metricName,
       points: readCount(row["points"]),
       newestMinute: new Date(newestMinute * 1000),
       newestMinutePoints: readCount(row["newestMinutePoints"]),
-    });
+    };
+    // Known from the rollup alone; never after the minute it last wrote in.
+    const firstMinute: number = Number(readText(row["firstMinute"]));
+
+    if (
+      Number.isFinite(firstMinute) &&
+      firstMinute > 0 &&
+      firstMinute <= newestMinute
+    ) {
+      metric.firstMinute = new Date(firstMinute * 1000);
+    }
+
+    metrics.push(metric);
   }
 
   return metrics;
@@ -2230,7 +2567,13 @@ async function sampleMetrics(
       continue;
     }
 
-    sampleOf(context, source, ownerId);
+    /*
+     * Its rotation stays where the last scan left it unless this one reads
+     * its next metrics: a store's state is written whole after each scan.
+     */
+    sampleOf(context, source, ownerId).metricCursor = context.metricCursors.get(
+      ownerId.toLowerCase(),
+    );
     owners.set(ownerId.toLowerCase(), {
       ownerId,
       records: readCount(row["records"]),
@@ -2246,6 +2589,10 @@ async function sampleMetrics(
       return owner.ownerId;
     },
   );
+  /*
+   * A service whose metrics were not all read: it says so, and its rotation
+   * stays where it was, so the metrics whose turn it was come again.
+   */
   const warnOwners: (warning: string, ids: Iterable<string>) => void = (
     warning: string,
     ids: Iterable<string>,
@@ -2254,6 +2601,7 @@ async function sampleMetrics(
       const sample: StoreSample = sampleOf(context, source, ownerId);
       sample.warn(warning);
       sample.isComplete = false;
+      sample.metricCursor = context.metricCursors.get(ownerId.toLowerCase());
     }
   };
   const listMetrics: (fromRollup: boolean) => Promise<Array<JSONObject>> = (
@@ -2296,17 +2644,35 @@ async function sampleMetrics(
     }
   }
 
-  // The metrics this scan reads: each service's busiest, and others in turn.
-  const metrics: Array<MetricToRead> = planMetricsToRead({
+  /*
+   * The metrics this scan reads: each service's busiest, the ones it
+   * started writing lately, and others in turn from where the last scan
+   * stopped - which each service's store keeps for the next one.
+   */
+  const plan: MetricScanPlan = planMetricsToRead({
     metrics: readMetricsToRead(metricRows, new Set(owners.keys())),
     perOwner: TELEMETRY_SCAN_MAX_METRICS_PER_OWNER,
     total: TELEMETRY_SCAN_MAX_METRICS_PER_READ,
     turn: getMetricTurn(context.window.until),
+    newSince: getNewMetricSince(context.window.until),
+    cursors: context.metricCursors,
   });
+  const metrics: Array<MetricToRead> = plan.metrics;
+
+  for (const [ownerKey, owner] of owners) {
+    const sample: StoreSample = sampleOf(context, source, owner.ownerId);
+    const cursor: number | undefined = plan.cursors.get(ownerKey);
+
+    if (cursor !== undefined) {
+      sample.metricCursor = cursor;
+    }
+
+    sample.newMetricsRead = plan.newMetricsRead.get(ownerKey) || 0;
+  }
   const caps: TelemetrySampleCaps = capsOf(source, context.options);
   const perMetric: number = Math.max(
     1,
-    Math.min(TELEMETRY_SCAN_MAX_POINTS_PER_METRIC, context.perOwnerLimit),
+    Math.min(TELEMETRY_SCAN_MAX_SERIES_PER_METRIC, context.perOwnerLimit),
   );
   const readCounts: Map<string, number> = new Map();
   const metricCounts: Map<string, number> = new Map();
@@ -2616,7 +2982,12 @@ function toResult(data: {
       const window: string = `between ${data.window.since.toISOString()} and ${data.window.until.toISOString()}`;
 
       if (read.metricsRead !== undefined) {
-        return `${owner}: read ${read.recordsRead} ${read.label} of the newest minute of ${read.metricsRead} of its metrics - its busiest, and others in turn - of the ${read.recordsInWindow} written ${window}.`;
+        const newOnes: string =
+          sample.newMetricsRead > 0
+            ? `${sample.newMetricsRead} it started writing in the last ${TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS} hours, `
+            : "";
+
+        return `${owner}: read ${read.recordsRead} ${read.label}, a point of each series, of the newest minute of ${read.metricsRead} of its metrics - its busiest, ${newOnes}and others in turn - of the ${read.recordsInWindow} written ${window}.`;
       }
 
       return `${owner}: read the ${read.recordsRead} newest ${read.label} of the ${read.recordsInWindow} written ${window}.`;
@@ -2644,7 +3015,7 @@ function toResult(data: {
     sample.isComplete = false;
   }
 
-  return {
+  const result: ContentScanResult = {
     locations,
     readLog: readLog.slice(0, MAX_READ_LOG_ENTRIES),
     objectsRead: sample.reads.length,
@@ -2655,6 +3026,15 @@ function toResult(data: {
     plaintextPasswordFields: [],
     isComplete: sample.isComplete,
   };
+
+  // A metrics store keeps where its rotation stopped, for the next scan.
+  if (sample.metricCursor !== undefined) {
+    result.nextState = {
+      [METRIC_ROTATION_CURSOR_STATE_KEY]: sample.metricCursor,
+    };
+  }
+
+  return result;
 }
 
 // The owners left out, each id in lower case as the reads compare them.
@@ -2685,7 +3065,10 @@ function lowerCaseOwners(
  * store, classified. A read that fails is logged and named in the warnings
  * of the stores it was for; the scan goes on with the next. An owner whose
  * store of a kind turned content scanning off (`ownersNotScanned`) is left
- * out of that kind's every read, and has no result.
+ * out of that kind's every read, and has no result. Each service's metrics
+ * go on in turn from where the last scan stopped (`metricCursors`, its
+ * metrics store's state), and each metrics store's result says where this
+ * one stopped (nextState).
  */
 export async function scanProjectTelemetry(data: {
   projectId: ObjectID;
@@ -2694,6 +3077,8 @@ export async function scanProjectTelemetry(data: {
   options: ContentScanOptions;
   // Owners whose store of a kind turned content scanning off: never read.
   ownersNotScanned?: TelemetryOwnersNotScanned | undefined;
+  // By service: where its metrics' rotation stopped (readMetricRotationCursor).
+  metricCursors?: ReadonlyMap<string, number> | undefined;
 }): Promise<Array<TelemetryStoreScan>> {
   const until: Date = OneUptimeDate.getCurrentDate();
   const earliest: Date = OneUptimeDate.addRemoveHours(
@@ -2732,6 +3117,13 @@ export async function scanProjectTelemetry(data: {
     stores: new Map(),
     ownersNotScanned: lowerCaseOwners(data.ownersNotScanned),
     metricNamesAsKeys: new Map(),
+    metricCursors: new Map(
+      Array.from(data.metricCursors || new Map<string, number>()).map(
+        ([serviceId, cursor]: [string, number]): [string, number] => {
+          return [serviceId.toLowerCase(), cursor];
+        },
+      ),
+    ),
   };
 
   let restrictedServiceIds: ReadonlySet<string> | null;

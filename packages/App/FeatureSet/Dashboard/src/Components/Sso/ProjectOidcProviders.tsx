@@ -43,9 +43,10 @@ interface OidcConfigDialogTarget {
  * (Settings > OIDC), which told nobody that requiring SSO lived on the
  * other page; that address forwards to SSO now (MovedPagePaths).
  *
- * Adding one asks for its name, issuer, client ID and secret, and the teams
- * newcomers join (the members team to start with); everything else is
- * filled in under Advanced (Common/UI/Components/Sso/OidcProviderFormFields).
+ * Adding one asks for its name, issuer, client ID and secret, the teams
+ * newcomers join (the members team to start with) and the project's
+ * verified domains it serves at "Sign in with SSO" (#9824); everything else
+ * is filled in under Advanced (Common/UI/Components/Sso/OidcProviderFormFields).
  * Once it is saved, the dialog with the redirect URI to give the identity
  * provider opens straight away: that is the next thing to do.
  */
@@ -115,6 +116,7 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
         formFields={getOidcProviderFormFields<ProjectOIDC>({
           withTeams: true,
           getTeamsFooterElement: getSsoTeamsGrantNote,
+          withDomains: true,
           withIdentityProviderSignOut: true,
         })}
         createInitialValues={createInitialValues}

@@ -456,11 +456,14 @@ export default class AIAgentDataAPI {
      *                       modelCallsUsed, toolCallsUsed, tokensUsed },
      *             budget: { completionCallsUsed, maxCompletionCalls,
      *                       outputTokensUsed, maxOutputTokens,
-     *                       toolCallsUsed, maxToolCalls } }
+     *                       toolCallsUsed, maxToolCalls },
+     *             contextWindowTokens: number | null }
      *
      * `budget` is what a Runner from before #6440 winds down on
      * (CodeFixAgentCompletion.buildLegacyBudget); a current one reads
-     * `limits`.
+     * `limits`. `contextWindowTokens` is how many tokens one request to the
+     * model may hold (issue #6530), null when the server cannot tell: the
+     * Runner sizes its conversation to it, and an older one ignores it.
      */
     this.router.post(
       "/ai-agent-data/llm-completion",
@@ -560,6 +563,7 @@ export default class AIAgentDataAPI {
             stopReason: result.stopReason,
             limits: result.limits,
             budget: result.budget,
+            contextWindowTokens: result.contextWindowTokens,
           } as unknown as JSONObject);
         } catch (err) {
           next(err);

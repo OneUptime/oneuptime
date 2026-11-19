@@ -71,8 +71,25 @@ export const API_KEY_COUNT_TEMPLATE: PluralTemplate = {
 };
 
 /*
- * Who a role reaches: the teams given it and the people in them, and the
- * API keys given it.
+ * The workflows that run as a role (#9831), said after who it is given to
+ * on the role's page: "Given to 2 teams (4 people), and 3 workflows run as
+ * it." A change to the role changes what their steps can do at once.
+ */
+export const WORKFLOWS_RUN_AS_ROLE_TEMPLATE: PluralTemplate = {
+  one: "{{count}} workflow runs as it",
+  other: "{{count}} workflows run as it",
+};
+
+// The same, when no team or API key has the role: a sentence of its own.
+export const ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE: PluralTemplate = {
+  one: "{{count}} workflow runs as this role. A change here changes what it can do at once.",
+  other:
+    "{{count}} workflows run as this role. A change here changes what they can do at once.",
+};
+
+/*
+ * Who a role reaches: the teams given it and the people in them, the API
+ * keys given it, and the workflows that run as it.
  */
 export interface CustomRoleReach {
   teamCount: number;
@@ -88,6 +105,14 @@ export interface CustomRoleReach {
    * they did before keys took roles.
    */
   apiKeyCount?: number | null | undefined;
+  /*
+   * The workflows that run as the role, archived ones included: unarchived,
+   * they run as it again. Null (or left out) when the reader may not read
+   * the project's workflows, or where nothing counted them (a Delete
+   * dialog, which lists them itself): the sentences then say nothing of
+   * workflows.
+   */
+  workflowCount?: number | null | undefined;
 }
 
 // How many API keys a reach names: none when they are not known.
@@ -95,6 +120,15 @@ const apiKeysOf: (reach: CustomRoleReach) => number = (
   reach: CustomRoleReach,
 ): number => {
   return reach.apiKeyCount && reach.apiKeyCount > 0 ? reach.apiKeyCount : 0;
+};
+
+// How many workflows a reach names: none when they are not known.
+const workflowsOf: (reach: CustomRoleReach) => number = (
+  reach: CustomRoleReach,
+): number => {
+  return reach.workflowCount && reach.workflowCount > 0
+    ? reach.workflowCount
+    : 0;
 };
 
 // Whether the reader may know about the API keys given the role.
@@ -109,6 +143,16 @@ export const isRoleGivenToAnyone: (reach: CustomRoleReach) => boolean = (
   reach: CustomRoleReach,
 ): boolean => {
   return reach.teamCount > 0 || apiKeysOf(reach) > 0;
+};
+
+/*
+ * Whether a change to the role reaches anything: a team or an API key that
+ * has it, or a workflow that runs as it.
+ */
+export const doesRoleReachAnything: (reach: CustomRoleReach) => boolean = (
+  reach: CustomRoleReach,
+): boolean => {
+  return isRoleGivenToAnyone(reach) || workflowsOf(reach) > 0;
 };
 
 // "6 permissions", or "No permissions yet".
@@ -236,16 +280,43 @@ const getReachText: (
 
 /*
  * What a change to a role reaches, said on the role's page above its
- * permissions: who has it now, and that a change is theirs at once.
+ * permissions: who has it now, and the workflows that run as it, and that
+ * a change is theirs at once.
  */
 export const getRoleReachSentence: (
   translator: Translator,
   reach: CustomRoleReach,
 ) => string = (translator: Translator, reach: CustomRoleReach): string => {
+  const workflows: number = workflowsOf(reach);
+
   if (!isRoleGivenToAnyone(reach)) {
+    if (workflows > 0) {
+      return translator.translatePlural(
+        ONLY_WORKFLOWS_RUN_AS_ROLE_TEMPLATE,
+        workflows,
+      );
+    }
+
     return text(
       translator,
       knowsApiKeys(reach) ? ROLE_GIVEN_TO_NOTHING : ROLE_GIVEN_TO_NO_TEAM,
+    );
+  }
+
+  if (workflows > 0) {
+    return translator.translateTemplate(
+      "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.",
+      {
+        reach: composedValue((sentence: Translator): string => {
+          return getReachText(sentence, reach);
+        }),
+        workflows: composedValue((sentence: Translator): string => {
+          return sentence.translatePlural(
+            WORKFLOWS_RUN_AS_ROLE_TEMPLATE,
+            workflows,
+          );
+        }),
+      },
     );
   }
 

@@ -5,6 +5,7 @@
 :::cards
 - [Что нужно OneUptime](#что-нужно-oneuptime): Два атрибута ресурса, отправленные с серверным ключом.
 - [Настройка платформы](#настройка-платформы): Android, iOS, React Native и остальные.
+- [Сбои и зависания на iOS](#сбои-и-зависания-на-ios): Диагностика MetricKit в исключениях и на странице «Обзор».
 - [Проверка поступления данных](#проверка-поступления-данных): Проверить ключ, затем найти приложение.
 - [Session Replay на мобильных](#session-replay-на-мобильных): Записи для приложений на React Native.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK сам добавляет `/v1/traces`, `/v1/metrics` и `/v1/logs` к адресу.
 :::
+
+## Сбои и зависания на iOS
+
+opentelemetry-swift 2.3 и новее сообщает о сбоях и зависаниях приложения iOS через свою инструментацию MetricKit, которая передаёт каждую диагностику Apple в OpenTelemetry как запись журнала. OneUptime регистрирует их так же, как сбои и ANR из OpenTelemetry Android, поэтому они видны в разделе **Исключения** и на странице приложения **Обзор**:
+
+| Диагностика Apple | Имя события | В исключениях |
+| --- | --- | --- |
+| Сбой | `metrickit.diagnostic.crash` | Необработанное исключение, тип которого задаёт то, что завершило приложение: исключение Objective-C на iOS 17 и новее, иначе исключение Mach (`EXC_BAD_ACCESS`), иначе сигнал (`SIGSEGV`) |
+| Зависание | `metrickit.diagnostic.hang` | Необработанное исключение типа **Hang**, аналог ANR на iOS, в котором сохраняется, сколько длилось зависание |
+
+Плитка **Сбои** на странице «Обзор» считает сбои, а плитка **ANR** считает зависания вместе с ANR из Android. Каждая трассировка стека отображается как потоки отчёта о сбое, и первым идёт поток, который упал или завис. Кадры не символизированы: каждый называет свой бинарный файл и смещение кода в нём, а **Binary Images** перечисляет UUID каждого бинарного файла, по которому видно, dSYM какой сборки его символизирует.
+
+:::steps
+### Экспортируйте журналы вместе со спанами
+
+MetricKit сообщает о диагностике записями журнала, поэтому зарегистрируйте провайдер логгеров рядом с провайдером трассировщиков, с тем же ресурсом, адресом и заголовком:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Зарегистрируйте инструментацию MetricKit
+
+Добавьте продукт `MetricKitInstrumentation` из opentelemetry-swift и зарегистрируйте его в MetricKit после того, как зарегистрирован провайдер логгеров:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Записывайте сеансы
+
+Плитки **Сеансы** и **Сеансы без сбоев** считают `session.id` на ваших спанах. Его задаёт продукт `Sessions` из opentelemetry-swift: добавьте `SessionSpanProcessor` в провайдер трассировщиков и оберните обработчик журналов в `SessionLogRecordProcessor`, чтобы и у диагностики был сеанс. Его выпуски пока не задают `app.installation.id`, поэтому плитка **Сеансы без сбоев** приложения iOS показывает, сколько сеансов завершились сбоем, а не долю установок без сбоев.
+:::
+
+> [!NOTE]
+> Apple передаёт диагностику MetricKit приложению при одном из следующих запусков: на iOS 15 и новее сразу, а на более ранних версиях раз в сутки. Поэтому сбой или зависание может прийти через несколько минут или через сутки после того, как произошло, и учитывается в момент поступления. «0 сбоев за последний час» на странице «Обзор» приложения iOS — ещё не хорошая новость. Диагностика несёт сеанс, который о ней сообщил, а не тот, который она завершила.
+
+opentelemetry-swift не записывает спан при запуске приложения, поэтому плитки **Запуски приложения** и **Холодный запуск (p95)** остаются пустыми, пока ваше приложение не запишет его само: спан с именем `AppStart` и `start.type`, равным `cold`, `warm` или `hot`, от запуска процесса до готовности первого экрана.
 
 ## Проверка поступления данных
 

@@ -16,7 +16,7 @@ Lorsque la surveillance des coûts est activée, comme c'est le cas par défaut 
 
 ```mermaid title="D'où viennent les chiffres de coûts"
 flowchart TB
-    cadvisor["cAdvisor, via le<br/>proxy de nœuds de l'API server"] --> prometheus["Prometheus intégré"]
+    cadvisor["cAdvisor, depuis le<br/>kubelet de chaque nœud"] --> prometheus["Prometheus intégré"]
     prometheus --> opencost["OpenCost"]
     pricing["Prix catalogue du cloud<br/>ou votre grille tarifaire"] --> opencost
     opencost -->|"une heure clôturée<br/>à la fois"| poller["Collecteur de coûts"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**, le moteur de coûts open source (Apache-2.0, CNCF ; le [cost-model](https://github.com/kubecost/cost-model) qui fait aussi tourner Kubecost). Il surveille le cluster, calcule le prix de vos nœuds, de vos volumes et de vos load balancers, et détermine ce que coûte chaque charge de travail.
-2. **Un petit Prometheus**, dont OpenCost a besoin pour l'historique d'utilisation et de prix. Il tourne avec une seule réplique, conserve 7 jours d'historique et collecte exactement deux cibles : cAdvisor via le proxy de nœuds de l'API server, en ne gardant que les séries que lit OpenCost, et OpenCost lui-même (qui émet ses propres métriques de requests de ressources, si bien que kube-state-metrics n'intervient pas). Il n'est jamais exposé hors du cluster, et ses données n'en sortent jamais.
+2. **Un petit Prometheus**, dont OpenCost a besoin pour l'historique d'utilisation et de prix. Il tourne avec une seule réplique, conserve 7 jours d'historique et collecte exactement deux cibles : cAdvisor sur le kubelet de chaque nœud (via le proxy de nœuds de l'API server avec le preset `eks-fargate`, où aucun pod ne joint de kubelet), en ne gardant que les séries que lit OpenCost, et OpenCost lui-même (qui émet ses propres métriques de requests de ressources, si bien que kube-state-metrics n'intervient pas). Il n'est jamais exposé hors du cluster, et ses données n'en sortent jamais.
 3. **Le collecteur de coûts** (`cost.agent`). Une fois par heure clôturée, il lit l'Allocation API d'OpenCost et envoie à OneUptime une ligne de coûts par charge de travail : CPU, mémoire, GPU, volumes, réseau, load balancers et capacité inutilisée, avec l'efficacité. Chaque heure est envoyée une seule fois ; le serveur ignore une heure qu'il possède déjà, si bien qu'un redémarrage ne peut pas compter deux fois une dépense. OneUptime écrit aussi les [métriques de coûts](#alertes-sur-les-coûts) à partir de ces lignes.
 4. **Une collecte des métriques de coûts** (`cost.metrics`). Le collecteur de l'agent collecte les métriques de prix d'OpenCost, ce que coûte chaque nœud, volume et load balancer par heure, et les envoie avec les autres métriques du cluster.
 

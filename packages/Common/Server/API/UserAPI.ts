@@ -36,6 +36,8 @@ import UserMiddleware, {
 } from "../Middleware/UserAuthorization";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import LocalSignInClearing from "../Utils/LocalSignInClearing";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import {
   CLEAR_LOCAL_SIGN_IN_ACTION,
   ClearLocalSignInAnswer,
@@ -600,6 +602,30 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
         }
 
         try {
+          /*
+           * A person's picture is shown to those who know them: themselves,
+           * a master admin, and the people of a project they have joined -
+           * never to a project that has only invited them, nor to anyone
+           * holding their id (#9823, PendingInviteeProfiles.maySeePicture).
+           * Everyone else gets the blank picture a person with none has.
+           */
+          const reader: JSONWebTokenData | null =
+            await UserMiddleware.getSessionUser(req);
+
+          if (
+            !(await PendingInviteeProfiles.maySeePicture({
+              personUserId: userId,
+              reader: reader
+                ? {
+                    userId: reader.userId,
+                    isMasterAdmin: reader.isMasterAdmin === true,
+                  }
+                : null,
+            }))
+          ) {
+            return this.sendBlankProfile(req, res);
+          }
+
           const profilePictureSelect: {
             profilePictureFile: {
               _id: boolean;

@@ -529,15 +529,25 @@ describe("signing in to the mobile app", () => {
     );
   });
 
+  /*
+   * The server offers a project's providers by an email's domain, never by
+   * the account it has (#9824), so the answer explains the domain, and says
+   * nothing about accounts or the projects an email belongs to.
+   */
   it("quotes the app's answer to an email with no single sign-on", () => {
     expect(mobile("src/screens/auth/SSOLoginScreen.tsx")).toContain(
       "`No SSO configuration found for the email: ${trimmedEmail}`",
     );
-    expect(
-      detailsBlock(FAQ, '"No SSO configuration found for the email"'),
-    ).toContain(
-      "None of the projects that email belongs to has single sign-on set up",
+
+    const answer: string = detailsBlock(
+      FAQ,
+      '"No SSO configuration found for the email"',
     );
+
+    expect(answer).toContain(
+      "No project on this OneUptime offers single sign-on for that email's domain yet: a project's admin adds the domain to its SSO provider, whoever the email belongs to.",
+    );
+    expect(answer).not.toMatch(/belongs to has|has no account/);
   });
 
   it("cannot use a security key, as the two-factor screen says", () => {

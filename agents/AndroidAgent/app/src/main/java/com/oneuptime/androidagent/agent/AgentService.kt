@@ -45,6 +45,9 @@ class AgentService : Service() {
     private var lastStatus: AgentStatus? = null
     private lateinit var runtime: AgentRuntime
 
+    // The notification's words, in the device's language.
+    private val strings: StringSource by lazy { ContextStrings(this) }
+
     private val receiver: BroadcastReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -70,7 +73,7 @@ class AgentService : Service() {
         super.onCreate()
         running = true
         runtime = AgentRuntime.get(this)
-        enterForeground(AgentStatusText.of(runtime.configRepository.load(), runtime.uploader.status, 0))
+        enterForeground(AgentStatusText.of(strings, runtime.configRepository.load(), runtime.uploader.status, 0))
 
         ContextCompat.registerReceiver(
             this,
@@ -104,7 +107,7 @@ class AgentService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Every start by startForegroundService must be answered with startForeground.
-        enterForeground(lastStatus ?: AgentStatusText.of(runtime.configRepository.load(), runtime.uploader.status, 0))
+        enterForeground(lastStatus ?: AgentStatusText.of(strings, runtime.configRepository.load(), runtime.uploader.status, 0))
         if (intent?.action == ACTION_COLLECT_NOW) {
             wake.trySend(Unit)
         }
@@ -135,7 +138,7 @@ class AgentService : Service() {
                     null
                 }
             val config = result?.config ?: runtime.configRepository.load()
-            showStatus(AgentStatusText.of(config, runtime.uploader.status, runtime.outbox.totalBytes()))
+            showStatus(AgentStatusText.of(strings, config, runtime.uploader.status, runtime.outbox.totalBytes()))
             withTimeoutOrNull(config.collectionIntervalSeconds * 1000L) { wake.receive() }
         }
     }

@@ -1,0 +1,22 @@
+The OneUptime Android Agent reports the Android devices your organization owns and manages, such as ordering kiosks, point-of-sale terminals, handhelds and signage players, to your OneUptime project. Your device manager installs it and configures it on every device at once, through Android Enterprise managed configuration, so nothing is set up by hand on each device.
+
+In OneUptime each device becomes a host, beside your servers: its health on a page of its own, alerts when it stops reporting, is unplugged, keeps restarting, runs low on battery or storage, or overheats, and an item in Inventory with its make, model, serial number, Android version and security patch level.
+
+What the agent reports
+• Health, every minute: memory, storage, network traffic and uptime, with the battery's charge, the temperature, whether the device is plugged in, and Android's thermal state.
+• CPU use, where Android lets an app read it: on Android 7, and on later versions when the agent is the device owner.
+• Restarts: how long the device was up, whether it shut down cleanly, how long it was off, the reason Android recorded, and restart loops.
+• Installed apps: every app installed on the device, once a day and at each install, update and removal. This device inventory is one of the agent's core purposes, and why it asks to see every installed app.
+• Crashes and ANRs of every app on the device, with their stack traces, and the system's Logcat lines on Android 12 and earlier. Reading them needs the READ_LOGS permission, which only an administrator can grant, with adb.
+• Logs for troubleshooting: when someone asks for them in OneUptime, the agent shows the request on its screen and sends every app's logs for the time asked, only after the person at the device allows it.
+
+How it works
+The agent runs as a foreground service and starts when the device boots. It keeps what it collects on the device while the network is down, and sends it over HTTPS, as OpenTelemetry (OTLP), to the OneUptime you choose: OneUptime Cloud or your own installation. Before anything leaves the device, the text it reads from other apps is cleaned of payment card numbers, email addresses, credentials and tokens.
+
+Setting it up
+In your device manager (Esper, Microsoft Intune, Workspace ONE, SOTI or another Android Enterprise device manager), set the agent's managed configuration: your OneUptime URL, a Server ingestion key, and the device's name, serial number, type, location and labels. A device without a device manager can be set up on the agent's own screen.
+
+The agent needs a OneUptime project, on OneUptime Cloud or on a OneUptime you host. It is open source, under the Apache 2.0 license.
+
+Documentation: https://oneuptime.com/docs/telemetry/android-agent
+Source code: https://github.com/OneUptime/oneuptime/tree/main/agents/AndroidAgent

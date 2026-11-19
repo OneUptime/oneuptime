@@ -7,6 +7,7 @@ L'agent Android di OneUptime segnala a OneUptime un dispositivo Android di propr
 - [Distribuirlo con Esper](#distribuirlo-con-esper): Caricare l'APK, inviare le sue impostazioni, avviarlo una volta.
 - [Impostazioni](#impostazioni): Ogni chiave della sua configurazione gestita.
 - [Leggere i log delle altre app](#leggere-i-log-delle-altre-app): Concedere READ_LOGS una volta, con adb o con il tuo gestore dei dispositivi.
+- [Sessioni di log](#sessioni-di-log): I log di tutte le app per un certo tempo, consentiti dalla persona davanti al dispositivo.
 :::
 
 ## Come funziona
@@ -93,6 +94,8 @@ L'agent legge queste chiavi dalla sua configurazione gestita. Un dispositivo che
 
 Un segnaposto che il tuo gestore dei dispositivi non ha compilato, come un `${esper.deviceName}` inviato così com'è, viene ignorato, e la schermata dell'agent lo segnala. Mantieni lo stesso `device_name` una volta che un dispositivo invia dati: un nuovo nome è un nuovo host.
 
+La schermata dell'agent, le sue notifiche e i titoli e le descrizioni che il tuo gestore dei dispositivi mostra per queste chiavi sono nella lingua del dispositivo, in tutte le lingue che parla la dashboard di OneUptime.
+
 ## Leggere i log delle altre app
 
 Android consente a un'app di leggere i log delle altre app solo con l'autorizzazione READ_LOGS, e solo adb può concederla: né l'app stessa né un criterio del dispositivo. Concedila una volta su ogni dispositivo, e resta concessa anche dopo riavvii e aggiornamenti:
@@ -105,10 +108,51 @@ Con Esper, esegui quel comando tramite **Secure Remote ADB**: attiva l'accesso A
 
 Ciò che l'agent legge da quel momento dipende dalla versione di Android:
 
-- Android 13 e successivi: i crash e gli ANR di ogni app. Android mostra le righe di log delle altre app solo a un'app che è sullo schermo, dopo che la persona davanti al dispositivo lo consente, quindi un agent in esecuzione in background non può leggerle.
+- Android 13 e successivi: i crash e gli ANR di ogni app. Android mostra le righe di log delle altre app solo a un'app che è sullo schermo, dopo che la persona davanti al dispositivo lo consente, quindi un agent in esecuzione in background non può leggerle. Chiedile per un certo tempo con una [sessione di log](#sessioni-di-log).
 - Android 12 e precedenti: i crash e gli ANR di ogni app, e le righe di log di ogni app di livello `logcat_min_level` o superiore.
 
 Senza READ_LOGS, l'agent segnala tutto il resto, e la sua schermata e i log del dispositivo spiegano come concederla.
+
+### Stack trace dei crash e motivi dei riavvii
+
+Android conserva nella sua DropBox il rapporto completo di ogni crash di un'app, di ogni crash nativo e di ogni ANR, e il motivo di ogni riavvio. L'agent li legge per ogni app quando ha READ_LOGS e l'accesso ai dati di utilizzo e, su Android 15 e successivi, READ_DROPBOX_DATA. Concedili una volta con adb, come READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+Il primo comando è per Android 15 e successivi; l'accesso ai dati di utilizzo si può attivare anche sul dispositivo, in **Impostazioni → Accesso ai dati di utilizzo**. Un criterio del dispositivo non può concederli, e la schermata dell'agent elenca i comandi ancora da eseguire. Con questi, ogni crash in **Eccezioni** ha il suo stack trace completo, un crash nativo il suo segnale e la libreria in cui si è verificato, un ANR lo stack del suo thread principale, e un riavvio in **Log** il motivo che ne dà Android. Numeri di carta, indirizzi email, token e password in ciò che l'agent legge vengono sostituiti con `[card number]`, `[email]`, `[token]` e `[redacted]` prima dell'invio.
+
+### Uso della CPU
+
+Da Android 8 in poi, Android nasconde alle app l'uso della CPU di un dispositivo. Solo un'app proprietaria del dispositivo può leggerlo, e solo sui dispositivi il cui hardware lo fornisce. L'agent lo legge quando è il proprietario del dispositivo, cosa che imposti con adb su un dispositivo senza account e senza un altro proprietario:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+Un dispositivo di cui il tuo gestore dei dispositivi è già proprietario non può avere un secondo proprietario, quindi il suo uso della CPU non è disponibile, e la schermata dell'agent lo segnala. Il suo uso della CPU resta allora fuori dall'elenco degli host, e il modello **High CPU Utilization** non gli viene proposto.
+
+## Sessioni di log
+
+Una sessione di log invia per un certo tempo i log di tutte le app di un dispositivo, per risolverne i problemi. Su Android 13 e successivi è l'unico modo per leggere le righe di log delle altre app, perché Android le mostra solo a un'app che è sullo schermo, dopo che la persona davanti al dispositivo lo consente.
+
+:::steps
+### Richiederne una
+
+Apri il dispositivo in **Host**, poi **Log**, e fai clic su **Richiedi sessione di log** in **Sessioni di log**. Scegli per quanto tempo il dispositivo invia i suoi log, da 15 minuti a 4 ore, e il livello più basso che invia: **Info**, **Debug** o **Dettagliato**.
+
+### Consentirla sul dispositivo
+
+Entro un minuto il dispositivo mostra una notifica che qualcuno ha chiesto i suoi log, con il suo nome. La persona davanti al dispositivo apre l'agent e tocca **Consenti**. Su Android 13 e successivi Android chiede poi di consentire l'accesso a tutti i log del dispositivo, e la persona consente anche quello.
+
+### Leggere le righe
+
+La sessione indica **In raccolta**, e le righe di tutte le app arrivano nei log del dispositivo. Fai clic su **Mostra righe** per vedere solo le righe della sessione. La sessione termina quando il suo tempo è scaduto, o quando qualcuno la ferma sul dispositivo o la annulla in OneUptime.
+:::
+
+Una sessione ha bisogno di READ_LOGS e di `logcat_enabled`; senza, indica **Non disponibile**. Su un dispositivo viene eseguita una sola sessione alla volta. Una richiesta che nessuno consente entro un'ora scade, e una sessione durante la quale il dispositivo si riavvia termina con il riavvio, perché l'autorizzazione di Android termina con il processo dell'agent. Per chiedere una sessione serve l'autorizzazione a modificare l'host, e i **Log di audit** dell'host conservano chi l'ha chiesta, e quando.
 
 ## Cosa segnala l'agent
 
@@ -117,14 +161,15 @@ Senza READ_LOGS, l'agent segnala tutto il resto, e la sua schermata e i log del 
 | Memoria, archiviazione, rete e tempo di attività | La pagina del dispositivo in **Host**: le stesse metriche che invia il collector di un server, quindi i modelli di avviso per gli host funzionano |
 | Carica della batteria e temperatura, e se il dispositivo è collegato a un'alimentazione esterna | Le metriche `hw.battery.charge`, `hw.temperature` e `android.battery.plugged` |
 | Stato termico | Le metriche `android.thermal.status` e `android.thermal.headroom` |
-| Riavvii | **Log**, con `@event.name:device.boot`: da quanto tempo il dispositivo era acceso, se si è spento correttamente, per quanto tempo è rimasto spento, e i cicli di riavvio |
+| Uso della CPU | La metrica `system.cpu.utilization`: su Android 7, e su Android 8 e successivi quando l'agent è il [proprietario del dispositivo](#uso-della-cpu) |
+| Riavvii | **Log**, con `@event.name:device.boot`: da quanto tempo il dispositivo era acceso, se si è spento correttamente, per quanto tempo è rimasto spento, perché si è riavviato, e i cicli di riavvio |
 | App installate | **Log**, con `@event.name:android.package.inventory` una volta al giorno, e a ogni installazione, aggiornamento e rimozione |
-| Crash e ANR di ogni app | **Eccezioni**, come non gestiti, con il nome dell'app |
-| Marca, modello, numero di serie, versione del sistema operativo e firmware | L'elemento del dispositivo in **Inventario** |
+| Crash e ANR di ogni app | **Eccezioni**, come non gestiti, con il nome dell'app, e con i loro stack quando l'agent legge la [DropBox](#stack-trace-dei-crash-e-motivi-dei-riavvii) |
+| Marca, modello, numero di serie, versione del sistema operativo, livello patch di sicurezza e firmware | L'elemento del dispositivo in **Inventario** |
 
-Da Android 8 in poi, Android nasconde alle app l'uso della CPU del dispositivo, quindi l'agent segnala l'uso della CPU solo su Android 7 e sulle build che lo consentono.
+In **Host**, il sistema operativo del dispositivo risulta Android, con il logo di Android.
 
-I modelli di avviso per gli host adatti a un dispositivo sono Host Stopped Reporting, High Memory Utilization, High Filesystem Usage e Host Restarted. Un dispositivo che continua a riavviarsi scrive un log di livello avviso a ogni avvio, con `android.boot.recent_count` impostato sul numero di avvii nell'ultima ora.
+Gli avvii del dispositivo nell'ultima ora sono la metrica `android.boot.recent_count`, e un dispositivo che continua a riavviarsi scrive un log di livello avviso a ogni avvio. In **Host**, a un dispositivo Android vengono proposti modelli di avviso propri: Device Unplugged, Low Battery, Device Overheating, Restart Loop e Storage Nearly Full, insieme a Host Stopped Reporting, Host Restarted e High Memory Utilization, e High CPU Utilization quando segnala l'uso della CPU. I primi comandi di debug di ogni avviso sono comandi adb. Vedi [Monitor host](/docs/monitor/host-monitor#dispositivi-android).
 
 ## Risoluzione dei problemi
 
@@ -137,7 +182,11 @@ Usa una chiave **Server** attiva e non scaduta. Una chiave **Browser** viene rif
 :::
 
 :::details Nessun log dalle altre app
-Concedi READ_LOGS, come spiega [Leggere i log delle altre app](#leggere-i-log-delle-altre-app). Su Android 13 e successivi vengono letti solo i crash e gli ANR delle altre app.
+Concedi READ_LOGS, come spiega [Leggere i log delle altre app](#leggere-i-log-delle-altre-app). Su Android 13 e successivi vengono letti solo i crash e gli ANR delle altre app, a meno che non sia in corso una [sessione di log](#sessioni-di-log).
+:::
+
+:::details Una sessione di log resta su In attesa di approvazione
+Nessuno davanti al dispositivo l'ha ancora consentita. Qualcuno deve aprire l'agent sul dispositivo e toccare **Consenti** e, su Android 13 e successivi, consentire anche la richiesta di Android, mentre l'agent è sullo schermo. Una sessione che la richiesta di Android ha rifiutato indica **Rifiutato**: richiedine un'altra.
 :::
 
 :::details Due dispositivi compaiono come un solo host

@@ -20,6 +20,9 @@ import java.net.InetAddress
 /** Which readings the device let the agent take, for the setup screen. */
 data class CollectorCapabilities(
     val cpuUtilization: Boolean = false,
+    // Where CPU use comes from, and why there is none when there is none.
+    val cpuSource: CpuSource = CpuSource.NONE,
+    val cpuUnavailable: CpuUnavailable? = null,
     val loadAverage: Boolean = false,
     val memory: Boolean = false,
     val storage: Boolean = false,
@@ -33,15 +36,22 @@ data class CollectorCapabilities(
  * and a failure leaves only that reading out: a device that refuses one file
  * still reports everything else.
  *
- * CPU utilization needs two readings of /proc/stat, so the first collection
- * after the agent starts has none.
+ * CPU utilization needs two readings, so the first collection after the
+ * agent starts has none. It comes from /proc/stat where Android lets an app
+ * read it (Android 7), and otherwise from HardwarePropertiesManager when the
+ * agent is the device owner (CoreTimes): Android documents no other way for
+ * an app to read the device's CPU use from Android 8.
  */
 class SnapshotCollector(
     private val context: Context,
     private val clock: Clock,
+    private val coreTimes: CoreTimesReader = HardwarePropertiesCoreTimes(context),
     private val readFile: (String) -> String? = ::readSmallFile,
 ) {
     private var previousCpuTimes: Map<String, CpuTimes>? = null
+    private var previousCoreTimes: List<CoreTime?>? = null
+    private var cpuSource: CpuSource = CpuSource.NONE
+    private var cpuUnavailable: CpuUnavailable? = null
 
     @Volatile
     var capabilities: CollectorCapabilities = CollectorCapabilities()
@@ -61,7 +71,9 @@ class SnapshotCollector(
 
         capabilities =
             CollectorCapabilities(
-                cpuUtilization = previousCpuTimes != null,
+                cpuUtilization = cpuSource != CpuSource.NONE,
+                cpuSource = cpuSource,
+                cpuUnavailable = cpuUnavailable,
                 loadAverage = load != null,
                 memory = memory != null,
                 storage = filesystems.isNotEmpty(),
@@ -87,13 +99,33 @@ class SnapshotCollector(
 
     private fun readCpuUtilization(): Map<String, Map<String, Double>>? {
         val current: Map<String, CpuTimes> = readFile(PROC_STAT)?.let { CpuStatParser.parse(it) }.orEmpty()
-        if (current.isEmpty()) {
-            previousCpuTimes = null
-            return null
+        if (current.isNotEmpty()) {
+            cpuSource = CpuSource.PROC_STAT
+            cpuUnavailable = null
+            previousCoreTimes = null
+            val previous: Map<String, CpuTimes>? = previousCpuTimes
+            previousCpuTimes = current
+            return previous?.let { CpuUtilization.between(it, current) }?.takeIf { it.isNotEmpty() }
         }
-        val previous: Map<String, CpuTimes>? = previousCpuTimes
-        previousCpuTimes = current
-        return previous?.let { CpuUtilization.between(it, current) }?.takeIf { it.isNotEmpty() }
+        previousCpuTimes = null
+        return when (val cores: CoreTimesResult = coreTimes.read()) {
+            is CoreTimesResult.Read -> {
+                cpuSource = CpuSource.HARDWARE_PROPERTIES
+                cpuUnavailable = null
+                val previous: List<CoreTime?>? = previousCoreTimes
+                previousCoreTimes = cores.cores
+                previous?.let { CoreUtilization.between(it, cores.cores) }?.takeIf { it.isNotEmpty() }
+            }
+            CoreTimesResult.NotDeviceOwner -> noCpu(CpuUnavailable.NOT_DEVICE_OWNER)
+            CoreTimesResult.NotSupported -> noCpu(CpuUnavailable.NOT_SUPPORTED)
+        }
+    }
+
+    private fun noCpu(reason: CpuUnavailable): Map<String, Map<String, Double>>? {
+        cpuSource = CpuSource.NONE
+        cpuUnavailable = reason
+        previousCoreTimes = null
+        return null
     }
 
     private fun readMemory(): MemoryReading? {

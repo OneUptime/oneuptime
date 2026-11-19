@@ -553,6 +553,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-classes/:cloudId`":
         READ,
+      // A class's failed nodes, which its "Failed: N" opens (#9751).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-failed-nodes/:cloudId`":
+        READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/needs-attention/:cloudId`":
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/blast-radius/:cloudId`":
@@ -1051,10 +1054,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
         /*
-         * Its invite suggestions read only (#9701); is-user-registered is
-         * gone (#9745).
+         * Its invite suggestions read only (#9701), and so do the Admin
+         * Dashboard's, in the project the path names (#9826);
+         * is-user-registered is gone (#9745).
          */
-        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
+        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
         // #9762: a master admin clearing one person's sign-in settings.
         "packages/Common/Server/API/UserAPI.ts": 8,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
@@ -1182,6 +1186,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Telemetry arriving, by its ingestion key: it keeps arriving while its product is switched off, unless the server stops ingestion (DISABLE_TELEMETRY_INGESTION), as switching a product off promises.",
       {
+        "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,

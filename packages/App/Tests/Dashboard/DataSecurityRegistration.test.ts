@@ -158,6 +158,8 @@ describe("Data Security registry wiring", () => {
       "scanNow",
       "checkNow",
       "scrubFinding",
+      "dropMetricImpact",
+      "dropMetric",
       "explainIssue",
       "fixIssueWithAi",
     ]) {
@@ -175,6 +177,8 @@ describe("Data Security registry wiring", () => {
       DATA_SECURITY_API_ROUTES.scanNow(":id"),
       DATA_SECURITY_API_ROUTES.checkNow(":id"),
       DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
       DATA_SECURITY_API_ROUTES.explainIssue(":id"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
     ];

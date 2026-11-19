@@ -445,6 +445,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "HostCollectorConfigVersion",
     "HostFeed",
     "HostLabelRule",
+    "HostLogSession",
     "HostOwnerRule",
     "HostOwnerTeam",
     "HostOwnerUser",

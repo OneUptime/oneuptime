@@ -12,6 +12,7 @@ import {
   MonitorRecommendationResourceType,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorStepExceptionMonitor from "../../../../Types/Monitor/MonitorStepExceptionMonitor";
 import {
   REPRESENTATIVE_CONTEXTS,
   getAllRepresentativeRecommendations,
@@ -974,5 +975,108 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
         args: args,
       }).size,
     ).toBe(0);
+  });
+
+  /*
+   * #9713: a monitor that counts only unhandled exceptions, or leaves types
+   * out, counts something else than one that counts every exception, so
+   * neither covers the other; unset, the filters change nothing.
+   */
+  test("the unhandled-only and left-out-types filters are part of what a monitor watches", () => {
+    const args: MonitorRecommendationArgs = buildArgs();
+
+    const serviceRecommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.Service,
+      );
+
+    const unhandledExceptions: MonitorRecommendation | undefined =
+      serviceRecommendations.find((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId === "service-unhandled-exceptions";
+      });
+
+    expect(unhandledExceptions).toBeDefined();
+
+    const buildExceptionMonitor: (
+      filters: Partial<MonitorStepExceptionMonitor>,
+    ) => ExistingRecommendationMonitor = (
+      filters: Partial<MonitorStepExceptionMonitor>,
+    ): ExistingRecommendationMonitor => {
+      const monitor: ExistingRecommendationMonitor = buildMonitorFor(
+        [unhandledExceptions!],
+        args,
+      );
+      const step: MonitorStep = monitor.monitorSteps[0]!;
+
+      step.setExceptionMonitor({
+        ...step.data!.exceptionMonitor!,
+        ...filters,
+      });
+
+      return monitor;
+    };
+
+    const coveredBy: (
+      filters: Partial<MonitorStepExceptionMonitor>,
+    ) => number = (filters: Partial<MonitorStepExceptionMonitor>): number => {
+      return MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+        recommendations: [unhandledExceptions!],
+        existingMonitors: [buildExceptionMonitor(filters)],
+        args: args,
+      }).size;
+    };
+
+    // Unset or empty: the monitor watches what it always did.
+    expect(coveredBy({})).toBe(1);
+    expect(
+      coveredBy({ unhandledOnly: false, excludedExceptionTypes: [] }),
+    ).toBe(1);
+
+    expect(coveredBy({ unhandledOnly: true })).toBe(0);
+    expect(coveredBy({ excludedExceptionTypes: ["ANR"] })).toBe(0);
+  });
+
+  /*
+   * #9711: a Traces monitor that counts every span of an app does not cover
+   * one that counts them per install (Device Stopped Reporting), and an
+   * ungrouped step fingerprints as it always did.
+   */
+  test("a Traces monitor's group-by is part of what it watches", () => {
+    const args: MonitorRecommendationArgs = buildArgs();
+
+    const recommendation: MonitorRecommendation | undefined =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.RumApplication,
+        { rumClientKind: "mobile" },
+      ).find((candidate: MonitorRecommendation) => {
+        return candidate.templateId === "rum-device-stopped-reporting";
+      });
+
+    expect(recommendation).toBeDefined();
+
+    const coveredBy: (
+      groupByAttributes: Array<string> | undefined,
+    ) => number = (groupByAttributes: Array<string> | undefined): number => {
+      const monitor: ExistingRecommendationMonitor = buildMonitorFor(
+        [recommendation!],
+        args,
+      );
+      const step: MonitorStep = monitor.monitorSteps[0]!;
+
+      step.setTraceMonitor({
+        ...step.data!.traceMonitor!,
+        groupByAttributes: groupByAttributes,
+      });
+
+      return MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+        recommendations: [recommendation!],
+        existingMonitors: [monitor],
+        args: args,
+      }).size;
+    };
+
+    expect(coveredBy(["resource.app.installation.id"])).toBe(1);
+    expect(coveredBy(undefined)).toBe(0);
+    expect(coveredBy(["resource.host.name"])).toBe(0);
   });
 });

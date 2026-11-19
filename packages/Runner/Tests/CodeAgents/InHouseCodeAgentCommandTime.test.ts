@@ -11,9 +11,11 @@
  * no log.
  *
  * Now a command gets two minutes unless the model sets timeout_seconds, up
- * to ten, never past the time the task has left, and while it runs the
- * Runner tells the server the run is still working (an InProgress status
- * report, which adds nothing to the run's trail).
+ * to ten - or up to the project's own Time Limit per Command, which the
+ * server sends with the run's limits (issue #6532) - never past the time
+ * the task has left, and while it runs the Runner tells the server the run
+ * is still working (an InProgress status report, which adds nothing to the
+ * run's trail).
  *
  * The agent is driven by scripted LLM completions against a real git
  * repository and real shell commands; only the server is faked.
@@ -27,6 +29,8 @@ import {
 } from "../../CodeAgents/CodeAgentInterface";
 import SecretRedactor from "../../Utils/SecretRedactor";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import { AIRunTimeLimitSource } from "Common/Types/AI/AIAgentRunLimits";
+import { CodeAgentRunLimits } from "Common/Types/AI/CodeAgentRunLimits";
 import { JSONObject } from "Common/Types/JSON";
 import {
   LLMMessage,
@@ -181,6 +185,60 @@ function scriptCommand(args: Record<string, unknown>): void {
   );
 }
 
+/*
+ * What a current server says of a run whose project set a Time Limit per
+ * Command (issue #6532): its time limit, the time it has left, and how long
+ * one command may run.
+ */
+function runLimits(data: {
+  commandTimeLimitInMinutes: number;
+  timeLimitInMinutes?: number;
+  timeLeftMs?: number;
+}): CodeAgentRunLimits {
+  const timeLimitInMinutes: number = data.timeLimitInMinutes ?? 120;
+  const timeLeftMs: number = data.timeLeftMs ?? timeLimitInMinutes * 60_000;
+
+  return {
+    maxModelCalls: null,
+    maxToolCalls: null,
+    maxTokens: null,
+    timeLimitInMinutes,
+    timeLimitSource: AIRunTimeLimitSource.Project,
+    commandTimeLimitInMinutes: data.commandTimeLimitInMinutes,
+    deadlineAt: new Date(Date.now() + timeLeftMs).toISOString(),
+    timeLeftMs,
+    modelCallsUsed: 1,
+    toolCallsUsed: 0,
+    tokensUsed: 1000,
+    lastCallTokens: 1000,
+  };
+}
+
+/*
+ * A run whose server says its limits with every answer: one command, then
+ * an answer.
+ */
+function scriptCommandWithLimits(
+  args: Record<string, unknown>,
+  limits: CodeAgentRunLimits,
+): void {
+  llmCompletionMock.mockReset();
+  llmCompletionMock.mockResolvedValueOnce({
+    content: "",
+    toolCalls: [toolCall("run_command", args)],
+    stopReason: "tool_use",
+    limits,
+    budget: null,
+  });
+  llmCompletionMock.mockResolvedValue({
+    content: "Ran it.",
+    toolCalls: [],
+    stopReason: "stop",
+    limits,
+    budget: null,
+  });
+}
+
 async function runAgent(
   workspace: string,
   timeoutMs: number = 60_000,
@@ -255,7 +313,7 @@ describe("how long a command may run", () => {
     scriptCommand({ command: "sleep 30", timeout_seconds: 1 });
 
     const startedAt: number = Date.now();
-    const result: CodeAgentResult = await runAgent(workspace);
+    const result: CodeAgentResult = await runAgent(workspace, 30 * 60 * 1000);
     const elapsed: number = Date.now() - startedAt;
 
     expect(result.success).toBe(true);
@@ -323,6 +381,102 @@ describe("how long a command may run", () => {
 
     expect(commandDelay).toBeDefined();
     expect(commandTimerDelays(timerSpy)).not.toContain(600_000);
+  });
+
+  /*
+   * THE CUSTOMER'S CASE (issue #6532): a test suite of 25 minutes was
+   * stopped at ten, every time. A project that gives its commands 30
+   * minutes has it run whole - and a command that asks for more is still
+   * held to the 30.
+   */
+  test("a project with a 30-minute Time Limit per Command: a command that asks for 25 minutes gets 25", async () => {
+    const workspace: string = makeWorkspace();
+    const timerSpy: jest.SpyInstance = jest.spyOn(global, "setTimeout");
+
+    scriptCommandWithLimits(
+      { command: "true", timeout_seconds: 25 * 60 },
+      runLimits({ commandTimeLimitInMinutes: 30 }),
+    );
+
+    await runAgent(workspace, 3 * 60 * 60 * 1000);
+
+    expect(commandTimerDelays(timerSpy)).toContain(25 * 60 * 1000);
+  });
+
+  test("a project with a 30-minute Time Limit per Command: a command that asks for 40 minutes is held to 30", async () => {
+    const workspace: string = makeWorkspace();
+    const timerSpy: jest.SpyInstance = jest.spyOn(global, "setTimeout");
+
+    scriptCommandWithLimits(
+      { command: "true", timeout_seconds: 40 * 60 },
+      runLimits({ commandTimeLimitInMinutes: 30 }),
+    );
+
+    await runAgent(workspace, 3 * 60 * 60 * 1000);
+
+    const delays: Array<number> = commandTimerDelays(timerSpy);
+
+    expect(delays).toContain(30 * 60 * 1000);
+    expect(delays).not.toContain(40 * 60 * 1000);
+  });
+
+  test("a project that set none (the server sends the default): a command is held to ten minutes, as it is today", async () => {
+    const workspace: string = makeWorkspace();
+    const timerSpy: jest.SpyInstance = jest.spyOn(global, "setTimeout");
+
+    scriptCommandWithLimits(
+      { command: "true", timeout_seconds: 40 * 60 },
+      runLimits({ commandTimeLimitInMinutes: 10 }),
+    );
+
+    await runAgent(workspace, 3 * 60 * 60 * 1000);
+
+    const delays: Array<number> = commandTimerDelays(timerSpy);
+
+    expect(delays).toContain(600_000);
+    expect(delays).not.toContain(40 * 60 * 1000);
+  });
+
+  test("a project's long Time Limit per Command never takes a command past the run's time", async () => {
+    const workspace: string = makeWorkspace();
+    const timerSpy: jest.SpyInstance = jest.spyOn(global, "setTimeout");
+
+    // Two hours a command, but the run has five minutes left.
+    scriptCommandWithLimits(
+      { command: "true", timeout_seconds: 100 * 60 },
+      runLimits({ commandTimeLimitInMinutes: 120, timeLeftMs: 5 * 60 * 1000 }),
+    );
+
+    await runAgent(workspace, 3 * 60 * 60 * 1000);
+
+    const delays: Array<number> = commandTimerDelays(timerSpy);
+    const commandDelay: number | undefined = delays.find(
+      (delay: number): boolean => {
+        return delay > 4 * 60 * 1000 && delay <= 5 * 60 * 1000;
+      },
+    );
+
+    expect(commandDelay).toBeDefined();
+    expect(delays).not.toContain(100 * 60 * 1000);
+  });
+
+  test("a command cut short by the run's end is told that was all the time it had", async () => {
+    const workspace: string = makeWorkspace();
+
+    // The run has two seconds left; the command asks for a minute.
+    scriptCommandWithLimits(
+      { command: "sleep 30", timeout_seconds: 60 },
+      runLimits({ commandTimeLimitInMinutes: 30, timeLeftMs: 2000 }),
+    );
+
+    const result: CodeAgentResult = await runAgent(
+      workspace,
+      3 * 60 * 60 * 1000,
+    );
+
+    expect(commandOutputs(result)).toMatch(
+      /Command timed out after \d+ seconds?: that was all the time this task had left\./,
+    );
   });
 
   test("a timeout_seconds the model sends as text is read as its number", async () => {
@@ -483,7 +637,8 @@ describe("what the model is told", () => {
 
     script({ content: "Nothing to do.", toolCalls: [] });
 
-    await runAgent(workspace);
+    // A step longer than the most a command may run: the definition says that most.
+    await runAgent(workspace, 30 * 60 * 1000);
 
     const request: JSONObject = llmCompletionMock.mock
       .calls[0]![0] as JSONObject;
@@ -505,7 +660,7 @@ describe("what the model is told", () => {
 
     expect(runCommand).toBeDefined();
     expect(runCommand!.description).toBe(
-      "Run a shell command in the repository root. It stops after 120 seconds unless timeout_seconds gives it longer. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.",
+      "Run a shell command in the repository root. It stops after 120 seconds unless timeout_seconds gives it longer, up to 600. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.",
     );
 
     const schema: JSONObject = runCommand!.inputSchema as JSONObject;
@@ -520,7 +675,13 @@ describe("what the model is told", () => {
     expect(schema["required"]).toEqual(["command"]);
   });
 
-  test("the system prompt gives the default, the argument and its most, and warns off commands that never end", async () => {
+  /*
+   * The prompt is written before the server has said the project's Time
+   * Limit per Command, and is kept for the whole task (the provider caches
+   * it): it points to run_command's definition, which says the cap that
+   * applies, and names no number that could contradict it.
+   */
+  test("the system prompt names the argument, points to the definition for its most, and warns off commands that never end", async () => {
     const { messages } = await firstCompletionRequest();
 
     const system: string = messages[0]!.content;
@@ -529,11 +690,113 @@ describe("what the model is told", () => {
       [
         "- run_command runs a shell command in the repository root. Use it to",
         "  set up, build and run the tests the way the repository says to. A",
-        "  command stops after 120 seconds; for a slow install, build or test",
-        "  suite, set timeout_seconds (at most 600). Never start a command that",
-        "  waits forever (a dev server, a watch mode).",
+        "  command stops at a time limit, which run_command's description gives;",
+        "  for a slow install, build or test suite, set timeout_seconds to give it",
+        "  longer, up to the most it allows. Never start a command that waits",
+        "  forever (a dev server, a watch mode).",
       ].join("\n"),
     );
     expect(system).not.toContain("120 second timeout");
+    expect(system).not.toContain("at most 600");
+  });
+
+  test("once the server says the project's Time Limit per Command, run_command says that most", async () => {
+    const workspace: string = makeWorkspace();
+
+    scriptCommandWithLimits(
+      { command: "true" },
+      runLimits({ commandTimeLimitInMinutes: 30 }),
+    );
+
+    await runAgent(workspace, 3 * 60 * 60 * 1000);
+
+    const runCommandOf: (call: number) => LLMToolDefinition | undefined = (
+      call: number,
+    ): LLMToolDefinition | undefined => {
+      const request: JSONObject = llmCompletionMock.mock.calls[
+        call
+      ]![0] as JSONObject;
+
+      return (request["tools"] as unknown as Array<LLMToolDefinition>).find(
+        (tool: LLMToolDefinition): boolean => {
+          return tool.name === "run_command";
+        },
+      );
+    };
+
+    // Before the server said anything: ten minutes.
+    expect(
+      (
+        (runCommandOf(0)!.inputSchema as JSONObject)["properties"] as JSONObject
+      )["timeout_seconds"],
+    ).toEqual({
+      type: "integer",
+      description:
+        "How long the command may run, in seconds: 120 when left out, at most 600. Give more only to a slow install, build or test suite.",
+    });
+
+    // After: the project's 30 minutes.
+    expect(runCommandOf(1)!.description).toContain(
+      "It stops after 120 seconds unless timeout_seconds gives it longer, up to 1800.",
+    );
+    expect(
+      (
+        (runCommandOf(1)!.inputSchema as JSONObject)["properties"] as JSONObject
+      )["timeout_seconds"],
+    ).toEqual({
+      type: "integer",
+      description:
+        "How long the command may run, in seconds: 120 when left out, at most 1800. Give more only to a slow install, build or test suite.",
+    });
+  });
+
+  test("a run whose own time limit is shorter than the setting says the run's", async () => {
+    const workspace: string = makeWorkspace();
+
+    scriptCommandWithLimits(
+      { command: "true" },
+      runLimits({ commandTimeLimitInMinutes: 60, timeLimitInMinutes: 20 }),
+    );
+
+    await runAgent(workspace, 3 * 60 * 60 * 1000);
+
+    const request: JSONObject = llmCompletionMock.mock
+      .calls[1]![0] as JSONObject;
+    const runCommand: LLMToolDefinition | undefined = (
+      request["tools"] as unknown as Array<LLMToolDefinition>
+    ).find((tool: LLMToolDefinition): boolean => {
+      return tool.name === "run_command";
+    });
+
+    expect(runCommand!.description).toContain("up to 1200.");
+  });
+
+  test("a step of a minute (a repair pass's own time): run_command says no command runs longer", async () => {
+    const workspace: string = makeWorkspace();
+
+    script({ content: "Nothing to do.", toolCalls: [] });
+
+    await runAgent(workspace, 60_000);
+
+    const request: JSONObject = llmCompletionMock.mock
+      .calls[0]![0] as JSONObject;
+    const runCommand: LLMToolDefinition | undefined = (
+      request["tools"] as unknown as Array<LLMToolDefinition>
+    ).find((tool: LLMToolDefinition): boolean => {
+      return tool.name === "run_command";
+    });
+
+    expect(runCommand!.description).toBe(
+      "Run a shell command in the repository root. It stops after 60 seconds, the longest a command may run here. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.",
+    );
+    expect(
+      ((runCommand!.inputSchema as JSONObject)["properties"] as JSONObject)[
+        "timeout_seconds"
+      ],
+    ).toEqual({
+      type: "integer",
+      description:
+        "How long the command may run, in seconds: at most 60, which it gets when left out.",
+    });
   });
 });

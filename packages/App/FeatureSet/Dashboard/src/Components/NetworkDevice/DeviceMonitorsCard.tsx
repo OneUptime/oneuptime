@@ -126,7 +126,7 @@ export const REMOVE_TIED_MONITOR_COPY: {
   buttonAriaLabel: translationKey("Remove {{monitorName}} from this device"),
   dialogTitle: translationKey("Remove from Device"),
   dialogDescription: translationKey(
-    "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.",
+    "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.",
   ),
   removed: translationKey("Monitor removed from this device."),
 };

@@ -4,6 +4,7 @@ import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MonitorStep from "../MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "../MonitorStepExceptionMonitor";
+import { MonitorStepTraceMonitorUtil } from "../MonitorStepTraceMonitor";
 import MonitorSteps from "../MonitorSteps";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
@@ -72,6 +73,8 @@ interface RecommendationMonitorStepConfig {
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans?: number | undefined;
   exceptionTypes?: Array<string> | undefined;
+  excludedExceptionTypes?: Array<string> | undefined;
+  unhandledOnly?: boolean | undefined;
   environments?: Array<string> | undefined;
   message?: string | undefined;
   includeResolved?: boolean | undefined;
@@ -672,6 +675,23 @@ export default class MonitorRecommendationUtil {
         `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
         `lastXSecondsOfSpans=${String(config.lastXSecondsOfSpans ?? "")}`,
       );
+
+      /*
+       * One alert per group (#9711): a monitor that counts every span of
+       * an app does not cover Device Stopped Reporting, which counts them
+       * per install. Written only when set, so every ungrouped step
+       * fingerprints exactly as before.
+       */
+      const groupByAttributes: Array<string> =
+        MonitorStepTraceMonitorUtil.getGroupByAttributes({
+          groupByAttributes: config.groupByAttributes,
+        });
+
+      if (groupByAttributes.length > 0) {
+        values.push(
+          `groupByAttributes=${groupByAttributes.slice().sort().join(",")}`,
+        );
+      }
     }
 
     if (configKind === "exceptionMonitor") {
@@ -694,6 +714,27 @@ export default class MonitorRecommendationUtil {
           config.lastXSecondsOfExceptions ?? "",
         )}`,
       );
+
+      /*
+       * Unhandled only, and the types left out (#9713): a monitor that
+       * counts every exception does not cover App Crashes, which counts the
+       * unhandled ones less ANRs and hangs. Written only when set, so every
+       * step without them fingerprints exactly as before.
+       */
+      const excludedExceptionTypes: Array<string> =
+        MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+          config.excludedExceptionTypes,
+        );
+
+      if (excludedExceptionTypes.length > 0) {
+        values.push(
+          `excludedExceptionTypes=${excludedExceptionTypes.sort().join(",")}`,
+        );
+      }
+
+      if (MonitorStepExceptionMonitorUtil.isUnhandledOnly(config)) {
+        values.push("unhandledOnly=true");
+      }
     }
 
     /*

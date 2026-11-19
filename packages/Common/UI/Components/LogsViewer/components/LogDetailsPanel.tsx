@@ -29,6 +29,8 @@ import Link from "../../Link/Link";
 import OneUptimeDate from "../../../../Types/Date";
 import { getTextReadingDirectionByMostLetters } from "../../../../Types/ReadingDirection";
 import SeverityBadge from "./SeverityBadge";
+import CopyLogLineLinkButton from "./CopyLogLineLinkButton";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../Utils/API/API";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
@@ -112,6 +114,13 @@ export interface LogDetailsPanelProps {
    * was written in, is part of. Rendering nothing is fine.
    */
   renderExtraSection?: ((log: Log) => ReactNode) | undefined;
+  /*
+   * The link that opens this very line (#9794), as the app builds it: the
+   * Logs page naming the line by its id and when it was written. Given, the
+   * header has Copy Link (CopyLogLineLinkButton); none for a line the link
+   * cannot name.
+   */
+  getLogLink?: ((log: Log) => string | null | undefined) | undefined;
 }
 
 interface AttributeEntry {
@@ -178,6 +187,13 @@ function parseContextRow(row: JSONObject): ContextLog {
 
 // Whole-trace context is one bounded fetch, not a paginated view.
 const TRACE_CONTEXT_LIMIT: number = 100;
+
+// An attribute's key, in the list: two fifths of a phone's line, 14rem from sm up.
+export const LOG_ATTRIBUTE_KEY_CLASS_NAME: string =
+  "w-2/5 flex-none truncate font-mono text-[12px] text-gray-500 sm:w-56";
+
+// An attribute's key or value, in its isolate: in the code font of its row.
+export const LOG_ATTRIBUTE_TEXT_CLASS_NAME: string = "font-mono";
 
 function toContextLog(log: Log): ContextLog {
   return {
@@ -321,6 +337,11 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
   const traceId: string = props.log.traceId?.toString() || "";
   const spanId: string = props.log.spanId?.toString() || "";
+
+  // The link to this very line, when the app can build one.
+  const logLink: string = useMemo(() => {
+    return props.getLogLink?.(props.log) || "";
+  }, [props.getLogLink, props.log]);
 
   const traceRoute: Route | URL | undefined = useMemo(() => {
     if (!traceId || !props.getTraceRoute) {
@@ -711,15 +732,23 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
           </div>
         </div>
 
-        {props.onClose && (
-          <button
-            type="button"
-            onClick={props.onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
-            title={translator.translateText("Close details")}
-          >
-            <Icon icon={IconProp.Close} className="h-4 w-4" />
-          </button>
+        {logLink || props.onClose ? (
+          <div className="flex flex-none items-center gap-2">
+            {/* A link to this very line, to send or keep (#9794). */}
+            {logLink ? <CopyLogLineLinkButton link={logLink} /> : <></>}
+            {props.onClose && (
+              <button
+                type="button"
+                onClick={props.onClose}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
+                title={translator.translateText("Close details")}
+              >
+                <Icon icon={IconProp.Close} className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <></>
         )}
       </div>
 
@@ -960,17 +989,38 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           key={entry.key}
                           className="group flex items-start gap-3 px-3 py-2 hover:bg-white"
                         >
+                          {/*
+                           * The key takes 14rem where there is room for it,
+                           * and two fifths of a phone's line: at 14rem on a
+                           * 390px phone, a value had a letter's width and
+                           * ran down the row a letter a line.
+                           */}
+                          {/*
+                           * Each read the way it is written (IsolatedText):
+                           * on a Persian page "/api/users" put its first
+                           * slash at its end ("api/users/"). The isolate
+                           * names its font itself, as the page's
+                           * `* { font-family }` would set it to Inter.
+                           */}
                           <span
-                            className="w-56 flex-none truncate font-mono text-[12px] text-gray-500"
+                            className={LOG_ATTRIBUTE_KEY_CLASS_NAME}
                             title={entry.key}
                           >
-                            {entry.key}
+                            <IsolatedText
+                              text={entry.key}
+                              className={LOG_ATTRIBUTE_TEXT_CLASS_NAME}
+                            />
                           </span>
                           <span
                             className="min-w-0 flex-1 break-all font-mono text-[12px] text-gray-800"
                             title={entry.value}
                           >
-                            {entry.value || (
+                            {entry.value ? (
+                              <IsolatedText
+                                text={entry.value}
+                                className={LOG_ATTRIBUTE_TEXT_CLASS_NAME}
+                              />
+                            ) : (
                               <span className="italic text-gray-500">
                                 {translator.translateText("empty")}
                               </span>
