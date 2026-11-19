@@ -116,6 +116,36 @@ import {
 } from "../../../Components/Rum/SetupCheck/RumIngestRefusals";
 import useRecentIngestRefusals from "../../../Components/Rum/SetupCheck/useRecentIngestRefusals";
 import { RumSignalArrivalRead } from "../../../Components/Rum/SetupCheck/useRumSetupCheck";
+import useMobileRumSignals, {
+  MobileRumSignalsLoad,
+  MobileSignalArrival,
+  UseMobileRumSignalsResult,
+} from "../../../Components/Rum/MobileOverview/useMobileRumSignals";
+import MobileSignalEmptyState from "../../../Components/Rum/MobileOverview/MobileSignalEmptyState";
+import FramesByScreenCard from "../../../Components/Rum/MobileOverview/FramesByScreenCard";
+import {
+  MobileAppStarts,
+  MobileFaultCount,
+  MobileFrames,
+  TimePoint as MobileTimePoint,
+} from "../../../Components/Rum/MobileOverview/MobileRumSignalData";
+import {
+  CRASH_FREE_THRESHOLDS,
+  MobileChartSignal,
+  MobileSignalEmptyCopy,
+  MobileTileText,
+  buildMobileExceptionsRoute,
+  buildMobileFrozenFramesLogsRoute,
+  buildMobileTracesRoute,
+  describeAppStartsTile,
+  describeColdStartTile,
+  describeCrashFreeTile,
+  describeFaultTile,
+  describeFrozenFramesTile,
+  describeSessionsTile,
+  getMobileSignalEmptyCopy,
+  getMobileSignalEmptyState,
+} from "./MobileOverviewHelpers";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -245,6 +275,15 @@ const RumApplicationOverview: FunctionComponent<
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
 
+  /*
+   * What a mobile app's Overview draws in place of page loads and Web
+   * Vitals (#9588) - its sessions, crashes, ANRs, app starts and frames -
+   * read by the telemetry loader below, behind the same staleness guard.
+   */
+  const mobileSignals: UseMobileRumSignalsResult = useMobileRumSignals();
+  const loadMobileSignals: (input: MobileRumSignalsLoad) => void =
+    mobileSignals.load;
+
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
   ): Promise<void> => {
@@ -330,6 +369,16 @@ const RumApplicationOverview: FunctionComponent<
   const modelIdString: string = modelId.toString();
 
   /*
+   * A mobile app (as ingest records it, RumClientKind) reads its own
+   * signals; until ingest has said, an application keeps the browser
+   * Overview. Keyed in the loader, so the first telemetry that names the app
+   * mobile reloads the page's reads as a mobile app's.
+   */
+  const isMobileApp: boolean = rumApplication
+    ? getRumClientKind(rumApplication) === "mobile"
+    : false;
+
+  /*
    * Staleness guard for the telemetry fetches: a slow wide-range fetch can
    * resolve after a subsequently selected narrower range, and a refresh can
    * overlap a range change - without the guard the older response would
@@ -387,100 +436,121 @@ const RumApplicationOverview: FunctionComponent<
           setMetricsLoading(false);
         });
 
-      fetchWebVitals({ primaryEntityId, start, end })
-        .then((v: Array<WebVital>) => {
-          if (!isCurrent()) {
-            return;
-          }
-          setWebVitals(v);
-          setWebVitalsLoading(false);
+      if (isMobileApp) {
+        /*
+         * A mobile app sends no page load and no Web Vital: its own signals
+         * take their place (#9588), read with the same window and guard,
+         * and nothing waits on the browser's.
+         */
+        setWebVitals([]);
+        setWebVitalsLoading(false);
+        setInpByRoute(null);
+        setInpByRouteLoading(false);
+        setPageLoadsLoading(false);
 
-          /*
-           * INP per route, under the name the card found INP under. No INP
-           * at all means no breakdown to ask for - the card's own empty
-           * state already says how to start.
-           */
-          const inpMetricName: string | null =
-            v.find((vital: WebVital): boolean => {
-              return vital.key === "inp";
-            })?.metricName || null;
+        loadMobileSignals({
+          primaryEntityId,
+          start,
+          end,
+          showLoading,
+          isCurrent,
+        });
+      } else {
+        fetchWebVitals({ primaryEntityId, start, end })
+          .then((v: Array<WebVital>) => {
+            if (!isCurrent()) {
+              return;
+            }
+            setWebVitals(v);
+            setWebVitalsLoading(false);
 
-          if (!inpMetricName) {
-            setInpByRoute(null);
+            /*
+             * INP per route, under the name the card found INP under. No INP
+             * at all means no breakdown to ask for - the card's own empty
+             * state already says how to start.
+             */
+            const inpMetricName: string | null =
+              v.find((vital: WebVital): boolean => {
+                return vital.key === "inp";
+              })?.metricName || null;
+
+            if (!inpMetricName) {
+              setInpByRoute(null);
+              setInpByRouteLoading(false);
+              return;
+            }
+
+            fetchWebVitalByRoute({
+              primaryEntityId,
+              metricName: inpMetricName,
+              start,
+              end,
+            })
+              .then((breakdown: WebVitalByRoute) => {
+                if (!isCurrent()) {
+                  return;
+                }
+                setInpByRoute(breakdown);
+                setInpByRouteLoading(false);
+              })
+              .catch(() => {
+                if (!isCurrent()) {
+                  return;
+                }
+                setInpByRouteLoading(false);
+              });
+          })
+          .catch(() => {
+            if (!isCurrent()) {
+              return;
+            }
+            setWebVitalsLoading(false);
             setInpByRouteLoading(false);
-            return;
-          }
+          });
 
-          fetchWebVitalByRoute({
+        /*
+         * Page loads: the whole-range row for the tiles (true percentiles over
+         * every page load in the range) and the per-interval series for the
+         * charts. The tiles wait for both so they never show a count from one
+         * refresh beside a time from another.
+         */
+        Promise.all([
+          fetchSpanNameStats({
             primaryEntityId,
-            metricName: inpMetricName,
+            spanName: PAGE_LOAD_SPAN_NAME,
             start,
             end,
           })
-            .then((breakdown: WebVitalByRoute) => {
-              if (!isCurrent()) {
-                return;
-              }
-              setInpByRoute(breakdown);
-              setInpByRouteLoading(false);
+            .then((stats: SpanNameStats): SpanNameStats | null => {
+              return stats;
             })
-            .catch(() => {
-              if (!isCurrent()) {
-                return;
-              }
-              setInpByRouteLoading(false);
-            });
-        })
-        .catch(() => {
-          if (!isCurrent()) {
-            return;
-          }
-          setWebVitalsLoading(false);
-          setInpByRouteLoading(false);
-        });
-
-      /*
-       * Page loads: the whole-range row for the tiles (true percentiles over
-       * every page load in the range) and the per-interval series for the
-       * charts. The tiles wait for both so they never show a count from one
-       * refresh beside a time from another.
-       */
-      Promise.all([
-        fetchSpanNameStats({
-          primaryEntityId,
-          spanName: PAGE_LOAD_SPAN_NAME,
-          start,
-          end,
-        })
-          .then((stats: SpanNameStats): SpanNameStats | null => {
-            return stats;
-          })
-          .catch((): null => {
-            return null;
+            .catch((): null => {
+              return null;
+            }),
+          fetchSpanMetrics({
+            primaryEntityId,
+            spanName: PAGE_LOAD_SPAN_NAME,
+            start,
+            end,
           }),
-        fetchSpanMetrics({
-          primaryEntityId,
-          spanName: PAGE_LOAD_SPAN_NAME,
-          start,
-          end,
-        }),
-      ])
-        .then(([stats, series]: [SpanNameStats | null, SpanMetrics]) => {
-          if (!isCurrent()) {
-            return;
-          }
-          setPageLoadStats(stats);
-          setPageLoadStatsFailed(stats === null);
-          setPageLoadMetrics(series);
-          setPageLoadsLoading(false);
-        })
-        .catch(() => {
-          if (!isCurrent()) {
-            return;
-          }
-          setPageLoadStatsFailed(true);
-          setPageLoadsLoading(false);
-        });
+        ])
+          .then(([stats, series]: [SpanNameStats | null, SpanMetrics]) => {
+            if (!isCurrent()) {
+              return;
+            }
+            setPageLoadStats(stats);
+            setPageLoadStatsFailed(stats === null);
+            setPageLoadMetrics(series);
+            setPageLoadsLoading(false);
+          })
+          .catch(() => {
+            if (!isCurrent()) {
+              return;
+            }
+            setPageLoadStatsFailed(true);
+            setPageLoadsLoading(false);
+          });
+      }
 
       // Exceptions and logs, scoped by the same primaryEntityId.
       fetchLogAndExceptionSignals({ primaryEntityId, start, end })
@@ -560,7 +630,7 @@ const RumApplicationOverview: FunctionComponent<
           setSessionReplayCountFailed(true);
         });
     },
-    [modelIdString, timeRangeKey],
+    [modelIdString, timeRangeKey, isMobileApp, loadMobileSignals],
   );
 
   /*
@@ -636,7 +706,10 @@ const RumApplicationOverview: FunctionComponent<
 
   const chips: Array<ResourceOverviewChip> = [];
   if (a.clientType) {
-    chips.push({ icon: IconProp.Window, label: String(a.clientType) });
+    chips.push({
+      icon: isMobileApp ? IconProp.DevicePhoneMobile : IconProp.Window,
+      label: String(a.clientType),
+    });
   }
   if (a.sdkLanguage) {
     chips.push({ icon: IconProp.Code, label: String(a.sdkLanguage) });
@@ -891,6 +964,439 @@ const RumApplicationOverview: FunctionComponent<
     return formatDurationMsInLanguage(n, translator);
   };
 
+  /*
+   * A MOBILE APP'S TILES AND CHARTS (#9588): what a mobile team watches
+   * first, in place of page loads and Web Vitals - sessions, crash-free
+   * sessions, crashes, ANRs, app starts, cold start time and frozen frames,
+   * and the share of failed spans. Every tile opens where its number can be
+   * read row by row: the sessions' recordings or spans, the app's
+   * exceptions (ANRs alone), its AppStart spans, its frozen-frame events
+   * and its failed spans, on the range the tile counted. The words are
+   * MobileOverviewHelpers', the data MobileRumSignalData's.
+   */
+  const crashes: MobileFaultCount | null = mobileSignals.faults
+    ? mobileSignals.faults.crashes
+    : null;
+  const anrs: MobileFaultCount | null = mobileSignals.faults
+    ? mobileSignals.faults.anrs
+    : null;
+  const sessionsTile: MobileTileText = describeSessionsTile({
+    sessions: mobileSignals.sessions,
+    timeRange: timeRange,
+  });
+  const crashFreeTile: MobileTileText = describeCrashFreeTile({
+    sessions: mobileSignals.sessions,
+    crashes: crashes,
+  });
+  const crashesTile: MobileTileText = describeFaultTile({
+    fault: crashes,
+    timeRange: timeRange,
+  });
+  const anrsTile: MobileTileText = describeFaultTile({
+    fault: anrs,
+    timeRange: timeRange,
+  });
+  const appStartsTile: MobileTileText = describeAppStartsTile({
+    appStarts: mobileSignals.appStarts,
+  });
+  const coldStartTile: MobileTileText = describeColdStartTile({
+    appStarts: mobileSignals.appStarts,
+  });
+  const frozenFramesTile: MobileTileText = describeFrozenFramesTile({
+    frames: mobileSignals.frames,
+  });
+
+  const rumTracesRoute: Route = populate(PageMap.RUM_APPLICATION_VIEW_TRACES);
+  const exceptionsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.EXCEPTIONS] as Route,
+  );
+  const exceptionsOfAppRoute: Route = buildMobileExceptionsRoute({
+    exceptionsRoute: exceptionsRoute,
+    rumApplicationId: modelIdString,
+    timeRange: timeRange,
+  });
+  const recordsReplays: boolean = Boolean(a.sessionReplayLastChunkReceivedAt);
+
+  /*
+   * Sessions open their recordings when the app records them (React
+   * Native), else its spans, where session.id is a column; while its spans
+   * name no session, its setup guide.
+   */
+  const sessionsRoute: Route = sessionsTile.valueNote
+    ? documentationRoute
+    : recordsReplays
+      ? buildRangedListRoute(
+          populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+          timeRange,
+        )
+      : buildMobileTracesRoute({ tracesRoute: rumTracesRoute, timeRange });
+
+  const mobileTiles: Array<ResourceOverviewTile> = [
+    {
+      title: "Sessions",
+      value: sessionsTile.value,
+      valueNote: sessionsTile.valueNote,
+      icon: IconProp.UserGroup,
+      iconColor: "sky",
+      loading: mobileSignals.sessionsLoading,
+      sublabel: sessionsTile.sublabel,
+      to: sessionsRoute,
+      description: RUM_METRIC_DESCRIPTIONS.sessions,
+    },
+    {
+      title: "Crash-free sessions",
+      value: crashFreeTile.value,
+      icon: IconProp.ShieldCheck,
+      iconColor: "emerald",
+      loading: mobileSignals.sessionsLoading || mobileSignals.faultsLoading,
+      sublabel: crashFreeTile.sublabel,
+      percent: crashFreeTile.percent,
+      thresholds: CRASH_FREE_THRESHOLDS,
+      higherIsBetter: true,
+      to: exceptionsOfAppRoute,
+      description: RUM_METRIC_DESCRIPTIONS.crashFreeSessions,
+    },
+    {
+      title: "Crashes",
+      value: crashesTile.value,
+      icon: IconProp.Bug,
+      iconColor: "rose",
+      loading: mobileSignals.faultsLoading,
+      sublabel: crashesTile.sublabel,
+      to: exceptionsOfAppRoute,
+      description: RUM_METRIC_DESCRIPTIONS.crashes,
+    },
+    {
+      title: "ANRs",
+      value: anrsTile.value,
+      icon: IconProp.PauseCircle,
+      iconColor: "amber",
+      loading: mobileSignals.faultsLoading,
+      sublabel: anrsTile.sublabel,
+      to: buildMobileExceptionsRoute({
+        exceptionsRoute: exceptionsRoute,
+        rumApplicationId: modelIdString,
+        timeRange: timeRange,
+        anrsOnly: true,
+      }),
+      description: RUM_METRIC_DESCRIPTIONS.anrs,
+    },
+    {
+      title: "App starts",
+      value: appStartsTile.value,
+      icon: IconProp.Power,
+      iconColor: "violet",
+      loading: mobileSignals.appStartsLoading,
+      sublabel: appStartsTile.sublabel,
+      to: buildMobileTracesRoute({
+        tracesRoute: rumTracesRoute,
+        timeRange: timeRange,
+        appStarts: true,
+      }),
+      description: RUM_METRIC_DESCRIPTIONS.appStarts,
+    },
+    {
+      title: "Cold start (p95)",
+      value: coldStartTile.value,
+      icon: IconProp.Clock,
+      iconColor: "blue",
+      loading: mobileSignals.appStartsLoading,
+      sublabel: coldStartTile.sublabel,
+      to: buildMobileTracesRoute({
+        tracesRoute: rumTracesRoute,
+        timeRange: timeRange,
+        startType: "cold",
+      }),
+      description: RUM_METRIC_DESCRIPTIONS.coldStartTime,
+    },
+    {
+      title: "Frozen frames",
+      value: frozenFramesTile.value,
+      icon: IconProp.Squares,
+      iconColor: "rose",
+      loading: mobileSignals.framesLoading,
+      sublabel: frozenFramesTile.sublabel,
+      to: buildMobileFrozenFramesLogsRoute({
+        logsRoute: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.LOGS] as Route,
+        ),
+        rumApplicationId: modelIdString,
+        timeRange: timeRange,
+      }),
+      description: RUM_METRIC_DESCRIPTIONS.frozenFrames,
+    },
+    {
+      title: "Error rate",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
+      icon: IconProp.Alert,
+      iconColor: "rose",
+      loading: metricsLoading,
+      sublabel: spanLookupFailed
+        ? "could not load"
+        : m
+          ? translator.translateTemplate("{{errors}} errored", {
+              errors: formatCompact(m.errors, translator),
+            })
+          : undefined,
+      percent: m ? m.errorRatePercent : null,
+      thresholds: { warn: 1, danger: 5 },
+      to: buildMobileTracesRoute({
+        tracesRoute: rumTracesRoute,
+        timeRange: timeRange,
+        errorsOnly: true,
+      }),
+      description: RUM_METRIC_DESCRIPTIONS.errorRateMobile,
+    },
+  ];
+
+  /*
+   * Why an app start or frame chart is empty: none in this range, or none
+   * in the past 30 days (what turns it on, with the Android Setup docs). A
+   * failed read says so instead.
+   */
+  const renderMobileEmptySignal: (
+    signal: MobileChartSignal,
+    lastArrival: MobileSignalArrival | null,
+  ) => ReactElement | undefined = (
+    signal: MobileChartSignal,
+    lastArrival: MobileSignalArrival | null,
+  ): ReactElement | undefined => {
+    const copy: MobileSignalEmptyCopy | null = getMobileSignalEmptyCopy({
+      signal,
+      lastArrival,
+      translator,
+      now: diagnosisNow,
+    });
+
+    if (!copy) {
+      return undefined;
+    }
+
+    return (
+      <MobileSignalEmptyState
+        signal={signal}
+        state={getMobileSignalEmptyState(lastArrival)}
+        copy={copy}
+      />
+    );
+  };
+
+  const appStarts: MobileAppStarts | null = mobileSignals.appStarts;
+  const frames: MobileFrames | null = mobileSignals.frames;
+
+  /*
+   * Empty while the newest app start (or slow frame) is still being looked
+   * up: the chart keeps its skeleton rather than say "none" for a moment.
+   */
+  const isAppStartsChartLoading: boolean =
+    (mobileSignals.appStartsLoading && !appStarts) ||
+    Boolean(
+      appStarts &&
+        !appStarts.failed &&
+        appStarts.total === 0 &&
+        mobileSignals.lastAppStart === null,
+    );
+  const isFramesChartLoading: boolean =
+    (mobileSignals.framesLoading && !frames) ||
+    Boolean(
+      frames &&
+        !frames.failed &&
+        frames.slow === 0 &&
+        frames.frozen === 0 &&
+        mobileSignals.lastFrameEvent === null,
+    );
+
+  /*
+   * The exceptions that are neither a crash nor an ANR - a failed network
+   * call's, one the app records itself - per interval: every exception less
+   * the two, which the histograms bucket alike.
+   */
+  const otherExceptionsSeries: Array<MobileTimePoint> = sumTimeSeries(
+    sumTimeSeries(
+      signals?.exceptions.unhandledSeries ?? [],
+      signals?.exceptions.handledSeries ?? [],
+    ),
+    sumTimeSeries(crashes?.series ?? [], anrs?.series ?? []).map(
+      (point: MobileTimePoint): MobileTimePoint => {
+        return { x: point.x, y: -point.y };
+      },
+    ),
+  ).filter((point: MobileTimePoint): boolean => {
+    return point.y > 0;
+  });
+
+  const mobileCharts: ReactElement = (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <ChartCard
+        title="App starts"
+        icon={IconProp.Power}
+        iconColor="violet"
+        series={
+          [
+            {
+              seriesName: "Cold starts",
+              data: appStarts?.countSeries.cold ?? [],
+            },
+            {
+              seriesName: "Warm starts",
+              data: appStarts?.countSeries.warm ?? [],
+            },
+            {
+              seriesName: "Hot starts",
+              data: appStarts?.countSeries.hot ?? [],
+            },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        yAllowDecimals={false}
+        loading={isAppStartsChartLoading}
+        description={RUM_METRIC_DESCRIPTIONS.appStartsChart}
+        emptyMessage={
+          appStarts?.failed ? "Could not load app starts" : undefined
+        }
+        emptyContent={
+          appStarts?.failed
+            ? undefined
+            : renderMobileEmptySignal("appStarts", mobileSignals.lastAppStart)
+        }
+      />
+      <ChartCard
+        title="Startup time (p95)"
+        icon={IconProp.Clock}
+        iconColor="blue"
+        series={
+          [
+            {
+              seriesName: "Cold start",
+              data: appStarts?.p95Series.cold ?? [],
+            },
+            {
+              seriesName: "Warm start",
+              data: appStarts?.p95Series.warm ?? [],
+            },
+            {
+              seriesName: "Hot start",
+              data: appStarts?.p95Series.hot ?? [],
+            },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        yLegend="ms"
+        yFormatter={durationFormatter}
+        loading={isAppStartsChartLoading}
+        description={RUM_METRIC_DESCRIPTIONS.startupTimeChart}
+        emptyMessage={
+          appStarts?.failed ? "Could not load app starts" : undefined
+        }
+        emptyContent={
+          appStarts?.failed
+            ? undefined
+            : renderMobileEmptySignal("appStarts", mobileSignals.lastAppStart)
+        }
+      />
+      <ChartCard
+        title="Crashes and ANRs"
+        icon={IconProp.Bug}
+        iconColor="rose"
+        series={
+          [
+            { seriesName: "Crashes", data: crashes?.series ?? [] },
+            { seriesName: "ANRs", data: anrs?.series ?? [] },
+            { seriesName: "Other exceptions", data: otherExceptionsSeries },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        yAllowDecimals={false}
+        loading={
+          (signalsLoading && !signals) ||
+          (mobileSignals.faultsLoading && !mobileSignals.faults) ||
+          exceptionsDiagnosis.state === "loading"
+        }
+        description={RUM_METRIC_DESCRIPTIONS.crashesChart}
+        emptyContent={renderEmptySignal("exceptions", exceptionsDiagnosis)}
+      />
+      <ChartCard
+        title="Slow and frozen frames"
+        icon={IconProp.Squares}
+        iconColor="amber"
+        series={
+          [
+            { seriesName: "Slow frames", data: frames?.slowSeries ?? [] },
+            { seriesName: "Frozen frames", data: frames?.frozenSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        yAllowDecimals={false}
+        loading={isFramesChartLoading}
+        description={RUM_METRIC_DESCRIPTIONS.framesChart}
+        emptyMessage={frames?.failed ? "Could not load frames" : undefined}
+        emptyContent={
+          frames?.failed
+            ? undefined
+            : renderMobileEmptySignal("frames", mobileSignals.lastFrameEvent)
+        }
+      />
+      <ChartCard
+        title="Events"
+        icon={IconProp.Activity}
+        iconColor="sky"
+        series={
+          [
+            { seriesName: "Events", data: m?.countSeries ?? [] },
+            { seriesName: "Errors", data: m?.errorSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        loading={metricsLoading && !m}
+        description={RUM_METRIC_DESCRIPTIONS.eventsChartMobile}
+      />
+      <ChartCard
+        title="Logs"
+        icon={IconProp.Logs}
+        iconColor="amber"
+        series={
+          [
+            { seriesName: "Log lines", data: signals?.logs.countSeries ?? [] },
+            { seriesName: "Errors", data: signals?.logs.errorSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        loading={
+          (signalsLoading && !signals) || logsDiagnosis.state === "loading"
+        }
+        description={RUM_METRIC_DESCRIPTIONS.logsChartMobile}
+        emptyContent={renderEmptySignal("logs", logsDiagnosis)}
+      />
+    </div>
+  );
+
+  // The frames per screen show once there are frames to place on a screen.
+  const isFramesByScreenShown: boolean =
+    (mobileSignals.framesLoading && !frames) ||
+    Boolean(
+      frames &&
+        !frames.failed &&
+        (frames.slow > 0 || frames.frozen > 0 || frames.byScreenFailed),
+    );
+
   const charts: ReactElement = (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ChartCard
@@ -1086,7 +1592,7 @@ const RumApplicationOverview: FunctionComponent<
       )}
 
       <ResourceOverview
-        icon={IconProp.Globe}
+        icon={isMobileApp ? IconProp.DevicePhoneMobile : IconProp.Globe}
         title={(a.name as string) || "RUM Application"}
         identifier={(a.appIdentifier as string) || ""}
         identifierLabel="service.name"
@@ -1117,8 +1623,9 @@ const RumApplicationOverview: FunctionComponent<
         }
         description={a.description as string}
         chips={chips}
-        tiles={tiles}
-        charts={charts}
+        // A mobile app's own tiles and charts (#9588), a browser app's otherwise.
+        tiles={isMobileApp ? mobileTiles : tiles}
+        charts={isMobileApp ? mobileCharts : charts}
         controls={
           <AutoRefreshControl
             autoRefreshInterval={autoRefreshInterval}
@@ -1147,18 +1654,32 @@ const RumApplicationOverview: FunctionComponent<
         labels={a.labels}
       />
 
-      <WebVitalsCard
-        vitals={webVitals}
-        loading={webVitalsLoading}
-        description={RUM_METRIC_DESCRIPTIONS.webVitals}
-      />
+      {/*
+       * Only a browser reports Web Vitals. A mobile app's card is its
+       * frames per screen: where its frames freeze (#9588).
+       */}
+      {!isMobileApp && (
+        <WebVitalsCard
+          vitals={webVitals}
+          loading={webVitalsLoading}
+          description={RUM_METRIC_DESCRIPTIONS.webVitals}
+        />
+      )}
 
-      {inpVital && inpVital.metricName && (
+      {!isMobileApp && inpVital && inpVital.metricName && (
         <WebVitalRouteBreakdownCard
           vital={inpVital}
           breakdown={inpByRoute}
           loading={inpByRouteLoading}
           description={RUM_METRIC_DESCRIPTIONS.inpByRoute}
+        />
+      )}
+
+      {isMobileApp && isFramesByScreenShown && (
+        <FramesByScreenCard
+          frames={frames}
+          loading={mobileSignals.framesLoading}
+          description={RUM_METRIC_DESCRIPTIONS.framesByScreen}
         />
       )}
 

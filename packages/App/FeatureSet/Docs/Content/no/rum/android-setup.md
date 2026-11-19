@@ -107,6 +107,8 @@ OpenTelemetry Android registrerer alt dette av seg selv. Enhetsattributtene den 
 
 Krasj og ANR-er havner i **Unntak** som uhåndterte, gruppert etter stack trace, sammen med økten de skjedde i. Agenten lagrer et krasj på disk idet appen dør, og sender det derfra, så et krasj som skjer uten nett, kommer likevel inn når appen kjører igjen med nettverk.
 
+Applikasjonens side **Oversikt** leser av dette for deg: **Økter**, **Krasjfrie økter**, **Krasj**, **ANR-er**, **Appoppstarter**, **Kaldstart (p95)** og **Frosne rammer**, som hver åpner unntakene, spennene eller hendelsene den teller. Til appen sender appoppstarter eller rammer, forteller diagrammene deres hva som slår dem på. Siden **Anbefalinger** tilbyr monitorer for krasj, ANR-er, trege kaldstarter, frosne rammer og en app som slutter å rapportere.
+
 En økt avsluttes etter 15 minutter i bakgrunnen, eller etter 4 timer. En app som aldri går i bakgrunnen, for eksempel en kiosk, beholder én økt i 4 timer, så spor hver kundes besøk som et eget spenn, slik [Spor dine egne arbeidsflyter](#spor-dine-egne-arbeidsflyter) viser.
 
 Appens egne `android.util.Log`-kall blir også logger når du legger til `android-log-library` og `android-log-agent` ved siden av OkHttp-modulene nedenfor: Taggen til hvert kall havner i `android.log.tag`, og et kall med en throwable blir et unntak i **Unntak**. OpenTelemetry Android leser ikke Logcat.

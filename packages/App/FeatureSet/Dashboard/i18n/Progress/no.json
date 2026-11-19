@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57477,
-    "untranslated": 8097
+    "keys": 57551,
+    "untranslated": 8093
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -364,6 +364,7 @@
     "logging",
     "main",
     "median",
+    "median {{duration}}",
     "median {{value}}",
     "message",
     "mm",

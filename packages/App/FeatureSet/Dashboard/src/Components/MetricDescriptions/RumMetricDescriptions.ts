@@ -25,7 +25,23 @@ export type RumMetric =
   | "exceptionsChart"
   | "logsChart"
   | "webVitals"
-  | "inpByRoute";
+  | "inpByRoute"
+  // A mobile app's Overview (#9588).
+  | "sessions"
+  | "crashFreeSessions"
+  | "crashes"
+  | "anrs"
+  | "appStarts"
+  | "coldStartTime"
+  | "frozenFrames"
+  | "errorRateMobile"
+  | "appStartsChart"
+  | "startupTimeChart"
+  | "crashesChart"
+  | "framesChart"
+  | "eventsChartMobile"
+  | "logsChartMobile"
+  | "framesByScreen";
 
 export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
   pageLoads: translationKey(
@@ -75,6 +91,57 @@ export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
   ),
   inpByRoute: translationKey(
     "Interaction to Next Paint for each route, averaged over the selected range, slowest first. In a single-page app this is the only place a slow view shows up on its own: the app-wide number mixes every route together. Routes come from the app.route (or url.template) attribute on web_vital.inp.",
+  ),
+  /*
+   * A mobile app's Overview (#9588), read from what OpenTelemetry Android
+   * sends on its own (Common/Types/Rum/MobileAppTelemetry): its sessions
+   * from session.id, its crashes and ANRs from Exceptions, its starts from
+   * the AppStart spans and its frames from the app.jank events.
+   */
+  sessions: translationKey(
+    "Distinct sessions your app's spans belong to in the selected range, read from the session.id that OpenTelemetry Android sets on every span. A session ends after 15 minutes in the background, or after 4 hours.",
+  ),
+  crashFreeSessions: translationKey(
+    "The share of the sessions in the selected range that no crash ended: every session but the ones a crash happened in. The bar turns amber below 99.5% and red below 99%.",
+  ),
+  crashes: translationKey(
+    "Times the app crashed in the selected range: the unhandled exceptions other than ANRs, which OpenTelemetry Android reports for every crash. The line below is how many sessions they ended.",
+  ),
+  anrs: translationKey(
+    "Times the app stopped responding in the selected range: its main thread was blocked for five seconds or more. OpenTelemetry Android reports an ANR again every five seconds while it stays blocked. The line below is how many sessions they happened in.",
+  ),
+  appStarts: translationKey(
+    "Times the app started in the selected range, from the AppStart spans OpenTelemetry Android records: cold (started from scratch), warm (its first screen created again) and hot (brought back to the front).",
+  ),
+  coldStartTime: translationKey(
+    "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.",
+  ),
+  frozenFrames: translationKey(
+    "Frames that took longer than 700 ms to draw in the selected range, so the app looked stuck. The line below counts the frames slower than 16 ms, frozen ones included. OpenTelemetry Android reports both on Android 7.0 and later.",
+  ),
+  errorRateMobile: translationKey(
+    "The share of the spans your app reported in the selected range that were marked as errors, such as a failed network request; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
+  ),
+  appStartsChart: translationKey(
+    "App starts in each interval of the selected range, a line for each kind of start: cold, warm and hot.",
+  ),
+  startupTimeChart: translationKey(
+    "The 95th percentile start time in each interval, a line for each kind of start: 95% of the starts in that interval were faster than the line.",
+  ),
+  crashesChart: translationKey(
+    "Crashes and ANRs in each interval of the selected range, and every other exception your app reported as a third line.",
+  ),
+  framesChart: translationKey(
+    "Frames slower than 16 ms, and frames slower than 700 ms, in each interval of the selected range, from the app.jank events OpenTelemetry Android sends.",
+  ),
+  eventsChartMobile: translationKey(
+    "Events (spans) your app reported in each interval, such as app starts, screens and network requests, with the ones marked as errors as a second line.",
+  ),
+  logsChartMobile: translationKey(
+    "Log records your app sent in each interval, with Error and Fatal ones as a second line. OpenTelemetry Android sends its crash, ANR, frame and session events as log records too.",
+  ),
+  framesByScreen: translationKey(
+    "Slow and frozen frames added up for each screen over the selected range, the screens that froze most first. The screen is the one on view when the frames were reported (app.screen.name).",
   ),
 };
 

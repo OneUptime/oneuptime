@@ -2123,7 +2123,8 @@ describe("ReplaySignals recorder notices that are not failures", () => {
     const detail: ReplayClientErrorSignalDetail =
       signal.detail as ReplayClientErrorSignalDetail;
 
-    expect(signal.subtitle).toContain("seen 2400 times");
+    // Counted the reader's way, as the detail counts it (#6516).
+    expect(signal.subtitle).toContain("seen 2,400 times");
     expect(detail.isRepeat).toBe(true);
     expect(detail.occurrences).toBe(2400);
     expect(isSteppableClientError(signal)).toBe(false);

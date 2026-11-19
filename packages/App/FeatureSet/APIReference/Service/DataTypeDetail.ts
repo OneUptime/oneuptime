@@ -3125,6 +3125,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         description:
           "The time window in seconds. Only spans from the last X seconds are evaluated. For example, 600 means the last 10 minutes.",
       },
+      {
+        name: "minimumDurationInMs",
+        type: "number",
+        required: false,
+        description:
+          "Only spans that took at least this many milliseconds are included, which is how a Trace monitor alerts on slow operations: for example 5000 with spanName 'AppStart' counts the app starts of five seconds or more. Leave it out to include spans of any duration.",
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(

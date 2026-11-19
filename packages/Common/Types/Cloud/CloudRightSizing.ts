@@ -161,7 +161,12 @@ export interface CloudRightSizingProfile {
   cpu: CloudRightSizingMetric;
   // Its memory, as a share used; null when its cloud reports none.
   memory: CloudRightSizingMetric | null;
-  // Why its memory is not read, when it is not: said beside a smaller size.
+  /*
+   * Why its memory is not read, when it is not: said beside a smaller size.
+   * For a type whose memory is read only with an agent on the resource (a
+   * Compute Engine VM's, with the Ops Agent), what is said when no reading
+   * of it came in.
+   */
   memoryNotRead?: string | undefined;
   // Whether its bill holds more than its size (a database's storage).
   billHoldsMoreThanSize: boolean;
@@ -312,7 +317,12 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
         names: ["compute.googleapis.com/instance/cpu/utilization"],
         toPercent: 100,
       },
-      memory: null,
+      // Its memory as the Ops Agent on it reports it, used, 0 to 100.
+      memory: {
+        names: ["agent.googleapis.com/memory/percent_used"],
+        toPercent: 1,
+      },
+      // A VM without the agent reports none: said as what it needs.
       memoryNotRead: MEMORY_NEEDS_OPS_AGENT,
       billHoldsMoreThanSize: false,
     },
@@ -959,12 +969,13 @@ export function buildCloudRightSizing(data: {
     isMemoryRead: memoryPeak !== null,
     /*
      * Why it is sized by CPU only: its cloud reports no share of memory
-     * used, or - for a type whose cloud does - none came in.
+     * used, or - for a type whose cloud does - none came in, which for a
+     * type read only with an agent says the agent.
      */
     memoryNotRead:
       memoryPeak === null
         ? data.profile.memory
-          ? MEMORY_NOT_REPORTED
+          ? data.profile.memoryNotRead || MEMORY_NOT_REPORTED
           : data.profile.memoryNotRead || MEMORY_REPORTED_AS_FREE
         : undefined,
     observedDays: Math.floor(observedHours / 24),

@@ -15,8 +15,15 @@ import {
   SessionReplayPauseReason,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
+import {
+  Translator,
+  createTranslator,
+  getInlineSeparator,
+  translationKey,
+} from "Common/Types/Translator";
 import { ReplayTimelineEvent } from "../ReplayTimelineTypes";
-import { formatReplayDuration } from "../ReplayTimeFormat";
+import { writeReplayFigureInLanguage } from "../ReplayTimeFormat";
+import { formatReplayDurationInLanguage } from "../ReplayTimelineMath";
 import {
   alignTelemetryOffsetMs,
   alignmentLabelFor,
@@ -73,6 +80,44 @@ export interface ReplayRecordingSignalContext {
    * manifest has not arrived yet.
    */
   startTimeUnixMs: number | null;
+  /*
+   * The reader's language, for the words a row adds to what was recorded
+   * ("Rage click", "Tab hidden"). English without one.
+   */
+  translator?: Translator | undefined;
+}
+
+/*
+ * A row's own words in the reader's language (#6516). A row's title and
+ * subtitle are what the rail draws, what a screen reader reads and what
+ * the rail's search matches, so they are built in the language the reader
+ * sees. What the page or the server recorded - a message, a path, a
+ * selector, a signal's name, an HTTP status - goes in as it was written.
+ */
+const ENGLISH: Translator = createTranslator(undefined, undefined, {
+  drawsOnPage: true,
+});
+
+function wordsOf(context: { translator?: Translator | undefined }): Translator {
+  return context.translator || ENGLISH;
+}
+
+// One of the rail's own phrases, in the reader's language.
+function translateRailText(text: string, translator: Translator): string {
+  return translator.translateText(text) ?? text;
+}
+
+/*
+ * A figure the rail wrote itself - "482ms", "1.2KB" - in the reader's
+ * digits, so a Persian row's title reads as the offset beside it does.
+ */
+function writeFigure(figure: string, translator: Translator): string {
+  return writeReplayFigureInLanguage(figure, translator.language);
+}
+
+// A point on the page, whole and ungrouped ("1440"), in the reader's digits.
+function writeCoordinate(value: number, translator: Translator): string {
+  return writeFigure(String(Math.round(value)), translator);
 }
 
 /* ---- Detail shapes, one per kind. Type aliases so they satisfy Record. ---- */
@@ -218,17 +263,18 @@ export type ReplayCustomSignalDetail = {
 
 /*
  * What set one of the application's own signals off, as the rail says it
- * under the signal's name. In English, as every row of the rail is.
+ * under the signal's name: keys, worded in the reader's language where
+ * they are drawn.
  */
 export const CUSTOM_SIGNAL_TRIGGER_SUBTITLES: Record<
   SessionReplayCustomSignalTrigger,
   string
 > = {
-  click: "Your signal: a click",
-  tap: "Your signal: a tap",
-  page: "Your signal: a page",
-  event: "Your signal: an event",
-  error: "Your signal: an error",
+  click: translationKey("Your signal: a click"),
+  tap: translationKey("Your signal: a tap"),
+  page: translationKey("Your signal: a page"),
+  event: translationKey("Your signal: an event"),
+  error: translationKey("Your signal: an error"),
 };
 
 export type ReplayMarkerKind =
@@ -550,11 +596,7 @@ function networkSignal(
     status === 0 && !aborted && !isCapMarker;
   const durationMs: number | null = numberOrNull(event.durationMs);
   const responseBytes: number | null = numberOrNull(event.responseBytes);
-  const statusWord: string = aborted
-    ? "cancelled"
-    : failedBeforeResponse
-      ? "failed"
-      : String(status);
+  const words: Translator = wordsOf(ctx);
 
   /*
    * The cap marker carries no method and no url. Rendered as a request it
@@ -566,10 +608,16 @@ function networkSignal(
       event,
       "network",
       "info",
-      `Network capture stopped after ${REPLAY_NETWORK_CAPTURE_CAP} requests`,
+      words.translateTemplate(
+        "Network capture stopped after {{count}} requests",
+        { count: words.formatNumber(REPLAY_NETWORK_CAPTURE_CAP) },
+      ),
     );
 
-    capSignal.subtitle = "later requests were not recorded";
+    capSignal.subtitle = translateRailText(
+      "later requests were not recorded",
+      words,
+    );
     capSignal.detail = {
       method: "",
       url: "",
@@ -592,21 +640,40 @@ function networkSignal(
     return capSignal;
   }
 
+  /*
+   * "GET 500 /api/orders" is all code and reads as written; a request with
+   * no answer says what became of it in the reader's words, around its
+   * method and path.
+   */
+  let requestTitle: string = `${method} ${String(status)} ${path || url}`;
+
+  if (aborted) {
+    requestTitle = words.translateTemplate("{{method}} cancelled {{path}}", {
+      method: method,
+      path: path || url,
+    });
+  } else if (failedBeforeResponse) {
+    requestTitle = words.translateTemplate("{{method}} failed {{path}}", {
+      method: method,
+      path: path || url,
+    });
+  }
+
   const signal: ReplaySignal = baseSignal(
     event,
     "network",
     networkSeverity(status, event.isError, aborted),
-    toTitle(`${method} ${statusWord} ${path || url}`),
+    toTitle(requestTitle),
   );
 
   const meta: Array<string> = [];
 
   if (durationMs !== null) {
-    meta.push(formatSignalDuration(durationMs));
+    meta.push(writeFigure(formatSignalDuration(durationMs), words));
   }
 
   if (responseBytes !== null && responseBytes > 0) {
-    meta.push(formatSignalBytes(responseBytes));
+    meta.push(writeFigure(formatSignalBytes(responseBytes), words));
   }
 
   if (meta.length > 0) {
@@ -650,11 +717,11 @@ function networkSignal(
 
 const ROUTE_KIND_LABELS: Record<SessionReplayRouteKind | "full-load", string> =
   {
-    pushState: "history push",
-    replaceState: "history replace",
-    popstate: "back/forward",
-    hashchange: "hash change",
-    "full-load": "full page load",
+    pushState: translationKey("history push"),
+    replaceState: translationKey("history replace"),
+    popstate: translationKey("back/forward"),
+    hashchange: translationKey("hash change"),
+    "full-load": translationKey("full page load"),
   };
 
 function navigationSignal(
@@ -666,14 +733,18 @@ function navigationSignal(
     ? "full-load"
     : event.routeKind || "pushState";
   const to: string = event.to || event.url || "";
+  const words: Translator = wordsOf(ctx);
   const signal: ReplaySignal = baseSignal(
     event,
     "navigation",
     "info",
-    toTitle(to) || (isFullLoad ? "Page loaded" : "Route changed"),
+    toTitle(to) ||
+      (isFullLoad
+        ? translateRailText("Page loaded", words)
+        : translateRailText("Route changed", words)),
   );
 
-  signal.subtitle = ROUTE_KIND_LABELS[kind];
+  signal.subtitle = translateRailText(ROUTE_KIND_LABELS[kind], words);
 
   const detail: ReplayNavigationSignalDetail = {
     from: stringOrNull(event.from),
@@ -693,10 +764,10 @@ const ERROR_KIND_LABELS: Record<
   SessionReplayErrorKind | "resource" | "unknown",
   string
 > = {
-  error: "uncaught error",
-  unhandledrejection: "unhandled rejection",
-  resource: "resource failed to load",
-  unknown: "error",
+  error: translationKey("uncaught error"),
+  unhandledrejection: translationKey("unhandled rejection"),
+  resource: translationKey("resource failed to load"),
+  unknown: translationKey("error"),
 };
 
 function errorLocation(event: ReplayTimelineEvent): string | null {
@@ -755,6 +826,8 @@ function clientErrorSignal(
   const isCapMarker: boolean = readEventFlag(event, "isCapMarker");
   const occurrences: number | null = readEventNumber(event, "occurrences");
   const isResource: boolean = kind === "resource";
+  const words: Translator = wordsOf(ctx);
+  const kindLabel: string = translateRailText(ERROR_KIND_LABELS[kind], words);
 
   /*
    * A resource failure is a warning, not an uncaught error; the cap
@@ -764,7 +837,7 @@ function clientErrorSignal(
   const severity: ReplaySignalSeverity =
     isResource || isCapMarker ? "warn" : "error";
 
-  let title: string = toTitle(message) || ERROR_KIND_LABELS[kind];
+  let title: string = toTitle(message) || kindLabel;
 
   if (isResource) {
     /*
@@ -788,9 +861,9 @@ function clientErrorSignal(
   const subtitleParts: Array<string> = [];
 
   if (isCapMarker) {
-    subtitleParts.push("recorder cap");
+    subtitleParts.push(translateRailText("recorder cap", words));
   } else {
-    subtitleParts.push(ERROR_KIND_LABELS[kind]);
+    subtitleParts.push(kindLabel);
 
     if (location && !isResource) {
       subtitleParts.push(location);
@@ -798,12 +871,20 @@ function clientErrorSignal(
 
     if (isRepeat) {
       subtitleParts.push(
-        occurrences !== null ? `seen ${occurrences} times` : "seen again",
+        occurrences !== null
+          ? words.translatePlural(
+              {
+                one: translationKey("seen {{count}} time"),
+                other: translationKey("seen {{count}} times"),
+              },
+              occurrences,
+            )
+          : translateRailText("seen again", words),
       );
     }
   }
 
-  signal.subtitle = subtitleParts.join(" · ");
+  signal.subtitle = subtitleParts.join(getInlineSeparator(words.language));
 
   const detail: ReplayClientErrorSignalDetail = {
     kind: kind,
@@ -825,7 +906,10 @@ function clientErrorSignal(
   return signal;
 }
 
-function frustrationTitle(event: ReplayTimelineEvent): string {
+function frustrationTitle(
+  event: ReplayTimelineEvent,
+  words: Translator,
+): string {
   /* One of the application's own: it is called what the application named it. */
   if (event.customSignalName) {
     return toTitle(event.customSignalName);
@@ -834,18 +918,30 @@ function frustrationTitle(event: ReplayTimelineEvent): string {
   switch (event.frustrationKind) {
     case "rage-click":
       return isFiniteNumber(event.clickCount)
-        ? `Rage click (${event.clickCount} clicks)`
-        : "Rage click";
+        ? words.translatePlural(
+            {
+              one: translationKey("Rage click ({{count}} click)"),
+              other: translationKey("Rage click ({{count}} clicks)"),
+            },
+            event.clickCount,
+          )
+        : translateRailText("Rage click", words);
     case "dead-click":
-      return "Dead click";
+      return translateRailText("Dead click", words);
     case "error-click":
-      return "Error click";
+      return translateRailText("Error click", words);
     case "refresh-rage":
       return isFiniteNumber(event.reloadCount)
-        ? `Refresh rage (${event.reloadCount} reloads)`
-        : "Refresh rage";
+        ? words.translatePlural(
+            {
+              one: translationKey("Refresh rage ({{count}} reload)"),
+              other: translationKey("Refresh rage ({{count}} reloads)"),
+            },
+            event.reloadCount,
+          )
+        : translateRailText("Refresh rage", words);
     default:
-      return "Frustration";
+      return translateRailText("Frustration", words);
   }
 }
 
@@ -853,18 +949,24 @@ function frustrationSignal(
   event: ReplayTimelineEvent,
   ctx: ReplayRecordingSignalContext,
 ): ReplaySignal {
+  const words: Translator = wordsOf(ctx);
   const signal: ReplaySignal = baseSignal(
     event,
     "frustration",
     "warn",
-    frustrationTitle(event),
+    frustrationTitle(event, words),
   );
 
   if (event.customSignalName && event.customSignalTrigger) {
-    signal.subtitle =
-      CUSTOM_SIGNAL_TRIGGER_SUBTITLES[event.customSignalTrigger];
+    signal.subtitle = translateRailText(
+      CUSTOM_SIGNAL_TRIGGER_SUBTITLES[event.customSignalTrigger],
+      words,
+    );
   } else if (isFiniteNumber(event.x) && isFiniteNumber(event.y)) {
-    signal.subtitle = `at ${Math.round(event.x)}, ${Math.round(event.y)}`;
+    signal.subtitle = words.translateTemplate("at {{x}}, {{y}}", {
+      x: writeCoordinate(event.x, words),
+      y: writeCoordinate(event.y, words),
+    });
   }
 
   const detail: ReplayFrustrationSignalDetail = {
@@ -892,16 +994,24 @@ function clickSignal(
   const hasCoordinates: boolean =
     isFiniteNumber(event.x) && isFiniteNumber(event.y);
   const isCoordinateOnly: boolean = !text && !selector;
+  const words: Translator = wordsOf(ctx);
   let title: string;
 
   if (text) {
-    title = `Click "${toTitle(text)}"`;
+    title = words.translateTemplate('Click "{{text}}"', {
+      text: toTitle(text),
+    });
   } else if (selector) {
-    title = `Click ${toTitle(selector)}`;
+    title = words.translateTemplate("Click {{selector}}", {
+      selector: toTitle(selector),
+    });
   } else if (hasCoordinates) {
-    title = `Click at (${Math.round(event.x as number)}, ${Math.round(event.y as number)})`;
+    title = words.translateTemplate("Click at ({{x}}, {{y}})", {
+      x: writeCoordinate(event.x as number, words),
+      y: writeCoordinate(event.y as number, words),
+    });
   } else {
-    title = "Click";
+    title = translateRailText("Click", words);
   }
 
   const signal: ReplaySignal = baseSignal(event, "interaction", "info", title);
@@ -909,7 +1019,10 @@ function clickSignal(
   if (text && selector) {
     signal.subtitle = selector;
   } else if (hasCoordinates && !isCoordinateOnly) {
-    signal.subtitle = `at ${Math.round(event.x as number)}, ${Math.round(event.y as number)}`;
+    signal.subtitle = words.translateTemplate("at {{x}}, {{y}}", {
+      x: writeCoordinate(event.x as number, words),
+      y: writeCoordinate(event.y as number, words),
+    });
   }
 
   const detail: ReplayInteractionSignalDetail = {
@@ -936,43 +1049,71 @@ export const REPLAY_BUDGET_KIND_LABELS: Record<
   string
 > = {
   lcp: "LCP",
-  "long-task": "Long task",
-  "slow-request": "Slow request",
+  "long-task": translationKey("Long task"),
+  "slow-request": translationKey("Slow request"),
 };
 
 export const REPLAY_VITAL_RATING_LABELS: Record<
   SessionReplayWebVitalRating,
   string
 > = {
-  good: "good",
-  "needs-improvement": "needs improvement",
-  poor: "poor",
+  good: translationKey("good"),
+  "needs-improvement": translationKey("needs improvement"),
+  poor: translationKey("poor"),
 };
 
-/* The web-vital rating in words; "" when the vital carried no rating. */
+/*
+ * The web-vital rating in words, in the reader's language; "" when the
+ * vital carried no rating.
+ */
 export function formatVitalRating(
   rating: SessionReplayWebVitalRating | null | undefined,
+  translator: Translator = ENGLISH,
 ): string {
-  return rating ? REPLAY_VITAL_RATING_LABELS[rating] || rating : "";
+  if (!rating) {
+    return "";
+  }
+
+  const label: string | undefined = REPLAY_VITAL_RATING_LABELS[rating];
+
+  return label ? translateRailText(label, translator) : rating;
 }
 
-/* What a performance row measures, in words. */
+/*
+ * A budget's kind in words, in the reader's language: "LCP" is the
+ * metric's own name and reads as written.
+ */
+function formatBudgetKind(
+  kind: SessionReplayPerformanceBudgetKind,
+  translator: Translator,
+): string {
+  const label: string | undefined = REPLAY_BUDGET_KIND_LABELS[kind];
+
+  if (!label) {
+    return translateRailText("Performance", translator);
+  }
+
+  return kind === "lcp" ? label : translateRailText(label, translator);
+}
+
+/* What a performance row measures, in words, in the reader's language. */
 export function formatPerformanceMeasure(
   detail: ReplayPerformanceSignalDetail,
+  translator: Translator = ENGLISH,
 ): string {
   if (detail.metric) {
     return detail.metric.toUpperCase();
   }
 
   if (detail.kind === "web-vital") {
-    return "Web vital";
+    return translateRailText("Web vital", translator);
   }
 
   if (detail.kind === "unknown") {
-    return "Performance";
+    return translateRailText("Performance", translator);
   }
 
-  return REPLAY_BUDGET_KIND_LABELS[detail.kind] || "Performance";
+  return formatBudgetKind(detail.kind, translator);
 }
 
 /*
@@ -1018,6 +1159,7 @@ function performanceSignal(
     | "unknown" =
     event.performanceKind || (event.metric ? "web-vital" : "unknown");
   const atUnixMs: number | null = wallClockFor(event, ctx);
+  const words: Translator = wordsOf(ctx);
   let title: string;
   let severity: ReplaySignalSeverity;
   let isOverBudget: boolean = false;
@@ -1028,9 +1170,9 @@ function performanceSignal(
     const rating: SessionReplayWebVitalRating | null = event.rating || null;
 
     title = [
-      metric || "Web vital",
-      value !== null ? formatVitalValue(metric, value) : "",
-      formatVitalRating(rating),
+      metric || translateRailText("Web vital", words),
+      value !== null ? writeFigure(formatVitalValue(metric, value), words) : "",
+      formatVitalRating(rating, words),
     ]
       .filter((part: string): boolean => {
         return part.length > 0;
@@ -1048,8 +1190,8 @@ function performanceSignal(
   } else {
     const label: string =
       performanceKind === "unknown"
-        ? "Performance"
-        : REPLAY_BUDGET_KIND_LABELS[performanceKind];
+        ? translateRailText("Performance", words)
+        : formatBudgetKind(performanceKind, words);
     const durationMs: number | null = numberOrNull(event.durationMs);
     const budgetMs: number | null = numberOrNull(event.budgetMs);
 
@@ -1058,11 +1200,14 @@ function performanceSignal(
     title = label;
 
     if (durationMs !== null) {
-      title = `${label} ${formatSignalDuration(durationMs)}`;
+      title = `${label} ${writeFigure(formatSignalDuration(durationMs), words)}`;
     }
 
     if (budgetMs !== null) {
-      title = `${title} (budget ${formatSignalDuration(budgetMs)})`;
+      title = words.translateTemplate("{{measure}} (budget {{duration}})", {
+        measure: title,
+        duration: writeFigure(formatSignalDuration(budgetMs), words),
+      });
     }
 
     severity = isOverBudget ? "warn" : "info";
@@ -1106,7 +1251,8 @@ function customSignal(
   event: ReplayTimelineEvent,
   ctx: ReplayRecordingSignalContext,
 ): ReplaySignal {
-  const name: string = event.name || "custom event";
+  const words: Translator = wordsOf(ctx);
+  const name: string = event.name || translateRailText("custom event", words);
   const properties: Record<string, string> = event.properties || {};
   const propertyCount: number = Object.keys(properties).length;
   const signal: ReplaySignal = baseSignal(
@@ -1117,11 +1263,18 @@ function customSignal(
   );
 
   if (event.customSignalTrigger) {
-    signal.subtitle =
-      CUSTOM_SIGNAL_TRIGGER_SUBTITLES[event.customSignalTrigger];
+    signal.subtitle = translateRailText(
+      CUSTOM_SIGNAL_TRIGGER_SUBTITLES[event.customSignalTrigger],
+      words,
+    );
   } else if (propertyCount > 0) {
-    signal.subtitle =
-      propertyCount === 1 ? "1 property" : `${propertyCount} properties`;
+    signal.subtitle = words.translatePlural(
+      {
+        one: translationKey("{{count}} property"),
+        other: translationKey("{{count}} properties"),
+      },
+      propertyCount,
+    );
   }
 
   const detail: ReplayCustomSignalDetail = {
@@ -1174,27 +1327,37 @@ function markerSignal(
     idlePauseEdge === "resumed"
       ? positiveSpanMs(event.pausedAtUnixMs, event.resumedAtUnixMs)
       : null;
+  const words: Translator = wordsOf(ctx);
 
   switch (event.kind) {
     case "visibility":
       markerKind = "visibility";
-      title = event.visibilityState === "hidden" ? "Tab hidden" : "Tab visible";
+      title =
+        event.visibilityState === "hidden"
+          ? translateRailText("Tab hidden", words)
+          : translateRailText("Tab visible", words);
       break;
     case "identify":
       markerKind = "identify";
-      title = "User identified";
-      subtitle = event.hasTraits ? "with traits" : undefined;
+      title = translateRailText("User identified", words);
+      subtitle = event.hasTraits
+        ? translateRailText("with traits", words)
+        : undefined;
       break;
     case "tags": {
       markerKind = "tags";
       const tagCount: number = Object.keys(event.tags || {}).length;
 
-      title = "Tags set";
+      title = translateRailText("Tags set", words);
       subtitle =
         tagCount > 0
-          ? tagCount === 1
-            ? "1 tag"
-            : `${tagCount} tags`
+          ? words.translatePlural(
+              {
+                one: translationKey("{{count}} tag"),
+                other: translationKey("{{count}} tags"),
+              },
+              tagCount,
+            )
           : undefined;
       break;
     }
@@ -1203,8 +1366,18 @@ function markerSignal(
       severity = "warn";
       title =
         droppedCount !== null
-          ? `${droppedCount} clicks not labelled (recorder cap)`
-          : "Some clicks not labelled (recorder cap)";
+          ? words.translatePlural(
+              {
+                one: translationKey(
+                  "{{count}} click not labelled (recorder cap)",
+                ),
+                other: translationKey(
+                  "{{count}} clicks not labelled (recorder cap)",
+                ),
+              },
+              droppedCount,
+            )
+          : translateRailText("Some clicks not labelled (recorder cap)", words);
       break;
     case "idle-pause":
       /*
@@ -1226,21 +1399,48 @@ function markerSignal(
         if (pauseReason === "page") {
           title =
             pausedForMs !== null
-              ? `Recording resumed by the page after ${formatReplayDuration(pausedForMs)}`
-              : "Recording resumed by the page";
+              ? words.translateTemplate(
+                  "Recording resumed by the page after {{duration}}",
+                  {
+                    duration: formatReplayDurationInLanguage(
+                      pausedForMs,
+                      words,
+                    ),
+                  },
+                )
+              : translateRailText("Recording resumed by the page", words);
         } else {
           title =
             pausedForMs !== null
-              ? `Recording resumed after ${formatReplayDuration(pausedForMs)} idle`
-              : "Recording resumed after an idle pause";
+              ? words.translateTemplate(
+                  "Recording resumed after {{duration}} idle",
+                  {
+                    duration: formatReplayDurationInLanguage(
+                      pausedForMs,
+                      words,
+                    ),
+                  },
+                )
+              : translateRailText(
+                  "Recording resumed after an idle pause",
+                  words,
+                );
         }
       } else if (pauseReason === "page") {
-        title = "Recording paused by the page";
+        title = translateRailText("Recording paused by the page", words);
       } else {
         title =
           idleForMs !== null
-            ? `Recording paused: no input for ${formatReplayDuration(idleForMs)}`
-            : "Recording paused: nobody touched the page";
+            ? words.translateTemplate(
+                "Recording paused: no input for {{duration}}",
+                {
+                  duration: formatReplayDurationInLanguage(idleForMs, words),
+                },
+              )
+            : translateRailText(
+                "Recording paused: nobody touched the page",
+                words,
+              );
       }
       break;
     default:
@@ -1248,8 +1448,21 @@ function markerSignal(
       severity = "warn";
       title =
         droppedCount !== null
-          ? `${droppedCount} custom events not recorded (recorder cap)`
-          : "Some custom events not recorded (recorder cap)";
+          ? words.translatePlural(
+              {
+                one: translationKey(
+                  "{{count}} custom event not recorded (recorder cap)",
+                ),
+                other: translationKey(
+                  "{{count}} custom events not recorded (recorder cap)",
+                ),
+              },
+              droppedCount,
+            )
+          : translateRailText(
+              "Some custom events not recorded (recorder cap)",
+              words,
+            );
       break;
   }
 
@@ -1318,6 +1531,12 @@ export function fromTimelineEvent(
 interface TimelineSignalsCacheEntry {
   /* wallClockFor derives atUnixMs from this; a different clock re-adapts. */
   startTimeUnixMs: number | null;
+  /*
+   * The language the rows' words were built in: a reader who switches
+   * language re-adapts. The language, not the translator, which the
+   * player builds anew every render.
+   */
+  language: string;
   signals: Array<ReplaySignal>;
 }
 
@@ -1347,10 +1566,12 @@ export function fromTimelineEvents(
 ): Array<ReplaySignal> {
   const cached: TimelineSignalsCacheEntry | undefined =
     TIMELINE_SIGNALS_CACHE.get(events);
+  const language: string = wordsOf(ctx).language;
 
   if (
     cached &&
     cached.startTimeUnixMs === ctx.startTimeUnixMs &&
+    cached.language === language &&
     cached.signals.length === events.length
   ) {
     return cached.signals;
@@ -1364,6 +1585,7 @@ export function fromTimelineEvents(
 
   TIMELINE_SIGNALS_CACHE.set(events, {
     startTimeUnixMs: ctx.startTimeUnixMs,
+    language: language,
     signals: signals,
   });
 
@@ -1491,7 +1713,8 @@ export function fromLogRow(
   const traceId: string | null = stringOrNull(row.traceId);
   const spanId: string | null = stringOrNull(row.spanId);
   const baselineOffsetMs: number = timeUnixMs - clock.startTimeUnixMs;
-  const titleBody: string = toTitle(body) || "(empty log line)";
+  const titleBody: string =
+    toTitle(body) || translateRailText("(empty log line)", wordsOf(clock));
 
   const signal: ReplaySignal = {
     id: makeLogSignalId(id),
@@ -1568,7 +1791,7 @@ export function fromExceptionRow(
   } else if (exceptionType) {
     title = exceptionType;
   } else {
-    title = headline || "Exception";
+    title = headline || translateRailText("Exception", wordsOf(clock));
   }
 
   const signal: ReplaySignal = {
@@ -1762,14 +1985,23 @@ function traceSignal(
     clock.startTimeUnixMs,
     clock.alignment,
   );
+  const words: Translator = wordsOf(clock);
   const meta: Array<string> = [];
 
   if (serviceName) {
     meta.push(serviceName);
   }
 
-  meta.push(formatSignalDuration(durationMs));
-  meta.push(sorted.length === 1 ? "1 span" : `${sorted.length} spans`);
+  meta.push(writeFigure(formatSignalDuration(durationMs), words));
+  meta.push(
+    words.translatePlural(
+      {
+        one: translationKey("{{count}} span"),
+        other: translationKey("{{count}} spans"),
+      },
+      sorted.length,
+    ),
+  );
 
   const waterfallSpans: Array<SpanFacts> = sorted.slice(
     0,
@@ -1800,7 +2032,7 @@ function traceSignal(
     endOffsetMs: offsetMs + durationMs,
     severity: errorSpanCount > 0 ? "error" : "info",
     title: toTitle(root.name),
-    subtitle: meta.join(" · "),
+    subtitle: meta.join(getInlineSeparator(words.language)),
     links: { traceId: root.traceId, spanId: root.spanId },
     detail: detail,
     alignment: alignmentLabelFor(clock.alignment),

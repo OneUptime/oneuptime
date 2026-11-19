@@ -107,6 +107,8 @@ O OpenTelemetry Android registra tudo isso por conta própria. Os atributos de d
 
 Crashes e ANRs chegam a **Exceções** como não tratados, agrupados pelos stack traces deles, com a sessão em que aconteceram. O agente salva um crash em disco enquanto o aplicativo morre e o envia de lá, então um crash que acontece offline ainda chega quando o aplicativo volta a rodar com rede.
 
+A **Visão geral** da aplicação resume isso para você: **Sessões**, **Sessões sem falhas**, **Falhas**, **ANRs**, **Inicializações do app**, **Inicialização a frio (p95)** e **Quadros congelados**, e cada um abre as exceções, os spans ou os eventos que conta. Enquanto o aplicativo não envia inicializações ou quadros, os gráficos deles dizem o que os ativa. As **Recomendações** dela oferecem monitores para falhas, ANRs, inicializações a frio lentas, quadros congelados e um aplicativo que para de reportar.
+
 Uma sessão termina depois de 15 minutos em segundo plano, ou depois de 4 horas. Um aplicativo que nunca vai para segundo plano, como um quiosque, mantém uma única sessão por 4 horas, então rastreie a visita de cada cliente como um span próprio, como mostra [Rastrear os seus próprios fluxos de trabalho](#rastrear-os-seus-próprios-fluxos-de-trabalho).
 
 As chamadas `android.util.Log` do seu próprio aplicativo também viram registros quando você adiciona `android-log-library` e `android-log-agent` ao lado dos módulos do OkHttp abaixo: a tag de cada chamada vai em `android.log.tag`, e uma chamada com um throwable é uma exceção em **Exceções**. O OpenTelemetry Android não lê o Logcat.

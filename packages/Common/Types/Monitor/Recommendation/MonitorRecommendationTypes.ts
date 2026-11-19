@@ -5,6 +5,7 @@ import type { CloudResourceReadings } from "../../Cloud/CloudResourceHealth";
 import type { RdsConnectionLimitReading } from "../../Cloud/RdsConnectionLimits";
 import RecommendationType from "../../Recommendation/RecommendationType";
 import { ServiceLanguage } from "../../Service/ServiceLanguage";
+import type { RumClientKind } from "../../Rum/RumClientKind";
 import type { MessageQueueIdentity } from "../../MessageQueue/MessageQueueIdentity";
 import MonitorStep from "../MonitorStep";
 import MonitorType from "../MonitorType";
@@ -188,6 +189,15 @@ export interface MonitorRecommendationContext {
    * a finite number above 0 is a budget; 0, blank and anything else is none.
    */
   sessionReplayMonthlyBudgetInGB?: number | null | undefined;
+  /*
+   * A RUM application's kind, browser or mobile, as ingest records it in
+   * `clientType` (Rum/RumClientKind). It decides between the Web Vitals and
+   * the mobile app templates (crashes, ANRs, cold starts, frozen frames, an
+   * app gone quiet): a monitor over a signal its SDK never sends would never
+   * fire (#9589). `null` / `undefined` (nothing has arrived yet) is offered
+   * the browser set, as every application was before mobile apps had one.
+   */
+  rumClientKind?: RumClientKind | null | undefined;
   /*
    * Its own signals that are switched on, from its
    * `sessionReplayFrustrationSignals` (issue #6518): each is offered as an

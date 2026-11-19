@@ -633,6 +633,118 @@ describe("in the confirmation before sending a notification again", () => {
   });
 });
 
+/*
+ * When no page will be sent it, the headline says nobody will be notified,
+ * and nothing of which pages show the incident: the pages left out are
+ * listed under it, each with why (#9684). It said "no status page that
+ * lists these monitors will show this incident", which read as never - a
+ * public note seemed to go nowhere, though a page that lists one of the
+ * monitors later shows it - and was untrue beside a page that shows the
+ * incident all the same.
+ */
+describe("nobody will be notified, and nothing is said of what the pages show", () => {
+  const NOBODY: string = "No status page subscribers will be notified.";
+  const WILL_SHOW: RegExp = new RegExp("will (not )?show");
+
+  test("the headline is that nobody will be notified", () => {
+    expect(IncidentStatusPageScopeCopy.audienceNoStatusPages).toBe(NOBODY);
+    expect(IncidentStatusPageScopeCopy.audienceNoStatusPages).not.toMatch(
+      WILL_SHOW,
+    );
+  });
+
+  const CASES: Array<
+    [string, Partial<IncidentSubscriberAudienceResult>, Array<string>]
+  > = [
+    [
+      "a page that shows it and sends nothing, beside one its scope leaves out",
+      {
+        isScoped: true,
+        excludedStatusPages: [
+          excluded(
+            "Site 01",
+            IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+          ),
+          excluded(
+            "Site 02",
+            IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+          ),
+        ],
+      },
+      [
+        "Site 01 (does not send notifications to its subscribers)",
+        "Site 02 (not one of the pages this incident is limited to)",
+      ],
+    ],
+    [
+      "a Retry whose every page was sent it in full, and shows it",
+      {
+        excludedStatusPages: [
+          excluded(
+            "Site 07",
+            IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+          ),
+        ],
+      },
+      ["Site 07 (already sent this notification in full)"],
+    ],
+    [
+      "a page that only shows incidents limited to it",
+      {
+        excludedStatusPages: [
+          excluded(
+            "Site 05",
+            IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+          ),
+        ],
+      },
+      ["Site 05 (only shows incidents limited to it)"],
+    ],
+    [
+      "a picked page that lists none of its monitors",
+      {
+        isScoped: true,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: "d", name: "Site 09" },
+        ],
+      },
+      ["Site 09 (lists none of these monitors)"],
+    ],
+    ["no page that lists its monitors", {}, []],
+    ["no monitor", { hasMonitors: false }, []],
+  ];
+
+  test.each(CASES)(
+    "%s: nobody, the pages left out with why, and no word of what the pages show",
+    (
+      _label: string,
+      partial: Partial<IncidentSubscriberAudienceResult>,
+      notNotified: Array<string>,
+    ) => {
+      const shown: SubscriberAudienceView = confirmationView(partial);
+
+      expect(shown.tone).toBe("warning");
+      expect(shown.headline).toBe(NOBODY);
+      expect(shown.pages).toEqual([]);
+      expect(shown.notNotified).toEqual(notNotified);
+
+      for (const line of [shown.headline, ...shown.notes]) {
+        expect(line).not.toMatch(WILL_SHOW);
+      }
+    },
+  );
+
+  test("under a checkbox it says the same, when the scope is why", () => {
+    const partial: Partial<IncidentSubscriberAudienceResult> = CASES[0]![1];
+
+    expect(view(partial)).toEqual(confirmationView(partial));
+  });
+
+  test("the headline is looked up", () => {
+    expect(view(CASES[0]![1], marked).headline).toBe(`<${NOBODY}>`);
+  });
+});
+
 describe("isHeldBackByStatusPageScope", () => {
   test("nothing left out: no", () => {
     expect(isHeldBackByStatusPageScope(audience({}))).toBe(false);
