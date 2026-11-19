@@ -14,6 +14,11 @@
  * it too. A chart with no second axis draws exactly as it always has.
  */
 
+import {
+  ValueAxisFormatter,
+  ValueAxisPrecision,
+} from "../../Types/YAxis/YAxis";
+
 // The second axis's recharts id. The first axis keeps recharts' default, 0.
 export const SECOND_Y_AXIS_ID: string = "second";
 
@@ -21,7 +26,7 @@ export interface ChartSecondYAxis {
   // The categories drawn against it; every other one is on the first axis.
   categories: Array<string>;
   // How its ticks write a value, and the tooltip a value of its categories.
-  valueFormatter: (value: number) => string;
+  valueFormatter: ValueAxisFormatter;
   // Its width in pixels, as wide as its widest tick (YAxisWidth).
   width: number;
   // "auto" for its lower end, else minValue (0 when that is left out).
@@ -57,17 +62,34 @@ export function getMarkYAxisProps(
 }
 
 /*
+ * A value as an axis's formatter writes it: with the precision the chart
+ * writes that axis's ticks with, when it steps the axis itself (issue
+ * #10079), and as the formatter always has otherwise.
+ */
+function writeWithPrecision(
+  formatter: ValueAxisFormatter,
+  precision: ValueAxisPrecision | undefined,
+): (value: number) => string {
+  return (value: number): string => {
+    return precision ? formatter(value, precision) : formatter(value);
+  };
+}
+
+/*
  * How the tooltip writes a category's value: as the series asks
  * (categoryValueFormatters, for a series whose unit is neither axis's), else
- * as the axis it is drawn against writes its ticks.
+ * as the axis it is drawn against writes its ticks, to the same figures.
  */
 export function getCategoryValueFormatter(input: {
   category: string;
-  valueFormatter: (value: number) => string;
+  valueFormatter: ValueAxisFormatter;
   secondYAxis?: ChartSecondYAxis | undefined;
   categoryValueFormatters?:
     | Record<string, (value: number) => string>
     | undefined;
+  // The figures each axis's ticks are written with (ValueAxisTicks).
+  firstAxisPrecision?: ValueAxisPrecision | undefined;
+  secondAxisPrecision?: ValueAxisPrecision | undefined;
 }): (value: number) => string {
   const own: ((value: number) => string) | undefined =
     input.categoryValueFormatters?.[input.category];
@@ -80,8 +102,11 @@ export function getCategoryValueFormatter(input: {
     input.secondYAxis &&
     input.secondYAxis.categories.includes(input.category)
   ) {
-    return input.secondYAxis.valueFormatter;
+    return writeWithPrecision(
+      input.secondYAxis.valueFormatter,
+      input.secondAxisPrecision,
+    );
   }
 
-  return input.valueFormatter;
+  return writeWithPrecision(input.valueFormatter, input.firstAxisPrecision);
 }

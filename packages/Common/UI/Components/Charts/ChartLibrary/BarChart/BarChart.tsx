@@ -60,6 +60,12 @@ import {
   getMarkYAxisProps,
 } from "../Utils/SecondYAxis";
 import {
+  ChartValueAxesPlan,
+  useValueAxesTicks,
+} from "../Utils/UseValueAxesTicks";
+import { getTickFormatter } from "../../Utils/ValueAxisTicks";
+import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
+import {
   PreparedTooltipEntries,
   prepareTooltipEntries,
 } from "../Utils/TooltipEntries";
@@ -729,7 +735,11 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   index: string;
   categories: string[];
   colors?: ChartColorValue[];
-  valueFormatter?: (value: number) => string;
+  /*
+   * How the value axis writes a tick, and the tooltip a value. Handed a
+   * precision when the chart steps the axis itself (ValueAxisTicks).
+   */
+  valueFormatter?: ValueAxisFormatter;
   startEndOnly?: boolean;
   showXAxis?: boolean;
   showYAxis?: boolean;
@@ -925,19 +935,45 @@ const BarChart: React.ForwardRefExoticComponent<
         onValueChange?.(null);
       }
     });
-    const yAxisDomain: AxisDomain = getYAxisDomain(
+    const yAxisDomainEnds: [number | "auto", number | "auto"] = getYAxisDomain(
       autoMinValue,
       minValue,
       maxValue,
     );
-    const secondYAxisDomain: AxisDomain = secondYAxis
-      ? getYAxisDomain(
-          secondYAxis.autoMinValue,
-          secondYAxis.minValue,
-          secondYAxis.maxValue,
-        )
-      : [0, "auto"];
-    // Each category's value in the tooltip, in the unit of the axis it is on.
+    const secondYAxisDomainEnds: [number | "auto", number | "auto"] =
+      secondYAxis
+        ? getYAxisDomain(
+            secondYAxis.autoMinValue,
+            secondYAxis.minValue,
+            secondYAxis.maxValue,
+          )
+        : [0, "auto"];
+    const yAxisDomain: AxisDomain = yAxisDomainEnds;
+    const secondYAxisDomain: AxisDomain = secondYAxisDomainEnds;
+    /*
+     * Each value axis stepped so its neighbouring ticks read apart, and as
+     * wide as its widest tick (issue #10079): stacked bars reach each
+     * stack's sums. The value axis of a vertical chart runs along its
+     * bottom, and a chart of shares always reads 0% to 100%: recharts steps
+     * both as it always has.
+     */
+    const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
+      data: data,
+      categories: categories,
+      secondYAxis: secondYAxis,
+      referenceLines: referenceLines,
+      firstDomain: yAxisDomainEnds,
+      secondDomain: secondYAxisDomainEnds,
+      allowDecimals: allowDecimals,
+      valueFormatter: valueFormatter,
+      yAxisWidth: yAxisWidth,
+      isStacked: type === "stacked",
+      isFirstAxisLeftToRecharts: layout === "vertical" || type === "percent",
+    });
+    /*
+     * Each category's value in the tooltip, in the unit of the axis it is
+     * on, to the figures that axis's ticks are written with.
+     */
     const categoryValueFormatter: (
       category: string,
     ) => (value: number) => string = (
@@ -948,6 +984,8 @@ const BarChart: React.ForwardRefExoticComponent<
         valueFormatter: valueFormatter,
         secondYAxis: secondYAxis,
         categoryValueFormatters: categoryValueFormatters,
+        firstAxisPrecision: valueAxes.first.ticks.precision,
+        secondAxisPrecision: valueAxes.second?.ticks.precision,
       });
     };
     const hasOnValueChange: boolean = Boolean(onValueChange);
@@ -1141,7 +1179,11 @@ const BarChart: React.ForwardRefExoticComponent<
                       type: "number" as const,
                       domain: yAxisDomain as AxisDomain,
                       tickFormatter:
-                        type === "percent" ? valueToPercent : valueFormatter,
+                        type === "percent"
+                          ? valueToPercent
+                          : (value: number): string => {
+                              return valueFormatter(value);
+                            },
                       allowDecimals: allowDecimals,
                     })}
               >
@@ -1156,7 +1198,7 @@ const BarChart: React.ForwardRefExoticComponent<
                 )}
               </XAxis>
               <YAxis
-                width={yAxisWidth}
+                width={valueAxes.first.width}
                 hide={!showYAxis}
                 axisLine={false}
                 tickLine={false}
@@ -1180,9 +1222,18 @@ const BarChart: React.ForwardRefExoticComponent<
                 {...(layout !== "vertical"
                   ? {
                       type: "number" as const,
-                      domain: yAxisDomain as AxisDomain,
+                      domain: (valueAxes.first.ticks.domain ||
+                        yAxisDomain) as AxisDomain,
+                      ...(valueAxes.first.ticks.ticks
+                        ? { ticks: valueAxes.first.ticks.ticks }
+                        : {}),
                       tickFormatter:
-                        type === "percent" ? valueToPercent : valueFormatter,
+                        type === "percent"
+                          ? valueToPercent
+                          : getTickFormatter(
+                              valueFormatter,
+                              valueAxes.first.ticks,
+                            ),
                       allowDecimals: allowDecimals,
                     }
                   : {
@@ -1219,7 +1270,7 @@ const BarChart: React.ForwardRefExoticComponent<
                 <YAxis
                   yAxisId={SECOND_Y_AXIS_ID}
                   orientation="right"
-                  width={secondYAxis.width}
+                  width={valueAxes.second?.width ?? secondYAxis.width}
                   axisLine={false}
                   tickLine={false}
                   fill=""
@@ -1232,8 +1283,23 @@ const BarChart: React.ForwardRefExoticComponent<
                     fill: "var(--ou-chart-tick)",
                   }}
                   type="number"
-                  domain={secondYAxisDomain}
-                  tickFormatter={secondYAxis.valueFormatter}
+                  domain={
+                    (valueAxes.second?.ticks.domain ||
+                      secondYAxisDomain) as AxisDomain
+                  }
+                  {...(valueAxes.second?.ticks.ticks
+                    ? { ticks: valueAxes.second.ticks.ticks }
+                    : {})}
+                  tickFormatter={
+                    valueAxes.second
+                      ? getTickFormatter(
+                          secondYAxis.valueFormatter,
+                          valueAxes.second.ticks,
+                        )
+                      : (value: number): string => {
+                          return secondYAxis.valueFormatter(value);
+                        }
+                  }
                   allowDecimals={allowDecimals}
                 />
               ) : null}
@@ -1326,7 +1392,7 @@ const BarChart: React.ForwardRefExoticComponent<
                         : undefined,
                       enableLegendSlider,
                       legendPosition,
-                      yAxisWidth,
+                      valueAxes.first.width,
                     );
                   }}
                 />

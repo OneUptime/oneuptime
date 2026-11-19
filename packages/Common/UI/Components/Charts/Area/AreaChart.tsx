@@ -91,6 +91,11 @@ export interface ComponentProps {
         bucketStart: Date,
         bucketEnd: Date,
         valuesAtBucket: Record<string, number | string>,
+        /*
+         * A series' value as the tooltip writes it, by the name it is drawn
+         * with: to the figures its axis's ticks are written with (#10079).
+         */
+        formatValue: (seriesName: string, value: number) => string,
       ) => void)
     | undefined;
   /*

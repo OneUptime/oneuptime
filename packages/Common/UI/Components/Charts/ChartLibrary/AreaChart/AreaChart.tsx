@@ -73,6 +73,12 @@ import {
   getCategoryYAxisProps,
   getMarkYAxisProps,
 } from "../Utils/SecondYAxis";
+import {
+  ChartValueAxesPlan,
+  useValueAxesTicks,
+} from "../Utils/UseValueAxesTicks";
+import { getTickFormatter } from "../../Utils/ValueAxisTicks";
+import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 
 /*
  * recharts invokes child event handlers with varying shapes ((event) for
@@ -655,7 +661,11 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   index: string;
   categories: string[];
   colors?: ChartColorValue[];
-  valueFormatter?: (value: number) => string;
+  /*
+   * How the value axis writes a tick, and the tooltip a value. Handed a
+   * precision when the chart steps the axis itself (ValueAxisTicks).
+   */
+  valueFormatter?: ValueAxisFormatter;
   startEndOnly?: boolean;
   showXAxis?: boolean;
   showYAxis?: boolean;
@@ -707,6 +717,11 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
         bucketEnd: Date,
         // The clicked row: one numeric entry per series + the axis keys.
         valuesAtBucket: Record<string, number | string>,
+        /*
+         * A category's value as the tooltip writes it: in its axis's unit,
+         * to the figures its axis's ticks are written with (#10079).
+         */
+        formatValue: (category: string, value: number) => string,
       ) => void)
     | undefined;
   /**
@@ -875,7 +890,30 @@ const AreaChart: React.ForwardRefExoticComponent<
           secondYAxis.maxValue,
         )
       : [];
-    // Each category's value in the tooltip, in the unit of the axis it is on.
+    /*
+     * Each value axis stepped so its neighbouring ticks read apart, and as
+     * wide as its widest tick (issue #10079). The expected-range band is
+     * drawn against the first axis, so it takes the band in.
+     */
+    const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
+      data: data,
+      categories: categories,
+      secondYAxis: secondYAxis,
+      referenceLines: referenceLines,
+      firstDomain: yAxisDomain,
+      secondDomain: secondYAxisDomain,
+      allowDecimals: allowDecimals,
+      valueFormatter: valueFormatter,
+      yAxisWidth: yAxisWidth,
+      bandKeys:
+        anomalyBandLowerKey && anomalyBandUpperKey
+          ? [anomalyBandLowerKey, anomalyBandUpperKey]
+          : undefined,
+    });
+    /*
+     * Each category's value in the tooltip, in the unit of the axis it is
+     * on, to the figures that axis's ticks are written with.
+     */
     const categoryValueFormatter: (
       category: string,
     ) => (value: number) => string = (
@@ -886,6 +924,8 @@ const AreaChart: React.ForwardRefExoticComponent<
         valueFormatter: valueFormatter,
         secondYAxis: secondYAxis,
         categoryValueFormatters: categoryValueFormatters,
+        firstAxisPrecision: valueAxes.first.ticks.precision,
+        secondAxisPrecision: valueAxes.second?.ticks.precision,
       });
     };
     const hasOnValueChange: boolean = Boolean(onValueChange);
@@ -1003,6 +1043,9 @@ const AreaChart: React.ForwardRefExoticComponent<
         bucket.start,
         bucket.end,
         (data[rowIndex] || {}) as Record<string, number | string>,
+        (category: string, value: number): string => {
+          return categoryValueFormatter(category)(value);
+        },
       );
     }
 
@@ -1131,12 +1174,17 @@ const AreaChart: React.ForwardRefExoticComponent<
                 )}
               </XAxis>
               <YAxis
-                width={yAxisWidth}
+                width={valueAxes.first.width}
                 hide={!showYAxis}
                 axisLine={false}
                 tickLine={false}
                 type="number"
-                domain={yAxisDomain as AxisDomain}
+                domain={
+                  (valueAxes.first.ticks.domain || yAxisDomain) as AxisDomain
+                }
+                {...(valueAxes.first.ticks.ticks
+                  ? { ticks: valueAxes.first.ticks.ticks }
+                  : {})}
                 tick={{
                   transform: "translate(-4, 0)",
                   fontSize: 10,
@@ -1146,7 +1194,10 @@ const AreaChart: React.ForwardRefExoticComponent<
                 fill=""
                 stroke=""
                 className={cx("tabular-nums", "fill-gray-500")}
-                tickFormatter={valueFormatter}
+                tickFormatter={getTickFormatter(
+                  valueFormatter,
+                  valueAxes.first.ticks,
+                )}
                 allowDecimals={allowDecimals}
               >
                 {yAxisLabel && (
@@ -1169,11 +1220,17 @@ const AreaChart: React.ForwardRefExoticComponent<
                 <YAxis
                   yAxisId={SECOND_Y_AXIS_ID}
                   orientation="right"
-                  width={secondYAxis.width}
+                  width={valueAxes.second?.width ?? secondYAxis.width}
                   axisLine={false}
                   tickLine={false}
                   type="number"
-                  domain={secondYAxisDomain as AxisDomain}
+                  domain={
+                    (valueAxes.second?.ticks.domain ||
+                      secondYAxisDomain) as AxisDomain
+                  }
+                  {...(valueAxes.second?.ticks.ticks
+                    ? { ticks: valueAxes.second.ticks.ticks }
+                    : {})}
                   tick={{
                     transform: "translate(4, 0)",
                     fontSize: 10,
@@ -1183,7 +1240,16 @@ const AreaChart: React.ForwardRefExoticComponent<
                   fill=""
                   stroke=""
                   className={cx("tabular-nums", "fill-gray-500")}
-                  tickFormatter={secondYAxis.valueFormatter}
+                  tickFormatter={
+                    valueAxes.second
+                      ? getTickFormatter(
+                          secondYAxis.valueFormatter,
+                          valueAxes.second.ticks,
+                        )
+                      : (value: number): string => {
+                          return secondYAxis.valueFormatter(value);
+                        }
+                  }
                   allowDecimals={allowDecimals}
                 />
               ) : null}
@@ -1279,7 +1345,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                         : undefined,
                       enableLegendSlider,
                       legendPosition,
-                      yAxisWidth,
+                      valueAxes.first.width,
                     );
                   }}
                 />
