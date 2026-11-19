@@ -15,6 +15,7 @@ import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import { MAGIC_LINK_INVALID_MESSAGE } from "Common/Types/Accounts/MagicLink";
 import {
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
+  SIGN_IN_PASSKEY_NAME,
   SIGN_IN_SECURITY_KEY_NAME,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
@@ -483,6 +484,32 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+/*
+ * The mobile app's hand-off of the prompt to the phone's browser (#9817,
+ * Server/Services/MobilePasskeyEnrolmentService): whether this server can
+ * (HTTPS), and the options it keeps for the page under an id.
+ */
+const isMobileHandOffAvailable: jest.Mock = jest.fn();
+const storeHandOffOptions: jest.Mock = jest.fn();
+const takeHandOffOptions: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/MobilePasskeyEnrolmentService", () => {
+  return {
+    __esModule: true,
+    default: {
+      isAvailable: (...args: Array<unknown>): unknown => {
+        return isMobileHandOffAvailable(...args);
+      },
+      storeOptions: (...args: Array<unknown>): unknown => {
+        return storeHandOffOptions(...args);
+      },
+      takeOptions: (...args: Array<unknown>): unknown => {
+        return takeHandOffOptions(...args);
+      },
+    },
+  };
+});
+
 const sendErrorResponse: jest.Mock = jest.fn();
 const sendEntityResponse: jest.Mock = jest.fn();
 const sendJsonObjectResponse: jest.Mock = jest.fn();
@@ -511,6 +538,7 @@ import "../../../FeatureSet/Identity/API/Authentication";
 
 const PASSWORD: string = "correct horse battery staple";
 const USER_EMAIL: string = "has.a.key@example.com";
+const HAND_OFF_ID: string = "H".repeat(43);
 const OTHER_USER_ID: string = "0ddba11c-0000-4000-8000-00000000cafe";
 const LINK_TOKEN: string = "5ec0dd1c-1111-4111-8111-111111111111";
 
@@ -691,6 +719,8 @@ beforeEach(async () => {
     options: REGISTRATION_OPTIONS,
     challenge: REGISTRATION_OPTIONS["challenge"],
   } as never);
+  isMobileHandOffAvailable.mockReturnValue(true);
+  storeHandOffOptions.mockResolvedValue(HAND_OFF_ID as never);
   verifyRegistration.mockResolvedValue(undefined as never);
   generateForUserIfNone.mockResolvedValue([...MINTED_CODES] as never);
   forgetWrongCodes.mockResolvedValue(undefined as never);
@@ -1258,5 +1288,158 @@ describe("a sign-in begun with a link (Types/Accounts/MagicLink)", () => {
 
     expect(consumeMagicLinkToken).not.toHaveBeenCalled();
     expectNobodySignedIn();
+  });
+});
+
+/*
+ * THE MOBILE APP'S PASSKEY (#9817, Server/Services/
+ * MobilePasskeyEnrolmentService): the same two requests, the email and
+ * password with each, the app asking for the options with `mobileHandOff`.
+ * They are then a passkey's, kept for the phone's browser under an id that
+ * is all the app is answered; and the answer the browser makes is saved by
+ * the very verify the web sends, named as a passkey.
+ */
+describe("a passkey the mobile app sets up in the phone's browser", () => {
+  async function askForHandOff(
+    data: JSONObject = withPassword(),
+    mobileHandOff: unknown = true,
+  ): Promise<Answer> {
+    const handler: RouteHandler = mockRouter.match(
+      "post",
+      SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
+    );
+    const req: ExpressRequest = buildRequest({
+      data: data,
+      mobileHandOff: mobileHandOff,
+    });
+
+    let nextError: Exception | null = null;
+
+    await handler(req, buildResponse(), ((err?: Exception): void => {
+      if (err) {
+        nextError = err;
+      }
+    }) as unknown as NextFunction);
+
+    return { nextError };
+  }
+
+  function expectNoHandOff(): void {
+    expect(storeHandOffOptions).not.toHaveBeenCalled();
+  }
+
+  it("asks for a passkey for the account the password proved, keeps its options for the browser, and answers only the id", async () => {
+    await askForHandOff();
+
+    const asked: { userId: ObjectID; isPasskey: boolean } =
+      generateRegistrationOptions.mock.calls[0]![0] as {
+        userId: ObjectID;
+        isPasskey: boolean;
+      };
+
+    expect(asked.userId.toString()).toBe(account.id!.toString());
+    // Discoverable and checked for who holds it: the app signs in with it later.
+    expect(asked.isPasskey).toBe(true);
+
+    expect(storeHandOffOptions).toHaveBeenCalledWith(REGISTRATION_OPTIONS);
+    expect(sendJsonObjectResponse.mock.calls[0]![2]).toEqual({
+      handOffId: HAND_OFF_ID,
+    });
+    // The options themselves go to the browser page, never to the app.
+    expect(
+      JSON.stringify(sendJsonObjectResponse.mock.calls[0]![2]),
+    ).not.toContain(String(REGISTRATION_OPTIONS["challenge"]));
+    expectNobodySignedIn();
+  });
+
+  it("anything but true is the web's own request: a security key's options, answered as they are", async () => {
+    await askForHandOff(withPassword(), "true");
+
+    expect(
+      (generateRegistrationOptions.mock.calls[0]![0] as { isPasskey: boolean })
+        .isPasskey,
+    ).toBe(false);
+    expect(sendJsonObjectResponse.mock.calls[0]![2]).toEqual({
+      options: REGISTRATION_OPTIONS,
+    });
+    expectNoHandOff();
+  });
+
+  it("a hand-off inside the credentials is not one: only the request's own flag asks for it", async () => {
+    await askForHandOff(withPassword({ mobileHandOff: true }), null);
+
+    expect(
+      (generateRegistrationOptions.mock.calls[0]![0] as { isPasskey: boolean })
+        .isPasskey,
+    ).toBe(false);
+    expectNoHandOff();
+  });
+
+  it("is refused on a server not reached over HTTPS, before any challenge is made", async () => {
+    isMobileHandOffAvailable.mockReturnValue(false);
+
+    const answer: Answer = await askForHandOff();
+
+    expect(refusal(answer)).toBe(
+      "This server is not reached over HTTPS, so a passkey cannot be set up for it. Set up an authenticator app instead.",
+    );
+    expectNoKeyAsked();
+    expectNoHandOff();
+    expectNobodySignedIn();
+  });
+
+  it("a wrong password is refused as /login refuses it, and nothing is kept", async () => {
+    const answer: Answer = await askForHandOff(
+      withPassword({}, "not the password"),
+    );
+
+    expect(refusal(answer)).toBe("Email or password does not match.");
+    expectNoKeyAsked();
+    expectNoHandOff();
+  });
+
+  it("an account not required to use two-factor authentication is refused, and nothing is kept", async () => {
+    account = await storedUser({ enableTwoFactorAuth: false });
+
+    const answer: Answer = await askForHandOff();
+
+    expect(refusal(answer)).toBe(
+      "Two factor authentication is not required for this account.",
+    );
+    expectNoHandOff();
+  });
+
+  it("an account with a second step already set up is refused, and nothing is kept", async () => {
+    webAuthnFindBy.mockResolvedValue([new UserWebAuthn()] as never);
+
+    const answer: Answer = await askForHandOff();
+
+    expect(refusal(answer)).toBe(
+      "Two factor authentication is already set up for this account.",
+    );
+    expectNoHandOff();
+  });
+
+  it("an account whose sign-in single sign-on manages is refused, and nothing is kept", async () => {
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE) as never,
+    );
+
+    const answer: Answer = await askForHandOff();
+
+    expect(refusal(answer)).toBe(SSO_MANAGED_SIGN_IN_MESSAGE);
+    expectNoKeyAsked();
+    expectNoHandOff();
+  });
+
+  it("the passkey the browser made is saved by the web's own verify, named as a passkey when it is one", async () => {
+    await answerWithKey();
+
+    const saved: { name: string; passkeyName: string } = verifyRegistration.mock
+      .calls[0]![0] as { name: string; passkeyName: string };
+
+    expect(saved.name).toBe(SIGN_IN_SECURITY_KEY_NAME);
+    expect(saved.passkeyName).toBe(SIGN_IN_PASSKEY_NAME);
+    expect(isSignedIn()).toBe(true);
   });
 });

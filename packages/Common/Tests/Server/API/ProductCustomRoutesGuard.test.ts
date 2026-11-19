@@ -999,9 +999,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         /*
          * #9764: a security key set up at sign-in - its options, and the
          * key's answer. #9822: a security key's sign-in options, asked for
-         * with the password again rather than by an address alone.
+         * with the password again rather than by an address alone. #9817:
+         * the phone's browser reads a mobile app's passkey options once,
+         * by the one-time hand-off the app was given at sign-in.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 21,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 22,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
