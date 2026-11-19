@@ -122,17 +122,40 @@ describe("workflow Settings", () => {
 
     render(<Settings {...PAGE_PROPS} />);
 
-    // The Archive card's read, and nothing else: no graph, no secret key.
-    expect(mockGetItem).toHaveBeenCalledTimes(1);
-    expect(
-      (mockGetItem.mock.calls[0]![0] as { select: Record<string, unknown> })
-        .select,
-    ).toEqual({ isArchived: true });
-    expect(
-      new Workflow().getColumnAccessControlFor("isArchived")?.read,
-    ).toEqual(
-      expect.arrayContaining([Permission.Viewer, Permission.ReadWorkflow]),
+    /*
+     * The Archive card's read, and the Run As card's (#9695), and nothing
+     * else: no graph, no secret key.
+     */
+    const selects: Array<Record<string, unknown>> = mockGetItem.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { select: Record<string, unknown> }).select;
+      },
     );
+
+    expect(selects).toHaveLength(2);
+    expect(selects).toContainEqual({ isArchived: true });
+    expect(selects).toContainEqual({
+      runAs: true,
+      runAsCustomRoleId: true,
+      runAsGivenAt: true,
+      runAsGivenByUser: {
+        name: true,
+        email: true,
+      },
+    });
+
+    for (const column of [
+      "isArchived",
+      "runAs",
+      "runAsCustomRoleId",
+      "runAsGivenAt",
+      "runAsGivenByUser",
+    ]) {
+      expect(new Workflow().getColumnAccessControlFor(column)?.read).toEqual(
+        expect.arrayContaining([Permission.Viewer, Permission.ReadWorkflow]),
+      );
+    }
+
     expect(mockUpdateById).not.toHaveBeenCalled();
   });
 

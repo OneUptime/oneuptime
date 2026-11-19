@@ -10,10 +10,29 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import { WORKFLOW_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import WorkflowRunAsCard, {
+  WORKFLOW_RUN_AS_PLACE,
+  WorkflowRunAsCardCopy,
+  WorkflowRunAsSummary,
+} from "../../../Components/Workflow/WorkflowRunAsCard";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+
+// The test id of the page's More settings, which holds Run As.
+export const WORKFLOW_SETTINGS_MORE_TEST_ID: string =
+  "workflow-settings-more-settings";
 
 /*
  * Duplicate, export and archive: things done to the workflow as a whole.
+ * Then, folded under More settings since most workflows never need it, what
+ * the workflow's steps run as (#9695) - its folded header says when it is
+ * more than Default. Archive, which stops the workflow, comes last.
  *
  * The webhook secret key used to be a card here too. It is the secret part of
  * the Webhook trigger's URL, so it now lives with that trigger: open the
@@ -22,6 +41,11 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  */
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [runAs, setRunAs] = useState<WorkflowRunAsSummary>({
+    isRaised: false,
+    value: "",
+  });
 
   return (
     <Fragment>
@@ -63,6 +87,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div className="mt-5">
         <ExportModelCard modelId={modelId} modelType={Workflow} />
       </div>
+
+      <AdvancedPageSection
+        description="What this workflow's steps can do in the project, if not the default."
+        items={[
+          foldedSectionItem(WorkflowRunAsCardCopy.title, {
+            key: WORKFLOW_RUN_AS_PLACE,
+            isSet: runAs.isRaised,
+            value: runAs.value,
+          }),
+        ]}
+        dataTestId={WORKFLOW_SETTINGS_MORE_TEST_ID}
+      >
+        <WorkflowRunAsCard
+          workflowId={modelId}
+          onRunAsChange={(summary: WorkflowRunAsSummary): void => {
+            setRunAs(summary);
+          }}
+        />
+      </AdvancedPageSection>
 
       <div className="mt-5">
         <ArchiveResourceCard<Workflow>

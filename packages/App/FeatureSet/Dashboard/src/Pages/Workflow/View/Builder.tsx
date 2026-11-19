@@ -98,6 +98,23 @@ import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
 import { subscribeToArchiveStateChanges } from "../../../Components/Archive/ArchiveStateEvents";
+import {
+  CustomRoleSummary,
+  loadCustomRoleGrants,
+  loadCustomRoles,
+} from "../../../Components/CustomRole/CustomRoleOptions";
+import {
+  WorkflowRunAsLockedReasons,
+  WorkflowRunAsState,
+  canCurrentUserGiveWorkflowRunAs,
+  getWorkflowRunAsLockedReasons,
+} from "Common/UI/Components/Workflow/WorkflowRunAsGate";
+import {
+  WorkflowRunAs,
+  readWorkflowRunAs,
+} from "Common/Types/Workflow/WorkflowRunAs";
+import { TeamPermissionGrant } from "Common/UI/Utils/GrantablePermission";
+import ProjectUtil from "Common/UI/Utils/Project";
 import WorkflowPlanNotice, {
   doesCurrentPlanRunWorkflows,
 } from "../../../Components/Workflow/WorkflowPlanNotice";
@@ -282,8 +299,21 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   }, []);
 
+  /*
+   * A workflow that runs as more than Default (#9695) is changed, and run
+   * by hand, only by who holds what it runs as: anyone else gets the
+   * Builder as a view, its run buttons locked, each saying why in the
+   * server's words. Turning it off is still theirs; turning it on is not.
+   * Worked out once the workflow says what it runs as; until then nothing
+   * is locked for it, and the server decides.
+   */
+  const [runAsLock, setRunAsLock] = useState<WorkflowRunAsLockedReasons>({});
+
   const canTurnWorkflowOnOrOff: boolean =
-    enabledSwitchGate.isAllowed || !enabledSwitchGate.disabledReason;
+    (enabledSwitchGate.isAllowed || !enabledSwitchGate.disabledReason) &&
+    !(runAsLock.change && workflowEnabled.isEnabled === false);
+  const enabledSwitchDisabledReason: string | undefined =
+    enabledSwitchGate.disabledReason || runAsLock.change;
 
   /*
    * Run Workflow is for the workflow's editors and for Workflow Members, who
@@ -294,10 +324,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * work and the server decides (WorkflowRunGate).
    */
   const runLockedReason: string | undefined =
-    getLockedReason(getWorkflowRunGate());
-  const stepRunLockedReason: string | undefined = getLockedReason(
-    getWorkflowStepRunGate(),
-  );
+    getLockedReason(getWorkflowRunGate()) || runAsLock.run;
+  const stepRunLockedReason: string | undefined =
+    getLockedReason(getWorkflowStepRunGate()) || runAsLock.run;
 
   /*
    * Someone who may open the workflow but not change it - a Workflow Member,
@@ -308,9 +337,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * the graph would be refused, and each refusal used to come back as an
    * error dialog. Read on every render, like the run gates.
    */
-  const editLockedReason: string | undefined = getLockedReason(
-    getWorkflowEditGate(),
-  );
+  const editLockedReason: string | undefined =
+    getLockedReason(getWorkflowEditGate()) || runAsLock.change;
   const isViewOnly: boolean = Boolean(editLockedReason);
 
   /*
@@ -430,6 +458,72 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setShowRunLogModal(true);
   };
 
+  /*
+   * Why the workflow is locked for the signed-in person, by what it runs as
+   * (WorkflowRunAsGate): nothing for Default. For a custom role, its
+   * permissions and name are read; when they cannot be, nothing is locked
+   * here and the server decides.
+   */
+  const readRunAsLock: (
+    workflow: WorkflowModel,
+  ) => Promise<WorkflowRunAsLockedReasons> = async (
+    workflow: WorkflowModel,
+  ): Promise<WorkflowRunAsLockedReasons> => {
+    const runAs: WorkflowRunAs | null = readWorkflowRunAs(workflow.runAs);
+
+    if (runAs === WorkflowRunAs.Default) {
+      return {};
+    }
+
+    let roleName: string | undefined = undefined;
+    let roleGrants: Array<TeamPermissionGrant> = [];
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (runAs === WorkflowRunAs.CustomRole) {
+      if (!workflow.runAsCustomRoleId || !projectId) {
+        return {};
+      }
+
+      try {
+        const roleId: string = workflow.runAsCustomRoleId
+          .toString()
+          .toLowerCase();
+
+        roleName = (await loadCustomRoles({ projectId: projectId })).find(
+          (role: CustomRoleSummary): boolean => {
+            return role.id.toLowerCase() === roleId;
+          },
+        )?.name;
+
+        for (const [id, grants] of await loadCustomRoleGrants({
+          projectId: projectId,
+          customRoleId: workflow.runAsCustomRoleId,
+        })) {
+          if (id.toLowerCase() === roleId) {
+            roleGrants = grants;
+          }
+        }
+      } catch {
+        return {};
+      }
+
+      if (!roleName) {
+        return {};
+      }
+    }
+
+    const state: WorkflowRunAsState = {
+      runAs: workflow.runAs,
+      roleName: roleName,
+      roleGrants: roleGrants,
+    };
+
+    return getWorkflowRunAsLockedReasons({
+      state: state,
+      mayAct: canCurrentUserGiveWorkflowRunAs(state),
+    });
+  };
+
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -456,6 +550,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           // Read by the Enabled switch and the notice shown while it is off.
           isEnabled: true,
           isArchived: true,
+          // Who may change it and run it by hand (#9695).
+          runAs: true,
+          runAsCustomRoleId: true,
           ...webhookSecretKeySelect,
           ...incomingEmailSecretKeySelect,
         },
@@ -463,12 +560,22 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
 
       if (workflow) {
+        const lock: WorkflowRunAsLockedReasons = await readRunAsLock(workflow);
+
+        setRunAsLock(lock);
+
+        /*
+         * The keys of a workflow that runs as more than Default come back
+         * only to who may change it: anyone else is told the address is
+         * hidden, as anyone who may not read the column is.
+         */
         setCanSeeWebhookSecretKey(
-          Boolean(webhookSecretKeySelect.webhookSecretKey),
+          Boolean(webhookSecretKeySelect.webhookSecretKey) && !lock.change,
         );
         setWebhookSecretKey(workflow.webhookSecretKey || "");
         setCanSeeIncomingEmailSecretKey(
-          Boolean(incomingEmailSecretKeySelect.incomingEmailSecretKey),
+          Boolean(incomingEmailSecretKeySelect.incomingEmailSecretKey) &&
+            !lock.change,
         );
         setIncomingEmailSecretKey(
           workflow.incomingEmailSecretKey?.toString() || "",
@@ -827,7 +934,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 disabledReason={
                   canTurnWorkflowOnOrOff
                     ? undefined
-                    : enabledSwitchGate.disabledReason
+                    : enabledSwitchDisabledReason
                 }
                 onChange={(isEnabled: boolean) => {
                   void workflowEnabled.setIsEnabled(isEnabled);
@@ -1039,6 +1146,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     completedAt: runWatch.run.completedAt,
                     isTestRun: runWatch.run.isTestRun,
                     startedBy: runWatch.run.startedBy,
+                    ranAs: runWatch.run.ranAs,
                   }
                 : undefined
             }

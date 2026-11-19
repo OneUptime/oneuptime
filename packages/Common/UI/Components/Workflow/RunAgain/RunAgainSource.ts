@@ -17,6 +17,10 @@ import API from "../../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../../Utils/ModelAPI/ModelAPI";
 import { WatchedRunDetail } from "../UseRunWatch";
 import { getWorkflowRunStartedBy } from "../WorkflowRunExport";
+import {
+  WORKFLOW_RUN_RAN_AS_SELECT,
+  getWorkflowRunRanAs,
+} from "../WorkflowRunRanAs";
 
 export type SendRunAgainFunction = (runId: string) => Promise<void>;
 
@@ -72,6 +76,8 @@ export const fetchLatestWorkflowRun: FetchLatestWorkflowRunFunction = async (
         name: true,
         email: true,
       },
+      // What it ran as, when more than Default (#9695).
+      ...WORKFLOW_RUN_RAN_AS_SELECT,
       canRunAgain: true,
     },
     sort: { createdAt: SortOrder.Descending },
@@ -93,6 +99,7 @@ export const fetchLatestWorkflowRun: FetchLatestWorkflowRunFunction = async (
     completedAt: latest.completedAt || null,
     isTestRun: latest.isTestRun === true,
     startedBy: getWorkflowRunStartedBy(latest.startedByUser),
+    ranAs: getWorkflowRunRanAs(latest),
     canRunAgain: latest.canRunAgain === true,
   };
 };

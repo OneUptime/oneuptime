@@ -296,6 +296,15 @@ describe("which columns record a person doing something", () => {
       "projectDeleted",
       "requested",
       /*
+       * Workflow.runAsGivenByUserId: the person whose permissions a workflow
+       * that runs as more than Default runs with - whoever last chose its
+       * Run As, or saved its steps or its variables, while it did (#9695).
+       * WorkflowService stamps it from the caller once the change has passed
+       * its checks; no request chooses it. WorkflowLog.runAsGivenByUserId
+       * keeps who that was for each run, as the runner read it.
+       */
+      "runAsGiven",
+      /*
        * IncidentVideoCall.rootCauseSuggestionReviewedByUserId: who used the
        * root cause OneUptime AI suggested from an incident call as the
        * incident's own, or dismissed it. The transcript routes stamp it
