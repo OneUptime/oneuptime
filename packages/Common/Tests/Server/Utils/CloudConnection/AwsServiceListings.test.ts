@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
 import {
+  CloudCompleteListing,
   CloudConnectionPullState,
   CloudConnectionSettings,
   CloudInventoryItem,
@@ -329,20 +330,24 @@ describe("the types read since #9567, listed before they report a metric", () =>
       settings(),
       options(fake),
     );
-    // What the refusing Region listed in full, and the accelerators wherever they were.
+    /*
+     * What the refusing Region listed in full - a listing of no Regions is
+     * every Region's - and the accelerators wherever they were.
+     */
     const listedInFull: Array<string> = result.completelyListed.flatMap(
-      (entry: {
-        region: string;
-        resourceTypes: Array<string>;
-      }): Array<string> => {
+      (entry: CloudCompleteListing): Array<string> => {
         return entry.resourceTypes.filter((type: string): boolean => {
           return (
-            entry.region === REGION ||
+            !entry.regions ||
+            entry.regions.includes(REGION) ||
             type === "AWS::GlobalAccelerator::Accelerator"
           );
         });
       },
     );
+
+    // The Region's other types were listed in full: the check below is not empty.
+    expect(listedInFull).toContain("AWS::EC2::Instance");
 
     expect(result.warnings).toEqual([]);
 

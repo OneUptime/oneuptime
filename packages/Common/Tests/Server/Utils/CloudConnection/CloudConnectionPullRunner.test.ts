@@ -17,14 +17,7 @@ import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import CloudConnection from "../../../../Models/DatabaseModels/CloudConnection";
 import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import CloudConnectionResourceSync, {
