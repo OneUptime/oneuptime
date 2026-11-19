@@ -1341,7 +1341,71 @@ describe("the records a sample's findings were found in", () => {
       expect(query.includes("sessionId AS readSessionId")).toBe(
         source.startsWith("Rum"),
       );
+      // A log line's own id, which opens that very line (#9793): logs only.
+      expect(query.includes("_id AS readLogId")).toBe(
+        source === TelemetrySampleSource.Logs ||
+          source === TelemetrySampleSource.RumLogs,
+      );
     }
+
+    // The metrics' reads take no line's id either.
+    expect(
+      buildTelemetryMetricSampleStatement({
+        projectId: PROJECT_ID,
+        since: new Date("2026-10-27T10:00:00.000Z"),
+        until: new Date("2026-10-27T11:00:00.000Z"),
+        metrics: [
+          {
+            ownerId: CHECKOUT,
+            metricName: "user.logins",
+            points: 10,
+            newestMinute: new Date("2026-10-27T10:59:00.000Z"),
+            newestMinutePoints: 2,
+          },
+        ],
+        perMetric: 10,
+        caps: CAPS,
+      }).query,
+    ).not.toContain("readLogId");
+  });
+
+  test("a log line is kept with its own id; a row whose id is not one is kept without it", async () => {
+    const LOG_ID: string = "0192f1a0-0000-7000-8000-00000009793a";
+
+    sampleRows[TelemetrySampleSource.Logs] = [
+      {
+        ownerId: CHECKOUT,
+        readRecordTime: String(T1),
+        readTraceId: "",
+        readSpanId: "",
+        readLogId: LOG_ID,
+        readBody: "Signed up jane.doe@acmecorp.io from the mobile app",
+        readAttributes: [],
+      },
+      {
+        ownerId: CHECKOUT,
+        readRecordTime: String(T2),
+        readTraceId: "",
+        readSpanId: "",
+        readLogId: "not-an-id",
+        readBody: "Signed up kai.wu@acmecorp.io from the web",
+        readAttributes: [],
+      },
+    ];
+
+    const logs: TelemetryStoreScan = storeOf(
+      await scan(),
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(recordsAt(logs.result, "body", "email-address")).toEqual([
+      { time: new Date(T1).toISOString(), logId: LOG_ID },
+      { time: new Date(T2).toISOString() },
+    ]);
+    expect(
+      readSampleRecord({ readRecordTime: String(T1), readLogId: LOG_ID }),
+    ).toEqual({ time: new Date(T1).toISOString(), logId: LOG_ID });
   });
 
   test("each location's findings keep the records whose value held them, the newest first", async () => {

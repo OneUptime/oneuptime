@@ -45,6 +45,12 @@ import IssueTelemetryFindings, {
   getIssueFindingsSelect,
   ISSUE_TELEMETRY_FINDINGS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueTelemetryFindings";
+import {
+  getOpenedLogLineWindow,
+  OpenedLogLineAddress,
+  OPENED_LOG_LINE_TIME_SLACK_IN_MS,
+  readOpenedLogLineAddress,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Logs/useOpenedLogLine";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
@@ -1141,6 +1147,142 @@ describe("where a record opens", () => {
     expect(new Date(query.get("start") || "").getTime()).toBe(
       time.getTime() - NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
     );
+  });
+
+  /*
+   * A log occurrence names its line by its id (#9793): the logs explorer
+   * opens that very line above its list (#9620's `log` and `logTime`),
+   * and the list under it keeps the request's or the service's lines.
+   */
+  const LOG_ID: string = "0192f1a0-0000-7000-8000-00000009793a";
+
+  test("a log line in a request, named by its id: that very line, over its span's lines", () => {
+    const time: Date = new Date("2026-11-03T12:00:00.123Z");
+    const links: Array<OccurrenceLink> = getOccurrenceLinks({
+      ...SPAN,
+      time: time.toISOString(),
+      recordKind: DataSecurityOccurrenceRecordKind.Log,
+      logId: LOG_ID,
+    });
+
+    // Still opens in Logs, then its trace.
+    expect(
+      links.map((link: OccurrenceLink): OccurrenceLinkKind => {
+        return link.kind;
+      }),
+    ).toEqual([OccurrenceLinkKind.Logs, OccurrenceLinkKind.Trace]);
+
+    const logs: string = links[0]!.route.toString();
+    const query: URLSearchParams = queryOf(logs);
+
+    expect(logs.startsWith(routeFor(PageMap.LOGS))).toBe(true);
+    expect(query.get("log")).toBe(LOG_ID);
+    expect(new Date(query.get("logTime") || "").getTime()).toBe(time.getTime());
+    // The list under the line: the request's, as before.
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["traceId", [SPAN.traceId]],
+      ["spanId", [SPAN.spanId]],
+    ]);
+    expect(new Date(query.get("start") || "").getTime()).toBe(
+      time.getTime() - REQUEST_LOGS_WINDOW_IN_MINUTES * 60_000,
+    );
+  });
+
+  test("a log line outside any request, named by its id: that very line, over its service's second", () => {
+    const time: Date = new Date("2026-11-03T12:00:00.000Z");
+    const query: URLSearchParams = queryOf(
+      getOccurrenceLogsRoute({
+        time: time.toISOString(),
+        recordKind: DataSecurityOccurrenceRecordKind.Log,
+        serviceId: SERVICE_ID,
+        logId: LOG_ID,
+        maskedValue: "******7A",
+      })?.toString() || "",
+    );
+
+    expect(query.get("log")).toBe(LOG_ID);
+    expect(new Date(query.get("logTime") || "").getTime()).toBe(time.getTime());
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+    expect(new Date(query.get("end") || "").getTime()).toBe(
+      time.getTime() + NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
+    );
+  });
+
+  test("the address a log occurrence writes is the one the logs explorer opens its line from", () => {
+    const time: Date = new Date("2026-11-03T12:00:00.123Z");
+    const route: string =
+      getOccurrenceLogsRoute({
+        time: time.toISOString(),
+        recordKind: DataSecurityOccurrenceRecordKind.Log,
+        serviceId: SERVICE_ID,
+        logId: LOG_ID,
+        maskedValue: "******7A",
+      })?.toString() || "";
+    const address: OpenedLogLineAddress | null = readOpenedLogLineAddress(
+      route.slice(route.indexOf("?")),
+    );
+
+    expect(address?.logId).toBe(LOG_ID);
+    expect(address?.logTime?.getTime()).toBe(time.getTime());
+    // Read in the second around when it was written: a lookup, not a search.
+    expect(
+      getOpenedLogLineWindow({ address: address!, now: new Date() }),
+    ).toEqual({
+      start: new Date(time.getTime() - OPENED_LOG_LINE_TIME_SLACK_IN_MS),
+      end: new Date(time.getTime() + OPENED_LOG_LINE_TIME_SLACK_IN_MS),
+    });
+  });
+
+  test("a RUM application's log line opens on its line too, over its application's lines", () => {
+    const time: Date = new Date("2026-11-03T12:00:00.000Z");
+    const query: URLSearchParams = queryOf(
+      getOccurrenceLogsRoute({
+        time: time.toISOString(),
+        recordKind: DataSecurityOccurrenceRecordKind.Log,
+        rumApplicationId: WEB_APP_ID,
+        sessionId: "session-1",
+        logId: LOG_ID,
+        maskedValue: "******7A",
+      })?.toString() || "",
+    );
+
+    expect(query.get("log")).toBe(LOG_ID);
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", [WEB_APP_ID]],
+    ]);
+  });
+
+  test("regression: a log occurrence that names no line, or an id that is not one, opens its list as before", () => {
+    const time: Date = new Date("2026-11-03T12:00:00.000Z");
+
+    for (const logId of [undefined, "", "  ", "not-an-id", "12345"]) {
+      const query: URLSearchParams = queryOf(
+        getOccurrenceLogsRoute({
+          ...SPAN,
+          time: time.toISOString(),
+          recordKind: DataSecurityOccurrenceRecordKind.Log,
+          logId,
+        })?.toString() || "",
+      );
+
+      expect(query.get("log")).toBeNull();
+      expect(query.get("logTime")).toBeNull();
+      expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+        ["traceId", [SPAN.traceId]],
+        ["spanId", [SPAN.spanId]],
+      ]);
+    }
+  });
+
+  test("only a log line opens a line: a span's id is never sent as one", () => {
+    for (const link of getOccurrenceLinks({
+      ...SPAN,
+      logId: LOG_ID,
+    })) {
+      expect(queryOf(link.route.toString()).get("log")).toBeNull();
+    }
   });
 
   test("a log line with no time, or nothing to filter by, opens nowhere in the logs", () => {

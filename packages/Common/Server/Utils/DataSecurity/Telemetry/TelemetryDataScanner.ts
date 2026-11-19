@@ -659,10 +659,16 @@ const SOURCES_WITH_TRACES: ReadonlySet<TelemetrySampleSource> = new Set([
   TelemetrySampleSource.RumSpans,
 ]);
 
+// The sources whose records are log lines, each with an id of its own.
+export const SOURCES_WITH_LOG_IDS: ReadonlySet<TelemetrySampleSource> = new Set(
+  [TelemetrySampleSource.Logs, TelemetrySampleSource.RumLogs],
+);
+
 /*
  * When each record was written, to the millisecond, and the keys that tell
- * it from its neighbours - its trace and span, its session: a finding keeps
- * the records it was found in (FindingSampleRecord). Light columns only.
+ * it from its neighbours - its trace and span, its session, a log line's
+ * own id: a finding keeps the records it was found in (FindingSampleRecord).
+ * Light columns only.
  */
 function appendSampleRecordKeys(
   statement: Statement,
@@ -682,6 +688,14 @@ function appendSampleRecordKeys(
     source.source === TelemetrySampleSource.RumSpans
   ) {
     statement.append(", sessionId AS readSessionId");
+  }
+
+  /*
+   * A log line's own id: the logs explorer opens that very line by it
+   * (issue #9793), where its time and trace only narrow the list to it.
+   */
+  if (SOURCES_WITH_LOG_IDS.has(source.source)) {
+    statement.append(", _id AS readLogId");
   }
 }
 
@@ -1510,8 +1524,8 @@ class StoreSample {
 
 /*
  * A sampled row as a reference to its record: when it was written and the
- * keys it carries (appendSampleRecordKeys) - for a metric's point, the
- * metric's name. Null for a row with no time.
+ * keys it carries (appendSampleRecordKeys) - for a log line, its own id;
+ * for a metric's point, the metric's name. Null for a row with no time.
  */
 export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
   return toFindingSampleRecord({
@@ -1519,6 +1533,7 @@ export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
     traceId: readText(row["readTraceId"]),
     spanId: readText(row["readSpanId"]),
     sessionId: readText(row["readSessionId"]),
+    logId: readText(row["readLogId"]),
     metricName: readText(row["readMetricName"]),
   });
 }

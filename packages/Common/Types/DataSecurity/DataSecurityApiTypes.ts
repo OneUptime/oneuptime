@@ -324,6 +324,12 @@ export interface DataSecurityFindingOccurrence {
    * name, so no value ever goes into an address.
    */
   metricName?: string | undefined;
+  /*
+   * A log line's own id (the Log row's _id): the logs explorer opens that
+   * very line by it, with its time (#9793). Absent from a server of the
+   * release before, whose links open the line's request or second instead.
+   */
+  logId?: string | undefined;
   // A log line's severity.
   severity?: string | undefined;
   // An exception's group.
