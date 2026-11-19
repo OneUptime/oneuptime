@@ -18,6 +18,18 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { getKubernetesContainerRoute } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesContainerRowStatus } from "../Utils/KubernetesContainerFacts";
+import {
+  getKubernetesContainerListReasons,
+  getKubernetesContainerPodKey,
+  getKubernetesContainerPodsToRead,
+  isKubernetesContainerRowToExplain,
+  loadKubernetesContainerPods,
+} from "../Utils/KubernetesContainerListStatus";
+import {
+  KubernetesHealthRow,
+  KubernetesHealthText,
+  assessKubernetesContainer,
+} from "Common/Types/Kubernetes/KubernetesHealth";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -65,6 +77,21 @@ const KubernetesClusterContainers: FunctionComponent<
           },
         });
 
+      /*
+       * Why each container that is not running and ready is not (#9732):
+       * its pod's status says, read once for those pods alone. A failed
+       * read keeps the list as it was - each row's state, without why.
+       */
+      let pods: Map<string, KubernetesHealthRow> = new Map();
+      try {
+        pods = await loadKubernetesContainerPods({
+          clusterId: modelId,
+          podNames: getKubernetesContainerPodsToRead(result.data),
+        });
+      } catch {
+        // The next refresh asks again.
+      }
+
       const now: number = Date.now();
       const containerList: Array<KubernetesResource> = result.data.map(
         (row: KubernetesContainerModel): KubernetesResource => {
@@ -89,7 +116,8 @@ const KubernetesClusterContainers: FunctionComponent<
             }
           }
 
-          return {
+          const status: string = getKubernetesContainerRowStatus(row);
+          const resource: KubernetesResource = {
             name: row.name || "",
             namespace: row.podNamespaceKey || "",
             cpuUtilization: cpu,
@@ -99,13 +127,38 @@ const KubernetesClusterContainers: FunctionComponent<
               row.memoryLimitBytes !== undefined
                 ? Number(row.memoryLimitBytes)
                 : null,
-            status: getKubernetesContainerRowStatus(row),
+            status: status,
             age: "",
             additionalAttributes: {
               "resource.k8s.pod.name": row.podName || "",
               restarts: `${row.restartCount ?? 0}`,
             },
           };
+
+          // Why, under its state, by its pod's own rules.
+          const pod: KubernetesHealthRow | undefined =
+            isKubernetesContainerRowToExplain(row)
+              ? pods.get(
+                  getKubernetesContainerPodKey(
+                    row.podNamespaceKey,
+                    row.podName,
+                  ),
+                )
+              : undefined;
+          if (pod) {
+            const reasons: Array<KubernetesHealthText> =
+              getKubernetesContainerListReasons({
+                rowStatus: status,
+                assessment: assessKubernetesContainer(pod, {
+                  name: row.name || "",
+                }),
+              });
+            if (reasons.length > 0) {
+              resource.statusReasons = reasons;
+            }
+          }
+
+          return resource;
         },
       );
 
