@@ -1,10 +1,12 @@
 import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
 import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import Email from "../../../Types/Email";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -231,6 +233,114 @@ export default class PendingInviteeProfiles {
       reader: { projectId: projectId },
       preferredProjectId: projectId,
     });
+  }
+
+  /*
+   * WHAT A PROJECT CALLS SOMEONE ONEUPTIME READ FOR IT. A read as OneUptime
+   * (root) passes by withholdFromRows, so code that reads people that way
+   * and names them where the project's people read it - a page, a feed, a
+   * message about them to somebody else - names them by this, with
+   * `withheld` the project's pending people (readWithheldProfilesInProject,
+   * read once for them all): someone only invited by the name typed for
+   * them, else their address, never their account's own name; anyone else
+   * by their name, else their address. Empty when there is neither.
+   */
+  public static getNameInProject(data: {
+    userId: ObjectID | string | null | undefined;
+    name: Name | string | null | undefined;
+    email: Email | string | null | undefined;
+    withheld: Map<string, WithheldProfile>;
+  }): string {
+    const email: string = data.email?.toString().trim() || "";
+    const profile: WithheldProfile | undefined =
+      PendingInviteeProfiles.getWithheldProfile({
+        userId: data.userId,
+        withheld: data.withheld,
+      });
+
+    if (profile) {
+      return profile.inviteeName?.trim() || email;
+    }
+
+    return data.name?.toString().trim() || email;
+  }
+
+  /*
+   * People read as OneUptime, named in place as `projectId` names them -
+   * for code that hands the users it read on to what writes their names,
+   * such as "Removed **Ada** (ada@example.com) as an owner": someone only
+   * invited to the project by the name typed for them, else their address,
+   * and with no picture; anyone else as read. One read for them all.
+   */
+  public static async nameInProject(data: {
+    users: Array<User | null | undefined>;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const users: Array<User> = data.users.filter(
+      (user: User | null | undefined): user is User => {
+        return Boolean(user);
+      },
+    );
+
+    if (users.length === 0) {
+      return;
+    }
+
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: users
+          .map((user: User): string => {
+            return user.id?.toString() || "";
+          })
+          .filter((userId: string): boolean => {
+            return Boolean(userId);
+          }),
+        projectId: data.projectId,
+      });
+
+    for (const user of users) {
+      if (
+        !PendingInviteeProfiles.getWithheldProfile({
+          userId: user.id,
+          withheld: withheld,
+        })
+      ) {
+        continue;
+      }
+
+      const name: string = PendingInviteeProfiles.getNameInProject({
+        userId: user.id,
+        name: null,
+        email: user.email,
+        withheld: withheld,
+      });
+
+      const values: Record<string, unknown> = user as unknown as Record<
+        string,
+        unknown
+      >;
+
+      values["name"] = name ? new Name(name) : undefined;
+
+      if ("profilePictureId" in values) {
+        values["profilePictureId"] = undefined;
+      }
+    }
+  }
+
+  /*
+   * The person's entry in `withheld` (readWithheldProfilesInProject): set
+   * when the project sees neither their name nor their picture.
+   */
+  public static getWithheldProfile(data: {
+    userId: ObjectID | string | null | undefined;
+    withheld: Map<string, WithheldProfile>;
+  }): WithheldProfile | undefined {
+    if (!data.userId) {
+      return undefined;
+    }
+
+    return data.withheld.get(data.userId.toString().toLowerCase());
   }
 
   private static async readWithheldProfilesFor(data: {

@@ -27,6 +27,9 @@ import ServiceLevelObjectiveOwnerUser from "../../../../Models/DatabaseModels/Se
 import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../../Server/Services/UserService";
 import SloFeedUtil from "../../../../Server/Utils/Slo/SloFeedUtil";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import URL from "../../../../Types/API/URL";
 import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
@@ -234,6 +237,82 @@ describe("SloFeedUtil - the acting user", () => {
     );
     expect(SloFeedUtil.getUserDisplayName(null)).toBe("");
     expect(SloFeedUtil.getUserDisplayName(makeUser({}))).toBe("");
+  });
+});
+
+/*
+ * An SLO's owner can be someone invited to the project who has not
+ * accepted: the project sees only what it invited of them - the name typed
+ * for them, else their address - never their account's own name (#9823).
+ */
+describe("SloFeedUtil - an owner only invited to the project", () => {
+  function pending(inviteeName: string | null): jest.SpyInstance {
+    return jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [USER_ID.toString().toLowerCase(), { inviteeName: inviteeName }],
+        ]),
+      );
+  }
+
+  test("links them by the name typed for them, never their own", async () => {
+    const withheldIn: jest.SpyInstance = pending("Jane from Payments");
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(
+        makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+      );
+    jest
+      .spyOn(UserService, "getUserLinkInDashboard")
+      .mockResolvedValue(URL.fromString(USER_LINK));
+
+    await expect(
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
+    ).resolves.toBe(`[Jane from Payments](${USER_LINK})`);
+
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
+  });
+
+  test("names them by their address when no name was typed", async () => {
+    pending(null);
+
+    await expect(
+      SloFeedUtil.getUserDisplayNameInProject({
+        user: makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).resolves.toBe("jane@example.com");
+  });
+
+  test("a member is named by their own name", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(new Map<string, WithheldProfile>());
+
+    await expect(
+      SloFeedUtil.getUserDisplayNameInProject({
+        user: makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).resolves.toBe("Jane Doe");
+
+    await expect(
+      SloFeedUtil.getUserDisplayNameInProject({
+        user: null,
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).resolves.toBe("");
   });
 });
 

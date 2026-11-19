@@ -1,9 +1,13 @@
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
+import ObjectID from "../../../Types/ObjectID";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 
 /*
  * The words a rule engine writes into a feed when its rules did something.
@@ -76,15 +80,28 @@ export default class RuleFeedMarkdown {
   /**
    * The owners an owner rule assigned, one bullet each - "- 👤 Ada Lovelace",
    * "- 👥 Platform" - or "- (no named owners)" when none has a name.
+   * `withheld` is who of the users is only invited to the project
+   * (readOwnersList): named by the name typed for them, else their address.
    */
   public static ownersList(data: {
     users: Array<User>;
     teams: Array<Team>;
+    withheld?: Map<string, WithheldProfile> | undefined;
   }): MarkdownText {
+    const withheld: Map<string, WithheldProfile> =
+      data.withheld || new Map<string, WithheldProfile>();
+
     return FeedMarkdown.bulletList(
       [
         ...data.users.map((user: User): MarkdownText => {
-          return mdText`👤 ${user.name?.toString() || user.email?.toString() || "Unknown User"}`;
+          return mdText`👤 ${
+            PendingInviteeProfiles.getNameInProject({
+              userId: user.id,
+              name: user.name,
+              email: user.email,
+              withheld: withheld,
+            }) || "Unknown User"
+          }`;
         }),
         ...data.teams.map((team: Team): MarkdownText => {
           return mdText`👥 ${team.name?.toString() || "Unnamed Team"}`;
@@ -92,6 +109,37 @@ export default class RuleFeedMarkdown {
       ],
       { whenEmpty: "(no named owners)" },
     );
+  }
+
+  /*
+   * ownersList, for owners an engine read as OneUptime in `projectId`:
+   * someone only invited to the project is listed as the project knows
+   * them - the name typed for them, else their address - never by their
+   * account's own name, which it does not see until they join (#9823).
+   * One read for them all.
+   */
+  public static async readOwnersList(data: {
+    users: Array<User>;
+    teams: Array<Team>;
+    projectId: ObjectID;
+  }): Promise<MarkdownText> {
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: data.users
+          .map((user: User): string => {
+            return user.id?.toString() || "";
+          })
+          .filter((userId: string): boolean => {
+            return Boolean(userId);
+          }),
+        projectId: data.projectId,
+      });
+
+    return RuleFeedMarkdown.ownersList({
+      users: data.users,
+      teams: data.teams,
+      withheld: withheld,
+    });
   }
 
   /**

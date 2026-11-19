@@ -32,6 +32,9 @@ import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledM
 import UserService from "../../../Server/Services/UserService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import { OnCreate, OnDelete } from "../../../Server/Types/Database/Hooks";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
@@ -369,6 +372,57 @@ describe.each(OWNER_KINDS)("$label", (kind: OwnerKind) => {
     });
     expect(String(call["feedInfoInMarkdown"])).toContain("Deane Looi");
   });
+
+  /*
+   * An owner can be someone invited to the project who has not accepted:
+   * the project sees only what it invited of them - the name typed for
+   * them, else their address - never their account's own name (#9823).
+   */
+  test("someone only invited, added and removed: named by the name typed for them, never their own", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [DEANE_ID.toString(), { inviteeName: "Deane from Payments" }],
+        ]),
+      );
+
+    const added: BaseModel = ownerRow(kind);
+    added.setColumnValue("createdByUserId", VALERIA_ID);
+
+    await hooks.onCreateSuccess(
+      {
+        createBy: { data: added, props: memberProps(VALERIA_ID) },
+        carryForward: null,
+      } as OnCreate<BaseModel>,
+      added,
+    );
+
+    await hooks.onDeleteSuccess(
+      {
+        deleteBy: {
+          query: {},
+          limit: 1,
+          skip: 0,
+          props: memberProps(VALERIA_ID),
+        },
+        carryForward: { itemsToDelete: [ownerRow(kind)] },
+      } as OnDelete<BaseModel>,
+      [ROW_ID],
+    );
+
+    expect(feedCalls).toHaveLength(2);
+    expect(String(feedCalls[0]!["feedInfoInMarkdown"])).toContain(
+      `[Deane from Payments](${DASHBOARD}/${PROJECT_ID.toString()}/users/${DEANE_ID.toString()})`,
+    );
+    expect(String(feedCalls[1]!["feedInfoInMarkdown"])).toContain(
+      "Removed **Deane from Payments** (deane@example.com)",
+    );
+
+    for (const call of feedCalls) {
+      expect(String(call["feedInfoInMarkdown"])).not.toContain("Deane Looi");
+    }
+  });
 });
 
 describe("a person taken off an on-call escalation rule", () => {
@@ -428,6 +482,63 @@ describe("a person taken off an on-call escalation rule", () => {
     expect(String(call["feedInfoInMarkdown"])).toContain(
       "Removed **Deane Looi**",
     );
+  });
+
+  test("someone only invited is named by their address when no name was typed, never their own (#9823)", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [DEANE_ID.toString(), { inviteeName: null }],
+        ]),
+      );
+
+    const row: OnCallDutyPolicyEscalationRuleUser =
+      new OnCallDutyPolicyEscalationRuleUser();
+    row.projectId = PROJECT_ID;
+    row.user = userRow(DEANE_ID)!;
+    row.onCallDutyPolicy = {
+      _id: RECORD_ID.toString(),
+      name: "Payments",
+    } as never;
+    row.onCallDutyPolicyEscalationRule = {
+      _id: ROW_ID.toString(),
+      name: "First responders",
+      order: 1,
+    } as never;
+    (row.user as User).id = DEANE_ID;
+    (row.onCallDutyPolicy as unknown as { id: ObjectID }).id = RECORD_ID;
+    (row.onCallDutyPolicyEscalationRule as unknown as { id: ObjectID }).id =
+      ROW_ID;
+
+    jest
+      .spyOn(
+        OnCallDutyPolicyEscalationRuleUserService as unknown as {
+          findRowsAndHoldDeleteToThem: () => Promise<unknown>;
+        },
+        "findRowsAndHoldDeleteToThem",
+      )
+      .mockResolvedValue([row] as never);
+    jest
+      .spyOn(OnCallDutyPolicyTimeLogService, "endTimeLogForUser")
+      .mockResolvedValue(undefined as never);
+
+    await (
+      OnCallDutyPolicyEscalationRuleUserService as unknown as {
+        onBeforeDelete: (deleteBy: unknown) => Promise<unknown>;
+      }
+    ).onBeforeDelete({
+      query: {},
+      limit: 1,
+      skip: 0,
+      props: memberProps(VALERIA_ID),
+    });
+
+    const call: Record<string, unknown> = onlyFeedCall();
+    expect(String(call["feedInfoInMarkdown"])).toContain(
+      "Removed **deane@example.com**",
+    );
+    expect(String(call["feedInfoInMarkdown"])).not.toContain("Deane Looi");
   });
 });
 

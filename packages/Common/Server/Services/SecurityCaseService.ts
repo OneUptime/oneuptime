@@ -4,6 +4,7 @@ import ProjectService from "./ProjectService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import Model from "../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../Models/DatabaseModels/SecurityCaseFeed";
 import Team from "../../Models/DatabaseModels/Team";
@@ -863,7 +864,7 @@ export class Service extends ProjectReferencesService<Model> {
         securityCaseId: caseId,
         feedInfoInMarkdown: assigneeChangedMarkdown({
           userName: assignedUserId
-            ? await this.getUserName(new ObjectID(assignedUserId))
+            ? await this.getUserName(new ObjectID(assignedUserId), projectId)
             : undefined,
           teamName: assignedTeamId
             ? await this.getTeamName(new ObjectID(assignedTeamId))
@@ -1027,7 +1028,15 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
-  private async getUserName(userId: ObjectID): Promise<string> {
+  /*
+   * A person as the project names them: someone only invited to it by the
+   * name typed for them, else their address - never their account's own
+   * name, which it does not see until they join (#9823).
+   */
+  private async getUserName(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<string> {
     const user: User | null = await UserService.findOneById({
       id: userId,
       select: {
@@ -1037,6 +1046,11 @@ export class Service extends ProjectReferencesService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    await PendingInviteeProfiles.nameInProject({
+      users: [user],
+      projectId: projectId,
     });
 
     return user?.name?.toString() || user?.email?.toString() || "a user";

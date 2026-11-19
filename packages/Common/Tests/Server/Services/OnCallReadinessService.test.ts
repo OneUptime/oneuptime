@@ -41,6 +41,9 @@ import logger from "../../../Server/Utils/Logger";
 import ProjectMembership, {
   ProjectMembershipStandings,
 } from "../../../Server/Utils/TeamMember/ProjectMembership";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -5005,6 +5008,73 @@ describe("a responder who is no longer a member of the project", () => {
 
     // Told apart in the same one read: no second read for invitations.
     expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The project sees only what it invited of somebody who has not accepted:
+   * the name typed for them, else their address - never their account's
+   * own name or picture (#9823).
+   */
+  test("somebody invited who has not accepted yet is named by the name typed for them, with no picture", async () => {
+    invitedUserIds = [USER_B_ID];
+
+    const pictureId: ObjectID = new ObjectID(
+      "9a9a9a9a-9a9a-4a9a-8a9a-9a9a9a9a9a9a",
+    );
+
+    for (const user of userDirectory) {
+      user.profilePictureId = pictureId;
+    }
+
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            USER_B_ID.toString().toLowerCase(),
+            { inviteeName: "Grace from Payments" },
+          ],
+        ]),
+      );
+
+    const summary: ReadinessSummary = await policySummary();
+
+    const invited: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(invited.userName).toBe("Grace from Payments");
+    expect(invited.userProfilePictureId).toBeUndefined();
+    expect(JSON.stringify(summary)).not.toContain("Grace Hopper");
+
+    // A member is shown as they are.
+    const member: UserReadiness = readinessOf(summary, USER_A_ID);
+
+    expect(member.userName).toBe("Ada Lovelace");
+    expect(member.userProfilePictureId?.toString()).toBe(pictureId.toString());
+
+    // One read for the whole responder set, in the policy's project.
+    expect(withheldIn).toHaveBeenCalledTimes(1);
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
+  });
+
+  test("somebody invited with no name typed for them is named by their address", async () => {
+    invitedUserIds = [USER_B_ID];
+
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [USER_B_ID.toString().toLowerCase(), { inviteeName: null }],
+        ]),
+      );
+
+    const summary: ReadinessSummary = await policySummary();
+
+    expect(readinessOf(summary, USER_B_ID).userName).toBe(
+      "grace@corp.example.com",
+    );
+    expect(JSON.stringify(summary)).not.toContain("Grace Hopper");
   });
 
   test("everybody a member: one read, and nobody is asked about invitations", async () => {
