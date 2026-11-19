@@ -63,7 +63,7 @@ Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een 
 Klik op een rij. De details openen naast de lijst.
 :::
 
-Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen.
+Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen. **Link kopiëren** in de details van een regel kopieert zo'n link, met de lijst waaruit u hem kopieerde eronder, over hetzelfde tijdsbereik.
 
 ## Een logboek lezen
 
