@@ -59021,5 +59021,6 @@
   "Page me for every new incident and alert.": "Roep mij op bij elk nieuw incident en elke nieuwe waarschuwing.",
   "Publish a status page that shows my monitors.": "Publiceer een statuspagina die mijn monitoren toont.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiceer een statuspagina met de naam {{name}} die mijn monitoren toont.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Deze query is in {{unit}} en de grafiek van de vorige query in {{chartUnit}}, dus de waarden ervan zijn niet goed af te lezen op de as van die grafiek."
 }

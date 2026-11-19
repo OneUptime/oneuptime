@@ -43,6 +43,23 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import MetricQueryOverlay, {
+  OverlayUnitFit,
+  OverlayUnitReading,
+} from "Common/Utils/Metrics/MetricQueryOverlay";
+import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
+import HintChip from "./HintChip";
+
+// The "Overlay with previous query" switch, on every query after the first.
+export const METRIC_QUERY_OVERLAY_TOGGLE_TEST_ID: string =
+  "metric-query-overlay-toggle";
+
+/*
+ * Under that switch, while it is on: this query's unit cannot be read on the
+ * axis of the chart it joins (MetricQueryOverlay.readUnit).
+ */
+export const METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID: string =
+  "metric-query-overlay-unit-note";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
@@ -76,8 +93,36 @@ export interface ComponentProps {
    * Display Settings is only rendered when true.
    */
   canOverlayWithPreviousQuery?: boolean | undefined;
+  /*
+   * The first query of the chart this query joins when it overlays the
+   * previous one (MetricQueryOverlay.getChartLead). That chart's value axis
+   * is in its unit, so the switch says when this query's unit cannot be
+   * read there.
+   */
+  overlayChartQuery?: MetricQueryConfigData | undefined;
   // Initial state of the "Filters & grouping" section (see MetricQuery).
   defaultShowAdvancedFilters?: boolean | undefined;
+}
+
+/*
+ * A query's unit as its chart draws it: the unit set in its display
+ * settings, else its metric's own (MetricCharts reads a member's unit the
+ * same way).
+ */
+function getDrawnUnit(
+  queryConfig: MetricQueryConfigData | undefined,
+  metricTypes: Array<MetricType>,
+): string {
+  const metricName: string =
+    queryConfig?.metricQueryData?.filterData?.metricName?.toString() || "";
+
+  return (
+    queryConfig?.metricAliasData?.legendUnit ||
+    metricTypes.find((metricType: MetricType): boolean => {
+      return metricType.name === metricName;
+    })?.unit ||
+    ""
+  );
 }
 
 // Options for the Display Settings "Chart type" select.
@@ -256,6 +301,50 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   const fallbackMetricName: string =
     props.data?.fallback?.queryConfig?.metricQueryData?.filterData?.metricName?.toString() ||
     "";
+
+  /*
+   * While this query is overlaid, how its values read on the axis of the
+   * chart it joins, which is in that chart's first query's unit. Only a unit
+   * of another kind needs saying: one of the same kind is converted into the
+   * chart's unit, and draws right (MetricQueryOverlay).
+   */
+  const overlayChartUnit: string = getDrawnUnit(
+    props.overlayChartQuery,
+    props.metricTypes,
+  );
+  const overlayChartMetricName: string =
+    props.overlayChartQuery?.metricQueryData?.filterData?.metricName?.toString() ||
+    "";
+  const ownMetricName: string =
+    props.data?.metricQueryData?.filterData?.metricName?.toString() || "";
+  const ownUnit: string = getDrawnUnit(props.data, props.metricTypes);
+  const overlayUnitReading: OverlayUnitReading | null =
+    props.canOverlayWithPreviousQuery &&
+    props.data?.overlayWithPreviousQuery === true &&
+    props.overlayChartQuery
+      ? MetricQueryOverlay.readUnit({
+          chartUnit: overlayChartUnit,
+          chartMetricName: overlayChartMetricName,
+          queryUnit: ownUnit,
+          queryMetricName: ownMetricName,
+        })
+      : null;
+
+  /*
+   * A unit by the name the chart's unit badge gives it, else as written, in
+   * the language of the sentence it is drawn in.
+   */
+  const getUnitName: (unit: string, metricName: string) => ComposedValue = (
+    unit: string,
+    metricName: string,
+  ): ComposedValue => {
+    return composedValue((sentence: Translator): string => {
+      return (
+        getUnitNameInLanguage(unit, sentence, { metricName: metricName }) ||
+        unit
+      );
+    });
+  };
 
   // Remove a single attribute filter
   const handleRemoveAttribute: (key: string) => void = (key: string): void => {
@@ -767,23 +856,54 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
                   {/* Overlay onto the previous query's chart panel */}
                   {props.canOverlayWithPreviousQuery && (
-                    <Toggle
-                      title="Overlay with previous query"
-                      description="Draw this query on the previous query's chart instead of its own, sharing the same axes."
-                      value={props.data?.overlayWithPreviousQuery || false}
-                      onChange={(checked: boolean) => {
-                        props.onBlur?.();
-                        props.onFocus?.();
-                        if (props.onChange) {
-                          props.onChange({
-                            ...props.data,
-                            overlayWithPreviousQuery: checked
-                              ? true
-                              : undefined,
-                          });
-                        }
-                      }}
-                    />
+                    <div className="space-y-2">
+                      <Toggle
+                        title="Overlay with previous query"
+                        description="Draw this query on the previous query's chart instead of its own, sharing the same axes."
+                        /*
+                         * On only as the chart reads it: true, and nothing
+                         * else a script may have saved (MetricQueryOverlay).
+                         */
+                        value={props.data?.overlayWithPreviousQuery === true}
+                        dataTestId={METRIC_QUERY_OVERLAY_TOGGLE_TEST_ID}
+                        onChange={(checked: boolean) => {
+                          props.onBlur?.();
+                          props.onFocus?.();
+                          if (props.onChange) {
+                            props.onChange({
+                              ...props.data,
+                              overlayWithPreviousQuery: checked
+                                ? true
+                                : undefined,
+                            });
+                          }
+                        }}
+                      />
+                      {/*
+                       * Said here, before it is saved, as the chart says it
+                       * once drawn: one value axis cannot read two kinds of
+                       * unit.
+                       */}
+                      {overlayUnitReading?.fit === OverlayUnitFit.Different ? (
+                        <HintChip variant="amber">
+                          <span
+                            className="min-w-0 break-words"
+                            data-testid={METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID}
+                          >
+                            {translator.translateTemplate(
+                              "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.",
+                              {
+                                unit: getUnitName(ownUnit, ownMetricName),
+                                chartUnit: getUnitName(
+                                  overlayChartUnit,
+                                  overlayChartMetricName,
+                                ),
+                              },
+                            )}
+                          </span>
+                        </HintChip>
+                      ) : null}
+                    </div>
                   )}
 
                   {/* Thresholds */}

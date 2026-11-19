@@ -59021,5 +59021,6 @@
   "Page me for every new incident and alert.": "Tilkall meg ved hver ny hendelse og hvert nytt varsel.",
   "Publish a status page that shows my monitors.": "Publiser en statusside som viser monitorene mine.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiser en statusside som heter {{name}} og viser monitorene mine.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne spørringen er i {{unit}} og diagrammet til forrige spørring i {{chartUnit}}, så verdiene kan ikke leses riktig på aksen til det diagrammet."
 }

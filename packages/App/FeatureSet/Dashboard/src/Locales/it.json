@@ -59021,5 +59021,6 @@
   "Page me for every new incident and alert.": "Avvisami per ogni nuovo incidente e ogni nuovo avviso.",
   "Publish a status page that shows my monitors.": "Pubblica una pagina di stato che mostri i miei monitor.",
   "Publish a status page called {{name}} that shows my monitors.": "Pubblica una pagina di stato chiamata {{name}} che mostri i miei monitor.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Questa query è in {{unit}} e il grafico della query precedente in {{chartUnit}}, quindi i suoi valori non si leggeranno correttamente sull'asse di quel grafico."
 }
