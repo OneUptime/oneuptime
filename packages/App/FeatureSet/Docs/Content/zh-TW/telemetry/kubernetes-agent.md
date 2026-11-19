@@ -410,7 +410,7 @@ Kubernetes 事件不會在代理程式端依命名空間篩選：代理程式會
 捨棄幾個嘈雜的指標（拒絕清單，通常是你想要的）：
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 只傳送一組固定的指標（允許清單：其他所有指標都會被捨棄）：
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 基數，也就是不同序列的數量，與頻率同樣重要，因為每個序列都會個別儲存和計費。
 
 - cAdvisor 刻意採用允許清單。cAdvisor 接收器（預設開啟）可以發出數百個指標；chart 只會轉送 `cadvisor.metricsAllowlist` 中的 CPU 節流和 OOM kill 計數器，供你自己的圖表和指標監測器使用：沒有內建範本會讀取它們。請保持清單簡短：每個項目都會依容器保存，因此多一個指標就會乘以叢集的容器數量。kube-state-metrics 預設為關閉；如果你開啟它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也會以同樣的方式運作，而且每個項目都必須與指標的完整名稱相符。
-- 磁碟區指標（`kubeletstats.volumeMetrics.enabled`，預設開啟）會為每個 Pod 的每個磁碟區發出幾個序列，用於持久卷宣告頁面上的已用、可用和容量，以及 PVC Almost Full 範本：對大多數叢集來說沒有問題，但在擁有數千個 PVC 的有狀態工作負載（Kafka、資料庫）上會很多。如果你不監控 PVC 磁碟空間，請在那裡使用 `--set kubeletstats.volumeMetrics.enabled=false` 關閉它們。
+- 磁碟區指標（`kubeletstats.volumeMetrics.enabled`，預設開啟）會為每個 Pod 中每個存放資料的磁碟區（宣告、emptyDir、hostPath）發出五個序列，用於持久卷宣告頁面上的已用、可用和容量、叢集「需要注意」中幾乎已滿的宣告，以及 PVC Almost Full 範本。Pod 的 configMap、secret、downwardAPI 和服務帳戶權杖磁碟區曾占這些序列的大部分，它們會在節點上被捨棄。在擁有數千個 PVC 的有狀態工作負載（Kafka、資料庫）上仍然很多：如果你不監控 PVC 磁碟空間，請在那裡使用 `--set kubeletstats.volumeMetrics.enabled=false` 關閉它們。
 - 飽和度指標（`kubeletstats.utilizationMetrics.enabled`，預設開啟）會增加 8 個衍生的「占 request 或 limit 的 %」指標系列。它們不需要額外的抓取，但如果你不使用針對 limit 的 CPU 和記憶體監測器，請使用 `--set kubeletstats.utilizationMetrics.enabled=false` 捨棄它們。
 - 對於接收器允許清單無法表達的內容，請用作用於所有接收器的 `filters.metrics.exclude` 依名稱捨棄指標（請參閱 [依名稱包含或排除指標](#依名稱包含或排除指標)）：
 
