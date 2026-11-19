@@ -250,7 +250,10 @@ const matchesQuery: (
 const toUser: (fake: FakeUser) => User = (fake: FakeUser): User => {
   const user: User = new User(new ObjectID(fake.id));
   user.email = new Email(fake.email);
-  user.name = new Name(fake.name);
+  // An account with no name has none, as one an invitation or SCIM created without one.
+  if (fake.name) {
+    user.name = new Name(fake.name);
+  }
   user.isMasterAdmin = fake.isMasterAdmin;
   return user;
 };
@@ -316,12 +319,12 @@ jest.mock("Common/Server/Services/UserService", () => {
       },
       createByEmail: async (args: {
         email: Email;
-        name: Name;
+        name: Name | undefined;
       }): Promise<User> => {
         const user: FakeUser = {
           id: idOf(ObjectID.generate()),
           email: args.email.toString(),
-          name: args.name.toString(),
+          name: args.name?.toString() || "",
           isMasterAdmin: false,
         };
         world.users.push(user);
@@ -932,6 +935,15 @@ function expectEmailChangeNotApplied(
   );
 }
 
+// Every step the connection's SCIM log was written with, in this test.
+function loggedSteps(): Array<string> {
+  return (createProjectSCIMLog as jest.Mock).mock.calls.flatMap(
+    (call: Array<unknown>): Array<string> => {
+      return ((call[0] as JSONObject)["steps"] as Array<string>) || [];
+    },
+  );
+}
+
 // The addresses a SCIM user answers with: its userName and its emails.
 function answeredAddresses(result: HttpResult): Array<string> {
   return [
@@ -1512,13 +1524,19 @@ describe("on the hosted service, an existing account is invited, not added", () 
     ).toBe(true);
     // One invitation into the project, not one per team.
     expect(invitationEmailsFor(cast.stranger)).toEqual(["dave@example.com"]);
+    /*
+     * The log names the teams, and not that the adds were invitations: that
+     * would say the address had an account (#9825). The project's Users
+     * list shows the invitations.
+     */
     expect(createProjectSCIMLog).toHaveBeenCalledWith(
       expect.objectContaining({
         steps: expect.arrayContaining([
-          expect.stringMatching(/0 added as member, 2 invited/),
+          "User added to teams: Default A, Default B",
         ]),
       }),
     );
+    expect(JSON.stringify(loggedSteps())).not.toMatch(/invit|pending/i);
   });
 
   test("the same through a Bulk request", async () => {

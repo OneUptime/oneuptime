@@ -1,10 +1,12 @@
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import Text from "Common/Types/Text";
 
 /*
  * The accounts, teams and memberships the project SCIM server reads and
@@ -24,6 +26,7 @@ import ObjectID from "Common/Types/ObjectID";
 export interface WorldUser {
   id: string;
   email: string;
+  // "" for an account with no name.
   name: string;
   isMasterAdmin: boolean;
 }
@@ -65,13 +68,21 @@ class InMemorySCIMWorld {
     return new Date(this.clock);
   }
 
-  public seedUser(data: { email: string; name?: string }): string {
+  /*
+   * An account. Its name is the one given, else its address's local part -
+   * or none at all for `name: null`, as an invitation or SCIM leaves one.
+   */
+  public seedUser(data: {
+    email: string;
+    name?: string | null;
+    isMasterAdmin?: boolean;
+  }): string {
     const id: string = idOf(ObjectID.generate());
     this.users.push({
       id: id,
       email: data.email.toLowerCase(),
-      name: data.name || data.email.split("@")[0]!,
-      isMasterAdmin: false,
+      name: data.name === null ? "" : data.name || data.email.split("@")[0]!,
+      isMasterAdmin: Boolean(data.isMasterAdmin),
     });
     return id;
   }
@@ -177,7 +188,9 @@ const matchesQuery: (
 const toUser: (row: WorldUser) => User = (row: WorldUser): User => {
   const user: User = new User(new ObjectID(row.id));
   user.email = new Email(row.email);
-  user.name = new Name(row.name);
+  if (row.name) {
+    user.name = new Name(row.name);
+  }
   user.isMasterAdmin = row.isMasterAdmin;
   return user;
 };
@@ -241,11 +254,28 @@ export const fakeUserService: Record<string, unknown> = {
       })
       .map(toUser);
   },
-  createByEmail: async (args: { email: Email; name: Name }): Promise<User> => {
+  createByEmail: async (args: {
+    email: Email;
+    name: Name | undefined;
+    generateRandomPassword?: boolean;
+  }): Promise<User> => {
+    /*
+     * What the real service spends on a new account's password: it writes a
+     * random one (UserService.createByEmail), which DatabaseService hashes
+     * with scrypt (PasswordHash.hash) before the row is written. Spent here
+     * too, so a suite can count the work a create does.
+     */
+    if (args.generateRandomPassword) {
+      await PasswordHash.hash({
+        plainValue: Text.generateRandomText(20),
+        salt: PasswordHash.generateSalt(),
+      });
+    }
+
     const row: WorldUser = {
       id: idOf(ObjectID.generate()),
       email: args.email.toString(),
-      name: args.name.toString(),
+      name: args.name?.toString() || "",
       isMasterAdmin: false,
     };
     scimWorld.users.push(row);

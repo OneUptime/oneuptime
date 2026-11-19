@@ -223,7 +223,10 @@ const matchesQuery: (
 const toUser: (fake: FakeUser) => User = (fake: FakeUser): User => {
   const user: User = new User(new ObjectID(fake.id));
   user.email = new Email(fake.email);
-  user.name = new Name(fake.name);
+  // An account SCIM creates without a name has none.
+  if (fake.name) {
+    user.name = new Name(fake.name);
+  }
   user.isMasterAdmin = false;
   return user;
 };
@@ -355,13 +358,13 @@ jest.mock("Common/Server/Services/UserService", () => {
       },
       createByEmail: async (args: {
         email: Email;
-        name: Name;
+        name: Name | undefined;
       }): Promise<User> => {
         world.writes.push("user created");
         const user: FakeUser = {
           id: idOf(ObjectID.generate()),
           email: args.email.toString(),
-          name: args.name.toString(),
+          name: args.name?.toString() || "",
         };
         world.users.push(user);
         return toUser(user);

@@ -21,6 +21,8 @@ import logger, {
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
+import Text from "Common/Types/Text";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { JSONObject } from "Common/Types/JSON";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
@@ -229,19 +231,34 @@ const wouldActivationAddToTeams: (data: {
   });
 };
 
-// Says, for the execution log, what adding an account to teams amounted to.
+/*
+ * Says, for the execution log, what adding an account to teams amounted to:
+ * how many teams it was added to, and how many it was in already. Not
+ * whether an add was an accepted membership or an invitation: on OneUptime
+ * Cloud an account that existed before the identity provider created it is
+ * invited, and one SCIM created is added, so the log - which the project's
+ * members and viewers read - would say which addresses already had an
+ * account (#9825). The project's Users list shows who is invited.
+ */
 const describeTeamAddOutcomes: (
   outcomes: Array<ProjectSCIMTeamAddOutcome>,
 ) => string = (outcomes: Array<ProjectSCIMTeamAddOutcome>): string => {
-  const count: (outcome: ProjectSCIMTeamAddOutcome) => number = (
-    outcome: ProjectSCIMTeamAddOutcome,
-  ): number => {
-    return outcomes.filter((item: ProjectSCIMTeamAddOutcome) => {
-      return item === outcome;
-    }).length;
-  };
+  const added: number = outcomes.filter(
+    (outcome: ProjectSCIMTeamAddOutcome): boolean => {
+      return (
+        outcome === ProjectSCIMTeamAddOutcome.AddedAsMember ||
+        outcome === ProjectSCIMTeamAddOutcome.Invited
+      );
+    },
+  ).length;
 
-  return `${count(ProjectSCIMTeamAddOutcome.AddedAsMember)} added as member, ${count(ProjectSCIMTeamAddOutcome.Invited)} invited (pending acceptance), ${count(ProjectSCIMTeamAddOutcome.AlreadyInTeam)} already in team`;
+  const alreadyInTeam: number = outcomes.filter(
+    (outcome: ProjectSCIMTeamAddOutcome): boolean => {
+      return outcome === ProjectSCIMTeamAddOutcome.AlreadyInTeam;
+    },
+  ).length;
+
+  return `${added} added, ${alreadyInTeam} already in team`;
 };
 
 // Constants for special teams
@@ -1784,7 +1801,6 @@ interface CreatedProjectScimUser {
   user: ProjectScimUser;
   email: string;
   name: string;
-  userWasCreated: boolean;
   teamsAdded: Array<string>;
 }
 
@@ -1793,7 +1809,19 @@ interface CreatedProjectScimUser {
  * address (or the one that exists), added to the connection's teams unless
  * the identity provider creates the user inactive, and the connection's
  * record of what was sent. A userName the connection has already, or an
- * account it keeps a record of, is a conflict (409).
+ * account it keeps a record of, is a conflict (409 uniqueness, RFC 7644,
+ * section 3.3): userName is unique within a SCIM endpoint (RFC 7643, section
+ * 2.2, "server"), and an account elsewhere on the server is no resource of
+ * this one.
+ *
+ * Whoever holds the connection's token, and the project's members and
+ * viewers who read its SCIM log, must not learn whether the address had an
+ * account before (#9825). So the answer is the record (renderScimUser), the
+ * log reads the same either way, and linking an account that exists spends
+ * what creating one costs - its password's hash - so the request takes as
+ * long. What still differs is the membership: on OneUptime Cloud an
+ * existing account is invited (ProjectSCIMAccountPolicy), which the
+ * project's Users list shows.
  */
 const createProjectScimUser: (data: {
   projectId: ObjectID;
@@ -1856,15 +1884,14 @@ const createProjectScimUser: (data: {
     throw userExistsException(userName);
   }
 
-  executionSteps.push("Checking if user already exists in database");
-
   let user: User | null = await UserService.findOneBy({
     query: { email: new Email(email) },
     select: SCIM_ACCOUNT_SELECT,
     props: { isRoot: true },
   });
 
-  let userWasCreated: boolean = false;
+  // Whether this request created the account: ProjectSCIMAccountPolicy's to read, never the log's.
+  let userWasCreatedByScim: boolean = false;
 
   if (user) {
     if (
@@ -1879,35 +1906,27 @@ const createProjectScimUser: (data: {
       throw userExistsException(userName);
     }
 
-    executionSteps.push(
-      `User already exists with ID: ${user.id?.toString()} - will link to project`,
-    );
+    /*
+     * What creating the account would have cost - hashing its password -
+     * spent here instead (PasswordHash.spendVerificationTime, #9745), so a
+     * create takes as long whether or not the address had an account.
+     */
+    await PasswordHash.spendVerificationTime(Text.generateRandomText(20));
 
     /*
-     * Update user's name if provided in SCIM request and user's name is
-     * missing or different -- but only for an account this project already
-     * manages (see ProjectSCIMAccountPolicy). Judged before the account is
-     * added to any team below.
+     * The identity provider's name for an account this project manages, as
+     * an update gives it (ProjectSCIMAccountPolicy); any other account keeps
+     * its own. Not logged, either way: the log reads the same for an account
+     * that existed and one created here.
      */
-    const currentName: string = user.name?.toString() || "";
-    const mayChangeName: boolean =
-      Boolean(name) &&
-      currentName !== name &&
+    if (
+      name &&
+      (user.name?.toString() || "") !== name &&
       (await ProjectSCIMAccountPolicy.mayChangeName({
         projectId: data.projectId,
         userId: user.id!,
-      }));
-
-    if (name && currentName !== name && !mayChangeName) {
-      executionSteps.push(
-        "Name not updated: this account has not joined this project, belongs to another project, or is a OneUptime administrator",
-      );
-    }
-
-    if (mayChangeName) {
-      executionSteps.push(
-        `Updating user name from "${currentName || "(empty)"}" to "${name}"`,
-      );
+      }))
+    ) {
       await UserService.updateOneById({
         id: user.id!,
         data: {
@@ -1916,24 +1935,22 @@ const createProjectScimUser: (data: {
         props: { isRoot: true },
       });
       user.name = new Name(name);
-      executionSteps.push(`User name updated successfully`);
     }
   } else {
-    executionSteps.push(
-      `User does not exist - creating new user with email: ${email}`,
-    );
     user = await UserService.createByEmail({
       email: new Email(email),
-      name: name ? new Name(name) : new Name("Unknown"),
+      // No name sent, no name: the person gives theirs. Never "Unknown".
+      name: name ? new Name(name) : undefined,
       isEmailVerified: true,
       generateRandomPassword: true,
       props: { isRoot: true },
     });
-    userWasCreated = true;
-    executionSteps.push(
-      `New user created successfully with ID: ${user.id?.toString()}`,
-    );
+    userWasCreatedByScim = true;
   }
+
+  executionSteps.push(
+    `Provisioned the OneUptime account ${user.id?.toString()} for ${email}`,
+  );
 
   const isActive: boolean = resource.active !== false;
   let teamsAdded: Array<string> = [];
@@ -1950,22 +1967,24 @@ const createProjectScimUser: (data: {
     executionSteps.push(
       `Adding user to ${scimConfig.teams.length} configured default teams`,
     );
-    const addOutcomes: Array<ProjectSCIMTeamAddOutcome> =
-      await handleUserTeamOperations(
-        "add",
-        data.projectId,
-        user.id!,
-        scimConfig,
-        {
-          userWasCreatedByScim: userWasCreated,
-        },
-      );
+    /*
+     * The teams, and not what each add amounted to: whether it was an
+     * invitation says, on OneUptime Cloud, whether the account existed
+     * (describeTeamAddOutcomes).
+     */
+    await handleUserTeamOperations(
+      "add",
+      data.projectId,
+      user.id!,
+      scimConfig,
+      {
+        userWasCreatedByScim: userWasCreatedByScim,
+      },
+    );
     teamsAdded = scimConfig.teams.map((t: Team) => {
       return t.name || t.id?.toString() || "unknown";
     });
-    executionSteps.push(
-      `User added to teams: ${teamsAdded.join(", ")} (${describeTeamAddOutcomes(addOutcomes)})`,
-    );
+    executionSteps.push(`User added to teams: ${teamsAdded.join(", ")}`);
   } else {
     executionSteps.push(
       scimConfig.enablePushGroups
@@ -1974,11 +1993,11 @@ const createProjectScimUser: (data: {
     );
     const unassigned: { team: Team; outcome: ProjectSCIMTeamAddOutcome } =
       await addUserToUnassignedTeam(data.projectId, user.id!, {
-        userWasCreatedByScim: userWasCreated,
+        userWasCreatedByScim: userWasCreatedByScim,
       });
     teamsAdded = [UNASSIGNED_TEAM_NAME];
     executionSteps.push(
-      `User added to "Unassigned" team (ID: ${unassigned.team.id?.toString()}, ${describeTeamAddOutcomes([unassigned.outcome])})`,
+      `User added to "Unassigned" team (ID: ${unassigned.team.id?.toString()})`,
     );
   }
 
@@ -1998,7 +2017,6 @@ const createProjectScimUser: (data: {
     user: { account: user, record: record, showsAccountProfile: false },
     email: email,
     name: name,
-    userWasCreated: userWasCreated,
     teamsAdded: teamsAdded,
   };
 };
@@ -4562,11 +4580,14 @@ router.post(
         requestBody: getRequestBody(req),
         responseBody: responseBody,
         steps: executionSteps,
+        /*
+         * What the identity provider sent, and the account's id: never
+         * whether the address had an account before (#9825).
+         */
         userInfo: {
           userId: created.user.account.id?.toString(),
           email: created.email,
-          name: created.name || "Unknown",
-          wasNewlyCreated: created.userWasCreated,
+          name: created.name || null,
         },
         additionalContext: {
           autoProvisionEnabled: Boolean(scimConfig.autoProvisionUsers),
