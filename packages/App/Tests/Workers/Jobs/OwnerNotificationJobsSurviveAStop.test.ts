@@ -52,7 +52,9 @@ import {
  * The ten jobs of incidents and alerts - Created, state changed, note
  * posted, owner added and still-open reminder - and the 23 of episodes,
  * monitors, scheduled maintenance events, status pages, SLOs and network
- * devices each take (mark) the record
+ * devices, and the owner-added jobs of probes, AI agents, and Data
+ * Observability's tables, pipelines and data stores (#9681), each take
+ * (mark) the record
  * they tell of before they tell its owners. Every one reads what it has to
  * tell a page at a time and takes each record by one hook-free
  * compare-and-set (OwnerNotificationBacklog, #7974, #8862) - a reminder job
@@ -201,6 +203,10 @@ function mockAnyService(): unknown {
       getStatusPageLinkInDashboard: jest.fn(),
       getSloLinkInDashboard: jest.fn(),
       getLinkInDashboard: jest.fn(),
+      getDataAssetLinkInDashboard: jest.fn(),
+      getDataPipelineLinkInDashboard: jest.fn(),
+      getDataStoreLinkInDashboard: jest.fn(),
+      getDataObservabilityDatabaseLinkInDashboard: jest.fn(),
       isScheduledMaintenanceCompleted: jest.fn(),
       isScheduledMaintenanceOngoing: jest.fn(),
       findMatchingRule: jest.fn(),
@@ -359,6 +365,33 @@ jest.mock("Common/Server/Services/AIAgentOwnerTeamService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/AIAgentOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataAssetService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataAssetOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataAssetOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataPipelineService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataPipelineOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataPipelineOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataStoreService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataStoreOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/DataStoreOwnerUserService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/IncidentMemberService", () => {
@@ -626,6 +659,15 @@ import ProbeOwnerUserService from "Common/Server/Services/ProbeOwnerUserService"
 import AIAgentService from "Common/Server/Services/AIAgentService";
 import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
+import DataAssetService from "Common/Server/Services/DataAssetService";
+import DataAssetOwnerTeamService from "Common/Server/Services/DataAssetOwnerTeamService";
+import DataAssetOwnerUserService from "Common/Server/Services/DataAssetOwnerUserService";
+import DataPipelineService from "Common/Server/Services/DataPipelineService";
+import DataPipelineOwnerTeamService from "Common/Server/Services/DataPipelineOwnerTeamService";
+import DataPipelineOwnerUserService from "Common/Server/Services/DataPipelineOwnerUserService";
+import DataStoreService from "Common/Server/Services/DataStoreService";
+import DataStoreOwnerTeamService from "Common/Server/Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "Common/Server/Services/DataStoreOwnerUserService";
 import IncidentMemberService from "Common/Server/Services/IncidentMemberService";
 import IncidentRoleService from "Common/Server/Services/IncidentRoleService";
 
@@ -665,6 +707,9 @@ import "../../../FeatureSet/Workers/Jobs/SloOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/Probe/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DataAssetOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DataPipelineOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DataStoreOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IncidentMembers/SendMemberAddedNotification";
 
 type AnyMock = jest.Mock;
@@ -1319,6 +1364,15 @@ const EVERY_RESOURCE_SERVICES: Array<unknown> = [
   AIAgentService,
   AIAgentOwnerTeamService,
   AIAgentOwnerUserService,
+  DataAssetService,
+  DataAssetOwnerTeamService,
+  DataAssetOwnerUserService,
+  DataPipelineService,
+  DataPipelineOwnerTeamService,
+  DataPipelineOwnerUserService,
+  DataStoreService,
+  DataStoreOwnerTeamService,
+  DataStoreOwnerUserService,
 ];
 
 // The record the owners of the other resources are told of.
@@ -1429,6 +1483,36 @@ function aiAgent(): PlainRecord {
     ...OF_THE_PROJECT,
     name: "Fixer",
     description: "Opens pull requests",
+  });
+}
+
+function dataAsset(): PlainRecord {
+  return plain({
+    id: RESOURCE_ID,
+    ...OF_THE_PROJECT,
+    name: "orders",
+    schemaName: "analytics",
+    dataStoreName: "warehouse",
+    description: "One row per order",
+  });
+}
+
+function dataPipeline(): PlainRecord {
+  return plain({
+    id: RESOURCE_ID,
+    ...OF_THE_PROJECT,
+    jobName: "load_orders",
+    jobNamespace: "airflow",
+    description: "Loads the orders every hour",
+  });
+}
+
+function dataStore(): PlainRecord {
+  return plain({
+    id: RESOURCE_ID,
+    ...OF_THE_PROJECT,
+    name: "orders-db",
+    description: "The orders database",
   });
 }
 
@@ -2015,6 +2099,34 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     recordIdField: "aiAgentId",
     record: aiAgent,
   }),
+  // Data Observability's tables, pipelines and data stores (#9681).
+  ownerAddedCase({
+    title: "a team added as the owner of a table",
+    jobName: "DataAssetOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DataAssetOwnerAdded,
+    recordService: DataAssetService,
+    teamService: DataAssetOwnerTeamService,
+    recordIdField: "dataAssetId",
+    record: dataAsset,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a pipeline",
+    jobName: "DataPipelineOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DataPipelineOwnerAdded,
+    recordService: DataPipelineService,
+    teamService: DataPipelineOwnerTeamService,
+    recordIdField: "dataPipelineId",
+    record: dataPipeline,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a data store",
+    jobName: "DataStoreOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.DataStoreOwnerAdded,
+    recordService: DataStoreService,
+    teamService: DataStoreOwnerTeamService,
+    recordIdField: "dataStoreId",
+    record: dataStore,
+  }),
 ];
 
 /*
@@ -2200,6 +2312,10 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
           "getStatusPageLinkInDashboard",
           "getSloLinkInDashboard",
           "getLinkInDashboard",
+          "getDataAssetLinkInDashboard",
+          "getDataPipelineLinkInDashboard",
+          "getDataStoreLinkInDashboard",
+          "getDataObservabilityDatabaseLinkInDashboard",
         ]) {
           asMock(each[link]).mockResolvedValue("https://oneuptime.test/record");
         }

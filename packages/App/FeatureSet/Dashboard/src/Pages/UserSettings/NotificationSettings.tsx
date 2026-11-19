@@ -428,6 +428,18 @@ const EVENT_LIBRARY: Record<
     description:
       "Someone assigns an exception to you, or to a team you are on.",
   },
+  [NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as table owner",
+    description: "You are added as an owner of a table.",
+  },
+  [NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as pipeline owner",
+    description: "You are added as an owner of a pipeline.",
+  },
+  [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as data store owner",
+    description: "You are added as an owner of a data store.",
+  },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
       label: "Probe status changed for your monitor",
@@ -824,6 +836,18 @@ const monitoring: Array<SectionDef> = [
       NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
     ],
   ),
+  /*
+   * Tables and pipelines (#9681): being made an owner, by an owner rule
+   * whose Notify Owners is on or on an Owners page.
+   */
+  buildSection(
+    translationKey("Data Observability"),
+    translationKey("Notify me about tables and pipelines I own."),
+    [
+      NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
 ];
 
 const statusPages: Array<SectionDef> = [
@@ -906,6 +930,15 @@ const security: Array<SectionDef> = [
       "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
     ),
     [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
+  ),
+  /*
+   * Data stores (#9681): being made an owner, by an owner rule whose Notify
+   * Owners is on or on a store's Owners page.
+   */
+  buildSection(
+    translationKey("Data Security"),
+    translationKey("Notify me about data stores I own."),
+    [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION],
   ),
 ];
 

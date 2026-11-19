@@ -3,17 +3,23 @@ import fs from "fs";
 import path from "path";
 import {
   AWS_KEY_METRICS,
+  AZURE_FIVE_MINUTE_GRAIN,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   AzureKeyMetric,
+  AzureRetiredKeyMetric,
   AzureTypeKeyMetrics,
   GCP_KEY_METRICS,
+  GCP_OPS_AGENT,
   GcpKeyMetric,
+  GcpRetiredKeyMetric,
   GcpTypeKeyMetrics,
   getAwsKeyMetrics,
   getAwsProbeMetricNames,
+  getAzureReadMetricNames,
+  getGcpStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
   SelectedMetric,
@@ -64,6 +70,8 @@ interface AzureReference {
       page: string;
       pageDate: string;
       metrics: Record<string, AzureReferenceMetric>;
+      // The rows of the deprecated metrics the type still reads (retired).
+      retired?: Record<string, AzureReferenceMetric>;
     }
   >;
 }
@@ -76,12 +84,16 @@ interface GcpReferenceMetric {
   unit: string;
   monitoredResources: Array<string>;
   page: string;
+  // The metric's labels, where a key metric is read by some of them.
+  labels?: Array<string>;
 }
 
 interface GcpReference {
   source: string;
   readOn: string;
   metrics: Record<string, GcpReferenceMetric>;
+  // The rows of the deprecated metrics still read (retired).
+  retired: Record<string, GcpReferenceMetric>;
 }
 
 function readReference<T>(file: string): T {
@@ -113,15 +125,6 @@ const GRAIN_SECONDS: Record<string, number> = {
   PT6H: 21600,
   PT12H: 43200,
   P1D: 86400,
-};
-
-/*
- * Metrics Microsoft marks deprecated that a type still reads, each for a
- * reason: an Azure Cosmos DB account's ServerSideLatency is its headline
- * latency tile (CloudResourceHealth), beside the two that replace it.
- */
-const AZURE_DEPRECATED_KEPT: Record<string, Array<string>> = {
-  "Microsoft.DocumentDB/databaseAccounts": ["ServerSideLatency"],
 };
 
 /*
@@ -209,27 +212,99 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
     }
   });
 
-  test("no key metric is one Microsoft deprecates, but the few kept for a reason", () => {
+  test("no key metric is one Microsoft deprecates", () => {
     for (const entry of AZURE_KEY_METRICS) {
       for (const [metric, row] of Object.entries(
         azureReferenceOf(entry.type).metrics,
       )) {
-        const isDeprecated: boolean = DEPRECATED.test(row.displayName);
-
-        expect({ type: entry.type, metric, isDeprecated }).toEqual({
+        expect({
           type: entry.type,
           metric,
-          isDeprecated: (AZURE_DEPRECATED_KEPT[entry.type] || []).includes(
-            metric,
-          ),
-        });
+          isDeprecated: DEPRECATED.test(row.displayName),
+        }).toEqual({ type: entry.type, metric, isDeprecated: false });
       }
     }
   });
 
-  test("each is read at a grain Azure Monitor offers it at, and a type at one grain finer than an hour at most: one call a read", () => {
+  /*
+   * A metric Microsoft deprecates is no key metric: the type reads what
+   * replaces it, and keeps reading it in the same call for the monitors
+   * built on it (AzureTypeKeyMetrics.retired) - only while Microsoft's
+   * table still lists it as deprecated, and never as anything but that.
+   */
+  test("a retired metric is one Microsoft deprecates, replaced by key metrics of its type that are not", () => {
+    for (const entry of AZURE_KEY_METRICS) {
+      const reference: AzureReference["types"][string] = azureReferenceOf(
+        entry.type,
+      );
+
+      // The reference holds the retired metrics' rows, and no other.
+      expect({
+        type: entry.type,
+        retired: Object.keys(reference.retired || {}).sort(),
+      }).toEqual({
+        type: entry.type,
+        retired: (entry.retired || [])
+          .map((metric: AzureRetiredKeyMetric): string => {
+            return metric.name;
+          })
+          .sort(),
+      });
+
+      for (const retired of entry.retired || []) {
+        const row: AzureReferenceMetric = reference.retired![retired.name]!;
+
+        expect({
+          type: entry.type,
+          metric: retired.name,
+          isDeprecated: DEPRECATED.test(row.displayName),
+          isKeyMetric: Boolean(reference.metrics[retired.name]),
+        }).toEqual({
+          type: entry.type,
+          metric: retired.name,
+          isDeprecated: true,
+          isKeyMetric: false,
+        });
+        expect(retired.replacedBy.length).toBeGreaterThan(0);
+
+        for (const replacement of retired.replacedBy) {
+          expect({
+            replacement,
+            isKeyMetric: Boolean(reference.metrics[replacement]),
+            isDeprecated: DEPRECATED.test(
+              reference.metrics[replacement]?.displayName || "",
+            ),
+          }).toEqual({ replacement, isKeyMetric: true, isDeprecated: false });
+        }
+      }
+    }
+
+    // Cosmos DB's ServerSideLatency, for its direct and gateway latencies.
+    expect(
+      AZURE_KEY_METRICS.find((entry: AzureTypeKeyMetrics): boolean => {
+        return entry.type === "Microsoft.DocumentDB/databaseAccounts";
+      })?.retired,
+    ).toEqual([
+      {
+        name: "ServerSideLatency",
+        replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
+      },
+    ]);
+  });
+
+  /*
+   * A call reads one grain, so each grain finer than an hour is a call a
+   * resource. A type reads its metrics at one such grain - one call a read
+   * - but for those marked as earning the call of their own their
+   * five-minute grain takes (AzureKeyMetric.grain), read every 15 minutes.
+   * A metric is marked only when five minutes is its finest grain, and only
+   * beside minute metrics: a type all of whose metrics are five-minute ones
+   * (a Static Web App) reads them every read in its one call.
+   */
+  test("each is read at a grain Azure Monitor offers it at, and a type at one grain finer than an hour at most, but the metrics marked as read at five minutes", () => {
     for (const entry of AZURE_KEY_METRICS) {
       const subHourly: Set<string> = new Set<string>();
+      let marked: number = 0;
 
       for (const [metric, row] of Object.entries(
         azureReferenceOf(entry.type).metrics,
@@ -240,12 +315,27 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
             return timeGrain === "PT24H" ? "P1D" : timeGrain;
           }),
         );
+        const keyMetric: AzureKeyMetric | undefined = entry.metrics.find(
+          (candidate: AzureKeyMetric): boolean => {
+            return candidate.name === metric;
+          },
+        );
 
         expect({ type: entry.type, metric, readable: Boolean(grain) }).toEqual({
           type: entry.type,
           metric,
           readable: true,
         });
+
+        if (keyMetric?.grain) {
+          marked++;
+          expect({ type: entry.type, metric, grain }).toEqual({
+            type: entry.type,
+            metric,
+            grain: AZURE_FIVE_MINUTE_GRAIN,
+          });
+          continue;
+        }
 
         if (grain && GRAIN_SECONDS[grain]! < 3600) {
           subHourly.add(grain);
@@ -256,14 +346,47 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
         type: entry.type,
         grains: true,
       });
+
+      // Marked metrics sit beside minute metrics, the type's one other grain.
+      if (marked > 0) {
+        expect({ type: entry.type, grains: Array.from(subHourly) }).toEqual({
+          type: entry.type,
+          grains: ["PT1M"],
+        });
+      }
     }
   });
 
-  test("the read selects every key metric a resource publishes as documented, in one call's worth", () => {
+  test("the metrics read at five minutes are the ones that earn their call: an App Service app's health check and a Cosmos DB account's storage", () => {
+    const marked: Record<string, Array<string>> = {};
+
     for (const entry of AZURE_KEY_METRICS) {
-      const definitions: Array<AzureMetricDefinition> = Object.entries(
-        azureReferenceOf(entry.type).metrics,
-      ).map(
+      for (const metric of entry.metrics) {
+        if (metric.grain) {
+          marked[entry.type] = [...(marked[entry.type] || []), metric.name];
+        }
+      }
+    }
+
+    expect(marked).toEqual({
+      "Microsoft.Web/sites": ["HealthCheckStatus"],
+      "Microsoft.DocumentDB/databaseAccounts": [
+        "DataUsageV2",
+        "IndexUsageV2",
+        "DocumentCountV2",
+      ],
+    });
+  });
+
+  test("the read selects every key metric a resource publishes as documented, then the retired ones, in one call's worth", () => {
+    for (const entry of AZURE_KEY_METRICS) {
+      const reference: AzureReference["types"][string] = azureReferenceOf(
+        entry.type,
+      );
+      const definitions: Array<AzureMetricDefinition> = Object.entries({
+        ...reference.metrics,
+        ...(reference.retired || {}),
+      }).map(
         ([name, row]: [
           string,
           AzureReferenceMetric,
@@ -288,17 +411,12 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
         selected.map((metric: SelectedMetric): string => {
           return metric.name;
         }),
-      ).toEqual(
-        entry.metrics.map((metric: AzureKeyMetric): string => {
-          return metric.name;
-        }),
-      );
+      ).toEqual(getAzureReadMetricNames(entry));
 
       // Each with Microsoft's own unit, and an aggregation it documents.
       for (const metric of selected) {
-        const row: AzureReferenceMetric = azureReferenceOf(entry.type).metrics[
-          metric.name
-        ]!;
+        const row: AzureReferenceMetric = (reference.metrics[metric.name] ||
+          reference.retired?.[metric.name])!;
 
         expect(metric.unit).toBe(row.unit);
         expect(row.aggregations).toContain(metric.aggregation);
@@ -334,39 +452,53 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
 
 /*
  * The unit of a Cloud Monitoring metric once aligned: a gauge's mean or
- * maximum and a distribution's percentile keep the metric's unit, and a
- * count's rate is that unit a second. A percentage written as a fraction
+ * maximum and a distribution's percentile keep the metric's unit, a
+ * count's rate is that unit a second, and a distribution read for its
+ * count is a plain number of values. A percentage written as a fraction
  * ("10^2.%": a hundred percent, so 0.25 is 25%) is the plain number "1".
  */
-function getAlignedGcpUnit(row: GcpReferenceMetric, aligner: string): string {
+function getAlignedGcpUnit(
+  row: GcpReferenceMetric,
+  metric: GcpKeyMetric,
+): string {
+  if (metric.readAs === "count") {
+    return "1";
+  }
+
   const unit: string = row.unit === "10^2.%" ? "1" : row.unit;
 
-  return aligner === "ALIGN_RATE" ? `${unit}/s` : unit;
+  return metric.aligner === "ALIGN_RATE" ? `${unit}/s` : unit;
 }
 
-// The aligners each kind and value type of metric can be read with.
-function getGcpAligners(row: GcpReferenceMetric): Array<string> {
+/*
+ * The aligners each kind and value type of metric can be read with, as
+ * the API's Aligner documents them: a distribution's 95th percentile, or -
+ * read for its count - its sum (ALIGN_SUM keeps a DELTA distribution
+ * whole, a period's values together; ALIGN_COUNT counts points, not a
+ * distribution's values, and takes no distribution).
+ */
+function getGcpAligners(
+  row: GcpReferenceMetric,
+  metric: GcpKeyMetric,
+): Array<string> {
   if (row.valueType === "DISTRIBUTION") {
+    if (metric.readAs === "count") {
+      return row.kind === "DELTA" ? ["ALIGN_SUM"] : [];
+    }
+
     return ["ALIGN_PERCENTILE_95"];
   }
 
-  if (row.valueType !== "INT64" && row.valueType !== "DOUBLE") {
-    // A BOOL or STRING metric has no number a read writes.
+  if (
+    metric.readAs ||
+    (row.valueType !== "INT64" && row.valueType !== "DOUBLE")
+  ) {
+    // A BOOL or STRING metric has no number a read writes, nor a count.
     return [];
   }
 
   return row.kind === "GAUGE" ? ["ALIGN_MEAN", "ALIGN_MAX"] : ["ALIGN_RATE"];
 }
-
-/*
- * A Cloud Monitoring metric Google deprecates that a type still reads, for
- * a reason: a Pub/Sub topic's publish operations are its headline tile,
- * and their replacement, a count of topic/message_sizes, is a distribution
- * count the read cannot take yet.
- */
-const GCP_DEPRECATED_KEPT: Array<string> = [
-  "pubsub.googleapis.com/topic/send_message_operation_count",
-];
 
 function gcpReferenceOf(metricType: string): GcpReferenceMetric {
   const reference: GcpReferenceMetric | undefined = GCP.metrics[metricType];
@@ -382,6 +514,7 @@ function gcpReferenceOf(metricType: string): GcpReferenceMetric {
 describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents them", () => {
   test("the reference says where it is from and when it was read", () => {
     expect(GCP.source).toContain("cloud.google.com/monitoring/api/metrics");
+    expect(GCP.source).toContain("metrics_agent");
     expect(GCP.readOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -398,19 +531,89 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
     expect(Array.from(read).sort()).toEqual(Object.keys(GCP.metrics).sort());
   });
 
-  test("each is generally available or in beta, but the deprecated ones kept for a reason", () => {
+  test("each is generally available or in beta: none is one Google deprecates", () => {
     for (const entry of GCP_KEY_METRICS) {
       for (const metric of entry.metrics) {
         const stage: string = gcpReferenceOf(metric.metricType).launchStage;
 
         expect({ metric: metric.metricType, stage }).toEqual({
           metric: metric.metricType,
-          stage: GCP_DEPRECATED_KEPT.includes(metric.metricType)
-            ? "DEPRECATED"
-            : expect.stringMatching(/^(GA|BETA)$/),
+          stage: expect.stringMatching(/^(GA|BETA)$/),
         });
       }
     }
+  });
+
+  /*
+   * A metric Google deprecates is no key metric: its type reads what
+   * replaces it, and keeps reading it for the monitors built on it
+   * (GcpTypeKeyMetrics.retired) - only while Google's list still has it,
+   * deprecated.
+   */
+  test("a retired metric is one Google deprecates, of its type, replaced by a key metric of its type", () => {
+    const retired: Array<{
+      resourceType: string;
+      metric: GcpRetiredKeyMetric;
+    }> = [];
+
+    for (const entry of GCP_KEY_METRICS) {
+      for (const metric of entry.retired || []) {
+        retired.push({ resourceType: entry.resourceType, metric });
+      }
+    }
+
+    // The reference holds the retired metrics' rows, and no other.
+    expect(
+      retired
+        .map((item: { metric: GcpRetiredKeyMetric }): string => {
+          return item.metric.metric.metricType;
+        })
+        .sort(),
+    ).toEqual(Object.keys(GCP.retired).sort());
+
+    for (const item of retired) {
+      const row: GcpReferenceMetric =
+        GCP.retired[item.metric.metric.metricType]!;
+      const entry: GcpTypeKeyMetrics = GCP_KEY_METRICS.find(
+        (candidate: GcpTypeKeyMetrics): boolean => {
+          return candidate.resourceType === item.resourceType;
+        },
+      )!;
+
+      expect({
+        metric: item.metric.metric.metricType,
+        stage: row.launchStage,
+        reported: row.monitoredResources.includes(item.resourceType),
+        aligned: getGcpAligners(row, item.metric.metric).includes(
+          item.metric.metric.aligner,
+        ),
+        unit: item.metric.metric.unit,
+      }).toEqual({
+        metric: item.metric.metric.metricType,
+        stage: "DEPRECATED",
+        reported: true,
+        aligned: true,
+        unit: getAlignedGcpUnit(row, item.metric.metric),
+      });
+      // Its replacement is a key metric of the same type.
+      expect(
+        entry.metrics.map((metric: GcpKeyMetric): string => {
+          return getGcpStoredMetricName(metric);
+        }),
+      ).toContain(item.metric.replacedBy);
+    }
+
+    // A topic's publish operations, for the count of its message sizes.
+    expect(
+      retired.map((item: { metric: GcpRetiredKeyMetric }) => {
+        return [item.metric.metric.metricType, item.metric.replacedBy];
+      }),
+    ).toEqual([
+      [
+        "pubsub.googleapis.com/topic/send_message_operation_count",
+        "pubsub.googleapis.com/topic/message_sizes_count",
+      ],
+    ]);
   });
 
   test("each is a metric of the resource type it is listed under", () => {
@@ -431,35 +634,81 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
     }
   });
 
-  test("each is aligned as its kind allows - a gauge's mean or maximum, a count's rate, a distribution's 95th percentile - in the unit that gives", () => {
+  test("each is aligned as its kind allows - a gauge's mean or maximum, a count's rate, a distribution's 95th percentile or its count - in the unit that gives", () => {
     for (const entry of GCP_KEY_METRICS) {
       for (const metric of entry.metrics) {
         const row: GcpReferenceMetric = gcpReferenceOf(metric.metricType);
 
         expect({
-          metric: metric.metricType,
-          allowed: getGcpAligners(row).includes(metric.aligner),
-        }).toEqual({ metric: metric.metricType, allowed: true });
-        expect({ metric: metric.metricType, unit: metric.unit }).toEqual({
-          metric: metric.metricType,
-          unit: getAlignedGcpUnit(row, metric.aligner),
+          metric: getGcpStoredMetricName(metric),
+          allowed: getGcpAligners(row, metric).includes(metric.aligner),
+        }).toEqual({ metric: getGcpStoredMetricName(metric), allowed: true });
+        expect({
+          metric: getGcpStoredMetricName(metric),
+          unit: metric.unit,
+        }).toEqual({
+          metric: getGcpStoredMetricName(metric),
+          unit: getAlignedGcpUnit(row, metric),
         });
       }
     }
   });
 
+  test("a metric read by some of its series names labels the metric has", () => {
+    for (const entry of GCP_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        for (const label of Object.keys(metric.metricLabels || {})) {
+          expect({
+            metric: metric.metricType,
+            label,
+            documented: (
+              gcpReferenceOf(metric.metricType).labels || []
+            ).includes(label),
+          }).toEqual({ metric: metric.metricType, label, documented: true });
+        }
+      }
+    }
+  });
+
+  test("the Ops Agent's metrics are its list's, read in their used state, and nothing else is the agent's", () => {
+    for (const entry of GCP_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const isAgent: boolean = metric.metricType.startsWith(
+          "agent.googleapis.com/",
+        );
+
+        expect({
+          metric: metric.metricType,
+          reportedBy: metric.reportedBy,
+          page: gcpReferenceOf(metric.metricType).page,
+        }).toEqual({
+          metric: metric.metricType,
+          reportedBy: isAgent ? GCP_OPS_AGENT : undefined,
+          page: isAgent
+            ? "metrics_agent"
+            : expect.stringMatching(/^metrics_gcp_/),
+        });
+
+        if (isAgent) {
+          expect(metric.metricLabels).toEqual({ state: "used" });
+        }
+      }
+    }
+  });
+
   test("a metric type listed under two resource types is read the same way for both", () => {
-    const byType: Map<string, GcpKeyMetric> = new Map();
+    const byName: Map<string, GcpKeyMetric> = new Map();
 
     for (const entry of GCP_KEY_METRICS as ReadonlyArray<GcpTypeKeyMetrics>) {
       for (const metric of entry.metrics) {
-        const earlier: GcpKeyMetric | undefined = byType.get(metric.metricType);
+        const name: string = getGcpStoredMetricName(metric);
+        const earlier: GcpKeyMetric | undefined = byName.get(name);
 
         if (earlier) {
           expect(metric).toEqual(earlier);
         }
 
-        byType.set(metric.metricType, metric);
+        byName.set(name, metric);
       }
     }
   });

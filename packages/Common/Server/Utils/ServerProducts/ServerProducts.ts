@@ -260,6 +260,24 @@ export class ServerProductsClass {
     return await this.getOffReason(product);
   }
 
+  /*
+   * The product a table's records are held back from work of the server's
+   * for (#9681): every product the table serves is off (ProductRecordTables),
+   * as a person's write to it is refused. A data store's new owners - Data
+   * Observability's and Data Security's both - are told while either is on.
+   * Null while one of them is on, for a table of no product, and without a
+   * database to read the products from.
+   */
+  public async getOffProductOfServerWorkTable(
+    tableName: string,
+  ): Promise<{ product: ProductKey; reason: ServerProductOffReason } | null> {
+    if (!PostgresAppInstance.isConnected()) {
+      return null;
+    }
+
+    return await this.getOffProductOfTable(tableName);
+  }
+
   // Of the products some work of the server's acts on, the first that is off.
   public async getFirstOffOfServerWork(
     products: ReadonlyArray<ProductKey>,

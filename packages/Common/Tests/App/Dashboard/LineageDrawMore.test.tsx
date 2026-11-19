@@ -809,7 +809,7 @@ describe("a pipeline's drawing", () => {
     };
   }
 
-  test("the pipeline's count draws the tables it reads, asked without columns", async () => {
+  test("the pipeline's count draws the tables it reads, asked with the columns its runs moved", async () => {
     expandLineageMock.mockResolvedValue({
       nodeId: ETL_NODE,
       side: DataLineageSide.Upstream,
@@ -837,7 +837,11 @@ describe("a pipeline's drawing", () => {
 
     await press(ETL_NODE, "left");
 
-    // A pipeline's page follows no column: its drawing was read without them.
+    /*
+     * A pipeline's page is read with the columns its runs moved (#6854), so
+     * the tables it draws come with theirs: a column followed across it
+     * goes on to them.
+     */
     expect(expandLineageMock.mock.calls[0]![0]).toEqual({
       focusNodeId: ETL_NODE,
       nodeId: ETL_NODE,
@@ -848,6 +852,7 @@ describe("a pipeline's drawing", () => {
         { dataAssetId: TABLE, side: DataLineageSide.Downstream, depth: 1 },
       ],
       dataDashboardIds: [],
+      withColumns: true,
     });
     expect(hasCount(ETL_NODE, "left")).toBe(false);
 
@@ -859,6 +864,7 @@ describe("a pipeline's drawing", () => {
     expect(screen.getByTestId("lineage-summary")).toHaveTextContent(
       "Reads 5 tables",
     );
+    // Its runs named no column here, so none is offered to follow.
     expect(screen.queryByTestId("lineage-column")).not.toBeInTheDocument();
   });
 

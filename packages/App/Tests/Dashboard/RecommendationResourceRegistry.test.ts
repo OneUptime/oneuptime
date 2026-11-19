@@ -1577,6 +1577,7 @@ describe("RecommendationResourceRegistry", () => {
       isSessionReplayEnabled?: unknown;
       sessionReplayLastChunkReceivedAt?: unknown;
       sessionReplayMonthlyBudgetInGB?: unknown;
+      sessionReplayFrustrationSignals?: unknown;
     }): BaseModel {
       const model: RumApplication = new RumApplication();
       const record: Record<string, unknown> = model as unknown as Record<
@@ -1589,6 +1590,8 @@ describe("RecommendationResourceRegistry", () => {
         values.sessionReplayLastChunkReceivedAt;
       record["sessionReplayMonthlyBudgetInGB"] =
         values.sessionReplayMonthlyBudgetInGB;
+      record["sessionReplayFrustrationSignals"] =
+        values.sessionReplayFrustrationSignals;
 
       return model;
     }
@@ -1597,6 +1600,7 @@ describe("RecommendationResourceRegistry", () => {
       isSessionReplayEnabled?: unknown;
       sessionReplayLastChunkReceivedAt?: unknown;
       sessionReplayMonthlyBudgetInGB?: unknown;
+      sessionReplayFrustrationSignals?: unknown;
     }): MonitorRecommendationContext {
       return RecommendationResourceRegistry.readContext({
         resourceType: MonitorRecommendationResourceType.RumApplication,
@@ -1643,7 +1647,7 @@ describe("RecommendationResourceRegistry", () => {
     const NOT_RECORDED_NOTE: string =
       "The session replay budget alerts appear here once this application records its first replay.";
 
-    test("selects the switch, the last chunk and the monthly budget along with the id and name", () => {
+    test("selects the switch, the last chunk, the monthly budget and its own signals along with the id and name", () => {
       expect(
         RecommendationResourceRegistry.getSelect(
           MonitorRecommendationResourceType.RumApplication,
@@ -1654,6 +1658,7 @@ describe("RecommendationResourceRegistry", () => {
         isSessionReplayEnabled: true,
         sessionReplayLastChunkReceivedAt: true,
         sessionReplayMonthlyBudgetInGB: true,
+        sessionReplayFrustrationSignals: true,
       });
     });
 
@@ -1662,7 +1667,97 @@ describe("RecommendationResourceRegistry", () => {
         sessionReplayEnabled: true,
         sessionReplayHasRecorded: true,
         sessionReplayMonthlyBudgetInGB: 10,
+        customSignals: [],
       });
+    });
+
+    /*
+     * Issue #6518: each of its own signals that is switched on is offered
+     * an alert of its own, by the id a rename keeps.
+     */
+    test("reads its own signals that are switched on, by id and name, and offers each an alert", () => {
+      const context: MonitorRecommendationContext = readRumContext({
+        ...RECORDING_WITH_BUDGET,
+        sessionReplayFrustrationSignals: {
+          customSignals: [
+            {
+              id: "signal-payment",
+              name: "Payment failed",
+              trigger: "page",
+              match: "/checkout/error",
+            },
+            {
+              id: "signal-banner",
+              name: "Old banner",
+              trigger: "click",
+              match: ".banner",
+              isEnabled: false,
+            },
+            // Saved before signals had ids: nothing to keep a monitor on.
+            { name: "No id", trigger: "event", match: "no_id" },
+          ],
+        },
+      });
+
+      expect(context.customSignals).toEqual([
+        { id: "signal-payment", name: "Payment failed" },
+      ]);
+      expect(offeredTemplateIds(context)).toContain(
+        "rum-custom-signal-signal-payment",
+      );
+      expect(offeredTemplateIds(context)).not.toContain(
+        "rum-custom-signal-signal-banner",
+      );
+      /* A damaged column is no signals, never a failed page. */
+      expect(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayFrustrationSignals: "not settings",
+        }).customSignals,
+      ).toEqual([]);
+    });
+
+    test("says when an application's signals will be offered alerts, before it records", () => {
+      const signals: { customSignals: Array<Record<string, unknown>> } = {
+        customSignals: [
+          {
+            id: "signal-payment",
+            name: "Payment failed",
+            trigger: "page",
+            match: "/checkout/error",
+          },
+        ],
+      };
+
+      expect(
+        describeRumContext(
+          readRumContext({
+            isSessionReplayEnabled: true,
+            sessionReplayLastChunkReceivedAt: null,
+            sessionReplayFrustrationSignals: signals,
+          }),
+        ),
+      ).toBe(
+        "Alerts on this application's own signals appear here once session replay is on for it and it records its first replay.",
+      );
+      expect(
+        offeredTemplateIds(
+          readRumContext({
+            isSessionReplayEnabled: true,
+            sessionReplayLastChunkReceivedAt: null,
+            sessionReplayFrustrationSignals: signals,
+          }),
+        ),
+      ).not.toContain("rum-custom-signal-signal-payment");
+      /* Recording, the alert is offered and nothing needs saying. */
+      expect(
+        describeRumContext(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            sessionReplayFrustrationSignals: signals,
+          }),
+        ),
+      ).toBeUndefined();
     });
 
     test("accepts the last chunk as the JSON string the API may hand back", () => {

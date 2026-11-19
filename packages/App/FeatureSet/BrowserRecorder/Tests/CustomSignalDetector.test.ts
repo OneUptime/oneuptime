@@ -123,6 +123,38 @@ describe("CustomSignalDetector", (): void => {
 
       expect(addSpy).not.toHaveBeenCalled();
     });
+
+    /*
+     * A tap signal names a React Native view by its testID (issue #6517):
+     * the app's recorder detects it, and a page never does - not even a
+     * click on an element whose id reads like the testID.
+     */
+    it("leaves a tap signal to the React Native recorder", (): void => {
+      detector.stop(document);
+
+      const addSpy: jest.SpyInstance = jest.spyOn(document, "addEventListener");
+
+      create([
+        {
+          name: "Pay tapped",
+          trigger: "tap",
+          match: "pay",
+          isFrustration: true,
+        },
+      ]);
+
+      expect(detector.hasSignals("tap")).toBe(true);
+      expect(addSpy).not.toHaveBeenCalled();
+
+      (document.getElementById("pay") as Element).dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
+      detector.notifyPage(["/pay"], 1000);
+      detector.notifyEvent("pay", 2000);
+      detector.notifyErrorText("pay", 3000);
+
+      expect(hits).toEqual([]);
+    });
   });
 
   describe("page", (): void => {

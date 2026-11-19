@@ -5,6 +5,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { SessionReplaySortedListCursorDto } from "Common/Types/Rum/SessionReplayApi";
 import {
   buildCursorMemoryKey,
+  buildCustomSignalSessionsQuery,
   buildFilteredUrl,
   buildHandedOffUserFilterLabel,
   buildSessionReplayListFilters,
@@ -441,6 +442,54 @@ describe("filter URL round trip", () => {
         }),
       ).searchParams.has("signalName"),
     ).toBe(false);
+  });
+
+  /*
+   * See sessions on the Frustration Signals page (issue #6515): the list
+   * opens on the signal's sessions, under the name exactly as the page
+   * holds it - the server matches it exactly - and nothing else changes.
+   */
+  test("See sessions opens the list on one signal's name, exactly as written", () => {
+    expect(buildCustomSignalSessionsQuery("Payment failed")).toEqual({
+      signalName: "Payment failed",
+    });
+
+    for (const name of [
+      "Payment failed",
+      "Card declined & retried",
+      "Checkout #2 / step 3?",
+      "Paiement échoué",
+      "پرداخت ناموفق",
+      "100% off",
+      "UPPER lower",
+    ]) {
+      const search: string = `?${new URLSearchParams(
+        buildCustomSignalSessionsQuery(name),
+      ).toString()}`;
+      const state: SessionReplayListUrlState = readListStateFromSearch(search);
+
+      expect(state.advanced.customSignalName).toBe(name);
+      /* Only the signal: the list's own window, sort, page and quick filter. */
+      expect({ ...state.advanced, customSignalName: "" }).toEqual(
+        EMPTY_ADVANCED_FILTERS,
+      );
+      expect(state.signal).toBe("all");
+      expect(state.sortBy).toBe(DEFAULT_SESSION_REPLAY_SORT_BY);
+      expect(state.timeRange).toEqual(DEFAULT_SESSION_REPLAY_TIME_RANGE);
+      expect(state.page).toBe(1);
+      /* And the list sends it to the endpoint as the name it filters by. */
+      expect(
+        buildSessionReplayListFilters(state.signal, state.advanced),
+      ).toEqual({ customSignalName: name });
+    }
+  });
+
+  test("See sessions trims the ends of a name and writes no filter for a blank one", () => {
+    expect(buildCustomSignalSessionsQuery("  Payment failed ")).toEqual({
+      signalName: "Payment failed",
+    });
+    expect(buildCustomSignalSessionsQuery("")).toEqual({});
+    expect(buildCustomSignalSessionsQuery("   ")).toEqual({});
   });
 
   test("identifiedUserRef is never written to the URL", () => {
