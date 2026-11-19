@@ -88,6 +88,7 @@ export const drawInviteeEmailField: (data: {
         data.customProps.onChange?.(email);
       }}
       onBlur={data.customProps.onBlur}
+      onEnterPress={data.customProps.onEnterPress}
       error={data.customProps.error}
       placeholder={data.customProps.placeholder}
       ariaLabelledby={data.customProps.ariaLabelledby}

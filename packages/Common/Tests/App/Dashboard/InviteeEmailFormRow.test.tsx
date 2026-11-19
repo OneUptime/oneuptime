@@ -184,6 +184,27 @@ describe("the invitation form's email row", () => {
   );
 
   test(
+    "Enter in the box invites, as an email row always did",
+    async () => {
+      const { onSubmit } = draw();
+
+      fireEvent.change(box(), { target: { value: "new.person@acme.test" } });
+
+      await act(async () => {
+        fireEvent.keyDown(box(), { key: "Enter" });
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalled();
+      });
+      expect((onSubmit.mock.calls[0]![0] as JSONObject)["email"]).toBe(
+        "new.person@acme.test",
+      );
+    },
+    TIMEOUT,
+  );
+
+  test(
     "a suggestion picked is the row's value",
     async () => {
       const { onSubmit, onRowChange } = draw();

@@ -138,6 +138,11 @@ export interface ComponentProps {
   initialValue?: string | undefined;
   onChange: (email: string) => void;
   onBlur?: (() => void) | undefined;
+  /*
+   * Enter with no suggestion picked out: the form's own Enter, which
+   * submits it, as an email row always did.
+   */
+  onEnterPress?: (() => void) | undefined;
   error?: string | undefined;
   placeholder?: string | undefined;
   ariaLabelledby?: string | undefined;
@@ -504,6 +509,8 @@ const InviteeEmailField: FunctionComponent<ComponentProps> = (
           props.onBlur?.();
         }}
         onKeyDown={onKeyDown}
+        // Called only when onKeyDown did not take the Enter for a pick.
+        onEnterPress={props.onEnterPress}
       />
       {menu ? createPortal(menu, document.body) : <></>}
     </div>

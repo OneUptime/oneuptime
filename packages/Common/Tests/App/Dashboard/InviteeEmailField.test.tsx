@@ -145,6 +145,7 @@ function answer(people: Array<InviteSuggestion>): HTTPResponse<JSONObject> {
 
 interface Rendered {
   onChange: MockFunction;
+  onEnterPress: MockFunction;
   input: HTMLInputElement;
 }
 
@@ -152,6 +153,7 @@ function renderField(
   props: { teamId?: string | null; error?: string } = {},
 ): Rendered {
   const onChange: MockFunction = getJestMockFunction();
+  const onEnterPress: MockFunction = getJestMockFunction();
 
   render(
     <div>
@@ -160,6 +162,9 @@ function renderField(
       <InviteeEmailField
         onChange={(email: string) => {
           onChange(email);
+        }}
+        onEnterPress={() => {
+          onEnterPress();
         }}
         teamId={props.teamId === undefined ? TEAM_ID : props.teamId}
         error={props.error}
@@ -173,6 +178,7 @@ function renderField(
 
   return {
     onChange: onChange,
+    onEnterPress: onEnterPress,
     input: screen.getByTestId("invitee-email") as HTMLInputElement,
   };
 }
@@ -425,6 +431,31 @@ describe("picking", () => {
     // Handled: the form's Enter does not submit it.
     expect(enter).toBe(false);
     expect(onChange).toHaveBeenLastCalledWith("adrian@other.test");
+  });
+
+  test("Enter with no suggestion picked out is the form's own: it invites", async () => {
+    const { input, onEnterPress } = renderField();
+
+    await type(input, "new.person@acme.test");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onEnterPress).toHaveBeenCalledTimes(1);
+  });
+
+  test("Enter on a suggestion picks it, and does not invite yet", async () => {
+    const { input, onChange, onEnterPress } = renderField();
+
+    await type(input, "ad");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange).toHaveBeenLastCalledWith("ada@acme.test");
+    expect(onEnterPress).not.toHaveBeenCalled();
+
+    // The list is closed: the next Enter invites.
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onEnterPress).toHaveBeenCalledTimes(1);
   });
 
   test("Escape closes the list, handled, so the dialog behind stays open", async () => {
